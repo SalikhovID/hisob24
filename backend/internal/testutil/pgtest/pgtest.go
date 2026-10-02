@@ -16,6 +16,8 @@ import (
 	"io/fs"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -129,6 +131,9 @@ func ensureTemplate(ctx context.Context, rawURL string, base *url.URL) (string, 
 	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", lockKey); err != nil {
 		return "", fmt.Errorf("lock the template: %w", err)
 	}
+	if err := dropLeftovers(ctx, conn, name, time.Now()); err != nil {
+		return "", err
+	}
 
 	var exists bool
 	if err := conn.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)", name).Scan(&exists); err != nil {
@@ -190,6 +195,50 @@ func migrationsHash() (string, error) {
 		h.Write(data)
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// staleAfter is how old a test database must be before a later run drops it
+// as the leftover of a killed run.
+const staleAfter = time.Hour
+
+// dropLeftovers drops what earlier runs left behind: templates of other
+// migrations and test databases older than staleAfter. The caller holds the
+// template lock.
+func dropLeftovers(ctx context.Context, conn *pgx.Conn, keepTemplate string, now time.Time) error {
+	rows, err := conn.Query(ctx, "SELECT datname FROM pg_database WHERE starts_with(datname, $1)", prefix)
+	if err != nil {
+		return fmt.Errorf("list test databases: %w", err)
+	}
+	names, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return fmt.Errorf("list test databases: %w", err)
+	}
+	for _, name := range names {
+		if !isLeftover(name, keepTemplate, now) {
+			continue
+		}
+		if _, err := conn.Exec(ctx, "DROP DATABASE IF EXISTS "+ident(name)+" WITH (FORCE)"); err != nil {
+			return fmt.Errorf("drop leftover %s: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// isLeftover reads the creation time from a test database name
+// (hisob24_it_<unix>_<random>); names it cannot read are left alone.
+func isLeftover(name, keepTemplate string, now time.Time) bool {
+	if strings.HasPrefix(name, templatePrefix) {
+		return name != keepTemplate
+	}
+	stamp, _, ok := strings.Cut(strings.TrimPrefix(name, prefix), "_")
+	if !ok {
+		return false
+	}
+	unix, err := strconv.ParseInt(stamp, 10, 64)
+	if err != nil {
+		return false
+	}
+	return now.Sub(time.Unix(unix, 0)) > staleAfter
 }
 
 // databaseURL is base pointed at another database on the same server.
