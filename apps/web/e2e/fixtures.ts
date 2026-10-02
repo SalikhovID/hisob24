@@ -7,10 +7,14 @@ import { handlers } from "../mocks/handlers"
 interface Fixtures {
   handlers: AnyHandler[]
   network: NetworkFixture
+  // telegramScript stands in for telegram.org's telegram-web-app.js: empty
+  // outside Telegram, a fake WebApp in the Mini App tests.
+  telegramScript: string
 }
 
 export const test = base.extend<Fixtures>({
   handlers: [handlers, { option: true }],
+  telegramScript: ["", { option: true }],
   network: [
     async ({ context, handlers }, provide) => {
       resetDb()
@@ -21,6 +25,12 @@ export const test = base.extend<Fixtures>({
     },
     { auto: true },
   ],
+  page: async ({ page, telegramScript }, provide) => {
+    await page.route("https://telegram.org/js/telegram-web-app.js*", (route) =>
+      route.fulfill({ contentType: "text/javascript", body: telegramScript }),
+    )
+    await provide(page)
+  },
 })
 
 export { expect }
