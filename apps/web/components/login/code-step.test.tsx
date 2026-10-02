@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react"
+import { act, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { accessToken } from "@/lib/session"
@@ -51,4 +51,20 @@ test("typing a new code hides the old error", async () => {
   await user.type(input, "1")
 
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+})
+
+test("the resend button waits out the timer", () => {
+  vi.useFakeTimers()
+  try {
+    renderWithProviders(<CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />)
+    expect(screen.getByRole("button", { name: "Kodni qayta yuborish (60)" })).toBeDisabled()
+
+    act(() => vi.advanceTimersByTime(1000))
+    expect(screen.getByRole("button", { name: "Kodni qayta yuborish (59)" })).toBeDisabled()
+
+    act(() => vi.advanceTimersByTime(59_000))
+    expect(screen.getByRole("button", { name: "Kodni qayta yuborish" })).toBeEnabled()
+  } finally {
+    vi.useRealTimers()
+  }
 })

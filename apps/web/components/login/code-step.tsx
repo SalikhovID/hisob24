@@ -3,13 +3,27 @@
 import { useMutation } from "@tanstack/react-query"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useRouter } from "next/navigation"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
 import { phoneDigits } from "@/lib/phone"
 import { setAccessToken } from "@/lib/session"
 
 const SLOTS = [0, 1, 2, 3, 4, 5]
+
+// useCountdown counts whole seconds down to zero. Timers only ever run late,
+// so the button never opens before the API's minute is over.
+function useCountdown(from: number) {
+  const [left, setLeft] = useState(from)
+  const running = left > 0
+  useEffect(() => {
+    if (!running) return
+    const id = setInterval(() => setLeft((seconds) => Math.max(0, seconds - 1)), 1000)
+    return () => clearInterval(id)
+  }, [running])
+  return [left, setLeft] as const
+}
 
 // CodeStep is the second login step: the code from the SMS. There is no
 // button: the sixth digit sends the code.
@@ -22,9 +36,9 @@ export function CodeStep({
   retryAfter: number
   onChangePhone: () => void
 }) {
-  void retryAfter
   void onChangePhone
   const router = useRouter()
+  const [left] = useCountdown(retryAfter)
   const [code, setCode] = useState("")
   const input = useRef<HTMLInputElement>(null)
   const verify = useMutation({
@@ -72,6 +86,9 @@ export function CodeStep({
           {verify.error.message}
         </p>
       )}
+      <Button type="button" variant="ghost" className="w-full" disabled={left > 0}>
+        {left > 0 ? `Kodni qayta yuborish (${left})` : "Kodni qayta yuborish"}
+      </Button>
     </div>
   )
 }
