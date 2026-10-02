@@ -76,7 +76,7 @@ func (e *EskizSender) login(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("eskiz login: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("eskiz login: status %d", res.StatusCode)
 	}
@@ -105,7 +105,7 @@ func (e *EskizSender) send(ctx context.Context, token, phone, text string) (int,
 	if err != nil {
 		return 0, "", fmt.Errorf("eskiz send: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	answer, _ := io.ReadAll(io.LimitReader(res.Body, 512))
 	return res.StatusCode, strings.TrimSpace(string(answer)), nil
 }
