@@ -25,6 +25,7 @@ func TestNewEndDate(t *testing.T) {
 	}{
 		{"not expired: the days follow the end date", day("2026-10-20"), 30, day("2026-11-19")},
 		{"ends today: still counts from the end date", day("2026-10-02"), 1, day("2026-10-03")},
+		{"expired: the days start today", day("2026-09-01"), 30, day("2026-11-01")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
