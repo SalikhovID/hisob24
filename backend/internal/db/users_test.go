@@ -77,3 +77,30 @@ func TestUpsertCompanyUser(t *testing.T) {
 	_, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "boss"})
 	assert.Equal(t, "23514", sqlState(err), "role is owner, manager or staff") // check_violation
 }
+
+func TestListCompanyUsers(t *testing.T) {
+	q, pool := setup(t)
+	d := today(t, pool)
+	c := createCompany(t, q, "Olma", d)
+	other := createCompany(t, q, "Nok", d)
+	addMember(t, q, c.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, c.ID, "998902222222", "Xodim", "staff")
+	addMember(t, q, other.ID, "998903333333", "Begona", "owner")
+
+	users, err := q.ListCompanyUsers(t.Context(), c.ID)
+
+	require.NoError(t, err)
+	require.Len(t, users, 2)
+	assert.Equal(t, "998901111111", users[0].Phone)
+	assert.Equal(t, "Egasi", *users[0].FullName)
+	assert.Equal(t, "owner", users[0].Role)
+	assert.Equal(t, "998902222222", users[1].Phone)
+	assert.Equal(t, "staff", users[1].Role)
+}
+
+func addMember(t *testing.T, q *gen.Queries, companyID int64, phone, name, role string) {
+	t.Helper()
+	createUser(t, q, phone, name)
+	_, err := q.UpsertCompanyUser(context.Background(), gen.UpsertCompanyUserParams{UserPhone: phone, CompanyID: companyID, Role: role})
+	require.NoError(t, err)
+}

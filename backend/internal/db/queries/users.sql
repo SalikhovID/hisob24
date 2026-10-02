@@ -16,3 +16,10 @@ INSERT INTO user_companies (user_phone, company_id, role)
 VALUES ($1, $2, $3)
 ON CONFLICT (user_phone, company_id) DO UPDATE SET role = EXCLUDED.role
 RETURNING *;
+
+-- name: ListCompanyUsers :many
+SELECT u.phone, u.full_name, uc.role, uc.created_at
+FROM user_companies uc
+JOIN users u ON u.phone = uc.user_phone
+WHERE uc.company_id = $1
+ORDER BY uc.created_at, u.phone;

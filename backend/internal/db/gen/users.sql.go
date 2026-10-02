@@ -7,6 +7,7 @@ package gen
 
 import (
 	"context"
+	"time"
 )
 
 const getUser = `-- name: GetUser :one
@@ -18,6 +19,46 @@ func (q *Queries) GetUser(ctx context.Context, phone string) (User, error) {
 	var i User
 	err := row.Scan(&i.Phone, &i.FullName, &i.CreatedAt)
 	return i, err
+}
+
+const listCompanyUsers = `-- name: ListCompanyUsers :many
+SELECT u.phone, u.full_name, uc.role, uc.created_at
+FROM user_companies uc
+JOIN users u ON u.phone = uc.user_phone
+WHERE uc.company_id = $1
+ORDER BY uc.created_at, u.phone
+`
+
+type ListCompanyUsersRow struct {
+	Phone     string
+	FullName  *string
+	Role      string
+	CreatedAt time.Time
+}
+
+func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error) {
+	rows, err := q.db.Query(ctx, listCompanyUsers, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCompanyUsersRow{}
+	for rows.Next() {
+		var i ListCompanyUsersRow
+		if err := rows.Scan(
+			&i.Phone,
+			&i.FullName,
+			&i.Role,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const upsertCompanyUser = `-- name: UpsertCompanyUser :one

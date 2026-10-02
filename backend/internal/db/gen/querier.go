@@ -46,6 +46,7 @@ type Querier interface {
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
 	ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error)
+	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
 	// Locks every active admin row, so "keep at least one active admin" holds
 	// under concurrent deactivations.
 	LockActiveAdmins(ctx context.Context) ([]int64, error)
