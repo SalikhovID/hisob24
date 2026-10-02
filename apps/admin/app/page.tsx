@@ -1,7 +1,6 @@
+import { redirect } from "next/navigation"
+
+// The companies list is the panel's home page.
 export default function Home() {
-  return (
-    <main className="flex min-h-svh items-center justify-center p-4">
-      <h1 className="text-2xl font-semibold">Hisob24 Admin</h1>
-    </main>
-  )
+  redirect("/companies")
 }
