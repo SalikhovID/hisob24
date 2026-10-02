@@ -27,6 +27,7 @@ type Querier interface {
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
+	// company_id is the company the access tokens it refreshes are for.
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
 	// The database's today: every end_date check counts from it.
 	CurrentDate(ctx context.Context) (time.Time, error)
@@ -67,9 +68,10 @@ type Querier interface {
 	// Locks the company for a billing transaction. today is the database's
 	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
 	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)
-	// Revokes a live token and returns its owner: the first step of rotation
-	// and of logout. A revoked, expired or unknown token gives pgx.ErrNoRows.
-	RevokeRefreshToken(ctx context.Context, tokenHash string) (string, error)
+	// Revokes a live token and returns its owner and company: the first step of
+	// rotation and of logout. A revoked, expired or unknown token gives
+	// pgx.ErrNoRows.
+	RevokeRefreshToken(ctx context.Context, tokenHash string) (RevokeRefreshTokenRow, error)
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)

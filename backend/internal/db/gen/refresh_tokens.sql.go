@@ -13,8 +13,8 @@ import (
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_phone, token_hash, expires_at)
-VALUES ($1, $2, $3)
+INSERT INTO refresh_tokens (user_phone, token_hash, expires_at, company_id)
+VALUES ($1, $2, $3, $4)
 RETURNING id
 `
 
@@ -22,10 +22,17 @@ type CreateRefreshTokenParams struct {
 	UserPhone string
 	TokenHash string
 	ExpiresAt time.Time
+	CompanyID *int64
 }
 
+// company_id is the company the access tokens it refreshes are for.
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, createRefreshToken, arg.UserPhone, arg.TokenHash, arg.ExpiresAt)
+	row := q.db.QueryRow(ctx, createRefreshToken,
+		arg.UserPhone,
+		arg.TokenHash,
+		arg.ExpiresAt,
+		arg.CompanyID,
+	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
@@ -35,14 +42,20 @@ const revokeRefreshToken = `-- name: RevokeRefreshToken :one
 UPDATE refresh_tokens
 SET revoked_at = now()
 WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
-RETURNING user_phone
+RETURNING user_phone, company_id
 `
 
-// Revokes a live token and returns its owner: the first step of rotation
-// and of logout. A revoked, expired or unknown token gives pgx.ErrNoRows.
-func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) (string, error) {
+type RevokeRefreshTokenRow struct {
+	UserPhone string
+	CompanyID *int64
+}
+
+// Revokes a live token and returns its owner and company: the first step of
+// rotation and of logout. A revoked, expired or unknown token gives
+// pgx.ErrNoRows.
+func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) (RevokeRefreshTokenRow, error) {
 	row := q.db.QueryRow(ctx, revokeRefreshToken, tokenHash)
-	var user_phone string
-	err := row.Scan(&user_phone)
-	return user_phone, err
+	var i RevokeRefreshTokenRow
+	err := row.Scan(&i.UserPhone, &i.CompanyID)
+	return i, err
 }

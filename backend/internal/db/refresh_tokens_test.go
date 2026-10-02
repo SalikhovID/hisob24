@@ -40,11 +40,33 @@ func TestRevokeRefreshToken(t *testing.T) {
 	createRefreshToken(t, q, "998901234567", "live", time.Now().Add(time.Hour))
 	createRefreshToken(t, q, "998901234567", "old", time.Now().Add(-time.Second))
 
-	phone, err := q.RevokeRefreshToken(ctx, "live")
+	revoked, err := q.RevokeRefreshToken(ctx, "live")
 	require.NoError(t, err)
-	assert.Equal(t, "998901234567", phone)
+	assert.Equal(t, "998901234567", revoked.UserPhone)
 	_, err = q.RevokeRefreshToken(ctx, "live")
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a token is used once")
 	_, err = q.RevokeRefreshToken(ctx, "old")
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "an expired token")
+}
+
+func TestRefreshTokenRemembersTheCompany(t *testing.T) {
+	q, _ := setup(t)
+	ctx := t.Context()
+	createUser(t, q, "998901234567", "Ali")
+	c, err := q.CreateCompany(ctx, gen.CreateCompanyParams{Name: "Olma", EndDate: time.Now()})
+	require.NoError(t, err)
+	_, err = q.CreateRefreshToken(ctx, gen.CreateRefreshTokenParams{
+		UserPhone: "998901234567", TokenHash: "with", ExpiresAt: time.Now().Add(time.Hour), CompanyID: &c.ID,
+	})
+	require.NoError(t, err)
+	createRefreshToken(t, q, "998901234567", "without", time.Now().Add(time.Hour))
+
+	revoked, err := q.RevokeRefreshToken(ctx, "with")
+	require.NoError(t, err)
+	if assert.NotNil(t, revoked.CompanyID, "the company the token was issued for") {
+		assert.Equal(t, c.ID, *revoked.CompanyID)
+	}
+	revoked, err = q.RevokeRefreshToken(ctx, "without")
+	require.NoError(t, err)
+	assert.Nil(t, revoked.CompanyID, "no company chosen")
 }
