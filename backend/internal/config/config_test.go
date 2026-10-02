@@ -96,6 +96,11 @@ func TestLoad(t *testing.T) {
 			env:     with(requiredEnv(), map[string]string{"COOKIE_SECURE": "maybe"}),
 			wantErr: []string{"COOKIE_SECURE", `"maybe"`},
 		},
+		{
+			name:    "webhook mode needs the secret and the public URL",
+			env:     with(requiredEnv(), map[string]string{"BOT_MODE": "webhook"}),
+			wantErr: []string{"TELEGRAM_WEBHOOK_SECRET", "PUBLIC_API_URL"},
+		},
 	}
 
 	for _, tt := range tests {
