@@ -456,3 +456,25 @@ func TestLoginWithTelegramTrustsOnlyTheUserBotsFreshSignature(t *testing.T) {
 		LoginWithTelegram(t.Context(), telegramtest.SignInitData("", 1001, time.Now()))
 	assert.ErrorIs(t, err, ErrInvalidInitData, "no user bot: no Mini App sign-in, even signed with an empty token")
 }
+
+func TestTheSessionKeepsWhereItBegan(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	olma := addCompany(t, pool, "Olma", 30)
+	nok := addCompany(t, pool, "Nok", 30)
+	viaSMS := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner", nok: "staff"})
+	assert.Equal(t, "sms", viaSMS.Source)
+	linkContact(t, pool, 1001, "998901234567")
+
+	viaTelegram, err := a.LoginWithTelegram(t.Context(), telegramtest.SignInitData(testUserBotToken, 1001, time.Now()))
+	require.NoError(t, err)
+	refreshed, err := a.Refresh(t.Context(), viaTelegram.RefreshToken)
+	require.NoError(t, err)
+	switched, err := a.SwitchCompany(t.Context(), "998901234567", refreshed.RefreshToken, &nok)
+	require.NoError(t, err)
+	smsRefreshed, err := a.Refresh(t.Context(), viaSMS.RefreshToken)
+	require.NoError(t, err)
+
+	assert.Equal(t, "telegram", refreshed.Source, "refresh")
+	assert.Equal(t, "telegram", switched.Source, "switch-company")
+	assert.Equal(t, "sms", smsRefreshed.Source, "an SMS session stays one")
+}

@@ -45,20 +45,21 @@ const revokeRefreshToken = `-- name: RevokeRefreshToken :one
 UPDATE refresh_tokens
 SET revoked_at = now()
 WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
-RETURNING user_phone, company_id
+RETURNING user_phone, company_id, source
 `
 
 type RevokeRefreshTokenRow struct {
 	UserPhone string
 	CompanyID *int64
+	Source    string
 }
 
-// Revokes a live token and returns its owner and company: the first step of
-// rotation and of logout. A revoked, expired or unknown token gives
+// Revokes a live token and returns its owner, company and source: the first
+// step of rotation and of logout. A revoked, expired or unknown token gives
 // pgx.ErrNoRows.
 func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) (RevokeRefreshTokenRow, error) {
 	row := q.db.QueryRow(ctx, revokeRefreshToken, tokenHash)
 	var i RevokeRefreshTokenRow
-	err := row.Scan(&i.UserPhone, &i.CompanyID)
+	err := row.Scan(&i.UserPhone, &i.CompanyID, &i.Source)
 	return i, err
 }
