@@ -124,3 +124,18 @@ test.each([
   await waitFor(() => expect(onFallback).toHaveBeenCalledWith(notice))
   expect(router.replace).not.toHaveBeenCalled()
 })
+
+test("when the frame keeps no session cookie the app says so instead of looping", async () => {
+  server.use(
+    http.post("*/api/app/auth/refresh", () =>
+      HttpResponse.json({ error: "invalid_refresh_token", message: "Sessiya tugagan. Qayta kiring" }, { status: 401 }),
+    ),
+  )
+  const webApp = fakeWebApp({}, TG_ALI)
+  const { user } = renderWithProviders(<TelegramLogin webApp={webApp} onFallback={vi.fn()} />)
+
+  expect(await screen.findByRole("heading", { name: "Kirib bo'lmadi" })).toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+  await user.click(screen.getByRole("button", { name: "Yopish" }))
+  expect(webApp.close).toHaveBeenCalled()
+})

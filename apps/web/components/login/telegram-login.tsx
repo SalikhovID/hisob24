@@ -10,6 +10,8 @@ import type { TelegramWebApp } from "@/types/telegram"
 
 type Stage =
   | { kind: "checking" }
+  // no_cookie: the frame keeps no session cookie (Telegram Web without CHIPS).
+  | { kind: "no_cookie" }
   | { kind: "no_access"; message: string }
   // declined: the user would not share the contact from the app; late: they
   // did, but it has not reached the bot yet.
@@ -41,6 +43,16 @@ export function TelegramLogin({
         const tokens = await call(api.POST("/app/auth/telegram", { body: { initData: webApp.initData } }))
         if (cancelled()) return "done"
         setAccessToken(tokens.access_token)
+        // A frame that keeps no cookie would send every page back to /login:
+        // check that the session sticks before leaving.
+        try {
+          const refreshed = await call(api.POST("/app/auth/refresh"))
+          if (cancelled()) return "done"
+          setAccessToken(refreshed.access_token)
+        } catch {
+          if (!cancelled()) setStage({ kind: "no_cookie" })
+          return "done"
+        }
         router.replace(tokens.company_id === null ? "/select-company" : "/")
       } catch (error) {
         if (cancelled()) return "done"
@@ -82,6 +94,20 @@ export function TelegramLogin({
       void tryAgain(RETRIES)
     })
 
+  if (stage.kind === "no_cookie") {
+    return (
+      <Centered>
+        <h1 className="text-xl font-semibold">Kirib bo&apos;lmadi</h1>
+        <p className="text-sm text-muted-foreground">
+          Brauzer kirish ma&apos;lumotini saqlamadi. Mini App&apos;ni telefon yoki kompyuterdagi Telegram ilovasida
+          oching.
+        </p>
+        <Button className="mt-2" onClick={() => webApp.close()}>
+          Yopish
+        </Button>
+      </Centered>
+    )
+  }
   if (stage.kind === "no_access") {
     return (
       <Centered>
