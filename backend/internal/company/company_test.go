@@ -228,3 +228,34 @@ func TestListValidation(t *testing.T) {
 		}
 	}
 }
+
+func kindOf(t *testing.T, err error) apperr.Kind {
+	t.Helper()
+	var e *apperr.Error
+	require.ErrorAs(t, err, &e)
+	return e.Kind
+}
+
+func TestGet(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool).AddDate(0, 0, 3))
+	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "staff")
+	require.NoError(t, err)
+
+	d, err := s.Get(t.Context(), c.ID)
+
+	require.NoError(t, err)
+	assert.Equal(t, c.ID, d.ID)
+	assert.Equal(t, "Olma", d.Name)
+	assert.Equal(t, 3, d.DaysLeft)
+	require.Len(t, d.Users, 2)
+	assert.Equal(t, "998900000001", d.Users[0].Phone)
+	assert.Equal(t, "owner", d.Users[0].Role)
+	assert.Equal(t, "998902223344", d.Users[1].Phone)
+	assert.Equal(t, "staff", d.Users[1].Role)
+	require.NotNil(t, d.Users[1].FullName)
+	assert.Equal(t, "Xodim", *d.Users[1].FullName)
+
+	_, err = s.Get(t.Context(), c.ID+1)
+	assert.Equal(t, apperr.NotFound, kindOf(t, err))
+}
