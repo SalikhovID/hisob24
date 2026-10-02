@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
+import { db, OWNER_ID } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { CompanyPage } from "./company-page"
 
@@ -62,4 +63,44 @@ test("the add-user dialog says what is missing", async () => {
 
   expect(await within(dialog).findByText("Telefon raqami noto'g'ri")).toBeInTheDocument()
   expect(within(dialog).getByText("Ismni kiriting")).toBeInTheDocument()
+})
+
+test("the billing history lists the payments, newest first", async () => {
+  db.billings[1] = [
+    {
+      id: 11,
+      company_id: 1,
+      days: 7,
+      amount: null,
+      prev_end_date: "2026-11-01",
+      new_end_date: "2026-11-08",
+      note: null,
+      created_by: OWNER_ID,
+      created_at: "2026-10-02T06:00:00Z",
+    },
+    {
+      id: 10,
+      company_id: 1,
+      days: 30,
+      amount: "150000.50",
+      prev_end_date: "2026-10-02",
+      new_end_date: "2026-11-01",
+      note: "Naqd",
+      created_by: OWNER_ID,
+      created_at: "2026-09-02T06:00:00Z",
+    },
+  ]
+
+  renderWithProviders(<CompanyPage id={1} />)
+
+  expect(cellsOf(await screen.findByRole("table", { name: "Billing tarixi" }))).toEqual([
+    ["02.10.2026", "+7 kun", "—", "01.11.2026 → 08.11.2026", "—"],
+    ["02.09.2026", "+30 kun", "150\u00a0000,50", "02.10.2026 → 01.11.2026", "Naqd"],
+  ])
+})
+
+test("a company without payments says so", async () => {
+  renderWithProviders(<CompanyPage id={2} />)
+
+  expect(await screen.findByText("Hali to'lovlar yo'q")).toBeInTheDocument()
 })

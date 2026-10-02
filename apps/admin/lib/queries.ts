@@ -13,6 +13,7 @@ export const keys = {
   me: ["me"] as const,
   companies: (filter?: CompanyFilter) => (filter ? (["companies", filter] as const) : (["companies"] as const)),
   company: (id: number) => ["company", id] as const,
+  billings: (companyId: number) => ["billings", companyId] as const,
 }
 
 // useMe is the signed-in admin.
@@ -40,5 +41,13 @@ export function useCompany(id: number) {
   return useQuery({
     queryKey: keys.company(id),
     queryFn: () => call(api.GET("/admin/companies/{id}", { params: { path: { id } } })),
+  })
+}
+
+// useBillings is a company's payments, newest first.
+export function useBillings(companyId: number) {
+  return useQuery({
+    queryKey: keys.billings(companyId),
+    queryFn: () => call(api.GET("/admin/companies/{id}/billings", { params: { path: { id: companyId } } })),
   })
 }

@@ -12,6 +12,7 @@ import { useCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
 import { AddUserDialog } from "./add-user-dialog"
+import { BillingHistory } from "./billing-history"
 import { CompanyStatusBadge } from "./status-badge"
 
 const memberColumns: Column<Member>[] = [
@@ -25,6 +26,7 @@ export function CompanyPage({ id }: { id: number }) {
   const company = useCompany(id)
   const infoId = useId()
   const usersId = useId()
+  const billingId = useId()
 
   if (company.isPending) return <Loading />
   if (company.error instanceof ApiError && company.error.status === 404) return <NotFound />
@@ -60,6 +62,12 @@ export function CompanyPage({ id }: { id: number }) {
           <AddUserDialog companyId={c.id} />
         </div>
         <DataList label="Userlar" items={c.users} columns={memberColumns} getKey={(m) => m.phone} />
+      </section>
+      <section aria-labelledby={billingId} className="space-y-3">
+        <h2 id={billingId} className="font-medium">
+          Billing tarixi
+        </h2>
+        <BillingHistory companyId={c.id} />
       </section>
     </div>
   )
