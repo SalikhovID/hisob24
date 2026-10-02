@@ -125,3 +125,32 @@ func (q *Queries) ListCompanies(ctx context.Context, arg ListCompaniesParams) ([
 	}
 	return items, nil
 }
+
+const updateCompany = `-- name: UpdateCompany :one
+UPDATE companies
+SET name = COALESCE($1, name),
+    is_active = COALESCE($2, is_active)
+WHERE id = $3
+RETURNING id, name, end_date, is_active, created_by, created_at
+`
+
+type UpdateCompanyParams struct {
+	Name     *string
+	IsActive *bool
+	ID       int64
+}
+
+// PATCH: a NULL argument leaves its column as it is.
+func (q *Queries) UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error) {
+	row := q.db.QueryRow(ctx, updateCompany, arg.Name, arg.IsActive, arg.ID)
+	var i Company
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.EndDate,
+		&i.IsActive,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}

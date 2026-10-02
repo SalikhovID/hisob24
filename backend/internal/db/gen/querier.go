@@ -44,6 +44,8 @@ type Querier interface {
 	// Locks every active admin row, so "keep at least one active admin" holds
 	// under concurrent deactivations.
 	LockActiveAdmins(ctx context.Context) ([]int64, error)
+	// PATCH: a NULL argument leaves its column as it is.
+	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 }
 
 var _ Querier = (*Queries)(nil)

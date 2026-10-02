@@ -24,3 +24,11 @@ WHERE (sqlc.narg('search')::text IS NULL OR name ILIKE '%' || sqlc.narg('search'
   AND (sqlc.narg('status')::text IS NULL
        OR (sqlc.narg('status')::text = 'active' AND end_date >= CURRENT_DATE AND is_active)
        OR (sqlc.narg('status')::text = 'expired' AND (end_date < CURRENT_DATE OR NOT is_active)));
+
+-- name: UpdateCompany :one
+-- PATCH: a NULL argument leaves its column as it is.
+UPDATE companies
+SET name = COALESCE(sqlc.narg('name'), name),
+    is_active = COALESCE(sqlc.narg('is_active'), is_active)
+WHERE id = sqlc.arg('id')
+RETURNING *;

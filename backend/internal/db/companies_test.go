@@ -116,3 +116,22 @@ func TestCountCompanies(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateCompany(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+
+	renamed, err := q.UpdateCompany(ctx, gen.UpdateCompanyParams{ID: c.ID, Name: ptr("Olma MChJ")})
+	require.NoError(t, err)
+	assert.Equal(t, "Olma MChJ", renamed.Name)
+	assert.True(t, renamed.IsActive, "is_active is kept when not sent")
+
+	blocked, err := q.UpdateCompany(ctx, gen.UpdateCompanyParams{ID: c.ID, IsActive: ptr(false)})
+	require.NoError(t, err)
+	assert.False(t, blocked.IsActive)
+	assert.Equal(t, "Olma MChJ", blocked.Name, "name is kept when not sent")
+
+	_, err = q.UpdateCompany(ctx, gen.UpdateCompanyParams{ID: c.ID + 1, Name: ptr("X")})
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
+}
