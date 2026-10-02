@@ -400,12 +400,156 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /app/auth/sms/send:
+    post:
+      operationId: sendLoginCode
+      summary: SMS bilan kirish kodini yuborish
+      description: >
+        Kod 6 xonali, 2 daqiqa amal qiladi. Tizimda yo'q raqamga SMS ketmaydi,
+        lekin javob bir xil (kim borligi bilinmaydi). Bitta raqamga 60 soniyada
+        bitta kod; IP'dan daqiqasiga 5 ta so'rov.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  description: "+998 90 123 45 67, 998901234567 yoki 901234567"
+      responses:
+        "200":
+          description: Qabul qilindi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodeSent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /app/auth/sms/verify:
+    post:
+      operationId: verifyLoginCode
+      summary: SMS kod bilan kirish
+      description: >
+        Access token javobda (15 daqiqa), refresh token httpOnly
+        refresh_token cookie'da (30 kun). User bitta company'da bo'lsa u
+        tanlanadi, bir nechtasida company_id null. Kodga 5 ta xato urinish,
+        IP'dan daqiqasiga 5 ta so'rov.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone:
+                  type: string
+                code:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Kod noto'g'ri yoki muddati o'tgan (invalid_code)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /app/auth/refresh:
+    post:
+      operationId: refreshTokens
+      summary: Access token'ni yangilash (rotation)
+      description: >
+        refresh_token cookie'si bekor qilinadi va yangisi beriladi; tanlangan
+        company saqlanadi (a'zolik qayta tekshiriladi).
+      security:
+        - refreshCookie: []
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        "401":
+          $ref: "#/components/responses/SessionEnded"
+  /app/auth/logout:
+    post:
+      operationId: appLogout
+      summary: Chiqish
+      description: Refresh token bekor qilinadi, cookie o'chiriladi.
+      responses:
+        "204":
+          description: Chiqildi
+  /app/auth/switch-company:
+    post:
+      operationId: switchCompany
+      summary: Company tanlash
+      description: >
+        Muddati o'tgan company'ga ham o'tish mumkin (uning sahifalari 402
+        qaytaradi). Refresh token ham almashadi va tanlovni eslab qoladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [company_id]
+              properties:
+                company_id:
+                  type: integer
+                  format: int64
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        "401":
+          $ref: "#/components/responses/SessionEnded"
+        "403":
+          description: User bu company'ga a'zo emas (not_member)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /app/me:
+    get:
+      operationId: getAppMe
+      summary: User, tanlangan company va barcha company'lari
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Joriy user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
 components:
   securitySchemes:
     adminSession:
       type: apiKey
       in: cookie
       name: admin_session
+    appBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "HS256, aud: app, sub: telefon, company_id va role (tanlangan bo'lsa)"
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
   parameters:
     CompanyID:
       name: id
@@ -429,6 +573,36 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Juda ko'p so'rov (too_many_requests)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SubscriptionExpired:
+      description: Company muddati o'tgan yoki bloklangan (subscription_expired)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SessionEnded:
+      description: >
+        Refresh token yo'q yoki yaroqsiz (invalid_refresh_token, cookie
+        o'chiriladi) yoki access token yo'q (unauthorized)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SignedIn:
+      description: Kirildi; refresh token Set-Cookie refresh_token'da
+      headers:
+        Set-Cookie:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Tokens"
     NotFound:
       description: Kompaniya topilmadi (not_found)
       content:
@@ -628,3 +802,61 @@ components:
         full_name:
           type: string
           minLength: 1
+    CodeSent:
+      type: object
+      required: [retry_after]
+      properties:
+        retry_after:
+          type: integer
+          description: Keyingi kodni necha soniyadan keyin so'rash mumkin
+    Tokens:
+      type: object
+      required: [access_token, expires_in, company_id]
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+          description: Soniyalarda (900)
+        company_id:
+          type: [integer, "null"]
+          format: int64
+          description: Tanlanmagan bo'lsa null (frontend /select-company'ga o'tadi)
+    AppUser:
+      type: object
+      required: [phone, full_name]
+      properties:
+        phone:
+          type: string
+        full_name:
+          type: [string, "null"]
+    AppCompany:
+      type: object
+      required: [id, name, role, end_date, is_active]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        end_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+    Me:
+      type: object
+      required: [user, company, companies]
+      properties:
+        user:
+          $ref: "#/components/schemas/AppUser"
+        company:
+          oneOf:
+            - $ref: "#/components/schemas/AppCompany"
+            - type: "null"
+        companies:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppCompany"

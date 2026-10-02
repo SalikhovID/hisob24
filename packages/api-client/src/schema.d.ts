@@ -234,6 +234,123 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/auth/sms/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * SMS bilan kirish kodini yuborish
+         * @description Kod 6 xonali, 2 daqiqa amal qiladi. Tizimda yo'q raqamga SMS ketmaydi, lekin javob bir xil (kim borligi bilinmaydi). Bitta raqamga 60 soniyada bitta kod; IP'dan daqiqasiga 5 ta so'rov.
+         */
+        post: operations["sendLoginCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/auth/sms/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * SMS kod bilan kirish
+         * @description Access token javobda (15 daqiqa), refresh token httpOnly refresh_token cookie'da (30 kun). User bitta company'da bo'lsa u tanlanadi, bir nechtasida company_id null. Kodga 5 ta xato urinish, IP'dan daqiqasiga 5 ta so'rov.
+         */
+        post: operations["verifyLoginCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Access token'ni yangilash (rotation)
+         * @description refresh_token cookie'si bekor qilinadi va yangisi beriladi; tanlangan company saqlanadi (a'zolik qayta tekshiriladi).
+         */
+        post: operations["refreshTokens"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chiqish
+         * @description Refresh token bekor qilinadi, cookie o'chiriladi.
+         */
+        post: operations["appLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/auth/switch-company": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Company tanlash
+         * @description Muddati o'tgan company'ga ham o'tish mumkin (uning sahifalari 402 qaytaradi). Refresh token ham almashadi va tanlovni eslab qoladi.
+         */
+        post: operations["switchCompany"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** User, tanlangan company va barcha company'lari */
+        get: operations["getAppMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -338,6 +455,38 @@ export interface components {
             telegram_id: number;
             full_name: string;
         };
+        CodeSent: {
+            /** @description Keyingi kodni necha soniyadan keyin so'rash mumkin */
+            retry_after: number;
+        };
+        Tokens: {
+            access_token: string;
+            /** @description Soniyalarda (900) */
+            expires_in: number;
+            /**
+             * Format: int64
+             * @description Tanlanmagan bo'lsa null (frontend /select-company'ga o'tadi)
+             */
+            company_id: number | null;
+        };
+        AppUser: {
+            phone: string;
+            full_name: string | null;
+        };
+        AppCompany: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            role: components["schemas"]["Role"];
+            /** Format: date */
+            end_date: string;
+            is_active: boolean;
+        };
+        Me: {
+            user: components["schemas"]["AppUser"];
+            company: components["schemas"]["AppCompany"] | null;
+            companies: components["schemas"]["AppCompany"][];
+        };
     };
     responses: {
         /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
@@ -356,6 +505,43 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Juda ko'p so'rov (too_many_requests) */
+        TooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Company muddati o'tgan yoki bloklangan (subscription_expired) */
+        SubscriptionExpired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Refresh token yo'q yoki yaroqsiz (invalid_refresh_token, cookie o'chiriladi) yoki access token yo'q (unauthorized) */
+        SessionEnded: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Kirildi; refresh token Set-Cookie refresh_token'da */
+        SignedIn: {
+            headers: {
+                "Set-Cookie"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Tokens"];
             };
         };
         /** @description Kompaniya topilmadi (not_found) */
@@ -810,6 +996,147 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+        };
+    };
+    sendLoginCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description +998 90 123 45 67, 998901234567 yoki 901234567 */
+                    phone: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Qabul qilindi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodeSent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    verifyLoginCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    phone: string;
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            400: components["responses"]["BadRequest"];
+            /** @description Kod noto'g'ri yoki muddati o'tgan (invalid_code) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    refreshTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["SignedIn"];
+            401: components["responses"]["SessionEnded"];
+        };
+    };
+    appLogout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chiqildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    switchCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    company_id: number;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            401: components["responses"]["SessionEnded"];
+            /** @description User bu company'ga a'zo emas (not_member) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAppMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Joriy user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
         };
     };
 }
