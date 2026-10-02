@@ -1,0 +1,29 @@
+openapi: 3.1.0
+info:
+  title: Hisob24 API
+  version: 0.1.0
+  description: >
+    Asosiy API kontrakti. Frontend uchun TS client shu fayldan generatsiya
+    qilinadi (packages/api-client). Brauzer API'ga Next.js rewrites orqali
+    /api prefiksi bilan murojaat qiladi.
+paths:
+  /healthz:
+    get:
+      operationId: getHealthz
+      summary: Liveness tekshiruvi
+      responses:
+        "200":
+          description: API ishlayapti
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
