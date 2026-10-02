@@ -1,0 +1,58 @@
+"use client"
+
+import { useMutation } from "@tanstack/react-query"
+import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
+import { api, call } from "@/lib/api"
+import { phoneDigits } from "@/lib/phone"
+import { setAccessToken } from "@/lib/session"
+
+const SLOTS = [0, 1, 2, 3, 4, 5]
+
+// CodeStep is the second login step: the code from the SMS. There is no
+// button: the sixth digit sends the code.
+export function CodeStep({
+  phone,
+  retryAfter,
+  onChangePhone,
+}: {
+  phone: string
+  retryAfter: number
+  onChangePhone: () => void
+}) {
+  void retryAfter
+  void onChangePhone
+  const router = useRouter()
+  const [code, setCode] = useState("")
+  const verify = useMutation({
+    mutationFn: (code: string) =>
+      call(api.POST("/app/auth/sms/verify", { body: { phone: phoneDigits(phone) ?? "", code } })),
+    onSuccess: (tokens) => {
+      setAccessToken(tokens.access_token)
+      router.replace("/")
+    },
+  })
+
+  return (
+    <div className="flex justify-center">
+      <InputOTP
+        aria-label="Kod"
+        maxLength={6}
+        pattern={REGEXP_ONLY_DIGITS}
+        value={code}
+        onChange={setCode}
+        onComplete={(value: string) => verify.mutate(value)}
+        disabled={verify.isPending}
+        autoFocus
+      >
+        <InputOTPGroup>
+          {SLOTS.map((index) => (
+            <InputOTPSlot key={index} index={index} className="size-11 text-lg" />
+          ))}
+        </InputOTPGroup>
+      </InputOTP>
+    </div>
+  )
+}
