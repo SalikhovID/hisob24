@@ -126,6 +126,27 @@ func (q *Queries) ListCompanies(ctx context.Context, arg ListCompaniesParams) ([
 	return items, nil
 }
 
+const lockCompanyEndDate = `-- name: LockCompanyEndDate :one
+SELECT end_date, CURRENT_DATE::date AS today
+FROM companies
+WHERE id = $1
+FOR UPDATE
+`
+
+type LockCompanyEndDateRow struct {
+	EndDate time.Time
+	Today   time.Time
+}
+
+// Locks the company for a billing transaction. today is the database's
+// CURRENT_DATE, so the new end_date follows the same clock as the checks.
+func (q *Queries) LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error) {
+	row := q.db.QueryRow(ctx, lockCompanyEndDate, id)
+	var i LockCompanyEndDateRow
+	err := row.Scan(&i.EndDate, &i.Today)
+	return i, err
+}
+
 const updateCompany = `-- name: UpdateCompany :one
 UPDATE companies
 SET name = COALESCE($1, name),

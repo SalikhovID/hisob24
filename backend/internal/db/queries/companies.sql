@@ -32,3 +32,11 @@ SET name = COALESCE(sqlc.narg('name'), name),
     is_active = COALESCE(sqlc.narg('is_active'), is_active)
 WHERE id = sqlc.arg('id')
 RETURNING *;
+
+-- name: LockCompanyEndDate :one
+-- Locks the company for a billing transaction. today is the database's
+-- CURRENT_DATE, so the new end_date follows the same clock as the checks.
+SELECT end_date, CURRENT_DATE::date AS today
+FROM companies
+WHERE id = $1
+FOR UPDATE;

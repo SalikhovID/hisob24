@@ -44,6 +44,9 @@ type Querier interface {
 	// Locks every active admin row, so "keep at least one active admin" holds
 	// under concurrent deactivations.
 	LockActiveAdmins(ctx context.Context) ([]int64, error)
+	// Locks the company for a billing transaction. today is the database's
+	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
+	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 }

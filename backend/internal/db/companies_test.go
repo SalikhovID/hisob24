@@ -135,3 +135,21 @@ func TestUpdateCompany(t *testing.T) {
 	_, err = q.UpdateCompany(ctx, gen.UpdateCompanyParams{ID: c.ID + 1, Name: ptr("X")})
 	assert.ErrorIs(t, err, pgx.ErrNoRows)
 }
+
+func TestLockCompanyEndDate(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	c := createCompany(t, q, "Olma", d.AddDate(0, 0, 5))
+	tx, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
+
+	row, err := q.WithTx(tx).LockCompanyEndDate(ctx, c.ID)
+
+	require.NoError(t, err)
+	assert.True(t, row.EndDate.Equal(d.AddDate(0, 0, 5)))
+	assert.True(t, row.Today.Equal(d), "today is the database's CURRENT_DATE")
+	_, err = pool.Exec(ctx, "SELECT 1 FROM companies WHERE id = $1 FOR UPDATE NOWAIT", c.ID)
+	assert.Equal(t, "55P03", sqlState(err), "the row stays locked until the transaction ends")
+}
