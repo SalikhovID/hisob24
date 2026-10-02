@@ -14,6 +14,7 @@ import (
 // implements it; tests use a fake.
 type API interface {
 	SendMessage(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error)
+	SetChatMenuButton(ctx context.Context, params *bot.SetChatMenuButtonParams) (bool, error)
 	SetWebhook(ctx context.Context, params *bot.SetWebhookParams) (bool, error)
 }
 

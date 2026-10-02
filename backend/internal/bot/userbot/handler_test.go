@@ -13,7 +13,13 @@ import (
 
 type fakeAPI struct {
 	sent    []*bot.SendMessageParams
+	menu    *bot.SetChatMenuButtonParams
 	webhook *bot.SetWebhookParams
+}
+
+func (f *fakeAPI) SetChatMenuButton(_ context.Context, p *bot.SetChatMenuButtonParams) (bool, error) {
+	f.menu = p
+	return true, nil
 }
 
 func (f *fakeAPI) SendMessage(_ context.Context, p *bot.SendMessageParams) (*models.Message, error) {

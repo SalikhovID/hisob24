@@ -90,11 +90,11 @@ func run() error {
 		})
 	}
 
-	// The Mini App's session cookie is SameSite=None: state changes from
+	// The Mini Apps' session cookies are SameSite=None: state changes from
 	// other sites are refused for every route.
-	guard, err := httpx.CrossOriginGuard(cfg.AdminPanelURL)
+	guard, err := httpx.CrossOriginGuard(cfg.AdminPanelURL, cfg.WebAppURL)
 	if err != nil {
-		return fmt.Errorf("ADMIN_PANEL_URL: %w", err)
+		return fmt.Errorf("ADMIN_PANEL_URL or WEB_APP_URL: %w", err)
 	}
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
@@ -173,6 +173,10 @@ func startUserBot(ctx context.Context, cfg config.Config, contacts *user.Contact
 		return nil, fmt.Errorf("user bot: %w", err)
 	}
 	handler = userbot.NewHandler(b, contacts)
+	if err := userbot.SetMenuButton(ctx, b, cfg.WebAppURL); err != nil {
+		// Telegram accepts only https Mini App URLs; the bot works without the button.
+		slog.Warn("user bot: menu button not set", "err", err)
+	}
 	if cfg.BotMode == "webhook" {
 		if err := userbot.RegisterWebhook(ctx, b, cfg.PublicAPIURL, cfg.TelegramWebhookSecret); err != nil {
 			return nil, err
