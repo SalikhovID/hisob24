@@ -8,7 +8,11 @@ import { api, ApiError, call } from "@/lib/api"
 import { setAccessToken } from "@/lib/session"
 import type { TelegramWebApp } from "@/types/telegram"
 
-type Stage = { kind: "checking" } | { kind: "no_access"; message: string } | { kind: "not_shared" }
+type Stage =
+  | { kind: "checking" }
+  | { kind: "no_access"; message: string }
+  // declined: the user would not share the contact from the app.
+  | { kind: "not_shared"; declined?: boolean }
 
 // TelegramLogin signs in the user who opened the Mini App, with no code: the
 // user bot signed initData, and the account shared a user's phone with it.
@@ -49,7 +53,10 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
 
   const share = () =>
     webApp.requestContact?.((shared) => {
-      if (!shared) return
+      if (!shared) {
+        setStage({ kind: "not_shared", declined: true })
+        return
+      }
       setStage({ kind: "checking" })
       // The bot saves the contact Telegram sends it a moment later.
       setTimeout(() => void signIn(() => false), 1000)
@@ -74,6 +81,7 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
         <Button className="mt-2 w-full" onClick={share}>
           Raqamni yuborish
         </Button>
+        {stage.declined && <BotInstructions webApp={webApp} />}
       </Centered>
     )
   }
@@ -82,6 +90,18 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
       <Loader2Icon className="size-8 animate-spin text-primary" />
       <p className="text-sm text-muted-foreground">Telegram orqali kirilmoqda…</p>
     </Centered>
+  )
+}
+
+// BotInstructions is the way to share the phone without the app: in the bot.
+function BotInstructions({ webApp }: { webApp: TelegramWebApp }) {
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">Botga qaytib, /start yozing va raqamingizni yuboring.</p>
+      <Button variant="outline" className="w-full" onClick={() => webApp.close()}>
+        Botga qaytish
+      </Button>
+    </>
   )
 }
 

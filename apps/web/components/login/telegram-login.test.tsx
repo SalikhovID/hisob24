@@ -63,3 +63,14 @@ test("an account that never shared its phone shares it from the app and is then 
     vi.useRealTimers()
   }
 })
+
+test("someone who declines to share is told how to share the phone in the bot", async () => {
+  const webApp = fakeWebApp({ requestContact: sharesContact(ALI, false) }, TG_UNLINKED)
+  const { user } = renderWithProviders(<TelegramLogin webApp={webApp} onFallback={vi.fn()} />)
+
+  await user.click(await screen.findByRole("button", { name: "Raqamni yuborish" }))
+
+  expect(screen.getByText("Botga qaytib, /start yozing va raqamingizni yuboring.")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Botga qaytish" }))
+  expect(webApp.close).toHaveBeenCalled()
+})
