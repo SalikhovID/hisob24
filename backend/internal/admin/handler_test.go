@@ -200,3 +200,18 @@ func TestAdminRoutesNeedASession(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, api.do(t, route.method, route.path, `{}`).Code, route.method+" "+route.path)
 	}
 }
+
+func TestMiniAppSessionCookieWorksInsideTelegramWeb(t *testing.T) {
+	api := newTestAPI(t, true)
+
+	rec := api.do(t, http.MethodPost, "/admin/auth/telegram",
+		`{"initData":"`+telegramtest.SignInitData(testBotToken, ownerID, time.Now())+`"}`)
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	c := sessionCookieOf(t, rec)
+	assert.Equal(t, http.SameSiteNoneMode, c.SameSite, "Telegram Web opens the Mini App in a cross-site iframe")
+	assert.True(t, c.Partitioned, "kept in Telegram Web's own cookie jar")
+	assert.True(t, c.Secure)
+	assert.True(t, c.HttpOnly)
+	assert.Equal(t, "/", c.Path)
+}

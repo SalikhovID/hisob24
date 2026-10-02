@@ -89,7 +89,7 @@ func (h *Handler) loginWithCode(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, r, err)
 		return
 	}
-	h.setSessionCookie(w, s)
+	h.setSessionCookie(w, s, false)
 	httpx.JSON(w, http.StatusOK, toAdminJSON(s.Admin))
 }
 
@@ -112,7 +112,7 @@ func (h *Handler) loginWithInitData(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, r, err)
 		return
 	}
-	h.setSessionCookie(w, s)
+	h.setSessionCookie(w, s, true)
 	httpx.JSON(w, http.StatusOK, toAdminJSON(s.Admin))
 }
 

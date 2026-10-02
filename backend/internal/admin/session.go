@@ -49,8 +49,12 @@ func unauthorized(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusUnauthorized, "unauthorized", "Avval tizimga kiring")
 }
 
-func (h *Handler) setSessionCookie(w http.ResponseWriter, s auth.Session) {
-	http.SetCookie(w, &http.Cookie{
+// setSessionCookie writes the session cookie. A Mini App session must also
+// work inside Telegram Web, which opens the panel in a cross-site iframe:
+// there the cookie is SameSite=None and Partitioned (CHIPS), so it lives in
+// Telegram Web's own cookie jar.
+func (h *Handler) setSessionCookie(w http.ResponseWriter, s auth.Session, miniApp bool) {
+	c := &http.Cookie{
 		Name:     sessionCookie,
 		Value:    s.ID.String(),
 		Path:     "/",
@@ -59,7 +63,12 @@ func (h *Handler) setSessionCookie(w http.ResponseWriter, s auth.Session) {
 		HttpOnly: true,
 		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
-	})
+	}
+	if miniApp {
+		c.SameSite = http.SameSiteNoneMode
+		c.Partitioned = true
+	}
+	http.SetCookie(w, c)
 }
 
 func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
