@@ -41,6 +41,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           toast: "cn-toast",
         },
       }}
+      containerAriaLabel="Bildirishnomalar"
       {...props}
     />
   )
