@@ -29,6 +29,7 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Route("/admin", func(r chi.Router) {
 		r.With(httpx.RateLimit(h.otpLimiter)).Post("/auth/otp", h.loginWithCode)
 		r.Post("/auth/telegram", h.loginWithInitData)
+		r.Post("/auth/logout", h.logout)
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireSession)
 			r.Get("/me", h.me)
@@ -86,6 +87,17 @@ func (h *Handler) loginWithInitData(w http.ResponseWriter, r *http.Request) {
 	}
 	setSessionCookie(w, s)
 	httpx.JSON(w, http.StatusOK, toAdminJSON(s.Admin))
+}
+
+func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
+	if c, err := r.Cookie(sessionCookie); err == nil {
+		if err := h.auth.Logout(r.Context(), c.Value); err != nil {
+			httpx.InternalError(w, r, err)
+			return
+		}
+	}
+	clearSessionCookie(w)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {

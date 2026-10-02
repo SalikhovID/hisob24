@@ -137,3 +137,14 @@ func TestLoginWithInitData(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 	assert.JSONEq(t, `{"error":"not_admin","message":"Sizda ruxsat yo'q"}`, rec.Body.String())
 }
+
+func TestLogout(t *testing.T) {
+	api := newTestAPI(t, true)
+	cookie := sessionCookieOf(t, api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"`+api.code(t)+`"}`))
+
+	rec := api.do(t, http.MethodPost, "/admin/auth/logout", "", cookie)
+
+	assert.Equal(t, http.StatusNoContent, rec.Code)
+	assert.Equal(t, -1, sessionCookieOf(t, rec).MaxAge, "the browser drops the cookie")
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/admin/me", "", cookie).Code)
+}
