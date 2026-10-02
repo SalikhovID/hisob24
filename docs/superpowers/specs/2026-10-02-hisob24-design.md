@@ -262,3 +262,24 @@ Texnik eslatmalar:
   - telegram-mini-apps e'lon qilgan namuna ishlatilgan (token `5768337691:…`, hash `c501b71e…`).
   - Hash core.telegram.org'dagi algoritm bo'yicha mustaqil hisoblab tasdiqlangan.
   - Imzosiz, boshqa bot imzolagan, o'zgartirilgan va 24 soatdan eski holatlar rad etiladi.
+
+## 4-bosqich qarorlari (2026-10-02)
+
+- **Majburiy maydonlar** spec yozuvidan olinadi. Spec ixtiyoriylarni `?` bilan belgilaydi (`{days, amount?, note?}`). Shuning uchun quyidagilar majburiy, bo'sh yoki faqat bo'shliq bo'lsa 400 `validation_error`:
+  - `owner_full_name`;
+  - user `full_name` va `role`;
+  - admin `full_name`.
+- **Javob shakli.**
+  - Yaratish 201, admin o'chirish 204.
+  - Ro'yxat `{items, total, page, page_size}`: sahifada 20 ta, `page` 1–1 000 000, bo'sh sahifada `items: []`.
+- **Xato kodlari:** `validation_error` (400), `not_found` (404), `admin_exists`, `cannot_delete_self`, `last_admin` (409).
+- **`days_left`** = `end_date − CURRENT_DATE` (baza sanasi, Unix soniyalarida). Muddati o'tgan bo'lsa manfiy. Bloklangan kompaniyada ham to'langan kunlarni ko'rsatadi, `status` filtri esa uni `expired` deb hisoblaydi. Frontend badge va billing preview shundan hisoblanadi.
+- **Summa** JSON'da satr (`"150000.50"`), shuning uchun float xatosi yo'q.
+  - Kirish formati `^\d{1,12}(\.\d{1,2})?$`.
+  - `days` 1–3650 oralig'ida. Yuqori chegara uzoq sana to'lib ketishidan himoya qiladi.
+- **Qidiruv** harfma-harf: `%`, `_` va `\` ILIKE ichida escape qilinadi.
+- **Billing tarixi** `created_at DESC, id DESC` bo'yicha tartiblanadi. `created_at` tranzaksiya boshlangan vaqt. Shuning uchun bir soniyada ikki parallel to'lov tushsa, tartib zanjirdan farq qilishi mumkin, sanalar zanjiri esa lock tufayli to'g'ri qoladi.
+- **Tranzaksiya va lock testlari:**
+  - `pgtest.FailInserts` trigger orqali tranzaksiya o'rtasidagi insert'ni yiqitadi va hech narsa yozilmaganini tekshiradi (Create, AddUser, Extend).
+  - `pgtest.WaitForLockWait` boshqa sessiya qatorni ushlab turganda chaqiruv lock kutishiga yetganini kutadi. Billing va "kamida bitta faol admin" testlari shu yo'l bilan deterministik.
+  - Har biri tranzaksiyasiz yoki lock'siz mutatsiyada yiqilishi tekshirilgan.
