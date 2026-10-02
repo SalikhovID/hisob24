@@ -18,7 +18,133 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
+  /admin/auth/otp:
+    post:
+      operationId: adminLoginWithCode
+      summary: Admin botdan olingan kod bilan kirish
+      description: >
+        Kod 60 soniya amal qiladi va bir marta ishlaydi. Bitta IP'dan
+        daqiqasiga 5 ta urinish. Muvaffaqiyatda 12 soatlik admin_session
+        cookie (httpOnly, SameSite=Lax) qo'yiladi.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+      responses:
+        "200":
+          description: Sessiya ochildi
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Kod noto'g'ri yoki muddati o'tgan (invalid_code)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Juda ko'p urinish (too_many_requests)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /admin/auth/telegram:
+    post:
+      operationId: adminLoginWithInitData
+      summary: Telegram Mini App initData bilan kirish
+      description: >
+        initData admin bot tokeni bilan imzolangan va 24 soatdan eski
+        bo'lmasligi kerak.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [initData]
+              properties:
+                initData:
+                  type: string
+      responses:
+        "200":
+          description: Sessiya ochildi
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: initData tasdiqlanmadi (invalid_init_data)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Telegram foydalanuvchisi admin emas (not_admin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /admin/auth/logout:
+    post:
+      operationId: adminLogout
+      summary: Sessiyani tugatish
+      responses:
+        "204":
+          description: Sessiya tugadi, cookie o'chirildi
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      summary: Joriy admin
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: Joriy admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
+  securitySchemes:
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: admin_session
+  responses:
+    BadRequest:
+      description: So'rov noto'g'ri (bad_request)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Sessiya yo'q yoki tugagan (unauthorized)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     Health:
       type: object
@@ -27,3 +153,22 @@ components:
         status:
           type: string
           enum: [ok]
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: snake_case xato kodi
+        message:
+          type: string
+          description: O'zbekcha matn
+    Admin:
+      type: object
+      required: [telegram_id, full_name]
+      properties:
+        telegram_id:
+          type: integer
+          format: int64
+        full_name:
+          type: [string, "null"]
