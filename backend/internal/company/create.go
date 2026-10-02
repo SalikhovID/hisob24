@@ -24,11 +24,17 @@ type CreateInput struct {
 // membership.
 func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Company, error) {
 	name := strings.TrimSpace(in.Name)
+	if name == "" {
+		return Company{}, invalid("Kompaniya nomini kiriting")
+	}
 	phone, err := user.NormalizePhone(in.OwnerPhone)
 	if err != nil {
-		return Company{}, err
+		return Company{}, invalid("Egasining telefon raqami noto'g'ri")
 	}
 	ownerName := strings.TrimSpace(in.OwnerFullName)
+	if ownerName == "" {
+		return Company{}, invalid("Egasining ismini kiriting")
+	}
 
 	var created Company
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {

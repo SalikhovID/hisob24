@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -65,4 +66,27 @@ func TestCreateIsAtomic(t *testing.T) {
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT (SELECT count(*) FROM companies), (SELECT count(*) FROM users)").Scan(&companies, &users))
 	assert.Zero(t, companies, "no company without its owner")
 	assert.Zero(t, users, "no user without the membership")
+}
+
+func TestCreateValidation(t *testing.T) {
+	s, pool := newService(t)
+	end := dbToday(t, pool)
+	for name, tc := range map[string]struct {
+		in      CreateInput
+		message string
+	}{
+		"no name":       {CreateInput{Name: "  ", EndDate: end, OwnerPhone: "998901234567", OwnerFullName: "Ali"}, "Kompaniya nomini kiriting"},
+		"bad phone":     {CreateInput{Name: "Olma", EndDate: end, OwnerPhone: "12ab", OwnerFullName: "Ali"}, "Egasining telefon raqami noto'g'ri"},
+		"no owner name": {CreateInput{Name: "Olma", EndDate: end, OwnerPhone: "998901234567", OwnerFullName: " "}, "Egasining ismini kiriting"},
+	} {
+		_, err := s.Create(t.Context(), tc.in, ownerID)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, apperr.Invalid, e.Kind, name)
+			assert.Equal(t, tc.message, e.Message, name)
+		}
+	}
+	var companies int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM companies").Scan(&companies))
+	assert.Zero(t, companies, "nothing is written")
 }

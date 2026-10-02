@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
@@ -25,6 +26,10 @@ func NewService(pool *pgxpool.Pool) *Service {
 type Company struct {
 	gen.Company
 	DaysLeft int
+}
+
+func invalid(message string) error {
+	return apperr.New(apperr.Invalid, "validation_error", message)
 }
 
 // withDaysLeft counts in Unix seconds: both dates are UTC midnights, and a
