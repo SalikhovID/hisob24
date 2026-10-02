@@ -162,7 +162,7 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 // 402 check: the way out of an expired company is choosing another.
 func (h *Handler) switchCompany(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		CompanyID int64 `json:"company_id"`
+		CompanyID *int64 `json:"company_id"`
 	}
 	if !httpx.DecodeJSON(w, r, &body) {
 		return

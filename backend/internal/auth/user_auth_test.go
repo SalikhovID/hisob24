@@ -278,7 +278,7 @@ func TestSwitchCompanyChoosesACompanyAndTheRefreshTokenRemembersIt(t *testing.T)
 	nok := addCompany(t, pool, "Nok", 30)
 	first := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner", nok: "staff"})
 
-	switched, err := a.SwitchCompany(t.Context(), "998901234567", first.RefreshToken, nok)
+	switched, err := a.SwitchCompany(t.Context(), "998901234567", first.RefreshToken, &nok)
 
 	require.NoError(t, err)
 	require.NotNil(t, switched.CompanyID)
@@ -300,11 +300,11 @@ func TestSwitchCompanyRefusals(t *testing.T) {
 	mine := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner"})
 	theirs := signIn(t, a, pool, "998902223344", map[int64]string{olma: "staff"})
 
-	_, err := a.SwitchCompany(t.Context(), "998901234567", mine.RefreshToken, other)
+	_, err := a.SwitchCompany(t.Context(), "998901234567", mine.RefreshToken, &other)
 	assert.ErrorIs(t, err, ErrNotMember)
-	_, err = a.SwitchCompany(t.Context(), "998901234567", theirs.RefreshToken, olma)
+	_, err = a.SwitchCompany(t.Context(), "998901234567", theirs.RefreshToken, &olma)
 	assert.ErrorIs(t, err, ErrInvalidRefresh, "someone else's refresh token")
-	_, err = a.SwitchCompany(t.Context(), "998901234567", "made-up", olma)
+	_, err = a.SwitchCompany(t.Context(), "998901234567", "made-up", &olma)
 	assert.ErrorIs(t, err, ErrInvalidRefresh)
 
 	_, err = a.Refresh(t.Context(), theirs.RefreshToken)
@@ -337,7 +337,7 @@ func TestAFailedSignInLeavesTheCodeAndTheTokensAsTheyWere(t *testing.T) {
 	require.Error(t, err)
 	_, err = a.Refresh(t.Context(), tokens.RefreshToken)
 	require.Error(t, err)
-	_, err = a.SwitchCompany(t.Context(), "998901234567", tokens.RefreshToken, companyID)
+	_, err = a.SwitchCompany(t.Context(), "998901234567", tokens.RefreshToken, &companyID)
 	require.Error(t, err)
 
 	var codes, live int
