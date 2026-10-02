@@ -66,6 +66,15 @@ func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 	}); err != nil {
 		return err
 	}
+	// A phone that is not a user gets no SMS, but the same answer and a
+	// code nobody will see: the replies tell nothing about who signs up.
+	known, err := a.q.UserExists(ctx, phone)
+	if err != nil {
+		return err
+	}
+	if !known {
+		return nil
+	}
 	if err := a.sender.Send(ctx, phone, sms.Text(code)); err != nil {
 		return fmt.Errorf("send sms: %w", err)
 	}

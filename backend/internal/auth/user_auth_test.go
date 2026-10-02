@@ -66,3 +66,14 @@ func TestSendCodeTextsAUserTheirCode(t *testing.T) {
 	assert.Equal(t, HashCode([]byte(testOTPSecret), "123456"), hash, "only the code's HMAC is stored")
 	assert.WithinDuration(t, time.Now().Add(2*time.Minute), expiresAt, 5*time.Second)
 }
+
+func TestSendCodeToAStrangerSendsNothingButKeepsACode(t *testing.T) {
+	a, pool, sender := newUserAuth(t)
+
+	require.NoError(t, a.SendCode(t.Context(), "998909999999"))
+
+	assert.Empty(t, sender.messages(), "no SMS to a phone that is not a user")
+	var codes int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM sms_codes WHERE phone = '998909999999'").Scan(&codes))
+	assert.Equal(t, 1, codes, "a code is kept all the same, so a second request within a minute is refused alike")
+}
