@@ -13,6 +13,7 @@ import { unavailable } from "@/lib/companies"
 import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
+import { cn } from "@/lib/utils"
 
 // Dashboard is the app's home: for now who is signed in and where.
 export function Dashboard() {
@@ -59,7 +60,7 @@ export function Dashboard() {
                 <Badge variant="secondary">{roleLabels[company.role]}</Badge>
               </div>
               {me.data.companies.filter((c) => unavailable(c) === null).length > 1 && (
-                <Link href="/select-company" className={buttonVariants({ variant: "outline", className: "w-full" })}>
+                <Link href="/select-company" className={cn(buttonVariants({ variant: "outline" }), "w-full")}>
                   Kompaniyani almashtirish
                 </Link>
               )}
