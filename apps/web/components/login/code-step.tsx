@@ -26,7 +26,7 @@ function useCountdown(from: number) {
 }
 
 // CodeStep is the second login step: the code from the SMS. There is no
-// button: the sixth digit sends the code.
+// submit button: the sixth digit sends the code.
 export function CodeStep({
   phone,
   retryAfter,

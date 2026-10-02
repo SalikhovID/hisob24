@@ -1,19 +1,24 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
+import type { Metadata } from "next"
+import { Geist } from "next/font/google"
+import { Providers } from "@/components/providers"
+import { cn } from "@/lib/utils"
+import "./globals.css"
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
   title: "Hisob24",
   description: "Hisob24 — biznesingiz uchun hisob tizimi",
-};
+}
 
+// suppressHydrationWarning: next-themes sets the theme class on <html>
+// before React hydrates.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="uz" className={cn("font-sans", geist.variable)}>
-      <body>{children}</body>
+    <html lang="uz" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
-  );
+  )
 }
