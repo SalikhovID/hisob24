@@ -92,3 +92,19 @@ test("when the refresh is refused too, the session is cleared and the request fa
   expect(err).toMatchObject({ status: 401, code: "unauthorized" })
   expect(accessToken()).toBeNull()
 })
+
+test("a wrong login code is not taken for an expired session", async () => {
+  let refreshes = 0
+  server.use(
+    http.post("*/api/app/auth/refresh", () => {
+      refreshes += 1
+    }),
+  )
+
+  const err = await call(api.POST("/app/auth/sms/verify", { body: { phone: VALI, code: "000000" } })).catch(
+    (e: unknown) => e,
+  )
+
+  expect(err).toMatchObject({ status: 401, code: "invalid_code" })
+  expect(refreshes).toBe(0)
+})

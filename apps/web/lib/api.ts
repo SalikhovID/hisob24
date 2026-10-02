@@ -38,6 +38,17 @@ function withToken(request: Request): Request {
   return request
 }
 
+// tokenRefused tells a turned-down access token (401 unauthorized) from the
+// other 401s, such as a wrong login code.
+async function tokenRefused(response: Response): Promise<boolean> {
+  if (response.status !== 401) return false
+  const body = (await response
+    .clone()
+    .json()
+    .catch(() => null)) as { error?: string } | null
+  return body?.error === "unauthorized"
+}
+
 // send hands a request to fetch with the access token. When the API turns
 // the token down (none after a reload, or an expired one) the session is
 // refreshed and the request goes once more, from a copy taken beforehand
@@ -45,7 +56,7 @@ function withToken(request: Request): Request {
 async function send(request: Request): Promise<Response> {
   const retry = request.clone()
   const response = await globalThis.fetch(withToken(request))
-  if (response.status !== 401 || !(await refresh())) return response
+  if (!(await tokenRefused(response)) || !(await refresh())) return response
   return globalThis.fetch(withToken(retry))
 }
 
