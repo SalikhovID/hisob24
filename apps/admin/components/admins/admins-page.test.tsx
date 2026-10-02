@@ -1,7 +1,9 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { db } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { AdminsPage } from "./admins-page"
 
 function rowsOf(table: HTMLElement) {
@@ -58,4 +60,38 @@ test("the add-admin dialog says what is missing, and why the API refused", async
   await user.type(within(dialog).getByLabelText("Ism"), "Owner")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Bu admin allaqachon faol")).toBeInTheDocument()
+})
+
+test("an admin is turned off after asking; you cannot turn yourself off", async () => {
+  addAdmins()
+  const { user } = renderWithProviders(<AdminsPage />)
+
+  const [owner, second, old] = rowsOf(await screen.findByRole("table", { name: "Adminlar" }))
+  expect(within(owner).queryByRole("button", { name: /O'chirish/ })).not.toBeInTheDocument()
+  expect(within(old).queryByRole("button", { name: /O'chirish/ })).not.toBeInTheDocument()
+  await user.click(within(second).getByRole("button", { name: "O'chirish: Ikkinchi" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Adminni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Admin o'chirildi")).toBeInTheDocument()
+  await waitFor(() =>
+    expect(within(rowsOf(screen.getByRole("table", { name: "Adminlar" }))[1]).getByText("Nofaol")).toBeInTheDocument(),
+  )
+})
+
+test("when the API refuses to turn an admin off, it says why", async () => {
+  server.use(
+    http.delete("*/api/admin/admins/:telegramId", () =>
+      HttpResponse.json({ error: "last_admin", message: "Kamida bitta faol admin qolishi kerak" }, { status: 409 }),
+    ),
+  )
+  addAdmins()
+  const { user } = renderWithProviders(<AdminsPage />)
+
+  const [, second] = rowsOf(await screen.findByRole("table", { name: "Adminlar" }))
+  await user.click(within(second).getByRole("button", { name: "O'chirish: Ikkinchi" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Adminni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Kamida bitta faol admin qolishi kerak")).toBeInTheDocument()
 })

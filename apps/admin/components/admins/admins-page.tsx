@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAdmins, useMe } from "@/lib/queries"
 import type { AdminAccount } from "@/lib/types"
 import { AddAdminDialog } from "./add-admin-dialog"
+import { DeleteAdminButton } from "./delete-admin-button"
 
 // AdminsPage lists the platform's admins.
 export function AdminsPage() {
@@ -23,6 +24,11 @@ export function AdminsPage() {
           {a.telegram_id === me.data?.telegram_id && <Badge>Siz</Badge>}
         </span>
       ),
+    },
+    {
+      header: "Amallar",
+      // Only another active admin can be turned off; the API refuses the rest.
+      cell: (a) => me.data && a.is_active && a.telegram_id !== me.data.telegram_id && <DeleteAdminButton admin={a} />,
     },
   ]
 

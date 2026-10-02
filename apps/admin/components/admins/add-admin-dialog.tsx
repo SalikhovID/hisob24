@@ -54,7 +54,7 @@ export function AddAdminDialog() {
         <DialogHeader>
           <DialogTitle>Admin qo&apos;shish</DialogTitle>
           <DialogDescription>
-            Telegram ID&apos;ni admin botdan oladi: ruxsati yo&apos;q odam botga yozsa, bot uning ID&apos;sini aytadi.
+            Telegram ID admin botda ko&apos;rinadi: ruxsati yo&apos;q odam botga yozsa, bot unga ID&apos;sini aytadi.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit((admin) => add.mutate(admin))} noValidate className="space-y-4">

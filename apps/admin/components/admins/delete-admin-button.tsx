@@ -1,0 +1,60 @@
+"use client"
+
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Trash2Icon } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { api, call } from "@/lib/api"
+import { keys } from "@/lib/queries"
+import type { AdminAccount } from "@/lib/types"
+
+// DeleteAdminButton turns an admin off after asking: the row stays, the
+// admin's sessions end. A refusal (the last admin) shows the API's reason.
+export function DeleteAdminButton({ admin }: { admin: AdminAccount }) {
+  const [confirming, setConfirming] = useState(false)
+  const queryClient = useQueryClient()
+  const name = admin.full_name ?? String(admin.telegram_id)
+  const remove = useMutation({
+    mutationFn: () =>
+      call(api.DELETE("/admin/admins/{telegram_id}", { params: { path: { telegram_id: admin.telegram_id } } })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.admins })
+      toast.success("Admin o'chirildi")
+    },
+    onError: (error) => toast.error(error.message),
+    onSettled: () => setConfirming(false),
+  })
+
+  return (
+    <AlertDialog open={confirming} onOpenChange={setConfirming}>
+      <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label={`O'chirish: ${name}`} />}>
+        <Trash2Icon />
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Adminni o&apos;chirasizmi?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {name} panelga kira olmaydi va uning barcha sessiyalari tugaydi. Keyin qayta qo&apos;shish mumkin.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+          <Button variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate()}>
+            O&apos;chirish
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
