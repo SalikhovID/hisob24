@@ -18,6 +18,7 @@ import (
 type Handler struct {
 	auth         *auth.AdminAuth
 	companies    *company.Service
+	billing      *billing.Service
 	cookieSecure bool
 	otpLimiter   *httpx.RateLimiter
 }
@@ -31,7 +32,13 @@ type Services struct {
 
 // NewHandler wires the /admin API. otpLimiter caps code attempts per IP.
 func NewHandler(s Services, cookieSecure bool, otpLimiter *httpx.RateLimiter) *Handler {
-	return &Handler{auth: s.Auth, companies: s.Companies, cookieSecure: cookieSecure, otpLimiter: otpLimiter}
+	return &Handler{
+		auth:         s.Auth,
+		companies:    s.Companies,
+		billing:      s.Billing,
+		cookieSecure: cookieSecure,
+		otpLimiter:   otpLimiter,
+	}
 }
 
 // Routes mounts /admin.
@@ -48,6 +55,7 @@ func (h *Handler) Routes(r chi.Router) {
 			r.Get("/companies/{id}", h.getCompany)
 			r.Patch("/companies/{id}", h.patchCompany)
 			r.Post("/companies/{id}/users", h.addCompanyUser)
+			r.Post("/companies/{id}/billings", h.createBilling)
 		})
 	})
 }
