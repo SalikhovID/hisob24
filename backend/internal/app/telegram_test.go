@@ -49,3 +49,26 @@ func TestTelegramSignInFromTheMiniApp(t *testing.T) {
 	assert.True(t, cookies[1].Partitioned)
 	assert.Equal(t, "/", cookies[1].Path)
 }
+
+func TestTelegramSignInRefusals(t *testing.T) {
+	api := newTestAPI(t)
+	api.linkContact(t, 1003, "998905556677")
+	another := `{"initData":"` + telegramtest.SignInitData("4243:another-bot", 1003, time.Now()) + `"}`
+
+	for name, tc := range map[string]struct {
+		body          string
+		status        int
+		code, message string
+	}{
+		"signed by another bot": {another, http.StatusUnauthorized, "invalid_init_data", "Telegram ma'lumoti yaroqsiz. Mini App'ni qaytadan oching"},
+		"phone never shared":    {telegramBody(1004), http.StatusForbidden, "phone_not_shared", "Telefon raqamingiz botga ulanmagan"},
+		"phone is no user's": {telegramBody(1003), http.StatusForbidden, "no_access",
+			"Hisob24'ga kirish huquqingiz yo'q. Raqamingiz: +998 90 555 66 77. Kompaniyangiz administratoriga murojaat qiling."},
+	} {
+		rec := api.do(t, http.MethodPost, "/app/auth/telegram", tc.body)
+
+		assert.Equal(t, tc.status, rec.Code, name)
+		assert.Equal(t, map[string]any{"error": tc.code, "message": tc.message}, decode(t, rec), name)
+		assert.Empty(t, rec.Result().Cookies(), name)
+	}
+}

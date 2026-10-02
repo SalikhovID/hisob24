@@ -101,11 +101,20 @@ func (h *Handler) telegramLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tokens, err := h.auth.LoginWithTelegram(r.Context(), body.InitData)
-	if err != nil {
+	var noAccess auth.NoAccessError
+	switch {
+	case errors.Is(err, auth.ErrInvalidInitData):
+		httpx.Error(w, http.StatusUnauthorized, "invalid_init_data", "Telegram ma'lumoti yaroqsiz. Mini App'ni qaytadan oching")
+	case errors.Is(err, auth.ErrPhoneNotShared):
+		httpx.Error(w, http.StatusForbidden, "phone_not_shared", "Telefon raqamingiz botga ulanmagan")
+	case errors.As(err, &noAccess):
+		httpx.Error(w, http.StatusForbidden, "no_access",
+			"Hisob24'ga kirish huquqingiz yo'q. Raqamingiz: "+user.FormatPhone(noAccess.Phone)+". Kompaniyangiz administratoriga murojaat qiling.")
+	case err != nil:
 		httpx.WriteError(w, r, err)
-		return
+	default:
+		h.signedIn(w, tokens)
 	}
-	h.signedIn(w, tokens)
 }
 
 func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
