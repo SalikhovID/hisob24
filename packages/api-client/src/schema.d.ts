@@ -480,6 +480,8 @@ export interface components {
             role: components["schemas"]["Role"];
             /** Format: date */
             end_date: string;
+            /** @description end_date - bugun (baza sanasi). Muddati o'tgan bo'lsa manfiy: bunday company bilan so'rovlar 402 oladi. */
+            days_left: number;
             is_active: boolean;
         };
         Me: {

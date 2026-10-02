@@ -20,6 +20,11 @@ export function addDays(date: string, days: number): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10)
 }
 
+// daysLeft counts from TODAY, as the API counts from the database's date.
+function daysLeft(endDate: string): number {
+  return (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${TODAY}T00:00:00Z`)) / DAY
+}
+
 interface Company {
   id: number
   name: string
@@ -89,7 +94,7 @@ export function companiesOf(phone: string): AppCompany[] {
   return (db.members[phone] ?? [])
     .map(({ companyId, role }) => {
       const c = db.companies.find((company) => company.id === companyId)!
-      return { id: c.id, name: c.name, role, end_date: c.end_date, is_active: c.is_active }
+      return { id: c.id, name: c.name, role, end_date: c.end_date, days_left: daysLeft(c.end_date), is_active: c.is_active }
     })
     .sort((a, b) => a.name.localeCompare(b.name))
 }

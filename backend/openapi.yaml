@@ -834,7 +834,7 @@ components:
           type: [string, "null"]
     AppCompany:
       type: object
-      required: [id, name, role, end_date, is_active]
+      required: [id, name, role, end_date, days_left, is_active]
       properties:
         id:
           type: integer
@@ -846,6 +846,11 @@ components:
         end_date:
           type: string
           format: date
+        days_left:
+          type: integer
+          description: >
+            end_date - bugun (baza sanasi). Muddati o'tgan bo'lsa manfiy:
+            bunday company bilan so'rovlar 402 oladi.
         is_active:
           type: boolean
     Me:
