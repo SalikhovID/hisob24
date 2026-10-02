@@ -114,3 +114,13 @@ func TestOtherMessages(t *testing.T) {
 		assert.Equal(t, tc.want, api.sent[0].Text, name)
 	}
 }
+
+func TestUpdatesWithoutAMessageAreIgnored(t *testing.T) {
+	api := &fakeAPI{}
+	h := NewHandler(api, &fakeAuth{})
+
+	h.Handle(t.Context(), &models.Update{})
+	h.Handle(t.Context(), &models.Update{Message: &models.Message{Text: "/login"}})
+
+	assert.Empty(t, api.sent)
+}

@@ -51,6 +51,9 @@ func NewHandler(api API, a Auth) *Handler {
 // Handle answers one update: /login gets a code, everything else a hint for
 // admins and "no access" (with the Telegram ID to add) for everyone else.
 func (h *Handler) Handle(ctx context.Context, update *models.Update) {
+	if update.Message == nil || update.Message.From == nil {
+		return
+	}
 	chatID, from := update.Message.Chat.ID, update.Message.From.ID
 	if command(update.Message.Text) == "/login" {
 		h.login(ctx, chatID, from)
