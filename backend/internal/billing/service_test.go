@@ -176,3 +176,15 @@ func TestHistory(t *testing.T) {
 	require.ErrorAs(t, err, &e)
 	assert.Equal(t, apperr.NotFound, e.Kind)
 }
+
+func TestExtendIsAtomic(t *testing.T) {
+	s, pool := newService(t)
+	d := dbToday(t, pool)
+	id := createCompany(t, pool, d.AddDate(0, 0, 5))
+	pgtest.FailInserts(t, pool, "billings")
+
+	_, err := s.Extend(t.Context(), id, ExtendInput{Days: 30}, ownerID)
+
+	require.Error(t, err)
+	assert.True(t, endDateOf(t, pool, id).Equal(d.AddDate(0, 0, 5)), "the end date stays when the payment is not recorded")
+}
