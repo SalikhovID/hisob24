@@ -66,3 +66,20 @@ func TestDeleteAdminSession(t *testing.T) {
 	_, err = q.GetAdminBySession(ctx, kept.ID)
 	assert.NoError(t, err)
 }
+
+func TestDeleteAdminSessionsByAdmin(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	mustExec(t, pool, "INSERT INTO admins (telegram_id) VALUES (42)")
+	createSession(t, q, ownerID, time.Now().Add(time.Hour))
+	createSession(t, q, ownerID, time.Now().Add(time.Hour))
+	other := createSession(t, q, 42, time.Now().Add(time.Hour))
+
+	require.NoError(t, q.DeleteAdminSessionsByAdmin(ctx, ownerID))
+
+	rows, err := pool.Query(ctx, "SELECT id FROM admin_sessions")
+	require.NoError(t, err)
+	left, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	require.NoError(t, err)
+	assert.Equal(t, []uuid.UUID{other.ID}, left)
+}

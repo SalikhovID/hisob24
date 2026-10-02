@@ -47,6 +47,16 @@ func (q *Queries) DeleteAdminSession(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const deleteAdminSessionsByAdmin = `-- name: DeleteAdminSessionsByAdmin :exec
+DELETE FROM admin_sessions WHERE admin_id = $1
+`
+
+// Logs a deactivated admin out everywhere.
+func (q *Queries) DeleteAdminSessionsByAdmin(ctx context.Context, adminID int64) error {
+	_, err := q.db.Exec(ctx, deleteAdminSessionsByAdmin, adminID)
+	return err
+}
+
 const getAdminBySession = `-- name: GetAdminBySession :one
 SELECT a.telegram_id, a.full_name, a.is_active, a.created_at
 FROM admin_sessions s

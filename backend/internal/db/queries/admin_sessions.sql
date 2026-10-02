@@ -14,3 +14,7 @@ WHERE s.id = $1 AND s.expires_at > now() AND a.is_active;
 -- name: DeleteAdminSession :exec
 -- Logout.
 DELETE FROM admin_sessions WHERE id = $1;
+
+-- name: DeleteAdminSessionsByAdmin :exec
+-- Logs a deactivated admin out everywhere.
+DELETE FROM admin_sessions WHERE admin_id = $1;
