@@ -10,3 +10,14 @@ export function phoneField(message: string) {
     .refine((digits) => /^\d{9,15}$/.test(digits), message)
     .transform((digits) => (digits.length === 9 ? `998${digits}` : digits))
 }
+
+// required is a text field that must hold more than spaces.
+const required = (message: string) => z.string().trim().min(1, message)
+
+// companySchema is the new-company form; the messages match the API's.
+export const companySchema = z.object({
+  name: required("Kompaniya nomini kiriting"),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tugash sanasini tanlang"),
+  owner_phone: phoneField("Egasining telefon raqami noto'g'ri"),
+  owner_full_name: required("Egasining ismini kiriting"),
+})
