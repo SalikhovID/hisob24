@@ -11,3 +11,8 @@ UPDATE admin_login_codes
 SET used_at = now()
 WHERE code_hash = $1 AND used_at IS NULL AND expires_at > now()
 RETURNING admin_id;
+
+-- name: DeleteStaleAdminLoginCodes :exec
+-- Before a new code: this admin's unused codes and everyone's expired ones.
+DELETE FROM admin_login_codes
+WHERE (admin_id = $1 AND used_at IS NULL) OR expires_at <= now();

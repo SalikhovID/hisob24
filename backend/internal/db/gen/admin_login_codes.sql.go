@@ -45,3 +45,14 @@ func (q *Queries) CreateAdminLoginCode(ctx context.Context, arg CreateAdminLogin
 	err := row.Scan(&id)
 	return id, err
 }
+
+const deleteStaleAdminLoginCodes = `-- name: DeleteStaleAdminLoginCodes :exec
+DELETE FROM admin_login_codes
+WHERE (admin_id = $1 AND used_at IS NULL) OR expires_at <= now()
+`
+
+// Before a new code: this admin's unused codes and everyone's expired ones.
+func (q *Queries) DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error {
+	_, err := q.db.Exec(ctx, deleteStaleAdminLoginCodes, adminID)
+	return err
+}

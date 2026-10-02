@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -51,4 +52,30 @@ func TestConsumeAdminLoginCode(t *testing.T) {
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "an expired code does not work")
 	_, err = q.ConsumeAdminLoginCode(ctx, "unknown")
 	assert.ErrorIs(t, err, pgx.ErrNoRows)
+}
+
+func TestDeleteStaleAdminLoginCodes(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	mustExec(t, pool, "INSERT INTO admins (telegram_id) VALUES (42)")
+	soon, past := time.Now().Add(time.Minute), time.Now().Add(-time.Second)
+	createCode(t, q, ownerID, "own-unused", soon)
+	createCode(t, q, ownerID, "own-used", soon)
+	_, err := q.ConsumeAdminLoginCode(ctx, "own-used")
+	require.NoError(t, err)
+	createCode(t, q, 42, "other-unused", soon)
+	createCode(t, q, 42, "other-expired", past)
+
+	require.NoError(t, q.DeleteStaleAdminLoginCodes(ctx, ownerID))
+
+	assert.ElementsMatch(t, []string{"own-used", "other-unused"}, codeHashes(t, pool))
+}
+
+func codeHashes(t *testing.T, pool *pgxpool.Pool) []string {
+	t.Helper()
+	rows, err := pool.Query(context.Background(), "SELECT code_hash FROM admin_login_codes ORDER BY code_hash")
+	require.NoError(t, err)
+	hashes, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return hashes
 }
