@@ -293,3 +293,8 @@ func (a *UserAuth) Logout(ctx context.Context, refreshToken string) error {
 	}
 	return err
 }
+
+// Authenticate checks an access token this UserAuth issued.
+func (a *UserAuth) Authenticate(accessToken string) (AccessClaims, error) {
+	return ParseAccessToken(a.jwtSecret, accessToken, a.now())
+}

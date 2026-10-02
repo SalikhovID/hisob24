@@ -347,3 +347,18 @@ func TestAFailedSignInLeavesTheCodeAndTheTokensAsTheyWere(t *testing.T) {
 	assert.Equal(t, 1, codes, "Verify used no code it could not finish with")
 	assert.Equal(t, 1, live, "Refresh and SwitchCompany revoked no token they could not replace")
 }
+
+func TestAuthenticateAcceptsTheAccessTokensItIssued(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	companyID := addCompany(t, pool, "Olma", 30)
+	tokens := signIn(t, a, pool, "998901234567", map[int64]string{companyID: "owner"})
+
+	claims, err := a.Authenticate(tokens.AccessToken)
+
+	require.NoError(t, err)
+	assert.Equal(t, AccessClaims{Phone: "998901234567", CompanyID: &companyID, Role: "owner"}, claims)
+	_, err = a.Authenticate("abc.def.ghi")
+	assert.ErrorIs(t, err, ErrInvalidAccessToken)
+	_, err = NewUserAuth(pool, testOTPSecret, "another-secret", &fakeSender{}).Authenticate(tokens.AccessToken)
+	assert.ErrorIs(t, err, ErrInvalidAccessToken, "signed with JWT_SECRET only")
+}
