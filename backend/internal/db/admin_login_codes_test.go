@@ -79,3 +79,14 @@ func codeHashes(t *testing.T, pool *pgxpool.Pool) []string {
 	require.NoError(t, err)
 	return hashes
 }
+
+func TestDeleteAdminLoginCode(t *testing.T) {
+	q, pool := setup(t)
+	soon := time.Now().Add(time.Minute)
+	first := createCode(t, q, ownerID, "first", soon)
+	createCode(t, q, ownerID, "second", soon)
+
+	require.NoError(t, q.DeleteAdminLoginCode(t.Context(), first))
+
+	assert.Equal(t, []string{"second"}, codeHashes(t, pool))
+}

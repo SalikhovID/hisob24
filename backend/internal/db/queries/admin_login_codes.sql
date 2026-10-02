@@ -16,3 +16,7 @@ RETURNING admin_id;
 -- Before a new code: this admin's unused codes and everyone's expired ones.
 DELETE FROM admin_login_codes
 WHERE (admin_id = $1 AND used_at IS NULL) OR expires_at <= now();
+
+-- name: DeleteAdminLoginCode :exec
+-- Drops a code the bot could not deliver.
+DELETE FROM admin_login_codes WHERE id = $1;

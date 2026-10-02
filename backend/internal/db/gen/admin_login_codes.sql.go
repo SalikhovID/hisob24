@@ -46,6 +46,16 @@ func (q *Queries) CreateAdminLoginCode(ctx context.Context, arg CreateAdminLogin
 	return id, err
 }
 
+const deleteAdminLoginCode = `-- name: DeleteAdminLoginCode :exec
+DELETE FROM admin_login_codes WHERE id = $1
+`
+
+// Drops a code the bot could not deliver.
+func (q *Queries) DeleteAdminLoginCode(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteAdminLoginCode, id)
+	return err
+}
+
 const deleteStaleAdminLoginCodes = `-- name: DeleteStaleAdminLoginCodes :exec
 DELETE FROM admin_login_codes
 WHERE (admin_id = $1 AND used_at IS NULL) OR expires_at <= now()

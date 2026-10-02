@@ -18,6 +18,8 @@ type Querier interface {
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
 	DeactivateAdmin(ctx context.Context, telegramID int64) (int64, error)
+	// Drops a code the bot could not deliver.
+	DeleteAdminLoginCode(ctx context.Context, id int64) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
