@@ -116,6 +116,34 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Inside Telegram (TelegramSync sets data-telegram) the panel wears the
+   chat's colors: telegram-web-app.js publishes themeParams as --tg-theme-*.
+   The fallbacks cover clients older than Bot API 7.0. */
+html[data-telegram] {
+    --background: var(--tg-theme-bg-color);
+    --foreground: var(--tg-theme-text-color);
+    --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
+    --card-foreground: var(--tg-theme-text-color);
+    --popover: var(--tg-theme-bg-color);
+    --popover-foreground: var(--tg-theme-text-color);
+    --primary: var(--tg-theme-button-color);
+    --primary-foreground: var(--tg-theme-button-text-color);
+    --secondary: var(--tg-theme-secondary-bg-color);
+    --secondary-foreground: var(--tg-theme-text-color);
+    --muted: var(--tg-theme-secondary-bg-color);
+    --muted-foreground: var(--tg-theme-hint-color);
+    --accent: var(--tg-theme-secondary-bg-color);
+    --accent-foreground: var(--tg-theme-text-color);
+    --destructive: var(--tg-theme-destructive-text-color, oklch(0.577 0.245 27.325));
+    --ring: var(--tg-theme-button-color);
+    --sidebar: var(--tg-theme-secondary-bg-color);
+    --sidebar-foreground: var(--tg-theme-text-color);
+    --sidebar-primary: var(--tg-theme-button-color);
+    --sidebar-primary-foreground: var(--tg-theme-button-text-color);
+    --sidebar-accent: var(--tg-theme-bg-color);
+    --sidebar-accent-foreground: var(--tg-theme-text-color);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
