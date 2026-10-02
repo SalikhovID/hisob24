@@ -21,6 +21,38 @@ type Stage =
 const RETRIES = [1000, 2000, 3000]
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+type Outcome =
+  | { kind: "signed_in"; companyId: number | null }
+  | { kind: "not_shared" }
+  | { kind: "no_access"; message: string }
+  | { kind: "no_cookie" }
+  | { kind: "failed"; notice: string }
+
+// attempt signs the Mini App user in once and says how it went; showing it
+// is the component's part. A cancelled attempt stops before the refresh: two
+// rotating the one refresh cookie at once would leave one of them refused.
+async function attempt(initData: string, cancelled = () => false): Promise<Outcome | null> {
+  let tokens
+  try {
+    tokens = await call(api.POST("/app/auth/telegram", { body: { initData } }))
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "phone_not_shared") return { kind: "not_shared" }
+    if (error instanceof ApiError && error.code === "no_access") return { kind: "no_access", message: error.message }
+    return { kind: "failed", notice: (error as Error).message }
+  }
+  if (cancelled()) return null
+  setAccessToken(tokens.access_token)
+  // A frame that keeps no cookie would send every page back to /login:
+  // check that the session sticks before leaving.
+  try {
+    const refreshed = await call(api.POST("/app/auth/refresh"))
+    setAccessToken(refreshed.access_token)
+  } catch {
+    return { kind: "no_cookie" }
+  }
+  return { kind: "signed_in", companyId: tokens.company_id }
+}
+
 // TelegramLogin signs in the user who opened the Mini App, with no code: the
 // user bot signed initData, and the account shared a user's phone with it.
 // An account that shared none can share it from here: Telegram sends the
@@ -36,51 +68,35 @@ export function TelegramLogin({
   const router = useRouter()
   const [stage, setStage] = useState<Stage>({ kind: "checking" })
 
-  // signIn asks the API once; "not_shared" leaves the next step to the caller.
-  const signIn = useCallback(
-    async (cancelled: () => boolean): Promise<"done" | "not_shared"> => {
-      try {
-        const tokens = await call(api.POST("/app/auth/telegram", { body: { initData: webApp.initData } }))
-        if (cancelled()) return "done"
-        setAccessToken(tokens.access_token)
-        // A frame that keeps no cookie would send every page back to /login:
-        // check that the session sticks before leaving.
-        try {
-          const refreshed = await call(api.POST("/app/auth/refresh"))
-          if (cancelled()) return "done"
-          setAccessToken(refreshed.access_token)
-        } catch {
-          if (!cancelled()) setStage({ kind: "no_cookie" })
-          return "done"
-        }
-        router.replace(tokens.company_id === null ? "/select-company" : "/")
-      } catch (error) {
-        if (cancelled()) return "done"
-        if (error instanceof ApiError && error.code === "phone_not_shared") return "not_shared"
-        if (error instanceof ApiError && error.code === "no_access") setStage({ kind: "no_access", message: error.message })
-        else onFallback((error as Error).message)
-      }
-      return "done"
+  const apply = useCallback(
+    (outcome: Outcome) => {
+      if (outcome.kind === "signed_in") router.replace(outcome.companyId === null ? "/select-company" : "/")
+      else if (outcome.kind === "failed") onFallback(outcome.notice)
+      else setStage(outcome.kind === "not_shared" ? { kind: "not_shared" } : outcome)
     },
-    [webApp, router, onFallback],
+    [router, onFallback],
   )
 
   useEffect(() => {
     let cancelled = false
-    signIn(() => cancelled).then((result) => {
-      if (!cancelled && result === "not_shared") setStage({ kind: "not_shared" })
+    attempt(webApp.initData, () => cancelled).then((outcome) => {
+      if (!cancelled && outcome) apply(outcome)
     })
     return () => {
       cancelled = true
     }
-  }, [signIn])
+  }, [webApp, apply])
 
   // tryAgain waits for the contact to reach the bot, trying at each delay.
   const tryAgain = async (delays: number[]) => {
     setStage({ kind: "checking" })
     for (const delay of delays) {
       await wait(delay)
-      if ((await signIn(() => false)) === "done") return
+      const outcome = await attempt(webApp.initData)
+      if (outcome && outcome.kind !== "not_shared") {
+        apply(outcome)
+        return
+      }
     }
     setStage({ kind: "not_shared", late: true })
   }
