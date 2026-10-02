@@ -1,6 +1,9 @@
-import { screen } from "@testing-library/react"
-import { expect, test } from "vitest"
+import { screen, waitFor } from "@testing-library/react"
+import { expect, test, vi } from "vitest"
+import { meKey } from "@/lib/queries"
+import { accessToken } from "@/lib/session"
 import { SARDOR, VALI } from "@/mocks/data"
+import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { SelectCompany } from "./select-company"
@@ -32,4 +35,21 @@ test("expired and blocked companies are shown with a badge but cannot be chosen"
   const olma = screen.getByRole("button", { name: /Olma Savdo/ })
   expect(olma).toBeEnabled()
   expect(olma).not.toHaveTextContent(/Muddati o'tgan|Bloklangan/)
+})
+
+test("choosing a company switches to it and opens the dashboard", async () => {
+  await signIn(VALI)
+  const { user, queryClient } = renderWithProviders(<SelectCompany />)
+  // What the dashboard finds in the cache as it opens.
+  let cachedMe: unknown = "not opened"
+  vi.mocked(router.replace).mockImplementationOnce(() => {
+    cachedMe = queryClient.getQueryData(meKey)
+  })
+
+  await user.click(await screen.findByRole("button", { name: /Nok Market/ }))
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+  expect(accessToken()).toMatch(new RegExp(`^access:${VALI}:2:`))
+  // The old /app/me (no company yet) is gone, so the dashboard asks afresh.
+  expect(cachedMe).toBeUndefined()
 })

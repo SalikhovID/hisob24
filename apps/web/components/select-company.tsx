@@ -1,9 +1,10 @@
 "use client"
 
 import { ChevronRightIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { useMe } from "@/lib/queries"
+import { useMe, useSwitchCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { AppCompany } from "@/lib/types"
 
@@ -17,7 +18,9 @@ function unavailable(company: AppCompany): { label: string; expired: boolean } |
 
 // SelectCompany lets someone in several companies choose the one to work in.
 export function SelectCompany() {
+  const router = useRouter()
   const me = useMe()
+  const choose = useSwitchCompany()
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-6 p-4 pt-10">
@@ -36,7 +39,8 @@ export function SelectCompany() {
                 <li key={company.id}>
                   <button
                     type="button"
-                    disabled={reason !== null}
+                    disabled={reason !== null || choose.isPending}
+                    onClick={() => choose.mutate(company.id, { onSuccess: () => router.replace("/") })}
                     className="flex w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left transition-colors not-disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <span className="grid gap-0.5">
