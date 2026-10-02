@@ -95,6 +95,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kompaniyalar ro'yxati
+         * @description Eng yangisi birinchi, sahifada 20 ta.
+         */
+        get: operations["listCompanies"];
+        put?: never;
+        /**
+         * Kompaniya va uning egasini yaratish
+         * @description Bitta tranzaksiyada: kompaniya, egasining user yozuvi (telefon allaqachon bo'lsa, mavjud user o'zgarishsiz ishlatiladi) va owner a'zoligi.
+         */
+        post: operations["createCompany"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/companies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        /** Kompaniya va uning userlari */
+        get: operations["getCompany"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Nomini o'zgartirish yoki bloklash
+         * @description Berilmagan maydon o'zgarmaydi.
+         */
+        patch: operations["updateCompany"];
+        trace?: never;
+    };
+    "/admin/companies/{id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kompaniyaga user qo'shish
+         * @description Telefon allaqachon user bo'lsa, ismi o'zgarmaydi. Allaqachon a'zo bo'lsa, roli yangilanadi.
+         */
+        post: operations["addCompanyUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/companies/{id}/billings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Billing tarixi
+         * @description Eng yangisi birinchi.
+         */
+        get: operations["listBillings"];
+        put?: never;
+        /**
+         * Muddatni uzaytirish
+         * @description Bitta tranzaksiyada kompaniya qatori bloklanadi va new_end_date = GREATEST(end_date, CURRENT_DATE) + days hisoblanadi.
+         */
+        post: operations["createBilling"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Adminlar ro'yxati
+         * @description Nofaollari ham.
+         */
+        get: operations["listAdmins"];
+        put?: never;
+        /**
+         * Admin qo'shish
+         * @description Nofaol admin qayta faollashadi va ismi yangilanadi.
+         */
+        post: operations["addAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/admins/{telegram_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Adminni nofaol qilish
+         * @description Yozuv o'chirilmaydi, faqat is_active = false bo'ladi va barcha sessiyalari o'chiriladi.
+         */
+        delete: operations["deactivateAdmin"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -114,9 +253,94 @@ export interface components {
             telegram_id: number;
             full_name: string | null;
         };
+        Company: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** Format: date */
+            end_date: string;
+            is_active: boolean;
+            /** @description end_date - bugun (baza sanasi). Muddati o'tgan bo'lsa manfiy. Bloklangan kompaniyada ham to'langan kunlarni ko'rsatadi. */
+            days_left: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        CompanyDetail: components["schemas"]["Company"] & {
+            users: components["schemas"]["Member"][];
+        };
+        CompanyPage: {
+            items: components["schemas"]["Company"][];
+            /** Format: int64 */
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        Member: {
+            /** @description 998XXXXXXXXX ko'rinishida */
+            phone: string;
+            full_name: string | null;
+            role: components["schemas"]["Role"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @enum {string} */
+        Role: "owner" | "manager" | "staff";
+        Billing: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            company_id: number;
+            days: number;
+            /** @description Bazadagidek ikki kasr xonasi bilan, masalan "150000.50" */
+            amount: string | null;
+            /** Format: date */
+            prev_end_date: string;
+            /** Format: date */
+            new_end_date: string;
+            note: string | null;
+            /** Format: int64 */
+            created_by: number | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AdminAccount: {
+            /** Format: int64 */
+            telegram_id: number;
+            full_name: string | null;
+            is_active: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        CreateCompany: {
+            name: string;
+            /** Format: date */
+            end_date: string;
+            /** @description +998 90 123 45 67, 998901234567 yoki 901234567 */
+            owner_phone: string;
+            owner_full_name: string;
+        };
+        PatchCompany: {
+            name?: string;
+            is_active?: boolean;
+        };
+        AddMember: {
+            phone: string;
+            full_name: string;
+            role: components["schemas"]["Role"];
+        };
+        CreateBilling: {
+            days: number;
+            amount?: string;
+            note?: string;
+        };
+        AddAdmin: {
+            /** Format: int64 */
+            telegram_id: number;
+            full_name: string;
+        };
     };
     responses: {
-        /** @description So'rov noto'g'ri (bad_request) */
+        /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
         BadRequest: {
             headers: {
                 [name: string]: unknown;
@@ -134,8 +358,19 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description Kompaniya topilmadi (not_found) */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
-    parameters: never;
+    parameters: {
+        CompanyID: number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -291,6 +526,290 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    listCompanies: {
+        parameters: {
+            query?: {
+                /** @description Nom bo'yicha qidiruv (katta-kichik harf farqsiz, harfma-harf) */
+                search?: string;
+                /** @description active: end_date o'tmagan va bloklanmagan; expired: end_date o'tgan yoki bloklangan */
+                status?: "active" | "expired";
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bitta sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCompany"];
+            };
+        };
+        responses: {
+            /** @description Kompaniya yaratildi */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Company"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kompaniya */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchCompany"];
+            };
+        };
+        responses: {
+            /** @description Yangilangan kompaniya */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Company"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addCompanyUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddMember"];
+            };
+        };
+        responses: {
+            /** @description A'zo */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listBillings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description To'lovlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Billing"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createBilling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBilling"];
+            };
+        };
+        responses: {
+            /** @description To'lov yozildi */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Billing"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listAdmins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Adminlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccount"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    addAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddAdmin"];
+            };
+        };
+        responses: {
+            /** @description Faol admin */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccount"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description Bu admin allaqachon faol (admin_exists) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deactivateAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Admin nofaol qilindi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Faol admin topilmadi (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description O'zini o'chirish (cannot_delete_self) yoki oxirgi faol admin (last_admin) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
 }

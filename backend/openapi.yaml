@@ -126,21 +126,307 @@ paths:
                 $ref: "#/components/schemas/Admin"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /admin/companies:
+    get:
+      operationId: listCompanies
+      summary: Kompaniyalar ro'yxati
+      description: Eng yangisi birinchi, sahifada 20 ta.
+      security:
+        - adminSession: []
+      parameters:
+        - name: search
+          in: query
+          description: Nom bo'yicha qidiruv (katta-kichik harf farqsiz, harfma-harf)
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: >
+            active: end_date o'tmagan va bloklanmagan; expired: end_date
+            o'tgan yoki bloklangan
+          schema:
+            type: string
+            enum: [active, expired]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000000
+            default: 1
+      responses:
+        "200":
+          description: Bitta sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createCompany
+      summary: Kompaniya va uning egasini yaratish
+      description: >
+        Bitta tranzaksiyada: kompaniya, egasining user yozuvi (telefon
+        allaqachon bo'lsa, mavjud user o'zgarishsiz ishlatiladi) va
+        owner a'zoligi.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompany"
+      responses:
+        "201":
+          description: Kompaniya yaratildi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/companies/{id}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyID"
+    get:
+      operationId: getCompany
+      summary: Kompaniya va uning userlari
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: Kompaniya
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateCompany
+      summary: Nomini o'zgartirish yoki bloklash
+      description: Berilmagan maydon o'zgarmaydi.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchCompany"
+      responses:
+        "200":
+          description: Yangilangan kompaniya
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/companies/{id}/users:
+    parameters:
+      - $ref: "#/components/parameters/CompanyID"
+    post:
+      operationId: addCompanyUser
+      summary: Kompaniyaga user qo'shish
+      description: >
+        Telefon allaqachon user bo'lsa, ismi o'zgarmaydi. Allaqachon a'zo
+        bo'lsa, roli yangilanadi.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMember"
+      responses:
+        "201":
+          description: A'zo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/companies/{id}/billings:
+    parameters:
+      - $ref: "#/components/parameters/CompanyID"
+    get:
+      operationId: listBillings
+      summary: Billing tarixi
+      description: Eng yangisi birinchi.
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: To'lovlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Billing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createBilling
+      summary: Muddatni uzaytirish
+      description: >
+        Bitta tranzaksiyada kompaniya qatori bloklanadi va
+        new_end_date = GREATEST(end_date, CURRENT_DATE) + days hisoblanadi.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBilling"
+      responses:
+        "201":
+          description: To'lov yozildi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Billing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/admins:
+    get:
+      operationId: listAdmins
+      summary: Adminlar ro'yxati
+      description: Nofaollari ham.
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: Adminlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminAccount"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: addAdmin
+      summary: Admin qo'shish
+      description: Nofaol admin qayta faollashadi va ismi yangilanadi.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddAdmin"
+      responses:
+        "201":
+          description: Faol admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAccount"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Bu admin allaqachon faol (admin_exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /admin/admins/{telegram_id}:
+    delete:
+      operationId: deactivateAdmin
+      summary: Adminni nofaol qilish
+      description: >
+        Yozuv o'chirilmaydi, faqat is_active = false bo'ladi va barcha
+        sessiyalari o'chiriladi.
+      security:
+        - adminSession: []
+      parameters:
+        - name: telegram_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Admin nofaol qilindi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Faol admin topilmadi (not_found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: >
+            O'zini o'chirish (cannot_delete_self) yoki oxirgi faol admin
+            (last_admin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   securitySchemes:
     adminSession:
       type: apiKey
       in: cookie
       name: admin_session
+  parameters:
+    CompanyID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
   responses:
     BadRequest:
-      description: So'rov noto'g'ri (bad_request)
+      description: >
+        So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error,
+        message aniq sababni aytadi)
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Sessiya yo'q yoki tugagan (unauthorized)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Kompaniya topilmadi (not_found)
       content:
         application/json:
           schema:
@@ -172,3 +458,169 @@ components:
           format: int64
         full_name:
           type: [string, "null"]
+    Company:
+      type: object
+      required: [id, name, end_date, is_active, days_left, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        end_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+        days_left:
+          type: integer
+          description: >
+            end_date - bugun (baza sanasi). Muddati o'tgan bo'lsa manfiy.
+            Bloklangan kompaniyada ham to'langan kunlarni ko'rsatadi.
+        created_at:
+          type: string
+          format: date-time
+    CompanyDetail:
+      allOf:
+        - $ref: "#/components/schemas/Company"
+        - type: object
+          required: [users]
+          properties:
+            users:
+              type: array
+              items:
+                $ref: "#/components/schemas/Member"
+    CompanyPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Company"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        page_size:
+          type: integer
+    Member:
+      type: object
+      required: [phone, full_name, role, created_at]
+      properties:
+        phone:
+          type: string
+          description: 998XXXXXXXXX ko'rinishida
+        full_name:
+          type: [string, "null"]
+        role:
+          $ref: "#/components/schemas/Role"
+        created_at:
+          type: string
+          format: date-time
+    Role:
+      type: string
+      enum: [owner, manager, staff]
+    Billing:
+      type: object
+      required: [id, company_id, days, amount, prev_end_date, new_end_date, note, created_by, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        company_id:
+          type: integer
+          format: int64
+        days:
+          type: integer
+        amount:
+          type: [string, "null"]
+          description: Bazadagidek ikki kasr xonasi bilan, masalan "150000.50"
+        prev_end_date:
+          type: string
+          format: date
+        new_end_date:
+          type: string
+          format: date
+        note:
+          type: [string, "null"]
+        created_by:
+          type: [integer, "null"]
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+    AdminAccount:
+      type: object
+      required: [telegram_id, full_name, is_active, created_at]
+      properties:
+        telegram_id:
+          type: integer
+          format: int64
+        full_name:
+          type: [string, "null"]
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    CreateCompany:
+      type: object
+      required: [name, end_date, owner_phone, owner_full_name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        end_date:
+          type: string
+          format: date
+        owner_phone:
+          type: string
+          description: "+998 90 123 45 67, 998901234567 yoki 901234567"
+        owner_full_name:
+          type: string
+          minLength: 1
+    PatchCompany:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        is_active:
+          type: boolean
+    AddMember:
+      type: object
+      required: [phone, full_name, role]
+      properties:
+        phone:
+          type: string
+        full_name:
+          type: string
+          minLength: 1
+        role:
+          $ref: "#/components/schemas/Role"
+    CreateBilling:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: integer
+          minimum: 1
+          maximum: 3650
+        amount:
+          type: string
+          pattern: "^[0-9]{1,12}([.][0-9]{1,2})?$"
+        note:
+          type: string
+    AddAdmin:
+      type: object
+      required: [telegram_id, full_name]
+      properties:
+        telegram_id:
+          type: integer
+          format: int64
+          minimum: 1
+        full_name:
+          type: string
+          minLength: 1
