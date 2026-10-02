@@ -7,17 +7,9 @@ import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { subscriptionExpired } from "@/lib/api"
+import { unavailable } from "@/lib/companies"
 import { useLogout, useMe, useSwitchCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
-import type { AppCompany } from "@/lib/types"
-
-// unavailable says why a company cannot be chosen: the API would answer 402
-// for it. null when it can.
-function unavailable(company: AppCompany): { label: string; expired: boolean } | null {
-  if (!company.is_active) return { label: "Bloklangan", expired: false }
-  if (company.days_left < 0) return { label: "Muddati o'tgan", expired: true }
-  return null
-}
 
 // SelectCompany lets someone in several companies choose the one to work in.
 export function SelectCompany() {

@@ -1,10 +1,13 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
 import { subscriptionExpired } from "@/lib/api"
+import { unavailable } from "@/lib/companies"
 import { formatPhoneInput } from "@/lib/phone"
 import { useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
@@ -39,6 +42,11 @@ export function Dashboard() {
                 </div>
                 <Badge variant="secondary">{roleLabels[me.data.company.role]}</Badge>
               </div>
+            )}
+            {me.data.companies.filter((company) => unavailable(company) === null).length > 1 && (
+              <Link href="/select-company" className={buttonVariants({ variant: "outline", className: "w-full" })}>
+                Kompaniyani almashtirish
+              </Link>
             )}
           </div>
         )
