@@ -437,3 +437,22 @@ func TestLoginWithTelegramForAPhoneThatIsNoUsers(t *testing.T) {
 	require.ErrorAs(t, err, &noAccess)
 	assert.Equal(t, "998905556677", noAccess.Phone)
 }
+
+func TestLoginWithTelegramTrustsOnlyTheUserBotsFreshSignature(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	linkContact(t, pool, 1001, "998901234567")
+
+	for name, initData := range map[string]string{
+		"another bot's":   telegramtest.SignInitData("4243:another-bot", 1001, time.Now()),
+		"a day and more":  telegramtest.SignInitData(testUserBotToken, 1001, time.Now().Add(-25*time.Hour)),
+		"not initData":    "user=%7B%22id%22%3A1001%7D&hash=00",
+		"an empty secret": telegramtest.SignInitData("", 1001, time.Now()),
+	} {
+		_, err := a.LoginWithTelegram(t.Context(), initData)
+		assert.ErrorIs(t, err, ErrInvalidInitData, name)
+	}
+	_, err := NewUserAuth(pool, testOTPSecret, testJWTSecret, "", &fakeSender{}).
+		LoginWithTelegram(t.Context(), telegramtest.SignInitData("", 1001, time.Now()))
+	assert.ErrorIs(t, err, ErrInvalidInitData, "no user bot: no Mini App sign-in, even signed with an empty token")
+}
