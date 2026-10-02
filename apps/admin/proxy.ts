@@ -11,5 +11,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/:path*"],
+  // Every page but /login. The API behind the /api rewrite checks its own
+  // sessions, and Next's files and the icon need none.
+  matcher: ["/((?!login(?:$|/)|api/|_next/static|_next/image|favicon\\.ico).*)"],
 }
