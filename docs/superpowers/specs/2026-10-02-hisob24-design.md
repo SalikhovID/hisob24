@@ -322,7 +322,7 @@ Foydalanuvchi qarorlari:
    - Verify, refresh va switch-company yangi refresh token'ga company'ni yozadi.
    - Refresh a'zolikni qayta tekshiradi: yangi rol olinadi, a'zolik yo'qolgan bo'lsa company tanlanmagan holatga qaytadi.
 3. **IP limiti:** `sms/send` va `sms/verify` uchun alohida, daqiqasiga 5 ta.
-4. **SMS matni:** `Hisob24 kirish kodi: 123456`. Bu shablon Eskiz akkauntida tasdiqlangan bo'lishi shart.
+4. **SMS matni:** `Hisob24 kirish kodi: 123456`. Bu shablon Eskiz akkauntida tasdiqlangan bo'lishi shart. *(Production deploy'da o'zgartirildi, pastga qarang.)*
 
 Belgilangan tafsilotlar:
 
@@ -437,6 +437,6 @@ Belgilangan tafsilotlar:
   - `api.hisob24.uz` da faqat `/webhooks/` va `/healthz` ochiq, brauzerlar API'ga Next orqali boradi;
   - `admin.hisob24.uz.conf` sites-enabled'da birinchi, shuning uchun unga catch-all blok qo'shildi: notanish host'lar avvalgidek `app` ga 301 bo'ladi.
 - **Postgres `timezone=Asia/Tashkent`.** `CURRENT_DATE` Toshkent sanasi bo'yicha hisoblanadi.
-- **Eskiz:** akkaunt ishlaydi (`auth/login` 200). Lekin `Hisob24 kirish kodi: %d` shabloni tasdiqlanmagan. Tasdiqlangan o'zbekcha shablon: `Hisob24 dasturiga kirish uchun tasdiqlash kodi: %d Uni hech kimga bermang.` Qaror foydalanuvchida.
+- **Eskiz:** akkaunt ishlaydi (`auth/login` 200). Lekin `Hisob24 kirish kodi: %d` shabloni tasdiqlanmagan. Foydalanuvchi qarori: akkauntdagi tasdiqlangan shablonga o'tildi. Matn endi `Hisob24 dasturiga kirish uchun tasdiqlash kodi: 123456 Uni hech kimga bermang.` (`sms.Text`, TDD bilan).
 - **Eski prod `SMS_DRIVER=log` bilan ishlagan**, ya'ni u yerda SMS umuman yuborilmagan.
 - **Backup:** kunlik `pg_dump` cron'i, 14 kun saqlanadi.

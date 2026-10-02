@@ -69,7 +69,7 @@ make otp ID=123456789 # boshqa admin uchun
 3. SMS kodini API logidan oling:
 
 ```
-[api]    time=… level=INFO msg="sms (SMS_DRIVER=log, not sent)" phone=998901234567 text="Hisob24 kirish kodi: 482913"
+[api]    time=… level=INFO msg="sms (SMS_DRIVER=log, not sent)" phone=998901234567 text="Hisob24 dasturiga kirish uchun tasdiqlash kodi: 482913 Uni hech kimga bermang."
 ```
 
 Bir nechta company'da bo'lsangiz, avval company tanlanadi. Muddati o'tgan yoki bloklangan company'ga kirganda `/expired` sahifasi ochiladi.
@@ -208,7 +208,7 @@ BotFather menyusidagi nomlar Telegram yangilanishlari bilan biroz o'zgarishi mum
 
 - **HTTPS.** Hamma narsa https orqali ishlaydi. `COOKIE_SECURE=true` (default) bo'lsa, cookie'lar faqat https'da yuradi.
 - **`ADMIN_PANEL_URL`:** admin panelning to'liq manzili, masalan `https://admin.example.com`.
-- **SMS:** `SMS_DRIVER=eskiz` va `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_FROM`. SMS matni `Hisob24 kirish kodi: 123456`, bu shablon Eskiz akkauntida tasdiqlangan bo'lishi kerak.
+- **SMS:** `SMS_DRIVER=eskiz` va `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_FROM`. SMS matni Eskiz akkauntida tasdiqlangan shablonga aynan mos bo'lishi kerak: `Hisob24 dasturiga kirish uchun tasdiqlash kodi: %d Uni hech kimga bermang.` (`backend/internal/sms/sms.go`).
 - **Secret'lar** (`OTP_HMAC_SECRET`, `JWT_SECRET`, `TELEGRAM_WEBHOOK_SECRET`): `openssl rand -hex 32`.
 - **Migratsiya:** `make migrate` yoki `goose -dir backend/migrations postgres "$DATABASE_URL" up`.
 - **Build va ishga tushirish:**
