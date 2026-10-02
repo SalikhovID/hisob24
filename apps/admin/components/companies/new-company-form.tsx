@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import type { z } from "zod"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
-import { FieldGroup } from "@/components/ui/field"
+import { FieldError, FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { keys } from "@/lib/queries"
 import { companySchema } from "@/lib/schemas"
@@ -48,6 +48,7 @@ export function NewCompanyForm() {
         />
         <TextField control={form.control} name="owner_full_name" label="Egasining ismi" autoComplete="off" />
       </FieldGroup>
+      {create.isError && <FieldError>{create.error.message}</FieldError>}
       <Button type="submit" disabled={create.isPending}>
         Yaratish
       </Button>
