@@ -9,6 +9,17 @@ import (
 	"context"
 )
 
+const getUser = `-- name: GetUser :one
+SELECT phone, full_name, created_at FROM users WHERE phone = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, phone string) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, phone)
+	var i User
+	err := row.Scan(&i.Phone, &i.FullName, &i.CreatedAt)
+	return i, err
+}
+
 const upsertUser = `-- name: UpsertUser :exec
 INSERT INTO users (phone, full_name)
 VALUES ($1, $2)

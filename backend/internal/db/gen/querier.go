@@ -38,6 +38,7 @@ type Querier interface {
 	// admin gives pgx.ErrNoRows.
 	GetAdminBySession(ctx context.Context, id uuid.UUID) (Admin, error)
 	GetCompany(ctx context.Context, id int64) (Company, error)
+	GetUser(ctx context.Context, phone string) (User, error)
 	// The user middleware's check: false means 402 subscription_expired.
 	IsCompanySubscriptionActive(ctx context.Context, id int64) (bool, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
