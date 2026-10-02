@@ -312,3 +312,15 @@ func TestSwitchCompanyRefusals(t *testing.T) {
 	_, err = a.Refresh(t.Context(), mine.RefreshToken)
 	assert.NoError(t, err, "and the user's own")
 }
+
+func TestLogoutRevokesTheRefreshToken(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	tokens := signIn(t, a, pool, "998901234567", nil)
+
+	require.NoError(t, a.Logout(t.Context(), tokens.RefreshToken))
+
+	_, err := a.Refresh(t.Context(), tokens.RefreshToken)
+	assert.ErrorIs(t, err, ErrInvalidRefresh)
+	assert.NoError(t, a.Logout(t.Context(), tokens.RefreshToken), "twice is fine")
+	assert.NoError(t, a.Logout(t.Context(), "made-up"))
+}

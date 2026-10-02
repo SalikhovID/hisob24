@@ -284,3 +284,12 @@ func (a *UserAuth) SwitchCompany(ctx context.Context, phone, refreshToken string
 	})
 	return tokens, err
 }
+
+// Logout revokes a refresh token; one that is not live is fine.
+func (a *UserAuth) Logout(ctx context.Context, refreshToken string) error {
+	_, err := a.q.RevokeRefreshToken(ctx, hashToken(refreshToken))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	return err
+}
