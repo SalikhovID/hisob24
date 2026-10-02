@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { accessToken } from "@/lib/session"
 import { ZARINA } from "@/mocks/data"
-import { router } from "@/test/navigation"
+import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { Expired } from "./expired"
@@ -25,4 +25,14 @@ test("choosing another company drops the expired one and opens the list", async 
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/select-company"))
   expect(accessToken()).toMatch(new RegExp(`^access:${ZARINA}:none:`))
+})
+
+test("signing out ends the session and leaves for /login", async () => {
+  await signIn(ZARINA)
+  const { user } = renderWithProviders(<Expired />)
+
+  await user.click(screen.getByRole("button", { name: "Chiqish" }))
+
+  await waitFor(() => expect(leave).toHaveBeenCalledWith("/login"))
+  expect(accessToken()).toBeNull()
 })

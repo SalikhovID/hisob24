@@ -1,9 +1,9 @@
 "use client"
 
-import { CalendarXIcon } from "lucide-react"
+import { CalendarXIcon, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { useSwitchCompany } from "@/lib/queries"
+import { useLogout, useSwitchCompany } from "@/lib/queries"
 
 // Expired is where a session for a company whose subscription is over lands.
 // The way on is another company: the session drops this one first, so the
@@ -11,6 +11,7 @@ import { useSwitchCompany } from "@/lib/queries"
 export function Expired() {
   const router = useRouter()
   const switchCompany = useSwitchCompany()
+  const logout = useLogout()
 
   return (
     <main className="flex min-h-svh items-center justify-center p-4">
@@ -24,13 +25,18 @@ export function Expired() {
             Kompaniya obunasini uzaytirish uchun administrator bilan bog&apos;laning.
           </p>
         </div>
-        <Button
-          className="w-full"
-          disabled={switchCompany.isPending}
-          onClick={() => switchCompany.mutate(null, { onSuccess: () => router.replace("/select-company") })}
-        >
-          Boshqa kompaniyani tanlash
-        </Button>
+        <div className="grid gap-2">
+          <Button
+            disabled={switchCompany.isPending}
+            onClick={() => switchCompany.mutate(null, { onSuccess: () => router.replace("/select-company") })}
+          >
+            Boshqa kompaniyani tanlash
+          </Button>
+          <Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>
+            <LogOutIcon />
+            Chiqish
+          </Button>
+        </div>
       </div>
     </main>
   )
