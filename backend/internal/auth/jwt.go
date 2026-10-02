@@ -59,14 +59,22 @@ func IssueAccessToken(secret []byte, claims AccessClaims, now time.Time) (string
 	return token, expires, nil
 }
 
-// ParseAccessToken checks an access token and returns its claims.
+// ParseAccessToken checks an access token and returns its claims: HS256
+// with secret only, for the user app (aud app), with an expiry not yet
+// passed at now and a subject.
 func ParseAccessToken(secret []byte, token string, now time.Time) (AccessClaims, error) {
 	var claims accessClaims
 	_, err := jwt.ParseWithClaims(token, &claims, func(*jwt.Token) (any, error) { return secret, nil },
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithAudience("app"),
+		jwt.WithExpirationRequired(),
 		jwt.WithTimeFunc(func() time.Time { return now }),
 	)
 	if err != nil {
 		return AccessClaims{}, fmt.Errorf("%w: %w", ErrInvalidAccessToken, err)
+	}
+	if claims.Subject == "" {
+		return AccessClaims{}, fmt.Errorf("%w: no subject", ErrInvalidAccessToken)
 	}
 	return AccessClaims{Phone: claims.Subject, CompanyID: claims.CompanyID, Role: claims.Role}, nil
 }
