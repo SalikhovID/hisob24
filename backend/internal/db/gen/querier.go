@@ -14,6 +14,7 @@ type Querier interface {
 	// A unique violation (23505) means the hash of another unused code: the
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)
+	CreateAdminSession(ctx context.Context, arg CreateAdminSessionParams) (AdminSession, error)
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
