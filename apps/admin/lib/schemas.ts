@@ -50,3 +50,16 @@ export const billingSchema = z.object({
     .trim()
     .transform((note) => note || undefined),
 })
+
+const TELEGRAM_ID_MESSAGE = "Telegram ID musbat butun son bo'lishi kerak"
+
+// adminSchema is the add-admin dialog.
+export const adminSchema = z.object({
+  telegram_id: z
+    .string()
+    .trim()
+    .regex(/^\d+$/, TELEGRAM_ID_MESSAGE)
+    .transform(Number)
+    .refine((id) => id > 0 && Number.isSafeInteger(id), TELEGRAM_ID_MESSAGE),
+  full_name: required("Adminning ismini kiriting"),
+})

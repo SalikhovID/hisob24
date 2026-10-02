@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { z } from "zod"
-import { billingSchema, companySchema, memberSchema, phoneField } from "./schemas"
+import { adminSchema, billingSchema, companySchema, memberSchema, phoneField } from "./schemas"
 
 // problems lists the messages a schema gives for input; none means valid.
 function problems(schema: z.ZodType, input: unknown): string[] {
@@ -71,4 +71,20 @@ test.each([
   [{ days: "30", amount: "-5", note: "" }, [amountMessage]],
 ])("billingSchema refuses %j", (input, want) => {
   expect(problems(billingSchema, input)).toEqual(want)
+})
+
+test("adminSchema turns the dialog into a Telegram ID and a name", () => {
+  expect(adminSchema.parse({ telegram_id: " 1000000001 ", full_name: " Yangi Admin " })).toEqual({
+    telegram_id: 1000000001,
+    full_name: "Yangi Admin",
+  })
+})
+
+test.each([
+  [{ telegram_id: "", full_name: "Ism" }, ["Telegram ID musbat butun son bo'lishi kerak"]],
+  [{ telegram_id: "0", full_name: "Ism" }, ["Telegram ID musbat butun son bo'lishi kerak"]],
+  [{ telegram_id: "-5", full_name: "Ism" }, ["Telegram ID musbat butun son bo'lishi kerak"]],
+  [{ telegram_id: "42", full_name: " " }, ["Adminning ismini kiriting"]],
+])("adminSchema refuses %j", (input, want) => {
+  expect(problems(adminSchema, input)).toEqual(want)
 })
