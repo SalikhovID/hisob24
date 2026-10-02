@@ -41,7 +41,10 @@ func (h *Handler) Routes(r chi.Router) {
 		r.With(httpx.RateLimit(h.verifyLimiter)).Post("/auth/sms/verify", h.verify)
 		r.Post("/auth/refresh", h.refresh)
 		r.Post("/auth/logout", h.logout)
-		r.With(h.requireUser).Get("/me", h.me)
+		r.Group(func(r chi.Router) {
+			r.Use(h.requireUser, h.requireSubscription)
+			r.Get("/me", h.me)
+		})
 	})
 }
 

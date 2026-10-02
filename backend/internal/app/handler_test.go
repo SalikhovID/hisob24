@@ -301,3 +301,34 @@ func TestMeNeedsAValidAccessToken(t *testing.T) {
 		assert.JSONEq(t, `{"error":"unauthorized","message":"Avval tizimga kiring"}`, rec.Body.String(), name)
 	}
 }
+
+func TestAnExpiredOrBlockedCompanyAnswers402(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	expired := `{"error":"subscription_expired","message":"Kompaniya obunasi tugagan"}`
+
+	api.exec(t, "UPDATE companies SET end_date = CURRENT_DATE - 1 WHERE id = $1", olma)
+	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+	assert.Equal(t, http.StatusPaymentRequired, rec.Code, "expired")
+	assert.JSONEq(t, expired, rec.Body.String())
+
+	api.exec(t, "UPDATE companies SET end_date = CURRENT_DATE + 30, is_active = false WHERE id = $1", olma)
+	rec = api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+	assert.Equal(t, http.StatusPaymentRequired, rec.Code, "blocked")
+	assert.JSONEq(t, expired, rec.Body.String())
+
+	api.exec(t, "UPDATE companies SET is_active = true WHERE id = $1", olma)
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/me", "", bearer(access)).Code, "paid up again")
+}
+
+func TestATokenBeforeAChoiceOfCompanyIsNotChecked(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", -5)
+	nok := api.addCompany(t, "Nok", 30)
+	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "staff"})
+
+	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+
+	assert.Equal(t, http.StatusOK, rec.Code, "the user picks a company first")
+}

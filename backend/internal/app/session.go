@@ -90,3 +90,23 @@ func currentUser(ctx context.Context) auth.AccessClaims {
 func unauthorized(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusUnauthorized, "unauthorized", "Avval tizimga kiring")
 }
+
+// requireSubscription answers 402 when the access token's company has
+// expired or been blocked. A token before the choice of a company passes,
+// and /app/auth/* is outside it, so the user can switch to another company.
+func (h *Handler) requireSubscription(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if companyID := currentUser(r.Context()).CompanyID; companyID != nil {
+			active, err := h.profiles.SubscriptionActive(r.Context(), *companyID)
+			if err != nil {
+				httpx.InternalError(w, r, err)
+				return
+			}
+			if !active {
+				httpx.Error(w, http.StatusPaymentRequired, "subscription_expired", "Kompaniya obunasi tugagan")
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
