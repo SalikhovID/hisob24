@@ -13,6 +13,7 @@ type Stage =
   | { kind: "code"; notice?: string }
   | { kind: "checking" }
   | { kind: "not_admin"; webApp: TelegramWebApp }
+  | { kind: "no_cookie"; webApp: TelegramWebApp }
 
 // LoginScreen signs an admin in: inside Telegram by itself with initData
 // (no code, no extra step), in a browser with the bot's code.
@@ -33,6 +34,14 @@ export function LoginScreen({ botUsername }: { botUsername: string }) {
         else setStage({ kind: "code", notice: (error as Error).message })
         return
       }
+      // A browser that keeps no cookie in this frame would send every page
+      // back here: check that the session sticks before leaving.
+      try {
+        await call(api.GET("/admin/me"))
+      } catch {
+        if (!cancelled) setStage({ kind: "no_cookie", webApp })
+        return
+      }
       if (!cancelled) router.replace("/companies")
     })
     return () => {
@@ -48,6 +57,19 @@ export function LoginScreen({ botUsername }: { botUsername: string }) {
           Panelga faqat adminlar kira oladi. Kerak bo&apos;lsa, adminga Telegram ID&apos;ingizni yuboring.
         </p>
         <p className="font-mono text-sm">Telegram ID: {stage.webApp.initDataUnsafe.user?.id}</p>
+        <Button className="mt-2" onClick={() => stage.webApp.close()}>
+          Yopish
+        </Button>
+      </Centered>
+    )
+  }
+  if (stage.kind === "no_cookie") {
+    return (
+      <Centered>
+        <h1 className="text-xl font-semibold">Kirib bo&apos;lmadi</h1>
+        <p className="text-sm text-muted-foreground">
+          Brauzer kirish ma&apos;lumotini saqlamadi. Panelni telefon yoki kompyuterdagi Telegram ilovasida oching.
+        </p>
         <Button className="mt-2" onClick={() => stage.webApp.close()}>
           Yopish
         </Button>

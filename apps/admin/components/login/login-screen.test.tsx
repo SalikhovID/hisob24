@@ -64,3 +64,19 @@ test("when Telegram sign-in fails the message shows and the code form takes over
   expect(screen.getByRole("textbox", { name: "Kod" })).toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
 })
+
+test("when the browser keeps no session cookie the panel says so instead of looping", async () => {
+  const webApp = fakeWebApp()
+  window.Telegram = { WebApp: webApp }
+  server.use(
+    http.get("*/api/admin/me", () =>
+      HttpResponse.json({ error: "unauthorized", message: "Avval tizimga kiring" }, { status: 401 }),
+    ),
+  )
+  const { user } = renderWithProviders(<LoginScreen botUsername="hisob24_admin_bot" />)
+
+  expect(await screen.findByText(/Brauzer kirish ma'lumotini saqlamadi/)).toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+  await user.click(screen.getByRole("button", { name: "Yopish" }))
+  expect(webApp.close).toHaveBeenCalled()
+})
