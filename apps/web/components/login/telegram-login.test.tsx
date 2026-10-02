@@ -81,3 +81,26 @@ test("where Telegram cannot ask for the contact, the app says how to share it in
   expect(await screen.findByText("Botga qaytib, /start yozing va raqamingizni yuboring.")).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Raqamni yuborish" })).not.toBeInTheDocument()
 })
+
+test("a contact that has not reached the bot after three tries can be tried again", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  try {
+    // Shared, but the bot has not got it yet.
+    const webApp = fakeWebApp({ requestContact: vi.fn((callback: (shared: boolean) => void) => callback(true)) }, TG_UNLINKED)
+    const { user } = renderWithProviders(<TelegramLogin webApp={webApp} onFallback={vi.fn()} />, {
+      advanceTimers: vi.advanceTimersByTime,
+    })
+    await user.click(await screen.findByRole("button", { name: "Raqamni yuborish" }))
+
+    await act(() => vi.advanceTimersByTimeAsync(1000 + 2000))
+    expect(screen.queryByText("Raqam hali yetib kelmadi.")).not.toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(3000))
+    expect(await screen.findByText("Raqam hali yetib kelmadi.")).toBeInTheDocument()
+
+    db.contacts[TG_UNLINKED] = ALI
+    await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+  } finally {
+    vi.useRealTimers()
+  }
+})

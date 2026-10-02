@@ -11,8 +11,13 @@ import type { TelegramWebApp } from "@/types/telegram"
 type Stage =
   | { kind: "checking" }
   | { kind: "no_access"; message: string }
-  // declined: the user would not share the contact from the app.
-  | { kind: "not_shared"; declined?: boolean }
+  // declined: the user would not share the contact from the app; late: they
+  // did, but it has not reached the bot yet.
+  | { kind: "not_shared"; declined?: boolean; late?: boolean }
+
+// The contact goes to the bot through Telegram: tries after 1, 2 and 3 s.
+const RETRIES = [1000, 2000, 3000]
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // TelegramLogin signs in the user who opened the Mini App, with no code: the
 // user bot signed initData, and the account shared a user's phone with it.
@@ -51,15 +56,23 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
     }
   }, [signIn])
 
+  // tryAgain waits for the contact to reach the bot, trying at each delay.
+  const tryAgain = async (delays: number[]) => {
+    setStage({ kind: "checking" })
+    for (const delay of delays) {
+      await wait(delay)
+      if ((await signIn(() => false)) === "done") return
+    }
+    setStage({ kind: "not_shared", late: true })
+  }
+
   const share = () =>
     webApp.requestContact?.((shared) => {
       if (!shared) {
         setStage({ kind: "not_shared", declined: true })
         return
       }
-      setStage({ kind: "checking" })
-      // The bot saves the contact Telegram sends it a moment later.
-      setTimeout(() => void signIn(() => false), 1000)
+      void tryAgain(RETRIES)
     })
 
   if (stage.kind === "no_access") {
@@ -78,10 +91,19 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
       <Centered>
         <h1 className="text-xl font-semibold">Telefon raqamingiz ulanmagan</h1>
         <p className="text-sm text-muted-foreground">Hisob24&apos;ga kirish uchun Telegram raqamingizni botga yuboring.</p>
-        {webApp.requestContact && (
-          <Button className="mt-2 w-full" onClick={share}>
-            Raqamni yuborish
-          </Button>
+        {stage.late ? (
+          <>
+            <p className="text-sm text-muted-foreground">Raqam hali yetib kelmadi.</p>
+            <Button className="mt-2 w-full" onClick={() => void tryAgain([0])}>
+              Qayta urinish
+            </Button>
+          </>
+        ) : (
+          webApp.requestContact && (
+            <Button className="mt-2 w-full" onClick={share}>
+              Raqamni yuborish
+            </Button>
+          )
         )}
         {(stage.declined || !webApp.requestContact) && <BotInstructions webApp={webApp} />}
       </Centered>
