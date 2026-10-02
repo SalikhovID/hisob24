@@ -6,10 +6,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// NewRouter builds the API router.
-func NewRouter() http.Handler {
+// NewRouter builds the API router: /healthz plus every mounted feature.
+func NewRouter(mounts ...func(chi.Router)) http.Handler {
 	r := chi.NewRouter()
 	r.Get("/healthz", healthz)
+	for _, mount := range mounts {
+		mount(r)
+	}
 	return r
 }
 
