@@ -43,6 +43,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireSession)
 			r.Get("/me", h.me)
+			r.Get("/companies", h.listCompanies)
 			r.Post("/companies", h.createCompany)
 		})
 	})

@@ -25,3 +25,10 @@ func toCompanyJSON(c company.Company) companyJSON {
 		CreatedAt: c.CreatedAt,
 	}
 }
+
+type pageJSON struct {
+	Items    []companyJSON `json:"items"`
+	Total    int64         `json:"total"`
+	Page     int           `json:"page"`
+	PageSize int           `json:"page_size"`
+}
