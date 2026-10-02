@@ -61,6 +61,8 @@ export function CodeStep({
     },
   })
 
+  const error = verify.error ?? resend.error
+
   return (
     <div className="space-y-4">
       <div className="flex justify-center">
@@ -85,9 +87,9 @@ export function CodeStep({
           </InputOTPGroup>
         </InputOTP>
       </div>
-      {verify.isError && (
+      {error && (
         <p role="alert" className="text-center text-sm text-destructive">
-          {verify.error.message}
+          {error.message}
         </p>
       )}
       <Button

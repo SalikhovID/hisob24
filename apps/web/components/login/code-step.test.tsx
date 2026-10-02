@@ -1,5 +1,5 @@
 import { act, screen, waitFor } from "@testing-library/react"
-import { http } from "msw"
+import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { accessToken } from "@/lib/session"
@@ -91,6 +91,27 @@ test("resending asks for a new code and starts the timer again", async () => {
 
     expect(await screen.findByRole("button", { name: "Kodni qayta yuborish (60)" })).toBeDisabled()
     expect(sent).toEqual({ phone: ALI })
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test("a resend that fails says why and can be tried again", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  try {
+    server.use(http.post("*/api/app/auth/sms/send", () => HttpResponse.error()))
+    const { user } = renderWithProviders(
+      <CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />,
+      { advanceTimers: vi.advanceTimersByTime },
+    )
+    act(() => vi.advanceTimersByTime(60_000))
+
+    await user.click(screen.getByRole("button", { name: "Kodni qayta yuborish" }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring",
+    )
+    expect(screen.getByRole("button", { name: "Kodni qayta yuborish" })).toBeEnabled()
   } finally {
     vi.useRealTimers()
   }
