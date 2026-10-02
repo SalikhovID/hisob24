@@ -1,9 +1,10 @@
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI } from "@/mocks/data"
+import { ALI, VALI } from "@/mocks/data"
 import { server } from "@/test/server"
 import { signIn } from "@/test/session"
 import { api, ApiError, call } from "./api"
+import { accessToken, clearSession, setAccessToken } from "./session"
 
 const sendCode = () => call(api.POST("/app/auth/sms/send", { body: { phone: ALI } }))
 
@@ -44,4 +45,24 @@ test("requests carry the access token as a Bearer header", async () => {
 
   expect(me.user).toEqual({ phone: ALI, full_name: "Ali Valiyev" })
   expect(me.company).toMatchObject({ id: 1, name: "Olma Savdo", role: "owner" })
+})
+
+test("after a reload the first request refreshes the session and goes through", async () => {
+  await signIn(ALI)
+  clearSession()
+
+  const me = await call(api.GET("/app/me"))
+
+  expect(me.user.phone).toBe(ALI)
+  expect(accessToken()).toMatch(new RegExp(`^access:${ALI}:1:`))
+})
+
+test("a request with an expired token is sent again, body and all, after the refresh", async () => {
+  await signIn(VALI)
+  setAccessToken("expired")
+
+  const tokens = await call(api.POST("/app/auth/switch-company", { body: { company_id: 2 } }))
+
+  expect(tokens.company_id).toBe(2)
+  expect(tokens.access_token).toMatch(new RegExp(`^access:${VALI}:2:`))
 })
