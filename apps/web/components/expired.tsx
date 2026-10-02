@@ -25,6 +25,11 @@ export function Expired() {
             Kompaniya obunasini uzaytirish uchun administrator bilan bog&apos;laning.
           </p>
         </div>
+        {switchCompany.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {switchCompany.error.message}
+          </p>
+        )}
         <div className="grid gap-2">
           <Button
             disabled={switchCompany.isPending}

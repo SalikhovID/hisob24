@@ -1,9 +1,11 @@
 import { screen, waitFor } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { accessToken } from "@/lib/session"
 import { ZARINA } from "@/mocks/data"
 import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { signIn } from "@/test/session"
 import { Expired } from "./expired"
 
@@ -35,4 +37,15 @@ test("signing out ends the session and leaves for /login", async () => {
 
   await waitFor(() => expect(leave).toHaveBeenCalledWith("/login"))
   expect(accessToken()).toBeNull()
+})
+
+test("a switch that fails says why and stays", async () => {
+  await signIn(ZARINA)
+  server.use(http.post("*/api/app/auth/switch-company", () => HttpResponse.error()))
+  const { user } = renderWithProviders(<Expired />)
+
+  await user.click(screen.getByRole("button", { name: "Boshqa kompaniyani tanlash" }))
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")
+  expect(router.replace).not.toHaveBeenCalled()
 })
