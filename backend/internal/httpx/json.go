@@ -12,3 +12,15 @@ func JSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
+
+// ErrorBody is the API error format from the spec:
+// {"error": "<snake_case code>", "message": "<Uzbek text>"}.
+type ErrorBody struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
+// Error writes an API error with the given status, code and Uzbek message.
+func Error(w http.ResponseWriter, status int, code, message string) {
+	JSON(w, status, ErrorBody{Error: code, Message: message})
+}
