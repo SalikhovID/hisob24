@@ -18,3 +18,13 @@ export function formatPhone(phone: string): string {
   if (!uz) return `+${phone}`
   return `+998 ${uz[1]} ${uz[2]} ${uz[3]} ${uz[4]}`
 }
+
+// formatAmount writes a stored amount ("150000.50") for people to read:
+// thousands apart by a no-break space, the decimals after a comma, a dash
+// when there is no amount.
+export function formatAmount(amount: string | null): string {
+  if (amount === null) return "—"
+  const [whole, decimals] = amount.split(".")
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0")
+  return decimals === undefined ? grouped : `${grouped},${decimals}`
+}
