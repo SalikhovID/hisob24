@@ -54,6 +54,8 @@ type Querier interface {
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
+	// A phone that is already a user keeps its row and name.
+	UpsertUser(ctx context.Context, arg UpsertUserParams) error
 }
 
 var _ Querier = (*Queries)(nil)
