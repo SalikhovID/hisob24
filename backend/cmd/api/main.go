@@ -18,7 +18,9 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/admin"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
+	"github.com/SalikhovID/hisob24/backend/internal/billing"
 	"github.com/SalikhovID/hisob24/backend/internal/bot/adminbot"
+	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/config"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 )
@@ -50,7 +52,11 @@ func run() error {
 	}
 
 	adminAuth := auth.NewAdminAuth(pool, cfg.OTPHMACSecret, cfg.AdminBotToken)
-	adminAPI := admin.NewHandler(adminAuth, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute))
+	adminAPI := admin.NewHandler(admin.Services{
+		Auth:      adminAuth,
+		Companies: company.NewService(pool),
+		Billing:   billing.NewService(pool),
+	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes}
 
 	adminWebhook, err := startAdminBot(ctx, cfg, adminAuth)

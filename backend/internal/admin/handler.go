@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
+	"github.com/SalikhovID/hisob24/backend/internal/billing"
+	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 )
@@ -19,9 +21,16 @@ type Handler struct {
 	otpLimiter   *httpx.RateLimiter
 }
 
+// Services is what the /admin API runs on.
+type Services struct {
+	Auth      *auth.AdminAuth
+	Companies *company.Service
+	Billing   *billing.Service
+}
+
 // NewHandler wires the /admin API. otpLimiter caps code attempts per IP.
-func NewHandler(a *auth.AdminAuth, cookieSecure bool, otpLimiter *httpx.RateLimiter) *Handler {
-	return &Handler{auth: a, cookieSecure: cookieSecure, otpLimiter: otpLimiter}
+func NewHandler(s Services, cookieSecure bool, otpLimiter *httpx.RateLimiter) *Handler {
+	return &Handler{auth: s.Auth, cookieSecure: cookieSecure, otpLimiter: otpLimiter}
 }
 
 // Routes mounts /admin.
