@@ -43,3 +43,22 @@ test("on a phone the menu button opens the sections, and picking one closes it",
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 })
+
+test("the theme button switches between light and dark", async () => {
+  const { user } = renderWithProviders(<Topbar />)
+  const toggle = screen.getByRole("button", { name: "Mavzuni almashtirish" })
+
+  await user.click(toggle)
+  await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
+  await user.click(toggle)
+  await waitFor(() => expect(document.documentElement).not.toHaveClass("dark"))
+})
+
+test("inside Telegram the theme follows the chat: no theme button", async () => {
+  setMiniApp(fakeWebApp())
+
+  renderWithProviders(<Topbar />)
+
+  expect(await screen.findByText("Owner")).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
+})
