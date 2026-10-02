@@ -4,6 +4,7 @@ package app
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -40,6 +41,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.With(httpx.RateLimit(h.verifyLimiter)).Post("/auth/sms/verify", h.verify)
 		r.Post("/auth/refresh", h.refresh)
 		r.Post("/auth/logout", h.logout)
+		r.With(h.requireUser).Get("/me", h.me)
 	})
 }
 
@@ -111,4 +113,43 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	}
 	h.clearRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type userJSON struct {
+	Phone    string  `json:"phone"`
+	FullName *string `json:"full_name"`
+}
+
+type companyJSON struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	EndDate  string `json:"end_date"`
+	IsActive bool   `json:"is_active"`
+}
+
+type meJSON struct {
+	User userJSON `json:"user"`
+	// Company is the one the access token is for, null before a choice.
+	Company   *companyJSON  `json:"company"`
+	Companies []companyJSON `json:"companies"`
+}
+
+// me is the signed-in user, the company they work in now and all of theirs.
+func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
+	claims := currentUser(r.Context())
+	profile, err := h.profiles.Get(r.Context(), claims.Phone)
+	if err != nil {
+		httpx.InternalError(w, r, err)
+		return
+	}
+	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}}
+	for _, m := range profile.Companies {
+		c := companyJSON{ID: m.CompanyID, Name: m.Name, Role: m.Role, EndDate: m.EndDate.Format(time.DateOnly), IsActive: m.IsActive}
+		body.Companies = append(body.Companies, c)
+		if claims.CompanyID != nil && *claims.CompanyID == m.CompanyID {
+			body.Company = &c
+		}
+	}
+	httpx.JSON(w, http.StatusOK, body)
 }

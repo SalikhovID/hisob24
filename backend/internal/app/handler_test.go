@@ -265,3 +265,39 @@ func TestLogout(t *testing.T) {
 		"the refresh token is revoked")
 	assert.Equal(t, http.StatusNoContent, api.do(t, http.MethodPost, "/app/auth/logout", "").Code, "no cookie is fine")
 }
+
+func TestMe(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	api.addMember(t, alisPhone, nok, "staff")
+
+	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Equal(t, map[string]any{"phone": alisPhone, "full_name": "Ali Valiyev"}, body["user"])
+	company, _ := body["company"].(map[string]any)
+	assert.EqualValues(t, olma, company["id"], "the company the token is for")
+	assert.Equal(t, "Olma", company["name"])
+	assert.Equal(t, "owner", company["role"])
+	assert.Equal(t, true, company["is_active"])
+	assert.Regexp(t, `^\d{4}-\d{2}-\d{2}$`, company["end_date"])
+	assert.Len(t, body["companies"], 2, "all of the user's companies")
+}
+
+func TestMeNeedsAValidAccessToken(t *testing.T) {
+	api := newTestAPI(t)
+	access, _ := api.signIn(t, alisPhone, nil)
+
+	for name, options := range map[string][]option{
+		"no token":         nil,
+		"not a token":      {bearer("abc.def.ghi")},
+		"no Bearer scheme": {func(r *http.Request) { r.Header.Set("Authorization", access) }},
+	} {
+		rec := api.do(t, http.MethodGet, "/app/me", "", options...)
+		assert.Equal(t, http.StatusUnauthorized, rec.Code, name)
+		assert.JSONEq(t, `{"error":"unauthorized","message":"Avval tizimga kiring"}`, rec.Body.String(), name)
+	}
+}

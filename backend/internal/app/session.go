@@ -1,7 +1,9 @@
 package app
 
 import (
+	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
@@ -56,4 +58,35 @@ func (h *Handler) clearRefreshCookie(w http.ResponseWriter) {
 		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
+}
+
+type claimsKey struct{}
+
+// requireUser lets a request through only with a valid access token
+// (Authorization: Bearer) and puts its claims into the context. Admin
+// sessions are cookies and never count here.
+func (h *Handler) requireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if !ok || token == "" {
+			unauthorized(w)
+			return
+		}
+		claims, err := h.auth.Authenticate(token)
+		if err != nil {
+			unauthorized(w)
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey{}, claims)))
+	})
+}
+
+// currentUser is the access token's claims requireUser let through.
+func currentUser(ctx context.Context) auth.AccessClaims {
+	claims, _ := ctx.Value(claimsKey{}).(auth.AccessClaims)
+	return claims
+}
+
+func unauthorized(w http.ResponseWriter) {
+	httpx.Error(w, http.StatusUnauthorized, "unauthorized", "Avval tizimga kiring")
 }
