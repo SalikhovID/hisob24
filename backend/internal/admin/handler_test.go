@@ -92,3 +92,14 @@ func TestLoginWithCodeErrors(t *testing.T) {
 	rec = api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":`)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
+
+func TestLoginWithCodeIsRateLimitedPerIP(t *testing.T) {
+	api := newTestAPI(t, true)
+	for range 5 {
+		api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"000000"}`)
+	}
+
+	rec := api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"`+api.code(t)+`"}`)
+
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "even a right code waits once the budget is spent")
+}

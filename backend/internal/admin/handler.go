@@ -27,7 +27,7 @@ func NewHandler(a *auth.AdminAuth, cookieSecure bool, otpLimiter *httpx.RateLimi
 // Routes mounts /admin.
 func (h *Handler) Routes(r chi.Router) {
 	r.Route("/admin", func(r chi.Router) {
-		r.Post("/auth/otp", h.loginWithCode)
+		r.With(httpx.RateLimit(h.otpLimiter)).Post("/auth/otp", h.loginWithCode)
 	})
 }
 
