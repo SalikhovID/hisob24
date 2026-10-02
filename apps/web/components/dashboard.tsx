@@ -2,6 +2,7 @@
 
 import { Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { formatPhoneInput } from "@/lib/phone"
 import { useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 
@@ -16,7 +17,9 @@ export function Dashboard() {
       ) : (
         me.data && (
           <div className="space-y-4">
-            <h1 className="text-xl font-semibold">Salom, {me.data.user.full_name}</h1>
+            <h1 className="text-xl font-semibold">
+              Salom, {me.data.user.full_name ?? formatPhoneInput(me.data.user.phone)}
+            </h1>
             {me.data.company && (
               <div className="flex items-center justify-between gap-3 rounded-xl border bg-card p-4">
                 <div className="grid gap-0.5">
