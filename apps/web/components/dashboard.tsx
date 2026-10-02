@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Loading } from "@/components/states"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { subscriptionExpired } from "@/lib/api"
@@ -31,6 +32,7 @@ export function Dashboard() {
       <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background px-4">
         <span className="font-semibold">Hisob24</span>
         <div className="ml-auto flex items-center gap-1">
+          <ThemeToggle />
           <Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>
             <LogOutIcon />
             Chiqish

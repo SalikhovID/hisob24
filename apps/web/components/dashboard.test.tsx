@@ -77,3 +77,14 @@ test("signing out ends the session and leaves for /login", async () => {
   await waitFor(() => expect(leave).toHaveBeenCalledWith("/login"))
   expect(accessToken()).toBeNull()
 })
+
+test("the theme button switches between light and dark", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Dashboard />)
+  const toggle = screen.getByRole("button", { name: "Mavzuni almashtirish" })
+
+  await user.click(toggle)
+  await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
+  await user.click(toggle)
+  await waitFor(() => expect(document.documentElement).not.toHaveClass("dark"))
+})
