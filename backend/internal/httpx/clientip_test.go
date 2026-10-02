@@ -13,6 +13,10 @@ func TestClientIP(t *testing.T) {
 		name, remote, xff, want string
 	}{
 		{name: "direct client ignores a forged header", remote: "203.0.113.5:4100", xff: "198.51.100.7", want: "203.0.113.5"},
+		{name: "behind proxies: rightmost public entry", remote: "127.0.0.1:52000", xff: "198.51.100.7, 10.0.0.2", want: "198.51.100.7"},
+		{name: "a forged leftmost entry is skipped", remote: "127.0.0.1:52000", xff: "6.6.6.6, 198.51.100.7", want: "198.51.100.7"},
+		{name: "proxy without the header", remote: "127.0.0.1:52000", want: "127.0.0.1"},
+		{name: "private network proxy", remote: "10.1.2.3:52000", xff: "198.51.100.7", want: "198.51.100.7"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
