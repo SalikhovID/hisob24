@@ -14,6 +14,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/telegramtest"
 )
 
 const (
@@ -117,4 +118,22 @@ func TestMe(t *testing.T) {
 	assert.JSONEq(t, `{"error":"unauthorized","message":"Avval tizimga kiring"}`, rec.Body.String())
 	rec = api.do(t, http.MethodGet, "/admin/me", "", &http.Cookie{Name: "admin_session", Value: "forged"})
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestLoginWithInitData(t *testing.T) {
+	api := newTestAPI(t, true)
+	body := func(initData string) string { return `{"initData":"` + initData + `"}` }
+
+	rec := api.do(t, http.MethodPost, "/admin/auth/telegram", body(telegramtest.SignInitData(testBotToken, ownerID, time.Now())))
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"telegram_id":461603558,"full_name":"Owner"}`, rec.Body.String())
+	sessionCookieOf(t, rec)
+
+	rec = api.do(t, http.MethodPost, "/admin/auth/telegram", body(telegramtest.SignInitData("999:other-bot", ownerID, time.Now())))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.JSONEq(t, `{"error":"invalid_init_data","message":"Telegram ma'lumotlari tasdiqlanmadi"}`, rec.Body.String())
+
+	rec = api.do(t, http.MethodPost, "/admin/auth/telegram", body(telegramtest.SignInitData(testBotToken, 42, time.Now())))
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.JSONEq(t, `{"error":"not_admin","message":"Sizda ruxsat yo'q"}`, rec.Body.String())
 }

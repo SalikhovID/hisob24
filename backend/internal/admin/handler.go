@@ -28,6 +28,7 @@ func NewHandler(a *auth.AdminAuth, cookieSecure bool, otpLimiter *httpx.RateLimi
 func (h *Handler) Routes(r chi.Router) {
 	r.Route("/admin", func(r chi.Router) {
 		r.With(httpx.RateLimit(h.otpLimiter)).Post("/auth/otp", h.loginWithCode)
+		r.Post("/auth/telegram", h.loginWithInitData)
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireSession)
 			r.Get("/me", h.me)
@@ -57,6 +58,29 @@ func (h *Handler) loginWithCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		httpx.InternalError(w, r, err)
+		return
+	}
+	setSessionCookie(w, s)
+	httpx.JSON(w, http.StatusOK, toAdminJSON(s.Admin))
+}
+
+func (h *Handler) loginWithInitData(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		InitData string `json:"initData"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	s, err := h.auth.LoginWithInitData(r.Context(), body.InitData)
+	switch {
+	case errors.Is(err, auth.ErrInvalidInitData):
+		httpx.Error(w, http.StatusUnauthorized, "invalid_init_data", "Telegram ma'lumotlari tasdiqlanmadi")
+		return
+	case errors.Is(err, auth.ErrNotAdmin):
+		httpx.Error(w, http.StatusForbidden, "not_admin", "Sizda ruxsat yo'q")
+		return
+	case err != nil:
 		httpx.InternalError(w, r, err)
 		return
 	}
