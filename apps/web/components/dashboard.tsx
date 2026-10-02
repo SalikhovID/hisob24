@@ -13,13 +13,16 @@ import { unavailable } from "@/lib/companies"
 import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
+import { useMiniApp } from "@/lib/telegram"
 import { cn } from "@/lib/utils"
 
-// Dashboard is the app's home: for now who is signed in and where.
+// Dashboard is the app's home: for now who is signed in and where. Inside
+// Telegram the chat sets the theme and closing the Mini App is the way out.
 export function Dashboard() {
   const router = useRouter()
   const me = useMe()
   const logout = useLogout()
+  const miniApp = useMiniApp()
   const company = me.data?.company
   // The page is for a session with a company that may be used: an expired
   // one goes to /expired, none yet to the company list.
@@ -33,13 +36,15 @@ export function Dashboard() {
     <div className="min-h-svh">
       <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background px-4">
         <span className="font-semibold">Hisob24</span>
-        <div className="ml-auto flex items-center gap-1">
-          <ThemeToggle />
-          <Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>
-            <LogOutIcon />
-            Chiqish
-          </Button>
-        </div>
+        {!miniApp && (
+          <div className="ml-auto flex items-center gap-1">
+            <ThemeToggle />
+            <Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>
+              <LogOutIcon />
+              Chiqish
+            </Button>
+          </div>
+        )}
       </header>
       <main className="mx-auto w-full max-w-2xl p-4">
         {me.isPending ? (

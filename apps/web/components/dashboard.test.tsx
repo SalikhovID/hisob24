@@ -2,11 +2,13 @@ import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { accessToken } from "@/lib/session"
+import { setMiniApp } from "@/lib/telegram"
 import { ALI, db, SARDOR, VALI, ZARINA } from "@/mocks/data"
 import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
+import { fakeWebApp } from "@/test/telegram"
 import { Dashboard } from "./dashboard"
 
 test("greets the user by name and shows the company they work in", async () => {
@@ -100,4 +102,15 @@ test("a dashboard that fails to load says why and can be asked for again", async
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
 
   expect(await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })).toBeInTheDocument()
+})
+
+test("inside Telegram there is no sign-out or theme button: closing the Mini App is the way out", async () => {
+  setMiniApp(fakeWebApp())
+  await signIn(ALI)
+
+  renderWithProviders(<Dashboard />)
+
+  await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })
+  expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
 })
