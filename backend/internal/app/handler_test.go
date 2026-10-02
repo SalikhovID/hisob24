@@ -365,3 +365,25 @@ func TestSwitchCompany(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rec.Code, "no refresh cookie")
 	assert.JSONEq(t, `{"error":"invalid_refresh_token","message":"Sessiya tugagan. Qayta kiring"}`, rec.Body.String())
 }
+
+func TestSwitchCompanyToNoneLeadsBackToTheList(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", -3)
+	nok := api.addCompany(t, "Nok", 30)
+	access, refresh := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "staff"})
+	rec := api.do(t, http.MethodPost, "/app/auth/switch-company", fmt.Sprintf(`{"company_id":%d}`, olma), bearer(access), cookie(refresh))
+	require.Equal(t, http.StatusOK, rec.Code)
+	access, _ = decode(t, rec)["access_token"].(string)
+	refresh = refreshCookieOf(t, rec)
+	require.Equal(t, http.StatusPaymentRequired, api.do(t, http.MethodGet, "/app/me", "", bearer(access)).Code)
+
+	rec = api.do(t, http.MethodPost, "/app/auth/switch-company", `{"company_id":null}`, bearer(access), cookie(refresh))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Nil(t, body["company_id"])
+	access, _ = body["access_token"].(string)
+	rec = api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+	require.Equal(t, http.StatusOK, rec.Code, "out of the expired company")
+	assert.Len(t, decode(t, rec)["companies"], 2)
+}
