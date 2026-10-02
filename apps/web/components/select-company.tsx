@@ -2,9 +2,11 @@
 
 import { ChevronRightIcon, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ApiError } from "@/lib/api"
 import { useLogout, useMe, useSwitchCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { AppCompany } from "@/lib/types"
@@ -23,6 +25,13 @@ export function SelectCompany() {
   const me = useMe()
   const choose = useSwitchCompany()
   const logout = useLogout()
+  // The session's company has expired since it was chosen: /expired offers
+  // the way back to this list.
+  const expired = me.error instanceof ApiError && me.error.code === "subscription_expired"
+
+  useEffect(() => {
+    if (expired) router.replace("/expired")
+  }, [expired, router])
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-6 p-4 pt-10">

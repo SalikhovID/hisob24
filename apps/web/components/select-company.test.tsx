@@ -79,3 +79,12 @@ test("signing out ends the session and leaves for /login", async () => {
   // The refresh token is revoked: there is no way back without a new code.
   await expect(call(api.POST("/app/auth/refresh"))).rejects.toMatchObject({ code: "invalid_refresh_token" })
 })
+
+test("a session for an expired company is sent to /expired", async () => {
+  // Zarina's only company was chosen at login, and it has expired.
+  await signIn(ZARINA)
+
+  renderWithProviders(<SelectCompany />)
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/expired"))
+})
