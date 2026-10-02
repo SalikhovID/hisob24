@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,4 +25,13 @@ func TestDecodeJSON(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"bad_request","message":"So'rov noto'g'ri"}`, rec.Body.String())
+}
+
+func TestInternalError(t *testing.T) {
+	rec := httptest.NewRecorder()
+
+	InternalError(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/x", nil), errors.New("db down"))
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.JSONEq(t, `{"error":"internal_error","message":"Ichki xatolik. Birozdan keyin qayta urinib ko'ring"}`, rec.Body.String())
 }
