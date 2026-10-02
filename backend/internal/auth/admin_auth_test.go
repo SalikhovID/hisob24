@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/telegramtest"
 )
 
 const (
@@ -166,4 +167,23 @@ func TestDiscardLoginCode(t *testing.T) {
 
 	_, err = a.LoginWithCode(t.Context(), issued.Code)
 	assert.ErrorIs(t, err, ErrInvalidCode)
+}
+
+func TestLoginWithInitData(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	ctx := t.Context()
+
+	s, err := a.LoginWithInitData(ctx, telegramtest.SignInitData(testBotToken, ownerID, time.Now()))
+	require.NoError(t, err)
+	assert.Equal(t, ownerID, s.Admin.TelegramID)
+	var source string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT source FROM admin_sessions WHERE id = $1", s.ID).Scan(&source))
+	assert.Equal(t, "miniapp", source)
+
+	_, err = a.LoginWithInitData(ctx, telegramtest.SignInitData(testBotToken, 42, time.Now()))
+	assert.ErrorIs(t, err, ErrNotAdmin, "a Telegram user who is not an admin")
+	_, err = a.LoginWithInitData(ctx, telegramtest.SignInitData("999:other-bot", ownerID, time.Now()))
+	assert.ErrorIs(t, err, ErrInvalidInitData, "signed by another bot")
+	_, err = a.LoginWithInitData(ctx, telegramtest.SignInitData(testBotToken, ownerID, time.Now().Add(-25*time.Hour)))
+	assert.ErrorIs(t, err, ErrInvalidInitData, "older than a day")
 }

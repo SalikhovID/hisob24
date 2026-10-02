@@ -11,7 +11,10 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-const adminSessionTTL = 12 * time.Hour
+const (
+	adminSessionTTL = 12 * time.Hour
+	initDataMaxAge  = 24 * time.Hour
+)
 
 // Session is an open admin session; ID is the admin_session cookie value.
 type Session struct {
@@ -39,4 +42,15 @@ func (a *AdminAuth) openSession(ctx context.Context, q *gen.Queries, adminID int
 		return Session{}, err
 	}
 	return Session{ID: row.ID, ExpiresAt: row.ExpiresAt, Admin: admin}, nil
+}
+
+// LoginWithInitData opens a session for the admin who opened the Mini App.
+// ErrInvalidInitData (or ErrInitDataExpired) unless the admin bot signed it in
+// the last day; ErrNotAdmin unless its user is an active admin.
+func (a *AdminAuth) LoginWithInitData(ctx context.Context, initData string) (Session, error) {
+	user, err := ValidateInitData(initData, a.botToken, initDataMaxAge, a.now())
+	if err != nil {
+		return Session{}, err
+	}
+	return a.openSession(ctx, a.q, user.ID, "miniapp")
 }
