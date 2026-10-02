@@ -23,3 +23,11 @@ test("the company page shows the company and its users", async () => {
     ["+998 90 222 33 44", "Vali Aliyev", "Xodim"],
   ])
 })
+
+test("an unknown company is not found, with the way back to the list", async () => {
+  renderWithProviders(<CompanyPage id={999} />)
+
+  expect(await screen.findByRole("heading", { name: "Kompaniya topilmadi" })).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Kompaniyalar ro'yxatiga" })).toHaveAttribute("href", "/companies")
+  expect(screen.queryByRole("button", { name: "Qayta urinish" })).not.toBeInTheDocument()
+})

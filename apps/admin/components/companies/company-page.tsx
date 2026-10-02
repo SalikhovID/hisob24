@@ -5,6 +5,8 @@ import Link from "next/link"
 import { type ReactNode, useId } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Failed, Loading } from "@/components/states"
+import { buttonVariants } from "@/components/ui/button"
+import { ApiError } from "@/lib/api"
 import { formatDate, formatPhone } from "@/lib/format"
 import { useCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
@@ -24,6 +26,7 @@ export function CompanyPage({ id }: { id: number }) {
   const usersId = useId()
 
   if (company.isPending) return <Loading />
+  if (company.error instanceof ApiError && company.error.status === 404) return <NotFound />
   if (company.isError) return <Failed error={company.error} onRetry={() => company.refetch()} />
   const c = company.data
 
@@ -54,6 +57,18 @@ export function CompanyPage({ id }: { id: number }) {
         </h2>
         <DataList label="Userlar" items={c.users} columns={memberColumns} getKey={(m) => m.phone} />
       </section>
+    </div>
+  )
+}
+
+function NotFound() {
+  return (
+    <div className="flex flex-col items-center gap-3 py-12 text-center">
+      <h1 className="text-xl font-semibold">Kompaniya topilmadi</h1>
+      <p className="text-sm text-muted-foreground">U o&apos;chirilgan yoki havola noto&apos;g&apos;ri.</p>
+      <Link href="/companies" className={buttonVariants({ variant: "outline" })}>
+        Kompaniyalar ro&apos;yxatiga
+      </Link>
     </div>
   )
 }
