@@ -181,3 +181,22 @@ func TestSessionCookieWithoutSecureForLocalHTTP(t *testing.T) {
 	logout := api.do(t, http.MethodPost, "/admin/auth/logout", "", sessionCookieOf(t, login))
 	assert.False(t, sessionCookieOf(t, logout).Secure, "logout writes the same attributes")
 }
+
+func TestAdminRoutesNeedASession(t *testing.T) {
+	api := newTestAPI(t, true)
+	for _, route := range []struct{ method, path string }{
+		{http.MethodGet, "/admin/me"},
+		{http.MethodGet, "/admin/companies"},
+		{http.MethodPost, "/admin/companies"},
+		{http.MethodGet, "/admin/companies/1"},
+		{http.MethodPatch, "/admin/companies/1"},
+		{http.MethodPost, "/admin/companies/1/users"},
+		{http.MethodGet, "/admin/companies/1/billings"},
+		{http.MethodPost, "/admin/companies/1/billings"},
+		{http.MethodGet, "/admin/admins"},
+		{http.MethodPost, "/admin/admins"},
+		{http.MethodDelete, "/admin/admins/42"},
+	} {
+		assert.Equal(t, http.StatusUnauthorized, api.do(t, route.method, route.path, `{}`).Code, route.method+" "+route.path)
+	}
+}
