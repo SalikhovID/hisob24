@@ -17,6 +17,9 @@ func NormalizePhone(raw string) (string, error) {
 		if r == '+' || r == '-' || r == '(' || r == ')' || unicode.IsSpace(r) {
 			continue
 		}
+		if r < '0' || r > '9' {
+			return "", ErrInvalidPhone
+		}
 		b.WriteRune(r)
 	}
 	digits := b.String()
