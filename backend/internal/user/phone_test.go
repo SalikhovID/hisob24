@@ -23,6 +23,10 @@ func TestNormalizePhone(t *testing.T) {
 		{name: "formatted local number", raw: "(90) 123-45-67", want: "998901234567"},
 		{name: "letter", raw: "99890123456a", wantErr: ErrInvalidPhone},
 		{name: "dots", raw: "998.90.123.45.67", wantErr: ErrInvalidPhone},
+		{name: "empty", raw: "", wantErr: ErrInvalidPhone},
+		{name: "only separators", raw: "+ ( ) -", wantErr: ErrInvalidPhone},
+		{name: "too short", raw: "90123456", wantErr: ErrInvalidPhone},
+		{name: "too long", raw: "9989012345678901", wantErr: ErrInvalidPhone},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
