@@ -96,3 +96,14 @@ func latestMigration(t *testing.T) int64 {
 	require.NoError(t, err)
 	return version
 }
+
+func TestFailInsertsRefusesInsertsIntoTheTable(t *testing.T) {
+	pool := New(t)
+	FailInserts(t, pool, "users")
+
+	_, err := pool.Exec(t.Context(), "INSERT INTO users (phone) VALUES ('998901234567')")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pgtest: insert into users refused")
+	_, err = pool.Exec(t.Context(), "INSERT INTO companies (name, end_date) VALUES ('Olma', CURRENT_DATE)")
+	assert.NoError(t, err, "other tables still take inserts")
+}

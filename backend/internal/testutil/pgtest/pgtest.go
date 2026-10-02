@@ -258,3 +258,18 @@ func randomHex(n int) string {
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
+// FailInserts makes every insert into table fail, so a test can check that a
+// multi-step write rolls back as a whole.
+func FailInserts(t testing.TB, pool *pgxpool.Pool, table string) {
+	t.Helper()
+	ctx := t.Context()
+	if _, err := pool.Exec(ctx, `CREATE OR REPLACE FUNCTION pgtest_fail_insert() RETURNS trigger
+		LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'pgtest: insert into % refused', TG_TABLE_NAME; END $$`); err != nil {
+		t.Fatalf("pgtest: fail inserts: %v", err)
+	}
+	if _, err := pool.Exec(ctx, "CREATE TRIGGER pgtest_fail_insert BEFORE INSERT ON "+ident(table)+
+		" FOR EACH ROW EXECUTE FUNCTION pgtest_fail_insert()"); err != nil {
+		t.Fatalf("pgtest: fail inserts into %s: %v", table, err)
+	}
+}
