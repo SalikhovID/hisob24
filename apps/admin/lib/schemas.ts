@@ -21,3 +21,10 @@ export const companySchema = z.object({
   owner_phone: phoneField("Egasining telefon raqami noto'g'ri"),
   owner_full_name: required("Egasining ismini kiriting"),
 })
+
+// memberSchema is the add-user dialog.
+export const memberSchema = z.object({
+  phone: phoneField("Telefon raqami noto'g'ri"),
+  full_name: required("Ismni kiriting"),
+  role: z.enum(["owner", "manager", "staff"], "Rolni tanlang"),
+})
