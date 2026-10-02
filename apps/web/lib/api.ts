@@ -1,5 +1,5 @@
 import { createApiClient } from "@hisob24/api-client"
-import { accessToken, setAccessToken } from "./session"
+import { accessToken, clearSession, setAccessToken } from "./session"
 
 // The Go API sits behind the Next.js rewrite on this origin. fetch is looked
 // up per request, not when the module loads, so a patched fetch (MSW in the
@@ -9,16 +9,20 @@ const BASE = typeof window === "undefined" ? "/api" : `${window.location.origin}
 // plain asks the API as is, with no token: the refresh itself goes this way.
 const plain = createApiClient(BASE, (request) => globalThis.fetch(request))
 
-// refresh trades the refresh cookie for a new access token. Requests turned
-// down together share one refresh: the cookie rotates, so a second refresh
-// with the same cookie would be refused.
+// refresh trades the refresh cookie for a new access token; a refused
+// cookie ends the session. Requests turned down together share one
+// refresh: the cookie rotates, so a second refresh with the same cookie
+// would be refused.
 let refreshing: Promise<boolean> | null = null
 
 function refresh(): Promise<boolean> {
   refreshing ??= plain
     .POST("/app/auth/refresh")
     .then(({ data }) => {
-      if (!data) return false
+      if (!data) {
+        clearSession()
+        return false
+      }
       setAccessToken(data.access_token)
       return true
     })

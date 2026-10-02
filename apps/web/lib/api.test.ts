@@ -83,3 +83,12 @@ test("requests refused at the same time share one refresh", async () => {
   expect(second.user.phone).toBe(ALI)
   expect(refreshes).toBe(1)
 })
+
+test("when the refresh is refused too, the session is cleared and the request fails as unauthorized", async () => {
+  setAccessToken("expired")
+
+  const err = await call(api.GET("/app/me")).catch((e: unknown) => e)
+
+  expect(err).toMatchObject({ status: 401, code: "unauthorized" })
+  expect(accessToken()).toBeNull()
+})
