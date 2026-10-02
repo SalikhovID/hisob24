@@ -28,3 +28,20 @@ func (h *Handler) createBilling(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusCreated, toBillingJSON(b))
 }
+
+func (h *Handler) listBillings(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	history, err := h.billing.History(r.Context(), id)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	items := make([]billingJSON, 0, len(history))
+	for _, b := range history {
+		items = append(items, toBillingJSON(b))
+	}
+	httpx.JSON(w, http.StatusOK, items)
+}
