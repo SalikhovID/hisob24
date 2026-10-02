@@ -29,7 +29,7 @@ Faqat 1-bosqichdagi skelet sozlamalari (konfiguratsiya fayllari, Docker, Makefil
 - Faqat `main` branch'da ishlanadi. Alohida branch, worktree va PR ochilmaydi.
 - Remote: `git@github.com:SalikhovID/hisob24.git`. Push: `git push origin main`.
 - Har bir GREEN sikldan keyin commit qilinadi. Commit xabari Conventional Commits uslubida, inglizcha.
-- Push bosqich oxirida qilinadi: `make lint` va `make test` o'tgandan keyin, hisobotdan oldin.
+- Push bosqich oxirida qilinadi: `make lint`, `make test` va `make e2e` o'tgandan keyin, hisobotdan oldin.
 
 ## Ish tartibi
 
@@ -61,6 +61,7 @@ Faqat 1-bosqichdagi skelet sozlamalari (konfiguratsiya fayllari, Docker, Makefil
 ```bash
 make dev          # = ./start.sh: Postgres va DB tekshiruvi, migratsiya, API (air) + admin + web
 make test         # go test ./... + pnpm -r test
+make e2e          # Playwright: admin panel, 375px telefon + desktop, API MSW bilan (port 3101)
 make migrate      # goose up (backend/migrations)
 make sqlc         # sqlc generate → backend/internal/db/gen
 make lint         # go vet + golangci-lint + pnpm lint + pnpm typecheck

@@ -283,3 +283,31 @@ Texnik eslatmalar:
   - `pgtest.FailInserts` trigger orqali tranzaksiya o'rtasidagi insert'ni yiqitadi va hech narsa yozilmaganini tekshiradi (Create, AddUser, Extend).
   - `pgtest.WaitForLockWait` boshqa sessiya qatorni ushlab turganda chaqiruv lock kutishiga yetganini kutadi. Billing va "kamida bitta faol admin" testlari shu yo'l bilan deterministik.
   - Har biri tranzaksiyasiz yoki lock'siz mutatsiyada yiqilishi tekshirilgan.
+
+## 5-bosqich qarorlari (2026-10-02)
+
+- **Mini App sessiyasi va Telegram Web.** Foydalanuvchi qarori: "chat_id bazada topilsa, tasdiqlashlarsiz initData bilan ishlab ketishi kerak", Telegram Web'da ham.
+  - Telegram Web Mini App'ni boshqa sayt ichida (iframe) ochadi, `SameSite=Lax` cookie esa u yerda saqlanmaydi. Shuning uchun `POST /admin/auth/telegram` cookie'ni `SameSite=None; Secure; Partitioned` (CHIPS) bilan qo'yadi. Cookie Telegram Web bo'limida yashaydi, native Telegram'da esa oddiy cookie kabi ishlaydi.
+  - OTP login spec bo'yicha `Lax` qoladi. `COOKIE_SECURE=false` (lokal http) bo'lsa Mini App cookie'si ham `Lax`, chunki Secure'siz `None` cookie qabul qilinmaydi.
+  - Logout ikkala variantni tozalaydi.
+  - Cookie baribir saqlanmasa (CHIPS'siz eski brauzer), panel `/admin/me` bilan tekshiradi va redirect sikliga tushmasdan xabar ko'rsatadi.
+- **CSRF.** `SameSite=None` sababli butun API Go'ning `http.CrossOriginProtection` bilan himoyalangan:
+  - boshqa saytdan kelgan POST/PATCH/DELETE `Sec-Fetch-Site` yoki `Origin` bo'yicha 403 `forbidden` oladi;
+  - `ADMIN_PANEL_URL` ishonchli origin;
+  - header'siz so'rovlar (curl, Telegram webhook) o'tadi.
+- **401 → /login** faqat `error: "unauthorized"` (sessiya yo'q) bo'lganda. Login xatolari (`invalid_code`, `invalid_init_data`) ham 401, lekin sahifada qoladi. 4xx qayta urinilmaydi.
+- **Sahifalar:**
+  - `/` → `/companies`.
+  - Ro'yxat filtri (`search`, `status`, `page`) URL'da saqlanadi. Qidiruv 300 ms debounce bilan ishlaydi.
+  - Jadvallar mobil ekranda kartochkaga aylanadi (`DataList`, `md` breakpoint). Sidebar `lg` dan kichik ekranda Sheet menyuga o'tadi.
+  - Kompaniya sahifasida spec'dagi `PATCH (name, is_active)` uchun "Nomini o'zgartirish" va "Bloklash" (tasdiq bilan) / "Faollashtirish" bor.
+  - Billing preview `end_date − days_left` ni bugun deb oladi, shunda brauzer soati ta'sir qilmaydi.
+- **Mini App ko'rinishi:**
+  - `html[data-telegram]` ichida shadcn tokenlari `--tg-theme-*` ranglariga ulangan;
+  - mavzu `colorScheme` ga ergashadi;
+  - logout va mavzu tugmasi yashiriladi;
+  - admin bo'lmagan foydalanuvchiga Telegram ID va "Yopish" ko'rsatiladi.
+- **Testlar:**
+  - Vitest va Playwright bitta MSW handler to'plamidan foydalanadi (`mocks/`), u Go API kabi javob beradi.
+  - e2e alohida dev serverda ishlaydi (3101-port, `.next-e2e`), har spec 375px telefon va desktop'da.
+  - Topilgan nozik joy: Playwright `screenshot()` kursorni yashirish uchun fokusdagi input style'iga tegadi, bu hydration'dan oldin bo'lsa React mismatch beradi. Ilova xatosi emas, screenshot'larda `caret: "initial"` ishlatiladi.
