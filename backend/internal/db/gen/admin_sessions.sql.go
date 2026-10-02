@@ -37,6 +37,16 @@ func (q *Queries) CreateAdminSession(ctx context.Context, arg CreateAdminSession
 	return i, err
 }
 
+const deleteAdminSession = `-- name: DeleteAdminSession :exec
+DELETE FROM admin_sessions WHERE id = $1
+`
+
+// Logout.
+func (q *Queries) DeleteAdminSession(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAdminSession, id)
+	return err
+}
+
 const getAdminBySession = `-- name: GetAdminBySession :one
 SELECT a.telegram_id, a.full_name, a.is_active, a.created_at
 FROM admin_sessions s

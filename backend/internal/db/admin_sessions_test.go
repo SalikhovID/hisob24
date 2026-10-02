@@ -52,3 +52,17 @@ func TestGetAdminBySession(t *testing.T) {
 		assert.ErrorIs(t, err, pgx.ErrNoRows, name)
 	}
 }
+
+func TestDeleteAdminSession(t *testing.T) {
+	q, _ := setup(t)
+	ctx := t.Context()
+	gone := createSession(t, q, ownerID, time.Now().Add(time.Hour))
+	kept := createSession(t, q, ownerID, time.Now().Add(time.Hour))
+
+	require.NoError(t, q.DeleteAdminSession(ctx, gone.ID))
+
+	_, err := q.GetAdminBySession(ctx, gone.ID)
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
+	_, err = q.GetAdminBySession(ctx, kept.ID)
+	assert.NoError(t, err)
+}

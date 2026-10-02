@@ -10,3 +10,7 @@ SELECT a.*
 FROM admin_sessions s
 JOIN admins a ON a.telegram_id = s.admin_id
 WHERE s.id = $1 AND s.expires_at > now() AND a.is_active;
+
+-- name: DeleteAdminSession :exec
+-- Logout.
+DELETE FROM admin_sessions WHERE id = $1;
