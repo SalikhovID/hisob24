@@ -30,6 +30,10 @@ const (
 // ErrTooSoon refuses a second code to a phone within a minute.
 var ErrTooSoon = errors.New("a code went to this phone less than a minute ago")
 
+// ErrInvalidRefresh is a refresh token that is unknown, used, revoked or
+// expired.
+var ErrInvalidRefresh = errors.New("invalid refresh token")
+
 var errBadPhone = apperr.New(apperr.Invalid, "validation_error", "Telefon raqami noto'g'ri")
 
 // UserAuth signs users in to the user app: a code by SMS, then an access
@@ -213,4 +217,31 @@ func (a *UserAuth) issue(ctx context.Context, q *gen.Queries, phone string, comp
 		CompanyID:        companyID,
 		Role:             role,
 	}, nil
+}
+
+// Refresh rotates a refresh token in one transaction: it is revoked and a
+// new one issued, for the company the old one remembered.
+func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, error) {
+	var tokens Tokens
+	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		q := a.q.WithTx(tx)
+		revoked, err := q.RevokeRefreshToken(ctx, hashToken(refreshToken))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrInvalidRefresh
+		}
+		if err != nil {
+			return err
+		}
+		var role string
+		if revoked.CompanyID != nil {
+			membership, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: revoked.UserPhone, CompanyID: *revoked.CompanyID})
+			if err != nil {
+				return err
+			}
+			role = membership.Role
+		}
+		tokens, err = a.issue(ctx, q, revoked.UserPhone, revoked.CompanyID, role)
+		return err
+	})
+	return tokens, err
 }

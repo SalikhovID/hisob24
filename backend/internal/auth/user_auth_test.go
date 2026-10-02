@@ -215,3 +215,39 @@ func TestVerifyGivesAStrangerNothing(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrInvalidCode, "even the right code signs in no one")
 }
+
+// signIn makes phone a user of the companies (id → role) and signs them in.
+func signIn(t *testing.T, a *UserAuth, pool *pgxpool.Pool, phone string, roles map[int64]string) Tokens {
+	t.Helper()
+	addUser(t, pool, phone)
+	for companyID, role := range roles {
+		addMember(t, pool, phone, companyID, role)
+	}
+	require.NoError(t, a.SendCode(t.Context(), phone))
+	tokens, err := a.Verify(t.Context(), phone, "123456")
+	require.NoError(t, err)
+	return tokens
+}
+
+func TestRefreshRotatesTheTokenAndKeepsTheCompany(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	a.newRefreshToken = codes("refresh-1", "refresh-2")
+	companyID := addCompany(t, pool, "Olma", 30)
+	first := signIn(t, a, pool, "998901234567", map[int64]string{companyID: "owner"})
+
+	second, err := a.Refresh(t.Context(), first.RefreshToken)
+
+	require.NoError(t, err)
+	assert.Equal(t, "refresh-2", second.RefreshToken)
+	require.NotNil(t, second.CompanyID)
+	assert.Equal(t, companyID, *second.CompanyID, "the company is kept")
+	assert.Equal(t, "owner", second.Role)
+	claims, err := ParseAccessToken([]byte(testJWTSecret), second.AccessToken, time.Now())
+	require.NoError(t, err)
+	assert.Equal(t, AccessClaims{Phone: "998901234567", CompanyID: &companyID, Role: "owner"}, claims)
+
+	_, err = a.Refresh(t.Context(), first.RefreshToken)
+	assert.ErrorIs(t, err, ErrInvalidRefresh, "a refresh token is used once")
+	_, err = a.Refresh(t.Context(), "made-up")
+	assert.ErrorIs(t, err, ErrInvalidRefresh)
+}
