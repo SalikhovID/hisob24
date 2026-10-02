@@ -426,3 +426,14 @@ func TestLoginWithTelegramWithoutASharedPhone(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrPhoneNotShared)
 }
+
+func TestLoginWithTelegramForAPhoneThatIsNoUsers(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	linkContact(t, pool, 1003, "998905556677")
+
+	_, err := a.LoginWithTelegram(t.Context(), telegramtest.SignInitData(testUserBotToken, 1003, time.Now()))
+
+	var noAccess NoAccessError
+	require.ErrorAs(t, err, &noAccess)
+	assert.Equal(t, "998905556677", noAccess.Phone)
+}

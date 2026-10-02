@@ -38,6 +38,12 @@ var ErrInvalidRefresh = errors.New("invalid refresh token")
 // bot, so there is no telling who it is.
 var ErrPhoneNotShared = errors.New("phone not shared with the user bot")
 
+// NoAccessError: the phone the Telegram account shared is not a user's; it
+// is named, so the person can tell their administrator.
+type NoAccessError struct{ Phone string }
+
+func (e NoAccessError) Error() string { return "phone " + e.Phone + " is not a user's" }
+
 // ErrNotMember refuses a company the user is not a member of.
 var ErrNotMember = errors.New("not a member of the company")
 
@@ -249,6 +255,13 @@ func (a *UserAuth) LoginWithTelegram(ctx context.Context, initData string) (Toke
 		}
 		if err != nil {
 			return err
+		}
+		known, err := q.UserExists(ctx, phone)
+		if err != nil {
+			return err
+		}
+		if !known {
+			return NoAccessError{Phone: phone}
 		}
 		companies, err := q.ListUserCompanies(ctx, phone)
 		if err != nil {
