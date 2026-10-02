@@ -1,7 +1,7 @@
 package billing
 
 import (
-	"sync"
+	"context"
 	"testing"
 	"time"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -83,35 +84,47 @@ func TestExtendAnExpiredCompanyFromToday(t *testing.T) {
 	assert.Nil(t, b.Note)
 }
 
-func TestConcurrentExtensionsChain(t *testing.T) {
+func TestExtendReadsTheEndDateUnderTheLock(t *testing.T) {
 	s, pool := newService(t)
+	ctx := t.Context()
 	d := dbToday(t, pool)
 	id := createCompany(t, pool, d.AddDate(0, 0, 5))
 
-	errs := make(chan error, 2)
-	var wg sync.WaitGroup
-	for range 2 {
-		wg.Go(func() {
-			_, err := s.Extend(t.Context(), id, ExtendInput{Days: 10}, ownerID)
-			errs <- err
-		})
-	}
-	wg.Wait()
-	close(errs)
-	for err := range errs {
-		require.NoError(t, err)
-	}
+	// Another billing holds the company row.
+	other, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = other.Rollback(context.WithoutCancel(ctx)) })
+	_, err = other.Exec(ctx, "SELECT end_date FROM companies WHERE id = $1 FOR UPDATE", id)
+	require.NoError(t, err)
 
-	assert.True(t, endDateOf(t, pool, id).Equal(d.AddDate(0, 0, 25)), "both payments count")
-	// The row lock orders the payments, and so do their ids; created_at is
-	// each transaction's start and may not.
-	var payments int
-	var firstNew, secondPrev time.Time
-	require.NoError(t, pool.QueryRow(t.Context(), `
-		SELECT count(*),
-		       (SELECT new_end_date FROM billings WHERE company_id = $1 ORDER BY id LIMIT 1),
-		       (SELECT prev_end_date FROM billings WHERE company_id = $1 ORDER BY id DESC LIMIT 1)
-		FROM billings WHERE company_id = $1`, id).Scan(&payments, &firstNew, &secondPrev))
-	assert.Equal(t, 2, payments)
-	assert.True(t, secondPrev.Equal(firstNew), "the second payment starts where the first ended")
+	type result struct {
+		b   gen.Billing
+		err error
+	}
+	extended := make(chan result, 1)
+	go func() {
+		b, err := s.Extend(ctx, id, ExtendInput{Days: 10}, ownerID)
+		extended <- result{b, err}
+	}()
+	waitForLockWait(t, pool)
+
+	_, err = other.Exec(ctx, "UPDATE companies SET end_date = $2 WHERE id = $1", id, d.AddDate(0, 0, 100))
+	require.NoError(t, err)
+	require.NoError(t, other.Commit(ctx))
+
+	got := <-extended
+	require.NoError(t, got.err)
+	assert.True(t, got.b.PrevEndDate.Equal(d.AddDate(0, 0, 100)), "reads the end date the other billing left: prev %s", got.b.PrevEndDate)
+	assert.True(t, endDateOf(t, pool, id).Equal(d.AddDate(0, 0, 110)), "neither billing is lost")
+}
+
+// waitForLockWait returns once a session of the test database waits on a lock.
+func waitForLockWait(t *testing.T, pool *pgxpool.Pool) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		var waiting int
+		err := pool.QueryRow(t.Context(), `SELECT count(*) FROM pg_stat_activity
+			WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting)
+		return err == nil && waiting > 0
+	}, 5*time.Second, 10*time.Millisecond)
 }
