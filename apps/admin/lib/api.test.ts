@@ -19,3 +19,16 @@ test("call throws the API's error code and message", async () => {
   expect(err).toBeInstanceOf(ApiError)
   expect(err).toMatchObject({ status: 401, code: "unauthorized", message: "Avval tizimga kiring" })
 })
+
+test("call turns a network failure into an ApiError people can read", async () => {
+  server.use(http.get("*/api/admin/me", () => HttpResponse.error()))
+
+  const err = await call(api.GET("/admin/me")).catch((e: unknown) => e)
+
+  expect(err).toBeInstanceOf(ApiError)
+  expect(err).toMatchObject({
+    status: 0,
+    code: "network_error",
+    message: "Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring",
+  })
+})

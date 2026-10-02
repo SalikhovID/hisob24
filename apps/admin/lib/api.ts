@@ -26,7 +26,13 @@ type Result<T> = { data?: T; error?: unknown; response: Response }
 // call unwraps an api request: its data, or an ApiError carrying the API's
 // error code and message.
 export async function call<T>(request: Promise<Result<T>>): Promise<T> {
-  const { data, error, response } = await request
+  let result: Result<T>
+  try {
+    result = await request
+  } catch {
+    throw new ApiError(0, "network_error", "Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")
+  }
+  const { data, error, response } = result
   if (error !== undefined || !response.ok) {
     const body = (error ?? {}) as { error?: string; message?: string }
     throw new ApiError(
