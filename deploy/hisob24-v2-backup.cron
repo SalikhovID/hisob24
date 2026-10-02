@@ -1,0 +1,4 @@
+# /etc/cron.d/hisob24-v2-backup: the production database, every night.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+30 2 * * * root /var/www/hisob24-v2/deploy/backup.sh 2>&1 | logger -t hisob24-backup

@@ -1,0 +1,13 @@
+# Context of deploy/next.Dockerfile: the pnpm workspace without build output.
+**/node_modules
+**/.next
+**/.next-e2e
+**/test-results
+**/playwright-report
+**/coverage
+.git
+.env
+.env.*
+!.env.example
+backend
+docs

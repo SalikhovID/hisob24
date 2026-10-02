@@ -1,0 +1,92 @@
+# Production stack: PostgreSQL, the Go API and both Next.js apps, published
+# on 127.0.0.1 only; the host's nginx terminates TLS in front of them:
+#   app.hisob24.uz   → web   127.0.0.1:8092
+#   admin.hisob24.uz → admin 127.0.0.1:8091
+#   api.hisob24.uz   → api   127.0.0.1:8090 (Telegram webhooks, /healthz)
+# Settings come from .env next to this file (see .env.example). Deploy with
+# deploy/deploy.sh.
+name: hisob24-v2
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    # CURRENT_DATE (subscription end dates) counts in Tashkent time.
+    command: ["postgres", "-c", "timezone=Asia/Tashkent"]
+    environment:
+      POSTGRES_USER: hisob24
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: hisob24
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hisob24 -d hisob24"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  api:
+    build: ./backend
+    image: hisob24-v2-api
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://hisob24:${POSTGRES_PASSWORD}@postgres:5432/hisob24?sslmode=disable
+      HTTP_ADDR: ":8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8090:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  admin:
+    build:
+      context: .
+      dockerfile: deploy/next.Dockerfile
+    image: hisob24-v2-next
+    working_dir: /repo/apps/admin
+    command: ["node_modules/.bin/next", "start", "-p", "3001"]
+    environment:
+      ADMIN_BOT_USERNAME: ${ADMIN_BOT_USERNAME:-}
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:8091:3001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/login').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  web:
+    # The image the admin service builds.
+    image: hisob24-v2-next
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:8092:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pg-data:
