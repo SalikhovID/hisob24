@@ -1,9 +1,11 @@
 import { screen, waitFor } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { accessToken } from "@/lib/session"
 import { ALI, db, SARDOR, VALI, ZARINA } from "@/mocks/data"
 import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { Dashboard } from "./dashboard"
 
@@ -87,4 +89,15 @@ test("the theme button switches between light and dark", async () => {
   await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
   await user.click(toggle)
   await waitFor(() => expect(document.documentElement).not.toHaveClass("dark"))
+})
+
+test("a dashboard that fails to load says why and can be asked for again", async () => {
+  await signIn(ALI)
+  server.use(http.get("*/api/app/me", () => HttpResponse.error(), { once: true }))
+  const { user } = renderWithProviders(<Dashboard />)
+
+  expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
+
+  expect(await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })).toBeInTheDocument()
 })
