@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -23,4 +24,19 @@ func TestValidateInitDataAcceptsTheDocsSample(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, WebAppUser{ID: 279058397, FirstName: "Vladislav", LastName: "Kibenko", Username: "vdkfrost"}, user)
+}
+
+func TestValidateInitDataRejectsUnsignedData(t *testing.T) {
+	tampered := strings.Replace(sampleInitData, "Vladislav", "Vlad", 1)
+	noHash, _, _ := strings.Cut(sampleInitData, "&hash=")
+	for name, tc := range map[string]struct{ initData, token string }{
+		"another bot":   {sampleInitData, "123456:other-token"},
+		"tampered user": {tampered, sampleToken},
+		"no hash":       {noHash, sampleToken},
+		"hash not hex":  {noHash + "&hash=zz", sampleToken},
+		"no bot token":  {sampleInitData, ""},
+	} {
+		_, err := ValidateInitData(tc.initData, tc.token, 24*time.Hour, sampleSigned.Add(time.Hour))
+		assert.ErrorIs(t, err, ErrInvalidInitData, name)
+	}
 }
