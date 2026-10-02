@@ -64,6 +64,9 @@ type Querier interface {
 	// Locks the company for a billing transaction. today is the database's
 	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
 	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)
+	// Revokes a live token and returns its owner: the first step of rotation
+	// and of logout. A revoked, expired or unknown token gives pgx.ErrNoRows.
+	RevokeRefreshToken(ctx context.Context, tokenHash string) (string, error)
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)

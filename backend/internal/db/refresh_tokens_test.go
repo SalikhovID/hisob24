@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,4 +31,20 @@ func createRefreshToken(t *testing.T, q *gen.Queries, phone, hash string, expire
 	t.Helper()
 	_, err := q.CreateRefreshToken(context.Background(), gen.CreateRefreshTokenParams{UserPhone: phone, TokenHash: hash, ExpiresAt: expiresAt})
 	require.NoError(t, err)
+}
+
+func TestRevokeRefreshToken(t *testing.T) {
+	q, _ := setup(t)
+	ctx := t.Context()
+	createUser(t, q, "998901234567", "Ali")
+	createRefreshToken(t, q, "998901234567", "live", time.Now().Add(time.Hour))
+	createRefreshToken(t, q, "998901234567", "old", time.Now().Add(-time.Second))
+
+	phone, err := q.RevokeRefreshToken(ctx, "live")
+	require.NoError(t, err)
+	assert.Equal(t, "998901234567", phone)
+	_, err = q.RevokeRefreshToken(ctx, "live")
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a token is used once")
+	_, err = q.RevokeRefreshToken(ctx, "old")
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "an expired token")
 }

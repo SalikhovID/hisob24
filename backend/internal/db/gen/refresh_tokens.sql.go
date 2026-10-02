@@ -30,3 +30,19 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	err := row.Scan(&id)
 	return id, err
 }
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :one
+UPDATE refresh_tokens
+SET revoked_at = now()
+WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
+RETURNING user_phone
+`
+
+// Revokes a live token and returns its owner: the first step of rotation
+// and of logout. A revoked, expired or unknown token gives pgx.ErrNoRows.
+func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) (string, error) {
+	row := q.db.QueryRow(ctx, revokeRefreshToken, tokenHash)
+	var user_phone string
+	err := row.Scan(&user_phone)
+	return user_phone, err
+}
