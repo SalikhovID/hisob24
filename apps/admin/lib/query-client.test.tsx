@@ -46,3 +46,19 @@ test("other refusals stay with the page and are not retried", async () => {
   expect(queryFn).toHaveBeenCalledTimes(1)
   expect(unauthorized).not.toHaveBeenCalled()
 })
+
+test("a failed login (401 invalid_code) stays on the login page", async () => {
+  const unauthorized = vi.fn()
+  const { result } = renderHook(
+    () =>
+      useMutation({
+        mutationFn: () => Promise.reject(new ApiError(401, "invalid_code", "Kod noto'g'ri yoki muddati o'tgan")),
+      }),
+    { wrapper: wrapperFor(makeQueryClient(unauthorized)) },
+  )
+
+  act(() => result.current.mutate())
+
+  await waitFor(() => expect(result.current.isError).toBe(true))
+  expect(unauthorized).not.toHaveBeenCalled()
+})
