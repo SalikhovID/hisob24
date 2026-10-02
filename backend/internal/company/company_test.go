@@ -128,3 +128,24 @@ func TestAddUserIsAtomic(t *testing.T) {
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM users WHERE phone = '998902223344')").Scan(&exists))
 	assert.False(t, exists, "no user without the membership")
 }
+
+func TestAddUserRefusals(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	for name, tc := range map[string]struct {
+		companyID             int64
+		phone, fullName, role string
+		kind                  apperr.Kind
+	}{
+		"unknown company": {c.ID + 1, "998902223344", "Xodim", "staff", apperr.NotFound},
+		"bad role":        {c.ID, "998902223344", "Xodim", "boss", apperr.Invalid},
+		"bad phone":       {c.ID, "12ab", "Xodim", "staff", apperr.Invalid},
+		"no name":         {c.ID, "998902223344", " ", "staff", apperr.Invalid},
+	} {
+		_, err := s.AddUser(t.Context(), tc.companyID, tc.phone, tc.fullName, tc.role)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.kind, e.Kind, name)
+		}
+	}
+}

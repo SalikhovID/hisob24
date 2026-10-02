@@ -36,6 +36,8 @@ type Member struct {
 	CreatedAt time.Time
 }
 
+var errNotFound = apperr.New(apperr.NotFound, "not_found", "Kompaniya topilmadi")
+
 func invalid(message string) error {
 	return apperr.New(apperr.Invalid, "validation_error", message)
 }
