@@ -31,3 +31,22 @@ test("a complete number asks for a code and moves on", async () => {
   await waitFor(() => expect(onSent).toHaveBeenCalledWith("+998 90 123 45 67", 60))
   expect(sent).toEqual({ phone: "998901234567" })
 })
+
+test("an incomplete number is not sent", async () => {
+  let requests = 0
+  server.use(
+    http.post("*/api/app/auth/sms/send", () => {
+      requests += 1
+    }),
+  )
+  const onSent = vi.fn()
+  const { user } = renderWithProviders(<PhoneStep onSent={onSent} />)
+
+  await user.type(screen.getByRole("textbox", { name: "Telefon raqami" }), "90123")
+  await user.click(screen.getByRole("button", { name: "Kodni olish" }))
+
+  expect(await screen.findByText("Telefon raqamini to'liq kiriting")).toBeInTheDocument()
+  expect(screen.getByRole("textbox", { name: "Telefon raqami" })).toHaveAttribute("aria-invalid", "true")
+  expect(requests).toBe(0)
+  expect(onSent).not.toHaveBeenCalled()
+})
