@@ -59,6 +59,7 @@ func (h *Handler) Routes(r chi.Router) {
 			r.Post("/companies/{id}/billings", h.createBilling)
 			r.Get("/admins", h.listAdmins)
 			r.Post("/admins", h.addAdmin)
+			r.Delete("/admins/{telegram_id}", h.deleteAdmin)
 		})
 	})
 }
