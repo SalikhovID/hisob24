@@ -52,3 +52,39 @@ func (q *Queries) CreateBilling(ctx context.Context, arg CreateBillingParams) (B
 	)
 	return i, err
 }
+
+const listBillings = `-- name: ListBillings :many
+SELECT id, company_id, days, amount, prev_end_date, new_end_date, note, created_by, created_at FROM billings
+WHERE company_id = $1
+ORDER BY created_at DESC, id DESC
+`
+
+func (q *Queries) ListBillings(ctx context.Context, companyID int64) ([]Billing, error) {
+	rows, err := q.db.Query(ctx, listBillings, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Billing{}
+	for rows.Next() {
+		var i Billing
+		if err := rows.Scan(
+			&i.ID,
+			&i.CompanyID,
+			&i.Days,
+			&i.Amount,
+			&i.PrevEndDate,
+			&i.NewEndDate,
+			&i.Note,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

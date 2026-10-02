@@ -41,6 +41,7 @@ type Querier interface {
 	// The user middleware's check: false means 402 subscription_expired.
 	IsCompanySubscriptionActive(ctx context.Context, id int64) (bool, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
+	ListBillings(ctx context.Context, companyID int64) ([]Billing, error)
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
 	ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error)

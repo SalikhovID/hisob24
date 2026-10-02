@@ -1,7 +1,9 @@
 package db_test
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
@@ -37,4 +39,28 @@ func TestCreateBilling(t *testing.T) {
 
 	_, err = q.CreateBilling(ctx, gen.CreateBillingParams{CompanyID: c.ID, Days: 0, PrevEndDate: d, NewEndDate: d})
 	assert.Equal(t, "23514", sqlState(err), "days must be positive") // check_violation
+}
+
+func TestListBillings(t *testing.T) {
+	q, pool := setup(t)
+	d := today(t, pool)
+	c := createCompany(t, q, "Olma", d)
+	other := createCompany(t, q, "Nok", d)
+	first := createBilling(t, q, c.ID, 30)
+	second := createBilling(t, q, c.ID, 7)
+	createBilling(t, q, other.ID, 1)
+
+	got, err := q.ListBillings(t.Context(), c.ID)
+
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, []int64{second.ID, first.ID}, []int64{got[0].ID, got[1].ID}, "newest first")
+}
+
+func createBilling(t *testing.T, q *gen.Queries, companyID int64, days int32) gen.Billing {
+	t.Helper()
+	d := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	b, err := q.CreateBilling(context.Background(), gen.CreateBillingParams{CompanyID: companyID, Days: days, PrevEndDate: d, NewEndDate: d.AddDate(0, 0, int(days))})
+	require.NoError(t, err)
+	return b
 }
