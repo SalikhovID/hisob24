@@ -75,7 +75,9 @@ api-client:
 otp:
 	cd $(BACKEND) && go run ./cmd/otp $(if $(ID),-telegram-id $(ID))
 
-# Playwright: the admin panel in a mobile (375px) and a desktop browser, with
-# the API mocked by MSW. Needs Chromium: pnpm --filter @hisob24/admin exec playwright install chromium
+# Playwright: the admin panel and the user app in a mobile (375px) and a
+# desktop browser, with the API mocked by MSW. Needs Chromium:
+# pnpm --filter @hisob24/admin exec playwright install chromium
 e2e:
 	pnpm --filter @hisob24/admin test:e2e
+	pnpm --filter @hisob24/web test:e2e
