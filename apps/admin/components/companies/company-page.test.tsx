@@ -146,3 +146,18 @@ test("the billing dialog refuses a bad day count or amount", async () => {
   expect(await within(dialog).findByText("Kunlar soni 1 dan 3650 gacha bo'lishi kerak")).toBeInTheDocument()
   expect(within(dialog).getByText("Summa noto'g'ri: masalan 150000 yoki 150000.50")).toBeInTheDocument()
 })
+
+test("blocking a company asks first and marks it blocked; activating takes it back", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Bloklash" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Kompaniyani bloklaysizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "Bloklash" }))
+
+  const info = screen.getByRole("region", { name: "Ma'lumot" })
+  expect(await within(info).findByText("Bloklangan")).toBeInTheDocument()
+  expect(await screen.findByText("Kompaniya bloklandi")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("button", { name: "Faollashtirish" }))
+  expect(await within(info).findByText("30 kun qoldi")).toBeInTheDocument()
+})

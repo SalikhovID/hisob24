@@ -14,6 +14,7 @@ import type { Member } from "@/lib/types"
 import { AddBillingDialog } from "./add-billing-dialog"
 import { AddUserDialog } from "./add-user-dialog"
 import { BillingHistory } from "./billing-history"
+import { CompanyActions } from "./company-actions"
 import { CompanyStatusBadge } from "./status-badge"
 
 const memberColumns: Column<Member>[] = [
@@ -41,7 +42,12 @@ export function CompanyPage({ id }: { id: number }) {
           <ArrowLeftIcon className="size-4" />
           Kompaniyalar
         </Link>
-        <h1 className="text-xl font-semibold break-words">{c.name}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold break-words">{c.name}</h1>
+          <div className="flex gap-2">
+            <CompanyActions company={c} />
+          </div>
+        </div>
       </div>
       <section aria-labelledby={infoId} className="rounded-xl border bg-card p-4">
         <h2 id={infoId} className="mb-3 font-medium">
