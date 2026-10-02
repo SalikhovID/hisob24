@@ -57,6 +57,7 @@ type Querier interface {
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	// A phone that is already a user keeps its row and name.
 	UpsertUser(ctx context.Context, arg UpsertUserParams) error
+	UserExists(ctx context.Context, phone string) (bool, error)
 }
 
 var _ Querier = (*Queries)(nil)

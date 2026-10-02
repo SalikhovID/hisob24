@@ -6,3 +6,6 @@ ON CONFLICT (phone) DO NOTHING;
 
 -- name: GetUser :one
 SELECT * FROM users WHERE phone = $1;
+
+-- name: UserExists :one
+SELECT EXISTS (SELECT 1 FROM users WHERE phone = $1);

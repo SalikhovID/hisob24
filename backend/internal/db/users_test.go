@@ -43,3 +43,16 @@ func createUser(t *testing.T, q *gen.Queries, phone, name string) {
 	t.Helper()
 	require.NoError(t, q.UpsertUser(context.Background(), gen.UpsertUserParams{Phone: phone, FullName: ptr(name)}))
 }
+
+func TestUserExists(t *testing.T) {
+	q, _ := setup(t)
+	createUser(t, q, "998901234567", "Ali")
+
+	exists, err := q.UserExists(t.Context(), "998901234567")
+	require.NoError(t, err)
+	assert.True(t, exists)
+
+	exists, err = q.UserExists(t.Context(), "998900000000")
+	require.NoError(t, err)
+	assert.False(t, exists)
+}
