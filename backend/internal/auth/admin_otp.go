@@ -112,6 +112,11 @@ func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (Login
 	return issued, err
 }
 
+// DiscardLoginCode drops a code the bot could not deliver.
+func (a *AdminAuth) DiscardLoginCode(ctx context.Context, id int64) error {
+	return a.q.DeleteAdminLoginCode(ctx, id)
+}
+
 // LoginWithCode spends a code from the admin bot and opens a session.
 // ErrInvalidCode for a wrong, used or expired code and for an admin who was
 // deactivated after the code went out.

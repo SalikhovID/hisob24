@@ -156,3 +156,14 @@ func TestLoginWithCodeOfADeactivatedAdmin(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrInvalidCode)
 }
+
+func TestDiscardLoginCode(t *testing.T) {
+	a, _ := newAdminAuth(t)
+	issued, err := a.IssueLoginCode(t.Context(), ownerID)
+	require.NoError(t, err)
+
+	require.NoError(t, a.DiscardLoginCode(t.Context(), issued.ID))
+
+	_, err = a.LoginWithCode(t.Context(), issued.Code)
+	assert.ErrorIs(t, err, ErrInvalidCode)
+}
