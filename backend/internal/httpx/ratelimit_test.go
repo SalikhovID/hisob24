@@ -30,3 +30,16 @@ func TestRateLimiterWindowSlides(t *testing.T) {
 	assert.True(t, l.Allow("a"))
 	assert.False(t, l.Allow("a"))
 }
+
+func TestRateLimiterForgetsIdleKeys(t *testing.T) {
+	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
+	l := NewRateLimiter(5, time.Minute)
+	l.now = func() time.Time { return now }
+	l.Allow("a")
+
+	now = now.Add(2 * time.Minute)
+	l.Allow("b")
+
+	assert.NotContains(t, l.hits, "a")
+	assert.Contains(t, l.hits, "b")
+}

@@ -12,8 +12,9 @@ type RateLimiter struct {
 	window time.Duration
 	now    func() time.Time
 
-	mu   sync.Mutex
-	hits map[string][]time.Time
+	mu        sync.Mutex
+	hits      map[string][]time.Time
+	lastSweep time.Time
 }
 
 // NewRateLimiter allows limit requests per key in any window.
@@ -27,6 +28,7 @@ func (l *RateLimiter) Allow(key string) bool {
 	defer l.mu.Unlock()
 	now := l.now()
 	since := now.Add(-l.window)
+	l.sweep(now, since)
 
 	recent := l.hits[key][:0]
 	for _, at := range l.hits[key] {
@@ -40,4 +42,18 @@ func (l *RateLimiter) Allow(key string) bool {
 	}
 	l.hits[key] = append(recent, now)
 	return true
+}
+
+// sweep drops keys with no request in the window, at most once a window, so
+// clients that never come back do not pile up.
+func (l *RateLimiter) sweep(now, since time.Time) {
+	if now.Sub(l.lastSweep) < l.window {
+		return
+	}
+	l.lastSweep = now
+	for key, hits := range l.hits {
+		if len(hits) == 0 || !hits[len(hits)-1].After(since) {
+			delete(l.hits, key)
+		}
+	}
 }
