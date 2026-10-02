@@ -129,6 +129,7 @@ type companyJSON struct {
 	Name     string `json:"name"`
 	Role     string `json:"role"`
 	EndDate  string `json:"end_date"`
+	DaysLeft int    `json:"days_left"`
 	IsActive bool   `json:"is_active"`
 }
 
@@ -149,7 +150,10 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	}
 	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}}
 	for _, m := range profile.Companies {
-		c := companyJSON{ID: m.CompanyID, Name: m.Name, Role: m.Role, EndDate: m.EndDate.Format(time.DateOnly), IsActive: m.IsActive}
+		c := companyJSON{
+			ID: m.CompanyID, Name: m.Name, Role: m.Role,
+			EndDate: m.EndDate.Format(time.DateOnly), DaysLeft: m.DaysLeft, IsActive: m.IsActive,
+		}
 		body.Companies = append(body.Companies, c)
 		if claims.CompanyID != nil && *claims.CompanyID == m.CompanyID {
 			body.Company = &c

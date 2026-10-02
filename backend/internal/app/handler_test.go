@@ -288,6 +288,26 @@ func TestMe(t *testing.T) {
 	assert.Len(t, body["companies"], 2, "all of the user's companies")
 }
 
+func TestMeSaysHowManyDaysEachCompanyHasLeft(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	anor := api.addCompany(t, "Anor", -5)
+	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	api.addMember(t, alisPhone, anor, "staff")
+
+	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	company, _ := body["company"].(map[string]any)
+	assert.EqualValues(t, 30, company["days_left"])
+	companies, _ := body["companies"].([]any)
+	require.Len(t, companies, 2)
+	anorJSON, _ := companies[0].(map[string]any)
+	assert.Equal(t, "Anor", anorJSON["name"])
+	assert.EqualValues(t, -5, anorJSON["days_left"], "an expired company counts below zero")
+}
+
 func TestMeNeedsAValidAccessToken(t *testing.T) {
 	api := newTestAPI(t)
 	access, _ := api.signIn(t, alisPhone, nil)
