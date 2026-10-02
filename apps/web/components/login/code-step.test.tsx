@@ -1,10 +1,12 @@
 import { act, screen, waitFor } from "@testing-library/react"
+import { http } from "msw"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { accessToken } from "@/lib/session"
 import { ALI, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { CodeStep } from "./code-step"
 
 const sendCode = (phone: string) => call(api.POST("/app/auth/sms/send", { body: { phone } }))
@@ -64,6 +66,31 @@ test("the resend button waits out the timer", () => {
 
     act(() => vi.advanceTimersByTime(59_000))
     expect(screen.getByRole("button", { name: "Kodni qayta yuborish" })).toBeEnabled()
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test("resending asks for a new code and starts the timer again", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  try {
+    await sendCode(ALI)
+    let sent: unknown
+    server.use(
+      http.post("*/api/app/auth/sms/send", async ({ request }) => {
+        sent = await request.clone().json()
+      }),
+    )
+    const { user } = renderWithProviders(
+      <CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />,
+      { advanceTimers: vi.advanceTimersByTime },
+    )
+    act(() => vi.advanceTimersByTime(60_000))
+
+    await user.click(screen.getByRole("button", { name: "Kodni qayta yuborish" }))
+
+    expect(await screen.findByRole("button", { name: "Kodni qayta yuborish (60)" })).toBeDisabled()
+    expect(sent).toEqual({ phone: ALI })
   } finally {
     vi.useRealTimers()
   }

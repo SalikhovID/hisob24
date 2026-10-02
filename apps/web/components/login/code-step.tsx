@@ -38,12 +38,16 @@ export function CodeStep({
 }) {
   void onChangePhone
   const router = useRouter()
-  const [left] = useCountdown(retryAfter)
+  const digits = phoneDigits(phone) ?? ""
+  const [left, setLeft] = useCountdown(retryAfter)
   const [code, setCode] = useState("")
   const input = useRef<HTMLInputElement>(null)
+  const resend = useMutation({
+    mutationFn: () => call(api.POST("/app/auth/sms/send", { body: { phone: digits } })),
+    onSuccess: (data) => setLeft(data.retry_after),
+  })
   const verify = useMutation({
-    mutationFn: (code: string) =>
-      call(api.POST("/app/auth/sms/verify", { body: { phone: phoneDigits(phone) ?? "", code } })),
+    mutationFn: (code: string) => call(api.POST("/app/auth/sms/verify", { body: { phone: digits, code } })),
     // One company is chosen by the API; with several, company_id is null and
     // the user picks one.
     onSuccess: (tokens) => {
@@ -86,7 +90,13 @@ export function CodeStep({
           {verify.error.message}
         </p>
       )}
-      <Button type="button" variant="ghost" className="w-full" disabled={left > 0}>
+      <Button
+        type="button"
+        variant="ghost"
+        className="w-full"
+        disabled={left > 0 || resend.isPending}
+        onClick={() => resend.mutate()}
+      >
         {left > 0 ? `Kodni qayta yuborish (${left})` : "Kodni qayta yuborish"}
       </Button>
     </div>
