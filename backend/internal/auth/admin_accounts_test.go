@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
 func TestListAdmins(t *testing.T) {
@@ -110,4 +112,32 @@ func TestDeactivateAdminRefusals(t *testing.T) {
 	active, err := a.IsActiveAdmin(t.Context(), ownerID)
 	require.NoError(t, err)
 	assert.True(t, active, "the owner stays")
+}
+
+func TestCrossedDeactivationsKeepOneAdmin(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	ctx := t.Context()
+	mustExec(t, pool, "INSERT INTO admins (telegram_id, full_name) VALUES (42, 'Ikkinchi')")
+
+	// The owner is turning 42 off and holds the active admins.
+	other, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = other.Rollback(context.WithoutCancel(ctx)) })
+	_, err = other.Exec(ctx, "SELECT telegram_id FROM admins WHERE is_active FOR UPDATE")
+	require.NoError(t, err)
+	_, err = other.Exec(ctx, "UPDATE admins SET is_active = false WHERE telegram_id = 42")
+	require.NoError(t, err)
+
+	// Meanwhile 42 turns the owner off.
+	refused := make(chan error, 1)
+	go func() { refused <- a.DeactivateAdmin(ctx, 42, ownerID) }()
+	pgtest.WaitForLockWait(t, pool)
+	require.NoError(t, other.Commit(ctx))
+
+	var e *apperr.Error
+	require.ErrorAs(t, <-refused, &e)
+	assert.Equal(t, "last_admin", e.Code)
+	active, err := a.IsActiveAdmin(ctx, ownerID)
+	require.NoError(t, err)
+	assert.True(t, active, "one admin stays")
 }
