@@ -3,10 +3,14 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
@@ -51,7 +55,20 @@ func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret string, sender sms.Sen
 		sender:    sender,
 		now:       time.Now,
 		newCode:   func() (string, error) { return NewCode(rand.Reader) },
+		newRefreshToken: func() (string, error) {
+			b := make([]byte, 32)
+			if _, err := rand.Read(b); err != nil {
+				return "", err
+			}
+			return base64.RawURLEncoding.EncodeToString(b), nil
+		},
 	}
+}
+
+// hashToken is how a refresh token is stored: 32 random bytes need no salt.
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }
 
 // SendCode texts a login code to phone, valid for two minutes; only its
@@ -94,4 +111,77 @@ func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 		return fmt.Errorf("send sms: %w", err)
 	}
 	return nil
+}
+
+// Tokens is a user app sign-in: a short access token and the refresh token
+// that renews it, for the company chosen (none while the user has to pick
+// one of several).
+type Tokens struct {
+	AccessToken      string
+	AccessExpiresAt  time.Time
+	RefreshToken     string
+	RefreshExpiresAt time.Time
+	CompanyID        *int64
+	Role             string
+}
+
+// Verify signs a user in with the code SendCode texted. A user of one
+// company gets it chosen; with several, none is until switch-company.
+func (a *UserAuth) Verify(ctx context.Context, rawPhone, code string) (Tokens, error) {
+	phone, err := user.NormalizePhone(rawPhone)
+	if err != nil {
+		return Tokens{}, errBadPhone
+	}
+	var tokens Tokens
+	err = pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		q := a.q.WithTx(tx)
+		if _, err := q.ConsumeSMSCode(ctx, gen.ConsumeSMSCodeParams{Phone: phone, CodeHash: HashCode(a.otpSecret, code)}); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrInvalidCode
+			}
+			return err
+		}
+		companies, err := q.ListUserCompanies(ctx, phone)
+		if err != nil {
+			return err
+		}
+		var companyID *int64
+		var role string
+		if len(companies) == 1 {
+			companyID, role = &companies[0].ID, companies[0].Role
+		}
+		tokens, err = a.issue(ctx, q, phone, companyID, role)
+		return err
+	})
+	return tokens, err
+}
+
+// issue makes a new refresh token (stored as a hash, with the company) and
+// an access token for the same company.
+func (a *UserAuth) issue(ctx context.Context, q *gen.Queries, phone string, companyID *int64, role string) (Tokens, error) {
+	refresh, err := a.newRefreshToken()
+	if err != nil {
+		return Tokens{}, err
+	}
+	now := a.now()
+	if _, err := q.CreateRefreshToken(ctx, gen.CreateRefreshTokenParams{
+		UserPhone: phone,
+		TokenHash: hashToken(refresh),
+		ExpiresAt: now.Add(RefreshTokenTTL),
+		CompanyID: companyID,
+	}); err != nil {
+		return Tokens{}, err
+	}
+	access, accessExpires, err := IssueAccessToken(a.jwtSecret, AccessClaims{Phone: phone, CompanyID: companyID, Role: role}, now)
+	if err != nil {
+		return Tokens{}, err
+	}
+	return Tokens{
+		AccessToken:      access,
+		AccessExpiresAt:  accessExpires,
+		RefreshToken:     refresh,
+		RefreshExpiresAt: now.Add(RefreshTokenTTL),
+		CompanyID:        companyID,
+		Role:             role,
+	}, nil
 }

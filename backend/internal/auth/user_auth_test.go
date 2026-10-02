@@ -115,3 +115,47 @@ func TestSendCodeThatCouldNotBeSentCanBeAskedForAgainAtOnce(t *testing.T) {
 	sender.err = nil
 	assert.NoError(t, a.SendCode(t.Context(), "998901234567"), "no minute to wait for an SMS that never left")
 }
+
+func addCompany(t *testing.T, pool *pgxpool.Pool, name string, daysLeft int) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO companies (name, end_date) VALUES ($1, CURRENT_DATE + $2::int) RETURNING id", name, daysLeft).Scan(&id))
+	return id
+}
+
+func addMember(t *testing.T, pool *pgxpool.Pool, phone string, companyID int64, role string) {
+	t.Helper()
+	mustExec(t, pool, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ($1, $2, $3)", phone, companyID, role)
+}
+
+func TestVerifySignsInAUserOfOneCompany(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	a.newRefreshToken = func() (string, error) { return "refresh-1", nil }
+	addUser(t, pool, "998901234567")
+	companyID := addCompany(t, pool, "Olma", 30)
+	addMember(t, pool, "998901234567", companyID, "manager")
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+
+	tokens, err := a.Verify(t.Context(), "+998 90 123 45 67", "123456")
+
+	require.NoError(t, err)
+	require.NotNil(t, tokens.CompanyID)
+	assert.Equal(t, companyID, *tokens.CompanyID, "the only company is chosen")
+	assert.Equal(t, "manager", tokens.Role)
+	claims, err := ParseAccessToken([]byte(testJWTSecret), tokens.AccessToken, time.Now())
+	require.NoError(t, err)
+	assert.Equal(t, AccessClaims{Phone: "998901234567", CompanyID: &companyID, Role: "manager"}, claims)
+	assert.Equal(t, "refresh-1", tokens.RefreshToken)
+	assert.WithinDuration(t, time.Now().Add(30*24*time.Hour), tokens.RefreshExpiresAt, 5*time.Second)
+	var hash string
+	var stored *int64
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT token_hash, company_id FROM refresh_tokens WHERE user_phone = '998901234567'").
+		Scan(&hash, &stored))
+	assert.NotEqual(t, "refresh-1", hash, "only the refresh token's hash is stored")
+	require.NotNil(t, stored)
+	assert.Equal(t, companyID, *stored, "the refresh token remembers the company")
+
+	_, err = a.Verify(t.Context(), "998901234567", "123456")
+	assert.ErrorIs(t, err, ErrInvalidCode, "a code signs in once")
+}
