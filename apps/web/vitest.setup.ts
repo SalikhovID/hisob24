@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest"
+import { clearSession } from "./lib/session"
 import { resetDb } from "./mocks/data"
 import { setLocation } from "./test/navigation"
 import { server } from "./test/server"
@@ -37,6 +38,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   server.resetHandlers()
+  clearSession()
   if (browser) {
     document.documentElement.removeAttribute("class")
     document.documentElement.removeAttribute("style")
