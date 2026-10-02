@@ -56,6 +56,9 @@ func Load(getenv func(string) string) (Config, error) {
 			errs = append(errs, fmt.Errorf("%s is required", req.key))
 		}
 	}
+	if cfg.BotMode != "polling" && cfg.BotMode != "webhook" {
+		errs = append(errs, fmt.Errorf("BOT_MODE must be polling or webhook, got %q", cfg.BotMode))
+	}
 	if len(errs) > 0 {
 		return Config{}, fmt.Errorf("config: %w", errors.Join(errs...))
 	}

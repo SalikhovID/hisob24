@@ -67,6 +67,11 @@ func TestLoad(t *testing.T) {
 			env:     map[string]string{},
 			wantErr: []string{"DATABASE_URL", "OTP_HMAC_SECRET", "JWT_SECRET"},
 		},
+		{
+			name:    "unknown BOT_MODE",
+			env:     with(requiredEnv(), map[string]string{"BOT_MODE": "hook"}),
+			wantErr: []string{"BOT_MODE", `"hook"`},
+		},
 	}
 
 	for _, tt := range tests {
