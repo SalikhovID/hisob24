@@ -35,3 +35,30 @@ func TestGetIsTheUserAndTheirCompanies(t *testing.T) {
 	assert.Equal(t, olma, profile.Companies[1].CompanyID)
 	assert.Equal(t, "2026-11-01", profile.Companies[1].EndDate.Format("2006-01-02"))
 }
+
+func TestSubscriptionActive(t *testing.T) {
+	t.Parallel()
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	company := func(endDate string, active bool) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, "INSERT INTO companies (name, end_date, is_active) VALUES ('X', "+endDate+", $1) RETURNING id", active).Scan(&id))
+		return id
+	}
+	profiles := NewProfiles(pool)
+
+	for name, tc := range map[string]struct {
+		id   int64
+		want bool
+	}{
+		"paid up":         {company("CURRENT_DATE + 30", true), true},
+		"ends today":      {company("CURRENT_DATE", true), true},
+		"expired":         {company("CURRENT_DATE - 1", true), false},
+		"blocked":         {company("CURRENT_DATE + 30", false), false},
+		"no such company": {999999, false},
+	} {
+		got, err := profiles.SubscriptionActive(ctx, tc.id)
+		require.NoError(t, err, name)
+		assert.Equal(t, tc.want, got, name)
+	}
+}

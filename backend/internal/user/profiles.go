@@ -2,8 +2,10 @@ package user
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
@@ -50,4 +52,14 @@ func (p *Profiles) Get(ctx context.Context, phone string) (Profile, error) {
 		companies = append(companies, Membership{CompanyID: c.ID, Name: c.Name, Role: c.Role, EndDate: c.EndDate, IsActive: c.IsActive})
 	}
 	return Profile{Phone: u.Phone, FullName: u.FullName, Companies: companies}, nil
+}
+
+// SubscriptionActive says whether a company may be used: its end date has
+// not passed and it is not blocked. A missing company may not.
+func (p *Profiles) SubscriptionActive(ctx context.Context, companyID int64) (bool, error) {
+	active, err := p.q.IsCompanySubscriptionActive(ctx, companyID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	return active, err
 }
