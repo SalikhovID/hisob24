@@ -40,3 +40,14 @@ func TestNormalizePhone(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatPhone(t *testing.T) {
+	for _, tc := range []struct{ phone, want string }{
+		{"998901234567", "+998 90 123 45 67"},
+		{"998905556677", "+998 90 555 66 77"},
+		{"79001234567", "+79001234567"},
+		{"123456789", "+123456789"},
+	} {
+		assert.Equal(t, tc.want, FormatPhone(tc.phone), tc.phone)
+	}
+}

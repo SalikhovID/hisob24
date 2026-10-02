@@ -34,3 +34,12 @@ func NormalizePhone(raw string) (string, error) {
 	}
 	return digits, nil
 }
+
+// FormatPhone writes a stored phone for people to read: an Uzbek number as
+// +998 90 123 45 67, any other as + and its digits.
+func FormatPhone(phone string) string {
+	if len(phone) != 12 || !strings.HasPrefix(phone, "998") {
+		return "+" + phone
+	}
+	return "+998 " + phone[3:5] + " " + phone[5:8] + " " + phone[8:10] + " " + phone[10:]
+}
