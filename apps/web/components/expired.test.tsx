@@ -2,11 +2,13 @@ import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { accessToken } from "@/lib/session"
+import { setMiniApp } from "@/lib/telegram"
 import { ZARINA } from "@/mocks/data"
 import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { signIn } from "@/test/session"
+import { fakeWebApp } from "@/test/telegram"
 import { Expired } from "./expired"
 
 test("says the subscription is over and who can extend it", () => {
@@ -60,4 +62,13 @@ test("a sign-out that fails says why and keeps the session", async () => {
   expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
   expect(leave).not.toHaveBeenCalled()
   expect(accessToken()).not.toBeNull()
+})
+
+test("inside Telegram /expired has no sign-out, only the way to another company", () => {
+  setMiniApp(fakeWebApp())
+
+  renderWithProviders(<Expired />)
+
+  expect(screen.getByRole("button", { name: "Boshqa kompaniyani tanlash" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
 })

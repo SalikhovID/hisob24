@@ -4,6 +4,7 @@ import { CalendarXIcon, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useLogout, useSwitchCompany } from "@/lib/queries"
+import { useMiniApp } from "@/lib/telegram"
 
 // Expired is where a session for a company whose subscription is over lands.
 // The way on is another company: the session drops this one first, so the
@@ -12,6 +13,7 @@ export function Expired() {
   const router = useRouter()
   const switchCompany = useSwitchCompany()
   const logout = useLogout()
+  const miniApp = useMiniApp()
 
   return (
     <main className="flex min-h-svh items-center justify-center p-4">
@@ -37,10 +39,12 @@ export function Expired() {
           >
             Boshqa kompaniyani tanlash
           </Button>
-          <Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>
-            <LogOutIcon />
-            Chiqish
-          </Button>
+          {!miniApp && (
+            <Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>
+              <LogOutIcon />
+              Chiqish
+            </Button>
+          )}
         </div>
       </div>
     </main>
