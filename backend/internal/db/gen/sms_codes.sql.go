@@ -29,6 +29,20 @@ func (q *Queries) ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) 
 	return phone, err
 }
 
+const incrementSMSCodeAttempts = `-- name: IncrementSMSCodeAttempts :one
+UPDATE sms_codes SET attempts = attempts + 1
+WHERE phone = $1
+RETURNING attempts
+`
+
+// Counts a wrong code; the caller deletes the code after the fifth.
+func (q *Queries) IncrementSMSCodeAttempts(ctx context.Context, phone string) (int32, error) {
+	row := q.db.QueryRow(ctx, incrementSMSCodeAttempts, phone)
+	var attempts int32
+	err := row.Scan(&attempts)
+	return attempts, err
+}
+
 const upsertSMSCode = `-- name: UpsertSMSCode :execrows
 INSERT INTO sms_codes (phone, code_hash, expires_at)
 VALUES ($1, $2, $3)

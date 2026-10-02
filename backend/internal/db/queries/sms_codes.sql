@@ -15,3 +15,9 @@ WHERE sms_codes.sent_at <= now() - make_interval(secs => sqlc.arg(cooldown_secon
 DELETE FROM sms_codes
 WHERE phone = $1 AND code_hash = $2 AND expires_at > now()
 RETURNING phone;
+
+-- name: IncrementSMSCodeAttempts :one
+-- Counts a wrong code; the caller deletes the code after the fifth.
+UPDATE sms_codes SET attempts = attempts + 1
+WHERE phone = $1
+RETURNING attempts;

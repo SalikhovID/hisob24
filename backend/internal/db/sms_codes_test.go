@@ -66,3 +66,17 @@ func storeSMSCode(t *testing.T, q *gen.Queries, phone, hash string, expiresAt ti
 	require.NoError(t, err)
 	require.Equal(t, int64(1), n)
 }
+
+func TestIncrementSMSCodeAttempts(t *testing.T) {
+	q, _ := setup(t)
+	ctx := t.Context()
+	storeSMSCode(t, q, "998901234567", "code", time.Now().Add(2*time.Minute))
+
+	for want := int32(1); want <= 2; want++ {
+		got, err := q.IncrementSMSCodeAttempts(ctx, "998901234567")
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	}
+	_, err := q.IncrementSMSCodeAttempts(ctx, "998900000000")
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
+}
