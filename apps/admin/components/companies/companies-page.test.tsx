@@ -1,8 +1,10 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { company, db, TODAY } from "@/mocks/data"
 import { currentUrl, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { CompaniesPage } from "./companies-page"
 
 function rowsOf(table: HTMLElement) {
@@ -78,4 +80,43 @@ test("the list goes page by page, twenty at a time", async () => {
   await user.click(screen.getByRole("button", { name: "Keyingi" }))
   expect(await screen.findByText("41–45 / 45")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Keyingi" })).toBeDisabled()
+})
+
+test("while the list loads the page shows placeholders", async () => {
+  setLocation("/companies")
+
+  renderWithProviders(<CompaniesPage />)
+
+  expect(screen.getByLabelText("Yuklanmoqda")).toBeInTheDocument()
+  await screen.findByRole("table", { name: "Kompaniyalar" })
+  expect(screen.queryByLabelText("Yuklanmoqda")).not.toBeInTheDocument()
+})
+
+test("a search with no match says so", async () => {
+  setLocation("/companies?search=behi")
+
+  renderWithProviders(<CompaniesPage />)
+
+  expect(await screen.findByText("Kompaniyalar topilmadi")).toBeInTheDocument()
+  expect(screen.queryByRole("table")).not.toBeInTheDocument()
+})
+
+test("when the list cannot load the page says why and tries again", async () => {
+  let calls = 0
+  server.use(
+    http.get("*/api/admin/companies", () => {
+      if (calls++ > 0) return
+      return HttpResponse.json(
+        { error: "internal_error", message: "Ichki xatolik. Birozdan keyin qayta urinib ko'ring" },
+        { status: 500 },
+      )
+    }),
+  )
+  setLocation("/companies")
+  const { user } = renderWithProviders(<CompaniesPage />)
+
+  expect(await screen.findByText("Ichki xatolik. Birozdan keyin qayta urinib ko'ring")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
+
+  expect(await screen.findByRole("table", { name: "Kompaniyalar" })).toBeInTheDocument()
 })

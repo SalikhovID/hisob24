@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { type Column, DataList } from "@/components/data-list"
 import { Pager } from "@/components/pager"
+import { Empty, Failed, Loading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDate } from "@/lib/format"
@@ -46,7 +47,10 @@ export function CompaniesPage() {
         </Tabs>
         <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
       </div>
-      {companies.data && (
+      {companies.isPending && <Loading />}
+      {companies.isError && <Failed error={companies.error} onRetry={() => companies.refetch()} />}
+      {companies.data?.total === 0 && <Empty>Kompaniyalar topilmadi</Empty>}
+      {companies.data && companies.data.total > 0 && (
         <>
           <DataList
             label="Kompaniyalar"
@@ -55,14 +59,12 @@ export function CompaniesPage() {
             getKey={(c) => c.id}
             href={(c) => `/companies/${c.id}`}
           />
-          {companies.data.total > 0 && (
-            <Pager
-              page={companies.data.page}
-              pageSize={companies.data.page_size}
-              total={companies.data.total}
-              onPage={(page) => update({ page })}
-            />
-          )}
+          <Pager
+            page={companies.data.page}
+            pageSize={companies.data.page_size}
+            total={companies.data.total}
+            onPage={(page) => update({ page })}
+          />
         </>
       )}
     </div>
