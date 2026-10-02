@@ -23,8 +23,13 @@ type tokensJSON struct {
 
 // signedIn answers a sign-in, refresh or switch: the access token in the
 // body, the refresh token in an httpOnly cookie.
+//
+// A Mini App session's cookie must live inside Telegram Web's iframe:
+// SameSite=None and Partitioned (CHIPS), which needs Secure. The Lax variant
+// is dropped first, so a browser without CHIPS, which takes both lines for
+// one cookie, ends with the new value.
 func (h *Handler) signedIn(w http.ResponseWriter, t auth.Tokens) {
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     refreshCookie,
 		Value:    t.RefreshToken,
 		Path:     "/",
@@ -33,7 +38,16 @@ func (h *Handler) signedIn(w http.ResponseWriter, t auth.Tokens) {
 		HttpOnly: true,
 		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
-	})
+	}
+	if t.Source == "telegram" && h.cookieSecure {
+		http.SetCookie(w, &http.Cookie{
+			Name: refreshCookie, Value: "", Path: "/", MaxAge: -1,
+			HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
+		})
+		cookie.SameSite = http.SameSiteNoneMode
+		cookie.Partitioned = true
+	}
+	http.SetCookie(w, cookie)
 	httpx.JSON(w, http.StatusOK, tokensJSON{
 		AccessToken: t.AccessToken,
 		ExpiresIn:   int(auth.AccessTokenTTL.Seconds()),

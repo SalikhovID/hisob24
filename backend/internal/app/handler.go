@@ -39,6 +39,7 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Route("/app", func(r chi.Router) {
 		r.With(httpx.RateLimit(h.sendLimiter)).Post("/auth/sms/send", h.sendCode)
 		r.With(httpx.RateLimit(h.verifyLimiter)).Post("/auth/sms/verify", h.verify)
+		r.Post("/auth/telegram", h.telegramLogin)
 		r.Post("/auth/refresh", h.refresh)
 		r.Post("/auth/logout", h.logout)
 		r.With(h.requireUser).Post("/auth/switch-company", h.switchCompany)
@@ -83,6 +84,23 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "invalid_code", "Kod noto'g'ri yoki muddati o'tgan")
 		return
 	}
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	h.signedIn(w, tokens)
+}
+
+// telegramLogin signs in the user who opened the Mini App, with no code: the
+// user bot signed initData, and the account shared a user's phone with it.
+func (h *Handler) telegramLogin(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		InitData string `json:"initData"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	tokens, err := h.auth.LoginWithTelegram(r.Context(), body.InitData)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return

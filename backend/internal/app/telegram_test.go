@@ -1,0 +1,51 @@
+package app
+
+import (
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/telegramtest"
+)
+
+// linkContact stands for the user bot: the Telegram account shared phone.
+func (api testAPI) linkContact(t *testing.T, telegramID int64, phone string) {
+	t.Helper()
+	api.exec(t, "INSERT INTO telegram_contacts (chat_id, phone) VALUES ($1, $2)", telegramID, phone)
+}
+
+func telegramBody(telegramID int64) string {
+	return `{"initData":"` + telegramtest.SignInitData(testUserBotToken, telegramID, time.Now()) + `"}`
+}
+
+func TestTelegramSignInFromTheMiniApp(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	api.addUser(t, alisPhone)
+	api.addMember(t, alisPhone, olma, "owner")
+	api.linkContact(t, 1001, alisPhone)
+
+	rec := api.do(t, http.MethodPost, "/app/auth/telegram", telegramBody(1001))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.NotEmpty(t, body["access_token"])
+	assert.EqualValues(t, olma, body["company_id"])
+	// Telegram Web opens the Mini App in an iframe: the cookie has to be
+	// SameSite=None and Partitioned there. The Lax variant goes first, so a
+	// browser without CHIPS, which sees one cookie, keeps the new value.
+	cookies := rec.Result().Cookies()
+	require.Len(t, cookies, 2, rec.Result().Header["Set-Cookie"])
+	assert.Equal(t, "refresh_token", cookies[0].Name)
+	assert.Equal(t, -1, cookies[0].MaxAge, "the Lax variant is dropped")
+	assert.Equal(t, http.SameSiteLaxMode, cookies[0].SameSite)
+	assert.NotEmpty(t, cookies[1].Value)
+	assert.Equal(t, http.SameSiteNoneMode, cookies[1].SameSite)
+	assert.True(t, cookies[1].Secure)
+	assert.True(t, cookies[1].HttpOnly)
+	assert.True(t, cookies[1].Partitioned)
+	assert.Equal(t, "/", cookies[1].Path)
+}

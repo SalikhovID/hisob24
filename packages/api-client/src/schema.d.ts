@@ -274,6 +274,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/auth/telegram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * User Mini App'dan kodsiz kirish
+         * @description initData USER_BOT_TOKEN bilan tekshiriladi (24 soat). Telegram akkaunt user botga yuborgan raqam users jadvalida bo'lsa, SMS verify'dagi kabi token beriladi (bitta company bo'lsa tanlanadi). Bu sessiyaning refresh_token cookie'si Telegram Web iframe'ida ishlashi uchun SameSite=None; Secure; Partitioned (COOKIE_SECURE=true bo'lsa).
+         */
+        post: operations["telegramLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/auth/refresh": {
         parameters: {
             query?: never;
@@ -395,6 +415,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        TelegramLogin: {
+            /** @description window.Telegram.WebApp.initData */
+            initData: string;
+        };
         /** @description Telegram Bot API Update obyekti (https://core.telegram.org/bots/api#update) */
         TelegramUpdate: {
             [key: string]: unknown;
@@ -1111,6 +1135,40 @@ export interface operations {
                 };
             };
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    telegramLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramLogin"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            /** @description initData yaroqsiz yoki eskirgan (invalid_init_data) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Raqam botga yuborilmagan (phone_not_shared) yoki raqam tizimda yo'q (no_access, message raqamni aytadi) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     refreshTokens: {

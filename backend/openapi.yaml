@@ -465,6 +465,39 @@ paths:
                 $ref: "#/components/schemas/Error"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /app/auth/telegram:
+    post:
+      operationId: telegramLogin
+      summary: User Mini App'dan kodsiz kirish
+      description: >
+        initData USER_BOT_TOKEN bilan tekshiriladi (24 soat). Telegram akkaunt
+        user botga yuborgan raqam users jadvalida bo'lsa, SMS verify'dagi kabi
+        token beriladi (bitta company bo'lsa tanlanadi). Bu sessiyaning
+        refresh_token cookie'si Telegram Web iframe'ida ishlashi uchun
+        SameSite=None; Secure; Partitioned (COOKIE_SECURE=true bo'lsa).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramLogin"
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        "401":
+          description: initData yaroqsiz yoki eskirgan (invalid_init_data)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: >
+            Raqam botga yuborilmagan (phone_not_shared) yoki raqam tizimda yo'q
+            (no_access, message raqamni aytadi)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /app/auth/refresh:
     post:
       operationId: refreshTokens
@@ -668,6 +701,13 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    TelegramLogin:
+      type: object
+      required: [initData]
+      properties:
+        initData:
+          type: string
+          description: window.Telegram.WebApp.initData
     TelegramUpdate:
       type: object
       description: Telegram Bot API Update obyekti (https://core.telegram.org/bots/api#update)
