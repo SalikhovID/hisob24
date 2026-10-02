@@ -10,6 +10,9 @@ import (
 // PageSize is how many companies a list page holds.
 const PageSize = 20
 
+// maxPage keeps the offset inside int32.
+const maxPage = 1_000_000
+
 // ListInput filters the company list: Search matches the name, Status is
 // "", "active" or "expired", Page starts at 1.
 type ListInput struct {
@@ -32,6 +35,12 @@ var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
 // List returns a page of companies, newest first.
 func (s *Service) List(ctx context.Context, in ListInput) (Page, error) {
+	if in.Status != "" && in.Status != "active" && in.Status != "expired" {
+		return Page{}, invalid("Status active yoki expired bo'lishi kerak")
+	}
+	if in.Page < 1 || in.Page > maxPage {
+		return Page{}, invalid("Sahifa raqami noto'g'ri")
+	}
 	var search, status *string
 	if term := strings.TrimSpace(in.Search); term != "" {
 		escaped := likeEscaper.Replace(term)

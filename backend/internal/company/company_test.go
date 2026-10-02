@@ -213,3 +213,18 @@ func TestListSearchIsLiteral(t *testing.T) {
 		}
 	}
 }
+
+func TestListValidation(t *testing.T) {
+	s, _ := newService(t)
+	for name, in := range map[string]ListInput{
+		"unknown status": {Status: "deleted", Page: 1},
+		"page zero":      {Page: 0},
+		"page too far":   {Page: 1_000_001},
+	} {
+		_, err := s.List(t.Context(), in)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, apperr.Invalid, e.Kind, name)
+		}
+	}
+}
