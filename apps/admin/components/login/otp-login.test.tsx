@@ -38,3 +38,30 @@ test("the sixth digit sends the code and opens the panel", async () => {
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/companies"))
   expect(sent).toEqual({ code: "123456" })
 })
+
+test("a wrong code is cleared and the API's message shown", async () => {
+  const { user } = renderWithProviders(<OtpLogin botUsername="" />)
+  const input = screen.getByRole("textbox", { name: "Kod" })
+
+  await user.type(input, "000000")
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Kod noto'g'ri yoki muddati o'tgan")
+  expect(input).toHaveValue("")
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test("too many attempts show the API's message", async () => {
+  server.use(
+    http.post("*/api/admin/auth/otp", () =>
+      HttpResponse.json(
+        { error: "too_many_requests", message: "Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring" },
+        { status: 429 },
+      ),
+    ),
+  )
+  const { user } = renderWithProviders(<OtpLogin botUsername="" />)
+
+  await user.type(screen.getByRole("textbox", { name: "Kod" }), "123456")
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring")
+})

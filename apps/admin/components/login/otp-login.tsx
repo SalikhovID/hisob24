@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
 
@@ -14,9 +14,15 @@ const SLOTS = [0, 1, 2, 3, 4, 5]
 export function OtpLogin({ botUsername }: { botUsername: string }) {
   const router = useRouter()
   const [code, setCode] = useState("")
+  const input = useRef<HTMLInputElement>(null)
   const login = useMutation({
     mutationFn: (code: string) => call(api.POST("/admin/auth/otp", { body: { code } })),
     onSuccess: () => router.replace("/companies"),
+    // A refused code is cleared, so the next one is typed from the start.
+    onError: () => {
+      setCode("")
+      requestAnimationFrame(() => input.current?.focus())
+    },
   })
 
   return (
@@ -40,6 +46,7 @@ export function OtpLogin({ botUsername }: { botUsername: string }) {
         </div>
         <div className="flex justify-center">
           <InputOTP
+            ref={input}
             aria-label="Kod"
             maxLength={6}
             pattern={REGEXP_ONLY_DIGITS}
@@ -51,11 +58,16 @@ export function OtpLogin({ botUsername }: { botUsername: string }) {
           >
             <InputOTPGroup>
               {SLOTS.map((index) => (
-                <InputOTPSlot key={index} index={index} className="size-11 text-lg" />
+                <InputOTPSlot key={index} index={index} aria-invalid={login.isError} className="size-11 text-lg" />
               ))}
             </InputOTPGroup>
           </InputOTP>
         </div>
+        {login.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {login.error.message}
+          </p>
+        )}
       </div>
     </main>
   )
