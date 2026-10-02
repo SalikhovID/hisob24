@@ -110,3 +110,36 @@ func TestAnSMSSignInDropsTheMiniAppsCookieVariant(t *testing.T) {
 	assert.Equal(t, http.SameSiteLaxMode, cookies[1].SameSite)
 	assert.False(t, cookies[1].Partitioned)
 }
+
+func TestLogoutAndAnEndedSessionDropBothCookieVariants(t *testing.T) {
+	api := newTestAPI(t)
+
+	for _, path := range []string{"/app/auth/logout", "/app/auth/refresh"} {
+		cookies := api.do(t, http.MethodPost, path, "").Result().Cookies()
+
+		require.Len(t, cookies, 2, path)
+		for _, c := range cookies {
+			assert.Equal(t, -1, c.MaxAge, path)
+		}
+		assert.Equal(t, http.SameSiteLaxMode, cookies[0].SameSite, path)
+		assert.Equal(t, http.SameSiteNoneMode, cookies[1].SameSite, path)
+		assert.True(t, cookies[1].Partitioned, path)
+	}
+}
+
+// Over plain http (start.sh) SameSite=None cannot be set: a Mini App session
+// gets the one Lax cookie there.
+func TestOverHTTPTheMiniAppGetsOneLaxCookie(t *testing.T) {
+	api := newTestAPIWith(t, false)
+	api.addUser(t, alisPhone)
+	api.linkContact(t, 1001, alisPhone)
+
+	rec := api.do(t, http.MethodPost, "/app/auth/telegram", telegramBody(1001))
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	cookies := rec.Result().Cookies()
+	require.Len(t, cookies, 1)
+	assert.Equal(t, http.SameSiteLaxMode, cookies[0].SameSite)
+	assert.False(t, cookies[0].Secure)
+	assert.Len(t, api.do(t, http.MethodPost, "/app/auth/logout", "").Result().Cookies(), 1)
+}

@@ -76,14 +76,20 @@ func (h *Handler) sessionEnded(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusUnauthorized, "invalid_refresh_token", "Sessiya tugagan. Qayta kiring")
 }
 
+// clearRefreshCookie drops the refresh cookie; over https both variants,
+// since either may be the one the browser holds.
 func (h *Handler) clearRefreshCookie(w http.ResponseWriter) {
+	if h.cookieSecure {
+		http.SetCookie(w, refreshCookieVariant(false, ""))
+		http.SetCookie(w, refreshCookieVariant(true, ""))
+		return
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     refreshCookie,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }

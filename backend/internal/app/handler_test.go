@@ -67,12 +67,18 @@ type testAPI struct {
 
 func newTestAPI(t *testing.T) testAPI {
 	t.Helper()
+	return newTestAPIWith(t, true)
+}
+
+// newTestAPIWith serves /app with cookies Secure or not (COOKIE_SECURE).
+func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
+	t.Helper()
 	t.Parallel()
 	pool := pgtest.New(t)
 	box := &smsBox{last: map[string]string{}}
 	h := NewHandler(
 		Services{Auth: auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box), Profiles: user.NewProfiles(pool)},
-		true,
+		cookieSecure,
 		httpx.NewRateLimiter(5, time.Minute),
 		httpx.NewRateLimiter(5, time.Minute),
 	)
