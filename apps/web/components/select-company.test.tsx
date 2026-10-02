@@ -1,9 +1,10 @@
 import { screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
+import { api, call } from "@/lib/api"
 import { meKey } from "@/lib/queries"
 import { accessToken } from "@/lib/session"
 import { SARDOR, VALI, ZARINA } from "@/mocks/data"
-import { router } from "@/test/navigation"
+import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { chooseCompany, signIn } from "@/test/session"
 import { SelectCompany } from "./select-company"
@@ -64,4 +65,17 @@ test("with no company to choose it says so", async () => {
     screen.getByText("Kompaniyangiz obunasi tugagan yoki bloklangan. Davom etish uchun administrator bilan bog'laning."),
   ).toBeInTheDocument()
   expect(screen.getByRole("button", { name: /Anor Servis/ })).toBeDisabled()
+})
+
+test("signing out ends the session and leaves for /login", async () => {
+  await signIn(ZARINA)
+  await chooseCompany(null)
+  const { user } = renderWithProviders(<SelectCompany />)
+
+  await user.click(await screen.findByRole("button", { name: "Chiqish" }))
+
+  await waitFor(() => expect(leave).toHaveBeenCalledWith("/login"))
+  expect(accessToken()).toBeNull()
+  // The refresh token is revoked: there is no way back without a new code.
+  await expect(call(api.POST("/app/auth/refresh"))).rejects.toMatchObject({ code: "invalid_refresh_token" })
 })

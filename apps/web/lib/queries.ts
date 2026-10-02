@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, call } from "./api"
-import { setAccessToken } from "./session"
+import { leave } from "./navigate"
+import { clearSession, setAccessToken } from "./session"
 
 export const meKey = ["me"] as const
 
@@ -20,6 +21,18 @@ export function useSwitchCompany() {
     onSuccess: (tokens) => {
       setAccessToken(tokens.access_token)
       queryClient.removeQueries({ queryKey: meKey })
+    },
+  })
+}
+
+// useLogout revokes the refresh token and leaves for /login as a new page,
+// so nothing of the session stays in memory.
+export function useLogout() {
+  return useMutation({
+    mutationFn: () => call(api.POST("/app/auth/logout")),
+    onSuccess: () => {
+      clearSession()
+      leave("/login")
     },
   })
 }

@@ -7,6 +7,7 @@ import { setLocation } from "./test/navigation"
 import { server } from "./test/server"
 
 vi.mock("next/navigation", () => import("./test/navigation"))
+vi.mock("./lib/navigate", () => import("./test/navigation"))
 
 // Some tests (proxy.ts) run in the node environment, without a window.
 const browser = typeof window !== "undefined"

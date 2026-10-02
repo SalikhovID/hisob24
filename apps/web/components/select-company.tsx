@@ -1,10 +1,11 @@
 "use client"
 
-import { ChevronRightIcon } from "lucide-react"
+import { ChevronRightIcon, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { useMe, useSwitchCompany } from "@/lib/queries"
+import { Button } from "@/components/ui/button"
+import { useLogout, useMe, useSwitchCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { AppCompany } from "@/lib/types"
 
@@ -21,6 +22,7 @@ export function SelectCompany() {
   const router = useRouter()
   const me = useMe()
   const choose = useSwitchCompany()
+  const logout = useLogout()
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-6 p-4 pt-10">
@@ -70,6 +72,10 @@ export function SelectCompany() {
           </>
         )
       )}
+      <Button variant="ghost" className="self-center" disabled={logout.isPending} onClick={() => logout.mutate()}>
+        <LogOutIcon />
+        Chiqish
+      </Button>
     </main>
   )
 }

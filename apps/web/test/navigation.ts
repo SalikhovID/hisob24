@@ -20,6 +20,9 @@ function go(href: string) {
   listeners.forEach((listener) => listener())
 }
 
+// leave stands in for lib/navigate's full page load: here just a move.
+export const leave = vi.fn(go)
+
 export const router = {
   push: vi.fn(go),
   replace: vi.fn(go),
@@ -35,6 +38,7 @@ export function setLocation(href: string, params: Record<string, string> = {}) {
   url = new URL(href, ORIGIN)
   routeParams = params
   Object.values(router).forEach((fn) => fn.mockClear())
+  leave.mockClear()
   listeners.forEach((listener) => listener())
 }
 
