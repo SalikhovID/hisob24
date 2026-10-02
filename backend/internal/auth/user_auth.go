@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"time"
 
@@ -19,6 +20,9 @@ const (
 	smsCodeTTL      = 2 * time.Minute
 	smsCooldown     = 60 // seconds between two codes to one phone
 )
+
+// ErrTooSoon refuses a second code to a phone within a minute.
+var ErrTooSoon = errors.New("a code went to this phone less than a minute ago")
 
 // UserAuth signs users in to the user app: a code by SMS, then an access
 // token and a refresh token that renews it.
@@ -58,13 +62,17 @@ func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := a.q.UpsertSMSCode(ctx, gen.UpsertSMSCodeParams{
+	stored, err := a.q.UpsertSMSCode(ctx, gen.UpsertSMSCodeParams{
 		Phone:           phone,
 		CodeHash:        HashCode(a.otpSecret, code),
 		ExpiresAt:       a.now().Add(smsCodeTTL),
 		CooldownSeconds: smsCooldown,
-	}); err != nil {
+	})
+	if err != nil {
 		return err
+	}
+	if stored == 0 {
+		return ErrTooSoon
 	}
 	// A phone that is not a user gets no SMS, but the same answer and a
 	// code nobody will see: the replies tell nothing about who signs up.

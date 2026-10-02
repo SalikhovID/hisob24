@@ -77,3 +77,14 @@ func TestSendCodeToAStrangerSendsNothingButKeepsACode(t *testing.T) {
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM sms_codes WHERE phone = '998909999999'").Scan(&codes))
 	assert.Equal(t, 1, codes, "a code is kept all the same, so a second request within a minute is refused alike")
 }
+
+func TestSendCodeAgainWithinAMinuteIsRefusedForEveryPhone(t *testing.T) {
+	a, pool, sender := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+	require.NoError(t, a.SendCode(t.Context(), "998909999999"))
+
+	assert.ErrorIs(t, a.SendCode(t.Context(), "998901234567"), ErrTooSoon, "a user")
+	assert.ErrorIs(t, a.SendCode(t.Context(), "998909999999"), ErrTooSoon, "a stranger alike")
+	assert.Len(t, sender.messages(), 1, "no second SMS")
+}
