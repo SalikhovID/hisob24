@@ -69,9 +69,15 @@ func run() error {
 		})
 	}
 
+	// The Mini App's session cookie is SameSite=None: state changes from
+	// other sites are refused for every route.
+	guard, err := httpx.CrossOriginGuard(cfg.AdminPanelURL)
+	if err != nil {
+		return fmt.Errorf("ADMIN_PANEL_URL: %w", err)
+	}
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpx.NewRouter(mounts...),
+		Handler:           guard(httpx.NewRouter(mounts...)),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

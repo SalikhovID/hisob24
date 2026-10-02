@@ -5,7 +5,9 @@ info:
   description: >
     Asosiy API kontrakti. Frontend uchun TS client shu fayldan generatsiya
     qilinadi (packages/api-client). Brauzer API'ga Next.js rewrites orqali
-    /api prefiksi bilan murojaat qiladi.
+    /api prefiksi bilan murojaat qiladi. Boshqa saytdan kelgan o'zgartiruvchi
+    so'rov (POST, PATCH, DELETE; Sec-Fetch-Site yoki Origin bo'yicha) 403
+    forbidden oladi.
 paths:
   /healthz:
     get:
@@ -68,7 +70,9 @@ paths:
       summary: Telegram Mini App initData bilan kirish
       description: >
         initData admin bot tokeni bilan imzolangan va 24 soatdan eski
-        bo'lmasligi kerak.
+        bo'lmasligi kerak. Sessiya cookie'si SameSite=None; Secure;
+        Partitioned: Telegram Web Mini App'ni boshqa sayt ichida (iframe)
+        ochadi. COOKIE_SECURE=false bo'lsa (lokal http) SameSite=Lax.
       requestBody:
         required: true
         content:

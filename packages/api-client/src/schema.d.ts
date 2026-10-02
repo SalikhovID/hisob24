@@ -52,7 +52,7 @@ export interface paths {
         put?: never;
         /**
          * Telegram Mini App initData bilan kirish
-         * @description initData admin bot tokeni bilan imzolangan va 24 soatdan eski bo'lmasligi kerak.
+         * @description initData admin bot tokeni bilan imzolangan va 24 soatdan eski bo'lmasligi kerak. Sessiya cookie'si SameSite=None; Secure; Partitioned: Telegram Web Mini App'ni boshqa sayt ichida (iframe) ochadi. COOKIE_SECURE=false bo'lsa (lokal http) SameSite=Lax.
          */
         post: operations["adminLoginWithInitData"];
         delete?: never;
