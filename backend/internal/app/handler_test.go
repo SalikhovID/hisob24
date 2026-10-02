@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -331,4 +332,36 @@ func TestATokenBeforeAChoiceOfCompanyIsNotChecked(t *testing.T) {
 	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
 
 	assert.Equal(t, http.StatusOK, rec.Code, "the user picks a company first")
+}
+
+func TestSwitchCompany(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", -3)
+	nok := api.addCompany(t, "Nok", 30)
+	other := api.addCompany(t, "Begona", 30)
+	access, refresh := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "staff"})
+	switchTo := func(companyID int64, options ...option) *httptest.ResponseRecorder {
+		return api.do(t, http.MethodPost, "/app/auth/switch-company", fmt.Sprintf(`{"company_id":%d}`, companyID), options...)
+	}
+
+	rec := switchTo(olma, bearer(access), cookie(refresh))
+	require.Equal(t, http.StatusOK, rec.Code, "even to an expired company: the pages tell it, not the switch")
+	assert.EqualValues(t, olma, decode(t, rec)["company_id"])
+	access, _ = decode(t, rec)["access_token"].(string)
+	refresh = refreshCookieOf(t, rec)
+	assert.Equal(t, http.StatusPaymentRequired, api.do(t, http.MethodGet, "/app/me", "", bearer(access)).Code)
+
+	rec = switchTo(nok, bearer(access), cookie(refresh))
+	require.Equal(t, http.StatusOK, rec.Code, "away from the expired one")
+	access, _ = decode(t, rec)["access_token"].(string)
+	refresh = refreshCookieOf(t, rec)
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/me", "", bearer(access)).Code)
+
+	rec = switchTo(other, bearer(access), cookie(refresh))
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.JSONEq(t, `{"error":"not_member","message":"Siz bu kompaniyaga a'zo emassiz"}`, rec.Body.String())
+	assert.Equal(t, http.StatusUnauthorized, switchTo(nok, cookie(refresh)).Code, "no access token")
+	rec = switchTo(nok, bearer(access))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code, "no refresh cookie")
+	assert.JSONEq(t, `{"error":"invalid_refresh_token","message":"Sessiya tugagan. Qayta kiring"}`, rec.Body.String())
 }

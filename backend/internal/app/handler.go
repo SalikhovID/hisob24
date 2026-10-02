@@ -41,6 +41,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.With(httpx.RateLimit(h.verifyLimiter)).Post("/auth/sms/verify", h.verify)
 		r.Post("/auth/refresh", h.refresh)
 		r.Post("/auth/logout", h.logout)
+		r.With(h.requireUser).Post("/auth/switch-company", h.switchCompany)
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireUser, h.requireSubscription)
 			r.Get("/me", h.me)
@@ -155,4 +156,31 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	httpx.JSON(w, http.StatusOK, body)
+}
+
+// switchCompany chooses one of the user's companies. It is not behind the
+// 402 check: the way out of an expired company is choosing another.
+func (h *Handler) switchCompany(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		CompanyID int64 `json:"company_id"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	c, err := r.Cookie(refreshCookie)
+	if err != nil {
+		h.sessionEnded(w)
+		return
+	}
+	tokens, err := h.auth.SwitchCompany(r.Context(), currentUser(r.Context()).Phone, c.Value, body.CompanyID)
+	switch {
+	case errors.Is(err, auth.ErrNotMember):
+		httpx.Error(w, http.StatusForbidden, "not_member", "Siz bu kompaniyaga a'zo emassiz")
+	case errors.Is(err, auth.ErrInvalidRefresh):
+		h.sessionEnded(w)
+	case err != nil:
+		httpx.WriteError(w, r, err)
+	default:
+		h.signedIn(w, tokens)
+	}
 }
