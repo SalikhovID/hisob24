@@ -21,3 +21,7 @@ RETURNING phone;
 UPDATE sms_codes SET attempts = attempts + 1
 WHERE phone = $1
 RETURNING attempts;
+
+-- name: DeleteSMSCode :exec
+-- Drops a code after the fifth wrong attempt.
+DELETE FROM sms_codes WHERE phone = $1;

@@ -29,6 +29,16 @@ func (q *Queries) ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) 
 	return phone, err
 }
 
+const deleteSMSCode = `-- name: DeleteSMSCode :exec
+DELETE FROM sms_codes WHERE phone = $1
+`
+
+// Drops a code after the fifth wrong attempt.
+func (q *Queries) DeleteSMSCode(ctx context.Context, phone string) error {
+	_, err := q.db.Exec(ctx, deleteSMSCode, phone)
+	return err
+}
+
 const incrementSMSCodeAttempts = `-- name: IncrementSMSCodeAttempts :one
 UPDATE sms_codes SET attempts = attempts + 1
 WHERE phone = $1

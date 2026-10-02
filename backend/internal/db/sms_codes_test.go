@@ -80,3 +80,17 @@ func TestIncrementSMSCodeAttempts(t *testing.T) {
 	_, err := q.IncrementSMSCodeAttempts(ctx, "998900000000")
 	assert.ErrorIs(t, err, pgx.ErrNoRows)
 }
+
+func TestDeleteSMSCode(t *testing.T) {
+	q, pool := setup(t)
+	storeSMSCode(t, q, "998901111111", "a", time.Now().Add(time.Minute))
+	storeSMSCode(t, q, "998902222222", "b", time.Now().Add(time.Minute))
+
+	require.NoError(t, q.DeleteSMSCode(t.Context(), "998901111111"))
+
+	rows, err := pool.Query(t.Context(), "SELECT phone FROM sms_codes")
+	require.NoError(t, err)
+	phones, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	assert.Equal(t, []string{"998902222222"}, phones)
+}

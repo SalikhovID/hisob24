@@ -33,6 +33,8 @@ type Querier interface {
 	DeleteAdminSession(ctx context.Context, id uuid.UUID) error
 	// Logs a deactivated admin out everywhere.
 	DeleteAdminSessionsByAdmin(ctx context.Context, adminID int64) error
+	// Drops a code after the fifth wrong attempt.
+	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
