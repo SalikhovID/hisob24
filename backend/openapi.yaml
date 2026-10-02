@@ -490,10 +490,12 @@ paths:
   /app/auth/switch-company:
     post:
       operationId: switchCompany
-      summary: Company tanlash
+      summary: Company tanlash yoki tanlovni bekor qilish
       description: >
         Muddati o'tgan company'ga ham o'tish mumkin (uning sahifalari 402
-        qaytaradi). Refresh token ham almashadi va tanlovni eslab qoladi.
+        qaytaradi). company_id null tanlovni bekor qiladi: muddati o'tgan
+        company'dan ro'yxatga qaytish yo'li. Refresh token ham almashadi va
+        tanlovni eslab qoladi.
       security:
         - appBearer: []
       requestBody:
@@ -505,7 +507,7 @@ paths:
               required: [company_id]
               properties:
                 company_id:
-                  type: integer
+                  type: [integer, "null"]
                   format: int64
       responses:
         "200":

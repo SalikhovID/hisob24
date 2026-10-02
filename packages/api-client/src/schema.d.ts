@@ -324,8 +324,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Company tanlash
-         * @description Muddati o'tgan company'ga ham o'tish mumkin (uning sahifalari 402 qaytaradi). Refresh token ham almashadi va tanlovni eslab qoladi.
+         * Company tanlash yoki tanlovni bekor qilish
+         * @description Muddati o'tgan company'ga ham o'tish mumkin (uning sahifalari 402 qaytaradi). company_id null tanlovni bekor qiladi: muddati o'tgan company'dan ro'yxatga qaytish yo'li. Refresh token ham almashadi va tanlovni eslab qoladi.
          */
         post: operations["switchCompany"];
         delete?: never;
@@ -1099,7 +1099,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** Format: int64 */
-                    company_id: number;
+                    company_id: number | null;
                 };
             };
         };
