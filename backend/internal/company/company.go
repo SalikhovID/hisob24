@@ -28,6 +28,14 @@ type Company struct {
 	DaysLeft int
 }
 
+// Member is a company user with the role there.
+type Member struct {
+	Phone     string
+	FullName  *string
+	Role      string
+	CreatedAt time.Time
+}
+
 func invalid(message string) error {
 	return apperr.New(apperr.Invalid, "validation_error", message)
 }

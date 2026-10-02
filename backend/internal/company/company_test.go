@@ -28,6 +28,13 @@ func dbToday(t *testing.T, pool *pgxpool.Pool) time.Time {
 	return d
 }
 
+func mustCreate(t *testing.T, s *Service, name string, endDate time.Time) Company {
+	t.Helper()
+	c, err := s.Create(t.Context(), CreateInput{Name: name, EndDate: endDate, OwnerPhone: "998900000001", OwnerFullName: "Egasi"}, ownerID)
+	require.NoError(t, err)
+	return c
+}
+
 func TestCreate(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
@@ -89,4 +96,22 @@ func TestCreateValidation(t *testing.T) {
 	var companies int
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM companies").Scan(&companies))
 	assert.Zero(t, companies, "nothing is written")
+}
+
+func TestAddUser(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	m, err := s.AddUser(t.Context(), c.ID, "90 222 33 44", " Xodim ", "staff")
+	require.NoError(t, err)
+	assert.Equal(t, "998902223344", m.Phone)
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Xodim", *m.FullName)
+	assert.Equal(t, "staff", m.Role)
+
+	m, err = s.AddUser(t.Context(), c.ID, "998902223344", "Boshqa Ism", "manager")
+	require.NoError(t, err)
+	assert.Equal(t, "manager", m.Role, "a member gets the new role")
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Xodim", *m.FullName, "and keeps the name")
 }
