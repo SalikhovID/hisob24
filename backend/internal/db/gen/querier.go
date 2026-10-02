@@ -9,6 +9,9 @@ import (
 )
 
 type Querier interface {
+	// Adds an admin or reactivates a deactivated one. An admin who is already
+	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
+	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
 }

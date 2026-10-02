@@ -9,6 +9,34 @@ import (
 	"context"
 )
 
+const createOrReactivateAdmin = `-- name: CreateOrReactivateAdmin :one
+INSERT INTO admins (telegram_id, full_name)
+VALUES ($1, $2)
+ON CONFLICT (telegram_id) DO UPDATE
+SET is_active = true, full_name = EXCLUDED.full_name
+WHERE NOT admins.is_active
+RETURNING telegram_id, full_name, is_active, created_at
+`
+
+type CreateOrReactivateAdminParams struct {
+	TelegramID int64
+	FullName   *string
+}
+
+// Adds an admin or reactivates a deactivated one. An admin who is already
+// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
+func (q *Queries) CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error) {
+	row := q.db.QueryRow(ctx, createOrReactivateAdmin, arg.TelegramID, arg.FullName)
+	var i Admin
+	err := row.Scan(
+		&i.TelegramID,
+		&i.FullName,
+		&i.IsActive,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getActiveAdmin = `-- name: GetActiveAdmin :one
 SELECT telegram_id, full_name, is_active, created_at FROM admins
 WHERE telegram_id = $1 AND is_active
