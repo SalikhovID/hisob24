@@ -40,3 +40,10 @@ func TestValidateInitDataRejectsUnsignedData(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidInitData, name)
 	}
 }
+
+func TestValidateInitDataRejectsOldData(t *testing.T) {
+	_, err := ValidateInitData(sampleInitData, sampleToken, 24*time.Hour, sampleSigned.Add(25*time.Hour))
+
+	assert.ErrorIs(t, err, ErrInitDataExpired)
+	assert.ErrorIs(t, err, ErrInvalidInitData, "an expired login is an invalid login")
+}

@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"maps"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -21,13 +23,18 @@ type WebAppUser struct {
 	Username  string `json:"username"`
 }
 
-// ErrInvalidInitData means initData is malformed or not signed by the bot.
-var ErrInvalidInitData = errors.New("invalid init data")
+var (
+	// ErrInvalidInitData means initData is malformed or not signed by the bot.
+	ErrInvalidInitData = errors.New("invalid init data")
+	// ErrInitDataExpired means the signature holds but auth_date is too old.
+	ErrInitDataExpired = fmt.Errorf("%w: expired", ErrInvalidInitData)
+)
 
 // ValidateInitData checks Mini App initData the way Telegram documents it
 // (core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app):
 // every field but hash, sorted by key and joined with "\n", must carry the
-// HMAC-SHA256 under the key HMAC-SHA256("WebAppData", botToken).
+// HMAC-SHA256 under the key HMAC-SHA256("WebAppData", botToken), and
+// auth_date may be at most maxAge old.
 func ValidateInitData(initData, botToken string, maxAge time.Duration, now time.Time) (WebAppUser, error) {
 	values, err := url.ParseQuery(initData)
 	if err != nil || botToken == "" {
@@ -46,6 +53,14 @@ func ValidateInitData(initData, botToken string, maxAge time.Duration, now time.
 	want, err := hex.DecodeString(hash)
 	if err != nil || hash == "" || !hmac.Equal(mac.Sum(nil), want) {
 		return WebAppUser{}, ErrInvalidInitData
+	}
+
+	authDate, err := strconv.ParseInt(values.Get("auth_date"), 10, 64)
+	if err != nil {
+		return WebAppUser{}, ErrInvalidInitData
+	}
+	if now.Sub(time.Unix(authDate, 0)) > maxAge {
+		return WebAppUser{}, ErrInitDataExpired
 	}
 
 	var user WebAppUser
