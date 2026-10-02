@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"regexp"
 	"testing"
 
@@ -34,4 +35,13 @@ func TestRunPrintsAWorkingCode(t *testing.T) {
 	require.Len(t, m, 2, out.String())
 	_, err := auth.NewAdminAuth(pool, "test-otp-secret", "").LoginWithCode(t.Context(), m[1])
 	assert.NoError(t, err)
+}
+
+func TestRunRefusesOutsideLocalDevelopment(t *testing.T) {
+	t.Parallel()
+	pool := pgtest.New(t)
+
+	err := run(t.Context(), 0, testEnv(pool, "eskiz"), io.Discard)
+
+	assert.ErrorContains(t, err, "SMS_DRIVER=log")
 }

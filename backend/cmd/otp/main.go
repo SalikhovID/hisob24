@@ -1,5 +1,6 @@
 // Command otp prints an admin login code for local development, where the
-// admin bot may not run.
+// admin bot may not run. It works only with SMS_DRIVER=log, the mode in
+// which one-time codes may show up in logs.
 package main
 
 import (
@@ -30,6 +31,9 @@ func run(ctx context.Context, telegramID int64, getenv func(string) string, out 
 	cfg, err := config.Load(getenv)
 	if err != nil {
 		return err
+	}
+	if cfg.SMSDriver != "log" {
+		return errors.New("only for local development: set SMS_DRIVER=log")
 	}
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
