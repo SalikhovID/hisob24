@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
+	ListAdmins(ctx context.Context) ([]Admin, error)
 }
 
 var _ Querier = (*Queries)(nil)

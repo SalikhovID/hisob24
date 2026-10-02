@@ -25,3 +25,33 @@ func (q *Queries) GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, 
 	)
 	return i, err
 }
+
+const listAdmins = `-- name: ListAdmins :many
+SELECT telegram_id, full_name, is_active, created_at FROM admins
+ORDER BY created_at, telegram_id
+`
+
+func (q *Queries) ListAdmins(ctx context.Context) ([]Admin, error) {
+	rows, err := q.db.Query(ctx, listAdmins)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Admin{}
+	for rows.Next() {
+		var i Admin
+		if err := rows.Scan(
+			&i.TelegramID,
+			&i.FullName,
+			&i.IsActive,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
