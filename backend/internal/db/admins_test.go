@@ -75,3 +75,22 @@ func TestLockActiveAdmins(t *testing.T) {
 	_, err = pool.Exec(ctx, "SELECT 1 FROM admins WHERE telegram_id = $1 FOR UPDATE NOWAIT", ownerID)
 	assert.Equal(t, "55P03", sqlState(err), "the rows stay locked until the transaction ends") // lock_not_available
 }
+
+func TestDeactivateAdmin(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	mustExec(t, pool, "INSERT INTO admins (telegram_id) VALUES (42)")
+
+	n, err := q.DeactivateAdmin(ctx, 42)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), n)
+	_, err = q.GetActiveAdmin(ctx, 42)
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
+
+	n, err = q.DeactivateAdmin(ctx, 42)
+	require.NoError(t, err)
+	assert.Zero(t, n, "an inactive admin is not touched again")
+	n, err = q.DeactivateAdmin(ctx, 999)
+	require.NoError(t, err)
+	assert.Zero(t, n)
+}

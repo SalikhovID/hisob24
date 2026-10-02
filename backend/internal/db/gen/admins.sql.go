@@ -37,6 +37,19 @@ func (q *Queries) CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReact
 	return i, err
 }
 
+const deactivateAdmin = `-- name: DeactivateAdmin :execrows
+UPDATE admins SET is_active = false
+WHERE telegram_id = $1 AND is_active
+`
+
+func (q *Queries) DeactivateAdmin(ctx context.Context, telegramID int64) (int64, error) {
+	result, err := q.db.Exec(ctx, deactivateAdmin, telegramID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getActiveAdmin = `-- name: GetActiveAdmin :one
 SELECT telegram_id, full_name, is_active, created_at FROM admins
 WHERE telegram_id = $1 AND is_active

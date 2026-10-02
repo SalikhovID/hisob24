@@ -23,3 +23,7 @@ SELECT telegram_id FROM admins
 WHERE is_active
 ORDER BY telegram_id
 FOR UPDATE;
+
+-- name: DeactivateAdmin :execrows
+UPDATE admins SET is_active = false
+WHERE telegram_id = $1 AND is_active;
