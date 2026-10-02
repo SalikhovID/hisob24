@@ -159,3 +159,20 @@ func TestVerifySignsInAUserOfOneCompany(t *testing.T) {
 	_, err = a.Verify(t.Context(), "998901234567", "123456")
 	assert.ErrorIs(t, err, ErrInvalidCode, "a code signs in once")
 }
+
+func TestVerifyLeavesTheChoiceToAUserOfSeveralCompanies(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	addMember(t, pool, "998901234567", addCompany(t, pool, "Olma", 30), "owner")
+	addMember(t, pool, "998901234567", addCompany(t, pool, "Nok", 30), "staff")
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+
+	tokens, err := a.Verify(t.Context(), "998901234567", "123456")
+
+	require.NoError(t, err)
+	assert.Nil(t, tokens.CompanyID, "the app asks which one (/select-company)")
+	assert.Empty(t, tokens.Role)
+	claims, err := ParseAccessToken([]byte(testJWTSecret), tokens.AccessToken, time.Now())
+	require.NoError(t, err)
+	assert.Nil(t, claims.CompanyID)
+}
