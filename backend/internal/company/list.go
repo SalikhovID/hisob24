@@ -26,11 +26,16 @@ type Page struct {
 	PageSize int
 }
 
+// likeEscaper makes a search term match literally inside ILIKE, whose escape
+// character is the backslash.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
 // List returns a page of companies, newest first.
 func (s *Service) List(ctx context.Context, in ListInput) (Page, error) {
 	var search, status *string
 	if term := strings.TrimSpace(in.Search); term != "" {
-		search = &term
+		escaped := likeEscaper.Replace(term)
+		search = &escaped
 	}
 	if in.Status != "" {
 		status = &in.Status

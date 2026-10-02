@@ -197,3 +197,19 @@ func TestListPages(t *testing.T) {
 	assert.Equal(t, int64(21), second.Total)
 	assert.Equal(t, 2, second.Page)
 }
+
+func TestListSearchIsLiteral(t *testing.T) {
+	s, pool := newService(t)
+	d := dbToday(t, pool)
+	mustCreate(t, s, "Behi 50% Chegirma", d)
+	mustCreate(t, s, "Olma_Savdo", d)
+	mustCreate(t, s, `Nok\Savdo`, d)
+
+	for term, want := range map[string]string{"%": "Behi 50% Chegirma", "_": "Olma_Savdo", `\`: `Nok\Savdo`} {
+		page, err := s.List(t.Context(), ListInput{Search: term, Page: 1})
+		require.NoError(t, err)
+		if assert.Len(t, page.Items, 1, term) {
+			assert.Equal(t, want, page.Items[0].Name, term)
+		}
+	}
+}
