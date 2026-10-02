@@ -15,6 +15,7 @@ import { AddBillingDialog } from "./add-billing-dialog"
 import { AddUserDialog } from "./add-user-dialog"
 import { BillingHistory } from "./billing-history"
 import { CompanyActions } from "./company-actions"
+import { RenameDialog } from "./rename-dialog"
 import { CompanyStatusBadge } from "./status-badge"
 
 const memberColumns: Column<Member>[] = [
@@ -44,7 +45,8 @@ export function CompanyPage({ id }: { id: number }) {
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-semibold break-words">{c.name}</h1>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <RenameDialog company={c} />
             <CompanyActions company={c} />
           </div>
         </div>

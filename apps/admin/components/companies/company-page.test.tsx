@@ -161,3 +161,21 @@ test("blocking a company asks first and marks it blocked; activating takes it ba
   await user.click(screen.getByRole("button", { name: "Faollashtirish" }))
   expect(await within(info).findByText("30 kun qoldi")).toBeInTheDocument()
 })
+
+test("the company is renamed from a dialog", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Nomini o'zgartirish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Nomini o'zgartirish" })
+  const name = within(dialog).getByLabelText("Kompaniya nomi")
+  expect(name).toHaveValue("Olma Savdo")
+  await user.clear(name)
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+  expect(await within(dialog).findByText("Kompaniya nomini kiriting")).toBeInTheDocument()
+
+  await user.type(name, "Olma Savdo MChJ")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  expect(await screen.findByRole("heading", { name: "Olma Savdo MChJ" })).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+})
