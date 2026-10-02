@@ -17,12 +17,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/SalikhovID/hisob24/backend/internal/admin"
+	"github.com/SalikhovID/hisob24/backend/internal/app"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/billing"
 	"github.com/SalikhovID/hisob24/backend/internal/bot/adminbot"
+	"github.com/SalikhovID/hisob24/backend/internal/bot/userbot"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/config"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
+	"github.com/SalikhovID/hisob24/backend/internal/sms"
+	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
 func main() {
@@ -57,7 +61,15 @@ func run() error {
 		Companies: company.NewService(pool),
 		Billing:   billing.NewService(pool),
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute))
-	mounts := []func(chi.Router){adminAPI.Routes}
+	if cfg.SMSDriver == "log" {
+		slog.Warn("SMS_DRIVER=log: login codes go to this log, no SMS is sent")
+	}
+	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, sms.New(cfg, slog.Default()))
+	appAPI := app.NewHandler(app.Services{
+		Auth:     userAuth,
+		Profiles: user.NewProfiles(pool),
+	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
+	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 
 	adminWebhook, err := startAdminBot(ctx, cfg, adminAuth)
 	if err != nil {
@@ -66,6 +78,15 @@ func run() error {
 	if adminWebhook != nil {
 		mounts = append(mounts, func(r chi.Router) {
 			r.With(httpx.TelegramSecret(cfg.TelegramWebhookSecret)).Post(adminbot.WebhookPath, adminWebhook)
+		})
+	}
+	userWebhook, err := startUserBot(ctx, cfg, user.NewContacts(pool))
+	if err != nil {
+		return err
+	}
+	if userWebhook != nil {
+		mounts = append(mounts, func(r chi.Router) {
+			r.With(httpx.TelegramSecret(cfg.TelegramWebhookSecret)).Post(userbot.WebhookPath, userWebhook)
 		})
 	}
 
@@ -132,5 +153,34 @@ func startAdminBot(ctx context.Context, cfg config.Config, a *auth.AdminAuth) (h
 	}
 	go b.Start(ctx)
 	slog.Info("admin bot polling")
+	return nil, nil
+}
+
+// startUserBot runs the user bot when USER_BOT_TOKEN is set: polling in a
+// goroutine, or, in webhook mode, returns the handler Telegram's calls must
+// reach.
+func startUserBot(ctx context.Context, cfg config.Config, contacts *user.Contacts) (http.HandlerFunc, error) {
+	if cfg.UserBotToken == "" {
+		slog.Warn("USER_BOT_TOKEN is empty: the user bot is off")
+		return nil, nil
+	}
+	var handler *userbot.Handler
+	b, err := bot.New(cfg.UserBotToken,
+		bot.WithDefaultHandler(func(ctx context.Context, _ *bot.Bot, u *models.Update) { handler.Handle(ctx, u) }),
+		bot.WithErrorsHandler(func(err error) { slog.Error("user bot", "err", err) }),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("user bot: %w", err)
+	}
+	handler = userbot.NewHandler(b, contacts)
+	if cfg.BotMode == "webhook" {
+		if err := userbot.RegisterWebhook(ctx, b, cfg.PublicAPIURL, cfg.TelegramWebhookSecret); err != nil {
+			return nil, err
+		}
+		go b.StartWebhook(ctx)
+		return b.WebhookHandler(), nil
+	}
+	go b.Start(ctx)
+	slog.Info("user bot polling")
 	return nil, nil
 }
