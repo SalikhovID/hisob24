@@ -74,8 +74,8 @@ func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret, userBotToken string, 
 		jwtSecret:    []byte(jwtSecret),
 		userBotToken: userBotToken,
 		sender:       sender,
-		now:       time.Now,
-		newCode:   func() (string, error) { return NewCode(rand.Reader) },
+		now:          time.Now,
+		newCode:      func() (string, error) { return NewCode(rand.Reader) },
 		newRefreshToken: func() (string, error) {
 			b := make([]byte, 32)
 			if _, err := rand.Read(b); err != nil {
