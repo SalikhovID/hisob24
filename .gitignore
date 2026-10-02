@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# env (only the example is committed)
+.env
+.env.*
+!.env.example
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# go
+backend/bin/
+backend/tmp/
+
+# tests
+coverage/
+playwright-report/
+test-results/
+
+# misc
+.DS_Store
+*.log
+*.pem
+.idea/
+.vscode/

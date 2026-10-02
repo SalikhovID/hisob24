@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Same as the create-next-app template: these ship prebuilt binaries.
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
