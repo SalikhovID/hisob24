@@ -94,3 +94,14 @@ func amountText(n pgtype.Numeric) *string {
 	}
 	return &s
 }
+
+type adminAccountJSON struct {
+	TelegramID int64     `json:"telegram_id"`
+	FullName   *string   `json:"full_name"`
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func toAdminAccountJSON(a gen.Admin) adminAccountJSON {
+	return adminAccountJSON{TelegramID: a.TelegramID, FullName: a.FullName, IsActive: a.IsActive, CreatedAt: a.CreatedAt}
+}
