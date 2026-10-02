@@ -1,5 +1,5 @@
 import { defineNetworkFixture, type NetworkFixture } from "@msw/playwright"
-import { test as base, expect } from "@playwright/test"
+import { test as base, type BrowserContext, expect } from "@playwright/test"
 import type { AnyHandler } from "msw"
 import { resetDb } from "../mocks/data"
 import { handlers } from "../mocks/handlers"
@@ -34,3 +34,9 @@ export const test = base.extend<Fixtures>({
 })
 
 export { expect }
+
+// signIn gives the browser the session cookie the mocked login would set;
+// login.spec.ts checks the login itself.
+export async function signIn(context: BrowserContext, baseURL: string | undefined) {
+  await context.addCookies([{ name: "admin_session", value: "mock-session", url: baseURL ?? "http://localhost:3101" }])
+}
