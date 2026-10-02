@@ -20,6 +20,9 @@ func testEnv(pool *pgxpool.Pool, smsDriver string) func(string) string {
 		"OTP_HMAC_SECRET": "test-otp-secret",
 		"JWT_SECRET":      "test-jwt-secret",
 		"SMS_DRIVER":      smsDriver,
+		// A complete eskiz setup, so it is the otp command that refuses it.
+		"ESKIZ_EMAIL":    "sms@example.com",
+		"ESKIZ_PASSWORD": "secret",
 	}
 	return func(key string) string { return env[key] }
 }

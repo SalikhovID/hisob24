@@ -101,6 +101,11 @@ func TestLoad(t *testing.T) {
 			env:     with(requiredEnv(), map[string]string{"BOT_MODE": "webhook"}),
 			wantErr: []string{"TELEGRAM_WEBHOOK_SECRET", "PUBLIC_API_URL"},
 		},
+		{
+			name:    "the eskiz driver needs its account",
+			env:     with(requiredEnv(), map[string]string{"SMS_DRIVER": "eskiz"}),
+			wantErr: []string{"ESKIZ_EMAIL is required when SMS_DRIVER=eskiz", "ESKIZ_PASSWORD is required when SMS_DRIVER=eskiz"},
+		},
 	}
 
 	for _, tt := range tests {

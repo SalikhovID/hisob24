@@ -63,6 +63,16 @@ func Load(getenv func(string) string) (Config, error) {
 	if cfg.SMSDriver != "log" && cfg.SMSDriver != "eskiz" {
 		errs = append(errs, fmt.Errorf("SMS_DRIVER must be log or eskiz, got %q", cfg.SMSDriver))
 	}
+	if cfg.SMSDriver == "eskiz" {
+		for _, req := range []struct{ key, val string }{
+			{"ESKIZ_EMAIL", cfg.EskizEmail},
+			{"ESKIZ_PASSWORD", cfg.EskizPassword},
+		} {
+			if req.val == "" {
+				errs = append(errs, fmt.Errorf("%s is required when SMS_DRIVER=eskiz", req.key))
+			}
+		}
+	}
 	if cfg.BotMode == "webhook" {
 		for _, req := range []struct{ key, val string }{
 			{"TELEGRAM_WEBHOOK_SECRET", cfg.TelegramWebhookSecret},
