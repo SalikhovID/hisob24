@@ -62,6 +62,7 @@ type RefreshToken struct {
 	ExpiresAt time.Time
 	RevokedAt *time.Time
 	CompanyID *int64
+	Source    string
 }
 
 type SmsCode struct {

@@ -7,3 +7,8 @@ SET phone = EXCLUDED.phone,
     username = EXCLUDED.username,
     first_name = EXCLUDED.first_name,
     updated_at = now();
+
+-- name: GetTelegramContactPhone :one
+-- The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
+-- it never did (the user Mini App's sign-in).
+SELECT phone FROM telegram_contacts WHERE chat_id = $1;

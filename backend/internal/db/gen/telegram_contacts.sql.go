@@ -9,6 +9,19 @@ import (
 	"context"
 )
 
+const getTelegramContactPhone = `-- name: GetTelegramContactPhone :one
+SELECT phone FROM telegram_contacts WHERE chat_id = $1
+`
+
+// The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
+// it never did (the user Mini App's sign-in).
+func (q *Queries) GetTelegramContactPhone(ctx context.Context, chatID int64) (string, error) {
+	row := q.db.QueryRow(ctx, getTelegramContactPhone, chatID)
+	var phone string
+	err := row.Scan(&phone)
+	return phone, err
+}
+
 const upsertTelegramContact = `-- name: UpsertTelegramContact :exec
 INSERT INTO telegram_contacts (chat_id, phone, username, first_name)
 VALUES ($1, $2, $3, $4)

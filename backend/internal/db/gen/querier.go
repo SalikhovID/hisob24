@@ -27,7 +27,8 @@ type Querier interface {
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
-	// company_id is the company the access tokens it refreshes are for.
+	// company_id is the company the access tokens it refreshes are for; source
+	// is where the session began ('sms' or 'telegram').
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
 	// The database's today: every end_date check counts from it.
 	CurrentDate(ctx context.Context) (time.Time, error)
@@ -47,6 +48,9 @@ type Querier interface {
 	// admin gives pgx.ErrNoRows.
 	GetAdminBySession(ctx context.Context, id uuid.UUID) (Admin, error)
 	GetCompany(ctx context.Context, id int64) (Company, error)
+	// The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
+	// it never did (the user Mini App's sign-in).
+	GetTelegramContactPhone(ctx context.Context, chatID int64) (string, error)
 	GetUser(ctx context.Context, phone string) (User, error)
 	// The membership behind switch-company; pgx.ErrNoRows when not a member.
 	GetUserCompany(ctx context.Context, arg GetUserCompanyParams) (GetUserCompanyRow, error)

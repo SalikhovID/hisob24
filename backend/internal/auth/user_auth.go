@@ -134,6 +134,8 @@ type Tokens struct {
 	RefreshExpiresAt time.Time
 	CompanyID        *int64
 	Role             string
+	// Source is where the session began: "sms" or "telegram" (the Mini App).
+	Source string
 }
 
 // Verify signs a user in with the code SendCode texted. A user of one
@@ -169,7 +171,7 @@ func (a *UserAuth) Verify(ctx context.Context, rawPhone, code string) (Tokens, e
 		if len(companies) == 1 {
 			companyID, role = &companies[0].ID, companies[0].Role
 		}
-		tokens, err = a.issue(ctx, q, phone, companyID, role)
+		tokens, err = a.issue(ctx, q, phone, companyID, role, "sms")
 		return err
 	})
 	if errors.Is(err, ErrInvalidCode) {
@@ -195,9 +197,9 @@ func (a *UserAuth) countWrongCode(ctx context.Context, phone string) error {
 	return nil
 }
 
-// issue makes a new refresh token (stored as a hash, with the company) and
-// an access token for the same company.
-func (a *UserAuth) issue(ctx context.Context, q *gen.Queries, phone string, companyID *int64, role string) (Tokens, error) {
+// issue makes a new refresh token (stored as a hash, with the company and
+// where the session began) and an access token for the same company.
+func (a *UserAuth) issue(ctx context.Context, q *gen.Queries, phone string, companyID *int64, role, source string) (Tokens, error) {
 	refresh, err := a.newRefreshToken()
 	if err != nil {
 		return Tokens{}, err
@@ -208,6 +210,7 @@ func (a *UserAuth) issue(ctx context.Context, q *gen.Queries, phone string, comp
 		TokenHash: hashToken(refresh),
 		ExpiresAt: now.Add(RefreshTokenTTL),
 		CompanyID: companyID,
+		Source:    source,
 	}); err != nil {
 		return Tokens{}, err
 	}
@@ -222,7 +225,37 @@ func (a *UserAuth) issue(ctx context.Context, q *gen.Queries, phone string, comp
 		RefreshExpiresAt: now.Add(RefreshTokenTTL),
 		CompanyID:        companyID,
 		Role:             role,
+		Source:           source,
 	}, nil
+}
+
+// LoginWithTelegram signs in the user who opened the Mini App: the user bot
+// signed initData, and the Telegram account shared a phone that is a user's.
+func (a *UserAuth) LoginWithTelegram(ctx context.Context, initData string) (Tokens, error) {
+	tgUser, err := ValidateInitData(initData, a.userBotToken, initDataMaxAge, a.now())
+	if err != nil {
+		return Tokens{}, err
+	}
+	var tokens Tokens
+	err = pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		q := a.q.WithTx(tx)
+		phone, err := q.GetTelegramContactPhone(ctx, tgUser.ID)
+		if err != nil {
+			return err
+		}
+		companies, err := q.ListUserCompanies(ctx, phone)
+		if err != nil {
+			return err
+		}
+		var companyID *int64
+		var role string
+		if len(companies) == 1 {
+			companyID, role = &companies[0].ID, companies[0].Role
+		}
+		tokens, err = a.issue(ctx, q, phone, companyID, role, "telegram")
+		return err
+	})
+	return tokens, err
 }
 
 // Refresh rotates a refresh token in one transaction: it is revoked and a
@@ -252,7 +285,7 @@ func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, er
 				role = membership.Role
 			}
 		}
-		tokens, err = a.issue(ctx, q, revoked.UserPhone, companyID, role)
+		tokens, err = a.issue(ctx, q, revoked.UserPhone, companyID, role, "sms")
 		return err
 	})
 	return tokens, err
@@ -287,7 +320,7 @@ func (a *UserAuth) SwitchCompany(ctx context.Context, phone, refreshToken string
 		if revoked.UserPhone != phone {
 			return ErrInvalidRefresh // rolled back: the owner keeps it
 		}
-		tokens, err = a.issue(ctx, q, phone, companyID, role)
+		tokens, err = a.issue(ctx, q, phone, companyID, role, "sms")
 		return err
 	})
 	return tokens, err

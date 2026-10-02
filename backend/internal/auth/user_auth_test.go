@@ -13,6 +13,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/telegramtest"
 )
 
 const (
@@ -381,4 +382,39 @@ func TestSwitchCompanyToNoneClearsTheChoice(t *testing.T) {
 	refreshed, err := a.Refresh(t.Context(), cleared.RefreshToken)
 	require.NoError(t, err)
 	assert.Nil(t, refreshed.CompanyID, "and the new one remembers no company")
+}
+
+// linkContact stands for the user bot: the Telegram account shared phone.
+func linkContact(t *testing.T, pool *pgxpool.Pool, telegramID int64, phone string) {
+	t.Helper()
+	mustExec(t, pool, "INSERT INTO telegram_contacts (chat_id, phone) VALUES ($1, $2)", telegramID, phone)
+}
+
+func TestLoginWithTelegramSignsInALinkedUser(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	olma := addCompany(t, pool, "Olma", 30)
+	addMember(t, pool, "998901234567", olma, "owner")
+	linkContact(t, pool, 1001, "998901234567")
+	addUser(t, pool, "998902223344")
+	addMember(t, pool, "998902223344", olma, "manager")
+	addMember(t, pool, "998902223344", addCompany(t, pool, "Nok", 30), "owner")
+	linkContact(t, pool, 1002, "998902223344")
+
+	one, err := a.LoginWithTelegram(t.Context(), telegramtest.SignInitData(testUserBotToken, 1001, time.Now()))
+
+	require.NoError(t, err)
+	require.NotNil(t, one.CompanyID, "one company is chosen, as with the SMS code")
+	assert.Equal(t, olma, *one.CompanyID)
+	assert.Equal(t, "owner", one.Role)
+	assert.Equal(t, "telegram", one.Source)
+	claims, err := a.Authenticate(one.AccessToken)
+	require.NoError(t, err)
+	assert.Equal(t, "998901234567", claims.Phone)
+
+	several, err := a.LoginWithTelegram(t.Context(), telegramtest.SignInitData(testUserBotToken, 1002, time.Now()))
+
+	require.NoError(t, err)
+	assert.Nil(t, several.CompanyID, "with several the user chooses")
+	assert.Equal(t, "telegram", several.Source)
 }

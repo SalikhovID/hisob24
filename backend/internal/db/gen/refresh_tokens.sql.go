@@ -13,8 +13,8 @@ import (
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (user_phone, token_hash, expires_at, company_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO refresh_tokens (user_phone, token_hash, expires_at, company_id, source)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id
 `
 
@@ -23,15 +23,18 @@ type CreateRefreshTokenParams struct {
 	TokenHash string
 	ExpiresAt time.Time
 	CompanyID *int64
+	Source    string
 }
 
-// company_id is the company the access tokens it refreshes are for.
+// company_id is the company the access tokens it refreshes are for; source
+// is where the session began ('sms' or 'telegram').
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, createRefreshToken,
 		arg.UserPhone,
 		arg.TokenHash,
 		arg.ExpiresAt,
 		arg.CompanyID,
+		arg.Source,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)

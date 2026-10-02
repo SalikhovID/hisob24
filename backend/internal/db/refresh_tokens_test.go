@@ -17,19 +17,19 @@ func TestCreateRefreshToken(t *testing.T) {
 	ctx := t.Context()
 	createUser(t, q, "998901234567", "Ali")
 
-	id, err := q.CreateRefreshToken(ctx, gen.CreateRefreshTokenParams{UserPhone: "998901234567", TokenHash: "hash", ExpiresAt: time.Now().Add(30 * 24 * time.Hour)})
+	id, err := q.CreateRefreshToken(ctx, gen.CreateRefreshTokenParams{UserPhone: "998901234567", TokenHash: "hash", ExpiresAt: time.Now().Add(30 * 24 * time.Hour), Source: "sms"})
 	require.NoError(t, err)
 	var revokedAt *time.Time
 	require.NoError(t, pool.QueryRow(ctx, "SELECT revoked_at FROM refresh_tokens WHERE id = $1", id).Scan(&revokedAt))
 	assert.Nil(t, revokedAt)
 
-	_, err = q.CreateRefreshToken(ctx, gen.CreateRefreshTokenParams{UserPhone: "998900000000", TokenHash: "x", ExpiresAt: time.Now().Add(time.Hour)})
+	_, err = q.CreateRefreshToken(ctx, gen.CreateRefreshTokenParams{UserPhone: "998900000000", TokenHash: "x", ExpiresAt: time.Now().Add(time.Hour), Source: "sms"})
 	assert.Equal(t, "23503", sqlState(err), "the user must exist") // foreign_key_violation
 }
 
 func createRefreshToken(t *testing.T, q *gen.Queries, phone, hash string, expiresAt time.Time) {
 	t.Helper()
-	_, err := q.CreateRefreshToken(context.Background(), gen.CreateRefreshTokenParams{UserPhone: phone, TokenHash: hash, ExpiresAt: expiresAt})
+	_, err := q.CreateRefreshToken(context.Background(), gen.CreateRefreshTokenParams{UserPhone: phone, TokenHash: hash, ExpiresAt: expiresAt, Source: "sms"})
 	require.NoError(t, err)
 }
 
@@ -56,7 +56,7 @@ func TestRefreshTokenRemembersTheCompany(t *testing.T) {
 	c, err := q.CreateCompany(ctx, gen.CreateCompanyParams{Name: "Olma", EndDate: time.Now()})
 	require.NoError(t, err)
 	_, err = q.CreateRefreshToken(ctx, gen.CreateRefreshTokenParams{
-		UserPhone: "998901234567", TokenHash: "with", ExpiresAt: time.Now().Add(time.Hour), CompanyID: &c.ID,
+		UserPhone: "998901234567", TokenHash: "with", ExpiresAt: time.Now().Add(time.Hour), CompanyID: &c.ID, Source: "sms",
 	})
 	require.NoError(t, err)
 	createRefreshToken(t, q, "998901234567", "without", time.Now().Add(time.Hour))

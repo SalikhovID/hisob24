@@ -1,7 +1,8 @@
 -- name: CreateRefreshToken :one
--- company_id is the company the access tokens it refreshes are for.
-INSERT INTO refresh_tokens (user_phone, token_hash, expires_at, company_id)
-VALUES ($1, $2, $3, $4)
+-- company_id is the company the access tokens it refreshes are for; source
+-- is where the session began ('sms' or 'telegram').
+INSERT INTO refresh_tokens (user_phone, token_hash, expires_at, company_id, source)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id;
 
 -- name: RevokeRefreshToken :one
