@@ -72,3 +72,41 @@ func TestTelegramSignInRefusals(t *testing.T) {
 		assert.Empty(t, rec.Result().Cookies(), name)
 	}
 }
+
+func TestRefreshKeepsTheMiniAppsCookieVariant(t *testing.T) {
+	api := newTestAPI(t)
+	api.addUser(t, alisPhone)
+	api.linkContact(t, 1001, alisPhone)
+	signedIn := api.do(t, http.MethodPost, "/app/auth/telegram", telegramBody(1001))
+	require.Equal(t, http.StatusOK, signedIn.Code)
+
+	rec := api.do(t, http.MethodPost, "/app/auth/refresh", "", cookie(signedIn.Result().Cookies()[1]))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	cookies := rec.Result().Cookies()
+	require.Len(t, cookies, 2)
+	assert.Equal(t, -1, cookies[0].MaxAge)
+	assert.Equal(t, http.SameSiteLaxMode, cookies[0].SameSite)
+	assert.Equal(t, http.SameSiteNoneMode, cookies[1].SameSite)
+	assert.True(t, cookies[1].Partitioned)
+}
+
+func TestAnSMSSignInDropsTheMiniAppsCookieVariant(t *testing.T) {
+	api := newTestAPI(t)
+	api.addUser(t, alisPhone)
+	require.Equal(t, http.StatusOK, api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"`+alisPhone+`"}`).Code)
+
+	rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"`+alisPhone+`","code":"`+api.sms.code(t, alisPhone)+`"}`)
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	// A Mini App session in the same WebView left a partitioned cookie;
+	// two cookies of one name would leave the server guessing.
+	cookies := rec.Result().Cookies()
+	require.Len(t, cookies, 2, rec.Result().Header["Set-Cookie"])
+	assert.Equal(t, -1, cookies[0].MaxAge)
+	assert.Equal(t, http.SameSiteNoneMode, cookies[0].SameSite)
+	assert.True(t, cookies[0].Partitioned)
+	assert.NotEmpty(t, cookies[1].Value)
+	assert.Equal(t, http.SameSiteLaxMode, cookies[1].SameSite)
+	assert.False(t, cookies[1].Partitioned)
+}

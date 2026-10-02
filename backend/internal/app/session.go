@@ -25,9 +25,10 @@ type tokensJSON struct {
 // body, the refresh token in an httpOnly cookie.
 //
 // A Mini App session's cookie must live inside Telegram Web's iframe:
-// SameSite=None and Partitioned (CHIPS), which needs Secure. The Lax variant
-// is dropped first, so a browser without CHIPS, which takes both lines for
-// one cookie, ends with the new value.
+// SameSite=None and Partitioned (CHIPS), which needs Secure; any other
+// session's is Lax. Over https the other variant is dropped first: one
+// WebView may hold both, and a browser without CHIPS, which takes both lines
+// for one cookie, still ends with the new value.
 func (h *Handler) signedIn(w http.ResponseWriter, t auth.Tokens) {
 	cookie := &http.Cookie{
 		Name:     refreshCookie,
@@ -39,13 +40,12 @@ func (h *Handler) signedIn(w http.ResponseWriter, t auth.Tokens) {
 		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	}
-	if t.Source == "telegram" && h.cookieSecure {
-		http.SetCookie(w, &http.Cookie{
-			Name: refreshCookie, Value: "", Path: "/", MaxAge: -1,
-			HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
-		})
-		cookie.SameSite = http.SameSiteNoneMode
-		cookie.Partitioned = true
+	if h.cookieSecure {
+		miniApp := t.Source == "telegram"
+		http.SetCookie(w, refreshCookieVariant(!miniApp, ""))
+		cookie = refreshCookieVariant(miniApp, t.RefreshToken)
+		cookie.Expires = t.RefreshExpiresAt
+		cookie.MaxAge = int(time.Until(t.RefreshExpiresAt).Seconds())
 	}
 	http.SetCookie(w, cookie)
 	httpx.JSON(w, http.StatusOK, tokensJSON{
@@ -53,6 +53,20 @@ func (h *Handler) signedIn(w http.ResponseWriter, t auth.Tokens) {
 		ExpiresIn:   int(auth.AccessTokenTTL.Seconds()),
 		CompanyID:   t.CompanyID,
 	})
+}
+
+// refreshCookieVariant is the secure refresh cookie of a Mini App session
+// (SameSite=None, Partitioned) or of any other (Lax); an empty value drops it.
+func refreshCookieVariant(miniApp bool, value string) *http.Cookie {
+	c := &http.Cookie{Name: refreshCookie, Value: value, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode}
+	if miniApp {
+		c.SameSite = http.SameSiteNoneMode
+		c.Partitioned = true
+	}
+	if value == "" {
+		c.MaxAge = -1
+	}
+	return c
 }
 
 // sessionEnded answers a refresh token that is missing or no longer live:

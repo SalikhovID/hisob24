@@ -169,15 +169,25 @@ func decode(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
 	return m
 }
 
+// refreshCookieOf is the refresh_token cookie a response leaves: the one
+// with a value (a secure response drops the other variant first), or the
+// last when every line drops it.
 func refreshCookieOf(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
 	t.Helper()
+	var last *http.Cookie
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == "refresh_token" {
+		if c.Name != "refresh_token" {
+			continue
+		}
+		if c.Value != "" {
 			return c
 		}
+		last = c
 	}
-	t.Fatalf("no refresh_token cookie in %v", rec.Result().Header["Set-Cookie"])
-	return nil
+	if last == nil {
+		t.Fatalf("no refresh_token cookie in %v", rec.Result().Header["Set-Cookie"])
+	}
+	return last
 }
 
 func TestVerify(t *testing.T) {
