@@ -2,7 +2,14 @@
 // through Eskiz.uz in production.
 package sms
 
-import "context"
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/SalikhovID/hisob24/backend/internal/config"
+)
 
 // Sender delivers a text to a phone (digits only, 998XXXXXXXXX).
 type Sender interface {
@@ -13,4 +20,13 @@ type Sender interface {
 // approved in the account, so this one has to be registered there.
 func Text(code string) string {
 	return "Hisob24 kirish kodi: " + code
+}
+
+// New is the sender SMS_DRIVER names: eskiz sends for real, log (the
+// default) only writes to logger.
+func New(cfg config.Config, logger *slog.Logger) Sender {
+	if cfg.SMSDriver == "eskiz" {
+		return NewEskiz(EskizURL, cfg.EskizEmail, cfg.EskizPassword, cfg.EskizFrom, &http.Client{Timeout: 15 * time.Second})
+	}
+	return LogSender{Logger: logger}
 }
