@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI } from "@/mocks/data"
 import { server } from "@/test/server"
+import { signIn } from "@/test/session"
 import { api, ApiError, call } from "./api"
 
 const sendCode = () => call(api.POST("/app/auth/sms/send", { body: { phone: ALI } }))
@@ -34,4 +35,13 @@ test("call turns a network failure into an ApiError people can read", async () =
     code: "network_error",
     message: "Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring",
   })
+})
+
+test("requests carry the access token as a Bearer header", async () => {
+  await signIn(ALI)
+
+  const me = await call(api.GET("/app/me"))
+
+  expect(me.user).toEqual({ phone: ALI, full_name: "Ali Valiyev" })
+  expect(me.company).toMatchObject({ id: 1, name: "Olma Savdo", role: "owner" })
 })

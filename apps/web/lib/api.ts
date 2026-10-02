@@ -1,12 +1,17 @@
 import { createApiClient } from "@hisob24/api-client"
+import { accessToken } from "./session"
 
-// api reaches the Go API through the Next.js rewrite on this origin. fetch
-// is looked up per request, not when the module loads, so a patched fetch
-// (MSW in the tests) is the one used.
-export const api = createApiClient(
-  typeof window === "undefined" ? "/api" : `${window.location.origin}/api`,
-  (request) => globalThis.fetch(request),
-)
+// send hands a request to fetch with the access token, if there is one.
+// fetch is looked up per request, not when the module loads, so a patched
+// fetch (MSW in the tests) is the one used.
+async function send(request: Request): Promise<Response> {
+  const token = accessToken()
+  if (token) request.headers.set("Authorization", `Bearer ${token}`)
+  return globalThis.fetch(request)
+}
+
+// api reaches the Go API through the Next.js rewrite on this origin.
+export const api = createApiClient(typeof window === "undefined" ? "/api" : `${window.location.origin}/api`, send)
 
 // ApiError is a refusal from the API: its status, error code and the Uzbek
 // message to show.
