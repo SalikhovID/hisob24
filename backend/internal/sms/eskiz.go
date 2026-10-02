@@ -31,20 +31,37 @@ func NewEskiz(baseURL, email, password, from string, client *http.Client) *Eskiz
 	return &EskizSender{baseURL: baseURL, email: email, password: password, from: from, client: client}
 }
 
-// Send sends text to phone.
+// Send sends text to phone. An expired token (401) is replaced by a new
+// login once, and the SMS sent again.
 func (e *EskizSender) Send(ctx context.Context, phone, text string) error {
-	token, err := e.currentToken(ctx)
+	token, err := e.currentToken(ctx, "")
 	if err != nil {
 		return err
 	}
-	_, err = e.send(ctx, token, phone, text)
-	return err
+	status, err := e.send(ctx, token, phone, text)
+	if err != nil {
+		return err
+	}
+	if status == http.StatusUnauthorized {
+		if token, err = e.currentToken(ctx, token); err != nil {
+			return err
+		}
+		if status, err = e.send(ctx, token, phone, text); err != nil {
+			return err
+		}
+	}
+	if status != http.StatusOK {
+		return fmt.Errorf("eskiz send: status %d", status)
+	}
+	return nil
 }
 
-func (e *EskizSender) currentToken(ctx context.Context) (string, error) {
+// currentToken is the kept token, after a login when there is none or when
+// it is still the stale one Eskiz refused (so concurrent sends log in once).
+func (e *EskizSender) currentToken(ctx context.Context, stale string) (string, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.token == "" {
+	if e.token == "" || e.token == stale {
 		token, err := e.login(ctx)
 		if err != nil {
 			return "", err

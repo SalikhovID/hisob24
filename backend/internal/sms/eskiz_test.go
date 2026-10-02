@@ -74,3 +74,34 @@ func TestEskizLogsInOnceAndSends(t *testing.T) {
 	assert.Equal(t, "Hisob24 kirish kodi: 654321", fake.sends[1].Get("message"))
 	assert.Equal(t, "4546", fake.sends[1].Get("from"))
 }
+
+func TestEskizLogsInAgainWhenTheTokenExpired(t *testing.T) {
+	fake := &fakeEskiz{tokens: []string{"tok-1", "tok-2"}, sendStatus: func(token string) int {
+		if token == "Bearer tok-1" {
+			return http.StatusUnauthorized
+		}
+		return http.StatusOK
+	}}
+	srv := fake.start(t)
+	sender := NewEskiz(srv.URL, "sms@example.com", "secret", "4546", srv.Client())
+
+	require.NoError(t, sender.Send(t.Context(), "998901234567", "Hisob24 kirish kodi: 123456"))
+
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	assert.Len(t, fake.logins, 2)
+	assert.Equal(t, []string{"Bearer tok-1", "Bearer tok-2"}, fake.sendTokens)
+}
+
+func TestEskizGivesUpAfterASecond401(t *testing.T) {
+	fake := &fakeEskiz{tokens: []string{"tok-1", "tok-2"}, sendStatus: func(string) int { return http.StatusUnauthorized }}
+	srv := fake.start(t)
+	sender := NewEskiz(srv.URL, "sms@example.com", "secret", "4546", srv.Client())
+
+	err := sender.Send(t.Context(), "998901234567", "Hisob24 kirish kodi: 123456")
+
+	assert.ErrorContains(t, err, "401")
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	assert.Len(t, fake.sends, 2, "one retry, no more")
+}
