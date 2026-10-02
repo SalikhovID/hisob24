@@ -29,9 +29,11 @@ export function CodeStep({
   const verify = useMutation({
     mutationFn: (code: string) =>
       call(api.POST("/app/auth/sms/verify", { body: { phone: phoneDigits(phone) ?? "", code } })),
+    // One company is chosen by the API; with several, company_id is null and
+    // the user picks one.
     onSuccess: (tokens) => {
       setAccessToken(tokens.access_token)
-      router.replace("/")
+      router.replace(tokens.company_id === null ? "/select-company" : "/")
     },
   })
 

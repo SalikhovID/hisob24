@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { accessToken } from "@/lib/session"
-import { ALI } from "@/mocks/data"
+import { ALI, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { CodeStep } from "./code-step"
@@ -17,4 +17,14 @@ test("the sixth digit signs in and opens the dashboard", async () => {
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
   expect(accessToken()).toMatch(new RegExp(`^access:${ALI}:1:`))
+})
+
+test("someone in several companies goes on to choose one", async () => {
+  await sendCode(VALI)
+  const { user } = renderWithProviders(<CodeStep phone="+998 90 222 33 44" retryAfter={60} onChangePhone={vi.fn()} />)
+
+  await user.type(screen.getByRole("textbox", { name: "Kod" }), "123456")
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/select-company"))
+  expect(accessToken()).toMatch(new RegExp(`^access:${VALI}:none:`))
 })
