@@ -2,6 +2,7 @@
 package admin
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -47,6 +48,10 @@ func (h *Handler) loginWithCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s, err := h.auth.LoginWithCode(r.Context(), body.Code)
+	if errors.Is(err, auth.ErrInvalidCode) {
+		httpx.Error(w, http.StatusUnauthorized, "invalid_code", "Kod noto'g'ri yoki muddati o'tgan")
+		return
+	}
 	if err != nil {
 		httpx.InternalError(w, r, err)
 		return

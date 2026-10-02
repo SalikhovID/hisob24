@@ -81,3 +81,14 @@ func TestLoginWithCodeSetsTheSessionCookie(t *testing.T) {
 	assert.Equal(t, "/", c.Path)
 	assert.InDelta(t, 12*60*60, c.MaxAge, 5, "the session lasts 12 hours")
 }
+
+func TestLoginWithCodeErrors(t *testing.T) {
+	api := newTestAPI(t, true)
+
+	rec := api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"000000"}`)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.JSONEq(t, `{"error":"invalid_code","message":"Kod noto'g'ri yoki muddati o'tgan"}`, rec.Body.String())
+
+	rec = api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":`)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
