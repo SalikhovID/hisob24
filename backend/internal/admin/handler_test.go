@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -58,6 +59,26 @@ func (api testAPI) code(t *testing.T) string {
 	issued, err := api.auth.IssueLoginCode(t.Context(), ownerID)
 	require.NoError(t, err)
 	return issued.Code
+}
+
+// login opens an owner session and returns its cookie.
+func (api testAPI) login(t *testing.T) *http.Cookie {
+	t.Helper()
+	return sessionCookieOf(t, api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"`+api.code(t)+`"}`))
+}
+
+func decode(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
+	t.Helper()
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &m), rec.Body.String())
+	return m
+}
+
+func dbToday(t *testing.T, pool *pgxpool.Pool) time.Time {
+	t.Helper()
+	var d time.Time
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT CURRENT_DATE").Scan(&d))
+	return d
 }
 
 func sessionCookieOf(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
