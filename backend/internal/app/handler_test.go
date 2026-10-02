@@ -47,7 +47,8 @@ func (b *smsBox) text(phone string) string {
 	return b.last[phone]
 }
 
-var codeInText = regexp.MustCompile(`\d{6}$`)
+// The code is the only six-digit number in the SMS text.
+var codeInText = regexp.MustCompile(`\b\d{6}\b`)
 
 // code is the login code in the last SMS phone got.
 func (b *smsBox) code(t *testing.T, phone string) string {
@@ -117,7 +118,7 @@ func TestSendCode(t *testing.T) {
 	rec := api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"+998 90 123 45 67"}`)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.JSONEq(t, `{"retry_after":60}`, rec.Body.String())
-	assert.Regexp(t, `^Hisob24 kirish kodi: \d{6}$`, api.sms.text(alisPhone))
+	assert.Regexp(t, `^Hisob24 dasturiga kirish uchun tasdiqlash kodi: \d{6} Uni hech kimga bermang\.$`, api.sms.text(alisPhone))
 
 	rec = api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"998909999999"}`)
 	assert.Equal(t, http.StatusOK, rec.Code, "a stranger gets the same answer")

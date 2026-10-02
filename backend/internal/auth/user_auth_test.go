@@ -60,7 +60,7 @@ func TestSendCodeTextsAUserTheirCode(t *testing.T) {
 
 	require.NoError(t, a.SendCode(t.Context(), "+998 90 123 45 67"))
 
-	assert.Equal(t, []sentSMS{{"998901234567", "Hisob24 kirish kodi: 123456"}}, sender.messages())
+	assert.Equal(t, []sentSMS{{"998901234567", "Hisob24 dasturiga kirish uchun tasdiqlash kodi: 123456 Uni hech kimga bermang."}}, sender.messages())
 	var hash string
 	var expiresAt time.Time
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT code_hash, expires_at FROM sms_codes WHERE phone = '998901234567'").

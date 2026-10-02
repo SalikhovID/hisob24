@@ -10,9 +10,10 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/config"
 )
 
-// The text has to match the template approved in the Eskiz account.
+// The text has to match the template approved in the Eskiz account:
+// "Hisob24 dasturiga kirish uchun tasdiqlash kodi: %d Uni hech kimga bermang."
 func TestText(t *testing.T) {
-	assert.Equal(t, "Hisob24 kirish kodi: 123456", Text("123456"))
+	assert.Equal(t, "Hisob24 dasturiga kirish uchun tasdiqlash kodi: 123456 Uni hech kimga bermang.", Text("123456"))
 }
 
 func TestNewPicksTheDriver(t *testing.T) {

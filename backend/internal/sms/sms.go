@@ -17,9 +17,10 @@ type Sender interface {
 }
 
 // Text is the login code SMS. Eskiz sends only texts that match a template
-// approved in the account, so this one has to be registered there.
+// approved in the account; this is the account's approved one:
+// "Hisob24 dasturiga kirish uchun tasdiqlash kodi: %d Uni hech kimga bermang."
 func Text(code string) string {
-	return "Hisob24 kirish kodi: " + code
+	return "Hisob24 dasturiga kirish uchun tasdiqlash kodi: " + code + " Uni hech kimga bermang."
 }
 
 // New is the sender SMS_DRIVER names: eskiz sends for real, log (the
