@@ -149,3 +149,51 @@ func TestAddUserRefusals(t *testing.T) {
 		}
 	}
 }
+
+func TestList(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	d := dbToday(t, pool)
+	mustCreate(t, s, "Olma Savdo", d.AddDate(0, 0, 10))
+	mustCreate(t, s, "Nok Market", d)
+	mustCreate(t, s, "Olcha Servis", d.AddDate(0, 0, -1))
+	blocked := mustCreate(t, s, "Behi Blok", d.AddDate(0, 0, 30))
+	_, err := pool.Exec(ctx, "UPDATE companies SET is_active = false WHERE id = $1", blocked.ID)
+	require.NoError(t, err)
+
+	page, err := s.List(ctx, ListInput{Status: "expired", Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), page.Total)
+	assert.Equal(t, 1, page.Page)
+	assert.Equal(t, PageSize, page.PageSize)
+	require.Len(t, page.Items, 2)
+	assert.Equal(t, "Behi Blok", page.Items[0].Name, "newest first")
+	assert.Equal(t, 30, page.Items[0].DaysLeft, "blocked, though paid")
+	assert.Equal(t, "Olcha Servis", page.Items[1].Name)
+	assert.Equal(t, -1, page.Items[1].DaysLeft)
+
+	page, err = s.List(ctx, ListInput{Search: " OL ", Status: "active", Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), page.Total)
+	require.Len(t, page.Items, 1)
+	assert.Equal(t, "Olma Savdo", page.Items[0].Name)
+	assert.Equal(t, 10, page.Items[0].DaysLeft)
+}
+
+func TestListPages(t *testing.T) {
+	s, pool := newService(t)
+	_, err := pool.Exec(t.Context(), "INSERT INTO companies (name, end_date) SELECT 'Kompaniya ' || n, CURRENT_DATE FROM generate_series(1, 21) n")
+	require.NoError(t, err)
+
+	first, err := s.List(t.Context(), ListInput{Page: 1})
+	require.NoError(t, err)
+	second, err := s.List(t.Context(), ListInput{Page: 2})
+	require.NoError(t, err)
+
+	require.Len(t, first.Items, 20)
+	assert.Equal(t, "Kompaniya 21", first.Items[0].Name)
+	require.Len(t, second.Items, 1)
+	assert.Equal(t, "Kompaniya 1", second.Items[0].Name)
+	assert.Equal(t, int64(21), second.Total)
+	assert.Equal(t, 2, second.Page)
+}
