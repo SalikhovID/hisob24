@@ -25,7 +25,11 @@ export function LoginScreen() {
             onSent={(phone, retryAfter) => setStep({ kind: "code", phone, retryAfter })}
           />
         ) : (
-          <CodeStep phone={step.phone} retryAfter={step.retryAfter} onChangePhone={() => {}} />
+          <CodeStep
+            phone={step.phone}
+            retryAfter={step.retryAfter}
+            onChangePhone={() => setStep({ kind: "phone", phone: step.phone })}
+          />
         )}
       </div>
     </main>

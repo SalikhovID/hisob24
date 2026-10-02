@@ -36,7 +36,6 @@ export function CodeStep({
   retryAfter: number
   onChangePhone: () => void
 }) {
-  void onChangePhone
   const router = useRouter()
   const digits = phoneDigits(phone) ?? ""
   const [left, setLeft] = useCountdown(retryAfter)
@@ -100,6 +99,9 @@ export function CodeStep({
         onClick={() => resend.mutate()}
       >
         {left > 0 ? `Kodni qayta yuborish (${left})` : "Kodni qayta yuborish"}
+      </Button>
+      <Button type="button" variant="link" className="w-full" onClick={onChangePhone}>
+        Raqamni o&apos;zgartirish
       </Button>
     </div>
   )

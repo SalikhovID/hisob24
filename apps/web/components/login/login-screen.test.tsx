@@ -17,3 +17,12 @@ test("once the code is sent the code step names the number", async () => {
   expect(screen.getByText("Kod +998 90 123 45 67 raqamiga yuborildi")).toBeInTheDocument()
   expect(screen.queryByRole("textbox", { name: "Telefon raqami" })).not.toBeInTheDocument()
 })
+
+test("changing the number goes back to the phone step with the number kept", async () => {
+  const { user } = await sendCodeTo("901234567")
+
+  await user.click(screen.getByRole("button", { name: "Raqamni o'zgartirish" }))
+
+  expect(screen.getByRole("textbox", { name: "Telefon raqami" })).toHaveValue("+998 90 123 45 67")
+  expect(screen.queryByRole("textbox", { name: "Kod" })).not.toBeInTheDocument()
+})
