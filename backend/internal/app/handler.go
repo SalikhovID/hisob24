@@ -36,7 +36,7 @@ func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx
 // Routes mounts /app.
 func (h *Handler) Routes(r chi.Router) {
 	r.Route("/app", func(r chi.Router) {
-		r.Post("/auth/sms/send", h.sendCode)
+		r.With(httpx.RateLimit(h.sendLimiter)).Post("/auth/sms/send", h.sendCode)
 	})
 }
 

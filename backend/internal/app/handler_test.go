@@ -132,3 +132,15 @@ func TestSendCode(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Telefon raqami noto'g'ri"}`, rec.Body.String())
 }
+
+func TestSendCodeIsLimitedPerIP(t *testing.T) {
+	api := newTestAPI(t)
+
+	for i := range 5 {
+		rec := api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"99890000000`+string(rune('0'+i))+`"}`)
+		require.Equal(t, http.StatusOK, rec.Code, "request %d", i+1)
+	}
+	rec := api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"998900000009"}`)
+
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "a sixth phone from the same IP within a minute")
+}
