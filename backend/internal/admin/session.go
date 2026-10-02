@@ -49,7 +49,7 @@ func unauthorized(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusUnauthorized, "unauthorized", "Avval tizimga kiring")
 }
 
-func setSessionCookie(w http.ResponseWriter, s auth.Session) {
+func (h *Handler) setSessionCookie(w http.ResponseWriter, s auth.Session) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
 		Value:    s.ID.String(),
@@ -57,19 +57,19 @@ func setSessionCookie(w http.ResponseWriter, s auth.Session) {
 		Expires:  s.ExpiresAt,
 		MaxAge:   int(time.Until(s.ExpiresAt).Seconds()),
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
 
-func clearSessionCookie(w http.ResponseWriter) {
+func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }

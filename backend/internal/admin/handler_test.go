@@ -148,3 +148,12 @@ func TestLogout(t *testing.T) {
 	assert.Equal(t, -1, sessionCookieOf(t, rec).MaxAge, "the browser drops the cookie")
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/admin/me", "", cookie).Code)
 }
+
+func TestSessionCookieWithoutSecureForLocalHTTP(t *testing.T) {
+	api := newTestAPI(t, false)
+	login := api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"`+api.code(t)+`"}`)
+
+	assert.False(t, sessionCookieOf(t, login).Secure, "login")
+	logout := api.do(t, http.MethodPost, "/admin/auth/logout", "", sessionCookieOf(t, login))
+	assert.False(t, sessionCookieOf(t, logout).Secure, "logout writes the same attributes")
+}

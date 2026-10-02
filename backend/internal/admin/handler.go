@@ -62,7 +62,7 @@ func (h *Handler) loginWithCode(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, r, err)
 		return
 	}
-	setSessionCookie(w, s)
+	h.setSessionCookie(w, s)
 	httpx.JSON(w, http.StatusOK, toAdminJSON(s.Admin))
 }
 
@@ -85,7 +85,7 @@ func (h *Handler) loginWithInitData(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, r, err)
 		return
 	}
-	setSessionCookie(w, s)
+	h.setSessionCookie(w, s)
 	httpx.JSON(w, http.StatusOK, toAdminJSON(s.Admin))
 }
 
@@ -96,7 +96,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	clearSessionCookie(w)
+	h.clearSessionCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
