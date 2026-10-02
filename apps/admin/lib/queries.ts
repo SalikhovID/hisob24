@@ -12,6 +12,7 @@ export interface CompanyFilter {
 export const keys = {
   me: ["me"] as const,
   companies: (filter?: CompanyFilter) => (filter ? (["companies", filter] as const) : (["companies"] as const)),
+  company: (id: number) => ["company", id] as const,
 }
 
 // useMe is the signed-in admin.
@@ -31,5 +32,13 @@ export function useCompanies(filter: CompanyFilter) {
         }),
       ),
     placeholderData: keepPreviousData,
+  })
+}
+
+// useCompany is one company with its users.
+export function useCompany(id: number) {
+  return useQuery({
+    queryKey: keys.company(id),
+    queryFn: () => call(api.GET("/admin/companies/{id}", { params: { path: { id } } })),
   })
 }
