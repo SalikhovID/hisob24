@@ -259,3 +259,24 @@ func TestGet(t *testing.T) {
 	_, err = s.Get(t.Context(), c.ID+1)
 	assert.Equal(t, apperr.NotFound, kindOf(t, err))
 }
+
+func TestUpdate(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	u, err := s.Update(t.Context(), c.ID, new("  Olma MChJ "), nil)
+	require.NoError(t, err)
+	assert.Equal(t, "Olma MChJ", u.Name)
+	assert.True(t, u.IsActive, "untouched")
+
+	u, err = s.Update(t.Context(), c.ID, nil, new(false))
+	require.NoError(t, err)
+	assert.False(t, u.IsActive)
+	assert.Equal(t, "Olma MChJ", u.Name, "untouched")
+	assert.Equal(t, 0, u.DaysLeft)
+
+	_, err = s.Update(t.Context(), c.ID, new(" "), nil)
+	assert.Equal(t, apperr.Invalid, kindOf(t, err))
+	_, err = s.Update(t.Context(), c.ID+1, new("X"), nil)
+	assert.Equal(t, apperr.NotFound, kindOf(t, err))
+}

@@ -3,8 +3,11 @@ package company
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
 // Detail is a company with its users.
@@ -35,4 +38,28 @@ func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 		users = append(users, Member{Phone: u.Phone, FullName: u.FullName, Role: u.Role, CreatedAt: u.CreatedAt})
 	}
 	return Detail{Company: withDaysLeft(c, today), Users: users}, nil
+}
+
+// Update changes the name and the active flag; a nil argument keeps the
+// column as it is.
+func (s *Service) Update(ctx context.Context, id int64, name *string, isActive *bool) (Company, error) {
+	if name != nil {
+		trimmed := strings.TrimSpace(*name)
+		if trimmed == "" {
+			return Company{}, invalid("Kompaniya nomini kiriting")
+		}
+		name = &trimmed
+	}
+	c, err := s.q.UpdateCompany(ctx, gen.UpdateCompanyParams{ID: id, Name: name, IsActive: isActive})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Company{}, errNotFound
+	}
+	if err != nil {
+		return Company{}, err
+	}
+	today, err := s.q.CurrentDate(ctx)
+	if err != nil {
+		return Company{}, err
+	}
+	return withDaysLeft(c, today), nil
 }
