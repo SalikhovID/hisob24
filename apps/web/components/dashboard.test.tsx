@@ -1,6 +1,6 @@
 import { screen, waitFor } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, db, ZARINA } from "@/mocks/data"
+import { ALI, db, VALI, ZARINA } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
@@ -32,4 +32,12 @@ test("a session for an expired company is sent to /expired", async () => {
   renderWithProviders(<Dashboard />)
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/expired"))
+})
+
+test("a session with no company yet is sent to choose one", async () => {
+  await signIn(VALI)
+
+  renderWithProviders(<Dashboard />)
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/select-company"))
 })

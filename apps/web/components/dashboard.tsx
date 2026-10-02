@@ -13,11 +13,13 @@ import { roleLabels } from "@/lib/roles"
 export function Dashboard() {
   const router = useRouter()
   const me = useMe()
-  const expired = subscriptionExpired(me.error)
+  // The page is for a session with a company that may be used: an expired
+  // one goes to /expired, none yet to the company list.
+  const away = subscriptionExpired(me.error) ? "/expired" : me.data?.company === null ? "/select-company" : null
 
   useEffect(() => {
-    if (expired) router.replace("/expired")
-  }, [expired, router])
+    if (away) router.replace(away)
+  }, [away, router])
 
   return (
     <main className="mx-auto w-full max-w-2xl p-4">
