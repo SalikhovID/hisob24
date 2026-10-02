@@ -10,6 +10,27 @@ import (
 	"time"
 )
 
+const countCompanies = `-- name: CountCompanies :one
+SELECT count(*) FROM companies
+WHERE ($1::text IS NULL OR name ILIKE '%' || $1::text || '%')
+  AND ($2::text IS NULL
+       OR ($2::text = 'active' AND end_date >= CURRENT_DATE AND is_active)
+       OR ($2::text = 'expired' AND (end_date < CURRENT_DATE OR NOT is_active)))
+`
+
+type CountCompaniesParams struct {
+	Search *string
+	Status *string
+}
+
+// The same filter as ListCompanies, for the page count.
+func (q *Queries) CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCompanies, arg.Search, arg.Status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCompany = `-- name: CreateCompany :one
 INSERT INTO companies (name, end_date, created_by)
 VALUES ($1, $2, $3)

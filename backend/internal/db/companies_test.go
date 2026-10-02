@@ -92,3 +92,27 @@ func companyNames(cs []gen.Company) []string {
 	}
 	return names
 }
+
+func TestCountCompanies(t *testing.T) {
+	q, pool := setup(t)
+	seedCompanies(t, q, pool)
+
+	tests := []struct {
+		name   string
+		search *string
+		status *string
+		want   int64
+	}{
+		{name: "everything", want: 4},
+		{name: "active", status: ptr("active"), want: 2},
+		{name: "expired or blocked", status: ptr("expired"), want: 2},
+		{name: "search and status", search: ptr("ol"), status: ptr("expired"), want: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := q.CountCompanies(t.Context(), gen.CountCompaniesParams{Search: tt.search, Status: tt.status})
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
