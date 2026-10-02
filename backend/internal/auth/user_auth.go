@@ -232,15 +232,21 @@ func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, er
 		if err != nil {
 			return err
 		}
-		var role string
-		if revoked.CompanyID != nil {
-			membership, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: revoked.UserPhone, CompanyID: *revoked.CompanyID})
-			if err != nil {
+		// The membership as it is now: a new role is taken, a lost one
+		// leaves no company chosen.
+		companyID, role := revoked.CompanyID, ""
+		if companyID != nil {
+			membership, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: revoked.UserPhone, CompanyID: *companyID})
+			switch {
+			case errors.Is(err, pgx.ErrNoRows):
+				companyID = nil
+			case err != nil:
 				return err
+			default:
+				role = membership.Role
 			}
-			role = membership.Role
 		}
-		tokens, err = a.issue(ctx, q, revoked.UserPhone, revoked.CompanyID, role)
+		tokens, err = a.issue(ctx, q, revoked.UserPhone, companyID, role)
 		return err
 	})
 	return tokens, err

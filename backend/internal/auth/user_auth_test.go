@@ -251,3 +251,21 @@ func TestRefreshRotatesTheTokenAndKeepsTheCompany(t *testing.T) {
 	_, err = a.Refresh(t.Context(), "made-up")
 	assert.ErrorIs(t, err, ErrInvalidRefresh)
 }
+
+func TestRefreshFollowsTheMembershipAsItIsNow(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	a.newRefreshToken = codes("refresh-1", "refresh-2", "refresh-3")
+	companyID := addCompany(t, pool, "Olma", 30)
+	first := signIn(t, a, pool, "998901234567", map[int64]string{companyID: "staff"})
+
+	mustExec(t, pool, "UPDATE user_companies SET role = 'manager'")
+	second, err := a.Refresh(t.Context(), first.RefreshToken)
+	require.NoError(t, err)
+	assert.Equal(t, "manager", second.Role, "the role as it is now")
+
+	mustExec(t, pool, "DELETE FROM user_companies")
+	third, err := a.Refresh(t.Context(), second.RefreshToken)
+	require.NoError(t, err)
+	assert.Nil(t, third.CompanyID, "no longer a member: the company is not kept")
+	assert.Empty(t, third.Role)
+}
