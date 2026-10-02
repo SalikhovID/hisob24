@@ -1,0 +1,68 @@
+package auth
+
+import (
+	"context"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
+)
+
+const testJWTSecret = "test-jwt-secret"
+
+type sentSMS struct{ phone, text string }
+
+// fakeSender records the SMS it is asked to send and fails with err.
+type fakeSender struct {
+	mu   sync.Mutex
+	sent []sentSMS
+	err  error
+}
+
+func (f *fakeSender) Send(_ context.Context, phone, text string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sent = append(f.sent, sentSMS{phone, text})
+	return f.err
+}
+
+func (f *fakeSender) messages() []sentSMS {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]sentSMS(nil), f.sent...)
+}
+
+func newUserAuth(t *testing.T) (*UserAuth, *pgxpool.Pool, *fakeSender) {
+	t.Helper()
+	t.Parallel()
+	pool := pgtest.New(t)
+	sender := &fakeSender{}
+	a := NewUserAuth(pool, testOTPSecret, testJWTSecret, sender)
+	a.newCode = codes("123456", "654321", "111111", "222222")
+	return a, pool, sender
+}
+
+func addUser(t *testing.T, pool *pgxpool.Pool, phone string) {
+	t.Helper()
+	mustExec(t, pool, "INSERT INTO users (phone, full_name) VALUES ($1, 'Ali')", phone)
+}
+
+func TestSendCodeTextsAUserTheirCode(t *testing.T) {
+	a, pool, sender := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+
+	require.NoError(t, a.SendCode(t.Context(), "+998 90 123 45 67"))
+
+	assert.Equal(t, []sentSMS{{"998901234567", "Hisob24 kirish kodi: 123456"}}, sender.messages())
+	var hash string
+	var expiresAt time.Time
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT code_hash, expires_at FROM sms_codes WHERE phone = '998901234567'").
+		Scan(&hash, &expiresAt))
+	assert.Equal(t, HashCode([]byte(testOTPSecret), "123456"), hash, "only the code's HMAC is stored")
+	assert.WithinDuration(t, time.Now().Add(2*time.Minute), expiresAt, 5*time.Second)
+}
