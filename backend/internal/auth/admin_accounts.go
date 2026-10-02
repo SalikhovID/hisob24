@@ -32,3 +32,14 @@ func (a *AdminAuth) AddAdmin(ctx context.Context, telegramID int64, fullName str
 	}
 	return admin, err
 }
+
+// DeactivateAdmin turns an admin off and ends their sessions.
+func (a *AdminAuth) DeactivateAdmin(ctx context.Context, actorID, telegramID int64) error {
+	return pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		q := a.q.WithTx(tx)
+		if _, err := q.DeactivateAdmin(ctx, telegramID); err != nil {
+			return err
+		}
+		return q.DeleteAdminSessionsByAdmin(ctx, telegramID)
+	})
+}

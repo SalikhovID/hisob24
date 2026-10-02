@@ -67,3 +67,24 @@ func TestAddAdminValidation(t *testing.T) {
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM admins").Scan(&admins))
 	assert.Equal(t, 1, admins, "only the owner")
 }
+
+func TestDeactivateAdmin(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	ctx := t.Context()
+	mustExec(t, pool, "INSERT INTO admins (telegram_id, full_name) VALUES (42, 'Ikkinchi')")
+	issued, err := a.IssueLoginCode(ctx, 42)
+	require.NoError(t, err)
+	s, err := a.LoginWithCode(ctx, issued.Code)
+	require.NoError(t, err)
+
+	require.NoError(t, a.DeactivateAdmin(ctx, ownerID, 42))
+
+	active, err := a.IsActiveAdmin(ctx, 42)
+	require.NoError(t, err)
+	assert.False(t, active)
+	var sessions int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM admin_sessions WHERE admin_id = 42").Scan(&sessions))
+	assert.Zero(t, sessions, "the sessions are deleted")
+	_, err = a.Authenticate(ctx, s.ID.String())
+	assert.ErrorIs(t, err, ErrUnauthenticated)
+}
