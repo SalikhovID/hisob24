@@ -1,5 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query"
 import { ApiError } from "./api"
+import { leave } from "./navigate"
 
 // refused is an answer that asking again will not change.
 const refused = (error: unknown) => error instanceof ApiError && error.status >= 400 && error.status < 500
@@ -8,7 +9,7 @@ const refused = (error: unknown) => error instanceof ApiError && error.status >=
 // unauthorized, which the API client answers only once the refresh failed
 // too) leads to /login; a wrong login code is a 401 too, but with its own
 // code, and stays put. Refusals are not retried.
-export function makeQueryClient(onUnauthorized = () => window.location.replace("/login")) {
+export function makeQueryClient(onUnauthorized = () => leave("/login")) {
   const onError = (error: unknown) => {
     if (error instanceof ApiError && error.status === 401 && error.code === "unauthorized") onUnauthorized()
   }
