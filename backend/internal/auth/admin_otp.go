@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
@@ -72,20 +73,37 @@ func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (Login
 		if err := q.DeleteStaleAdminLoginCodes(ctx, telegramID); err != nil {
 			return err
 		}
-		code, err := a.newCode()
-		if err != nil {
-			return err
+		// The hash of another admin's live code is taken (unique index): draw
+		// again, inside a savepoint so the transaction survives the failure.
+		for {
+			code, err := a.newCode()
+			if err != nil {
+				return err
+			}
+			var id int64
+			err = pgx.BeginFunc(ctx, tx, func(sp pgx.Tx) error {
+				var err error
+				id, err = a.q.WithTx(sp).CreateAdminLoginCode(ctx, gen.CreateAdminLoginCodeParams{
+					AdminID:   telegramID,
+					CodeHash:  HashCode(a.secret, code),
+					ExpiresAt: a.now().Add(loginCodeTTL),
+				})
+				return err
+			})
+			if isUniqueViolation(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			issued = LoginCode{ID: id, Code: code}
+			return nil
 		}
-		id, err := q.CreateAdminLoginCode(ctx, gen.CreateAdminLoginCodeParams{
-			AdminID:   telegramID,
-			CodeHash:  HashCode(a.secret, code),
-			ExpiresAt: a.now().Add(loginCodeTTL),
-		})
-		if err != nil {
-			return err
-		}
-		issued = LoginCode{ID: id, Code: code}
-		return nil
 	})
 	return issued, err
+}
+
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }

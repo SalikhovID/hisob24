@@ -92,3 +92,17 @@ func TestIssueLoginCodeReplacesUnusedCodes(t *testing.T) {
 	assert.Equal(t, []int64{second.ID}, ids)
 	assert.NotEqual(t, first.ID, second.ID)
 }
+
+func TestIssueLoginCodeDrawsAgainOnACollision(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	mustExec(t, pool, "INSERT INTO admins (telegram_id) VALUES (42)")
+	a.newCode = codes("111111")
+	_, err := a.IssueLoginCode(t.Context(), 42)
+	require.NoError(t, err)
+
+	a.newCode = codes("111111", "222222")
+	issued, err := a.IssueLoginCode(t.Context(), ownerID)
+
+	require.NoError(t, err)
+	assert.Equal(t, "222222", issued.Code)
+}
