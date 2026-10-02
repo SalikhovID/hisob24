@@ -46,3 +46,24 @@ func TestAddAdmin(t *testing.T) {
 	assert.Equal(t, apperr.Conflict, e.Kind)
 	assert.Equal(t, "admin_exists", e.Code)
 }
+
+func TestAddAdminValidation(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	for name, tc := range map[string]struct {
+		id       int64
+		fullName string
+	}{
+		"no telegram id":       {0, "Ism"},
+		"negative telegram id": {-5, "Ism"},
+		"no name":              {43, "  "},
+	} {
+		_, err := a.AddAdmin(t.Context(), tc.id, tc.fullName)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, apperr.Invalid, e.Kind, name)
+		}
+	}
+	var admins int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM admins").Scan(&admins))
+	assert.Equal(t, 1, admins, "only the owner")
+}
