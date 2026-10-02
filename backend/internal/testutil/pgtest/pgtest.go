@@ -64,12 +64,15 @@ func New(t testing.TB) *pgxpool.Pool {
 		t.Fatalf("pgtest: create database: %v", err)
 	}
 	// Registered before the pool's Close, so it runs after it (cleanups run
-	// last-in first-out).
+	// last-in first-out). No WITH (FORCE): an autovacuum worker may be
+	// connected, and FORCE refuses to terminate it for a non-superuser role
+	// ("permission denied to terminate process"), while a plain DROP stops
+	// autovacuum itself and waits up to 5 s for closing sessions.
 	t.Cleanup(func() {
 		// t.Context() is already cancelled when cleanups run.
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if _, err := srv.admin.Exec(ctx, "DROP DATABASE IF EXISTS "+ident(name)+" WITH (FORCE)"); err != nil {
+		if _, err := srv.admin.Exec(ctx, "DROP DATABASE IF EXISTS "+ident(name)); err != nil {
 			t.Errorf("pgtest: drop %s: %v", name, err)
 		}
 	})
@@ -145,7 +148,7 @@ func ensureTemplate(ctx context.Context, rawURL string, base *url.URL) (string, 
 
 	building := name + "_building"
 	for _, stmt := range []string{
-		"DROP DATABASE IF EXISTS " + ident(building) + " WITH (FORCE)",
+		"DROP DATABASE IF EXISTS " + ident(building),
 		"CREATE DATABASE " + ident(building),
 	} {
 		if _, err := conn.Exec(ctx, stmt); err != nil {
@@ -217,7 +220,7 @@ func dropLeftovers(ctx context.Context, conn *pgx.Conn, keepTemplate string, now
 		if !isLeftover(name, keepTemplate, now) {
 			continue
 		}
-		if _, err := conn.Exec(ctx, "DROP DATABASE IF EXISTS "+ident(name)+" WITH (FORCE)"); err != nil {
+		if _, err := conn.Exec(ctx, "DROP DATABASE IF EXISTS "+ident(name)); err != nil {
 			return fmt.Errorf("drop leftover %s: %w", name, err)
 		}
 	}
