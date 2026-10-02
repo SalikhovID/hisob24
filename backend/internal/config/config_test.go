@@ -77,6 +77,25 @@ func TestLoad(t *testing.T) {
 			env:     with(requiredEnv(), map[string]string{"SMS_DRIVER": "sms"}),
 			wantErr: []string{"SMS_DRIVER", `"sms"`},
 		},
+		{
+			name: "COOKIE_SECURE=false turns Secure cookies off",
+			env:  with(requiredEnv(), map[string]string{"COOKIE_SECURE": "false"}),
+			want: Config{
+				DatabaseURL:   "postgres://localhost/hisob24",
+				HTTPAddr:      ":8080",
+				BotMode:       "polling",
+				OTPHMACSecret: "otp-secret",
+				JWTSecret:     "jwt-secret",
+				CookieSecure:  false,
+				SMSDriver:     "log",
+				EskizFrom:     "4546",
+			},
+		},
+		{
+			name:    "COOKIE_SECURE must be a boolean",
+			env:     with(requiredEnv(), map[string]string{"COOKIE_SECURE": "maybe"}),
+			wantErr: []string{"COOKIE_SECURE", `"maybe"`},
+		},
 	}
 
 	for _, tt := range tests {

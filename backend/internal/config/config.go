@@ -4,6 +4,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 // Config holds every setting the API process reads from the environment.
@@ -61,6 +62,14 @@ func Load(getenv func(string) string) (Config, error) {
 	}
 	if cfg.SMSDriver != "log" && cfg.SMSDriver != "eskiz" {
 		errs = append(errs, fmt.Errorf("SMS_DRIVER must be log or eskiz, got %q", cfg.SMSDriver))
+	}
+	if v := getenv("COOKIE_SECURE"); v != "" {
+		secure, err := strconv.ParseBool(v)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("COOKIE_SECURE must be true or false, got %q", v))
+		} else {
+			cfg.CookieSecure = secure
+		}
 	}
 	if len(errs) > 0 {
 		return Config{}, fmt.Errorf("config: %w", errors.Join(errs...))
