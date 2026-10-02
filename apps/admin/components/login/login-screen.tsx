@@ -3,11 +3,13 @@
 import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { type ReactNode, useEffect, useState } from "react"
-import { api, call } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { api, ApiError, call } from "@/lib/api"
 import { waitForWebApp } from "@/lib/telegram"
+import type { TelegramWebApp } from "@/types/telegram"
 import { OtpLogin } from "./otp-login"
 
-type Stage = { kind: "code" } | { kind: "checking" }
+type Stage = { kind: "code" } | { kind: "checking" } | { kind: "not_admin"; webApp: TelegramWebApp }
 
 // LoginScreen signs an admin in: inside Telegram by itself with initData
 // (no code, no extra step), in a browser with the bot's code.
@@ -20,7 +22,13 @@ export function LoginScreen({ botUsername }: { botUsername: string }) {
     waitForWebApp().then(async (webApp) => {
       if (cancelled || !webApp) return
       setStage({ kind: "checking" })
-      await call(api.POST("/admin/auth/telegram", { body: { initData: webApp.initData } }))
+      try {
+        await call(api.POST("/admin/auth/telegram", { body: { initData: webApp.initData } }))
+      } catch (error) {
+        if (cancelled) return
+        if (error instanceof ApiError && error.code === "not_admin") setStage({ kind: "not_admin", webApp })
+        return
+      }
       if (!cancelled) router.replace("/companies")
     })
     return () => {
@@ -28,6 +36,20 @@ export function LoginScreen({ botUsername }: { botUsername: string }) {
     }
   }, [router])
 
+  if (stage.kind === "not_admin") {
+    return (
+      <Centered>
+        <h1 className="text-xl font-semibold">Sizda ruxsat yo&apos;q</h1>
+        <p className="text-sm text-muted-foreground">
+          Panelga faqat adminlar kira oladi. Kerak bo&apos;lsa, adminga Telegram ID&apos;ingizni yuboring.
+        </p>
+        <p className="font-mono text-sm">Telegram ID: {stage.webApp.initDataUnsafe.user?.id}</p>
+        <Button className="mt-2" onClick={() => stage.webApp.close()}>
+          Yopish
+        </Button>
+      </Centered>
+    )
+  }
   if (stage.kind === "checking") {
     return (
       <Centered>

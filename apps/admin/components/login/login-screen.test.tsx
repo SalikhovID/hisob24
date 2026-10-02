@@ -30,3 +30,19 @@ test("inside Telegram an admin is signed in with initData, no code asked", async
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/companies"))
   expect(sent).toEqual({ initData: webApp.initData })
 })
+
+test("a Telegram user who is no admin sees why, with their ID and a close button", async () => {
+  const webApp = fakeWebApp({
+    initData: "user=%7B%22id%22%3A42%7D&hash=abc",
+    initDataUnsafe: { user: { id: 42, first_name: "Begona" } },
+  })
+  window.Telegram = { WebApp: webApp }
+  const { user } = renderWithProviders(<LoginScreen botUsername="hisob24_admin_bot" />)
+
+  expect(await screen.findByRole("heading", { name: "Sizda ruxsat yo'q" })).toBeInTheDocument()
+  expect(screen.getByText("Telegram ID: 42")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Yopish" }))
+
+  expect(webApp.close).toHaveBeenCalled()
+  expect(router.replace).not.toHaveBeenCalled()
+})
