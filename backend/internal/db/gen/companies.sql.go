@@ -75,6 +75,20 @@ func (q *Queries) GetCompany(ctx context.Context, id int64) (Company, error) {
 	return i, err
 }
 
+const isCompanySubscriptionActive = `-- name: IsCompanySubscriptionActive :one
+SELECT (end_date >= CURRENT_DATE AND is_active)::boolean AS active
+FROM companies
+WHERE id = $1
+`
+
+// The user middleware's check: false means 402 subscription_expired.
+func (q *Queries) IsCompanySubscriptionActive(ctx context.Context, id int64) (bool, error) {
+	row := q.db.QueryRow(ctx, isCompanySubscriptionActive, id)
+	var active bool
+	err := row.Scan(&active)
+	return active, err
+}
+
 const listCompanies = `-- name: ListCompanies :many
 SELECT id, name, end_date, is_active, created_by, created_at FROM companies
 WHERE ($1::text IS NULL OR name ILIKE '%' || $1::text || '%')

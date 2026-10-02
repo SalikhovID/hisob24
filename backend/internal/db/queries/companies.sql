@@ -43,3 +43,9 @@ FOR UPDATE;
 
 -- name: SetCompanyEndDate :exec
 UPDATE companies SET end_date = $2 WHERE id = $1;
+
+-- name: IsCompanySubscriptionActive :one
+-- The user middleware's check: false means 402 subscription_expired.
+SELECT (end_date >= CURRENT_DATE AND is_active)::boolean AS active
+FROM companies
+WHERE id = $1;

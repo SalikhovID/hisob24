@@ -166,3 +166,27 @@ func TestSetCompanyEndDate(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, got.EndDate.Equal(d.AddDate(0, 0, 30)))
 }
+
+func TestIsCompanySubscriptionActive(t *testing.T) {
+	q, pool := setup(t)
+	d := today(t, pool)
+	endsToday := createCompany(t, q, "Bugun", d)
+	endedYesterday := createCompany(t, q, "Kecha", d.AddDate(0, 0, -1))
+	blocked := createCompany(t, q, "Blok", d.AddDate(0, 0, 30))
+	mustExec(t, pool, "UPDATE companies SET is_active = false WHERE id = $1", blocked.ID)
+
+	for name, tc := range map[string]struct {
+		id   int64
+		want bool
+	}{
+		"ends today":      {endsToday.ID, true},
+		"ended yesterday": {endedYesterday.ID, false},
+		"blocked":         {blocked.ID, false},
+	} {
+		got, err := q.IsCompanySubscriptionActive(t.Context(), tc.id)
+		require.NoError(t, err, name)
+		assert.Equal(t, tc.want, got, name)
+	}
+	_, err := q.IsCompanySubscriptionActive(t.Context(), blocked.ID+1)
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
+}
