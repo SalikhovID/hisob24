@@ -243,3 +243,22 @@ Texnik eslatmalar:
 - `pgtest` test DB'larini `DROP DATABASE` bilan o'chiradi, `WITH (FORCE)` ishlatilmaydi.
   - Test DB'ga ulangan autovacuum worker'ni FORCE superuser bo'lmagan rol uchun to'xtata olmaydi: "permission denied to terminate process" chiqardi, stress-run'da 40 dan 1 holat.
   - Oddiy DROP autovacuum'ni o'zi to'xtatadi: 100 dan 0 yiqilish.
+
+## 3-bosqich qarorlari (2026-10-02)
+
+- **Rate limit IP'si.**
+  - Next 16 rewrites mijozning `X-Forwarded-For` ini o'zgarishsiz uzatadi va o'zi qo'shmaydi; Go ulanishni 127.0.0.1 dan ko'radi (amalda tekshirilgan).
+  - `httpx.ClientIP` loopback yoki private manzildan kelgan so'rovda XFF'ning eng o'ngdagi ommaviy manzilini oladi.
+  - Production'da Next oldida mijoz IP'sini o'zi qo'shadigan proksi turishi shart (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for`). Aks holda XFF'ni soxtalashtirib limitni aylanib o'tish mumkin. 8-bosqich README'ga yoziladi.
+- **Webhook.**
+  - go-telegram/bot'ning `WebhookHandler` noto'g'ri secret kelganda ham 200 qaytaradi.
+  - Shuning uchun `/webhooks/admin-bot` oldida `httpx.TelegramSecret` turadi va 401 qaytaradi.
+- **Menu button.** Telegram faqat https Mini App URL qabul qiladi. `SetMenuButton` xatosi ishga tushishni to'xtatmaydi, faqat ogohlantirish yoziladi. `setWebhook` xatosi esa to'xtatadi.
+- **Bot token bo'sh bo'lsa** admin bot o'chiq: API ishlaydi, `/webhooks/admin-bot` mount qilinmaydi.
+- **`make otp`.**
+  - Faqat `SMS_DRIVER=log` da ishlaydi. Bu spec'dagi "kodlar faqat log rejimida chiqishi mumkin" qoidasiga mos.
+  - Kod `AdminAuth.IssueLoginCode` orqali bot bilan bir xil yo'ldan chiqadi.
+- **initData testi.**
+  - telegram-mini-apps e'lon qilgan namuna ishlatilgan (token `5768337691:…`, hash `c501b71e…`).
+  - Hash core.telegram.org'dagi algoritm bo'yicha mustaqil hisoblab tasdiqlangan.
+  - Imzosiz, boshqa bot imzolagan, o'zgartirilgan va 24 soatdan eski holatlar rad etiladi.

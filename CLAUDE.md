@@ -67,7 +67,7 @@ make lint         # go vet + golangci-lint + pnpm lint + pnpm typecheck
 make db           # hisob24 roli va DB'ni idempotent yaratadi
 make tools        # goose, sqlc, golangci-lint → backend/bin (pin qilingan versiyalar)
 make api-client   # openapi.yaml → packages/api-client
-make otp          # lokal: owner admin uchun login kodi (3-bosqichdan)
+make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa birinchi faol admin)
 ```
 
 ## Lokal muhit
