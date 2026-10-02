@@ -63,7 +63,12 @@ func (h *Handler) login(ctx context.Context, chatID, telegramID int64) {
 		slog.ErrorContext(ctx, "admin bot: issue login code", "telegram_id", telegramID, "err", err)
 		return
 	}
-	_ = h.send(ctx, chatID, fmt.Sprintf(codeText, code.Code))
+	if err := h.send(ctx, chatID, fmt.Sprintf(codeText, code.Code)); err != nil {
+		// The code never reached the admin, so it must not stay usable.
+		if err := h.auth.DiscardLoginCode(ctx, code.ID); err != nil {
+			slog.ErrorContext(ctx, "admin bot: discard login code", "code_id", code.ID, "err", err)
+		}
+	}
 }
 
 func (h *Handler) send(ctx context.Context, chatID int64, html string) error {

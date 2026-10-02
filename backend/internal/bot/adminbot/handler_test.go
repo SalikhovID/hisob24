@@ -2,6 +2,7 @@ package adminbot
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/go-telegram/bot"
@@ -86,4 +87,12 @@ func TestLoginRefusesStrangers(t *testing.T) {
 	require.Len(t, api.sent, 1)
 	assert.Equal(t, "Sizda ruxsat yo'q.\nTelegram ID: <code>42</code>", api.sent[0].Text)
 	assert.Empty(t, a.issued)
+}
+
+func TestLoginDiscardsAnUndeliveredCode(t *testing.T) {
+	api, a := &fakeAPI{sendErr: errors.New("telegram is down")}, &fakeAuth{admins: map[int64]bool{100: true}}
+
+	NewHandler(api, a).Handle(t.Context(), message(100, "/login"))
+
+	assert.Equal(t, []int64{7}, a.discarded)
 }
