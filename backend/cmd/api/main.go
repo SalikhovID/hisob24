@@ -64,7 +64,7 @@ func run() error {
 	if cfg.SMSDriver == "log" {
 		slog.Warn("SMS_DRIVER=log: login codes go to this log, no SMS is sent")
 	}
-	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, sms.New(cfg, slog.Default()))
+	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, cfg.UserBotToken, sms.New(cfg, slog.Default()))
 	appAPI := app.NewHandler(app.Services{
 		Auth:     userAuth,
 		Profiles: user.NewProfiles(pool),

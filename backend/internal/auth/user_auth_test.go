@@ -15,7 +15,10 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
-const testJWTSecret = "test-jwt-secret"
+const (
+	testJWTSecret    = "test-jwt-secret"
+	testUserBotToken = "4242:test-user-bot-token"
+)
 
 type sentSMS struct{ phone, text string }
 
@@ -44,7 +47,7 @@ func newUserAuth(t *testing.T) (*UserAuth, *pgxpool.Pool, *fakeSender) {
 	t.Parallel()
 	pool := pgtest.New(t)
 	sender := &fakeSender{}
-	a := NewUserAuth(pool, testOTPSecret, testJWTSecret, sender)
+	a := NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, sender)
 	a.newCode = codes("123456", "654321", "111111", "222222")
 	return a, pool, sender
 }
@@ -359,7 +362,7 @@ func TestAuthenticateAcceptsTheAccessTokensItIssued(t *testing.T) {
 	assert.Equal(t, AccessClaims{Phone: "998901234567", CompanyID: &companyID, Role: "owner"}, claims)
 	_, err = a.Authenticate("abc.def.ghi")
 	assert.ErrorIs(t, err, ErrInvalidAccessToken)
-	_, err = NewUserAuth(pool, testOTPSecret, "another-secret", &fakeSender{}).Authenticate(tokens.AccessToken)
+	_, err = NewUserAuth(pool, testOTPSecret, "another-secret", testUserBotToken, &fakeSender{}).Authenticate(tokens.AccessToken)
 	assert.ErrorIs(t, err, ErrInvalidAccessToken, "signed with JWT_SECRET only")
 }
 

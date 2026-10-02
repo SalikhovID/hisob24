@@ -24,7 +24,7 @@ func TestAdminAndUserTokensDoNotCross(t *testing.T) {
 	adminAuth := auth.NewAdminAuth(pool, testOTPSecret, "123456:test-bot-token")
 	adminAPI := admin.NewHandler(admin.Services{Auth: adminAuth}, true, httpx.NewRateLimiter(5, time.Minute))
 	appAPI := NewHandler(
-		Services{Auth: auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, box), Profiles: user.NewProfiles(pool)},
+		Services{Auth: auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box), Profiles: user.NewProfiles(pool)},
 		true, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute),
 	)
 	api := testAPI{router: httpx.NewRouter(adminAPI.Routes, appAPI.Routes), pool: pool, sms: box}

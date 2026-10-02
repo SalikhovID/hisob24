@@ -46,6 +46,7 @@ type UserAuth struct {
 	q               *gen.Queries
 	otpSecret       []byte
 	jwtSecret       []byte
+	userBotToken    string // signs the user Mini App's initData
 	sender          sms.Sender
 	now             func() time.Time
 	newCode         func() (string, error)
@@ -53,14 +54,16 @@ type UserAuth struct {
 }
 
 // NewUserAuth wires the user app's sign-in. Codes are stored as HMACs with
-// otpSecret; access tokens are signed with jwtSecret.
-func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret string, sender sms.Sender) *UserAuth {
+// otpSecret; access tokens are signed with jwtSecret; the Mini App's initData
+// is signed with userBotToken (empty: no Mini App sign-in).
+func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret, userBotToken string, sender sms.Sender) *UserAuth {
 	return &UserAuth{
-		pool:      pool,
-		q:         gen.New(pool),
-		otpSecret: []byte(otpSecret),
-		jwtSecret: []byte(jwtSecret),
-		sender:    sender,
+		pool:         pool,
+		q:            gen.New(pool),
+		otpSecret:    []byte(otpSecret),
+		jwtSecret:    []byte(jwtSecret),
+		userBotToken: userBotToken,
+		sender:       sender,
 		now:       time.Now,
 		newCode:   func() (string, error) { return NewCode(rand.Reader) },
 		newRefreshToken: func() (string, error) {

@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	alisPhone     = "998901234567"
-	testOTPSecret = "test-otp-secret"
-	testJWTSecret = "test-jwt-secret"
+	alisPhone        = "998901234567"
+	testOTPSecret    = "test-otp-secret"
+	testJWTSecret    = "test-jwt-secret"
+	testUserBotToken = "4242:test-user-bot-token"
 )
 
 // smsBox keeps the last SMS each phone got.
@@ -70,7 +71,7 @@ func newTestAPI(t *testing.T) testAPI {
 	pool := pgtest.New(t)
 	box := &smsBox{last: map[string]string{}}
 	h := NewHandler(
-		Services{Auth: auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, box), Profiles: user.NewProfiles(pool)},
+		Services{Auth: auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box), Profiles: user.NewProfiles(pool)},
 		true,
 		httpx.NewRateLimiter(5, time.Minute),
 		httpx.NewRateLimiter(5, time.Minute),
