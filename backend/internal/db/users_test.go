@@ -56,3 +56,24 @@ func TestUserExists(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, exists)
 }
+
+func TestUpsertCompanyUser(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+	createUser(t, q, "998901234567", "Ali")
+
+	m, err := q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "staff"})
+	require.NoError(t, err)
+	assert.Equal(t, "staff", m.Role)
+
+	m, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "manager"})
+	require.NoError(t, err)
+	assert.Equal(t, "manager", m.Role, "a member gets the new role")
+	var members int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM user_companies WHERE company_id = $1", c.ID).Scan(&members))
+	assert.Equal(t, 1, members)
+
+	_, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "boss"})
+	assert.Equal(t, "23514", sqlState(err), "role is owner, manager or staff") // check_violation
+}
