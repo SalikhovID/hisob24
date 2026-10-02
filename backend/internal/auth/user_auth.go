@@ -255,22 +255,24 @@ func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, er
 	return tokens, err
 }
 
-// SwitchCompany chooses one of the user's companies, in one transaction:
-// the user's refresh token is replaced by one that remembers the company, so
-// refreshing later keeps it.
+// SwitchCompany chooses one of the user's companies, or with a nil
+// companyID none (the way out of an expired one to the list), in one
+// transaction: the user's refresh token is replaced by one that remembers
+// the choice, so refreshing later keeps it.
 func (a *UserAuth) SwitchCompany(ctx context.Context, phone, refreshToken string, companyID *int64) (Tokens, error) {
-	if companyID == nil {
-		return Tokens{}, ErrNotMember
-	}
 	var tokens Tokens
 	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
 		q := a.q.WithTx(tx)
-		membership, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: phone, CompanyID: *companyID})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrNotMember
-		}
-		if err != nil {
-			return err
+		var role string
+		if companyID != nil {
+			membership, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: phone, CompanyID: *companyID})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotMember
+			}
+			if err != nil {
+				return err
+			}
+			role = membership.Role
 		}
 		revoked, err := q.RevokeRefreshToken(ctx, hashToken(refreshToken))
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -282,7 +284,7 @@ func (a *UserAuth) SwitchCompany(ctx context.Context, phone, refreshToken string
 		if revoked.UserPhone != phone {
 			return ErrInvalidRefresh // rolled back: the owner keeps it
 		}
-		tokens, err = a.issue(ctx, q, phone, companyID, membership.Role)
+		tokens, err = a.issue(ctx, q, phone, companyID, role)
 		return err
 	})
 	return tokens, err

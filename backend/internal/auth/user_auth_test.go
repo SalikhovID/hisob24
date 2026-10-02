@@ -362,3 +362,20 @@ func TestAuthenticateAcceptsTheAccessTokensItIssued(t *testing.T) {
 	_, err = NewUserAuth(pool, testOTPSecret, "another-secret", &fakeSender{}).Authenticate(tokens.AccessToken)
 	assert.ErrorIs(t, err, ErrInvalidAccessToken, "signed with JWT_SECRET only")
 }
+
+func TestSwitchCompanyToNoneClearsTheChoice(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	olma := addCompany(t, pool, "Olma", -3)
+	first := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner"})
+
+	cleared, err := a.SwitchCompany(t.Context(), "998901234567", first.RefreshToken, nil)
+
+	require.NoError(t, err)
+	assert.Nil(t, cleared.CompanyID, "no company chosen: the app shows the list")
+	assert.Empty(t, cleared.Role)
+	_, err = a.Refresh(t.Context(), first.RefreshToken)
+	assert.ErrorIs(t, err, ErrInvalidRefresh, "the old refresh token is replaced")
+	refreshed, err := a.Refresh(t.Context(), cleared.RefreshToken)
+	require.NoError(t, err)
+	assert.Nil(t, refreshed.CompanyID, "and the new one remembers no company")
+}
