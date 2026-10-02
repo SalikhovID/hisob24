@@ -10,8 +10,9 @@ import { api, call } from "@/lib/api"
 const SLOTS = [0, 1, 2, 3, 4, 5]
 
 // OtpLogin is the browser login: the code the admin bot sends after /login.
-// There is no button: the sixth digit sends the code.
-export function OtpLogin({ botUsername }: { botUsername: string }) {
+// There is no button: the sixth digit sends the code. notice says why the
+// code is asked for after all (a failed Telegram sign-in).
+export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?: string }) {
   const router = useRouter()
   const [code, setCode] = useState("")
   const input = useRef<HTMLInputElement>(null)
@@ -28,6 +29,11 @@ export function OtpLogin({ botUsername }: { botUsername: string }) {
   return (
     <main className="flex min-h-svh items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6 text-center">
+        {notice && (
+          <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {notice}
+          </p>
+        )}
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Hisob24 Admin</h1>
           <p className="text-sm text-muted-foreground">

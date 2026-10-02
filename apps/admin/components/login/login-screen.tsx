@@ -9,7 +9,10 @@ import { waitForWebApp } from "@/lib/telegram"
 import type { TelegramWebApp } from "@/types/telegram"
 import { OtpLogin } from "./otp-login"
 
-type Stage = { kind: "code" } | { kind: "checking" } | { kind: "not_admin"; webApp: TelegramWebApp }
+type Stage =
+  | { kind: "code"; notice?: string }
+  | { kind: "checking" }
+  | { kind: "not_admin"; webApp: TelegramWebApp }
 
 // LoginScreen signs an admin in: inside Telegram by itself with initData
 // (no code, no extra step), in a browser with the bot's code.
@@ -27,6 +30,7 @@ export function LoginScreen({ botUsername }: { botUsername: string }) {
       } catch (error) {
         if (cancelled) return
         if (error instanceof ApiError && error.code === "not_admin") setStage({ kind: "not_admin", webApp })
+        else setStage({ kind: "code", notice: (error as Error).message })
         return
       }
       if (!cancelled) router.replace("/companies")
@@ -58,7 +62,7 @@ export function LoginScreen({ botUsername }: { botUsername: string }) {
       </Centered>
     )
   }
-  return <OtpLogin botUsername={botUsername} />
+  return <OtpLogin botUsername={botUsername} notice={stage.notice} />
 }
 
 function Centered({ children }: { children: ReactNode }) {

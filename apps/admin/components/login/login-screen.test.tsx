@@ -46,3 +46,21 @@ test("a Telegram user who is no admin sees why, with their ID and a close button
   expect(webApp.close).toHaveBeenCalled()
   expect(router.replace).not.toHaveBeenCalled()
 })
+
+test("when Telegram sign-in fails the message shows and the code form takes over", async () => {
+  window.Telegram = { WebApp: fakeWebApp() }
+  server.use(
+    http.post("*/api/admin/auth/telegram", () =>
+      HttpResponse.json(
+        { error: "invalid_init_data", message: "Telegram ma'lumotlari tasdiqlanmadi" },
+        { status: 401 },
+      ),
+    ),
+  )
+
+  renderWithProviders(<LoginScreen botUsername="hisob24_admin_bot" />)
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Telegram ma'lumotlari tasdiqlanmadi")
+  expect(screen.getByRole("textbox", { name: "Kod" })).toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+})
