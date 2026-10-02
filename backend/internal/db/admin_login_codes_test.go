@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,4 +33,22 @@ func createCode(t *testing.T, q *gen.Queries, adminID int64, hash string, expire
 	id, err := q.CreateAdminLoginCode(context.Background(), gen.CreateAdminLoginCodeParams{AdminID: adminID, CodeHash: hash, ExpiresAt: expiresAt})
 	require.NoError(t, err)
 	return id
+}
+
+func TestConsumeAdminLoginCode(t *testing.T) {
+	q, _ := setup(t)
+	ctx := t.Context()
+	createCode(t, q, ownerID, "fresh", time.Now().Add(time.Minute))
+	createCode(t, q, ownerID, "stale", time.Now().Add(-time.Second))
+
+	adminID, err := q.ConsumeAdminLoginCode(ctx, "fresh")
+	require.NoError(t, err)
+	assert.Equal(t, ownerID, adminID)
+
+	_, err = q.ConsumeAdminLoginCode(ctx, "fresh")
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a code works once")
+	_, err = q.ConsumeAdminLoginCode(ctx, "stale")
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "an expired code does not work")
+	_, err = q.ConsumeAdminLoginCode(ctx, "unknown")
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
 }

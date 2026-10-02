@@ -10,6 +10,21 @@ import (
 	"time"
 )
 
+const consumeAdminLoginCode = `-- name: ConsumeAdminLoginCode :one
+UPDATE admin_login_codes
+SET used_at = now()
+WHERE code_hash = $1 AND used_at IS NULL AND expires_at > now()
+RETURNING admin_id
+`
+
+// Spends a live code in one statement, so a code opens one session only.
+func (q *Queries) ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error) {
+	row := q.db.QueryRow(ctx, consumeAdminLoginCode, codeHash)
+	var admin_id int64
+	err := row.Scan(&admin_id)
+	return admin_id, err
+}
+
 const createAdminLoginCode = `-- name: CreateAdminLoginCode :one
 INSERT INTO admin_login_codes (admin_id, code_hash, expires_at)
 VALUES ($1, $2, $3)
