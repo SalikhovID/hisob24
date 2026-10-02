@@ -49,3 +49,15 @@ test("a switch that fails says why and stays", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")
   expect(router.replace).not.toHaveBeenCalled()
 })
+
+test("a sign-out that fails says why and keeps the session", async () => {
+  await signIn(ZARINA)
+  server.use(http.post("*/api/app/auth/logout", () => HttpResponse.error()))
+  const { user } = renderWithProviders(<Expired />)
+
+  await user.click(screen.getByRole("button", { name: "Chiqish" }))
+
+  expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
+  expect(leave).not.toHaveBeenCalled()
+  expect(accessToken()).not.toBeNull()
+})

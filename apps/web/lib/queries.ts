@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { api, call } from "./api"
 import { leave } from "./navigate"
 import { clearSession, setAccessToken } from "./session"
@@ -26,7 +27,8 @@ export function useSwitchCompany() {
 }
 
 // useLogout revokes the refresh token and leaves for /login as a new page,
-// so nothing of the session stays in memory.
+// so nothing of the session stays in memory. A failed sign-out says why and
+// keeps the session: the cookie would still let the user back in.
 export function useLogout() {
   return useMutation({
     mutationFn: () => call(api.POST("/app/auth/logout")),
@@ -34,5 +36,6 @@ export function useLogout() {
       clearSession()
       leave("/login")
     },
+    onError: (error) => toast.error(error.message),
   })
 }
