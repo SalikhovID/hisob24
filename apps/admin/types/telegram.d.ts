@@ -1,12 +1,12 @@
 // The part of telegram-web-app.js the panel uses.
-interface TelegramWebAppUser {
+export interface TelegramWebAppUser {
   id: number
   first_name?: string
   last_name?: string
   username?: string
 }
 
-interface TelegramWebApp {
+export interface TelegramWebApp {
   initData: string
   initDataUnsafe: { user?: TelegramWebAppUser }
   colorScheme: "light" | "dark"
@@ -25,4 +25,3 @@ declare global {
   }
 }
 
-export {}
