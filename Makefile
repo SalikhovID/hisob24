@@ -14,7 +14,7 @@ GOOSE := $(BIN)/goose
 SQLC := $(BIN)/sqlc
 GOLANGCI := $(BIN)/golangci-lint
 
-.PHONY: dev db tools migrate migrate-down migrate-status migrate-create sqlc test test-go test-web lint lint-go lint-web api-client
+.PHONY: dev db tools migrate migrate-down migrate-status migrate-create sqlc test test-go test-web lint lint-go lint-web api-client otp
 
 dev:
 	./start.sh
@@ -71,3 +71,6 @@ lint-web:
 
 api-client:
 	pnpm --filter @hisob24/api-client generate
+
+otp:
+	cd $(BACKEND) && go run ./cmd/otp $(if $(ID),-telegram-id $(ID))
