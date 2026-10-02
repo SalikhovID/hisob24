@@ -26,6 +26,8 @@ if (browser) {
       dispatchEvent: () => false,
     }),
   })
+  // input-otp looks for password-manager badges with elementFromPoint.
+  document.elementFromPoint = () => null
 }
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }))
