@@ -324,3 +324,26 @@ func TestLogoutRevokesTheRefreshToken(t *testing.T) {
 	assert.NoError(t, a.Logout(t.Context(), tokens.RefreshToken), "twice is fine")
 	assert.NoError(t, a.Logout(t.Context(), "made-up"))
 }
+
+func TestAFailedSignInLeavesTheCodeAndTheTokensAsTheyWere(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	companyID := addCompany(t, pool, "Olma", 30)
+	tokens := signIn(t, a, pool, "998901234567", map[int64]string{companyID: "owner"})
+	a.newCode = codes("123456")
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+	pgtest.FailInserts(t, pool, "refresh_tokens")
+
+	_, err := a.Verify(t.Context(), "998901234567", "123456")
+	require.Error(t, err)
+	_, err = a.Refresh(t.Context(), tokens.RefreshToken)
+	require.Error(t, err)
+	_, err = a.SwitchCompany(t.Context(), "998901234567", tokens.RefreshToken, companyID)
+	require.Error(t, err)
+
+	var codes, live int
+	require.NoError(t, pool.QueryRow(t.Context(), `SELECT
+		(SELECT count(*) FROM sms_codes WHERE phone = '998901234567'),
+		(SELECT count(*) FROM refresh_tokens WHERE revoked_at IS NULL)`).Scan(&codes, &live))
+	assert.Equal(t, 1, codes, "Verify used no code it could not finish with")
+	assert.Equal(t, 1, live, "Refresh and SwitchCompany revoked no token they could not replace")
+}
