@@ -38,6 +38,7 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Route("/app", func(r chi.Router) {
 		r.With(httpx.RateLimit(h.sendLimiter)).Post("/auth/sms/send", h.sendCode)
 		r.With(httpx.RateLimit(h.verifyLimiter)).Post("/auth/sms/verify", h.verify)
+		r.Post("/auth/refresh", h.refresh)
 	})
 }
 
@@ -73,6 +74,24 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 	tokens, err := h.auth.Verify(r.Context(), body.Phone, body.Code)
 	if errors.Is(err, auth.ErrInvalidCode) {
 		httpx.Error(w, http.StatusUnauthorized, "invalid_code", "Kod noto'g'ri yoki muddati o'tgan")
+		return
+	}
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	h.signedIn(w, tokens)
+}
+
+func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie(refreshCookie)
+	if err != nil {
+		h.sessionEnded(w)
+		return
+	}
+	tokens, err := h.auth.Refresh(r.Context(), c.Value)
+	if errors.Is(err, auth.ErrInvalidRefresh) {
+		h.sessionEnded(w)
 		return
 	}
 	if err != nil {

@@ -38,3 +38,22 @@ func (h *Handler) signedIn(w http.ResponseWriter, t auth.Tokens) {
 		CompanyID:   t.CompanyID,
 	})
 }
+
+// sessionEnded answers a refresh token that is missing or no longer live:
+// the cookie is dropped and the app signs in again.
+func (h *Handler) sessionEnded(w http.ResponseWriter) {
+	h.clearRefreshCookie(w)
+	httpx.Error(w, http.StatusUnauthorized, "invalid_refresh_token", "Sessiya tugagan. Qayta kiring")
+}
+
+func (h *Handler) clearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshCookie,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   h.cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}

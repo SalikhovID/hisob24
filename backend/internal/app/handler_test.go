@@ -216,3 +216,39 @@ func TestVerifyIsLimitedPerIPApartFromSend(t *testing.T) {
 	rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"998900000000","code":"000000"}`)
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "a sixth attempt from the same IP within a minute")
 }
+
+// signIn makes phone a user of the companies (id → role) and signs in through
+// the API: the access token and the refresh token's cookie.
+func (api testAPI) signIn(t *testing.T, phone string, roles map[int64]string) (string, *http.Cookie) {
+	t.Helper()
+	api.addUser(t, phone)
+	for companyID, role := range roles {
+		api.addMember(t, phone, companyID, role)
+	}
+	require.Equal(t, http.StatusOK, api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"`+phone+`"}`).Code)
+	rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"`+phone+`","code":"`+api.sms.code(t, phone)+`"}`)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	access, _ := decode(t, rec)["access_token"].(string)
+	return access, refreshCookieOf(t, rec)
+}
+
+func TestRefresh(t *testing.T) {
+	api := newTestAPI(t)
+	companyID := api.addCompany(t, "Olma", 30)
+	_, first := api.signIn(t, alisPhone, map[int64]string{companyID: "owner"})
+
+	rec := api.do(t, http.MethodPost, "/app/auth/refresh", "", cookie(first))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.NotEmpty(t, body["access_token"])
+	assert.EqualValues(t, companyID, body["company_id"], "the company is kept")
+	assert.NotEqual(t, first.Value, refreshCookieOf(t, rec).Value, "the refresh token is rotated")
+
+	rec = api.do(t, http.MethodPost, "/app/auth/refresh", "", cookie(first))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code, "the old token is used up")
+	assert.JSONEq(t, `{"error":"invalid_refresh_token","message":"Sessiya tugagan. Qayta kiring"}`, rec.Body.String())
+	assert.Equal(t, -1, refreshCookieOf(t, rec).MaxAge, "and its cookie is dropped")
+
+	rec = api.do(t, http.MethodPost, "/app/auth/refresh", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code, "no cookie")
+}
