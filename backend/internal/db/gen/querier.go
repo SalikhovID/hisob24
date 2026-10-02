@@ -13,6 +13,8 @@ import (
 type Querier interface {
 	// Spends a live code in one statement, so a code opens one session only.
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
+	// Deletes a matching live code: a code logs in once.
+	ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
 	// A unique violation (23505) means the hash of another unused code: the

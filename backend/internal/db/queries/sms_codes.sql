@@ -9,3 +9,9 @@ SET code_hash = EXCLUDED.code_hash,
     attempts = 0,
     sent_at = now()
 WHERE sms_codes.sent_at <= now() - make_interval(secs => sqlc.arg(cooldown_seconds)::int);
+
+-- name: ConsumeSMSCode :one
+-- Deletes a matching live code: a code logs in once.
+DELETE FROM sms_codes
+WHERE phone = $1 AND code_hash = $2 AND expires_at > now()
+RETURNING phone;

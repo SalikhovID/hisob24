@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,4 +41,28 @@ func smsCodeHash(t *testing.T, pool *pgxpool.Pool, phone string) string {
 	var hash string
 	require.NoError(t, pool.QueryRow(context.Background(), "SELECT code_hash FROM sms_codes WHERE phone = $1", phone).Scan(&hash))
 	return hash
+}
+
+func TestConsumeSMSCode(t *testing.T) {
+	q, _ := setup(t)
+	ctx := t.Context()
+	storeSMSCode(t, q, "998901111111", "right", time.Now().Add(2*time.Minute))
+	storeSMSCode(t, q, "998902222222", "late", time.Now().Add(-time.Second))
+
+	_, err := q.ConsumeSMSCode(ctx, gen.ConsumeSMSCodeParams{Phone: "998901111111", CodeHash: "wrong"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a wrong code")
+	phone, err := q.ConsumeSMSCode(ctx, gen.ConsumeSMSCodeParams{Phone: "998901111111", CodeHash: "right"})
+	require.NoError(t, err)
+	assert.Equal(t, "998901111111", phone)
+	_, err = q.ConsumeSMSCode(ctx, gen.ConsumeSMSCodeParams{Phone: "998901111111", CodeHash: "right"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a code works once")
+	_, err = q.ConsumeSMSCode(ctx, gen.ConsumeSMSCodeParams{Phone: "998902222222", CodeHash: "late"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "an expired code")
+}
+
+func storeSMSCode(t *testing.T, q *gen.Queries, phone, hash string, expiresAt time.Time) {
+	t.Helper()
+	n, err := q.UpsertSMSCode(context.Background(), gen.UpsertSMSCodeParams{Phone: phone, CodeHash: hash, ExpiresAt: expiresAt, CooldownSeconds: 60})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), n)
 }

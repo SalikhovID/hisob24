@@ -10,6 +10,25 @@ import (
 	"time"
 )
 
+const consumeSMSCode = `-- name: ConsumeSMSCode :one
+DELETE FROM sms_codes
+WHERE phone = $1 AND code_hash = $2 AND expires_at > now()
+RETURNING phone
+`
+
+type ConsumeSMSCodeParams struct {
+	Phone    string
+	CodeHash string
+}
+
+// Deletes a matching live code: a code logs in once.
+func (q *Queries) ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error) {
+	row := q.db.QueryRow(ctx, consumeSMSCode, arg.Phone, arg.CodeHash)
+	var phone string
+	err := row.Scan(&phone)
+	return phone, err
+}
+
 const upsertSMSCode = `-- name: UpsertSMSCode :execrows
 INSERT INTO sms_codes (phone, code_hash, expires_at)
 VALUES ($1, $2, $3)
