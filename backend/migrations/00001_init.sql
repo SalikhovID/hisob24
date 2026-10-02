@@ -89,4 +89,14 @@ CREATE TABLE telegram_contacts (
 CREATE INDEX telegram_contacts_phone ON telegram_contacts(phone);
 
 -- +goose Down
-SELECT 'down SQL query';
+-- pgcrypto stays: other objects in the database may use it.
+DROP TABLE telegram_contacts;
+DROP TABLE refresh_tokens;
+DROP TABLE sms_codes;
+DROP TABLE billings;
+DROP TABLE user_companies;
+DROP TABLE users;
+DROP TABLE companies;
+DROP TABLE admin_sessions;
+DROP TABLE admin_login_codes;
+DROP TABLE admins;
