@@ -350,3 +350,44 @@ Belgilangan tafsilotlar:
   - Natija xabari bilan klaviatura olib tashlanadi. Saqlashda xato bo'lsa tugma qoladi.
 - **Paketlar:** `/app` HTTP qismi `internal/app` da (`internal/admin` ning juftligi). `internal/user` da qolsa `auth` ↔ `user` import sikli bo'lardi.
 - **Ma'lum cheklov:** user app uchun alohida URL env'i yo'q (spec ro'yxatida yo'q). Shuning uchun `Sec-Fetch-Site` yubormaydigan juda eski brauzerlar `/app` dagi o'zgartiruvchi so'rovlarda 403 oladi. Zamonaviy brauzerlarga bu ta'sir qilmaydi.
+
+## 7-bosqich qarorlari (2026-10-02)
+
+Foydalanuvchi qarori: **almashtirish imkoniyati.**
+- `POST /app/auth/switch-company {company_id: null}` tanlovni bekor qiladi: refresh token almashadi va company'siz token beriladi.
+- `/expired` da "Boshqa kompaniyani tanlash" tugmasi bor.
+- Dashboard'da "Kompaniyani almashtirish" havolasi chiqadi, lekin faqat tanlash mumkin bo'lgan boshqa company bo'lsa.
+
+Belgilangan tafsilotlar:
+
+- **`/app/me` da `days_left`.** Har bir company uchun `end_date − bugun` (bazaning sanasi bo'yicha, 402 tekshiruvi bilan bir manbadan).
+  - `/select-company` muddati o'tgan company'ni shu qiymatdan biladi, brauzer soati ta'sir qilmaydi (admin'dagi `days_left` bilan bir xil).
+  - Bu javobga qo'shilgan maydon. Spec `/app/me` shaklini belgilamagan.
+- **Telefon maydoni:**
+  - `+998` maydon yonidagi o'zgarmas qo'shimcha (shadcn `InputGroup` addon); maydonda faqat `90 123 45 67` turadi.
+  - Sabab (e2e topgan bug): prefiks maydon ichida bo'lganda kursor uning oldiga tushishi mumkin edi (koddan `focus()` yoki "+998" ustiga bosish). Natijada `"9+998 "` → `+998 99 98…` bo'lardi.
+  - Paste yoki autofill orqali kelgan `+998…` / `998…` (9 raqamdan uzun) boshidagi 998'ni yo'qotadi.
+- **Hydration'gacha forma yopiq.** Telefon maydoni `readOnly`, "Kodni olish" esa `disabled` (`useHydrated`, `useSyncExternalStore` asosida).
+  - Aks holda hydration'dan oldin terilgan raqam o'chib ketadi, tugma esa formani brauzer usulida GET bilan yuboradi va raqam URL'ga tushadi (`/login?phone=…`). Sekin internetda real holat.
+  - e2e buni skriptlarni sun'iy kechiktirib tekshiradi.
+- **Token oqimi:**
+  - access token faqat xotirada (`lib/session`);
+  - `unauthorized` kodli 401 → bitta umumiy refresh (single-flight) → so'rov body bilan bir marta qayta yuboriladi;
+  - refresh rad etilsa, sessiya tozalanadi va `unauthorized` sahifaga yetadi → query client `/login` ni yangi sahifa sifatida ochadi;
+  - qoida xato kodi bo'yicha, yo'l bo'yicha emas: switch-company `/app/auth/` ostida, lekin eskirgan Bearer'da refresh kerak; `invalid_code` esa refresh qilmaydi.
+- **Logout:**
+  - `POST /app/auth/logout` → token tozalanadi → `/login` to'liq sahifa yuklanishi bilan ochiladi (`lib/navigate`). Shunda xotirada sessiyadan hech narsa qolmaydi.
+  - Logout yiqilsa toast chiqadi va sessiya saqlanadi, chunki cookie baribir qayta kiritib yuborardi.
+- **Company almashtirish** keshdagi `/app/me` ni olib tashlaydi, shunda keyingi sahifa eski company'ni ko'rsatmaydi.
+- **Sahifalar:**
+  - `/`: 402 → `/expired`; company tanlanmagan → `/select-company`.
+  - `/select-company`:
+    - muddati o'tgan yoki bloklangan company badge bilan ko'rinadi, lekin tanlanmaydi;
+    - faol company yo'q bo'lsa xabar va "Chiqish";
+    - token'ning company'si muddati o'tgan bo'lsa (402) → `/expired`.
+  - Yuklash, tanlash va almashtirish xatolari sababi bilan ko'rsatiladi, ro'yxat va dashboard'da "Qayta urinish" bor.
+- **Testlar:**
+  - e2e alohida dev serverda ishlaydi (3102-port, `.next-e2e`).
+  - Mock bazasi Playwright jarayonida, shuning uchun test obunani "tugatib" qo'ya oladi.
+  - Taymer `page.clock.runFor` bilan sinaladi. Mock'ning 60 soniyalik cooldown'i shu testda o'chiriladi.
+- **Ma'lum cheklov:** single-flight refresh bitta tab ichida ishlaydi. Ikki tab bir vaqtda bir xil cookie bilan refresh qilsa (rotation), ikkinchisi 401 oladi va `/login` ga o'tadi.

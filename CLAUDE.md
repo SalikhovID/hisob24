@@ -61,7 +61,7 @@ Faqat 1-bosqichdagi skelet sozlamalari (konfiguratsiya fayllari, Docker, Makefil
 ```bash
 make dev          # = ./start.sh: Postgres va DB tekshiruvi, migratsiya, API (air) + admin + web
 make test         # go test ./... + pnpm -r test
-make e2e          # Playwright: admin panel, 375px telefon + desktop, API MSW bilan (port 3101)
+make e2e          # Playwright: admin (3101) va user app (3102), 375px telefon + desktop, API MSW bilan
 make migrate      # goose up (backend/migrations)
 make sqlc         # sqlc generate → backend/internal/db/gen
 make lint         # go vet + golangci-lint + pnpm lint + pnpm typecheck

@@ -114,7 +114,7 @@ Hammasi Vitest + RTL va Playwright + MSW bilan, telefon 375px va desktop'da.
 - [ ] **A2 auth fetch:** saqlangan token `Authorization: Bearer` sifatida yuboriladi.
 - [ ] **A3:** 401 → refresh (cookie) → yangi token saqlanadi → so'rov qaytariladi va muvaffaqiyatli.
 - [ ] **A4:** bir vaqtda kelgan ikkita 401 bitta refresh qiladi (single-flight).
-- [ ] **A5:** refresh ham 401 → sessiya tozalanadi va `onSignedOut` chaqiriladi. `/app/auth/*` 401 bo'lsa refresh qilinmaydi.
+- [ ] **A5:** refresh ham rad etilsa → sessiya tozalanadi va asl 401 (`unauthorized`) qaytadi, `/login` ga esa query client olib boradi. Refresh faqat `unauthorized` kodli 401 da qilinadi (xato SMS kodi `invalid_code` refresh qilmaydi). *(Tuzatish: avval "`/app/auth/*` refresh qilinmaydi" deb yozilgan edi, lekin switch-company ham `/app/auth/` ostida va eskirgan Bearer'da refresh kerak.)*
 - [ ] **Q1 `makeQueryClient`:** 4xx qayta urinilmaydi, 5xx 2 marta.
 
 ### Task 3: proxy.ts
