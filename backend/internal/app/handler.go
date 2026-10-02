@@ -37,6 +37,7 @@ func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx
 func (h *Handler) Routes(r chi.Router) {
 	r.Route("/app", func(r chi.Router) {
 		r.With(httpx.RateLimit(h.sendLimiter)).Post("/auth/sms/send", h.sendCode)
+		r.With(httpx.RateLimit(h.verifyLimiter)).Post("/auth/sms/verify", h.verify)
 	})
 }
 
@@ -59,4 +60,24 @@ func (h *Handler) sendCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]int{"retry_after": 60})
+}
+
+func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	tokens, err := h.auth.Verify(r.Context(), body.Phone, body.Code)
+	if errors.Is(err, auth.ErrInvalidCode) {
+		httpx.Error(w, http.StatusUnauthorized, "invalid_code", "Kod noto'g'ri yoki muddati o'tgan")
+		return
+	}
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	h.signedIn(w, tokens)
 }

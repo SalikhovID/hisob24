@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -143,4 +144,75 @@ func TestSendCodeIsLimitedPerIP(t *testing.T) {
 	rec := api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"998900000009"}`)
 
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "a sixth phone from the same IP within a minute")
+}
+
+func (api testAPI) addCompany(t *testing.T, name string, daysLeft int) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, api.pool.QueryRow(t.Context(),
+		"INSERT INTO companies (name, end_date) VALUES ($1, CURRENT_DATE + $2::int) RETURNING id", name, daysLeft).Scan(&id))
+	return id
+}
+
+func (api testAPI) addMember(t *testing.T, phone string, companyID int64, role string) {
+	t.Helper()
+	api.exec(t, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ($1, $2, $3)", phone, companyID, role)
+}
+
+func decode(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
+	t.Helper()
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &m), rec.Body.String())
+	return m
+}
+
+func refreshCookieOf(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
+	t.Helper()
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "refresh_token" {
+			return c
+		}
+	}
+	t.Fatalf("no refresh_token cookie in %v", rec.Result().Header["Set-Cookie"])
+	return nil
+}
+
+func TestVerify(t *testing.T) {
+	api := newTestAPI(t)
+	api.addUser(t, alisPhone)
+	companyID := api.addCompany(t, "Olma", 30)
+	api.addMember(t, alisPhone, companyID, "owner")
+	api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"`+alisPhone+`"}`)
+
+	rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"`+alisPhone+`","code":"000000"}`)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.JSONEq(t, `{"error":"invalid_code","message":"Kod noto'g'ri yoki muddati o'tgan"}`, rec.Body.String())
+
+	rec = api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"+998 90 123 45 67","code":"`+api.sms.code(t, alisPhone)+`"}`)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.NotEmpty(t, body["access_token"])
+	assert.EqualValues(t, 900, body["expires_in"])
+	assert.EqualValues(t, companyID, body["company_id"])
+	c := refreshCookieOf(t, rec)
+	assert.NotEmpty(t, c.Value)
+	assert.True(t, c.HttpOnly)
+	assert.True(t, c.Secure)
+	assert.Equal(t, http.SameSiteLaxMode, c.SameSite)
+	assert.Equal(t, "/", c.Path)
+	assert.InDelta(t, 30*24*60*60, c.MaxAge, 5)
+}
+
+func TestVerifyIsLimitedPerIPApartFromSend(t *testing.T) {
+	api := newTestAPI(t)
+	for i := range 5 {
+		api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"99890000000`+string(rune('0'+i))+`"}`)
+	}
+
+	for i := range 5 {
+		rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"998900000000","code":"000000"}`)
+		require.Equal(t, http.StatusUnauthorized, rec.Code, "attempt %d: sends are counted apart", i+1)
+	}
+	rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"998900000000","code":"000000"}`)
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "a sixth attempt from the same IP within a minute")
 }
