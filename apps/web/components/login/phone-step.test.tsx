@@ -1,6 +1,8 @@
 import { screen, waitFor } from "@testing-library/react"
 import { http } from "msw"
 import { expect, test, vi } from "vitest"
+import { api, call } from "@/lib/api"
+import { ALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { PhoneStep } from "./phone-step"
@@ -48,5 +50,17 @@ test("an incomplete number is not sent", async () => {
   expect(await screen.findByText("Telefon raqamini to'liq kiriting")).toBeInTheDocument()
   expect(screen.getByRole("textbox", { name: "Telefon raqami" })).toHaveAttribute("aria-invalid", "true")
   expect(requests).toBe(0)
+  expect(onSent).not.toHaveBeenCalled()
+})
+
+test("a second code within a minute shows the API's message", async () => {
+  await call(api.POST("/app/auth/sms/send", { body: { phone: ALI } }))
+  const onSent = vi.fn()
+  const { user } = renderWithProviders(<PhoneStep onSent={onSent} />)
+
+  await user.type(screen.getByRole("textbox", { name: "Telefon raqami" }), "901234567")
+  await user.click(screen.getByRole("button", { name: "Kodni olish" }))
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Kodni qayta olish uchun bir daqiqa kuting")
   expect(onSent).not.toHaveBeenCalled()
 })

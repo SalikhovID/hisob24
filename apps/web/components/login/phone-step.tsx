@@ -57,6 +57,11 @@ export function PhoneStep({
           </Field>
         )}
       />
+      {send.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {send.error.message}
+        </p>
+      )}
       <Button type="submit" className="w-full" disabled={send.isPending}>
         Kodni olish
       </Button>
