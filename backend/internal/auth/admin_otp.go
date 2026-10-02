@@ -12,6 +12,11 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
+const loginCodeTTL = 60 * time.Second
+
+// ErrNotAdmin means the Telegram user is not an active admin.
+var ErrNotAdmin = errors.New("not an active admin")
+
 // AdminAuth logs platform admins in with codes from the admin bot or with
 // Mini App initData, and keeps the sessions both open.
 type AdminAuth struct {
@@ -42,4 +47,41 @@ func (a *AdminAuth) IsActiveAdmin(ctx context.Context, telegramID int64) (bool, 
 		return false, nil
 	}
 	return err == nil, err
+}
+
+// LoginCode is a code for the admin bot to send; ID discards it when the
+// message cannot be delivered.
+type LoginCode struct {
+	ID   int64
+	Code string
+}
+
+// IssueLoginCode creates a login code that lives loginCodeTTL for an active
+// admin; ErrNotAdmin for anyone else.
+func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (LoginCode, error) {
+	var issued LoginCode
+	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		q := a.q.WithTx(tx)
+		if _, err := q.GetActiveAdmin(ctx, telegramID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotAdmin
+			}
+			return err
+		}
+		code, err := a.newCode()
+		if err != nil {
+			return err
+		}
+		id, err := q.CreateAdminLoginCode(ctx, gen.CreateAdminLoginCodeParams{
+			AdminID:   telegramID,
+			CodeHash:  HashCode(a.secret, code),
+			ExpiresAt: a.now().Add(loginCodeTTL),
+		})
+		if err != nil {
+			return err
+		}
+		issued = LoginCode{ID: id, Code: code}
+		return nil
+	})
+	return issued, err
 }
