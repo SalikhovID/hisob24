@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes"
 import { useEffect } from "react"
-import { waitForWebApp } from "@/lib/telegram"
+import { setMiniApp, waitForWebApp } from "@/lib/telegram"
 
 // TelegramSync fits the panel to Telegram when it runs as a Mini App: it
 // tells Telegram the panel is ready, opens it to full height, marks <html>
@@ -16,6 +16,7 @@ export function TelegramSync() {
     let unsubscribe = () => {}
     waitForWebApp().then((webApp) => {
       if (cancelled || !webApp) return
+      setMiniApp(webApp)
       webApp.ready()
       webApp.expand()
       document.documentElement.dataset.telegram = ""

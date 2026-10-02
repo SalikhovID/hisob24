@@ -1,5 +1,6 @@
-import { act, waitFor } from "@testing-library/react"
+import { act, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
+import { useMiniApp } from "@/lib/telegram"
 import { renderWithProviders } from "@/test/render"
 import { fakeWebApp } from "@/test/telegram"
 import { TelegramSync } from "./telegram-sync"
@@ -27,4 +28,27 @@ test("TelegramSync leaves a browser tab as it is", async () => {
   vi.useRealTimers()
 
   expect(document.documentElement).not.toHaveAttribute("data-telegram")
+})
+
+function Probe() {
+  return <p>{useMiniApp() ? "telegram" : "browser"}</p>
+}
+
+test("useMiniApp tells the panel it runs inside Telegram", async () => {
+  window.Telegram = { WebApp: fakeWebApp() }
+
+  renderWithProviders(
+    <>
+      <TelegramSync />
+      <Probe />
+    </>,
+  )
+
+  expect(await screen.findByText("telegram")).toBeInTheDocument()
+})
+
+test("useMiniApp is null in a browser tab", () => {
+  renderWithProviders(<Probe />)
+
+  expect(screen.getByText("browser")).toBeInTheDocument()
 })

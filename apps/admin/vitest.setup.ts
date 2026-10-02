@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest"
+import { setMiniApp } from "./lib/telegram"
 import { resetDb } from "./mocks/data"
 import { setLocation } from "./test/navigation"
 import { server } from "./test/server"
@@ -35,6 +36,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   server.resetHandlers()
+  setMiniApp(null)
   if (browser) {
     delete window.Telegram
     document.documentElement.removeAttribute("data-telegram")
