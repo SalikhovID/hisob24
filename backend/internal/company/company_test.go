@@ -115,3 +115,16 @@ func TestAddUser(t *testing.T) {
 	require.NotNil(t, m.FullName)
 	assert.Equal(t, "Xodim", *m.FullName, "and keeps the name")
 }
+
+func TestAddUserIsAtomic(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	pgtest.FailInserts(t, pool, "user_companies")
+
+	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "staff")
+
+	require.Error(t, err)
+	var exists bool
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM users WHERE phone = '998902223344')").Scan(&exists))
+	assert.False(t, exists, "no user without the membership")
+}
