@@ -53,3 +53,54 @@ func (q *Queries) GetCompany(ctx context.Context, id int64) (Company, error) {
 	)
 	return i, err
 }
+
+const listCompanies = `-- name: ListCompanies :many
+SELECT id, name, end_date, is_active, created_by, created_at FROM companies
+WHERE ($1::text IS NULL OR name ILIKE '%' || $1::text || '%')
+  AND ($2::text IS NULL
+       OR ($2::text = 'active' AND end_date >= CURRENT_DATE AND is_active)
+       OR ($2::text = 'expired' AND (end_date < CURRENT_DATE OR NOT is_active)))
+ORDER BY id DESC
+LIMIT $4 OFFSET $3
+`
+
+type ListCompaniesParams struct {
+	Search *string
+	Status *string
+	Offset int32
+	Limit  int32
+}
+
+// status: "active" = end_date not passed and not blocked, "expired" = past
+// end_date or blocked, NULL = everything. search matches the name in any case.
+func (q *Queries) ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error) {
+	rows, err := q.db.Query(ctx, listCompanies,
+		arg.Search,
+		arg.Status,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Company{}
+	for rows.Next() {
+		var i Company
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.EndDate,
+			&i.IsActive,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
