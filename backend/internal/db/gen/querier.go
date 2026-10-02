@@ -47,6 +47,7 @@ type Querier interface {
 	// Locks the company for a billing transaction. today is the database's
 	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
 	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)
+	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 }

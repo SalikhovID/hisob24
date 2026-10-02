@@ -40,3 +40,6 @@ SELECT end_date, CURRENT_DATE::date AS today
 FROM companies
 WHERE id = $1
 FOR UPDATE;
+
+-- name: SetCompanyEndDate :exec
+UPDATE companies SET end_date = $2 WHERE id = $1;

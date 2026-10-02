@@ -153,3 +153,16 @@ func TestLockCompanyEndDate(t *testing.T) {
 	_, err = pool.Exec(ctx, "SELECT 1 FROM companies WHERE id = $1 FOR UPDATE NOWAIT", c.ID)
 	assert.Equal(t, "55P03", sqlState(err), "the row stays locked until the transaction ends")
 }
+
+func TestSetCompanyEndDate(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	c := createCompany(t, q, "Olma", d)
+
+	require.NoError(t, q.SetCompanyEndDate(ctx, gen.SetCompanyEndDateParams{ID: c.ID, EndDate: d.AddDate(0, 0, 30)}))
+
+	got, err := q.GetCompany(ctx, c.ID)
+	require.NoError(t, err)
+	assert.True(t, got.EndDate.Equal(d.AddDate(0, 0, 30)))
+}

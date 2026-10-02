@@ -147,6 +147,20 @@ func (q *Queries) LockCompanyEndDate(ctx context.Context, id int64) (LockCompany
 	return i, err
 }
 
+const setCompanyEndDate = `-- name: SetCompanyEndDate :exec
+UPDATE companies SET end_date = $2 WHERE id = $1
+`
+
+type SetCompanyEndDateParams struct {
+	ID      int64
+	EndDate time.Time
+}
+
+func (q *Queries) SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error {
+	_, err := q.db.Exec(ctx, setCompanyEndDate, arg.ID, arg.EndDate)
+	return err
+}
+
 const updateCompany = `-- name: UpdateCompany :one
 UPDATE companies
 SET name = COALESCE($1, name),
