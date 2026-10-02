@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
 import { phoneDigits } from "@/lib/phone"
@@ -26,6 +26,7 @@ export function CodeStep({
   void onChangePhone
   const router = useRouter()
   const [code, setCode] = useState("")
+  const input = useRef<HTMLInputElement>(null)
   const verify = useMutation({
     mutationFn: (code: string) =>
       call(api.POST("/app/auth/sms/verify", { body: { phone: phoneDigits(phone) ?? "", code } })),
@@ -35,26 +36,39 @@ export function CodeStep({
       setAccessToken(tokens.access_token)
       router.replace(tokens.company_id === null ? "/select-company" : "/")
     },
+    // A refused code is cleared, so the next one is typed from the start.
+    onError: () => {
+      setCode("")
+      requestAnimationFrame(() => input.current?.focus())
+    },
   })
 
   return (
-    <div className="flex justify-center">
-      <InputOTP
-        aria-label="Kod"
-        maxLength={6}
-        pattern={REGEXP_ONLY_DIGITS}
-        value={code}
-        onChange={setCode}
-        onComplete={(value: string) => verify.mutate(value)}
-        disabled={verify.isPending}
-        autoFocus
-      >
-        <InputOTPGroup>
-          {SLOTS.map((index) => (
-            <InputOTPSlot key={index} index={index} className="size-11 text-lg" />
-          ))}
-        </InputOTPGroup>
-      </InputOTP>
+    <div className="space-y-4">
+      <div className="flex justify-center">
+        <InputOTP
+          ref={input}
+          aria-label="Kod"
+          maxLength={6}
+          pattern={REGEXP_ONLY_DIGITS}
+          value={code}
+          onChange={setCode}
+          onComplete={(value: string) => verify.mutate(value)}
+          disabled={verify.isPending}
+          autoFocus
+        >
+          <InputOTPGroup>
+            {SLOTS.map((index) => (
+              <InputOTPSlot key={index} index={index} aria-invalid={verify.isError} className="size-11 text-lg" />
+            ))}
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
+      {verify.isError && (
+        <p role="alert" className="text-center text-sm text-destructive">
+          {verify.error.message}
+        </p>
+      )}
     </div>
   )
 }

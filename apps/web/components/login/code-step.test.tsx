@@ -28,3 +28,15 @@ test("someone in several companies goes on to choose one", async () => {
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/select-company"))
   expect(accessToken()).toMatch(new RegExp(`^access:${VALI}:none:`))
 })
+
+test("a wrong code is cleared and the API's message shown", async () => {
+  await sendCode(ALI)
+  const { user } = renderWithProviders(<CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />)
+  const input = screen.getByRole("textbox", { name: "Kod" })
+
+  await user.type(input, "000000")
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Kod noto'g'ri yoki muddati o'tgan")
+  expect(input).toHaveValue("")
+  expect(router.replace).not.toHaveBeenCalled()
+})
