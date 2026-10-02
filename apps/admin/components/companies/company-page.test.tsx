@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { renderWithProviders } from "@/test/render"
 import { CompanyPage } from "./company-page"
@@ -30,4 +30,36 @@ test("an unknown company is not found, with the way back to the list", async () 
   expect(await screen.findByRole("heading", { name: "Kompaniya topilmadi" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Kompaniyalar ro'yxatiga" })).toHaveAttribute("href", "/companies")
   expect(screen.queryByRole("button", { name: "Qayta urinish" })).not.toBeInTheDocument()
+})
+
+test("a user is added from the dialog and joins the list", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "User qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "User qo'shish" })
+  await user.type(within(dialog).getByLabelText("Telefon"), "90 777 88 99")
+  await user.type(within(dialog).getByLabelText("Ism"), "Yangi Menejer")
+  await user.selectOptions(within(dialog).getByLabelText("Rol"), "manager")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("User qo'shildi")).toBeInTheDocument()
+  await waitFor(() =>
+    expect(cellsOf(screen.getByRole("table", { name: "Userlar" }))).toContainEqual([
+      "+998 90 777 88 99",
+      "Yangi Menejer",
+      "Menejer",
+    ]),
+  )
+})
+
+test("the add-user dialog says what is missing", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "User qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "User qo'shish" })
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText("Telefon raqami noto'g'ri")).toBeInTheDocument()
+  expect(within(dialog).getByText("Ismni kiriting")).toBeInTheDocument()
 })

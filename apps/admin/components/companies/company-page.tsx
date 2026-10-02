@@ -11,6 +11,7 @@ import { formatDate, formatPhone } from "@/lib/format"
 import { useCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
+import { AddUserDialog } from "./add-user-dialog"
 import { CompanyStatusBadge } from "./status-badge"
 
 const memberColumns: Column<Member>[] = [
@@ -52,9 +53,12 @@ export function CompanyPage({ id }: { id: number }) {
         </dl>
       </section>
       <section aria-labelledby={usersId} className="space-y-3">
-        <h2 id={usersId} className="font-medium">
-          Userlar
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id={usersId} className="font-medium">
+            Userlar
+          </h2>
+          <AddUserDialog companyId={c.id} />
+        </div>
         <DataList label="Userlar" items={c.users} columns={memberColumns} getKey={(m) => m.phone} />
       </section>
     </div>
@@ -65,7 +69,7 @@ function NotFound() {
   return (
     <div className="flex flex-col items-center gap-3 py-12 text-center">
       <h1 className="text-xl font-semibold">Kompaniya topilmadi</h1>
-      <p className="text-sm text-muted-foreground">U o&apos;chirilgan yoki havola noto&apos;g&apos;ri.</p>
+      <p className="text-sm text-muted-foreground">Bunday kompaniya yo&apos;q yoki havola noto&apos;g&apos;ri.</p>
       <Link href="/companies" className={buttonVariants({ variant: "outline" })}>
         Kompaniyalar ro&apos;yxatiga
       </Link>
