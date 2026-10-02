@@ -8,6 +8,8 @@ package gen
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createAdminSession = `-- name: CreateAdminSession :one
@@ -30,6 +32,27 @@ func (q *Queries) CreateAdminSession(ctx context.Context, arg CreateAdminSession
 		&i.AdminID,
 		&i.Source,
 		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getAdminBySession = `-- name: GetAdminBySession :one
+SELECT a.telegram_id, a.full_name, a.is_active, a.created_at
+FROM admin_sessions s
+JOIN admins a ON a.telegram_id = s.admin_id
+WHERE s.id = $1 AND s.expires_at > now() AND a.is_active
+`
+
+// The admin behind a live session; an expired session or a deactivated
+// admin gives pgx.ErrNoRows.
+func (q *Queries) GetAdminBySession(ctx context.Context, id uuid.UUID) (Admin, error) {
+	row := q.db.QueryRow(ctx, getAdminBySession, id)
+	var i Admin
+	err := row.Scan(
+		&i.TelegramID,
+		&i.FullName,
+		&i.IsActive,
 		&i.CreatedAt,
 	)
 	return i, err

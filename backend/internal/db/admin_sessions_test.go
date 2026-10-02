@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,4 +33,22 @@ func createSession(t *testing.T, q *gen.Queries, adminID int64, expiresAt time.T
 	s, err := q.CreateAdminSession(context.Background(), gen.CreateAdminSessionParams{AdminID: adminID, Source: "otp", ExpiresAt: expiresAt})
 	require.NoError(t, err)
 	return s
+}
+
+func TestGetAdminBySession(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	mustExec(t, pool, "INSERT INTO admins (telegram_id, is_active) VALUES (42, false)")
+	live := createSession(t, q, ownerID, time.Now().Add(time.Hour))
+	expired := createSession(t, q, ownerID, time.Now().Add(-time.Second))
+	ofInactive := createSession(t, q, 42, time.Now().Add(time.Hour))
+
+	admin, err := q.GetAdminBySession(ctx, live.ID)
+	require.NoError(t, err)
+	assert.Equal(t, ownerID, admin.TelegramID)
+
+	for name, id := range map[string]uuid.UUID{"expired": expired.ID, "inactive admin": ofInactive.ID, "unknown": uuid.New()} {
+		_, err := q.GetAdminBySession(ctx, id)
+		assert.ErrorIs(t, err, pgx.ErrNoRows, name)
+	}
 }

@@ -6,6 +6,8 @@ package gen
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
@@ -24,6 +26,9 @@ type Querier interface {
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
+	// The admin behind a live session; an expired session or a deactivated
+	// admin gives pgx.ErrNoRows.
+	GetAdminBySession(ctx context.Context, id uuid.UUID) (Admin, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
 	// Locks every active admin row, so "keep at least one active admin" holds
 	// under concurrent deactivations.
