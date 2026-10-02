@@ -62,6 +62,11 @@ func TestLoad(t *testing.T) {
 				EskizFrom:             "4545",
 			},
 		},
+		{
+			name:    "missing required keys are all reported",
+			env:     map[string]string{},
+			wantErr: []string{"DATABASE_URL", "OTP_HMAC_SECRET", "JWT_SECRET"},
+		},
 	}
 
 	for _, tt := range tests {

@@ -1,6 +1,11 @@
 // Package config reads the API process settings from the environment.
 package config
 
+import (
+	"errors"
+	"fmt"
+)
+
 // Config holds every setting the API process reads from the environment.
 type Config struct {
 	DatabaseURL           string
@@ -21,7 +26,7 @@ type Config struct {
 }
 
 // Load builds a Config from getenv (os.Getenv in main). Optional keys fall
-// back to their defaults.
+// back to their defaults; every problem is reported in one error.
 func Load(getenv func(string) string) (Config, error) {
 	cfg := Config{
 		DatabaseURL:           getenv("DATABASE_URL"),
@@ -39,6 +44,20 @@ func Load(getenv func(string) string) (Config, error) {
 		EskizEmail:            getenv("ESKIZ_EMAIL"),
 		EskizPassword:         getenv("ESKIZ_PASSWORD"),
 		EskizFrom:             orDefault(getenv("ESKIZ_FROM"), "4546"),
+	}
+
+	var errs []error
+	for _, req := range []struct{ key, val string }{
+		{"DATABASE_URL", cfg.DatabaseURL},
+		{"OTP_HMAC_SECRET", cfg.OTPHMACSecret},
+		{"JWT_SECRET", cfg.JWTSecret},
+	} {
+		if req.val == "" {
+			errs = append(errs, fmt.Errorf("%s is required", req.key))
+		}
+	}
+	if len(errs) > 0 {
+		return Config{}, fmt.Errorf("config: %w", errors.Join(errs...))
 	}
 	return cfg, nil
 }
