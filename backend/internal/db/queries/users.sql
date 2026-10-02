@@ -23,3 +23,11 @@ FROM user_companies uc
 JOIN users u ON u.phone = uc.user_phone
 WHERE uc.company_id = $1
 ORDER BY uc.created_at, u.phone;
+
+-- name: ListUserCompanies :many
+-- The user's companies for /app/me and for choosing one at login.
+SELECT c.id, c.name, c.end_date, c.is_active, uc.role
+FROM user_companies uc
+JOIN companies c ON c.id = uc.company_id
+WHERE uc.user_phone = $1
+ORDER BY c.name, c.id;

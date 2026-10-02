@@ -61,6 +61,49 @@ func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]List
 	return items, nil
 }
 
+const listUserCompanies = `-- name: ListUserCompanies :many
+SELECT c.id, c.name, c.end_date, c.is_active, uc.role
+FROM user_companies uc
+JOIN companies c ON c.id = uc.company_id
+WHERE uc.user_phone = $1
+ORDER BY c.name, c.id
+`
+
+type ListUserCompaniesRow struct {
+	ID       int64
+	Name     string
+	EndDate  time.Time
+	IsActive bool
+	Role     string
+}
+
+// The user's companies for /app/me and for choosing one at login.
+func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]ListUserCompaniesRow, error) {
+	rows, err := q.db.Query(ctx, listUserCompanies, userPhone)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUserCompaniesRow{}
+	for rows.Next() {
+		var i ListUserCompaniesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.EndDate,
+			&i.IsActive,
+			&i.Role,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertCompanyUser = `-- name: UpsertCompanyUser :one
 INSERT INTO user_companies (user_phone, company_id, role)
 VALUES ($1, $2, $3)

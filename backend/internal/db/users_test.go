@@ -104,3 +104,25 @@ func addMember(t *testing.T, q *gen.Queries, companyID int64, phone, name, role 
 	_, err := q.UpsertCompanyUser(context.Background(), gen.UpsertCompanyUserParams{UserPhone: phone, CompanyID: companyID, Role: role})
 	require.NoError(t, err)
 }
+
+func TestListUserCompanies(t *testing.T) {
+	q, pool := setup(t)
+	d := today(t, pool)
+	olma := createCompany(t, q, "Olma", d)
+	behi := createCompany(t, q, "Behi", d.AddDate(0, 0, -1))
+	nok := createCompany(t, q, "Nok", d)
+	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
+	addMember(t, q, behi.ID, "998901234567", "Ali", "staff")
+	addMember(t, q, nok.ID, "998909999999", "Vali", "owner")
+
+	got, err := q.ListUserCompanies(t.Context(), "998901234567")
+
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "Behi", got[0].Name, "ordered by name")
+	assert.Equal(t, "staff", got[0].Role)
+	assert.True(t, got[0].EndDate.Equal(d.AddDate(0, 0, -1)))
+	assert.Equal(t, "Olma", got[1].Name)
+	assert.Equal(t, "owner", got[1].Role)
+	assert.True(t, got[1].IsActive)
+}
