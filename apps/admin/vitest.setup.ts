@@ -35,6 +35,12 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   server.resetHandlers()
-  if (browser) delete window.Telegram
+  if (browser) {
+    delete window.Telegram
+    document.documentElement.removeAttribute("data-telegram")
+    document.documentElement.removeAttribute("class")
+    document.documentElement.removeAttribute("style")
+    localStorage.clear()
+  }
 })
 afterAll(() => server.close())
