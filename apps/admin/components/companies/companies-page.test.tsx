@@ -1,6 +1,6 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { setLocation } from "@/test/navigation"
+import { currentUrl, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { CompaniesPage } from "./companies-page"
 
@@ -25,4 +25,18 @@ test("the companies page lists the companies, newest first, with how they stand"
   expect(within(rows[2]).getByText("30 kun qoldi")).toBeInTheDocument()
   expect(within(rows[0]).getByText("Muddati o'tgan")).toBeInTheDocument()
   expect(within(rows[0]).getByRole("link", { name: "Olcha Servis" })).toHaveAttribute("href", "/companies/3")
+})
+
+test("searching narrows the list, starts from the first page and stays in the address", async () => {
+  setLocation("/companies?page=2")
+  const { user } = renderWithProviders(<CompaniesPage />)
+
+  await user.type(screen.getByRole("searchbox", { name: "Qidirish" }), "olma")
+
+  await waitFor(() => expect(currentUrl()).toBe("/companies?search=olma"))
+  await waitFor(() =>
+    expect(rowsOf(screen.getByRole("table", { name: "Kompaniyalar" })).map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Olma Savdo"),
+    ]),
+  )
 })

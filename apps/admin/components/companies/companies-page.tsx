@@ -7,7 +7,9 @@ import { buttonVariants } from "@/components/ui/button"
 import { formatDate } from "@/lib/format"
 import { useCompanies } from "@/lib/queries"
 import type { Company } from "@/lib/types"
+import { SearchInput } from "./search-input"
 import { CompanyStatusBadge } from "./status-badge"
+import { useCompanyFilter } from "./use-company-filter"
 
 const columns: Column<Company>[] = [
   { header: "Nomi", cell: (c) => c.name, primary: true },
@@ -15,9 +17,10 @@ const columns: Column<Company>[] = [
   { header: "Holat", cell: (c) => <CompanyStatusBadge company={c} /> },
 ]
 
-// CompaniesPage lists the companies, newest first.
+// CompaniesPage lists the companies, newest first, to search through.
 export function CompaniesPage() {
-  const companies = useCompanies({ search: "", status: "", page: 1 })
+  const [filter, update] = useCompanyFilter()
+  const companies = useCompanies(filter)
 
   return (
     <div className="space-y-4">
@@ -28,6 +31,7 @@ export function CompaniesPage() {
           Yangi kompaniya
         </Link>
       </div>
+      <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
       {companies.data && (
         <DataList
           label="Kompaniyalar"
