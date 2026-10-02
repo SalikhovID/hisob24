@@ -1,11 +1,8 @@
 // An in-memory copy of the admin API's data for MSW: Vitest and Playwright
 // work against the same records and rules as the Go API.
-import type { components } from "@hisob24/api-client"
+import type { AdminAccount, Billing, Company, Member } from "@/lib/types"
 
-export type Company = components["schemas"]["Company"]
-export type Member = components["schemas"]["Member"]
-export type Billing = components["schemas"]["Billing"]
-export type AdminAccount = components["schemas"]["AdminAccount"]
+export type { AdminAccount, Billing, Company, Member }
 
 // The mock database's today, so day counts never drift.
 export const TODAY = "2026-10-02"
