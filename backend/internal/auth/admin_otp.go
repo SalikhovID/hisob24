@@ -56,8 +56,9 @@ type LoginCode struct {
 	Code string
 }
 
-// IssueLoginCode creates a login code that lives loginCodeTTL for an active
-// admin; ErrNotAdmin for anyone else.
+// IssueLoginCode replaces the admin's unused codes with a new one that lives
+// loginCodeTTL; expired codes of every admin go too. ErrNotAdmin when
+// telegramID is not an active admin.
 func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (LoginCode, error) {
 	var issued LoginCode
 	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
@@ -66,6 +67,9 @@ func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (Login
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotAdmin
 			}
+			return err
+		}
+		if err := q.DeleteStaleAdminLoginCodes(ctx, telegramID); err != nil {
 			return err
 		}
 		code, err := a.newCode()

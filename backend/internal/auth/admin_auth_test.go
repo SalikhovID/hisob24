@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,4 +75,20 @@ func TestIssueLoginCodeStoresOnlyTheHash(t *testing.T) {
 		_, err := a.IssueLoginCode(t.Context(), id)
 		assert.ErrorIs(t, err, ErrNotAdmin, "telegram id %d", id)
 	}
+}
+
+func TestIssueLoginCodeReplacesUnusedCodes(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	first, err := a.IssueLoginCode(t.Context(), ownerID)
+	require.NoError(t, err)
+
+	second, err := a.IssueLoginCode(t.Context(), ownerID)
+	require.NoError(t, err)
+
+	rows, err := pool.Query(t.Context(), "SELECT id FROM admin_login_codes WHERE admin_id = $1", ownerID)
+	require.NoError(t, err)
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[int64])
+	require.NoError(t, err)
+	assert.Equal(t, []int64{second.ID}, ids)
+	assert.NotEqual(t, first.ID, second.ID)
 }
