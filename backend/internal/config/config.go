@@ -17,6 +17,7 @@ type Config struct {
 	TelegramWebhookSecret string
 	PublicAPIURL          string
 	AdminPanelURL         string
+	WebAppURL             string // the user app: user bot menu button, trusted origin
 	OTPHMACSecret         string
 	JWTSecret             string
 	CookieSecure          bool
@@ -38,6 +39,7 @@ func Load(getenv func(string) string) (Config, error) {
 		TelegramWebhookSecret: getenv("TELEGRAM_WEBHOOK_SECRET"),
 		PublicAPIURL:          getenv("PUBLIC_API_URL"),
 		AdminPanelURL:         getenv("ADMIN_PANEL_URL"),
+		WebAppURL:             getenv("WEB_APP_URL"),
 		OTPHMACSecret:         getenv("OTP_HMAC_SECRET"),
 		JWTSecret:             getenv("JWT_SECRET"),
 		CookieSecure:          true,
