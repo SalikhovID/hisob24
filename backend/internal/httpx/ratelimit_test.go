@@ -1,6 +1,8 @@
 package httpx
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -42,4 +44,25 @@ func TestRateLimiterForgetsIdleKeys(t *testing.T) {
 
 	assert.NotContains(t, l.hits, "a")
 	assert.Contains(t, l.hits, "b")
+}
+
+func TestRateLimitAnswers429(t *testing.T) {
+	h := RateLimit(NewRateLimiter(5, time.Minute))(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	call := func(remote string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", nil)
+		req.RemoteAddr = remote
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+
+	for range 5 {
+		assert.Equal(t, http.StatusNoContent, call("203.0.113.5:1").Code)
+	}
+	rec := call("203.0.113.5:1")
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
+	assert.JSONEq(t, `{"error":"too_many_requests","message":"Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring"}`, rec.Body.String())
+	assert.Equal(t, http.StatusNoContent, call("203.0.113.6:1").Code, "another client")
 }

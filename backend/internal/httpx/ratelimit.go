@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"net/http"
 	"sync"
 	"time"
 )
@@ -55,5 +56,18 @@ func (l *RateLimiter) sweep(now, since time.Time) {
 		if len(hits) == 0 || !hits[len(hits)-1].After(since) {
 			delete(l.hits, key)
 		}
+	}
+}
+
+// RateLimit answers 429 once the client IP is over the limiter's budget.
+func RateLimit(l *RateLimiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !l.Allow(ClientIP(r)) {
+				Error(w, http.StatusTooManyRequests, "too_many_requests", "Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
 	}
 }
