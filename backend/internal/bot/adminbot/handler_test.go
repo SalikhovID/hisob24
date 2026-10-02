@@ -77,3 +77,13 @@ func TestLoginSendsACode(t *testing.T) {
 		assert.Equal(t, []int64{100}, a.issued)
 	}
 }
+
+func TestLoginRefusesStrangers(t *testing.T) {
+	api, a := &fakeAPI{}, &fakeAuth{admins: map[int64]bool{}}
+
+	NewHandler(api, a).Handle(t.Context(), message(42, "/login"))
+
+	require.Len(t, api.sent, 1)
+	assert.Equal(t, "Sizda ruxsat yo'q.\nTelegram ID: <code>42</code>", api.sent[0].Text)
+	assert.Empty(t, a.issued)
+}

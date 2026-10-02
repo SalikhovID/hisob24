@@ -4,6 +4,7 @@ package adminbot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -29,7 +30,10 @@ type Auth interface {
 	DiscardLoginCode(ctx context.Context, id int64) error
 }
 
-const codeText = "Kod: <code>%s</code> (1 daqiqa amal qiladi)"
+const (
+	codeText     = "Kod: <code>%s</code> (1 daqiqa amal qiladi)"
+	notAdminText = "Sizda ruxsat yo'q.\nTelegram ID: <code>%d</code>"
+)
 
 // Handler answers the admin bot's updates.
 type Handler struct {
@@ -51,6 +55,10 @@ func (h *Handler) Handle(ctx context.Context, update *models.Update) {
 
 func (h *Handler) login(ctx context.Context, chatID, telegramID int64) {
 	code, err := h.auth.IssueLoginCode(ctx, telegramID)
+	if errors.Is(err, auth.ErrNotAdmin) {
+		_ = h.send(ctx, chatID, fmt.Sprintf(notAdminText, telegramID))
+		return
+	}
 	if err != nil {
 		slog.ErrorContext(ctx, "admin bot: issue login code", "telegram_id", telegramID, "err", err)
 		return
