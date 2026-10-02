@@ -39,6 +39,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.With(httpx.RateLimit(h.sendLimiter)).Post("/auth/sms/send", h.sendCode)
 		r.With(httpx.RateLimit(h.verifyLimiter)).Post("/auth/sms/verify", h.verify)
 		r.Post("/auth/refresh", h.refresh)
+		r.Post("/auth/logout", h.logout)
 	})
 }
 
@@ -99,4 +100,15 @@ func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.signedIn(w, tokens)
+}
+
+func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
+	if c, err := r.Cookie(refreshCookie); err == nil {
+		if err := h.auth.Logout(r.Context(), c.Value); err != nil {
+			httpx.InternalError(w, r, err)
+			return
+		}
+	}
+	h.clearRefreshCookie(w)
+	w.WriteHeader(http.StatusNoContent)
 }

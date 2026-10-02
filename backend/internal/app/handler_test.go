@@ -252,3 +252,16 @@ func TestRefresh(t *testing.T) {
 	rec = api.do(t, http.MethodPost, "/app/auth/refresh", "")
 	assert.Equal(t, http.StatusUnauthorized, rec.Code, "no cookie")
 }
+
+func TestLogout(t *testing.T) {
+	api := newTestAPI(t)
+	_, refresh := api.signIn(t, alisPhone, nil)
+
+	rec := api.do(t, http.MethodPost, "/app/auth/logout", "", cookie(refresh))
+
+	assert.Equal(t, http.StatusNoContent, rec.Code)
+	assert.Equal(t, -1, refreshCookieOf(t, rec).MaxAge, "the cookie is dropped")
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPost, "/app/auth/refresh", "", cookie(refresh)).Code,
+		"the refresh token is revoked")
+	assert.Equal(t, http.StatusNoContent, api.do(t, http.MethodPost, "/app/auth/logout", "").Code, "no cookie is fine")
+}
