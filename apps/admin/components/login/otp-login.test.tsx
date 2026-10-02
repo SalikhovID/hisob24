@@ -65,3 +65,14 @@ test("too many attempts show the API's message", async () => {
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring")
 })
+
+test("typing a new code hides the old error", async () => {
+  const { user } = renderWithProviders(<OtpLogin botUsername="" />)
+  const input = screen.getByRole("textbox", { name: "Kod" })
+  await user.type(input, "000000")
+  await screen.findByRole("alert")
+
+  await user.type(input, "1")
+
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+})

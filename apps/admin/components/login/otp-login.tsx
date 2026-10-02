@@ -51,7 +51,10 @@ export function OtpLogin({ botUsername }: { botUsername: string }) {
             maxLength={6}
             pattern={REGEXP_ONLY_DIGITS}
             value={code}
-            onChange={setCode}
+            onChange={(value: string) => {
+              setCode(value)
+              if (login.isError) login.reset()
+            }}
             onComplete={(value: string) => login.mutate(value)}
             disabled={login.isPending}
             autoFocus
