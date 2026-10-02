@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
+import { company, db, TODAY } from "@/mocks/data"
 import { currentUrl, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { CompaniesPage } from "./companies-page"
@@ -60,4 +61,21 @@ test("the status tabs show the active or the expired companies", async () => {
   await user.click(screen.getByRole("tab", { name: "Faol" }))
   await waitFor(() => expect(names()).toEqual(["Nok Market", "Olma Savdo"]))
   expect(screen.getByRole("tab", { name: "Faol" })).toHaveAttribute("aria-selected", "true")
+})
+
+test("the list goes page by page, twenty at a time", async () => {
+  for (let i = 1; i <= 42; i++) db.companies.push(company(100 + i, `Kompaniya ${i}`, TODAY))
+  setLocation("/companies")
+  const { user } = renderWithProviders(<CompaniesPage />)
+
+  expect(await screen.findByText("1–20 / 45")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Oldingi" })).toBeDisabled()
+
+  await user.click(screen.getByRole("button", { name: "Keyingi" }))
+  await waitFor(() => expect(currentUrl()).toBe("/companies?page=2"))
+  expect(await screen.findByText("21–40 / 45")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("button", { name: "Keyingi" }))
+  expect(await screen.findByText("41–45 / 45")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Keyingi" })).toBeDisabled()
 })

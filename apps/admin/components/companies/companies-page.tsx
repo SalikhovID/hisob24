@@ -3,6 +3,7 @@
 import { PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { type Column, DataList } from "@/components/data-list"
+import { Pager } from "@/components/pager"
 import { buttonVariants } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDate } from "@/lib/format"
@@ -46,13 +47,23 @@ export function CompaniesPage() {
         <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
       </div>
       {companies.data && (
-        <DataList
-          label="Kompaniyalar"
-          items={companies.data.items}
-          columns={columns}
-          getKey={(c) => c.id}
-          href={(c) => `/companies/${c.id}`}
-        />
+        <>
+          <DataList
+            label="Kompaniyalar"
+            items={companies.data.items}
+            columns={columns}
+            getKey={(c) => c.id}
+            href={(c) => `/companies/${c.id}`}
+          />
+          {companies.data.total > 0 && (
+            <Pager
+              page={companies.data.page}
+              pageSize={companies.data.page_size}
+              total={companies.data.total}
+              onPage={(page) => update({ page })}
+            />
+          )}
+        </>
       )}
     </div>
   )
