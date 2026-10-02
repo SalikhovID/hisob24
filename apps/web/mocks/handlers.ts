@@ -2,6 +2,7 @@
 // status codes, error codes, Uzbek messages and token rotation. Tokens are
 // readable strings: "access:<phone>:<company|none>:<n>", "refresh:…".
 import { http, HttpResponse } from "msw"
+import { formatPhone } from "@/lib/phone"
 import { companiesOf, db, LOGIN_CODE, paidUp } from "./data"
 
 const api = (path: string) => `*/api${path}`
@@ -79,6 +80,36 @@ export const handlers = [
     delete db.codes[phone]
     const companies = companiesOf(phone)
     return signedIn({ phone, companyId: companies.length === 1 ? companies[0].id : null })
+  }),
+
+  // The Mini App's sign-in: initData's user is the Telegram account (the
+  // fake initData is not signed; hash=bad stands for a forged one).
+  http.post(api("/app/auth/telegram"), async ({ request }) => {
+    const { initData } = (await request.json()) as { initData?: string }
+    const params = new URLSearchParams(initData ?? "")
+    const user = JSON.parse(params.get("user") ?? "null") as { id?: number } | null
+    if (!user?.id || params.get("hash") === "bad") {
+      return fail(401, "invalid_init_data", "Telegram ma'lumoti yaroqsiz. Mini App'ni qaytadan oching")
+    }
+    const phone = db.contacts[user.id]
+    if (!phone) return fail(403, "phone_not_shared", "Telefon raqamingiz botga ulanmagan")
+    if (!(phone in db.users)) {
+      return fail(
+        403,
+        "no_access",
+        `Hisob24'ga kirish huquqingiz yo'q. Raqamingiz: ${formatPhone(phone)}. Kompaniyangiz administratoriga murojaat qiling.`,
+      )
+    }
+    const companies = companiesOf(phone)
+    return signedIn({ phone, companyId: companies.length === 1 ? companies[0].id : null })
+  }),
+
+  // Test only: what the user bot does when a Mini App shares the contact
+  // (the e2e fake requestContact calls it).
+  http.post(api("/__mock/contacts"), async ({ request }) => {
+    const { telegram_id: telegramId, phone } = (await request.json()) as { telegram_id: number; phone: string }
+    db.contacts[telegramId] = phone
+    return new HttpResponse(null, { status: 204 })
   }),
 
   http.post(api("/app/auth/refresh"), ({ request }) => {

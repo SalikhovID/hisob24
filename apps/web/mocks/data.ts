@@ -13,6 +13,15 @@ export const VALI = "998902223344"
 export const SARDOR = "998903334455"
 // Only an expired company.
 export const ZARINA = "998904445566"
+// Shared with the user bot, but no user's.
+export const STRANGER = "998905556677"
+
+// Telegram accounts of the Mini App tests: 1001 Ali, 1002 Vali, 1003 the
+// stranger; 1004 never shared a phone.
+export const TG_ALI = 1001
+export const TG_VALI = 1002
+export const TG_STRANGER = 1003
+export const TG_UNLINKED = 1004
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -46,6 +55,8 @@ interface Db {
   // cooldown off lets an e2e test ask again without waiting a real minute.
   cooldown: boolean
   issued: number
+  // contacts: the phone each Telegram account shared with the user bot.
+  contacts: Record<number, string>
 }
 
 function seed(): Db {
@@ -76,6 +87,7 @@ function seed(): Db {
     lastRefresh: null,
     cooldown: true,
     issued: 0,
+    contacts: { [TG_ALI]: ALI, [TG_VALI]: VALI, [TG_STRANGER]: STRANGER },
   }
 }
 
