@@ -52,7 +52,9 @@ func unauthorized(w http.ResponseWriter) {
 // setSessionCookie writes the session cookie. A Mini App session must also
 // work inside Telegram Web, which opens the panel in a cross-site iframe:
 // there the cookie is SameSite=None and Partitioned (CHIPS), so it lives in
-// Telegram Web's own cookie jar.
+// Telegram Web's own cookie jar. Over local http (cookieSecure off) it stays
+// Lax: browsers drop SameSite=None without Secure, and Telegram opens only
+// https Mini Apps anyway.
 func (h *Handler) setSessionCookie(w http.ResponseWriter, s auth.Session, miniApp bool) {
 	c := &http.Cookie{
 		Name:     sessionCookie,
@@ -64,7 +66,7 @@ func (h *Handler) setSessionCookie(w http.ResponseWriter, s auth.Session, miniAp
 		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	}
-	if miniApp {
+	if miniApp && h.cookieSecure {
 		c.SameSite = http.SameSiteNoneMode
 		c.Partitioned = true
 	}

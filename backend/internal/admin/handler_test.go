@@ -215,3 +215,16 @@ func TestMiniAppSessionCookieWorksInsideTelegramWeb(t *testing.T) {
 	assert.True(t, c.HttpOnly)
 	assert.Equal(t, "/", c.Path)
 }
+
+func TestMiniAppSessionCookieOverLocalHTTPStaysLax(t *testing.T) {
+	api := newTestAPI(t, false)
+
+	rec := api.do(t, http.MethodPost, "/admin/auth/telegram",
+		`{"initData":"`+telegramtest.SignInitData(testBotToken, ownerID, time.Now())+`"}`)
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	c := sessionCookieOf(t, rec)
+	assert.Equal(t, http.SameSiteLaxMode, c.SameSite, "browsers drop SameSite=None without Secure")
+	assert.False(t, c.Partitioned)
+	assert.False(t, c.Secure)
+}
