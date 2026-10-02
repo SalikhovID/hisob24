@@ -223,6 +223,7 @@ func signIn(t *testing.T, a *UserAuth, pool *pgxpool.Pool, phone string, roles m
 	for companyID, role := range roles {
 		addMember(t, pool, phone, companyID, role)
 	}
+	a.newCode = codes("123456")
 	require.NoError(t, a.SendCode(t.Context(), phone))
 	tokens, err := a.Verify(t.Context(), phone, "123456")
 	require.NoError(t, err)
@@ -268,4 +269,46 @@ func TestRefreshFollowsTheMembershipAsItIsNow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, third.CompanyID, "no longer a member: the company is not kept")
 	assert.Empty(t, third.Role)
+}
+
+func TestSwitchCompanyChoosesACompanyAndTheRefreshTokenRemembersIt(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	a.newRefreshToken = codes("refresh-1", "refresh-2", "refresh-3")
+	olma := addCompany(t, pool, "Olma", 30)
+	nok := addCompany(t, pool, "Nok", 30)
+	first := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner", nok: "staff"})
+
+	switched, err := a.SwitchCompany(t.Context(), "998901234567", first.RefreshToken, nok)
+
+	require.NoError(t, err)
+	require.NotNil(t, switched.CompanyID)
+	assert.Equal(t, nok, *switched.CompanyID)
+	assert.Equal(t, "staff", switched.Role)
+	assert.Equal(t, "refresh-2", switched.RefreshToken, "a new refresh token for the new company")
+	_, err = a.Refresh(t.Context(), first.RefreshToken)
+	assert.ErrorIs(t, err, ErrInvalidRefresh, "the old one is revoked")
+	refreshed, err := a.Refresh(t.Context(), switched.RefreshToken)
+	require.NoError(t, err)
+	require.NotNil(t, refreshed.CompanyID)
+	assert.Equal(t, nok, *refreshed.CompanyID, "a reload keeps the chosen company")
+}
+
+func TestSwitchCompanyRefusals(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	olma := addCompany(t, pool, "Olma", 30)
+	other := addCompany(t, pool, "Begona", 30)
+	mine := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner"})
+	theirs := signIn(t, a, pool, "998902223344", map[int64]string{olma: "staff"})
+
+	_, err := a.SwitchCompany(t.Context(), "998901234567", mine.RefreshToken, other)
+	assert.ErrorIs(t, err, ErrNotMember)
+	_, err = a.SwitchCompany(t.Context(), "998901234567", theirs.RefreshToken, olma)
+	assert.ErrorIs(t, err, ErrInvalidRefresh, "someone else's refresh token")
+	_, err = a.SwitchCompany(t.Context(), "998901234567", "made-up", olma)
+	assert.ErrorIs(t, err, ErrInvalidRefresh)
+
+	_, err = a.Refresh(t.Context(), theirs.RefreshToken)
+	assert.NoError(t, err, "a refused switch leaves the other user's token alone")
+	_, err = a.Refresh(t.Context(), mine.RefreshToken)
+	assert.NoError(t, err, "and the user's own")
 }

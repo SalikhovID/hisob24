@@ -34,6 +34,9 @@ var ErrTooSoon = errors.New("a code went to this phone less than a minute ago")
 // expired.
 var ErrInvalidRefresh = errors.New("invalid refresh token")
 
+// ErrNotMember refuses a company the user is not a member of.
+var ErrNotMember = errors.New("not a member of the company")
+
 var errBadPhone = apperr.New(apperr.Invalid, "validation_error", "Telefon raqami noto'g'ri")
 
 // UserAuth signs users in to the user app: a code by SMS, then an access
@@ -247,6 +250,36 @@ func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, er
 			}
 		}
 		tokens, err = a.issue(ctx, q, revoked.UserPhone, companyID, role)
+		return err
+	})
+	return tokens, err
+}
+
+// SwitchCompany chooses one of the user's companies, in one transaction:
+// the user's refresh token is replaced by one that remembers the company, so
+// refreshing later keeps it.
+func (a *UserAuth) SwitchCompany(ctx context.Context, phone, refreshToken string, companyID int64) (Tokens, error) {
+	var tokens Tokens
+	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		q := a.q.WithTx(tx)
+		membership, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: phone, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotMember
+		}
+		if err != nil {
+			return err
+		}
+		revoked, err := q.RevokeRefreshToken(ctx, hashToken(refreshToken))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrInvalidRefresh
+		}
+		if err != nil {
+			return err
+		}
+		if revoked.UserPhone != phone {
+			return ErrInvalidRefresh // rolled back: the owner keeps it
+		}
+		tokens, err = a.issue(ctx, q, phone, &companyID, membership.Role)
 		return err
 	})
 	return tokens, err
