@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { z } from "zod"
-import { companySchema, memberSchema, phoneField } from "./schemas"
+import { billingSchema, companySchema, memberSchema, phoneField } from "./schemas"
 
 // problems lists the messages a schema gives for input; none means valid.
 function problems(schema: z.ZodType, input: unknown): string[] {
@@ -49,4 +49,26 @@ test("memberSchema refuses a bad phone, no name and an unknown role", () => {
     "Ismni kiriting",
     "Rolni tanlang",
   ])
+})
+
+test("billingSchema turns the dialog into a payment", () => {
+  expect(billingSchema.parse({ days: "30", amount: "150000.50", note: " Naqd " })).toEqual({
+    days: 30,
+    amount: "150000.50",
+    note: "Naqd",
+  })
+  expect(billingSchema.parse({ days: "7", amount: " ", note: "" })).toEqual({ days: 7, amount: undefined, note: undefined })
+})
+
+const daysMessage = "Kunlar soni 1 dan 3650 gacha bo'lishi kerak"
+const amountMessage = "Summa noto'g'ri: masalan 150000 yoki 150000.50"
+
+test.each([
+  [{ days: "0", amount: "", note: "" }, [daysMessage]],
+  [{ days: "3651", amount: "", note: "" }, [daysMessage]],
+  [{ days: "o'ttiz", amount: "", note: "" }, [daysMessage]],
+  [{ days: "30", amount: "1.234", note: "" }, [amountMessage]],
+  [{ days: "30", amount: "-5", note: "" }, [amountMessage]],
+])("billingSchema refuses %j", (input, want) => {
+  expect(problems(billingSchema, input)).toEqual(want)
 })

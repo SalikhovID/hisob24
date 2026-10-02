@@ -28,3 +28,25 @@ export const memberSchema = z.object({
   full_name: required("Ismni kiriting"),
   role: z.enum(["owner", "manager", "staff"], "Rolni tanlang"),
 })
+
+const DAYS_MESSAGE = "Kunlar soni 1 dan 3650 gacha bo'lishi kerak"
+
+// billingSchema is the add-billing dialog: days become a number, an empty
+// amount or note is left out.
+export const billingSchema = z.object({
+  days: z
+    .string()
+    .trim()
+    .regex(/^\d+$/, DAYS_MESSAGE)
+    .transform(Number)
+    .refine((days) => days >= 1 && days <= 3650, DAYS_MESSAGE),
+  amount: z
+    .string()
+    .trim()
+    .refine((amount) => amount === "" || /^\d{1,12}(\.\d{1,2})?$/.test(amount), "Summa noto'g'ri: masalan 150000 yoki 150000.50")
+    .transform((amount) => amount || undefined),
+  note: z
+    .string()
+    .trim()
+    .transform((note) => note || undefined),
+})
