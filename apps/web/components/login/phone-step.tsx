@@ -10,6 +10,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { api, call } from "@/lib/api"
 import { formatPhoneInput, phoneDigits } from "@/lib/phone"
+import { useHydrated } from "@/lib/use-hydrated"
 
 const schema = z.object({
   phone: z.string().refine((phone) => phoneDigits(phone) !== null, "Telefon raqamini to'liq kiriting"),
@@ -27,6 +28,7 @@ export function PhoneStep({
   onSent: (phone: string, retryAfter: number) => void
 }) {
   const id = useId()
+  const hydrated = useHydrated()
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { phone: formatPhoneInput(defaultPhone) } })
   const send = useMutation({
     mutationFn: (phone: string) => call(api.POST("/app/auth/sms/send", { body: { phone } })),
@@ -55,6 +57,7 @@ export function PhoneStep({
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder="__ ___ __ __"
+                readOnly={!hydrated}
                 aria-invalid={fieldState.invalid}
                 {...field}
                 onChange={(event) => field.onChange(formatPhoneInput(event.target.value))}
@@ -69,7 +72,7 @@ export function PhoneStep({
           {send.error.message}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={send.isPending}>
+      <Button type="submit" className="w-full" disabled={!hydrated || send.isPending}>
         Kodni olish
       </Button>
     </form>

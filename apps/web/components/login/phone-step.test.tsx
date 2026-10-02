@@ -1,5 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen, waitFor } from "@testing-library/react"
 import { http } from "msw"
+import { renderToString } from "react-dom/server"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { ALI } from "@/mocks/data"
@@ -75,4 +77,19 @@ test("a second code within a minute shows the API's message", async () => {
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Kodni qayta olish uchun bir daqiqa kuting")
   expect(onSent).not.toHaveBeenCalled()
+})
+
+// Until React takes over the server's HTML, typing would be wiped on
+// hydration and a tap would send the form the old way, the number in the URL.
+test("before React takes the page over, the number can be neither typed nor sent", () => {
+  const html = renderToString(
+    <QueryClientProvider client={new QueryClient()}>
+      <PhoneStep onSent={vi.fn()} />
+    </QueryClientProvider>,
+  )
+  const page = document.createElement("div")
+  page.innerHTML = html
+
+  expect(page.querySelector("input")).toHaveAttribute("readonly")
+  expect(page.querySelector("button[type=submit]")).toBeDisabled()
 })

@@ -155,3 +155,19 @@ test("every page fits the screen without sideways scrolling", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Obuna muddati tugagan" })).toBeVisible()
   await fits("expired")
 })
+
+test("a number typed before the page comes alive is kept, and sent the right way", async ({ page }) => {
+  // Slow scripts: the server's HTML is up well before React takes it over.
+  await page.route("**/_next/static/chunks/**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await route.continue()
+  })
+  // People act on what they see, without waiting for the page to finish loading.
+  await page.goto("/login", { waitUntil: "domcontentloaded" })
+
+  await page.getByRole("textbox", { name: "Telefon raqami" }).fill("901234567")
+  await page.getByRole("button", { name: "Kodni olish" }).click()
+
+  await expect(page.getByText("Kod +998 90 123 45 67 raqamiga yuborildi")).toBeVisible()
+  await expect(page).toHaveURL(/\/login$/)
+})
