@@ -72,6 +72,11 @@ func TestLoad(t *testing.T) {
 			env:     with(requiredEnv(), map[string]string{"BOT_MODE": "hook"}),
 			wantErr: []string{"BOT_MODE", `"hook"`},
 		},
+		{
+			name:    "unknown SMS_DRIVER",
+			env:     with(requiredEnv(), map[string]string{"SMS_DRIVER": "sms"}),
+			wantErr: []string{"SMS_DRIVER", `"sms"`},
+		},
 	}
 
 	for _, tt := range tests {

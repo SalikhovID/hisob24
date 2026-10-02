@@ -59,6 +59,9 @@ func Load(getenv func(string) string) (Config, error) {
 	if cfg.BotMode != "polling" && cfg.BotMode != "webhook" {
 		errs = append(errs, fmt.Errorf("BOT_MODE must be polling or webhook, got %q", cfg.BotMode))
 	}
+	if cfg.SMSDriver != "log" && cfg.SMSDriver != "eskiz" {
+		errs = append(errs, fmt.Errorf("SMS_DRIVER must be log or eskiz, got %q", cfg.SMSDriver))
+	}
 	if len(errs) > 0 {
 		return Config{}, fmt.Errorf("config: %w", errors.Join(errs...))
 	}
