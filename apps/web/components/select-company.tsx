@@ -10,6 +10,7 @@ import { subscriptionExpired } from "@/lib/api"
 import { unavailable } from "@/lib/companies"
 import { useLogout, useMe, useSwitchCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
+import { useMiniApp } from "@/lib/telegram"
 
 // SelectCompany lets someone in several companies choose the one to work in.
 export function SelectCompany() {
@@ -17,6 +18,7 @@ export function SelectCompany() {
   const me = useMe()
   const choose = useSwitchCompany()
   const logout = useLogout()
+  const miniApp = useMiniApp()
   // The session's company has expired since it was chosen: /expired offers
   // the way back to this list.
   const expired = subscriptionExpired(me.error)
@@ -78,10 +80,12 @@ export function SelectCompany() {
           )}
         </>
       )}
-      <Button variant="ghost" className="self-center" disabled={logout.isPending} onClick={() => logout.mutate()}>
-        <LogOutIcon />
-        Chiqish
-      </Button>
+      {!miniApp && (
+        <Button variant="ghost" className="self-center" disabled={logout.isPending} onClick={() => logout.mutate()}>
+          <LogOutIcon />
+          Chiqish
+        </Button>
+      )}
     </main>
   )
 }

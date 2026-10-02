@@ -3,12 +3,14 @@ import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { meKey } from "@/lib/queries"
+import { setMiniApp } from "@/lib/telegram"
 import { accessToken } from "@/lib/session"
 import { SARDOR, VALI, ZARINA } from "@/mocks/data"
 import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
+import { fakeWebApp } from "@/test/telegram"
 import { SelectCompany } from "./select-company"
 
 test("lists the companies to choose from with the role in each", async () => {
@@ -112,4 +114,14 @@ test("a choice that fails says why and stays on the list", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")
   expect(router.replace).not.toHaveBeenCalled()
   expect(screen.getByRole("button", { name: /Nok Market/ })).toBeEnabled()
+})
+
+test("inside Telegram the list has no sign-out: closing the Mini App is the way out", async () => {
+  setMiniApp(fakeWebApp())
+  await signIn(VALI)
+
+  renderWithProviders(<SelectCompany />)
+
+  await screen.findByRole("button", { name: /Nok Market/ })
+  expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
 })
