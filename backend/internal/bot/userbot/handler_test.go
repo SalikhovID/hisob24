@@ -65,3 +65,30 @@ func TestStartAsksForThePhoneWithAContactButton(t *testing.T) {
 	assert.True(t, keyboard.ResizeKeyboard)
 	assert.True(t, keyboard.OneTimeKeyboard)
 }
+
+// contact is the user sharing a contact; ownerID is whose it is.
+func contact(ownerID int64, phone string) *models.Update {
+	update := text("")
+	update.Message.Contact = &models.Contact{PhoneNumber: phone, FirstName: "Ali", UserID: ownerID}
+	return update
+}
+
+func TestOwnContactIsSavedAndAnswered(t *testing.T) {
+	for name, tc := range map[string]struct {
+		isUser bool
+		answer string
+	}{
+		"a user":         {true, "✅ Akkauntingiz ulandi"},
+		"not yet a user": {false, "Raqamingiz saqlandi"},
+	} {
+		api := &fakeAPI{}
+		contacts := &fakeContacts{isUser: tc.isUser}
+
+		NewHandler(api, contacts).Handle(t.Context(), contact(aliID, "+998901234567"))
+
+		assert.Equal(t, []saved{{aliID, "+998901234567", "ali", "Ali"}}, contacts.saved, name)
+		require.Len(t, api.sent, 1, name)
+		assert.Equal(t, tc.answer, api.sent[0].Text, name)
+		assert.Equal(t, models.ReplyKeyboardRemove{RemoveKeyboard: true}, api.sent[0].ReplyMarkup, name+": the keyboard goes")
+	}
+}

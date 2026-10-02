@@ -25,7 +25,12 @@ type Contacts interface {
 const (
 	askText     = "Assalomu alaykum! Hisob24 akkauntingizni ulash uchun telefon raqamingizni yuboring."
 	shareButton = "📱 Raqamni yuborish"
+	linkedText  = "✅ Akkauntingiz ulandi"
+	savedText   = "Raqamingiz saqlandi"
+	failText    = "Xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring."
 )
+
+var removeKeyboard = models.ReplyKeyboardRemove{RemoveKeyboard: true}
 
 // shareKeyboard is the reply keyboard with the button that sends the
 // user's own contact.
@@ -46,12 +51,34 @@ func NewHandler(api API, contacts Contacts) *Handler {
 	return &Handler{api: api, contacts: contacts}
 }
 
-// Handle answers one update: /start asks for the phone.
+// Handle answers one update: a shared contact is saved, anything else
+// (/start first of all) asks for the phone.
 func (h *Handler) Handle(ctx context.Context, update *models.Update) {
-	if update.Message == nil || update.Message.From == nil {
+	msg := update.Message
+	if msg == nil || msg.From == nil {
 		return
 	}
-	h.send(ctx, update.Message.Chat.ID, askText, shareKeyboard)
+	if msg.Contact != nil {
+		h.saveContact(ctx, msg)
+		return
+	}
+	h.send(ctx, msg.Chat.ID, askText, shareKeyboard)
+}
+
+// saveContact keeps the shared phone and says whether it linked an account;
+// the keyboard is not needed any more.
+func (h *Handler) saveContact(ctx context.Context, msg *models.Message) {
+	isUser, err := h.contacts.Save(ctx, msg.Chat.ID, msg.Contact.PhoneNumber, msg.From.Username, msg.From.FirstName)
+	if err != nil {
+		slog.ErrorContext(ctx, "user bot: save contact", "chat", msg.Chat.ID, "err", err)
+		h.send(ctx, msg.Chat.ID, failText, shareKeyboard)
+		return
+	}
+	answer := savedText
+	if isUser {
+		answer = linkedText
+	}
+	h.send(ctx, msg.Chat.ID, answer, removeKeyboard)
 }
 
 func (h *Handler) send(ctx context.Context, chatID int64, text string, markup models.ReplyMarkup) {
