@@ -176,3 +176,42 @@ func TestVerifyLeavesTheChoiceToAUserOfSeveralCompanies(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, claims.CompanyID)
 }
+
+func TestVerifyCountsWrongCodesAndDropsTheCodeAfterFive(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+
+	for range 4 {
+		_, err := a.Verify(t.Context(), "998901234567", "000000")
+		require.ErrorIs(t, err, ErrInvalidCode)
+	}
+	var attempts int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT attempts FROM sms_codes WHERE phone = '998901234567'").Scan(&attempts))
+	assert.Equal(t, 4, attempts)
+
+	_, err := a.Verify(t.Context(), "998901234567", "000000")
+	require.ErrorIs(t, err, ErrInvalidCode)
+	_, err = a.Verify(t.Context(), "998901234567", "123456")
+	assert.ErrorIs(t, err, ErrInvalidCode, "after the fifth wrong code the code is gone")
+}
+
+func TestVerifyRefusesAnExpiredCode(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+	mustExec(t, pool, "UPDATE sms_codes SET expires_at = now() - interval '1 second'")
+
+	_, err := a.Verify(t.Context(), "998901234567", "123456")
+
+	assert.ErrorIs(t, err, ErrInvalidCode)
+}
+
+func TestVerifyGivesAStrangerNothing(t *testing.T) {
+	a, _, _ := newUserAuth(t)
+	require.NoError(t, a.SendCode(t.Context(), "998909999999"))
+
+	_, err := a.Verify(t.Context(), "998909999999", "123456")
+
+	assert.ErrorIs(t, err, ErrInvalidCode, "even the right code signs in no one")
+}

@@ -24,6 +24,7 @@ const (
 	RefreshTokenTTL = 30 * 24 * time.Hour
 	smsCodeTTL      = 2 * time.Minute
 	smsCooldown     = 60 // seconds between two codes to one phone
+	smsMaxAttempts  = 5  // wrong codes before the code is dropped
 )
 
 // ErrTooSoon refuses a second code to a phone within a minute.
@@ -141,6 +142,14 @@ func (a *UserAuth) Verify(ctx context.Context, rawPhone, code string) (Tokens, e
 			}
 			return err
 		}
+		// A stranger's code was never sent; even guessed, it signs in no one.
+		known, err := q.UserExists(ctx, phone)
+		if err != nil {
+			return err
+		}
+		if !known {
+			return ErrInvalidCode
+		}
 		companies, err := q.ListUserCompanies(ctx, phone)
 		if err != nil {
 			return err
@@ -153,7 +162,27 @@ func (a *UserAuth) Verify(ctx context.Context, rawPhone, code string) (Tokens, e
 		tokens, err = a.issue(ctx, q, phone, companyID, role)
 		return err
 	})
+	if errors.Is(err, ErrInvalidCode) {
+		if countErr := a.countWrongCode(ctx, phone); countErr != nil {
+			return Tokens{}, errors.Join(err, countErr)
+		}
+	}
 	return tokens, err
+}
+
+// countWrongCode records a wrong attempt; the fifth drops the code.
+func (a *UserAuth) countWrongCode(ctx context.Context, phone string) error {
+	attempts, err := a.q.IncrementSMSCodeAttempts(ctx, phone)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil // no code to count against
+	}
+	if err != nil {
+		return err
+	}
+	if attempts >= smsMaxAttempts {
+		return a.q.DeleteSMSCode(ctx, phone)
+	}
+	return nil
 }
 
 // issue makes a new refresh token (stored as a hash, with the company) and
