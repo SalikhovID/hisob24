@@ -38,7 +38,7 @@ func (e *EskizSender) Send(ctx context.Context, phone, text string) error {
 	if err != nil {
 		return err
 	}
-	status, err := e.send(ctx, token, phone, text)
+	status, answer, err := e.send(ctx, token, phone, text)
 	if err != nil {
 		return err
 	}
@@ -46,12 +46,12 @@ func (e *EskizSender) Send(ctx context.Context, phone, text string) error {
 		if token, err = e.currentToken(ctx, token); err != nil {
 			return err
 		}
-		if status, err = e.send(ctx, token, phone, text); err != nil {
+		if status, answer, err = e.send(ctx, token, phone, text); err != nil {
 			return err
 		}
 	}
 	if status != http.StatusOK {
-		return fmt.Errorf("eskiz send: status %d", status)
+		return fmt.Errorf("eskiz send: status %d: %s", status, answer)
 	}
 	return nil
 }
@@ -94,19 +94,20 @@ func (e *EskizSender) login(ctx context.Context) (string, error) {
 	return body.Data.Token, nil
 }
 
-// send posts the SMS and returns Eskiz's status code.
-func (e *EskizSender) send(ctx context.Context, token, phone, text string) (int, error) {
+// send posts the SMS and returns Eskiz's status code and the start of its
+// answer, which says why when it refuses.
+func (e *EskizSender) send(ctx context.Context, token, phone, text string) (int, string, error) {
 	res, err := e.post(ctx, "/api/message/sms/send", token, url.Values{
 		"mobile_phone": {phone},
 		"message":      {text},
 		"from":         {e.from},
 	})
 	if err != nil {
-		return 0, fmt.Errorf("eskiz send: %w", err)
+		return 0, "", fmt.Errorf("eskiz send: %w", err)
 	}
 	defer res.Body.Close()
-	_, _ = io.Copy(io.Discard, res.Body)
-	return res.StatusCode, nil
+	answer, _ := io.ReadAll(io.LimitReader(res.Body, 512))
+	return res.StatusCode, strings.TrimSpace(string(answer)), nil
 }
 
 func (e *EskizSender) post(ctx context.Context, path, token string, form url.Values) (*http.Response, error) {

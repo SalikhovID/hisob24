@@ -105,3 +105,21 @@ func TestEskizGivesUpAfterASecond401(t *testing.T) {
 	defer fake.mu.Unlock()
 	assert.Len(t, fake.sends, 2, "one retry, no more")
 }
+
+func TestEskizRefusalCarriesItsMessage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/auth/login" {
+			_, _ = io.WriteString(w, `{"data":{"token":"tok-1"}}`)
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"message":"Shablon tasdiqlanmagan","status":"error"}`)
+	}))
+	t.Cleanup(srv.Close)
+	sender := NewEskiz(srv.URL, "sms@example.com", "secret", "4546", srv.Client())
+
+	err := sender.Send(t.Context(), "998901234567", "Hisob24 kirish kodi: 123456")
+
+	assert.ErrorContains(t, err, "status 400")
+	assert.ErrorContains(t, err, "Shablon tasdiqlanmagan")
+}
