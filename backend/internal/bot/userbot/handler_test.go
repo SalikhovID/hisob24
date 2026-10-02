@@ -2,6 +2,7 @@ package userbot
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/go-telegram/bot"
@@ -105,4 +106,24 @@ func TestSomeoneElsesContactIsNotSaved(t *testing.T) {
 		assert.Equal(t, "Iltimos, o'z raqamingizni yuboring", api.sent[0].Text, name)
 		assert.IsType(t, models.ReplyKeyboardMarkup{}, api.sent[0].ReplyMarkup, name+": the button stays")
 	}
+}
+
+func TestAnyOtherMessageAsksForThePhoneAgain(t *testing.T) {
+	api := &fakeAPI{}
+
+	NewHandler(api, &fakeContacts{}).Handle(t.Context(), text("salom"))
+	NewHandler(api, &fakeContacts{}).Handle(t.Context(), &models.Update{})
+
+	require.Len(t, api.sent, 1, "an update without a message gets no answer")
+	assert.Equal(t, "Assalomu alaykum! Hisob24 akkauntingizni ulash uchun telefon raqamingizni yuboring.", api.sent[0].Text)
+}
+
+func TestAContactThatCannotBeSavedIsExplained(t *testing.T) {
+	api := &fakeAPI{}
+
+	NewHandler(api, &fakeContacts{err: errors.New("db down")}).Handle(t.Context(), contact(aliID, "+998901234567"))
+
+	require.Len(t, api.sent, 1)
+	assert.Equal(t, "Xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring.", api.sent[0].Text)
+	assert.IsType(t, models.ReplyKeyboardMarkup{}, api.sent[0].ReplyMarkup, "the button stays to try again")
 }
