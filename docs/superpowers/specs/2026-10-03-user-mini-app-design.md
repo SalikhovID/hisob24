@@ -1,6 +1,6 @@
 # User Mini App (@hisob24bot) — dizayn
 
-Sana: 2026-10-03. Holat: foydalanuvchi tasdiqlagan.
+Sana: 2026-10-03. Holat: foydalanuvchi tasdiqlagan, amalga oshirilgan (reja: `docs/superpowers/plans/2026-10-03-user-mini-app.md`).
 
 ## Maqsad
 
@@ -96,3 +96,9 @@ Rad etilgan variantlar:
 
 - Telegram BackButton/MainButton, push-xabarlar va kontaktni Mini App'ning o'zidan saqlash qilinmaydi (kontaktni doim bot saqlaydi).
 - Admin panel o'zgarmaydi.
+
+## Amalga oshirishdagi aniqliklar
+
+- **Cookie javobi:** https'da har bir sign-in, refresh va switch javobi avval boshqa variantni o'chiradi, keyin o'zinikini qo'yadi. Logout va tugagan sessiya ikkalasini o'chiradi. http'da (`start.sh`) doim bitta `Lax` cookie.
+- **Bo'sh bot tokeni:** `ValidateInitData` bo'sh tokenni allaqachon rad etadi. Bot o'chiq bo'lsa ham `initData` ni soxtalashtirib bo'lmaydi; himoya testi va mutatsiya bilan tekshirildi.
+- **E2E:** soxta `requestContact` mock'dagi `/__mock/contacts` (faqat testda) orqali kontaktni bog'laydi. Bu Telegram → bot → `telegram_contacts` yo'lining o'rnini bosadi.

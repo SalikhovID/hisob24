@@ -8,7 +8,7 @@ Multi-tenant SaaS. Platforma adminlari company yaratadi, obunasini uzaytiradi va
 | Admin panel (`apps/admin`) | http://localhost:3001 | Company'lar, billing va adminlar. Admin botda Mini App sifatida ham ochiladi |
 | User app (`apps/web`) | http://localhost:3000 | SMS kod bilan kirish, company tanlash |
 | Admin bot | Telegram | `/login` → panelga kirish kodi |
-| User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi |
+| User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi; menu tugmasi user app'ni Mini App sifatida ochadi (login'siz) |
 
 So'rov yo'li: brauzer yoki Telegram WebView → Next.js (`/api/*` rewrite, bitta origin) → Go API → PostgreSQL.
 
@@ -136,6 +136,7 @@ Hamma sozlamalar env orqali o'qiladi; ro'yxat: [`.env.example`](.env.example).
 | `TELEGRAM_WEBHOOK_SECRET` | `webhook` da | — | Telegram'ning `X-Telegram-Bot-Api-Secret-Token` header'i |
 | `PUBLIC_API_URL` | `webhook` da | — | Telegram yetadigan API manzili (https) |
 | `ADMIN_PANEL_URL` | prod'da | — | Admin panel manzili. Bot menu tugmasi va CSRF himoyasidagi ishonchli origin shundan olinadi |
+| `WEB_APP_URL` | prod'da | — | User app manzili. User bot menu tugmasi "Hisob24" (Mini App) va CSRF'dagi ishonchli origin shundan olinadi |
 | `OTP_HMAC_SECRET` | doim | — | Admin va SMS kodlarining HMAC kaliti |
 | `JWT_SECRET` | doim | — | User access token'ining imzosi (HS256) |
 | `SMS_DRIVER` | — | `log` | `log` (SMS yuborilmaydi, kod logga yoziladi) yoki `eskiz` |
@@ -162,7 +163,12 @@ BotFather menyusidagi nomlar Telegram yangilanishlari bilan biroz o'zgarishi mum
    - Shundan keyin panel bot profilidan va `t.me/<bot>?startapp` havolasidan ham ochiladi.
    - Menu tugmasi bu sozlamasiz ham ishlaydi.
    - Telegram ichida panel `initData` bilan o'zi kiradi: kod so'ralmaydi.
-5. **User bot** uchun Mini App ham, menu tugmasi ham kerak emas. U `/start` ga raqam so'raydi va yuborilgan kontaktni saqlaydi.
+5. **User bot (Mini App).**
+   - Menu tugmasini API ishga tushganda o'zi qo'yadi: "Hisob24" → `WEB_APP_URL` (faqat https).
+   - Mini App ochilganda foydalanuvchi **login'siz** kiradi, agar uning Telegram akkaunti botga raqam yuborgan bo'lsa va bu raqam `users` jadvalida bo'lsa (admin uni biror company'ga qo'shgan).
+   - Raqam tizimda yo'q bo'lsa, "Kirish huquqi yo'q" va raqam ko'rsatiladi.
+   - Raqam hali yuborilmagan bo'lsa, "Raqamni yuborish" tugmasi chiqadi. Telegram `requestContact` raqamni botga yuboradi va kirish qayta uriniladi.
+   - Bot `/start` ga hozirgidek raqam so'raydi.
 6. **Mini App'ni lokal sinash.** Telegram faqat https manzilni ochadi.
    - Admin panelni https tunnel orqali chiqaring (masalan `cloudflared tunnel --url http://localhost:3001`).
    - Berilgan manzilni `ADMIN_PANEL_URL` ga yozing va `make dev` ni qayta ishga tushiring.
@@ -285,7 +291,7 @@ start.sh             make dev
 
 ## Ma'lum cheklovlar
 
-- User app uchun alohida URL env'i yo'q (spec ro'yxatida yo'q). Shuning uchun `Sec-Fetch-Site` yubormaydigan juda eski brauzerlar `/app` dagi o'zgartiruvchi so'rovlarda 403 oladi. Zamonaviy brauzerlarga bu ta'sir qilmaydi.
+- `WEB_APP_URL` berilmasa, `Sec-Fetch-Site` yubormaydigan juda eski brauzerlar `/app` dagi o'zgartiruvchi so'rovlarda 403 oladi (u berilsa, bu origin ishonchli).
 - Refresh token har refresh'da almashadi. Ikki tab bir vaqtda refresh qilsa, ulardan biri `/login` ga tushadi.
-- Telegram Web'dagi Mini App sessiyasi `Partitioned` (CHIPS) cookie'ni qo'llaydigan brauzer talab qiladi. Aks holda panel cookie saqlanmaganini aytadi.
+- Telegram Web'dagi Mini App sessiyalari (admin va user) `Partitioned` (CHIPS) cookie'ni qo'llaydigan brauzer talab qiladi. Aks holda ilova cookie saqlanmaganini aytadi.
 - `API_URL` frontend build'iga muhrlanadi.
