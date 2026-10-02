@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -57,4 +58,20 @@ func TestCreateOrReactivateAdmin(t *testing.T) {
 	owner, err := q.GetActiveAdmin(ctx, ownerID)
 	require.NoError(t, err)
 	assert.Equal(t, "Owner", *owner.FullName)
+}
+
+func TestLockActiveAdmins(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	mustExec(t, pool, "INSERT INTO admins (telegram_id, is_active) VALUES (42, true), (43, false)")
+	tx, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
+
+	ids, err := q.WithTx(tx).LockActiveAdmins(ctx)
+
+	require.NoError(t, err)
+	assert.Equal(t, []int64{42, ownerID}, ids)
+	_, err = pool.Exec(ctx, "SELECT 1 FROM admins WHERE telegram_id = $1 FOR UPDATE NOWAIT", ownerID)
+	assert.Equal(t, "55P03", sqlState(err), "the rows stay locked until the transaction ends") // lock_not_available
 }

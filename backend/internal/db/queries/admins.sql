@@ -15,3 +15,11 @@ ON CONFLICT (telegram_id) DO UPDATE
 SET is_active = true, full_name = EXCLUDED.full_name
 WHERE NOT admins.is_active
 RETURNING *;
+
+-- name: LockActiveAdmins :many
+-- Locks every active admin row, so "keep at least one active admin" holds
+-- under concurrent deactivations.
+SELECT telegram_id FROM admins
+WHERE is_active
+ORDER BY telegram_id
+FOR UPDATE;

@@ -83,3 +83,32 @@ func (q *Queries) ListAdmins(ctx context.Context) ([]Admin, error) {
 	}
 	return items, nil
 }
+
+const lockActiveAdmins = `-- name: LockActiveAdmins :many
+SELECT telegram_id FROM admins
+WHERE is_active
+ORDER BY telegram_id
+FOR UPDATE
+`
+
+// Locks every active admin row, so "keep at least one active admin" holds
+// under concurrent deactivations.
+func (q *Queries) LockActiveAdmins(ctx context.Context) ([]int64, error) {
+	rows, err := q.db.Query(ctx, lockActiveAdmins)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var telegram_id int64
+		if err := rows.Scan(&telegram_id); err != nil {
+			return nil, err
+		}
+		items = append(items, telegram_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -14,6 +14,9 @@ type Querier interface {
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
+	// Locks every active admin row, so "keep at least one active admin" holds
+	// under concurrent deactivations.
+	LockActiveAdmins(ctx context.Context) ([]int64, error)
 }
 
 var _ Querier = (*Queries)(nil)
