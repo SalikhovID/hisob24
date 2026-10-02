@@ -152,3 +152,27 @@ func TestExtendRefusals(t *testing.T) {
 		}
 	}
 }
+
+func TestHistory(t *testing.T) {
+	s, pool := newService(t)
+	d := dbToday(t, pool)
+	id := createCompany(t, pool, d)
+	other := createCompany(t, pool, d)
+	first, err := s.Extend(t.Context(), id, ExtendInput{Days: 30}, ownerID)
+	require.NoError(t, err)
+	second, err := s.Extend(t.Context(), id, ExtendInput{Days: 7}, ownerID)
+	require.NoError(t, err)
+	_, err = s.Extend(t.Context(), other, ExtendInput{Days: 1}, ownerID)
+	require.NoError(t, err)
+
+	h, err := s.History(t.Context(), id)
+
+	require.NoError(t, err)
+	require.Len(t, h, 2, "only this company's payments")
+	assert.Equal(t, []int64{second.ID, first.ID}, []int64{h[0].ID, h[1].ID}, "newest first")
+
+	_, err = s.History(t.Context(), other+1)
+	var e *apperr.Error
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, apperr.NotFound, e.Kind)
+}

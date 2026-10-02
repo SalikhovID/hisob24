@@ -87,5 +87,11 @@ func (s *Service) Extend(ctx context.Context, companyID int64, in ExtendInput, a
 
 // History lists a company's payments, newest first.
 func (s *Service) History(ctx context.Context, companyID int64) ([]gen.Billing, error) {
-	return nil, errors.New("not implemented")
+	if _, err := s.q.GetCompany(ctx, companyID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errCompanyNotFound
+		}
+		return nil, err
+	}
+	return s.q.ListBillings(ctx, companyID)
 }
