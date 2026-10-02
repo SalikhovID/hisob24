@@ -35,3 +35,21 @@ func (q *Queries) CreateCompany(ctx context.Context, arg CreateCompanyParams) (C
 	)
 	return i, err
 }
+
+const getCompany = `-- name: GetCompany :one
+SELECT id, name, end_date, is_active, created_by, created_at FROM companies WHERE id = $1
+`
+
+func (q *Queries) GetCompany(ctx context.Context, id int64) (Company, error) {
+	row := q.db.QueryRow(ctx, getCompany, id)
+	var i Company
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.EndDate,
+		&i.IsActive,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}

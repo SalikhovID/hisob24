@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,4 +30,17 @@ func createCompany(t *testing.T, q *gen.Queries, name string, endDate time.Time)
 	c, err := q.CreateCompany(context.Background(), gen.CreateCompanyParams{Name: name, EndDate: endDate, CreatedBy: ptr(ownerID)})
 	require.NoError(t, err)
 	return c
+}
+
+func TestGetCompany(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	created := createCompany(t, q, "Olma MChJ", today(t, pool))
+
+	got, err := q.GetCompany(ctx, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, created, got)
+
+	_, err = q.GetCompany(ctx, created.ID+1)
+	assert.ErrorIs(t, err, pgx.ErrNoRows)
 }

@@ -34,6 +34,7 @@ type Querier interface {
 	// The admin behind a live session; an expired session or a deactivated
 	// admin gives pgx.ErrNoRows.
 	GetAdminBySession(ctx context.Context, id uuid.UUID) (Admin, error)
+	GetCompany(ctx context.Context, id int64) (Company, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
 	// Locks every active admin row, so "keep at least one active admin" holds
 	// under concurrent deactivations.
