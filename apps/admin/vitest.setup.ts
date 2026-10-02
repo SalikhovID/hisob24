@@ -7,20 +7,25 @@ import { server } from "./test/server"
 
 vi.mock("next/navigation", () => import("./test/navigation"))
 
+// Some tests (proxy.ts) run in the node environment, without a window.
+const browser = typeof window !== "undefined"
+
 // jsdom has no matchMedia; next-themes and sonner ask it for the system theme.
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  }),
-})
+if (browser) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  })
+}
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }))
 beforeEach(() => {
@@ -30,6 +35,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   server.resetHandlers()
-  delete window.Telegram
+  if (browser) delete window.Telegram
 })
 afterAll(() => server.close())
