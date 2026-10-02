@@ -5,6 +5,7 @@ import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { useAdmins, useMe } from "@/lib/queries"
 import type { AdminAccount } from "@/lib/types"
+import { AddAdminDialog } from "./add-admin-dialog"
 
 // AdminsPage lists the platform's admins.
 export function AdminsPage() {
@@ -27,7 +28,10 @@ export function AdminsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Adminlar</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Adminlar</h1>
+        <AddAdminDialog />
+      </div>
       {admins.isPending && <Loading />}
       {admins.isError && <Failed error={admins.error} onRetry={() => admins.refetch()} />}
       {admins.data && <DataList label="Adminlar" items={admins.data} columns={columns} getKey={(a) => a.telegram_id} />}
