@@ -3,7 +3,7 @@
 import { ChevronRightIcon, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { Loading } from "@/components/states"
+import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
@@ -41,6 +41,8 @@ export function SelectCompany() {
       </div>
       {me.isPending ? (
         <Loading />
+      ) : me.isError ? (
+        !expired && <Failed error={me.error} onRetry={() => me.refetch()} />
       ) : (
         me.data && (
           <>
