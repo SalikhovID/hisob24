@@ -28,6 +28,10 @@ func NewHandler(a *auth.AdminAuth, cookieSecure bool, otpLimiter *httpx.RateLimi
 func (h *Handler) Routes(r chi.Router) {
 	r.Route("/admin", func(r chi.Router) {
 		r.With(httpx.RateLimit(h.otpLimiter)).Post("/auth/otp", h.loginWithCode)
+		r.Group(func(r chi.Router) {
+			r.Use(h.requireSession)
+			r.Get("/me", h.me)
+		})
 	})
 }
 
@@ -58,4 +62,8 @@ func (h *Handler) loginWithCode(w http.ResponseWriter, r *http.Request) {
 	}
 	setSessionCookie(w, s)
 	httpx.JSON(w, http.StatusOK, toAdminJSON(s.Admin))
+}
+
+func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
+	httpx.JSON(w, http.StatusOK, toAdminJSON(currentAdmin(r.Context())))
 }

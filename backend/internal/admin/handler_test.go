@@ -103,3 +103,18 @@ func TestLoginWithCodeIsRateLimitedPerIP(t *testing.T) {
 
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "even a right code waits once the budget is spent")
 }
+
+func TestMe(t *testing.T) {
+	api := newTestAPI(t, true)
+	login := api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"`+api.code(t)+`"}`)
+
+	rec := api.do(t, http.MethodGet, "/admin/me", "", sessionCookieOf(t, login))
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"telegram_id":461603558,"full_name":"Owner"}`, rec.Body.String())
+
+	rec = api.do(t, http.MethodGet, "/admin/me", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.JSONEq(t, `{"error":"unauthorized","message":"Avval tizimga kiring"}`, rec.Body.String())
+	rec = api.do(t, http.MethodGet, "/admin/me", "", &http.Cookie{Name: "admin_session", Value: "forged"})
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}
