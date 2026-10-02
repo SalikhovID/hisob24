@@ -39,7 +39,9 @@ func (c accessClaims) GetIssuedAt() (*jwt.NumericDate, error)       { return c.I
 func (c accessClaims) GetNotBefore() (*jwt.NumericDate, error)      { return nil, nil }
 func (c accessClaims) GetIssuer() (string, error)                   { return "", nil }
 func (c accessClaims) GetSubject() (string, error)                  { return c.Subject, nil }
-func (c accessClaims) GetAudience() (jwt.ClaimStrings, error)       { return jwt.ClaimStrings{c.Audience}, nil }
+func (c accessClaims) GetAudience() (jwt.ClaimStrings, error) {
+	return jwt.ClaimStrings{c.Audience}, nil
+}
 
 // IssueAccessToken signs an access token for claims, valid from now for
 // AccessTokenTTL, and returns it with its expiry.
