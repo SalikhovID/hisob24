@@ -75,6 +75,12 @@ export class ApiError extends Error {
   }
 }
 
+// subscriptionExpired tells the API's 402: the session's company has run out
+// of subscription (or is blocked) and may not be used.
+export function subscriptionExpired(error: unknown): boolean {
+  return error instanceof ApiError && error.code === "subscription_expired"
+}
+
 type Result<T> = { data?: T; error?: unknown; response: Response }
 
 // call unwraps an api request: its data, or an ApiError carrying the API's

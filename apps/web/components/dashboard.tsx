@@ -1,14 +1,23 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { subscriptionExpired } from "@/lib/api"
 import { formatPhoneInput } from "@/lib/phone"
 import { useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 
 // Dashboard is the app's home: for now who is signed in and where.
 export function Dashboard() {
+  const router = useRouter()
   const me = useMe()
+  const expired = subscriptionExpired(me.error)
+
+  useEffect(() => {
+    if (expired) router.replace("/expired")
+  }, [expired, router])
 
   return (
     <main className="mx-auto w-full max-w-2xl p-4">

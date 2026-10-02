@@ -1,6 +1,7 @@
-import { screen } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, db } from "@/mocks/data"
+import { ALI, db, ZARINA } from "@/mocks/data"
+import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { Dashboard } from "./dashboard"
@@ -22,4 +23,13 @@ test("without a name the greeting uses the phone number", async () => {
   renderWithProviders(<Dashboard />)
 
   expect(await screen.findByRole("heading", { name: "Salom, +998 90 123 45 67" })).toBeInTheDocument()
+})
+
+test("a session for an expired company is sent to /expired", async () => {
+  // Zarina's only company was chosen at login, and it has expired.
+  await signIn(ZARINA)
+
+  renderWithProviders(<Dashboard />)
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/expired"))
 })
