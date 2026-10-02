@@ -19,5 +19,9 @@ func NormalizePhone(raw string) (string, error) {
 		}
 		b.WriteRune(r)
 	}
-	return b.String(), nil
+	digits := b.String()
+	if len(digits) == 9 {
+		digits = "998" + digits
+	}
+	return digits, nil
 }

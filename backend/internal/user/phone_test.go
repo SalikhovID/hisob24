@@ -19,6 +19,8 @@ func TestNormalizePhone(t *testing.T) {
 		{name: "parentheses and dashes", raw: "+998 (90) 123-45-67", want: "998901234567"},
 		{name: "surrounding spaces", raw: "  998901234567 ", want: "998901234567"},
 		{name: "foreign number", raw: "+7 (912) 345-67-89", want: "79123456789"},
+		{name: "local number", raw: "901234567", want: "998901234567"},
+		{name: "formatted local number", raw: "(90) 123-45-67", want: "998901234567"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
