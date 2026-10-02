@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
@@ -127,4 +128,27 @@ func waitForLockWait(t *testing.T, pool *pgxpool.Pool) {
 			WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting)
 		return err == nil && waiting > 0
 	}, 5*time.Second, 10*time.Millisecond)
+}
+
+func TestExtendRefusals(t *testing.T) {
+	s, pool := newService(t)
+	id := createCompany(t, pool, dbToday(t, pool))
+	for name, tc := range map[string]struct {
+		companyID int64
+		in        ExtendInput
+		kind      apperr.Kind
+	}{
+		"no days":          {id, ExtendInput{Days: 0}, apperr.Invalid},
+		"over ten years":   {id, ExtendInput{Days: 3651}, apperr.Invalid},
+		"amount not money": {id, ExtendInput{Days: 1, Amount: "ko'p"}, apperr.Invalid},
+		"negative amount":  {id, ExtendInput{Days: 1, Amount: "-5"}, apperr.Invalid},
+		"three decimals":   {id, ExtendInput{Days: 1, Amount: "1.234"}, apperr.Invalid},
+		"unknown company":  {id + 1, ExtendInput{Days: 1}, apperr.NotFound},
+	} {
+		_, err := s.Extend(t.Context(), tc.companyID, tc.in, ownerID)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.kind, e.Kind, name)
+		}
+	}
 }

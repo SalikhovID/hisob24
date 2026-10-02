@@ -3,14 +3,23 @@ package billing
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
+
+// MaxDays bounds one payment: ten years, well inside the date range.
+const MaxDays = 3650
+
+var amountPattern = regexp.MustCompile(`^\d{1,12}(\.\d{1,2})?$`)
+
+var errCompanyNotFound = apperr.New(apperr.NotFound, "not_found", "Kompaniya topilmadi")
 
 // Service records payments.
 type Service struct {
@@ -34,10 +43,13 @@ type ExtendInput struct {
 // locked, the new end date computed with NewEndDate from the database's
 // today, the company updated and the payment recorded.
 func (s *Service) Extend(ctx context.Context, companyID int64, in ExtendInput, adminID int64) (gen.Billing, error) {
+	if in.Days < 1 || in.Days > MaxDays {
+		return gen.Billing{}, apperr.New(apperr.Invalid, "validation_error", "Kunlar soni 1 dan 3650 gacha bo'lishi kerak")
+	}
 	var amount pgtype.Numeric
 	if in.Amount != "" {
-		if err := amount.Scan(in.Amount); err != nil {
-			return gen.Billing{}, err
+		if !amountPattern.MatchString(in.Amount) || amount.Scan(in.Amount) != nil {
+			return gen.Billing{}, apperr.New(apperr.Invalid, "validation_error", "Summa noto'g'ri: masalan 150000 yoki 150000.50")
 		}
 	}
 	var note *string
@@ -49,6 +61,9 @@ func (s *Service) Extend(ctx context.Context, companyID int64, in ExtendInput, a
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
 		row, err := q.LockCompanyEndDate(ctx, companyID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errCompanyNotFound
+		}
 		if err != nil {
 			return err
 		}
