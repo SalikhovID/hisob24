@@ -537,6 +537,50 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
+  /webhooks/admin-bot:
+    post:
+      operationId: adminBotWebhook
+      summary: Admin botning Telegram update'lari (faqat BOT_MODE=webhook)
+      description: >
+        Telegram update'larni shu manzilga yuboradi: API ishga tushganda
+        setWebhook bilan PUBLIC_API_URL + /webhooks/admin-bot o'rnatiladi.
+        X-Telegram-Bot-Api-Secret-Token TELEGRAM_WEBHOOK_SECRET bilan
+        solishtiriladi. Frontend uchun emas.
+      parameters:
+        - $ref: "#/components/parameters/TelegramSecret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramUpdate"
+      responses:
+        "200":
+          description: Update qabul qilindi
+        "401":
+          $ref: "#/components/responses/InvalidSecretToken"
+  /webhooks/user-bot:
+    post:
+      operationId: userBotWebhook
+      summary: User botning Telegram update'lari (faqat BOT_MODE=webhook)
+      description: >
+        Telegram update'larni shu manzilga yuboradi: API ishga tushganda
+        setWebhook bilan PUBLIC_API_URL + /webhooks/user-bot o'rnatiladi.
+        X-Telegram-Bot-Api-Secret-Token TELEGRAM_WEBHOOK_SECRET bilan
+        solishtiriladi. Frontend uchun emas.
+      parameters:
+        - $ref: "#/components/parameters/TelegramSecret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramUpdate"
+      responses:
+        "200":
+          description: Update qabul qilindi
+        "401":
+          $ref: "#/components/responses/InvalidSecretToken"
 components:
   securitySchemes:
     adminSession:
@@ -553,6 +597,12 @@ components:
       in: cookie
       name: refresh_token
   parameters:
+    TelegramSecret:
+      name: X-Telegram-Bot-Api-Secret-Token
+      in: header
+      required: true
+      schema:
+        type: string
     CompanyID:
       name: id
       in: path
@@ -605,6 +655,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Tokens"
+    InvalidSecretToken:
+      description: Webhook secret noto'g'ri (invalid_secret_token)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     NotFound:
       description: Kompaniya topilmadi (not_found)
       content:
@@ -612,6 +668,10 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    TelegramUpdate:
+      type: object
+      description: Telegram Bot API Update obyekti (https://core.telegram.org/bots/api#update)
+      additionalProperties: true
     Health:
       type: object
       required: [status]

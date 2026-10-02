@@ -351,10 +351,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks/admin-bot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin botning Telegram update'lari (faqat BOT_MODE=webhook)
+         * @description Telegram update'larni shu manzilga yuboradi: API ishga tushganda setWebhook bilan PUBLIC_API_URL + /webhooks/admin-bot o'rnatiladi. X-Telegram-Bot-Api-Secret-Token TELEGRAM_WEBHOOK_SECRET bilan solishtiriladi. Frontend uchun emas.
+         */
+        post: operations["adminBotWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/user-bot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * User botning Telegram update'lari (faqat BOT_MODE=webhook)
+         * @description Telegram update'larni shu manzilga yuboradi: API ishga tushganda setWebhook bilan PUBLIC_API_URL + /webhooks/user-bot o'rnatiladi. X-Telegram-Bot-Api-Secret-Token TELEGRAM_WEBHOOK_SECRET bilan solishtiriladi. Frontend uchun emas.
+         */
+        post: operations["userBotWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Telegram Bot API Update obyekti (https://core.telegram.org/bots/api#update) */
+        TelegramUpdate: {
+            [key: string]: unknown;
+        };
         Health: {
             /** @enum {string} */
             status: "ok";
@@ -546,6 +590,15 @@ export interface components {
                 "application/json": components["schemas"]["Tokens"];
             };
         };
+        /** @description Webhook secret noto'g'ri (invalid_secret_token) */
+        InvalidSecretToken: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description Kompaniya topilmadi (not_found) */
         NotFound: {
             headers: {
@@ -557,6 +610,7 @@ export interface components {
         };
     };
     parameters: {
+        TelegramSecret: string;
         CompanyID: number;
     };
     requestBodies: never;
@@ -1139,6 +1193,56 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
+        };
+    };
+    adminBotWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Telegram-Bot-Api-Secret-Token": components["parameters"]["TelegramSecret"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramUpdate"];
+            };
+        };
+        responses: {
+            /** @description Update qabul qilindi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["InvalidSecretToken"];
+        };
+    };
+    userBotWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Telegram-Bot-Api-Secret-Token": components["parameters"]["TelegramSecret"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramUpdate"];
+            };
+        };
+        responses: {
+            /** @description Update qabul qilindi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["InvalidSecretToken"];
         };
     };
 }
