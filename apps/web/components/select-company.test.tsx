@@ -2,10 +2,10 @@ import { screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { meKey } from "@/lib/queries"
 import { accessToken } from "@/lib/session"
-import { SARDOR, VALI } from "@/mocks/data"
+import { SARDOR, VALI, ZARINA } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { SelectCompany } from "./select-company"
 
 test("lists the companies to choose from with the role in each", async () => {
@@ -52,4 +52,16 @@ test("choosing a company switches to it and opens the dashboard", async () => {
   expect(accessToken()).toMatch(new RegExp(`^access:${VALI}:2:`))
   // The old /app/me (no company yet) is gone, so the dashboard asks afresh.
   expect(cachedMe).toBeUndefined()
+})
+
+test("with no company to choose it says so", async () => {
+  await signIn(ZARINA)
+  await chooseCompany(null)
+  renderWithProviders(<SelectCompany />)
+
+  expect(await screen.findByText("Faol kompaniya yo'q")).toBeInTheDocument()
+  expect(
+    screen.getByText("Kompaniyangiz obunasi tugagan yoki bloklangan. Davom etish uchun administrator bilan bog'laning."),
+  ).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: /Anor Servis/ })).toBeDisabled()
 })
