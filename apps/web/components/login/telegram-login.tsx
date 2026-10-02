@@ -18,7 +18,7 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
     call(api.POST("/app/auth/telegram", { body: { initData: webApp.initData } })).then((tokens) => {
       if (cancelled) return
       setAccessToken(tokens.access_token)
-      router.replace("/")
+      router.replace(tokens.company_id === null ? "/select-company" : "/")
     })
     return () => {
       cancelled = true
