@@ -18,3 +18,10 @@ export function formatPhoneInput(value: string): string {
   }
   return PREFIX + parts.join(" ")
 }
+
+// phoneDigits turns a complete masked number into 998901234567, the form the
+// API takes; anything shorter is null.
+export function phoneDigits(formatted: string): string | null {
+  const digits = formatted.replace(/\D/g, "")
+  return digits.length === 12 ? digits : null
+}

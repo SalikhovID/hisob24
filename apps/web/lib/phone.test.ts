@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { formatPhoneInput } from "./phone"
+import { formatPhoneInput, phoneDigits } from "./phone"
 
 test.each([
   ["", "+998 "],
@@ -19,4 +19,13 @@ test.each([
   ["998901234567", "+998 90 123 45 67"],
 ])("formatPhoneInput(%j) = %j", (typed, shown) => {
   expect(formatPhoneInput(typed)).toBe(shown)
+})
+
+test.each([
+  ["+998 90 123 45 67", "998901234567"],
+  ["+998 99 812 34 56", "998998123456"],
+  ["+998 90 123 45 6", null],
+  ["+998 ", null],
+])("phoneDigits(%j) = %j", (formatted, digits) => {
+  expect(phoneDigits(formatted)).toBe(digits)
 })
