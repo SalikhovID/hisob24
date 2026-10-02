@@ -10,3 +10,11 @@ export async function signIn(phone: string) {
   setAccessToken(tokens.access_token)
   return tokens
 }
+
+// chooseCompany switches the signed-in user to a company, or to none, the
+// way the company list and /expired do.
+export async function chooseCompany(companyId: number | null) {
+  const tokens = await call(api.POST("/app/auth/switch-company", { body: { company_id: companyId } }))
+  setAccessToken(tokens.access_token)
+  return tokens
+}
