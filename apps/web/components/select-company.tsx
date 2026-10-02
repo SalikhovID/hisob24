@@ -6,7 +6,7 @@ import { useEffect } from "react"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ApiError } from "@/lib/api"
+import { subscriptionExpired } from "@/lib/api"
 import { useLogout, useMe, useSwitchCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { AppCompany } from "@/lib/types"
@@ -27,7 +27,7 @@ export function SelectCompany() {
   const logout = useLogout()
   // The session's company has expired since it was chosen: /expired offers
   // the way back to this list.
-  const expired = me.error instanceof ApiError && me.error.code === "subscription_expired"
+  const expired = subscriptionExpired(me.error)
 
   useEffect(() => {
     if (expired) router.replace("/expired")
