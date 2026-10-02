@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -13,7 +14,10 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-const loginCodeTTL = 60 * time.Second
+const (
+	loginCodeTTL   = 60 * time.Second
+	loginCodeDraws = 5
+)
 
 // ErrNotAdmin means the Telegram user is not an active admin.
 var ErrNotAdmin = errors.New("not an active admin")
@@ -75,7 +79,7 @@ func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (Login
 		}
 		// The hash of another admin's live code is taken (unique index): draw
 		// again, inside a savepoint so the transaction survives the failure.
-		for {
+		for range loginCodeDraws {
 			code, err := a.newCode()
 			if err != nil {
 				return err
@@ -99,6 +103,7 @@ func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (Login
 			issued = LoginCode{ID: id, Code: code}
 			return nil
 		}
+		return fmt.Errorf("no free login code after %d draws", loginCodeDraws)
 	})
 	return issued, err
 }

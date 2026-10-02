@@ -106,3 +106,16 @@ func TestIssueLoginCodeDrawsAgainOnACollision(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "222222", issued.Code)
 }
+
+func TestIssueLoginCodeGivesUpAfterFiveCollisions(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	mustExec(t, pool, "INSERT INTO admins (telegram_id) VALUES (42)")
+	a.newCode = codes("111111")
+	_, err := a.IssueLoginCode(t.Context(), 42)
+	require.NoError(t, err)
+
+	a.newCode = codes("111111", "111111", "111111", "111111", "111111", "222222")
+	_, err = a.IssueLoginCode(t.Context(), ownerID)
+
+	assert.ErrorContains(t, err, "no free login code after 5 draws")
+}
