@@ -1,9 +1,11 @@
 import { act, screen, waitFor } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { accessToken } from "@/lib/session"
 import { ALI, db, TG_ALI, TG_STRANGER, TG_UNLINKED, TG_VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { fakeWebApp } from "@/test/telegram"
 import { TelegramLogin } from "./telegram-login"
 
@@ -103,4 +105,22 @@ test("a contact that has not reached the bot after three tries can be tried agai
   } finally {
     vi.useRealTimers()
   }
+})
+
+test.each([
+  ["forged initData", "Telegram ma'lumoti yaroqsiz. Mini App'ni qaytadan oching", () => {}],
+  [
+    "a network failure",
+    "Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring",
+    () => server.use(http.post("*/api/app/auth/telegram", () => HttpResponse.error())),
+  ],
+])("%s hands over to the SMS form, saying why", async (_, notice, setup) => {
+  setup()
+  const onFallback = vi.fn()
+  const webApp = fakeWebApp({ initData: "user=%7B%22id%22%3A1001%7D&auth_date=1790000000&hash=bad" })
+
+  renderWithProviders(<TelegramLogin webApp={webApp} onFallback={onFallback} />)
+
+  await waitFor(() => expect(onFallback).toHaveBeenCalledWith(notice))
+  expect(router.replace).not.toHaveBeenCalled()
 })

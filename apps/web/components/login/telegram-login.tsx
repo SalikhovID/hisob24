@@ -24,7 +24,13 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 // An account that shared none can share it from here: Telegram sends the
 // contact to the bot, and the sign-in is tried again. onFallback hands over
 // to the SMS form, saying why.
-export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: (notice: string) => void }) {
+export function TelegramLogin({
+  webApp,
+  onFallback,
+}: {
+  webApp: TelegramWebApp
+  onFallback: (notice: string) => void
+}) {
   const router = useRouter()
   const [stage, setStage] = useState<Stage>({ kind: "checking" })
 
@@ -40,10 +46,11 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
         if (cancelled()) return "done"
         if (error instanceof ApiError && error.code === "phone_not_shared") return "not_shared"
         if (error instanceof ApiError && error.code === "no_access") setStage({ kind: "no_access", message: error.message })
+        else onFallback((error as Error).message)
       }
       return "done"
     },
-    [webApp, router],
+    [webApp, router, onFallback],
   )
 
   useEffect(() => {
