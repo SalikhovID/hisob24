@@ -21,6 +21,40 @@ func (q *Queries) GetUser(ctx context.Context, phone string) (User, error) {
 	return i, err
 }
 
+const getUserCompany = `-- name: GetUserCompany :one
+SELECT c.id, c.name, c.end_date, c.is_active, uc.role
+FROM user_companies uc
+JOIN companies c ON c.id = uc.company_id
+WHERE uc.user_phone = $1 AND uc.company_id = $2
+`
+
+type GetUserCompanyParams struct {
+	UserPhone string
+	CompanyID int64
+}
+
+type GetUserCompanyRow struct {
+	ID       int64
+	Name     string
+	EndDate  time.Time
+	IsActive bool
+	Role     string
+}
+
+// The membership behind switch-company; pgx.ErrNoRows when not a member.
+func (q *Queries) GetUserCompany(ctx context.Context, arg GetUserCompanyParams) (GetUserCompanyRow, error) {
+	row := q.db.QueryRow(ctx, getUserCompany, arg.UserPhone, arg.CompanyID)
+	var i GetUserCompanyRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.EndDate,
+		&i.IsActive,
+		&i.Role,
+	)
+	return i, err
+}
+
 const listCompanyUsers = `-- name: ListCompanyUsers :many
 SELECT u.phone, u.full_name, uc.role, uc.created_at
 FROM user_companies uc

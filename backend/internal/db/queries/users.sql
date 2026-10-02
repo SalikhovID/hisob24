@@ -31,3 +31,10 @@ FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
 WHERE uc.user_phone = $1
 ORDER BY c.name, c.id;
+
+-- name: GetUserCompany :one
+-- The membership behind switch-company; pgx.ErrNoRows when not a member.
+SELECT c.id, c.name, c.end_date, c.is_active, uc.role
+FROM user_companies uc
+JOIN companies c ON c.id = uc.company_id
+WHERE uc.user_phone = $1 AND uc.company_id = $2;

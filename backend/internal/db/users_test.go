@@ -126,3 +126,19 @@ func TestListUserCompanies(t *testing.T) {
 	assert.Equal(t, "owner", got[1].Role)
 	assert.True(t, got[1].IsActive)
 }
+
+func TestGetUserCompany(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+	addMember(t, q, c.ID, "998901234567", "Ali", "manager")
+	createUser(t, q, "998909999999", "Vali")
+
+	m, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: "998901234567", CompanyID: c.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "Olma", m.Name)
+	assert.Equal(t, "manager", m.Role)
+
+	_, err = q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: "998909999999", CompanyID: c.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
+}
