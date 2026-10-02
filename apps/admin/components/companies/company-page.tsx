@@ -11,6 +11,7 @@ import { formatDate, formatPhone } from "@/lib/format"
 import { useCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
+import { AddBillingDialog } from "./add-billing-dialog"
 import { AddUserDialog } from "./add-user-dialog"
 import { BillingHistory } from "./billing-history"
 import { CompanyStatusBadge } from "./status-badge"
@@ -64,9 +65,12 @@ export function CompanyPage({ id }: { id: number }) {
         <DataList label="Userlar" items={c.users} columns={memberColumns} getKey={(m) => m.phone} />
       </section>
       <section aria-labelledby={billingId} className="space-y-3">
-        <h2 id={billingId} className="font-medium">
-          Billing tarixi
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id={billingId} className="font-medium">
+            Billing tarixi
+          </h2>
+          <AddBillingDialog company={c} />
+        </div>
         <BillingHistory companyId={c.id} />
       </section>
     </div>

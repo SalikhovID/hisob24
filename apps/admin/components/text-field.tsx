@@ -6,14 +6,14 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 // TextField is a labeled input bound to a react-hook-form field, with its
-// error under it.
-export function TextField<T extends FieldValues>({
+// error under it. TOut is what the form's schema turns the values into.
+export function TextField<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   name,
   label,
   ...input
 }: {
-  control: Control<T>
+  control: Control<T, unknown, TOut>
   name: FieldPath<T>
   label: string
 } & Omit<ComponentProps<typeof Input>, "name" | "value" | "onChange" | "onBlur">) {

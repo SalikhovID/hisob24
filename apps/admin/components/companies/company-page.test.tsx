@@ -104,3 +104,45 @@ test("a company without payments says so", async () => {
 
   expect(await screen.findByText("Hali to'lovlar yo'q")).toBeInTheDocument()
 })
+
+test.each([
+  { name: "a running company", id: 1, days: "30", preview: "01.12.2026" },
+  { name: "an expired company counts from today", id: 3, days: "10", preview: "12.10.2026" },
+])("the billing dialog previews the new end date: $name", async ({ id, days, preview }) => {
+  const { user } = renderWithProviders(<CompanyPage id={id} />)
+
+  await user.click(await screen.findByRole("button", { name: "Billing qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Billing qo'shish" })
+  await user.type(within(dialog).getByLabelText("Kunlar soni"), days)
+
+  expect(within(dialog).getByText(/Yangi tugash sanasi/)).toHaveTextContent(`Yangi tugash sanasi: ${preview}`)
+})
+
+test("a payment from the dialog moves the end date and joins the history", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Billing qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Billing qo'shish" })
+  await user.type(within(dialog).getByLabelText("Kunlar soni"), "30")
+  await user.type(within(dialog).getByLabelText("Summa"), "150000.50")
+  await user.type(within(dialog).getByLabelText("Izoh"), "Naqd")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("To'lov qo'shildi")).toBeInTheDocument()
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "Ma'lumot" })).getByText("01.12.2026")).toBeInTheDocument())
+  const [newest] = cellsOf(await screen.findByRole("table", { name: "Billing tarixi" }))
+  expect(newest.slice(1)).toEqual(["+30 kun", "150 000,50", "01.11.2026 → 01.12.2026", "Naqd"])
+})
+
+test("the billing dialog refuses a bad day count or amount", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Billing qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Billing qo'shish" })
+  await user.type(within(dialog).getByLabelText("Summa"), "1.234")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText("Kunlar soni 1 dan 3650 gacha bo'lishi kerak")).toBeInTheDocument()
+  expect(within(dialog).getByText("Summa noto'g'ri: masalan 150000 yoki 150000.50")).toBeInTheDocument()
+})
