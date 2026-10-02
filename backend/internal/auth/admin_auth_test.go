@@ -119,3 +119,28 @@ func TestIssueLoginCodeGivesUpAfterFiveCollisions(t *testing.T) {
 
 	assert.ErrorContains(t, err, "no free login code after 5 draws")
 }
+
+func TestLoginWithCode(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	ctx := t.Context()
+	issued, err := a.IssueLoginCode(ctx, ownerID)
+	require.NoError(t, err)
+
+	s, err := a.LoginWithCode(ctx, issued.Code)
+	require.NoError(t, err)
+	assert.Equal(t, ownerID, s.Admin.TelegramID)
+	assert.WithinDuration(t, time.Now().Add(12*time.Hour), s.ExpiresAt, 5*time.Second)
+	var source string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT source FROM admin_sessions WHERE id = $1", s.ID).Scan(&source))
+	assert.Equal(t, "otp", source)
+
+	_, err = a.LoginWithCode(ctx, issued.Code)
+	assert.ErrorIs(t, err, ErrInvalidCode, "a code works once")
+	_, err = a.LoginWithCode(ctx, "000000")
+	assert.ErrorIs(t, err, ErrInvalidCode, "a wrong code")
+
+	mustExec(t, pool, "INSERT INTO admin_login_codes (admin_id, code_hash, expires_at) VALUES ($1, $2, now() - interval '1 second')",
+		ownerID, HashCode([]byte(testOTPSecret), "654321"))
+	_, err = a.LoginWithCode(ctx, "654321")
+	assert.ErrorIs(t, err, ErrInvalidCode, "an expired code")
+}

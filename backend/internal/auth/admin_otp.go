@@ -19,8 +19,12 @@ const (
 	loginCodeDraws = 5
 )
 
-// ErrNotAdmin means the Telegram user is not an active admin.
-var ErrNotAdmin = errors.New("not an active admin")
+var (
+	// ErrNotAdmin means the Telegram user is not an active admin.
+	ErrNotAdmin = errors.New("not an active admin")
+	// ErrInvalidCode means a wrong, used or expired login code.
+	ErrInvalidCode = errors.New("invalid login code")
+)
 
 // AdminAuth logs platform admins in with codes from the admin bot or with
 // Mini App initData, and keeps the sessions both open.
@@ -106,6 +110,25 @@ func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (Login
 		return fmt.Errorf("no free login code after %d draws", loginCodeDraws)
 	})
 	return issued, err
+}
+
+// LoginWithCode spends a code from the admin bot and opens a session;
+// ErrInvalidCode for a wrong, used or expired code.
+func (a *AdminAuth) LoginWithCode(ctx context.Context, code string) (Session, error) {
+	var s Session
+	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		q := a.q.WithTx(tx)
+		adminID, err := q.ConsumeAdminLoginCode(ctx, HashCode(a.secret, code))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrInvalidCode
+		}
+		if err != nil {
+			return err
+		}
+		s, err = a.openSession(ctx, q, adminID, "otp")
+		return err
+	})
+	return s, err
 }
 
 func isUniqueViolation(err error) bool {
