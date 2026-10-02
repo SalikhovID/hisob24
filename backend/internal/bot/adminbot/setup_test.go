@@ -22,3 +22,13 @@ func TestSetMenuButton(t *testing.T) {
 	require.NoError(t, SetMenuButton(t.Context(), api, ""))
 	assert.Nil(t, api.menu, "no panel URL, no button")
 }
+
+func TestRegisterWebhook(t *testing.T) {
+	api := &fakeAPI{}
+
+	require.NoError(t, RegisterWebhook(t.Context(), api, "https://api.hisob24.uz/", "s3cret"))
+
+	require.NotNil(t, api.webhook)
+	assert.Equal(t, "https://api.hisob24.uz/webhooks/admin-bot", api.webhook.URL)
+	assert.Equal(t, "s3cret", api.webhook.SecretToken)
+}

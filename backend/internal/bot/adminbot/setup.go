@@ -3,6 +3,7 @@ package adminbot
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -23,6 +24,22 @@ func SetMenuButton(ctx context.Context, api API, panelURL string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("set menu button: %w", err)
+	}
+	return nil
+}
+
+// WebhookPath is where Telegram delivers the admin bot's updates.
+const WebhookPath = "/webhooks/admin-bot"
+
+// RegisterWebhook has Telegram deliver updates to publicURL+WebhookPath with
+// secret in the X-Telegram-Bot-Api-Secret-Token header.
+func RegisterWebhook(ctx context.Context, api API, publicURL, secret string) error {
+	_, err := api.SetWebhook(ctx, &bot.SetWebhookParams{
+		URL:         strings.TrimRight(publicURL, "/") + WebhookPath,
+		SecretToken: secret,
+	})
+	if err != nil {
+		return fmt.Errorf("set webhook: %w", err)
 	}
 	return nil
 }
