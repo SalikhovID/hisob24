@@ -53,3 +53,16 @@ func TestCreate(t *testing.T) {
 		WHERE uc.company_id = $1`, second.ID).Scan(&name))
 	assert.Equal(t, "Ali Valiyev", name, "an existing user is reused unchanged")
 }
+
+func TestCreateIsAtomic(t *testing.T) {
+	s, pool := newService(t)
+	pgtest.FailInserts(t, pool, "user_companies")
+
+	_, err := s.Create(t.Context(), CreateInput{Name: "Olma", EndDate: dbToday(t, pool), OwnerPhone: "998901234567", OwnerFullName: "Ali"}, ownerID)
+
+	require.Error(t, err)
+	var companies, users int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT (SELECT count(*) FROM companies), (SELECT count(*) FROM users)").Scan(&companies, &users))
+	assert.Zero(t, companies, "no company without its owner")
+	assert.Zero(t, users, "no user without the membership")
+}
