@@ -10,3 +10,11 @@ export function formatDate(value: string): string {
   const date = new Date(value)
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`
 }
+
+// formatPhone writes a stored phone (digits only) for people to read: an
+// Uzbek number as +998 90 123 45 67, any other as + and its digits.
+export function formatPhone(phone: string): string {
+  const uz = /^998(\d{2})(\d{3})(\d{2})(\d{2})$/.exec(phone)
+  if (!uz) return `+${phone}`
+  return `+998 ${uz[1]} ${uz[2]} ${uz[3]} ${uz[4]}`
+}
