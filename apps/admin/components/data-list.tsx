@@ -10,7 +10,8 @@ export interface Column<T> {
 }
 
 // DataList shows records as a table on wide screens and as cards on phones,
-// where every other value is labeled with its column's name.
+// where every other value is labeled with its column's name; a value that is
+// not there (null, false, "") leaves its row out of the card.
 export function DataList<T>({
   label,
   items,
@@ -68,10 +69,12 @@ export function DataList<T>({
             <dl className="grid gap-1.5">
               {columns
                 .filter((column) => !column.primary)
-                .map((column) => (
+                .map((column) => ({ column, value: column.cell(item) }))
+                .filter(({ value }) => value !== null && value !== undefined && value !== false && value !== "")
+                .map(({ column, value }) => (
                   <div key={column.header} className="flex items-center justify-between gap-3">
                     <dt className="text-muted-foreground">{column.header}</dt>
-                    <dd className="text-right">{column.cell(item)}</dd>
+                    <dd className="text-right">{value}</dd>
                   </div>
                 ))}
             </dl>
