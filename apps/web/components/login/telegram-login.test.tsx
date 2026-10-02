@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { accessToken } from "@/lib/session"
-import { ALI, TG_ALI, TG_VALI } from "@/mocks/data"
+import { ALI, TG_ALI, TG_STRANGER, TG_VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { fakeWebApp } from "@/test/telegram"
@@ -19,4 +19,19 @@ test("someone in several companies goes on to choose one", async () => {
   renderWithProviders(<TelegramLogin webApp={fakeWebApp({}, TG_VALI)} onFallback={vi.fn()} />)
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/select-company"))
+})
+
+test("a phone that is no user's is told so, with the number, and the app can be closed", async () => {
+  const webApp = fakeWebApp({}, TG_STRANGER)
+  const { user } = renderWithProviders(<TelegramLogin webApp={webApp} onFallback={vi.fn()} />)
+
+  expect(await screen.findByRole("heading", { name: "Kirish huquqi yo'q" })).toBeInTheDocument()
+  expect(
+    screen.getByText(
+      "Hisob24'ga kirish huquqingiz yo'q. Raqamingiz: +998 90 555 66 77. Kompaniyangiz administratoriga murojaat qiling.",
+    ),
+  ).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Yopish" }))
+  expect(webApp.close).toHaveBeenCalled()
+  expect(router.replace).not.toHaveBeenCalled()
 })
