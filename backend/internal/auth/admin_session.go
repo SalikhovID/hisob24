@@ -72,3 +72,12 @@ func (a *AdminAuth) Authenticate(ctx context.Context, sessionID string) (gen.Adm
 	}
 	return admin, err
 }
+
+// Logout ends a session; a malformed or unknown id is not an error.
+func (a *AdminAuth) Logout(ctx context.Context, sessionID string) error {
+	id, err := uuid.Parse(sessionID)
+	if err != nil {
+		return nil
+	}
+	return a.q.DeleteAdminSession(ctx, id)
+}

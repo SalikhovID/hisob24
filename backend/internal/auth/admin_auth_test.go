@@ -209,3 +209,18 @@ func TestAuthenticate(t *testing.T) {
 	_, err = a.Authenticate(ctx, s.ID.String())
 	assert.ErrorIs(t, err, ErrUnauthenticated, "expired")
 }
+
+func TestLogout(t *testing.T) {
+	a, _ := newAdminAuth(t)
+	ctx := t.Context()
+	issued, err := a.IssueLoginCode(ctx, ownerID)
+	require.NoError(t, err)
+	s, err := a.LoginWithCode(ctx, issued.Code)
+	require.NoError(t, err)
+
+	require.NoError(t, a.Logout(ctx, s.ID.String()))
+
+	_, err = a.Authenticate(ctx, s.ID.String())
+	assert.ErrorIs(t, err, ErrUnauthenticated)
+	assert.NoError(t, a.Logout(ctx, "not-a-uuid"))
+}
