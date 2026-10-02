@@ -1,7 +1,7 @@
-import { screen, waitFor } from "@testing-library/react"
+import { act, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { accessToken } from "@/lib/session"
-import { ALI, TG_ALI, TG_STRANGER, TG_VALI } from "@/mocks/data"
+import { ALI, db, TG_ALI, TG_STRANGER, TG_UNLINKED, TG_VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { fakeWebApp } from "@/test/telegram"
@@ -34,4 +34,32 @@ test("a phone that is no user's is told so, with the number, and the app can be 
   await user.click(screen.getByRole("button", { name: "Yopish" }))
   expect(webApp.close).toHaveBeenCalled()
   expect(router.replace).not.toHaveBeenCalled()
+})
+
+// sharesContact stands for Telegram and the user bot: the contact the user
+// shares reaches the bot, which links it to the account.
+function sharesContact(phone: string, shared = true) {
+  return vi.fn((callback: (shared: boolean) => void) => {
+    if (shared) db.contacts[TG_UNLINKED] = phone
+    callback(shared)
+  })
+}
+
+test("an account that never shared its phone shares it from the app and is then signed in", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  try {
+    const webApp = fakeWebApp({ requestContact: sharesContact(ALI) }, TG_UNLINKED)
+    const { user } = renderWithProviders(<TelegramLogin webApp={webApp} onFallback={vi.fn()} />, {
+      advanceTimers: vi.advanceTimersByTime,
+    })
+    expect(await screen.findByRole("heading", { name: "Telefon raqamingiz ulanmagan" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Raqamni yuborish" }))
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+    expect(webApp.requestContact).toHaveBeenCalledOnce()
+  } finally {
+    vi.useRealTimers()
+  }
 })
