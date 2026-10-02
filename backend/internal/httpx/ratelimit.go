@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// RateLimiter allows each key at most limit requests in any window.
+// RateLimiter allows each key at most limit requests in any window: a
+// sliding-window log of the key's recent requests.
 type RateLimiter struct {
 	limit  int
 	window time.Duration
@@ -24,9 +25,19 @@ func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 func (l *RateLimiter) Allow(key string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if len(l.hits[key]) >= l.limit {
+	now := l.now()
+	since := now.Add(-l.window)
+
+	recent := l.hits[key][:0]
+	for _, at := range l.hits[key] {
+		if at.After(since) {
+			recent = append(recent, at)
+		}
+	}
+	if len(recent) >= l.limit {
+		l.hits[key] = recent
 		return false
 	}
-	l.hits[key] = append(l.hits[key], l.now())
+	l.hits[key] = append(recent, now)
 	return true
 }
