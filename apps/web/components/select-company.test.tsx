@@ -101,3 +101,15 @@ test("a list that fails to load says why and can be asked for again", async () =
 
   expect(await screen.findByRole("button", { name: /Nok Market/ })).toBeEnabled()
 })
+
+test("a choice that fails says why and stays on the list", async () => {
+  await signIn(VALI)
+  server.use(http.post("*/api/app/auth/switch-company", () => HttpResponse.error()))
+  const { user } = renderWithProviders(<SelectCompany />)
+
+  await user.click(await screen.findByRole("button", { name: /Nok Market/ }))
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")
+  expect(router.replace).not.toHaveBeenCalled()
+  expect(screen.getByRole("button", { name: /Nok Market/ })).toBeEnabled()
+})
