@@ -96,3 +96,21 @@ func TestLoginDiscardsAnUndeliveredCode(t *testing.T) {
 
 	assert.Equal(t, []int64{7}, a.discarded)
 }
+
+func TestOtherMessages(t *testing.T) {
+	for name, tc := range map[string]struct {
+		from int64
+		text string
+		want string
+	}{
+		"admin /start":    {100, "/start", "Admin panelga kirish uchun /login yozing."},
+		"admin text":      {100, "salom", "Admin panelga kirish uchun /login yozing."},
+		"stranger /start": {42, "/start", "Sizda ruxsat yo'q.\nTelegram ID: <code>42</code>"},
+		"stranger text":   {42, "salom", "Sizda ruxsat yo'q.\nTelegram ID: <code>42</code>"},
+	} {
+		api := &fakeAPI{}
+		NewHandler(api, &fakeAuth{admins: map[int64]bool{100: true}}).Handle(t.Context(), message(tc.from, tc.text))
+		require.Len(t, api.sent, 1, name)
+		assert.Equal(t, tc.want, api.sent[0].Text, name)
+	}
+}

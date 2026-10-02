@@ -33,6 +33,8 @@ type Auth interface {
 const (
 	codeText     = "Kod: <code>%s</code> (1 daqiqa amal qiladi)"
 	notAdminText = "Sizda ruxsat yo'q.\nTelegram ID: <code>%d</code>"
+	hintText     = "Admin panelga kirish uchun /login yozing."
+	failText     = "Xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring."
 )
 
 // Handler answers the admin bot's updates.
@@ -46,10 +48,23 @@ func NewHandler(api API, a Auth) *Handler {
 	return &Handler{api: api, auth: a}
 }
 
-// Handle answers one update: /login gets a code.
+// Handle answers one update: /login gets a code, everything else a hint for
+// admins and "no access" (with the Telegram ID to add) for everyone else.
 func (h *Handler) Handle(ctx context.Context, update *models.Update) {
+	chatID, from := update.Message.Chat.ID, update.Message.From.ID
 	if command(update.Message.Text) == "/login" {
-		h.login(ctx, update.Message.Chat.ID, update.Message.From.ID)
+		h.login(ctx, chatID, from)
+		return
+	}
+	admin, err := h.auth.IsActiveAdmin(ctx, from)
+	switch {
+	case err != nil:
+		slog.ErrorContext(ctx, "admin bot: admin lookup", "telegram_id", from, "err", err)
+		_ = h.send(ctx, chatID, failText)
+	case admin:
+		_ = h.send(ctx, chatID, hintText)
+	default:
+		_ = h.send(ctx, chatID, fmt.Sprintf(notAdminText, from))
 	}
 }
 
@@ -61,6 +76,7 @@ func (h *Handler) login(ctx context.Context, chatID, telegramID int64) {
 	}
 	if err != nil {
 		slog.ErrorContext(ctx, "admin bot: issue login code", "telegram_id", telegramID, "err", err)
+		_ = h.send(ctx, chatID, failText)
 		return
 	}
 	if err := h.send(ctx, chatID, fmt.Sprintf(codeText, code.Code)); err != nil {
