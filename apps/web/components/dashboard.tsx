@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { subscriptionExpired } from "@/lib/api"
 import { unavailable } from "@/lib/companies"
-import { formatPhoneInput } from "@/lib/phone"
+import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 
@@ -49,7 +49,7 @@ export function Dashboard() {
           company && (
             <div className="space-y-4">
               <h1 className="text-xl font-semibold">
-                Salom, {me.data.user.full_name ?? formatPhoneInput(me.data.user.phone)}
+                Salom, {me.data.user.full_name ?? formatPhone(me.data.user.phone)}
               </h1>
               <div className="flex items-center justify-between gap-3 rounded-xl border bg-card p-4">
                 <div className="grid min-w-0 gap-0.5">

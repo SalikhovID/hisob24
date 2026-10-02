@@ -13,7 +13,7 @@ const sendCode = (phone: string) => call(api.POST("/app/auth/sms/send", { body: 
 
 test("the sixth digit signs in and opens the dashboard", async () => {
   await sendCode(ALI)
-  const { user } = renderWithProviders(<CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />)
+  const { user } = renderWithProviders(<CodeStep phone={ALI} retryAfter={60} onChangePhone={vi.fn()} />)
 
   await user.type(screen.getByRole("textbox", { name: "Kod" }), "123456")
 
@@ -23,7 +23,7 @@ test("the sixth digit signs in and opens the dashboard", async () => {
 
 test("someone in several companies goes on to choose one", async () => {
   await sendCode(VALI)
-  const { user } = renderWithProviders(<CodeStep phone="+998 90 222 33 44" retryAfter={60} onChangePhone={vi.fn()} />)
+  const { user } = renderWithProviders(<CodeStep phone={VALI} retryAfter={60} onChangePhone={vi.fn()} />)
 
   await user.type(screen.getByRole("textbox", { name: "Kod" }), "123456")
 
@@ -33,7 +33,7 @@ test("someone in several companies goes on to choose one", async () => {
 
 test("a wrong code is cleared and the API's message shown", async () => {
   await sendCode(ALI)
-  const { user } = renderWithProviders(<CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />)
+  const { user } = renderWithProviders(<CodeStep phone={ALI} retryAfter={60} onChangePhone={vi.fn()} />)
   const input = screen.getByRole("textbox", { name: "Kod" })
 
   await user.type(input, "000000")
@@ -45,7 +45,7 @@ test("a wrong code is cleared and the API's message shown", async () => {
 
 test("typing a new code hides the old error", async () => {
   await sendCode(ALI)
-  const { user } = renderWithProviders(<CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />)
+  const { user } = renderWithProviders(<CodeStep phone={ALI} retryAfter={60} onChangePhone={vi.fn()} />)
   const input = screen.getByRole("textbox", { name: "Kod" })
   await user.type(input, "000000")
   await screen.findByRole("alert")
@@ -58,7 +58,7 @@ test("typing a new code hides the old error", async () => {
 test("the resend button waits out the timer", () => {
   vi.useFakeTimers()
   try {
-    renderWithProviders(<CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />)
+    renderWithProviders(<CodeStep phone={ALI} retryAfter={60} onChangePhone={vi.fn()} />)
     expect(screen.getByRole("button", { name: "Kodni qayta yuborish (60)" })).toBeDisabled()
 
     act(() => vi.advanceTimersByTime(1000))
@@ -82,7 +82,7 @@ test("resending asks for a new code and starts the timer again", async () => {
       }),
     )
     const { user } = renderWithProviders(
-      <CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />,
+      <CodeStep phone={ALI} retryAfter={60} onChangePhone={vi.fn()} />,
       { advanceTimers: vi.advanceTimersByTime },
     )
     act(() => vi.advanceTimersByTime(60_000))
@@ -101,7 +101,7 @@ test("a resend that fails says why and can be tried again", async () => {
   try {
     server.use(http.post("*/api/app/auth/sms/send", () => HttpResponse.error()))
     const { user } = renderWithProviders(
-      <CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />,
+      <CodeStep phone={ALI} retryAfter={60} onChangePhone={vi.fn()} />,
       { advanceTimers: vi.advanceTimersByTime },
     )
     act(() => vi.advanceTimersByTime(60_000))

@@ -23,6 +23,6 @@ test("changing the number goes back to the phone step with the number kept", asy
 
   await user.click(screen.getByRole("button", { name: "Raqamni o'zgartirish" }))
 
-  expect(screen.getByRole("textbox", { name: "Telefon raqami" })).toHaveValue("+998 90 123 45 67")
+  expect(screen.getByRole("textbox", { name: "Telefon raqami" })).toHaveValue("90 123 45 67")
   expect(screen.queryByRole("textbox", { name: "Kod" })).not.toBeInTheDocument()
 })

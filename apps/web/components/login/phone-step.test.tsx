@@ -7,14 +7,26 @@ import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { PhoneStep } from "./phone-step"
 
-test("the phone field keeps the +998 mask while digits are typed", async () => {
+test("the phone field takes the number after the fixed +998, grouped as typed", async () => {
   const { user } = renderWithProviders(<PhoneStep onSent={vi.fn()} />)
   const field = screen.getByRole("textbox", { name: "Telefon raqami" })
-  expect(field).toHaveValue("+998 ")
+  expect(screen.getByText("+998")).toBeInTheDocument()
+  expect(field).toHaveValue("")
 
   await user.type(field, "901234567")
 
-  expect(field).toHaveValue("+998 90 123 45 67")
+  expect(field).toHaveValue("90 123 45 67")
+})
+
+// A browser puts the caret at the start of a field focused from code; with
+// +998 inside the field the digits went in front of it.
+test("typing from the very start of the field still gives the number", async () => {
+  const { user } = renderWithProviders(<PhoneStep onSent={vi.fn()} />)
+  const field = screen.getByRole("textbox", { name: "Telefon raqami" })
+
+  await user.type(field, "901234567", { initialSelectionStart: 0, initialSelectionEnd: 0 })
+
+  expect(field).toHaveValue("90 123 45 67")
 })
 
 test("a complete number asks for a code and moves on", async () => {
@@ -30,7 +42,7 @@ test("a complete number asks for a code and moves on", async () => {
   await user.type(screen.getByRole("textbox", { name: "Telefon raqami" }), "901234567")
   await user.click(screen.getByRole("button", { name: "Kodni olish" }))
 
-  await waitFor(() => expect(onSent).toHaveBeenCalledWith("+998 90 123 45 67", 60))
+  await waitFor(() => expect(onSent).toHaveBeenCalledWith("998901234567", 60))
   expect(sent).toEqual({ phone: "998901234567" })
 })
 

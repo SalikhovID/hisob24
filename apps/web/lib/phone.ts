@@ -1,11 +1,11 @@
-const PREFIX = "+998 "
 const GROUPS = [2, 3, 2, 2]
 
-// formatPhoneInput shows what was typed in the phone field as +998 90 123 45 67.
-// The prefix stays put; a pasted number that repeats 998 loses it.
+// formatPhoneInput shows what was typed in the phone field as 90 123 45 67.
+// The field holds the number after +998, which sits beside it; a pasted or
+// autofilled number with 998 in front loses it, and past nine digits the
+// rest is dropped.
 export function formatPhoneInput(value: string): string {
-  const rest = value.startsWith("+998") ? value.slice(4) : value
-  let digits = rest.replace(/\D/g, "")
+  let digits = value.replace(/\D/g, "")
   if (digits.length > 9 && digits.startsWith("998")) digits = digits.slice(3)
   digits = digits.slice(0, 9)
 
@@ -16,12 +16,17 @@ export function formatPhoneInput(value: string): string {
     parts.push(digits.slice(at, at + size))
     at += size
   }
-  return PREFIX + parts.join(" ")
+  return parts.join(" ")
 }
 
-// phoneDigits turns a complete masked number into 998901234567, the form the
-// API takes; anything shorter is null.
-export function phoneDigits(formatted: string): string | null {
-  const digits = formatted.replace(/\D/g, "")
-  return digits.length === 12 ? digits : null
+// phoneDigits turns a complete field into 998901234567, the form the API
+// takes; anything shorter is null.
+export function phoneDigits(field: string): string | null {
+  const digits = field.replace(/\D/g, "")
+  return digits.length === 9 ? `998${digits}` : null
+}
+
+// formatPhone writes a phone the API keeps (998901234567) for people to read.
+export function formatPhone(digits: string): string {
+  return `+998 ${formatPhoneInput(digits)}`
 }

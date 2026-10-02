@@ -1,31 +1,35 @@
 import { expect, test } from "vitest"
-import { formatPhoneInput, phoneDigits } from "./phone"
+import { formatPhone, formatPhoneInput, phoneDigits } from "./phone"
 
+// The field holds the number after +998, which sits beside it, so typing
+// can never land inside the country code.
 test.each([
-  ["", "+998 "],
-  ["+998 ", "+998 "],
-  ["+998 9", "+998 9"],
-  ["+998 90", "+998 90"],
-  ["+998 901", "+998 90 1"],
-  ["+998 90 12345", "+998 90 123 45"],
-  ["+998 90 123 45 67", "+998 90 123 45 67"],
-  ["+998 90 123 45 678", "+998 90 123 45 67"],
-  ["+998 901234567", "+998 90 123 45 67"],
-  ["+998 +998901234567", "+998 90 123 45 67"],
-  ["+998 99 812 34 56", "+998 99 812 34 56"],
-  ["+998 9a0", "+998 90"],
-  ["90", "+998 90"],
-  ["901234567", "+998 90 123 45 67"],
-  ["998901234567", "+998 90 123 45 67"],
+  ["", ""],
+  ["9", "9"],
+  ["90", "90"],
+  ["901", "90 1"],
+  ["9012345", "90 123 45"],
+  ["901234567", "90 123 45 67"],
+  ["90 123 45 67", "90 123 45 67"],
+  ["90 123 45 678", "90 123 45 67"],
+  ["9a0", "90"],
+  ["+998901234567", "90 123 45 67"],
+  ["998901234567", "90 123 45 67"],
+  ["+998 90 123 45 67", "90 123 45 67"],
+  ["998123456", "99 812 34 56"],
 ])("formatPhoneInput(%j) = %j", (typed, shown) => {
   expect(formatPhoneInput(typed)).toBe(shown)
 })
 
 test.each([
-  ["+998 90 123 45 67", "998901234567"],
-  ["+998 99 812 34 56", "998998123456"],
-  ["+998 90 123 45 6", null],
-  ["+998 ", null],
-])("phoneDigits(%j) = %j", (formatted, digits) => {
-  expect(phoneDigits(formatted)).toBe(digits)
+  ["90 123 45 67", "998901234567"],
+  ["99 812 34 56", "998998123456"],
+  ["90 123 45 6", null],
+  ["", null],
+])("phoneDigits(%j) = %j", (field, digits) => {
+  expect(phoneDigits(field)).toBe(digits)
+})
+
+test("formatPhone writes a number the API keeps for people to read", () => {
+  expect(formatPhone("998901234567")).toBe("+998 90 123 45 67")
 })

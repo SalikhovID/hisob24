@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { formatPhone } from "@/lib/phone"
 import { CodeStep } from "./code-step"
 import { PhoneStep } from "./phone-step"
 
@@ -16,7 +17,7 @@ export function LoginScreen() {
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-semibold">Hisob24</h1>
           <p className="text-sm text-muted-foreground">
-            {step.kind === "phone" ? "Telefon raqamingizni kiriting" : `Kod ${step.phone} raqamiga yuborildi`}
+            {step.kind === "phone" ? "Telefon raqamingizni kiriting" : `Kod ${formatPhone(step.phone)} raqamiga yuborildi`}
           </p>
         </div>
         {step.kind === "phone" ? (

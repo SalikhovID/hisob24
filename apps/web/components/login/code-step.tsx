@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
-import { phoneDigits } from "@/lib/phone"
 import { setAccessToken } from "@/lib/session"
 
 const SLOTS = [0, 1, 2, 3, 4, 5]
@@ -25,8 +24,8 @@ function useCountdown(from: number) {
   return [left, setLeft] as const
 }
 
-// CodeStep is the second login step: the code from the SMS. There is no
-// submit button: the sixth digit sends the code.
+// CodeStep is the second login step: the code from the SMS sent to phone
+// (998901234567). There is no submit button: the sixth digit sends the code.
 export function CodeStep({
   phone,
   retryAfter,
@@ -37,16 +36,15 @@ export function CodeStep({
   onChangePhone: () => void
 }) {
   const router = useRouter()
-  const digits = phoneDigits(phone) ?? ""
   const [left, setLeft] = useCountdown(retryAfter)
   const [code, setCode] = useState("")
   const input = useRef<HTMLInputElement>(null)
   const resend = useMutation({
-    mutationFn: () => call(api.POST("/app/auth/sms/send", { body: { phone: digits } })),
+    mutationFn: () => call(api.POST("/app/auth/sms/send", { body: { phone } })),
     onSuccess: (data) => setLeft(data.retry_after),
   })
   const verify = useMutation({
-    mutationFn: (code: string) => call(api.POST("/app/auth/sms/verify", { body: { phone: digits, code } })),
+    mutationFn: (code: string) => call(api.POST("/app/auth/sms/verify", { body: { phone, code } })),
     // One company is chosen by the API; with several, company_id is null and
     // the user picks one.
     onSuccess: (tokens) => {

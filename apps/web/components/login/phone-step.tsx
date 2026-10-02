@@ -7,7 +7,7 @@ import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { api, call } from "@/lib/api"
 import { formatPhoneInput, phoneDigits } from "@/lib/phone"
 
@@ -15,25 +15,26 @@ const schema = z.object({
   phone: z.string().refine((phone) => phoneDigits(phone) !== null, "Telefon raqamini to'liq kiriting"),
 })
 
-// PhoneStep is the first login step: the phone number the code goes to. The
-// field always reads +998 __ ___ __ __, whatever is typed or pasted.
+// PhoneStep is the first login step: the phone number the code goes to, as
+// +998 __ ___ __ __. The +998 sits beside the field, out of the caret's
+// reach; the field takes the rest, whatever is typed or pasted. phone is
+// the number as the API takes it (998901234567), in and out.
 export function PhoneStep({
-  defaultPhone = "+998 ",
+  defaultPhone = "",
   onSent,
 }: {
   defaultPhone?: string
   onSent: (phone: string, retryAfter: number) => void
 }) {
   const id = useId()
-  const form = useForm({ resolver: zodResolver(schema), defaultValues: { phone: defaultPhone } })
+  const form = useForm({ resolver: zodResolver(schema), defaultValues: { phone: formatPhoneInput(defaultPhone) } })
   const send = useMutation({
-    mutationFn: ({ digits }: { phone: string; digits: string }) =>
-      call(api.POST("/app/auth/sms/send", { body: { phone: digits } })),
-    onSuccess: (data, { phone }) => onSent(phone, data.retry_after),
+    mutationFn: (phone: string) => call(api.POST("/app/auth/sms/send", { body: { phone } })),
+    onSuccess: (data, phone) => onSent(phone, data.retry_after),
   })
   const submit = form.handleSubmit(({ phone }) => {
     const digits = phoneDigits(phone)
-    if (digits) send.mutate({ phone, digits })
+    if (digits) send.mutate(digits)
   })
 
   return (
@@ -44,15 +45,21 @@ export function PhoneStep({
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid || undefined}>
             <FieldLabel htmlFor={id}>Telefon raqami</FieldLabel>
-            <Input
-              id={id}
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              aria-invalid={fieldState.invalid}
-              {...field}
-              onChange={(event) => field.onChange(formatPhoneInput(event.target.value))}
-            />
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText className="text-foreground">+998</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                id={id}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="__ ___ __ __"
+                aria-invalid={fieldState.invalid}
+                {...field}
+                onChange={(event) => field.onChange(formatPhoneInput(event.target.value))}
+              />
+            </InputGroup>
             <FieldError errors={[fieldState.error]} />
           </Field>
         )}
