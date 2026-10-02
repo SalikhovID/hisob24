@@ -74,3 +74,10 @@ test("someone who declines to share is told how to share the phone in the bot", 
   await user.click(screen.getByRole("button", { name: "Botga qaytish" }))
   expect(webApp.close).toHaveBeenCalled()
 })
+
+test("where Telegram cannot ask for the contact, the app says how to share it in the bot", async () => {
+  renderWithProviders(<TelegramLogin webApp={fakeWebApp({}, TG_UNLINKED)} onFallback={vi.fn()} />)
+
+  expect(await screen.findByText("Botga qaytib, /start yozing va raqamingizni yuboring.")).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Raqamni yuborish" })).not.toBeInTheDocument()
+})

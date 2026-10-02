@@ -78,10 +78,12 @@ export function TelegramLogin({ webApp }: { webApp: TelegramWebApp; onFallback: 
       <Centered>
         <h1 className="text-xl font-semibold">Telefon raqamingiz ulanmagan</h1>
         <p className="text-sm text-muted-foreground">Hisob24&apos;ga kirish uchun Telegram raqamingizni botga yuboring.</p>
-        <Button className="mt-2 w-full" onClick={share}>
-          Raqamni yuborish
-        </Button>
-        {stage.declined && <BotInstructions webApp={webApp} />}
+        {webApp.requestContact && (
+          <Button className="mt-2 w-full" onClick={share}>
+            Raqamni yuborish
+          </Button>
+        )}
+        {(stage.declined || !webApp.requestContact) && <BotInstructions webApp={webApp} />}
       </Centered>
     )
   }
