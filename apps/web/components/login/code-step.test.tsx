@@ -40,3 +40,15 @@ test("a wrong code is cleared and the API's message shown", async () => {
   expect(input).toHaveValue("")
   expect(router.replace).not.toHaveBeenCalled()
 })
+
+test("typing a new code hides the old error", async () => {
+  await sendCode(ALI)
+  const { user } = renderWithProviders(<CodeStep phone="+998 90 123 45 67" retryAfter={60} onChangePhone={vi.fn()} />)
+  const input = screen.getByRole("textbox", { name: "Kod" })
+  await user.type(input, "000000")
+  await screen.findByRole("alert")
+
+  await user.type(input, "1")
+
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+})

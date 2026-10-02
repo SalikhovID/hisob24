@@ -52,7 +52,10 @@ export function CodeStep({
           maxLength={6}
           pattern={REGEXP_ONLY_DIGITS}
           value={code}
-          onChange={setCode}
+          onChange={(value: string) => {
+            setCode(value)
+            if (verify.isError) verify.reset()
+          }}
           onComplete={(value: string) => verify.mutate(value)}
           disabled={verify.isPending}
           autoFocus
