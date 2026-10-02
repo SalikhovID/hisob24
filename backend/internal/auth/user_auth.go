@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/sms"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
@@ -23,6 +24,8 @@ const (
 
 // ErrTooSoon refuses a second code to a phone within a minute.
 var ErrTooSoon = errors.New("a code went to this phone less than a minute ago")
+
+var errBadPhone = apperr.New(apperr.Invalid, "validation_error", "Telefon raqami noto'g'ri")
 
 // UserAuth signs users in to the user app: a code by SMS, then an access
 // token and a refresh token that renews it.
@@ -56,7 +59,7 @@ func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret string, sender sms.Sen
 func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 	phone, err := user.NormalizePhone(rawPhone)
 	if err != nil {
-		return err
+		return errBadPhone
 	}
 	code, err := a.newCode()
 	if err != nil {
@@ -84,6 +87,10 @@ func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 		return nil
 	}
 	if err := a.sender.Send(ctx, phone, sms.Text(code)); err != nil {
+		// The SMS never left: no minute to wait before asking again.
+		if dropErr := a.q.DeleteSMSCode(ctx, phone); dropErr != nil {
+			return errors.Join(fmt.Errorf("send sms: %w", err), dropErr)
+		}
 		return fmt.Errorf("send sms: %w", err)
 	}
 	return nil

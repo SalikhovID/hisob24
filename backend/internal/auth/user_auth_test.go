@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -87,4 +89,29 @@ func TestSendCodeAgainWithinAMinuteIsRefusedForEveryPhone(t *testing.T) {
 	assert.ErrorIs(t, a.SendCode(t.Context(), "998901234567"), ErrTooSoon, "a user")
 	assert.ErrorIs(t, a.SendCode(t.Context(), "998909999999"), ErrTooSoon, "a stranger alike")
 	assert.Len(t, sender.messages(), 1, "no second SMS")
+}
+
+func TestSendCodeRefusesABadPhone(t *testing.T) {
+	a, _, sender := newUserAuth(t)
+
+	err := a.SendCode(t.Context(), "12ab")
+
+	var e *apperr.Error
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, apperr.Invalid, e.Kind)
+	assert.Equal(t, "Telefon raqami noto'g'ri", e.Message)
+	assert.Empty(t, sender.messages())
+}
+
+func TestSendCodeThatCouldNotBeSentCanBeAskedForAgainAtOnce(t *testing.T) {
+	a, pool, sender := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	sender.err = errors.New("eskiz is down")
+
+	err := a.SendCode(t.Context(), "998901234567")
+
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, ErrTooSoon)
+	sender.err = nil
+	assert.NoError(t, a.SendCode(t.Context(), "998901234567"), "no minute to wait for an SMS that never left")
 }
