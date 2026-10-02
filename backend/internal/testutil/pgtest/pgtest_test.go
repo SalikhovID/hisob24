@@ -107,3 +107,29 @@ func TestFailInsertsRefusesInsertsIntoTheTable(t *testing.T) {
 	_, err = pool.Exec(t.Context(), "INSERT INTO companies (name, end_date) VALUES ('Olma', CURRENT_DATE)")
 	assert.NoError(t, err, "other tables still take inserts")
 }
+
+func TestWaitForLockWaitReturnsOnceASessionWaits(t *testing.T) {
+	pool := New(t)
+	ctx := t.Context()
+	holder, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = holder.Rollback(context.WithoutCancel(ctx)) })
+	_, err = holder.Exec(ctx, "LOCK TABLE admins IN ACCESS EXCLUSIVE MODE")
+	require.NoError(t, err)
+	blocked := make(chan error, 1)
+	go func() {
+		// Starts late, so WaitForLockWait has to really wait for it.
+		time.Sleep(200 * time.Millisecond)
+		_, err := pool.Exec(ctx, "SELECT count(*) FROM admins")
+		blocked <- err
+	}()
+
+	WaitForLockWait(t, pool)
+
+	var waiting int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity
+		WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting))
+	assert.Equal(t, 1, waiting, "the reader still waits")
+	require.NoError(t, holder.Rollback(ctx))
+	require.NoError(t, <-blocked)
+}

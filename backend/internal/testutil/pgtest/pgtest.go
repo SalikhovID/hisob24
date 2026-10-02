@@ -273,3 +273,24 @@ func FailInserts(t testing.TB, pool *pgxpool.Pool, table string) {
 		t.Fatalf("pgtest: fail inserts into %s: %v", table, err)
 	}
 }
+
+// WaitForLockWait returns once a session of pool's database waits on a lock,
+// so a test can act while another call is blocked.
+func WaitForLockWait(t testing.TB, pool *pgxpool.Pool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		var waiting int
+		if err := pool.QueryRow(t.Context(), `SELECT count(*) FROM pg_stat_activity
+			WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting); err != nil {
+			t.Fatalf("pgtest: wait for a lock wait: %v", err)
+		}
+		if waiting > 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("pgtest: no session waited on a lock within 5s")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
