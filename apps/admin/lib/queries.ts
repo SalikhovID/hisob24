@@ -14,6 +14,7 @@ export const keys = {
   companies: (filter?: CompanyFilter) => (filter ? (["companies", filter] as const) : (["companies"] as const)),
   company: (id: number) => ["company", id] as const,
   billings: (companyId: number) => ["billings", companyId] as const,
+  admins: ["admins"] as const,
 }
 
 // useMe is the signed-in admin.
@@ -50,4 +51,9 @@ export function useBillings(companyId: number) {
     queryKey: keys.billings(companyId),
     queryFn: () => call(api.GET("/admin/companies/{id}/billings", { params: { path: { id: companyId } } })),
   })
+}
+
+// useAdmins is every admin, active or not.
+export function useAdmins() {
+  return useQuery({ queryKey: keys.admins, queryFn: () => call(api.GET("/admin/admins")) })
 }
