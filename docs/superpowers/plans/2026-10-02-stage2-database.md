@@ -529,6 +529,8 @@ func databaseExists(t *testing.T, name string) bool {
 	})
 ```
 Paket kommentiga qo'shiladi: `…named hisob24_it_* and dropped when the test ends.`
+
+> **Bajarish paytidagi o'zgarish:** barcha `DROP DATABASE` lardan `WITH (FORCE)` olib tashlandi (`066f494`). FORCE testga ulangan autovacuum worker'ni superuser bo'lmagan rol uchun to'xtata olmaydi. Batafsil: dizayn hujjatidagi "2-bosqich qarorlari".
 Commit: `feat(pgtest): drop each test database when its test ends`
 
 - [ ] **Sikl P3 RED: qolib ketgan DB'lar tozalanadi**

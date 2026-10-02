@@ -223,3 +223,23 @@ Har biri tasdiqdan keyin batafsil rejalashtiriladi.
   - `curl :3000` → 200.
   - Keyin Ctrl+C yoki kill qilinadi va portlar bo'shaganini tekshiriladi.
 - `git push origin main`, so'ng hisobot va tasdiq kutiladi.
+
+## 2-bosqich qarorlari (2026-10-02)
+
+Foydalanuvchi qarorlari:
+1. Spec'dagi barcha oqimlar uchun 37 ta sqlc so'rovi 2-bosqichda yoziladi, har biriga real Postgres'da alohida integration test (`backend/internal/db/*_test.go`).
+2. `POST /admin/admins` mavjud telegram_id bilan kelsa:
+   - faol bo'lmagan admin qayta faollashtiriladi va `full_name` yangilanadi;
+   - faol admin bo'lsa → 409 `admin_exists` (`CreateOrReactivateAdmin` qator qaytarmaydi).
+3. `GET /admin/companies?status=`:
+   - `active` = `end_date >= CURRENT_DATE AND is_active`;
+   - `expired` = `end_date < CURRENT_DATE OR NOT is_active` (user middleware'dagi 402 bilan bir xil).
+4. `POST /admin/companies/{id}/users` da user allaqachon a'zo bo'lsa, rol yangilanadi (`UpsertCompanyUser`).
+
+Texnik eslatmalar:
+- `CURRENT_DATE` DB sessiyasining TimeZone sozlamasiga bog'liq.
+  - Lokal brew Postgres'da `Asia/Tashkent`.
+  - Prod'da ham Asia/Tashkent bo'lishi kerak, aks holda muddat UTC yarim tunida tugaydi. 8-bosqich README'ga yoziladi.
+- `pgtest` test DB'larini `DROP DATABASE` bilan o'chiradi, `WITH (FORCE)` ishlatilmaydi.
+  - Test DB'ga ulangan autovacuum worker'ni FORCE superuser bo'lmagan rol uchun to'xtata olmaydi: "permission denied to terminate process" chiqardi, stress-run'da 40 dan 1 holat.
+  - Oddiy DROP autovacuum'ni o'zi to'xtatadi: 100 dan 0 yiqilish.
