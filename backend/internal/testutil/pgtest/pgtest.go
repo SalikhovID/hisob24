@@ -1,7 +1,8 @@
 // Package pgtest gives integration tests their own migrated Postgres
 // database. Every call clones a template that already holds the migrations,
 // so tests never share rows and may run in parallel. The server comes from
-// TEST_DATABASE_URL; the databases are named hisob24_it_*.
+// TEST_DATABASE_URL; the databases are named hisob24_it_* and dropped when
+// the test ends.
 package pgtest
 
 import (
@@ -60,6 +61,16 @@ func New(t testing.TB) *pgxpool.Pool {
 	if _, err := srv.admin.Exec(ctx, "CREATE DATABASE "+ident(name)+" TEMPLATE "+ident(srv.template)); err != nil {
 		t.Fatalf("pgtest: create database: %v", err)
 	}
+	// Registered before the pool's Close, so it runs after it (cleanups run
+	// last-in first-out).
+	t.Cleanup(func() {
+		// t.Context() is already cancelled when cleanups run.
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if _, err := srv.admin.Exec(ctx, "DROP DATABASE IF EXISTS "+ident(name)+" WITH (FORCE)"); err != nil {
+			t.Errorf("pgtest: drop %s: %v", name, err)
+		}
+	})
 
 	pool, err := pgxpool.New(ctx, databaseURL(srv.base, name))
 	if err != nil {

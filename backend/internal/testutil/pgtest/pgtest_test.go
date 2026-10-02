@@ -26,6 +26,24 @@ func TestNewGivesEachTestAMigratedDatabase(t *testing.T) {
 	assert.Equal(t, latestMigration(t), version)
 }
 
+func TestNewDropsTheDatabaseWhenTheTestEnds(t *testing.T) {
+	var name string
+	t.Run("inner", func(t *testing.T) {
+		name = currentDatabase(t, New(t))
+	})
+
+	assert.False(t, databaseExists(t, name))
+}
+
+func databaseExists(t *testing.T, name string) bool {
+	t.Helper()
+	srv, err := connect()
+	require.NoError(t, err)
+	var exists bool
+	require.NoError(t, srv.admin.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1)", name).Scan(&exists))
+	return exists
+}
+
 func currentDatabase(t *testing.T, pool *pgxpool.Pool) string {
 	t.Helper()
 	var name string
