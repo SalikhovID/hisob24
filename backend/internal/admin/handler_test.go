@@ -228,3 +228,23 @@ func TestMiniAppSessionCookieOverLocalHTTPStaysLax(t *testing.T) {
 	assert.False(t, c.Partitioned)
 	assert.False(t, c.Secure)
 }
+
+func TestLogoutClearsBothSessionCookies(t *testing.T) {
+	api := newTestAPI(t, true)
+
+	rec := api.do(t, http.MethodPost, "/admin/auth/logout", "")
+
+	assert.Equal(t, http.StatusNoContent, rec.Code)
+	var cleared []*http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "admin_session" {
+			cleared = append(cleared, c)
+		}
+	}
+	require.Len(t, cleared, 2)
+	assert.Equal(t, -1, cleared[0].MaxAge)
+	assert.False(t, cleared[0].Partitioned, "the browser login's cookie")
+	assert.Equal(t, -1, cleared[1].MaxAge)
+	assert.True(t, cleared[1].Partitioned, "the Mini App's cookie inside Telegram Web")
+	assert.Equal(t, http.SameSiteNoneMode, cleared[1].SameSite)
+}

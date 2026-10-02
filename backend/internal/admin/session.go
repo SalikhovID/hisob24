@@ -73,6 +73,9 @@ func (h *Handler) setSessionCookie(w http.ResponseWriter, s auth.Session, miniAp
 	http.SetCookie(w, c)
 }
 
+// clearSessionCookie drops the browser login's cookie and, where it can
+// exist, the Mini App's partitioned one: a partitioned cookie is removed
+// only by a Set-Cookie that is partitioned too.
 func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
@@ -83,4 +86,16 @@ func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
 		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
+	if h.cookieSecure {
+		http.SetCookie(w, &http.Cookie{
+			Name:        sessionCookie,
+			Value:       "",
+			Path:        "/",
+			MaxAge:      -1,
+			HttpOnly:    true,
+			Secure:      true,
+			SameSite:    http.SameSiteNoneMode,
+			Partitioned: true,
+		})
+	}
 }
