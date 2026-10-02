@@ -108,3 +108,24 @@ func (h *Handler) patchCompany(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, toCompanyJSON(c))
 }
+
+func (h *Handler) addCompanyUser(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	var body struct {
+		Phone    string `json:"phone"`
+		FullName string `json:"full_name"`
+		Role     string `json:"role"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	m, err := h.companies.AddUser(r.Context(), id, body.Phone, body.FullName, body.Role)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toMemberJSON(m))
+}
