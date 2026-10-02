@@ -98,4 +98,5 @@ make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa
 ## Manbalar
 
 - `docs/SPEC.md`: spetsifikatsiya, asosiy manba.
+- `README.md`: lokal ishga tushirish, env, BotFather sozlamalari va production'da webhook.
 - `docs/superpowers/specs/2026-10-02-hisob24-design.md`: kelishilgan qarorlar va spec'dan tasdiqlangan chetlanishlar.

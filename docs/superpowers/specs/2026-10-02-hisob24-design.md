@@ -391,3 +391,19 @@ Belgilangan tafsilotlar:
   - Mock bazasi Playwright jarayonida, shuning uchun test obunani "tugatib" qo'ya oladi.
   - Taymer `page.clock.runFor` bilan sinaladi. Mock'ning 60 soniyalik cooldown'i shu testda o'chiriladi.
 - **Ma'lum cheklov:** single-flight refresh bitta tab ichida ishlaydi. Ikki tab bir vaqtda bir xil cookie bilan refresh qilsa (rotation), ikkinchisi 401 oladi va `/login` ga o'tadi.
+
+## 8-bosqich qarorlari (2026-10-02)
+
+- **Spec auditi** (har band uchun dalil: test yoki `fayl:qator`) uchta bo'shliq topdi. Uchalasi ham TDD bilan tuzatildi:
+  - `openapi.yaml` da `/webhooks/admin-bot` va `/webhooks/user-bot` yo'q edi. Hujjatlashtirildi va contract testi qo'shildi: router `openapi.yaml` dagi yo'llarga aynan mos kelishi kerak (`internal/httpx/openapi_test.go`).
+  - "Interfeys o'zbekcha" talabi bo'yicha: toast hududi "Notifications" → "Bildirishnomalar" (ikkala ilova), admin `Dialog`/`Sheet` yopish tugmasi "Close" → "Yopish".
+  - Spec'dagi `/(app)` dashboard'i `app/(app)/page.tsx` ga ko'chirildi (URL `/` o'zgarmadi).
+- **Nom farqi:** spec'dagi `TelegramAutoLogin` vazifasini admin'dagi `LoginScreen` bajaradi. U Telegram ichida `initData` bilan o'zi kiritadi, aks holda OTP formasini ko'rsatadi. Ikki qismni ajratish faqat nomni o'zgartirardi, shuning uchun qoldirildi.
+- **`API_URL` build paytida muhrlanadi.** Tajriba: "A" bilan build qilingan, "B" bilan start qilingan ilova "A" ga proksi qildi. README'da yozilgan.
+- **Polling eski webhook'ni o'chirmaydi** (ataylab). Prod tokeni bilan lokal polling prod webhook'ini buzmasligi uchun. README'da `deleteWebhook` yozilgan.
+- **Sinalmagan** (tashqi resurs kerak):
+  - Docker Compose (mashinada Docker yo'q);
+  - haqiqiy Telegram (BotFather, menu button, webhook);
+  - Eskiz orqali haqiqiy SMS.
+
+  Bular unit/integration testlar va fake client'lar bilan qoplangan.
