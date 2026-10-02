@@ -311,3 +311,42 @@ Texnik eslatmalar:
   - Vitest va Playwright bitta MSW handler to'plamidan foydalanadi (`mocks/`), u Go API kabi javob beradi.
   - e2e alohida dev serverda ishlaydi (3101-port, `.next-e2e`), har spec 375px telefon va desktop'da.
   - Topilgan nozik joy: Playwright `screenshot()` kursorni yashirish uchun fokusdagi input style'iga tegadi, bu hydration'dan oldin bo'lsa React mismatch beradi. Ilova xatosi emas, screenshot'larda `caret: "initial"` ishlatiladi.
+
+## 6-bosqich qarorlari (2026-10-02)
+
+Foydalanuvchi qarorlari:
+
+1. **SMS 429 hamma raqamga bir xil.** Tizimda yo'q raqam uchun ham kod yoziladi (`sms_codes` da FK yo'q), faqat SMS ketmaydi. 60 soniya ichidagi ikkinchi so'rov har qanday raqamga 429 qaytaradi. Yo'q raqamning kodi to'g'ri topilsa ham hech kimni kiritmaydi.
+2. **Refresh token company'ni eslaydi.**
+   - Migratsiya `00002` `refresh_tokens.company_id` (`ON DELETE SET NULL`) ni qo'shadi.
+   - Verify, refresh va switch-company yangi refresh token'ga company'ni yozadi.
+   - Refresh a'zolikni qayta tekshiradi: yangi rol olinadi, a'zolik yo'qolgan bo'lsa company tanlanmagan holatga qaytadi.
+3. **IP limiti:** `sms/send` va `sms/verify` uchun alohida, daqiqasiga 5 ta.
+4. **SMS matni:** `Hisob24 kirish kodi: 123456`. Bu shablon Eskiz akkauntida tasdiqlangan bo'lishi shart.
+
+Belgilangan tafsilotlar:
+
+- **JWT:** HS256 (`JWT_SECRET`).
+  - Claim'lar: `sub` = telefon, `aud` = `"app"` (spec'dagidek satr), `iat`, `exp` (15 daqiqa), `company_id` va `role` (tanlanmagan bo'lsa yo'q).
+  - Faqat HS256 qabul qilinadi; `aud=app`, `exp` va `sub` majburiy.
+- **Refresh token:** 32 tasodifiy bayt, bazada SHA-256.
+  - Cookie: `refresh_token`, `Path=/`, `HttpOnly`, `Secure` (`COOKIE_SECURE`), `SameSite=Lax`, 30 kun.
+  - Rotation, switch-company va verify'da tranzaksiya buzilsa hech narsa o'zgarmaydi (mutatsiya bilan tekshirilgan).
+- **Javoblar:**
+  - `sms/send` → `{"retry_after":60}`;
+  - verify, refresh va switch → `{"access_token","expires_in":900,"company_id"|null}`;
+  - `/app/me` → `{user, company|null, companies}`.
+- **402 `subscription_expired`:** `/app/*` ning `auth` dan tashqari qismida, faqat company'li token'da. switch-company 402 dan ozod, shunda muddati o'tgan company'dan boshqasiga o'tish mumkin.
+- **Token'lar almashmaydi:** admin sessiyasi faqat cookie, user faqat `Authorization: Bearer`. Ikki tomonlama test bor.
+- **SMS yuborilmay qolsa** kod o'chiriladi, shunda qayta urinish bir daqiqa kutmaydi.
+- **Eskiz:**
+  - `POST /api/auth/login` → token xotirada saqlanadi.
+  - `POST /api/message/sms/send` (`mobile_phone`, `message`, `from`).
+  - 401 kelsa bir marta qayta login qilinadi.
+  - Xato Eskiz javobi bilan qaytadi.
+- **User bot:**
+  - `/start` va boshqa har qanday xabarga raqam so'raladi (`request_contact` tugmasi, one-time).
+  - Begona kontakt (`contact.user_id ≠ from.id`, jumladan 0) saqlanmaydi.
+  - Natija xabari bilan klaviatura olib tashlanadi. Saqlashda xato bo'lsa tugma qoladi.
+- **Paketlar:** `/app` HTTP qismi `internal/app` da (`internal/admin` ning juftligi). `internal/user` da qolsa `auth` ↔ `user` import sikli bo'lardi.
+- **Ma'lum cheklov:** user app uchun alohida URL env'i yo'q (spec ro'yxatida yo'q). Shuning uchun `Sec-Fetch-Site` yubormaydigan juda eski brauzerlar `/app` dagi o'zgartiruvchi so'rovlarda 403 oladi. Zamonaviy brauzerlarga bu ta'sir qilmaydi.
