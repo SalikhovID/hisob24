@@ -407,3 +407,36 @@ Belgilangan tafsilotlar:
   - Eskiz orqali haqiqiy SMS.
 
   Bular unit/integration testlar va fake client'lar bilan qoplangan.
+
+## Production deploy (2026-10-02)
+
+Foydalanuvchi so'rovi: prod serverdagi joriy loyihani o'chirib, o'rniga shu loyihani joylash.
+
+Foydalanuvchi qarorlari:
+1. **Eski loyiha (`h24`, `github.com/hisob24/monolith`) backupsiz o'chirildi.** O'chirilgani:
+   - konteynerlar, volume'lar (baza va MinIO), image'lar;
+   - `/var/www/hisob24` (ichidagi eski backup'lar bilan);
+   - backup cron'i;
+   - `tg`/`files` nginx saytlari;
+   - `hisob24` tizim user'i (eski CI SSH kaliti bilan).
+
+   Ammo o'chirish faqat yangi stack ishlab, tekshirilgandan keyin bajarildi.
+2. **Domenlar:** `app` → user app, `admin` → admin panel, `api` → API.
+3. **Bot tokenlarini foydalanuvchi beradi.** Eski botga tegilmadi; uning webhook'i (`tg.hisob24.uz`) endi ishlamaydi.
+4. **SMS:** eski Eskiz akkaunti (`SMS_DRIVER=eskiz`). Ma'lumotlar serverning o'zida ko'chirildi.
+
+Belgilangan tafsilotlar:
+
+- **Stack.**
+  - `/var/www/hisob24-v2`, compose loyihasi `hisob24-v2`. Nom eski `hisob24` dan farq qiladi, shunda ikkala stack bir vaqtda ishlay oldi va volume'lar aralashmadi.
+  - Portlar: `127.0.0.1:8090` (api), `8091` (admin), `8092` (web).
+- **Image'lar serverda build qilinadi** (lokal'da Docker yo'q):
+  - Go API: alpine, goose va migratsiyalar bilan;
+  - ikkala Next ilova bitta image'da, `next start`; `API_URL=http://api:8080` build paytida beriladi.
+- **nginx:**
+  - `api.hisob24.uz` da faqat `/webhooks/` va `/healthz` ochiq, brauzerlar API'ga Next orqali boradi;
+  - `admin.hisob24.uz.conf` sites-enabled'da birinchi, shuning uchun unga catch-all blok qo'shildi: notanish host'lar avvalgidek `app` ga 301 bo'ladi.
+- **Postgres `timezone=Asia/Tashkent`.** `CURRENT_DATE` Toshkent sanasi bo'yicha hisoblanadi.
+- **Eskiz:** akkaunt ishlaydi (`auth/login` 200). Lekin `Hisob24 kirish kodi: %d` shabloni tasdiqlanmagan. Tasdiqlangan o'zbekcha shablon: `Hisob24 dasturiga kirish uchun tasdiqlash kodi: %d Uni hech kimga bermang.` Qaror foydalanuvchida.
+- **Eski prod `SMS_DRIVER=log` bilan ishlagan**, ya'ni u yerda SMS umuman yuborilmagan.
+- **Backup:** kunlik `pg_dump` cron'i, 14 kun saqlanadi.

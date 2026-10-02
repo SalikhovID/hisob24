@@ -226,6 +226,46 @@ BotFather menyusidagi nomlar Telegram yangilanishlari bilan biroz o'zgarishi mum
   pnpm --filter @hisob24/web start                                          # :3000
   ```
 
+## Production: hisob24.uz (Docker Compose)
+
+Server `prod` (144.91.116.251) boshqa loyihalar bilan umumiy. Stack `/var/www/hisob24-v2` da ishlaydi: [`docker-compose.prod.yml`](docker-compose.prod.yml) ichida PostgreSQL 16, API, admin va web bor. Portlar faqat `127.0.0.1` da ochiq, TLS'ni host'dagi nginx va certbot beradi.
+
+| Domen | Servis | Port |
+|---|---|---|
+| `app.hisob24.uz` | web (user app) | `127.0.0.1:8092` |
+| `admin.hisob24.uz` | admin panel | `127.0.0.1:8091` |
+| `api.hisob24.uz` | API: faqat `/webhooks/` va `/healthz`, qolgani 404 | `127.0.0.1:8090` |
+
+**Yangilash (lokal'dan, commit qilingan kod):**
+
+```bash
+deploy/ship.sh          # git archive HEAD → serverga, .env saqlanadi, keyin deploy/deploy.sh
+```
+
+[`deploy/deploy.sh`](deploy/deploy.sh) ketma-ketligi:
+1. Image'larni build qiladi.
+2. Postgres'ni ko'taradi.
+3. Migratsiyalarni qo'llaydi (`goose`).
+4. API, admin va web'ni `--wait` bilan qayta ishga tushiradi.
+
+Oldingi kod daraxti `/var/www/hisob24-v2.prev` da qoladi.
+
+**Serverda:**
+
+```bash
+cd /var/www/hisob24-v2
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f api    # SMS va webhook xatolari ham shu yerda
+```
+
+- `.env` faqat serverda turadi (`chmod 600`). Kalitlar [`.env.example`](.env.example) dagidek, qo'shimcha `POSTGRES_PASSWORD` bor. `DATABASE_URL` compose faylining o'zida quriladi.
+- Postgres `timezone=Asia/Tashkent` bilan ishlaydi, shuning uchun obuna muddati (`CURRENT_DATE`) Toshkent vaqti bilan hisoblanadi.
+- nginx sozlamasi: [`deploy/nginx-switch.py`](deploy/nginx-switch.py). U uchala saytni yuqoridagi portlarga ulaydi, certbot qatorlariga tegmaydi.
+- **Backup.** Har kecha 02:30 da (server vaqti) [`deploy/backup.sh`](deploy/backup.sh) ishlaydi: `pg_dump` → `/var/backups/hisob24-v2/hisob24-<sana>.sql.gz`, 14 kun saqlanadi.
+  - cron: [`deploy/hisob24-v2-backup.cron`](deploy/hisob24-v2-backup.cron) → `/etc/cron.d/`;
+  - log: `journalctl -t hisob24-backup`;
+  - tiklash: `gunzip -c <fayl> | docker compose -f docker-compose.prod.yml exec -T postgres psql -U hisob24 -d hisob24`.
+
 ## Loyiha tuzilmasi
 
 ```
