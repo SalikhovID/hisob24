@@ -75,6 +75,8 @@ type Querier interface {
 	// Stores a new code unless the last one went out less than cooldown_seconds
 	// ago: 0 rows affected means "too soon" (429).
 	UpsertSMSCode(ctx context.Context, arg UpsertSMSCodeParams) (int64, error)
+	// Phones that are not users yet are stored too (no foreign key on purpose).
+	UpsertTelegramContact(ctx context.Context, arg UpsertTelegramContactParams) error
 	// A phone that is already a user keeps its row and name.
 	UpsertUser(ctx context.Context, arg UpsertUserParams) error
 	UserExists(ctx context.Context, phone string) (bool, error)
