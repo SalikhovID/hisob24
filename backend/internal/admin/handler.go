@@ -45,6 +45,7 @@ func (h *Handler) Routes(r chi.Router) {
 			r.Get("/me", h.me)
 			r.Get("/companies", h.listCompanies)
 			r.Post("/companies", h.createCompany)
+			r.Get("/companies/{id}", h.getCompany)
 		})
 	})
 }

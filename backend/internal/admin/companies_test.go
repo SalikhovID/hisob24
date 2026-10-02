@@ -77,3 +77,27 @@ func TestListCompanies(t *testing.T) {
 	assert.JSONEq(t, `{"error":"validation_error","message":"Sahifa raqami noto'g'ri"}`, rec.Body.String())
 	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodGet, "/admin/companies?status=deleted", "", cookie).Code)
 }
+
+func TestGetCompany(t *testing.T) {
+	api := newTestAPI(t, true)
+	cookie := api.login(t)
+	id := api.createCompany(t, cookie, "Olma", dbToday(t, api.pool).AddDate(0, 0, 3))
+
+	rec := api.do(t, http.MethodGet, "/admin/companies/"+id, "", cookie)
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Equal(t, "Olma", body["name"])
+	assert.EqualValues(t, 3, body["days_left"])
+	users, _ := body["users"].([]any)
+	require.Len(t, users, 1)
+	owner, _ := users[0].(map[string]any)
+	assert.Equal(t, "998901234567", owner["phone"])
+	assert.Equal(t, "Ali", owner["full_name"])
+	assert.Equal(t, "owner", owner["role"])
+
+	rec = api.do(t, http.MethodGet, "/admin/companies/999999", "", cookie)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, `{"error":"not_found","message":"Kompaniya topilmadi"}`, rec.Body.String())
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/admin/companies/abc", "", cookie).Code)
+}

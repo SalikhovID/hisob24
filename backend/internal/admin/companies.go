@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 )
@@ -58,4 +60,31 @@ func (h *Handler) listCompanies(w http.ResponseWriter, r *http.Request) {
 		items = append(items, toCompanyJSON(c))
 	}
 	httpx.JSON(w, http.StatusOK, pageJSON{Items: items, Total: res.Total, Page: res.Page, PageSize: res.PageSize})
+}
+
+// companyID reads {id}; anything but a positive number is a missing company.
+func companyID(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil || id <= 0 {
+		httpx.Error(w, http.StatusNotFound, "not_found", "Kompaniya topilmadi")
+		return 0, false
+	}
+	return id, true
+}
+
+func (h *Handler) getCompany(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	d, err := h.companies.Get(r.Context(), id)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	users := make([]memberJSON, 0, len(d.Users))
+	for _, m := range d.Users {
+		users = append(users, toMemberJSON(m))
+	}
+	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users})
 }
