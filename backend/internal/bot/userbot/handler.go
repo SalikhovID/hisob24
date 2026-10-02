@@ -27,6 +27,7 @@ const (
 	shareButton = "📱 Raqamni yuborish"
 	linkedText  = "✅ Akkauntingiz ulandi"
 	savedText   = "Raqamingiz saqlandi"
+	notYours    = "Iltimos, o'z raqamingizni yuboring"
 	failText    = "Xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring."
 )
 
@@ -68,6 +69,12 @@ func (h *Handler) Handle(ctx context.Context, update *models.Update) {
 // saveContact keeps the shared phone and says whether it linked an account;
 // the keyboard is not needed any more.
 func (h *Handler) saveContact(ctx context.Context, msg *models.Message) {
+	// Only one's own number links an account: a forwarded card of someone
+	// else (or of no Telegram user) does not.
+	if msg.Contact.UserID != msg.From.ID {
+		h.send(ctx, msg.Chat.ID, notYours, shareKeyboard)
+		return
+	}
 	isUser, err := h.contacts.Save(ctx, msg.Chat.ID, msg.Contact.PhoneNumber, msg.From.Username, msg.From.FirstName)
 	if err != nil {
 		slog.ErrorContext(ctx, "user bot: save contact", "chat", msg.Chat.ID, "err", err)

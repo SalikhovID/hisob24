@@ -92,3 +92,17 @@ func TestOwnContactIsSavedAndAnswered(t *testing.T) {
 		assert.Equal(t, models.ReplyKeyboardRemove{RemoveKeyboard: true}, api.sent[0].ReplyMarkup, name+": the keyboard goes")
 	}
 }
+
+func TestSomeoneElsesContactIsNotSaved(t *testing.T) {
+	for name, owner := range map[string]int64{"another user's": 9999, "not a Telegram user's": 0} {
+		api := &fakeAPI{}
+		contacts := &fakeContacts{}
+
+		NewHandler(api, contacts).Handle(t.Context(), contact(owner, "+998902223344"))
+
+		assert.Empty(t, contacts.saved, name)
+		require.Len(t, api.sent, 1, name)
+		assert.Equal(t, "Iltimos, o'z raqamingizni yuboring", api.sent[0].Text, name)
+		assert.IsType(t, models.ReplyKeyboardMarkup{}, api.sent[0].ReplyMarkup, name+": the button stays")
+	}
+}
