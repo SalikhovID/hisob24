@@ -9,12 +9,23 @@ const BASE = typeof window === "undefined" ? "/api" : `${window.location.origin}
 // plain asks the API as is, with no token: the refresh itself goes this way.
 const plain = createApiClient(BASE, (request) => globalThis.fetch(request))
 
-// refresh trades the refresh cookie for a new access token.
-async function refresh(): Promise<boolean> {
-  const { data } = await plain.POST("/app/auth/refresh")
-  if (!data) return false
-  setAccessToken(data.access_token)
-  return true
+// refresh trades the refresh cookie for a new access token. Requests turned
+// down together share one refresh: the cookie rotates, so a second refresh
+// with the same cookie would be refused.
+let refreshing: Promise<boolean> | null = null
+
+function refresh(): Promise<boolean> {
+  refreshing ??= plain
+    .POST("/app/auth/refresh")
+    .then(({ data }) => {
+      if (!data) return false
+      setAccessToken(data.access_token)
+      return true
+    })
+    .finally(() => {
+      refreshing = null
+    })
+  return refreshing
 }
 
 function withToken(request: Request): Request {

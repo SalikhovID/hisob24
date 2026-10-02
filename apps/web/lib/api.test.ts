@@ -66,3 +66,20 @@ test("a request with an expired token is sent again, body and all, after the ref
   expect(tokens.company_id).toBe(2)
   expect(tokens.access_token).toMatch(new RegExp(`^access:${VALI}:2:`))
 })
+
+test("requests refused at the same time share one refresh", async () => {
+  await signIn(ALI)
+  clearSession()
+  let refreshes = 0
+  server.use(
+    http.post("*/api/app/auth/refresh", () => {
+      refreshes += 1
+    }),
+  )
+
+  const [first, second] = await Promise.all([call(api.GET("/app/me")), call(api.GET("/app/me"))])
+
+  expect(first.user.phone).toBe(ALI)
+  expect(second.user.phone).toBe(ALI)
+  expect(refreshes).toBe(1)
+})
