@@ -107,7 +107,7 @@ func TestExtendReadsTheEndDateUnderTheLock(t *testing.T) {
 		b, err := s.Extend(ctx, id, ExtendInput{Days: 10}, ownerID)
 		extended <- result{b, err}
 	}()
-	waitForLockWait(t, pool)
+	pgtest.WaitForLockWait(t, pool)
 
 	_, err = other.Exec(ctx, "UPDATE companies SET end_date = $2 WHERE id = $1", id, d.AddDate(0, 0, 100))
 	require.NoError(t, err)
@@ -117,17 +117,6 @@ func TestExtendReadsTheEndDateUnderTheLock(t *testing.T) {
 	require.NoError(t, got.err)
 	assert.True(t, got.b.PrevEndDate.Equal(d.AddDate(0, 0, 100)), "reads the end date the other billing left: prev %s", got.b.PrevEndDate)
 	assert.True(t, endDateOf(t, pool, id).Equal(d.AddDate(0, 0, 110)), "neither billing is lost")
-}
-
-// waitForLockWait returns once a session of the test database waits on a lock.
-func waitForLockWait(t *testing.T, pool *pgxpool.Pool) {
-	t.Helper()
-	require.Eventually(t, func() bool {
-		var waiting int
-		err := pool.QueryRow(t.Context(), `SELECT count(*) FROM pg_stat_activity
-			WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting)
-		return err == nil && waiting > 0
-	}, 5*time.Second, 10*time.Millisecond)
 }
 
 func TestExtendRefusals(t *testing.T) {
