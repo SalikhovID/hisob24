@@ -82,16 +82,16 @@ make tools || exit 1
 make migrate || exit 1
 pnpm install || exit 1
 
-# --- Servislar (rangli prefiks, har biri alohida) ---
+# --- Servislar (rangli prefiks, har biri alohida; sed -u: loglar TTY bo'lmasa ham darhol chiqadi) ---
 if command -v air >/dev/null 2>&1; then
   API_CMD="air -c .air.toml"
 else
   info "air topilmadi: 'go run ./cmd/api' (hot-reload yo'q)"
   API_CMD="go run ./cmd/api"
 fi
-(cd "$ROOT_DIR/backend" && $API_CMD 2>&1 | sed "s/^/$(printf "${RED}[api]${NC}    ")/") &
-(pnpm --filter @hisob24/admin dev 2>&1 | sed "s/^/$(printf "${YELLOW}[admin]${NC}  ")/") &
-(pnpm --filter @hisob24/web dev 2>&1 | sed "s/^/$(printf "${GREEN}[web]${NC}    ")/") &
+(cd "$ROOT_DIR/backend" && $API_CMD 2>&1 | sed -u "s/^/$(printf "${RED}[api]${NC}    ")/") &
+(pnpm --filter @hisob24/admin dev 2>&1 | sed -u "s/^/$(printf "${YELLOW}[admin]${NC}  ")/") &
+(pnpm --filter @hisob24/web dev 2>&1 | sed -u "s/^/$(printf "${GREEN}[web]${NC}    ")/") &
 
 printf "\n"
 printf "  ${RED}api${NC}    -> http://localhost:8080/healthz\n"
