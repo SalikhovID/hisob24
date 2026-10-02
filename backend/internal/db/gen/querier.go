@@ -19,6 +19,7 @@ type Querier interface {
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)
 	CreateAdminSession(ctx context.Context, arg CreateAdminSessionParams) (AdminSession, error)
+	CreateBilling(ctx context.Context, arg CreateBillingParams) (Billing, error)
 	CreateCompany(ctx context.Context, arg CreateCompanyParams) (Company, error)
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
