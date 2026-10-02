@@ -88,3 +88,26 @@ func TestDeactivateAdmin(t *testing.T) {
 	_, err = a.Authenticate(ctx, s.ID.String())
 	assert.ErrorIs(t, err, ErrUnauthenticated)
 }
+
+func TestDeactivateAdminRefusals(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	mustExec(t, pool, "INSERT INTO admins (telegram_id, is_active) VALUES (42, false)")
+	for name, tc := range map[string]struct {
+		actor, target int64
+		code          string
+	}{
+		"self":             {ownerID, ownerID, "cannot_delete_self"},
+		"unknown":          {ownerID, 999, "not_found"},
+		"already inactive": {ownerID, 42, "not_found"},
+		"the last admin":   {42, ownerID, "last_admin"},
+	} {
+		err := a.DeactivateAdmin(t.Context(), tc.actor, tc.target)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.code, e.Code, name)
+		}
+	}
+	active, err := a.IsActiveAdmin(t.Context(), ownerID)
+	require.NoError(t, err)
+	assert.True(t, active, "the owner stays")
+}
