@@ -6,11 +6,15 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { useMe } from "@/lib/queries"
+import { useMiniApp } from "@/lib/telegram"
 
 // Topbar is the bar above every page: who is signed in and the way out.
+// Inside Telegram there is no sign-out: closing the Mini App is the way out,
+// and opening it signs the admin in again.
 export function Topbar() {
   const router = useRouter()
   const me = useMe()
+  const miniApp = useMiniApp()
   const logout = useMutation({
     mutationFn: () => call(api.POST("/admin/auth/logout")),
     onSuccess: () => router.replace("/login"),
@@ -24,15 +28,17 @@ export function Topbar() {
             {me.data.full_name ?? me.data.telegram_id}
           </span>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Chiqish"
-          disabled={logout.isPending}
-          onClick={() => logout.mutate()}
-        >
-          <LogOutIcon />
-        </Button>
+        {!miniApp && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Chiqish"
+            disabled={logout.isPending}
+            onClick={() => logout.mutate()}
+          >
+            <LogOutIcon />
+          </Button>
+        )}
       </div>
     </header>
   )
