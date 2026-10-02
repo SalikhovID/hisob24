@@ -144,3 +144,15 @@ func TestLoginWithCode(t *testing.T) {
 	_, err = a.LoginWithCode(ctx, "654321")
 	assert.ErrorIs(t, err, ErrInvalidCode, "an expired code")
 }
+
+func TestLoginWithCodeOfADeactivatedAdmin(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	mustExec(t, pool, "INSERT INTO admins (telegram_id) VALUES (42)")
+	issued, err := a.IssueLoginCode(t.Context(), 42)
+	require.NoError(t, err)
+	mustExec(t, pool, "UPDATE admins SET is_active = false WHERE telegram_id = 42")
+
+	_, err = a.LoginWithCode(t.Context(), issued.Code)
+
+	assert.ErrorIs(t, err, ErrInvalidCode)
+}

@@ -112,8 +112,9 @@ func (a *AdminAuth) IssueLoginCode(ctx context.Context, telegramID int64) (Login
 	return issued, err
 }
 
-// LoginWithCode spends a code from the admin bot and opens a session;
-// ErrInvalidCode for a wrong, used or expired code.
+// LoginWithCode spends a code from the admin bot and opens a session.
+// ErrInvalidCode for a wrong, used or expired code and for an admin who was
+// deactivated after the code went out.
 func (a *AdminAuth) LoginWithCode(ctx context.Context, code string) (Session, error) {
 	var s Session
 	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
@@ -126,6 +127,9 @@ func (a *AdminAuth) LoginWithCode(ctx context.Context, code string) (Session, er
 			return err
 		}
 		s, err = a.openSession(ctx, q, adminID, "otp")
+		if errors.Is(err, ErrNotAdmin) {
+			return ErrInvalidCode
+		}
 		return err
 	})
 	return s, err
