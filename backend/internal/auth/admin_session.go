@@ -54,3 +54,21 @@ func (a *AdminAuth) LoginWithInitData(ctx context.Context, initData string) (Ses
 	}
 	return a.openSession(ctx, a.q, user.ID, "miniapp")
 }
+
+// ErrUnauthenticated means no live session stands behind the cookie.
+var ErrUnauthenticated = errors.New("no live admin session")
+
+// Authenticate returns the admin behind a session cookie value;
+// ErrUnauthenticated for a malformed, unknown or expired session and for a
+// deactivated admin.
+func (a *AdminAuth) Authenticate(ctx context.Context, sessionID string) (gen.Admin, error) {
+	id, err := uuid.Parse(sessionID)
+	if err != nil {
+		return gen.Admin{}, ErrUnauthenticated
+	}
+	admin, err := a.q.GetAdminBySession(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return gen.Admin{}, ErrUnauthenticated
+	}
+	return admin, err
+}

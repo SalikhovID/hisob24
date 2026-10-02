@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -186,4 +187,25 @@ func TestLoginWithInitData(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidInitData, "signed by another bot")
 	_, err = a.LoginWithInitData(ctx, telegramtest.SignInitData(testBotToken, ownerID, time.Now().Add(-25*time.Hour)))
 	assert.ErrorIs(t, err, ErrInvalidInitData, "older than a day")
+}
+
+func TestAuthenticate(t *testing.T) {
+	a, pool := newAdminAuth(t)
+	ctx := t.Context()
+	issued, err := a.IssueLoginCode(ctx, ownerID)
+	require.NoError(t, err)
+	s, err := a.LoginWithCode(ctx, issued.Code)
+	require.NoError(t, err)
+
+	admin, err := a.Authenticate(ctx, s.ID.String())
+	require.NoError(t, err)
+	assert.Equal(t, ownerID, admin.TelegramID)
+
+	for name, id := range map[string]string{"malformed": "not-a-uuid", "unknown": uuid.NewString()} {
+		_, err := a.Authenticate(ctx, id)
+		assert.ErrorIs(t, err, ErrUnauthenticated, name)
+	}
+	mustExec(t, pool, "UPDATE admin_sessions SET expires_at = now() - interval '1 second' WHERE id = $1", s.ID)
+	_, err = a.Authenticate(ctx, s.ID.String())
+	assert.ErrorIs(t, err, ErrUnauthenticated, "expired")
 }
