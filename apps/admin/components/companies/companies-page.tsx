@@ -4,8 +4,9 @@ import { PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { type Column, DataList } from "@/components/data-list"
 import { buttonVariants } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDate } from "@/lib/format"
-import { useCompanies } from "@/lib/queries"
+import { type CompanyFilter, useCompanies } from "@/lib/queries"
 import type { Company } from "@/lib/types"
 import { SearchInput } from "./search-input"
 import { CompanyStatusBadge } from "./status-badge"
@@ -31,7 +32,19 @@ export function CompaniesPage() {
           Yangi kompaniya
         </Link>
       </div>
-      <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs
+          value={filter.status || "all"}
+          onValueChange={(value) => update({ status: value === "all" ? "" : (value as CompanyFilter["status"]) })}
+        >
+          <TabsList>
+            <TabsTrigger value="all">Hammasi</TabsTrigger>
+            <TabsTrigger value="active">Faol</TabsTrigger>
+            <TabsTrigger value="expired">Muddati o&apos;tgan</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
+      </div>
       {companies.data && (
         <DataList
           label="Kompaniyalar"

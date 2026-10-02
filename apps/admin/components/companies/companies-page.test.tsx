@@ -8,6 +8,13 @@ function rowsOf(table: HTMLElement) {
   return within(table).getAllByRole("row").slice(1)
 }
 
+// names are the companies the table shows, in order.
+function names() {
+  return rowsOf(screen.getByRole("table", { name: "Kompaniyalar" })).map(
+    (row) => within(row).getAllByRole("cell")[0].textContent,
+  )
+}
+
 test("the companies page lists the companies, newest first, with how they stand", async () => {
   setLocation("/companies")
 
@@ -39,4 +46,18 @@ test("searching narrows the list, starts from the first page and stays in the ad
       expect.stringContaining("Olma Savdo"),
     ]),
   )
+})
+
+test("the status tabs show the active or the expired companies", async () => {
+  setLocation("/companies")
+  const { user } = renderWithProviders(<CompaniesPage />)
+  await screen.findByRole("table", { name: "Kompaniyalar" })
+
+  await user.click(screen.getByRole("tab", { name: "Muddati o'tgan" }))
+  await waitFor(() => expect(currentUrl()).toBe("/companies?status=expired"))
+  await waitFor(() => expect(names()).toEqual(["Olcha Servis"]))
+
+  await user.click(screen.getByRole("tab", { name: "Faol" }))
+  await waitFor(() => expect(names()).toEqual(["Nok Market", "Olma Savdo"]))
+  expect(screen.getByRole("tab", { name: "Faol" })).toHaveAttribute("aria-selected", "true")
 })
