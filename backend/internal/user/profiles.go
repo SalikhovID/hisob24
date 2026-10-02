@@ -11,12 +11,14 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-// Membership is one of a user's companies and the role there.
+// Membership is one of a user's companies and the role there. DaysLeft
+// counts from the database's today; below zero the subscription is over.
 type Membership struct {
 	CompanyID int64
 	Name      string
 	Role      string
 	EndDate   time.Time
+	DaysLeft  int
 	IsActive  bool
 }
 
@@ -49,7 +51,9 @@ func (p *Profiles) Get(ctx context.Context, phone string) (Profile, error) {
 	}
 	companies := make([]Membership, 0, len(rows))
 	for _, c := range rows {
-		companies = append(companies, Membership{CompanyID: c.ID, Name: c.Name, Role: c.Role, EndDate: c.EndDate, IsActive: c.IsActive})
+		companies = append(companies, Membership{
+			CompanyID: c.ID, Name: c.Name, Role: c.Role, EndDate: c.EndDate, DaysLeft: int(c.DaysLeft), IsActive: c.IsActive,
+		})
 	}
 	return Profile{Phone: u.Phone, FullName: u.FullName, Companies: companies}, nil
 }

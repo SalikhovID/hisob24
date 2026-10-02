@@ -96,7 +96,7 @@ func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]List
 }
 
 const listUserCompanies = `-- name: ListUserCompanies :many
-SELECT c.id, c.name, c.end_date, c.is_active, uc.role
+SELECT c.id, c.name, c.end_date, (c.end_date - CURRENT_DATE)::int AS days_left, c.is_active, uc.role
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
 WHERE uc.user_phone = $1
@@ -107,11 +107,13 @@ type ListUserCompaniesRow struct {
 	ID       int64
 	Name     string
 	EndDate  time.Time
+	DaysLeft int32
 	IsActive bool
 	Role     string
 }
 
-// The user's companies for /app/me and for choosing one at login.
+// The user's companies for /app/me and for choosing one at login. days_left
+// counts from the database's today, as the 402 check does.
 func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]ListUserCompaniesRow, error) {
 	rows, err := q.db.Query(ctx, listUserCompanies, userPhone)
 	if err != nil {
@@ -125,6 +127,7 @@ func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]Li
 			&i.ID,
 			&i.Name,
 			&i.EndDate,
+			&i.DaysLeft,
 			&i.IsActive,
 			&i.Role,
 		); err != nil {

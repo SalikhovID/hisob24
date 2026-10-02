@@ -36,6 +36,31 @@ func TestGetIsTheUserAndTheirCompanies(t *testing.T) {
 	assert.Equal(t, "2026-11-01", profile.Companies[1].EndDate.Format("2006-01-02"))
 }
 
+func TestGetCountsTheDaysLeftFromTheDatabasesToday(t *testing.T) {
+	t.Parallel()
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901234567')")
+	require.NoError(t, err)
+	for _, c := range []struct{ name, endDate string }{
+		{"A ahead", "CURRENT_DATE + 10"},
+		{"B today", "CURRENT_DATE"},
+		{"C past", "CURRENT_DATE - 5"},
+	} {
+		_, err := pool.Exec(ctx, `WITH c AS (INSERT INTO companies (name, end_date) VALUES ($1, `+c.endDate+`) RETURNING id)
+			INSERT INTO user_companies (user_phone, company_id, role) SELECT '998901234567', id, 'owner' FROM c`, c.name)
+		require.NoError(t, err)
+	}
+
+	profile, err := NewProfiles(pool).Get(ctx, "998901234567")
+
+	require.NoError(t, err)
+	require.Len(t, profile.Companies, 3)
+	assert.Equal(t, 10, profile.Companies[0].DaysLeft)
+	assert.Equal(t, 0, profile.Companies[1].DaysLeft, "the last day still counts")
+	assert.Equal(t, -5, profile.Companies[2].DaysLeft)
+}
+
 func TestSubscriptionActive(t *testing.T) {
 	t.Parallel()
 	pool := pgtest.New(t)
