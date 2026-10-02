@@ -418,3 +418,11 @@ func TestLoginWithTelegramSignsInALinkedUser(t *testing.T) {
 	assert.Nil(t, several.CompanyID, "with several the user chooses")
 	assert.Equal(t, "telegram", several.Source)
 }
+
+func TestLoginWithTelegramWithoutASharedPhone(t *testing.T) {
+	a, _, _ := newUserAuth(t)
+
+	_, err := a.LoginWithTelegram(t.Context(), telegramtest.SignInitData(testUserBotToken, 1004, time.Now()))
+
+	assert.ErrorIs(t, err, ErrPhoneNotShared)
+}

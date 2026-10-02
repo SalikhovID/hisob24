@@ -34,6 +34,10 @@ var ErrTooSoon = errors.New("a code went to this phone less than a minute ago")
 // expired.
 var ErrInvalidRefresh = errors.New("invalid refresh token")
 
+// ErrPhoneNotShared: the Telegram account never shared a phone with the user
+// bot, so there is no telling who it is.
+var ErrPhoneNotShared = errors.New("phone not shared with the user bot")
+
 // ErrNotMember refuses a company the user is not a member of.
 var ErrNotMember = errors.New("not a member of the company")
 
@@ -240,6 +244,9 @@ func (a *UserAuth) LoginWithTelegram(ctx context.Context, initData string) (Toke
 	err = pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
 		q := a.q.WithTx(tx)
 		phone, err := q.GetTelegramContactPhone(ctx, tgUser.ID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrPhoneNotShared
+		}
 		if err != nil {
 			return err
 		}
