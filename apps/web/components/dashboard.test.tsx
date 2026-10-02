@@ -1,7 +1,8 @@
 import { screen, waitFor } from "@testing-library/react"
 import { expect, test } from "vitest"
+import { accessToken } from "@/lib/session"
 import { ALI, db, SARDOR, VALI, ZARINA } from "@/mocks/data"
-import { router } from "@/test/navigation"
+import { leave, router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { chooseCompany, signIn } from "@/test/session"
 import { Dashboard } from "./dashboard"
@@ -65,4 +66,14 @@ test.each([
 
   await screen.findByRole("heading", { name: /^Salom/ })
   expect(screen.queryByRole("link", { name: "Kompaniyani almashtirish" })).not.toBeInTheDocument()
+})
+
+test("signing out ends the session and leaves for /login", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Dashboard />)
+
+  await user.click(await screen.findByRole("button", { name: "Chiqish" }))
+
+  await waitFor(() => expect(leave).toHaveBeenCalledWith("/login"))
+  expect(accessToken()).toBeNull()
 })
