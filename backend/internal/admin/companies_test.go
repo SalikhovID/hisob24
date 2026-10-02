@@ -101,3 +101,24 @@ func TestGetCompany(t *testing.T) {
 	assert.JSONEq(t, `{"error":"not_found","message":"Kompaniya topilmadi"}`, rec.Body.String())
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/admin/companies/abc", "", cookie).Code)
 }
+
+func TestPatchCompany(t *testing.T) {
+	api := newTestAPI(t, true)
+	cookie := api.login(t)
+	path := "/admin/companies/" + api.createCompany(t, cookie, "Olma", dbToday(t, api.pool))
+
+	rec := api.do(t, http.MethodPatch, path, `{"is_active":false}`, cookie)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Equal(t, false, body["is_active"])
+	assert.Equal(t, "Olma", body["name"], "untouched")
+
+	rec = api.do(t, http.MethodPatch, path, `{"name":"Olma MChJ"}`, cookie)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body = decode(t, rec)
+	assert.Equal(t, "Olma MChJ", body["name"])
+	assert.Equal(t, false, body["is_active"], "untouched")
+
+	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPatch, path, `{"name":""}`, cookie).Code)
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPatch, "/admin/companies/999999", `{"name":"X"}`, cookie).Code)
+}

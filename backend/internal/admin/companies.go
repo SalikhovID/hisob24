@@ -88,3 +88,23 @@ func (h *Handler) getCompany(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users})
 }
+
+func (h *Handler) patchCompany(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	var body struct {
+		Name     *string `json:"name"`
+		IsActive *bool   `json:"is_active"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	c, err := h.companies.Update(r.Context(), id, body.Name, body.IsActive)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toCompanyJSON(c))
+}
