@@ -1,0 +1,54 @@
+package db_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
+
+	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
+)
+
+// ownerID is the admin the first migration seeds.
+const ownerID int64 = 461603558
+
+// setup gives the test its own migrated database: queries for the code under
+// test and the pool for fixture SQL that no query covers.
+func setup(t *testing.T) (*gen.Queries, *pgxpool.Pool) {
+	t.Helper()
+	t.Parallel()
+	pool := pgtest.New(t)
+	return gen.New(pool), pool
+}
+
+// mustExec runs fixture SQL.
+func mustExec(t *testing.T, pool *pgxpool.Pool, sql string, args ...any) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(), sql, args...)
+	require.NoError(t, err)
+}
+
+// today is the database's CURRENT_DATE, so date assertions follow the same
+// clock and time zone as the queries.
+func today(t *testing.T, pool *pgxpool.Pool) time.Time {
+	t.Helper()
+	var d time.Time
+	require.NoError(t, pool.QueryRow(context.Background(), "SELECT CURRENT_DATE").Scan(&d))
+	return d
+}
+
+// sqlState is the SQLSTATE of a Postgres error, "" for any other error.
+func sqlState(err error) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code
+	}
+	return ""
+}
+
+func ptr[T any](v T) *T { return &v }
