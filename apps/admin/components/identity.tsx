@@ -8,10 +8,11 @@ import { Avatar } from "./avatar"
 // avatar shows the initials of name, which is the title unless said
 // otherwise: a title that is no name (a phone standing in for one) passes
 // name as null and gets the icon. With href the title is the record's link:
-// the title alone, so the link is named by it and nothing else. A mark (a
-// badge such as "Siz") stands beside the title, outside it. A long title
-// wraps; it is never cut short, and the line of figures under it never
-// breaks.
+// the title alone, so the link is named by it and nothing else, yet the
+// whole identity answers the pointer (a name alone is a small thing to hit
+// with a thumb). A mark (a badge such as "Siz") stands beside the title,
+// outside it. A long title wraps; it is never cut short, and the line of
+// figures under it never breaks.
 export function Identity({
   title,
   subtitle,
@@ -32,13 +33,13 @@ export function Identity({
   mark?: ReactNode
 }) {
   return (
-    <span data-slot="identity" className="flex min-w-0 items-center gap-3">
+    <span data-slot="identity" className="relative flex min-w-0 items-center gap-3">
       <Avatar name={name === undefined ? title : name} seed={seed} icon={icon} square={square} />
       <span className="flex min-h-10 min-w-0 flex-col justify-center">
         <span className="flex min-w-0 items-center gap-2">
           <span data-slot="identity-title" className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
             {href ? (
-              <Link href={href} className="underline-offset-4 hover:underline">
+              <Link href={href} className="rounded-sm underline-offset-4 after:absolute after:inset-0 hover:underline">
                 {title}
               </Link>
             ) : (

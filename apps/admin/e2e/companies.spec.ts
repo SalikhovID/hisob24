@@ -62,3 +62,23 @@ test("the list searches and filters the companies", async ({ page, context, base
   await expect(page.getByText("Olcha Servis").filter({ visible: true })).toBeVisible()
   await expect(page.getByText("Olma Savdo").filter({ visible: true })).toHaveCount(0)
 })
+
+test("a company opens from anywhere on its identity: the line under the name and the avatar too", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await signIn(context, baseURL)
+  await page.goto("/companies")
+
+  // The clicks land where the line and the avatar are, whatever takes them
+  // there (force: Playwright would otherwise wait for these very elements to
+  // be the ones hit, and it is the link, stretched over them, that is).
+  await page.getByText("Yaratilgan 11.09.2026").filter({ visible: true }).click({ force: true })
+  await expect(page).toHaveURL(/\/companies\/1$/)
+
+  await page.goto("/companies")
+  const olcha = page.locator('[data-slot="identity"]').filter({ hasText: "Olcha Servis", visible: true })
+  await olcha.locator('[data-slot="avatar"]').click({ force: true })
+  await expect(page).toHaveURL(/\/companies\/3$/)
+})
