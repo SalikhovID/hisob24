@@ -175,6 +175,34 @@ func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]Li
 	return items, nil
 }
 
+const setCompanyOwner = `-- name: SetCompanyOwner :one
+INSERT INTO user_companies (user_phone, company_id, role, full_name)
+VALUES ($1, $2, 'owner', $3)
+ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', full_name = EXCLUDED.full_name
+RETURNING user_phone, company_id, role, created_at, full_name
+`
+
+type SetCompanyOwnerParams struct {
+	UserPhone string
+	CompanyID int64
+	FullName  *string
+}
+
+// Makes the user the company's owner under full_name, a member or not. The
+// owner before has to be demoted first: a company has one owner.
+func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error) {
+	row := q.db.QueryRow(ctx, setCompanyOwner, arg.UserPhone, arg.CompanyID, arg.FullName)
+	var i UserCompany
+	err := row.Scan(
+		&i.UserPhone,
+		&i.CompanyID,
+		&i.Role,
+		&i.CreatedAt,
+		&i.FullName,
+	)
+	return i, err
+}
+
 const upsertCompanyUser = `-- name: UpsertCompanyUser :one
 INSERT INTO user_companies (user_phone, company_id, role)
 VALUES ($1, $2, $3)

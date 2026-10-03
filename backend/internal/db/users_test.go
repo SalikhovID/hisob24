@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
@@ -79,6 +80,37 @@ func TestAddCompanyUser(t *testing.T) {
 	createUser(t, q, "998909999999", "Vali")
 	_, err = q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: "998909999999", CompanyID: c.ID, Role: "boss", FullName: ptr("Vali")})
 	assert.Equal(t, "23514", sqlState(err), "role is owner or user") // check_violation
+}
+
+func TestSetCompanyOwner(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma := createCompany(t, q, "Olma", d)
+	createUser(t, q, "998901111111", "Ali")
+
+	m, err := q.SetCompanyOwner(ctx, gen.SetCompanyOwnerParams{UserPhone: "998901111111", CompanyID: olma.ID, FullName: ptr("Ali Egasi")})
+	require.NoError(t, err)
+	assert.Equal(t, "owner", m.Role, "someone who was no member")
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Ali Egasi", *m.FullName)
+
+	nok := createCompany(t, q, "Nok", d)
+	addMember(t, q, nok.ID, "998902222222", "Vali", "user")
+	var joined time.Time
+	require.NoError(t, pool.QueryRow(ctx, "SELECT created_at FROM user_companies WHERE company_id = $1", nok.ID).Scan(&joined))
+	m, err = q.SetCompanyOwner(ctx, gen.SetCompanyOwnerParams{UserPhone: "998902222222", CompanyID: nok.ID, FullName: ptr("Vali Egasi")})
+	require.NoError(t, err)
+	assert.Equal(t, "owner", m.Role, "a member is promoted")
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Vali Egasi", *m.FullName, "and renamed")
+	assert.True(t, m.CreatedAt.Equal(joined), "the membership is the same one")
+	var members int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM user_companies WHERE company_id = $1", nok.ID).Scan(&members))
+	assert.Equal(t, 1, members)
+
+	_, err = q.SetCompanyOwner(ctx, gen.SetCompanyOwnerParams{UserPhone: "998901111111", CompanyID: nok.ID, FullName: ptr("Ali")})
+	assert.Equal(t, "23505", sqlState(err), "the owner before has to step down first") // unique_violation
 }
 
 func TestUpsertCompanyUser(t *testing.T) {

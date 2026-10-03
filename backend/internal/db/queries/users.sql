@@ -47,3 +47,11 @@ INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_phone, company_id) DO NOTHING
 RETURNING *;
+
+-- name: SetCompanyOwner :one
+-- Makes the user the company's owner under full_name, a member or not. The
+-- owner before has to be demoted first: a company has one owner.
+INSERT INTO user_companies (user_phone, company_id, role, full_name)
+VALUES ($1, $2, 'owner', $3)
+ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', full_name = EXCLUDED.full_name
+RETURNING *;
