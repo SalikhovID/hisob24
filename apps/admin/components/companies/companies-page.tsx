@@ -82,7 +82,14 @@ export function CompaniesPage() {
       {companies.isPending && <Loading />}
       {companies.isError && <Failed error={companies.error} onRetry={() => companies.refetch()} />}
       {companies.data?.total === 0 && (
-        <EmptyState title="Kompaniyalar topilmadi" description="Qidiruv yoki filtrni o'zgartirib ko'ring." />
+        <EmptyState
+          title="Kompaniyalar topilmadi"
+          description={
+            unfiltered
+              ? "Birinchi kompaniyani «Yangi kompaniya» tugmasi orqali qo'shing."
+              : "Qidiruv yoki filtrni o'zgartirib ko'ring."
+          }
+        />
       )}
       {companies.data && companies.data.total > 0 && (
         <>

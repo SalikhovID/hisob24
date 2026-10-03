@@ -163,6 +163,18 @@ test("a filter with no match suggests changing it", async () => {
   expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
 })
 
+test("a platform with no company yet says how to add the first", async () => {
+  db.companies.length = 0
+  setLocation("/companies")
+
+  renderWithProviders(<CompaniesPage />)
+
+  expect(await screen.findByText("Kompaniyalar topilmadi")).toBeInTheDocument()
+  expect(screen.getByText("Birinchi kompaniyani «Yangi kompaniya» tugmasi orqali qo'shing.")).toBeInTheDocument()
+  // There is no filter to change.
+  expect(screen.queryByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).not.toBeInTheDocument()
+})
+
 test("when the list cannot load the page says why and tries again", async () => {
   let calls = 0
   server.use(
