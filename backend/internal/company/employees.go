@@ -12,7 +12,11 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
-var errAlreadyMember = apperr.New(apperr.Conflict, "already_member", "Bu raqam kompaniyangizga allaqachon qo'shilgan")
+var (
+	errAlreadyMember    = apperr.New(apperr.Conflict, "already_member", "Bu raqam kompaniyangizga allaqachon qo'shilgan")
+	errOwnerProtected   = apperr.New(apperr.Conflict, "cannot_change_owner", "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi")
+	errEmployeeNotFound = apperr.New(apperr.NotFound, "not_found", "Xodim topilmadi")
+)
 
 // Members lists the company's members under the names they go by there: the
 // owner first, then the users in the order they joined.
@@ -60,4 +64,41 @@ func (s *Service) AddEmployee(ctx context.Context, companyID int64, phone, fullN
 		return nil
 	})
 	return m, err
+}
+
+// RenameEmployee changes the name a user goes by in the company; the names
+// in their other companies stay. The owner is not renamed from the app.
+func (s *Service) RenameEmployee(ctx context.Context, companyID int64, phone, fullName string) (Member, error) {
+	normalized, err := user.NormalizePhone(phone)
+	if err != nil {
+		return Member{}, errEmployeeNotFound // no member has such a phone
+	}
+	name := strings.TrimSpace(fullName)
+	if name == "" {
+		return Member{}, invalid("Ismni kiriting")
+	}
+	uc, err := s.q.RenameCompanyUser(ctx, gen.RenameCompanyUserParams{UserPhone: normalized, CompanyID: companyID, FullName: &name})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Member{}, s.whyNotAnEmployee(ctx, companyID, normalized)
+	}
+	if err != nil {
+		return Member{}, err
+	}
+	return Member{Phone: uc.UserPhone, FullName: uc.FullName, Role: uc.Role, CreatedAt: uc.CreatedAt}, nil
+}
+
+// whyNotAnEmployee says why the app may not change the member with phone:
+// the owner is out of its reach, anyone else is not in the company.
+func (s *Service) whyNotAnEmployee(ctx context.Context, companyID int64, phone string) error {
+	m, err := s.q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: phone, CompanyID: companyID})
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return errEmployeeNotFound
+	case err != nil:
+		return err
+	case m.Role == "owner":
+		return errOwnerProtected
+	default:
+		return errEmployeeNotFound // taken out between the two queries
+	}
 }

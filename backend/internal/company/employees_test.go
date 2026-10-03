@@ -121,3 +121,57 @@ func TestAddEmployeeWhoWorksInAnotherCompany(t *testing.T) {
 	assert.Equal(t, "Vali Aliyev", userName, "the user's own name stays")
 	assert.Equal(t, 2, companies, "one user, a member of both companies")
 }
+
+func TestRenameEmployee(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	d := dbToday(t, pool)
+	c := mustCreate(t, s, "Olma", d)
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+	other, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: d, OwnerPhone: "998909999999", OwnerFullName: "Begona"}, ownerID)
+	require.NoError(t, err)
+	addEmployee(t, pool, other.ID, "998902223344", "Xodim (Nok)")
+
+	m, err := s.RenameEmployee(ctx, c.ID, "+998 90 222 33 44", " Xodim (hisobchi) ")
+
+	require.NoError(t, err)
+	assert.Equal(t, "998902223344", m.Phone)
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Xodim (hisobchi)", *m.FullName)
+	assert.Equal(t, "user", m.Role)
+	assert.Equal(t, "Xodim (hisobchi)", nameIn(t, pool, c.ID, "998902223344"))
+	assert.Equal(t, "Xodim (Nok)", nameIn(t, pool, other.ID, "998902223344"), "the name in another company stays")
+}
+
+func TestRenameEmployeeRefusals(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	d := dbToday(t, pool)
+	c := mustCreate(t, s, "Olma", d)
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+	other, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: d, OwnerPhone: "998909999999", OwnerFullName: "Begona"}, ownerID)
+	require.NoError(t, err)
+	addEmployee(t, pool, other.ID, "998903334455", "Begona Xodim")
+	for name, tc := range map[string]struct {
+		phone, fullName string
+		kind            apperr.Kind
+		code, message   string
+	}{
+		"the owner":         {"998900000001", "Boshqa", apperr.Conflict, "cannot_change_owner", "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi"},
+		"another company's": {"998903334455", "Boshqa", apperr.NotFound, "not_found", "Xodim topilmadi"},
+		"no such user":      {"998907777777", "Boshqa", apperr.NotFound, "not_found", "Xodim topilmadi"},
+		"not a phone":       {"12ab", "Boshqa", apperr.NotFound, "not_found", "Xodim topilmadi"},
+		"no name":           {"998902223344", " ", apperr.Invalid, "validation_error", "Ismni kiriting"},
+	} {
+		_, err := s.RenameEmployee(ctx, c.ID, tc.phone, tc.fullName)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.kind, e.Kind, name)
+			assert.Equal(t, tc.code, e.Code, name)
+			assert.Equal(t, tc.message, e.Message, name)
+		}
+	}
+	assert.Equal(t, "Egasi", nameIn(t, pool, c.ID, "998900000001"), "the owner keeps the name")
+	assert.Equal(t, "Xodim", nameIn(t, pool, c.ID, "998902223344"))
+	assert.Equal(t, "Begona Xodim", nameIn(t, pool, other.ID, "998903334455"), "another company's employee is out of reach")
+}
