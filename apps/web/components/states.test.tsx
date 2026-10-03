@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react"
-import { expect, test } from "vitest"
-import { EmptyState, ListLoading, Loading } from "./states"
+import userEvent from "@testing-library/user-event"
+import { expect, test, vi } from "vitest"
+import { EmptyState, Failed, ListLoading, Loading } from "./states"
 
 test("EmptyState says what is missing and what would change that, as plain text", () => {
   render(
@@ -46,4 +47,14 @@ test.each([
   expect(within(status).getByText("Yuklanmoqda")).toHaveClass("sr-only")
   const bars = status.querySelector('[aria-hidden="true"]')
   expect(bars?.querySelector('[data-slot="skeleton"]')).toBeInTheDocument()
+})
+
+test("Failed announces why it failed, and offers to try again", async () => {
+  const retry = vi.fn()
+  render(<Failed error={new Error("Tarmoq xatosi")} onRetry={retry} />)
+
+  expect(screen.getByRole("alert")).toHaveTextContent("Tarmoq xatosi")
+
+  await userEvent.click(screen.getByRole("button", { name: "Qayta urinish" }))
+  expect(retry).toHaveBeenCalledTimes(1)
 })

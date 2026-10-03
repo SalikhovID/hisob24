@@ -54,11 +54,14 @@ export function ListLoading({ rows = 3 }: { rows?: number }) {
   )
 }
 
-// Failed says why something did not load and offers to try again.
+// Failed says why something did not load, aloud too (an alert is announced
+// when it appears), and offers to try again.
 export function Failed({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center text-sm">
-      <p className="text-destructive">{error.message}</p>
+      <p role="alert" className="text-destructive">
+        {error.message}
+      </p>
       <Button variant="outline" size="sm" onClick={onRetry}>
         <RotateCwIcon />
         Qayta urinish
