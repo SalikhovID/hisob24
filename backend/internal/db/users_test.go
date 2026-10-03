@@ -139,19 +139,25 @@ func TestListCompanyUsers(t *testing.T) {
 	d := today(t, pool)
 	c := createCompany(t, q, "Olma", d)
 	other := createCompany(t, q, "Nok", d)
-	addMember(t, q, c.ID, "998901111111", "Egasi", "owner")
+	// The owner was set last, after both employees had joined.
 	addMember(t, q, c.ID, "998902222222", "Xodim", "user")
-	addMember(t, q, other.ID, "998903333333", "Begona", "owner")
+	addMember(t, q, c.ID, "998903333333", "Ikkinchi Xodim", "user")
+	addMember(t, q, c.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, other.ID, "998909999999", "Begona", "owner")
+	mustExec(t, pool, "UPDATE user_companies SET created_at = now() - interval '2 days' WHERE user_phone = '998903333333'")
+	mustExec(t, pool, "UPDATE user_companies SET full_name = 'Xodim (hisobchi)' WHERE user_phone = '998902222222'")
 
 	users, err := q.ListCompanyUsers(t.Context(), c.ID)
 
 	require.NoError(t, err)
-	require.Len(t, users, 2)
-	assert.Equal(t, "998901111111", users[0].Phone)
-	assert.Equal(t, "Egasi", *users[0].FullName)
+	require.Len(t, users, 3)
+	assert.Equal(t, "998901111111", users[0].Phone, "the owner first, though set last")
 	assert.Equal(t, "owner", users[0].Role)
-	assert.Equal(t, "998902222222", users[1].Phone)
-	assert.Equal(t, "user", users[1].Role)
+	assert.Equal(t, "998903333333", users[1].Phone, "then by when they joined")
+	assert.Equal(t, "998902222222", users[2].Phone)
+	assert.Equal(t, "user", users[2].Role)
+	require.NotNil(t, users[2].FullName)
+	assert.Equal(t, "Xodim (hisobchi)", *users[2].FullName, "the name in the company, not the user's own")
 }
 
 func addMember(t *testing.T, q *gen.Queries, companyID int64, phone, name, role string) {

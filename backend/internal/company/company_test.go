@@ -381,6 +381,16 @@ func TestGet(t *testing.T) {
 	require.NotNil(t, d.Users[1].FullName)
 	assert.Equal(t, "Xodim", *d.Users[1].FullName)
 
+	_, err = s.ReplaceOwner(t.Context(), c.ID, "998902223344", "Yangi Egasi")
+	require.NoError(t, err)
+	d, err = s.Get(t.Context(), c.ID)
+	require.NoError(t, err)
+	require.Len(t, d.Users, 2)
+	assert.Equal(t, "998902223344", d.Users[0].Phone, "the owner leads the list")
+	require.NotNil(t, d.Users[0].FullName)
+	assert.Equal(t, "Yangi Egasi", *d.Users[0].FullName, "under the name in the company")
+	assert.Equal(t, "user", d.Users[1].Role)
+
 	_, err = s.Get(t.Context(), c.ID+1)
 	assert.Equal(t, apperr.NotFound, kindOf(t, err))
 }

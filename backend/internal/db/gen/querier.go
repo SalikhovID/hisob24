@@ -69,6 +69,8 @@ type Querier interface {
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
 	ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error)
+	// The company's members under the names they go by there: the owner first,
+	// then the users in the order they joined.
 	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
 	// The user's companies for /app/me and for choosing one at login. days_left
 	// counts from the database's today, as the 402 check does.

@@ -11,11 +11,12 @@ SELECT * FROM users WHERE phone = $1;
 SELECT EXISTS (SELECT 1 FROM users WHERE phone = $1);
 
 -- name: ListCompanyUsers :many
-SELECT u.phone, u.full_name, uc.role, uc.created_at
-FROM user_companies uc
-JOIN users u ON u.phone = uc.user_phone
-WHERE uc.company_id = $1
-ORDER BY uc.created_at, u.phone;
+-- The company's members under the names they go by there: the owner first,
+-- then the users in the order they joined.
+SELECT user_phone AS phone, full_name, role, created_at
+FROM user_companies
+WHERE company_id = $1
+ORDER BY (role = 'owner') DESC, created_at, user_phone;
 
 -- name: ListUserCompanies :many
 -- The user's companies for /app/me and for choosing one at login. days_left

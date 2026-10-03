@@ -101,11 +101,10 @@ func (q *Queries) GetUserCompany(ctx context.Context, arg GetUserCompanyParams) 
 }
 
 const listCompanyUsers = `-- name: ListCompanyUsers :many
-SELECT u.phone, u.full_name, uc.role, uc.created_at
-FROM user_companies uc
-JOIN users u ON u.phone = uc.user_phone
-WHERE uc.company_id = $1
-ORDER BY uc.created_at, u.phone
+SELECT user_phone AS phone, full_name, role, created_at
+FROM user_companies
+WHERE company_id = $1
+ORDER BY (role = 'owner') DESC, created_at, user_phone
 `
 
 type ListCompanyUsersRow struct {
@@ -115,6 +114,8 @@ type ListCompanyUsersRow struct {
 	CreatedAt time.Time
 }
 
+// The company's members under the names they go by there: the owner first,
+// then the users in the order they joined.
 func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error) {
 	rows, err := q.db.Query(ctx, listCompanyUsers, companyID)
 	if err != nil {
