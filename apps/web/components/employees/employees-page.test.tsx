@@ -83,3 +83,22 @@ test("with employees there is no such hint", async () => {
   expect(await rows()).toHaveLength(3)
   expect(screen.queryByText(/Hali xodim yo'q/)).not.toBeInTheDocument()
 })
+
+test("an employee is added from the dialog and joins the list", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+  await rows()
+
+  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "907778899")
+  await user.type(within(dialog).getByLabelText("Ism"), "Yangi Xodim")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Xodim qo'shildi")).toBeInTheDocument()
+  await waitFor(async () =>
+    expect((await rows()).map(phoneAndName)).toContainEqual(["+998 90 777 88 99", "Yangi Xodim"]),
+  )
+  expect(within((await rows())[3]).getByText("Xodim")).toBeInTheDocument()
+})

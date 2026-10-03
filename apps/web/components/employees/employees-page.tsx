@@ -9,6 +9,7 @@ import { formatPhone } from "@/lib/phone"
 import { useEmployees, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
+import { AddEmployeeDialog } from "./add-employee-dialog"
 
 // EmployeesPage is the company's members, for its owner: the owner first,
 // then the employees in the order they joined, each under the name they go
@@ -28,6 +29,7 @@ export function EmployeesPage() {
 
   if (!me.data || !isOwner) return null
   const ownPhone = me.data.user.phone
+  const companyId = company.id
 
   const columns: Column<Member>[] = [
     { header: "Telefon", cell: (m) => formatPhone(m.phone), primary: true },
@@ -45,7 +47,10 @@ export function EmployeesPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4">
-      <h1 className="text-xl font-semibold">Xodimlar</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Xodimlar</h1>
+        <AddEmployeeDialog companyId={companyId} />
+      </div>
       {employees.isPending && <Loading />}
       {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}
       {employees.data && (
