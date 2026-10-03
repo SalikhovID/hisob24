@@ -1,11 +1,12 @@
-// initials are the letters an avatar shows for a name: the first letters of
-// its first two words.
+// initials are the letters an avatar shows for a name: the first letter (or
+// digit) of each of its first two words. A note in brackets is not the name,
+// and quotes or dashes are no letters; a name with nothing left has none.
 export function initials(name: string | null | undefined): string | null {
-  const words = (name ?? "").trim().split(/\s+/).filter(Boolean)
-  if (words.length === 0) return null
-  return words
-    .slice(0, 2)
-    .map((word) => Array.from(word)[0])
-    .join("")
-    .toUpperCase()
+  const letters = (name ?? "")
+    .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
+    .split(/\s+/)
+    .map((word) => word.match(/[\p{L}\p{N}]/u)?.[0])
+    .filter((letter) => letter !== undefined)
+  if (letters.length === 0) return null
+  return letters.slice(0, 2).join("").toUpperCase()
 }
