@@ -34,8 +34,8 @@ const columns: Column<Company>[] = [
       />
     ),
   },
-  { header: "Tugash sanasi", cell: (c) => formatDate(c.end_date) },
-  { header: "Holat", cell: (c) => <CompanyStatusBadge company={c} /> },
+  { header: "Tugash sanasi", card: "inline", cell: (c) => formatDate(c.end_date) },
+  { header: "Holat", card: "tag", cell: (c) => <CompanyStatusBadge company={c} /> },
 ]
 
 // CompaniesPage lists the companies, newest first, to search through.

@@ -70,6 +70,26 @@ test("the page says how many companies the platform has, and never calls a filte
   expect(await screen.findByText("Platformadagi kompaniyalar · 3 ta")).toBeInTheDocument()
 })
 
+test("on a phone a company is a card: how it stands, then when it ends", async () => {
+  setLocation("/companies")
+  renderWithProviders(<CompaniesPage />)
+
+  const [olcha] = within(await screen.findByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+
+  expect(identityOf(olcha)).toEqual(["Olcha Servis", "Yaratilgan 13.09.2026"])
+  const line = Array.from(olcha.querySelectorAll('[data-slot="data-list-meta"] > div')).map((pair) => [
+    pair.querySelector("dt")?.textContent,
+    pair.querySelector("dd")?.textContent,
+  ])
+  expect(line).toEqual([
+    ["Holat", "Muddati o'tgan"],
+    ["Tugash sanasi", "25.09.2026"],
+  ])
+  // The badge needs no name on screen; a bare date would not say what it is.
+  expect(within(olcha).getByText("Holat")).toHaveClass("sr-only")
+  expect(within(olcha).getByText("Tugash sanasi")).not.toHaveClass("sr-only")
+})
+
 test("searching narrows the list, starts from the first page and stays in the address", async () => {
   setLocation("/companies?page=2")
   const { user } = renderWithProviders(<CompaniesPage />)
