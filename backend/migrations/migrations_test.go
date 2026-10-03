@@ -176,3 +176,25 @@ func TestTheRolesMigrationNamesEachMemberAfterTheUser(t *testing.T) {
 	assert.Equal(t, &ali, nameOf("998901111111", nok), "in every company of theirs")
 	assert.Nil(t, nameOf("998902222222", olma), "a user without a name gives none")
 }
+
+func TestTheRolesMigrationDownBringsTheOldRolesBack(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222'), ('998903333333')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role, full_name) VALUES
+		('998901111111', $1, 'owner', 'Egasi'), ('998902222222', $1, 'user', 'Xodim')`, c)
+	require.NoError(t, err)
+
+	_, err = newProvider(t, pool).DownTo(ctx, 3)
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]string{"998901111111": "owner", "998902222222": "staff"}, rolesOf(t, pool, c), "a user is staff again")
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET role = 'manager' WHERE user_phone = '998902222222'")
+	assert.NoError(t, err, "manager is a role again")
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998903333333', $1, 'owner')", c)
+	assert.NoError(t, err, "a second owner is allowed again")
+	_, err = pool.Exec(ctx, "SELECT full_name FROM user_companies")
+	assert.Equal(t, "42703", sqlState(err), "the member's name is gone") // undefined_column
+}

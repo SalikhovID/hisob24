@@ -22,6 +22,8 @@ CREATE UNIQUE INDEX user_companies_one_owner ON user_companies (company_id) WHER
 -- +goose Down
 DROP INDEX user_companies_one_owner;
 ALTER TABLE user_companies DROP CONSTRAINT user_companies_role_check;
+-- The old roles have no user: the users go back as staff.
+UPDATE user_companies SET role = 'staff' WHERE role = 'user';
 ALTER TABLE user_companies ALTER COLUMN role SET DEFAULT 'owner';
 ALTER TABLE user_companies ADD CONSTRAINT user_companies_role_check CHECK (role IN ('owner', 'manager', 'staff'));
 ALTER TABLE user_companies DROP COLUMN full_name;
