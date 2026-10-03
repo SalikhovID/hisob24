@@ -7,6 +7,7 @@ import { useId, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
+import { PendingButton } from "@/components/pending-button"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -96,9 +97,9 @@ export function AddBillingDialog({ company }: { company: Company }) {
           </FieldGroup>
           {add.isError && <FieldError>{add.error.message}</FieldError>}
           <DialogFooter>
-            <Button type="submit" disabled={add.isPending}>
+            <PendingButton type="submit" pending={add.isPending}>
               Qo&apos;shish
-            </Button>
+            </PendingButton>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -381,3 +381,17 @@ test("while the new owner is on its way the dialog's button says so", async () =
   await waitFor(() => expect(replace).toBeDisabled())
   expect(replace).toHaveAttribute("aria-busy", "true")
 })
+
+test("while a payment is on its way the dialog's button says so", async () => {
+  server.use(http.post("*/api/admin/companies/:id/billings", hang))
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Billing qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Billing qo'shish" })
+  await user.type(within(dialog).getByLabelText("Kunlar soni"), "30")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  const add = within(dialog).getByRole("button", { name: "Qo'shish" })
+  await waitFor(() => expect(add).toBeDisabled())
+  expect(add).toHaveAttribute("aria-busy", "true")
+})
