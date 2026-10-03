@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { initials } from "./initials"
+import { initials, TONES, tone } from "./initials"
 
 test("initials are the first letters of a name's first two words", () => {
   expect(initials("Ali Valiyev")).toBe("AV")
@@ -23,4 +23,19 @@ test("no name gives no initials", () => {
   expect(initials("")).toBeNull()
   expect(initials("—")).toBeNull()
   expect(initials("(hisobchi)")).toBeNull()
+})
+
+test("tone is a stable place in the palette, and not the same one for everybody", () => {
+  const seeds = ["998901234567", "998902223344", "998933334455", "998944445566", "998975556677", 1, 2, 461603558]
+
+  const tones = seeds.map(tone)
+
+  expect(seeds.map(tone)).toEqual(tones)
+  tones.forEach((value) => {
+    expect(Number.isInteger(value)).toBe(true)
+    expect(value).toBeGreaterThanOrEqual(0)
+    expect(value).toBeLessThan(TONES)
+  })
+  expect(new Set(tones).size).toBeGreaterThan(2)
+  expect(tone(1)).toBe(tone("1"))
 })
