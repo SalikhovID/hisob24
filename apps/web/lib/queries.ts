@@ -11,6 +11,21 @@ export function useMe() {
   return useQuery({ queryKey: meKey, queryFn: () => call(api.GET("/app/me")) })
 }
 
+// employeesKey names a company's members in the cache. It is per company:
+// a session that switches companies never sees the other one's.
+export const employeesKey = (companyId: number | null) => ["employees", companyId] as const
+
+// useEmployees is the members of the company the owner works in. Only the
+// owner may ask: with companyId null (an employee, or not known yet) nothing
+// is asked.
+export function useEmployees(companyId: number | null) {
+  return useQuery({
+    queryKey: employeesKey(companyId),
+    queryFn: () => call(api.GET("/app/employees")),
+    enabled: companyId !== null,
+  })
+}
+
 // useSwitchCompany moves the session to a company, or to none, and keeps the
 // new access token. /app/me is dropped, so the next page asks for it afresh
 // rather than showing the old company.
