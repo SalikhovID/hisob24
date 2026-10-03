@@ -1,6 +1,6 @@
 import { expect, signIn, test } from "./fixtures"
 
-test("an admin creates a company, adds a user and pays for more days", async ({ page, context, baseURL }) => {
+test("an admin creates a company, replaces its owner and pays for more days", async ({ page, context, baseURL }) => {
   await signIn(context, baseURL)
   await page.goto("/companies")
 
@@ -17,14 +17,22 @@ test("an admin creates a company, adds a user and pays for more days", async ({ 
   const info = page.getByRole("region", { name: "Ma'lumot" })
   await expect(info.getByText("10 kun qoldi")).toBeVisible()
 
-  await page.getByRole("button", { name: "User qo'shish" }).click()
-  const userDialog = page.getByRole("dialog", { name: "User qo'shish" })
-  await userDialog.getByLabel("Telefon").fill("90 111 22 33")
-  await userDialog.getByLabel("Ism").fill("Kassir")
-  await userDialog.getByLabel("Rol").selectOption("staff")
-  await userDialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(userDialog).toBeHidden()
+  // The company starts with the owner it was created with.
+  await expect(page.getByText("+998 90 555 66 77").filter({ visible: true })).toBeVisible()
+  await expect(page.getByText("Egasi", { exact: true }).filter({ visible: true })).toBeVisible()
+  await expect(page.getByText("Xodim", { exact: true }).filter({ visible: true })).toHaveCount(0)
+
+  await page.getByRole("button", { name: "Egasini almashtirish" }).click()
+  const ownerDialog = page.getByRole("dialog", { name: "Egasini almashtirish" })
+  await ownerDialog.getByLabel("Telefon").fill("90 111 22 33")
+  await ownerDialog.getByLabel("Ism").fill("Yangi Egasi")
+  await ownerDialog.getByRole("button", { name: "Almashtirish" }).click()
+  await expect(ownerDialog).toBeHidden()
+  // The new owner joins; the one before stays in the company as an employee.
   await expect(page.getByText("+998 90 111 22 33").filter({ visible: true })).toBeVisible()
+  await expect(page.getByText("+998 90 555 66 77").filter({ visible: true })).toBeVisible()
+  await expect(page.getByText("Egasi", { exact: true }).filter({ visible: true })).toHaveCount(1)
+  await expect(page.getByText("Xodim", { exact: true }).filter({ visible: true })).toHaveCount(1)
 
   await page.getByRole("button", { name: "Billing qo'shish" }).click()
   const billing = page.getByRole("dialog", { name: "Billing qo'shish" })
