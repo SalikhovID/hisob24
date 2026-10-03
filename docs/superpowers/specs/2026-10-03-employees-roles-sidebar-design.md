@@ -259,3 +259,22 @@ Amalga oshirishda belgilangan tafsilotlar:
   - Kompaniyasiz user bilan kirgan yoki SMS kutgan testlarda userga kompaniya berildi: `TestSendCode`, `TestLogout`, `TestMeNeedsAValidAccessToken`, `TestAdminAndUserTokensDoNotCross`, Mini App cookie testlari (app); `TestSendCode*`, `TestLogoutRevokesTheRefreshToken` (auth); `TestSaveLinksAChatToAPhone` (user); `TestSharedContactIsKept` (userbot).
   - `TestRefreshFollowsTheMembershipAsItIsNow`: userga ikkinchi kompaniya berildi; yagona a'zolik o'chgan holat endi alohida testda (sessiya tugaydi).
   - O'chirildi (kodi o'chgan): `TestUserExists`, `TestIsCompanySubscriptionActive`, `TestSubscriptionActive`. O'rnida `TestHasCompany`, `TestGetCompanyAccess`, `TestAccess`.
+
+## 3-bosqich qarorlari (2026-10-03)
+
+Bajarildi: `app/(app)/layout.tsx` → `AppShell` (darvoza + qobiq), `Sidebar` (yig'iladigan ustun + telefonda `Sheet`), `Topbar` (menyu tugmasi, mavzu, profil menyusi), `lib/nav.ts`, `lib/use-sidebar.ts`; `Dashboard` faqat mazmun. Reja: `docs/superpowers/plans/2026-10-03-employees-stage3-sidebar.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Darvoza qobiqda.** `AppShell` `/app/me` ni kutadi: 402 → `/expired`, kompaniya tanlanmagan → `/select-company`, xato → sabab va "Qayta urinish". Sahifa faqat kompaniyasi bor sessiyada chiziladi, shuning uchun `(app)` ostidagi sahifalar yuklanish va yo'naltirishni o'zi qilmaydi.
+- **Bo'limlar rol bo'yicha.** `navFor(role)`: rol hali noma'lum bo'lsa (server HTML'i, yuklanish) faqat hammaga ochiq bo'limlar ko'rinadi, `ownerOnly` bo'lim owner ekani ma'lum bo'lgach chiqadi. Joriy bo'lim: `/` faqat `/` da, boshqasi o'z yo'li va uning ostida.
+- **Yig'ilgan holat** `localStorage["sidebar_collapsed"]` da (`"true"` / `"false"`), `useSyncExternalStore` bilan o'qiladi: server HTML'i doim yoyilgan, boshqa tabdagi o'zgarish ham ta'sir qiladi. Storage rad etsa (yopiq WebView) sidebar yoyilgan qoladi.
+- **Keng va tor ekran** CSS bilan ajraladi (`md:`): ustun `hidden md:flex`, "Menyu" tugmasi `md:hidden`. `Sheet` doim mavjud, faqat tugma bilan ochiladi.
+- **O'lchamlar** enwin'dagidek: 256px ↔ 64px, sarlavha va topbar 56px, sheet 288px.
+- **Profil menyusi:** tugma nomi "Profil" (ekranda ism va ikonka; telefonda faqat ikonka). Ichida ism va telefon, "Kompaniyani almashtirish" (ishlatsa bo'ladigan boshqa kompaniya bo'lsa), "Chiqish". Dashboard'dagi "Kompaniyani almashtirish" havolasi ham qoldi.
+- **Mini App:** mavzu tugmasi va "Chiqish" yo'q; profil menyusi ism va telefonni ko'rsatadi.
+- **Logo fayli yo'q:** belgi sifatida `bg-sidebar-primary` kvadratda "H".
+- **Yordamchi nomlar** (o'zbekcha): "Menyu", "Bo'limlar", "Menyuni yig'ish", "Menyuni yoyish", "Profil".
+- **"Xodimlar" sahifasi** hali yo'q (4-bosqich): havola owner'ga ko'rinadi, sahifa 404.
+- **Ko'chgan testlar.** Dashboard'ning yo'naltirish va yuklash xatosi testlari `app-shell.test.tsx` ga, chiqish, mavzu va Telegram testlari `topbar.test.tsx` ga o'tdi. e2e'da sahifa mazmuni `main` ichidan qidiriladi (kompaniya nomi endi sidebar va topbar'da ham bor), chiqish profil menyusi orqali.
+- **Tekshiruv.** Dizayn Playwright skrinshotlari bilan ko'rildi (desktop yoyilgan va yig'ilgan, telefon menyusi, profil menyusi). curl: sessiyasiz `/` → `/login`; cookie bilan server HTML'ida qobiq bor, `/login` va `/select-company` da yo'q.
