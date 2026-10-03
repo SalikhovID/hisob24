@@ -175,3 +175,23 @@ func TestRenameEmployeeRefusals(t *testing.T) {
 	assert.Equal(t, "Xodim", nameIn(t, pool, c.ID, "998902223344"))
 	assert.Equal(t, "Begona Xodim", nameIn(t, pool, other.ID, "998903334455"), "another company's employee is out of reach")
 }
+
+func TestRemoveEmployee(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	d := dbToday(t, pool)
+	c := mustCreate(t, s, "Olma", d)
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+	other, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: d, OwnerPhone: "998909999999", OwnerFullName: "Begona"}, ownerID)
+	require.NoError(t, err)
+	addEmployee(t, pool, other.ID, "998902223344", "Xodim (Nok)")
+
+	require.NoError(t, s.RemoveEmployee(ctx, c.ID, "+998 90 222 33 44"))
+
+	assert.Equal(t, map[string]string{"998900000001": "owner"}, rolesOf(t, pool, c.ID), "out of this company")
+	assert.Equal(t, map[string]string{"998909999999": "owner", "998902223344": "user"}, rolesOf(t, pool, other.ID),
+		"the other company keeps them")
+	var users int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM users WHERE phone = '998902223344'").Scan(&users))
+	assert.Equal(t, 1, users, "the user stays")
+}

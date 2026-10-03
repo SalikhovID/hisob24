@@ -102,3 +102,15 @@ func (s *Service) whyNotAnEmployee(ctx context.Context, companyID int64, phone s
 		return errEmployeeNotFound // taken out between the two queries
 	}
 }
+
+// RemoveEmployee takes a user out of the company. The user, their name and
+// their other companies stay; with no company left they cannot sign in. The
+// owner is not removed from the app.
+func (s *Service) RemoveEmployee(ctx context.Context, companyID int64, phone string) error {
+	normalized, err := user.NormalizePhone(phone)
+	if err != nil {
+		return err
+	}
+	_, err = s.q.RemoveCompanyUser(ctx, gen.RemoveCompanyUserParams{UserPhone: normalized, CompanyID: companyID})
+	return err
+}
