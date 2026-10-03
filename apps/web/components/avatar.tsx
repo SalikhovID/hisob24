@@ -16,19 +16,23 @@ const tints = [
 
 // Avatar is the mark beside a name: its initials, in the tint its seed (a
 // phone, an ID) always gets, or a plain icon when there is no name to take
-// them from. People are round, companies square. It is decoration: the name
-// itself is beside it, so assistive technology skips it.
+// them from. People are round, companies square. One that is muted (it
+// stands for someone no longer active) keeps its initials and loses its
+// tint. It is decoration: the name itself is beside it, so assistive
+// technology skips it.
 export function Avatar({
   name,
   seed,
   icon: Icon = UserIcon,
   square = false,
+  muted = false,
   className,
 }: {
   name: string | null | undefined
   seed: string | number
   icon?: LucideIcon
   square?: boolean
+  muted?: boolean
   className?: string
 }) {
   const letters = initials(name)
@@ -41,7 +45,7 @@ export function Avatar({
       className={cn(
         "flex size-9 shrink-0 items-center justify-center text-xs leading-none font-semibold select-none",
         square ? "rounded-lg" : "rounded-full",
-        letters ? tints[place] : "bg-muted text-muted-foreground",
+        letters && !muted ? tints[place] : "bg-muted text-muted-foreground",
         className,
       )}
     >

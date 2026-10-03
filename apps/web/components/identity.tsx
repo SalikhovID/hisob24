@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 import { Avatar } from "./avatar"
 
 // Identity is who or what a record is: an avatar, the title the record goes
@@ -11,8 +12,10 @@ import { Avatar } from "./avatar"
 // the title alone, so the link is named by it and nothing else, yet the
 // whole identity answers the pointer (a name alone is a small thing to hit
 // with a thumb). A mark (a badge such as "Siz") stands beside the title,
-// outside it. A long title wraps; it is never cut short, and the line of
-// figures under it never breaks.
+// outside it. A muted identity (someone no longer active) steps back: its
+// title takes the color of the line under it and its avatar loses its tint.
+// A long title wraps; it is never cut short, and the line of figures under
+// it never breaks.
 export function Identity({
   title,
   subtitle,
@@ -22,6 +25,7 @@ export function Identity({
   square,
   href,
   mark,
+  muted,
 }: {
   title: string
   subtitle?: ReactNode
@@ -31,13 +35,17 @@ export function Identity({
   square?: boolean
   href?: string
   mark?: ReactNode
+  muted?: boolean
 }) {
   return (
     <span data-slot="identity" className="relative flex min-w-0 items-center gap-3">
-      <Avatar name={name === undefined ? title : name} seed={seed} icon={icon} square={square} />
+      <Avatar name={name === undefined ? title : name} seed={seed} icon={icon} square={square} muted={muted} />
       <span className="flex min-h-10 min-w-0 flex-col justify-center">
         <span className="flex min-w-0 items-center gap-2">
-          <span data-slot="identity-title" className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
+          <span
+            data-slot="identity-title"
+            className={cn("min-w-0 text-sm font-medium [overflow-wrap:anywhere]", muted && "text-muted-foreground")}
+          >
             {href ? (
               <Link href={href} className="rounded-sm underline-offset-4 after:absolute after:inset-0 hover:underline">
                 {title}
