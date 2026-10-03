@@ -67,6 +67,16 @@ test("the list says when each admin was added", async () => {
   rowsOf(table).forEach((admin) => expect(within(admin).getByText("01.10.2026")).toBeInTheDocument())
 })
 
+test("the page says how many admins the platform has", async () => {
+  addAdmins()
+
+  renderWithProviders(<AdminsPage />)
+
+  // The line is there from the start; the count joins it with the list.
+  expect(screen.getByText("Platforma adminlari")).toBeInTheDocument()
+  expect(await screen.findByText("Platforma adminlari · 3 kishi")).toBeInTheDocument()
+})
+
 test("an admin is added from the dialog and joins the list", async () => {
   const { user } = renderWithProviders(<AdminsPage />)
 

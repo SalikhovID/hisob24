@@ -2,6 +2,7 @@
 
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
+import { PageHeader } from "@/components/page-header"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/format"
@@ -44,10 +45,11 @@ export function AdminsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Adminlar</h1>
-        <AddAdminDialog />
-      </div>
+      <PageHeader
+        title="Adminlar"
+        description={admins.data ? `Platforma adminlari · ${admins.data.length} kishi` : "Platforma adminlari"}
+        actions={<AddAdminDialog />}
+      />
       {admins.isPending && <Loading />}
       {admins.isError && <Failed error={admins.error} onRetry={() => admins.refetch()} />}
       {admins.data && <DataList label="Adminlar" items={admins.data} columns={columns} getKey={(a) => a.telegram_id} />}
