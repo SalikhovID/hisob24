@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 )
@@ -56,4 +58,20 @@ func (h *Handler) addEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusCreated, toMemberJSON(m))
+}
+
+// renameEmployee changes the name an employee goes by in the owner's company.
+func (h *Handler) renameEmployee(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		FullName string `json:"full_name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	m, err := h.companies.RenameEmployee(r.Context(), ownersCompany(r), chi.URLParam(r, "phone"), body.FullName)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toMemberJSON(m))
 }

@@ -165,3 +165,22 @@ func TestAPhoneAddedByASecondCompanySignsInToChooseBetweenThem(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, api.do(t, http.MethodGet, "/app/employees", "", bearer(access)).Code,
 		"an owner elsewhere, a user here: Nok's employees are not theirs to see")
 }
+
+func TestRenameEmployee(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	api.addUser(t, valisPhone)
+	api.addMember(t, valisPhone, olma, "user")
+
+	rec := api.do(t, http.MethodPatch, "/app/employees/"+valisPhone, `{"full_name":" Vali (hisobchi) "}`, bearer(owner))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Equal(t, valisPhone, body["phone"])
+	assert.Equal(t, "Vali (hisobchi)", body["full_name"])
+	assert.Equal(t, "user", body["role"])
+	list := members(t, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner)))
+	require.Len(t, list, 2)
+	assert.Equal(t, "Vali (hisobchi)", list[1]["full_name"], "the list shows the new name")
+}

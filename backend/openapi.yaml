@@ -632,6 +632,47 @@ paths:
           $ref: "#/components/responses/OwnerOnly"
         "409":
           $ref: "#/components/responses/AlreadyMember"
+  /app/employees/{phone}:
+    parameters:
+      - name: phone
+        in: path
+        required: true
+        description: Xodimning telefoni, 998901234567 ko'rinishida
+        schema:
+          type: string
+    patch:
+      operationId: renameEmployee
+      summary: Xodim ismini o'zgartirish (faqat owner)
+      description: >
+        Xodimning shu kompaniyadagi ismi o'zgaradi; boshqa kompaniyalardagi
+        ismi o'zgarmaydi. Owner'ning ismi bu yerdan o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenameMember"
+      responses:
+        "200":
+          description: Yangi ismli xodim
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/EmployeeNotFound"
+        "409":
+          $ref: "#/components/responses/CannotChangeOwner"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -728,6 +769,20 @@ components:
             $ref: "#/components/schemas/Error"
     SubscriptionExpired:
       description: Company muddati o'tgan yoki bloklangan (subscription_expired)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    EmployeeNotFound:
+      description: Bunday raqam shu kompaniyaning a'zosi emas (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    CannotChangeOwner:
+      description: >
+        Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi
+        (cannot_change_owner); buni admin panel qiladi
       content:
         application/json:
           schema:
@@ -962,6 +1017,14 @@ components:
           type: string
           minLength: 1
           description: Shu kompaniyadagi ismi
+    RenameMember:
+      type: object
+      required: [full_name]
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          description: Shu kompaniyadagi yangi ismi
     CreateBilling:
       type: object
       required: [days]
