@@ -39,3 +39,11 @@ SELECT c.id, c.name, c.end_date, c.is_active, uc.role
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
 WHERE uc.user_phone = $1 AND uc.company_id = $2;
+
+-- name: AddCompanyUser :one
+-- Adds a member with a role and the name they go by in the company. No row
+-- (pgx.ErrNoRows) when the user is a member already: nothing changes.
+INSERT INTO user_companies (user_phone, company_id, role, full_name)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_phone, company_id) DO NOTHING
+RETURNING *;

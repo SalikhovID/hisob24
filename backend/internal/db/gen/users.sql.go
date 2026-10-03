@@ -10,6 +10,40 @@ import (
 	"time"
 )
 
+const addCompanyUser = `-- name: AddCompanyUser :one
+INSERT INTO user_companies (user_phone, company_id, role, full_name)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_phone, company_id) DO NOTHING
+RETURNING user_phone, company_id, role, created_at, full_name
+`
+
+type AddCompanyUserParams struct {
+	UserPhone string
+	CompanyID int64
+	Role      string
+	FullName  *string
+}
+
+// Adds a member with a role and the name they go by in the company. No row
+// (pgx.ErrNoRows) when the user is a member already: nothing changes.
+func (q *Queries) AddCompanyUser(ctx context.Context, arg AddCompanyUserParams) (UserCompany, error) {
+	row := q.db.QueryRow(ctx, addCompanyUser,
+		arg.UserPhone,
+		arg.CompanyID,
+		arg.Role,
+		arg.FullName,
+	)
+	var i UserCompany
+	err := row.Scan(
+		&i.UserPhone,
+		&i.CompanyID,
+		&i.Role,
+		&i.CreatedAt,
+		&i.FullName,
+	)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT phone, full_name, created_at FROM users WHERE phone = $1
 `

@@ -57,6 +57,30 @@ func TestUserExists(t *testing.T) {
 	assert.False(t, exists)
 }
 
+func TestAddCompanyUser(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+	createUser(t, q, "998901234567", "Ali Valiyev")
+
+	m, err := q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "user", FullName: ptr("Ali (hisobchi)")})
+	require.NoError(t, err)
+	assert.Equal(t, "user", m.Role)
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Ali (hisobchi)", *m.FullName, "the name in this company, not the user's own")
+
+	_, err = q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "owner", FullName: ptr("Boshqa Ism")})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a member already")
+	var role, name string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT role, full_name FROM user_companies WHERE company_id = $1", c.ID).Scan(&role, &name))
+	assert.Equal(t, "user", role, "the membership stays as it was")
+	assert.Equal(t, "Ali (hisobchi)", name)
+
+	createUser(t, q, "998909999999", "Vali")
+	_, err = q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: "998909999999", CompanyID: c.ID, Role: "boss", FullName: ptr("Vali")})
+	assert.Equal(t, "23514", sqlState(err), "role is owner or user") // check_violation
+}
+
 func TestUpsertCompanyUser(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
@@ -101,7 +125,7 @@ func TestListCompanyUsers(t *testing.T) {
 func addMember(t *testing.T, q *gen.Queries, companyID int64, phone, name, role string) {
 	t.Helper()
 	createUser(t, q, phone, name)
-	_, err := q.UpsertCompanyUser(context.Background(), gen.UpsertCompanyUserParams{UserPhone: phone, CompanyID: companyID, Role: role})
+	_, err := q.AddCompanyUser(context.Background(), gen.AddCompanyUserParams{UserPhone: phone, CompanyID: companyID, Role: role, FullName: ptr(name)})
 	require.NoError(t, err)
 }
 

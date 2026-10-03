@@ -12,6 +12,9 @@ import (
 )
 
 type Querier interface {
+	// Adds a member with a role and the name they go by in the company. No row
+	// (pgx.ErrNoRows) when the user is a member already: nothing changes.
+	AddCompanyUser(ctx context.Context, arg AddCompanyUserParams) (UserCompany, error)
 	// Spends a live code in one statement, so a code opens one session only.
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.
