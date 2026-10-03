@@ -57,6 +57,16 @@ test("each admin goes by their name, over the Telegram ID they sign in with", as
   expect(headers[0]).toBe("Ism")
 })
 
+test("the list says when each admin was added", async () => {
+  addAdmins()
+
+  renderWithProviders(<AdminsPage />)
+
+  const table = await screen.findByRole("table", { name: "Adminlar" })
+  expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toContain("Qo'shilgan")
+  rowsOf(table).forEach((admin) => expect(within(admin).getByText("01.10.2026")).toBeInTheDocument())
+})
+
 test("an admin is added from the dialog and joins the list", async () => {
   const { user } = renderWithProviders(<AdminsPage />)
 

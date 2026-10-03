@@ -4,6 +4,7 @@ import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { formatDate } from "@/lib/format"
 import { useAdmins, useMe } from "@/lib/queries"
 import type { AdminAccount } from "@/lib/types"
 import { AddAdminDialog } from "./add-admin-dialog"
@@ -33,6 +34,7 @@ export function AdminsPage() {
       header: "Holat",
       cell: (a) => <Badge variant={a.is_active ? "secondary" : "outline"}>{a.is_active ? "Faol" : "Nofaol"}</Badge>,
     },
+    { header: "Qo'shilgan", cell: (a) => formatDate(a.created_at) },
     {
       header: "Amallar",
       // Only another active admin can be turned off; the API refuses the rest.
