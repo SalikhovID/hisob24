@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { z } from "zod"
-import { adminSchema, billingSchema, companySchema, memberSchema, phoneField } from "./schemas"
+import { adminSchema, billingSchema, companySchema, memberSchema, ownerSchema, phoneField } from "./schemas"
 
 // problems lists the messages a schema gives for input; none means valid.
 function problems(schema: z.ZodType, input: unknown): string[] {
@@ -49,6 +49,17 @@ test("memberSchema refuses a bad phone, no name and an unknown role", () => {
     "Ismni kiriting",
     "Rolni tanlang",
   ])
+})
+
+test("ownerSchema takes a phone and a name: an owner's role is not asked", () => {
+  expect(ownerSchema.parse({ phone: "+998 90 222 33 44", full_name: " Yangi Egasi " })).toEqual({
+    phone: "998902223344",
+    full_name: "Yangi Egasi",
+  })
+})
+
+test("ownerSchema refuses a bad phone and no name", () => {
+  expect(problems(ownerSchema, { phone: "12ab", full_name: "" })).toEqual(["Telefon raqami noto'g'ri", "Ismni kiriting"])
 })
 
 test("billingSchema turns the dialog into a payment", () => {

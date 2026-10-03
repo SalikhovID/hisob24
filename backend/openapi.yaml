@@ -940,6 +940,9 @@ components:
           type: string
         full_name:
           type: [string, "null"]
+          description: >
+            Tanlangan kompaniyadagi ismi. Kompaniya tanlanmagan yoki a'zolikda
+            ism bo'lmasa, userning o'z ismi.
     AppCompany:
       type: object
       required: [id, name, role, end_date, days_left, is_active]

@@ -142,7 +142,7 @@ export interface paths {
         patch: operations["updateCompany"];
         trace?: never;
     };
-    "/admin/companies/{id}/users": {
+    "/admin/companies/{id}/owner": {
         parameters: {
             query?: never;
             header?: never;
@@ -152,12 +152,12 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
         /**
-         * Kompaniyaga user qo'shish
-         * @description Telefon allaqachon user bo'lsa, ismi o'zgarmaydi. Allaqachon a'zo bo'lsa, roli yangilanadi.
+         * Kompaniya egasini almashtirish
+         * @description Kiritilgan raqam kompaniyaning owner'i bo'ladi, oldingi owner kompaniyada user bo'lib qoladi (bitta transaction). Raqam tizimda yo'q bo'lsa, user yaratiladi; kompaniyaning a'zosi bo'lsa, owner'ga ko'tariladi. Raqam hozirgi owner'niki bo'lsa, faqat ismi yangilanadi. Ism shu kompaniyadagi ism: userning boshqa kompaniyalardagi ismi o'zgarmaydi.
          */
-        post: operations["addCompanyUser"];
+        put: operations["replaceCompanyOwner"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -463,13 +463,17 @@ export interface components {
         Member: {
             /** @description 998XXXXXXXXX ko'rinishida */
             phone: string;
+            /** @description Shu kompaniyadagi ismi */
             full_name: string | null;
             role: components["schemas"]["Role"];
             /** Format: date-time */
             created_at: string;
         };
-        /** @enum {string} */
-        Role: "owner" | "manager" | "staff";
+        /**
+         * @description owner: kompaniyaning yagona egasi, uni admin panel qo'yadi. user: owner user app'dan qo'shgan xodim.
+         * @enum {string}
+         */
+        Role: "owner" | "user";
         Billing: {
             /** Format: int64 */
             id: number;
@@ -508,10 +512,11 @@ export interface components {
             name?: string;
             is_active?: boolean;
         };
-        AddMember: {
+        MemberInput: {
+            /** @description +998 90 123 45 67, 998901234567 yoki 901234567 */
             phone: string;
+            /** @description Shu kompaniyadagi ismi */
             full_name: string;
-            role: components["schemas"]["Role"];
         };
         CreateBilling: {
             days: number;
@@ -539,6 +544,7 @@ export interface components {
         };
         AppUser: {
             phone: string;
+            /** @description Tanlangan kompaniyadagi ismi. Kompaniya tanlanmagan yoki a'zolikda ism bo'lmasa, userning o'z ismi. */
             full_name: string | null;
         };
         AppCompany: {
@@ -901,7 +907,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    addCompanyUser: {
+    replaceCompanyOwner: {
         parameters: {
             query?: never;
             header?: never;
@@ -912,12 +918,12 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AddMember"];
+                "application/json": components["schemas"]["MemberInput"];
             };
         };
         responses: {
-            /** @description A'zo */
-            201: {
+            /** @description Yangi owner */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

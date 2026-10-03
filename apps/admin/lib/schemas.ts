@@ -29,6 +29,13 @@ export const memberSchema = z.object({
   role: z.enum(["owner", "manager", "staff"], "Rolni tanlang"),
 })
 
+// ownerSchema is the replace-owner dialog: the phone that becomes the
+// company's owner and the name they go by there.
+export const ownerSchema = z.object({
+  phone: phoneField("Telefon raqami noto'g'ri"),
+  full_name: required("Ismni kiriting"),
+})
+
 const DAYS_MESSAGE = "Kunlar soni 1 dan 3650 gacha bo'lishi kerak"
 
 // billingSchema is the add-billing dialog: days become a number, an empty
