@@ -144,3 +144,25 @@ test("a dialog opened again starts empty, with the last refusal gone", async () 
   expect(within(dialog).getByLabelText("Ism")).toHaveValue("")
   expect(within(dialog).queryByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).not.toBeInTheDocument()
 })
+
+test("an employee is renamed from the dialog; the owner is not to be renamed here", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+  const [owner, vali] = await rows()
+  expect(within(owner).queryByRole("button", { name: /Ismni o'zgartirish/ })).not.toBeInTheDocument()
+
+  await user.click(within(vali).getByRole("button", { name: "Ismni o'zgartirish: Vali Aliyev" }))
+  const dialog = await screen.findByRole("dialog", { name: "Ismni o'zgartirish" })
+  const name = within(dialog).getByLabelText("Ism")
+  expect(name).toHaveValue("Vali Aliyev")
+  expect(within(dialog).getByText("+998 90 222 33 44")).toBeInTheDocument()
+  await user.clear(name)
+  await user.type(name, "Vali (hisobchi)")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Ism o'zgartirildi")).toBeInTheDocument()
+  await waitFor(async () =>
+    expect((await rows()).map(phoneAndName)).toContainEqual(["+998 90 222 33 44", "Vali (hisobchi)"]),
+  )
+})

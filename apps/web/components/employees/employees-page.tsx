@@ -10,6 +10,7 @@ import { useEmployees, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
 import { AddEmployeeDialog } from "./add-employee-dialog"
+import { RenameEmployeeDialog } from "./rename-employee-dialog"
 
 // EmployeesPage is the company's members, for its owner: the owner first,
 // then the employees in the order they joined, each under the name they go
@@ -42,6 +43,16 @@ export function EmployeesPage() {
           {m.phone === ownPhone && <Badge variant="outline">Siz</Badge>}
         </span>
       ),
+    },
+    {
+      header: "Amallar",
+      // The owner is the admin panel's to change: only employees get these.
+      cell: (m) =>
+        m.role === "user" && (
+          <span className="inline-flex items-center justify-end gap-1">
+            <RenameEmployeeDialog companyId={companyId} employee={m} />
+          </span>
+        ),
     },
   ]
 
