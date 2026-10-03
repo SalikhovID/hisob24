@@ -1,7 +1,7 @@
 "use client"
 
 import { type Column, DataList } from "@/components/data-list"
-import { Empty, Failed, Loading } from "@/components/states"
+import { EmptyState, Failed, Loading } from "@/components/states"
 import { formatAmount, formatDate } from "@/lib/format"
 import { useBillings } from "@/lib/queries"
 import type { Billing } from "@/lib/types"
@@ -20,6 +20,6 @@ export function BillingHistory({ companyId }: { companyId: number }) {
 
   if (billings.isPending) return <Loading rows={2} />
   if (billings.isError) return <Failed error={billings.error} onRetry={() => billings.refetch()} />
-  if (billings.data.length === 0) return <Empty>Hali to&apos;lovlar yo&apos;q</Empty>
+  if (billings.data.length === 0) return <EmptyState title="Hali to'lovlar yo'q" />
   return <DataList label="Billing tarixi" items={billings.data} columns={columns} getKey={(b) => b.id} />
 }

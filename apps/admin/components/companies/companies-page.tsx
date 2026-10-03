@@ -4,7 +4,7 @@ import { PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { type Column, DataList } from "@/components/data-list"
 import { Pager } from "@/components/pager"
-import { Empty, Failed, Loading } from "@/components/states"
+import { EmptyState, Failed, Loading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDate } from "@/lib/format"
@@ -49,7 +49,7 @@ export function CompaniesPage() {
       </div>
       {companies.isPending && <Loading />}
       {companies.isError && <Failed error={companies.error} onRetry={() => companies.refetch()} />}
-      {companies.data?.total === 0 && <Empty>Kompaniyalar topilmadi</Empty>}
+      {companies.data?.total === 0 && <EmptyState title="Kompaniyalar topilmadi" />}
       {companies.data && companies.data.total > 0 && (
         <>
           <DataList
