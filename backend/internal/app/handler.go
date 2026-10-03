@@ -168,6 +168,8 @@ type meJSON struct {
 }
 
 // me is the signed-in user, the company they work in now and all of theirs.
+// The user's name is the one they go by in that company; before a choice of
+// company, or when the membership has no name, it is the user's own.
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	claims := currentUser(r.Context())
 	profile, err := h.profiles.Get(r.Context(), claims.Phone)
@@ -184,6 +186,11 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		body.Companies = append(body.Companies, c)
 		if claims.CompanyID != nil && *claims.CompanyID == m.CompanyID {
 			body.Company = &c
+			// Each company names its own members: in the company they
+			// work in the user goes by that name.
+			if m.FullName != nil {
+				body.User.FullName = m.FullName
+			}
 		}
 	}
 	httpx.JSON(w, http.StatusOK, body)

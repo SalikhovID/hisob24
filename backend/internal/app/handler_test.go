@@ -306,6 +306,32 @@ func TestMe(t *testing.T) {
 	assert.Len(t, body["companies"], 2, "all of the user's companies")
 }
 
+func TestMeNamesTheUserAsTheChosenCompanyDoes(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	access, refresh := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "user"})
+	api.exec(t, "UPDATE user_companies SET full_name = 'Ali (hisobchi)' WHERE company_id = $1", nok)
+	name := func() any {
+		rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		user, _ := decode(t, rec)["user"].(map[string]any)
+		return user["full_name"]
+	}
+	choose := func(companyID int64) {
+		rec := api.do(t, http.MethodPost, "/app/auth/switch-company", fmt.Sprintf(`{"company_id":%d}`, companyID), bearer(access), cookie(refresh))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		access, _ = decode(t, rec)["access_token"].(string)
+		refresh = refreshCookieOf(t, rec)
+	}
+
+	assert.Equal(t, "Ali Valiyev", name(), "before a company is chosen: the user's own name")
+	choose(nok)
+	assert.Equal(t, "Ali (hisobchi)", name(), "the name the user goes by in the company they work in")
+	choose(olma)
+	assert.Equal(t, "Ali Valiyev", name(), "a membership without a name falls back to the user's own")
+}
+
 func TestMeSaysHowManyDaysEachCompanyHasLeft(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
