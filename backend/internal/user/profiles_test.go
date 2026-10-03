@@ -63,6 +63,42 @@ func TestGetCountsTheDaysLeftFromTheDatabasesToday(t *testing.T) {
 	assert.Equal(t, -5, profile.Companies[2].DaysLeft)
 }
 
+func TestAccess(t *testing.T) {
+	t.Parallel()
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901234567'), ('998909999999')")
+	require.NoError(t, err)
+	// company makes 998901234567 a member of a new company and returns its id.
+	company := func(endDate string, active bool, role string) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, `WITH c AS (INSERT INTO companies (name, end_date, is_active) VALUES ('X', `+endDate+`, $1) RETURNING id)
+			INSERT INTO user_companies (user_phone, company_id, role) SELECT '998901234567', id, $2 FROM c RETURNING company_id`, active, role).Scan(&id))
+		return id
+	}
+	profiles := NewProfiles(pool)
+
+	for name, tc := range map[string]struct {
+		id   int64
+		want Access
+	}{
+		"the owner, paid up": {company("CURRENT_DATE + 30", true, "owner"), Access{Role: "owner", Active: true}},
+		"a user, ends today": {company("CURRENT_DATE", true, "user"), Access{Role: "user", Active: true}},
+		"expired":            {company("CURRENT_DATE - 1", true, "user"), Access{Role: "user"}},
+		"blocked":            {company("CURRENT_DATE + 30", false, "owner"), Access{Role: "owner"}},
+	} {
+		got, err := profiles.Access(ctx, "998901234567", tc.id)
+		require.NoError(t, err, name)
+		assert.Equal(t, tc.want, got, name)
+	}
+
+	paidUp := company("CURRENT_DATE + 30", true, "owner")
+	_, err = profiles.Access(ctx, "998909999999", paidUp)
+	assert.ErrorIs(t, err, ErrNotMember, "someone else's company")
+	_, err = profiles.Access(ctx, "998901234567", 999999)
+	assert.ErrorIs(t, err, ErrNotMember, "no such company")
+}
+
 func TestSubscriptionActive(t *testing.T) {
 	t.Parallel()
 	pool := pgtest.New(t)

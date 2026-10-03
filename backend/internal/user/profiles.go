@@ -61,6 +61,30 @@ func (p *Profiles) Get(ctx context.Context, phone string) (Profile, error) {
 	return Profile{Phone: u.Phone, FullName: u.FullName, Companies: companies}, nil
 }
 
+// Access is a user's standing in a company right now: the role there and
+// whether the company's subscription lets it be used (its end date has not
+// passed and it is not blocked).
+type Access struct {
+	Role   string
+	Active bool
+}
+
+// ErrNotMember: the user is not a member of the company, or no longer.
+var ErrNotMember = errors.New("not a member of the company")
+
+// Access reads a user's standing in a company afresh, so a membership taken
+// away or a role changed counts from the next request on.
+func (p *Profiles) Access(ctx context.Context, phone string, companyID int64) (Access, error) {
+	row, err := p.q.GetCompanyAccess(ctx, gen.GetCompanyAccessParams{UserPhone: phone, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Access{}, ErrNotMember
+	}
+	if err != nil {
+		return Access{}, err
+	}
+	return Access{Role: row.Role, Active: row.Active}, nil
+}
+
 // SubscriptionActive says whether a company may be used: its end date has
 // not passed and it is not blocked. A missing company may not.
 func (p *Profiles) SubscriptionActive(ctx context.Context, companyID int64) (bool, error) {
