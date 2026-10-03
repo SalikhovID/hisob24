@@ -1,8 +1,10 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, VALI, ZARINA } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { signIn } from "@/test/session"
 import { AppShell } from "./app-shell"
 
@@ -36,4 +38,16 @@ test("a session with no company yet is sent to choose one, its page not shown", 
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/select-company"))
   expect(screen.queryByText("Sahifa mazmuni")).not.toBeInTheDocument()
+})
+
+test("a session that fails to load says why and can be asked for again", async () => {
+  await signIn(ALI)
+  server.use(http.get("*/api/app/me", () => HttpResponse.error(), { once: true }))
+  const { user } = renderWithProviders(<AppShell>{page}</AppShell>)
+
+  expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
+  expect(screen.queryByText("Sahifa mazmuni")).not.toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
+
+  expect(await screen.findByText("Sahifa mazmuni")).toBeInTheDocument()
 })

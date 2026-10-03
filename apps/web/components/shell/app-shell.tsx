@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { type ReactNode, useEffect } from "react"
-import { Loading } from "@/components/states"
+import { Failed, Loading } from "@/components/states"
 import { subscriptionExpired } from "@/lib/api"
 import { useMe } from "@/lib/queries"
 import { Sidebar } from "./sidebar"
@@ -28,7 +28,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => {}} />
         <main className="h-0 flex-1 overflow-auto p-4 md:p-6">
-          {me.isPending ? <Loading rows={2} /> : me.data?.company ? children : null}
+          {me.isPending ? (
+            <Loading rows={2} />
+          ) : me.isError ? (
+            !away && <Failed error={me.error} onRetry={() => me.refetch()} />
+          ) : (
+            me.data.company && children
+          )}
         </main>
       </div>
     </div>
