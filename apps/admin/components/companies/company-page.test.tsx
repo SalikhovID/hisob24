@@ -1,9 +1,17 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import { delay, http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { db, OWNER_ID } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { CompanyPage } from "./company-page"
+
+// hang never answers: what was sent stays on its way.
+const hang = async () => {
+  await delay("infinite")
+  return new HttpResponse(null)
+}
 
 // cellsOf reads a table row by row: the row's header first, then its cells.
 function cellsOf(table: HTMLElement) {
@@ -318,4 +326,18 @@ test("the company is renamed from a dialog", async () => {
 
   expect(await screen.findByRole("heading", { name: "Olma Savdo MChJ" })).toBeInTheDocument()
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+})
+
+test("while a new name is on its way the dialog's button says so", async () => {
+  server.use(http.patch("*/api/admin/companies/:id", hang))
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Nomini o'zgartirish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Nomini o'zgartirish" })
+  await user.type(within(dialog).getByLabelText("Kompaniya nomi"), " MChJ")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  const save = within(dialog).getByRole("button", { name: "Saqlash" })
+  await waitFor(() => expect(save).toBeDisabled())
+  expect(save).toHaveAttribute("aria-busy", "true")
 })

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
+import { PendingButton } from "@/components/pending-button"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -62,9 +63,9 @@ export function RenameDialog({ company }: { company: Company }) {
           <TextField control={form.control} name="name" label="Kompaniya nomi" autoComplete="off" />
           {update.isError && <FieldError>{update.error.message}</FieldError>}
           <DialogFooter>
-            <Button type="submit" disabled={update.isPending}>
+            <PendingButton type="submit" pending={update.isPending}>
               Saqlash
-            </Button>
+            </PendingButton>
           </DialogFooter>
         </form>
       </DialogContent>
