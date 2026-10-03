@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 export function ActionTooltip({ label, children }: { label: string; children: ReactElement }) {
   return (
     <Tooltip>
-      <TooltipTrigger delay={200} render={children} />
+      <TooltipTrigger delay={400} render={children} />
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   )

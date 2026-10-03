@@ -6,11 +6,11 @@ import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
 import { Failed, Loading } from "@/components/states"
+import { RoleBadge } from "@/components/role-badge"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useEmployees, useMe } from "@/lib/queries"
-import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
 import { AddEmployeeDialog } from "./add-employee-dialog"
 import { RemoveEmployeeButton } from "./remove-employee-button"
@@ -56,7 +56,7 @@ export function EmployeesPage() {
       card: "inline",
       cell: (m) => (
         <span className="inline-flex flex-wrap items-center justify-end gap-1">
-          <Badge variant={m.role === "owner" ? "default" : "secondary"}>{roleLabels[m.role]}</Badge>
+          <RoleBadge role={m.role} />
           {m.phone === ownPhone && <Badge variant="outline">Siz</Badge>}
         </span>
       ),
