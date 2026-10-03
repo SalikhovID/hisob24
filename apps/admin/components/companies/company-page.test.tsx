@@ -4,11 +4,14 @@ import { db, OWNER_ID } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { CompanyPage } from "./company-page"
 
+// cellsOf reads a table row by row: the row's header first, then its cells.
 function cellsOf(table: HTMLElement) {
   return within(table)
     .getAllByRole("row")
     .slice(1)
-    .map((row) => within(row).getAllByRole("cell").map((cell) => cell.textContent))
+    .map((row) =>
+      [within(row).getByRole("rowheader"), ...within(row).getAllByRole("cell")].map((cell) => cell.textContent),
+    )
 }
 
 test("the company page shows the company and its users", async () => {

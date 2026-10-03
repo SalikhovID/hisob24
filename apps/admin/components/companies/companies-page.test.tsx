@@ -11,11 +11,14 @@ function rowsOf(table: HTMLElement) {
   return within(table).getAllByRole("row").slice(1)
 }
 
+// nameOf is the company a row is about: the link that heads the row.
+function nameOf(row: HTMLElement) {
+  return within(within(row).getByRole("rowheader")).getByRole("link").textContent
+}
+
 // names are the companies the table shows, in order.
 function names() {
-  return rowsOf(screen.getByRole("table", { name: "Kompaniyalar" })).map(
-    (row) => within(row).getAllByRole("cell")[0].textContent,
-  )
+  return rowsOf(screen.getByRole("table", { name: "Kompaniyalar" })).map(nameOf)
 }
 
 test("the companies page lists the companies, newest first, with how they stand", async () => {
@@ -26,11 +29,7 @@ test("the companies page lists the companies, newest first, with how they stand"
   expect(screen.getByRole("heading", { name: "Kompaniyalar" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Yangi kompaniya" })).toHaveAttribute("href", "/companies/new")
   const rows = rowsOf(await screen.findByRole("table", { name: "Kompaniyalar" }))
-  expect(rows.map((row) => within(row).getAllByRole("cell")[0].textContent)).toEqual([
-    "Olcha Servis",
-    "Nok Market",
-    "Olma Savdo",
-  ])
+  expect(rows.map(nameOf)).toEqual(["Olcha Servis", "Nok Market", "Olma Savdo"])
   expect(rows[2]).toHaveTextContent("01.11.2026")
   expect(within(rows[2]).getByText("30 kun qoldi")).toBeInTheDocument()
   expect(within(rows[0]).getByText("Muddati o'tgan")).toBeInTheDocument()

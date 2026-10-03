@@ -11,14 +11,16 @@ const columns = [
   { header: "Tugash sanasi", cell: (r: (typeof rows)[number]) => r.end },
 ]
 
-test("DataList is a table on wide screens", () => {
+test("DataList is a table on wide screens, each record's title heading its row", () => {
   render(<DataList label="Kompaniyalar" items={rows} columns={columns} getKey={(r) => r.id} />)
 
   const table = screen.getByRole("table", { name: "Kompaniyalar" })
   expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Nomi", "Tugash sanasi"])
   const [, first, second] = within(table).getAllByRole("row")
-  expect(within(first).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Olma Savdo", "01.11.2026"])
-  expect(within(second).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Nok Market", "02.10.2026"])
+  expect(within(first).getByRole("rowheader")).toHaveTextContent("Olma Savdo")
+  expect(within(first).getAllByRole("cell").map((c) => c.textContent)).toEqual(["01.11.2026"])
+  expect(within(second).getByRole("rowheader")).toHaveTextContent("Nok Market")
+  expect(within(second).getAllByRole("cell").map((c) => c.textContent)).toEqual(["02.10.2026"])
 })
 
 test("DataList is a list of cards on phones, each value with its column's name", () => {
@@ -52,5 +54,102 @@ test("DataList leaves a value that is not there out of the card, not out of the 
   expect(within(first).queryByText("Amallar")).not.toBeInTheDocument()
   expect(within(second).getByText("Amallar")).toBeInTheDocument()
   const table = screen.getByRole("table", { name: "Kompaniyalar" })
-  expect(within(within(table).getAllByRole("row")[1]).getAllByRole("cell")).toHaveLength(3)
+  const row = within(within(table).getAllByRole("row")[1])
+  expect(row.getAllByRole("rowheader")).toHaveLength(1)
+  expect(row.getAllByRole("cell")).toHaveLength(2)
+})
+
+test("DataList puts a record's actions at the top of its card, without the column's name", () => {
+  const columnsWithActions = [
+    ...columns,
+    {
+      header: "Amallar",
+      actions: true,
+      cell: (r: (typeof rows)[number]) => (r.id === 2 ? <button type="button">O&apos;chirish</button> : null),
+    },
+  ]
+
+  render(<DataList label="Kompaniyalar" items={rows} columns={columnsWithActions} getKey={(r) => r.id} />)
+
+  const [first, second] = within(screen.getByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+  expect(within(second).getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  expect(within(second).queryByText("Amallar")).not.toBeInTheDocument()
+  expect(second.querySelector('[data-slot="data-list-actions"]')).toBeInTheDocument()
+  // A record with nothing to do has no place kept for actions.
+  expect(first.querySelector('[data-slot="data-list-actions"]')).not.toBeInTheDocument()
+  // The table still names the column, for screen readers.
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  expect(within(table).getByRole("columnheader", { name: "Amallar" })).toBeInTheDocument()
+})
+
+test("DataList puts a card's inline values in one line under its title: a tag bare, a value after its name", () => {
+  const people = [
+    { id: 1, name: "Vali Aliyev", role: "Xodim", joined: "02.10.2026" },
+    { id: 2, name: "Ali Valiyev", role: "Egasi", joined: "" },
+    { id: 3, name: "Sardor Karimov", role: "", joined: "" },
+  ]
+  type Person = (typeof people)[number]
+  const inlineColumns = [
+    { header: "A'zo", cell: (p: Person) => p.name, primary: true },
+    { header: "Rol", cell: (p: Person) => p.role, card: "tag" as const },
+    { header: "Qo'shilgan", cell: (p: Person) => p.joined, card: "inline" as const },
+  ]
+  // The inline line is a list of names and values.
+  const inlineOf = (card: HTMLElement) =>
+    Array.from(card.querySelectorAll('[data-slot="data-list-meta"] > div')).map((pair) => [
+      pair.querySelector("dt")?.textContent,
+      pair.querySelector("dd")?.textContent,
+    ])
+
+  render(<DataList label="Xodimlar" items={people} columns={inlineColumns} getKey={(p) => p.id} />)
+
+  const [vali, ali, sardor] = within(screen.getByRole("list", { name: "Xodimlar" })).getAllByRole("listitem")
+  expect(inlineOf(vali)).toEqual([
+    ["Rol", "Xodim"],
+    ["Qo'shilgan", "02.10.2026"],
+  ])
+  // A tag (a badge) says what it is by itself: its column's name is for
+  // screen readers only. A bare date could be any date: its name shows.
+  const [role, joined] = Array.from(vali.querySelectorAll('[data-slot="data-list-meta"] dt'))
+  expect(role).toHaveClass("sr-only")
+  expect(joined).not.toHaveClass("sr-only")
+  // A value that is not there takes no place in the line; no values, no line.
+  expect(inlineOf(ali)).toEqual([["Rol", "Egasi"]])
+  expect(sardor.querySelector('[data-slot="data-list-meta"]')).not.toBeInTheDocument()
+  // The table keeps every column under its name.
+  const table = screen.getByRole("table", { name: "Xodimlar" })
+  expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["A'zo", "Rol", "Qo'shilgan"])
+})
+
+test("DataList shows its footer once, under the records and outside the table", () => {
+  render(
+    <DataList label="Kompaniyalar" items={rows} columns={columns} getKey={(r) => r.id} footer={<span>Jami: 2</span>} />,
+  )
+
+  expect(screen.getAllByText("Jami: 2")).toHaveLength(1)
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  expect(within(table).queryByText("Jami: 2")).not.toBeInTheDocument()
+  expect(within(table).getAllByRole("row")).toHaveLength(3)
+})
+
+test("DataList names a card's actions as a group, and every table column as a column", () => {
+  const columnsWithActions = [
+    ...columns,
+    {
+      header: "Amallar",
+      actions: true,
+      cell: (r: (typeof rows)[number]) => (r.id === 2 ? <button type="button">O&apos;chirish</button> : null),
+    },
+  ]
+
+  render(<DataList label="Kompaniyalar" items={rows} columns={columnsWithActions} getKey={(r) => r.id} />)
+
+  const [first, second] = within(screen.getByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+  const actions = within(second).getByRole("group", { name: "Amallar" })
+  expect(within(actions).getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  expect(within(first).queryByRole("group")).not.toBeInTheDocument()
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  within(table)
+    .getAllByRole("columnheader")
+    .forEach((header) => expect(header).toHaveAttribute("scope", "col"))
 })
