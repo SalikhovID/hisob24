@@ -86,6 +86,32 @@ test("the list ends with its total", async () => {
   expect(screen.getByText("Jami: 3")).toBeInTheDocument()
 })
 
+test("on a phone an admin is a card: how they stand and when they were added in one line, the action at its top", async () => {
+  addAdmins()
+  renderWithProviders(<AdminsPage />)
+  await screen.findByRole("table", { name: "Adminlar" })
+
+  const [owner, second] = within(screen.getByRole("list", { name: "Adminlar" })).getAllByRole("listitem")
+
+  expect(identityOf(second)).toEqual(["Ikkinchi", "Telegram ID 42"])
+  const line = Array.from(second.querySelectorAll('[data-slot="data-list-meta"] > div')).map((pair) => [
+    pair.querySelector("dt")?.textContent,
+    pair.querySelector("dd")?.textContent,
+  ])
+  expect(line).toEqual([
+    ["Holat", "Faol"],
+    ["Qo'shilgan", "01.10.2026"],
+  ])
+  // The badge needs no name on screen; the date keeps its own.
+  expect(within(second).getByText("Holat")).toHaveClass("sr-only")
+  expect(within(second).getByText("Qo'shilgan")).not.toHaveClass("sr-only")
+  expect(within(second).queryByText("Amallar")).not.toBeInTheDocument()
+  const actions = second.querySelector<HTMLElement>('[data-slot="data-list-actions"]')!
+  expect(within(actions).getByRole("button", { name: "O'chirish: Ikkinchi" })).toBeInTheDocument()
+  // You cannot turn yourself off: no place is kept for actions.
+  expect(owner.querySelector('[data-slot="data-list-actions"]')).not.toBeInTheDocument()
+})
+
 test("an admin is added from the dialog and joins the list", async () => {
   const { user } = renderWithProviders(<AdminsPage />)
 

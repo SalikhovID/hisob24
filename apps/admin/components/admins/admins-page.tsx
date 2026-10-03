@@ -33,11 +33,13 @@ export function AdminsPage() {
     },
     {
       header: "Holat",
+      card: "tag",
       cell: (a) => <Badge variant={a.is_active ? "secondary" : "outline"}>{a.is_active ? "Faol" : "Nofaol"}</Badge>,
     },
-    { header: "Qo'shilgan", cell: (a) => formatDate(a.created_at) },
+    { header: "Qo'shilgan", card: "inline", cell: (a) => formatDate(a.created_at) },
     {
       header: "Amallar",
+      actions: true,
       // Only another active admin can be turned off; the API refuses the rest.
       cell: (a) => me.data && a.is_active && a.telegram_id !== me.data.telegram_id && <DeleteAdminButton admin={a} />,
     },
