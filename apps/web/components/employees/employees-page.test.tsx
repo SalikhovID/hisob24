@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, membersOf, VALI } from "@/mocks/data"
+import { identityOf } from "@/test/identity"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -15,9 +16,8 @@ async function rows() {
   return within(table).getAllByRole("row").slice(1)
 }
 
-// The phone is the member's title, heading its row; the name is the cell after.
-const phoneAndName = (row: HTMLElement) =>
-  [within(row).getByRole("rowheader"), within(row).getAllByRole("cell")[0]].map((cell) => cell.textContent)
+// A member is one identity, heading its row: the name over the phone.
+const nameAndPhone = (row: HTMLElement) => identityOf(within(row).getByRole("rowheader"))
 
 test("the owner sees the company's members: themselves first, then the employees", async () => {
   await signIn(ALI)
@@ -26,11 +26,14 @@ test("the owner sees the company's members: themselves first, then the employees
   expect(await screen.findByRole("heading", { name: "Xodimlar" })).toBeInTheDocument()
   expect(screen.getByLabelText("Yuklanmoqda")).toBeInTheDocument()
   const members = await rows()
-  expect(members.map(phoneAndName)).toEqual([
-    ["+998 90 123 45 67", "Ali Valiyev"],
-    ["+998 90 222 33 44", "Vali Aliyev"],
-    ["+998 90 333 44 55", "Sardor Karimov"],
+  expect(members.map(nameAndPhone)).toEqual([
+    ["Ali Valiyev", "+998 90 123 45 67"],
+    ["Vali Aliyev", "+998 90 222 33 44"],
+    ["Sardor Karimov", "+998 90 333 44 55"],
   ])
+  const headers = within(screen.getByRole("table", { name: "Xodimlar" })).getAllByRole("columnheader")
+  expect(headers[0]).toHaveTextContent("A'zo")
+  expect(headers.map((header) => header.textContent)).not.toContain("Telefon")
   expect(within(members[0]).getByText("Egasi")).toBeInTheDocument()
   expect(within(members[0]).getByText("Siz")).toBeInTheDocument()
   expect(within(members[1]).getByText("Xodim")).toBeInTheDocument()
@@ -96,7 +99,7 @@ test("an employee is added from the dialog and joins the list", async () => {
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(await screen.findByText("Xodim qo'shildi")).toBeInTheDocument()
   await waitFor(async () =>
-    expect((await rows()).map(phoneAndName)).toContainEqual(["+998 90 777 88 99", "Yangi Xodim"]),
+    expect((await rows()).map(nameAndPhone)).toContainEqual(["Yangi Xodim", "+998 90 777 88 99"]),
   )
   expect(within((await rows())[3]).getByText("Xodim")).toBeInTheDocument()
 })
@@ -161,7 +164,7 @@ test("an employee is renamed from the dialog; the owner is not to be renamed her
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(await screen.findByText("Ism o'zgartirildi")).toBeInTheDocument()
   await waitFor(async () =>
-    expect((await rows()).map(phoneAndName)).toContainEqual(["+998 90 222 33 44", "Vali (hisobchi)"]),
+    expect((await rows()).map(nameAndPhone)).toContainEqual(["Vali (hisobchi)", "+998 90 222 33 44"]),
   )
 })
 
@@ -184,9 +187,9 @@ test("an employee is removed after asking; cancelling keeps them; the owner is n
 
   expect(await screen.findByText("Xodim o'chirildi")).toBeInTheDocument()
   await waitFor(async () =>
-    expect((await rows()).map(phoneAndName)).toEqual([
-      ["+998 90 123 45 67", "Ali Valiyev"],
-      ["+998 90 333 44 55", "Sardor Karimov"],
+    expect((await rows()).map(nameAndPhone)).toEqual([
+      ["Ali Valiyev", "+998 90 123 45 67"],
+      ["Sardor Karimov", "+998 90 333 44 55"],
     ]),
   )
 })

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { type Column, DataList } from "@/components/data-list"
+import { Identity } from "@/components/identity"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { formatPhone } from "@/lib/phone"
@@ -35,8 +36,13 @@ export function EmployeesPage() {
   const companyName = company.name
 
   const columns: Column<Member>[] = [
-    { header: "Telefon", cell: (m) => formatPhone(m.phone), primary: true },
-    { header: "Ism", cell: (m) => m.full_name ?? "—" },
+    {
+      header: "A'zo",
+      primary: true,
+      cell: (m) => (
+        <Identity title={m.full_name ?? "—"} subtitle={formatPhone(m.phone)} name={m.full_name} seed={m.phone} />
+      ),
+    },
     {
       header: "Rol",
       cell: (m) => (
