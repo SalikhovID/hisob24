@@ -30,3 +30,22 @@ func TestMembers(t *testing.T) {
 	assert.False(t, members[1].CreatedAt.IsZero())
 	assert.Equal(t, "998903334455", members[2].Phone)
 }
+
+func TestAddEmployee(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	m, err := s.AddEmployee(ctx, c.ID, "90 222 33 44", " Vali ")
+
+	require.NoError(t, err)
+	assert.Equal(t, "998902223344", m.Phone)
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Vali", *m.FullName)
+	assert.Equal(t, "user", m.Role, "whoever the owner adds is a user")
+	assert.False(t, m.CreatedAt.IsZero())
+	assert.Equal(t, map[string]string{"998900000001": "owner", "998902223344": "user"}, rolesOf(t, pool, c.ID))
+	var userName string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT full_name FROM users WHERE phone = '998902223344'").Scan(&userName))
+	assert.Equal(t, "Vali", userName, "a phone that was no user becomes one")
+}
