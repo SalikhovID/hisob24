@@ -1,15 +1,31 @@
 import { InboxIcon, type LucideIcon, RotateCwIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
-// Loading holds a list's place while it loads.
+// Placeholder is what stands in while something loads: a status named
+// "Yuklanmoqda", which it also says in words for a screen reader passing by.
+// The bars are for the eyes only. It is not marked busy: a busy status is
+// not announced.
+function Placeholder({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <div role="status" aria-label="Yuklanmoqda">
+      <span className="sr-only">Yuklanmoqda</span>
+      <div aria-hidden="true" className={className}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Loading holds the place of a page or a part of it while it loads.
 export function Loading({ rows = 3 }: { rows?: number }) {
   return (
-    <div aria-label="Yuklanmoqda" aria-busy="true" className="grid gap-3">
+    <Placeholder className="grid gap-3">
       {Array.from({ length: rows }, (_, i) => (
         <Skeleton key={i} className="h-16 w-full rounded-xl" />
       ))}
-    </div>
+    </Placeholder>
   )
 }
 
@@ -19,11 +35,7 @@ export function Loading({ rows = 3 }: { rows?: number }) {
 // the table on screen is the sign that the list has come.
 export function ListLoading({ rows = 3 }: { rows?: number }) {
   return (
-    <div
-      aria-label="Yuklanmoqda"
-      aria-busy="true"
-      className="grid gap-3 md:gap-0 md:divide-y md:rounded-xl md:border md:bg-card"
-    >
+    <Placeholder className="grid gap-3 md:gap-0 md:divide-y md:rounded-xl md:border md:bg-card">
       {Array.from({ length: rows }, (_, i) => (
         <div
           key={i}
@@ -38,7 +50,7 @@ export function ListLoading({ rows = 3 }: { rows?: number }) {
           <Skeleton className="hidden h-5 w-16 rounded-full md:block" />
         </div>
       ))}
-    </div>
+    </Placeholder>
   )
 }
 
