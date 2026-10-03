@@ -396,6 +396,20 @@ func TestAnExpiredOrBlockedCompanyAnswers402(t *testing.T) {
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/me", "", bearer(access)).Code, "paid up again")
 }
 
+func TestAMemberTakenOutOfTheCompanyIsTurnedAwayAtOnce(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "user"})
+	require.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/me", "", bearer(access)).Code)
+
+	api.exec(t, "DELETE FROM user_companies WHERE company_id = $1", olma)
+	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+
+	assert.Equal(t, http.StatusUnauthorized, rec.Code, "the access token has minutes left, the membership none")
+	assert.JSONEq(t, `{"error":"unauthorized","message":"Avval tizimga kiring"}`, rec.Body.String(),
+		"the app refreshes the session, which drops the company or ends")
+}
+
 func TestATokenBeforeAChoiceOfCompanyIsNotChecked(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", -5)

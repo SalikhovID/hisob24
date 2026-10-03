@@ -84,13 +84,3 @@ func (p *Profiles) Access(ctx context.Context, phone string, companyID int64) (A
 	}
 	return Access{Role: row.Role, Active: row.Active}, nil
 }
-
-// SubscriptionActive says whether a company may be used: its end date has
-// not passed and it is not blocked. A missing company may not.
-func (p *Profiles) SubscriptionActive(ctx context.Context, companyID int64) (bool, error) {
-	active, err := p.q.IsCompanySubscriptionActive(ctx, companyID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return false, nil
-	}
-	return active, err
-}

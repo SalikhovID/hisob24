@@ -70,8 +70,6 @@ type Querier interface {
 	HasCompany(ctx context.Context, userPhone string) (bool, error)
 	// Counts a wrong code; the caller deletes the code after the fifth.
 	IncrementSMSCodeAttempts(ctx context.Context, phone string) (int32, error)
-	// The user middleware's check: false means 402 subscription_expired.
-	IsCompanySubscriptionActive(ctx context.Context, id int64) (bool, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
 	ListBillings(ctx context.Context, companyID int64) ([]Billing, error)
 	// status: "active" = end_date not passed and not blocked, "expired" = past

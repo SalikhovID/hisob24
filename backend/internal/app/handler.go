@@ -44,7 +44,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Post("/auth/logout", h.logout)
 		r.With(h.requireUser).Post("/auth/switch-company", h.switchCompany)
 		r.Group(func(r chi.Router) {
-			r.Use(h.requireUser, h.requireSubscription)
+			r.Use(h.requireUser, h.requireAccess)
 			r.Get("/me", h.me)
 		})
 	})

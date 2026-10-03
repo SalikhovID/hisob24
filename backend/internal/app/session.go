@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
+	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
 // refreshCookie carries the refresh token; the access token travels in the
@@ -125,22 +127,31 @@ func unauthorized(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusUnauthorized, "unauthorized", "Avval tizimga kiring")
 }
 
-// requireSubscription answers 402 when the access token's company has
-// expired or been blocked. A token before the choice of a company passes,
-// and /app/auth/* is outside it, so the user can switch to another company.
-func (h *Handler) requireSubscription(next http.Handler) http.Handler {
+// requireAccess checks the access token's company against the database on
+// every request, so a change counts at once, not when the token expires:
+//   - the user is no longer its member: 401 unauthorized, and the app
+//     refreshes the session, which drops the company or ends;
+//   - the company has expired or been blocked: 402.
+//
+// A token before the choice of a company passes, and /app/auth/* is outside
+// it, so the user can switch to another company.
+func (h *Handler) requireAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if companyID := currentUser(r.Context()).CompanyID; companyID != nil {
-			active, err := h.profiles.SubscriptionActive(r.Context(), *companyID)
-			if err != nil {
-				httpx.InternalError(w, r, err)
-				return
-			}
-			if !active {
-				httpx.Error(w, http.StatusPaymentRequired, "subscription_expired", "Kompaniya obunasi tugagan")
-				return
-			}
+		claims := currentUser(r.Context())
+		if claims.CompanyID == nil {
+			next.ServeHTTP(w, r)
+			return
 		}
-		next.ServeHTTP(w, r)
+		access, err := h.profiles.Access(r.Context(), claims.Phone, *claims.CompanyID)
+		switch {
+		case errors.Is(err, user.ErrNotMember):
+			unauthorized(w)
+		case err != nil:
+			httpx.InternalError(w, r, err)
+		case !access.Active:
+			httpx.Error(w, http.StatusPaymentRequired, "subscription_expired", "Kompaniya obunasi tugagan")
+		default:
+			next.ServeHTTP(w, r)
+		}
 	})
 }
