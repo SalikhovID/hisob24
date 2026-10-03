@@ -31,3 +31,14 @@ test("PageHeader leads back when there is a way back", () => {
   rerender(<PageHeader title="Olma Savdo" />)
   expect(screen.queryByRole("link")).not.toBeInTheDocument()
 })
+
+test("PageHeader shows a mark beside the name, outside the heading", () => {
+  render(<PageHeader title="Olma Savdo" avatar={<span aria-hidden="true">OS</span>} />)
+
+  const heading = screen.getByRole("heading", { level: 1, name: "Olma Savdo" })
+  const mark = screen.getByText("OS")
+  // The heading stays the name alone: whatever reads it reads no initials.
+  expect(heading).toHaveTextContent(/^Olma Savdo$/)
+  expect(heading).not.toContainElement(mark)
+  expect(heading.parentElement).toContainElement(mark)
+})
