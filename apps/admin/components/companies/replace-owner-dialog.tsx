@@ -7,6 +7,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
+import { PendingButton } from "@/components/pending-button"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import {
@@ -80,9 +81,9 @@ export function ReplaceOwnerDialog({ companyId }: { companyId: number }) {
           </FieldGroup>
           {replace.isError && <FieldError>{replace.error.message}</FieldError>}
           <DialogFooter>
-            <Button type="submit" disabled={replace.isPending}>
+            <PendingButton type="submit" pending={replace.isPending}>
               Almashtirish
-            </Button>
+            </PendingButton>
           </DialogFooter>
         </form>
       </DialogContent>

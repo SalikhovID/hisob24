@@ -366,3 +366,18 @@ test("while the activation is on its way its button says so", async () => {
   await waitFor(() => expect(activate).toBeDisabled())
   expect(activate).toHaveAttribute("aria-busy", "true")
 })
+
+test("while the new owner is on its way the dialog's button says so", async () => {
+  server.use(http.put("*/api/admin/companies/:id/owner", hang))
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Egasini almashtirish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Egasini almashtirish" })
+  await user.type(within(dialog).getByLabelText("Telefon"), "90 777 88 99")
+  await user.type(within(dialog).getByLabelText("Ism"), "Yangi Egasi")
+  await user.click(within(dialog).getByRole("button", { name: "Almashtirish" }))
+
+  const replace = within(dialog).getByRole("button", { name: "Almashtirish" })
+  await waitFor(() => expect(replace).toBeDisabled())
+  expect(replace).toHaveAttribute("aria-busy", "true")
+})
