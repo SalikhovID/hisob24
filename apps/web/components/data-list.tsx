@@ -19,8 +19,10 @@ export interface Column<T> {
   // bare date could be any date); a tag (a badge) says what it is by itself,
   // so its name is kept for screen readers only. "aside" is the figure the
   // record is read for (an amount): it stands at the card's top, across from
-  // the title, its name for screen readers only.
-  card?: "row" | "inline" | "tag" | "aside"
+  // the title, its name for screen readers only. "note" is free text: it
+  // takes a line of its own after everything else and wraps, its name for
+  // screen readers only.
+  card?: "row" | "inline" | "tag" | "aside" | "note"
   // align puts a column of figures (day counts, amounts) at the end of its
   // cells, so the digits line up.
   align?: "end"
@@ -39,7 +41,7 @@ const filled = (value: ReactNode) => (present(value) ? value : <span className="
 // DataList shows records as a table on wide screens and as cards on phones:
 // the title, an aside figure and the actions at the top, the tags and inline
 // values in a line under the title, every other value labeled with its
-// column's name. A value that is not
+// column's name, a note last. A value that is not
 // there is a dash in the table and takes no place in the card. The footer
 // (a total, the pager) closes the list once, whichever of the two is on
 // screen.
@@ -139,6 +141,7 @@ export function DataList<T>({
           // A badge leads the line: it is what the eye looks for first.
           const inline = [...shown("tag"), ...shown("inline")]
           const labeled = shown("row")
+          const notes = shown("note")
           return (
             // The card is a grid so that what it shows at its top right (the
             // actions) can come last in the source: a screen reader meets the
@@ -183,6 +186,19 @@ export function DataList<T>({
                     <div key={column.header} className="flex items-baseline justify-between gap-3">
                       <dt className="text-[0.8125rem] text-muted-foreground">{column.header}</dt>
                       <dd className="min-w-0 text-right break-words">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {notes.length > 0 && (
+                <dl
+                  data-slot="data-list-note"
+                  className="col-span-3 row-start-4 mt-1.5 grid gap-1 text-[0.8125rem] leading-5 text-muted-foreground"
+                >
+                  {notes.map(({ column, value }) => (
+                    <div key={column.header}>
+                      <dt className="sr-only">{column.header}</dt>
+                      <dd className="[overflow-wrap:anywhere]">{value}</dd>
                     </div>
                   ))}
                 </dl>

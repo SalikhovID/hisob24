@@ -261,3 +261,34 @@ test("DataList puts a card's aside value at its top, beside the title, its name 
   expect(free.querySelector('[data-slot="data-list-aside"]')).not.toBeInTheDocument()
   expect(within(free).queryByText("Summa")).not.toBeInTheDocument()
 })
+
+test("DataList gives a card's note a line of its own, last of the values, its name kept for screen readers", () => {
+  const payments = [
+    { id: 1, date: "02.10.2026", days: "+30 kun", note: "Naqd, yillik to'lovning birinchi qismi" },
+    { id: 2, date: "02.09.2026", days: "+7 kun", note: null },
+  ]
+  type Payment = (typeof payments)[number]
+  const paymentColumns = [
+    { header: "Sana", cell: (p: Payment) => p.date, primary: true },
+    { header: "Izoh", cell: (p: Payment) => p.note, card: "note" as const },
+    { header: "Kunlar", cell: (p: Payment) => p.days, card: "tag" as const },
+  ]
+
+  render(<DataList label="Billing tarixi" items={payments} columns={paymentColumns} getKey={(p) => p.id} />)
+
+  const [noted, bare] = within(screen.getByRole("list", { name: "Billing tarixi" })).getAllByRole("listitem")
+  const name = within(noted).getByText("Izoh")
+  expect(name).toHaveClass("sr-only")
+  const note = noted.querySelector('[data-slot="data-list-note"]')
+  expect(note).toContainElement(name)
+  expect(note).toHaveTextContent("Naqd, yillik to'lovning birinchi qismi")
+  // Free text closes the card, under the line of tags.
+  expect(Array.from(noted.children).map((part) => part.getAttribute("data-slot"))).toEqual([
+    "data-list-title",
+    "data-list-meta",
+    "data-list-note",
+  ])
+  // No note, no line.
+  expect(bare.querySelector('[data-slot="data-list-note"]')).not.toBeInTheDocument()
+  expect(within(bare).queryByText("Izoh")).not.toBeInTheDocument()
+})
