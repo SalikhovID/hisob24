@@ -38,11 +38,11 @@ var ErrInvalidRefresh = errors.New("invalid refresh token")
 // bot, so there is no telling who it is.
 var ErrPhoneNotShared = errors.New("phone not shared with the user bot")
 
-// NoAccessError: the phone the Telegram account shared is not a user's; it
-// is named, so the person can tell their administrator.
+// NoAccessError: the phone the Telegram account shared is in no company; it
+// is named, so the person can tell whoever is to add them.
 type NoAccessError struct{ Phone string }
 
-func (e NoAccessError) Error() string { return "phone " + e.Phone + " is not a user's" }
+func (e NoAccessError) Error() string { return "phone " + e.Phone + " is in no company" }
 
 // ErrNotMember refuses a company the user is not a member of.
 var ErrNotMember = errors.New("not a member of the company")
@@ -242,7 +242,8 @@ func (a *UserAuth) issue(ctx context.Context, q *gen.Queries, phone string, comp
 }
 
 // LoginWithTelegram signs in the user who opened the Mini App: the user bot
-// signed initData, and the Telegram account shared a phone that is a user's.
+// signed initData, and the Telegram account shared the phone of a member of
+// a company.
 func (a *UserAuth) LoginWithTelegram(ctx context.Context, initData string) (Tokens, error) {
 	tgUser, err := ValidateInitData(initData, a.userBotToken, initDataMaxAge, a.now())
 	if err != nil {
@@ -258,11 +259,11 @@ func (a *UserAuth) LoginWithTelegram(ctx context.Context, initData string) (Toke
 		if err != nil {
 			return err
 		}
-		known, err := q.UserExists(ctx, phone)
+		member, err := q.HasCompany(ctx, phone)
 		if err != nil {
 			return err
 		}
-		if !known {
+		if !member {
 			return NoAccessError{Phone: phone}
 		}
 		companies, err := q.ListUserCompanies(ctx, phone)

@@ -469,6 +469,18 @@ func TestLoginWithTelegramForAPhoneThatIsNoUsers(t *testing.T) {
 	assert.Equal(t, "998905556677", noAccess.Phone)
 }
 
+func TestLoginWithTelegramForAUserOfNoCompany(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	linkContact(t, pool, 1001, "998901234567")
+
+	_, err := a.LoginWithTelegram(t.Context(), telegramtest.SignInitData(testUserBotToken, 1001, time.Now()))
+
+	var noAccess NoAccessError
+	require.ErrorAs(t, err, &noAccess, "taken out of every company: no way in, as for a phone that is no user's")
+	assert.Equal(t, "998901234567", noAccess.Phone)
+}
+
 func TestLoginWithTelegramTrustsOnlyTheUserBotsFreshSignature(t *testing.T) {
 	a, pool, _ := newUserAuth(t)
 	addUser(t, pool, "998901234567")

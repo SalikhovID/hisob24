@@ -75,7 +75,7 @@ func TestTelegramSignInRefusals(t *testing.T) {
 
 func TestRefreshKeepsTheMiniAppsCookieVariant(t *testing.T) {
 	api := newTestAPI(t)
-	api.addUser(t, alisPhone)
+	api.addOwner(t, alisPhone)
 	api.linkContact(t, 1001, alisPhone)
 	signedIn := api.do(t, http.MethodPost, "/app/auth/telegram", telegramBody(1001))
 	require.Equal(t, http.StatusOK, signedIn.Code)
@@ -131,7 +131,7 @@ func TestLogoutAndAnEndedSessionDropBothCookieVariants(t *testing.T) {
 // gets the one Lax cookie there.
 func TestOverHTTPTheMiniAppGetsOneLaxCookie(t *testing.T) {
 	api := newTestAPIWith(t, false)
-	api.addUser(t, alisPhone)
+	api.addOwner(t, alisPhone)
 	api.linkContact(t, 1001, alisPhone)
 
 	rec := api.do(t, http.MethodPost, "/app/auth/telegram", telegramBody(1001))
