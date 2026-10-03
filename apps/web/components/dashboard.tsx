@@ -17,7 +17,7 @@ export function Dashboard() {
   if (!me.data || !company) return null
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-4">
+    <div className="w-full max-w-2xl space-y-4">
       <h1 className="text-xl font-semibold">Salom, {me.data.user.full_name ?? formatPhone(me.data.user.phone)}</h1>
       <div className="flex items-center justify-between gap-3 rounded-xl border bg-card p-4">
         <div className="grid min-w-0 gap-0.5">

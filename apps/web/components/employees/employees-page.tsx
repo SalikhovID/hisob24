@@ -52,13 +52,13 @@ export function EmployeesPage() {
         />
       ),
     },
-    { header: "Rol", card: "tag", className: "w-28", cell: (m) => <RoleBadge role={m.role} /> },
+    { header: "Rol", card: "tag", cell: (m) => <RoleBadge role={m.role} /> },
     {
       header: "Qo'shilgan",
       card: "inline",
       // Beside the open sidebar a narrow table has no room for it: the date
       // is context, and the card on a phone still shows it.
-      className: "w-32 text-muted-foreground max-lg:hidden",
+      className: "text-muted-foreground max-lg:hidden",
       cell: (m) => formatDate(m.created_at),
     },
     {
@@ -76,7 +76,7 @@ export function EmployeesPage() {
   ]
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Xodimlar"
         description={
