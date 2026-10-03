@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
+import { PendingButton } from "@/components/pending-button"
 import { TextField } from "@/components/text-field"
-import { Button } from "@/components/ui/button"
 import { FieldError, FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { keys } from "@/lib/queries"
@@ -49,9 +49,9 @@ export function NewCompanyForm() {
         <TextField control={form.control} name="owner_full_name" label="Egasining ismi" autoComplete="off" />
       </FieldGroup>
       {create.isError && <FieldError>{create.error.message}</FieldError>}
-      <Button type="submit" disabled={create.isPending}>
+      <PendingButton type="submit" pending={create.isPending}>
         Yaratish
-      </Button>
+      </PendingButton>
     </form>
   )
 }

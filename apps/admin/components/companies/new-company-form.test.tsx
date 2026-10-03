@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react"
-import { http, HttpResponse } from "msw"
+import { delay, http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { company } from "@/mocks/data"
 import { router } from "@/test/navigation"
@@ -64,4 +64,24 @@ test("when the API refuses, the form shows its message and stays", async () => {
 
   expect(await screen.findByText("Tugash sanasi YYYY-MM-DD ko'rinishida bo'lishi kerak")).toBeInTheDocument()
   expect(router.push).not.toHaveBeenCalled()
+})
+
+test("while the company is on its way the form's button says so", async () => {
+  server.use(
+    http.post("*/api/admin/companies", async () => {
+      await delay("infinite")
+      return new HttpResponse(null)
+    }),
+  )
+  const { user } = renderWithProviders(<NewCompanyForm />)
+
+  await user.type(screen.getByLabelText("Kompaniya nomi"), "Behi Savdo")
+  fireEvent.change(screen.getByLabelText("Tugash sanasi"), { target: { value: "2026-12-31" } })
+  await user.type(screen.getByLabelText("Egasining telefoni"), "901234567")
+  await user.type(screen.getByLabelText("Egasining ismi"), "Ali")
+  await user.click(screen.getByRole("button", { name: "Yaratish" }))
+
+  const create = screen.getByRole("button", { name: "Yaratish" })
+  await waitFor(() => expect(create).toBeDisabled())
+  expect(create).toHaveAttribute("aria-busy", "true")
 })
