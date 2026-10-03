@@ -5,6 +5,7 @@ import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { ActionTooltip } from "@/components/action-tooltip"
+import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -53,9 +54,9 @@ export function DeleteAdminButton({ admin }: { admin: AdminAccount }) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
-          <Button variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate()}>
+          <PendingButton variant="destructive" pending={remove.isPending} onClick={() => remove.mutate()}>
             O&apos;chirish
-          </Button>
+          </PendingButton>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

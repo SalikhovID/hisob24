@@ -206,3 +206,18 @@ test("while a new admin is on its way the dialog's button says so", async () => 
   await waitFor(() => expect(add).toBeDisabled())
   expect(add).toHaveAttribute("aria-busy", "true")
 })
+
+test("while the turning off is on its way the confirmation's button says so", async () => {
+  server.use(http.delete("*/api/admin/admins/:telegramId", hang))
+  addAdmins()
+  const { user } = renderWithProviders(<AdminsPage />)
+
+  const [, second] = rowsOf(await screen.findByRole("table", { name: "Adminlar" }))
+  await user.click(within(second).getByRole("button", { name: "O'chirish: Ikkinchi" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Adminni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  const remove = within(confirm).getByRole("button", { name: "O'chirish" })
+  await waitFor(() => expect(remove).toBeDisabled())
+  expect(remove).toHaveAttribute("aria-busy", "true")
+})
