@@ -1,6 +1,6 @@
 # Xodimlar, rollar (owner / user) va user app sidebar — dizayn
 
-Sana: 2026-10-03. Holat: foydalanuvchi tasdiqlagan. Amalga oshirish rejasi `docs/superpowers/plans/2026-10-03-employees-roles-sidebar.md` ga yoziladi (shu hujjat va `logic/` ko'rib chiqilgach).
+Sana: 2026-10-03. Holat: foydalanuvchi tasdiqlagan (shu hujjat va `logic/` ko'rib chiqilgan). Har bosqichga alohida reja yoziladi: `docs/superpowers/plans/2026-10-03-employees-stage<N>-*.md` (1-bosqich: `2026-10-03-employees-stage1-roles-owner.md`).
 
 ## Maqsad
 
