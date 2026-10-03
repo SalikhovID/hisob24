@@ -31,12 +31,8 @@ func TestInitSeedsTheOwnerAdmin(t *testing.T) {
 func TestInitDownRemovesTheSchema(t *testing.T) {
 	pool := pgtest.New(t)
 	ctx := t.Context()
-	db := stdlib.OpenDBFromPool(pool)
-	t.Cleanup(func() { _ = db.Close() })
-	provider, err := goose.NewProvider(goose.DialectPostgres, db, migrations.FS)
-	require.NoError(t, err)
 
-	_, err = provider.DownTo(ctx, 0)
+	_, err := newProvider(t, pool).DownTo(ctx, 0)
 	require.NoError(t, err)
 
 	rows, err := pool.Query(ctx, "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> 'goose_db_version'")
@@ -94,4 +90,61 @@ func TestACompanyHasOneOwner(t *testing.T) {
 	assert.Equal(t, "23505", sqlState(err), "a second owner of the company") // unique_violation
 	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998902222222', $1, 'owner')", nok)
 	assert.NoError(t, err, "the owner of another company")
+}
+
+// newProvider moves the test's database between migration versions.
+func newProvider(t *testing.T, pool *pgxpool.Pool) *goose.Provider {
+	t.Helper()
+	db := stdlib.OpenDBFromPool(pool)
+	t.Cleanup(func() { _ = db.Close() })
+	provider, err := goose.NewProvider(goose.DialectPostgres, db, migrations.FS)
+	require.NoError(t, err)
+	return provider
+}
+
+// rolesOf is each member's role in the company, by phone.
+func rolesOf(t *testing.T, pool *pgxpool.Pool, companyID int64) map[string]string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), "SELECT user_phone, role FROM user_companies WHERE company_id = $1", companyID)
+	require.NoError(t, err)
+	roles := map[string]string{}
+	var phone, role string
+	_, err = pgx.ForEachRow(rows, []any{&phone, &role}, func() error {
+		roles[phone] = role
+		return nil
+	})
+	require.NoError(t, err)
+	return roles
+}
+
+func TestTheRolesMigrationKeepsEachCompanysFirstOwner(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 3)
+	require.NoError(t, err)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err = pool.Exec(ctx, `INSERT INTO users (phone) VALUES
+		('998901111111'), ('998902222222'), ('998903333333'), ('998904444444')`)
+	require.NoError(t, err)
+	// The manager joined before either owner: it is the first owner that
+	// stays, not the first member.
+	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role, created_at) VALUES
+		('998902222222', $1, 'owner', now()),
+		('998901111111', $1, 'owner', now() - interval '1 day'),
+		('998903333333', $1, 'manager', now() - interval '2 days'),
+		('998904444444', $1, 'staff', now()),
+		('998904444444', $2, 'staff', now())`, olma, nok)
+	require.NoError(t, err)
+
+	_, err = provider.UpTo(ctx, 4)
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]string{
+		"998901111111": "owner",
+		"998902222222": "user",
+		"998903333333": "user",
+		"998904444444": "user",
+	}, rolesOf(t, pool, olma), "the first owner stays, everyone else is a user")
+	assert.Equal(t, map[string]string{"998904444444": "user"}, rolesOf(t, pool, nok), "no owner is made up")
 }
