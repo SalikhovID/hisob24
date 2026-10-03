@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
+import { PageHeader } from "@/components/page-header"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/format"
@@ -75,10 +76,13 @@ export function EmployeesPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Xodimlar</h1>
-        <AddEmployeeDialog companyId={companyId} />
-      </div>
+      <PageHeader
+        title="Xodimlar"
+        description={
+          employees.data ? `Kompaniyangiz a'zolari · ${employees.data.length} kishi` : "Kompaniyangiz a'zolari"
+        }
+        actions={<AddEmployeeDialog companyId={companyId} />}
+      />
       {employees.isPending && <Loading />}
       {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}
       {employees.data && (

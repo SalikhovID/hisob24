@@ -60,6 +60,15 @@ test("the list says when each member joined", async () => {
   members.forEach((member) => expect(within(member).getByText("02.10.2026")).toBeInTheDocument())
 })
 
+test("the page says how many members the company has", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+
+  await rows()
+
+  expect(screen.getByText("Kompaniyangiz a'zolari · 3 kishi")).toBeInTheDocument()
+})
+
 test("an employee is sent home: the page is the owner's", async () => {
   await signIn(VALI)
   await chooseCompany(1)
