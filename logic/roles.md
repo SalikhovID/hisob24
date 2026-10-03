@@ -2,7 +2,7 @@
 
 Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md).
 
-> Holat: qoidalar 2026-10-03 da kelishilgan, kod shu hujjatga qarab yoziladi. Dizayn va bosqichlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
+> Holat: amalga oshirilgan (2026-10-03). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
 
 ## 1. Rollar
 
@@ -84,7 +84,8 @@ Admin kompaniya sahifasida **Egasini almashtirish** ni bosadi va telefon bilan i
 
 - Sidebar'dagi **Xodimlar** bo'limi faqat owner'ga ko'rinadi.
 - `user` `/employees` manzilini qo'lda ochsa, bosh sahifaga qaytariladi. API baribir 403 qaytaradi.
-- Xodimlar ro'yxatida owner birinchi turadi va "Egasi" belgisi bilan ko'rinadi. Tahrirlash va o'chirish tugmalari faqat xodimlarda bor.
+- Xodimlar ro'yxatida owner birinchi turadi va "Egasi" belgisi bilan ko'rinadi (o'z qatorida "Siz"). Tahrirlash va o'chirish tugmalari faqat xodimlarda bor.
+- Sessiyasi ochiq owner almashtirilsa, uning keyingi owner amali 403 `owner_only` oladi. User app shunda `/app/me` ni qayta so'raydi: "Xodimlar" bo'limi yo'qoladi va u bosh sahifaga qaytariladi.
 - Admin panelda kompaniya a'zolari "Egasi" yoki "Xodim" roli bilan ko'rinadi.
 
 ## 8. Eski ma'lumotdan o'tish (migratsiya 00004)

@@ -6,7 +6,7 @@ Multi-tenant SaaS. Platforma adminlari company yaratadi, obunasini uzaytiradi va
 |---|---|---|
 | Go API (`backend/`) | http://localhost:8080 | HTTP API va ikkala Telegram bot, bitta jarayonda |
 | Admin panel (`apps/admin`) | http://localhost:3001 | Company'lar, billing va adminlar. Admin botda Mini App sifatida ham ochiladi |
-| User app (`apps/web`) | http://localhost:3000 | SMS kod bilan kirish, company tanlash |
+| User app (`apps/web`) | http://localhost:3000 | SMS kod bilan kirish, company tanlash, xodimlar (company egasi uchun) |
 | Admin bot | Telegram | `/login` → panelga kirish kodi |
 | User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi; menu tugmasi user app'ni Mini App sifatida ochadi (login'siz) |
 
@@ -15,6 +15,8 @@ So'rov yo'li: brauzer yoki Telegram WebView → Next.js (`/api/*` rewrite, bitta
 Hujjatlar:
 - [`docs/SPEC.md`](docs/SPEC.md): spetsifikatsiya;
 - [`docs/superpowers/specs/2026-10-02-hisob24-design.md`](docs/superpowers/specs/2026-10-02-hisob24-design.md): kelishilgan qarorlar va spec'dan tasdiqlangan chetlanishlar;
+- [`logic/user.md`](logic/user.md), [`logic/roles.md`](logic/roles.md): userlar, multi-user, xodimlar va rollar qoidalari;
+- [`docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`](docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md): xodimlar, rollar va user app sidebar dizayni;
 - [`CLAUDE.md`](CLAUDE.md): ish qoidalari (TDD, git);
 - [`backend/openapi.yaml`](backend/openapi.yaml): API kontrakti.
 
@@ -74,6 +76,8 @@ make otp ID=123456789 # boshqa admin uchun
 
 Bir nechta company'da bo'lsangiz, avval company tanlanadi. Muddati o'tgan yoki bloklangan company'ga kirganda `/expired` sahifasi ochiladi.
 
+4. Chap menyudagi **Xodimlar** bo'limida xodim qo'shing (telefon va ism). Xodim o'z raqami bilan xuddi shunday kiradi; unda bu bo'lim bo'lmaydi.
+
 ### Docker Compose (ixtiyoriy)
 
 `docker-compose.yml` PostgreSQL 16 ni ko'taradi (user, parol va DB: `hisob24`, port 5432).
@@ -100,6 +104,20 @@ set -a; . ./.env; set +a; export COOKIE_SECURE=false
 pnpm --filter @hisob24/admin dev &
 pnpm --filter @hisob24/web dev
 ```
+
+## Rollar va xodimlar
+
+| Rol | Interfeysda | Qayerdan qo'shiladi | User app'da |
+|---|---|---|---|
+| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | **Xodimlar** bo'limi: xodim qo'shadi, ismini o'zgartiradi, o'chiradi |
+| `user` | Xodim | user app: egasi **Xodimlar → Xodim qo'shish** orqali | "Xodimlar" bo'limi ko'rinmaydi, `/employees` bosh sahifaga qaytaradi |
+
+- Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi xodim bo'lib qoladi.
+- Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
+- Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga SMS kod ham ketmaydi.
+- Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.
+
+To'liq qoidalar va chekka holatlar: [`logic/user.md`](logic/user.md) (userlar, multi-user, ism, kirish huquqi) va [`logic/roles.md`](logic/roles.md) (rollar va ruxsatlar).
 
 ## Buyruqlar
 
@@ -285,6 +303,7 @@ backend/
 apps/admin/          admin panel (Next.js, shadcn), Telegram Mini App
 apps/web/            user app (Next.js, shadcn)
 packages/api-client/ openapi.yaml'dan generatsiya qilingan TS client
+logic/               qoidalar: user.md (userlar, multi-user, xodimlar), roles.md (rollar)
 scripts/ensure-db.sh make db
 start.sh             make dev
 ```

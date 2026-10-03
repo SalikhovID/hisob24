@@ -1,6 +1,6 @@
 # Xodimlar, rollar (owner / user) va user app sidebar — dizayn
 
-Sana: 2026-10-03. Holat: foydalanuvchi tasdiqlagan (shu hujjat va `logic/` ko'rib chiqilgan). Har bosqichga alohida reja yoziladi: `docs/superpowers/plans/2026-10-03-employees-stage<N>-*.md` (1-bosqich: `2026-10-03-employees-stage1-roles-owner.md`).
+Sana: 2026-10-03. Holat: foydalanuvchi tasdiqlagan (shu hujjat va `logic/` ko'rib chiqilgan); 0–4 bosqichlarning hammasi amalga oshirilgan (hujjat oxiridagi "N-bosqich qarorlari" bo'limlari). Har bosqichga alohida reja yozilgan: `docs/superpowers/plans/2026-10-03-employees-stage<N>-*.md`.
 
 ## Maqsad
 
@@ -278,3 +278,23 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **"Xodimlar" sahifasi** hali yo'q (4-bosqich): havola owner'ga ko'rinadi, sahifa 404.
 - **Ko'chgan testlar.** Dashboard'ning yo'naltirish va yuklash xatosi testlari `app-shell.test.tsx` ga, chiqish, mavzu va Telegram testlari `topbar.test.tsx` ga o'tdi. e2e'da sahifa mazmuni `main` ichidan qidiriladi (kompaniya nomi endi sidebar va topbar'da ham bor), chiqish profil menyusi orqali.
 - **Tekshiruv.** Dizayn Playwright skrinshotlari bilan ko'rildi (desktop yoyilgan va yig'ilgan, telefon menyusi, profil menyusi). curl: sessiyasiz `/` → `/login`; cookie bilan server HTML'ida qobiq bor, `/login` va `/select-company` da yo'q.
+
+## 4-bosqich qarorlari (2026-10-03)
+
+Bajarildi: `/employees` sahifasi (`EmployeesPage`), `AddEmployeeDialog`, `RenameEmployeeDialog`, `RemoveEmployeeButton`, `PhoneField`, `lib/schemas.ts`, `useEmployees`; mock API'da `/app/employees`; e2e; README'da "Rollar va xodimlar". Reja: `docs/superpowers/plans/2026-10-03-employees-stage4-employees-page.md`. Backend o'zgarmadi.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Ikki dialog.** Yuqoridagi jadvalda bitta `employee-dialog.tsx` yozilgan edi. Qo'shish (telefon va ism) va tahrirlash (faqat ism, telefon ko'rsatiladi) alohida fayllarda: maydonlari, so'rovi va matnlari boshqa, umumiy qismi `TextField` va `PhoneField` da.
+- **Ro'yxat** `DataList` bilan: keng ekranda jadval (Telefon, Ism, Rol, Amallar), telefonda kartochkalar. Owner birinchi, "Egasi" belgisi va o'z qatorida "Siz"; amallar faqat `user` qatorlarida (owner kartochkasida "Amallar" qatori yo'q). Ro'yxatda faqat owner bo'lsa, "Hali xodim yo'q…" izohi chiqadi.
+- **Rol darvozasi.** `user` `/employees` ni ochsa, hech narsa chizilmaydi, ro'yxat so'ralmaydi va u `/` ga qaytariladi. Sessiyasiz so'rovni avvalgidek `proxy.ts` `/login` ga yuboradi.
+- **Kesh kaliti** `["employees", companyId]`: kompaniya almashsa, boshqa kompaniyaning ro'yxati ko'rinmaydi. Qo'shish, tahrirlash va o'chirishdan keyin ro'yxat qayta so'raladi.
+- **Xabarlar.** Forma xatolari: "Telefon raqamini to'liq kiriting", "Ismni kiriting". API rad etsa (409 `already_member` va boshqalar), uning xabari dialog ichida chiqadi va dialog ochiq qoladi; o'chirish rad etilsa, xabar toast'da. Muvaffaqiyat: "Xodim qo'shildi", "Ism o'zgartirildi", "Xodim o'chirildi". Dialog har ochilganda toza holatdan boshlanadi.
+- **Sessiya holati o'zgarsa.** Xodimlar sahifasi `/app/me` dan tashqari so'rov yuboradigan birinchi sahifa, shuning uchun query client'ga qoida qo'shildi: 402 `subscription_expired` yoki 403 `owner_only` kelsa, `/app/me` qayta so'raladi. Obuna tugagan bo'lsa, qobiq `/expired` ga olib boradi (SPEC: `/expired` obuna tugaganda ko'rsatiladi). Egasi almashtirilgan bo'lsa, "Xodimlar" bo'limi yo'qoladi va sahifa bosh sahifaga qaytaradi (`logic/roles.md`, 5-bo'lim). `/app/me` ning o'z rad javobi qayta so'ralmaydi, aks holda so'rov aylanib qolardi.
+- **`PhoneField`** login'dagi `+998` maydonidan ajratildi; login va "Xodim qo'shish" bitta komponentni ishlatadi.
+- **UI nusxalari** admin'dan olindi: `dialog` ("Yopish"), `alert-dialog`, `table`, `data-list`, `text-field`.
+- **Mock API** (`mocks/`) Go API'ni takrorlaydi: tekshiruv tartibi (401 → 401 → 402 → 403), status, kod va xabarlar; ism a'zolikda saqlanadi, `/app/me` tanlangan kompaniyadagi ismni beradi. Buni `mocks/handlers.test.ts` mahkamlaydi.
+- **e2e fixture.** Test tugaganda sahifalar mock o'chirilishidan oldin yopiladi: aks holda kechikkan `/app/me` so'rovi dev serverga o'tib, chiqishda "Failed to proxy" qatorini qoldirardi.
+- **Tekshiruv.** curl (dev stack, user app origin'i orqali): sahifa sessiyasiz `/login` ga, sessiya bilan 200; qo'shish, tahrirlash, o'chirish va barcha rad javoblari. Haqiqiy brauzerda (Playwright, haqiqiy Go API, SMS kodi log'dan): owner oqimi desktop va 375px da, xodim va multi-user kirishi; skrinshotlar ko'rib chiqildi.
+
+Shu bilan 0–4 bosqichlar tugadi. Production'ga deploy qilinmagan: migratsiya 00004 prod'dagi rollarni o'zgartiradi, deploy alohida so'raladi.

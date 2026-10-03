@@ -2,7 +2,7 @@
 
 Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tushadi, bir nechta kompaniyada qanday ishlaydi, ismi va kirish huquqi qanday boshqariladi. Rollar va ruxsatlar: [roles.md](roles.md).
 
-> Holat: qoidalar 2026-10-03 da kelishilgan, kod shu hujjatga qarab yoziladi. Dizayn va bosqichlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
+> Holat: amalga oshirilgan (2026-10-03). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
 
 ## 1. Tushunchalar
 
@@ -145,7 +145,7 @@ Kompaniya hali tanlanmagan token (multi-user login'dan keyin) 2 va 3-qadamdan o'
 | Xodim boshqa kompaniyada owner | bu kompaniyada baribir `user`, rollar aralashmaydi |
 | Admin xodimning raqamini shu kompaniyaga owner qiladi | xodim owner'ga ko'tariladi, eski owner `user` bo'ladi |
 | Kompaniyasi tanlanmagan token bilan Xodimlar API | 403 `owner_only` |
-| Obunasi tugagan kompaniyada Xodimlar API | 402 `subscription_expired` |
+| Obunasi tugagan kompaniyada Xodimlar API | 402 `subscription_expired`; user app `/expired` sahifasiga o'tadi |
 | Raqam botga ulangan, lekin hech qayerda a'zo emas | Mini App `no_access` deydi; biror kompaniyaga qo'shilgach avtomatik kiradi |
 
 ## 9. Xato kodlari
