@@ -89,3 +89,31 @@ func TestAddEmployee(t *testing.T) {
 	require.Len(t, list, 2)
 	assert.Equal(t, valisPhone, list[1]["phone"], "the employee joins the list")
 }
+
+func TestAddEmployeeRefusals(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	const already = `{"error":"already_member","message":"Bu raqam kompaniyangizga allaqachon qo'shilgan"}`
+
+	for name, tc := range map[string]struct {
+		body   string
+		status int
+		want   string
+	}{
+		"the owner's own phone": {`{"phone":"` + alisPhone + `","full_name":"Ali"}`, http.StatusConflict, already},
+		"an employee already":   {`{"phone":"90 222 33 44","full_name":"Boshqa Ism"}`, http.StatusConflict, already},
+		"bad phone":             {`{"phone":"12ab","full_name":"Vali"}`, http.StatusBadRequest, `{"error":"validation_error","message":"Telefon raqami noto'g'ri"}`},
+		"no name":               {`{"phone":"998903334455","full_name":" "}`, http.StatusBadRequest, `{"error":"validation_error","message":"Ismni kiriting"}`},
+		"not JSON":              {`{"phone":`, http.StatusBadRequest, `{"error":"bad_request","message":"So'rov noto'g'ri"}`},
+	} {
+		rec := api.do(t, http.MethodPost, "/app/employees", tc.body, bearer(owner))
+		assert.Equal(t, tc.status, rec.Code, name)
+		assert.JSONEq(t, tc.want, rec.Body.String(), name)
+	}
+
+	rec := api.do(t, http.MethodPost, "/app/employees", `{"phone":"998903334455","full_name":"Sardor"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee adds nobody")
+	assert.Len(t, members(t, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner))), 2, "nobody was added")
+}
