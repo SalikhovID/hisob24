@@ -1,0 +1,69 @@
+"use client"
+
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Trash2Icon } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { api, call } from "@/lib/api"
+import { formatPhone } from "@/lib/phone"
+import { employeesKey } from "@/lib/queries"
+import type { Member } from "@/lib/types"
+
+// RemoveEmployeeButton takes an employee out of the owner's company, after
+// asking. From their next request on they are out of it; the other
+// companies they work in are theirs still. A refusal shows the API's reason.
+export function RemoveEmployeeButton({
+  companyId,
+  companyName,
+  employee,
+}: {
+  companyId: number
+  companyName: string
+  employee: Member
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const queryClient = useQueryClient()
+  const name = employee.full_name ?? formatPhone(employee.phone)
+  const remove = useMutation({
+    mutationFn: () => call(api.DELETE("/app/employees/{phone}", { params: { path: { phone: employee.phone } } })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeesKey(companyId) })
+      toast.success("Xodim o'chirildi")
+    },
+    onError: (error) => toast.error(error.message),
+    onSettled: () => setConfirming(false),
+  })
+
+  return (
+    <AlertDialog open={confirming} onOpenChange={setConfirming}>
+      <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label={`O'chirish: ${name}`} />}>
+        <Trash2Icon />
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Xodimni o&apos;chirasizmi?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {name} {companyName} kompaniyasiga kira olmaydi. Keyin qayta qo&apos;shish mumkin.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+          <Button variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate()}>
+            O&apos;chirish
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}

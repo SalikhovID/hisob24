@@ -10,6 +10,7 @@ import { useEmployees, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
 import { AddEmployeeDialog } from "./add-employee-dialog"
+import { RemoveEmployeeButton } from "./remove-employee-button"
 import { RenameEmployeeDialog } from "./rename-employee-dialog"
 
 // EmployeesPage is the company's members, for its owner: the owner first,
@@ -31,6 +32,7 @@ export function EmployeesPage() {
   if (!me.data || !isOwner) return null
   const ownPhone = me.data.user.phone
   const companyId = company.id
+  const companyName = company.name
 
   const columns: Column<Member>[] = [
     { header: "Telefon", cell: (m) => formatPhone(m.phone), primary: true },
@@ -51,6 +53,7 @@ export function EmployeesPage() {
         m.role === "user" && (
           <span className="inline-flex items-center justify-end gap-1">
             <RenameEmployeeDialog companyId={companyId} employee={m} />
+            <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />
           </span>
         ),
     },

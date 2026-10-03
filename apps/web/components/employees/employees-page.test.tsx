@@ -166,3 +166,29 @@ test("an employee is renamed from the dialog; the owner is not to be renamed her
     expect((await rows()).map(phoneAndName)).toContainEqual(["+998 90 222 33 44", "Vali (hisobchi)"]),
   )
 })
+
+test("an employee is removed after asking; cancelling keeps them; the owner is not to be removed here", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+  const [owner, vali] = await rows()
+  expect(within(owner).queryByRole("button", { name: /O'chirish/ })).not.toBeInTheDocument()
+
+  await user.click(within(vali).getByRole("button", { name: "O'chirish: Vali Aliyev" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Xodimni o'chirasizmi?" })
+  expect(within(confirm).getByText(/Vali Aliyev Olma Savdo kompaniyasiga kira olmaydi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "Bekor qilish" }))
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(await rows()).toHaveLength(3)
+
+  await user.click(within((await rows())[1]).getByRole("button", { name: "O'chirish: Vali Aliyev" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Xodimni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Xodim o'chirildi")).toBeInTheDocument()
+  await waitFor(async () =>
+    expect((await rows()).map(phoneAndName)).toEqual([
+      ["+998 90 123 45 67", "Ali Valiyev"],
+      ["+998 90 333 44 55", "Sardor Karimov"],
+    ]),
+  )
+})
