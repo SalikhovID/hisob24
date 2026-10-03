@@ -55,6 +55,7 @@ func (h *Handler) Routes(r chi.Router) {
 			r.Group(func(r chi.Router) {
 				r.Use(h.requireOwner)
 				r.Get("/employees", h.listEmployees)
+				r.Post("/employees", h.addEmployee)
 			})
 		})
 	})

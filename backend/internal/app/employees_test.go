@@ -71,3 +71,21 @@ func TestListEmployees(t *testing.T) {
 	assert.Equal(t, "user", list[1]["role"])
 	assert.NotEmpty(t, list[1]["created_at"])
 }
+
+func TestAddEmployee(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+
+	rec := api.do(t, http.MethodPost, "/app/employees", `{"phone":"+998 90 222 33 44","full_name":" Vali "}`, bearer(owner))
+
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Equal(t, valisPhone, body["phone"])
+	assert.Equal(t, "Vali", body["full_name"])
+	assert.Equal(t, "user", body["role"], "whoever the owner adds is a user")
+	assert.NotEmpty(t, body["created_at"])
+	list := members(t, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner)))
+	require.Len(t, list, 2)
+	assert.Equal(t, valisPhone, list[1]["phone"], "the employee joins the list")
+}

@@ -39,3 +39,21 @@ func (h *Handler) listEmployees(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, list)
 }
+
+// addEmployee adds a phone to the owner's company as a user. A phone that
+// works in another company gets the answer a new one does.
+func (h *Handler) addEmployee(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Phone    string `json:"phone"`
+		FullName string `json:"full_name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	m, err := h.companies.AddEmployee(r.Context(), ownersCompany(r), body.Phone, body.FullName)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toMemberJSON(m))
+}

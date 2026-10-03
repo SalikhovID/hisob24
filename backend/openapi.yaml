@@ -598,6 +598,40 @@ paths:
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
           $ref: "#/components/responses/OwnerOnly"
+    post:
+      operationId: addEmployee
+      summary: Xodim qo'shish (faqat owner)
+      description: >
+        Raqam access token'dagi kompaniyaga user rolida qo'shiladi. Tizimda
+        yo'q raqamdan user yaratiladi; boshqa kompaniyada bor raqam shu
+        kompaniyaga ham a'zo bo'ladi (multi-user). Javob ikkala holatda bir
+        xil: kiritilgan ism qaytadi, raqam oldin tizimda bo'lgan-bo'lmagani
+        bilinmaydi. Qo'shilgan odamga xabar yuborilmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberInput"
+      responses:
+        "201":
+          description: Qo'shilgan xodim
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "409":
+          $ref: "#/components/responses/AlreadyMember"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -694,6 +728,14 @@ components:
             $ref: "#/components/schemas/Error"
     SubscriptionExpired:
       description: Company muddati o'tgan yoki bloklangan (subscription_expired)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    AlreadyMember:
+      description: >
+        Raqam shu kompaniyaning a'zosi, owner yoki xodim (already_member). Hech
+        narsa o'zgarmaydi
       content:
         application/json:
           schema:
