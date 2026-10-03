@@ -210,3 +210,31 @@ Har bosqich: TDD (RED → GREEN → commit), oxirida `make lint`, `make test`, `
 - Taklif va rozilik; qo'shilgan xodimga SMS yoki bot xabari; xodimlar soni limiti; xodimning o'zi kompaniyadan chiqishi; owner'ning o'z ismini user app'dan o'zgartirishi.
 - Sidebar'da ichma-ich guruhlar va yangi biznes modullar.
 - Production deploy alohida so'raladi: migratsiya 00004 prod'dagi rollarni o'zgartiradi.
+
+## 1-bosqich qarorlari (2026-10-03)
+
+Bajarildi: migratsiya `00004`, so'rovlar, `company.Create`, `company.ReplaceOwner`, `PUT /admin/companies/{id}/owner`, `/app/me` dagi ism, admin "Egasini almashtirish", ikkala ilovada rol nomlari. Reja: `docs/superpowers/plans/2026-10-03-employees-stage1-roles-owner.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`ReplaceOwner` tartibi.** Avval telefon va ism tekshiriladi (400), keyin tranzaksiya ichida kompaniya (404). Tranzaksiya: `LockCompany` → `UpsertUser` → `DemoteCompanyOwner` → `SetCompanyOwner`.
+- **Kompaniya qatori lock qilinadi** (`SELECT … FOR UPDATE`).
+  - Lock'siz ikki bir vaqtdagi almashtirishdan biri `user_companies_one_owner` indeksiga urilib yiqilardi (`23505`): ikkinchisining `UPDATE` i birinchisi qo'ygan owner'ni ko'rmaydi.
+  - Lock bilan ular navbat bilan bajariladi va oxirgisi qoladi. Test `pgtest.WaitForLockWait` bilan deterministik.
+- **Ism.**
+  - `SetCompanyOwner` a'zo bo'lgan raqamning ismini kiritilgan ismga almashtiradi; a'zolikning `created_at` i o'zgarmaydi.
+  - `users.full_name` mavjud userda hech qachon o'zgarmaydi (company yaratishda ham, egasini almashtirishda ham).
+  - `/app/me`: a'zolik ismi NULL bo'lsa (ismsiz eski yozuv) `users.full_name` qaytadi.
+- **A'zolar ro'yxati tartibi:** owner, keyin `created_at`, keyin telefon.
+- **Migratsiya.**
+  - `role` default'i `user` (oldin `owner`): rol berilmagan yozuv bitta owner indeksiga urilmasin.
+  - Down: `user` → `staff`, indeks va `full_name` olib tashlanadi. Ikkinchi owner'lar qaytib owner bo'lmaydi (bu ma'lumot saqlanmaydi).
+- **Admin panel.** Dialog sarlavhasi va tugmasi "Egasini almashtirish", yuborish tugmasi "Almashtirish", izoh "Kiritilgan raqam kompaniya egasi bo'ladi. Oldingi egasi xodim bo'lib qoladi.". `components/ui/native-select.tsx` endi ishlatilmaydi, UI to'plamida qoldirildi.
+- **Testlar.**
+  - `ReplaceOwner` ning uch holati (a'zo ko'tariladi, owner'ning o'z raqami, boshqa kompaniya useri) birinchi sikl kodi bilan darhol o'tdi: xatti-harakat `SetCompanyOwner` so'rovidan keladi va u o'z siklida RED → GREEN bo'lgan. Testlar mutatsiya bilan tekshirildi: `DemoteCompanyOwner` olib tashlansa uchtasi yiqiladi.
+  - Atomiklik alohida sikl bo'ldi: birinchi versiya tranzaksiyasiz yozildi, `pgtest.FailInserts` testi uni yiqitdi, keyin tranzaksiya qo'shildi.
+- **O'zgargan mavjud testlar** (talab o'zgargani uchun):
+  - `manager` / `staff` fixture'lari → `user` (6 ta Go test fayli, ikkala ilova mock'i, "Menejer" → "Xodim").
+  - `TestAddUser*`, `TestAddCompanyUser`, `TestUpsertCompanyUser`, admin "User qo'shish" va `memberSchema` testlari o'chirildi: kod o'chgan. O'rnida `TestReplaceOwner*`, `TestReplaceCompanyOwner`, `TestAddCompanyUser` (yangi so'rov), `TestSetCompanyOwner`, "Egasini almashtirish" va `ownerSchema` testlari.
+  - `TestAdminRoutesNeedASession` ro'yxatida yangi route.
+  - Web mock'da Anor Servis'ning ikkinchi owner'i (Zarina) `user` bo'ldi.
