@@ -77,6 +77,15 @@ test("the page says how many admins the platform has", async () => {
   expect(await screen.findByText("Platforma adminlari · 3 kishi")).toBeInTheDocument()
 })
 
+test("the list ends with its total", async () => {
+  addAdmins()
+
+  renderWithProviders(<AdminsPage />)
+
+  expect(rowsOf(await screen.findByRole("table", { name: "Adminlar" }))).toHaveLength(3)
+  expect(screen.getByText("Jami: 3")).toBeInTheDocument()
+})
+
 test("an admin is added from the dialog and joins the list", async () => {
   const { user } = renderWithProviders(<AdminsPage />)
 

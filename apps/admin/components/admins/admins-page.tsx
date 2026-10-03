@@ -52,7 +52,15 @@ export function AdminsPage() {
       />
       {admins.isPending && <Loading />}
       {admins.isError && <Failed error={admins.error} onRetry={() => admins.refetch()} />}
-      {admins.data && <DataList label="Adminlar" items={admins.data} columns={columns} getKey={(a) => a.telegram_id} />}
+      {admins.data && (
+        <DataList
+          label="Adminlar"
+          items={admins.data}
+          columns={columns}
+          getKey={(a) => a.telegram_id}
+          footer={`Jami: ${admins.data.length}`}
+        />
+      )}
     </div>
   )
 }
