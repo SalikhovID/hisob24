@@ -83,7 +83,13 @@ export function CompanyPage({ id }: { id: number }) {
           </h2>
           <ReplaceOwnerDialog companyId={c.id} />
         </div>
-        <DataList label="Userlar" items={c.users} columns={memberColumns} getKey={(m) => m.phone} />
+        <DataList
+          label="Userlar"
+          items={c.users}
+          columns={memberColumns}
+          getKey={(m) => m.phone}
+          footer={`Jami: ${c.users.length}`}
+        />
       </section>
       <section aria-labelledby={billingId} className="space-y-3">
         <div className="flex items-center justify-between gap-3">

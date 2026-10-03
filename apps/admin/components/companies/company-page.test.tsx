@@ -49,6 +49,14 @@ test("the company page shows the company and its users", async () => {
   ])
 })
 
+test("the users list ends with its total", async () => {
+  renderWithProviders(<CompanyPage id={1} />)
+
+  const users = await screen.findByRole("region", { name: "Userlar" })
+
+  expect(within(users).getByText("Jami: 2")).toBeInTheDocument()
+})
+
 test("an unknown company is not found, with the way back to the list", async () => {
   renderWithProviders(<CompanyPage id={999} />)
 
