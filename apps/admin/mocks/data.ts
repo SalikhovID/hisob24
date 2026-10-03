@@ -51,7 +51,7 @@ function seed(): Db {
       company(3, "Olcha Servis", addDays(TODAY, -7)),
     ],
     members: {
-      1: [member("998901234567", "Ali Valiyev", "owner"), member("998902223344", "Vali Aliyev", "staff")],
+      1: [member("998901234567", "Ali Valiyev", "owner"), member("998902223344", "Vali Aliyev", "user")],
       2: [member("998903334455", "Sardor Karimov", "owner")],
       3: [member("998904445566", "Dilnoza Rahimova", "owner")],
     },

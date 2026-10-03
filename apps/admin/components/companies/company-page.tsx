@@ -12,10 +12,10 @@ import { useCompany } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
 import { AddBillingDialog } from "./add-billing-dialog"
-import { AddUserDialog } from "./add-user-dialog"
 import { BillingHistory } from "./billing-history"
 import { CompanyActions } from "./company-actions"
 import { RenameDialog } from "./rename-dialog"
+import { ReplaceOwnerDialog } from "./replace-owner-dialog"
 import { CompanyStatusBadge } from "./status-badge"
 
 const memberColumns: Column<Member>[] = [
@@ -68,7 +68,7 @@ export function CompanyPage({ id }: { id: number }) {
           <h2 id={usersId} className="font-medium">
             Userlar
           </h2>
-          <AddUserDialog companyId={c.id} />
+          <ReplaceOwnerDialog companyId={c.id} />
         </div>
         <DataList label="Userlar" items={c.users} columns={memberColumns} getKey={(m) => m.phone} />
       </section>

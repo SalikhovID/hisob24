@@ -33,33 +33,50 @@ test("an unknown company is not found, with the way back to the list", async () 
   expect(screen.queryByRole("button", { name: "Qayta urinish" })).not.toBeInTheDocument()
 })
 
-test("a user is added from the dialog and joins the list", async () => {
+test("the owner is replaced from the dialog: the new one leads the list, the one before stays as a Xodim", async () => {
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
-  await user.click(await screen.findByRole("button", { name: "User qo'shish" }))
-  const dialog = await screen.findByRole("dialog", { name: "User qo'shish" })
+  await user.click(await screen.findByRole("button", { name: "Egasini almashtirish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Egasini almashtirish" })
+  expect(within(dialog).getByText(/Oldingi egasi xodim bo'lib qoladi/)).toBeInTheDocument()
   await user.type(within(dialog).getByLabelText("Telefon"), "90 777 88 99")
-  await user.type(within(dialog).getByLabelText("Ism"), "Yangi Menejer")
-  await user.selectOptions(within(dialog).getByLabelText("Rol"), "manager")
-  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  await user.type(within(dialog).getByLabelText("Ism"), "Yangi Egasi")
+  await user.click(within(dialog).getByRole("button", { name: "Almashtirish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(await screen.findByText("User qo'shildi")).toBeInTheDocument()
+  expect(await screen.findByText("Kompaniya egasi almashtirildi")).toBeInTheDocument()
   await waitFor(() =>
-    expect(cellsOf(screen.getByRole("table", { name: "Userlar" }))).toContainEqual([
-      "+998 90 777 88 99",
-      "Yangi Menejer",
-      "Menejer",
+    expect(cellsOf(screen.getByRole("table", { name: "Userlar" }))).toEqual([
+      ["+998 90 777 88 99", "Yangi Egasi", "Egasi"],
+      ["+998 90 123 45 67", "Ali Valiyev", "Xodim"],
+      ["+998 90 222 33 44", "Vali Aliyev", "Xodim"],
     ]),
   )
 })
 
-test("the add-user dialog says what is missing", async () => {
+test("an employee made the owner is promoted under the name given, not listed twice", async () => {
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
-  await user.click(await screen.findByRole("button", { name: "User qo'shish" }))
-  const dialog = await screen.findByRole("dialog", { name: "User qo'shish" })
-  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  await user.click(await screen.findByRole("button", { name: "Egasini almashtirish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Egasini almashtirish" })
+  await user.type(within(dialog).getByLabelText("Telefon"), "+998 90 222 33 44")
+  await user.type(within(dialog).getByLabelText("Ism"), "Vali Egasi")
+  await user.click(within(dialog).getByRole("button", { name: "Almashtirish" }))
+
+  await waitFor(() =>
+    expect(cellsOf(screen.getByRole("table", { name: "Userlar" }))).toEqual([
+      ["+998 90 222 33 44", "Vali Egasi", "Egasi"],
+      ["+998 90 123 45 67", "Ali Valiyev", "Xodim"],
+    ]),
+  )
+})
+
+test("the replace-owner dialog says what is missing", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Egasini almashtirish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Egasini almashtirish" })
+  await user.click(within(dialog).getByRole("button", { name: "Almashtirish" }))
 
   expect(await within(dialog).findByText("Telefon raqami noto'g'ri")).toBeInTheDocument()
   expect(within(dialog).getByText("Ismni kiriting")).toBeInTheDocument()

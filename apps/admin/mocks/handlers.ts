@@ -40,6 +40,12 @@ function owner() {
   return { telegram_id: OWNER_ID, full_name: "Owner" }
 }
 
+// ownerFirst lists members as the API does: the owner, then the users in
+// the order they joined.
+function ownerFirst(members: Member[]): Member[] {
+  return [...members].sort((a, b) => Number(b.role === "owner") - Number(a.role === "owner"))
+}
+
 export const handlers = [
   http.post(api("/admin/auth/otp"), async ({ request }) => {
     const { code } = (await request.json()) as { code: string }
@@ -109,7 +115,7 @@ export const handlers = [
   http.get(api("/admin/companies/:id"), ({ params }) => {
     const c = findCompany(params.id)
     if (!c) return notFound()
-    return HttpResponse.json({ ...c, users: db.members[c.id] ?? [] })
+    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []) })
   }),
 
   http.patch(api("/admin/companies/:id"), async ({ params, request }) => {
@@ -124,11 +130,8 @@ export const handlers = [
     return HttpResponse.json(c)
   }),
 
-  http.post(api("/admin/companies/:id/users"), async ({ params, request }) => {
+  http.put(api("/admin/companies/:id/owner"), async ({ params, request }) => {
     const body = (await request.json()) as Record<string, string | undefined>
-    if (!["owner", "manager", "staff"].includes(body.role ?? "")) {
-      return fail(400, "validation_error", "Rol owner, manager yoki staff bo'lishi kerak")
-    }
     const phone = normalizePhone(body.phone ?? "")
     if (!phone) return fail(400, "validation_error", "Telefon raqami noto'g'ri")
     const name = body.full_name?.trim()
@@ -136,14 +139,18 @@ export const handlers = [
     const c = findCompany(params.id)
     if (!c) return notFound()
     const members = (db.members[c.id] ??= [])
-    const role = body.role as Member["role"]
-    let added = members.find((m) => m.phone === phone)
-    if (added) added.role = role
-    else {
-      added = member(phone, name, role)
-      members.push(added)
+    // A company has one owner: the one before stays as a user. A member is
+    // promoted under the name given, anyone else joins as the owner.
+    for (const m of members) m.role = "user"
+    let replaced = members.find((m) => m.phone === phone)
+    if (replaced) {
+      replaced.role = "owner"
+      replaced.full_name = name
+    } else {
+      replaced = member(phone, name, "owner")
+      members.push(replaced)
     }
-    return HttpResponse.json(added, { status: 201 })
+    return HttpResponse.json(replaced)
   }),
 
   http.get(api("/admin/companies/:id/billings"), ({ params }) => {
