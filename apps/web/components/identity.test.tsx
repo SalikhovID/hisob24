@@ -23,3 +23,21 @@ test("Identity links by its title alone", () => {
   expect(screen.getByRole("link", { name: "Olma Savdo" })).toHaveAttribute("href", "/companies/1")
   expect(screen.getAllByRole("link")).toHaveLength(1)
 })
+
+test("Identity carries a mark beside its title, apart from the title and its link", () => {
+  const { container } = render(
+    <Identity
+      title="Ali Valiyev"
+      subtitle="+998 90 123 45 67"
+      seed="998901234567"
+      href="/members/1"
+      mark={<span>Siz</span>}
+    />,
+  )
+
+  const mark = screen.getByText("Siz")
+  expect(container.querySelector('[data-slot="identity"]')).toContainElement(mark)
+  // The title stays the name alone, and so does the link's name.
+  expect(identityOf(container)).toEqual(["Ali Valiyev", "+998 90 123 45 67"])
+  expect(screen.getByRole("link", { name: "Ali Valiyev" })).not.toContainElement(mark)
+})
