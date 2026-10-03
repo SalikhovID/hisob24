@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test"
-import { db, join, LOGIN_CODE, VALI } from "../mocks/data"
+import { addDays, ALI, db, join, LOGIN_CODE, TODAY, VALI } from "../mocks/data"
 import { expect, test } from "./fixtures"
 
 // signIn goes through the login page: the number without +998, then the code.
@@ -135,4 +135,34 @@ test("an employee of two companies taken out of one goes on in the other", async
   await expect(page).toHaveURL(/\/select-company$/)
   await expect(page.getByRole("button", { name: /Nok Market/ })).toBeEnabled()
   await expect(page.getByRole("button", { name: /Olma Savdo/ })).toHaveCount(0)
+})
+
+test("an owner replaced while signed in loses the employees at the next request", async ({ page }) => {
+  await openEmployees(page)
+
+  // The admin makes Vali the owner: Ali stays in the company, as an employee.
+  db.members[ALI].find((membership) => membership.companyId === 1)!.role = "user"
+  db.members[VALI].find((membership) => membership.companyId === 1)!.role = "owner"
+  await page.getByRole("button", { name: "Xodim qo'shish" }).click()
+  const dialog = page.getByRole("dialog", { name: "Xodim qo'shish" })
+  await dialog.getByLabel("Telefon raqami").fill("907778899")
+  await dialog.getByLabel("Ism").fill("Yangi Xodim")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await expect(page.getByRole("main").getByText("Xodim", { exact: true })).toBeVisible()
+  await expect((await sections(page)).getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
+  expect(db.members["998907778899"]).toBeUndefined()
+})
+
+test("a subscription that runs out under the owner leads to /expired at the next request", async ({ page }) => {
+  await openEmployees(page)
+
+  db.companies.find((company) => company.id === 1)!.end_date = addDays(TODAY, -1)
+  await members(page).getByRole("button", { name: "O'chirish: Vali Aliyev" }).click()
+  await page.getByRole("alertdialog", { name: "Xodimni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
+
+  await expect(page).toHaveURL(/\/expired$/)
+  expect(db.members[VALI].map((membership) => membership.companyId)).toEqual([1, 2])
 })

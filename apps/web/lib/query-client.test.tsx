@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { expect, test, vi } from "vitest"
 import { ApiError } from "./api"
+import { meKey } from "./queries"
 import { makeQueryClient } from "./query-client"
 
 function wrapperFor(client: QueryClient) {
@@ -74,4 +75,77 @@ test("a server failure is tried twice more", async () => {
 
   await waitFor(() => expect(result.current.isError).toBe(true))
   expect(queryFn).toHaveBeenCalledTimes(3)
+})
+
+// The API reads the membership, the subscription and the role on every
+// request: a refusal for one of them means /app/me, as the app has it, is old.
+const expired = () => new ApiError(402, "subscription_expired", "Kompaniya obunasi tugagan")
+const ownerOnly = () => new ApiError(403, "owner_only", "Bu bo'lim faqat kompaniya egasi uchun")
+
+test.each([
+  ["the subscription ran out", expired],
+  ["the user is the owner no more", ownerOnly],
+])("an action refused because %s asks /app/me again", async (_, refusal) => {
+  const me = vi.fn(() => Promise.resolve({ company: { id: 1 } }))
+  const { result } = renderHook(
+    () => ({
+      me: useQuery({ queryKey: meKey, queryFn: me }),
+      action: useMutation({ mutationFn: () => Promise.reject(refusal()) }),
+    }),
+    { wrapper: wrapperFor(makeQueryClient(vi.fn())) },
+  )
+  await waitFor(() => expect(result.current.me.isSuccess).toBe(true))
+  expect(me).toHaveBeenCalledTimes(1)
+
+  act(() => result.current.action.mutate())
+
+  await waitFor(() => expect(me).toHaveBeenCalledTimes(2))
+})
+
+test("a list refused because the user is the owner no more asks /app/me again", async () => {
+  const me = vi.fn(() => Promise.resolve({ company: { id: 1 } }))
+  const client = makeQueryClient(vi.fn())
+  const { result } = renderHook(() => useQuery({ queryKey: meKey, queryFn: me }), { wrapper: wrapperFor(client) })
+  await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+  const { result: list } = renderHook(
+    () => useQuery({ queryKey: ["employees", 1], queryFn: () => Promise.reject(ownerOnly()) }),
+    { wrapper: wrapperFor(client) },
+  )
+
+  await waitFor(() => expect(list.current.isError).toBe(true))
+  await waitFor(() => expect(me).toHaveBeenCalledTimes(2))
+})
+
+test("/app/me's own refusal is the news itself: it is not asked again", async () => {
+  const me = vi.fn(() => Promise.reject(expired()))
+  const { result } = renderHook(() => useQuery({ queryKey: meKey, queryFn: me }), {
+    wrapper: wrapperFor(makeQueryClient(vi.fn())),
+  })
+
+  await waitFor(() => expect(result.current.isError).toBe(true))
+  await new Promise((resolve) => setTimeout(resolve, 50))
+
+  expect(me).toHaveBeenCalledTimes(1)
+})
+
+test("other refusals leave /app/me as it is", async () => {
+  const me = vi.fn(() => Promise.resolve({ company: { id: 1 } }))
+  const { result } = renderHook(
+    () => ({
+      me: useQuery({ queryKey: meKey, queryFn: me }),
+      action: useMutation({
+        mutationFn: () =>
+          Promise.reject(new ApiError(409, "already_member", "Bu raqam kompaniyangizga allaqachon qo'shilgan")),
+      }),
+    }),
+    { wrapper: wrapperFor(makeQueryClient(vi.fn())) },
+  )
+  await waitFor(() => expect(result.current.me.isSuccess).toBe(true))
+
+  act(() => result.current.action.mutate())
+
+  await waitFor(() => expect(result.current.action.isError).toBe(true))
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect(me).toHaveBeenCalledTimes(1)
 })
