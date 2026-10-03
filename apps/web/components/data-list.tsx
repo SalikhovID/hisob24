@@ -13,9 +13,11 @@ export interface Column<T> {
   // title, with no name.
   actions?: boolean
   // card is how a card shows the value: "row" (the default) on a line of its
-  // own under the column's name; "inline" with the other inline values in
-  // one line under the title, the name kept for screen readers only.
-  card?: "row" | "inline"
+  // own beside the column's name. "inline" and "tag" share one line under
+  // the title: an inline value follows its column's name (a bare date could
+  // be any date); a tag (a badge) says what it is by itself, so its name is
+  // kept for screen readers only.
+  card?: "row" | "inline" | "tag"
 }
 
 // present tells a value from one that is not there (null, false, "").
@@ -88,8 +90,9 @@ export function DataList<T>({
               .map((column) => ({ column, value: column.cell(item) }))
               .filter(({ value }) => present(value))
           const actions = valuesOf((column) => !!column.actions)
-          const inline = valuesOf((column) => !column.primary && !column.actions && column.card === "inline")
-          const labeled = valuesOf((column) => !column.primary && !column.actions && column.card !== "inline")
+          const lined = (column: Column<T>) => column.card === "inline" || column.card === "tag"
+          const inline = valuesOf((column) => !column.primary && !column.actions && lined(column))
+          const labeled = valuesOf((column) => !column.primary && !column.actions && !lined(column))
           return (
             <li key={getKey(item)} className="rounded-xl border bg-card p-4 text-sm">
               <div className="flex items-start justify-between gap-3">
@@ -102,16 +105,14 @@ export function DataList<T>({
                       </div>
                     ))}
                   {inline.length > 0 && (
-                    <div data-slot="data-list-meta" className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+                    <dl data-slot="data-list-meta" className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
                       {inline.map(({ column, value }) => (
-                        <span key={column.header}>
-                          <span data-slot="data-list-meta-label" className="sr-only">
-                            {column.header}:{" "}
-                          </span>
-                          {value}
-                        </span>
+                        <div key={column.header} className="flex items-center gap-1.5">
+                          <dt className={column.card === "tag" ? "sr-only" : undefined}>{column.header}</dt>
+                          <dd>{value}</dd>
+                        </div>
                       ))}
-                    </div>
+                    </dl>
                   )}
                 </div>
                 {actions.length > 0 && (

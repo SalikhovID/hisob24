@@ -53,7 +53,7 @@ export function EmployeesPage() {
     },
     {
       header: "Rol",
-      card: "inline",
+      card: "tag",
       cell: (m) => (
         <span className="inline-flex flex-wrap items-center justify-end gap-1">
           <RoleBadge role={m.role} />

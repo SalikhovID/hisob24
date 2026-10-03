@@ -86,9 +86,17 @@ test("on a phone a member is a card: role and date in one line, the actions at i
   const [owner, vali] = within(screen.getByRole("list", { name: "Xodimlar" })).getAllByRole("listitem")
 
   expect(identityOf(vali)).toEqual(["Vali Aliyev", "+998 90 222 33 44"])
-  const inline = Array.from(vali.querySelectorAll('[data-slot="data-list-meta"] > *')).map((value) => value.textContent)
-  expect(inline).toEqual(["Rol: Xodim", "Qo'shilgan: 02.10.2026"])
-  expect(within(vali).queryByText("Rol")).not.toBeInTheDocument()
+  const inline = Array.from(vali.querySelectorAll('[data-slot="data-list-meta"] > div')).map((pair) => [
+    pair.querySelector("dt")?.textContent,
+    pair.querySelector("dd")?.textContent,
+  ])
+  expect(inline).toEqual([
+    ["Rol", "Xodim"],
+    ["Qo'shilgan", "02.10.2026"],
+  ])
+  // The badge needs no name on screen; the date keeps its own.
+  expect(within(vali).getByText("Rol")).toHaveClass("sr-only")
+  expect(within(vali).getByText("Qo'shilgan")).not.toHaveClass("sr-only")
   expect(within(vali).queryByText("Amallar")).not.toBeInTheDocument()
   const actions = vali.querySelector<HTMLElement>('[data-slot="data-list-actions"]')!
   expect(within(actions).getByRole("button", { name: "Ismni o'zgartirish: Vali Aliyev" })).toBeInTheDocument()
