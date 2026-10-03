@@ -57,6 +57,7 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Get("/employees", h.listEmployees)
 				r.Post("/employees", h.addEmployee)
 				r.Patch("/employees/{phone}", h.renameEmployee)
+				r.Delete("/employees/{phone}", h.removeEmployee)
 			})
 		})
 	})

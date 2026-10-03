@@ -217,3 +217,19 @@ func TestRenameEmployeeRefusals(t *testing.T) {
 	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT full_name FROM user_companies WHERE user_phone = $1", sardorsPhone).Scan(&inNok))
 	assert.Nil(t, inNok, "another company's employee is out of reach")
 }
+
+func TestRemoveEmployee(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	api.addUser(t, valisPhone)
+	api.addMember(t, valisPhone, olma, "user")
+
+	rec := api.do(t, http.MethodDelete, "/app/employees/"+valisPhone, "", bearer(owner))
+
+	assert.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	assert.Empty(t, rec.Body.String())
+	list := members(t, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner)))
+	require.Len(t, list, 1, "the employee is off the list")
+	assert.Equal(t, alisPhone, list[0]["phone"])
+}

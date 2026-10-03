@@ -673,6 +673,29 @@ paths:
           $ref: "#/components/responses/EmployeeNotFound"
         "409":
           $ref: "#/components/responses/CannotChangeOwner"
+    delete:
+      operationId: removeEmployee
+      summary: Xodimni kompaniyadan chiqarish (faqat owner)
+      description: >
+        Xodimning shu kompaniyadagi a'zoligi o'chadi va u keyingi so'rovdayoq
+        bu kompaniyaga kira olmaydi. User yozuvi va boshqa kompaniyalardagi
+        a'zoliklari qoladi; boshqa kompaniyasi qolmasa, tizimga kira olmaydi.
+        Keyin qayta qo'shish mumkin.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: Xodim chiqarildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/EmployeeNotFound"
+        "409":
+          $ref: "#/components/responses/CannotChangeOwner"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

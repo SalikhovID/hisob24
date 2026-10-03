@@ -75,3 +75,13 @@ func (h *Handler) renameEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, toMemberJSON(m))
 }
+
+// removeEmployee takes an employee out of the owner's company. From their
+// next request on requireAccess turns them away from it.
+func (h *Handler) removeEmployee(w http.ResponseWriter, r *http.Request) {
+	if err := h.companies.RemoveEmployee(r.Context(), ownersCompany(r), chi.URLParam(r, "phone")); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
