@@ -247,14 +247,3 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
 	_, err := q.db.Exec(ctx, upsertUser, arg.Phone, arg.FullName)
 	return err
 }
-
-const userExists = `-- name: UserExists :one
-SELECT EXISTS (SELECT 1 FROM users WHERE phone = $1)
-`
-
-func (q *Queries) UserExists(ctx context.Context, phone string) (bool, error) {
-	row := q.db.QueryRow(ctx, userExists, phone)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}

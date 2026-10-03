@@ -19,8 +19,9 @@ func NewContacts(pool *pgxpool.Pool) *Contacts {
 }
 
 // Save links a Telegram chat to a phone (normalized; a chat that shares
-// another phone gets it updated) and says whether the phone is a user's.
-// Phones that are not users yet are kept too.
+// another phone gets it updated) and says whether the phone may sign in: it
+// is a member of a company. Any other phone is kept too, for the day it is
+// added to one.
 func (c *Contacts) Save(ctx context.Context, chatID int64, rawPhone, username, firstName string) (bool, error) {
 	phone, err := NormalizePhone(rawPhone)
 	if err != nil {
@@ -34,7 +35,7 @@ func (c *Contacts) Save(ctx context.Context, chatID int64, rawPhone, username, f
 	}); err != nil {
 		return false, err
 	}
-	return c.q.UserExists(ctx, phone)
+	return c.q.HasCompany(ctx, phone)
 }
 
 // optional is NULL for an empty string.

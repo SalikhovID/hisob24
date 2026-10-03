@@ -11,11 +11,14 @@ import (
 )
 
 // A contact shared with the bot lands in telegram_contacts and links the
-// account of a user.
+// account of a user who is in a company.
 func TestSharedContactIsKept(t *testing.T) {
 	t.Parallel()
 	pool := pgtest.New(t)
 	_, err := pool.Exec(t.Context(), "INSERT INTO users (phone) VALUES ('998901234567')")
+	require.NoError(t, err)
+	_, err = pool.Exec(t.Context(), `WITH c AS (INSERT INTO companies (name, end_date) VALUES ('Olma', CURRENT_DATE) RETURNING id)
+		INSERT INTO user_companies (user_phone, company_id, role) SELECT '998901234567', id, 'owner' FROM c`)
 	require.NoError(t, err)
 	api := &fakeAPI{}
 
