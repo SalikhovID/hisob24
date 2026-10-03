@@ -21,5 +21,13 @@ export function BillingHistory({ companyId }: { companyId: number }) {
   if (billings.isPending) return <Loading rows={2} />
   if (billings.isError) return <Failed error={billings.error} onRetry={() => billings.refetch()} />
   if (billings.data.length === 0) return <EmptyState title="Hali to'lovlar yo'q" />
-  return <DataList label="Billing tarixi" items={billings.data} columns={columns} getKey={(b) => b.id} />
+  return (
+    <DataList
+      label="Billing tarixi"
+      items={billings.data}
+      columns={columns}
+      getKey={(b) => b.id}
+      footer={`Jami: ${billings.data.length}`}
+    />
+  )
 }

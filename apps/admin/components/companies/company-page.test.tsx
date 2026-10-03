@@ -148,6 +148,27 @@ test("the billing history lists the payments, newest first", async () => {
   ])
 })
 
+test("the billing history ends with its total", async () => {
+  db.billings[1] = [
+    {
+      id: 10,
+      company_id: 1,
+      days: 30,
+      amount: "150000.50",
+      prev_end_date: "2026-10-02",
+      new_end_date: "2026-11-01",
+      note: "Naqd",
+      created_by: OWNER_ID,
+      created_at: "2026-09-02T06:00:00Z",
+    },
+  ]
+
+  renderWithProviders(<CompanyPage id={1} />)
+
+  await screen.findByRole("table", { name: "Billing tarixi" })
+  expect(within(screen.getByRole("region", { name: "Billing tarixi" })).getByText("Jami: 1")).toBeInTheDocument()
+})
+
 test("a company without payments says so", async () => {
   renderWithProviders(<CompanyPage id={2} />)
 
