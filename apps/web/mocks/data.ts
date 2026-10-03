@@ -71,15 +71,15 @@ function seed(): Db {
     members: {
       [ALI]: [{ companyId: 1, role: "owner" }],
       [VALI]: [
-        { companyId: 1, role: "manager" },
+        { companyId: 1, role: "user" },
         { companyId: 2, role: "owner" },
       ],
       [SARDOR]: [
         { companyId: 3, role: "owner" },
-        { companyId: 1, role: "staff" },
-        { companyId: 4, role: "staff" },
+        { companyId: 1, role: "user" },
+        { companyId: 4, role: "user" },
       ],
-      [ZARINA]: [{ companyId: 3, role: "owner" }],
+      [ZARINA]: [{ companyId: 3, role: "user" }],
     },
     codes: {},
     sentAt: {},

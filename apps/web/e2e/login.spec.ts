@@ -45,7 +45,7 @@ test("someone in two companies chooses one and can switch to the other", async (
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByText("Olma Savdo")).toBeVisible()
-  await expect(page.getByText("Menejer")).toBeVisible()
+  await expect(page.getByText("Xodim")).toBeVisible()
 
   const switchLink = page.getByRole("link", { name: "Kompaniyani almashtirish" })
   // It reads as an outlined button, not as bare text.

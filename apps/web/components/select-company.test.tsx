@@ -23,7 +23,7 @@ test("lists the companies to choose from with the role in each", async () => {
   expect(screen.getByRole("heading", { name: "Kompaniyani tanlang" })).toBeInTheDocument()
   expect(nok).toHaveTextContent("Egasi")
   expect(nok).toBeEnabled()
-  expect(screen.getByRole("button", { name: /Olma Savdo/ })).toHaveTextContent("Menejer")
+  expect(screen.getByRole("button", { name: /Olma Savdo/ })).toHaveTextContent("Xodim")
 })
 
 test("expired and blocked companies are shown with a badge but cannot be chosen", async () => {
