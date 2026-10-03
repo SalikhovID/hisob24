@@ -46,6 +46,9 @@ type Querier interface {
 	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
+	// The company's owner stays in it as a user: the step before another owner
+	// is set.
+	DemoteCompanyOwner(ctx context.Context, companyID int64) error
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
 	// The admin behind a live session; an expired session or a deactivated
 	// admin gives pgx.ErrNoRows.

@@ -44,6 +44,17 @@ func (q *Queries) AddCompanyUser(ctx context.Context, arg AddCompanyUserParams) 
 	return i, err
 }
 
+const demoteCompanyOwner = `-- name: DemoteCompanyOwner :exec
+UPDATE user_companies SET role = 'user' WHERE company_id = $1 AND role = 'owner'
+`
+
+// The company's owner stays in it as a user: the step before another owner
+// is set.
+func (q *Queries) DemoteCompanyOwner(ctx context.Context, companyID int64) error {
+	_, err := q.db.Exec(ctx, demoteCompanyOwner, companyID)
+	return err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT phone, full_name, created_at FROM users WHERE phone = $1
 `

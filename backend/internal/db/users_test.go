@@ -113,6 +113,27 @@ func TestSetCompanyOwner(t *testing.T) {
 	assert.Equal(t, "23505", sqlState(err), "the owner before has to step down first") // unique_violation
 }
 
+func TestDemoteCompanyOwner(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma := createCompany(t, q, "Olma", d)
+	nok := createCompany(t, q, "Nok", d)
+	addMember(t, q, olma.ID, "998901111111", "Ali", "owner")
+	addMember(t, q, nok.ID, "998902222222", "Vali", "owner")
+
+	require.NoError(t, q.DemoteCompanyOwner(ctx, olma.ID))
+
+	roleIn := func(companyID int64) string {
+		var role string
+		require.NoError(t, pool.QueryRow(ctx, "SELECT role FROM user_companies WHERE company_id = $1", companyID).Scan(&role))
+		return role
+	}
+	assert.Equal(t, "user", roleIn(olma.ID), "the owner stays in the company as a user")
+	assert.Equal(t, "owner", roleIn(nok.ID), "another company's owner is left alone")
+	assert.NoError(t, q.DemoteCompanyOwner(ctx, olma.ID), "a company without an owner is fine")
+}
+
 func TestUpsertCompanyUser(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()

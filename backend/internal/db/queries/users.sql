@@ -55,3 +55,8 @@ INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, 'owner', $3)
 ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', full_name = EXCLUDED.full_name
 RETURNING *;
+
+-- name: DemoteCompanyOwner :exec
+-- The company's owner stays in it as a user: the step before another owner
+-- is set.
+UPDATE user_companies SET role = 'user' WHERE company_id = $1 AND role = 'owner';
