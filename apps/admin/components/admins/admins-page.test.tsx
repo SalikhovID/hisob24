@@ -1,11 +1,17 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
-import { http, HttpResponse } from "msw"
+import { delay, http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { db } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { AdminsPage } from "./admins-page"
+
+// hang never answers: what was sent stays on its way.
+const hang = async () => {
+  await delay("infinite")
+  return new HttpResponse(null)
+}
 
 function rowsOf(table: HTMLElement) {
   return within(table).getAllByRole("row").slice(1)
@@ -184,4 +190,19 @@ test("when the API refuses to turn an admin off, it says why", async () => {
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Kamida bitta faol admin qolishi kerak")).toBeInTheDocument()
+})
+
+test("while a new admin is on its way the dialog's button says so", async () => {
+  server.use(http.post("*/api/admin/admins", hang))
+  const { user } = renderWithProviders(<AdminsPage />)
+
+  await user.click(screen.getByRole("button", { name: "Admin qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Admin qo'shish" })
+  await user.type(within(dialog).getByLabelText("Telegram ID"), "1000000001")
+  await user.type(within(dialog).getByLabelText("Ism"), "Yangi Admin")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  const add = within(dialog).getByRole("button", { name: "Qo'shish" })
+  await waitFor(() => expect(add).toBeDisabled())
+  expect(add).toHaveAttribute("aria-busy", "true")
 })

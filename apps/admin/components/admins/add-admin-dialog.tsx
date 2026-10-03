@@ -7,6 +7,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
+import { PendingButton } from "@/components/pending-button"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -64,9 +65,9 @@ export function AddAdminDialog() {
           </FieldGroup>
           {add.isError && <FieldError>{add.error.message}</FieldError>}
           <DialogFooter>
-            <Button type="submit" disabled={add.isPending}>
+            <PendingButton type="submit" pending={add.isPending}>
               Qo&apos;shish
-            </Button>
+            </PendingButton>
           </DialogFooter>
         </form>
       </DialogContent>
