@@ -6,12 +6,15 @@ import { formatAmount, formatDate } from "@/lib/format"
 import { useBillings } from "@/lib/queries"
 import type { Billing } from "@/lib/types"
 
+// A payment reads as a ledger line: the day it was made, what it bought, what
+// was paid, the period it moved, and a note. A payment with no amount or no
+// note has none: the table marks the gap with a dash, a card leaves it out.
 const columns: Column<Billing>[] = [
-  { header: "Sana", cell: (b) => formatDate(b.created_at), primary: true },
-  { header: "Kunlar", cell: (b) => `+${b.days} kun` },
-  { header: "Summa", cell: (b) => formatAmount(b.amount) },
-  { header: "Davr", cell: (b) => `${formatDate(b.prev_end_date)} → ${formatDate(b.new_end_date)}` },
-  { header: "Izoh", cell: (b) => b.note ?? "—" },
+  { header: "Sana", primary: true, cell: (b) => formatDate(b.created_at) },
+  { header: "Kunlar", card: "tag", cell: (b) => `+${b.days} kun` },
+  { header: "Summa", card: "aside", cell: (b) => b.amount !== null && formatAmount(b.amount) },
+  { header: "Davr", card: "tag", cell: (b) => `${formatDate(b.prev_end_date)} → ${formatDate(b.new_end_date)}` },
+  { header: "Izoh", card: "note", cell: (b) => b.note },
 ]
 
 // BillingHistory lists a company's payments, newest first.

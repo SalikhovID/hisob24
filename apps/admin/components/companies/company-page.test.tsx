@@ -148,6 +148,69 @@ test("the billing history lists the payments, newest first", async () => {
   ])
 })
 
+test("on a phone a payment is a card: the day and the amount, then the days and the period, the note last", async () => {
+  db.billings[1] = [
+    {
+      id: 11,
+      company_id: 1,
+      days: 7,
+      amount: null,
+      prev_end_date: "2026-11-01",
+      new_end_date: "2026-11-08",
+      note: null,
+      created_by: OWNER_ID,
+      created_at: "2026-10-02T06:00:00Z",
+    },
+    {
+      id: 10,
+      company_id: 1,
+      days: 30,
+      amount: "150000.50",
+      prev_end_date: "2026-10-02",
+      new_end_date: "2026-11-01",
+      note: "Naqd",
+      created_by: OWNER_ID,
+      created_at: "2026-09-02T06:00:00Z",
+    },
+  ]
+  // A card's part is a list of names and values.
+  const pairs = (card: HTMLElement, slot: string) =>
+    Array.from(card.querySelectorAll(`[data-slot="${slot}"] > div`)).map((pair) => [
+      pair.querySelector("dt")?.textContent,
+      pair.querySelector("dd")?.textContent,
+    ])
+  const cardOf = (card: HTMLElement) => ({
+    title: card.querySelector('[data-slot="data-list-title"]')?.textContent,
+    aside: pairs(card, "data-list-aside"),
+    line: pairs(card, "data-list-meta"),
+    note: pairs(card, "data-list-note"),
+  })
+
+  renderWithProviders(<CompanyPage id={1} />)
+
+  const [bare, full] = within(await screen.findByRole("list", { name: "Billing tarixi" })).getAllByRole("listitem")
+  expect(cardOf(full)).toEqual({
+    title: "02.09.2026",
+    aside: [["Summa", "150\u00a0000,50"]],
+    line: [
+      ["Kunlar", "+30 kun"],
+      ["Davr", "02.10.2026 → 01.11.2026"],
+    ],
+    note: [["Izoh", "Naqd"]],
+  })
+  // A payment with no amount and no note keeps no place for them: no dash on a card.
+  expect(cardOf(bare)).toEqual({
+    title: "02.10.2026",
+    aside: [],
+    line: [
+      ["Kunlar", "+7 kun"],
+      ["Davr", "01.11.2026 → 08.11.2026"],
+    ],
+    note: [],
+  })
+  expect(within(bare).queryByText("—")).not.toBeInTheDocument()
+})
+
 test("the billing history ends with its total", async () => {
   db.billings[1] = [
     {
