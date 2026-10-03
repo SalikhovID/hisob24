@@ -193,6 +193,61 @@ func TestReplaceOwner(t *testing.T) {
 	assert.Equal(t, "Egasi", nameIn(t, pool, c.ID, "998900000001"), "under the same name")
 }
 
+// addEmployee makes phone a user of the company under name.
+func addEmployee(t *testing.T, pool *pgxpool.Pool, companyID int64, phone, name string) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(), "INSERT INTO users (phone, full_name) VALUES ($1, $2) ON CONFLICT DO NOTHING", phone, name)
+	require.NoError(t, err)
+	_, err = pool.Exec(t.Context(),
+		"INSERT INTO user_companies (user_phone, company_id, role, full_name) VALUES ($1, $2, 'user', $3)", phone, companyID, name)
+	require.NoError(t, err)
+}
+
+func TestReplaceOwnerPromotesAMember(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+
+	m, err := s.ReplaceOwner(t.Context(), c.ID, "998902223344", "Yangi Egasi")
+
+	require.NoError(t, err)
+	assert.Equal(t, "owner", m.Role)
+	assert.Equal(t, map[string]string{"998900000001": "user", "998902223344": "owner"}, rolesOf(t, pool, c.ID),
+		"the member is promoted, not added again")
+	assert.Equal(t, "Yangi Egasi", nameIn(t, pool, c.ID, "998902223344"), "under the name given")
+}
+
+func TestReplaceOwnerWithTheOwnersOwnPhone(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	m, err := s.ReplaceOwner(t.Context(), c.ID, "998900000001", "Egasining Yangi Ismi")
+
+	require.NoError(t, err)
+	assert.Equal(t, "owner", m.Role)
+	assert.Equal(t, map[string]string{"998900000001": "owner"}, rolesOf(t, pool, c.ID), "the owner stays the owner")
+	assert.Equal(t, "Egasining Yangi Ismi", nameIn(t, pool, c.ID, "998900000001"), "only the name changes")
+}
+
+func TestReplaceOwnerWithAUserOfAnotherCompany(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	d := dbToday(t, pool)
+	olma := mustCreate(t, s, "Olma", d)
+	nok, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: d, OwnerPhone: "998902223344", OwnerFullName: "Vali Aliyev"}, ownerID)
+	require.NoError(t, err)
+
+	_, err = s.ReplaceOwner(ctx, olma.ID, "998902223344", "Vali (Olma)")
+
+	require.NoError(t, err)
+	assert.Equal(t, "Vali (Olma)", nameIn(t, pool, olma.ID, "998902223344"), "the name in this company")
+	assert.Equal(t, map[string]string{"998902223344": "owner"}, rolesOf(t, pool, nok.ID), "the other company is left alone")
+	assert.Equal(t, "Vali Aliyev", nameIn(t, pool, nok.ID, "998902223344"))
+	var userName string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT full_name FROM users WHERE phone = '998902223344'").Scan(&userName))
+	assert.Equal(t, "Vali Aliyev", userName, "the user's own name stays")
+}
+
 func TestReplaceOwnerIsAtomic(t *testing.T) {
 	s, pool := newService(t)
 	c := mustCreate(t, s, "Olma", dbToday(t, pool))
