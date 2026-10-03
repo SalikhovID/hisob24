@@ -1,16 +1,18 @@
 "use client"
 
-import { MenuIcon, UserIcon } from "lucide-react"
+import { LogOutIcon, MenuIcon, UserIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatPhone } from "@/lib/phone"
-import { useMe } from "@/lib/queries"
+import { useLogout, useMe } from "@/lib/queries"
 
 // Topbar is the bar above every page of the app: on a phone the button that
 // brings the sections out (the sidebar is hidden there) and the company's
@@ -33,10 +35,11 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   )
 }
 
-// ProfileMenu is who is signed in: the name they go by in the company and
-// their phone.
+// ProfileMenu is who is signed in (the name they go by in the company and
+// their phone) and the way out.
 function ProfileMenu() {
   const me = useMe()
+  const logout = useLogout()
   const user = me.data?.user
   const name = user ? (user.full_name ?? formatPhone(user.phone)) : null
 
@@ -55,6 +58,11 @@ function ProfileMenu() {
             </DropdownMenuLabel>
           </DropdownMenuGroup>
         )}
+        {user && <DropdownMenuSeparator />}
+        <DropdownMenuItem variant="destructive" disabled={logout.isPending} onClick={() => logout.mutate()}>
+          <LogOutIcon />
+          Chiqish
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
