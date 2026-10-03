@@ -109,8 +109,11 @@ func (s *Service) whyNotAnEmployee(ctx context.Context, companyID int64, phone s
 func (s *Service) RemoveEmployee(ctx context.Context, companyID int64, phone string) error {
 	normalized, err := user.NormalizePhone(phone)
 	if err != nil {
-		return err
+		return errEmployeeNotFound // no member has such a phone
 	}
 	_, err = s.q.RemoveCompanyUser(ctx, gen.RemoveCompanyUserParams{UserPhone: normalized, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return s.whyNotAnEmployee(ctx, companyID, normalized)
+	}
 	return err
 }

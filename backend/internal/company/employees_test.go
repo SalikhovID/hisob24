@@ -195,3 +195,34 @@ func TestRemoveEmployee(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM users WHERE phone = '998902223344'").Scan(&users))
 	assert.Equal(t, 1, users, "the user stays")
 }
+
+func TestRemoveEmployeeRefusals(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	d := dbToday(t, pool)
+	c := mustCreate(t, s, "Olma", d)
+	other, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: d, OwnerPhone: "998909999999", OwnerFullName: "Begona"}, ownerID)
+	require.NoError(t, err)
+	addEmployee(t, pool, other.ID, "998903334455", "Begona Xodim")
+	for name, tc := range map[string]struct {
+		phone         string
+		kind          apperr.Kind
+		code, message string
+	}{
+		"the owner":         {"998900000001", apperr.Conflict, "cannot_change_owner", "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi"},
+		"another company's": {"998903334455", apperr.NotFound, "not_found", "Xodim topilmadi"},
+		"no such user":      {"998907777777", apperr.NotFound, "not_found", "Xodim topilmadi"},
+		"not a phone":       {"12ab", apperr.NotFound, "not_found", "Xodim topilmadi"},
+	} {
+		err := s.RemoveEmployee(ctx, c.ID, tc.phone)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.kind, e.Kind, name)
+			assert.Equal(t, tc.code, e.Code, name)
+			assert.Equal(t, tc.message, e.Message, name)
+		}
+	}
+	assert.Equal(t, map[string]string{"998900000001": "owner"}, rolesOf(t, pool, c.ID), "the owner stays")
+	assert.Equal(t, map[string]string{"998909999999": "owner", "998903334455": "user"}, rolesOf(t, pool, other.ID),
+		"another company's employee is out of reach")
+}
