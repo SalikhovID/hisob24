@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -116,4 +117,51 @@ func TestAddEmployeeRefusals(t *testing.T) {
 	rec := api.do(t, http.MethodPost, "/app/employees", `{"phone":"998903334455","full_name":"Sardor"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee adds nobody")
 	assert.Len(t, members(t, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner))), 2, "nobody was added")
+}
+
+// login signs in a user who is in the database already: the tokens and the
+// refresh token's cookie.
+func (api testAPI) login(t *testing.T, phone string) (map[string]any, *http.Cookie) {
+	t.Helper()
+	require.Equal(t, http.StatusOK, api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"`+phone+`"}`).Code)
+	rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"`+phone+`","code":"`+api.sms.code(t, phone)+`"}`)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	return decode(t, rec), refreshCookieOf(t, rec)
+}
+
+func TestAPhoneAddedByASecondCompanySignsInToChooseBetweenThem(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	nokOwner, _ := api.signIn(t, valisPhone, map[int64]string{nok: "owner"})
+
+	// Nok's owner adds Ali, who owns Olma.
+	rec := api.do(t, http.MethodPost, "/app/employees", `{"phone":"`+alisPhone+`","full_name":"Ali (hisobchi)"}`, bearer(nokOwner))
+
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	added := decode(t, rec)
+	assert.Equal(t, "Ali (hisobchi)", added["full_name"], "the answer a new phone would get: nothing of the other company shows")
+	assert.Equal(t, "user", added["role"])
+
+	tokens, refresh := api.login(t, alisPhone)
+	assert.Nil(t, tokens["company_id"], "a member of two companies chooses one at sign-in")
+	access, _ := tokens["access_token"].(string)
+	me := decode(t, api.do(t, http.MethodGet, "/app/me", "", bearer(access)))
+	companies, _ := me["companies"].([]any)
+	roles := map[any]any{}
+	for _, c := range companies {
+		company, _ := c.(map[string]any)
+		roles[company["name"]] = company["role"]
+	}
+	assert.Equal(t, map[any]any{"Olma": "owner", "Nok": "user"}, roles, "with a role of their own in each")
+
+	rec = api.do(t, http.MethodPost, "/app/auth/switch-company", fmt.Sprintf(`{"company_id":%d}`, nok), bearer(access), cookie(refresh))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	access, _ = decode(t, rec)["access_token"].(string)
+	me = decode(t, api.do(t, http.MethodGet, "/app/me", "", bearer(access)))
+	user, _ := me["user"].(map[string]any)
+	assert.Equal(t, "Ali (hisobchi)", user["full_name"], "and under the name that company gave them")
+	assert.Equal(t, http.StatusForbidden, api.do(t, http.MethodGet, "/app/employees", "", bearer(access)).Code,
+		"an owner elsewhere, a user here: Nok's employees are not theirs to see")
 }
