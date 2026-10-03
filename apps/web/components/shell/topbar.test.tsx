@@ -1,10 +1,12 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { accessToken } from "@/lib/session"
+import { setMiniApp } from "@/lib/telegram"
 import { ALI, SARDOR, VALI } from "@/mocks/data"
 import { leave } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { chooseCompany, signIn } from "@/test/session"
+import { fakeWebApp } from "@/test/telegram"
 import { Topbar } from "./topbar"
 
 test("the menu button asks for the sections, and the profile menu says who is signed in", async () => {
@@ -55,4 +57,26 @@ test.each([
   expect(await screen.findByRole("menuitem", { name: "Chiqish" })).toBeInTheDocument()
   await within(screen.getByRole("menu")).findByText(/\+998/)
   expect(screen.queryByRole("menuitem", { name: "Kompaniyani almashtirish" })).not.toBeInTheDocument()
+})
+
+test("the theme button switches between light and dark", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  const toggle = screen.getByRole("button", { name: "Mavzuni almashtirish" })
+
+  await user.click(toggle)
+  await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
+  await user.click(toggle)
+  await waitFor(() => expect(document.documentElement).not.toHaveClass("dark"))
+})
+
+test("inside Telegram there is no sign-out or theme button: closing the Mini App is the way out", async () => {
+  setMiniApp(fakeWebApp())
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+
+  expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Profil" }))
+  expect(await within(await screen.findByRole("menu")).findByText("Ali Valiyev")).toBeInTheDocument()
+  expect(screen.queryByRole("menuitem", { name: "Chiqish" })).not.toBeInTheDocument()
 })
