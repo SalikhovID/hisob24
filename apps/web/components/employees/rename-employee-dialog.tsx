@@ -7,6 +7,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
+import { ActionTooltip } from "@/components/action-tooltip"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import {
@@ -57,17 +58,19 @@ export function RenameEmployeeDialog({ companyId, employee }: { companyId: numbe
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Ismni o'zgartirish: ${employee.full_name ?? formatPhone(employee.phone)}`}
-          />
-        }
-      >
-        <PencilIcon />
-      </DialogTrigger>
+      <ActionTooltip label="Ismni o'zgartirish">
+        <DialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Ismni o'zgartirish: ${employee.full_name ?? formatPhone(employee.phone)}`}
+            />
+          }
+        >
+          <PencilIcon />
+        </DialogTrigger>
+      </ActionTooltip>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Ismni o&apos;zgartirish</DialogTitle>

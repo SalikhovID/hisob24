@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, db, membersOf, VALI } from "@/mocks/data"
@@ -95,6 +95,18 @@ test("on a phone a member is a card: role and date in one line, the actions at i
   expect(within(actions).getByRole("button", { name: "O'chirish: Vali Aliyev" })).toBeInTheDocument()
   // Nothing can be done with the owner here: no place is kept for actions.
   expect(owner.querySelector('[data-slot="data-list-actions"]')).not.toBeInTheDocument()
+})
+
+test("an employee's actions say what they do when the keyboard reaches them", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+  const [, vali] = await rows()
+
+  act(() => within(vali).getByRole("button", { name: "Ismni o'zgartirish: Vali Aliyev" }).focus())
+  expect(await screen.findByText("Ismni o'zgartirish")).toBeInTheDocument()
+
+  act(() => within(vali).getByRole("button", { name: "O'chirish: Vali Aliyev" }).focus())
+  expect(await screen.findByText("O'chirish")).toBeInTheDocument()
 })
 
 test("an employee is sent home: the page is the owner's", async () => {

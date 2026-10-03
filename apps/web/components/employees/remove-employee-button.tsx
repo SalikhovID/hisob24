@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { ActionTooltip } from "@/components/action-tooltip"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -47,9 +48,11 @@ export function RemoveEmployeeButton({
 
   return (
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label={`O'chirish: ${name}`} />}>
-        <Trash2Icon />
-      </AlertDialogTrigger>
+      <ActionTooltip label="O'chirish">
+        <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label={`O'chirish: ${name}`} />}>
+          <Trash2Icon />
+        </AlertDialogTrigger>
+      </ActionTooltip>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Xodimni o&apos;chirasizmi?</AlertDialogTitle>
