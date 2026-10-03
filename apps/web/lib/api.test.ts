@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, VALI } from "@/mocks/data"
+import { ALI, db, LOGIN_CODE, VALI } from "@/mocks/data"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { api, ApiError, call } from "./api"
@@ -120,4 +120,21 @@ test("someone taken out of the company they work in goes on without it", async (
   expect(me.company).toBeNull()
   expect(me.companies.map((company) => company.name)).toEqual(["Nok Market"])
   expect(accessToken()).toMatch(new RegExp(`^access:${VALI}:none:`))
+})
+
+test("someone taken out of their only company is signed out, with no way back in", async () => {
+  await signIn(ALI)
+  db.members[ALI] = []
+
+  const err = await call(api.GET("/app/me")).catch((e: unknown) => e)
+
+  expect(err).toMatchObject({ status: 401, code: "unauthorized" })
+  expect(accessToken()).toBeNull()
+  // Asking for a code gets the same answer as ever, but no code to sign in with.
+  db.cooldown = false
+  await expect(sendCode()).resolves.toEqual({ retry_after: 60 })
+  const again = await call(api.POST("/app/auth/sms/verify", { body: { phone: ALI, code: LOGIN_CODE } })).catch(
+    (e: unknown) => e,
+  )
+  expect(again).toMatchObject({ status: 401, code: "invalid_code" })
 })

@@ -63,6 +63,12 @@ function isMember(phone: string, companyId: number): boolean {
   return companiesOf(phone).some((company) => company.id === companyId)
 }
 
+// maySignIn is the API's rule for who gets in: a member of at least one
+// company. A phone in no company gets no code and no session.
+function maySignIn(phone: string): boolean {
+  return companiesOf(phone).length > 0
+}
+
 export const handlers = [
   http.post(api("/app/auth/sms/send"), async ({ request }) => {
     const { phone: raw } = (await request.json()) as { phone?: string }
@@ -72,7 +78,7 @@ export const handlers = [
       return fail(429, "too_many_requests", "Kodni qayta olish uchun bir daqiqa kuting")
     }
     db.sentAt[phone] = Date.now()
-    if (phone in db.users) db.codes[phone] = LOGIN_CODE
+    if (maySignIn(phone)) db.codes[phone] = LOGIN_CODE
     return HttpResponse.json({ retry_after: 60 })
   }),
 
@@ -99,7 +105,7 @@ export const handlers = [
     }
     const phone = db.contacts[user.id]
     if (!phone) return fail(403, "phone_not_shared", "Telefon raqamingiz botga ulanmagan")
-    if (!(phone in db.users)) {
+    if (!maySignIn(phone)) {
       return fail(
         403,
         "no_access",
@@ -125,6 +131,10 @@ export const handlers = [
       return fail(401, "invalid_refresh_token", "Sessiya tugagan. Qayta kiring", { "Set-Cookie": clearCookie })
     }
     db.refresh.delete(presented)
+    // Taken out of every company: the session is over.
+    if (!maySignIn(session.phone)) {
+      return fail(401, "invalid_refresh_token", "Sessiya tugagan. Qayta kiring", { "Set-Cookie": clearCookie })
+    }
     // The membership as it is now: a company the user was taken out of is
     // not kept.
     const companyId = session.companyId !== null && isMember(session.phone, session.companyId) ? session.companyId : null
