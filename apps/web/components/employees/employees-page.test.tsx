@@ -69,6 +69,15 @@ test("the page says how many members the company has", async () => {
   expect(screen.getByText("Kompaniyangiz a'zolari · 3 kishi")).toBeInTheDocument()
 })
 
+test("the list ends with its total", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+
+  expect(await rows()).toHaveLength(3)
+
+  expect(screen.getByText("Jami: 3")).toBeInTheDocument()
+})
+
 test("an employee is sent home: the page is the owner's", async () => {
   await signIn(VALI)
   await chooseCompany(1)

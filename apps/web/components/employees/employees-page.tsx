@@ -86,7 +86,13 @@ export function EmployeesPage() {
       {employees.isPending && <Loading />}
       {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}
       {employees.data && (
-        <DataList label="Xodimlar" items={employees.data} columns={columns} getKey={(m) => m.phone} />
+        <DataList
+          label="Xodimlar"
+          items={employees.data}
+          columns={columns}
+          getKey={(m) => m.phone}
+          footer={`Jami: ${employees.data.length}`}
+        />
       )}
       {employees.data?.every((m) => m.role === "owner") && (
         <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
