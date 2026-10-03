@@ -17,8 +17,10 @@ export interface Column<T> {
   // own beside the column's name. "inline" and "tag" share one line under
   // the title, the tags first: an inline value follows its column's name (a
   // bare date could be any date); a tag (a badge) says what it is by itself,
-  // so its name is kept for screen readers only.
-  card?: "row" | "inline" | "tag"
+  // so its name is kept for screen readers only. "aside" is the figure the
+  // record is read for (an amount): it stands at the card's top, across from
+  // the title, its name for screen readers only.
+  card?: "row" | "inline" | "tag" | "aside"
   // align puts a column of figures (day counts, amounts) at the end of its
   // cells, so the digits line up.
   align?: "end"
@@ -35,8 +37,9 @@ const present = (value: ReactNode) => value !== null && value !== undefined && v
 const filled = (value: ReactNode) => (present(value) ? value : <span className="text-muted-foreground">—</span>)
 
 // DataList shows records as a table on wide screens and as cards on phones:
-// the title and the actions at the top, the tags and inline values in a line
-// under the title, every other value labeled with its column's name. A value that is not
+// the title, an aside figure and the actions at the top, the tags and inline
+// values in a line under the title, every other value labeled with its
+// column's name. A value that is not
 // there is a dash in the table and takes no place in the card. The footer
 // (a total, the pager) closes the list once, whichever of the two is on
 // screen.
@@ -127,21 +130,22 @@ export function DataList<T>({
               .filter(wanted)
               .map((column) => ({ column, value: column.cell(item) }))
               .filter(({ value }) => present(value))
-          const lined = (column: Column<T>) => column.card === "inline" || column.card === "tag"
+          // shown are a card's values of one kind; the title and the actions
+          // have places of their own.
+          const shown = (kind: NonNullable<Column<T>["card"]>) =>
+            valuesOf((column) => !column.primary && !column.actions && (column.card ?? "row") === kind)
           const actions = valuesOf((column) => !!column.actions)
+          const aside = shown("aside")
           // A badge leads the line: it is what the eye looks for first.
-          const inline = [
-            ...valuesOf((column) => !column.primary && !column.actions && column.card === "tag"),
-            ...valuesOf((column) => !column.primary && !column.actions && column.card === "inline"),
-          ]
-          const labeled = valuesOf((column) => !column.primary && !column.actions && !lined(column))
+          const inline = [...shown("tag"), ...shown("inline")]
+          const labeled = shown("row")
           return (
             // The card is a grid so that what it shows at its top right (the
             // actions) can come last in the source: a screen reader meets the
             // record before what can be done with it.
             <li
               key={getKey(item)}
-              className="grid grid-cols-[minmax(0,1fr)_auto] rounded-xl border bg-card p-4 text-sm"
+              className="grid grid-cols-[minmax(0,1fr)_auto_auto] rounded-xl border bg-card p-4 text-sm"
             >
               <div data-slot="data-list-title" className="col-start-1 row-start-1 min-w-0 font-medium">
                 {columns
@@ -150,10 +154,20 @@ export function DataList<T>({
                     <div key={column.header}>{title(column, item)}</div>
                   ))}
               </div>
+              {aside.length > 0 && (
+                <dl data-slot="data-list-aside" className="col-start-2 row-start-1 ml-3 grid justify-items-end gap-1">
+                  {aside.map(({ column, value }) => (
+                    <div key={column.header}>
+                      <dt className="sr-only">{column.header}</dt>
+                      <dd className="font-medium whitespace-nowrap">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
               {inline.length > 0 && (
                 <dl
                   data-slot="data-list-meta"
-                  className="col-span-2 row-start-2 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground"
+                  className="col-span-3 row-start-2 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground"
                 >
                   {inline.map(({ column, value }) => (
                     <div key={column.header} className="flex items-center gap-1.5">
@@ -164,7 +178,7 @@ export function DataList<T>({
                 </dl>
               )}
               {labeled.length > 0 && (
-                <dl data-slot="data-list-values" className="col-span-2 row-start-3 mt-3 grid gap-1.5">
+                <dl data-slot="data-list-values" className="col-span-3 row-start-3 mt-3 grid gap-1.5">
                   {labeled.map(({ column, value }) => (
                     <div key={column.header} className="flex items-baseline justify-between gap-3">
                       <dt className="text-[0.8125rem] text-muted-foreground">{column.header}</dt>
@@ -178,7 +192,7 @@ export function DataList<T>({
                   role="group"
                   aria-label={actions[0].column.header}
                   data-slot="data-list-actions"
-                  className="col-start-2 row-start-1 -mt-1 -mr-2 ml-3 flex shrink-0 items-center gap-2 self-start"
+                  className="col-start-3 row-start-1 -mt-1 -mr-2 ml-3 flex shrink-0 items-center gap-2 self-start"
                 >
                   {actions.map(({ column, value }) => (
                     <span key={column.header} className="contents">

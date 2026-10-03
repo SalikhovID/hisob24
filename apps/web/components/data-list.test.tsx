@@ -231,3 +231,33 @@ test("DataList's card says what the record is before what can be done with it", 
     "data-list-actions",
   ])
 })
+
+test("DataList puts a card's aside value at its top, beside the title, its name kept for screen readers", () => {
+  const payments = [
+    { id: 1, date: "02.10.2026", amount: "150 000,50" },
+    { id: 2, date: "02.09.2026", amount: null },
+  ]
+  type Payment = (typeof payments)[number]
+  const paymentColumns = [
+    { header: "Sana", cell: (p: Payment) => p.date, primary: true },
+    { header: "Summa", cell: (p: Payment) => p.amount, card: "aside" as const },
+  ]
+
+  render(<DataList label="Billing tarixi" items={payments} columns={paymentColumns} getKey={(p) => p.id} />)
+
+  const [paid, free] = within(screen.getByRole("list", { name: "Billing tarixi" })).getAllByRole("listitem")
+  // The figure stands alone for the eye; a screen reader is told what it is.
+  const name = within(paid).getByText("Summa")
+  expect(name).toHaveClass("sr-only")
+  const aside = paid.querySelector('[data-slot="data-list-aside"]')
+  expect(aside).toContainElement(name)
+  expect(aside).toHaveTextContent("150 000,50")
+  // It follows the title: the card's top line is the date and the amount.
+  expect(Array.from(paid.children).map((part) => part.getAttribute("data-slot"))).toEqual([
+    "data-list-title",
+    "data-list-aside",
+  ])
+  // No amount, no place kept for it.
+  expect(free.querySelector('[data-slot="data-list-aside"]')).not.toBeInTheDocument()
+  expect(within(free).queryByText("Summa")).not.toBeInTheDocument()
+})
