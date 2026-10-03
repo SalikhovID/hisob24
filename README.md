@@ -165,8 +165,8 @@ BotFather menyusidagi nomlar Telegram yangilanishlari bilan biroz o'zgarishi mum
    - Telegram ichida panel `initData` bilan o'zi kiradi: kod so'ralmaydi.
 5. **User bot (Mini App).**
    - Menu tugmasini API ishga tushganda o'zi qo'yadi: "Hisob24" → `WEB_APP_URL` (faqat https).
-   - Mini App ochilganda foydalanuvchi **login'siz** kiradi, agar uning Telegram akkaunti botga raqam yuborgan bo'lsa va bu raqam `users` jadvalida bo'lsa (admin uni biror company'ga qo'shgan).
-   - Raqam tizimda yo'q bo'lsa, "Kirish huquqi yo'q" va raqam ko'rsatiladi.
+   - Mini App ochilganda foydalanuvchi **login'siz** kiradi, agar uning Telegram akkaunti botga raqam yuborgan bo'lsa va bu raqam kamida bitta kompaniyaga a'zo bo'lsa (admin uni kompaniya egasi qilgan yoki egasi xodim qilib qo'shgan; qoidalar: `logic/user.md`).
+   - Raqam hech bir kompaniyaga a'zo bo'lmasa, "Kirish huquqi yo'q" va raqam ko'rsatiladi.
    - Raqam hali yuborilmagan bo'lsa, "Raqamni yuborish" tugmasi chiqadi. Telegram `requestContact` raqamni botga yuboradi va kirish qayta uriniladi.
    - Bot `/start` ga hozirgidek raqam so'raydi.
 6. **Mini App'ni lokal sinash.** Telegram faqat https manzilni ochadi.

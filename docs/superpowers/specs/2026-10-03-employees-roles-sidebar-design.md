@@ -238,3 +238,24 @@ Amalga oshirishda belgilangan tafsilotlar:
   - `TestAddUser*`, `TestAddCompanyUser`, `TestUpsertCompanyUser`, admin "User qo'shish" va `memberSchema` testlari o'chirildi: kod o'chgan. O'rnida `TestReplaceOwner*`, `TestReplaceCompanyOwner`, `TestAddCompanyUser` (yangi so'rov), `TestSetCompanyOwner`, "Egasini almashtirish" va `ownerSchema` testlari.
   - `TestAdminRoutesNeedASession` ro'yxatida yangi route.
   - Web mock'da Anor Servis'ning ikkinchi owner'i (Zarina) `user` bo'ldi.
+
+## 2-bosqich qarorlari (2026-10-03)
+
+Bajarildi: kirish a'zolik bo'yicha (`HasCompany`), `Refresh` a'zoliksiz sessiyani tugatadi, `requireAccess` va `requireOwner`, `company` servisida xodimlar, `/app/employees` (GET, POST, PATCH, DELETE), web mock'ida kirish qoidalari. Reja: `docs/superpowers/plans/2026-10-03-employees-stage2-employees-api.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Tekshiruv tartibi** (`/app` ning `auth` dan tashqari qismi): token (401) → a'zolik (401 `unauthorized`) → obuna (402) → owner (403 `owner_only`). Muddati o'tgan kompaniyaning owner'i ham `/app/employees` da 402 oladi.
+- **Rol manbai.** `requireAccess` rolni bazadan o'qib context'ga qo'yadi (`currentRole`), `requireOwner` shuni ishlatadi. Token'dagi `role` claim'i avvalgidek beriladi, lekin ruxsatda ishlatilmaydi. Mutatsiya bilan tekshirildi: claim'ga ishonilsa, egasi almashgandan keyingi test yiqiladi.
+- **`Refresh`.** A'zoligi qolmagan user uchun token bekor qilingan holda qoladi, yangisi berilmaydi, javob 401 `invalid_refresh_token` (cookie o'chiriladi).
+- **Xodim API'si.**
+  - `{phone}` saqlangan ko'rinishda; noto'g'ri raqam 404 `not_found` ("Xodim topilmadi").
+  - `PATCH` va `DELETE` bitta `… AND role = 'user'` so'rovi. Qator qaytmasa sabab `GetUserCompany` bilan aniqlanadi: owner → 409 `cannot_change_owner`, aks holda 404. Boshqa kompaniya xodimi ham 404: kompaniya doim token'dan olinadi.
+  - `POST` javobi yangi raqam va boshqa kompaniyadagi raqam uchun bir xil (201, kiritilgan ism).
+  - Kompaniya mavjudligi alohida tekshirilmaydi: uni `requireAccess` allaqachon tasdiqlagan.
+- **`cmd/api/main.go`:** bitta `company.Service` admin va app API'siga beriladi.
+- **Web.** `lib/api.ts` o'zgarmadi: mavjud "401 `unauthorized` → refresh → qayta yuborish" oqimi yangi qoidani o'zi hal qiladi. Buni ikki test ko'rsatadi (kompaniyadan chiqarilgan a'zo kompaniyasiz davom etadi; yagona kompaniyasidan chiqarilgan user sessiyasi tugaydi). Mock'dagi `/app/employees` handler'lari va a'zolik ismlari 4-bosqichda, sahifa testlari bilan yoziladi.
+- **O'zgargan mavjud testlar** (talab o'zgargani uchun):
+  - Kompaniyasiz user bilan kirgan yoki SMS kutgan testlarda userga kompaniya berildi: `TestSendCode`, `TestLogout`, `TestMeNeedsAValidAccessToken`, `TestAdminAndUserTokensDoNotCross`, Mini App cookie testlari (app); `TestSendCode*`, `TestLogoutRevokesTheRefreshToken` (auth); `TestSaveLinksAChatToAPhone` (user); `TestSharedContactIsKept` (userbot).
+  - `TestRefreshFollowsTheMembershipAsItIsNow`: userga ikkinchi kompaniya berildi; yagona a'zolik o'chgan holat endi alohida testda (sessiya tugaydi).
+  - O'chirildi (kodi o'chgan): `TestUserExists`, `TestIsCompanySubscriptionActive`, `TestSubscriptionActive`. O'rnida `TestHasCompany`, `TestGetCompanyAccess`, `TestAccess`.
