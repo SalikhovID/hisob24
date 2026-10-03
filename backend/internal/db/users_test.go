@@ -134,27 +134,6 @@ func TestDemoteCompanyOwner(t *testing.T) {
 	assert.NoError(t, q.DemoteCompanyOwner(ctx, olma.ID), "a company without an owner is fine")
 }
 
-func TestUpsertCompanyUser(t *testing.T) {
-	q, pool := setup(t)
-	ctx := t.Context()
-	c := createCompany(t, q, "Olma", today(t, pool))
-	createUser(t, q, "998901234567", "Ali")
-
-	m, err := q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "user"})
-	require.NoError(t, err)
-	assert.Equal(t, "user", m.Role)
-
-	m, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "owner"})
-	require.NoError(t, err)
-	assert.Equal(t, "owner", m.Role, "a member gets the new role")
-	var members int
-	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM user_companies WHERE company_id = $1", c.ID).Scan(&members))
-	assert.Equal(t, 1, members)
-
-	_, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "boss"})
-	assert.Equal(t, "23514", sqlState(err), "role is owner or user") // check_violation
-}
-
 func TestListCompanyUsers(t *testing.T) {
 	q, pool := setup(t)
 	d := today(t, pool)

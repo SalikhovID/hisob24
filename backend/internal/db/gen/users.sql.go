@@ -214,33 +214,6 @@ func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams
 	return i, err
 }
 
-const upsertCompanyUser = `-- name: UpsertCompanyUser :one
-INSERT INTO user_companies (user_phone, company_id, role)
-VALUES ($1, $2, $3)
-ON CONFLICT (user_phone, company_id) DO UPDATE SET role = EXCLUDED.role
-RETURNING user_phone, company_id, role, created_at, full_name
-`
-
-type UpsertCompanyUserParams struct {
-	UserPhone string
-	CompanyID int64
-	Role      string
-}
-
-// Adds the user to the company; a member already there gets the new role.
-func (q *Queries) UpsertCompanyUser(ctx context.Context, arg UpsertCompanyUserParams) (UserCompany, error) {
-	row := q.db.QueryRow(ctx, upsertCompanyUser, arg.UserPhone, arg.CompanyID, arg.Role)
-	var i UserCompany
-	err := row.Scan(
-		&i.UserPhone,
-		&i.CompanyID,
-		&i.Role,
-		&i.CreatedAt,
-		&i.FullName,
-	)
-	return i, err
-}
-
 const upsertUser = `-- name: UpsertUser :exec
 INSERT INTO users (phone, full_name)
 VALUES ($1, $2)

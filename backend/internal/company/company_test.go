@@ -102,58 +102,6 @@ func TestCreateValidation(t *testing.T) {
 	assert.Zero(t, companies, "nothing is written")
 }
 
-func TestAddUser(t *testing.T) {
-	s, pool := newService(t)
-	c := mustCreate(t, s, "Olma", dbToday(t, pool))
-
-	m, err := s.AddUser(t.Context(), c.ID, "90 222 33 44", " Xodim ", "user")
-	require.NoError(t, err)
-	assert.Equal(t, "998902223344", m.Phone)
-	require.NotNil(t, m.FullName)
-	assert.Equal(t, "Xodim", *m.FullName)
-	assert.Equal(t, "user", m.Role)
-
-	m, err = s.AddUser(t.Context(), c.ID, "998902223344", "Boshqa Ism", "user")
-	require.NoError(t, err)
-	assert.Equal(t, "user", m.Role)
-	require.NotNil(t, m.FullName)
-	assert.Equal(t, "Xodim", *m.FullName, "a member keeps the name")
-}
-
-func TestAddUserIsAtomic(t *testing.T) {
-	s, pool := newService(t)
-	c := mustCreate(t, s, "Olma", dbToday(t, pool))
-	pgtest.FailInserts(t, pool, "user_companies")
-
-	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "user")
-
-	require.Error(t, err)
-	var exists bool
-	require.NoError(t, pool.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM users WHERE phone = '998902223344')").Scan(&exists))
-	assert.False(t, exists, "no user without the membership")
-}
-
-func TestAddUserRefusals(t *testing.T) {
-	s, pool := newService(t)
-	c := mustCreate(t, s, "Olma", dbToday(t, pool))
-	for name, tc := range map[string]struct {
-		companyID             int64
-		phone, fullName, role string
-		kind                  apperr.Kind
-	}{
-		"unknown company": {c.ID + 1, "998902223344", "Xodim", "user", apperr.NotFound},
-		"bad role":        {c.ID, "998902223344", "Xodim", "boss", apperr.Invalid},
-		"bad phone":       {c.ID, "12ab", "Xodim", "user", apperr.Invalid},
-		"no name":         {c.ID, "998902223344", " ", "user", apperr.Invalid},
-	} {
-		_, err := s.AddUser(t.Context(), tc.companyID, tc.phone, tc.fullName, tc.role)
-		var e *apperr.Error
-		if assert.ErrorAs(t, err, &e, name) {
-			assert.Equal(t, tc.kind, e.Kind, name)
-		}
-	}
-}
-
 // rolesOf is each member's role in the company, by phone.
 func rolesOf(t *testing.T, pool *pgxpool.Pool, companyID int64) map[string]string {
 	t.Helper()
@@ -417,8 +365,7 @@ func kindOf(t *testing.T, err error) apperr.Kind {
 func TestGet(t *testing.T) {
 	s, pool := newService(t)
 	c := mustCreate(t, s, "Olma", dbToday(t, pool).AddDate(0, 0, 3))
-	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "user")
-	require.NoError(t, err)
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
 
 	d, err := s.Get(t.Context(), c.ID)
 

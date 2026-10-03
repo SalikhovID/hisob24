@@ -92,8 +92,6 @@ type Querier interface {
 	SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
-	// Adds the user to the company; a member already there gets the new role.
-	UpsertCompanyUser(ctx context.Context, arg UpsertCompanyUserParams) (UserCompany, error)
 	// Stores a new code unless the last one went out less than cooldown_seconds
 	// ago: 0 rows affected means "too soon" (429).
 	UpsertSMSCode(ctx context.Context, arg UpsertSMSCodeParams) (int64, error)
