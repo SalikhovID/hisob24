@@ -49,3 +49,8 @@ UPDATE companies SET end_date = $2 WHERE id = $1;
 SELECT (end_date >= CURRENT_DATE AND is_active)::boolean AS active
 FROM companies
 WHERE id = $1;
+
+-- name: LockCompany :one
+-- Locks the company for a change of its owner, so two changes take turns;
+-- pgx.ErrNoRows when there is no such company.
+SELECT id FROM companies WHERE id = $1 FOR UPDATE;

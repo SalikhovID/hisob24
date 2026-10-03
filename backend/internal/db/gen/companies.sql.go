@@ -140,6 +140,19 @@ func (q *Queries) ListCompanies(ctx context.Context, arg ListCompaniesParams) ([
 	return items, nil
 }
 
+const lockCompany = `-- name: LockCompany :one
+SELECT id FROM companies WHERE id = $1 FOR UPDATE
+`
+
+// Locks the company for a change of its owner, so two changes take turns;
+// pgx.ErrNoRows when there is no such company.
+func (q *Queries) LockCompany(ctx context.Context, id int64) (int64, error) {
+	row := q.db.QueryRow(ctx, lockCompany, id)
+	var id_2 int64
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
 const lockCompanyEndDate = `-- name: LockCompanyEndDate :one
 SELECT end_date, CURRENT_DATE::date AS today
 FROM companies

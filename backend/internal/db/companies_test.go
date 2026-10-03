@@ -154,6 +154,24 @@ func TestLockCompanyEndDate(t *testing.T) {
 	assert.Equal(t, "55P03", sqlState(err), "the row stays locked until the transaction ends")
 }
 
+func TestLockCompany(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+	tx, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
+
+	id, err := q.WithTx(tx).LockCompany(ctx, c.ID)
+
+	require.NoError(t, err)
+	assert.Equal(t, c.ID, id)
+	_, err = pool.Exec(ctx, "SELECT 1 FROM companies WHERE id = $1 FOR UPDATE NOWAIT", c.ID)
+	assert.Equal(t, "55P03", sqlState(err), "the row stays locked until the transaction ends")
+	_, err = q.WithTx(tx).LockCompany(ctx, c.ID+1)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "no such company")
+}
+
 func TestSetCompanyEndDate(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
