@@ -80,3 +80,18 @@ func TestRolesAreOwnerAndUser(t *testing.T) {
 		"INSERT INTO user_companies (user_phone, company_id) VALUES ('998903333333', $1) RETURNING role", c).Scan(&role))
 	assert.Equal(t, "user", role, "a member is a user unless made the owner")
 }
+
+func TestACompanyHasOneOwner(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998901111111', $1, 'owner')", olma)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998902222222', $1, 'owner')", olma)
+	assert.Equal(t, "23505", sqlState(err), "a second owner of the company") // unique_violation
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998902222222', $1, 'owner')", nok)
+	assert.NoError(t, err, "the owner of another company")
+}
