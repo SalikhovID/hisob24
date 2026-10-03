@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { ALI, VALI } from "@/mocks/data"
+import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { chooseCompany, signIn } from "@/test/session"
 import { Sidebar, type SidebarProps } from "./sidebar"
@@ -36,4 +37,13 @@ test("an employee sees no section of the owner's", async () => {
 
   expect(await within(sidebar()).findByText("Olma Savdo")).toBeInTheDocument()
   expect(sections()).toEqual(["Bosh sahifa"])
+})
+
+test("the section the page belongs to is marked", async () => {
+  await signIn(ALI)
+  setLocation("/employees")
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(await within(sidebar()).findByRole("link", { name: "Xodimlar" })).toHaveAttribute("aria-current", "page")
+  expect(within(sidebar()).getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current")
 })
