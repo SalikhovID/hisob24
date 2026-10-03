@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, VALI } from "@/mocks/data"
+import { ALI, membersOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -101,4 +101,46 @@ test("an employee is added from the dialog and joins the list", async () => {
     expect((await rows()).map(phoneAndName)).toContainEqual(["+998 90 777 88 99", "Yangi Xodim"]),
   )
   expect(within((await rows())[3]).getByText("Xodim")).toBeInTheDocument()
+})
+
+test("the add-employee dialog says what is missing, and why the API refused", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+  await rows()
+  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Telefon raqamini to'liq kiriting")).toBeInTheDocument()
+  expect(within(dialog).getByText("Ismni kiriting")).toBeInTheDocument()
+
+  // The owner's own number is a member already.
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901234567")
+  await user.type(within(dialog).getByLabelText("Ism"), "Ali")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).toBeInTheDocument()
+  // The dialog stays open with the reason; nobody was added.
+  expect(screen.getByRole("dialog", { name: "Xodim qo'shish" })).toBeInTheDocument()
+  expect(membersOf(1)).toHaveLength(3)
+})
+
+test("a dialog opened again starts empty, with the last refusal gone", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+  await rows()
+  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
+  let dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901234567")
+  await user.type(within(dialog).getByLabelText("Ism"), "Ali")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  await within(dialog).findByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")
+
+  await user.click(within(dialog).getByRole("button", { name: "Yopish" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
+  dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
+
+  expect(within(dialog).getByLabelText("Telefon raqami")).toHaveValue("")
+  expect(within(dialog).getByLabelText("Ism")).toHaveValue("")
+  expect(within(dialog).queryByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).not.toBeInTheDocument()
 })
