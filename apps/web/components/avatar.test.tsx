@@ -10,3 +10,11 @@ test("Avatar shows a name's initials in its seed's tone, as decoration", () => {
   expect(avatar).toHaveAttribute("aria-hidden", "true")
   expect(avatar).toHaveAttribute("data-tone", String(tone("998901234567")))
 })
+
+test("Avatar without a name shows an icon instead", () => {
+  const { container } = render(<Avatar name={null} seed="998944445566" />)
+
+  const avatar = container.querySelector('[data-slot="avatar"]')
+  expect(avatar).toHaveTextContent("")
+  expect(avatar?.querySelector("svg")).toBeInTheDocument()
+})

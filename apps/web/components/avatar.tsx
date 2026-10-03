@@ -1,3 +1,4 @@
+import { type LucideIcon, UserIcon } from "lucide-react"
 import { initials, tone } from "@/lib/initials"
 import { cn } from "@/lib/utils"
 
@@ -13,15 +14,18 @@ const tints = [
 ]
 
 // Avatar is the round mark beside a name: its initials, in the tint its seed
-// (a phone, an ID) always gets. It is decoration: the name itself is beside
-// it, so assistive technology skips it.
+// (a phone, an ID) always gets, or an icon when there is no name to take
+// them from. It is decoration: the name itself is beside it, so assistive
+// technology skips it.
 export function Avatar({
   name,
   seed,
+  icon: Icon = UserIcon,
   className,
 }: {
   name: string | null | undefined
   seed: string | number
+  icon?: LucideIcon
   className?: string
 }) {
   const place = tone(seed)
@@ -36,7 +40,7 @@ export function Avatar({
         className,
       )}
     >
-      {initials(name)}
+      {initials(name) ?? <Icon className="size-4" />}
     </span>
   )
 }
