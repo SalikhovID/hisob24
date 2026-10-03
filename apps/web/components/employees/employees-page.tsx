@@ -5,7 +5,7 @@ import { useEffect } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
-import { Failed, Loading } from "@/components/states"
+import { Failed, ListLoading } from "@/components/states"
 import { RoleBadge } from "@/components/role-badge"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/format"
@@ -52,19 +52,22 @@ export function EmployeesPage() {
         />
       ),
     },
+    { header: "Rol", card: "tag", className: "w-28", cell: (m) => <RoleBadge role={m.role} /> },
     {
-      header: "Rol",
-      card: "tag",
-      cell: (m) => <RoleBadge role={m.role} />,
+      header: "Qo'shilgan",
+      card: "inline",
+      // Beside the open sidebar a narrow table has no room for it: the date
+      // is context, and the card on a phone still shows it.
+      className: "w-32 text-muted-foreground max-lg:hidden",
+      cell: (m) => formatDate(m.created_at),
     },
-    { header: "Qo'shilgan", card: "inline", cell: (m) => formatDate(m.created_at) },
     {
       header: "Amallar",
       actions: true,
       // The owner is the admin panel's to change: only employees get these.
       cell: (m) =>
         m.role === "user" && (
-          <span className="inline-flex items-center justify-end gap-1">
+          <span className="inline-flex items-center justify-end gap-1 max-md:gap-2">
             <RenameEmployeeDialog companyId={companyId} employee={m} />
             <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />
           </span>
@@ -73,7 +76,7 @@ export function EmployeesPage() {
   ]
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4">
+    <div className="mx-auto w-full max-w-3xl space-y-5">
       <PageHeader
         title="Xodimlar"
         description={
@@ -81,7 +84,7 @@ export function EmployeesPage() {
         }
         actions={<AddEmployeeDialog companyId={companyId} />}
       />
-      {employees.isPending && <Loading />}
+      {employees.isPending && <ListLoading />}
       {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}
       {employees.data && (
         <DataList
@@ -93,7 +96,7 @@ export function EmployeesPage() {
         />
       )}
       {employees.data?.every((m) => m.role === "owner") && (
-        <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+        <p className="px-1 text-sm text-pretty text-muted-foreground md:px-4">
           Hali xodim yo&apos;q. Xodim qo&apos;shsangiz, u o&apos;z telefon raqami bilan tizimga kiradi.
         </p>
       )}

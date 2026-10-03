@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { ActionTooltip } from "@/components/action-tooltip"
+import { PendingButton } from "@/components/pending-button"
+import { Refusal } from "@/components/refusal"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { FieldError, FieldGroup } from "@/components/ui/field"
+import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { formatPhone } from "@/lib/phone"
 import { employeesKey } from "@/lib/queries"
@@ -64,6 +66,7 @@ export function RenameEmployeeDialog({ companyId, employee }: { companyId: numbe
             <Button
               variant="ghost"
               size="icon"
+              className="text-muted-foreground hover:text-foreground max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1"
               aria-label={`Ismni o'zgartirish: ${employee.full_name ?? formatPhone(employee.phone)}`}
             />
           }
@@ -80,11 +83,11 @@ export function RenameEmployeeDialog({ companyId, employee }: { companyId: numbe
           <FieldGroup>
             <TextField control={form.control} name="full_name" label="Ism" autoComplete="off" />
           </FieldGroup>
-          {rename.isError && <FieldError>{rename.error.message}</FieldError>}
+          {rename.isError && <Refusal>{rename.error.message}</Refusal>}
           <DialogFooter>
-            <Button type="submit" disabled={rename.isPending}>
+            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={rename.isPending}>
               Saqlash
-            </Button>
+            </PendingButton>
           </DialogFooter>
         </form>
       </DialogContent>

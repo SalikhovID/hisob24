@@ -5,6 +5,7 @@ import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { ActionTooltip } from "@/components/action-tooltip"
+import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -49,7 +50,16 @@ export function RemoveEmployeeButton({
   return (
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <ActionTooltip label="O'chirish">
-        <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label={`O'chirish: ${name}`} />}>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1"
+              aria-label={`O'chirish: ${name}`}
+            />
+          }
+        >
           <Trash2Icon />
         </AlertDialogTrigger>
       </ActionTooltip>
@@ -62,9 +72,9 @@ export function RemoveEmployeeButton({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
-          <Button variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate()}>
+          <PendingButton variant="destructive" pending={remove.isPending} onClick={() => remove.mutate()}>
             O&apos;chirish
-          </Button>
+          </PendingButton>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
