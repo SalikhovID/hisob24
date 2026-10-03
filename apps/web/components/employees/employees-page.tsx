@@ -6,6 +6,7 @@ import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useEmployees, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
@@ -58,6 +59,7 @@ export function EmployeesPage() {
         </span>
       ),
     },
+    { header: "Qo'shilgan", cell: (m) => formatDate(m.created_at) },
     {
       header: "Amallar",
       // The owner is the admin panel's to change: only employees get these.

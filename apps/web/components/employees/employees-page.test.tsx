@@ -50,6 +50,16 @@ test("a member without a name goes by their phone", async () => {
   expect(within(vali).getAllByText("+998 90 222 33 44")).toHaveLength(1)
 })
 
+test("the list says when each member joined", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+
+  const members = await rows()
+  const headers = within(screen.getByRole("table", { name: "Xodimlar" })).getAllByRole("columnheader")
+  expect(headers.map((header) => header.textContent)).toContain("Qo'shilgan")
+  members.forEach((member) => expect(within(member).getByText("02.10.2026")).toBeInTheDocument())
+})
+
 test("an employee is sent home: the page is the owner's", async () => {
   await signIn(VALI)
   await chooseCompany(1)
