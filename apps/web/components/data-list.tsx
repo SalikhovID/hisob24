@@ -14,7 +14,7 @@ export interface Column<T> {
   actions?: boolean
   // card is how a card shows the value: "row" (the default) on a line of its
   // own under the column's name; "inline" with the other inline values in
-  // one line under the title, where what they are needs no name.
+  // one line under the title, the name kept for screen readers only.
   card?: "row" | "inline"
 }
 
@@ -104,7 +104,12 @@ export function DataList<T>({
                   {inline.length > 0 && (
                     <div data-slot="data-list-meta" className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
                       {inline.map(({ column, value }) => (
-                        <span key={column.header}>{value}</span>
+                        <span key={column.header}>
+                          <span data-slot="data-list-meta-label" className="sr-only">
+                            {column.header}:{" "}
+                          </span>
+                          {value}
+                        </span>
                       ))}
                     </div>
                   )}

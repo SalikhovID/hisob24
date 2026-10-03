@@ -87,7 +87,7 @@ test("on a phone a member is a card: role and date in one line, the actions at i
 
   expect(identityOf(vali)).toEqual(["Vali Aliyev", "+998 90 222 33 44"])
   const inline = Array.from(vali.querySelectorAll('[data-slot="data-list-meta"] > *')).map((value) => value.textContent)
-  expect(inline).toEqual(["Xodim", "02.10.2026"])
+  expect(inline).toEqual(["Rol: Xodim", "Qo'shilgan: 02.10.2026"])
   expect(within(vali).queryByText("Rol")).not.toBeInTheDocument()
   expect(within(vali).queryByText("Amallar")).not.toBeInTheDocument()
   const actions = vali.querySelector<HTMLElement>('[data-slot="data-list-actions"]')!
