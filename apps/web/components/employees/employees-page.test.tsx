@@ -55,3 +55,31 @@ test("an employee is sent home: the page is the owner's", async () => {
   expect(screen.queryByRole("heading", { name: "Xodimlar" })).not.toBeInTheDocument()
   expect(asked).toBe(false)
 })
+
+test("a list that fails to load says why and can be asked for again", async () => {
+  await signIn(ALI)
+  server.use(http.get("*/api/app/employees", () => HttpResponse.error(), { once: true }))
+  const { user } = renderWithProviders(<EmployeesPage />)
+
+  expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
+
+  expect(await rows()).toHaveLength(3)
+})
+
+test("an owner with nobody added yet is told how to add someone", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  renderWithProviders(<EmployeesPage />)
+
+  expect(await rows()).toHaveLength(1)
+  expect(screen.getByText(/Hali xodim yo'q/)).toBeInTheDocument()
+})
+
+test("with employees there is no such hint", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+
+  expect(await rows()).toHaveLength(3)
+  expect(screen.queryByText(/Hali xodim yo'q/)).not.toBeInTheDocument()
+})

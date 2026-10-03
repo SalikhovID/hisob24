@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { type Column, DataList } from "@/components/data-list"
-import { Loading } from "@/components/states"
+import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { formatPhone } from "@/lib/phone"
 import { useEmployees, useMe } from "@/lib/queries"
@@ -47,8 +47,14 @@ export function EmployeesPage() {
     <div className="mx-auto w-full max-w-3xl space-y-4">
       <h1 className="text-xl font-semibold">Xodimlar</h1>
       {employees.isPending && <Loading />}
+      {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}
       {employees.data && (
         <DataList label="Xodimlar" items={employees.data} columns={columns} getKey={(m) => m.phone} />
+      )}
+      {employees.data?.every((m) => m.role === "owner") && (
+        <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Hali xodim yo&apos;q. Xodim qo&apos;shsangiz, u o&apos;z telefon raqami bilan tizimga kiradi.
+        </p>
       )}
     </div>
   )
