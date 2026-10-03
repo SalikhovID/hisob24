@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, membersOf, VALI } from "@/mocks/data"
+import { ALI, db, membersOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
@@ -38,6 +38,16 @@ test("the owner sees the company's members: themselves first, then the employees
   expect(within(members[0]).getByText("Siz")).toBeInTheDocument()
   expect(within(members[1]).getByText("Xodim")).toBeInTheDocument()
   expect(within(members[1]).queryByText("Siz")).not.toBeInTheDocument()
+})
+
+test("a member without a name goes by their phone", async () => {
+  await signIn(ALI)
+  db.users[VALI] = null
+  renderWithProviders(<EmployeesPage />)
+
+  const [, vali] = await rows()
+  expect(nameAndPhone(vali)).toEqual(["+998 90 222 33 44", null])
+  expect(within(vali).getAllByText("+998 90 222 33 44")).toHaveLength(1)
 })
 
 test("an employee is sent home: the page is the owner's", async () => {

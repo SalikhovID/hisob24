@@ -39,8 +39,14 @@ export function EmployeesPage() {
     {
       header: "A'zo",
       primary: true,
+      // A member with no name goes by the phone, which then is not said twice.
       cell: (m) => (
-        <Identity title={m.full_name ?? "—"} subtitle={formatPhone(m.phone)} name={m.full_name} seed={m.phone} />
+        <Identity
+          title={m.full_name ?? formatPhone(m.phone)}
+          subtitle={m.full_name ? formatPhone(m.phone) : undefined}
+          name={m.full_name}
+          seed={m.phone}
+        />
       ),
     },
     {
