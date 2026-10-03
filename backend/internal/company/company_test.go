@@ -248,6 +248,32 @@ func TestReplaceOwnerWithAUserOfAnotherCompany(t *testing.T) {
 	assert.Equal(t, "Vali Aliyev", userName, "the user's own name stays")
 }
 
+func TestReplaceOwnerRefusals(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	for name, tc := range map[string]struct {
+		companyID       int64
+		phone, fullName string
+		kind            apperr.Kind
+		message         string
+	}{
+		"unknown company": {c.ID + 1, "998902223344", "Yangi Egasi", apperr.NotFound, "Kompaniya topilmadi"},
+		"bad phone":       {c.ID, "12ab", "Yangi Egasi", apperr.Invalid, "Telefon raqami noto'g'ri"},
+		"no name":         {c.ID, "998902223344", " ", apperr.Invalid, "Ismni kiriting"},
+	} {
+		_, err := s.ReplaceOwner(t.Context(), tc.companyID, tc.phone, tc.fullName)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.kind, e.Kind, name)
+			assert.Equal(t, tc.message, e.Message, name)
+		}
+	}
+	assert.Equal(t, map[string]string{"998900000001": "owner"}, rolesOf(t, pool, c.ID), "a refusal changes nothing")
+	var users int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM users").Scan(&users))
+	assert.Equal(t, 1, users, "and adds no user")
+}
+
 func TestReplaceOwnerIsAtomic(t *testing.T) {
 	s, pool := newService(t)
 	c := mustCreate(t, s, "Olma", dbToday(t, pool))

@@ -61,13 +61,22 @@ func (s *Service) AddUser(ctx context.Context, companyID int64, phone, fullName,
 func (s *Service) ReplaceOwner(ctx context.Context, companyID int64, phone, fullName string) (Member, error) {
 	normalized, err := user.NormalizePhone(phone)
 	if err != nil {
-		return Member{}, err
+		return Member{}, invalid("Telefon raqami noto'g'ri")
 	}
 	name := strings.TrimSpace(fullName)
+	if name == "" {
+		return Member{}, invalid("Ismni kiriting")
+	}
 
 	var m Member
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
+		if _, err := q.GetCompany(ctx, companyID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errNotFound
+			}
+			return err
+		}
 		if err := q.UpsertUser(ctx, gen.UpsertUserParams{Phone: normalized, FullName: &name}); err != nil {
 			return err
 		}
