@@ -7,8 +7,9 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { PendingButton } from "@/components/pending-button"
+import { Refusal } from "@/components/refusal"
 import { TextField } from "@/components/text-field"
-import { FieldError, FieldGroup } from "@/components/ui/field"
+import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { keys } from "@/lib/queries"
 import { companySchema } from "@/lib/schemas"
@@ -34,24 +35,38 @@ export function NewCompanyForm() {
   })
 
   return (
-    <form onSubmit={form.handleSubmit((company) => create.mutate(company))} noValidate className="max-w-lg space-y-6">
-      <FieldGroup>
-        <TextField control={form.control} name="name" label="Kompaniya nomi" autoComplete="off" />
-        <TextField control={form.control} name="end_date" label="Tugash sanasi" type="date" />
-        <TextField
-          control={form.control}
-          name="owner_phone"
-          label="Egasining telefoni"
-          type="tel"
-          inputMode="tel"
-          placeholder="+998 90 123 45 67"
-        />
-        <TextField control={form.control} name="owner_full_name" label="Egasining ismi" autoComplete="off" />
-      </FieldGroup>
-      {create.isError && <FieldError>{create.error.message}</FieldError>}
-      <PendingButton type="submit" pending={create.isPending}>
-        Yaratish
-      </PendingButton>
+    // One sheet: the company first, its owner after a wider gap (the labels
+    // say whose each field is), what the API refused last, and the button on
+    // the band that closes the sheet.
+    <form
+      onSubmit={form.handleSubmit((company) => create.mutate(company))}
+      noValidate
+      className="max-w-lg rounded-xl border bg-card"
+    >
+      <div className="space-y-8 p-4 md:p-5">
+        <FieldGroup>
+          <TextField control={form.control} name="name" label="Kompaniya nomi" autoComplete="off" />
+          <TextField control={form.control} name="end_date" label="Tugash sanasi" type="date" className="tabular-nums" />
+        </FieldGroup>
+        <FieldGroup>
+          <TextField
+            control={form.control}
+            name="owner_phone"
+            label="Egasining telefoni"
+            type="tel"
+            inputMode="tel"
+            placeholder="+998 90 123 45 67"
+            className="tabular-nums"
+          />
+          <TextField control={form.control} name="owner_full_name" label="Egasining ismi" autoComplete="off" />
+        </FieldGroup>
+        {create.isError && <Refusal>{create.error.message}</Refusal>}
+      </div>
+      <div className="flex justify-end rounded-b-xl border-t bg-muted/50 px-4 py-3 md:px-5">
+        <PendingButton type="submit" size="lg" className="px-3.5 max-md:w-full" pending={create.isPending}>
+          Yaratish
+        </PendingButton>
+      </div>
     </form>
   )
 }
