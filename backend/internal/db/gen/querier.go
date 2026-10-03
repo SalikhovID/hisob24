@@ -91,6 +91,10 @@ type Querier interface {
 	// Locks the company for a billing transaction. today is the database's
 	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
 	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)
+	// Takes a user out of the company; the user and their other companies stay.
+	// No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
+	// someone who is not a member.
+	RemoveCompanyUser(ctx context.Context, arg RemoveCompanyUserParams) (string, error)
 	// Changes the name a user goes by in the company. No row (pgx.ErrNoRows) for
 	// the owner, whom the app never touches, and for someone who is not a member.
 	RenameCompanyUser(ctx context.Context, arg RenameCompanyUserParams) (UserCompany, error)

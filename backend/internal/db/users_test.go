@@ -207,6 +207,34 @@ func TestRenameCompanyUser(t *testing.T) {
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
 }
 
+func TestRemoveCompanyUser(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma := createCompany(t, q, "Olma", d)
+	nok := createCompany(t, q, "Nok", d)
+	addMember(t, q, olma.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, olma.ID, "998902222222", "Xodim", "user")
+	addMember(t, q, nok.ID, "998902222222", "Xodim", "user")
+
+	phone, err := q.RemoveCompanyUser(ctx, gen.RemoveCompanyUserParams{UserPhone: "998902222222", CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "998902222222", phone)
+	var inOlma, inNok, users int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM user_companies WHERE company_id = $1),
+		(SELECT count(*) FROM user_companies WHERE company_id = $2),
+		(SELECT count(*) FROM users WHERE phone = '998902222222')`, olma.ID, nok.ID).Scan(&inOlma, &inNok, &users))
+	assert.Equal(t, 1, inOlma, "the membership is gone, the owner's stays")
+	assert.Equal(t, 1, inNok, "the membership in another company stays")
+	assert.Equal(t, 1, users, "and so does the user")
+
+	_, err = q.RemoveCompanyUser(ctx, gen.RemoveCompanyUserParams{UserPhone: "998901111111", CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "the owner is not removed from the app")
+	_, err = q.RemoveCompanyUser(ctx, gen.RemoveCompanyUserParams{UserPhone: "998902222222", CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member any more")
+}
+
 func TestListCompanyUsers(t *testing.T) {
 	q, pool := setup(t)
 	d := today(t, pool)

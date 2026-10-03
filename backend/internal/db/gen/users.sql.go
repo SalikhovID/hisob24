@@ -231,6 +231,27 @@ func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]Li
 	return items, nil
 }
 
+const removeCompanyUser = `-- name: RemoveCompanyUser :one
+DELETE FROM user_companies
+WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
+RETURNING user_phone
+`
+
+type RemoveCompanyUserParams struct {
+	UserPhone string
+	CompanyID int64
+}
+
+// Takes a user out of the company; the user and their other companies stay.
+// No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
+// someone who is not a member.
+func (q *Queries) RemoveCompanyUser(ctx context.Context, arg RemoveCompanyUserParams) (string, error) {
+	row := q.db.QueryRow(ctx, removeCompanyUser, arg.UserPhone, arg.CompanyID)
+	var user_phone string
+	err := row.Scan(&user_phone)
+	return user_phone, err
+}
+
 const renameCompanyUser = `-- name: RenameCompanyUser :one
 UPDATE user_companies SET full_name = $3
 WHERE user_phone = $1 AND company_id = $2 AND role = 'user'

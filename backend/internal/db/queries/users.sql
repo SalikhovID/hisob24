@@ -74,3 +74,11 @@ WHERE uc.user_phone = $1 AND uc.company_id = $2;
 UPDATE user_companies SET full_name = $3
 WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
 RETURNING *;
+
+-- name: RemoveCompanyUser :one
+-- Takes a user out of the company; the user and their other companies stay.
+-- No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
+-- someone who is not a member.
+DELETE FROM user_companies
+WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
+RETURNING user_phone;
