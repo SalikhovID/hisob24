@@ -53,6 +53,23 @@ test("each company goes by its name, over the day it was created", async () => {
   expect(within(rows[0]).getByRole("link", { name: "Olcha Servis" })).toHaveAttribute("href", "/companies/3")
 })
 
+test("the page says how many companies the platform has, and never calls a filtered count that", async () => {
+  setLocation("/companies")
+  const { user } = renderWithProviders(<CompaniesPage />)
+
+  // The line is there from the start; the count joins it with the list.
+  expect(screen.getByText("Platformadagi kompaniyalar")).toBeInTheDocument()
+  expect(await screen.findByText("Platformadagi kompaniyalar · 3 ta")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("tab", { name: "Faol" }))
+  await waitFor(() => expect(names()).toEqual(["Nok Market", "Olma Savdo"]))
+  // Two match the tab; the platform still has three. The pager counts the matches.
+  expect(screen.getByText("Platformadagi kompaniyalar")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("tab", { name: "Hammasi" }))
+  expect(await screen.findByText("Platformadagi kompaniyalar · 3 ta")).toBeInTheDocument()
+})
+
 test("searching narrows the list, starts from the first page and stays in the address", async () => {
   setLocation("/companies?page=2")
   const { user } = renderWithProviders(<CompaniesPage />)

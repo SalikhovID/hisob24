@@ -2,8 +2,10 @@
 
 import { Building2Icon, PlusIcon } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
+import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, Loading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
@@ -40,16 +42,30 @@ const columns: Column<Company>[] = [
 export function CompaniesPage() {
   const [filter, update] = useCompanyFilter()
   const companies = useCompanies(filter)
+  // How many companies the platform has is the unfiltered list's total: under
+  // a tab or a search the API counts the matches only (the pager shows
+  // those). The total is kept from the last unfiltered answer, so it does
+  // not blink while pages turn, and a filtered number never stands in for it.
+  const unfiltered = !filter.status && !filter.search
+  const [total, setTotal] = useState<number>()
+  if (unfiltered && companies.data && !companies.isPlaceholderData && companies.data.total !== total) {
+    setTotal(companies.data.total)
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Kompaniyalar</h1>
-        <Link href="/companies/new" className={buttonVariants()}>
-          <PlusIcon />
-          Yangi kompaniya
-        </Link>
-      </div>
+      <PageHeader
+        title="Kompaniyalar"
+        description={
+          unfiltered && total !== undefined ? `Platformadagi kompaniyalar · ${total} ta` : "Platformadagi kompaniyalar"
+        }
+        actions={
+          <Link href="/companies/new" className={buttonVariants()}>
+            <PlusIcon />
+            Yangi kompaniya
+          </Link>
+        }
+      />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           value={filter.status || "all"}
