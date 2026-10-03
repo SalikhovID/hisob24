@@ -4,6 +4,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { isCurrent, type NavItem, navFor } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
@@ -20,13 +21,44 @@ export interface SidebarProps {
 
 // Sidebar is the app's sections under the name of the company the session
 // works in: the owner sees them all, an employee those open to everyone. On
-// a wide screen it is a column that folds to icons.
-export function Sidebar(props: SidebarProps) {
-  const { collapsed, onToggleCollapsed } = props
+// a wide screen it is a column that folds to icons; on a phone the column is
+// hidden and the sections come out as a sheet from the left.
+export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
   const company = me.data?.company
+  const title = company?.name ?? "Hisob24"
   const items = navFor(company?.role)
 
+  return (
+    <>
+      <Column title={title} items={items} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="left" className="gap-0 bg-sidebar text-sidebar-foreground data-[side=left]:w-72">
+          <SheetHeader className="border-b px-4 py-3 pr-12">
+            <SheetTitle className="flex items-center gap-2 text-left">
+              <Logo />
+              <span className="truncate">{title}</span>
+            </SheetTitle>
+          </SheetHeader>
+          <SidebarNav items={items} collapsed={false} onNavigate={() => onOpenChange(false)} />
+        </SheetContent>
+      </Sheet>
+    </>
+  )
+}
+
+// Column is the sidebar of a wide screen.
+function Column({
+  title,
+  items,
+  collapsed,
+  onToggleCollapsed,
+}: {
+  title: string
+  items: NavItem[]
+  collapsed: boolean
+  onToggleCollapsed: () => void
+}) {
   return (
     <aside
       aria-label="Menyu"
@@ -53,7 +85,7 @@ export function Sidebar(props: SidebarProps) {
           <>
             <div className="flex min-w-0 items-center gap-2">
               <Logo />
-              <span className="truncate font-semibold">{company?.name ?? "Hisob24"}</span>
+              <span className="truncate font-semibold">{title}</span>
             </div>
             <Button
               variant="ghost"
@@ -87,13 +119,29 @@ function Logo({ className }: { className?: string }) {
   )
 }
 
-function SidebarNav({ items, collapsed }: { items: NavItem[]; collapsed: boolean }) {
+// SidebarNav lists the sections; onNavigate lets the phone's sheet close
+// itself when one is picked.
+function SidebarNav({
+  items,
+  collapsed,
+  onNavigate,
+}: {
+  items: NavItem[]
+  collapsed: boolean
+  onNavigate?: () => void
+}) {
   const pathname = usePathname()
   return (
     <TooltipProvider>
       <nav aria-label="Bo'limlar" className="scrollbar-hide min-h-0 flex-1 overflow-y-auto py-2">
         {items.map((item) => (
-          <SidebarLink key={item.href} item={item} current={isCurrent(item.href, pathname)} collapsed={collapsed} />
+          <SidebarLink
+            key={item.href}
+            item={item}
+            current={isCurrent(item.href, pathname)}
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          />
         ))}
       </nav>
     </TooltipProvider>
@@ -103,11 +151,22 @@ function SidebarNav({ items, collapsed }: { items: NavItem[]; collapsed: boolean
 // SidebarLink is one section; the one the page belongs to stands out. Folded,
 // it is the icon alone: the name stays for screen readers and shows beside
 // it on hover.
-function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boolean; collapsed: boolean }) {
+function SidebarLink({
+  item,
+  current,
+  collapsed,
+  onNavigate,
+}: {
+  item: NavItem
+  current: boolean
+  collapsed: boolean
+  onNavigate?: () => void
+}) {
   const Icon = item.icon
   const link = (
     <Link
       href={item.href}
+      onClick={onNavigate}
       aria-current={current ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={cn(

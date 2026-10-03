@@ -71,3 +71,15 @@ test("folded, the sidebar shows icons that keep their names, and a button to unf
   await user.click(within(sidebar()).getByRole("button", { name: "Menyuni yoyish" }))
   expect(onToggleCollapsed).toHaveBeenCalledOnce()
 })
+
+test("on a phone the sections come out as a sheet, and picking one closes it", async () => {
+  await signIn(ALI)
+  const onOpenChange = vi.fn()
+  const { user } = renderWithProviders(<Sidebar {...props({ open: true, onOpenChange })} />)
+
+  const sheet = await screen.findByRole("dialog", { name: "Olma Savdo" })
+  expect(sections(sheet)).toEqual(["Bosh sahifa", "Xodimlar"])
+  await user.click(within(sheet).getByRole("link", { name: "Xodimlar" }))
+
+  expect(onOpenChange).toHaveBeenCalledWith(false)
+})
