@@ -30,11 +30,16 @@ export interface Column<T> {
 // present tells a value from one that is not there (null, false, "").
 const present = (value: ReactNode) => value !== null && value !== undefined && value !== false && value !== ""
 
+// filled is a table cell's content: the value, or a dash where there is
+// none, so the eye does not take the gap for a value still on its way.
+const filled = (value: ReactNode) => (present(value) ? value : <span className="text-muted-foreground">—</span>)
+
 // DataList shows records as a table on wide screens and as cards on phones:
 // the title and the actions at the top, the inline values under the title,
 // every other value labeled with its column's name. A value that is not
-// there takes no place in the card. The footer (a total, the pager) closes
-// the list once, whichever of the two is on screen.
+// there is a dash in the table and takes no place in the card. The footer
+// (a total, the pager) closes the list once, whichever of the two is on
+// screen.
 export function DataList<T>({
   label,
   items,
@@ -106,7 +111,7 @@ export function DataList<T>({
                         column.className,
                       )}
                     >
-                      {column.cell(item)}
+                      {column.actions ? column.cell(item) : filled(column.cell(item))}
                     </TableCell>
                   ),
                 )}

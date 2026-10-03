@@ -153,3 +153,33 @@ test("DataList names a card's actions as a group, and every table column as a co
     .getAllByRole("columnheader")
     .forEach((header) => expect(header).toHaveAttribute("scope", "col"))
 })
+
+test("DataList marks a value that is not there with a dash in the table, and leaves it out of the card", () => {
+  const payments = [
+    { id: 1, date: "02.10.2026", note: "Naqd" },
+    { id: 2, date: "02.09.2026", note: null },
+  ]
+  type Payment = (typeof payments)[number]
+  const paymentColumns = [
+    { header: "Sana", cell: (p: Payment) => p.date, primary: true },
+    { header: "Izoh", cell: (p: Payment) => p.note },
+    {
+      header: "Amallar",
+      actions: true,
+      cell: (p: Payment) => p.note !== null && <button type="button">O&apos;chirish</button>,
+    },
+  ]
+
+  render(<DataList label="Billing tarixi" items={payments} columns={paymentColumns} getKey={(p) => p.id} />)
+
+  const table = screen.getByRole("table", { name: "Billing tarixi" })
+  const [, noted, bare] = within(table).getAllByRole("row")
+  expect(within(noted).getAllByRole("cell")[0]).toHaveTextContent("Naqd")
+  const [note, actions] = within(bare).getAllByRole("cell")
+  expect(note).toHaveTextContent("—")
+  // Nothing to do is not a missing value: the actions cell stays empty.
+  expect(actions).toBeEmptyDOMElement()
+  const [, card] = within(screen.getByRole("list", { name: "Billing tarixi" })).getAllByRole("listitem")
+  expect(within(card).queryByText("Izoh")).not.toBeInTheDocument()
+  expect(within(card).queryByText("—")).not.toBeInTheDocument()
+})
