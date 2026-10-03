@@ -57,7 +57,7 @@ export function DataList<T>({
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
-                <TableHead key={column.header}>
+                <TableHead key={column.header} scope="col">
                   {column.actions ? <span className="sr-only">{column.header}</span> : column.header}
                 </TableHead>
               ))}
@@ -115,7 +115,12 @@ export function DataList<T>({
                   )}
                 </div>
                 {actions.length > 0 && (
-                  <div data-slot="data-list-actions" className="flex shrink-0 items-center gap-1">
+                  <div
+                    role="group"
+                    aria-label={actions[0].column.header}
+                    data-slot="data-list-actions"
+                    className="flex shrink-0 items-center gap-1"
+                  >
                     {actions.map(({ column, value }) => (
                       <span key={column.header} className="contents">
                         {value}

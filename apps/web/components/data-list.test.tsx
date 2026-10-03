@@ -125,3 +125,25 @@ test("DataList shows its footer once, under the records and outside the table", 
   expect(within(table).queryByText("Jami: 2")).not.toBeInTheDocument()
   expect(within(table).getAllByRole("row")).toHaveLength(3)
 })
+
+test("DataList names a card's actions as a group, and every table column as a column", () => {
+  const columnsWithActions = [
+    ...columns,
+    {
+      header: "Amallar",
+      actions: true,
+      cell: (r: (typeof rows)[number]) => (r.id === 2 ? <button type="button">O&apos;chirish</button> : null),
+    },
+  ]
+
+  render(<DataList label="Kompaniyalar" items={rows} columns={columnsWithActions} getKey={(r) => r.id} />)
+
+  const [first, second] = within(screen.getByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+  const actions = within(second).getByRole("group", { name: "Amallar" })
+  expect(within(actions).getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  expect(within(first).queryByRole("group")).not.toBeInTheDocument()
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  within(table)
+    .getAllByRole("columnheader")
+    .forEach((header) => expect(header).toHaveAttribute("scope", "col"))
+})
