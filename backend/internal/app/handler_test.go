@@ -49,6 +49,13 @@ func (b *smsBox) text(phone string) string {
 	return b.last[phone]
 }
 
+// forget drops what phone got so far, so a test can tell a new SMS.
+func (b *smsBox) forget(phone string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	delete(b.last, phone)
+}
+
 // The code is the only six-digit number in the SMS text.
 var codeInText = regexp.MustCompile(`\b\d{6}\b`)
 
