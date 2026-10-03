@@ -1,8 +1,11 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI } from "@/mocks/data"
+import { ALI, VALI } from "@/mocks/data"
+import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { server } from "@/test/server"
+import { chooseCompany, signIn } from "@/test/session"
 import { EmployeesPage } from "./employees-page"
 
 // rows are the members in the table (the page shows them as cards too, for
@@ -34,4 +37,21 @@ test("the owner sees the company's members: themselves first, then the employees
   expect(within(members[0]).getByText("Siz")).toBeInTheDocument()
   expect(within(members[1]).getByText("Xodim")).toBeInTheDocument()
   expect(within(members[1]).queryByText("Siz")).not.toBeInTheDocument()
+})
+
+test("an employee is sent home: the page is the owner's", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  let asked = false
+  server.use(
+    http.get("*/api/app/employees", () => {
+      asked = true
+      return HttpResponse.json([])
+    }),
+  )
+  renderWithProviders(<EmployeesPage />)
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+  expect(screen.queryByRole("heading", { name: "Xodimlar" })).not.toBeInTheDocument()
+  expect(asked).toBe(false)
 })

@@ -1,5 +1,7 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
@@ -10,12 +12,21 @@ import type { Member } from "@/lib/types"
 
 // EmployeesPage is the company's members, for its owner: the owner first,
 // then the employees in the order they joined, each under the name they go
-// by in this company.
+// by in this company. An employee who opens it is sent home (the API would
+// refuse them all the same): the sidebar shows them no way here.
 export function EmployeesPage() {
+  const router = useRouter()
   const me = useMe()
   const company = me.data?.company
-  const employees = useEmployees(company?.role === "owner" ? company.id : null)
-  if (!me.data || !company) return null
+  const isOwner = company?.role === "owner"
+  const employees = useEmployees(isOwner ? company.id : null)
+  const stranger = company !== undefined && company !== null && !isOwner
+
+  useEffect(() => {
+    if (stranger) router.replace("/")
+  }, [stranger, router])
+
+  if (!me.data || !isOwner) return null
   const ownPhone = me.data.user.phone
 
   const columns: Column<Member>[] = [
