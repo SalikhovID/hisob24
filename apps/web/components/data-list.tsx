@@ -24,19 +24,22 @@ const present = (value: ReactNode) => value !== null && value !== undefined && v
 // DataList shows records as a table on wide screens and as cards on phones:
 // the title and the actions at the top, the inline values under the title,
 // every other value labeled with its column's name. A value that is not
-// there takes no place in the card.
+// there takes no place in the card. The footer (a total, the pager) closes
+// the list once, whichever of the two is on screen.
 export function DataList<T>({
   label,
   items,
   columns,
   getKey,
   href,
+  footer,
 }: {
   label: string
   items: T[]
   columns: Column<T>[]
   getKey: (item: T) => Key
   href?: (item: T) => string
+  footer?: ReactNode
 }) {
   const title = (column: Column<T>, item: T) =>
     column.primary && href ? (
@@ -48,8 +51,8 @@ export function DataList<T>({
     )
 
   return (
-    <>
-      <div className="hidden rounded-xl border bg-card md:block">
+    <div data-slot="data-list" className="md:rounded-xl md:border md:bg-card">
+      <div className="hidden md:block">
         <Table aria-label={label}>
           <TableHeader>
             <TableRow>
@@ -130,6 +133,11 @@ export function DataList<T>({
           )
         })}
       </ul>
-    </>
+      {footer && (
+        <div data-slot="data-list-footer" className="mt-3 text-sm text-muted-foreground md:mt-0 md:border-t md:px-2 md:py-2">
+          {footer}
+        </div>
+      )}
+    </div>
   )
 }

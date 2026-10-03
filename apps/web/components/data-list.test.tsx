@@ -110,3 +110,14 @@ test("DataList puts a card's inline values in one line under its title, without 
   const table = screen.getByRole("table", { name: "Xodimlar" })
   expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["A'zo", "Rol", "Qo'shilgan"])
 })
+
+test("DataList shows its footer once, under the records and outside the table", () => {
+  render(
+    <DataList label="Kompaniyalar" items={rows} columns={columns} getKey={(r) => r.id} footer={<span>Jami: 2</span>} />,
+  )
+
+  expect(screen.getAllByText("Jami: 2")).toHaveLength(1)
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  expect(within(table).queryByText("Jami: 2")).not.toBeInTheDocument()
+  expect(within(table).getAllByRole("row")).toHaveLength(3)
+})
