@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
 func TestMembers(t *testing.T) {
@@ -82,4 +83,17 @@ func TestAddEmployeeRefusals(t *testing.T) {
 	var users int
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM users").Scan(&users))
 	assert.Equal(t, 2, users, "a refusal adds no user")
+}
+
+func TestAddEmployeeIsAtomic(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	pgtest.FailInserts(t, pool, "user_companies")
+
+	_, err := s.AddEmployee(t.Context(), c.ID, "998902223344", "Vali")
+
+	require.Error(t, err)
+	var exists bool
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM users WHERE phone = '998902223344')").Scan(&exists))
+	assert.False(t, exists, "no user without the membership")
 }

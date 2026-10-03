@@ -29,8 +29,8 @@ func (s *Service) Members(ctx context.Context, companyID int64) ([]Member, error
 }
 
 // AddEmployee adds the user with phone to the company as a user under
-// fullName. A phone that is no user yet becomes one; a user of other
-// companies gets one more, and stays as they are in the others.
+// fullName, in one transaction. A phone that is no user yet becomes one; a
+// user of other companies gets one more, and stays as they are in the others.
 func (s *Service) AddEmployee(ctx context.Context, companyID int64, phone, fullName string) (Member, error) {
 	normalized, err := user.NormalizePhone(phone)
 	if err != nil {
@@ -40,17 +40,24 @@ func (s *Service) AddEmployee(ctx context.Context, companyID int64, phone, fullN
 	if name == "" {
 		return Member{}, invalid("Ismni kiriting")
 	}
-	if err := s.q.UpsertUser(ctx, gen.UpsertUserParams{Phone: normalized, FullName: &name}); err != nil {
-		return Member{}, err
-	}
-	uc, err := s.q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: normalized, CompanyID: companyID, Role: "user", FullName: &name})
-	if errors.Is(err, pgx.ErrNoRows) {
-		// A member already, the owner too: nothing changes, so the owner is
-		// never made a user from the app.
-		return Member{}, errAlreadyMember
-	}
-	if err != nil {
-		return Member{}, err
-	}
-	return Member{Phone: uc.UserPhone, FullName: uc.FullName, Role: uc.Role, CreatedAt: uc.CreatedAt}, nil
+
+	var m Member
+	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		q := s.q.WithTx(tx)
+		if err := q.UpsertUser(ctx, gen.UpsertUserParams{Phone: normalized, FullName: &name}); err != nil {
+			return err
+		}
+		uc, err := q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: normalized, CompanyID: companyID, Role: "user", FullName: &name})
+		if errors.Is(err, pgx.ErrNoRows) {
+			// A member already, the owner too: nothing changes, so the
+			// owner is never made a user from the app.
+			return errAlreadyMember
+		}
+		if err != nil {
+			return err
+		}
+		m = Member{Phone: uc.UserPhone, FullName: uc.FullName, Role: uc.Role, CreatedAt: uc.CreatedAt}
+		return nil
+	})
+	return m, err
 }
