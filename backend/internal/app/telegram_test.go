@@ -93,7 +93,7 @@ func TestRefreshKeepsTheMiniAppsCookieVariant(t *testing.T) {
 
 func TestAnSMSSignInDropsTheMiniAppsCookieVariant(t *testing.T) {
 	api := newTestAPI(t)
-	api.addUser(t, alisPhone)
+	api.addOwner(t, alisPhone)
 	require.Equal(t, http.StatusOK, api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"`+alisPhone+`"}`).Code)
 
 	rec := api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"`+alisPhone+`","code":"`+api.sms.code(t, alisPhone)+`"}`)

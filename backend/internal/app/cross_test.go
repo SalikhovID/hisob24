@@ -34,7 +34,7 @@ func TestAdminAndUserTokensDoNotCross(t *testing.T) {
 	login := api.do(t, http.MethodPost, "/admin/auth/otp", `{"code":"`+issued.Code+`"}`)
 	require.Equal(t, http.StatusOK, login.Code, login.Body.String())
 	adminSession := sessionCookie(t, login)
-	access, _ := api.signIn(t, alisPhone, nil)
+	access, _ := api.signIn(t, alisPhone, map[int64]string{api.addCompany(t, "Olma", 30): "owner"})
 
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/me", "", cookie(adminSession)).Code,
 		"the admin session cookie opens no user app endpoint")

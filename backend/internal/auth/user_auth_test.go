@@ -58,9 +58,18 @@ func addUser(t *testing.T, pool *pgxpool.Pool, phone string) {
 	mustExec(t, pool, "INSERT INTO users (phone, full_name) VALUES ($1, 'Ali')", phone)
 }
 
+// addOwner makes phone a user who may sign in: the owner of a company.
+func addOwner(t *testing.T, pool *pgxpool.Pool, phone string) int64 {
+	t.Helper()
+	addUser(t, pool, phone)
+	companyID := addCompany(t, pool, "Olma", 30)
+	addMember(t, pool, phone, companyID, "owner")
+	return companyID
+}
+
 func TestSendCodeTextsAUserTheirCode(t *testing.T) {
 	a, pool, sender := newUserAuth(t)
-	addUser(t, pool, "998901234567")
+	addOwner(t, pool, "998901234567")
 
 	require.NoError(t, a.SendCode(t.Context(), "+998 90 123 45 67"))
 
@@ -84,9 +93,21 @@ func TestSendCodeToAStrangerSendsNothingButKeepsACode(t *testing.T) {
 	assert.Equal(t, 1, codes, "a code is kept all the same, so a second request within a minute is refused alike")
 }
 
-func TestSendCodeAgainWithinAMinuteIsRefusedForEveryPhone(t *testing.T) {
+func TestSendCodeToAUserOfNoCompanySendsNothing(t *testing.T) {
 	a, pool, sender := newUserAuth(t)
 	addUser(t, pool, "998901234567")
+
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+
+	assert.Empty(t, sender.messages(), "taken out of every company: no SMS, as to a stranger")
+	var codes int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM sms_codes WHERE phone = '998901234567'").Scan(&codes))
+	assert.Equal(t, 1, codes, "with the same answer and the same minute to wait")
+}
+
+func TestSendCodeAgainWithinAMinuteIsRefusedForEveryPhone(t *testing.T) {
+	a, pool, sender := newUserAuth(t)
+	addOwner(t, pool, "998901234567")
 	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
 	require.NoError(t, a.SendCode(t.Context(), "998909999999"))
 
@@ -109,7 +130,7 @@ func TestSendCodeRefusesABadPhone(t *testing.T) {
 
 func TestSendCodeThatCouldNotBeSentCanBeAskedForAgainAtOnce(t *testing.T) {
 	a, pool, sender := newUserAuth(t)
-	addUser(t, pool, "998901234567")
+	addOwner(t, pool, "998901234567")
 	sender.err = errors.New("eskiz is down")
 
 	err := a.SendCode(t.Context(), "998901234567")

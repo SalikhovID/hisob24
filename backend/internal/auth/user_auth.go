@@ -115,13 +115,14 @@ func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 	if stored == 0 {
 		return ErrTooSoon
 	}
-	// A phone that is not a user gets no SMS, but the same answer and a
-	// code nobody will see: the replies tell nothing about who signs up.
-	known, err := a.q.UserExists(ctx, phone)
+	// Only a member of a company may sign in. Any other phone gets no SMS,
+	// but the same answer and a code nobody will see: the replies tell
+	// nothing about who signs up.
+	member, err := a.q.HasCompany(ctx, phone)
 	if err != nil {
 		return err
 	}
-	if !known {
+	if !member {
 		return nil
 	}
 	if err := a.sender.Send(ctx, phone, sms.Text(code)); err != nil {

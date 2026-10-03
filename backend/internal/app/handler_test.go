@@ -118,9 +118,18 @@ func (api testAPI) addUser(t *testing.T, phone string) {
 	api.exec(t, "INSERT INTO users (phone, full_name) VALUES ($1, 'Ali Valiyev')", phone)
 }
 
+// addOwner makes phone a user who may sign in: the owner of a company.
+func (api testAPI) addOwner(t *testing.T, phone string) int64 {
+	t.Helper()
+	api.addUser(t, phone)
+	companyID := api.addCompany(t, "Olma", 30)
+	api.addMember(t, phone, companyID, "owner")
+	return companyID
+}
+
 func TestSendCode(t *testing.T) {
 	api := newTestAPI(t)
-	api.addUser(t, alisPhone)
+	api.addOwner(t, alisPhone)
 
 	rec := api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"+998 90 123 45 67"}`)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
@@ -274,7 +283,7 @@ func TestRefresh(t *testing.T) {
 
 func TestLogout(t *testing.T) {
 	api := newTestAPI(t)
-	_, refresh := api.signIn(t, alisPhone, nil)
+	_, refresh := api.signIn(t, alisPhone, map[int64]string{api.addCompany(t, "Olma", 30): "owner"})
 
 	rec := api.do(t, http.MethodPost, "/app/auth/logout", "", cookie(refresh))
 
@@ -354,7 +363,7 @@ func TestMeSaysHowManyDaysEachCompanyHasLeft(t *testing.T) {
 
 func TestMeNeedsAValidAccessToken(t *testing.T) {
 	api := newTestAPI(t)
-	access, _ := api.signIn(t, alisPhone, nil)
+	access, _ := api.signIn(t, alisPhone, map[int64]string{api.addCompany(t, "Olma", 30): "owner"})
 
 	for name, options := range map[string][]option{
 		"no token":         nil,
