@@ -341,3 +341,16 @@ test("while a new name is on its way the dialog's button says so", async () => {
   await waitFor(() => expect(save).toBeDisabled())
   expect(save).toHaveAttribute("aria-busy", "true")
 })
+
+test("while the block is on its way the confirmation's button says so", async () => {
+  server.use(http.patch("*/api/admin/companies/:id", hang))
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Bloklash" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Kompaniyani bloklaysizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "Bloklash" }))
+
+  const block = within(confirm).getByRole("button", { name: "Bloklash" })
+  await waitFor(() => expect(block).toBeDisabled())
+  expect(block).toHaveAttribute("aria-busy", "true")
+})

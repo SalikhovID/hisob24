@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { PendingButton } from "@/components/pending-button"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { keys } from "@/lib/queries"
@@ -70,9 +71,9 @@ export function CompanyActions({ company }: { company: Company }) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
-          <Button
+          <PendingButton
             variant="destructive"
-            disabled={update.isPending}
+            pending={update.isPending}
             onClick={() =>
               update.mutate(
                 { is_active: false },
@@ -86,7 +87,7 @@ export function CompanyActions({ company }: { company: Company }) {
             }
           >
             Bloklash
-          </Button>
+          </PendingButton>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
