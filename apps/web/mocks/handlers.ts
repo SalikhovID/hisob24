@@ -3,7 +3,7 @@
 // readable strings: "access:<phone>:<company|none>:<n>", "refresh:…".
 import { http, HttpResponse } from "msw"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, db, LOGIN_CODE, paidUp } from "./data"
+import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp } from "./data"
 
 const api = (path: string) => `*/api${path}`
 
@@ -61,6 +61,26 @@ function bearer(request: Request): Session | null {
 // taken out of the company since the token was issued.
 function isMember(phone: string, companyId: number): boolean {
   return companiesOf(phone).some((company) => company.id === companyId)
+}
+
+const ownerOnly = () => fail(403, "owner_only", "Bu bo'lim faqat kompaniya egasi uchun")
+const employeeNotFound = () => fail(404, "not_found", "Xodim topilmadi")
+const ownerProtected = () =>
+  fail(409, "cannot_change_owner", "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi")
+
+// ownerSession is the API's gate before the employees, in its order: the
+// token (401), the membership as it is now (401), the subscription (402),
+// the owner's role (403). The company is the token's, never the request's.
+function ownerSession(request: Request): { phone: string; companyId: number } | Response {
+  const user = bearer(request)
+  if (!user) return fail(401, "unauthorized", "Avval tizimga kiring")
+  if (user.companyId === null) return ownerOnly()
+  if (!isMember(user.phone, user.companyId)) return fail(401, "unauthorized", "Avval tizimga kiring")
+  const company = db.companies.find((c) => c.id === user.companyId)
+  if (!company || !paidUp(company)) return fail(402, "subscription_expired", "Kompaniya obunasi tugagan")
+  const membership = db.members[user.phone].find((m) => m.companyId === user.companyId)
+  if (membership?.role !== "owner") return ownerOnly()
+  return { phone: user.phone, companyId: user.companyId }
 }
 
 // maySignIn is the API's rule for who gets in: a member of at least one
@@ -175,9 +195,57 @@ export const handlers = [
     }
     const companies = companiesOf(user.phone)
     return HttpResponse.json({
-      user: { phone: user.phone, full_name: db.users[user.phone] ?? null },
+      user: { phone: user.phone, full_name: nameIn(user.phone, user.companyId) },
       company: companies.find((c) => c.id === user.companyId) ?? null,
       companies,
     })
+  }),
+
+  http.get(api("/app/employees"), ({ request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    return HttpResponse.json(membersOf(owner.companyId))
+  }),
+
+  http.post(api("/app/employees"), async ({ request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const body = (await request.json()) as { phone?: string; full_name?: string }
+    const phone = normalizePhone(body.phone ?? "")
+    if (!phone) return fail(400, "validation_error", "Telefon raqami noto'g'ri")
+    const name = body.full_name?.trim()
+    if (!name) return fail(400, "validation_error", "Ismni kiriting")
+    // A member already, the owner too: nothing changes.
+    if (isMember(phone, owner.companyId)) {
+      return fail(409, "already_member", "Bu raqam kompaniyangizga allaqachon qo'shilgan")
+    }
+    // A phone that works in another company gets the answer a new one does.
+    join(phone, owner.companyId, name)
+    return HttpResponse.json(membersOf(owner.companyId).find((m) => m.phone === phone), { status: 201 })
+  }),
+
+  http.patch(api("/app/employees/:phone"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const phone = String(params.phone)
+    const name = ((await request.json()) as { full_name?: string }).full_name?.trim()
+    if (!name) return fail(400, "validation_error", "Ismni kiriting")
+    const membership = (db.members[phone] ?? []).find((m) => m.companyId === owner.companyId)
+    if (!membership) return employeeNotFound()
+    if (membership.role === "owner") return ownerProtected()
+    membership.fullName = name
+    return HttpResponse.json(membersOf(owner.companyId).find((m) => m.phone === phone))
+  }),
+
+  http.delete(api("/app/employees/:phone"), ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const phone = String(params.phone)
+    const membership = (db.members[phone] ?? []).find((m) => m.companyId === owner.companyId)
+    if (!membership) return employeeNotFound()
+    if (membership.role === "owner") return ownerProtected()
+    // Only the membership goes: the user and their other companies stay.
+    db.members[phone] = db.members[phone].filter((m) => m !== membership)
+    return new HttpResponse(null, { status: 204 })
   }),
 ]

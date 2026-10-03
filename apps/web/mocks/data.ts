@@ -1,6 +1,6 @@
 // An in-memory copy of the user app API's data for MSW: Vitest and
 // Playwright work against the same people, companies and rules as the Go API.
-import type { AppCompany, Role } from "@/lib/types"
+import type { AppCompany, Member, Role } from "@/lib/types"
 
 export const TODAY = "2026-10-02"
 export const LOGIN_CODE = "123456"
@@ -41,10 +41,21 @@ interface Company {
   is_active: boolean
 }
 
+// Membership is a user's place in a company. fullName is the name they go by
+// there; without one the user's own shows. joined orders the members.
+interface Membership {
+  companyId: number
+  role: Role
+  joined: number
+  fullName?: string
+}
+
 interface Db {
   users: Record<string, string | null>
   companies: Company[]
-  members: Record<string, { companyId: number; role: Role }[]>
+  members: Record<string, Membership[]>
+  // joined: the counter the next membership takes its place from.
+  joined: number
   // codes: the code a phone may sign in with; sentAt: when its last code went.
   codes: Record<string, string>
   sentAt: Record<string, number>
@@ -69,18 +80,19 @@ function seed(): Db {
       { id: 4, name: "Behi Blok", end_date: addDays(TODAY, 30), is_active: false },
     ],
     members: {
-      [ALI]: [{ companyId: 1, role: "owner" }],
+      [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],
       [VALI]: [
-        { companyId: 1, role: "user" },
-        { companyId: 2, role: "owner" },
+        { companyId: 1, role: "user", joined: 2 },
+        { companyId: 2, role: "owner", joined: 3 },
       ],
       [SARDOR]: [
-        { companyId: 3, role: "owner" },
-        { companyId: 1, role: "user" },
-        { companyId: 4, role: "user" },
+        { companyId: 3, role: "owner", joined: 4 },
+        { companyId: 1, role: "user", joined: 5 },
+        { companyId: 4, role: "user", joined: 6 },
       ],
-      [ZARINA]: [{ companyId: 3, role: "user" }],
+      [ZARINA]: [{ companyId: 3, role: "user", joined: 7 }],
     },
+    joined: 7,
     codes: {},
     sentAt: {},
     refresh: new Set(),
@@ -109,4 +121,39 @@ export function companiesOf(phone: string): AppCompany[] {
       return { id: c.id, name: c.name, role, end_date: c.end_date, days_left: daysLeft(c.end_date), is_active: c.is_active }
     })
     .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// nameIn is the name phone goes by in the company: the membership's, or the
+// user's own when the membership has none.
+export function nameIn(phone: string, companyId: number | null): string | null {
+  const membership = (db.members[phone] ?? []).find((m) => m.companyId === companyId)
+  return membership?.fullName ?? db.users[phone] ?? null
+}
+
+// membersOf lists a company's members as the API does: the owner first, then
+// the users in the order they joined.
+export function membersOf(companyId: number): Member[] {
+  return Object.entries(db.members)
+    .flatMap(([phone, memberships]) =>
+      memberships.filter((m) => m.companyId === companyId).map((membership) => ({ phone, membership })),
+    )
+    .sort(
+      (a, b) =>
+        Number(b.membership.role === "owner") - Number(a.membership.role === "owner") ||
+        a.membership.joined - b.membership.joined,
+    )
+    .map(({ phone, membership }) => ({
+      phone,
+      full_name: nameIn(phone, companyId),
+      role: membership.role,
+      created_at: new Date(Date.parse(`${TODAY}T05:00:00Z`) + membership.joined * 60_000).toISOString(),
+    }))
+}
+
+// join adds phone to the company as a user under name: the user's row is
+// made when the phone is new, and kept as it is when not.
+export function join(phone: string, companyId: number, name: string) {
+  if (!(phone in db.users)) db.users[phone] = name
+  db.joined += 1
+  ;(db.members[phone] ??= []).push({ companyId, role: "user", joined: db.joined, fullName: name })
 }
