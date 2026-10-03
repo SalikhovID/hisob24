@@ -22,3 +22,12 @@ test("PageHeader with a name alone is the name alone", () => {
   expect(screen.getByRole("heading", { level: 1, name: "Adminlar" })).toBeInTheDocument()
   expect(container.querySelector("p")).not.toBeInTheDocument()
 })
+
+test("PageHeader leads back when there is a way back", () => {
+  const { rerender } = render(<PageHeader title="Olma Savdo" back={{ href: "/companies", label: "Kompaniyalar" }} />)
+
+  expect(screen.getByRole("link", { name: "Kompaniyalar" })).toHaveAttribute("href", "/companies")
+
+  rerender(<PageHeader title="Olma Savdo" />)
+  expect(screen.queryByRole("link")).not.toBeInTheDocument()
+})
