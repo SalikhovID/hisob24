@@ -184,3 +184,36 @@ func TestRenameEmployee(t *testing.T) {
 	require.Len(t, list, 2)
 	assert.Equal(t, "Vali (hisobchi)", list[1]["full_name"], "the list shows the new name")
 }
+
+func TestRenameEmployeeRefusals(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	api.addUser(t, sardorsPhone)
+	api.addMember(t, sardorsPhone, nok, "user")
+	const notFound = `{"error":"not_found","message":"Xodim topilmadi"}`
+
+	for name, tc := range map[string]struct {
+		phone, body string
+		status      int
+		want        string
+	}{
+		"the owner":         {alisPhone, `{"full_name":"Boshqa"}`, http.StatusConflict, `{"error":"cannot_change_owner","message":"Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi"}`},
+		"another company's": {sardorsPhone, `{"full_name":"Boshqa"}`, http.StatusNotFound, notFound},
+		"no such user":      {"998907777777", `{"full_name":"Boshqa"}`, http.StatusNotFound, notFound},
+		"not a phone":       {"abc", `{"full_name":"Boshqa"}`, http.StatusNotFound, notFound},
+		"no name":           {valisPhone, `{"full_name":" "}`, http.StatusBadRequest, `{"error":"validation_error","message":"Ismni kiriting"}`},
+	} {
+		rec := api.do(t, http.MethodPatch, "/app/employees/"+tc.phone, tc.body, bearer(owner))
+		assert.Equal(t, tc.status, rec.Code, name)
+		assert.JSONEq(t, tc.want, rec.Body.String(), name)
+	}
+	assert.Equal(t, http.StatusForbidden,
+		api.do(t, http.MethodPatch, "/app/employees/"+valisPhone, `{"full_name":"O'zim"}`, bearer(employee)).Code,
+		"an employee renames nobody, not even themselves")
+	var inNok *string
+	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT full_name FROM user_companies WHERE user_phone = $1", sardorsPhone).Scan(&inNok))
+	assert.Nil(t, inNok, "another company's employee is out of reach")
+}
