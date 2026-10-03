@@ -58,3 +58,26 @@ test("DataList leaves a value that is not there out of the card, not out of the 
   expect(row.getAllByRole("rowheader")).toHaveLength(1)
   expect(row.getAllByRole("cell")).toHaveLength(2)
 })
+
+test("DataList puts a record's actions at the top of its card, without the column's name", () => {
+  const columnsWithActions = [
+    ...columns,
+    {
+      header: "Amallar",
+      actions: true,
+      cell: (r: (typeof rows)[number]) => (r.id === 2 ? <button type="button">O&apos;chirish</button> : null),
+    },
+  ]
+
+  render(<DataList label="Kompaniyalar" items={rows} columns={columnsWithActions} getKey={(r) => r.id} />)
+
+  const [first, second] = within(screen.getByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+  expect(within(second).getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  expect(within(second).queryByText("Amallar")).not.toBeInTheDocument()
+  expect(second.querySelector('[data-slot="data-list-actions"]')).toBeInTheDocument()
+  // A record with nothing to do has no place kept for actions.
+  expect(first.querySelector('[data-slot="data-list-actions"]')).not.toBeInTheDocument()
+  // The table still names the column, for screen readers.
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  expect(within(table).getByRole("columnheader", { name: "Amallar" })).toBeInTheDocument()
+})
