@@ -1,10 +1,10 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { accessToken } from "@/lib/session"
-import { ALI } from "@/mocks/data"
+import { ALI, SARDOR, VALI } from "@/mocks/data"
 import { leave } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { Topbar } from "./topbar"
 
 test("the menu button asks for the sections, and the profile menu says who is signed in", async () => {
@@ -30,4 +30,29 @@ test("signing out from the profile menu ends the session and leaves for /login",
 
   await waitFor(() => expect(leave).toHaveBeenCalledWith("/login"))
   expect(accessToken()).toBeNull()
+})
+
+test("someone with another company to work in can switch to it from the profile menu", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+
+  await user.click(screen.getByRole("button", { name: "Profil" }))
+
+  expect(await screen.findByRole("menuitem", { name: "Kompaniyani almashtirish" })).toHaveAttribute("href", "/select-company")
+})
+
+test.each([
+  ["one company", ALI, null],
+  ["the others expired or blocked", SARDOR, 1],
+])("with %s the profile menu offers no switch", async (_, phone, company) => {
+  await signIn(phone)
+  if (company !== null) await chooseCompany(company)
+  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+
+  await user.click(screen.getByRole("button", { name: "Profil" }))
+
+  expect(await screen.findByRole("menuitem", { name: "Chiqish" })).toBeInTheDocument()
+  await within(screen.getByRole("menu")).findByText(/\+998/)
+  expect(screen.queryByRole("menuitem", { name: "Kompaniyani almashtirish" })).not.toBeInTheDocument()
 })

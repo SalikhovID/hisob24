@@ -1,6 +1,7 @@
 "use client"
 
-import { LogOutIcon, MenuIcon, UserIcon } from "lucide-react"
+import { ArrowLeftRightIcon, LogOutIcon, MenuIcon, UserIcon } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -11,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { unavailable } from "@/lib/companies"
 import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 
@@ -36,12 +38,14 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 }
 
 // ProfileMenu is who is signed in (the name they go by in the company and
-// their phone) and the way out.
+// their phone), the way to another company of theirs, when there is one that
+// may be used, and the way out.
 function ProfileMenu() {
   const me = useMe()
   const logout = useLogout()
   const user = me.data?.user
   const name = user ? (user.full_name ?? formatPhone(user.phone)) : null
+  const canSwitch = (me.data?.companies ?? []).filter((company) => unavailable(company) === null).length > 1
 
   return (
     <DropdownMenu>
@@ -59,6 +63,12 @@ function ProfileMenu() {
           </DropdownMenuGroup>
         )}
         {user && <DropdownMenuSeparator />}
+        {canSwitch && (
+          <DropdownMenuItem render={<Link href="/select-company" />}>
+            <ArrowLeftRightIcon />
+            Kompaniyani almashtirish
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem variant="destructive" disabled={logout.isPending} onClick={() => logout.mutate()}>
           <LogOutIcon />
           Chiqish
