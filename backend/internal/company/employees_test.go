@@ -97,3 +97,27 @@ func TestAddEmployeeIsAtomic(t *testing.T) {
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM users WHERE phone = '998902223344')").Scan(&exists))
 	assert.False(t, exists, "no user without the membership")
 }
+
+func TestAddEmployeeWhoWorksInAnotherCompany(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	d := dbToday(t, pool)
+	olma := mustCreate(t, s, "Olma", d)
+	nok, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: d, OwnerPhone: "998902223344", OwnerFullName: "Vali Aliyev"}, ownerID)
+	require.NoError(t, err)
+
+	m, err := s.AddEmployee(ctx, olma.ID, "998902223344", "Vali (hisobchi)")
+
+	require.NoError(t, err)
+	assert.Equal(t, "user", m.Role, "an owner elsewhere is a user here")
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Vali (hisobchi)", *m.FullName, "the answer a new phone would get: the name given, nothing of the other company")
+	assert.Equal(t, map[string]string{"998902223344": "owner"}, rolesOf(t, pool, nok.ID), "the other company is left alone")
+	assert.Equal(t, "Vali Aliyev", nameIn(t, pool, nok.ID, "998902223344"))
+	var userName string
+	var companies int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT full_name, (SELECT count(*) FROM user_companies WHERE user_phone = phone)
+		FROM users WHERE phone = '998902223344'`).Scan(&userName, &companies))
+	assert.Equal(t, "Vali Aliyev", userName, "the user's own name stays")
+	assert.Equal(t, 2, companies, "one user, a member of both companies")
+}
