@@ -5,6 +5,7 @@ import { type ReactNode, useEffect } from "react"
 import { Failed, Loading } from "@/components/states"
 import { subscriptionExpired } from "@/lib/api"
 import { useMe } from "@/lib/queries"
+import { useSidebar } from "@/lib/use-sidebar"
 import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
 
@@ -16,6 +17,7 @@ import { Topbar } from "./topbar"
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const me = useMe()
+  const sidebar = useSidebar()
   const away = subscriptionExpired(me.error) ? "/expired" : me.data?.company === null ? "/select-company" : null
 
   useEffect(() => {
@@ -24,9 +26,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-dvh overflow-hidden">
-      <Sidebar open={false} onOpenChange={() => {}} collapsed={false} onToggleCollapsed={() => {}} />
+      <Sidebar
+        open={sidebar.open}
+        onOpenChange={sidebar.setOpen}
+        collapsed={sidebar.collapsed}
+        onToggleCollapsed={sidebar.toggleCollapsed}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenuClick={() => {}} />
+        <Topbar onMenuClick={() => sidebar.setOpen(true)} />
         <main className="h-0 flex-1 overflow-auto p-4 md:p-6">
           {me.isPending ? (
             <Loading rows={2} />

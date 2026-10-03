@@ -51,3 +51,28 @@ test("a session that fails to load says why and can be asked for again", async (
 
   expect(await screen.findByText("Sahifa mazmuni")).toBeInTheDocument()
 })
+
+test("the menu button brings the sections out, and picking one puts them away", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  await user.click(screen.getByRole("button", { name: "Menyu" }))
+  const sheet = await screen.findByRole("dialog", { name: "Olma Savdo" })
+  await user.click(within(sheet).getByRole("link", { name: "Xodimlar" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+})
+
+test("the sidebar folds, and a page opened later finds it folded", async () => {
+  await signIn(ALI)
+  const first = renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  await first.user.click(screen.getByRole("button", { name: "Menyuni yig'ish" }))
+  expect(await screen.findByRole("button", { name: "Menyuni yoyish" })).toBeInTheDocument()
+  first.unmount()
+
+  renderWithProviders(<AppShell>{page}</AppShell>)
+  expect(await screen.findByRole("button", { name: "Menyuni yoyish" })).toBeInTheDocument()
+})
