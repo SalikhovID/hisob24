@@ -21,6 +21,9 @@ export const test = base.extend<Fixtures>({
       const network = defineNetworkFixture({ context, handlers })
       await network.enable()
       await provide(network)
+      // The pages go first: a request one of them sends once the mock is
+      // gone would reach the dev server, whose API_URL leads nowhere.
+      await Promise.all(context.pages().map((page) => page.close()))
       await network.disable()
     },
     { auto: true },
