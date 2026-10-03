@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -150,6 +151,46 @@ func TestAddUserRefusals(t *testing.T) {
 			assert.Equal(t, tc.kind, e.Kind, name)
 		}
 	}
+}
+
+// rolesOf is each member's role in the company, by phone.
+func rolesOf(t *testing.T, pool *pgxpool.Pool, companyID int64) map[string]string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), "SELECT user_phone, role FROM user_companies WHERE company_id = $1", companyID)
+	require.NoError(t, err)
+	roles := map[string]string{}
+	var phone, role string
+	_, err = pgx.ForEachRow(rows, []any{&phone, &role}, func() error {
+		roles[phone] = role
+		return nil
+	})
+	require.NoError(t, err)
+	return roles
+}
+
+// nameIn is the name phone goes by in the company.
+func nameIn(t *testing.T, pool *pgxpool.Pool, companyID int64, phone string) string {
+	t.Helper()
+	var name string
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"SELECT COALESCE(full_name, '') FROM user_companies WHERE company_id = $1 AND user_phone = $2", companyID, phone).Scan(&name))
+	return name
+}
+
+func TestReplaceOwner(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	m, err := s.ReplaceOwner(t.Context(), c.ID, "90 222 33 44", " Yangi Egasi ")
+
+	require.NoError(t, err)
+	assert.Equal(t, "998902223344", m.Phone)
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Yangi Egasi", *m.FullName)
+	assert.Equal(t, "owner", m.Role)
+	assert.Equal(t, map[string]string{"998900000001": "user", "998902223344": "owner"}, rolesOf(t, pool, c.ID),
+		"the owner before stays as a user")
+	assert.Equal(t, "Egasi", nameIn(t, pool, c.ID, "998900000001"), "under the same name")
 }
 
 func TestList(t *testing.T) {
