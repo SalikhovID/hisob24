@@ -57,3 +57,13 @@ UPDATE user_companies SET role = 'user' WHERE company_id = $1 AND role = 'owner'
 -- Whether the phone is a member of at least one company: only such a user
 -- may sign in.
 SELECT EXISTS (SELECT 1 FROM user_companies WHERE user_phone = $1);
+
+-- name: GetCompanyAccess :one
+-- A user's standing in a company, read on every request: the role there and
+-- whether the subscription lets the company be used (the end date has not
+-- passed and it is not blocked). pgx.ErrNoRows when the user is not its
+-- member.
+SELECT uc.role, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
+FROM user_companies uc
+JOIN companies c ON c.id = uc.company_id
+WHERE uc.user_phone = $1 AND uc.company_id = $2;

@@ -55,6 +55,34 @@ func (q *Queries) DemoteCompanyOwner(ctx context.Context, companyID int64) error
 	return err
 }
 
+const getCompanyAccess = `-- name: GetCompanyAccess :one
+SELECT uc.role, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
+FROM user_companies uc
+JOIN companies c ON c.id = uc.company_id
+WHERE uc.user_phone = $1 AND uc.company_id = $2
+`
+
+type GetCompanyAccessParams struct {
+	UserPhone string
+	CompanyID int64
+}
+
+type GetCompanyAccessRow struct {
+	Role   string
+	Active bool
+}
+
+// A user's standing in a company, read on every request: the role there and
+// whether the subscription lets the company be used (the end date has not
+// passed and it is not blocked). pgx.ErrNoRows when the user is not its
+// member.
+func (q *Queries) GetCompanyAccess(ctx context.Context, arg GetCompanyAccessParams) (GetCompanyAccessRow, error) {
+	row := q.db.QueryRow(ctx, getCompanyAccess, arg.UserPhone, arg.CompanyID)
+	var i GetCompanyAccessRow
+	err := row.Scan(&i.Role, &i.Active)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT phone, full_name, created_at FROM users WHERE phone = $1
 `

@@ -65,6 +65,42 @@ func TestHasCompany(t *testing.T) {
 	assert.False(t, has, "a stranger")
 }
 
+func TestGetCompanyAccess(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma := createCompany(t, q, "Olma", d)
+	anor := createCompany(t, q, "Anor", d.AddDate(0, 0, -1))
+	behi := createCompany(t, q, "Behi", d.AddDate(0, 0, 30))
+	mustExec(t, pool, "UPDATE companies SET is_active = false WHERE id = $1", behi.ID)
+	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
+	addMember(t, q, anor.ID, "998901234567", "Ali", "user")
+	addMember(t, q, behi.ID, "998901234567", "Ali", "user")
+	createUser(t, q, "998909999999", "Vali")
+	access := func(phone string, companyID int64) (gen.GetCompanyAccessRow, error) {
+		return q.GetCompanyAccess(ctx, gen.GetCompanyAccessParams{UserPhone: phone, CompanyID: companyID})
+	}
+
+	got, err := access("998901234567", olma.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "owner", got.Role)
+	assert.True(t, got.Active, "the last paid day counts")
+
+	got, err = access("998901234567", anor.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "user", got.Role, "the role in that company")
+	assert.False(t, got.Active, "expired")
+
+	got, err = access("998901234567", behi.ID)
+	require.NoError(t, err)
+	assert.False(t, got.Active, "blocked, though paid")
+
+	_, err = access("998909999999", olma.ID)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
+	_, err = access("998901234567", behi.ID+1)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "no such company")
+}
+
 func TestAddCompanyUser(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
