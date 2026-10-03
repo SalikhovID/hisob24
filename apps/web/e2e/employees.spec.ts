@@ -166,3 +166,21 @@ test("a subscription that runs out under the owner leads to /expired at the next
   await expect(page).toHaveURL(/\/expired$/)
   expect(db.members[VALI].map((membership) => membership.companyId)).toEqual([1, 2])
 })
+
+test("a long name wraps: nothing scrolls sideways, on the page or inside it", async ({ page }) => {
+  // The app scrolls inside <main>, so the document's own width proves nothing.
+  join("998907778899", 1, "Abdulhamidxo'jayevabdurahmonqoriyevmuhammadyusufxon Abdulazizxo'jayevmirzo (bosh hisobchi)")
+  await openEmployees(page)
+  await expect(members(page).getByText(/Abdulhamidxo'jayev/)).toBeVisible()
+
+  const overflow = await page.evaluate(() => {
+    const main = document.querySelector("main")!
+    return {
+      page: document.documentElement.scrollWidth - innerWidth,
+      main: main.scrollWidth - main.clientWidth,
+    }
+  })
+
+  expect(overflow).toEqual({ page: expect.any(Number), main: 0 })
+  expect(overflow.page).toBeLessThanOrEqual(0)
+})
