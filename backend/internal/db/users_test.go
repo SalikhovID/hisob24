@@ -58,6 +58,26 @@ func TestUserExists(t *testing.T) {
 	assert.False(t, exists)
 }
 
+func TestHasCompany(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+	addMember(t, q, c.ID, "998901234567", "Ali", "user")
+	createUser(t, q, "998909999999", "Vali")
+
+	has, err := q.HasCompany(ctx, "998901234567")
+	require.NoError(t, err)
+	assert.True(t, has, "a member of a company")
+
+	has, err = q.HasCompany(ctx, "998909999999")
+	require.NoError(t, err)
+	assert.False(t, has, "a user of no company")
+
+	has, err = q.HasCompany(ctx, "998900000000")
+	require.NoError(t, err)
+	assert.False(t, has, "a stranger")
+}
+
 func TestAddCompanyUser(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()

@@ -60,6 +60,9 @@ type Querier interface {
 	GetUser(ctx context.Context, phone string) (User, error)
 	// The membership behind switch-company; pgx.ErrNoRows when not a member.
 	GetUserCompany(ctx context.Context, arg GetUserCompanyParams) (GetUserCompanyRow, error)
+	// Whether the phone is a member of at least one company: only such a user
+	// may sign in.
+	HasCompany(ctx context.Context, userPhone string) (bool, error)
 	// Counts a wrong code; the caller deletes the code after the fifth.
 	IncrementSMSCodeAttempts(ctx context.Context, phone string) (int32, error)
 	// The user middleware's check: false means 402 subscription_expired.

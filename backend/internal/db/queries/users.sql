@@ -55,3 +55,8 @@ RETURNING *;
 -- The company's owner stays in it as a user: the step before another owner
 -- is set.
 UPDATE user_companies SET role = 'user' WHERE company_id = $1 AND role = 'owner';
+
+-- name: HasCompany :one
+-- Whether the phone is a member of at least one company: only such a user
+-- may sign in.
+SELECT EXISTS (SELECT 1 FROM user_companies WHERE user_phone = $1);

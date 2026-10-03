@@ -100,6 +100,19 @@ func (q *Queries) GetUserCompany(ctx context.Context, arg GetUserCompanyParams) 
 	return i, err
 }
 
+const hasCompany = `-- name: HasCompany :one
+SELECT EXISTS (SELECT 1 FROM user_companies WHERE user_phone = $1)
+`
+
+// Whether the phone is a member of at least one company: only such a user
+// may sign in.
+func (q *Queries) HasCompany(ctx context.Context, userPhone string) (bool, error) {
+	row := q.db.QueryRow(ctx, hasCompany, userPhone)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listCompanyUsers = `-- name: ListCompanyUsers :many
 SELECT user_phone AS phone, full_name, role, created_at
 FROM user_companies
