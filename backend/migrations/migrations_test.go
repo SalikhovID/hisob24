@@ -148,3 +148,31 @@ func TestTheRolesMigrationKeepsEachCompanysFirstOwner(t *testing.T) {
 	}, rolesOf(t, pool, olma), "the first owner stays, everyone else is a user")
 	assert.Equal(t, map[string]string{"998904444444": "user"}, rolesOf(t, pool, nok), "no owner is made up")
 }
+
+func TestTheRolesMigrationNamesEachMemberAfterTheUser(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 3)
+	require.NoError(t, err)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err = pool.Exec(ctx, "INSERT INTO users (phone, full_name) VALUES ('998901111111', 'Ali Valiyev'), ('998902222222', NULL)")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role) VALUES
+		('998901111111', $1, 'owner'), ('998901111111', $2, 'staff'), ('998902222222', $1, 'staff')`, olma, nok)
+	require.NoError(t, err)
+
+	_, err = provider.UpTo(ctx, 4)
+	require.NoError(t, err)
+
+	nameOf := func(phone string, companyID int64) *string {
+		var name *string
+		require.NoError(t, pool.QueryRow(ctx,
+			"SELECT full_name FROM user_companies WHERE user_phone = $1 AND company_id = $2", phone, companyID).Scan(&name))
+		return name
+	}
+	ali := "Ali Valiyev"
+	assert.Equal(t, &ali, nameOf("998901111111", olma), "the member goes by the user's name")
+	assert.Equal(t, &ali, nameOf("998901111111", nok), "in every company of theirs")
+	assert.Nil(t, nameOf("998902222222", olma), "a user without a name gives none")
+}

@@ -93,4 +93,5 @@ type UserCompany struct {
 	CompanyID int64
 	Role      string
 	CreatedAt time.Time
+	FullName  *string
 }

@@ -1,4 +1,9 @@
 -- +goose Up
+-- The name a member goes by in the company: each company names its own
+-- members. It starts as the user's name.
+ALTER TABLE user_companies ADD COLUMN full_name TEXT;
+UPDATE user_companies uc SET full_name = u.full_name FROM users u WHERE u.phone = uc.user_phone;
+
 -- Roles are owner and user: the admin panel sets a company's owner, the
 -- owner adds users from the app.
 ALTER TABLE user_companies DROP CONSTRAINT user_companies_role_check;
@@ -19,3 +24,4 @@ DROP INDEX user_companies_one_owner;
 ALTER TABLE user_companies DROP CONSTRAINT user_companies_role_check;
 ALTER TABLE user_companies ALTER COLUMN role SET DEFAULT 'owner';
 ALTER TABLE user_companies ADD CONSTRAINT user_companies_role_check CHECK (role IN ('owner', 'manager', 'staff'));
+ALTER TABLE user_companies DROP COLUMN full_name;

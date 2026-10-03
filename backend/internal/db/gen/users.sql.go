@@ -145,7 +145,7 @@ const upsertCompanyUser = `-- name: UpsertCompanyUser :one
 INSERT INTO user_companies (user_phone, company_id, role)
 VALUES ($1, $2, $3)
 ON CONFLICT (user_phone, company_id) DO UPDATE SET role = EXCLUDED.role
-RETURNING user_phone, company_id, role, created_at
+RETURNING user_phone, company_id, role, created_at, full_name
 `
 
 type UpsertCompanyUserParams struct {
@@ -163,6 +163,7 @@ func (q *Queries) UpsertCompanyUser(ctx context.Context, arg UpsertCompanyUserPa
 		&i.CompanyID,
 		&i.Role,
 		&i.CreatedAt,
+		&i.FullName,
 	)
 	return i, err
 }
