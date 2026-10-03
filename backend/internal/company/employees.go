@@ -2,11 +2,17 @@ package company
 
 import (
 	"context"
+	"errors"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
+
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
+
+var errAlreadyMember = apperr.New(apperr.Conflict, "already_member", "Bu raqam kompaniyangizga allaqachon qo'shilgan")
 
 // Members lists the company's members under the names they go by there: the
 // owner first, then the users in the order they joined.
@@ -28,13 +34,21 @@ func (s *Service) Members(ctx context.Context, companyID int64) ([]Member, error
 func (s *Service) AddEmployee(ctx context.Context, companyID int64, phone, fullName string) (Member, error) {
 	normalized, err := user.NormalizePhone(phone)
 	if err != nil {
-		return Member{}, err
+		return Member{}, invalid("Telefon raqami noto'g'ri")
 	}
 	name := strings.TrimSpace(fullName)
+	if name == "" {
+		return Member{}, invalid("Ismni kiriting")
+	}
 	if err := s.q.UpsertUser(ctx, gen.UpsertUserParams{Phone: normalized, FullName: &name}); err != nil {
 		return Member{}, err
 	}
 	uc, err := s.q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: normalized, CompanyID: companyID, Role: "user", FullName: &name})
+	if errors.Is(err, pgx.ErrNoRows) {
+		// A member already, the owner too: nothing changes, so the owner is
+		// never made a user from the app.
+		return Member{}, errAlreadyMember
+	}
 	if err != nil {
 		return Member{}, err
 	}
