@@ -49,17 +49,19 @@ func TestCreate(t *testing.T) {
 	assert.Equal(t, 30, c.DaysLeft)
 	require.NotNil(t, c.CreatedBy)
 	assert.Equal(t, ownerID, *c.CreatedBy)
-	var role, name string
-	require.NoError(t, pool.QueryRow(ctx, `SELECT uc.role, u.full_name FROM user_companies uc JOIN users u ON u.phone = uc.user_phone
-		WHERE uc.company_id = $1 AND uc.user_phone = '998901234567'`, c.ID).Scan(&role, &name))
+	var role, name, memberName string
+	require.NoError(t, pool.QueryRow(ctx, `SELECT uc.role, u.full_name, COALESCE(uc.full_name, '') FROM user_companies uc JOIN users u ON u.phone = uc.user_phone
+		WHERE uc.company_id = $1 AND uc.user_phone = '998901234567'`, c.ID).Scan(&role, &name, &memberName))
 	assert.Equal(t, "owner", role)
 	assert.Equal(t, "Ali Valiyev", name)
+	assert.Equal(t, "Ali Valiyev", memberName, "the owner's name in the company")
 
 	second, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: end, OwnerPhone: "998901234567", OwnerFullName: "Boshqa Ism"}, ownerID)
 	require.NoError(t, err)
-	require.NoError(t, pool.QueryRow(ctx, `SELECT u.full_name FROM user_companies uc JOIN users u ON u.phone = uc.user_phone
-		WHERE uc.company_id = $1`, second.ID).Scan(&name))
+	require.NoError(t, pool.QueryRow(ctx, `SELECT u.full_name, COALESCE(uc.full_name, '') FROM user_companies uc JOIN users u ON u.phone = uc.user_phone
+		WHERE uc.company_id = $1`, second.ID).Scan(&name, &memberName))
 	assert.Equal(t, "Ali Valiyev", name, "an existing user is reused unchanged")
+	assert.Equal(t, "Boshqa Ism", memberName, "and goes by the new name in the new company")
 }
 
 func TestCreateIsAtomic(t *testing.T) {

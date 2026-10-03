@@ -21,7 +21,7 @@ type CreateInput struct {
 
 // Create adds a company with its owner in one transaction: the company row,
 // the owner's user row (an existing user is reused unchanged) and the owner
-// membership.
+// membership, under the name the owner goes by in this company.
 func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Company, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
@@ -46,7 +46,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 		if err := q.UpsertUser(ctx, gen.UpsertUserParams{Phone: phone, FullName: &ownerName}); err != nil {
 			return err
 		}
-		if _, err := q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: phone, CompanyID: c.ID, Role: "owner"}); err != nil {
+		if _, err := q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: phone, CompanyID: c.ID, Role: "owner", FullName: &ownerName}); err != nil {
 			return err
 		}
 		today, err := q.CurrentDate(ctx)
