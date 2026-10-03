@@ -15,11 +15,9 @@ async function rows() {
   return within(table).getAllByRole("row").slice(1)
 }
 
+// The phone is the member's title, heading its row; the name is the cell after.
 const phoneAndName = (row: HTMLElement) =>
-  within(row)
-    .getAllByRole("cell")
-    .slice(0, 2)
-    .map((cell) => cell.textContent)
+  [within(row).getByRole("rowheader"), within(row).getAllByRole("cell")[0]].map((cell) => cell.textContent)
 
 test("the owner sees the company's members: themselves first, then the employees", async () => {
   await signIn(ALI)

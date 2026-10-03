@@ -11,14 +11,16 @@ const columns = [
   { header: "Tugash sanasi", cell: (r: (typeof rows)[number]) => r.end },
 ]
 
-test("DataList is a table on wide screens", () => {
+test("DataList is a table on wide screens, each record's title heading its row", () => {
   render(<DataList label="Kompaniyalar" items={rows} columns={columns} getKey={(r) => r.id} />)
 
   const table = screen.getByRole("table", { name: "Kompaniyalar" })
   expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Nomi", "Tugash sanasi"])
   const [, first, second] = within(table).getAllByRole("row")
-  expect(within(first).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Olma Savdo", "01.11.2026"])
-  expect(within(second).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Nok Market", "02.10.2026"])
+  expect(within(first).getByRole("rowheader")).toHaveTextContent("Olma Savdo")
+  expect(within(first).getAllByRole("cell").map((c) => c.textContent)).toEqual(["01.11.2026"])
+  expect(within(second).getByRole("rowheader")).toHaveTextContent("Nok Market")
+  expect(within(second).getAllByRole("cell").map((c) => c.textContent)).toEqual(["02.10.2026"])
 })
 
 test("DataList is a list of cards on phones, each value with its column's name", () => {
@@ -52,5 +54,7 @@ test("DataList leaves a value that is not there out of the card, not out of the 
   expect(within(first).queryByText("Amallar")).not.toBeInTheDocument()
   expect(within(second).getByText("Amallar")).toBeInTheDocument()
   const table = screen.getByRole("table", { name: "Kompaniyalar" })
-  expect(within(within(table).getAllByRole("row")[1]).getAllByRole("cell")).toHaveLength(3)
+  const row = within(within(table).getAllByRole("row")[1])
+  expect(row.getAllByRole("rowheader")).toHaveLength(1)
+  expect(row.getAllByRole("cell")).toHaveLength(2)
 })

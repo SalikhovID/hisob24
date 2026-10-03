@@ -5,7 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export interface Column<T> {
   header: string
   cell: (item: T) => ReactNode
-  // primary is the card's title on phones, and the record's link.
+  // primary is the record's title: the header of its row in the table, the
+  // top of its card on phones, and the record's link.
   primary?: boolean
 }
 
@@ -48,9 +49,15 @@ export function DataList<T>({
           <TableBody>
             {items.map((item) => (
               <TableRow key={getKey(item)}>
-                {columns.map((column) => (
-                  <TableCell key={column.header}>{title(column, item)}</TableCell>
-                ))}
+                {columns.map((column) =>
+                  column.primary ? (
+                    <th key={column.header} scope="row" className="p-2 text-left align-middle font-normal whitespace-nowrap">
+                      {title(column, item)}
+                    </th>
+                  ) : (
+                    <TableCell key={column.header}>{column.cell(item)}</TableCell>
+                  ),
+                )}
               </TableRow>
             ))}
           </TableBody>
