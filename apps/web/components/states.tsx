@@ -13,6 +13,35 @@ export function Loading({ rows = 3 }: { rows?: number }) {
   )
 }
 
+// ListLoading holds the place of a list of records while it loads, in the
+// shape the records will have: an avatar and two lines each, framed as the
+// table is on wide screens and as cards on phones. It is not a table itself:
+// the table on screen is the sign that the list has come.
+export function ListLoading({ rows = 3 }: { rows?: number }) {
+  return (
+    <div
+      aria-label="Yuklanmoqda"
+      aria-busy="true"
+      className="grid gap-3 md:gap-0 md:divide-y md:rounded-xl md:border md:bg-card"
+    >
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          data-slot="list-loading-row"
+          className="flex items-center gap-3 rounded-xl border bg-card p-4 md:rounded-none md:border-0 md:bg-transparent md:px-4 md:py-3"
+        >
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="grid flex-1 gap-1.5">
+            <Skeleton className="h-4 w-40 max-w-full" />
+            <Skeleton className="h-3 w-28 max-w-full" />
+          </div>
+          <Skeleton className="hidden h-5 w-16 rounded-full md:block" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // Failed says why something did not load and offers to try again.
 export function Failed({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
