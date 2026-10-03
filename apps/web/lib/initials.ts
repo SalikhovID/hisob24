@@ -15,7 +15,7 @@ export function initials(name: string | null | undefined): string | null {
 export const TONES = 6
 
 // tone is the tint of whoever a seed (a phone, an ID) stands for: the same
-// seed always gets the same one, and neighbours get different ones.
+// seed always gets the same one.
 export function tone(seed: string | number): number {
   let hash = 0
   for (const char of String(seed)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
