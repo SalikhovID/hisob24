@@ -4,7 +4,7 @@
 import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
 import { chooseCompany, signIn } from "@/test/session"
-import { ALI, db, SARDOR, VALI, ZARINA } from "./data"
+import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
 
 const list = () => call(api.GET("/app/employees"))
 const add = (phone: string, fullName: string) =>
@@ -63,6 +63,18 @@ test("adding: a new phone, a phone that works in another company, a member alrea
   expect(await failure(add("12ab", "Vali"))).toMatchObject({ status: 400, message: "Telefon raqami noto'g'ri" })
   expect(await failure(add("998907770000", " "))).toMatchObject({ status: 400, message: "Ismni kiriting" })
   expect((await list()).map((m) => m.phone)).toEqual([ALI, VALI, SARDOR, "998907778899", ZARINA])
+})
+
+test("the name the owner gives is the name in their company: the user's own and the other company's stay", async () => {
+  // Vali owns Nok Market; Ali is known by his own name, and owns Olma Savdo.
+  await signIn(VALI)
+  await chooseCompany(2)
+
+  expect(await add(ALI, "Ali (haydovchi)")).toMatchObject({ phone: ALI, full_name: "Ali (haydovchi)", role: "user" })
+
+  expect(db.users[ALI]).toBe("Ali Valiyev")
+  expect(nameIn(ALI, 1)).toBe("Ali Valiyev")
+  expect(nameIn(ALI, 2)).toBe("Ali (haydovchi)")
 })
 
 test("renaming and removing reach the company's employees, not its owner and not a stranger", async () => {
