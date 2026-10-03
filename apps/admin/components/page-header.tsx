@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 
 // PageHeader opens a page: its name, a line on what it holds (with how many,
 // when that is known) and, beside them, what can be done on it. A page under
@@ -9,19 +10,22 @@ import type { ReactNode } from "react"
 // the name alone. On a phone the name and the action share the first line
 // and the description takes the whole of the second, so it never wraps
 // beside the button; in the source the order is always name, description,
-// action.
+// action. A page with more to do than one button fits beside a name on a
+// phone stacks its actions: there they take a line of their own under it.
 export function PageHeader({
   title,
   description,
   actions,
   back,
   avatar,
+  stack = false,
 }: {
   title: string
   description?: ReactNode
   actions?: ReactNode
   back?: { href: string; label: string }
   avatar?: ReactNode
+  stack?: boolean
 }) {
   return (
     <header className="space-y-2">
@@ -35,7 +39,7 @@ export function PageHeader({
         </Link>
       )}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className={cn("flex min-w-0 items-center gap-3", stack && "max-md:col-span-2")}>
           {avatar}
           <h1 className="min-w-0 text-xl font-semibold tracking-tight [overflow-wrap:anywhere] md:text-2xl">{title}</h1>
         </div>
@@ -43,7 +47,12 @@ export function PageHeader({
           <p className="col-span-2 row-start-2 text-sm text-muted-foreground md:col-span-1">{description}</p>
         )}
         {actions && (
-          <div className="col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 md:row-span-2 md:self-center">
+          <div
+            className={cn(
+              "col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 md:row-span-2 md:self-center",
+              stack && "max-md:col-span-2 max-md:col-start-1 max-md:row-start-3 max-md:mt-2 max-md:justify-start",
+            )}
+          >
             {actions}
           </div>
         )}
