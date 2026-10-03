@@ -409,9 +409,10 @@ paths:
       operationId: sendLoginCode
       summary: SMS bilan kirish kodini yuborish
       description: >
-        Kod 6 xonali, 2 daqiqa amal qiladi. Tizimda yo'q raqamga SMS ketmaydi,
-        lekin javob bir xil (kim borligi bilinmaydi). Bitta raqamga 60 soniyada
-        bitta kod; IP'dan daqiqasiga 5 ta so'rov.
+        Kod 6 xonali, 2 daqiqa amal qiladi. Tizimga faqat kamida bitta
+        kompaniyaga a'zo user kiradi: boshqa raqamga SMS ketmaydi, lekin javob
+        bir xil (kim borligi bilinmaydi). Bitta raqamga 60 soniyada bitta kod;
+        IP'dan daqiqasiga 5 ta so'rov.
       requestBody:
         required: true
         content:
@@ -475,8 +476,9 @@ paths:
       summary: User Mini App'dan kodsiz kirish
       description: >
         initData USER_BOT_TOKEN bilan tekshiriladi (24 soat). Telegram akkaunt
-        user botga yuborgan raqam users jadvalida bo'lsa, SMS verify'dagi kabi
-        token beriladi (bitta company bo'lsa tanlanadi). Bu sessiyaning
+        user botga yuborgan raqam kamida bitta kompaniyaga a'zo bo'lsa, SMS
+        verify'dagi kabi token beriladi (bitta company bo'lsa tanlanadi). Bu
+        sessiyaning
         refresh_token cookie'si Telegram Web iframe'ida ishlashi uchun
         SameSite=None; Secure; Partitioned (COOKIE_SECURE=true bo'lsa).
       requestBody:
@@ -496,8 +498,8 @@ paths:
                 $ref: "#/components/schemas/Error"
         "403":
           description: >
-            Raqam botga yuborilmagan (phone_not_shared) yoki raqam tizimda yo'q
-            (no_access, message raqamni aytadi)
+            Raqam botga yuborilmagan (phone_not_shared) yoki raqam hech bir
+            kompaniyaga a'zo emas (no_access, message raqamni aytadi)
           content:
             application/json:
               schema:
@@ -508,7 +510,9 @@ paths:
       summary: Access token'ni yangilash (rotation)
       description: >
         refresh_token cookie'si bekor qilinadi va yangisi beriladi; tanlangan
-        company saqlanadi (a'zolik qayta tekshiriladi).
+        company saqlanadi. A'zolik qayta tekshiriladi: user shu company'dan
+        chiqarilgan bo'lsa, token company'siz beriladi; hech bir kompaniyaga
+        a'zo bo'lmay qolgan bo'lsa, sessiya tugaydi (401).
       security:
         - refreshCookie: []
       responses:
@@ -779,7 +783,10 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     Unauthorized:
-      description: Sessiya yo'q yoki tugagan (unauthorized)
+      description: >
+        Sessiya yo'q yoki tugagan (unauthorized). /app ostida shuningdek: user
+        access token'dagi kompaniyaga endi a'zo emas; client refresh qilib,
+        company'siz token oladi
       content:
         application/json:
           schema:

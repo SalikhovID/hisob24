@@ -245,7 +245,7 @@ export interface paths {
         put?: never;
         /**
          * SMS bilan kirish kodini yuborish
-         * @description Kod 6 xonali, 2 daqiqa amal qiladi. Tizimda yo'q raqamga SMS ketmaydi, lekin javob bir xil (kim borligi bilinmaydi). Bitta raqamga 60 soniyada bitta kod; IP'dan daqiqasiga 5 ta so'rov.
+         * @description Kod 6 xonali, 2 daqiqa amal qiladi. Tizimga faqat kamida bitta kompaniyaga a'zo user kiradi: boshqa raqamga SMS ketmaydi, lekin javob bir xil (kim borligi bilinmaydi). Bitta raqamga 60 soniyada bitta kod; IP'dan daqiqasiga 5 ta so'rov.
          */
         post: operations["sendLoginCode"];
         delete?: never;
@@ -285,7 +285,7 @@ export interface paths {
         put?: never;
         /**
          * User Mini App'dan kodsiz kirish
-         * @description initData USER_BOT_TOKEN bilan tekshiriladi (24 soat). Telegram akkaunt user botga yuborgan raqam users jadvalida bo'lsa, SMS verify'dagi kabi token beriladi (bitta company bo'lsa tanlanadi). Bu sessiyaning refresh_token cookie'si Telegram Web iframe'ida ishlashi uchun SameSite=None; Secure; Partitioned (COOKIE_SECURE=true bo'lsa).
+         * @description initData USER_BOT_TOKEN bilan tekshiriladi (24 soat). Telegram akkaunt user botga yuborgan raqam kamida bitta kompaniyaga a'zo bo'lsa, SMS verify'dagi kabi token beriladi (bitta company bo'lsa tanlanadi). Bu sessiyaning refresh_token cookie'si Telegram Web iframe'ida ishlashi uchun SameSite=None; Secure; Partitioned (COOKIE_SECURE=true bo'lsa).
          */
         post: operations["telegramLogin"];
         delete?: never;
@@ -305,7 +305,7 @@ export interface paths {
         put?: never;
         /**
          * Access token'ni yangilash (rotation)
-         * @description refresh_token cookie'si bekor qilinadi va yangisi beriladi; tanlangan company saqlanadi (a'zolik qayta tekshiriladi).
+         * @description refresh_token cookie'si bekor qilinadi va yangisi beriladi; tanlangan company saqlanadi. A'zolik qayta tekshiriladi: user shu company'dan chiqarilgan bo'lsa, token company'siz beriladi; hech bir kompaniyaga a'zo bo'lmay qolgan bo'lsa, sessiya tugaydi (401).
          */
         post: operations["refreshTokens"];
         delete?: never;
@@ -369,6 +369,57 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/app/employees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kompaniya a'zolari (faqat owner)
+         * @description Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin xodimlar qo'shilgan tartibda. Ism shu kompaniyadagi ism.
+         */
+        get: operations["listEmployees"];
+        put?: never;
+        /**
+         * Xodim qo'shish (faqat owner)
+         * @description Raqam access token'dagi kompaniyaga user rolida qo'shiladi. Tizimda yo'q raqamdan user yaratiladi; boshqa kompaniyada bor raqam shu kompaniyaga ham a'zo bo'ladi (multi-user). Javob ikkala holatda bir xil: kiritilgan ism qaytadi, raqam oldin tizimda bo'lgan-bo'lmagani bilinmaydi. Qo'shilgan odamga xabar yuborilmaydi.
+         */
+        post: operations["addEmployee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/employees/{phone}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Xodimning telefoni, 998901234567 ko'rinishida */
+                phone: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Xodimni kompaniyadan chiqarish (faqat owner)
+         * @description Xodimning shu kompaniyadagi a'zoligi o'chadi va u keyingi so'rovdayoq bu kompaniyaga kira olmaydi. User yozuvi va boshqa kompaniyalardagi a'zoliklari qoladi; boshqa kompaniyasi qolmasa, tizimga kira olmaydi. Keyin qayta qo'shish mumkin.
+         */
+        delete: operations["removeEmployee"];
+        options?: never;
+        head?: never;
+        /**
+         * Xodim ismini o'zgartirish (faqat owner)
+         * @description Xodimning shu kompaniyadagi ismi o'zgaradi; boshqa kompaniyalardagi ismi o'zgarmaydi. Owner'ning ismi bu yerdan o'zgarmaydi.
+         */
+        patch: operations["renameEmployee"];
         trace?: never;
     };
     "/webhooks/admin-bot": {
@@ -518,6 +569,10 @@ export interface components {
             /** @description Shu kompaniyadagi ismi */
             full_name: string;
         };
+        RenameMember: {
+            /** @description Shu kompaniyadagi yangi ismi */
+            full_name: string;
+        };
         CreateBilling: {
             days: number;
             amount?: string;
@@ -574,7 +629,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Sessiya yo'q yoki tugagan (unauthorized) */
+        /** @description Sessiya yo'q yoki tugagan (unauthorized). /app ostida shuningdek: user access token'dagi kompaniyaga endi a'zo emas; client refresh qilib, company'siz token oladi */
         Unauthorized: {
             headers: {
                 [name: string]: unknown;
@@ -594,6 +649,42 @@ export interface components {
         };
         /** @description Company muddati o'tgan yoki bloklangan (subscription_expired) */
         SubscriptionExpired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Bunday raqam shu kompaniyaning a'zosi emas (not_found) */
+        EmployeeNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi (cannot_change_owner); buni admin panel qiladi */
+        CannotChangeOwner: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Raqam shu kompaniyaning a'zosi, owner yoki xodim (already_member). Hech narsa o'zgarmaydi */
+        AlreadyMember: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Amal faqat tanlangan kompaniyaning owner'i uchun (owner_only): so'rov user rolida yoki kompaniya tanlanmagan token bilan kelgan */
+        OwnerOnly: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1166,7 +1257,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Raqam botga yuborilmagan (phone_not_shared) yoki raqam tizimda yo'q (no_access, message raqamni aytadi) */
+            /** @description Raqam botga yuborilmagan (phone_not_shared) yoki raqam hech bir kompaniyaga a'zo emas (no_access, message raqamni aytadi) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1257,6 +1348,117 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
+        };
+    };
+    listEmployees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A'zolar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+        };
+    };
+    addEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan xodim */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["AlreadyMember"];
+        };
+    };
+    removeEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Xodimning telefoni, 998901234567 ko'rinishida */
+                phone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Xodim chiqarildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["EmployeeNotFound"];
+            409: components["responses"]["CannotChangeOwner"];
+        };
+    };
+    renameEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Xodimning telefoni, 998901234567 ko'rinishida */
+                phone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameMember"];
+            };
+        };
+        responses: {
+            /** @description Yangi ismli xodim */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["EmployeeNotFound"];
+            409: components["responses"]["CannotChangeOwner"];
         };
     };
     adminBotWebhook: {

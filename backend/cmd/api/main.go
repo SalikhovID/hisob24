@@ -56,9 +56,10 @@ func run() error {
 	}
 
 	adminAuth := auth.NewAdminAuth(pool, cfg.OTPHMACSecret, cfg.AdminBotToken)
+	companies := company.NewService(pool)
 	adminAPI := admin.NewHandler(admin.Services{
 		Auth:      adminAuth,
-		Companies: company.NewService(pool),
+		Companies: companies,
 		Billing:   billing.NewService(pool),
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute))
 	if cfg.SMSDriver == "log" {
@@ -66,8 +67,9 @@ func run() error {
 	}
 	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, cfg.UserBotToken, sms.New(cfg, slog.Default()))
 	appAPI := app.NewHandler(app.Services{
-		Auth:     userAuth,
-		Profiles: user.NewProfiles(pool),
+		Auth:      userAuth,
+		Profiles:  user.NewProfiles(pool),
+		Companies: companies,
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 
