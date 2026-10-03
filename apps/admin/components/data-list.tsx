@@ -35,8 +35,8 @@ const present = (value: ReactNode) => value !== null && value !== undefined && v
 const filled = (value: ReactNode) => (present(value) ? value : <span className="text-muted-foreground">—</span>)
 
 // DataList shows records as a table on wide screens and as cards on phones:
-// the title and the actions at the top, the inline values under the title,
-// every other value labeled with its column's name. A value that is not
+// the title and the actions at the top, the tags and inline values in a line
+// under the title, every other value labeled with its column's name. A value that is not
 // there is a dash in the table and takes no place in the card. The footer
 // (a total, the pager) closes the list once, whichever of the two is on
 // screen.
@@ -136,36 +136,24 @@ export function DataList<T>({
           ]
           const labeled = valuesOf((column) => !column.primary && !column.actions && !lined(column))
           return (
-            <li key={getKey(item)} className="rounded-xl border bg-card p-4 text-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  {columns
-                    .filter((column) => column.primary)
-                    .map((column) => (
-                      <div key={column.header} className="font-medium">
-                        {title(column, item)}
-                      </div>
-                    ))}
-                </div>
-                {actions.length > 0 && (
-                  <div
-                    role="group"
-                    aria-label={actions[0].column.header}
-                    data-slot="data-list-actions"
-                    className="-mt-1 -mr-2 flex shrink-0 items-center gap-2"
-                  >
-                    {actions.map(({ column, value }) => (
-                      <span key={column.header} className="contents">
-                        {value}
-                      </span>
-                    ))}
-                  </div>
-                )}
+            // The card is a grid so that what it shows at its top right (the
+            // actions) can come last in the source: a screen reader meets the
+            // record before what can be done with it.
+            <li
+              key={getKey(item)}
+              className="grid grid-cols-[minmax(0,1fr)_auto] rounded-xl border bg-card p-4 text-sm"
+            >
+              <div data-slot="data-list-title" className="col-start-1 row-start-1 min-w-0 font-medium">
+                {columns
+                  .filter((column) => column.primary)
+                  .map((column) => (
+                    <div key={column.header}>{title(column, item)}</div>
+                  ))}
               </div>
               {inline.length > 0 && (
                 <dl
                   data-slot="data-list-meta"
-                  className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground"
+                  className="col-span-2 row-start-2 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground"
                 >
                   {inline.map(({ column, value }) => (
                     <div key={column.header} className="flex items-center gap-1.5">
@@ -176,7 +164,7 @@ export function DataList<T>({
                 </dl>
               )}
               {labeled.length > 0 && (
-                <dl className="mt-3 grid gap-1.5">
+                <dl data-slot="data-list-values" className="col-span-2 row-start-3 mt-3 grid gap-1.5">
                   {labeled.map(({ column, value }) => (
                     <div key={column.header} className="flex items-baseline justify-between gap-3">
                       <dt className="text-[0.8125rem] text-muted-foreground">{column.header}</dt>
@@ -184,6 +172,20 @@ export function DataList<T>({
                     </div>
                   ))}
                 </dl>
+              )}
+              {actions.length > 0 && (
+                <div
+                  role="group"
+                  aria-label={actions[0].column.header}
+                  data-slot="data-list-actions"
+                  className="col-start-2 row-start-1 -mt-1 -mr-2 ml-3 flex shrink-0 items-center gap-2 self-start"
+                >
+                  {actions.map(({ column, value }) => (
+                    <span key={column.header} className="contents">
+                      {value}
+                    </span>
+                  ))}
+                </div>
               )}
             </li>
           )

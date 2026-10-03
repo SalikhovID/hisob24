@@ -208,3 +208,26 @@ test("DataList leads a card's line with its tags, whatever the order of the colu
     "Holat",
   ])
 })
+
+test("DataList's card says what the record is before what can be done with it", () => {
+  const people = [{ id: 1, name: "Vali Aliyev", role: "Xodim", phone: "+998 90 222 33 44" }]
+  type Person = (typeof people)[number]
+  const personColumns = [
+    { header: "A'zo", cell: (p: Person) => p.name, primary: true },
+    { header: "Amallar", actions: true, cell: () => <button type="button">O&apos;chirish</button> },
+    { header: "Rol", cell: (p: Person) => p.role, card: "tag" as const },
+    { header: "Telefon", cell: (p: Person) => p.phone },
+  ]
+
+  render(<DataList label="Xodimlar" items={people} columns={personColumns} getKey={(p) => p.id} />)
+
+  const [card] = within(screen.getByRole("list", { name: "Xodimlar" })).getAllByRole("listitem")
+  // The order a screen reader meets them in: the title, its line, the named
+  // values, and only then the actions, though they show at the card's top.
+  expect(Array.from(card.children).map((part) => part.getAttribute("data-slot"))).toEqual([
+    "data-list-title",
+    "data-list-meta",
+    "data-list-values",
+    "data-list-actions",
+  ])
+})
