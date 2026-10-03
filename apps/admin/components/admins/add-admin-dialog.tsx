@@ -8,10 +8,11 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { PendingButton } from "@/components/pending-button"
+import { Refusal } from "@/components/refusal"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { FieldError, FieldGroup } from "@/components/ui/field"
+import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { keys } from "@/lib/queries"
 import { adminSchema } from "@/lib/schemas"
@@ -47,7 +48,7 @@ export function AddAdminDialog() {
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button />}>
+      <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
         <UserPlusIcon />
         Admin qo&apos;shish
       </DialogTrigger>
@@ -63,9 +64,9 @@ export function AddAdminDialog() {
             <TextField control={form.control} name="telegram_id" label="Telegram ID" inputMode="numeric" autoComplete="off" />
             <TextField control={form.control} name="full_name" label="Ism" autoComplete="off" />
           </FieldGroup>
-          {add.isError && <FieldError>{add.error.message}</FieldError>}
+          {add.isError && <Refusal>{add.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" pending={add.isPending}>
+            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={add.isPending}>
               Qo&apos;shish
             </PendingButton>
           </DialogFooter>

@@ -3,7 +3,7 @@
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
-import { Failed, Loading } from "@/components/states"
+import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/format"
 import { useAdmins, useMe } from "@/lib/queries"
@@ -11,7 +11,8 @@ import type { AdminAccount } from "@/lib/types"
 import { AddAdminDialog } from "./add-admin-dialog"
 import { DeleteAdminButton } from "./delete-admin-button"
 
-// AdminsPage lists the platform's admins.
+// AdminsPage lists the platform's admins, active or not: one who was turned
+// off stays in the list, stepped back, and can be added again.
 export function AdminsPage() {
   const admins = useAdmins()
   const me = useMe()
@@ -28,15 +29,23 @@ export function AdminsPage() {
           name={a.full_name}
           seed={a.telegram_id}
           mark={a.telegram_id === me.data?.telegram_id && <Badge variant="outline">Siz</Badge>}
+          muted={!a.is_active}
         />
       ),
     },
     {
       header: "Holat",
       card: "tag",
-      cell: (a) => <Badge variant={a.is_active ? "secondary" : "outline"}>{a.is_active ? "Faol" : "Nofaol"}</Badge>,
+      cell: (a) =>
+        a.is_active ? (
+          <Badge variant="secondary">Faol</Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">
+            Nofaol
+          </Badge>
+        ),
     },
-    { header: "Qo'shilgan", card: "inline", cell: (a) => formatDate(a.created_at) },
+    { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (a) => formatDate(a.created_at) },
     {
       header: "Amallar",
       actions: true,
@@ -46,13 +55,13 @@ export function AdminsPage() {
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
         title="Adminlar"
         description={admins.data ? `Platforma adminlari · ${admins.data.length} kishi` : "Platforma adminlari"}
         actions={<AddAdminDialog />}
       />
-      {admins.isPending && <Loading />}
+      {admins.isPending && <ListLoading />}
       {admins.isError && <Failed error={admins.error} onRetry={() => admins.refetch()} />}
       {admins.data && (
         <DataList

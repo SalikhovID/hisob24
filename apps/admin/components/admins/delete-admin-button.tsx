@@ -41,7 +41,16 @@ export function DeleteAdminButton({ admin }: { admin: AdminAccount }) {
   return (
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <ActionTooltip label="O'chirish">
-        <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label={`O'chirish: ${name}`} />}>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1"
+              aria-label={`O'chirish: ${name}`}
+            />
+          }
+        >
           <Trash2Icon />
         </AlertDialogTrigger>
       </ActionTooltip>
