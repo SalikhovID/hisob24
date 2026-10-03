@@ -81,7 +81,9 @@ export function CompaniesPage() {
       </div>
       {companies.isPending && <Loading />}
       {companies.isError && <Failed error={companies.error} onRetry={() => companies.refetch()} />}
-      {companies.data?.total === 0 && <EmptyState title="Kompaniyalar topilmadi" />}
+      {companies.data?.total === 0 && (
+        <EmptyState title="Kompaniyalar topilmadi" description="Qidiruv yoki filtrni o'zgartirib ko'ring." />
+      )}
       {companies.data && companies.data.total > 0 && (
         <>
           <DataList

@@ -154,6 +154,15 @@ test("a search with no match says so", async () => {
   expect(screen.queryByRole("table")).not.toBeInTheDocument()
 })
 
+test("a filter with no match suggests changing it", async () => {
+  setLocation("/companies?status=expired&search=olma")
+
+  renderWithProviders(<CompaniesPage />)
+
+  expect(await screen.findByText("Kompaniyalar topilmadi")).toBeInTheDocument()
+  expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
+})
+
 test("when the list cannot load the page says why and tries again", async () => {
   let calls = 0
   server.use(
