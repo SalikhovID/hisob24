@@ -16,3 +16,10 @@ test("Identity without a subtitle has one line; with no name behind the title, t
   expect(identityOf(container)).toEqual(["+998 94 444 55 66", null])
   expect(container.querySelector('[data-slot="avatar"]')).toHaveTextContent("")
 })
+
+test("Identity links by its title alone", () => {
+  render(<Identity title="Olma Savdo" subtitle="Yaratilgan 11.09.2026" seed={1} href="/companies/1" />)
+
+  expect(screen.getByRole("link", { name: "Olma Savdo" })).toHaveAttribute("href", "/companies/1")
+  expect(screen.getAllByRole("link")).toHaveLength(1)
+})
