@@ -47,3 +47,27 @@ test("the section the page belongs to is marked", async () => {
   expect(await within(sidebar()).findByRole("link", { name: "Xodimlar" })).toHaveAttribute("aria-current", "page")
   expect(within(sidebar()).getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current")
 })
+
+test("the fold button asks to fold the sidebar", async () => {
+  await signIn(ALI)
+  const onToggleCollapsed = vi.fn()
+  const { user } = renderWithProviders(<Sidebar {...props({ onToggleCollapsed })} />)
+
+  await user.click(within(sidebar()).getByRole("button", { name: "Menyuni yig'ish" }))
+
+  expect(onToggleCollapsed).toHaveBeenCalledOnce()
+})
+
+test("folded, the sidebar shows icons that keep their names, and a button to unfold", async () => {
+  await signIn(ALI)
+  const onToggleCollapsed = vi.fn()
+  const { user } = renderWithProviders(<Sidebar {...props({ collapsed: true, onToggleCollapsed })} />)
+
+  const employees = await within(sidebar()).findByRole("link", { name: "Xodimlar" })
+  expect(employees).toHaveTextContent("")
+  expect(within(sidebar()).queryByText("Olma Savdo")).not.toBeInTheDocument()
+  expect(within(sidebar()).queryByRole("button", { name: "Menyuni yig'ish" })).not.toBeInTheDocument()
+
+  await user.click(within(sidebar()).getByRole("button", { name: "Menyuni yoyish" }))
+  expect(onToggleCollapsed).toHaveBeenCalledOnce()
+})
