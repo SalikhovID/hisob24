@@ -15,9 +15,9 @@ export interface Column<T> {
   actions?: boolean
   // card is how a card shows the value: "row" (the default) on a line of its
   // own beside the column's name. "inline" and "tag" share one line under
-  // the title: an inline value follows its column's name (a bare date could
-  // be any date); a tag (a badge) says what it is by itself, so its name is
-  // kept for screen readers only.
+  // the title, the tags first: an inline value follows its column's name (a
+  // bare date could be any date); a tag (a badge) says what it is by itself,
+  // so its name is kept for screen readers only.
   card?: "row" | "inline" | "tag"
   // align puts a column of figures (day counts, amounts) at the end of its
   // cells, so the digits line up.
@@ -129,7 +129,11 @@ export function DataList<T>({
               .filter(({ value }) => present(value))
           const lined = (column: Column<T>) => column.card === "inline" || column.card === "tag"
           const actions = valuesOf((column) => !!column.actions)
-          const inline = valuesOf((column) => !column.primary && !column.actions && lined(column))
+          // A badge leads the line: it is what the eye looks for first.
+          const inline = [
+            ...valuesOf((column) => !column.primary && !column.actions && column.card === "tag"),
+            ...valuesOf((column) => !column.primary && !column.actions && column.card === "inline"),
+          ]
           const labeled = valuesOf((column) => !column.primary && !column.actions && !lined(column))
           return (
             <li key={getKey(item)} className="rounded-xl border bg-card p-4 text-sm">

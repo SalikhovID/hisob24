@@ -183,3 +183,28 @@ test("DataList marks a value that is not there with a dash in the table, and lea
   expect(within(card).queryByText("Izoh")).not.toBeInTheDocument()
   expect(within(card).queryByText("—")).not.toBeInTheDocument()
 })
+
+test("DataList leads a card's line with its tags, whatever the order of the columns", () => {
+  const companies = [{ id: 1, name: "Olma Savdo", end: "01.11.2026", status: "30 kun qoldi" }]
+  type Company = (typeof companies)[number]
+  const companyColumns = [
+    { header: "Nomi", cell: (c: Company) => c.name, primary: true },
+    { header: "Tugash sanasi", cell: (c: Company) => c.end, card: "inline" as const },
+    { header: "Holat", cell: (c: Company) => c.status, card: "tag" as const },
+  ]
+
+  render(<DataList label="Kompaniyalar" items={companies} columns={companyColumns} getKey={(c) => c.id} />)
+
+  const [card] = within(screen.getByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+  expect(Array.from(card.querySelectorAll('[data-slot="data-list-meta"] dt')).map((name) => name.textContent)).toEqual([
+    "Holat",
+    "Tugash sanasi",
+  ])
+  // The table keeps the columns in the order given.
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual([
+    "Nomi",
+    "Tugash sanasi",
+    "Holat",
+  ])
+})
