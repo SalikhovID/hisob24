@@ -1,8 +1,8 @@
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, VALI } from "@/mocks/data"
+import { ALI, db, VALI } from "@/mocks/data"
 import { server } from "@/test/server"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { api, ApiError, call } from "./api"
 import { accessToken, clearSession, setAccessToken } from "./session"
 
@@ -107,4 +107,17 @@ test("a wrong login code is not taken for an expired session", async () => {
 
   expect(err).toMatchObject({ status: 401, code: "invalid_code" })
   expect(refreshes).toBe(0)
+})
+
+test("someone taken out of the company they work in goes on without it", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  // Olma Savdo's owner takes Vali out; the access token is still for Olma.
+  db.members[VALI] = db.members[VALI].filter((m) => m.companyId !== 1)
+
+  const me = await call(api.GET("/app/me"))
+
+  expect(me.company).toBeNull()
+  expect(me.companies.map((company) => company.name)).toEqual(["Nok Market"])
+  expect(accessToken()).toMatch(new RegExp(`^access:${VALI}:none:`))
 })

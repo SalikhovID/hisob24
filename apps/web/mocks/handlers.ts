@@ -57,6 +57,12 @@ function bearer(request: Request): Session | null {
   return header.startsWith("Bearer ") ? read(header.slice(7), "access") : null
 }
 
+// isMember is the API's check on every request: the user may have been
+// taken out of the company since the token was issued.
+function isMember(phone: string, companyId: number): boolean {
+  return companiesOf(phone).some((company) => company.id === companyId)
+}
+
 export const handlers = [
   http.post(api("/app/auth/sms/send"), async ({ request }) => {
     const { phone: raw } = (await request.json()) as { phone?: string }
@@ -119,7 +125,10 @@ export const handlers = [
       return fail(401, "invalid_refresh_token", "Sessiya tugagan. Qayta kiring", { "Set-Cookie": clearCookie })
     }
     db.refresh.delete(presented)
-    return signedIn(session)
+    // The membership as it is now: a company the user was taken out of is
+    // not kept.
+    const companyId = session.companyId !== null && isMember(session.phone, session.companyId) ? session.companyId : null
+    return signedIn({ phone: session.phone, companyId })
   }),
 
   http.post(api("/app/auth/logout"), ({ request }) => {
@@ -149,6 +158,8 @@ export const handlers = [
     const user = bearer(request)
     if (!user) return fail(401, "unauthorized", "Avval tizimga kiring")
     if (user.companyId !== null) {
+      // No longer a member: the token is refused and the app refreshes.
+      if (!isMember(user.phone, user.companyId)) return fail(401, "unauthorized", "Avval tizimga kiring")
       const company = db.companies.find((c) => c.id === user.companyId)
       if (!company || !paidUp(company)) return fail(402, "subscription_expired", "Kompaniya obunasi tugagan")
     }
