@@ -2,6 +2,7 @@ import { RotateCwIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 // Placeholder is what stands in while something loads: a status named
 // "Yuklanmoqda", which it also says in words for a screen reader passing by.
@@ -32,29 +33,41 @@ export function Loading({ rows = 3 }: { rows?: number }) {
 // Names differ in length, and so do the bars that stand for them.
 const nameWidths = ["w-36", "w-44", "w-28"]
 
+// The mark that opens a row: round for a person, square for a company, none
+// for a record that has no avatar (a payment).
+const marks = { round: "rounded-full", square: "rounded-lg" }
+
 // ListLoading holds the place of a list of records while it loads, in the
-// list's own shape, so nothing moves when the records come: on wide screens
-// the frame with its header and footer bands and a row per record (an avatar
-// and two lines), on phones a card each. It is not a table itself: the table
-// on screen is the sign that the list has come. The whole placeholder pulses
-// as one, and only for those who have not asked for less motion.
-export function ListLoading({ rows = 3 }: { rows?: number }) {
+// list's own shape and size, so nothing moves when the records come: on wide
+// screens the frame with its header and footer bands and a row per record,
+// on phones a card each, with the line under the title. It is not a table
+// itself: the table on screen is the sign that the list has come. The whole
+// placeholder pulses as one, and only for those who have not asked for less
+// motion.
+export function ListLoading({ rows = 3, mark = "round" }: { rows?: number; mark?: "round" | "square" | "none" }) {
   return (
     <Placeholder className="motion-safe:animate-pulse md:rounded-xl md:border md:bg-card">
       <div className="hidden h-10 rounded-t-xl border-b bg-muted/50 md:block" />
-      <div className="grid gap-3 md:gap-0 md:divide-y">
+      <div className="grid gap-3 md:gap-0">
         {Array.from({ length: rows }, (_, i) => (
           <div
             key={i}
             data-slot="list-loading-row"
-            className="flex items-center gap-3 rounded-xl border bg-card p-4 md:h-[3.75rem] md:rounded-none md:border-0 md:bg-transparent md:px-4 md:py-0"
+            className={cn(
+              // The height is the row's content, as a table row's is: the
+              // line under it comes on top.
+              "rounded-xl border bg-card p-4 md:box-content md:flex md:items-center md:gap-3 md:rounded-none md:border-0 md:border-b md:bg-transparent md:px-4 md:py-0 md:last:border-b-0",
+              mark === "none" ? "md:h-11" : "md:h-16",
+            )}
           >
-            <Skeleton className="size-9 shrink-0 animate-none rounded-full" />
-            <div className="grid flex-1 gap-2">
-              <Skeleton className={`h-3.5 max-w-full animate-none ${nameWidths[i % nameWidths.length]}`} />
-              <Skeleton className="h-3 w-24 max-w-full animate-none" />
+            <div className={cn("flex flex-1 items-center gap-3", mark === "none" ? "min-h-5" : "min-h-10")}>
+              {mark !== "none" && <Skeleton className={cn("size-9 shrink-0 animate-none", marks[mark])} />}
+              <div className="grid flex-1 gap-2">
+                <Skeleton className={cn("h-3.5 max-w-full animate-none", nameWidths[i % nameWidths.length])} />
+                {mark !== "none" && <Skeleton className="h-3 w-24 max-w-full animate-none" />}
+              </div>
             </div>
-            <Skeleton className="hidden h-5 w-16 animate-none rounded-full md:block" />
+            <Skeleton className="mt-3 h-5 w-40 max-w-full animate-none rounded-full md:mt-0 md:w-16" />
           </div>
         ))}
       </div>
@@ -80,15 +93,15 @@ export function Failed({ error, onRetry }: { error: Error; onRetry: () => void }
   )
 }
 
-// EmptyState says there is nothing to show and, when it helps, what would
-// change that. It takes the list's place, in the list's frame: a note inside
+// EmptyState says there is nothing to show and, under that, what would
+// change it. It takes the list's place, in the list's frame: a note inside
 // its section, so it has no heading, and no button either (what to do next
 // is already on the page).
 export function EmptyState({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
-      <p>{title}</p>
-      {description && <p className="mt-1 text-[0.8125rem] leading-5">{description}</p>}
+    <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
+      <p className="font-medium">{title}</p>
+      {description && <p className="mt-1 text-pretty text-muted-foreground">{description}</p>}
     </div>
   )
 }
