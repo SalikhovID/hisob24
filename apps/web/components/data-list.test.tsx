@@ -81,3 +81,32 @@ test("DataList puts a record's actions at the top of its card, without the colum
   const table = screen.getByRole("table", { name: "Kompaniyalar" })
   expect(within(table).getByRole("columnheader", { name: "Amallar" })).toBeInTheDocument()
 })
+
+test("DataList puts a card's inline values in one line under its title, without their names", () => {
+  const people = [
+    { id: 1, name: "Vali Aliyev", role: "Xodim", joined: "02.10.2026" },
+    { id: 2, name: "Ali Valiyev", role: "Egasi", joined: "" },
+    { id: 3, name: "Sardor Karimov", role: "", joined: "" },
+  ]
+  type Person = (typeof people)[number]
+  const inlineColumns = [
+    { header: "A'zo", cell: (p: Person) => p.name, primary: true },
+    { header: "Rol", cell: (p: Person) => p.role, card: "inline" as const },
+    { header: "Qo'shilgan", cell: (p: Person) => p.joined, card: "inline" as const },
+  ]
+  const inlineOf = (card: HTMLElement) =>
+    Array.from(card.querySelectorAll('[data-slot="data-list-meta"] > *')).map((value) => value.textContent)
+
+  render(<DataList label="Xodimlar" items={people} columns={inlineColumns} getKey={(p) => p.id} />)
+
+  const [vali, ali, sardor] = within(screen.getByRole("list", { name: "Xodimlar" })).getAllByRole("listitem")
+  expect(inlineOf(vali)).toEqual(["Xodim", "02.10.2026"])
+  expect(within(vali).queryByText("Rol")).not.toBeInTheDocument()
+  expect(within(vali).queryByText("Qo'shilgan")).not.toBeInTheDocument()
+  // A value that is not there takes no place in the line; no values, no line.
+  expect(inlineOf(ali)).toEqual(["Egasi"])
+  expect(sardor.querySelector('[data-slot="data-list-meta"]')).not.toBeInTheDocument()
+  // The table keeps every column under its name.
+  const table = screen.getByRole("table", { name: "Xodimlar" })
+  expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["A'zo", "Rol", "Qo'shilgan"])
+})
