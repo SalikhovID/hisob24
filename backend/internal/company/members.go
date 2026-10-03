@@ -71,7 +71,9 @@ func (s *Service) ReplaceOwner(ctx context.Context, companyID int64, phone, full
 	var m Member
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
-		if _, err := q.GetCompany(ctx, companyID); err != nil {
+		// The company is held to the end, so two replacements take turns:
+		// the second demotes the owner the first one set.
+		if _, err := q.LockCompany(ctx, companyID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return errNotFound
 			}

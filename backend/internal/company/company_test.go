@@ -1,6 +1,7 @@
 package company
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -286,6 +287,45 @@ func TestReplaceOwnerIsAtomic(t *testing.T) {
 	var exists bool
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM users WHERE phone = '998902223344')").Scan(&exists))
 	assert.False(t, exists, "no user without the membership")
+}
+
+func TestReplaceOwnerWaitsForAnotherChangeOfTheSameCompany(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	// Another change of the owner is under way: it holds the company and has
+	// put its own owner in, not committed yet.
+	other, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = other.Rollback(context.Background()) })
+	_, err = other.Exec(ctx, "SELECT id FROM companies WHERE id = $1 FOR UPDATE", c.ID)
+	require.NoError(t, err)
+	_, err = other.Exec(ctx, "UPDATE user_companies SET role = 'user' WHERE company_id = $1", c.ID)
+	require.NoError(t, err)
+	_, err = other.Exec(ctx, "INSERT INTO users (phone) VALUES ('998903333333')")
+	require.NoError(t, err)
+	_, err = other.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role, full_name)
+		VALUES ('998903333333', $1, 'owner', 'Oraliq Egasi')`, c.ID)
+	require.NoError(t, err)
+
+	type result struct {
+		m   Member
+		err error
+	}
+	replaced := make(chan result, 1)
+	go func() {
+		m, err := s.ReplaceOwner(ctx, c.ID, "998902223344", "Yangi Egasi")
+		replaced <- result{m, err}
+	}()
+	pgtest.WaitForLockWait(t, pool)
+	require.NoError(t, other.Commit(ctx))
+
+	got := <-replaced
+	require.NoError(t, got.err, "the second change runs after the first, not into it")
+	assert.Equal(t, "owner", got.m.Role)
+	assert.Equal(t, map[string]string{"998900000001": "user", "998903333333": "user", "998902223344": "owner"},
+		rolesOf(t, pool, c.ID), "the last change wins and the company has one owner")
 }
 
 func TestList(t *testing.T) {
