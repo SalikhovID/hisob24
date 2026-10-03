@@ -299,11 +299,26 @@ func TestRefreshFollowsTheMembershipAsItIsNow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "owner", second.Role, "the role as it is now")
 
-	mustExec(t, pool, "DELETE FROM user_companies")
+	addMember(t, pool, "998901234567", addCompany(t, pool, "Nok", 30), "user")
+	mustExec(t, pool, "DELETE FROM user_companies WHERE company_id = $1", companyID)
 	third, err := a.Refresh(t.Context(), second.RefreshToken)
 	require.NoError(t, err)
 	assert.Nil(t, third.CompanyID, "no longer a member: the company is not kept")
 	assert.Empty(t, third.Role)
+}
+
+func TestRefreshEndsTheSessionOfAUserWithNoCompanyLeft(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	companyID := addCompany(t, pool, "Olma", 30)
+	first := signIn(t, a, pool, "998901234567", map[int64]string{companyID: "user"})
+	mustExec(t, pool, "DELETE FROM user_companies")
+
+	_, err := a.Refresh(t.Context(), first.RefreshToken)
+
+	assert.ErrorIs(t, err, ErrInvalidRefresh, "taken out of the last company: the session is over")
+	var live int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM refresh_tokens WHERE revoked_at IS NULL").Scan(&live))
+	assert.Zero(t, live, "the refresh token is spent and none is issued in its place")
 }
 
 func TestSwitchCompanyChoosesACompanyAndTheRefreshTokenRemembersIt(t *testing.T) {

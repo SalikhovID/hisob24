@@ -283,9 +283,11 @@ func (a *UserAuth) LoginWithTelegram(ctx context.Context, initData string) (Toke
 
 // Refresh rotates a refresh token in one transaction: it is revoked and a
 // new one issued, for the company the old one remembered and from the same
-// source.
+// source. A user who is in no company any more gets none: the session ends
+// with ErrInvalidRefresh.
 func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, error) {
 	var tokens Tokens
+	var ended bool
 	err := pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
 		q := a.q.WithTx(tx)
 		revoked, err := q.RevokeRefreshToken(ctx, hashToken(refreshToken))
@@ -294,6 +296,17 @@ func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, er
 		}
 		if err != nil {
 			return err
+		}
+		// Only a member of a company may be signed in, so the session ends
+		// with the last membership: the token stays revoked and no new one
+		// is issued.
+		member, err := q.HasCompany(ctx, revoked.UserPhone)
+		if err != nil {
+			return err
+		}
+		if !member {
+			ended = true
+			return nil
 		}
 		// The membership as it is now: a new role is taken, a lost one
 		// leaves no company chosen.
@@ -312,6 +325,9 @@ func (a *UserAuth) Refresh(ctx context.Context, refreshToken string) (Tokens, er
 		tokens, err = a.issue(ctx, q, revoked.UserPhone, companyID, role, revoked.Source)
 		return err
 	})
+	if err == nil && ended {
+		return Tokens{}, ErrInvalidRefresh
+	}
 	return tokens, err
 }
 
