@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { db } from "@/mocks/data"
@@ -110,6 +110,16 @@ test("on a phone an admin is a card: how they stand and when they were added in 
   expect(within(actions).getByRole("button", { name: "O'chirish: Ikkinchi" })).toBeInTheDocument()
   // You cannot turn yourself off: no place is kept for actions.
   expect(owner.querySelector('[data-slot="data-list-actions"]')).not.toBeInTheDocument()
+})
+
+test("an admin's action says what it does when the keyboard reaches it", async () => {
+  addAdmins()
+  renderWithProviders(<AdminsPage />)
+  const [, second] = rowsOf(await screen.findByRole("table", { name: "Adminlar" }))
+
+  act(() => within(second).getByRole("button", { name: "O'chirish: Ikkinchi" }).focus())
+
+  expect(await screen.findByText("O'chirish")).toBeInTheDocument()
 })
 
 test("an admin is added from the dialog and joins the list", async () => {
