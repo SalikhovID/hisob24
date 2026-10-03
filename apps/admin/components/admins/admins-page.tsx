@@ -1,6 +1,7 @@
 "use client"
 
 import { type Column, DataList } from "@/components/data-list"
+import { Identity } from "@/components/identity"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { useAdmins, useMe } from "@/lib/queries"
@@ -14,16 +15,23 @@ export function AdminsPage() {
   const me = useMe()
 
   const columns: Column<AdminAccount>[] = [
-    { header: "Ism", cell: (a) => a.full_name ?? "—", primary: true },
-    { header: "Telegram ID", cell: (a) => <span className="font-mono">{a.telegram_id}</span> },
+    {
+      header: "Ism",
+      primary: true,
+      // An admin with no name goes by the ID, which then is not said twice.
+      cell: (a) => (
+        <Identity
+          title={a.full_name ?? `Telegram ID ${a.telegram_id}`}
+          subtitle={a.full_name ? `Telegram ID ${a.telegram_id}` : undefined}
+          name={a.full_name}
+          seed={a.telegram_id}
+          mark={a.telegram_id === me.data?.telegram_id && <Badge variant="outline">Siz</Badge>}
+        />
+      ),
+    },
     {
       header: "Holat",
-      cell: (a) => (
-        <span className="inline-flex flex-wrap items-center justify-end gap-1">
-          <Badge variant={a.is_active ? "secondary" : "outline"}>{a.is_active ? "Faol" : "Nofaol"}</Badge>
-          {a.telegram_id === me.data?.telegram_id && <Badge>Siz</Badge>}
-        </span>
-      ),
+      cell: (a) => <Badge variant={a.is_active ? "secondary" : "outline"}>{a.is_active ? "Faol" : "Nofaol"}</Badge>,
     },
     {
       header: "Amallar",

@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { db } from "@/mocks/data"
+import { identityOf } from "@/test/identity"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { AdminsPage } from "./admins-page"
@@ -30,6 +31,30 @@ test("the admins page lists the admins, how they stand, and which one you are", 
   expect(within(second).getByText("Faol")).toBeInTheDocument()
   expect(within(second).queryByText("Siz")).not.toBeInTheDocument()
   expect(within(old).getByText("Nofaol")).toBeInTheDocument()
+})
+
+test("each admin goes by their name, over the Telegram ID they sign in with", async () => {
+  addAdmins()
+  db.admins.push({ telegram_id: 44, full_name: null, is_active: true, created_at: "2026-10-01T07:00:00Z" })
+
+  renderWithProviders(<AdminsPage />)
+
+  const table = await screen.findByRole("table", { name: "Adminlar" })
+  expect(rowsOf(table).map((row) => identityOf(within(row).getByRole("rowheader")))).toEqual([
+    ["Owner", "Telegram ID 461603558"],
+    ["Ikkinchi", "Telegram ID 42"],
+    ["Eski", "Telegram ID 43"],
+    // With no name the ID is what the admin goes by, said once.
+    ["Telegram ID 44", null],
+  ])
+  // "Siz" stands by your own name, apart from it: the name stays the name.
+  const [you, another] = rowsOf(table).map((row) => within(row).getByRole("rowheader"))
+  expect(within(you).getByText("Siz")).toBeInTheDocument()
+  expect(within(another).queryByText("Siz")).not.toBeInTheDocument()
+  // The ID has no column of its own any more.
+  const headers = within(table).getAllByRole("columnheader").map((header) => header.textContent)
+  expect(headers).not.toContain("Telegram ID")
+  expect(headers[0]).toBe("Ism")
 })
 
 test("an admin is added from the dialog and joins the list", async () => {
