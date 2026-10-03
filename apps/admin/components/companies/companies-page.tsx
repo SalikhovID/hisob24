@@ -1,8 +1,9 @@
 "use client"
 
-import { PlusIcon } from "lucide-react"
+import { Building2Icon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { type Column, DataList } from "@/components/data-list"
+import { Identity } from "@/components/identity"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, Loading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
@@ -15,7 +16,22 @@ import { CompanyStatusBadge } from "./status-badge"
 import { useCompanyFilter } from "./use-company-filter"
 
 const columns: Column<Company>[] = [
-  { header: "Nomi", cell: (c) => c.name, primary: true },
+  {
+    header: "Nomi",
+    primary: true,
+    // The name is the way into the company; the day it was created tells
+    // two companies of one name apart.
+    cell: (c) => (
+      <Identity
+        title={c.name}
+        subtitle={`Yaratilgan ${formatDate(c.created_at)}`}
+        seed={c.id}
+        icon={Building2Icon}
+        square
+        href={`/companies/${c.id}`}
+      />
+    ),
+  },
   { header: "Tugash sanasi", cell: (c) => formatDate(c.end_date) },
   { header: "Holat", cell: (c) => <CompanyStatusBadge company={c} /> },
 ]
@@ -57,7 +73,6 @@ export function CompaniesPage() {
             items={companies.data.items}
             columns={columns}
             getKey={(c) => c.id}
-            href={(c) => `/companies/${c.id}`}
           />
           <Pager
             page={companies.data.page}

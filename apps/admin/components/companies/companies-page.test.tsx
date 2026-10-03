@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { company, db, TODAY } from "@/mocks/data"
+import { identityOf } from "@/test/identity"
 import { currentUrl, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -33,6 +34,22 @@ test("the companies page lists the companies, newest first, with how they stand"
   expect(rows[2]).toHaveTextContent("01.11.2026")
   expect(within(rows[2]).getByText("30 kun qoldi")).toBeInTheDocument()
   expect(within(rows[0]).getByText("Muddati o'tgan")).toBeInTheDocument()
+  expect(within(rows[0]).getByRole("link", { name: "Olcha Servis" })).toHaveAttribute("href", "/companies/3")
+})
+
+test("each company goes by its name, over the day it was created", async () => {
+  setLocation("/companies")
+
+  renderWithProviders(<CompaniesPage />)
+
+  const rows = rowsOf(await screen.findByRole("table", { name: "Kompaniyalar" }))
+  expect(rows.map((row) => identityOf(within(row).getByRole("rowheader")))).toEqual([
+    ["Olcha Servis", "Yaratilgan 13.09.2026"],
+    ["Nok Market", "Yaratilgan 12.09.2026"],
+    ["Olma Savdo", "Yaratilgan 11.09.2026"],
+  ])
+  // The name alone is the link: nothing else is read as part of it.
+  expect(within(rows[0]).getAllByRole("link")).toHaveLength(1)
   expect(within(rows[0]).getByRole("link", { name: "Olcha Servis" })).toHaveAttribute("href", "/companies/3")
 })
 

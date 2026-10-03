@@ -27,7 +27,8 @@ export function company(id: number, name: string, endDate: string, isActive = tr
     end_date: endDate,
     is_active: isActive,
     days_left: daysBetween(TODAY, endDate),
-    created_at: `2026-09-${String(10 + id).padStart(2, "0")}T05:00:00Z`,
+    // A day of September whatever the id: 11th to 30th.
+    created_at: `2026-09-${String(10 + (id % 20 || 20)).padStart(2, "0")}T05:00:00Z`,
   }
 }
 
