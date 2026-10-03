@@ -176,6 +176,7 @@ func TestListUserCompanies(t *testing.T) {
 	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
 	addMember(t, q, behi.ID, "998901234567", "Ali", "user")
 	addMember(t, q, nok.ID, "998909999999", "Vali", "owner")
+	mustExec(t, pool, "UPDATE user_companies SET full_name = 'Ali (hisobchi)' WHERE company_id = $1", behi.ID)
 
 	got, err := q.ListUserCompanies(t.Context(), "998901234567")
 
@@ -184,9 +185,13 @@ func TestListUserCompanies(t *testing.T) {
 	assert.Equal(t, "Behi", got[0].Name, "ordered by name")
 	assert.Equal(t, "user", got[0].Role)
 	assert.True(t, got[0].EndDate.Equal(d.AddDate(0, 0, -1)))
+	require.NotNil(t, got[0].FullName)
+	assert.Equal(t, "Ali (hisobchi)", *got[0].FullName, "the name the user goes by in that company")
 	assert.Equal(t, "Olma", got[1].Name)
 	assert.Equal(t, "owner", got[1].Role)
 	assert.True(t, got[1].IsActive)
+	require.NotNil(t, got[1].FullName)
+	assert.Equal(t, "Ali", *got[1].FullName)
 }
 
 func TestGetUserCompany(t *testing.T) {

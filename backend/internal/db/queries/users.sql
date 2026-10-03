@@ -19,9 +19,10 @@ WHERE company_id = $1
 ORDER BY (role = 'owner') DESC, created_at, user_phone;
 
 -- name: ListUserCompanies :many
--- The user's companies for /app/me and for choosing one at login. days_left
--- counts from the database's today, as the 402 check does.
-SELECT c.id, c.name, c.end_date, (c.end_date - CURRENT_DATE)::int AS days_left, c.is_active, uc.role
+-- The user's companies for /app/me and for choosing one at login, each with
+-- the role and the name the user goes by there. days_left counts from the
+-- database's today, as the 402 check does.
+SELECT c.id, c.name, c.end_date, (c.end_date - CURRENT_DATE)::int AS days_left, c.is_active, uc.role, uc.full_name
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
 WHERE uc.user_phone = $1

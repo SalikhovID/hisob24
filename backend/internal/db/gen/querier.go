@@ -72,8 +72,9 @@ type Querier interface {
 	// The company's members under the names they go by there: the owner first,
 	// then the users in the order they joined.
 	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
-	// The user's companies for /app/me and for choosing one at login. days_left
-	// counts from the database's today, as the 402 check does.
+	// The user's companies for /app/me and for choosing one at login, each with
+	// the role and the name the user goes by there. days_left counts from the
+	// database's today, as the 402 check does.
 	ListUserCompanies(ctx context.Context, userPhone string) ([]ListUserCompaniesRow, error)
 	// Locks every active admin row, so "keep at least one active admin" holds
 	// under concurrent deactivations.
