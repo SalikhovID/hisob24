@@ -10,6 +10,9 @@ async function signIn(page: Page, number: string) {
   await page.getByRole("textbox", { name: "Kod" }).fill(LOGIN_CODE)
 }
 
+// main is the page itself: the shell around it names the company too.
+const main = (page: Page) => page.getByRole("main")
+
 // Next keeps an empty role="alert" route announcer on every page.
 const alert = (page: Page, text: string) => page.getByRole("alert").filter({ hasText: text })
 
@@ -28,11 +31,13 @@ test("someone in one company signs in with an SMS code and lands on the dashboar
 
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expect(page.getByText("Olma Savdo")).toBeVisible()
-  await expect(page.getByText("Egasi")).toBeVisible()
+  await expect(main(page).getByText("Olma Savdo")).toBeVisible()
+  await expect(main(page).getByText("Egasi", { exact: true })).toBeVisible()
   await expect(page.getByRole("link", { name: "Kompaniyani almashtirish" })).toHaveCount(0)
 
-  await page.getByRole("button", { name: "Chiqish" }).click()
+  // The way out is in the profile menu.
+  await page.getByRole("button", { name: "Profil" }).click()
+  await page.getByRole("menuitem", { name: "Chiqish" }).click()
   await expect(page).toHaveURL(/\/login$/)
   await page.goto("/")
   await expect(page).toHaveURL(/\/login$/)
@@ -44,8 +49,8 @@ test("someone in two companies chooses one and can switch to the other", async (
   await expect(page).toHaveURL(/\/select-company$/)
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByText("Olma Savdo")).toBeVisible()
-  await expect(page.getByText("Xodim")).toBeVisible()
+  await expect(main(page).getByText("Olma Savdo")).toBeVisible()
+  await expect(main(page).getByText("Xodim", { exact: true })).toBeVisible()
 
   const switchLink = page.getByRole("link", { name: "Kompaniyani almashtirish" })
   // It reads as an outlined button, not as bare text.
@@ -54,14 +59,14 @@ test("someone in two companies chooses one and can switch to the other", async (
   await expect(page).toHaveURL(/\/select-company$/)
   await page.getByRole("button", { name: /Nok Market/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByText("Nok Market")).toBeVisible()
-  await expect(page.getByText("Egasi")).toBeVisible()
+  await expect(main(page).getByText("Nok Market")).toBeVisible()
+  await expect(main(page).getByText("Egasi", { exact: true })).toBeVisible()
 })
 
 test("a company that expires while in use leads to /expired and on to another", async ({ page }) => {
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Nok Market/ }).click()
-  await expect(page.getByText("Nok Market")).toBeVisible()
+  await expect(main(page).getByText("Nok Market")).toBeVisible()
 
   db.companies.find((company) => company.name === "Nok Market")!.end_date = "2026-10-01"
   await page.reload()
@@ -74,7 +79,7 @@ test("a company that expires while in use leads to /expired and on to another", 
   await expect(page.getByRole("button", { name: /Nok Market/ })).toContainText("Muddati o'tgan")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByText("Olma Savdo")).toBeVisible()
+  await expect(main(page).getByText("Olma Savdo")).toBeVisible()
 })
 
 test("with only an expired company there is nothing to choose but signing out", async ({ page }) => {

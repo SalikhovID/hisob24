@@ -56,9 +56,12 @@ test.describe("a linked user", () => {
     await expect(page).toHaveURL(/\/$/)
     await expect(page.locator("html")).toHaveAttribute("data-telegram", "")
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(23, 33, 43)")
-    await expect(page.getByRole("button", { name: "Chiqish" })).toHaveCount(0)
     await expect(page.getByRole("button", { name: "Mavzuni almashtirish" })).toHaveCount(0)
     await fits(page)
+    // Closing the Mini App is the way out: the profile menu offers none.
+    await page.getByRole("button", { name: "Profil" }).click()
+    await expect(page.getByRole("menu").getByText("+998 90 123 45 67")).toBeVisible()
+    await expect(page.getByRole("menuitem", { name: "Chiqish" })).toHaveCount(0)
   })
 })
 
