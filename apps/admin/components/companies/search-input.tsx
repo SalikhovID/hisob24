@@ -15,7 +15,7 @@ export function SearchInput({ value, onSearch }: { value: string; onSearch: (val
   }, [text, value, onSearch])
 
   return (
-    <div className="relative">
+    <div className="relative w-full sm:w-64">
       <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         type="search"
@@ -23,7 +23,7 @@ export function SearchInput({ value, onSearch }: { value: string; onSearch: (val
         placeholder="Nomi bo'yicha qidirish"
         value={text}
         onChange={(event) => setText(event.target.value)}
-        className="pl-8"
+        className="h-9 bg-card pl-8"
       />
     </div>
   )

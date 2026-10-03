@@ -4,10 +4,13 @@ import { cn } from "@/lib/utils"
 
 type Tone = "danger" | "warning" | "success"
 
+// A company in good standing is the rule, so its pill is plain: in a list of
+// them the amber (a week or less left) and the red (expired, blocked) are
+// what the eye finds. Whole class names, as Tailwind reads the source.
 const tones: Record<Tone, string> = {
-  danger: "bg-destructive/10 text-destructive dark:bg-destructive/20",
-  warning: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  success: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  danger: "bg-destructive/10 text-destructive",
+  warning: "bg-amber-500/15 text-amber-800 dark:text-amber-400",
+  success: "",
 }
 
 function statusOf({ is_active, days_left }: Pick<Company, "is_active" | "days_left">): { text: string; tone: Tone } {
@@ -18,11 +21,11 @@ function statusOf({ is_active, days_left }: Pick<Company, "is_active" | "days_le
 }
 
 // CompanyStatusBadge says how a company's subscription stands: the days left,
-// in red once it has expired or been blocked.
+// in amber when they run short, in red once it has expired or been blocked.
 export function CompanyStatusBadge({ company }: { company: Pick<Company, "is_active" | "days_left"> }) {
   const { text, tone } = statusOf(company)
   return (
-    <Badge data-tone={tone} className={cn(tones[tone])}>
+    <Badge variant="secondary" data-tone={tone} className={cn(tones[tone])}>
       {text}
     </Badge>
   )
