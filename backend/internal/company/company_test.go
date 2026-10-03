@@ -102,18 +102,18 @@ func TestAddUser(t *testing.T) {
 	s, pool := newService(t)
 	c := mustCreate(t, s, "Olma", dbToday(t, pool))
 
-	m, err := s.AddUser(t.Context(), c.ID, "90 222 33 44", " Xodim ", "staff")
+	m, err := s.AddUser(t.Context(), c.ID, "90 222 33 44", " Xodim ", "user")
 	require.NoError(t, err)
 	assert.Equal(t, "998902223344", m.Phone)
 	require.NotNil(t, m.FullName)
 	assert.Equal(t, "Xodim", *m.FullName)
-	assert.Equal(t, "staff", m.Role)
+	assert.Equal(t, "user", m.Role)
 
-	m, err = s.AddUser(t.Context(), c.ID, "998902223344", "Boshqa Ism", "manager")
+	m, err = s.AddUser(t.Context(), c.ID, "998902223344", "Boshqa Ism", "user")
 	require.NoError(t, err)
-	assert.Equal(t, "manager", m.Role, "a member gets the new role")
+	assert.Equal(t, "user", m.Role)
 	require.NotNil(t, m.FullName)
-	assert.Equal(t, "Xodim", *m.FullName, "and keeps the name")
+	assert.Equal(t, "Xodim", *m.FullName, "a member keeps the name")
 }
 
 func TestAddUserIsAtomic(t *testing.T) {
@@ -121,7 +121,7 @@ func TestAddUserIsAtomic(t *testing.T) {
 	c := mustCreate(t, s, "Olma", dbToday(t, pool))
 	pgtest.FailInserts(t, pool, "user_companies")
 
-	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "staff")
+	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "user")
 
 	require.Error(t, err)
 	var exists bool
@@ -137,10 +137,10 @@ func TestAddUserRefusals(t *testing.T) {
 		phone, fullName, role string
 		kind                  apperr.Kind
 	}{
-		"unknown company": {c.ID + 1, "998902223344", "Xodim", "staff", apperr.NotFound},
+		"unknown company": {c.ID + 1, "998902223344", "Xodim", "user", apperr.NotFound},
 		"bad role":        {c.ID, "998902223344", "Xodim", "boss", apperr.Invalid},
-		"bad phone":       {c.ID, "12ab", "Xodim", "staff", apperr.Invalid},
-		"no name":         {c.ID, "998902223344", " ", "staff", apperr.Invalid},
+		"bad phone":       {c.ID, "12ab", "Xodim", "user", apperr.Invalid},
+		"no name":         {c.ID, "998902223344", " ", "user", apperr.Invalid},
 	} {
 		_, err := s.AddUser(t.Context(), tc.companyID, tc.phone, tc.fullName, tc.role)
 		var e *apperr.Error
@@ -239,7 +239,7 @@ func kindOf(t *testing.T, err error) apperr.Kind {
 func TestGet(t *testing.T) {
 	s, pool := newService(t)
 	c := mustCreate(t, s, "Olma", dbToday(t, pool).AddDate(0, 0, 3))
-	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "staff")
+	_, err := s.AddUser(t.Context(), c.ID, "998902223344", "Xodim", "user")
 	require.NoError(t, err)
 
 	d, err := s.Get(t.Context(), c.ID)
@@ -252,7 +252,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, "998900000001", d.Users[0].Phone)
 	assert.Equal(t, "owner", d.Users[0].Role)
 	assert.Equal(t, "998902223344", d.Users[1].Phone)
-	assert.Equal(t, "staff", d.Users[1].Role)
+	assert.Equal(t, "user", d.Users[1].Role)
 	require.NotNil(t, d.Users[1].FullName)
 	assert.Equal(t, "Xodim", *d.Users[1].FullName)
 

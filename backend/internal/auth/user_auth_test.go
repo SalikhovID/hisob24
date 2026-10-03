@@ -138,7 +138,7 @@ func TestVerifySignsInAUserOfOneCompany(t *testing.T) {
 	a.newRefreshToken = func() (string, error) { return "refresh-1", nil }
 	addUser(t, pool, "998901234567")
 	companyID := addCompany(t, pool, "Olma", 30)
-	addMember(t, pool, "998901234567", companyID, "manager")
+	addMember(t, pool, "998901234567", companyID, "user")
 	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
 
 	tokens, err := a.Verify(t.Context(), "+998 90 123 45 67", "123456")
@@ -146,10 +146,10 @@ func TestVerifySignsInAUserOfOneCompany(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, tokens.CompanyID)
 	assert.Equal(t, companyID, *tokens.CompanyID, "the only company is chosen")
-	assert.Equal(t, "manager", tokens.Role)
+	assert.Equal(t, "user", tokens.Role)
 	claims, err := ParseAccessToken([]byte(testJWTSecret), tokens.AccessToken, time.Now())
 	require.NoError(t, err)
-	assert.Equal(t, AccessClaims{Phone: "998901234567", CompanyID: &companyID, Role: "manager"}, claims)
+	assert.Equal(t, AccessClaims{Phone: "998901234567", CompanyID: &companyID, Role: "user"}, claims)
 	assert.Equal(t, "refresh-1", tokens.RefreshToken)
 	assert.WithinDuration(t, time.Now().Add(30*24*time.Hour), tokens.RefreshExpiresAt, 5*time.Second)
 	var hash string
@@ -168,7 +168,7 @@ func TestVerifyLeavesTheChoiceToAUserOfSeveralCompanies(t *testing.T) {
 	a, pool, _ := newUserAuth(t)
 	addUser(t, pool, "998901234567")
 	addMember(t, pool, "998901234567", addCompany(t, pool, "Olma", 30), "owner")
-	addMember(t, pool, "998901234567", addCompany(t, pool, "Nok", 30), "staff")
+	addMember(t, pool, "998901234567", addCompany(t, pool, "Nok", 30), "user")
 	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
 
 	tokens, err := a.Verify(t.Context(), "998901234567", "123456")
@@ -261,12 +261,12 @@ func TestRefreshFollowsTheMembershipAsItIsNow(t *testing.T) {
 	a, pool, _ := newUserAuth(t)
 	a.newRefreshToken = codes("refresh-1", "refresh-2", "refresh-3")
 	companyID := addCompany(t, pool, "Olma", 30)
-	first := signIn(t, a, pool, "998901234567", map[int64]string{companyID: "staff"})
+	first := signIn(t, a, pool, "998901234567", map[int64]string{companyID: "user"})
 
-	mustExec(t, pool, "UPDATE user_companies SET role = 'manager'")
+	mustExec(t, pool, "UPDATE user_companies SET role = 'owner'")
 	second, err := a.Refresh(t.Context(), first.RefreshToken)
 	require.NoError(t, err)
-	assert.Equal(t, "manager", second.Role, "the role as it is now")
+	assert.Equal(t, "owner", second.Role, "the role as it is now")
 
 	mustExec(t, pool, "DELETE FROM user_companies")
 	third, err := a.Refresh(t.Context(), second.RefreshToken)
@@ -280,14 +280,14 @@ func TestSwitchCompanyChoosesACompanyAndTheRefreshTokenRemembersIt(t *testing.T)
 	a.newRefreshToken = codes("refresh-1", "refresh-2", "refresh-3")
 	olma := addCompany(t, pool, "Olma", 30)
 	nok := addCompany(t, pool, "Nok", 30)
-	first := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner", nok: "staff"})
+	first := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner", nok: "user"})
 
 	switched, err := a.SwitchCompany(t.Context(), "998901234567", first.RefreshToken, &nok)
 
 	require.NoError(t, err)
 	require.NotNil(t, switched.CompanyID)
 	assert.Equal(t, nok, *switched.CompanyID)
-	assert.Equal(t, "staff", switched.Role)
+	assert.Equal(t, "user", switched.Role)
 	assert.Equal(t, "refresh-2", switched.RefreshToken, "a new refresh token for the new company")
 	_, err = a.Refresh(t.Context(), first.RefreshToken)
 	assert.ErrorIs(t, err, ErrInvalidRefresh, "the old one is revoked")
@@ -302,7 +302,7 @@ func TestSwitchCompanyRefusals(t *testing.T) {
 	olma := addCompany(t, pool, "Olma", 30)
 	other := addCompany(t, pool, "Begona", 30)
 	mine := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner"})
-	theirs := signIn(t, a, pool, "998902223344", map[int64]string{olma: "staff"})
+	theirs := signIn(t, a, pool, "998902223344", map[int64]string{olma: "user"})
 
 	_, err := a.SwitchCompany(t.Context(), "998901234567", mine.RefreshToken, &other)
 	assert.ErrorIs(t, err, ErrNotMember)
@@ -397,7 +397,7 @@ func TestLoginWithTelegramSignsInALinkedUser(t *testing.T) {
 	addMember(t, pool, "998901234567", olma, "owner")
 	linkContact(t, pool, 1001, "998901234567")
 	addUser(t, pool, "998902223344")
-	addMember(t, pool, "998902223344", olma, "manager")
+	addMember(t, pool, "998902223344", olma, "user")
 	addMember(t, pool, "998902223344", addCompany(t, pool, "Nok", 30), "owner")
 	linkContact(t, pool, 1002, "998902223344")
 
@@ -461,7 +461,7 @@ func TestTheSessionKeepsWhereItBegan(t *testing.T) {
 	a, pool, _ := newUserAuth(t)
 	olma := addCompany(t, pool, "Olma", 30)
 	nok := addCompany(t, pool, "Nok", 30)
-	viaSMS := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner", nok: "staff"})
+	viaSMS := signIn(t, a, pool, "998901234567", map[int64]string{olma: "owner", nok: "user"})
 	assert.Equal(t, "sms", viaSMS.Source)
 	linkContact(t, pool, 1001, "998901234567")
 

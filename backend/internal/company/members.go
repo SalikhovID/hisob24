@@ -11,13 +11,13 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
-var roles = map[string]bool{"owner": true, "manager": true, "staff": true}
+var roles = map[string]bool{"owner": true, "user": true}
 
 // AddUser adds a user to the company in one transaction; a user who is
 // already a member gets the new role, an existing user keeps the name.
 func (s *Service) AddUser(ctx context.Context, companyID int64, phone, fullName, role string) (Member, error) {
 	if !roles[role] {
-		return Member{}, invalid("Rol owner, manager yoki staff bo'lishi kerak")
+		return Member{}, invalid("Rol owner yoki user bo'lishi kerak")
 	}
 	normalized, err := user.NormalizePhone(phone)
 	if err != nil {

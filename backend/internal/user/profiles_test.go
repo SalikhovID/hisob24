@@ -19,7 +19,7 @@ func TestGetIsTheUserAndTheirCompanies(t *testing.T) {
 	_, err := pool.Exec(ctx, "INSERT INTO users (phone, full_name) VALUES ('998901234567', 'Ali Valiyev')")
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role)
-		VALUES ('998901234567', $1, 'owner'), ('998901234567', $2, 'staff')`, olma, nok)
+		VALUES ('998901234567', $1, 'owner'), ('998901234567', $2, 'user')`, olma, nok)
 	require.NoError(t, err)
 
 	profile, err := NewProfiles(pool).Get(ctx, "998901234567")
@@ -30,7 +30,7 @@ func TestGetIsTheUserAndTheirCompanies(t *testing.T) {
 	assert.Equal(t, "Ali Valiyev", *profile.FullName)
 	require.Len(t, profile.Companies, 2)
 	assert.Equal(t, "Nok", profile.Companies[0].Name, "by name")
-	assert.Equal(t, "staff", profile.Companies[0].Role)
+	assert.Equal(t, "user", profile.Companies[0].Role)
 	assert.False(t, profile.Companies[0].IsActive)
 	assert.Equal(t, olma, profile.Companies[1].CompanyID)
 	assert.Equal(t, "2026-11-01", profile.Companies[1].EndDate.Format("2006-01-02"))

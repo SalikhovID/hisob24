@@ -290,7 +290,7 @@ func TestMe(t *testing.T) {
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
 	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
-	api.addMember(t, alisPhone, nok, "staff")
+	api.addMember(t, alisPhone, nok, "user")
 
 	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
 
@@ -311,7 +311,7 @@ func TestMeSaysHowManyDaysEachCompanyHasLeft(t *testing.T) {
 	olma := api.addCompany(t, "Olma", 30)
 	anor := api.addCompany(t, "Anor", -5)
 	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
-	api.addMember(t, alisPhone, anor, "staff")
+	api.addMember(t, alisPhone, anor, "user")
 
 	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
 
@@ -365,7 +365,7 @@ func TestATokenBeforeAChoiceOfCompanyIsNotChecked(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", -5)
 	nok := api.addCompany(t, "Nok", 30)
-	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "staff"})
+	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "user"})
 
 	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
 
@@ -377,7 +377,7 @@ func TestSwitchCompany(t *testing.T) {
 	olma := api.addCompany(t, "Olma", -3)
 	nok := api.addCompany(t, "Nok", 30)
 	other := api.addCompany(t, "Begona", 30)
-	access, refresh := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "staff"})
+	access, refresh := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "user"})
 	switchTo := func(companyID int64, options ...option) *httptest.ResponseRecorder {
 		return api.do(t, http.MethodPost, "/app/auth/switch-company", fmt.Sprintf(`{"company_id":%d}`, companyID), options...)
 	}
@@ -408,7 +408,7 @@ func TestSwitchCompanyToNoneLeadsBackToTheList(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", -3)
 	nok := api.addCompany(t, "Nok", 30)
-	access, refresh := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "staff"})
+	access, refresh := api.signIn(t, alisPhone, map[int64]string{olma: "owner", nok: "user"})
 	rec := api.do(t, http.MethodPost, "/app/auth/switch-company", fmt.Sprintf(`{"company_id":%d}`, olma), bearer(access), cookie(refresh))
 	require.Equal(t, http.StatusOK, rec.Code)
 	access, _ = decode(t, rec)["access_token"].(string)

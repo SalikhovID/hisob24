@@ -128,17 +128,17 @@ func TestAddCompanyUser(t *testing.T) {
 	cookie := api.login(t)
 	path := "/admin/companies/" + api.createCompany(t, cookie, "Olma", dbToday(t, api.pool)) + "/users"
 
-	rec := api.do(t, http.MethodPost, path, `{"phone":"90 222 33 44","full_name":"Xodim","role":"staff"}`, cookie)
+	rec := api.do(t, http.MethodPost, path, `{"phone":"90 222 33 44","full_name":"Xodim","role":"user"}`, cookie)
 
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	body := decode(t, rec)
 	assert.Equal(t, "998902223344", body["phone"])
 	assert.Equal(t, "Xodim", body["full_name"])
-	assert.Equal(t, "staff", body["role"])
+	assert.Equal(t, "user", body["role"])
 
 	rec = api.do(t, http.MethodPost, path, `{"phone":"998902223344","full_name":"Xodim","role":"boss"}`, cookie)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.JSONEq(t, `{"error":"validation_error","message":"Rol owner, manager yoki staff bo'lishi kerak"}`, rec.Body.String())
+	assert.JSONEq(t, `{"error":"validation_error","message":"Rol owner yoki user bo'lishi kerak"}`, rec.Body.String())
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPost, "/admin/companies/999999/users",
-		`{"phone":"998902223344","full_name":"Xodim","role":"staff"}`, cookie).Code)
+		`{"phone":"998902223344","full_name":"Xodim","role":"user"}`, cookie).Code)
 }

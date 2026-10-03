@@ -63,19 +63,19 @@ func TestUpsertCompanyUser(t *testing.T) {
 	c := createCompany(t, q, "Olma", today(t, pool))
 	createUser(t, q, "998901234567", "Ali")
 
-	m, err := q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "staff"})
+	m, err := q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "user"})
 	require.NoError(t, err)
-	assert.Equal(t, "staff", m.Role)
+	assert.Equal(t, "user", m.Role)
 
-	m, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "manager"})
+	m, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "owner"})
 	require.NoError(t, err)
-	assert.Equal(t, "manager", m.Role, "a member gets the new role")
+	assert.Equal(t, "owner", m.Role, "a member gets the new role")
 	var members int
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM user_companies WHERE company_id = $1", c.ID).Scan(&members))
 	assert.Equal(t, 1, members)
 
 	_, err = q.UpsertCompanyUser(ctx, gen.UpsertCompanyUserParams{UserPhone: "998901234567", CompanyID: c.ID, Role: "boss"})
-	assert.Equal(t, "23514", sqlState(err), "role is owner, manager or staff") // check_violation
+	assert.Equal(t, "23514", sqlState(err), "role is owner or user") // check_violation
 }
 
 func TestListCompanyUsers(t *testing.T) {
@@ -84,7 +84,7 @@ func TestListCompanyUsers(t *testing.T) {
 	c := createCompany(t, q, "Olma", d)
 	other := createCompany(t, q, "Nok", d)
 	addMember(t, q, c.ID, "998901111111", "Egasi", "owner")
-	addMember(t, q, c.ID, "998902222222", "Xodim", "staff")
+	addMember(t, q, c.ID, "998902222222", "Xodim", "user")
 	addMember(t, q, other.ID, "998903333333", "Begona", "owner")
 
 	users, err := q.ListCompanyUsers(t.Context(), c.ID)
@@ -95,7 +95,7 @@ func TestListCompanyUsers(t *testing.T) {
 	assert.Equal(t, "Egasi", *users[0].FullName)
 	assert.Equal(t, "owner", users[0].Role)
 	assert.Equal(t, "998902222222", users[1].Phone)
-	assert.Equal(t, "staff", users[1].Role)
+	assert.Equal(t, "user", users[1].Role)
 }
 
 func addMember(t *testing.T, q *gen.Queries, companyID int64, phone, name, role string) {
@@ -112,7 +112,7 @@ func TestListUserCompanies(t *testing.T) {
 	behi := createCompany(t, q, "Behi", d.AddDate(0, 0, -1))
 	nok := createCompany(t, q, "Nok", d)
 	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
-	addMember(t, q, behi.ID, "998901234567", "Ali", "staff")
+	addMember(t, q, behi.ID, "998901234567", "Ali", "user")
 	addMember(t, q, nok.ID, "998909999999", "Vali", "owner")
 
 	got, err := q.ListUserCompanies(t.Context(), "998901234567")
@@ -120,7 +120,7 @@ func TestListUserCompanies(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got, 2)
 	assert.Equal(t, "Behi", got[0].Name, "ordered by name")
-	assert.Equal(t, "staff", got[0].Role)
+	assert.Equal(t, "user", got[0].Role)
 	assert.True(t, got[0].EndDate.Equal(d.AddDate(0, 0, -1)))
 	assert.Equal(t, "Olma", got[1].Name)
 	assert.Equal(t, "owner", got[1].Role)
@@ -131,13 +131,13 @@ func TestGetUserCompany(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	c := createCompany(t, q, "Olma", today(t, pool))
-	addMember(t, q, c.ID, "998901234567", "Ali", "manager")
+	addMember(t, q, c.ID, "998901234567", "Ali", "user")
 	createUser(t, q, "998909999999", "Vali")
 
 	m, err := q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: "998901234567", CompanyID: c.ID})
 	require.NoError(t, err)
 	assert.Equal(t, "Olma", m.Name)
-	assert.Equal(t, "manager", m.Role)
+	assert.Equal(t, "user", m.Role)
 
 	_, err = q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: "998909999999", CompanyID: c.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")

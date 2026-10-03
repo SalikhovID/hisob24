@@ -1,9 +1,12 @@
 package migrations_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
@@ -41,4 +44,39 @@ func TestInitDownRemovesTheSchema(t *testing.T) {
 	tables, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	require.NoError(t, err)
 	assert.Empty(t, tables)
+}
+
+// addCompany inserts a company and returns its id.
+func addCompany(t *testing.T, pool *pgxpool.Pool, name string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO companies (name, end_date) VALUES ($1, CURRENT_DATE) RETURNING id", name).Scan(&id))
+	return id
+}
+
+// sqlState is the SQLSTATE of a Postgres error, "" for any other error.
+func sqlState(err error) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code
+	}
+	return ""
+}
+
+func TestRolesAreOwnerAndUser(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222'), ('998903333333')")
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998901111111', $1, 'user')", c)
+	assert.NoError(t, err, "user is a role")
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998902222222', $1, 'manager')", c)
+	assert.Equal(t, "23514", sqlState(err), "manager is a role no more") // check_violation
+	var role string
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO user_companies (user_phone, company_id) VALUES ('998903333333', $1) RETURNING role", c).Scan(&role))
+	assert.Equal(t, "user", role, "a member is a user unless made the owner")
 }
