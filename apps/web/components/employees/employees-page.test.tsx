@@ -78,6 +78,25 @@ test("the list ends with its total", async () => {
   expect(screen.getByText("Jami: 3")).toBeInTheDocument()
 })
 
+test("on a phone a member is a card: role and date in one line, the actions at its top", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+  await rows()
+
+  const [owner, vali] = within(screen.getByRole("list", { name: "Xodimlar" })).getAllByRole("listitem")
+
+  expect(identityOf(vali)).toEqual(["Vali Aliyev", "+998 90 222 33 44"])
+  const inline = Array.from(vali.querySelectorAll('[data-slot="data-list-meta"] > *')).map((value) => value.textContent)
+  expect(inline).toEqual(["Xodim", "02.10.2026"])
+  expect(within(vali).queryByText("Rol")).not.toBeInTheDocument()
+  expect(within(vali).queryByText("Amallar")).not.toBeInTheDocument()
+  const actions = vali.querySelector<HTMLElement>('[data-slot="data-list-actions"]')!
+  expect(within(actions).getByRole("button", { name: "Ismni o'zgartirish: Vali Aliyev" })).toBeInTheDocument()
+  expect(within(actions).getByRole("button", { name: "O'chirish: Vali Aliyev" })).toBeInTheDocument()
+  // Nothing can be done with the owner here: no place is kept for actions.
+  expect(owner.querySelector('[data-slot="data-list-actions"]')).not.toBeInTheDocument()
+})
+
 test("an employee is sent home: the page is the owner's", async () => {
   await signIn(VALI)
   await chooseCompany(1)

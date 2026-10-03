@@ -53,6 +53,7 @@ export function EmployeesPage() {
     },
     {
       header: "Rol",
+      card: "inline",
       cell: (m) => (
         <span className="inline-flex flex-wrap items-center justify-end gap-1">
           <Badge variant={m.role === "owner" ? "default" : "secondary"}>{roleLabels[m.role]}</Badge>
@@ -60,9 +61,10 @@ export function EmployeesPage() {
         </span>
       ),
     },
-    { header: "Qo'shilgan", cell: (m) => formatDate(m.created_at) },
+    { header: "Qo'shilgan", card: "inline", cell: (m) => formatDate(m.created_at) },
     {
       header: "Amallar",
+      actions: true,
       // The owner is the admin panel's to change: only employees get these.
       cell: (m) =>
         m.role === "user" && (
