@@ -65,15 +65,21 @@ func (s *Service) ReplaceOwner(ctx context.Context, companyID int64, phone, full
 	}
 	name := strings.TrimSpace(fullName)
 
-	if err := s.q.UpsertUser(ctx, gen.UpsertUserParams{Phone: normalized, FullName: &name}); err != nil {
-		return Member{}, err
-	}
-	if err := s.q.DemoteCompanyOwner(ctx, companyID); err != nil {
-		return Member{}, err
-	}
-	owner, err := s.q.SetCompanyOwner(ctx, gen.SetCompanyOwnerParams{UserPhone: normalized, CompanyID: companyID, FullName: &name})
-	if err != nil {
-		return Member{}, err
-	}
-	return Member{Phone: owner.UserPhone, FullName: owner.FullName, Role: owner.Role, CreatedAt: owner.CreatedAt}, nil
+	var m Member
+	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		q := s.q.WithTx(tx)
+		if err := q.UpsertUser(ctx, gen.UpsertUserParams{Phone: normalized, FullName: &name}); err != nil {
+			return err
+		}
+		if err := q.DemoteCompanyOwner(ctx, companyID); err != nil {
+			return err
+		}
+		owner, err := q.SetCompanyOwner(ctx, gen.SetCompanyOwnerParams{UserPhone: normalized, CompanyID: companyID, FullName: &name})
+		if err != nil {
+			return err
+		}
+		m = Member{Phone: owner.UserPhone, FullName: owner.FullName, Role: owner.Role, CreatedAt: owner.CreatedAt}
+		return nil
+	})
+	return m, err
 }

@@ -193,6 +193,20 @@ func TestReplaceOwner(t *testing.T) {
 	assert.Equal(t, "Egasi", nameIn(t, pool, c.ID, "998900000001"), "under the same name")
 }
 
+func TestReplaceOwnerIsAtomic(t *testing.T) {
+	s, pool := newService(t)
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	pgtest.FailInserts(t, pool, "user_companies")
+
+	_, err := s.ReplaceOwner(t.Context(), c.ID, "998902223344", "Yangi Egasi")
+
+	require.Error(t, err)
+	assert.Equal(t, map[string]string{"998900000001": "owner"}, rolesOf(t, pool, c.ID), "the owner is not demoted for nothing")
+	var exists bool
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT EXISTS (SELECT 1 FROM users WHERE phone = '998902223344')").Scan(&exists))
+	assert.False(t, exists, "no user without the membership")
+}
+
 func TestList(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
