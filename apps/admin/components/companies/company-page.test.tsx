@@ -354,3 +354,15 @@ test("while the block is on its way the confirmation's button says so", async ()
   await waitFor(() => expect(block).toBeDisabled())
   expect(block).toHaveAttribute("aria-busy", "true")
 })
+
+test("while the activation is on its way its button says so", async () => {
+  db.companies[0].is_active = false
+  server.use(http.patch("*/api/admin/companies/:id", hang))
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Faollashtirish" }))
+
+  const activate = screen.getByRole("button", { name: "Faollashtirish" })
+  await waitFor(() => expect(activate).toBeDisabled())
+  expect(activate).toHaveAttribute("aria-busy", "true")
+})

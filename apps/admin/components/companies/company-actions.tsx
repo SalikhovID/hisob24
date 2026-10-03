@@ -42,17 +42,18 @@ export function CompanyActions({ company }: { company: Company }) {
 
   if (!company.is_active) {
     return (
-      <Button
+      <PendingButton
         variant="outline"
         size="sm"
-        disabled={update.isPending}
+        pending={update.isPending}
         onClick={() =>
           update.mutate({ is_active: true }, { onSuccess: () => toast.success("Kompaniya faollashtirildi") })
         }
       >
-        <CircleCheckIcon />
+        {/* The spinner takes the icon's place while the request is on its way. */}
+        {!update.isPending && <CircleCheckIcon />}
         Faollashtirish
-      </Button>
+      </PendingButton>
     )
   }
 
