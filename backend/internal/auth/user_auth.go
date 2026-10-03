@@ -165,12 +165,13 @@ func (a *UserAuth) Verify(ctx context.Context, rawPhone, code string) (Tokens, e
 			}
 			return err
 		}
-		// A stranger's code was never sent; even guessed, it signs in no one.
-		known, err := q.UserExists(ctx, phone)
+		// The code of a phone that is in no company was never sent; even
+		// guessed, it signs in no one.
+		member, err := q.HasCompany(ctx, phone)
 		if err != nil {
 			return err
 		}
-		if !known {
+		if !member {
 			return ErrInvalidCode
 		}
 		companies, err := q.ListUserCompanies(ctx, phone)

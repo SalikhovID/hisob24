@@ -241,6 +241,16 @@ func TestVerifyGivesAStrangerNothing(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidCode, "even the right code signs in no one")
 }
 
+func TestVerifyGivesAUserOfNoCompanyNothing(t *testing.T) {
+	a, pool, _ := newUserAuth(t)
+	addUser(t, pool, "998901234567")
+	require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+
+	_, err := a.Verify(t.Context(), "998901234567", "123456")
+
+	assert.ErrorIs(t, err, ErrInvalidCode, "the code was never texted: even guessed, it signs in no one")
+}
+
 // signIn makes phone a user of the companies (id → role) and signs them in.
 func signIn(t *testing.T, a *UserAuth, pool *pgxpool.Pool, phone string, roles map[int64]string) Tokens {
 	t.Helper()
@@ -340,7 +350,7 @@ func TestSwitchCompanyRefusals(t *testing.T) {
 
 func TestLogoutRevokesTheRefreshToken(t *testing.T) {
 	a, pool, _ := newUserAuth(t)
-	tokens := signIn(t, a, pool, "998901234567", nil)
+	tokens := signIn(t, a, pool, "998901234567", map[int64]string{addCompany(t, pool, "Olma", 30): "owner"})
 
 	require.NoError(t, a.Logout(t.Context(), tokens.RefreshToken))
 
