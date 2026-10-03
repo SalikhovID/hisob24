@@ -7,10 +7,10 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { PendingButton } from "@/components/pending-button"
+import { Refusal } from "@/components/refusal"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { FieldError } from "@/components/ui/field"
 import { companySchema } from "@/lib/schemas"
 import type { Company } from "@/lib/types"
 import { useUpdateCompany } from "./company-actions"
@@ -37,7 +37,7 @@ export function RenameDialog({ company }: { company: Company }) {
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger render={<Button variant="outline" size="lg" />}>
         <PencilIcon />
         Nomini o&apos;zgartirish
       </DialogTrigger>
@@ -61,9 +61,9 @@ export function RenameDialog({ company }: { company: Company }) {
           className="space-y-4"
         >
           <TextField control={form.control} name="name" label="Kompaniya nomi" autoComplete="off" />
-          {update.isError && <FieldError>{update.error.message}</FieldError>}
+          {update.isError && <Refusal>{update.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" pending={update.isPending}>
+            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={update.isPending}>
               Saqlash
             </PendingButton>
           </DialogFooter>

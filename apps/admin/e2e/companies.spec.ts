@@ -82,3 +82,22 @@ test("a company opens from anywhere on its identity: the line under the name and
   await olcha.locator('[data-slot="avatar"]').click({ force: true })
   await expect(page).toHaveURL(/\/companies\/3$/)
 })
+
+test("a company's actions stand beside its name on a wide screen and under it on a phone", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await signIn(context, baseURL)
+  await page.goto("/companies/1")
+
+  const name = (await page.getByRole("heading", { name: "Olma Savdo" }).boundingBox())!
+  const rename = (await page.getByRole("button", { name: "Nomini o'zgartirish" }).boundingBox())!
+  if ((page.viewportSize()?.width ?? 0) < 768) {
+    // Two buttons beside the name would leave it a few letters a line.
+    expect(rename.y).toBeGreaterThanOrEqual(name.y + name.height)
+  } else {
+    expect(rename.y).toBeLessThan(name.y + name.height)
+    expect(rename.x).toBeGreaterThan(name.x + name.width)
+  }
+})

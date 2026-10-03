@@ -8,10 +8,11 @@ import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { PendingButton } from "@/components/pending-button"
+import { Refusal } from "@/components/refusal"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
 import { api, call } from "@/lib/api"
 import { previewEndDate } from "@/lib/billing"
@@ -34,6 +35,10 @@ export function AddBillingDialog({ company }: { company: Company }) {
   const form = useForm<Input, unknown, Output>({ resolver: zodResolver(billingSchema), defaultValues: empty })
   const days = useWatch({ control: form.control, name: "days" })
   const dayCount = /^\d+$/.test(days.trim()) ? Number(days) : 0
+  const preview =
+    dayCount >= 1 && dayCount <= 3650
+      ? formatDate(previewEndDate(company.end_date, company.days_left, dayCount))
+      : null
   const add = useMutation({
     mutationFn: (payment: Output) =>
       call(api.POST("/admin/companies/{id}/billings", { params: { path: { id: company.id } }, body: payment })),
@@ -57,7 +62,7 @@ export function AddBillingDialog({ company }: { company: Company }) {
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button size="sm" />}>
+      <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
         <CalendarPlusIcon />
         Billing qo&apos;shish
       </DialogTrigger>
@@ -67,15 +72,27 @@ export function AddBillingDialog({ company }: { company: Company }) {
         </DialogHeader>
         <form onSubmit={form.handleSubmit((payment) => add.mutate(payment))} noValidate className="space-y-4">
           <FieldGroup>
-            <TextField control={form.control} name="days" label="Kunlar soni" inputMode="numeric" autoComplete="off" />
-            <p aria-live="polite" className="rounded-lg bg-muted px-3 py-2 text-sm">
-              Yangi tugash sanasi:{" "}
-              <strong>
-                {dayCount >= 1 && dayCount <= 3650
-                  ? formatDate(previewEndDate(company.end_date, company.days_left, dayCount))
-                  : "—"}
-              </strong>
-            </p>
+            {/* The day count and what it leads to read as one: the line stands close under the field. */}
+            <div className="grid gap-2">
+              <TextField
+                control={form.control}
+                name="days"
+                label="Kunlar soni"
+                inputMode="numeric"
+                autoComplete="off"
+              />
+              <p
+                aria-live="polite"
+                className="flex items-baseline justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground tabular-nums"
+              >
+                Yangi tugash sanasi:{" "}
+                {preview ? (
+                  <strong className="font-semibold text-foreground">{preview}</strong>
+                ) : (
+                  <strong className="font-normal">—</strong>
+                )}
+              </p>
+            </div>
             <TextField
               control={form.control}
               name="amount"
@@ -95,9 +112,9 @@ export function AddBillingDialog({ company }: { company: Company }) {
               )}
             />
           </FieldGroup>
-          {add.isError && <FieldError>{add.error.message}</FieldError>}
+          {add.isError && <Refusal>{add.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" pending={add.isPending}>
+            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={add.isPending}>
               Qo&apos;shish
             </PendingButton>
           </DialogFooter>

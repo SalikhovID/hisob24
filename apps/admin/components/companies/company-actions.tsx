@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { BanIcon, CircleCheckIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -14,7 +15,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { PendingButton } from "@/components/pending-button"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { keys } from "@/lib/queries"
@@ -44,7 +44,7 @@ export function CompanyActions({ company }: { company: Company }) {
     return (
       <PendingButton
         variant="outline"
-        size="sm"
+        size="lg"
         pending={update.isPending}
         onClick={() =>
           update.mutate({ is_active: true }, { onSuccess: () => toast.success("Kompaniya faollashtirildi") })
@@ -59,7 +59,16 @@ export function CompanyActions({ company }: { company: Company }) {
 
   return (
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
+      {/* Quiet until the pointer is on it: only then does it show what it is. */}
+      <AlertDialogTrigger
+        render={
+          <Button
+            variant="outline"
+            size="lg"
+            className="hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+          />
+        }
+      >
         <BanIcon />
         Bloklash
       </AlertDialogTrigger>

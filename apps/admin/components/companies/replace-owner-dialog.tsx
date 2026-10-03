@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { PendingButton } from "@/components/pending-button"
+import { Refusal } from "@/components/refusal"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { FieldError, FieldGroup } from "@/components/ui/field"
+import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { keys } from "@/lib/queries"
 import { ownerSchema } from "@/lib/schemas"
@@ -56,7 +57,7 @@ export function ReplaceOwnerDialog({ companyId }: { companyId: number }) {
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger render={<Button variant="outline" size="lg" />}>
         <UserCogIcon />
         Egasini almashtirish
       </DialogTrigger>
@@ -79,9 +80,9 @@ export function ReplaceOwnerDialog({ companyId }: { companyId: number }) {
             />
             <TextField control={form.control} name="full_name" label="Ism" autoComplete="off" />
           </FieldGroup>
-          {replace.isError && <FieldError>{replace.error.message}</FieldError>}
+          {replace.isError && <Refusal>{replace.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" pending={replace.isPending}>
+            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={replace.isPending}>
               Almashtirish
             </PendingButton>
           </DialogFooter>
