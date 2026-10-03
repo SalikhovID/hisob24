@@ -4,7 +4,10 @@ import type { ReactNode } from "react"
 
 // PageHeader opens a page: its name, a line on what it holds (with how many,
 // when that is known) and, beside them, what can be done on it. A page under
-// another one leads back to it.
+// another one leads back to it. On a phone the name and the action share the
+// first line and the description takes the whole of the second, so it never
+// wraps beside the button; in the source the order is always name,
+// description, action.
 export function PageHeader({
   title,
   description,
@@ -17,22 +20,26 @@ export function PageHeader({
   back?: { href: string; label: string }
 }) {
   return (
-    <header className="space-y-1">
+    <header className="space-y-2">
       {back && (
         <Link
           href={back.href}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex h-7 items-center gap-1 text-[0.8125rem] text-muted-foreground hover:text-foreground"
         >
           <ArrowLeftIcon className="size-4" />
           {back.label}
         </Link>
       )}
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight break-words">{title}</h1>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-        </div>
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
+        <h1 className="min-w-0 text-xl font-semibold tracking-tight [overflow-wrap:anywhere] md:text-2xl">{title}</h1>
+        {description && (
+          <p className="col-span-2 row-start-2 text-sm text-muted-foreground md:col-span-1">{description}</p>
+        )}
+        {actions && (
+          <div className="col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 md:row-span-2 md:self-center">
+            {actions}
+          </div>
+        )}
       </div>
     </header>
   )

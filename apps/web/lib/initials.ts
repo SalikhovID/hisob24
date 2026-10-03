@@ -11,8 +11,8 @@ export function initials(name: string | null | undefined): string | null {
   return letters.slice(0, 2).join("").toUpperCase()
 }
 
-// TONES is how many tints the avatars have.
-export const TONES = 6
+// TONES is how many tints the avatars have (the Avatar holds their classes).
+export const TONES = 5
 
 // tone is the tint of whoever a seed (a phone, an ID) stands for: the same
 // seed always gets the same one.
