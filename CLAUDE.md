@@ -100,3 +100,5 @@ make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa
 - `docs/SPEC.md`: spetsifikatsiya, asosiy manba.
 - `README.md`: lokal ishga tushirish, env, BotFather sozlamalari va production'da webhook.
 - `docs/superpowers/specs/2026-10-02-hisob24-design.md`: kelishilgan qarorlar va spec'dan tasdiqlangan chetlanishlar.
+- `logic/user.md`, `logic/roles.md`: user, multi-user, xodimlar va rollar (`owner` / `user`) qoidalari. Shu sohadagi kod shu hujjatlarga mos yoziladi.
+- `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`: xodimlar, rollar va user app sidebar dizayni.

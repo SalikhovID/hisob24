@@ -1,0 +1,159 @@
+# User: kim, qanday qo'shiladi, qanday kiradi
+
+Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tushadi, bir nechta kompaniyada qanday ishlaydi, ismi va kirish huquqi qanday boshqariladi. Rollar va ruxsatlar: [roles.md](roles.md).
+
+> Holat: qoidalar 2026-10-03 da kelishilgan, kod shu hujjatga qarab yoziladi. Dizayn va bosqichlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
+
+## 1. Tushunchalar
+
+| Tushuncha | Ma'nosi | Bazada |
+|---|---|---|
+| **User** | Bitta telefon raqami. Platformada bitta raqam = bitta user, nechta kompaniyada ishlashidan qat'i nazar. | `users.phone` (`998901234567` ko'rinishida) |
+| **A'zolik** | Userning bitta kompaniyadagi o'rni: roli va shu kompaniyadagi ismi. | `user_companies` (`user_phone`, `company_id`, `role`, `full_name`) |
+| **Egasi (owner)** | Kompaniyaning yagona egasi. Uni platforma admini qo'ygan. | `role = 'owner'` |
+| **Xodim** | `user` rolidagi a'zo. Uni kompaniya egasi qo'shgan. | `role = 'user'` |
+| **Multi-user** | Bir nechta kompaniyaga a'zo user. | bir nechta `user_companies` qatori |
+
+Telefon har joyda bir xil normallashtiriladi (`user.NormalizePhone`): `+`, bo'shliq, `-` va qavslar olib tashlanadi, 9 xonali raqam oldiga `998` qo'shiladi.
+
+User yozuvi (`users`) o'chirilmaydi. O'chadigan narsa faqat a'zolik.
+
+## 2. User tizimga qanday tushadi
+
+| # | Yo'l | Kim bajaradi | Qayerda | Natija |
+|---|---|---|---|---|
+| 1 | Company yaratish | platforma admini | admin panel → Kompaniyalar → Yangi | raqam shu kompaniyaning **owner**'i |
+| 2 | Egasini almashtirish | platforma admini | admin panel → kompaniya sahifasi | raqam yangi **owner**, oldingisi `user` |
+| 3 | Xodim qo'shish | kompaniya owner'i | user app → Xodimlar | raqam shu kompaniyaning **user**'i |
+
+Boshqa yo'l yo'q: o'zi ro'yxatdan o'tish, taklif va rozilik oqimi yo'q.
+
+Uchala yo'lda ham qoida bir xil:
+
+- raqam tizimda yo'q bo'lsa, user yaratiladi;
+- raqam tizimda bor bo'lsa, o'sha userga yangi a'zolik qo'shiladi (multi-user, 4-bo'lim);
+- user va a'zolik bitta transaction ichida yoziladi, a'zoliksiz yangi user qolmaydi.
+
+## 3. Xodim qo'shish (user app)
+
+Owner **Xodimlar → Xodim qo'shish** da telefon va ismni kiritadi (`POST /app/employees {phone, full_name}`).
+
+Kompaniya so'rovdan emas, owner'ning access token'idan olinadi. Owner faqat hozir tanlangan kompaniyasiga qo'sha oladi.
+
+| Kiritilgan raqam | Natija |
+|---|---|
+| tizimda yo'q | yangi user, a'zolik `user`, ism kiritilgan ism |
+| boshqa kompaniyada bor | o'sha user, yangi a'zolik `user`, ism kiritilgan ism (multi-user) |
+| shu kompaniyada allaqachon bor (owner yoki user) | 409 `already_member`, hech narsa o'zgarmaydi |
+| noto'g'ri raqam yoki bo'sh ism | 400 `validation_error` |
+
+Tafsilotlar:
+
+- Qo'shilgan har doim `user` bo'ladi. User app'dan owner qo'shib bo'lmaydi.
+- Javob raqam tizimda oldin bo'lgan-bo'lmaganiga bog'liq emas: ikkala holatda ham 201 va owner kiritgan ism qaytadi. Shuning uchun owner begona kompaniyadagi ismni ko'rmaydi va raqam Hisob24'da bor-yo'qligini bila olmaydi.
+- Qo'shilgan odamga SMS yoki bot xabari yuborilmaydi, undan rozilik so'ralmaydi. Owner unga o'zi aytadi: `app.hisob24.uz` ga o'z raqami bilan kiradi (SMS kod) yoki botdagi Mini App'ni ochadi.
+- Xodimlar soniga limit yo'q.
+
+## 4. Multi-user
+
+Bir user bir nechta kompaniyaga a'zo bo'lishi mumkin. Bu shunday yuzaga keladi:
+
+- owner boshqa kompaniyada bor raqamni xodim qilib qo'shadi;
+- admin mavjud raqamni yangi kompaniyaning owner'i qiladi (yaratishda yoki almashtirishda).
+
+Rol va ism **har kompaniyada alohida**:
+
+| Raqam | Kompaniya | Rol | Ism |
+|---|---|---|---|
+| 998901234567 | Olma Savdo | owner | Ali Valiyev |
+| 998901234567 | Nok Market | user | Ali (hisobchi) |
+
+Qanday ishlaydi:
+
+- **Login.** Bitta kompaniyasi bor user to'g'ridan-to'g'ri o'sha kompaniyaga kiradi. Ikki va undan ko'p bo'lsa, `/select-company` sahifasida tanlaydi.
+- **Sessiya.** Bitta sessiya bir vaqtda bitta kompaniyada ishlaydi (access token'da `company_id`). Almashtirish: profil menyusi → "Kompaniyani almashtirish" (`POST /app/auth/switch-company`).
+- **Sessiya ochiq paytda qo'shilsa.** Yangi kompaniya keyingi `/app/me` javobida ro'yxatda paydo bo'ladi, qayta kirish shart emas. Hozir ishlayotgan kompaniyasi o'zgarmaydi.
+- **Izolyatsiya.** Kompaniya faqat o'z a'zolarini va ularning o'zidagi ismini ko'radi. User qaysi boshqa kompaniyalarda ishlashi faqat uning o'ziga ko'rinadi.
+- **Mustaqillik.** Bir kompaniyadan chiqarish, ismni o'zgartirish yoki obunaning tugashi boshqa kompaniyadagi a'zolikka ta'sir qilmaydi.
+
+## 5. Ism
+
+Ism a'zolikda saqlanadi (`user_companies.full_name`): har kompaniya o'z a'zosini o'zi nomlaydi.
+
+| Kimning ismi | Kim o'zgartiradi | Qayerda |
+|---|---|---|
+| xodim (`user`) | shu kompaniya owner'i | user app → Xodimlar → tahrirlash (`PATCH /app/employees/{phone} {full_name}`) |
+| owner | platforma admini | admin panel → Egasini almashtirish (o'sha raqam + yangi ism) |
+
+- User app'dagi "Salom, …" va profil menyusi tanlangan kompaniyadagi ismni ko'rsatadi.
+- `users.full_name` user birinchi marta qo'shilgandagi ismni saqlaydi va keyin o'zgarmaydi. U faqat kompaniya hali tanlanmagan holatda zaxira sifatida ishlatiladi.
+- Telefon raqami tahrirlanmaydi: boshqa raqam boshqa user. Raqami o'zgargan xodim o'chiriladi va yangi raqam bilan qo'shiladi.
+
+## 6. Xodimni o'chirish
+
+Owner **Xodimlar** ro'yxatida `user` rolidagi xodimni o'chiradi (`DELETE /app/employees/{phone}`). O'chadigan narsa shu kompaniyadagi a'zolik.
+
+| Nima | Holati |
+|---|---|
+| shu kompaniyadagi a'zolik | o'chadi |
+| `users` yozuvi | qoladi |
+| boshqa kompaniyalardagi a'zoliklar | qoladi |
+| botga ulangan raqam (`telegram_contacts`) | qoladi |
+
+O'chirilgan xodim uchun oqibat:
+
+| Holat | Nima bo'ladi |
+|---|---|
+| shu kompaniyada ochiq sessiyasi bor | keyingi so'rovdayoq kirish yopiladi, access token muddati kutilmaydi |
+| boshqa kompaniyasi bor | `/select-company` ga tushadi va qolgan kompaniyalarida ishlayveradi |
+| boshqa kompaniyasi yo'q | sessiya tugaydi, `/login` ga tushadi |
+| qayta kirmoqchi bo'lsa (kompaniyasi yo'q) | SMS kod kelmaydi, Mini App "Hisob24'ga kirish huquqingiz yo'q" deydi |
+
+Owner'ni (o'zini ham) o'chirib bo'lmaydi: 409 `cannot_change_owner`.
+
+O'chirilgan xodimni keyin qayta qo'shish mumkin. U kiritilgan ism bilan oddiy xodim bo'lib qaytadi.
+
+## 7. Kirish huquqi
+
+Tizimga **kamida bitta kompaniyaga a'zo** user kira oladi.
+
+| Joy | A'zoligi bor | A'zoligi yo'q |
+|---|---|---|
+| SMS kod so'rash | kod yuboriladi | javob bir xil (200), SMS ketmaydi |
+| Kodni tasdiqlash | token beriladi | 401 `invalid_code` |
+| Mini App | avtomatik kiradi | 403 `no_access` (raqami ko'rsatiladi) |
+| User bot (raqam yuborilganda) | "✅ Akkauntingiz ulandi" | "Raqamingiz saqlandi" |
+| Refresh | yangi token | sessiya tugaydi (401 `invalid_refresh_token`) |
+
+Kompaniya ichidagi har bir so'rovda quyidagilar shu tartibda tekshiriladi, a'zolik va rol bazadan o'qiladi:
+
+1. Access token yaroqlimi. Aks holda 401 `unauthorized`.
+2. User token'dagi kompaniyaga hali ham a'zomi. Aks holda 401 `unauthorized`: client o'zi refresh qiladi va kompaniyasiz token oladi yoki sessiya tugaydi.
+3. Kompaniya obunasi faolmi. Aks holda 402 `subscription_expired`.
+4. Amal faqat owner'niki bo'lsa, user shu kompaniyada owner'mi. Aks holda 403 `owner_only` ([roles.md](roles.md)).
+
+Kompaniya hali tanlanmagan token (multi-user login'dan keyin) 2 va 3-qadamdan o'tadi, lekin owner amallarini bajara olmaydi.
+
+## 8. Chekka holatlar
+
+| Holat | Natija |
+|---|---|
+| Owner o'z raqamini xodim qilib qo'shadi | 409 `already_member` |
+| Owner mavjud xodimni yana qo'shadi | 409 `already_member`, ismi o'zgarmaydi |
+| Ikki kompaniya bir raqamni bir vaqtda qo'shadi | ikkalasi ham muvaffaqiyatli: bitta user, ikki a'zolik |
+| O'chirilgan xodim qayta qo'shiladi | yangi a'zolik, kiritilgan ism bilan |
+| Xodim boshqa kompaniyada owner | bu kompaniyada baribir `user`, rollar aralashmaydi |
+| Admin xodimning raqamini shu kompaniyaga owner qiladi | xodim owner'ga ko'tariladi, eski owner `user` bo'ladi |
+| Kompaniyasi tanlanmagan token bilan Xodimlar API | 403 `owner_only` |
+| Obunasi tugagan kompaniyada Xodimlar API | 402 `subscription_expired` |
+| Raqam botga ulangan, lekin hech qayerda a'zo emas | Mini App `no_access` deydi; biror kompaniyaga qo'shilgach avtomatik kiradi |
+
+## 9. Xato kodlari
+
+| Kod | Status | Xabar |
+|---|---|---|
+| `validation_error` | 400 | "Telefon raqami noto'g'ri" yoki "Ismni kiriting" |
+| `owner_only` | 403 | "Bu bo'lim faqat kompaniya egasi uchun" |
+| `not_found` | 404 | "Xodim topilmadi" |
+| `already_member` | 409 | "Bu raqam kompaniyangizga allaqachon qo'shilgan" |
+| `cannot_change_owner` | 409 | "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi" |
