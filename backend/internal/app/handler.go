@@ -9,20 +9,23 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
+	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
 // Services is what the /app API runs on.
 type Services struct {
-	Auth     *auth.UserAuth
-	Profiles *user.Profiles
+	Auth      *auth.UserAuth
+	Profiles  *user.Profiles
+	Companies *company.Service
 }
 
 // Handler serves /app.
 type Handler struct {
 	auth          *auth.UserAuth
 	profiles      *user.Profiles
+	companies     *company.Service
 	cookieSecure  bool
 	sendLimiter   *httpx.RateLimiter
 	verifyLimiter *httpx.RateLimiter
@@ -31,7 +34,10 @@ type Handler struct {
 // NewHandler wires the /app API. The limiters cap code requests and code
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
-	return &Handler{auth: s.Auth, profiles: s.Profiles, cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter}
+	return &Handler{
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies,
+		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
+	}
 }
 
 // Routes mounts /app.
@@ -46,6 +52,10 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireUser, h.requireAccess)
 			r.Get("/me", h.me)
+			r.Group(func(r chi.Router) {
+				r.Use(h.requireOwner)
+				r.Get("/employees", h.listEmployees)
+			})
 		})
 	})
 }

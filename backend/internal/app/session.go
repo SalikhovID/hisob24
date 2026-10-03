@@ -127,14 +127,17 @@ func unauthorized(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusUnauthorized, "unauthorized", "Avval tizimga kiring")
 }
 
+type roleKey struct{}
+
 // requireAccess checks the access token's company against the database on
 // every request, so a change counts at once, not when the token expires:
 //   - the user is no longer its member: 401 unauthorized, and the app
 //     refreshes the session, which drops the company or ends;
-//   - the company has expired or been blocked: 402.
+//   - the company has expired or been blocked: 402;
+//   - otherwise the role there, as it is now, goes into the context.
 //
-// A token before the choice of a company passes, and /app/auth/* is outside
-// it, so the user can switch to another company.
+// A token before the choice of a company passes with no role, and
+// /app/auth/* is outside it, so the user can switch to another company.
 func (h *Handler) requireAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims := currentUser(r.Context())
@@ -151,7 +154,27 @@ func (h *Handler) requireAccess(next http.Handler) http.Handler {
 		case !access.Active:
 			httpx.Error(w, http.StatusPaymentRequired, "subscription_expired", "Kompaniya obunasi tugagan")
 		default:
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), roleKey{}, access.Role)))
 		}
+	})
+}
+
+// currentRole is the user's role in the access token's company as
+// requireAccess read it from the database: the token's own role claim may be
+// minutes old. "" before a company is chosen.
+func currentRole(ctx context.Context) string {
+	role, _ := ctx.Value(roleKey{}).(string)
+	return role
+}
+
+// requireOwner lets through only the owner of the company the session works
+// in; a user of the company, and a session with no company chosen, get 403.
+func (h *Handler) requireOwner(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if currentRole(r.Context()) != "owner" {
+			httpx.Error(w, http.StatusForbidden, "owner_only", "Bu bo'lim faqat kompaniya egasi uchun")
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
+	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
@@ -77,7 +78,11 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 	pool := pgtest.New(t)
 	box := &smsBox{last: map[string]string{}}
 	h := NewHandler(
-		Services{Auth: auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box), Profiles: user.NewProfiles(pool)},
+		Services{
+			Auth:      auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box),
+			Profiles:  user.NewProfiles(pool),
+			Companies: company.NewService(pool),
+		},
 		cookieSecure,
 		httpx.NewRateLimiter(5, time.Minute),
 		httpx.NewRateLimiter(5, time.Minute),

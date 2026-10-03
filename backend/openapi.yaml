@@ -574,6 +574,30 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
+  /app/employees:
+    get:
+      operationId: listEmployees
+      summary: Kompaniya a'zolari (faqat owner)
+      description: >
+        Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin
+        xodimlar qo'shilgan tartibda. Ism shu kompaniyadagi ism.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: A'zolar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -670,6 +694,14 @@ components:
             $ref: "#/components/schemas/Error"
     SubscriptionExpired:
       description: Company muddati o'tgan yoki bloklangan (subscription_expired)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    OwnerOnly:
+      description: >
+        Amal faqat tanlangan kompaniyaning owner'i uchun (owner_only): so'rov
+        user rolida yoki kompaniya tanlanmagan token bilan kelgan
       content:
         application/json:
           schema:
