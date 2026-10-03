@@ -177,6 +177,36 @@ func TestDemoteCompanyOwner(t *testing.T) {
 	assert.NoError(t, q.DemoteCompanyOwner(ctx, olma.ID), "a company without an owner is fine")
 }
 
+func TestRenameCompanyUser(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma := createCompany(t, q, "Olma", d)
+	nok := createCompany(t, q, "Nok", d)
+	addMember(t, q, olma.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, olma.ID, "998902222222", "Xodim", "user")
+	addMember(t, q, nok.ID, "998902222222", "Xodim", "user")
+
+	m, err := q.RenameCompanyUser(ctx, gen.RenameCompanyUserParams{UserPhone: "998902222222", CompanyID: olma.ID, FullName: ptr("Xodim (hisobchi)")})
+	require.NoError(t, err)
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Xodim (hisobchi)", *m.FullName)
+	assert.Equal(t, "user", m.Role)
+	var inNok, own string
+	require.NoError(t, pool.QueryRow(ctx, `SELECT uc.full_name, u.full_name FROM user_companies uc JOIN users u ON u.phone = uc.user_phone
+		WHERE uc.company_id = $1`, nok.ID).Scan(&inNok, &own))
+	assert.Equal(t, "Xodim", inNok, "the name in another company stays")
+	assert.Equal(t, "Xodim", own, "and so does the user's own")
+
+	_, err = q.RenameCompanyUser(ctx, gen.RenameCompanyUserParams{UserPhone: "998901111111", CompanyID: olma.ID, FullName: ptr("Boshqa")})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "the owner is not renamed from the app")
+	var ownerName string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT full_name FROM user_companies WHERE user_phone = '998901111111'").Scan(&ownerName))
+	assert.Equal(t, "Egasi", ownerName)
+	_, err = q.RenameCompanyUser(ctx, gen.RenameCompanyUserParams{UserPhone: "998909999999", CompanyID: olma.ID, FullName: ptr("Begona")})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
+}
+
 func TestListCompanyUsers(t *testing.T) {
 	q, pool := setup(t)
 	d := today(t, pool)

@@ -231,6 +231,33 @@ func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]Li
 	return items, nil
 }
 
+const renameCompanyUser = `-- name: RenameCompanyUser :one
+UPDATE user_companies SET full_name = $3
+WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
+RETURNING user_phone, company_id, role, created_at, full_name
+`
+
+type RenameCompanyUserParams struct {
+	UserPhone string
+	CompanyID int64
+	FullName  *string
+}
+
+// Changes the name a user goes by in the company. No row (pgx.ErrNoRows) for
+// the owner, whom the app never touches, and for someone who is not a member.
+func (q *Queries) RenameCompanyUser(ctx context.Context, arg RenameCompanyUserParams) (UserCompany, error) {
+	row := q.db.QueryRow(ctx, renameCompanyUser, arg.UserPhone, arg.CompanyID, arg.FullName)
+	var i UserCompany
+	err := row.Scan(
+		&i.UserPhone,
+		&i.CompanyID,
+		&i.Role,
+		&i.CreatedAt,
+		&i.FullName,
+	)
+	return i, err
+}
+
 const setCompanyOwner = `-- name: SetCompanyOwner :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, 'owner', $3)

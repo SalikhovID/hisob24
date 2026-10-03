@@ -67,3 +67,10 @@ SELECT uc.role, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
 WHERE uc.user_phone = $1 AND uc.company_id = $2;
+
+-- name: RenameCompanyUser :one
+-- Changes the name a user goes by in the company. No row (pgx.ErrNoRows) for
+-- the owner, whom the app never touches, and for someone who is not a member.
+UPDATE user_companies SET full_name = $3
+WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
+RETURNING *;
