@@ -238,6 +238,13 @@ test("a company without payments says so", async () => {
   expect(await screen.findByText("Hali to'lovlar yo'q")).toBeInTheDocument()
 })
 
+test("a company without payments says how to add the first", async () => {
+  renderWithProviders(<CompanyPage id={2} />)
+
+  expect(await screen.findByText("Hali to'lovlar yo'q")).toBeInTheDocument()
+  expect(screen.getByText("Birinchi to'lovni «Billing qo'shish» tugmasi orqali kiriting.")).toBeInTheDocument()
+})
+
 test.each([
   { name: "a running company", id: 1, days: "30", preview: "01.12.2026" },
   { name: "an expired company counts from today", id: 3, days: "10", preview: "12.10.2026" },

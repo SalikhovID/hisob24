@@ -23,7 +23,14 @@ export function BillingHistory({ companyId }: { companyId: number }) {
 
   if (billings.isPending) return <Loading rows={2} />
   if (billings.isError) return <Failed error={billings.error} onRetry={() => billings.refetch()} />
-  if (billings.data.length === 0) return <EmptyState title="Hali to'lovlar yo'q" />
+  if (billings.data.length === 0) {
+    return (
+      <EmptyState
+        title="Hali to'lovlar yo'q"
+        description="Birinchi to'lovni «Billing qo'shish» tugmasi orqali kiriting."
+      />
+    )
+  }
   return (
     <DataList
       label="Billing tarixi"
