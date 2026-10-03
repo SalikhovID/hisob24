@@ -1,11 +1,22 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// members decodes a list of members.
+func members(t *testing.T, rec *httptest.ResponseRecorder) []map[string]any {
+	t.Helper()
+	var list []map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &list), rec.Body.String())
+	return list
+}
 
 const (
 	valisPhone   = "998902223344"
@@ -35,4 +46,28 @@ func TestEmployeesAreForTheOwnerOnly(t *testing.T) {
 	api.exec(t, "UPDATE companies SET end_date = CURRENT_DATE - 1 WHERE id = $1", olma)
 	assert.Equal(t, http.StatusPaymentRequired, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner)).Code,
 		"the owner of an expired company")
+}
+
+func TestListEmployees(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	api.addUser(t, valisPhone)
+	api.addMember(t, valisPhone, olma, "user")
+	api.exec(t, "UPDATE user_companies SET full_name = 'Vali (hisobchi)' WHERE user_phone = $1", valisPhone)
+	api.addUser(t, sardorsPhone)
+	api.addMember(t, sardorsPhone, nok, "owner")
+
+	rec := api.do(t, http.MethodGet, "/app/employees", "", bearer(owner))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	list := members(t, rec)
+	require.Len(t, list, 2, "the members of the company the owner works in, nobody else's")
+	assert.Equal(t, alisPhone, list[0]["phone"], "the owner first")
+	assert.Equal(t, "owner", list[0]["role"])
+	assert.Equal(t, valisPhone, list[1]["phone"])
+	assert.Equal(t, "Vali (hisobchi)", list[1]["full_name"], "under the name in this company")
+	assert.Equal(t, "user", list[1]["role"])
+	assert.NotEmpty(t, list[1]["created_at"])
 }
