@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { db, OWNER_ID } from "@/mocks/data"
+import { identityOf } from "@/test/identity"
 import { renderWithProviders } from "@/test/render"
 import { CompanyPage } from "./company-page"
 
@@ -14,6 +15,20 @@ function cellsOf(table: HTMLElement) {
     )
 }
 
+// usersOf reads the users table row by row: who it is (the name over the
+// phone), then the role and the joining day.
+function usersOf(table: HTMLElement) {
+  return within(table)
+    .getAllByRole("row")
+    .slice(1)
+    .map((row) => [
+      ...identityOf(within(row).getByRole("rowheader")),
+      ...within(row)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent),
+    ])
+}
+
 test("the company page shows the company and its users", async () => {
   renderWithProviders(<CompanyPage id={1} />)
 
@@ -22,9 +37,15 @@ test("the company page shows the company and its users", async () => {
   expect(within(info).getByText("01.11.2026")).toBeInTheDocument()
   expect(within(info).getByText("30 kun qoldi")).toBeInTheDocument()
   expect(within(info).getByText("11.09.2026")).toBeInTheDocument()
-  expect(cellsOf(screen.getByRole("table", { name: "Userlar" }))).toEqual([
-    ["+998 90 123 45 67", "Ali Valiyev", "Egasi"],
-    ["+998 90 222 33 44", "Vali Aliyev", "Xodim"],
+  const users = screen.getByRole("table", { name: "Userlar" })
+  expect(within(users).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+    "A'zo",
+    "Rol",
+    "Qo'shilgan",
+  ])
+  expect(usersOf(users)).toEqual([
+    ["Ali Valiyev", "+998 90 123 45 67", "Egasi", "20.09.2026"],
+    ["Vali Aliyev", "+998 90 222 33 44", "Xodim", "20.09.2026"],
   ])
 })
 
@@ -49,10 +70,10 @@ test("the owner is replaced from the dialog: the new one leads the list, the one
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(await screen.findByText("Kompaniya egasi almashtirildi")).toBeInTheDocument()
   await waitFor(() =>
-    expect(cellsOf(screen.getByRole("table", { name: "Userlar" }))).toEqual([
-      ["+998 90 777 88 99", "Yangi Egasi", "Egasi"],
-      ["+998 90 123 45 67", "Ali Valiyev", "Xodim"],
-      ["+998 90 222 33 44", "Vali Aliyev", "Xodim"],
+    expect(usersOf(screen.getByRole("table", { name: "Userlar" }))).toEqual([
+      ["Yangi Egasi", "+998 90 777 88 99", "Egasi", "20.09.2026"],
+      ["Ali Valiyev", "+998 90 123 45 67", "Xodim", "20.09.2026"],
+      ["Vali Aliyev", "+998 90 222 33 44", "Xodim", "20.09.2026"],
     ]),
   )
 })
@@ -67,9 +88,9 @@ test("an employee made the owner is promoted under the name given, not listed tw
   await user.click(within(dialog).getByRole("button", { name: "Almashtirish" }))
 
   await waitFor(() =>
-    expect(cellsOf(screen.getByRole("table", { name: "Userlar" }))).toEqual([
-      ["+998 90 222 33 44", "Vali Egasi", "Egasi"],
-      ["+998 90 123 45 67", "Ali Valiyev", "Xodim"],
+    expect(usersOf(screen.getByRole("table", { name: "Userlar" }))).toEqual([
+      ["Vali Egasi", "+998 90 222 33 44", "Egasi", "20.09.2026"],
+      ["Ali Valiyev", "+998 90 123 45 67", "Xodim", "20.09.2026"],
     ]),
   )
 })

@@ -4,12 +4,13 @@ import { ArrowLeftIcon } from "lucide-react"
 import Link from "next/link"
 import { type ReactNode, useId } from "react"
 import { type Column, DataList } from "@/components/data-list"
+import { Identity } from "@/components/identity"
+import { RoleBadge } from "@/components/role-badge"
 import { Failed, Loading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { formatDate, formatPhone } from "@/lib/format"
 import { useCompany } from "@/lib/queries"
-import { roleLabels } from "@/lib/roles"
 import type { Member } from "@/lib/types"
 import { AddBillingDialog } from "./add-billing-dialog"
 import { BillingHistory } from "./billing-history"
@@ -19,9 +20,21 @@ import { ReplaceOwnerDialog } from "./replace-owner-dialog"
 import { CompanyStatusBadge } from "./status-badge"
 
 const memberColumns: Column<Member>[] = [
-  { header: "Telefon", cell: (m) => formatPhone(m.phone), primary: true },
-  { header: "Ism", cell: (m) => m.full_name ?? "—" },
-  { header: "Rol", cell: (m) => roleLabels[m.role] },
+  {
+    header: "A'zo",
+    primary: true,
+    // A member with no name goes by the phone, which then is not said twice.
+    cell: (m) => (
+      <Identity
+        title={m.full_name ?? formatPhone(m.phone)}
+        subtitle={m.full_name ? formatPhone(m.phone) : undefined}
+        name={m.full_name}
+        seed={m.phone}
+      />
+    ),
+  },
+  { header: "Rol", card: "tag", cell: (m) => <RoleBadge role={m.role} /> },
+  { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (m) => formatDate(m.created_at) },
 ]
 
 // CompanyPage shows one company: its details and its users.
