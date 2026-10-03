@@ -297,4 +297,14 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **e2e fixture.** Test tugaganda sahifalar mock o'chirilishidan oldin yopiladi: aks holda kechikkan `/app/me` so'rovi dev serverga o'tib, chiqishda "Failed to proxy" qatorini qoldirardi.
 - **Tekshiruv.** curl (dev stack, user app origin'i orqali): sahifa sessiyasiz `/login` ga, sessiya bilan 200; qo'shish, tahrirlash, o'chirish va barcha rad javoblari. Haqiqiy brauzerda (Playwright, haqiqiy Go API, SMS kodi log'dan): owner oqimi desktop va 375px da, xodim va multi-user kirishi; skrinshotlar ko'rib chiqildi.
 
-Shu bilan 0–4 bosqichlar tugadi. Production'ga deploy qilinmagan: migratsiya 00004 prod'dagi rollarni o'zgartiradi, deploy alohida so'raladi.
+Shu bilan 0–4 bosqichlar tugadi.
+
+## Production'ga deploy (2026-10-03)
+
+Foydalanuvchi tasdig'i bilan `deploy/ship.sh` orqali `10fd427` deploy qilindi.
+
+- **Oldin.** Prod'da migratsiya 3, 1 kompaniya va 1 user (owner) bor edi: migratsiya 00004 hech kimning rolini o'zgartirmadi va hech kim kirish huquqini yo'qotmadi. Deploy oldidan alohida dump olindi: `/var/backups/hisob24-v2/hisob24-pre-00004-20261003-1535.sql.gz` (backup rotatsiyasi uni 14 kundan keyin o'chiradi).
+- **Keyin.** Migratsiya 4: rol faqat `owner` / `user`, `user_companies_one_owner` indeksi bor, a'zolik ismi to'ldirilgan; qatorlar soni o'zgarmagan. API, admin va web healthy, API log'ida xato yo'q.
+- **Sessiyasiz tekshiruvlar** (prod'da SMS yuborilmadi): `/employees` sahifasi ochiladi (oldin 404), `/api/app/employees` 401 `unauthorized` (oldin 404), `PUT /admin/companies/{id}/owner` sessiya so'raydi, eski `POST …/users` 404, ikkala webhook sirsiz so'rovga 401 beradi.
+- **Hodisa.** Build paytida lokal tarmoq sababli SSH ulanishi uzildi va `ship.sh` 255 bilan tugadi. Serverdagi `deploy/deploy.sh` esa oxirigacha bajarilgan edi: holat serverda tekshirib tasdiqlandi, hech narsa qayta ishga tushirilmadi.
+- **Qaytarish nuqtasi.** Oldingi kod `/var/www/hisob24-v2.prev` da (migratsiya 3 gacha).
