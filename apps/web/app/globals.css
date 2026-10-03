@@ -144,6 +144,16 @@ html[data-telegram] {
     --sidebar-accent-foreground: var(--tg-theme-text-color);
 }
 
+/* A list that scrolls without showing its scrollbar: the sidebar's sections. */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
