@@ -54,7 +54,7 @@ func (h *Handler) Routes(r chi.Router) {
 			r.Post("/companies", h.createCompany)
 			r.Get("/companies/{id}", h.getCompany)
 			r.Patch("/companies/{id}", h.patchCompany)
-			r.Post("/companies/{id}/users", h.addCompanyUser)
+			r.Put("/companies/{id}/owner", h.replaceCompanyOwner)
 			r.Get("/companies/{id}/billings", h.listBillings)
 			r.Post("/companies/{id}/billings", h.createBilling)
 			r.Get("/admins", h.listAdmins)

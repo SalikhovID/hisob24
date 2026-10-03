@@ -239,15 +239,19 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-  /admin/companies/{id}/users:
+  /admin/companies/{id}/owner:
     parameters:
       - $ref: "#/components/parameters/CompanyID"
-    post:
-      operationId: addCompanyUser
-      summary: Kompaniyaga user qo'shish
+    put:
+      operationId: replaceCompanyOwner
+      summary: Kompaniya egasini almashtirish
       description: >
-        Telefon allaqachon user bo'lsa, ismi o'zgarmaydi. Allaqachon a'zo
-        bo'lsa, roli yangilanadi.
+        Kiritilgan raqam kompaniyaning owner'i bo'ladi, oldingi owner
+        kompaniyada user bo'lib qoladi (bitta transaction). Raqam tizimda
+        yo'q bo'lsa, user yaratiladi; kompaniyaning a'zosi bo'lsa, owner'ga
+        ko'tariladi. Raqam hozirgi owner'niki bo'lsa, faqat ismi yangilanadi.
+        Ism shu kompaniyadagi ism: userning boshqa kompaniyalardagi ismi
+        o'zgarmaydi.
       security:
         - adminSession: []
       requestBody:
@@ -255,10 +259,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AddMember"
+              $ref: "#/components/schemas/MemberInput"
       responses:
-        "201":
-          description: A'zo
+        "200":
+          description: Yangi owner
           content:
             application/json:
               schema:
@@ -794,6 +798,7 @@ components:
           description: 998XXXXXXXXX ko'rinishida
         full_name:
           type: [string, "null"]
+          description: Shu kompaniyadagi ismi
         role:
           $ref: "#/components/schemas/Role"
         created_at:
@@ -801,7 +806,10 @@ components:
           format: date-time
     Role:
       type: string
-      enum: [owner, manager, staff]
+      description: >
+        owner: kompaniyaning yagona egasi, uni admin panel qo'yadi. user:
+        owner user app'dan qo'shgan xodim.
+      enum: [owner, user]
     Billing:
       type: object
       required: [id, company_id, days, amount, prev_end_date, new_end_date, note, created_by, created_at]
@@ -869,17 +877,17 @@ components:
           minLength: 1
         is_active:
           type: boolean
-    AddMember:
+    MemberInput:
       type: object
-      required: [phone, full_name, role]
+      required: [phone, full_name]
       properties:
         phone:
           type: string
+          description: "+998 90 123 45 67, 998901234567 yoki 901234567"
         full_name:
           type: string
           minLength: 1
-        role:
-          $ref: "#/components/schemas/Role"
+          description: Shu kompaniyadagi ismi
     CreateBilling:
       type: object
       required: [days]

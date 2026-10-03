@@ -123,22 +123,39 @@ func TestPatchCompany(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPatch, "/admin/companies/999999", `{"name":"X"}`, cookie).Code)
 }
 
-func TestAddCompanyUser(t *testing.T) {
+func TestReplaceCompanyOwner(t *testing.T) {
 	api := newTestAPI(t, true)
 	cookie := api.login(t)
-	path := "/admin/companies/" + api.createCompany(t, cookie, "Olma", dbToday(t, api.pool)) + "/users"
+	company := "/admin/companies/" + api.createCompany(t, cookie, "Olma", dbToday(t, api.pool))
+	path := company + "/owner"
 
-	rec := api.do(t, http.MethodPost, path, `{"phone":"90 222 33 44","full_name":"Xodim","role":"user"}`, cookie)
+	rec := api.do(t, http.MethodPut, path, `{"phone":"90 222 33 44","full_name":" Yangi Egasi "}`, cookie)
 
-	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	body := decode(t, rec)
 	assert.Equal(t, "998902223344", body["phone"])
-	assert.Equal(t, "Xodim", body["full_name"])
-	assert.Equal(t, "user", body["role"])
+	assert.Equal(t, "Yangi Egasi", body["full_name"])
+	assert.Equal(t, "owner", body["role"])
+	assert.NotEmpty(t, body["created_at"])
+	rec = api.do(t, http.MethodGet, company, "", cookie)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	roles := map[string]any{}
+	users, _ := decode(t, rec)["users"].([]any)
+	for _, u := range users {
+		member, _ := u.(map[string]any)
+		roles[member["phone"].(string)] = member["role"]
+	}
+	assert.Equal(t, map[string]any{"998901234567": "user", "998902223344": "owner"}, roles, "the owner before stays as a user")
 
-	rec = api.do(t, http.MethodPost, path, `{"phone":"998902223344","full_name":"Xodim","role":"boss"}`, cookie)
+	rec = api.do(t, http.MethodPut, path, `{"phone":"998903334455","full_name":" "}`, cookie)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.JSONEq(t, `{"error":"validation_error","message":"Rol owner yoki user bo'lishi kerak"}`, rec.Body.String())
-	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPost, "/admin/companies/999999/users",
-		`{"phone":"998902223344","full_name":"Xodim","role":"user"}`, cookie).Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Ismni kiriting"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPut, path, `{"phone":"12ab","full_name":"Ism"}`, cookie)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Telefon raqami noto'g'ri"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPut, "/admin/companies/999999/owner", `{"phone":"998903334455","full_name":"Ism"}`, cookie)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, `{"error":"not_found","message":"Kompaniya topilmadi"}`, rec.Body.String())
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPut, path, `{"phone":"998903334455","full_name":"Ism"}`).Code,
+		"needs a session")
 }
