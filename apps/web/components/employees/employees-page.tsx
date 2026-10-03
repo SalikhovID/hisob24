@@ -48,18 +48,14 @@ export function EmployeesPage() {
           subtitle={m.full_name ? formatPhone(m.phone) : undefined}
           name={m.full_name}
           seed={m.phone}
+          mark={m.phone === ownPhone && <Badge variant="outline">Siz</Badge>}
         />
       ),
     },
     {
       header: "Rol",
       card: "tag",
-      cell: (m) => (
-        <span className="inline-flex flex-wrap items-center justify-end gap-1">
-          <RoleBadge role={m.role} />
-          {m.phone === ownPhone && <Badge variant="outline">Siz</Badge>}
-        </span>
-      ),
+      cell: (m) => <RoleBadge role={m.role} />,
     },
     { header: "Qo'shilgan", card: "inline", cell: (m) => formatDate(m.created_at) },
     {

@@ -35,7 +35,10 @@ test("the owner sees the company's members: themselves first, then the employees
   expect(headers[0]).toHaveTextContent("A'zo")
   expect(headers.map((header) => header.textContent)).not.toContain("Telefon")
   expect(within(members[0]).getByText("Egasi")).toBeInTheDocument()
-  expect(within(members[0]).getByText("Siz")).toBeInTheDocument()
+  // "Siz" says who the row is, so it stands by the name; the role column
+  // holds the role alone.
+  expect(within(within(members[0]).getByRole("rowheader")).getByText("Siz")).toBeInTheDocument()
+  expect(within(members[0]).getAllByText("Siz")).toHaveLength(1)
   expect(within(members[1]).getByText("Xodim")).toBeInTheDocument()
   expect(within(members[1]).queryByText("Siz")).not.toBeInTheDocument()
 })
