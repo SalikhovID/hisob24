@@ -34,3 +34,9 @@ RETURNING updated_at;
 UPDATE customers SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 RETURNING id;
+
+-- name: AddCustomerValue :exec
+-- One row of a customer's answers: a text, a whole number, or an option
+-- chosen. A choice of several options is a row for each.
+INSERT INTO customer_values (customer_id, field_id, option_id, text_value, int_value)
+VALUES (sqlc.arg('customer_id'), sqlc.arg('field_id'), sqlc.narg('option_id'), sqlc.narg('text_value'), sqlc.narg('int_value'));

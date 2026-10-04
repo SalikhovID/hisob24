@@ -1,10 +1,12 @@
 package db_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -176,4 +178,68 @@ func TestDeleteCustomer(t *testing.T) {
 	assert.NoError(t, err, "the other customers stay")
 	_, err = q.DeleteCustomer(ctx, gen.DeleteCustomerParams{ID: ali.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
+}
+
+// shop is a company set up for customers: the type Jismoniy with a text, a
+// whole number and a checkbox field, the dropdown the checkboxes come from,
+// and enteredBy as a user.
+type shop struct {
+	company             gen.Company
+	jismoniy            gen.CustomerType
+	fish, yosh, manba   gen.CustomerField
+	instagram, linkedin gen.CustomerDropdownOption
+}
+
+func newShop(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, name string) shop {
+	t.Helper()
+	s := shop{company: createCompany(t, q, name, today(t, pool))}
+	s.jismoniy = createType(t, q, s.company.ID, "Jismoniy")
+	dropdown := createDropdown(t, q, s.company.ID, "Manba")
+	s.instagram = addOption(t, q, s.company.ID, dropdown.ID, "Instagram")
+	s.linkedin = addOption(t, q, s.company.ID, dropdown.ID, "LinkedIn")
+	s.fish = addField(t, q, s.company.ID, s.jismoniy.ID, "F.I.Sh.", "string", nil)
+	s.yosh = addField(t, q, s.company.ID, s.jismoniy.ID, "Yoshi", "int", nil)
+	s.manba = addField(t, q, s.company.ID, s.jismoniy.ID, "Manba", "checkbox", &dropdown.ID)
+	require.NoError(t, q.UpsertUser(t.Context(), gen.UpsertUserParams{Phone: enteredBy}))
+	return s
+}
+
+// customer enters a customer of the shop's type.
+func (s shop) customer(t *testing.T, q *gen.Queries, phone string) gen.Customer {
+	t.Helper()
+	return createCustomer(t, q, s.company.ID, s.jismoniy.ID, phone)
+}
+
+// storedValues is the customer's answers as they are stored, each row as
+// "field: value" (an option as #id), in the order of the fields.
+func storedValues(t *testing.T, pool *pgxpool.Pool, customerID int64) []string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), `SELECT f.label || ': ' || COALESCE(v.text_value, v.int_value::text, '#' || v.option_id)
+		FROM customer_values v JOIN customer_fields f ON f.id = v.field_id
+		WHERE v.customer_id = $1 ORDER BY f.position, v.option_id`, customerID)
+	require.NoError(t, err)
+	values, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return values
+}
+
+func TestAddCustomerValue(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	vali := s.customer(t, q, "998905555555")
+
+	require.NoError(t, q.AddCustomerValue(ctx, gen.AddCustomerValueParams{CustomerID: ali.ID, FieldID: s.fish.ID, TextValue: ptr("Ali Valiyev")}))
+	require.NoError(t, q.AddCustomerValue(ctx, gen.AddCustomerValueParams{CustomerID: ali.ID, FieldID: s.yosh.ID, IntValue: ptr(int64(30))}))
+	require.NoError(t, q.AddCustomerValue(ctx, gen.AddCustomerValueParams{CustomerID: ali.ID, FieldID: s.manba.ID, OptionID: &s.instagram.ID}))
+	require.NoError(t, q.AddCustomerValue(ctx, gen.AddCustomerValueParams{CustomerID: ali.ID, FieldID: s.manba.ID, OptionID: &s.linkedin.ID}))
+
+	assert.Equal(t, []string{
+		"F.I.Sh.: Ali Valiyev", "Yoshi: 30",
+		fmt.Sprintf("Manba: #%d", s.instagram.ID), fmt.Sprintf("Manba: #%d", s.linkedin.ID),
+	}, storedValues(t, pool, ali.ID))
+	assert.Empty(t, storedValues(t, pool, vali.ID), "the other customers' answers stay as they are")
+	err := q.AddCustomerValue(ctx, gen.AddCustomerValueParams{CustomerID: ali.ID, FieldID: s.fish.ID, TextValue: ptr("Vali")})
+	assert.Equal(t, "23505", sqlState(err), "a second text in the field") // unique_violation
 }

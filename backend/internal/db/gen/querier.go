@@ -21,6 +21,9 @@ type Querier interface {
 	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
 	// company has no such type, or deleted it.
 	AddCustomerField(ctx context.Context, arg AddCustomerFieldParams) (CustomerField, error)
+	// One row of a customer's answers: a text, a whole number, or an option
+	// chosen. A choice of several options is a row for each.
+	AddCustomerValue(ctx context.Context, arg AddCustomerValueParams) error
 	// Spends a live code in one statement, so a code opens one session only.
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.

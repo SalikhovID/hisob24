@@ -10,6 +10,32 @@ import (
 	"time"
 )
 
+const addCustomerValue = `-- name: AddCustomerValue :exec
+INSERT INTO customer_values (customer_id, field_id, option_id, text_value, int_value)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type AddCustomerValueParams struct {
+	CustomerID int64
+	FieldID    int64
+	OptionID   *int64
+	TextValue  *string
+	IntValue   *int64
+}
+
+// One row of a customer's answers: a text, a whole number, or an option
+// chosen. A choice of several options is a row for each.
+func (q *Queries) AddCustomerValue(ctx context.Context, arg AddCustomerValueParams) error {
+	_, err := q.db.Exec(ctx, addCustomerValue,
+		arg.CustomerID,
+		arg.FieldID,
+		arg.OptionID,
+		arg.TextValue,
+		arg.IntValue,
+	)
+	return err
+}
+
 const createCustomer = `-- name: CreateCustomer :one
 INSERT INTO customers (company_id, type_id, phone, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5)
