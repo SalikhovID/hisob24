@@ -70,3 +70,10 @@ test("the phone step is titled and says what comes next", () => {
   expect(screen.getByRole("heading", { level: 2, name: "Kirish" })).toBeInTheDocument()
   expect(screen.getByText("Telefon raqamingizni kiriting, kod SMS orqali keladi")).toBeInTheDocument()
 })
+
+test("the code step is titled", async () => {
+  await sendCodeTo("901234567")
+
+  expect(screen.getByRole("heading", { level: 2, name: "Kodni kiriting" })).toBeInTheDocument()
+  expect(screen.queryByRole("heading", { level: 2, name: "Kirish" })).not.toBeInTheDocument()
+})

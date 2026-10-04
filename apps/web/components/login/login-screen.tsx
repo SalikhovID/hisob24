@@ -51,7 +51,9 @@ export function LoginScreen() {
           </p>
         )}
         <div className="space-y-1.5">
-          {step.kind === "phone" && <h2 className="text-2xl font-semibold tracking-tight">Kirish</h2>}
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {step.kind === "phone" ? "Kirish" : "Kodni kiriting"}
+          </h2>
           <p className="text-sm text-muted-foreground">
             {step.kind === "phone"
               ? "Telefon raqamingizni kiriting, kod SMS orqali keladi"
