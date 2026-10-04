@@ -15,3 +15,9 @@ test("the frame is headed by the brand it is given, on the brand's panel", () =>
   const heading = within(screen.getByRole("banner")).getByRole("heading", { level: 1, name: "Hisob24" })
   expect(within(heading).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
 })
+
+test("the panel says what the product is", () => {
+  render(frame)
+
+  expect(within(screen.getByRole("banner")).getByText("Biznesingiz uchun hisob tizimi")).toBeInTheDocument()
+})
