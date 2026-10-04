@@ -101,3 +101,43 @@ func TestRenameType(t *testing.T) {
 	_, err = s.RenameType(ctx, olma, jismoniy.ID+100, "Yo'q")
 	refused(t, err, apperr.NotFound, "not_found", notFound, "no such type")
 }
+
+func typeNames(t *testing.T, s *Service, companyID int64) []string {
+	t.Helper()
+	list, err := s.Types(t.Context(), companyID)
+	require.NoError(t, err)
+	names := []string{}
+	for _, ct := range list {
+		names = append(names, ct.Name)
+	}
+	return names
+}
+
+func TestOrderTypes(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	yuridik := mustType(t, s, olma, "Yuridik")
+	hamkor := mustType(t, s, olma, "Hamkor")
+	begona := mustType(t, s, nok, "Begona")
+
+	require.NoError(t, s.OrderTypes(ctx, olma, []int64{hamkor.ID, jismoniy.ID, yuridik.ID}))
+
+	assert.Equal(t, []string{"Hamkor", "Jismoniy", "Yuridik"}, typeNames(t, s, olma))
+
+	const changed = "Ro'yxat o'zgargan. Sahifani yangilang"
+	for about, ids := range map[string][]int64{
+		"a type is missing":          {jismoniy.ID, yuridik.ID},
+		"another company's type":     {jismoniy.ID, yuridik.ID, begona.ID},
+		"a type named twice":         {jismoniy.ID, jismoniy.ID, yuridik.ID},
+		"more types than there are":  {jismoniy.ID, yuridik.ID, hamkor.ID, begona.ID},
+		"nothing at all":             {},
+	} {
+		refused(t, s.OrderTypes(ctx, olma, ids), apperr.Conflict, "order_changed", changed, about)
+	}
+	assert.Equal(t, []string{"Hamkor", "Jismoniy", "Yuridik"}, typeNames(t, s, olma), "a refusal moves nothing")
+
+	mustType(t, s, olma, "Yangi")
+	assert.Equal(t, []string{"Hamkor", "Jismoniy", "Yuridik", "Yangi"}, typeNames(t, s, olma), "a new type still goes last")
+}

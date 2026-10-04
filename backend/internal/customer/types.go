@@ -119,3 +119,22 @@ func (s *Service) customerType(ctx context.Context, companyID, id int64) (Type, 
 	}
 	return Type{}, errTypeNotFound
 }
+
+// OrderTypes puts the company's types in the order of ids, which has to
+// name each of them once and nothing else.
+func (s *Service) OrderTypes(ctx context.Context, companyID int64, ids []int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		rows, err := q.ListCustomerTypes(ctx, companyID)
+		if err != nil {
+			return err
+		}
+		live := make([]int64, 0, len(rows))
+		for _, ct := range rows {
+			live = append(live, ct.ID)
+		}
+		if !sameIDs(ids, live) {
+			return errOrderChanged
+		}
+		return q.OrderCustomerTypes(ctx, gen.OrderCustomerTypesParams{CompanyID: companyID, Ids: ids})
+	})
+}
