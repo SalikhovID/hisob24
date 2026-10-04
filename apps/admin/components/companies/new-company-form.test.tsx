@@ -45,6 +45,29 @@ test("a complete form creates the company and opens it", async () => {
   expect(await screen.findByText("Kompaniya yaratildi")).toBeInTheDocument()
 })
 
+test("once the company is created the button stays off: a second press must not create another", async () => {
+  let posts = 0
+  server.use(
+    http.post("*/api/admin/companies", () => {
+      posts += 1
+      return HttpResponse.json(company(4, "Behi Savdo", "2026-12-31"), { status: 201 })
+    }),
+  )
+  const { user } = renderWithProviders(<NewCompanyForm />)
+
+  await user.type(screen.getByLabelText("Kompaniya nomi"), "Behi Savdo")
+  fireEvent.change(screen.getByLabelText("Tugash sanasi"), { target: { value: "2026-12-31" } })
+  await user.type(screen.getByLabelText("Egasining telefoni"), "901234567")
+  await user.type(screen.getByLabelText("Egasining ismi"), "Ali")
+  await user.click(screen.getByRole("button", { name: "Yaratish" }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/companies/4"))
+
+  // The next page is on its way; this one is still on screen.
+  await user.click(screen.getByRole("button", { name: "Yaratish" }))
+  expect(screen.getByRole("button", { name: "Yaratish" })).toBeDisabled()
+  expect(posts).toBe(1)
+})
+
 test("when the API refuses, the form shows its message and stays", async () => {
   server.use(
     http.post("*/api/admin/companies", () =>

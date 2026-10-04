@@ -63,7 +63,15 @@ export function NewCompanyForm() {
         {create.isError && <Refusal>{create.error.message}</Refusal>}
       </div>
       <div className="flex justify-end rounded-b-xl border-t bg-muted/50 px-4 py-3 md:px-5">
-        <PendingButton type="submit" size="lg" className="px-3.5 max-md:w-full" pending={create.isPending}>
+        {/* Busy until the company's page takes over: the form stays on
+            screen while it loads, and a second press would make a second
+            company (two may share a name). */}
+        <PendingButton
+          type="submit"
+          size="lg"
+          className="px-3.5 max-md:w-full"
+          pending={create.isPending || create.isSuccess}
+        >
           Yaratish
         </PendingButton>
       </div>
