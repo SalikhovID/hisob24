@@ -209,3 +209,19 @@ func (h *Handler) orderCustomerDropdownOptions(w http.ResponseWriter, r *http.Re
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// createCustomerType adds a type with no fields to the owner's company.
+func (h *Handler) createCustomerType(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name string `json:"name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	t, err := h.customers.CreateType(r.Context(), sessionCompany(r), body.Name)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toCustomerTypeJSON(t))
+}
