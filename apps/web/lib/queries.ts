@@ -51,6 +51,34 @@ export function useCustomerDropdowns(companyId: number | null) {
   })
 }
 
+// customersKey names a company's customers in the cache, whatever the
+// filter: every list of them begins with it, so one call drops them all.
+export const customersKey = (companyId: number | null) => ["customers", companyId] as const
+
+// CustomerFilter narrows the customers list: a search, one type (null for
+// every type) and the page.
+export interface CustomerFilter {
+  search: string
+  typeId: number | null
+  page: number
+}
+
+// useCustomers is a page of the customers of the company the session works
+// in, the newest first; every member may ask. With companyId null (not
+// known yet) nothing is asked.
+export function useCustomers(companyId: number | null, filter: CustomerFilter) {
+  return useQuery({
+    queryKey: [...customersKey(companyId), filter],
+    queryFn: () =>
+      call(
+        api.GET("/app/customers", {
+          params: { query: { search: filter.search || undefined, type_id: filter.typeId ?? undefined, page: filter.page } },
+        }),
+      ),
+    enabled: companyId !== null,
+  })
+}
+
 // useSwitchCompany moves the session to a company, or to none, and keeps the
 // new access token. /app/me is dropped, so the next page asks for it afresh
 // rather than showing the old company.

@@ -319,3 +319,37 @@ export function dropdownsOf(companyId: number): CustomerDropdown[] {
 export function typesOf(companyId: number): CustomerType[] {
   return db.types.filter((t) => t.companyId === companyId && !t.deleted).map(toType)
 }
+
+// seedCustomers enters the customers the pages are tested with into Olma
+// Savdo, the oldest first: Dilshod (a Jismoniy who came from Instagram,
+// entered by Vali), Anor Tekstil (a Yuridik, entered by Ali) and Malika (a
+// Jismoniy who came from YouTube, an option that is turned off; entered by
+// Sardor). The company starts with none: a test asks for them.
+export function seedCustomers() {
+  const [jismoniy, yuridik] = db.types.filter((t) => t.companyId === 1)
+  const [fish, manba] = jismoniy.fields
+  const [nomi, inn] = yuridik.fields
+  const [instagram, , youtube] = db.dropdowns[0].options
+  const enter = (typeId: number, phone: string, values: Record<number, Answer>, by: string): CustomerRow => {
+    const at = now()
+    const customer: CustomerRow = {
+      id: nextId(),
+      companyId: 1,
+      typeId,
+      phone,
+      values,
+      by,
+      byName: nameIn(by, 1),
+      createdAt: at,
+      updatedAt: at,
+    }
+    db.customers.push(customer)
+    db.history.push({ id: nextId(), customerId: customer.id, action: "created", by, byName: customer.byName, createdAt: at, changes: [] })
+    return customer
+  }
+  return {
+    dilshod: enter(jismoniy.id, "998911112233", { [fish.id]: "Dilshod Karimov", [manba.id]: instagram.id }, VALI),
+    anor: enter(yuridik.id, "998933334455", { [nomi.id]: "Anor Tekstil MChJ", [inn.id]: 301234567 }, ALI),
+    malika: enter(jismoniy.id, "998955556677", { [fish.id]: "Malika Yusupova", [manba.id]: youtube.id }, SARDOR),
+  }
+}
