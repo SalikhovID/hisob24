@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { Brand } from "@/components/brand"
+import { Refusal } from "@/components/refusal"
 import { buttonVariants } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -48,7 +49,7 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
               href={`https://t.me/${botUsername}`}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(buttonVariants({ variant: "outline" }), "h-11 w-full rounded-xl")}
+              className={cn(buttonVariants({ variant: "secondary" }), "h-11 w-full rounded-xl")}
             >
               @{botUsername}
             </a>
@@ -64,11 +65,7 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
             invalid={login.isError}
             disabled={login.isPending}
           />
-          {login.isError && (
-            <p role="alert" className="text-sm text-destructive">
-              {login.error.message}
-            </p>
-          )}
+          {login.isError && <Refusal>{login.error.message}</Refusal>}
         </div>
       </div>
     </LoginFrame>
