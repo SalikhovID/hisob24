@@ -73,3 +73,43 @@ test("an employee is sent home: a dropdown's page is the owner's", async () => {
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
   expect(screen.queryByRole("heading")).not.toBeInTheDocument()
 })
+
+test("options are added one after another from the line under the list", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<DropdownPage id={manbaId()} />)
+  await optionList()
+  const input = screen.getByRole("textbox", { name: "Yangi variant" })
+
+  await user.type(input, "Tavsiya{Enter}")
+  await waitFor(async () => expect(optionsOf(await optionList()).map((option) => option.label)).toContain("Tavsiya"))
+  // The line is ready for the next one: empty, and still under the fingers.
+  expect(input).toHaveValue("")
+  expect(input).toHaveFocus()
+
+  await user.type(input, "Telegram")
+  await user.click(screen.getByRole("button", { name: "Qo'shish" }))
+  await waitFor(async () =>
+    expect(optionsOf(await optionList()).map((option) => option.label)).toEqual([
+      "Instagram",
+      "LinkedIn",
+      "YouTube",
+      "Tavsiya",
+      "Telegram",
+    ]),
+  )
+})
+
+test("the line says why an option was refused, and adds nothing for an empty one", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<DropdownPage id={manbaId()} />)
+  await optionList()
+  const input = screen.getByRole("textbox", { name: "Yangi variant" })
+
+  await user.type(input, "instagram{Enter}")
+  expect(await screen.findByText("Bu variant allaqachon bor")).toBeInTheDocument()
+  expect(input).toHaveValue("instagram")
+
+  await user.clear(input)
+  await user.type(input, "   {Enter}")
+  expect(dropdownsOf(1)[0].options).toHaveLength(3)
+})

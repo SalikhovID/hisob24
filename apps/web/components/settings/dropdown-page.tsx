@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { useCustomerDropdowns } from "@/lib/queries"
 import { useOwner } from "@/lib/use-owner"
 import { cn } from "@/lib/utils"
+import { AddOptionForm } from "./add-option-form"
 import { SettingRow, settingList } from "./setting-row"
 
 const back = { href: "/settings", label: "Sozlamalar" }
@@ -56,6 +57,7 @@ export function DropdownPage({ id }: { id: number }) {
           ))}
         </ul>
       )}
+      <AddOptionForm companyId={owner.company.id} dropdownId={dropdown.id} />
     </div>
   )
 }
