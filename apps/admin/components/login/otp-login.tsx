@@ -7,12 +7,14 @@ import { useRef, useState } from "react"
 import { Brand } from "@/components/brand"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
+import { LoginFrame } from "./login-frame"
 
 const SLOTS = [0, 1, 2, 3, 4, 5]
 
-// OtpLogin is the browser login: the code the admin bot sends after /login.
-// There is no button: the sixth digit sends the code. notice says why the
-// code is asked for after all (a failed Telegram sign-in).
+// OtpLogin is the browser login, in the login's frame: the code the admin
+// bot sends after /login. There is no button: the sixth digit sends the
+// code. notice says why the code is asked for after all (a failed Telegram
+// sign-in).
 export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?: string }) {
   const router = useRouter()
   const [code, setCode] = useState("")
@@ -28,20 +30,17 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
   })
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        {notice && (
-          <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {notice}
-          </p>
-        )}
-        <div className="space-y-2">
-          <h1 className="flex justify-center">
-            <Brand className="text-2xl" />
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Kodni olish uchun botga <code className="rounded bg-muted px-1 py-0.5 font-mono">/login</code> yozing
-          </p>
+    <LoginFrame brand={<Brand className="text-xl lg:text-2xl" />} tagline="Kompaniyalar, billing va adminlar boshqaruvi">
+      {notice && (
+        <p role="alert" className="mb-6 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm text-destructive">
+          {notice}
+        </p>
+      )}
+      <div className="space-y-8">
+        <p className="text-sm text-muted-foreground">
+          Kodni olish uchun botga <code className="rounded bg-muted px-1 py-0.5 font-mono">/login</code> yozing
+        </p>
+        <div className="space-y-4">
           {botUsername && (
             <a
               href={`https://t.me/${botUsername}`}
@@ -52,35 +51,35 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
               @{botUsername}
             </a>
           )}
+          <div className="flex justify-center">
+            <InputOTP
+              ref={input}
+              aria-label="Kod"
+              maxLength={6}
+              pattern={REGEXP_ONLY_DIGITS}
+              value={code}
+              onChange={(value: string) => {
+                setCode(value)
+                if (login.isError) login.reset()
+              }}
+              onComplete={(value: string) => login.mutate(value)}
+              disabled={login.isPending}
+              autoFocus
+            >
+              <InputOTPGroup>
+                {SLOTS.map((index) => (
+                  <InputOTPSlot key={index} index={index} aria-invalid={login.isError} className="size-11 text-lg" />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          {login.isError && (
+            <p role="alert" className="text-sm text-destructive">
+              {login.error.message}
+            </p>
+          )}
         </div>
-        <div className="flex justify-center">
-          <InputOTP
-            ref={input}
-            aria-label="Kod"
-            maxLength={6}
-            pattern={REGEXP_ONLY_DIGITS}
-            value={code}
-            onChange={(value: string) => {
-              setCode(value)
-              if (login.isError) login.reset()
-            }}
-            onComplete={(value: string) => login.mutate(value)}
-            disabled={login.isPending}
-            autoFocus
-          >
-            <InputOTPGroup>
-              {SLOTS.map((index) => (
-                <InputOTPSlot key={index} index={index} aria-invalid={login.isError} className="size-11 text-lg" />
-              ))}
-            </InputOTPGroup>
-          </InputOTP>
-        </div>
-        {login.isError && (
-          <p role="alert" className="text-sm text-destructive">
-            {login.error.message}
-          </p>
-        )}
       </div>
-    </main>
+    </LoginFrame>
   )
 }

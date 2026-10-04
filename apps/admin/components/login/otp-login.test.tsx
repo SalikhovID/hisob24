@@ -83,3 +83,12 @@ test("the login is headed by the brand", () => {
   const heading = screen.getByRole("heading", { level: 1, name: "Hisob24 Admin" })
   expect(within(heading).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
 })
+
+test("the login stands in the frame: the brand's panel says what the panel is for", () => {
+  renderWithProviders(<OtpLogin botUsername="" />)
+
+  const panel = screen.getByRole("banner")
+  expect(within(panel).getByRole("heading", { level: 1, name: "Hisob24 Admin" })).toBeInTheDocument()
+  expect(within(panel).getByText("Kompaniyalar, billing va adminlar boshqaruvi")).toBeInTheDocument()
+  expect(within(screen.getByRole("main")).getByRole("textbox", { name: "Kod" })).toBeInTheDocument()
+})
