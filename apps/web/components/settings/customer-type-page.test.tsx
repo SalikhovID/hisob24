@@ -204,3 +204,27 @@ test("a choice field is edited without the mark that is for text and numbers", a
   expect(within(dialog).getByRole("checkbox", { name: "Majburiy" })).not.toBeChecked()
   expect(within(dialog).queryByRole("checkbox", { name: "Takrorlanmasin" })).not.toBeInTheDocument()
 })
+
+test("a field is deleted after asking; one the API will not delete stays, and the reason is said", async () => {
+  await signIn(ALI)
+  const [, yuridik] = typesOf(1)
+  const { user } = renderWithProviders(<CustomerTypePage id={yuridik.id} />)
+
+  await user.click(within(await fieldList()).getByRole("button", { name: "O'chirish: INN" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Maydonni o'chirasizmi?" })
+  expect(within(confirm).getByText(/«INN» maydoni formadan olib tashlanadi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Maydon o'chirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(fieldsOf(await fieldList()).map((field) => field.label)).toEqual(["Nomi"]))
+
+  server.use(
+    http.delete("*/api/app/customer-types/:id/fields/:fieldId", () =>
+      HttpResponse.json({ error: "field_in_use", message: "Bu maydon 4 ta mijozda to'ldirilgan" }, { status: 409 }),
+    ),
+  )
+  await user.click(within(await fieldList()).getByRole("button", { name: "O'chirish: Nomi" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Maydonni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Bu maydon 4 ta mijozda to'ldirilgan")).toBeInTheDocument()
+  expect(fieldsOf(await fieldList()).map((field) => field.label)).toEqual(["Nomi"])
+})

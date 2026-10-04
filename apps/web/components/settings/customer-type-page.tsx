@@ -1,12 +1,15 @@
 "use client"
 
+import { useQueryClient } from "@tanstack/react-query"
 import { PageHeader } from "@/components/page-header"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { api, call } from "@/lib/api"
 import { kindLabels, nameFieldOf } from "@/lib/customer-fields"
-import { useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
+import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import type { CustomerField } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
+import { DeleteButton } from "./delete-button"
 import { AddFieldDialog, EditFieldDialog } from "./field-dialog"
 import { SettingRow, settingList } from "./setting-row"
 
@@ -20,6 +23,7 @@ export function CustomerTypePage({ id }: { id: number }) {
   const companyId = owner ? owner.company.id : null
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
+  const queryClient = useQueryClient()
 
   if (!owner) return null
   if (!types.data) {
@@ -74,7 +78,23 @@ export function CustomerTypePage({ id }: { id: number }) {
                   </>
                 }
                 actions={
-                  <EditFieldDialog companyId={owner.company.id} typeId={type.id} field={field} kind={kindOf(field)} />
+                  <>
+                    <EditFieldDialog companyId={owner.company.id} typeId={type.id} field={field} kind={kindOf(field)} />
+                    <DeleteButton
+                      label={`O'chirish: ${field.label}`}
+                      title="Maydonni o'chirasizmi?"
+                      description={`«${field.label}» maydoni formadan olib tashlanadi. Mijozlarda to'ldirilgan maydon o'chirilmaydi.`}
+                      done="Maydon o'chirildi"
+                      onDelete={async () => {
+                        await call(
+                          api.DELETE("/app/customer-types/{id}/fields/{fieldId}", {
+                            params: { path: { id: type.id, fieldId: field.id } },
+                          }),
+                        )
+                        await queryClient.invalidateQueries({ queryKey: customerTypesKey(owner.company.id) })
+                      }}
+                    />
+                  </>
                 }
               />
             </li>
