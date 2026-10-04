@@ -136,9 +136,23 @@ Boshqa hech bir mavjud test o'zgarmaydi, o'chirilmaydi, o'tkazib yuborilmaydi.
 - Yon scroll yo'q: 320, 375, 768, 1024, 1280 (shu jumladan 1280×600) va 1920px da, ikkala qadamda.
 - Lokal haqiqiy stack (Go API, haqiqiy Postgres, `SMS_DRIVER=log`; telefon o'lchami va desktop), 12 / 12: sessiyasiz `/login` ga yo'naltirish, raqam, noto'g'ri kod rad etilishi, log'dagi kod bilan kirish, reload'dan keyin sessiya; admin'da noto'g'ri kod va `cmd/otp` kodi bilan kirish. API rad etgan javoblar faqat kutilganlari: ikki noto'g'ri kod (401) va reload'dan keyingi `GET /app/me` (401, keyin refresh). Shu tekshiruv ochgan satrlar o'chirildi, satrlar soni boshlang'ich bilan bir xil.
 
+## Production'ga deploy (2026-10-04)
+
+Foydalanuvchi so'rovi bilan ("deploy qil"). Backend va migratsiya o'zgarmagan: faqat frontend image qayta qurildi.
+
+- `7737522`: toza nusxada (`git archive HEAD`) `pnpm install --frozen-lockfile` va ikkala ilova `next build` dan o'tdi; baza nusxasi `/var/backups/hisob24-v2/hisob24-pre-login-20261004-1554.sql.gz` (11 jadval); `deploy/ship.sh` exit 0, 1 daqiqa 58 soniya; goose "no migrations to run", versiya 4.
+- Sessiyasiz tekshiruv 42 / 42, hammasi birinchi urinishda:
+  - `healthz`;
+  - ikkala saytda `/login`: panel tavsifi, sarlavha, panel class'i, fondagi "24", baland telefon maydoni (web) va alohida kod kataklari (admin), CSS'da ikki token; admin'da bot havolasi 44px tugma;
+  - `/favicon.ico`, `/icon.svg`, `/apple-icon.png` (ikkala sayt): 200 va to'g'ri `content-type`;
+  - sessiyasiz sahifa `/login` ga yo'naltiriladi (307); cookie nomi bor, qiymati soxta so'rovda qobiq 200; API soxta sessiyani rad etadi (401);
+  - webhook'lar secret'siz 401.
+- Brauzerda (faqat sahifa ochildi; 375px va 1280px, ikkala sayt): panel foni `rgb(23, 68, 73)`, logotip oq, yon scroll 0px, rad etilgan so'rov yo'q, GET'dan boshqa so'rov yuborilmadi.
+- Server: to'rt konteyner healthy, `restarts=0`; satrlar soni deploy'dan oldingi bilan bir xil (11 jadval); `.env` saqlangan (16 kalit, avvalgi daraxtdagi bilan bir xil); API log'ida ERROR / WARN yo'q. Avvalgi daraxt: `/var/www/hisob24-v2.prev` (logo deploy'i).
+- Kirish bilan bog'liq oqimlar production'da sinalmadi (haqiqiy SMS ketadi): ular foydalanuvchiga qoladi.
+
 ## Qamrovdan tashqari
 
 - Mini App holat ekranlari, `/select-company`, `/expired`.
 - Urg'u rangini brend rangiga o'tkazish (hozir indigo): alohida qaror.
 - Brauzer `theme-color` i, "kira olmayapsizmi" yordam matni.
-- Production deploy.
