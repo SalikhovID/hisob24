@@ -527,3 +527,28 @@ func TestCountFieldCustomers(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, n, "a deleted customer does not count")
 }
+
+func TestCountOptionCustomers(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	// A second field takes its options from the same dropdown.
+	yana := addField(t, q, s.company.ID, s.jismoniy.ID, "Yana manba", "dropdown", s.manba.DropdownID)
+	ali := s.customer(t, q, "998901234567")
+	choose(t, q, ali.ID, s.manba.ID, s.instagram.ID)
+	choose(t, q, ali.ID, yana.ID, s.instagram.ID)
+	vali := s.customer(t, q, "998905555555")
+	choose(t, q, vali.ID, s.manba.ID, s.instagram.ID)
+
+	n, err := q.CountOptionCustomers(ctx, &s.instagram.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, n, "a customer who chose the option in two fields counts once")
+	n, err = q.CountOptionCustomers(ctx, &s.linkedin.ID)
+	require.NoError(t, err)
+	assert.Zero(t, n, "an option nobody chose")
+
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", vali.ID)
+	n, err = q.CountOptionCustomers(ctx, &s.instagram.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "a deleted customer does not count")
+}

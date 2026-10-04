@@ -39,6 +39,9 @@ type Querier interface {
 	// How many customers filled the field in: one in use is not deleted.
 	// Deleted customers do not count.
 	CountFieldCustomers(ctx context.Context, fieldID int64) (int64, error)
+	// How many customers chose the option, in any field: one in use is not
+	// deleted. Deleted customers do not count.
+	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
 	// How many customers are of the type: one in use is not deleted. Deleted
 	// customers do not count.
 	CountTypeCustomers(ctx context.Context, typeID int64) (int64, error)

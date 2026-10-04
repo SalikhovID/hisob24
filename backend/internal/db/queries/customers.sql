@@ -127,3 +127,10 @@ WHERE type_id = $1 AND deleted_at IS NULL;
 SELECT count(DISTINCT v.customer_id) FROM customer_values v
 JOIN customers c ON c.id = v.customer_id
 WHERE v.field_id = $1 AND c.deleted_at IS NULL;
+
+-- name: CountOptionCustomers :one
+-- How many customers chose the option, in any field: one in use is not
+-- deleted. Deleted customers do not count.
+SELECT count(DISTINCT v.customer_id) FROM customer_values v
+JOIN customers c ON c.id = v.customer_id
+WHERE v.option_id = $1 AND c.deleted_at IS NULL;

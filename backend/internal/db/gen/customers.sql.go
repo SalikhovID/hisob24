@@ -84,6 +84,21 @@ func (q *Queries) CountFieldCustomers(ctx context.Context, fieldID int64) (int64
 	return count, err
 }
 
+const countOptionCustomers = `-- name: CountOptionCustomers :one
+SELECT count(DISTINCT v.customer_id) FROM customer_values v
+JOIN customers c ON c.id = v.customer_id
+WHERE v.option_id = $1 AND c.deleted_at IS NULL
+`
+
+// How many customers chose the option, in any field: one in use is not
+// deleted. Deleted customers do not count.
+func (q *Queries) CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countOptionCustomers, optionID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countTypeCustomers = `-- name: CountTypeCustomers :one
 SELECT count(*) FROM customers
 WHERE type_id = $1 AND deleted_at IS NULL
