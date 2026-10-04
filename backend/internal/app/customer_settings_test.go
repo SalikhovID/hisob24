@@ -173,3 +173,32 @@ func TestDeleteCustomerDropdown(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, rec.Code, "a field takes its options from it")
 	assert.JSONEq(t, `{"error":"dropdown_in_use","message":"Bu dropdown 1 ta maydonda ishlatilgan"}`, rec.Body.String())
 }
+
+const optionNotFound = `{"error":"not_found","message":"Variant topilmadi"}`
+
+func TestAddCustomerDropdownOption(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
+	path := fmt.Sprintf("/app/customer-dropdowns/%d/options", manba)
+
+	rec := api.do(t, http.MethodPost, path, `{"label":" Instagram "}`, bearer(owner))
+
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	created := decode(t, rec)
+	assert.Equal(t, "Instagram", created["label"])
+	assert.Equal(t, true, created["is_active"])
+	assert.NotEmpty(t, created["id"])
+
+	rec = api.do(t, http.MethodPost, path, `{"label":"instagram"}`, bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"name_taken","message":"Bu variant allaqachon bor"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/customer-dropdowns/999/options", `{"label":"Yo'q"}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPost, path, `{"label":"LinkedIn"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}

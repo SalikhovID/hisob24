@@ -840,6 +840,47 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customer-dropdowns/{id}/options:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    post:
+      operationId: addCustomerDropdownOption
+      summary: Dropdownga variant qo'shish (faqat owner)
+      description: >
+        Variant ro'yxat oxiriga qo'shiladi, faol holda. Nomi dropdown ichida
+        takrorlanmaydi (katta-kichik harf farqsiz).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OptionInput"
+      responses:
+        "201":
+          description: Qo'shilgan variant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerOption"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

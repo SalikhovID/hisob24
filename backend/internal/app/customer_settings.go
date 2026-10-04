@@ -143,3 +143,20 @@ func (h *Handler) deleteCustomerDropdown(w http.ResponseWriter, r *http.Request)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// addCustomerDropdownOption adds an option at the end of a dropdown of the
+// owner's company.
+func (h *Handler) addCustomerDropdownOption(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Label string `json:"label"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	o, err := h.customers.AddOption(r.Context(), sessionCompany(r), pathID(r, "id"), body.Label)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toOptionJSON(o))
+}
