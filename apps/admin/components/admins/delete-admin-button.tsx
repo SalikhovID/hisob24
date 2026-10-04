@@ -26,7 +26,8 @@ import type { AdminAccount } from "@/lib/types"
 export function DeleteAdminButton({ admin }: { admin: AdminAccount }) {
   const [confirming, setConfirming] = useState(false)
   const queryClient = useQueryClient()
-  const name = admin.full_name ?? String(admin.telegram_id)
+  // An admin with no name goes by the ID, as in the list.
+  const name = admin.full_name ?? `Telegram ID ${admin.telegram_id}`
   const remove = useMutation({
     mutationFn: () =>
       call(api.DELETE("/admin/admins/{telegram_id}", { params: { path: { telegram_id: admin.telegram_id } } })),

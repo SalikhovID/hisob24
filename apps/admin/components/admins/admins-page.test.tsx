@@ -175,6 +175,19 @@ test("an admin is turned off after asking; you cannot turn yourself off", async 
   )
 })
 
+test("an admin with no name is called by the Telegram ID where the name would be: the action and the question too", async () => {
+  db.admins.push({ telegram_id: 44, full_name: null, is_active: true, created_at: "2026-10-01T07:00:00Z" })
+  const { user } = renderWithProviders(<AdminsPage />)
+
+  const [, nameless] = rowsOf(await screen.findByRole("table", { name: "Adminlar" }))
+  // The avatar has no initials to show: an icon, not letters taken from "Telegram ID".
+  expect(nameless.querySelector('[data-slot="avatar"]')).toHaveTextContent("")
+  await user.click(within(nameless).getByRole("button", { name: "O'chirish: Telegram ID 44" }))
+
+  const confirm = await screen.findByRole("alertdialog", { name: "Adminni o'chirasizmi?" })
+  expect(within(confirm).getByText(/^Telegram ID 44 panelga kira olmaydi/)).toBeInTheDocument()
+})
+
 test("when the API refuses to turn an admin off, it says why", async () => {
   server.use(
     http.delete("*/api/admin/admins/:telegramId", () =>
