@@ -99,6 +99,16 @@ type CustomerField struct {
 	DeletedAt  *time.Time
 }
 
+type CustomerHistory struct {
+	ID         int64
+	CustomerID int64
+	Action     string
+	ActorPhone string
+	ActorName  *string
+	Changes    []byte
+	CreatedAt  time.Time
+}
+
 type CustomerType struct {
 	ID        int64
 	CompanyID int64

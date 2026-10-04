@@ -429,3 +429,40 @@ func TestCustomerValues(t *testing.T) {
 	_, err = pool.Exec(ctx, "INSERT INTO customer_values (customer_id, field_id, text_value) VALUES ($1, $2, 'Ali')", missing, izoh)
 	assert.Equal(t, "23503", sqlState(err), "a customer that is not there")
 }
+
+func TestCustomerHistory(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	jismoniy := addCustomerType(t, pool, olma, "Jismoniy")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	var ali int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO customers (company_id, type_id, phone, created_by)
+		VALUES ($1, $2, '998901234567', '998901111111') RETURNING id`, olma, jismoniy).Scan(&ali))
+	// record writes down what the user did to the customer.
+	record := func(customerID int64, action, actor string) error {
+		_, err := pool.Exec(ctx,
+			"INSERT INTO customer_history (customer_id, action, actor_phone) VALUES ($1, $2, $3)", customerID, action, actor)
+		return err
+	}
+
+	for _, action := range []string{"created", "updated", "deleted"} {
+		assert.NoError(t, record(ali, action, "998901111111"), action)
+	}
+	assert.Equal(t, "23514", sqlState(record(ali, "restored", "998901111111")), "an action that is not one of the three") // check_violation
+	assert.Equal(t, "23503", sqlState(record(ali, "updated", "998909999999")), "done by someone who is no user")          // foreign_key_violation
+	assert.Equal(t, "23503", sqlState(record(1<<40, "updated", "998901111111")), "a customer that is not there")
+	var changes string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT changes::text FROM customer_history LIMIT 1").Scan(&changes))
+	assert.Equal(t, "[]", changes, "nothing changed unless said otherwise")
+
+	_, err = pool.Exec(ctx, "UPDATE users SET phone = '998902222222' WHERE phone = '998901111111'")
+	require.NoError(t, err, "a user with a history gets another number")
+	var actors []string
+	rows, err := pool.Query(ctx, "SELECT DISTINCT actor_phone FROM customer_history")
+	require.NoError(t, err)
+	actors, err = pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	assert.Equal(t, []string{"998902222222"}, actors, "what they did stays theirs")
+}

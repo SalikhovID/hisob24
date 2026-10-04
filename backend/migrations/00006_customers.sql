@@ -39,6 +39,23 @@ CREATE UNIQUE INDEX customer_values_option ON customer_values (customer_id, fiel
 CREATE INDEX customer_values_field ON customer_values (field_id);
 CREATE INDEX customer_values_option_id ON customer_values (option_id) WHERE option_id IS NOT NULL;
 
+-- What happened to a customer: it was entered, edited, deleted. An edit
+-- keeps each changed field as text, under the names of that time:
+-- [{"label": "INN", "old": "301234567", "new": "301234568"}]. Renaming a
+-- field or an option later leaves the history as it was written.
+CREATE TABLE customer_history (
+    id          BIGSERIAL PRIMARY KEY,
+    customer_id BIGINT NOT NULL REFERENCES customers(id),
+    action      TEXT NOT NULL CHECK (action IN ('created', 'updated', 'deleted')),
+    -- The member who did it, and the name they went by in the company then.
+    actor_phone TEXT NOT NULL REFERENCES users(phone) ON UPDATE CASCADE,
+    actor_name  TEXT,
+    changes     JSONB NOT NULL DEFAULT '[]',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX customer_history_customer ON customer_history (customer_id, id DESC);
+
 -- +goose Down
+DROP TABLE customer_history;
 DROP TABLE customer_values;
 DROP TABLE customers;
