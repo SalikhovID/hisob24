@@ -1,9 +1,9 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, db, nextId, seedCustomers, typesOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
-import { currentUrl, setLocation } from "@/test/navigation"
+import { currentUrl, router, setLocation, slowNavigation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -253,4 +253,63 @@ test("the list goes page by page, twenty at a time", async () => {
 
   await user.click(screen.getByRole("button", { name: "Oldingi" }))
   await waitFor(() => expect(currentUrl()).toBe("/customers"))
+})
+
+test("a search dropped from the address is dropped from the box, and stays dropped", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  setLocation("/customers?search=anor")
+  renderWithProviders(<CustomersPage />)
+  await table()
+  await waitFor(() => expect(names()).toEqual(["Anor Tekstil MChJ"]))
+  const box = screen.getByRole("searchbox", { name: "Qidirish" })
+  expect(box).toHaveValue("anor")
+
+  // The menu's link leads to the bare list: the page stays, its address changes.
+  act(() => router.push("/customers"))
+
+  await waitFor(() => expect(box).toHaveValue(""))
+  await waitFor(() => expect(names()).toHaveLength(3))
+  // Past the box's pause, the old search has not been written back.
+  await new Promise((resolve) => setTimeout(resolve, 450))
+  expect(currentUrl()).toBe("/customers")
+})
+
+test("typing that goes on while the address catches up is kept", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  setLocation("/customers")
+  // The address moves a moment after it is asked to, as the real router's does.
+  slowNavigation(120)
+  const { user } = renderWithProviders(<CustomersPage />)
+  await table()
+  const box = screen.getByRole("searchbox", { name: "Qidirish" })
+
+  await user.type(box, "a")
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/customers?search=a"))
+  // The next key is typed while "a" is still on its way to the address.
+  await user.type(box, "n")
+  await waitFor(() => expect(currentUrl()).toBe("/customers?search=a"))
+
+  // The address arriving with "a" is the box's own report: it must not wipe the "n".
+  expect(box).toHaveValue("an")
+  await waitFor(() => expect(currentUrl()).toBe("/customers?search=an"))
+})
+
+test("a tab chosen while the cleared search is still on its way keeps both changes", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  const [, yuridik] = typesOf(1)
+  setLocation("/customers?search=a")
+  // The address takes a while to change, as on a slow connection.
+  slowNavigation(400)
+  const { user } = renderWithProviders(<CustomersPage />)
+  await table()
+
+  // The box waits 300 ms before it reports; the tab is chosen meanwhile.
+  await user.clear(screen.getByRole("searchbox", { name: "Qidirish" }))
+  await user.click(screen.getByRole("tab", { name: "Yuridik" }))
+
+  await waitFor(() => expect(currentUrl()).toBe(`/customers?type=${yuridik.id}`), { timeout: 3000 })
+  await waitFor(() => expect(names()).toEqual(["Anor Tekstil MChJ"]))
 })

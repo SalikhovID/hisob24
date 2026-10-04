@@ -15,9 +15,27 @@ function subscribe(listener: () => void) {
   }
 }
 
-function go(href: string) {
+// A navigation lands at once, unless a test makes it slow: then it takes a
+// while, and a newer one replaces one still on its way, as the real router
+// does.
+let delay = 0
+let onItsWay: ReturnType<typeof setTimeout> | undefined
+
+function land(href: string) {
   url = new URL(href, url)
   listeners.forEach((listener) => listener())
+}
+
+function go(href: string) {
+  if (delay === 0) return land(href)
+  clearTimeout(onItsWay)
+  onItsWay = setTimeout(() => land(href), delay)
+}
+
+// slowNavigation makes router.push / replace take ms to change the address,
+// until the next setLocation.
+export function slowNavigation(ms: number) {
+  delay = ms
 }
 
 // leave stands in for lib/navigate's full page load: here just a move.
@@ -37,6 +55,8 @@ export const router = {
 export function setLocation(href: string, params: Record<string, string> = {}) {
   url = new URL(href, ORIGIN)
   routeParams = params
+  delay = 0
+  clearTimeout(onItsWay)
   Object.values(router).forEach((fn) => fn.mockClear())
   leave.mockClear()
   listeners.forEach((listener) => listener())

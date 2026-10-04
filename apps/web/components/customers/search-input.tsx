@@ -4,9 +4,20 @@ import { SearchIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 
-// SearchInput reports what was typed once typing pauses for 300 ms.
+// SearchInput reports what was typed once typing pauses for 300 ms. The
+// search it is given may also change from outside (a link to the bare list
+// drops it from the address): the box then follows, so what was typed
+// before is not taken for fresh typing and sent again.
 export function SearchInput({ value, onSearch }: { value: string; onSearch: (value: string) => void }) {
   const [text, setText] = useState(value)
+  const [seen, setSeen] = useState(value)
+  if (value !== seen) {
+    setSeen(value)
+    // The box follows only if it agreed with the search before the change.
+    // A box that is ahead of it is being typed in: the change is then its
+    // own earlier report arriving, and what was typed since stays.
+    if (text.trim() === seen) setText(value)
+  }
 
   useEffect(() => {
     if (text.trim() === value) return
