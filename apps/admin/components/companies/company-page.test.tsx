@@ -57,6 +57,41 @@ test("the company page shows the company and its users", async () => {
   ])
 })
 
+test("a user with no name goes by the phone, said once, with an icon for an avatar", async () => {
+  db.members[1].push({ phone: "998905556677", full_name: null, role: "user", created_at: "2026-09-21T05:00:00Z" })
+
+  renderWithProviders(<CompanyPage id={1} />)
+
+  const users = await screen.findByRole("table", { name: "Userlar" })
+  expect(usersOf(users)[2]).toEqual(["+998 90 555 66 77", null, "Xodim", "21.09.2026"])
+  // No name, no initials: digits of the phone are not letters of a name.
+  const nameless = within(users).getAllByRole("row")[3]
+  expect(nameless.querySelector('[data-slot="avatar"]')).toHaveTextContent("")
+})
+
+test("on a phone a user is a card: the role, then the joining day under its name", async () => {
+  renderWithProviders(<CompanyPage id={1} />)
+
+  const [owner] = within(await screen.findByRole("list", { name: "Userlar" })).getAllByRole("listitem")
+
+  expect(identityOf(owner)).toEqual(["Ali Valiyev", "+998 90 123 45 67"])
+  const line = Array.from(owner.querySelectorAll('[data-slot="data-list-meta"] > div')).map((pair) => [
+    pair.querySelector("dt")?.textContent,
+    pair.querySelector("dd")?.textContent,
+  ])
+  expect(line).toEqual([
+    ["Rol", "Egasi"],
+    ["Qo'shilgan", "20.09.2026"],
+  ])
+  expect(within(owner).getByText("Rol")).toHaveClass("sr-only")
+  expect(within(owner).getByText("Qo'shilgan")).not.toHaveClass("sr-only")
+  // Nothing more: no labeled rows, no actions.
+  expect(Array.from(owner.children).map((part) => part.getAttribute("data-slot"))).toEqual([
+    "data-list-title",
+    "data-list-meta",
+  ])
+})
+
 test("the users list ends with its total", async () => {
   renderWithProviders(<CompanyPage id={1} />)
 
