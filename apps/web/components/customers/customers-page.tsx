@@ -81,8 +81,11 @@ export function CustomersPage() {
       (column): Column<Customer> & { key: string } => ({
         key: column.key,
         header: column.label,
-        // A long answer wraps inside its cell; it does not stretch the table.
-        className: "max-w-64 whitespace-normal [overflow-wrap:anywhere]",
+        // A long answer wraps inside its cell, between its words; it does
+        // not stretch the table. A word is broken only when it alone is
+        // wider than the cell may be: breaking anywhere would let the table
+        // squeeze the column down to a letter.
+        className: "max-w-64 whitespace-normal break-words",
         cell: (c) => {
           const field = column.fields[c.type_id]
           return field && answerText(field, c.values[field.id], dropdowns.data ?? [])
