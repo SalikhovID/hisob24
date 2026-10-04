@@ -27,6 +27,8 @@ test.each([
   ["/_next/static/chunks/app.js", false],
   ["/_next/image", false],
   ["/favicon.ico", false],
+  ["/icon.svg", false],
+  ["/apple-icon.png", false],
 ])("proxy runs on %s: %s", (url, runs) => {
   expect(unstable_doesMiddlewareMatch({ config, url })).toBe(runs)
 })
