@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { company, db, TODAY } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
-import { currentUrl, router, setLocation } from "@/test/navigation"
+import { currentUrl, router, setLocation, slowNavigation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { CompaniesPage } from "./companies-page"
@@ -168,6 +168,21 @@ test("a search dropped from the address is dropped from the box, and stays dropp
   // Past the box's pause, the old search has not been written back.
   await new Promise((resolve) => setTimeout(resolve, 450))
   expect(currentUrl()).toBe("/companies")
+})
+
+test("a tab chosen while the cleared search is still on its way keeps both changes", async () => {
+  setLocation("/companies?search=olma")
+  // The address takes a while to change, as on a slow connection.
+  slowNavigation(400)
+  const { user } = renderWithProviders(<CompaniesPage />)
+  await waitFor(() => expect(names()).toEqual(["Olma Savdo"]))
+
+  // The box waits 300 ms before it reports; the tab is chosen meanwhile.
+  await user.clear(screen.getByRole("searchbox", { name: "Qidirish" }))
+  await user.click(screen.getByRole("tab", { name: "Muddati o'tgan" }))
+
+  await waitFor(() => expect(currentUrl()).toBe("/companies?status=expired"), { timeout: 3000 })
+  await waitFor(() => expect(names()).toEqual(["Olcha Servis"]))
 })
 
 test("the status tabs show the active or the expired companies", async () => {

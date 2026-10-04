@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import type { CompanyFilter } from "@/lib/queries"
 
 const statuses = ["active", "expired"] as const
@@ -23,9 +23,20 @@ export function useCompanyFilter() {
     }
   }, [params])
 
+  // A change of the filter is a navigation, and a navigation takes a moment.
+  // A second change made in that moment builds on what was asked for, not on
+  // what the address still says: otherwise it would undo the first (a tab
+  // chosen right after the search was cleared lost one of the two). Once
+  // the address moves, it is the truth again.
+  const asked = useRef<CompanyFilter | null>(null)
+  useEffect(() => {
+    asked.current = null
+  }, [filter])
+
   const update = useCallback(
     (change: Partial<CompanyFilter>) => {
-      const next = { ...filter, page: 1, ...change }
+      const next = { ...(asked.current ?? filter), page: 1, ...change }
+      asked.current = next
       const query = new URLSearchParams()
       if (next.search) query.set("search", next.search)
       if (next.status) query.set("status", next.status)
