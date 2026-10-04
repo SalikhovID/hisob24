@@ -69,3 +69,54 @@ test("the dialog opens empty every time", async () => {
 
   expect(within(await screen.findByRole("dialog", { name: "Mijoz qo'shish" })).getByLabelText("F.I.Sh.")).toHaveValue("")
 })
+
+test("choosing another type swaps the fields and keeps the phone", async () => {
+  await signIn(ALI)
+  const { user, dialog } = await openDialog()
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "Yozib qo'yilgan")
+
+  await user.click(within(dialog).getByRole("radio", { name: "Yuridik" }))
+
+  expect(within(dialog).getByRole("radio", { name: "Yuridik" })).toHaveAttribute("aria-checked", "true")
+  expect(within(dialog).queryByLabelText("F.I.Sh.")).not.toBeInTheDocument()
+  expect(within(dialog).getByLabelText("Nomi")).toHaveValue("")
+  expect(within(dialog).getByLabelText("INN")).toHaveValue("")
+  expect(within(dialog).getByLabelText("Telefon raqami")).toHaveValue("90 111 22 33")
+
+  await user.type(within(dialog).getByLabelText("Nomi"), "Yangi MChJ")
+  await user.type(within(dialog).getByLabelText("INN"), "305556677")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  const [, yuridik] = typesOf(1)
+  const [nomi, inn] = yuridik.fields
+  expect(db.customers.at(-1)).toMatchObject({
+    typeId: yuridik.id,
+    phone: "998901112233",
+    values: { [nomi.id]: "Yangi MChJ", [inn.id]: 305556677 },
+  })
+  // What was typed for the other type did not come along.
+  expect(Object.keys(db.customers.at(-1)!.values)).toHaveLength(2)
+})
+
+test("under a tab the dialog opens with that tab's type", async () => {
+  await signIn(ALI)
+  const [, yuridik] = typesOf(1)
+
+  const { dialog } = await openDialog(`/customers?type=${yuridik.id}`)
+
+  expect(within(dialog).getByRole("radio", { name: "Yuridik" })).toHaveAttribute("aria-checked", "true")
+  expect(within(dialog).getByLabelText("INN")).toBeInTheDocument()
+  expect(within(dialog).queryByLabelText("F.I.Sh.")).not.toBeInTheDocument()
+})
+
+test("a company with one type is asked for no type", async () => {
+  await signIn(ALI)
+  db.types.find((type) => type.companyId === 1 && type.name === "Yuridik")!.deleted = true
+
+  const { dialog } = await openDialog()
+
+  expect(within(dialog).queryByRole("radiogroup")).not.toBeInTheDocument()
+  expect(within(dialog).getByLabelText("F.I.Sh.")).toBeInTheDocument()
+})

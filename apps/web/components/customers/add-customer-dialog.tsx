@@ -69,6 +69,16 @@ export function AddCustomerDialog({
     }
   }
 
+  // Another type is another form: its fields start empty, and the phone,
+  // which every type has, stays as it was typed.
+  const changeType = (id: number) => {
+    const next = types.find((candidate) => candidate.id === id)
+    if (!next) return
+    setTypeId(next.id)
+    form.reset({ ...formDefaults(next), phone: form.getValues("phone") })
+    add.reset()
+  }
+
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
@@ -81,21 +91,25 @@ export function AddCustomerDialog({
           <DialogDescription>Turni tanlang va shu turning maydonlarini to&apos;ldiring.</DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit((customer) => add.mutate(customer))} noValidate className="space-y-4">
-          <RadioGroup
-            aria-label="Mijoz turi"
-            value={String(type.id)}
-            className="flex w-fit max-w-full flex-wrap gap-1 rounded-lg bg-muted p-[3px]"
-          >
-            {types.map((candidate) => (
-              <Radio.Root
-                key={candidate.id}
-                value={String(candidate.id)}
-                className="inline-flex h-8 cursor-default items-center rounded-md px-3 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:bg-card data-checked:text-foreground data-checked:shadow-sm"
-              >
-                {candidate.name}
-              </Radio.Root>
-            ))}
-          </RadioGroup>
+          {/* With one type there is nothing to choose. */}
+          {types.length > 1 && (
+            <RadioGroup
+              aria-label="Mijoz turi"
+              value={String(type.id)}
+              onValueChange={(value) => changeType(Number(value))}
+              className="flex w-fit max-w-full flex-wrap gap-1 rounded-lg bg-muted p-[3px]"
+            >
+              {types.map((candidate) => (
+                <Radio.Root
+                  key={candidate.id}
+                  value={String(candidate.id)}
+                  className="inline-flex h-8 cursor-default items-center rounded-md px-3 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:bg-card data-checked:text-foreground data-checked:shadow-sm"
+                >
+                  {candidate.name}
+                </Radio.Root>
+              ))}
+            </RadioGroup>
+          )}
           <CustomerFields control={form.control} type={type} dropdowns={dropdowns} />
           {add.isError && <Refusal>{add.error.message}</Refusal>}
           <DialogFooter>
