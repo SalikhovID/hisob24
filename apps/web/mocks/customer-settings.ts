@@ -24,6 +24,21 @@ function liveDropdown(companyId: number, id: number): DropdownRow | undefined {
   return db.dropdowns.find((d) => d.id === id && d.companyId === companyId && !d.deleted)
 }
 
+const optionNotFound = () => fail(404, "not_found", "Variant topilmadi")
+const optionTaken = () => fail(409, "name_taken", "Bu variant allaqachon bor")
+const orderChanged = () => fail(409, "order_changed", "Ro'yxat o'zgargan. Sahifani yangilang")
+
+// sameIds tells whether ids names each of live once and nothing else.
+function sameIds(ids: unknown, live: number[]): ids is number[] {
+  if (!Array.isArray(ids) || ids.length !== live.length) return false
+  return new Set(ids).size === live.length && ids.every((id) => live.includes(id))
+}
+
+// inOrder puts rows in the order of ids, with the deleted ones after them.
+function inOrder<T extends { id: number; deleted?: boolean }>(rows: T[], ids: number[]): T[] {
+  return [...ids.map((id) => rows.find((row) => row.id === id)!), ...rows.filter((row) => row.deleted)]
+}
+
 // fieldsUsing counts the fields that take their options from a dropdown:
 // those not deleted, of types not deleted.
 function fieldsUsing(dropdownId: number): number {
@@ -77,6 +92,58 @@ export const customerSettingsHandlers = [
     const used = fieldsUsing(dropdown.id)
     if (used > 0) return fail(409, "dropdown_in_use", `Bu dropdown ${used} ta maydonda ishlatilgan`)
     dropdown.deleted = true
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post(api("/app/customer-dropdowns/:id/options"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const label = cleanName(((await request.json()) as { label?: unknown }).label)
+    if (label instanceof Response) return label
+    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    if (!dropdown) return dropdownNotFound()
+    if (dropdown.options.some((o) => !o.deleted && same(o.label, label))) return optionTaken()
+    const option = { id: nextId(), label, active: true }
+    dropdown.options.push(option)
+    return HttpResponse.json({ id: option.id, label, is_active: true }, { status: 201 })
+  }),
+
+  http.put(api("/app/customer-dropdowns/:id/options/order"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const { ids } = (await request.json()) as { ids?: unknown }
+    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    if (!dropdown) return dropdownNotFound()
+    const live = dropdown.options.filter((o) => !o.deleted).map((o) => o.id)
+    if (!sameIds(ids, live)) return orderChanged()
+    dropdown.options = inOrder(dropdown.options, ids)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.patch(api("/app/customer-dropdowns/:id/options/:optionId"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const body = (await request.json()) as { label?: unknown; is_active?: boolean }
+    const label = body.label === undefined ? undefined : cleanName(body.label)
+    if (label instanceof Response) return label
+    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const option = dropdown?.options.find((o) => o.id === Number(params.optionId) && !o.deleted)
+    if (!dropdown || !option) return optionNotFound()
+    if (label !== undefined) {
+      if (dropdown.options.some((o) => o !== option && !o.deleted && same(o.label, label))) return optionTaken()
+      option.label = label
+    }
+    if (body.is_active !== undefined) option.active = body.is_active
+    return HttpResponse.json({ id: option.id, label: option.label, is_active: option.active })
+  }),
+
+  http.delete(api("/app/customer-dropdowns/:id/options/:optionId"), ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const option = dropdown?.options.find((o) => o.id === Number(params.optionId) && !o.deleted)
+    if (!option) return optionNotFound()
+    option.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
 ]

@@ -194,3 +194,57 @@ test("the owner makes, renames and deletes dropdowns; an employee does not", asy
   })
   expect(await failure(deleteDropdown(manba.id))).toMatchObject({ status: 403, code: "owner_only" })
 })
+
+const addOption = (id: number, label: string) =>
+  call(api.POST("/app/customer-dropdowns/{id}/options", { params: { path: { id } }, body: { label } }))
+const updateOption = (id: number, optionId: number, body: { label?: string; is_active?: boolean }) =>
+  call(api.PATCH("/app/customer-dropdowns/{id}/options/{optionId}", { params: { path: { id, optionId } }, body }))
+const deleteOption = (id: number, optionId: number) =>
+  call(api.DELETE("/app/customer-dropdowns/{id}/options/{optionId}", { params: { path: { id, optionId } } }))
+const orderOptions = (id: number, ids: number[]) =>
+  call(api.PUT("/app/customer-dropdowns/{id}/options/order", { params: { path: { id } }, body: { ids } }))
+
+test("the owner adds options, renames them, turns them off, orders and deletes them", async () => {
+  await signIn(ALI)
+  const [manba] = await customerDropdowns()
+  const [instagram, linkedin, youtube] = manba.options
+  const labels = async () => (await customerDropdowns())[0].options.map((o) => o.label)
+
+  const tavsiya = await addOption(manba.id, " Tavsiya ")
+  expect(tavsiya).toMatchObject({ label: "Tavsiya", is_active: true })
+  expect(await labels()).toEqual(["Instagram", "LinkedIn", "YouTube", "Tavsiya"])
+  expect(await failure(addOption(manba.id, "instagram"))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu variant allaqachon bor",
+  })
+  expect(await failure(addOption(manba.id, " "))).toMatchObject({ status: 400, message: "Nomni kiriting" })
+  expect(await failure(addOption(999, "Yo'q"))).toMatchObject({ status: 404, message: "Dropdown topilmadi" })
+
+  expect(await updateOption(manba.id, instagram.id, { label: " Insta " })).toEqual({ id: instagram.id, label: "Insta", is_active: true })
+  expect(await updateOption(manba.id, instagram.id, { is_active: false })).toEqual({ id: instagram.id, label: "Insta", is_active: false })
+  expect(await failure(updateOption(manba.id, instagram.id, { label: "linkedin" }))).toMatchObject({ status: 409, code: "name_taken" })
+  expect(await failure(updateOption(manba.id, 999, { label: "Yo'q" }))).toMatchObject({
+    status: 404,
+    code: "not_found",
+    message: "Variant topilmadi",
+  })
+
+  await orderOptions(manba.id, [tavsiya.id, youtube.id, linkedin.id, instagram.id])
+  expect(await labels()).toEqual(["Tavsiya", "YouTube", "LinkedIn", "Insta"])
+  expect(await failure(orderOptions(manba.id, [tavsiya.id, youtube.id]))).toMatchObject({
+    status: 409,
+    code: "order_changed",
+    message: "Ro'yxat o'zgargan. Sahifani yangilang",
+  })
+  expect(await failure(orderOptions(manba.id, [tavsiya.id, tavsiya.id, linkedin.id, instagram.id]))).toMatchObject({ status: 409 })
+
+  await deleteOption(manba.id, linkedin.id)
+  expect(await labels()).toEqual(["Tavsiya", "YouTube", "Insta"])
+  expect(await failure(deleteOption(manba.id, linkedin.id))).toMatchObject({ status: 404, message: "Variant topilmadi" })
+  expect((await addOption(manba.id, "LinkedIn")).id).not.toBe(linkedin.id)
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await failure(addOption(manba.id, "Xodimniki"))).toMatchObject({ status: 403, code: "owner_only" })
+})
