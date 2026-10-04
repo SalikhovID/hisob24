@@ -79,6 +79,8 @@ type Querier interface {
 	// The company's members under the names they go by there: the owner first,
 	// then the users in the order they joined.
 	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
+	// The company's dropdowns in the order they were made, without the deleted.
+	ListCustomerDropdowns(ctx context.Context, companyID int64) ([]CustomerDropdown, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the
 	// database's today, as the 402 check does.
