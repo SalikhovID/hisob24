@@ -92,10 +92,11 @@ export function CompanyActions({ company }: { company: Company }) {
               update.mutate(
                 { is_active: false },
                 {
-                  onSuccess: () => {
-                    setConfirming(false)
-                    toast.success("Kompaniya bloklandi")
-                  },
+                  onSuccess: () => toast.success("Kompaniya bloklandi"),
+                  // A refusal is said too, in the API's words: silence would
+                  // leave the admin believing the company was blocked.
+                  onError: (error) => toast.error(error.message),
+                  onSettled: () => setConfirming(false),
                 },
               )
             }

@@ -443,3 +443,24 @@ test("while a payment is on its way the dialog's button says so", async () => {
   await waitFor(() => expect(add).toBeDisabled())
   expect(add).toHaveAttribute("aria-busy", "true")
 })
+
+// refuse answers with the API's own words for a failure.
+const refuse = () =>
+  HttpResponse.json(
+    { error: "internal_error", message: "Ichki xatolik. Birozdan keyin qayta urinib ko'ring" },
+    { status: 500 },
+  )
+
+test("when the block fails the page says why, and the company is not shown as blocked", async () => {
+  server.use(http.patch("*/api/admin/companies/:id", refuse))
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Bloklash" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Kompaniyani bloklaysizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "Bloklash" }))
+
+  expect(await screen.findByText("Ichki xatolik. Birozdan keyin qayta urinib ko'ring")).toBeInTheDocument()
+  // The question is over; the company stands as it stood.
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(within(screen.getByRole("region", { name: "Ma'lumot" })).getByText("30 kun qoldi")).toBeInTheDocument()
+})
