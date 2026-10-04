@@ -25,12 +25,22 @@ const maxText = 500
 const maxInt = 1<<53 - 1
 
 // checkValues reads the answers a client sent for the fields of a type and
-// gives them as they are kept, or the first thing that is wrong with them,
-// in the order of the fields. options is the options of each dropdown, in
+// gives them as they are kept, or the first thing that is wrong with them:
+// an answer to a field the type has not, then the fields in their order.
+// options is the options of each dropdown, in
 // its order. was is the customer's answers before the edit, nil for a new
 // customer: an option that is turned off is taken only where the customer
 // has it already.
 func checkValues(fields []Field, options map[int64][]Option, was Values, raw map[string]json.RawMessage) (Values, error) {
+	asked := make(map[string]bool, len(fields))
+	for _, f := range fields {
+		asked[strconv.FormatInt(f.ID, 10)] = true
+	}
+	for key := range raw {
+		if !asked[key] {
+			return nil, invalid("Bu turda bunday maydon yo'q")
+		}
+	}
 	values := Values{}
 	for _, f := range fields {
 		var offered []Option

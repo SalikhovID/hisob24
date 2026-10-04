@@ -199,3 +199,27 @@ func TestCheckValuesRequired(t *testing.T) {
 		{name: "a dropdown of several left out", body: filled("6", ""), refusal: "«Kanallar» ni tanlang"},
 	})
 }
+
+func TestCheckValuesRefusesAFieldTheTypeHasNot(t *testing.T) {
+	const unknown = "Bu turda bunday maydon yo'q"
+	runCheckCases(t, form, []checkCase{
+		{name: "a field of another type", body: `{"1": "Ali", "99": "x"}`, refusal: unknown},
+		{name: "even with no answer", body: `{"99": null}`, refusal: unknown},
+		{name: "a key that is no id", body: `{"ism": "Ali"}`, refusal: unknown},
+		{name: "an id written another way", body: `{"01": "Ali"}`, refusal: unknown},
+		{name: "said before what is wrong with an answer", body: `{"2": "x", "99": 1}`, refusal: unknown},
+	})
+}
+
+func TestCheckValuesTellsTheFirstFieldThatIsWrong(t *testing.T) {
+	must := make([]Field, len(form))
+	for i, f := range form {
+		f.Required = true
+		must[i] = f
+	}
+	runCheckCases(t, must, []checkCase{
+		{name: "in the order of the fields, not of the answers", body: `{"3": 999, "2": "x", "1": "Ali"}`, refusal: "«Yoshi» butun son bo'lishi kerak"},
+		{name: "an empty field before a wrong one", body: `{"2": "x"}`, refusal: "«F.I.Sh.» maydonini to'ldiring"},
+		{name: "a wrong field before an empty one", body: `{"1": "Ali", "2": 30, "3": 21}`, refusal: "«Manba» uchun variant noto'g'ri"},
+	})
+}
