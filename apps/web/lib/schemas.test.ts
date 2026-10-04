@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { z } from "zod"
-import { employeeSchema, renameSchema } from "./schemas"
+import { employeeSchema, nameSchema, renameSchema } from "./schemas"
 
 // problems lists the messages a schema gives for input; none means valid.
 function problems(schema: z.ZodType, input: unknown): string[] {
@@ -25,4 +25,11 @@ test("employeeSchema names a number that is not whole and a name that is missing
 test("renameSchema trims the name and refuses an empty one", () => {
   expect(renameSchema.parse({ full_name: " Vali (hisobchi) " })).toEqual({ full_name: "Vali (hisobchi)" })
   expect(problems(renameSchema, { full_name: "  " })).toEqual(["Ismni kiriting"])
+})
+
+test("nameSchema trims a name, and refuses an empty one and one over sixty characters", () => {
+  expect(nameSchema.parse({ name: " Jismoniy " })).toEqual({ name: "Jismoniy" })
+  expect(problems(nameSchema, { name: "  " })).toEqual(["Nomni kiriting"])
+  expect(problems(nameSchema, { name: "ў".repeat(61) })).toEqual(["Nom 60 belgidan oshmasin"])
+  expect(problems(nameSchema, { name: "ў".repeat(60) })).toEqual([])
 })

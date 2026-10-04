@@ -26,3 +26,18 @@ export const employeeSchema = z.object({
 export const renameSchema = z.object({
   full_name: required("Ismni kiriting"),
 })
+
+// name is a name as the API takes it: trimmed, not empty and sixty
+// characters at most, counted as the API counts them.
+const name = () =>
+  z
+    .string()
+    .trim()
+    .min(1, "Nomni kiriting")
+    .refine((value) => [...value].length <= 60, "Nom 60 belgidan oshmasin")
+
+// nameSchema is a dialog that asks for one name: of a customer type, a
+// dropdown or an option. The messages match the API's.
+export const nameSchema = z.object({
+  name: name(),
+})
