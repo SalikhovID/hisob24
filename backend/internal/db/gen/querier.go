@@ -160,6 +160,10 @@ type Querier interface {
 	// argument leaves its column as it is. pgx.ErrNoRows when the dropdown has
 	// no such option, or it is deleted.
 	UpdateCustomerDropdownOption(ctx context.Context, arg UpdateCustomerDropdownOptionParams) (CustomerDropdownOption, error)
+	// Changes a field's name and marks; a NULL argument leaves its column as it
+	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
+	// type has no such field, or it is deleted.
+	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
 	// Stores a new code unless the last one went out less than cooldown_seconds
 	// ago: 0 rows affected means "too soon" (429).
 	UpsertSMSCode(ctx context.Context, arg UpsertSMSCodeParams) (int64, error)

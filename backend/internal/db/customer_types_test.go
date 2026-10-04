@@ -235,3 +235,42 @@ func TestGetCustomerField(t *testing.T) {
 	_, err = q.GetCustomerField(ctx, its)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted field")
 }
+
+func TestUpdateCustomerField(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	fish := addField(t, q, olma.ID, jismoniy.ID, "F.I.Sh.", "string", nil)
+	addField(t, q, olma.ID, jismoniy.ID, "Yoshi", "int", nil)
+	its := gen.UpdateCustomerFieldParams{CompanyID: olma.ID, TypeID: jismoniy.ID, ID: fish.ID}
+
+	renamed := its
+	renamed.Label = ptr("Ism")
+	f, err := q.UpdateCustomerField(ctx, renamed)
+	require.NoError(t, err)
+	assert.Equal(t, "Ism", f.Label)
+	assert.False(t, f.Required, "what is not given stays")
+	assert.Equal(t, "string", f.Kind, "the kind is never changed")
+
+	flagged := its
+	flagged.Required, flagged.IsUnique = ptr(true), ptr(true)
+	f, err = q.UpdateCustomerField(ctx, flagged)
+	require.NoError(t, err)
+	assert.True(t, f.Required)
+	assert.True(t, f.IsUnique)
+	assert.Equal(t, "Ism", f.Label, "what is not given stays")
+
+	taken := its
+	taken.Label = ptr("yoshi")
+	_, err = q.UpdateCustomerField(ctx, taken)
+	assert.Equal(t, "23505", sqlState(err), "another field's name")
+	begona := renamed
+	begona.CompanyID = nok.ID
+	_, err = q.UpdateCustomerField(ctx, begona)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's field")
+	mustExec(t, pool, "UPDATE customer_fields SET deleted_at = now() WHERE id = $1", fish.ID)
+	_, err = q.UpdateCustomerField(ctx, renamed)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted field")
+}

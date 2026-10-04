@@ -283,3 +283,51 @@ func (q *Queries) RenameCustomerType(ctx context.Context, arg RenameCustomerType
 	)
 	return i, err
 }
+
+const updateCustomerField = `-- name: UpdateCustomerField :one
+UPDATE customer_fields
+SET label = COALESCE($1, label),
+    required = COALESCE($2, required),
+    is_unique = COALESCE($3, is_unique)
+WHERE id = $4 AND type_id = $5 AND company_id = $6
+  AND deleted_at IS NULL
+RETURNING id, company_id, type_id, label, kind, dropdown_id, required, is_unique, position, created_at, deleted_at
+`
+
+type UpdateCustomerFieldParams struct {
+	Label     *string
+	Required  *bool
+	IsUnique  *bool
+	ID        int64
+	TypeID    int64
+	CompanyID int64
+}
+
+// Changes a field's name and marks; a NULL argument leaves its column as it
+// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
+// type has no such field, or it is deleted.
+func (q *Queries) UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error) {
+	row := q.db.QueryRow(ctx, updateCustomerField,
+		arg.Label,
+		arg.Required,
+		arg.IsUnique,
+		arg.ID,
+		arg.TypeID,
+		arg.CompanyID,
+	)
+	var i CustomerField
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.TypeID,
+		&i.Label,
+		&i.Kind,
+		&i.DropdownID,
+		&i.Required,
+		&i.IsUnique,
+		&i.Position,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}

@@ -62,3 +62,15 @@ ORDER BY type_id, position, id;
 SELECT * FROM customer_fields
 WHERE id = sqlc.arg('id') AND type_id = sqlc.arg('type_id') AND company_id = sqlc.arg('company_id')
   AND deleted_at IS NULL;
+
+-- name: UpdateCustomerField :one
+-- Changes a field's name and marks; a NULL argument leaves its column as it
+-- is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
+-- type has no such field, or it is deleted.
+UPDATE customer_fields
+SET label = COALESCE(sqlc.narg('label'), label),
+    required = COALESCE(sqlc.narg('required'), required),
+    is_unique = COALESCE(sqlc.narg('is_unique'), is_unique)
+WHERE id = sqlc.arg('id') AND type_id = sqlc.arg('type_id') AND company_id = sqlc.arg('company_id')
+  AND deleted_at IS NULL
+RETURNING *;
