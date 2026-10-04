@@ -125,3 +125,11 @@ test("inside Telegram the list has no sign-out: closing the Mini App is the way 
   await screen.findByRole("button", { name: /Nok Market/ })
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
 })
+
+test("the company list stands under Hisob24's logo", async () => {
+  await signIn(VALI)
+  renderWithProviders(<SelectCompany />)
+
+  expect(screen.getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+  await screen.findByRole("button", { name: /Nok Market/ })
+})

@@ -3,6 +3,7 @@
 import { ChevronRightIcon, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { Logo } from "@/components/logo"
 import { Failed, Loading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ export function SelectCompany() {
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-6 p-4 pt-10">
+      <Logo className="self-start" />
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Kompaniyani tanlang</h1>
         <p className="text-sm text-muted-foreground">Qaysi kompaniyada ishlaysiz?</p>
