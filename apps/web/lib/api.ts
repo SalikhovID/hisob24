@@ -63,12 +63,14 @@ async function send(request: Request): Promise<Response> {
 export const api = createApiClient(BASE, send)
 
 // ApiError is a refusal from the API: its status, error code and the Uzbek
-// message to show.
+// message to show. A refusal that is about another customer (a phone or an
+// answer that customer has already) names them, so the form can lead there.
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly customerId?: number,
   ) {
     super(message)
     this.name = "ApiError"
@@ -94,11 +96,12 @@ export async function call<T>(request: Promise<Result<T>>): Promise<T> {
   }
   const { data, error, response } = result
   if (error !== undefined || !response.ok) {
-    const body = (error ?? {}) as { error?: string; message?: string }
+    const body = (error ?? {}) as { error?: string; message?: string; customer_id?: unknown }
     throw new ApiError(
       response.status,
       body.error ?? "unknown_error",
       body.message ?? "Kutilmagan xatolik. Birozdan keyin qayta urinib ko'ring",
+      typeof body.customer_id === "number" ? body.customer_id : undefined,
     )
   }
   return data as T

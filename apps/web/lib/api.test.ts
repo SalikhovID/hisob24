@@ -25,6 +25,35 @@ test("call throws the API's error code and message", async () => {
   })
 })
 
+test("a refusal that is about another customer names that customer", async () => {
+  server.use(
+    http.post("*/api/app/auth/sms/send", () =>
+      HttpResponse.json(
+        { error: "phone_taken", message: "Bu raqamli mijoz allaqachon bor", customer_id: 7 },
+        { status: 409 },
+      ),
+    ),
+  )
+
+  const error = await sendCode().catch((e: unknown) => e)
+
+  expect(error).toBeInstanceOf(ApiError)
+  expect(error).toMatchObject({ status: 409, code: "phone_taken", message: "Bu raqamli mijoz allaqachon bor", customerId: 7 })
+})
+
+test("any other refusal names no customer", async () => {
+  server.use(
+    http.post("*/api/app/auth/sms/send", () =>
+      HttpResponse.json({ error: "validation_error", message: "Telefon raqami noto'g'ri", customer_id: "7" }, { status: 400 }),
+    ),
+  )
+
+  const error = (await sendCode().catch((e: unknown) => e)) as ApiError
+
+  expect(error).toBeInstanceOf(ApiError)
+  expect(error.customerId).toBeUndefined()
+})
+
 test("call turns a network failure into an ApiError people can read", async () => {
   server.use(http.post("*/api/app/auth/sms/send", () => HttpResponse.error()))
 
