@@ -32,7 +32,7 @@ export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: Si
 
   return (
     <>
-      <Column title={title} items={items} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
+      <Column company={company?.name} items={items} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="left" className="gap-0 bg-sidebar text-sidebar-foreground data-[side=left]:w-72">
           <SheetHeader className="border-b px-4 py-3 pr-12">
@@ -48,14 +48,15 @@ export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: Si
   )
 }
 
-// Column is the sidebar of a wide screen.
+// Column is the sidebar of a wide screen. The company's name keeps its line
+// while it is not known yet, so the logo stays put when it comes.
 function Column({
-  title,
+  company,
   items,
   collapsed,
   onToggleCollapsed,
 }: {
-  title: string
+  company: string | undefined
   items: NavItem[]
   collapsed: boolean
   onToggleCollapsed: () => void
@@ -86,7 +87,7 @@ function Column({
           <>
             <div className="min-w-0">
               <Logo className="h-4" />
-              <p className="truncate text-[0.8125rem] leading-5 font-medium">{title}</p>
+              <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium">{company}</p>
             </div>
             <Button
               variant="ghost"

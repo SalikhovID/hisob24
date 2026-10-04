@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { ALI, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
@@ -91,4 +91,13 @@ test("the sidebar is headed by Hisob24's logo, the company's name after it", asy
   const name = await within(sidebar()).findByText("Olma Savdo")
   const logo = within(sidebar()).getByRole("img", { name: "Hisob24" })
   expect(logo.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
+test("with no company chosen yet the sidebar shows the logo alone: the name is not said twice", async () => {
+  await signIn(VALI)
+  const { queryClient } = renderWithProviders(<Sidebar {...props()} />)
+  await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+
+  expect(within(sidebar()).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+  expect(within(sidebar()).queryByText("Hisob24")).not.toBeInTheDocument()
 })
