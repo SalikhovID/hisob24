@@ -21,6 +21,10 @@ type Querier interface {
 	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
 	// company has no such type, or deleted it.
 	AddCustomerField(ctx context.Context, arg AddCustomerFieldParams) (CustomerField, error)
+	// Writes down what a member did to a customer: created, updated or deleted.
+	// changes is what an edit changed, each field as text under the names of
+	// that time; actor_name is the name the member goes by in the company now.
+	AddCustomerHistory(ctx context.Context, arg AddCustomerHistoryParams) error
 	// One row of a customer's answers: a text, a whole number, or an option
 	// chosen. A choice of several options is a row for each.
 	AddCustomerValue(ctx context.Context, arg AddCustomerValueParams) error

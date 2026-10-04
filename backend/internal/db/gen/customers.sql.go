@@ -10,6 +10,33 @@ import (
 	"time"
 )
 
+const addCustomerHistory = `-- name: AddCustomerHistory :exec
+INSERT INTO customer_history (customer_id, action, actor_phone, actor_name, changes)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type AddCustomerHistoryParams struct {
+	CustomerID int64
+	Action     string
+	ActorPhone string
+	ActorName  *string
+	Changes    []byte
+}
+
+// Writes down what a member did to a customer: created, updated or deleted.
+// changes is what an edit changed, each field as text under the names of
+// that time; actor_name is the name the member goes by in the company now.
+func (q *Queries) AddCustomerHistory(ctx context.Context, arg AddCustomerHistoryParams) error {
+	_, err := q.db.Exec(ctx, addCustomerHistory,
+		arg.CustomerID,
+		arg.Action,
+		arg.ActorPhone,
+		arg.ActorName,
+		arg.Changes,
+	)
+	return err
+}
+
 const addCustomerValue = `-- name: AddCustomerValue :exec
 INSERT INTO customer_values (customer_id, field_id, option_id, text_value, int_value)
 VALUES ($1, $2, $3, $4, $5)

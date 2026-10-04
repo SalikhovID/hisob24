@@ -552,3 +552,26 @@ func TestCountOptionCustomers(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, n, "a deleted customer does not count")
 }
+
+func TestAddCustomerHistory(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	changes := `[{"label": "INN", "old": "301234567", "new": "301234568"}]`
+
+	err := q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
+		CustomerID: ali.ID, Action: "updated", ActorPhone: enteredBy, ActorName: ptr("Ali aka"), Changes: []byte(changes),
+	})
+
+	require.NoError(t, err)
+	var action, actor, stored string
+	var name *string
+	require.NoError(t, pool.QueryRow(ctx,
+		"SELECT action, actor_phone, actor_name, changes::text FROM customer_history WHERE customer_id = $1", ali.ID).
+		Scan(&action, &actor, &name, &stored))
+	assert.Equal(t, "updated", action)
+	assert.Equal(t, enteredBy, actor)
+	assert.Equal(t, ptr("Ali aka"), name, "the name the member went by then")
+	assert.JSONEq(t, changes, stored)
+}

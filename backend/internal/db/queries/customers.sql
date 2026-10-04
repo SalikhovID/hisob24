@@ -134,3 +134,10 @@ WHERE v.field_id = $1 AND c.deleted_at IS NULL;
 SELECT count(DISTINCT v.customer_id) FROM customer_values v
 JOIN customers c ON c.id = v.customer_id
 WHERE v.option_id = $1 AND c.deleted_at IS NULL;
+
+-- name: AddCustomerHistory :exec
+-- Writes down what a member did to a customer: created, updated or deleted.
+-- changes is what an edit changed, each field as text under the names of
+-- that time; actor_name is the name the member goes by in the company now.
+INSERT INTO customer_history (customer_id, action, actor_phone, actor_name, changes)
+VALUES (sqlc.arg('customer_id'), sqlc.arg('action'), sqlc.arg('actor_phone'), sqlc.narg('actor_name'), sqlc.arg('changes'));
