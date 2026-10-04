@@ -1,18 +1,22 @@
 package customer
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -761,4 +765,26 @@ func TestUpdateRefusals(t *testing.T) {
 	require.NoError(t, err)
 	refused(t, update(vali.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali Aliyev"}),
 		apperr.Invalid, "validation_error", "«Yoshi» maydonini to'ldiring")
+}
+
+var errDown = errors.New("the database is down")
+
+// downDB is a database that fails every query.
+type downDB struct{}
+
+func (downDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
+	return pgconn.CommandTag{}, errDown
+}
+func (downDB) Query(context.Context, string, ...any) (pgx.Rows, error) { return nil, errDown }
+func (downDB) QueryRow(context.Context, string, ...any) pgx.Row        { return downRow{} }
+
+type downRow struct{}
+
+func (downRow) Scan(...any) error { return errDown }
+
+func TestAFailedLookupIsNotTakenForAFreePhone(t *testing.T) {
+	q := gen.New(downDB{})
+
+	assert.ErrorIs(t, phoneFree(t.Context(), q, 1, "998901234567", 0), errDown, "a new customer")
+	assert.ErrorIs(t, phoneFree(t.Context(), q, 1, "998901234567", 7), errDown, "a customer being edited")
 }

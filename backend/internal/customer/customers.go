@@ -127,11 +127,13 @@ func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone stri
 // one.
 func phoneFree(ctx context.Context, q *gen.Queries, companyID int64, phone string, except int64) error {
 	id, err := q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: companyID, Phone: phone})
-	if errors.Is(err, pgx.ErrNoRows) || id == except {
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
 		return nil
-	}
-	if err != nil {
+	case err != nil:
 		return err
+	case id == except:
+		return nil
 	}
 	return &TakenError{
 		Refusal:    apperr.New(apperr.Conflict, "phone_taken", "Bu raqamli mijoz allaqachon bor"),
