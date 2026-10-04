@@ -3,6 +3,7 @@
 import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { type ReactNode, useCallback, useEffect, useState } from "react"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { api, ApiError, call } from "@/lib/api"
 import { setAccessToken } from "@/lib/session"
@@ -178,10 +179,14 @@ function BotInstructions({ webApp }: { webApp: TelegramWebApp }) {
   )
 }
 
+// Centered is every screen of this login: what it says, under the logo.
 function Centered({ children }: { children: ReactNode }) {
   return (
     <main className="flex min-h-svh items-center justify-center p-4">
-      <div className="flex w-full max-w-sm flex-col items-center gap-3 text-center">{children}</div>
+      <div className="flex w-full max-w-sm flex-col items-center gap-3 text-center">
+        <Logo className="mb-3 h-7" />
+        {children}
+      </div>
     </main>
   )
 }

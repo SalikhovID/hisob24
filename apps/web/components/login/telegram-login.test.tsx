@@ -139,3 +139,12 @@ test("when the frame keeps no session cookie the app says so instead of looping"
   await user.click(screen.getByRole("button", { name: "Yopish" }))
   expect(webApp.close).toHaveBeenCalled()
 })
+
+test("the Mini App's login is headed by Hisob24's logo, while signing in and when it says why not", async () => {
+  renderWithProviders(<TelegramLogin webApp={fakeWebApp({}, TG_STRANGER)} onFallback={vi.fn()} />)
+
+  expect(screen.getByText("Telegram orqali kirilmoqda…")).toBeInTheDocument()
+  expect(screen.getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+  await screen.findByRole("heading", { name: "Kirish huquqi yo'q" })
+  expect(screen.getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+})
