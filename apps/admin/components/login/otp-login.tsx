@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
+import { Brand } from "@/components/brand"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
 
@@ -35,7 +36,9 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
           </p>
         )}
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">Hisob24 Admin</h1>
+          <h1 className="flex justify-center">
+            <Brand className="text-2xl" />
+          </h1>
           <p className="text-sm text-muted-foreground">
             Kodni olish uchun botga <code className="rounded bg-muted px-1 py-0.5 font-mono">/login</code> yozing
           </p>

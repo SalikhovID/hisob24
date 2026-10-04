@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { router } from "@/test/navigation"
@@ -75,4 +75,11 @@ test("typing a new code hides the old error", async () => {
   await user.type(input, "1")
 
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+})
+
+test("the login is headed by the brand", () => {
+  renderWithProviders(<OtpLogin botUsername="" />)
+
+  const heading = screen.getByRole("heading", { level: 1, name: "Hisob24 Admin" })
+  expect(within(heading).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
 })
