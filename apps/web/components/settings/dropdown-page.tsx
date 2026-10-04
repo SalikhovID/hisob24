@@ -1,13 +1,18 @@
 "use client"
 
+import { useQueryClient } from "@tanstack/react-query"
+import { PencilIcon } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { useCustomerDropdowns } from "@/lib/queries"
+import { Button } from "@/components/ui/button"
+import { api, call } from "@/lib/api"
+import { customerDropdownsKey, useCustomerDropdowns } from "@/lib/queries"
 import { useOwner } from "@/lib/use-owner"
 import { cn } from "@/lib/utils"
 import { AddOptionForm } from "./add-option-form"
-import { SettingRow, settingList } from "./setting-row"
+import { NameDialog } from "./name-dialog"
+import { iconAction, SettingRow, settingList } from "./setting-row"
 
 const back = { href: "/settings", label: "Sozlamalar" }
 
@@ -16,7 +21,11 @@ const back = { href: "/settings", label: "Sozlamalar" }
 // off is no longer offered, but stays on the customers who chose it.
 export function DropdownPage({ id }: { id: number }) {
   const owner = useOwner()
-  const dropdowns = useCustomerDropdowns(owner ? owner.company.id : null)
+  const companyId = owner ? owner.company.id : null
+  const dropdowns = useCustomerDropdowns(companyId)
+  const queryClient = useQueryClient()
+  // What a change did shows once the dropdowns are asked for again.
+  const refresh = () => queryClient.invalidateQueries({ queryKey: customerDropdownsKey(companyId) })
 
   if (!owner) return null
   if (!dropdowns.data) {
@@ -52,6 +61,35 @@ export function DropdownPage({ id }: { id: number }) {
               <SettingRow
                 title={<span className={cn(!option.is_active && "text-muted-foreground")}>{option.label}</span>}
                 marks={!option.is_active && <Badge variant="outline">Nofaol</Badge>}
+                actions={
+                  <NameDialog
+                    title="Variant nomini o'zgartirish"
+                    description="Bu variantni tanlagan mijozlarda ham yangi nom ko'rinadi."
+                    initial={option.label}
+                    submit="Saqlash"
+                    done="Variant nomi o'zgartirildi"
+                    tooltip="Nomini o'zgartirish"
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={iconAction}
+                        aria-label={`Nomini o'zgartirish: ${option.label}`}
+                      >
+                        <PencilIcon />
+                      </Button>
+                    }
+                    onSubmit={async (label) => {
+                      await call(
+                        api.PATCH("/app/customer-dropdowns/{id}/options/{optionId}", {
+                          params: { path: { id: dropdown.id, optionId: option.id } },
+                          body: { label },
+                        }),
+                      )
+                      await refresh()
+                    }}
+                  />
+                }
               />
             </li>
           ))}

@@ -113,3 +113,20 @@ test("the line says why an option was refused, and adds nothing for an empty one
   await user.type(input, "   {Enter}")
   expect(dropdownsOf(1)[0].options).toHaveLength(3)
 })
+
+test("an option is renamed from its row", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<DropdownPage id={manbaId()} />)
+
+  await user.click(within(await optionList()).getByRole("button", { name: "Nomini o'zgartirish: LinkedIn" }))
+  const dialog = await screen.findByRole("dialog", { name: "Variant nomini o'zgartirish" })
+  const name = within(dialog).getByLabelText("Nomi")
+  expect(name).toHaveValue("LinkedIn")
+  await user.clear(name)
+  await user.type(name, "Linkedin (ish)")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Variant nomi o'zgartirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(optionsOf(await optionList())[1].label).toBe("Linkedin (ish)"))
+})
