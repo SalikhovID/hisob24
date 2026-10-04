@@ -104,6 +104,11 @@ export function AddFieldDialog({
                 ))}
               </SelectField>
             )}
+            {choice && dropdowns.length === 0 && (
+              <p className="-mt-3 text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
+                Hali dropdown yo&apos;q: avval Sozlamalarda dropdown yarating.
+              </p>
+            )}
             <CheckboxField control={form.control} name="required" label="Majburiy" />
             {!choice && <CheckboxField control={form.control} name="is_unique" label="Takrorlanmasin" />}
           </FieldGroup>

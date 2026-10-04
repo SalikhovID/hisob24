@@ -124,3 +124,44 @@ test("a field is added from the dialog: a choice asks for its dropdown, text and
   )
   expect(screen.getByText("Mijoz turi · 3 ta maydon")).toBeInTheDocument()
 })
+
+test("a text field is added with its marks; the dialog says what is missing, and why the API refused", async () => {
+  await signIn(ALI)
+  const [, yuridik] = typesOf(1)
+  const { user } = renderWithProviders(<CustomerTypePage id={yuridik.id} />)
+  await fieldList()
+  await user.click(screen.getByRole("button", { name: "Maydon qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Maydon qo'shish" })
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Nomni kiriting")).toBeInTheDocument()
+
+  await user.type(within(dialog).getByLabelText("Nomi"), "inn")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Bu nomli maydon allaqachon bor")).toBeInTheDocument()
+  expect(screen.getByRole("dialog", { name: "Maydon qo'shish" })).toBeInTheDocument()
+
+  await user.clear(within(dialog).getByLabelText("Nomi"))
+  await user.type(within(dialog).getByLabelText("Nomi"), "Guvohnoma")
+  await user.click(within(dialog).getByRole("checkbox", { name: "Majburiy" }))
+  await user.click(within(dialog).getByRole("checkbox", { name: "Takrorlanmasin" }))
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  await waitFor(async () =>
+    expect(fieldsOf(await fieldList())[2]).toEqual({ label: "Guvohnoma", kind: "Matn", marks: ["Majburiy", "Takrorlanmas"] }),
+  )
+})
+
+test("with no dropdown yet, a choice field says where to make one", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<CustomerTypePage id={typesOf(2)[0].id} />)
+  await fieldList()
+  await user.click(screen.getByRole("button", { name: "Maydon qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Maydon qo'shish" })
+
+  await user.selectOptions(within(dialog).getByLabelText("Turi"), "Radio (bitta tanlov)")
+
+  expect(within(dialog).getByText("Hali dropdown yo'q: avval Sozlamalarda dropdown yarating.")).toBeInTheDocument()
+})
