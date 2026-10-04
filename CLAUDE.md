@@ -102,3 +102,4 @@ make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa
 - `docs/superpowers/specs/2026-10-02-hisob24-design.md`: kelishilgan qarorlar va spec'dan tasdiqlangan chetlanishlar.
 - `logic/user.md`, `logic/roles.md`: user, multi-user, xodimlar va rollar (`owner` / `user`) qoidalari. Shu sohadagi kod shu hujjatlarga mos yoziladi.
 - `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`: xodimlar, rollar va user app sidebar dizayni.
+- `docs/superpowers/specs/2026-10-04-crud-ui-refresh-design.md`: CRUD sahifalar ko'rinishi (tokenlar, `DataList`, `Identity`, `PageHeader` va boshqa umumiy bo'laklar qoidalari, kechiktirilgan tavsiyalar). Yangi ro'yxat yoki forma sahifasi shu qoidalarga mos yoziladi.

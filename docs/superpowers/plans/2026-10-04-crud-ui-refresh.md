@@ -76,7 +76,7 @@ export interface Column<T> {
 
 ### Task 0: Tokenlar (STYLE)
 
-- [ ] `apps/web/app/globals.css`, `apps/admin/app/globals.css`: `:root` da `--primary: oklch(0.511 0.262 276.966)`, `--ring` / `--sidebar-ring: oklch(0.585 0.233 277.117)`, `--sidebar-primary` = primary; `.dark` da `--primary` / `--ring` / `--sidebar-ring` / `--sidebar-primary: oklch(0.673 0.182 276.935)`, `--primary-foreground` / `--sidebar-primary-foreground: oklch(0.205 0 0)`. Neytrallar: dizayn hujjatidagi qiymatlar. Ikkala fayl farqi avvalgidek ikki joyda qoladi. Commit: `style(web): indigo brand color`, `style(admin): indigo brand color`.
+- [x] `apps/web/app/globals.css`, `apps/admin/app/globals.css`: `:root` da `--primary: oklch(0.511 0.262 276.966)`, `--ring` / `--sidebar-ring: oklch(0.585 0.233 277.117)`, `--sidebar-primary` = primary; `.dark` da `--primary` / `--ring` / `--sidebar-ring` / `--sidebar-primary: oklch(0.673 0.182 276.935)`, `--primary-foreground` / `--sidebar-primary-foreground: oklch(0.205 0 0)`. Neytrallar: dizayn hujjatidagi qiymatlar. Ikkala fayl farqi avvalgidek ikki joyda qoladi. Commit: `style(web): indigo brand color`, `style(admin): indigo brand color`.
 
 ### Task 1: Umumiy bo'laklar (web)
 
@@ -117,15 +117,15 @@ export interface Column<T> {
 | 2.8 | STYLE: `RoleBadge`, "Siz", `ListLoading`, izoh `EmptyState` ko'rinishida, tasdiqda `AlertDialogMedia`, dialog sarlavhasida ikonka, `PendingButton` | — | — | `style(web): the employees page` |
 | 2.9 | `pnpm --filter @hisob24/web test:e2e` (selector o'zgarishi kutilmaydi) | — | — | — |
 
-- [ ] Bosqich yakuni: `make lint`, `make test`, `make e2e`, "keyin" skrinshotlari, push, hisobot. **Foydalanuvchi tasdig'i kutiladi.**
+- [x] Bosqich yakuni: `make lint`, `make test`, `make e2e`, "keyin" skrinshotlari, push, hisobot. **Foydalanuvchi tasdiqladi (2026-10-04).**
 
 ## B. Admin panel va review
 
 ### Task 3: Admin'ga ko'chirish
 
-- [ ] 3.1 COPY: `ui/tooltip.tsx`, `lib/initials.ts`, `components/{avatar,identity,page-header,action-tooltip,role-badge,pending-button}.tsx`, `test/identity.ts`, testlari bilan. `feat(admin): avatar, identity, page header and action tooltips`
-- [ ] 3.2 COPY: `components/states.tsx` + test; `Empty` → `EmptyState` (`companies-page.tsx`, `billing-history.tsx`; matnlar o'sha). `feat(admin): the shared loading, empty and failed states`
-- [ ] 3.3 `data-list.test.tsx` nusxasi, `cellsOf` va `names()` yangilanadi → RED (`rowheader` topilmadi) → `data-list.tsx` nusxasi. `feat(admin): the data list with a row header, card actions, inline values and a footer`
+- [x] 3.1 COPY: `ui/tooltip.tsx`, `lib/initials.ts`, `components/{avatar,identity,page-header,action-tooltip,role-badge,pending-button}.tsx`, `test/identity.ts`, testlari bilan. `feat(admin): avatar, identity, page header and action tooltips`
+- [x] 3.2 COPY: `components/states.tsx` + test; `Empty` → `EmptyState` (`companies-page.tsx`, `billing-history.tsx`; matnlar o'sha). `feat(admin): the shared loading, empty and failed states`
+- [x] 3.3 `data-list.test.tsx` nusxasi, `cellsOf` va `names()` yangilanadi → RED (`rowheader` topilmadi) → `data-list.tsx` nusxasi. `feat(admin): the data list with a row header, card actions, inline values and a footer`
 
 ### Task 4: Kompaniyalar (`companies-page.test.tsx`)
 
@@ -166,9 +166,52 @@ export interface Column<T> {
 ### Task 8: Review va yakun
 
 - [ ] Review workflow (UI agentlar): a11y, mobil, Next.js, kod sifati, izchillik. Tasdiqlangan topilmalar TDD bilan tuzatiladi.
-- [ ] `make lint`, `make test`, `make e2e`.
-- [ ] `cmp`: `components/{data-list,avatar,identity,page-header,states,action-tooltip,role-badge,pending-button}.tsx` va testlari, `components/ui/tooltip.tsx`, `lib/initials.ts` (+test), `test/identity.ts`. `globals.css` farqi avvalgi ikki joyda.
-- [ ] Skrinshotlar (oldin / keyin), real stack sinovi (lokal, haqiqiy API), push, yakuniy hisobot.
+- [x] `make lint`, `make test`, `make e2e`.
+- [x] `cmp`: `components/{data-list,avatar,identity,page-header,states,action-tooltip,role-badge,pending-button}.tsx` va testlari, `components/ui/tooltip.tsx`, `lib/initials.ts` (+test), `test/identity.ts`. `globals.css` farqi avvalgi ikki joyda.
+- [x] Skrinshotlar (oldin / keyin), real stack sinovi (lokal, haqiqiy API), push, yakuniy hisobot.
+
+## B-bosqich: amalda bajarilgan sikllar (2026-10-04)
+
+Reja jadvallaridan farqlar dizayn panelining sintezidan kelib chiqdi (dizayn hujjatidagi "B-bosqich: dizayn paneli sintezi va rejadan farqlar" bo'limi). Har qator: avval yiqilgan test, keyin kod, keyin commit. **STYLE** qatorlari testsiz (faqat class), skrinshot va o'lchov bilan tekshirilgan.
+
+| # | Xatti-harakat | RED (qisqa) | Commit |
+|---|---|---|---|
+| 3.1 | COPY: umumiy bo'laklar admin'da | — (testlari bilan nusxa, `cmp`) | `feat(admin): avatar, identity, page header and action tooltips` |
+| 3.2 | holatlar: status, alert, `ListLoading`, `EmptyState` | 6 ta: `role "status"` / `role "alert"` topilmadi… | `feat(admin): the shared loading, empty and failed states` |
+| 3.3 | `DataList` v2 admin'da | 13 ta: `role "rowheader"` topilmadi… | `feat(admin): the data list with a row header, card actions, inline values and a footer` |
+| D1 | yo'q qiymat: jadvalda "—", kartochkada joy yo'q | `toHaveTextContent("—")`, Received: "" | `feat: a missing value is a dash in the table and no line on the card` |
+| D2 | kartochka qatorida belgilar oldinda | `['Tugash sanasi','Holat']` ≠ `['Holat','Tugash sanasi']` | `feat: a card's line leads with its tags` |
+| D5 | kartochkada manba tartibi: yozuv, keyin amallar | `[null,'data-list-meta',null]` ≠ `['data-list-title',…,'data-list-actions']` | `feat: a card reads the record before its actions` |
+| D3 | `card: "aside"` | `toHaveClass("sr-only")` yiqildi | `feat: a card's aside figure stands across from its title` |
+| D4 | `card: "note"` | `Unable to find … Izoh` | `feat: a card's note takes a line of its own` |
+| PH1 | `PageHeader` da avatar, `h1` dan tashqarida | `Unable to find … OS` | `feat: a page header shows its record's avatar beside the name` |
+| 4.1 | kompaniya identity + "Yaratilgan …" | `[[null,null],…]` ≠ `[['Olcha Servis','Yaratilgan 13.09.2026'],…]` | `feat(admin): each company is an identity with the day it was created` |
+| 4.2 | sarlavha ostida platformadagi kompaniyalar soni | `Unable to find … Platformadagi kompaniyalar` | `feat(admin): the companies page says how many companies the platform has` |
+| 4.3 | kartochka: holat, keyin tugash sanasi | `[]` ≠ `[['Holat',…],['Tugash sanasi',…]]` | `feat(admin): a company's card shows how it stands at a glance` |
+| 4.4a | bo'sh natija (filtr): nima qilish | `Unable to find … Qidiruv yoki filtrni o'zgartirib ko'ring.` | `feat(admin): an empty filtered list suggests changing the filter` |
+| 4.4b | platformada kompaniya yo'q | `Unable to find … Birinchi kompaniyani …` | `feat(admin): a platform with no company yet says how to add the first` |
+| 4.5 | e2e: kompaniya identity'ning istalgan joyidan ochiladi | `Expected pattern: /\/companies\/1$/`, Received `…/companies` | `feat: a linked identity opens from anywhere on it` |
+| — | STYLE: `ListLoading` o'lchami, `EmptyState` ikki daraja | o'lchov: siljish 0px | `style: the list placeholder keeps the list's size, the empty state has two levels` |
+| — | e2e fixture: sahifalar mock'dan oldin yopiladi | "Failed to proxy" 0 ta | `test(admin): close the pages before the mock network goes` |
+| 4.6 | STYLE: Kompaniyalar | skrinshot | `style(admin): the companies page` |
+| 5.1 | userlar: identity + rol belgisi + sana | `['Telefon','Ism','Rol']` ≠ `["A'zo",'Rol',"Qo'shilgan"]` | `feat(admin): a company's users are identities with role and joining day` |
+| 5.1b | userlar "Jami: N" | `Unable to find … Jami: 2` | `feat(admin): a company's users list ends with its total` |
+| 5.1c | billing "Jami: N" | `Unable to find … Jami: 1` | `feat(admin): the billing history ends with its total` |
+| 5.2 | to'lov kartochkasi | `aside: []` ≠ `[['Summa','150 000,50']]` | `feat(admin): a payment's card reads as a ledger line` |
+| 5.2b | to'lovlar yo'q: nima qilish | `Unable to find … Birinchi to'lovni …` | `feat(admin): a company without payments says how to add the first` |
+| 5.3 | tugmalar "yo'lda" (5 sikl: nom, bloklash, faollashtirish, egasi, billing) | `toHaveAttribute("aria-busy","true")`, yo'q | `feat(admin): the … button says … is on its way` (5 ta) |
+| 5.4 | e2e: amallar keng ekranda nom yonida, telefonda ostida | mutatsiya: `Expected: >= 360, Received: 216` | `style(admin): the company page` ichida |
+| — | STYLE: `PageHeader` `stack`; kompaniya sahifasi | skrinshot | `style: a page header may stack its actions under the name on a phone`, `style(admin): the company page` |
+| 6.1 | admin identity + "Siz" ism yonida | `[[null,null],…]` ≠ `[['Owner','Telegram ID 461603558'],…]` | `feat(admin): each admin is an identity, the name over the Telegram ID` |
+| 6.2 | "Qo'shilgan" | `['Ism','Holat','Amallar']` da yo'q | `feat(admin): the admins list says when each was added` |
+| 6.3 | sarlavha ostida son | `Unable to find … Platforma adminlari` | `feat(admin): the admins page says how many admins there are` |
+| 6.4 | "Jami: N" | `Unable to find … Jami: 3` | `feat(admin): the admins list ends with its total` |
+| 6.5 | kartochka | `[]` ≠ `[['Holat','Faol'],["Qo'shilgan",'01.10.2026']]` | `feat(admin): an admin's card shows status and date in one line, the action at its top` |
+| 6.6 | tooltip | `Unable to find … O'chirish` | `feat(admin): a tooltip on the admin's action` |
+| 6.7 | tugmalar "yo'lda" (2 sikl) | `aria-busy` yo'q | `feat(admin): the add-admin dialog's button…`, `…the turn-off confirmation's button…` |
+| — | STYLE: `muted` identity; Adminlar | skrinshot | `style: a muted identity steps back`, `style(admin): the admins page` |
+| 7.1 | "Yaratish" tugmasi "yo'lda" | `aria-busy` yo'q | `feat(admin): the new company form's button says the company is on its way` |
+| — | STYLE: Yangi kompaniya; tooltip sensorli ekranda chiqmaydi | skrinshot | `style(admin): the new company page`, `style: an action's tooltip never shows where nothing hovers` |
 
 ## Self-review
 
