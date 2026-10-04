@@ -309,3 +309,14 @@ func (h *Handler) updateCustomerField(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, toFieldJSON(f))
 }
+
+// deleteCustomerField hides a field of a customer type of the owner's
+// company.
+func (h *Handler) deleteCustomerField(w http.ResponseWriter, r *http.Request) {
+	err := h.customers.DeleteField(r.Context(), sessionCompany(r), pathID(r, "id"), pathID(r, "fieldId"))
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

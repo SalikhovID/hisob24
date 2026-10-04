@@ -460,3 +460,26 @@ func TestUpdateCustomerField(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+func TestDeleteCustomerField(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	jismoniy := api.addType(t, olma, "Jismoniy", 1)
+	fish := api.addField(t, olma, jismoniy, "F.I.Sh.", 1)
+	path := fmt.Sprintf("/app/customer-types/%d/fields/%d", jismoniy, fish)
+
+	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+
+	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	types := list(t, api.do(t, http.MethodGet, "/app/customer-types", "", bearer(owner)))
+	assert.Equal(t, []any{}, types[0]["fields"], "it is gone from the type")
+
+	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
+	assert.JSONEq(t, fieldNotFound, rec.Body.String())
+}

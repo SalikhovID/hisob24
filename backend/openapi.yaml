@@ -1198,6 +1198,27 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+    delete:
+      operationId: deleteCustomerField
+      summary: Maydonni o'chirish (faqat owner)
+      description: >
+        Maydon yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda
+        to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
