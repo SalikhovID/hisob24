@@ -6,11 +6,13 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 const SLOTS = [0, 1, 2, 3, 4, 5]
 
 // CodeField is a login's six-digit code, a box a digit. It has no button:
-// the sixth digit hands the code to onComplete.
+// the sixth digit hands the code to onComplete. invalid marks the boxes of a
+// refused code.
 export function CodeField({
   value,
   onChange,
   onComplete,
+  invalid,
 }: {
   value: string
   onChange: (value: string) => void
@@ -33,6 +35,7 @@ export function CodeField({
           <InputOTPSlot
             key={index}
             index={index}
+            aria-invalid={invalid}
             className="h-14 flex-1 rounded-xl border text-2xl font-semibold tabular-nums first:rounded-l-xl last:rounded-r-xl"
           />
         ))}

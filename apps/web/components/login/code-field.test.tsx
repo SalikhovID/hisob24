@@ -38,3 +38,11 @@ test("the code takes digits only", async () => {
 
   expect(field).toHaveValue("123")
 })
+
+test("a refused code marks every box", () => {
+  const { container } = render(<Held onComplete={vi.fn()} invalid />)
+
+  const boxes = container.querySelectorAll('[data-slot="input-otp-slot"]')
+  expect(boxes).toHaveLength(6)
+  boxes.forEach((box) => expect(box).toHaveAttribute("aria-invalid", "true"))
+})
