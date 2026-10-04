@@ -39,3 +39,9 @@ test("Logo24 is the mark's number alone, a decoration", () => {
   expect(number).toHaveAttribute("fill", "currentColor")
   expect(screen.queryByRole("img")).not.toBeInTheDocument()
 })
+
+test("Logo24 takes the size it is given", () => {
+  const { container } = render(<Logo24 className="w-96" />)
+
+  expect(container.querySelector('[data-slot="logo-24"]')).toHaveClass("w-96")
+})

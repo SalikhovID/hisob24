@@ -52,16 +52,16 @@ export function LogoMark({ className }: { className?: string }) {
 }
 
 // Logo24 is the mark's number alone, "24": the backdrop of the brand's panel.
-// A decoration, as the mark is. The path is the mark's own; the viewBox is
-// cut to its bounds.
-export function Logo24() {
+// A decoration, as the mark is. className gives its size and tone. The path
+// is the mark's own; the viewBox is cut to its bounds.
+export function Logo24({ className }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
       data-slot="logo-24"
       viewBox="218.22 173 257.89 164.8"
       fill="currentColor"
-      className="h-4 w-auto shrink-0 text-brand"
+      className={cn("h-4 w-auto shrink-0 text-brand", className)}
     >
       <path fillRule="evenodd" clipRule="evenodd" d={MARK_24} />
     </svg>
