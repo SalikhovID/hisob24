@@ -31,6 +31,8 @@ type Querier interface {
 	CreateBilling(ctx context.Context, arg CreateBillingParams) (Billing, error)
 	CreateCompany(ctx context.Context, arg CreateCompanyParams) (Company, error)
 	CreateCustomerDropdown(ctx context.Context, arg CreateCustomerDropdownParams) (CustomerDropdown, error)
+	// A new type goes last among the company's.
+	CreateCustomerType(ctx context.Context, arg CreateCustomerTypeParams) (CustomerType, error)
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
