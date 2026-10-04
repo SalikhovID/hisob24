@@ -27,3 +27,10 @@ WHERE company_id = $1 AND phone = $2 AND deleted_at IS NULL;
 UPDATE customers SET phone = sqlc.arg('phone'), updated_at = now()
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
 RETURNING updated_at;
+
+-- name: DeleteCustomer :one
+-- Hides the customer: nothing is removed, and its number is free again.
+-- pgx.ErrNoRows when the company has no such customer, or deleted it already.
+UPDATE customers SET deleted_at = now()
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+RETURNING id;

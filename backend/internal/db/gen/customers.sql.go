@@ -49,6 +49,26 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 	return i, err
 }
 
+const deleteCustomer = `-- name: DeleteCustomer :one
+UPDATE customers SET deleted_at = now()
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+RETURNING id
+`
+
+type DeleteCustomerParams struct {
+	ID        int64
+	CompanyID int64
+}
+
+// Hides the customer: nothing is removed, and its number is free again.
+// pgx.ErrNoRows when the company has no such customer, or deleted it already.
+func (q *Queries) DeleteCustomer(ctx context.Context, arg DeleteCustomerParams) (int64, error) {
+	row := q.db.QueryRow(ctx, deleteCustomer, arg.ID, arg.CompanyID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getCustomer = `-- name: GetCustomer :one
 SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
        COALESCE(m.full_name, c.created_by_name) AS created_by_name

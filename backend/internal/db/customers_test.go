@@ -149,3 +149,31 @@ func TestUpdateCustomer(t *testing.T) {
 	_, err = q.UpdateCustomer(ctx, gen.UpdateCustomerParams{ID: ali.ID, CompanyID: olma.ID, Phone: "998900000000"})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer")
 }
+
+func TestDeleteCustomer(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	createUser(t, q, enteredBy, "Ali")
+	ali := createCustomer(t, q, olma.ID, jismoniy.ID, "998901234567")
+	vali := createCustomer(t, q, olma.ID, jismoniy.ID, "998905555555")
+
+	_, err := q.DeleteCustomer(ctx, gen.DeleteCustomerParams{ID: ali.ID, CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's customer")
+
+	id, err := q.DeleteCustomer(ctx, gen.DeleteCustomerParams{ID: ali.ID, CompanyID: olma.ID})
+
+	require.NoError(t, err)
+	assert.Equal(t, ali.ID, id)
+	_, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: ali.ID, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "the customer is hidden")
+	var kept int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customers WHERE id = $1 AND deleted_at IS NOT NULL", ali.ID).Scan(&kept))
+	assert.Equal(t, 1, kept, "but not removed")
+	_, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: vali.ID, CompanyID: olma.ID})
+	assert.NoError(t, err, "the other customers stay")
+	_, err = q.DeleteCustomer(ctx, gen.DeleteCustomerParams{ID: ali.ID, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
+}

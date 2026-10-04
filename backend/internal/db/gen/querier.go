@@ -57,6 +57,9 @@ type Querier interface {
 	DeleteAdminSession(ctx context.Context, id uuid.UUID) error
 	// Logs a deactivated admin out everywhere.
 	DeleteAdminSessionsByAdmin(ctx context.Context, adminID int64) error
+	// Hides the customer: nothing is removed, and its number is free again.
+	// pgx.ErrNoRows when the company has no such customer, or deleted it already.
+	DeleteCustomer(ctx context.Context, arg DeleteCustomerParams) (int64, error)
 	// Hides the dropdown: nothing is removed. pgx.ErrNoRows when the company has
 	// no such dropdown, or deleted it already.
 	DeleteCustomerDropdown(ctx context.Context, arg DeleteCustomerDropdownParams) (int64, error)
