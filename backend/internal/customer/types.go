@@ -13,7 +13,33 @@ import (
 var (
 	errTypeNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli tur allaqachon bor")
 	errTypeNotFound  = apperr.New(apperr.NotFound, "not_found", "Tur topilmadi")
+
+	errFieldNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli maydon allaqachon bor")
+	errNoKind         = invalid("Maydon turini tanlang")
+	errNoDropdown     = invalid("Dropdownni tanlang")
 )
+
+// The kinds a field may be of.
+const (
+	KindString        = "string"
+	KindInt           = "int"
+	KindDropdown      = "dropdown"
+	KindMultiDropdown = "multi_dropdown"
+	KindRadio         = "radio"
+	KindCheckbox      = "checkbox"
+)
+
+// kindOf tells whether kind is one of the six and, if so, whether it is a
+// choice: a field that takes its options from a dropdown.
+func kindOf(kind string) (choice, known bool) {
+	switch kind {
+	case KindString, KindInt:
+		return false, true
+	case KindDropdown, KindMultiDropdown, KindRadio, KindCheckbox:
+		return true, true
+	}
+	return false, false
+}
 
 // Field is one question of a customer type. The choice kinds take their
 // options from a dropdown.
@@ -164,18 +190,47 @@ type FieldInput struct {
 	DropdownID *int64
 }
 
-// AddField adds a field at the end of the company's type.
+// AddField adds a field at the end of the company's type. A choice kind
+// needs a dropdown of the company's; text and whole numbers take none, and
+// only they may be told not to repeat.
 func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in FieldInput) (Field, error) {
 	label, err := cleanName(in.Label)
 	if err != nil {
 		return Field{}, err
 	}
+	choice, known := kindOf(in.Kind)
+	switch {
+	case !known:
+		return Field{}, errNoKind
+	case choice && in.DropdownID == nil:
+		return Field{}, errNoDropdown
+	case choice && in.Unique:
+		return Field{}, invalid("Faqat matn va son maydoni takrorlanmas bo'ladi")
+	case !choice && in.DropdownID != nil:
+		return Field{}, invalid("Matn va son maydoniga dropdown ulanmaydi")
+	}
 	var f gen.CustomerField
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		if in.DropdownID != nil {
+			// The dropdown has to be the company's own and not deleted.
+			_, err := q.GetCustomerDropdown(ctx, gen.GetCustomerDropdownParams{ID: *in.DropdownID, CompanyID: companyID})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errNoDropdown
+			}
+			if err != nil {
+				return err
+			}
+		}
 		f, err = q.AddCustomerField(ctx, gen.AddCustomerFieldParams{
 			CompanyID: companyID, TypeID: typeID, Label: label, Kind: in.Kind,
 			DropdownID: in.DropdownID, Required: in.Required, IsUnique: in.Unique,
 		})
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return errTypeNotFound
+		case taken(err):
+			return errFieldNameTaken
+		}
 		return err
 	})
 	if err != nil {

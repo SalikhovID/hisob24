@@ -201,3 +201,48 @@ func TestAddField(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, added, list[0].Fields, "the fields stand as they were added")
 }
+
+func TestAddFieldRefusals(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	manba := mustDropdown(t, s, olma, "Manba")
+	begona := mustDropdown(t, s, nok, "Begona")
+	eski := mustDropdown(t, s, olma, "Eski")
+	require.NoError(t, s.DeleteDropdown(ctx, olma, eski.ID))
+	_, err := s.AddField(ctx, olma, jismoniy.ID, FieldInput{Label: "F.I.Sh.", Kind: "string"})
+	require.NoError(t, err)
+
+	const (
+		noKind     = "Maydon turini tanlang"
+		noDropdown = "Dropdownni tanlang"
+	)
+	for about, tc := range map[string]struct {
+		in      FieldInput
+		kind    apperr.Kind
+		code    string
+		message string
+	}{
+		"no name":                           {FieldInput{Label: " ", Kind: "string"}, apperr.Invalid, "validation_error", "Nomni kiriting"},
+		"a kind that is not one of the six": {FieldInput{Label: "Sana", Kind: "date"}, apperr.Invalid, "validation_error", noKind},
+		"no kind":                           {FieldInput{Label: "Sana"}, apperr.Invalid, "validation_error", noKind},
+		"a choice field without a dropdown": {FieldInput{Label: "Manba", Kind: "dropdown"}, apperr.Invalid, "validation_error", noDropdown},
+		"another company's dropdown":        {FieldInput{Label: "Manba", Kind: "radio", DropdownID: &begona.ID}, apperr.Invalid, "validation_error", noDropdown},
+		"a deleted dropdown":                {FieldInput{Label: "Manba", Kind: "checkbox", DropdownID: &eski.ID}, apperr.Invalid, "validation_error", noDropdown},
+		"a text field with a dropdown": {FieldInput{Label: "Izoh", Kind: "string", DropdownID: &manba.ID},
+			apperr.Invalid, "validation_error", "Matn va son maydoniga dropdown ulanmaydi"},
+		"a choice field that may not repeat": {FieldInput{Label: "Manba", Kind: "multi_dropdown", DropdownID: &manba.ID, Unique: true},
+			apperr.Invalid, "validation_error", "Faqat matn va son maydoni takrorlanmas bo'ladi"},
+		"the name is taken in the type": {FieldInput{Label: "f.i.sh.", Kind: "int"}, apperr.Conflict, "name_taken", "Bu nomli maydon allaqachon bor"},
+	} {
+		_, err := s.AddField(ctx, olma, jismoniy.ID, tc.in)
+		refused(t, err, tc.kind, tc.code, tc.message, about)
+	}
+	_, err = s.AddField(ctx, nok, jismoniy.ID, FieldInput{Label: "Ism", Kind: "string"})
+	refused(t, err, apperr.NotFound, "not_found", "Tur topilmadi", "another company's type")
+
+	var fields int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_fields WHERE type_id = $1", jismoniy.ID).Scan(&fields))
+	assert.Equal(t, 1, fields, "a refusal adds nothing")
+}
