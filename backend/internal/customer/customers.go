@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -75,6 +76,9 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		if err := phoneFree(ctx, q, companyID, phone); err != nil {
 			return err
 		}
+		if err := answersFree(ctx, q, fields, values, 0); err != nil {
+			return err
+		}
 		name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: by, CompanyID: companyID})
 		if err != nil {
 			return err
@@ -114,6 +118,38 @@ func phoneFree(ctx context.Context, q *gen.Queries, companyID int64, phone strin
 		Refusal:    apperr.New(apperr.Conflict, "phone_taken", "Bu raqamli mijoz allaqachon bor"),
 		CustomerID: id,
 	}
+}
+
+// answersFree refuses an answer that another customer has in a field told
+// not to repeat, the fields in their order. except is the customer being
+// edited, 0 for a new one.
+func answersFree(ctx context.Context, q *gen.Queries, fields []Field, values Values, except int64) error {
+	for _, f := range fields {
+		if !f.Unique {
+			continue
+		}
+		find := gen.FindCustomerByValueParams{FieldID: f.ID, ExceptID: except}
+		switch answer := values[f.ID].(type) {
+		case string:
+			find.TextValue = &answer
+		case int64:
+			find.IntValue = &answer
+		default:
+			continue
+		}
+		id, err := q.FindCustomerByValue(ctx, find)
+		if errors.Is(err, pgx.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		return &TakenError{
+			Refusal:    apperr.New(apperr.Conflict, "value_taken", fmt.Sprintf("Bu «%s» boshqa mijozda bor", f.Label)),
+			CustomerID: id,
+		}
+	}
+	return nil
 }
 
 // formOf is what the form of a type asks and offers: the type's fields in

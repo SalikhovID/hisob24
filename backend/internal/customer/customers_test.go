@@ -251,3 +251,36 @@ func TestCreateRefusesAPhoneAnotherCustomerHas(t *testing.T) {
 	require.NoError(t, err)
 	mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998901234567", map[int64]any{olma.fish.ID: "Vali"}) // a deleted customer's number is free
 }
+
+func TestCreateRefusesAnAnswerThatMayNotRepeat(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	// A text that may not repeat, beside the INN, which is a number.
+	pasport := mustField(t, s, olma.id, olma.jismoniy.ID, FieldInput{Label: "Pasport", Kind: KindString, Unique: true})
+	firma := mustCustomer(t, s, olma.id, olma.yuridik.ID, "998900000001", map[int64]any{olma.nomi.ID: "Olma MChJ", olma.inn.ID: 301234567})
+	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998900000002", map[int64]any{olma.fish.ID: "Ali", pasport.ID: "AA1234567"})
+	// create enters a customer of Olma's as the user.
+	create := func(typeID int64, phone string, of map[int64]any) error {
+		_, err := s.Create(ctx, olma.id, staff, typeID, Input{Phone: phone, Values: answers(t, of)})
+		return err
+	}
+
+	err := create(olma.yuridik.ID, "998900000003", map[int64]any{olma.nomi.ID: "Nok MChJ", olma.inn.ID: 301234567})
+	takenBy(t, err, "value_taken", "Bu «INN» boshqa mijozda bor", firma.ID, "a whole number")
+	err = create(olma.jismoniy.ID, "998900000004", map[int64]any{olma.fish.ID: "Vali", pasport.ID: " aa1234567 "})
+	takenBy(t, err, "value_taken", "Bu «Pasport» boshqa mijozda bor", ali.ID, "a text, in any case")
+	err = create(olma.yuridik.ID, "998900000001", map[int64]any{olma.nomi.ID: "Nok MChJ", olma.inn.ID: 301234567})
+	takenBy(t, err, "phone_taken", "Bu raqamli mijoz allaqachon bor", firma.ID, "the phone is told before the answer")
+	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM customers WHERE company_id = $1", olma.id), "nobody else is entered")
+
+	assert.NoError(t, create(olma.jismoniy.ID, "998900000005", map[int64]any{olma.fish.ID: "Ali"}), "a field that may repeat")
+	assert.NoError(t, create(olma.jismoniy.ID, "998900000006", map[int64]any{olma.fish.ID: "Vali"}), "no answer is no repeat")
+	assert.NoError(t, create(olma.jismoniy.ID, "998900000007", map[int64]any{olma.fish.ID: "Soli"}), "nor is another one")
+	mustCustomer(t, s, nok.id, nok.yuridik.ID, "998900000001", map[int64]any{nok.nomi.ID: "Olma MChJ", nok.inn.ID: 301234567}) // another company
+	_, err = pool.Exec(ctx, "UPDATE customers SET deleted_at = now() WHERE id = $1", firma.ID)
+	require.NoError(t, err)
+	assert.NoError(t, create(olma.yuridik.ID, "998900000008", map[int64]any{olma.nomi.ID: "Yangi MChJ", olma.inn.ID: 301234567}),
+		"a deleted customer's answer is free")
+}
