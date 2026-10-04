@@ -1,15 +1,12 @@
 "use client"
 
 import { useMutation } from "@tanstack/react-query"
-import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { Brand } from "@/components/brand"
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
+import { CodeField } from "./code-field"
 import { LoginFrame } from "./login-frame"
-
-const SLOTS = [0, 1, 2, 3, 4, 5]
 
 // OtpLogin is the browser login, in the login's frame: the code the admin
 // bot sends after /login. There is no button: the sixth digit sends the
@@ -54,28 +51,17 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
               @{botUsername}
             </a>
           )}
-          <div className="flex justify-center">
-            <InputOTP
-              ref={input}
-              aria-label="Kod"
-              maxLength={6}
-              pattern={REGEXP_ONLY_DIGITS}
-              value={code}
-              onChange={(value: string) => {
-                setCode(value)
-                if (login.isError) login.reset()
-              }}
-              onComplete={(value: string) => login.mutate(value)}
-              disabled={login.isPending}
-              autoFocus
-            >
-              <InputOTPGroup>
-                {SLOTS.map((index) => (
-                  <InputOTPSlot key={index} index={index} aria-invalid={login.isError} className="size-11 text-lg" />
-                ))}
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
+          <CodeField
+            ref={input}
+            value={code}
+            onChange={(value) => {
+              setCode(value)
+              if (login.isError) login.reset()
+            }}
+            onComplete={(value) => login.mutate(value)}
+            invalid={login.isError}
+            disabled={login.isPending}
+          />
           {login.isError && (
             <p role="alert" className="text-sm text-destructive">
               {login.error.message}
