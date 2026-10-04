@@ -2,12 +2,18 @@ package customer
 
 import (
 	"context"
+	"errors"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-var errTypeNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli tur allaqachon bor")
+var (
+	errTypeNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli tur allaqachon bor")
+	errTypeNotFound  = apperr.New(apperr.NotFound, "not_found", "Tur topilmadi")
+)
 
 // Field is one question of a customer type. The choice kinds take their
 // options from a dropdown.
@@ -76,4 +82,40 @@ func (s *Service) Types(ctx context.Context, companyID int64) ([]Type, error) {
 
 func toField(f gen.CustomerField) Field {
 	return Field{ID: f.ID, Label: f.Label, Kind: f.Kind, Required: f.Required, Unique: f.IsUnique, DropdownID: f.DropdownID}
+}
+
+// RenameType gives the company's type another name.
+func (s *Service) RenameType(ctx context.Context, companyID, id int64, name string) (Type, error) {
+	name, err := cleanName(name)
+	if err != nil {
+		return Type{}, err
+	}
+	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.RenameCustomerType(ctx, gen.RenameCustomerTypeParams{ID: id, CompanyID: companyID, Name: name})
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return errTypeNotFound
+		case taken(err):
+			return errTypeNameTaken
+		}
+		return err
+	})
+	if err != nil {
+		return Type{}, err
+	}
+	return s.customerType(ctx, companyID, id)
+}
+
+// customerType is the company's type with its fields.
+func (s *Service) customerType(ctx context.Context, companyID, id int64) (Type, error) {
+	list, err := s.Types(ctx, companyID)
+	if err != nil {
+		return Type{}, err
+	}
+	for _, t := range list {
+		if t.ID == id {
+			return t, nil
+		}
+	}
+	return Type{}, errTypeNotFound
 }

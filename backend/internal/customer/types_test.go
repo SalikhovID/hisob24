@@ -76,3 +76,28 @@ func TestTypes(t *testing.T) {
 		{ID: hamkor.ID, Name: "Hamkor", Fields: []Field{}},
 	}, list, "the company's types in their order, each with its fields in theirs")
 }
+
+func TestRenameType(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	mustType(t, s, olma, "Yuridik")
+	fish := Field{Label: "F.I.Sh.", Kind: "string", Required: true}
+	fish.ID = fieldRow(t, pool, olma, jismoniy.ID, fish, 1)
+
+	ct, err := s.RenameType(ctx, olma, jismoniy.ID, " Shaxs ")
+
+	require.NoError(t, err)
+	assert.Equal(t, Type{ID: jismoniy.ID, Name: "Shaxs", Fields: []Field{fish}}, ct, "the type under its new name, with its fields")
+
+	const notFound = "Tur topilmadi"
+	_, err = s.RenameType(ctx, olma, jismoniy.ID, " ")
+	refused(t, err, apperr.Invalid, "validation_error", "Nomni kiriting", "no name")
+	_, err = s.RenameType(ctx, olma, jismoniy.ID, "YURIDIK")
+	refused(t, err, apperr.Conflict, "name_taken", "Bu nomli tur allaqachon bor", "another type's name")
+	_, err = s.RenameType(ctx, nok, jismoniy.ID, "Begona")
+	refused(t, err, apperr.NotFound, "not_found", notFound, "another company's type")
+	_, err = s.RenameType(ctx, olma, jismoniy.ID+100, "Yo'q")
+	refused(t, err, apperr.NotFound, "not_found", notFound, "no such type")
+}
