@@ -86,6 +86,29 @@ func (q *Queries) DeleteCustomerDropdown(ctx context.Context, arg DeleteCustomer
 	return id, err
 }
 
+const deleteCustomerDropdownOption = `-- name: DeleteCustomerDropdownOption :one
+UPDATE customer_dropdown_options o SET deleted_at = now()
+FROM customer_dropdowns d
+WHERE o.id = $1 AND o.dropdown_id = $2 AND d.id = o.dropdown_id
+  AND d.company_id = $3 AND d.deleted_at IS NULL AND o.deleted_at IS NULL
+RETURNING o.id
+`
+
+type DeleteCustomerDropdownOptionParams struct {
+	ID         int64
+	DropdownID int64
+	CompanyID  int64
+}
+
+// Hides an option of the company's dropdown. pgx.ErrNoRows when the dropdown
+// has no such option, or it is deleted already.
+func (q *Queries) DeleteCustomerDropdownOption(ctx context.Context, arg DeleteCustomerDropdownOptionParams) (int64, error) {
+	row := q.db.QueryRow(ctx, deleteCustomerDropdownOption, arg.ID, arg.DropdownID, arg.CompanyID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getCustomerDropdown = `-- name: GetCustomerDropdown :one
 SELECT id, company_id, name, created_at, deleted_at FROM customer_dropdowns
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL

@@ -57,3 +57,12 @@ FROM customer_dropdowns d
 WHERE o.id = sqlc.arg('id') AND o.dropdown_id = sqlc.arg('dropdown_id') AND d.id = o.dropdown_id
   AND d.company_id = sqlc.arg('company_id') AND d.deleted_at IS NULL AND o.deleted_at IS NULL
 RETURNING o.*;
+
+-- name: DeleteCustomerDropdownOption :one
+-- Hides an option of the company's dropdown. pgx.ErrNoRows when the dropdown
+-- has no such option, or it is deleted already.
+UPDATE customer_dropdown_options o SET deleted_at = now()
+FROM customer_dropdowns d
+WHERE o.id = sqlc.arg('id') AND o.dropdown_id = sqlc.arg('dropdown_id') AND d.id = o.dropdown_id
+  AND d.company_id = sqlc.arg('company_id') AND d.deleted_at IS NULL AND o.deleted_at IS NULL
+RETURNING o.id;
