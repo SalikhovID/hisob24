@@ -27,6 +27,9 @@ type Querier interface {
 	ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
+	// How many fields take their options from the dropdown: one in use is not
+	// deleted. Deleted fields do not count.
+	CountCustomerDropdownFields(ctx context.Context, dropdownID *int64) (int64, error)
 	// A unique violation (23505) means the hash of another unused code: the
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)

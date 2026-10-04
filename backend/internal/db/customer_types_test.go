@@ -346,3 +346,25 @@ func TestOrderCustomerFields(t *testing.T) {
 	assert.Equal(t, []int64{izoh.ID, fish.ID, yosh.ID, nomi.ID}, ids, "the type's fields stand as the ids were given")
 	assert.EqualValues(t, 1, list[3].Position, "another type's field stays where it was")
 }
+
+func TestCountCustomerDropdownFields(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	yuridik := createType(t, q, olma.ID, "Yuridik")
+	manba := createDropdown(t, q, olma.ID, "Manba")
+	holat := createDropdown(t, q, olma.ID, "Holat")
+	addField(t, q, olma.ID, jismoniy.ID, "Manba", "dropdown", &manba.ID)
+	addField(t, q, olma.ID, yuridik.ID, "Manba", "checkbox", &manba.ID)
+	eski := addField(t, q, olma.ID, yuridik.ID, "Eski", "radio", &manba.ID)
+	addField(t, q, olma.ID, jismoniy.ID, "F.I.Sh.", "string", nil)
+	mustExec(t, pool, "UPDATE customer_fields SET deleted_at = now() WHERE id = $1", eski.ID)
+
+	used, err := q.CountCustomerDropdownFields(ctx, &manba.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, used, "the fields that take their options from it, without the deleted one")
+	unused, err := q.CountCustomerDropdownFields(ctx, &holat.ID)
+	require.NoError(t, err)
+	assert.Zero(t, unused)
+}

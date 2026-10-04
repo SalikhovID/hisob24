@@ -94,3 +94,9 @@ WHERE type_id = $1 AND deleted_at IS NULL;
 UPDATE customer_fields f SET position = n.ord::int
 FROM unnest(sqlc.arg('ids')::bigint[]) WITH ORDINALITY AS n(id, ord)
 WHERE f.id = n.id AND f.type_id = sqlc.arg('type_id') AND f.deleted_at IS NULL;
+
+-- name: CountCustomerDropdownFields :one
+-- How many fields take their options from the dropdown: one in use is not
+-- deleted. Deleted fields do not count.
+SELECT count(*) FROM customer_fields
+WHERE dropdown_id = $1 AND deleted_at IS NULL;

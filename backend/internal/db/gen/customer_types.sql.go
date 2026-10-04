@@ -59,6 +59,20 @@ func (q *Queries) AddCustomerField(ctx context.Context, arg AddCustomerFieldPara
 	return i, err
 }
 
+const countCustomerDropdownFields = `-- name: CountCustomerDropdownFields :one
+SELECT count(*) FROM customer_fields
+WHERE dropdown_id = $1 AND deleted_at IS NULL
+`
+
+// How many fields take their options from the dropdown: one in use is not
+// deleted. Deleted fields do not count.
+func (q *Queries) CountCustomerDropdownFields(ctx context.Context, dropdownID *int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countCustomerDropdownFields, dropdownID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCustomerType = `-- name: CreateCustomerType :one
 INSERT INTO customer_types (company_id, name, position)
 VALUES ($1, $2,
