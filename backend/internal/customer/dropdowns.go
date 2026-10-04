@@ -39,10 +39,14 @@ func (s *Service) CreateDropdown(ctx context.Context, companyID int64, name stri
 	if err != nil {
 		return Dropdown{}, err
 	}
-	d, err := s.q.CreateCustomerDropdown(ctx, gen.CreateCustomerDropdownParams{CompanyID: companyID, Name: name})
-	if taken(err) {
-		return Dropdown{}, errDropdownNameTaken
-	}
+	var d gen.CustomerDropdown
+	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		d, err = q.CreateCustomerDropdown(ctx, gen.CreateCustomerDropdownParams{CompanyID: companyID, Name: name})
+		if taken(err) {
+			return errDropdownNameTaken
+		}
+		return err
+	})
 	if err != nil {
 		return Dropdown{}, err
 	}
@@ -81,13 +85,17 @@ func (s *Service) RenameDropdown(ctx context.Context, companyID, id int64, name 
 	if err != nil {
 		return Dropdown{}, err
 	}
-	_, err = s.q.RenameCustomerDropdown(ctx, gen.RenameCustomerDropdownParams{ID: id, CompanyID: companyID, Name: name})
-	switch {
-	case errors.Is(err, pgx.ErrNoRows):
-		return Dropdown{}, errDropdownNotFound
-	case taken(err):
-		return Dropdown{}, errDropdownNameTaken
-	case err != nil:
+	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.RenameCustomerDropdown(ctx, gen.RenameCustomerDropdownParams{ID: id, CompanyID: companyID, Name: name})
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return errDropdownNotFound
+		case taken(err):
+			return errDropdownNameTaken
+		}
+		return err
+	})
+	if err != nil {
 		return Dropdown{}, err
 	}
 	return s.dropdown(ctx, companyID, id)
