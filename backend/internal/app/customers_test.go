@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -139,4 +140,61 @@ func TestGetCustomer(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, path, "").Code, "no access token")
 	api.exec(t, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali["id"])
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, path, "", bearer(owner)).Code, "a deleted customer")
+}
+
+func TestListCustomers(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
+	stranger, _ := api.signIn(t, "998907777777", map[int64]string{nok: "user"})
+	sh := api.customerShop(t, olma)
+	yuridik := api.id(t, "INSERT INTO customer_types (company_id, name, position) VALUES ($1, 'Yuridik', 2) RETURNING id", olma)
+	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
+	vali := api.enter(t, employee, sh.jismoniy, "998901112244", fmt.Sprintf(`{"%d":"Vali Aliyev","%d":45}`, sh.fish, sh.yosh))
+	firma := api.enter(t, owner, yuridik, "998901112255", `{}`)
+	begona := api.customerShop(t, nok)
+	api.enter(t, stranger, begona.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Begona"}`, begona.fish))
+	// get reads a page of Olma's customers as its employee.
+	get := func(query url.Values) map[string]any {
+		t.Helper()
+		rec := api.do(t, http.MethodGet, "/app/customers?"+query.Encode(), "", bearer(employee))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		return decode(t, rec)
+	}
+
+	page := get(nil)
+
+	assert.Equal(t, []any{firma, vali, ali}, page["items"], "the company's customers, the newest first, each as it is read alone")
+	assert.EqualValues(t, 3, page["total"])
+	assert.EqualValues(t, 1, page["page"])
+	assert.EqualValues(t, 20, page["page_size"])
+
+	assert.Equal(t, []any{vali, ali}, get(url.Values{"search": {"ALI"}})["items"], "a search in the text answers")
+	assert.Equal(t, []any{vali}, get(url.Values{"search": {"+998 90 111 22 44"}})["items"], "in the phones")
+	assert.Equal(t, []any{vali}, get(url.Values{"search": {"45"}, "type_id": {fmt.Sprint(sh.jismoniy)}})["items"], "in the numbers, within a type")
+	found := get(url.Values{"type_id": {fmt.Sprint(yuridik)}})
+	assert.Equal(t, []any{firma}, found["items"], "one type")
+	assert.EqualValues(t, 1, found["total"])
+	past := get(url.Values{"page": {"2"}})
+	assert.Equal(t, []any{}, past["items"], "a page past the last")
+	assert.EqualValues(t, 3, past["total"])
+	assert.EqualValues(t, 2, past["page"])
+
+	for query, message := range map[string]string{
+		"page=abc":    "Sahifa raqami noto'g'ri",
+		"page=0":      "Sahifa raqami noto'g'ri",
+		"type_id=abc": "Mijoz turi noto'g'ri",
+		"type_id=0":   "Mijoz turi noto'g'ri",
+	} {
+		rec := api.do(t, http.MethodGet, "/app/customers?"+query, "", bearer(owner))
+		assert.Equal(t, http.StatusBadRequest, rec.Code, query)
+		assert.JSONEq(t, fmt.Sprintf(`{"error":"validation_error","message":%q}`, message), rec.Body.String(), query)
+	}
+	rec := api.do(t, http.MethodGet, "/app/customers", "", bearer(undecided))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
+	assert.JSONEq(t, companyRequired, rec.Body.String())
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/customers", "").Code, "no access token")
 }

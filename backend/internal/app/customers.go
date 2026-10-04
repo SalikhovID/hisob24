@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
@@ -78,4 +79,45 @@ func (h *Handler) getCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, toCustomerJSON(c))
+}
+
+type customerPageJSON struct {
+	Items    []customerJSON `json:"items"`
+	Total    int64          `json:"total"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"page_size"`
+}
+
+// listCustomers is a page of the customers of the company the session
+// works in, the newest first: ?search= looks in the phones and in the text
+// and number answers, ?type_id= keeps one type, ?page= starts at 1.
+func (h *Handler) listCustomers(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	in := customer.ListInput{Search: query.Get("search"), Page: 1}
+	if p := query.Get("page"); p != "" {
+		n, err := strconv.Atoi(p)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "validation_error", "Sahifa raqami noto'g'ri")
+			return
+		}
+		in.Page = n
+	}
+	if raw := query.Get("type_id"); raw != "" {
+		id, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || id <= 0 {
+			httpx.Error(w, http.StatusBadRequest, "validation_error", "Mijoz turi noto'g'ri")
+			return
+		}
+		in.TypeID = id
+	}
+	page, err := h.customers.List(r.Context(), sessionCompany(r), in)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	items := make([]customerJSON, 0, len(page.Items))
+	for _, c := range page.Items {
+		items = append(items, toCustomerJSON(c))
+	}
+	httpx.JSON(w, http.StatusOK, customerPageJSON{Items: items, Total: page.Total, Page: page.Page, PageSize: page.PageSize})
 }

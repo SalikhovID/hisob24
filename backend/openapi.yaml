@@ -1294,6 +1294,51 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "409":
           $ref: "#/components/responses/CustomerTaken"
+    get:
+      operationId: listCustomers
+      summary: Mijozlar ro'yxati
+      description: >
+        Access token'dagi kompaniyaning mijozlari, eng yangisi birinchi,
+        sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan mijozlar chiqmaydi.
+      security:
+        - appBearer: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: >
+            Matn javoblarida qidiriladi (katta-kichik harf farqsiz,
+            harfma-harf). Faqat raqamlardan iborat qidiruv (bo'shliq, +, -,
+            qavs bilan yozilgan bo'lishi mumkin) telefonlarda va butun son
+            javoblarida ham qidiriladi. Variant nomi bo'yicha qidirilmaydi.
+        - name: type_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Faqat shu turdagi mijozlar
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        "200":
+          description: Mijozlar sahifasi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
   /app/customers/{id}:
     parameters:
       - name: id
@@ -2012,3 +2057,19 @@ components:
           type: integer
           format: int64
           description: Shu telefon yoki javob allaqachon bor mijoz
+    CustomerPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+        total:
+          type: integer
+          format: int64
+          description: Filtrga mos mijozlar soni, hamma sahifalarda
+        page:
+          type: integer
+        page_size:
+          type: integer
