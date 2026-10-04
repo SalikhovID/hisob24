@@ -284,3 +284,27 @@ func TestCreateRefusesAnAnswerThatMayNotRepeat(t *testing.T) {
 	assert.NoError(t, create(olma.yuridik.ID, "998900000008", map[int64]any{olma.nomi.ID: "Yangi MChJ", olma.inn.ID: 301234567}),
 		"a deleted customer's answer is free")
 }
+
+// storedHistory is the customer's history as it is stored, the oldest
+// first, each entry as "action by phone (name): changes".
+func storedHistory(t *testing.T, pool *pgxpool.Pool, customerID int64) []string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), `SELECT action || ' by ' || actor_phone || ' (' || COALESCE(actor_name, '-') || '): ' || changes::text
+		FROM customer_history WHERE customer_id = $1 ORDER BY id`, customerID)
+	require.NoError(t, err)
+	history, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return history
+}
+
+func TestCreateWritesDownWhoEnteredTheCustomer(t *testing.T) {
+	s, pool := newService(t)
+	sh := newShop(t, s, pool, "Olma")
+
+	c, err := s.Create(t.Context(), sh.id, staff, sh.jismoniy.ID, Input{
+		Phone: "998901234567", Values: answers(t, map[int64]any{sh.fish.ID: "Ali"}),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"created by 998902222222 (Xurshid Xodim): []"}, storedHistory(t, pool, c.ID))
+}

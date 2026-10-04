@@ -92,6 +92,12 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		if err := store(ctx, q, row.ID, fields, values); err != nil {
 			return err
 		}
+		err = q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
+			CustomerID: row.ID, Action: "created", ActorPhone: by, ActorName: name, Changes: []byte("[]"),
+		})
+		if err != nil {
+			return err
+		}
 		c = Customer{
 			ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: values,
 			CreatedByName: name, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
