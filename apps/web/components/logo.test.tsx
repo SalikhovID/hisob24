@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { Logo, LogoMark } from "./logo"
+import { Logo, Logo24, LogoMark } from "./logo"
 
 test("Logo is Hisob24's name as a picture, drawn in the color of the text around it", () => {
   render(<Logo />)
@@ -28,4 +28,14 @@ test("LogoMark takes the size it is given", () => {
   const { container } = render(<LogoMark className="w-9" />)
 
   expect(container.querySelector('[data-slot="logo-mark"]')).toHaveClass("w-9")
+})
+
+test("Logo24 is the mark's number alone, a decoration", () => {
+  const { container } = render(<Logo24 />)
+
+  const number = container.querySelector('[data-slot="logo-24"]')
+  expect(number).not.toBeNull()
+  expect(number).toHaveAttribute("aria-hidden", "true")
+  expect(number).toHaveAttribute("fill", "currentColor")
+  expect(screen.queryByRole("img")).not.toBeInTheDocument()
 })
