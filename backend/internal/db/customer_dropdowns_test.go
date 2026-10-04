@@ -86,3 +86,23 @@ func TestRenameCustomerDropdown(t *testing.T) {
 	_, err = q.RenameCustomerDropdown(ctx, gen.RenameCustomerDropdownParams{ID: manba.ID, CompanyID: nok.ID, Name: "Begona"})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's dropdown")
 }
+
+func TestDeleteCustomerDropdown(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+
+	_, err := q.DeleteCustomerDropdown(ctx, gen.DeleteCustomerDropdownParams{ID: manba.ID, CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's dropdown")
+	id, err := q.DeleteCustomerDropdown(ctx, gen.DeleteCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, manba.ID, id)
+
+	var hidden bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM customer_dropdowns WHERE id = $1", manba.ID).Scan(&hidden))
+	assert.True(t, hidden, "the row stays, marked deleted")
+	_, err = q.DeleteCustomerDropdown(ctx, gen.DeleteCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
+}

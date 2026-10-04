@@ -19,3 +19,10 @@ WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL;
 UPDATE customer_dropdowns SET name = sqlc.arg('name')
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
 RETURNING *;
+
+-- name: DeleteCustomerDropdown :one
+-- Hides the dropdown: nothing is removed. pgx.ErrNoRows when the company has
+-- no such dropdown, or deleted it already.
+UPDATE customer_dropdowns SET deleted_at = now()
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+RETURNING id;
