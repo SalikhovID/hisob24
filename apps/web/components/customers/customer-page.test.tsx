@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
@@ -333,4 +333,36 @@ test("a history that did not load says why and offers to try again", async () =>
   server.resetHandlers()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
   expect(await history()).toHaveLength(1)
+})
+
+test("two changes of one name in an entry are both shown", async () => {
+  // The owner may name a field "Telefon": an edit then changes two things of that name.
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+  await signIn(ALI)
+  const { dilshod } = seedCustomers()
+  server.use(
+    http.get("*/api/app/customers/:id/history", () =>
+      HttpResponse.json([
+        {
+          id: 1,
+          action: "updated",
+          actor_name: "Ali Valiyev",
+          created_at: "2026-10-02T06:05:00Z",
+          changes: [
+            { label: "Telefon", old: "+998 91 111 22 33", new: "+998 91 111 22 99" },
+            { label: "Telefon", old: "", new: "71 200 00 00" },
+          ],
+        },
+      ]),
+    ),
+  )
+
+  open(dilshod.id)
+
+  expect(changesOf((await history())[0])).toEqual([
+    ["Telefon", "+998 91 111 22 33", "+998 91 111 22 99"],
+    ["Telefon", "—", "71 200 00 00"],
+  ])
+  expect(errors).not.toHaveBeenCalled()
+  errors.mockRestore()
 })

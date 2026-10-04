@@ -47,9 +47,11 @@ export function CustomerHistory({ companyId, id }: { companyId: number; id: numb
               </p>
               {entry.changes.length > 0 && (
                 <dl className="mt-2 grid gap-1.5">
-                  {entry.changes.map((change) => (
+                  {/* By their place: two changes may go by one name (the
+                      phone, and a field the owner named "Telefon"). */}
+                  {entry.changes.map((change, place) => (
                     <div
-                      key={change.label}
+                      key={place}
                       data-slot="history-change"
                       className="grid gap-x-4 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]"
                     >
