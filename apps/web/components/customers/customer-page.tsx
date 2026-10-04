@@ -2,6 +2,8 @@
 
 import { Avatar } from "@/components/avatar"
 import { PageHeader } from "@/components/page-header"
+import { Failed, ListLoading } from "@/components/states"
+import { ApiError } from "@/lib/api"
 import { answerText, customerName } from "@/lib/customers"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
@@ -32,7 +34,33 @@ export function CustomerPage({ id }: { id: number }) {
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
 
-  if (!customer.data || !types.data || !dropdowns.data) return null
+  // A customer that is gone, or is another company's, is not found: there
+  // is nothing to try again.
+  if (customer.error instanceof ApiError && customer.error.status === 404) {
+    return (
+      <PageHeader
+        title="Mijoz topilmadi"
+        description="Bu mijoz o'chirilgan yoki sizning kompaniyangizniki emas."
+        back={back}
+      />
+    )
+  }
+  // The page needs all three: the customer, and what its answers are read
+  // with. One that failed fails the page; trying again asks for them all.
+  const queries = [customer, types, dropdowns]
+  const failed = queries.find((query) => query.isError)
+  if (!customer.data || !types.data || !dropdowns.data) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="Mijoz" back={back} />
+        {failed?.error ? (
+          <Failed error={failed.error} onRetry={() => queries.forEach((query) => query.refetch())} />
+        ) : (
+          <ListLoading rows={4} mark="none" />
+        )}
+      </div>
+    )
+  }
   const type = types.data.find((candidate) => candidate.id === customer.data.type_id)
   const name = customerName(customer.data, type)
   const phone = formatPhone(customer.data.phone)
