@@ -5,15 +5,18 @@ import { EyeIcon, EyeOffIcon, PencilIcon } from "lucide-react"
 import { toast } from "sonner"
 import { ActionTooltip } from "@/components/action-tooltip"
 import { PageHeader } from "@/components/page-header"
+import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { customerDropdownsKey, useCustomerDropdowns } from "@/lib/queries"
-import type { CustomerOption } from "@/lib/types"
+import type { CustomerDropdown, CustomerOption } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
+import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
 import { AddOptionForm } from "./add-option-form"
+import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 import { iconAction, SettingRow, settingList } from "./setting-row"
 
@@ -29,6 +32,12 @@ export function DropdownPage({ id }: { id: number }) {
   const queryClient = useQueryClient()
   // What a change did shows once the dropdowns are asked for again.
   const refresh = () => queryClient.invalidateQueries({ queryKey: customerDropdownsKey(companyId) })
+  const reorder = useReorder<CustomerDropdown[]>(
+    customerDropdownsKey(companyId),
+    (all, ids) =>
+      all.map((dropdown) => (dropdown.id === id ? { ...dropdown, options: inOrder(dropdown.options, ids) } : dropdown)),
+    (ids) => call(api.PUT("/app/customer-dropdowns/{id}/options/order", { params: { path: { id } }, body: { ids } })),
+  )
 
   if (!owner) return null
   if (!dropdowns.data) {
@@ -58,14 +67,20 @@ export function DropdownPage({ id }: { id: number }) {
         <EmptyState title="Hali variant yo'q" description="Pastdagi satrga yozib, Enter bosing." />
       )}
       {dropdown.options.length > 0 && (
-        <ul aria-label="Variantlar" className={settingList}>
-          {dropdown.options.map((option) => (
-            <li key={option.id}>
-              <SettingRow
-                title={<span className={cn(!option.is_active && "text-muted-foreground")}>{option.label}</span>}
-                marks={!option.is_active && <Badge variant="outline">Nofaol</Badge>}
-                actions={
-                  <>
+        <SortableList
+          label="Variantlar"
+          items={dropdown.options}
+          getId={(option) => String(option.id)}
+          getLabel={(option) => option.label}
+          onReorder={(ids) => reorder.mutate(ids.map(Number))}
+          className={settingList}
+          renderItem={(option, handle) => (
+            <SettingRow
+              handle={handle}
+              title={<span className={cn(!option.is_active && "text-muted-foreground")}>{option.label}</span>}
+              marks={!option.is_active && <Badge variant="outline">Nofaol</Badge>}
+              actions={
+                <>
                   <NameDialog
                     title="Variant nomini o'zgartirish"
                     description="Bu variantni tanlagan mijozlarda ham yangi nom ko'rinadi."
@@ -94,12 +109,25 @@ export function DropdownPage({ id }: { id: number }) {
                     }}
                   />
                   <ToggleOptionButton dropdownId={dropdown.id} option={option} onDone={refresh} />
-                  </>
-                }
-              />
-            </li>
-          ))}
-        </ul>
+                  <DeleteButton
+                    label={`O'chirish: ${option.label}`}
+                    title="Variantni o'chirasizmi?"
+                    description={`«${option.label}» ro'yxatdan olib tashlanadi. Mijozlarda tanlangan variant o'chirilmaydi: uni nofaol qilish mumkin.`}
+                    done="Variant o'chirildi"
+                    onDelete={async () => {
+                      await call(
+                        api.DELETE("/app/customer-dropdowns/{id}/options/{optionId}", {
+                          params: { path: { id: dropdown.id, optionId: option.id } },
+                        }),
+                      )
+                      await refresh()
+                    }}
+                  />
+                </>
+              }
+            />
+          )}
+        />
       )}
       <AddOptionForm companyId={owner.company.id} dropdownId={dropdown.id} />
     </div>

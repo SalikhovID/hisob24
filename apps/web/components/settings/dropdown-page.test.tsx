@@ -143,3 +143,37 @@ test("an option is turned off and on again from its row", async () => {
   expect(await screen.findByText("Variant faollashtirildi")).toBeInTheDocument()
   await waitFor(async () => expect(optionsOf(await optionList())[2]).toEqual({ label: "YouTube", marks: [] }))
 })
+
+test("an option is deleted after asking; one the API will not delete stays, and the reason is said", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<DropdownPage id={manbaId()} />)
+
+  await user.click(within(await optionList()).getByRole("button", { name: "O'chirish: LinkedIn" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Variantni o'chirasizmi?" })
+  expect(within(confirm).getByText(/«LinkedIn» ro'yxatdan olib tashlanadi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Variant o'chirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(optionsOf(await optionList()).map((option) => option.label)).toEqual(["Instagram", "YouTube"]))
+
+  server.use(
+    http.delete("*/api/app/customer-dropdowns/:id/options/:optionId", () =>
+      HttpResponse.json({ error: "option_in_use", message: "Bu variant 5 ta mijozda tanlangan" }, { status: 409 }),
+    ),
+  )
+  await user.click(within(await optionList()).getByRole("button", { name: "O'chirish: Instagram" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Variantni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Bu variant 5 ta mijozda tanlangan")).toBeInTheDocument()
+  expect(optionsOf(await optionList()).map((option) => option.label)).toEqual(["Instagram", "YouTube"])
+})
+
+test("the options are put in order from the keyboard, and the order is saved", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<DropdownPage id={manbaId()} />)
+
+  within(await optionList()).getByRole("button", { name: "YouTube: tartibini o'zgartirish" }).focus()
+  await user.keyboard("{Home}")
+
+  expect(optionsOf(await optionList()).map((option) => option.label)).toEqual(["YouTube", "Instagram", "LinkedIn"])
+  await waitFor(() => expect(dropdownsOf(1)[0].options.map((option) => option.label)).toEqual(["YouTube", "Instagram", "LinkedIn"]))
+})
