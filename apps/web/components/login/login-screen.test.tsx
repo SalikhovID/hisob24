@@ -63,3 +63,10 @@ test("the login stands in the frame: the brand's panel says what Hisob24 is", ()
   expect(within(panel).getByText("Biznesingiz uchun hisob tizimi")).toBeInTheDocument()
   expect(within(screen.getByRole("main")).getByRole("textbox", { name: "Telefon raqami" })).toBeInTheDocument()
 })
+
+test("the phone step is titled and says what comes next", () => {
+  renderWithProviders(<LoginScreen />)
+
+  expect(screen.getByRole("heading", { level: 2, name: "Kirish" })).toBeInTheDocument()
+  expect(screen.getByText("Telefon raqamingizni kiriting, kod SMS orqali keladi")).toBeInTheDocument()
+})

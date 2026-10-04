@@ -50,9 +50,14 @@ export function LoginScreen() {
             {notice}
           </p>
         )}
-        <p className="text-sm text-muted-foreground">
-          {step.kind === "phone" ? "Telefon raqamingizni kiriting" : `Kod ${formatPhone(step.phone)} raqamiga yuborildi`}
-        </p>
+        <div className="space-y-1.5">
+          {step.kind === "phone" && <h2 className="text-2xl font-semibold tracking-tight">Kirish</h2>}
+          <p className="text-sm text-muted-foreground">
+            {step.kind === "phone"
+              ? "Telefon raqamingizni kiriting, kod SMS orqali keladi"
+              : `Kod ${formatPhone(step.phone)} raqamiga yuborildi`}
+          </p>
+        </div>
         {step.kind === "phone" ? (
           <PhoneStep
             defaultPhone={step.phone}
