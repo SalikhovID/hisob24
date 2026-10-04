@@ -1,9 +1,11 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import { delay, http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { CustomersPage } from "./customers-page"
 
@@ -168,4 +170,86 @@ test("a field of each kind has an input of its own, and every answer is saved", 
     [tillar.id]: [til.options[0].id, til.options[1].id],
     [kanallar.id]: [instagram.id, linkedin.id],
   })
+})
+
+test("what is wrong with the form is said under its field, in the API's words, and nothing is sent", async () => {
+  await signIn(ALI)
+  let sent = false
+  server.use(
+    http.post("*/api/app/customers", () => {
+      sent = true
+      return HttpResponse.json({ error: "internal_error", message: "Yuborilmasligi kerak edi" }, { status: 500 })
+    }),
+  )
+  const { user, dialog } = await openDialog()
+  await user.click(within(dialog).getByRole("radio", { name: "Yuridik" }))
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "90 123")
+  await user.type(within(dialog).getByLabelText("INN"), "12.5")
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText("Telefon raqamini to'liq kiriting")).toBeInTheDocument()
+  expect(within(dialog).getByText("«Nomi» maydonini to'ldiring")).toBeInTheDocument()
+  expect(within(dialog).getByText("«INN» butun son bo'lishi kerak")).toBeInTheDocument()
+  expect(within(dialog).getByLabelText("Nomi")).toHaveAttribute("aria-invalid", "true")
+  expect(sent).toBe(false)
+})
+
+test("a phone or an answer another customer has is refused in the dialog, with the way to that customer", async () => {
+  await signIn(ALI)
+  const { dilshod, anor } = seedCustomers()
+  const { user, dialog } = await openDialog()
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "911112233")
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "Boshqa Dilshod")
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText("Bu raqamli mijoz allaqachon bor")).toBeInTheDocument()
+  expect(within(dialog).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
+  // The dialog stays, with what was typed.
+  expect(within(dialog).getByLabelText("F.I.Sh.")).toHaveValue("Boshqa Dilshod")
+
+  await user.click(within(dialog).getByRole("radio", { name: "Yuridik" }))
+  // Another form: the refusal of the last one is gone.
+  expect(within(dialog).queryByText("Bu raqamli mijoz allaqachon bor")).not.toBeInTheDocument()
+  await user.clear(within(dialog).getByLabelText("Telefon raqami"))
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
+  await user.type(within(dialog).getByLabelText("Nomi"), "Boshqa MChJ")
+  await user.type(within(dialog).getByLabelText("INN"), "301234567")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText("Bu «INN» boshqa mijozda bor")).toBeInTheDocument()
+  expect(within(dialog).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${anor.id}`)
+  expect(db.customers).toHaveLength(3)
+})
+
+test("any other refusal shows the API's reason, and leads nowhere", async () => {
+  await signIn(ALI)
+  server.use(
+    http.post("*/api/app/customers", () =>
+      HttpResponse.json({ error: "validation_error", message: "«Manba» uchun variant noto'g'ri (o'chirilgan)" }, { status: 400 }),
+    ),
+  )
+  const { user, dialog } = await openDialog()
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "Ali")
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText("«Manba» uchun variant noto'g'ri (o'chirilgan)")).toBeInTheDocument()
+  expect(within(dialog).queryByRole("link", { name: "Mijozni ochish" })).not.toBeInTheDocument()
+})
+
+test("while the customer is on its way the button waits and says so", async () => {
+  await signIn(ALI)
+  server.use(http.post("*/api/app/customers", () => delay("infinite")))
+  const { user, dialog } = await openDialog()
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "Ali")
+  const button = within(dialog).getByRole("button", { name: "Qo'shish" })
+
+  await user.click(button)
+
+  await waitFor(() => expect(button).toHaveAttribute("aria-busy", "true"))
+  expect(button).toHaveAttribute("aria-disabled", "true")
 })

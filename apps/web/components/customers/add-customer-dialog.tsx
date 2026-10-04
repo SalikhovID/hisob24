@@ -9,7 +9,6 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { PendingButton } from "@/components/pending-button"
-import { Refusal } from "@/components/refusal"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -24,7 +23,7 @@ import { api, call } from "@/lib/api"
 import { type CustomerForm, type CustomerOutput, customerSchema, formDefaults } from "@/lib/customers"
 import { customersKey } from "@/lib/queries"
 import type { CustomerDropdown, CustomerType } from "@/lib/types"
-import { CustomerFields } from "./customer-form"
+import { CustomerFields, CustomerRefusal } from "./customer-form"
 
 // AddCustomerDialog enters a customer into the company. The type is chosen
 // first, by its button: its fields are the form, after the phone that every
@@ -111,7 +110,7 @@ export function AddCustomerDialog({
             </RadioGroup>
           )}
           <CustomerFields control={form.control} type={type} dropdowns={dropdowns} />
-          {add.isError && <Refusal>{add.error.message}</Refusal>}
+          {add.isError && <CustomerRefusal error={add.error} />}
           <DialogFooter>
             <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={add.isPending}>
               Qo&apos;shish

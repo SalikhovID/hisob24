@@ -1,9 +1,11 @@
 "use client"
 
 import { ChevronDownIcon } from "lucide-react"
+import Link from "next/link"
 import { type ReactNode, useId } from "react"
 import { type Control, Controller, type ControllerFieldState } from "react-hook-form"
 import { PhoneField } from "@/components/phone-field"
+import { Refusal } from "@/components/refusal"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -11,6 +13,7 @@ import { Field, FieldError, FieldGroup, FieldLabel, FieldTitle } from "@/compone
 import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ApiError } from "@/lib/api"
 import { type CustomerForm, type CustomerOutput, fieldKey } from "@/lib/customers"
 import type { CustomerDropdown, CustomerField, CustomerOption, CustomerType } from "@/lib/types"
 
@@ -222,5 +225,27 @@ export function CustomerFields({
         />
       ))}
     </FieldGroup>
+  )
+}
+
+// CustomerRefusal is the API's reason for turning a customer down. A phone
+// or an answer that another customer has leads to that customer: whoever is
+// entering them twice can open the one that is there.
+export function CustomerRefusal({ error }: { error: Error }) {
+  const other = error instanceof ApiError ? error.customerId : undefined
+  return (
+    <Refusal>
+      <span>
+        {error.message}
+        {other !== undefined && (
+          <>
+            {" "}
+            <Link href={`/customers/${other}`} className="font-medium whitespace-nowrap underline underline-offset-4">
+              Mijozni ochish
+            </Link>
+          </>
+        )}
+      </span>
+    </Refusal>
   )
 }
