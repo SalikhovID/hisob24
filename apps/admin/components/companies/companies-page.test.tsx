@@ -1,9 +1,9 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { company, db, TODAY } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
-import { currentUrl, setLocation } from "@/test/navigation"
+import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { CompaniesPage } from "./companies-page"
@@ -151,6 +151,23 @@ test("searching narrows the list, starts from the first page and stays in the ad
       expect.stringContaining("Olma Savdo"),
     ]),
   )
+})
+
+test("a search dropped from the address is dropped from the box, and stays dropped", async () => {
+  setLocation("/companies?search=olma")
+  renderWithProviders(<CompaniesPage />)
+  await waitFor(() => expect(names()).toEqual(["Olma Savdo"]))
+  const box = screen.getByRole("searchbox", { name: "Qidirish" })
+  expect(box).toHaveValue("olma")
+
+  // The menu's link leads to the bare list: the page stays, its address changes.
+  act(() => router.push("/companies"))
+
+  await waitFor(() => expect(box).toHaveValue(""))
+  await waitFor(() => expect(names()).toEqual(["Olcha Servis", "Nok Market", "Olma Savdo"]))
+  // Past the box's pause, the old search has not been written back.
+  await new Promise((resolve) => setTimeout(resolve, 450))
+  expect(currentUrl()).toBe("/companies")
 })
 
 test("the status tabs show the active or the expired companies", async () => {
