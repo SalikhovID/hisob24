@@ -37,6 +37,31 @@ func (q *Queries) CreateCustomerType(ctx context.Context, arg CreateCustomerType
 	return i, err
 }
 
+const getCustomerType = `-- name: GetCustomerType :one
+SELECT id, company_id, name, position, created_at, deleted_at FROM customer_types
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+`
+
+type GetCustomerTypeParams struct {
+	ID        int64
+	CompanyID int64
+}
+
+// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
+func (q *Queries) GetCustomerType(ctx context.Context, arg GetCustomerTypeParams) (CustomerType, error) {
+	row := q.db.QueryRow(ctx, getCustomerType, arg.ID, arg.CompanyID)
+	var i CustomerType
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Name,
+		&i.Position,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const listCustomerTypes = `-- name: ListCustomerTypes :many
 SELECT id, company_id, name, position, created_at, deleted_at FROM customer_types
 WHERE company_id = $1 AND deleted_at IS NULL

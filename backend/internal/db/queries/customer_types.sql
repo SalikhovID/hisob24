@@ -11,3 +11,8 @@ RETURNING *;
 SELECT * FROM customer_types
 WHERE company_id = $1 AND deleted_at IS NULL
 ORDER BY position, id;
+
+-- name: GetCustomerType :one
+-- The company's type; pgx.ErrNoRows when it has none such, or deleted it.
+SELECT * FROM customer_types
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL;

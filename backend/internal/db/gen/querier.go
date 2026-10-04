@@ -73,6 +73,8 @@ type Querier interface {
 	GetCompanyAccess(ctx context.Context, arg GetCompanyAccessParams) (GetCompanyAccessRow, error)
 	// The company's dropdown; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerDropdown(ctx context.Context, arg GetCustomerDropdownParams) (CustomerDropdown, error)
+	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
+	GetCustomerType(ctx context.Context, arg GetCustomerTypeParams) (CustomerType, error)
 	// The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
 	// it never did (the user Mini App's sign-in).
 	GetTelegramContactPhone(ctx context.Context, chatID int64) (string, error)

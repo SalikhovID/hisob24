@@ -3,6 +3,7 @@ package db_test
 import (
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -51,4 +52,22 @@ func TestListCustomerTypes(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 2, "the company's own, without the deleted one")
 	assert.Equal(t, []int64{yuridik.ID, jismoniy.ID}, []int64{list[0].ID, list[1].ID}, "in their order")
+}
+
+func TestGetCustomerType(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+
+	ct, err := q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "Jismoniy", ct.Name)
+
+	_, err = q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: jismoniy.ID, CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's type")
+	mustExec(t, pool, "UPDATE customer_types SET deleted_at = now() WHERE id = $1", jismoniy.ID)
+	_, err = q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted type")
 }
