@@ -5,6 +5,7 @@ import { LogOutIcon, MenuIcon, MoonIcon, SunIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useState } from "react"
+import { Brand } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { api, call } from "@/lib/api"
@@ -39,7 +40,7 @@ export function Topbar() {
           <NavLinks onNavigate={() => setMenuOpen(false)} />
         </SheetContent>
       </Sheet>
-      <span className="font-semibold lg:hidden">Hisob24 Admin</span>
+      <Brand className="lg:hidden" />
       <div className="ml-auto flex min-w-0 items-center gap-1">
         {me.data && (
           <span className="mr-1 truncate text-sm text-muted-foreground">

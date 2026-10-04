@@ -62,3 +62,12 @@ test("inside Telegram the theme follows the chat: no theme button", async () => 
   expect(await screen.findByText("Owner")).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
 })
+
+test("on a phone the top bar is headed by the brand", async () => {
+  renderWithProviders(<Topbar />)
+
+  const bar = screen.getByRole("banner")
+  expect(within(bar).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+  expect(within(bar).getByText("Admin")).toBeInTheDocument()
+  expect(await screen.findByText("Owner")).toBeInTheDocument()
+})
