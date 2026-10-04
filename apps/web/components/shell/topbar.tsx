@@ -2,6 +2,7 @@
 
 import { ArrowLeftRightIcon, LogOutIcon, MenuIcon, UserIcon } from "lucide-react"
 import Link from "next/link"
+import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,9 +20,10 @@ import { useLogout, useMe } from "@/lib/queries"
 import { useMiniApp } from "@/lib/telegram"
 
 // Topbar is the bar above every page of the app: on a phone the button that
-// brings the sections out (the sidebar is hidden there) and the company's
-// name, and on every screen the theme button and who is signed in. Inside
-// Telegram the chat sets the theme, so there is no theme button.
+// brings the sections out (the sidebar is hidden there) and what heads the
+// sidebar, Hisob24's logo over the company's name; on every screen the theme
+// button and who is signed in. Inside Telegram the chat sets the theme, so
+// there is no theme button.
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const me = useMe()
   const miniApp = useMiniApp()
@@ -32,7 +34,10 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         <Button variant="ghost" size="icon" aria-label="Menyu" onClick={onMenuClick} className="md:hidden">
           <MenuIcon />
         </Button>
-        <span className="truncate font-semibold md:hidden">{me.data?.company?.name ?? "Hisob24"}</span>
+        <div className="min-w-0 md:hidden">
+          <Logo className="h-3.5" />
+          <p className="h-4 truncate text-xs leading-4 font-medium">{me.data?.company?.name ?? "Hisob24"}</p>
+        </div>
       </div>
       <div className="flex items-center gap-1">
         {!miniApp && <ThemeToggle />}

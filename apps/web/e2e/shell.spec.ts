@@ -76,3 +76,39 @@ test("the profile menu says who is signed in and leads to their other company", 
 
   await expect(page).toHaveURL(/\/select-company$/)
 })
+
+test("the shell is headed by Hisob24's logo, the company's name under it, and by its mark when folded", async ({
+  page,
+}) => {
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  const logo = { name: "Hisob24" }
+  // under says the company's name starts where the logo ends, or lower.
+  const under = async (within: ReturnType<Page["getByRole"]>) => {
+    const logoBox = (await within.getByRole("img", logo).boundingBox())!
+    const nameBox = (await within.getByText("Olma Savdo").boundingBox())!
+    expect(nameBox.y).toBeGreaterThanOrEqual(logoBox.y + logoBox.height)
+  }
+
+  if (onPhone(page)) {
+    // The top bar stands for the sidebar, which a phone hides.
+    const bar = page.getByRole("banner")
+    await expect(bar.getByRole("img", logo)).toBeVisible()
+    await under(bar)
+    await page.getByRole("button", { name: "Menyu", exact: true }).click()
+    const sheet = page.getByRole("dialog", { name: "Olma Savdo" })
+    await expect(sheet.getByRole("img", logo)).toBeVisible()
+    await under(sheet)
+    return
+  }
+
+  const sidebar = page.getByRole("complementary", { name: "Menyu" })
+  await expect(sidebar.getByRole("img", logo)).toBeVisible()
+  await under(sidebar)
+  // The sidebar shows it, so the top bar does not.
+  await expect(page.getByRole("banner").getByRole("img", logo)).toHaveCount(0)
+
+  await sidebar.getByRole("button", { name: "Menyuni yig'ish" }).click()
+  await expect(sidebar.getByRole("img", logo)).toHaveCount(0)
+  await expect(sidebar.getByRole("button", { name: "Menyuni yoyish" }).locator('[data-slot="logo-mark"]')).toBeVisible()
+})

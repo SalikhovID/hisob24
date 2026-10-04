@@ -80,3 +80,13 @@ test("inside Telegram there is no sign-out or theme button: closing the Mini App
   expect(await within(await screen.findByRole("menu")).findByText("Ali Valiyev")).toBeInTheDocument()
   expect(screen.queryByRole("menuitem", { name: "Chiqish" })).not.toBeInTheDocument()
 })
+
+test("on a phone the top bar shows Hisob24's logo, the company's name after it", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+
+  const bar = screen.getByRole("banner")
+  const name = await within(bar).findByText("Olma Savdo")
+  const logo = within(bar).getByRole("img", { name: "Hisob24" })
+  expect(logo.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
