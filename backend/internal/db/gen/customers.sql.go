@@ -320,6 +320,52 @@ func (q *Queries) GetCustomerByPhone(ctx context.Context, arg GetCustomerByPhone
 	return id, err
 }
 
+const listCustomerHistory = `-- name: ListCustomerHistory :many
+SELECT h.id, h.action, COALESCE(m.full_name, h.actor_name) AS actor_name, h.changes, h.created_at
+FROM customer_history h
+JOIN customers c ON c.id = h.customer_id
+LEFT JOIN user_companies m ON m.user_phone = h.actor_phone AND m.company_id = c.company_id
+WHERE h.customer_id = $1
+ORDER BY h.id DESC
+`
+
+type ListCustomerHistoryRow struct {
+	ID        int64
+	Action    string
+	ActorName *string
+	Changes   []byte
+	CreatedAt time.Time
+}
+
+// What happened to the customer, the latest first. actor_name is the name
+// the member who did it goes by in the company now; once they have left it
+// (or go by no name), the name of then.
+func (q *Queries) ListCustomerHistory(ctx context.Context, customerID int64) ([]ListCustomerHistoryRow, error) {
+	rows, err := q.db.Query(ctx, listCustomerHistory, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCustomerHistoryRow{}
+	for rows.Next() {
+		var i ListCustomerHistoryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Action,
+			&i.ActorName,
+			&i.Changes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCustomerValues = `-- name: ListCustomerValues :many
 SELECT v.customer_id, v.field_id, f.kind, v.option_id, v.text_value, v.int_value
 FROM customer_values v

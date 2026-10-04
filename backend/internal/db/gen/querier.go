@@ -166,6 +166,10 @@ type Querier interface {
 	// Every field of the company's types, each type's in its order, without the
 	// deleted ones (a deleted type's fields are deleted with it).
 	ListCustomerFields(ctx context.Context, companyID int64) ([]CustomerField, error)
+	// What happened to the customer, the latest first. actor_name is the name
+	// the member who did it goes by in the company now; once they have left it
+	// (or go by no name), the name of then.
+	ListCustomerHistory(ctx context.Context, customerID int64) ([]ListCustomerHistoryRow, error)
 	// The company's types in their order, without the deleted.
 	ListCustomerTypes(ctx context.Context, companyID int64) ([]CustomerType, error)
 	// The answers of the customers named: each customer's in the order of its

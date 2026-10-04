@@ -575,3 +575,37 @@ func TestAddCustomerHistory(t *testing.T) {
 	assert.Equal(t, ptr("Ali aka"), name, "the name the member went by then")
 	assert.JSONEq(t, changes, stored)
 }
+
+func TestListCustomerHistory(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	vali := s.customer(t, q, "998905555555")
+	// The one who entered Ali has left the company; the one who edited is in
+	// it, under another name than then.
+	createUser(t, q, "998902222222", "Vali")
+	addMember(t, q, s.company.ID, "998902222222", "Vali Aliyev", "user")
+	record := func(customerID int64, action, actor, name, changes string) {
+		t.Helper()
+		require.NoError(t, q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
+			CustomerID: customerID, Action: action, ActorPhone: actor, ActorName: &name, Changes: []byte(changes),
+		}))
+	}
+	record(ali.ID, "created", enteredBy, "Ali aka", `[]`)
+	record(vali.ID, "created", enteredBy, "Ali aka", `[]`)
+	record(ali.ID, "updated", "998902222222", "Vali", `[{"label": "Yoshi", "old": "30", "new": "31"}]`)
+
+	history, err := q.ListCustomerHistory(ctx, ali.ID)
+
+	require.NoError(t, err)
+	require.Len(t, history, 2, "the customer's own history")
+	assert.Equal(t, "updated", history[0].Action, "the latest first")
+	assert.Equal(t, ptr("Vali Aliyev"), history[0].ActorName, "the name the member goes by in the company now")
+	assert.JSONEq(t, `[{"label": "Yoshi", "old": "30", "new": "31"}]`, string(history[0].Changes))
+	assert.WithinDuration(t, time.Now(), history[0].CreatedAt, time.Minute)
+	assert.Equal(t, "created", history[1].Action)
+	assert.Equal(t, ptr("Ali aka"), history[1].ActorName, "a member who has left: the name of then")
+	assert.JSONEq(t, `[]`, string(history[1].Changes))
+	assert.Greater(t, history[0].ID, history[1].ID)
+}
