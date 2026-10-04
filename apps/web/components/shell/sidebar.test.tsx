@@ -25,7 +25,7 @@ test("the owner sees every section, under the company's name", async () => {
   renderWithProviders(<Sidebar {...props()} />)
 
   expect(await within(sidebar()).findByRole("link", { name: "Xodimlar" })).toHaveAttribute("href", "/employees")
-  expect(sections()).toEqual(["Bosh sahifa", "Xodimlar", "Sozlamalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Xodimlar", "Sozlamalar"])
   expect(within(sidebar()).getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
   expect(within(sidebar()).getByText("Olma Savdo")).toBeInTheDocument()
 })
@@ -36,7 +36,7 @@ test("an employee sees no section of the owner's", async () => {
   renderWithProviders(<Sidebar {...props()} />)
 
   expect(await within(sidebar()).findByText("Olma Savdo")).toBeInTheDocument()
-  expect(sections()).toEqual(["Bosh sahifa"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar"])
 })
 
 test("the section the page belongs to is marked", async () => {
@@ -78,7 +78,7 @@ test("on a phone the sections come out as a sheet, and picking one closes it", a
   const { user } = renderWithProviders(<Sidebar {...props({ open: true, onOpenChange })} />)
 
   const sheet = await screen.findByRole("dialog", { name: "Olma Savdo" })
-  expect(sections(sheet)).toEqual(["Bosh sahifa", "Xodimlar", "Sozlamalar"])
+  expect(sections(sheet)).toEqual(["Bosh sahifa", "Mijozlar", "Xodimlar", "Sozlamalar"])
   await user.click(within(sheet).getByRole("link", { name: "Xodimlar" }))
 
   expect(onOpenChange).toHaveBeenCalledWith(false)
