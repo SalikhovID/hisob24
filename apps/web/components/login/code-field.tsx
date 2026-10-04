@@ -1,5 +1,6 @@
 "use client"
 
+import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 
 const SLOTS = [0, 1, 2, 3, 4, 5]
@@ -21,6 +22,7 @@ export function CodeField({
     <InputOTP
       aria-label="Kod"
       maxLength={6}
+      pattern={REGEXP_ONLY_DIGITS}
       value={value}
       onChange={onChange}
       onComplete={onComplete}

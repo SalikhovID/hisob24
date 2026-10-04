@@ -29,3 +29,12 @@ test("the sixth digit hands the code over", async () => {
 
   expect(onComplete).toHaveBeenCalledWith("123456")
 })
+
+test("the code takes digits only", async () => {
+  render(<Held onComplete={vi.fn()} />)
+  const field = screen.getByRole("textbox", { name: "Kod" })
+
+  await userEvent.type(field, "12ab3")
+
+  expect(field).toHaveValue("123")
+})
