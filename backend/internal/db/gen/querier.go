@@ -196,6 +196,11 @@ type Querier interface {
 	// Locks the company for a change of its owner, so two changes take turns;
 	// pgx.ErrNoRows when there is no such company.
 	LockCompany(ctx context.Context, id int64) (int64, error)
+	// Holds the company for a write of its customers or of their settings, so
+	// that such writes take turns. It holds against them alone: a row that only
+	// refers to the company (a new member, a session being refreshed) does not
+	// wait. pgx.ErrNoRows when there is no such company.
+	LockCompanyCustomers(ctx context.Context, id int64) (int64, error)
 	// Locks the company for a billing transaction. today is the database's
 	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
 	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)

@@ -488,6 +488,21 @@ func (q *Queries) ListCustomers(ctx context.Context, arg ListCustomersParams) ([
 	return items, nil
 }
 
+const lockCompanyCustomers = `-- name: LockCompanyCustomers :one
+SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE
+`
+
+// Holds the company for a write of its customers or of their settings, so
+// that such writes take turns. It holds against them alone: a row that only
+// refers to the company (a new member, a session being refreshed) does not
+// wait. pgx.ErrNoRows when there is no such company.
+func (q *Queries) LockCompanyCustomers(ctx context.Context, id int64) (int64, error) {
+	row := q.db.QueryRow(ctx, lockCompanyCustomers, id)
+	var id_2 int64
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
 const updateCustomer = `-- name: UpdateCustomer :one
 UPDATE customers SET phone = $1, updated_at = now()
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL

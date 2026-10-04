@@ -152,3 +152,10 @@ JOIN customers c ON c.id = h.customer_id
 LEFT JOIN user_companies m ON m.user_phone = h.actor_phone AND m.company_id = c.company_id
 WHERE h.customer_id = $1
 ORDER BY h.id DESC;
+
+-- name: LockCompanyCustomers :one
+-- Holds the company for a write of its customers or of their settings, so
+-- that such writes take turns. It holds against them alone: a row that only
+-- refers to the company (a new member, a session being refreshed) does not
+-- wait. pgx.ErrNoRows when there is no such company.
+SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE;

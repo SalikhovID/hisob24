@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -629,4 +630,24 @@ func TestGetMemberName(t *testing.T) {
 	assert.Nil(t, name, "a member without a name")
 	_, err = q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: "998902222222", CompanyID: nok.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member of the company")
+}
+
+func TestLockCompanyCustomers(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+	tx, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
+
+	id, err := q.WithTx(tx).LockCompanyCustomers(ctx, c.ID)
+
+	require.NoError(t, err)
+	assert.Equal(t, c.ID, id)
+	_, err = pool.Exec(ctx, "SELECT 1 FROM companies WHERE id = $1 FOR NO KEY UPDATE NOWAIT", c.ID)
+	assert.Equal(t, "55P03", sqlState(err), "another write of the company's customers waits until the transaction ends") // lock_not_available
+	_, err = pool.Exec(ctx, "SELECT 1 FROM companies WHERE id = $1 FOR KEY SHARE NOWAIT", c.ID)
+	assert.NoError(t, err, "what only refers to the company (a new member, a session) does not wait")
+	_, err = q.WithTx(tx).LockCompanyCustomers(ctx, c.ID+1)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "no such company")
 }
