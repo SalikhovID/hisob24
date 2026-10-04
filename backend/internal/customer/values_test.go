@@ -98,3 +98,20 @@ func TestCheckValuesNumbers(t *testing.T) {
 		{name: "a list", body: `{"2": [30]}`, refusal: notWhole},
 	})
 }
+
+func TestCheckValuesOneChoice(t *testing.T) {
+	const wrong = "«Manba» uchun variant noto'g'ri"
+	runCheckCases(t, form, []checkCase{
+		{name: "an option of the field's dropdown", body: `{"3": 11}`, want: Values{3: int64(11)}},
+		{name: "a radio takes one option too", body: `{"4": 12}`, want: Values{4: int64(12)}},
+		{name: "null is no choice", body: `{"3": null}`, want: Values{}},
+		{name: "an option of another dropdown", body: `{"3": 21}`, refusal: wrong},
+		{name: "an option that is not there", body: `{"3": 999}`, refusal: wrong},
+		{name: "an option that is turned off", body: `{"3": 13}`, refusal: wrong},
+		{name: "the option's name", body: `{"3": "Instagram"}`, refusal: wrong},
+		{name: "the id as a text", body: `{"3": "11"}`, refusal: wrong},
+		{name: "a list", body: `{"3": [11]}`, refusal: wrong},
+		{name: "a fraction", body: `{"3": 11.5}`, refusal: wrong},
+		{name: "a radio's wrong option", body: `{"4": 21}`, refusal: "«Holati» uchun variant noto'g'ri"},
+	})
+}

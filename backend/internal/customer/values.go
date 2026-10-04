@@ -25,11 +25,16 @@ const maxInt = 1<<53 - 1
 
 // checkValues reads the answers a client sent for the fields of a type and
 // gives them as they are kept, or the first thing that is wrong with them,
-// in the order of the fields.
+// in the order of the fields. options is the options of each dropdown, in
+// its order.
 func checkValues(fields []Field, options map[int64][]Option, was Values, raw map[string]json.RawMessage) (Values, error) {
 	values := Values{}
 	for _, f := range fields {
-		answer, err := readAnswer(f, raw[strconv.FormatInt(f.ID, 10)])
+		var offered []Option
+		if f.DropdownID != nil {
+			offered = options[*f.DropdownID]
+		}
+		answer, err := readAnswer(f, offered, raw[strconv.FormatInt(f.ID, 10)])
 		if err != nil {
 			return nil, err
 		}
@@ -40,18 +45,25 @@ func checkValues(fields []Field, options map[int64][]Option, was Values, raw map
 	return values, nil
 }
 
-// readAnswer reads what a client sent for one field; nil when the field is
-// left empty.
-func readAnswer(f Field, raw json.RawMessage) (any, error) {
+// readAnswer reads what a client sent for one field, whose dropdown offers
+// the options given; nil when the field is left empty.
+func readAnswer(f Field, offered []Option, raw json.RawMessage) (any, error) {
 	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
 		return nil, nil
 	}
-	if f.Kind == KindInt {
+	switch f.Kind {
+	case KindInt:
 		n, ok := readWhole(raw)
 		if !ok {
 			return nil, invalid(fmt.Sprintf("«%s» butun son bo'lishi kerak", f.Label))
 		}
 		return n, nil
+	case KindDropdown, KindRadio:
+		id, ok := readWhole(raw)
+		if !ok || !offers(offered, id) {
+			return nil, invalid(fmt.Sprintf("«%s» uchun variant noto'g'ri", f.Label))
+		}
+		return id, nil
 	}
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
@@ -65,6 +77,17 @@ func readAnswer(f Field, raw json.RawMessage) (any, error) {
 		return nil, invalid(fmt.Sprintf("«%s» %d belgidan oshmasin", f.Label, maxText))
 	}
 	return text, nil
+}
+
+// offers tells whether the option is one a new choice may be made of: it is
+// in the dropdown and not turned off.
+func offers(offered []Option, id int64) bool {
+	for _, o := range offered {
+		if o.ID == id {
+			return o.Active
+		}
+	}
+	return false
 }
 
 // readWhole reads a JSON number that is whole and within maxInt: digits with
