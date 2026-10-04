@@ -103,3 +103,4 @@ make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa
 - `logic/user.md`, `logic/roles.md`: user, multi-user, xodimlar va rollar (`owner` / `user`) qoidalari. Shu sohadagi kod shu hujjatlarga mos yoziladi.
 - `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`: xodimlar, rollar va user app sidebar dizayni.
 - `docs/superpowers/specs/2026-10-04-crud-ui-refresh-design.md`: CRUD sahifalar ko'rinishi (tokenlar, `DataList`, `Identity`, `PageHeader` va boshqa umumiy bo'laklar qoidalari, kechiktirilgan tavsiyalar). Yangi ro'yxat yoki forma sahifasi shu qoidalarga mos yoziladi.
+- `docs/superpowers/specs/2026-10-04-logo-design.md`: logotip (`Logo`, `LogoMark`, admin'da `Brand`), `--brand` tokeni, tab ikonlari va ularni qayta yasash buyruqlari. Logotip kerak bo'lgan yangi joy shu qoidalarga mos yoziladi.

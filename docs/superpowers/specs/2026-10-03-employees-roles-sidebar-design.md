@@ -134,7 +134,7 @@ Moslashtiriladi:
 - JS `useMobile` o'rniga CSS breakpoint (`md:`): SSR'da sakrash yo'q, admin panel ham shunday qurilgan;
 - radix `asChild` o'rniga base-ui `render` (loyiha `base-nova` uslubida);
 - ranglar hisob24 tokenlarida qoladi: `--sidebar-*` bor va Telegram mavzusiga ulangan;
-- logo fayli yo'q, belgi sifatida "H" harfli kvadrat;
+- logo fayli yo'q, belgi sifatida "H" harfli kvadrat (2026-10-04'dan logotip bor: sarlavha `Logo` va ostida kompaniya nomi, yig'ilganda `LogoMark`; qarang `2026-10-04-logo-design.md`);
 - Mini App'da "Chiqish" va mavzu tugmasi yashirin (mavjud qoida).
 
 Bo'limlar (`lib/nav.ts`): Bosh sahifa `/`, Xodimlar `/employees` (`ownerOnly`).
@@ -273,7 +273,7 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **O'lchamlar** enwin'dagidek: 256px ↔ 64px, sarlavha va topbar 56px, sheet 288px.
 - **Profil menyusi:** tugma nomi "Profil" (ekranda ism va ikonka; telefonda faqat ikonka). Ichida ism va telefon, "Kompaniyani almashtirish" (ishlatsa bo'ladigan boshqa kompaniya bo'lsa), "Chiqish". Dashboard'dagi "Kompaniyani almashtirish" havolasi ham qoldi.
 - **Mini App:** mavzu tugmasi va "Chiqish" yo'q; profil menyusi ism va telefonni ko'rsatadi.
-- **Logo fayli yo'q:** belgi sifatida `bg-sidebar-primary` kvadratda "H".
+- **Logo fayli yo'q:** belgi sifatida `bg-sidebar-primary` kvadratda "H". (2026-10-04'da logotip bilan almashtirildi: `2026-10-04-logo-design.md`.)
 - **Yordamchi nomlar** (o'zbekcha): "Menyu", "Bo'limlar", "Menyuni yig'ish", "Menyuni yoyish", "Profil".
 - **"Xodimlar" sahifasi** hali yo'q (4-bosqich): havola owner'ga ko'rinadi, sahifa 404.
 - **Ko'chgan testlar.** Dashboard'ning yo'naltirish va yuklash xatosi testlari `app-shell.test.tsx` ga, chiqish, mavzu va Telegram testlari `topbar.test.tsx` ga o'tdi. e2e'da sahifa mazmuni `main` ichidan qidiriladi (kompaniya nomi endi sidebar va topbar'da ham bor), chiqish profil menyusi orqali.

@@ -1,6 +1,6 @@
 # Logotip — dizayn
 
-Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja: `docs/superpowers/plans/2026-10-04-logo.md`).
+Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja: `docs/superpowers/plans/2026-10-04-logo.md`), amalga oshirilgan.
 
 ## Maqsad
 
@@ -100,6 +100,51 @@ Kompaniya hali noma'lum bo'lsa faqat logotip ko'rinadi ("Hisob24" matni takrorla
 - Har o'zgarish avval test bilan (reja: sikllar jadvali). Mavjud testlar o'zgarmaydi: faqat yangilari qo'shiladi.
 - Vitest: `Logo`, `LogoMark`, `Brand`; har joyda `img` "Hisob24" borligi; sheet nomi; `proxy` matcher'i.
 - Playwright: logotip rangi (light, dark, Telegram); qobiqdagi logotip (desktop, telefon); ikonlar sessiyasiz 200 va to'g'ri `content-type` bilan.
+
+## Amalga oshirilgani (2026-10-04)
+
+**O'lchamlar.** Skrinshotlarda sozlangan: 375px va 1280px; light, dark, Telegram'ning to'q va och mavzusi.
+
+| Joy | Class'lar | Natija |
+|---|---|---|
+| web: sidebar ustuni, telefon menyusi, telefon topbar'i | `Logo` `h-4`; nom `h-5 truncate text-[0.8125rem] leading-5 font-medium` | logotip 16px (eni 81px), ostida nom 13px. Uch joyda bir xil: telefonda menyu ochilganda sarlavha o'lchami o'zgarmaydi |
+| web: yig'ilgan sidebar | `LogoMark` `h-auto w-9`; tugma `h-8 w-10` | belgi 36 × 13.5px; ustiga borilsa chevron (avvalgidek) |
+| web: `/login` | `Logo` `h-8` | 32px (eni 163px) |
+| web: `/select-company`, `/expired` | `Logo` (o'z o'lchami, `h-6`) | 24px; birinchisida chapda, ikkinchisida o'rtada |
+| web: Mini App kirish ekranlari | `Logo` `h-7` | 28px, har holat tepasida |
+| admin: `Brand` | `inline-flex items-baseline gap-[0.35em]`; logotip `h-[1.1em]`; "Admin" `text-[0.85em] font-medium text-muted-foreground` | yozuv logotip harflarining asos chizig'ida (brauzerda o'lchangan: yozuv asos chizig'i = logotip qutisining pasti) |
+| admin: sidebar / topbar va menyu / login / Mini App | `text-lg` / 16px / `text-2xl` / `text-xl` | |
+
+Flex ustun ichida (`SheetHeader`, `/select-company`) logotipga `self-start` kerak: aks holda quti butun enga cho'ziladi va logotip o'rtaga suriladi.
+
+**Rejadan farqlar** (hammasi qo'shimcha sikl, hech narsa tashlab ketilmagan):
+
+- `Logo` da `data-slot` yo'q: reja `data-slot="logo"` degan edi, lekin hech bir test yoki uslubga kerak bo'lmadi. `LogoMark` da bor (`data-slot="logo-mark"`: bezak, rolsiz, testlar shu bilan topadi).
+- `className` uchun alohida sikllar (`Logo`, `LogoMark`).
+- Web topbar'da ham "kompaniya noma'lum bo'lsa faqat logotip" (sidebar'dagidek).
+- `Brand` ning nomi ikki so'z ekani alohida sikl: bo'shliqsiz sarlavha nomi "Hisob24Admin" bo'lib chiqdi (test shuni ko'rsatdi), `{" "}` bilan "Hisob24 Admin".
+- Admin'da token ikki siklda (light / dark, keyin Telegram): token bo'lmaganda logotip Telegram'da chat matn rangini meros olardi va Telegram testi tokensiz ham o'tardi.
+- Xarakteristika testi: kompaniyasiz sessiyada telefon menyusining nomi "Hisob24" (avvaldan shunday edi, testi yo'q edi; mutatsiya bilan tekshirilgan).
+
+**Ikonlarni qayta yasash.** `icon.svg` qo'lda yoziladi (dizaynerning oq belgili 512 fayli + `<rect width="512" height="512" rx="112" fill="#174449"/>`); qolgan ikkitasi undan (`rsvg-convert` va ImageMagick, Homebrew):
+
+```bash
+# apple.svg: icon.svg ning o'zi, faqat rect'da rx yo'q (kvadrat)
+rsvg-convert -w 180 -h 180 apple.svg -o apps/web/app/apple-icon.png
+for s in 16 32 48; do rsvg-convert -w $s -h $s apps/web/app/icon.svg -o icon-$s.png; done
+magick icon-16.png icon-32.png icon-48.png apps/web/app/favicon.ico
+cp apps/web/app/{icon.svg,apple-icon.png,favicon.ico} apps/admin/app/
+```
+
+16px da "H24" xira, lekin shakli taniladi; 32px dan boshlab aniq o'qiladi.
+
+**Tekshiruv.**
+
+- `make lint`: 0 issues. `make test`: Go 15 paket; web 231 (avval 214), admin 202 (avval 189), api-client 1. `make e2e`: admin 32 (avval 26), web 54 (avval 46).
+- Mavjud testlarning birortasi o'zgarmadi, o'chirilmadi yoki o'tkazib yuborilmadi. Mavjud test fayllariga faqat yangi testlar va import qo'shildi.
+- `cmp`: `components/logo.tsx`, `logo.test.tsx`, `app/icon.svg`, `apple-icon.png`, `favicon.ico`, `e2e/logo.spec.ts`, `e2e/icons.spec.ts` ikkala ilovada bayt-bir xil. `globals.css` faqat avvalgi ikki joyda farq qiladi.
+- Production build (`next build` + `next start`, ikkala ilova): `/login` da uchta `<link>` (`favicon.ico` 48x48, `icon.svg` any, `apple-icon.png` 180x180); uchala manzil sessiyasiz 200 va to'g'ri `content-type` bilan; sahifalar esa avvalgidek `/login` ga yo'naltiriladi (307).
+- Skrinshotlar: web va admin, telefon va desktop, light va dark, Telegram'ning ikki mavzusi: logotip har fonda o'qiladi.
 
 ## Qamrovdan tashqari
 
