@@ -43,7 +43,7 @@ export function LoginScreen() {
   }
 
   return (
-    <LoginFrame brand={<Logo className="h-8" />} tagline="Biznesingiz uchun hisob tizimi">
+    <LoginFrame brand={<Logo className="h-7 lg:h-8" />} tagline="Biznesingiz uchun hisob tizimi">
       <div className="space-y-6">
         {notice && (
           <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
