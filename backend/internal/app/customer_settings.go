@@ -133,3 +133,13 @@ func (h *Handler) renameCustomerDropdown(w http.ResponseWriter, r *http.Request)
 	}
 	httpx.JSON(w, http.StatusOK, toDropdownJSON(d))
 }
+
+// deleteCustomerDropdown hides a dropdown of the owner's company; one that
+// a field takes its options from is refused.
+func (h *Handler) deleteCustomerDropdown(w http.ResponseWriter, r *http.Request) {
+	if err := h.customers.DeleteDropdown(r.Context(), sessionCompany(r), pathID(r, "id")); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

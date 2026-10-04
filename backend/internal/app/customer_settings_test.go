@@ -144,3 +144,32 @@ func TestRenameCustomerDropdown(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+func TestDeleteCustomerDropdown(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
+	holat := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Holat') RETURNING id", olma)
+	jismoniy := api.id(t, "INSERT INTO customer_types (company_id, name, position) VALUES ($1, 'Jismoniy', 1) RETURNING id", olma)
+	api.exec(t, `INSERT INTO customer_fields (company_id, type_id, label, kind, dropdown_id, position)
+		VALUES ($1, $2, 'Holat', 'radio', $3, 1)`, olma, jismoniy, holat)
+	path := fmt.Sprintf("/app/customer-dropdowns/%d", manba)
+
+	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+
+	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	assert.Empty(t, rec.Body.String())
+	assert.Len(t, list(t, api.do(t, http.MethodGet, "/app/customer-dropdowns", "", bearer(owner))), 1, "it is gone from the company's dropdowns")
+
+	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
+	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodDelete, fmt.Sprintf("/app/customer-dropdowns/%d", holat), "", bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code, "a field takes its options from it")
+	assert.JSONEq(t, `{"error":"dropdown_in_use","message":"Bu dropdown 1 ta maydonda ishlatilgan"}`, rec.Body.String())
+}
