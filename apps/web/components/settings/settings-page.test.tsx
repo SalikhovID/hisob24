@@ -204,3 +204,18 @@ test("an order the API refuses is taken back, and the reason is said", async () 
   expect(await screen.findByText("Ro'yxat o'zgargan. Sahifani yangilang")).toBeInTheDocument()
   await waitFor(async () => expect(names(await typeList())).toEqual(["Jismoniy", "Yuridik"]))
 })
+
+test("a dropdown is added from the dialog and joins the list", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+  await dropdownList()
+
+  await user.click(screen.getByRole("button", { name: "Dropdown qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Dropdown qo'shish" })
+  await user.type(within(dialog).getByLabelText("Nomi"), "Holat")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Dropdown qo'shildi")).toBeInTheDocument()
+  await waitFor(async () => expect(rowsOf(await dropdownList())).toEqual([["Manba", "Instagram, LinkedIn, YouTube"], ["Holat", null]]))
+})

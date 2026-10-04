@@ -9,7 +9,7 @@ import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
-import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
+import { customerDropdownsKey, customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import type { CustomerType } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
 import { inOrder, useReorder } from "@/lib/use-reorder"
@@ -140,9 +140,32 @@ function CustomerTypes({ companyId }: { companyId: number }) {
 // Dropdowns is the company's dropdowns, in the order they were made.
 function Dropdowns({ companyId }: { companyId: number }) {
   const dropdowns = useCustomerDropdowns(companyId)
+  const queryClient = useQueryClient()
+  const refresh = () => queryClient.invalidateQueries({ queryKey: customerDropdownsKey(companyId) })
 
   return (
-    <Section title="Dropdownlar" description="Tanlov maydonlari variantlarni shu ro'yxatlardan oladi.">
+    <Section
+      title="Dropdownlar"
+      description="Tanlov maydonlari variantlarni shu ro'yxatlardan oladi."
+      action={
+        <NameDialog
+          title="Dropdown qo'shish"
+          description="Masalan: Manba. Variantlari dropdown sahifasida qo'shiladi."
+          submit="Qo'shish"
+          done="Dropdown qo'shildi"
+          trigger={
+            <Button variant="outline" size="lg" className="px-3.5">
+              <PlusIcon />
+              Dropdown qo&apos;shish
+            </Button>
+          }
+          onSubmit={async (name) => {
+            await call(api.POST("/app/customer-dropdowns", { body: { name } }))
+            await refresh()
+          }}
+        />
+      }
+    >
       {dropdowns.isPending && <ListLoading rows={2} mark="none" />}
       {dropdowns.isError && <Failed error={dropdowns.error} onRetry={() => dropdowns.refetch()} />}
       {dropdowns.data?.length === 0 && (
