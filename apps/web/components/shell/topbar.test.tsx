@@ -90,3 +90,13 @@ test("on a phone the top bar shows Hisob24's logo, the company's name after it",
   const logo = within(bar).getByRole("img", { name: "Hisob24" })
   expect(logo.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
+
+test("with no company chosen yet the top bar shows the logo alone: the name is not said twice", async () => {
+  await signIn(VALI)
+  const { queryClient } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+
+  const bar = screen.getByRole("banner")
+  expect(within(bar).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+  expect(within(bar).queryByText("Hisob24")).not.toBeInTheDocument()
+})

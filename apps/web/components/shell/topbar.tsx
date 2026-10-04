@@ -36,7 +36,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         </Button>
         <div className="min-w-0 md:hidden">
           <Logo className="h-3.5" />
-          <p className="h-4 truncate text-xs leading-4 font-medium">{me.data?.company?.name ?? "Hisob24"}</p>
+          <p className="h-4 truncate text-xs leading-4 font-medium">{me.data?.company?.name}</p>
         </div>
       </div>
       <div className="flex items-center gap-1">
