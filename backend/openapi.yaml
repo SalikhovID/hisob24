@@ -1427,6 +1427,47 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "404":
           $ref: "#/components/responses/CustomerNotFound"
+  /app/customers/{id}/history:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listCustomerHistory
+      summary: Mijozning o'zgarishlar tarixi (faqat owner)
+      description: >
+        Mijoz bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani va har
+        tahriri (o'chirilgan mijoz 404 beradi). Tahrirda o'zgargan har maydon
+        eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida:
+        maydon yoki variant keyin qayta nomlansa, tarix o'zgarmaydi.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Tarix yozuvlari
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerHistoryEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          description: >
+            Sessiya hali kompaniya tanlamagan (company_required) yoki user
+            kompaniya egasi emas (owner_only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -2139,3 +2180,39 @@ components:
           description: O'zbekiston raqami, masalan +998 90 123 45 67
         values:
           $ref: "#/components/schemas/CustomerAnswers"
+    CustomerChange:
+      type: object
+      required: [label, old, new]
+      properties:
+        label:
+          type: string
+          description: Maydonning o'sha paytdagi nomi; telefon uchun "Telefon"
+        old:
+          type: string
+          description: Oldingi qiymat matn sifatida; bo'sh bo'lgan bo'lsa ""
+        new:
+          type: string
+          description: Yangi qiymat matn sifatida; bo'shatilgan bo'lsa ""
+    CustomerHistoryEntry:
+      type: object
+      required: [id, action, actor_name, created_at, changes]
+      properties:
+        id:
+          type: integer
+          format: int64
+        action:
+          type: string
+          enum: [created, updated, deleted]
+        actor_name:
+          type: [string, "null"]
+          description: >
+            Buni qilgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan
+            chiqarilgan bo'lsa, o'sha paytdagi ismi
+        created_at:
+          type: string
+          format: date-time
+        changes:
+          type: array
+          description: Tahrirda o'zgargan maydonlar; qo'shish va o'chirishda bo'sh
+          items:
+            $ref: "#/components/schemas/CustomerChange"

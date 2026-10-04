@@ -287,3 +287,51 @@ func TestDeleteCustomer(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodDelete, "/app/customers/abc", "", bearer(owner)).Code, "an id that is no number")
 	api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Yangi Ali"}`, sh.fish)) // its phone is free again
 }
+
+func TestCustomerHistory(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "user"})
+	stranger, _ := api.signIn(t, "998907777777", map[int64]string{nok: "owner"})
+	api.exec(t, "UPDATE user_companies SET full_name = 'Ali Egasi' WHERE user_phone = $1", alisPhone)
+	api.exec(t, "UPDATE user_companies SET full_name = 'Vali Xodim' WHERE user_phone = $1", valisPhone)
+	sh := api.customerShop(t, olma)
+	ali := api.enter(t, employee, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali","%d":30}`, sh.fish, sh.yosh))
+	rec := api.do(t, http.MethodPut, fmt.Sprintf("/app/customers/%v", ali["id"]),
+		fmt.Sprintf(`{"phone":"998901112255","values":{"%d":"Ali","%d":31}}`, sh.fish, sh.yosh), bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	path := fmt.Sprintf("/app/customers/%v/history", ali["id"])
+
+	rec = api.do(t, http.MethodGet, path, "", bearer(owner))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	history := list(t, rec)
+	require.Len(t, history, 2)
+	edited, entered := history[0], history[1]
+	assert.Equal(t, "updated", edited["action"], "the latest first")
+	assert.Equal(t, "Ali Egasi", edited["actor_name"])
+	assert.Equal(t, []any{
+		map[string]any{"label": "Telefon", "old": "+998 90 111 22 33", "new": "+998 90 111 22 55"},
+		map[string]any{"label": "Yoshi", "old": "30", "new": "31"},
+	}, edited["changes"], "each field the edit changed: before and after")
+	assert.NotEmpty(t, edited["id"])
+	assert.NotEmpty(t, edited["created_at"])
+	assert.Equal(t, "created", entered["action"])
+	assert.Equal(t, "Vali Xodim", entered["actor_name"])
+	assert.Equal(t, []any{}, entered["changes"])
+
+	rec = api.do(t, http.MethodGet, path, "", bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "the history is for the owner")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	rec = api.do(t, http.MethodGet, path, "", bearer(stranger))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "the owner of another company")
+	assert.JSONEq(t, customerNotFound, rec.Body.String())
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/app/customers/abc/history", "", bearer(owner)).Code, "an id that is no number")
+	rec = api.do(t, http.MethodGet, path, "", bearer(undecided))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
+	assert.JSONEq(t, companyRequired, rec.Body.String())
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, path, "").Code, "no access token")
+}

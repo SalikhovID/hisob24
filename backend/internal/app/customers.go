@@ -151,3 +151,36 @@ func (h *Handler) deleteCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+type changeJSON struct {
+	Label string `json:"label"`
+	Old   string `json:"old"`
+	New   string `json:"new"`
+}
+
+type historyEntryJSON struct {
+	ID        int64        `json:"id"`
+	Action    string       `json:"action"`
+	ActorName *string      `json:"actor_name"`
+	CreatedAt time.Time    `json:"created_at"`
+	Changes   []changeJSON `json:"changes"`
+}
+
+// customerHistory is what happened to a customer of the owner's company,
+// the latest first.
+func (h *Handler) customerHistory(w http.ResponseWriter, r *http.Request) {
+	history, err := h.customers.History(r.Context(), sessionCompany(r), pathID(r, "id"))
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	body := make([]historyEntryJSON, 0, len(history))
+	for _, e := range history {
+		changes := make([]changeJSON, 0, len(e.Changes))
+		for _, c := range e.Changes {
+			changes = append(changes, changeJSON{Label: c.Label, Old: c.Old, New: c.New})
+		}
+		body = append(body, historyEntryJSON{ID: e.ID, Action: e.Action, ActorName: e.ActorName, CreatedAt: e.CreatedAt, Changes: changes})
+	}
+	httpx.JSON(w, http.StatusOK, body)
+}

@@ -89,6 +89,8 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Get("/customers/{id}", h.getCustomer)
 				r.Put("/customers/{id}", h.updateCustomer)
 				r.Delete("/customers/{id}", h.deleteCustomer)
+				// Who did what to a customer is for the owner to see.
+				r.With(h.requireOwner).Get("/customers/{id}/history", h.customerHistory)
 			})
 		})
 	})
