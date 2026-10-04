@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { isChoice, kinds } from "./customer-fields"
 import { phoneDigits } from "./phone"
 
 // required is a text field that must hold more than spaces.
@@ -41,3 +42,31 @@ const name = () =>
 export const nameSchema = z.object({
   name: name(),
 })
+
+// fieldSchema is the add-field dialog: the name, the kind, the dropdown of a
+// choice (the select's value, an id or nothing) and the two marks.
+export const fieldSchema = z
+  .object({
+    label: name(),
+    kind: z.enum(kinds),
+    dropdown_id: z.string(),
+    required: z.boolean(),
+    is_unique: z.boolean(),
+  })
+  .superRefine((field, context) => {
+    if (isChoice(field.kind) && field.dropdown_id === "") {
+      context.addIssue({ code: "custom", message: "Dropdownni tanlang", path: ["dropdown_id"] })
+    }
+  })
+  .transform((field) => {
+    // Only a choice has a dropdown, and only text and numbers may be told
+    // not to repeat: what the dialog held for the other kind is left behind.
+    const choice = isChoice(field.kind)
+    return {
+      label: field.label,
+      kind: field.kind,
+      required: field.required,
+      is_unique: !choice && field.is_unique,
+      dropdown_id: choice ? Number(field.dropdown_id) : null,
+    }
+  })
