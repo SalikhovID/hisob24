@@ -237,3 +237,57 @@ func customerPhone(raw string) (string, error) {
 	}
 	return phone, nil
 }
+
+var errCustomerNotFound = apperr.New(apperr.NotFound, "not_found", "Mijoz topilmadi")
+
+// Get is the company's customer with its answers.
+func (s *Service) Get(ctx context.Context, companyID, id int64) (Customer, error) {
+	return customerOf(ctx, s.q, companyID, id)
+}
+
+// customerOf reads the company's customer with its answers.
+func customerOf(ctx context.Context, q *gen.Queries, companyID, id int64) (Customer, error) {
+	row, err := q.GetCustomer(ctx, gen.GetCustomerParams{ID: id, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Customer{}, errCustomerNotFound
+	}
+	if err != nil {
+		return Customer{}, err
+	}
+	answers, err := answersOf(ctx, q, []int64{id})
+	if err != nil {
+		return Customer{}, err
+	}
+	return Customer{
+		ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: answers[id],
+		CreatedByName: row.CreatedByName, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+	}, nil
+}
+
+// answersOf reads the answers of the customers named; a customer with none
+// gets an empty set.
+func answersOf(ctx context.Context, q *gen.Queries, ids []int64) (map[int64]Values, error) {
+	rows, err := q.ListCustomerValues(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	of := make(map[int64]Values, len(ids))
+	for _, id := range ids {
+		of[id] = Values{}
+	}
+	for _, r := range rows {
+		values := of[r.CustomerID]
+		switch {
+		case r.TextValue != nil:
+			values[r.FieldID] = *r.TextValue
+		case r.IntValue != nil:
+			values[r.FieldID] = *r.IntValue
+		case r.Kind == KindDropdown || r.Kind == KindRadio:
+			values[r.FieldID] = *r.OptionID
+		default:
+			chosen, _ := values[r.FieldID].([]int64)
+			values[r.FieldID] = append(chosen, *r.OptionID)
+		}
+	}
+	return of, nil
+}

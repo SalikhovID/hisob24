@@ -344,3 +344,53 @@ func TestCreateEntersACustomerWhollyOrNotAtAll(t *testing.T) {
 		})
 	}
 }
+
+const customerNotFound = "Mijoz topilmadi"
+
+// hide deletes a customer the way the service does, without its history.
+func hide(t *testing.T, pool *pgxpool.Pool, customerID int64) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(), "UPDATE customers SET deleted_at = now() WHERE id = $1", customerID)
+	require.NoError(t, err)
+}
+
+func TestGet(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	ali, err := s.Create(ctx, olma.id, staff, olma.jismoniy.ID, Input{
+		Phone: "998901234567",
+		Values: answers(t, map[int64]any{
+			olma.fish.ID: "Ali Valiyev", olma.yosh.ID: 0, olma.manba.ID: olma.linkedin.ID, olma.jinsi.ID: olma.ayol.ID,
+			olma.tillar.ID: []int64{olma.rus.ID, olma.uzbek.ID}, olma.kanallar.ID: []int64{olma.youtube.ID, olma.instagram.ID},
+		}),
+	})
+	require.NoError(t, err)
+	vali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998905555555", map[int64]any{olma.fish.ID: "Vali"})
+	bare := mustCustomer(t, s, olma.id, mustType(t, s, olma.id, "Maydonsiz").ID, "998907777777", nil)
+
+	got, err := s.Get(ctx, olma.id, ali.ID)
+
+	require.NoError(t, err)
+	assert.Equal(t, ali, got, "the customer as it was entered")
+	assert.Equal(t, Values{
+		olma.fish.ID: "Ali Valiyev", olma.yosh.ID: int64(0), olma.manba.ID: olma.linkedin.ID, olma.jinsi.ID: olma.ayol.ID,
+		olma.tillar.ID: []int64{olma.uzbek.ID, olma.rus.ID}, olma.kanallar.ID: []int64{olma.instagram.ID, olma.youtube.ID},
+	}, got.Values, "an answer of each kind")
+	assert.Equal(t, ptr("Xurshid Xodim"), got.CreatedByName)
+	got, err = s.Get(ctx, olma.id, vali.ID)
+	require.NoError(t, err)
+	assert.Equal(t, Values{olma.fish.ID: "Vali"}, got.Values, "the fields left empty have no answer")
+	got, err = s.Get(ctx, olma.id, bare.ID)
+	require.NoError(t, err)
+	assert.Equal(t, Values{}, got.Values, "a customer with no answers")
+
+	_, err = s.Get(ctx, nok.id, ali.ID)
+	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "another company's customer")
+	_, err = s.Get(ctx, olma.id, 1<<40)
+	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "a customer that is not there")
+	hide(t, pool, ali.ID)
+	_, err = s.Get(ctx, olma.id, ali.ID)
+	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "a deleted customer")
+}
