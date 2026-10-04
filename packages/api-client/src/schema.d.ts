@@ -422,6 +422,262 @@ export interface paths {
         patch: operations["renameEmployee"];
         trace?: never;
     };
+    "/app/customer-dropdowns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dropdownlar, variantlari bilan
+         * @description Access token'dagi kompaniyaning dropdownlari yaratilgan tartibda, har biri variantlari bilan (o'z tartibida, nofaollari ham). Har a'zo o'qiydi: mijoz formasi va ro'yxati shundan quriladi.
+         */
+        get: operations["listCustomerDropdowns"];
+        put?: never;
+        /**
+         * Dropdown yaratish (faqat owner)
+         * @description Variantsiz yangi dropdown. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
+         */
+        post: operations["createCustomerDropdown"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customer-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mijoz turlari, maydonlari bilan
+         * @description Access token'dagi kompaniyaning mijoz turlari o'z tartibida, har biri maydonlari bilan. Har a'zo o'qiydi: mijoz formasi va ro'yxat ustunlari shundan quriladi. Telefon maydon emas: u har mijozda bor.
+         */
+        get: operations["listCustomerTypes"];
+        put?: never;
+        /**
+         * Mijoz turini yaratish (faqat owner)
+         * @description Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
+         */
+        post: operations["createCustomerType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customer-dropdowns/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Dropdownni o'chirish (faqat owner)
+         * @description Dropdown yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Maydonga ulangan dropdown o'chirilmaydi: 409 dropdown_in_use.
+         */
+        delete: operations["deleteCustomerDropdown"];
+        options?: never;
+        head?: never;
+        /** Dropdown nomini o'zgartirish (faqat owner) */
+        patch: operations["renameCustomerDropdown"];
+        trace?: never;
+    };
+    "/app/customer-dropdowns/{id}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dropdownga variant qo'shish (faqat owner)
+         * @description Variant ro'yxat oxiriga qo'shiladi, faol holda. Nomi dropdown ichida takrorlanmaydi (katta-kichik harf farqsiz).
+         */
+        post: operations["addCustomerDropdownOption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customer-dropdowns/{id}/options/{optionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                optionId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Variantni o'chirish (faqat owner)
+         * @description Variant yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda tanlangan variant o'chirilmaydi (409 option_in_use): uni nofaol qilish mumkin.
+         */
+        delete: operations["deleteCustomerDropdownOption"];
+        options?: never;
+        head?: never;
+        /**
+         * Variant nomini yoki faolligini o'zgartirish (faqat owner)
+         * @description Berilmagan maydon o'zgarmaydi. Nofaol variant (is_active = false) yangi tanlovlarda chiqmaydi, uni tanlagan mijozlarda qoladi.
+         */
+        patch: operations["updateCustomerDropdownOption"];
+        trace?: never;
+    };
+    "/app/customer-dropdowns/{id}/options/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Variantlar tartibini o'zgartirish (faqat owner)
+         * @description ids dropdownning barcha variantlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa (variant qo'shilgan yoki o'chirilgan): 409 order_changed.
+         */
+        put: operations["orderCustomerDropdownOptions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customer-types/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mijoz turlari tartibini o'zgartirish (faqat owner)
+         * @description ids kompaniyaning barcha turlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
+         */
+        put: operations["orderCustomerTypes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customer-types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Mijoz turini o'chirish (faqat owner)
+         * @description Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozi bor tur o'chirilmaydi: 409 type_in_use.
+         */
+        delete: operations["deleteCustomerType"];
+        options?: never;
+        head?: never;
+        /** Mijoz turi nomini o'zgartirish (faqat owner) */
+        patch: operations["renameCustomerType"];
+        trace?: never;
+    };
+    "/app/customer-types/{id}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turga maydon qo'shish (faqat owner)
+         * @description Maydon tur oxiriga qo'shiladi. Tanlov turlari (dropdown, multi_dropdown, radio, checkbox) kompaniyaning dropdownini talab qiladi; matn va son dropdown olmaydi va faqat ular takrorlanmas (is_unique) bo'la oladi. Tur va dropdown keyin o'zgarmaydi.
+         */
+        post: operations["addCustomerField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customer-types/{id}/fields/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                fieldId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Maydonni o'chirish (faqat owner)
+         * @description Maydon yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
+         */
+        delete: operations["deleteCustomerField"];
+        options?: never;
+        head?: never;
+        /**
+         * Maydon nomi va belgilarini o'zgartirish (faqat owner)
+         * @description Berilmagan maydon o'zgarmaydi. Tur va dropdown o'zgarmaydi. "Majburiy" yoqilsa, mavjud mijozlarga tegilmaydi. Faol mijozlarda takror qiymatlar bor paytda is_unique yoqilmaydi: 409 duplicates_exist.
+         */
+        patch: operations["updateCustomerField"];
+        trace?: never;
+    };
+    "/app/customer-types/{id}/fields/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Maydonlar tartibini o'zgartirish (faqat owner)
+         * @description ids turning barcha maydonlarini yangi tartibda, har birini bir marta nomlaydi. Birinchi matn maydoni mijoz nomi bo'ladi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
+         */
+        put: operations["orderCustomerFields"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/admin-bot": {
         parameters: {
             query?: never;
@@ -618,6 +874,78 @@ export interface components {
             company: components["schemas"]["AppCompany"] | null;
             companies: components["schemas"]["AppCompany"][];
         };
+        CustomerOption: {
+            /** Format: int64 */
+            id: number;
+            label: string;
+            /** @description Nofaol variant yangi tanlovlarda chiqmaydi, uni tanlagan mijozlarda qoladi */
+            is_active: boolean;
+        };
+        CustomerDropdown: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** @description Variantlar o'z tartibida */
+            options: components["schemas"]["CustomerOption"][];
+        };
+        /**
+         * @description string: matn; int: butun son; dropdown va radio: variantlardan bittasi; multi_dropdown va checkbox: variantlardan bir nechtasi
+         * @enum {string}
+         */
+        CustomerFieldKind: "string" | "int" | "dropdown" | "multi_dropdown" | "radio" | "checkbox";
+        CustomerField: {
+            /** Format: int64 */
+            id: number;
+            label: string;
+            kind: components["schemas"]["CustomerFieldKind"];
+            required: boolean;
+            /** @description Faol mijozlar ichida qiymat takrorlanmaydi (faqat matn va son) */
+            is_unique: boolean;
+            /**
+             * Format: int64
+             * @description Tanlov turlarida variantlar olinadigan dropdown
+             */
+            dropdown_id: number | null;
+        };
+        CustomerType: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** @description Maydonlar o'z tartibida; birinchi matn maydoni mijoz nomi */
+            fields: components["schemas"]["CustomerField"][];
+        };
+        NameInput: {
+            name: string;
+        };
+        OptionInput: {
+            label: string;
+        };
+        OptionPatch: {
+            label?: string;
+            is_active?: boolean;
+        };
+        FieldInput: {
+            label: string;
+            kind: components["schemas"]["CustomerFieldKind"];
+            /** @default false */
+            required: boolean;
+            /** @default false */
+            is_unique: boolean;
+            /**
+             * Format: int64
+             * @description Tanlov turlarida majburiy, matn va sonda bo'lmaydi
+             */
+            dropdown_id?: number | null;
+        };
+        FieldPatch: {
+            label?: string;
+            required?: boolean;
+            is_unique?: boolean;
+        };
+        OrderInput: {
+            /** @description Hamma yozuvning ID'si, yangi tartibda, har biri bir marta */
+            ids: number[];
+        };
     };
     responses: {
         /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
@@ -722,6 +1050,33 @@ export interface components {
         };
         /** @description Kompaniya topilmadi (not_found) */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Sessiya hali kompaniya tanlamagan (company_required) */
+        CompanyRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Tur, maydon, dropdown yoki variant topilmadi (not_found) */
+        CustomerSettingNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use, type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed) */
+        CustomerSettingConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1459,6 +1814,493 @@ export interface operations {
             403: components["responses"]["OwnerOnly"];
             404: components["responses"]["EmployeeNotFound"];
             409: components["responses"]["CannotChangeOwner"];
+        };
+    };
+    listCustomerDropdowns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dropdownlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerDropdown"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createCustomerDropdown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Yaratilgan dropdown */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerDropdown"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    listCustomerTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Turlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerType"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createCustomerType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Yaratilgan tur */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerType"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    deleteCustomerDropdown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    renameCustomerDropdown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Yangi nomli dropdown, variantlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerDropdown"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    addCustomerDropdownOption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptionInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan variant */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOption"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    deleteCustomerDropdownOption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                optionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    updateCustomerDropdownOption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                optionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptionPatch"];
+            };
+        };
+        responses: {
+            /** @description O'zgargan variant */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOption"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    orderCustomerDropdownOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderInput"];
+            };
+        };
+        responses: {
+            /** @description Tartib saqlandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    orderCustomerTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderInput"];
+            };
+        };
+        responses: {
+            /** @description Tartib saqlandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    deleteCustomerType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    renameCustomerType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Yangi nomli tur, maydonlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerType"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    addCustomerField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan maydon */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerField"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    deleteCustomerField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                fieldId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    updateCustomerField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                fieldId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldPatch"];
+            };
+        };
+        responses: {
+            /** @description O'zgargan maydon */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerField"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    orderCustomerFields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderInput"];
+            };
+        };
+        responses: {
+            /** @description Tartib saqlandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["CustomerSettingNotFound"];
+            409: components["responses"]["CustomerSettingConflict"];
         };
     };
     adminBotWebhook: {

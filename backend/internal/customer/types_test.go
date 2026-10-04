@@ -128,11 +128,11 @@ func TestOrderTypes(t *testing.T) {
 
 	const changed = "Ro'yxat o'zgargan. Sahifani yangilang"
 	for about, ids := range map[string][]int64{
-		"a type is missing":          {jismoniy.ID, yuridik.ID},
-		"another company's type":     {jismoniy.ID, yuridik.ID, begona.ID},
-		"a type named twice":         {jismoniy.ID, jismoniy.ID, yuridik.ID},
-		"more types than there are":  {jismoniy.ID, yuridik.ID, hamkor.ID, begona.ID},
-		"nothing at all":             {},
+		"a type is missing":         {jismoniy.ID, yuridik.ID},
+		"another company's type":    {jismoniy.ID, yuridik.ID, begona.ID},
+		"a type named twice":        {jismoniy.ID, jismoniy.ID, yuridik.ID},
+		"more types than there are": {jismoniy.ID, yuridik.ID, hamkor.ID, begona.ID},
+		"nothing at all":            {},
 	} {
 		refused(t, s.OrderTypes(ctx, olma, ids), apperr.Conflict, "order_changed", changed, about)
 	}

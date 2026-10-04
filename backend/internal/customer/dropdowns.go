@@ -11,8 +11,6 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-var errNotImplemented = errors.New("not implemented")
-
 var (
 	errDropdownNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli dropdown allaqachon bor")
 	errDropdownNotFound  = apperr.New(apperr.NotFound, "not_found", "Dropdown topilmadi")
