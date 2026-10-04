@@ -927,10 +927,10 @@ export interface components {
         FieldInput: {
             label: string;
             kind: components["schemas"]["CustomerFieldKind"];
-            /** @default false */
-            required: boolean;
-            /** @default false */
-            is_unique: boolean;
+            /** @description Berilmasa false */
+            required?: boolean;
+            /** @description Berilmasa false */
+            is_unique?: boolean;
             /**
              * Format: int64
              * @description Tanlov turlarida majburiy, matn va sonda bo'lmaydi

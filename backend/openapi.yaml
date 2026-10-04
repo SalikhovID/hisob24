@@ -1824,10 +1824,10 @@ components:
           $ref: "#/components/schemas/CustomerFieldKind"
         required:
           type: boolean
-          default: false
+          description: Berilmasa false
         is_unique:
           type: boolean
-          default: false
+          description: Berilmasa false
         dropdown_id:
           type: [integer, "null"]
           format: int64
