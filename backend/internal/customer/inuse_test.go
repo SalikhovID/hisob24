@@ -91,3 +91,32 @@ func TestAnOptionCustomersChoseIsNotDeleted(t *testing.T) {
 	require.NoError(t, err)
 	assert.NoError(t, s.DeleteOption(ctx, olma.id, manba, olma.instagram.ID), "a choice that was taken back does not hold it")
 }
+
+func TestAFieldWithRepeatedAnswersCannotBeToldNotToRepeat(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{olma.fish.ID: "Ali Valiyev", olma.yosh.ID: 30})
+	vali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, valiPhone, map[int64]any{olma.fish.ID: "ali valiyev", olma.yosh.ID: 31})
+	const repeats = "Bu maydonda takrorlangan qiymatlar bor"
+
+	_, err := s.UpdateField(ctx, olma.id, olma.jismoniy.ID, olma.fish.ID, FieldPatch{Unique: ptr(true)})
+
+	refused(t, err, apperr.Conflict, "duplicates_exist", repeats, "two customers of one name, whatever the case")
+	_, err = s.UpdateField(ctx, olma.id, olma.jismoniy.ID, olma.fish.ID, FieldPatch{Label: ptr("Ism"), Unique: ptr(true)})
+	refused(t, err, apperr.Conflict, "duplicates_exist", repeats)
+	types, err := s.Types(ctx, olma.id)
+	require.NoError(t, err)
+	assert.Equal(t, olma.fish, types[0].Fields[0], "the field stays as it was, its name too")
+
+	yosh, err := s.UpdateField(ctx, olma.id, olma.jismoniy.ID, olma.yosh.ID, FieldPatch{Unique: ptr(true)})
+	require.NoError(t, err, "a field whose answers are all different")
+	assert.True(t, yosh.Unique)
+	_, err = s.UpdateField(ctx, olma.id, olma.jismoniy.ID, olma.fish.ID, FieldPatch{Label: ptr("Ism"), Required: ptr(false), Unique: ptr(false)})
+	assert.NoError(t, err, "what does not ask for it is not checked")
+
+	require.NoError(t, s.Delete(ctx, olma.id, vali.ID, owner))
+	ism, err := s.UpdateField(ctx, olma.id, olma.jismoniy.ID, olma.fish.ID, FieldPatch{Unique: ptr(true)})
+	require.NoError(t, err, "a deleted customer's answer is no repeat")
+	assert.True(t, ism.Unique)
+}

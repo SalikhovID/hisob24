@@ -261,7 +261,8 @@ type FieldPatch struct {
 }
 
 // UpdateField changes the name and the marks of a field of the company's
-// type.
+// type. A field in which customers have the same answer cannot be told not
+// to repeat.
 func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID int64, patch FieldPatch) (Field, error) {
 	if patch.Label != nil {
 		label, err := cleanName(*patch.Label)
@@ -279,8 +280,17 @@ func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID in
 		if err != nil {
 			return err
 		}
-		if choice, _ := kindOf(was.Kind); choice && patch.Unique != nil && *patch.Unique {
-			return errChoiceUnique
+		if patch.Unique != nil && *patch.Unique {
+			if choice, _ := kindOf(was.Kind); choice {
+				return errChoiceUnique
+			}
+			repeats, err := q.CustomerFieldHasDuplicates(ctx, fieldID)
+			if err != nil {
+				return err
+			}
+			if repeats {
+				return apperr.New(apperr.Conflict, "duplicates_exist", "Bu maydonda takrorlangan qiymatlar bor")
+			}
 		}
 		f, err = q.UpdateCustomerField(ctx, gen.UpdateCustomerFieldParams{
 			ID: fieldID, TypeID: typeID, CompanyID: companyID,
