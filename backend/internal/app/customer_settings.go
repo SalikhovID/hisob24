@@ -160,3 +160,22 @@ func (h *Handler) addCustomerDropdownOption(w http.ResponseWriter, r *http.Reque
 	}
 	httpx.JSON(w, http.StatusCreated, toOptionJSON(o))
 }
+
+// updateCustomerDropdownOption renames an option of a dropdown of the
+// owner's company, or turns it off or on; what the body leaves out stays.
+func (h *Handler) updateCustomerDropdownOption(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Label    *string `json:"label"`
+		IsActive *bool   `json:"is_active"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	o, err := h.customers.UpdateOption(r.Context(), sessionCompany(r), pathID(r, "id"), pathID(r, "optionId"),
+		customer.OptionPatch{Label: body.Label, Active: body.IsActive})
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toOptionJSON(o))
+}

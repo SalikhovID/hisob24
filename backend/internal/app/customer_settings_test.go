@@ -202,3 +202,29 @@ func TestAddCustomerDropdownOption(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+func TestUpdateCustomerDropdownOption(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
+	instagram := api.id(t, `INSERT INTO customer_dropdown_options (dropdown_id, label, position)
+		VALUES ($1, 'Instagram', 1) RETURNING id`, manba)
+	path := fmt.Sprintf("/app/customer-dropdowns/%d/options/%d", manba, instagram)
+
+	rec := api.do(t, http.MethodPatch, path, `{"label":"Insta"}`, bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, fmt.Sprintf(`{"id":%d,"label":"Insta","is_active":true}`, instagram), rec.Body.String(), "renamed, still offered")
+
+	rec = api.do(t, http.MethodPatch, path, `{"is_active":false}`, bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, fmt.Sprintf(`{"id":%d,"label":"Insta","is_active":false}`, instagram), rec.Body.String(), "turned off, under the same name")
+
+	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/customer-dropdowns/%d/options/999", manba), `{"label":"Yo'q"}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, optionNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPatch, path, `{"label":"Begona"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}

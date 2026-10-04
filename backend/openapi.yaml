@@ -881,6 +881,53 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customer-dropdowns/{id}/options/{optionId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: optionId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: updateCustomerDropdownOption
+      summary: Variant nomini yoki faolligini o'zgartirish (faqat owner)
+      description: >
+        Berilmagan maydon o'zgarmaydi. Nofaol variant (is_active = false)
+        yangi tanlovlarda chiqmaydi, uni tanlagan mijozlarda qoladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OptionPatch"
+      responses:
+        "200":
+          description: O'zgargan variant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerOption"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
