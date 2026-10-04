@@ -33,6 +33,30 @@ func (q *Queries) CreateCustomerDropdown(ctx context.Context, arg CreateCustomer
 	return i, err
 }
 
+const getCustomerDropdown = `-- name: GetCustomerDropdown :one
+SELECT id, company_id, name, created_at, deleted_at FROM customer_dropdowns
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+`
+
+type GetCustomerDropdownParams struct {
+	ID        int64
+	CompanyID int64
+}
+
+// The company's dropdown; pgx.ErrNoRows when it has none such, or deleted it.
+func (q *Queries) GetCustomerDropdown(ctx context.Context, arg GetCustomerDropdownParams) (CustomerDropdown, error) {
+	row := q.db.QueryRow(ctx, getCustomerDropdown, arg.ID, arg.CompanyID)
+	var i CustomerDropdown
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const listCustomerDropdowns = `-- name: ListCustomerDropdowns :many
 SELECT id, company_id, name, created_at, deleted_at FROM customer_dropdowns
 WHERE company_id = $1 AND deleted_at IS NULL

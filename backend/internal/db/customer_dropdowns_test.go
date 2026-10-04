@@ -3,6 +3,7 @@ package db_test
 import (
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -48,4 +49,22 @@ func TestListCustomerDropdowns(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 2, "the company's own, without the deleted one")
 	assert.Equal(t, []int64{manba.ID, holat.ID}, []int64{list[0].ID, list[1].ID}, "in the order they were made")
+}
+
+func TestGetCustomerDropdown(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+
+	d, err := q.GetCustomerDropdown(ctx, gen.GetCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "Manba", d.Name)
+
+	_, err = q.GetCustomerDropdown(ctx, gen.GetCustomerDropdownParams{ID: manba.ID, CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's dropdown")
+	mustExec(t, pool, "UPDATE customer_dropdowns SET deleted_at = now() WHERE id = $1", manba.ID)
+	_, err = q.GetCustomerDropdown(ctx, gen.GetCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted dropdown")
 }

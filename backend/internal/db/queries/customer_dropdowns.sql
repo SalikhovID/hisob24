@@ -8,3 +8,8 @@ RETURNING *;
 SELECT * FROM customer_dropdowns
 WHERE company_id = $1 AND deleted_at IS NULL
 ORDER BY id;
+
+-- name: GetCustomerDropdown :one
+-- The company's dropdown; pgx.ErrNoRows when it has none such, or deleted it.
+SELECT * FROM customer_dropdowns
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL;
