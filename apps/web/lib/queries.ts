@@ -81,6 +81,19 @@ export function useCustomers(companyId: number | null, filter: CustomerFilter) {
   })
 }
 
+// customerKey names one customer of a company in the cache.
+export const customerKey = (companyId: number | null, id: number) => ["customer", companyId, id] as const
+
+// useCustomer is a customer of the company the session works in, with its
+// answers; every member may ask.
+export function useCustomer(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: customerKey(companyId, id),
+    queryFn: () => call(api.GET("/app/customers/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null,
+  })
+}
+
 // useSwitchCompany moves the session to a company, or to none, and keeps the
 // new access token. /app/me is dropped, so the next page asks for it afresh
 // rather than showing the old company.
