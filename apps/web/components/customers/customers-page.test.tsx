@@ -188,3 +188,38 @@ test("a tab with no customers says that none were found, not that the company ha
   expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
   expect(screen.queryByText("Hali mijoz yo'q")).not.toBeInTheDocument()
 })
+
+test("a search narrows the list, starts from the first page and stays in the address", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  const [jismoniy] = typesOf(1)
+  setLocation(`/customers?type=${jismoniy.id}&page=2`)
+  const { user } = renderWithProviders(<CustomersPage />)
+  const box = await screen.findByRole("searchbox", { name: "Qidirish" })
+
+  await user.type(box, " malika ")
+
+  await waitFor(() => expect(currentUrl()).toBe(`/customers?type=${jismoniy.id}&search=malika`))
+  await waitFor(() => expect(names()).toEqual(["Malika Yusupova"]))
+  // A phone as people write it.
+  await user.clear(box)
+  await user.type(box, "+998 91 111")
+  await waitFor(() => expect(names()).toEqual(["Dilshod Karimov"]))
+
+  await user.clear(box)
+  await user.type(box, "zzz")
+  expect(await screen.findByText("Mijozlar topilmadi")).toBeInTheDocument()
+  expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
+})
+
+test("the list opens with the search the address names, in the box too", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  setLocation("/customers?search=anor")
+
+  renderWithProviders(<CustomersPage />)
+
+  await table()
+  expect(names()).toEqual(["Anor Tekstil MChJ"])
+  expect(screen.getByRole("searchbox", { name: "Qidirish" })).toHaveValue("anor")
+})

@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useCustomerDropdowns, useCustomers, useCustomerTypes, useMe } from "@/lib/queries"
 import type { Customer } from "@/lib/types"
+import { SearchInput } from "./search-input"
 import { useCustomerFilter } from "./use-customer-filter"
 
 // A tab is quiet until it is the chosen one, which then stands out as a card
@@ -118,24 +119,27 @@ export function CustomersPage() {
       />
       <div className="space-y-3">
         {types.data && (
-          // Types are the owner's to make: there may be many, and on a phone
-          // the strip of them scrolls sideways rather than squeezing.
-          <div className="-mx-1 overflow-x-auto px-1 py-0.5 scrollbar-hide">
-            <Tabs
-              value={filter.typeId === null ? "all" : String(filter.typeId)}
-              onValueChange={(value) => update({ typeId: value === "all" ? null : Number(value) })}
-            >
-              <TabsList className="group-data-horizontal/tabs:h-9 max-sm:min-w-full">
-                <TabsTrigger value="all" className={tab}>
-                  Barchasi
-                </TabsTrigger>
-                {types.data.map((type) => (
-                  <TabsTrigger key={type.id} value={String(type.id)} className={tab}>
-                    {type.name}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Types are the owner's to make: there may be many, and the strip
+                of them scrolls sideways rather than squeezing. */}
+            <div className="-mx-1 min-w-0 overflow-x-auto px-1 py-0.5 scrollbar-hide">
+              <Tabs
+                value={filter.typeId === null ? "all" : String(filter.typeId)}
+                onValueChange={(value) => update({ typeId: value === "all" ? null : Number(value) })}
+              >
+                <TabsList className="group-data-horizontal/tabs:h-9 max-sm:min-w-full">
+                  <TabsTrigger value="all" className={tab}>
+                    Barchasi
                   </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+                  {types.data.map((type) => (
+                    <TabsTrigger key={type.id} value={String(type.id)} className={tab}>
+                      {type.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+            <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
           </div>
         )}
         {loading && <ListLoading rows={6} />}
