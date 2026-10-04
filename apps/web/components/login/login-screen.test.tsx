@@ -54,3 +54,12 @@ test("the login is headed by Hisob24's logo", () => {
   const heading = screen.getByRole("heading", { level: 1, name: "Hisob24" })
   expect(within(heading).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
 })
+
+test("the login stands in the frame: the brand's panel says what Hisob24 is", () => {
+  renderWithProviders(<LoginScreen />)
+
+  const panel = screen.getByRole("banner")
+  expect(within(panel).getByRole("heading", { level: 1, name: "Hisob24" })).toBeInTheDocument()
+  expect(within(panel).getByText("Biznesingiz uchun hisob tizimi")).toBeInTheDocument()
+  expect(within(screen.getByRole("main")).getByRole("textbox", { name: "Telefon raqami" })).toBeInTheDocument()
+})
