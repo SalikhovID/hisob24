@@ -40,7 +40,8 @@ export function PageHeader({
         </Link>
       )}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
-        <div className={cn("flex min-w-0 items-center gap-3", stack && "max-md:col-span-2")}>
+        {/* On the narrowest phones (under 352px) an action beside the name would break the name mid-word: there it goes under it. */}
+        <div className={cn("flex min-w-0 items-center gap-3 max-[22rem]:col-span-2", stack && "max-md:col-span-2")}>
           {avatar}
           <h1 className="min-w-0 text-xl font-semibold tracking-tight [overflow-wrap:anywhere] md:text-2xl">{title}</h1>
         </div>
@@ -50,7 +51,7 @@ export function PageHeader({
         {actions && (
           <div
             className={cn(
-              "col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 md:self-center",
+              "col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 max-[22rem]:col-span-2 max-[22rem]:col-start-1 max-[22rem]:row-start-3 max-[22rem]:mt-2 max-[22rem]:justify-start md:self-center",
               // Beside a name and its description the actions span both lines;
               // beside a name alone there is one line, and no second row to
               // push them off the name's centre.

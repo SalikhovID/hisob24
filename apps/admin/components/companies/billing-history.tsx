@@ -10,8 +10,8 @@ import type { Billing } from "@/lib/types"
 // was paid, the period it moved, and a note. A payment with no amount or no
 // note has none: the table marks the gap with a dash, a card leaves it out.
 // The figures are set to the right so the digits line up; the period is
-// context (it gives way first when the table is narrow) and the note takes
-// whatever width is left, wrapping.
+// context (muted, but always there: a column hidden on a narrow table would
+// be shown nowhere) and the note takes whatever width is left, wrapping.
 const columns: Column<Billing>[] = [
   { header: "Sana", primary: true, className: "font-medium whitespace-nowrap", cell: (b) => formatDate(b.created_at) },
   {
@@ -24,13 +24,13 @@ const columns: Column<Billing>[] = [
   {
     header: "Davr",
     card: "tag",
-    className: "pl-8 text-muted-foreground max-lg:hidden",
+    className: "text-muted-foreground xl:pl-8",
     cell: (b) => `${formatDate(b.prev_end_date)} → ${formatDate(b.new_end_date)}`,
   },
   {
     header: "Izoh",
     card: "note",
-    className: "w-full min-w-32 whitespace-normal text-muted-foreground [overflow-wrap:anywhere]",
+    className: "w-full min-w-24 whitespace-normal text-muted-foreground [overflow-wrap:anywhere]",
     cell: (b) => b.note,
   },
 ]

@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDate } from "@/lib/format"
 import { type CompanyFilter, useCompanies } from "@/lib/queries"
 import type { Company } from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { SearchInput } from "./search-input"
 import { CompanyStatusBadge } from "./status-badge"
 import { useCompanyFilter } from "./use-company-filter"
@@ -46,7 +47,9 @@ const columns: Column<Company>[] = [
 
 // A tab is quiet until it is the chosen one, which then stands out as a card
 // on the muted strip. Never the brand color: that is the page's one button.
-const tab = "px-3 data-active:bg-card"
+// Quiet is the muted text color, not the kit's 60% ink: on the strip that
+// was 4.45:1, a hair under what small text needs.
+const tab = "px-3 text-muted-foreground data-active:bg-card"
 
 // CompaniesPage lists the companies, newest first, to search through.
 export function CompaniesPage() {
@@ -74,7 +77,7 @@ export function CompaniesPage() {
           unfiltered && total !== undefined ? `Platformadagi kompaniyalar · ${total} ta` : "Platformadagi kompaniyalar"
         }
         actions={
-          <Link href="/companies/new" className={buttonVariants({ size: "lg", className: "px-3.5" })}>
+          <Link href="/companies/new" className={cn(buttonVariants({ size: "lg" }), "px-3.5")}>
             <PlusIcon />
             Yangi kompaniya
           </Link>

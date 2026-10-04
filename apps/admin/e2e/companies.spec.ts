@@ -125,3 +125,27 @@ test("on a phone a company's whole card opens it; in the table only the company'
     await expect(page).toHaveURL(/\/companies$/)
   }
 })
+
+test("the billing table shows each payment's period on a tablet too", async ({ page, context, baseURL }) => {
+  // Between the phone's cards and the wide table: a tablet, or a desktop zoomed to 200%.
+  await page.setViewportSize({ width: 768, height: 1024 })
+  await signIn(context, baseURL)
+  await page.goto("/companies/1")
+
+  await page.getByRole("button", { name: "Billing qo'shish" }).click()
+  const billing = page.getByRole("dialog", { name: "Billing qo'shish" })
+  await billing.getByLabel("Kunlar soni").fill("30")
+  await billing.getByLabel("Summa").fill("250000")
+  await billing.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(billing).toBeHidden()
+
+  const table = page.getByRole("table", { name: "Billing tarixi" })
+  await expect(table.getByRole("columnheader", { name: "Davr" })).toBeVisible()
+  await expect(table.getByText("01.11.2026 → 01.12.2026")).toBeVisible()
+  // And it fits: the table does not scroll sideways for it.
+  const overflow = await table.evaluate((el) => {
+    const box = el.closest('[data-slot="table-container"]') ?? el
+    return box.scrollWidth - box.clientWidth
+  })
+  expect(overflow).toBeLessThanOrEqual(0)
+})

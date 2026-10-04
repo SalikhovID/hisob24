@@ -120,7 +120,8 @@ function NotFound() {
     <div className="flex flex-col items-center gap-3 py-16 text-center">
       <h1 className="text-xl font-semibold tracking-tight">Kompaniya topilmadi</h1>
       <p className="text-sm text-muted-foreground">Bunday kompaniya yo&apos;q yoki havola noto&apos;g&apos;ri.</p>
-      <Link href="/companies" className={buttonVariants({ variant: "outline", size: "lg" })}>
+      {/* cn settles the variant's classes against the base's: without it the base's transparent border wins in the light theme. */}
+      <Link href="/companies" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
         Kompaniyalar ro&apos;yxatiga
       </Link>
     </div>
