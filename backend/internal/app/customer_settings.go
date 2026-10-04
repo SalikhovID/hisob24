@@ -2,6 +2,9 @@ package app
 
 import (
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
@@ -102,4 +105,31 @@ func (h *Handler) createCustomerDropdown(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	httpx.JSON(w, http.StatusCreated, toDropdownJSON(d))
+}
+
+// pathID is a numeric parameter of the path. What is no number is 0, the id
+// of no record: the service then answers that there is no such record.
+func pathID(r *http.Request, name string) int64 {
+	id, err := strconv.ParseInt(chi.URLParam(r, name), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return id
+}
+
+// renameCustomerDropdown gives a dropdown of the owner's company another
+// name.
+func (h *Handler) renameCustomerDropdown(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name string `json:"name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	d, err := h.customers.RenameDropdown(r.Context(), sessionCompany(r), pathID(r, "id"), body.Name)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toDropdownJSON(d))
 }

@@ -118,3 +118,29 @@ func TestCreateCustomerDropdown(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+const dropdownNotFound = `{"error":"not_found","message":"Dropdown topilmadi"}`
+
+func TestRenameCustomerDropdown(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
+	path := fmt.Sprintf("/app/customer-dropdowns/%d", manba)
+
+	rec := api.do(t, http.MethodPatch, path, `{"name":"Qayerdan"}`, bearer(owner))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, fmt.Sprintf(`{"id":%d,"name":"Qayerdan","options":[]}`, manba), rec.Body.String())
+
+	rec = api.do(t, http.MethodPatch, "/app/customer-dropdowns/999", `{"name":"Yo'q"}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPatch, "/app/customer-dropdowns/abc", `{"name":"Yo'q"}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "an id that is no number")
+	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPatch, path, `{"name":"Begona"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}
