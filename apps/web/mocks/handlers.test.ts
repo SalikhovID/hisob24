@@ -3,6 +3,7 @@
 // (logic/user.md, logic/roles.md; backend/internal/app/employees_test.go).
 import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
+import type { CustomerFieldKind } from "@/lib/types"
 import { chooseCompany, signIn } from "@/test/session"
 import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
 
@@ -292,4 +293,89 @@ test("the owner makes, renames, orders and deletes customer types", async () => 
   await signIn(VALI)
   await chooseCompany(1)
   expect(await failure(createType("Xodimniki"))).toMatchObject({ status: 403, code: "owner_only" })
+})
+
+type FieldBody = { label: string; kind: CustomerFieldKind; required?: boolean; is_unique?: boolean; dropdown_id?: number | null }
+const addField = (id: number, body: FieldBody) =>
+  call(api.POST("/app/customer-types/{id}/fields", { params: { path: { id } }, body }))
+const updateField = (id: number, fieldId: number, body: { label?: string; required?: boolean; is_unique?: boolean }) =>
+  call(api.PATCH("/app/customer-types/{id}/fields/{fieldId}", { params: { path: { id, fieldId } }, body }))
+const deleteField = (id: number, fieldId: number) =>
+  call(api.DELETE("/app/customer-types/{id}/fields/{fieldId}", { params: { path: { id, fieldId } } }))
+const orderFields = (id: number, ids: number[]) =>
+  call(api.PUT("/app/customer-types/{id}/fields/order", { params: { path: { id } }, body: { ids } }))
+
+test("the owner adds fields of the six kinds, changes, orders and deletes them", async () => {
+  await signIn(ALI)
+  const [jismoniy] = await customerTypes()
+  const [fish, source] = jismoniy.fields
+  const [manba] = await customerDropdowns()
+  const labels = async () => (await customerTypes())[0].fields.map((f) => f.label)
+
+  const yosh = await addField(jismoniy.id, { label: " Yoshi ", kind: "int", is_unique: true })
+  expect(yosh).toMatchObject({ label: "Yoshi", kind: "int", required: false, is_unique: true, dropdown_id: null })
+  const kanallar = await addField(jismoniy.id, { label: "Kanallar", kind: "checkbox", required: true, dropdown_id: manba.id })
+  expect(kanallar).toMatchObject({ kind: "checkbox", required: true, is_unique: false, dropdown_id: manba.id })
+  expect(await labels()).toEqual(["F.I.Sh.", "Manba", "Yoshi", "Kanallar"])
+
+  const invalid = { status: 400, code: "validation_error" }
+  expect(await failure(addField(jismoniy.id, { label: " ", kind: "string" }))).toMatchObject({ ...invalid, message: "Nomni kiriting" })
+  expect(await failure(addField(jismoniy.id, { label: "Sana", kind: "date" as CustomerFieldKind }))).toMatchObject({
+    ...invalid,
+    message: "Maydon turini tanlang",
+  })
+  expect(await failure(addField(jismoniy.id, { label: "Tanlov", kind: "radio" }))).toMatchObject({
+    ...invalid,
+    message: "Dropdownni tanlang",
+  })
+  expect(await failure(addField(jismoniy.id, { label: "Tanlov", kind: "radio", dropdown_id: 999 }))).toMatchObject({
+    ...invalid,
+    message: "Dropdownni tanlang",
+  })
+  expect(await failure(addField(jismoniy.id, { label: "Tanlov", kind: "multi_dropdown", dropdown_id: manba.id, is_unique: true }))).toMatchObject({
+    ...invalid,
+    message: "Faqat matn va son maydoni takrorlanmas bo'ladi",
+  })
+  expect(await failure(addField(jismoniy.id, { label: "Izoh", kind: "string", dropdown_id: manba.id }))).toMatchObject({
+    ...invalid,
+    message: "Matn va son maydoniga dropdown ulanmaydi",
+  })
+  expect(await failure(addField(jismoniy.id, { label: "f.i.sh.", kind: "string" }))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli maydon allaqachon bor",
+  })
+  expect(await failure(addField(999, { label: "Ism", kind: "string" }))).toMatchObject({ status: 404, message: "Tur topilmadi" })
+
+  expect(await updateField(jismoniy.id, fish.id, { label: " Ism ", required: false })).toMatchObject({
+    id: fish.id,
+    label: "Ism",
+    kind: "string",
+    required: false,
+    is_unique: false,
+  })
+  expect(await updateField(jismoniy.id, fish.id, { is_unique: true })).toMatchObject({ label: "Ism", required: false, is_unique: true })
+  expect(await failure(updateField(jismoniy.id, source.id, { is_unique: true }))).toMatchObject({
+    ...invalid,
+    message: "Faqat matn va son maydoni takrorlanmas bo'ladi",
+  })
+  expect(await failure(updateField(jismoniy.id, fish.id, { label: "MANBA" }))).toMatchObject({ status: 409, code: "name_taken" })
+  expect(await failure(updateField(jismoniy.id, 999, { label: "Yo'q" }))).toMatchObject({
+    status: 404,
+    code: "not_found",
+    message: "Maydon topilmadi",
+  })
+
+  await orderFields(jismoniy.id, [yosh.id, fish.id, source.id, kanallar.id])
+  expect(await labels()).toEqual(["Yoshi", "Ism", "Manba", "Kanallar"])
+  expect(await failure(orderFields(jismoniy.id, [yosh.id, fish.id]))).toMatchObject({ status: 409, code: "order_changed" })
+  expect(await failure(orderFields(999, []))).toMatchObject({ status: 404, message: "Tur topilmadi" })
+
+  await deleteField(jismoniy.id, yosh.id)
+  expect(await labels()).toEqual(["Ism", "Manba", "Kanallar"])
+  expect(await failure(deleteField(jismoniy.id, yosh.id))).toMatchObject({ status: 404, message: "Maydon topilmadi" })
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await failure(addField(jismoniy.id, { label: "Xodimniki", kind: "string" }))).toMatchObject({ status: 403, code: "owner_only" })
 })

@@ -2,7 +2,8 @@
 // fields and the dropdowns with their options, under the Go API's rules
 // (logic/customers.md; backend/internal/customer).
 import { http, HttpResponse } from "msw"
-import { db, type DropdownRow, dropdownsOf, nextId, toDropdown, toType, type TypeRow, typesOf } from "./data"
+import type { CustomerFieldKind } from "@/lib/types"
+import { db, type DropdownRow, dropdownsOf, type FieldRow, nextId, toDropdown, toField, toType, type TypeRow, typesOf } from "./data"
 import { api, fail, memberSession, ownerSession } from "./gate"
 
 // cleanName is the API's rule for a name: trimmed, not empty, sixty
@@ -44,6 +45,20 @@ const typeTaken = () => fail(409, "name_taken", "Bu nomli tur allaqachon bor")
 
 function liveType(companyId: number, id: number): TypeRow | undefined {
   return db.types.find((t) => t.id === id && t.companyId === companyId && !t.deleted)
+}
+
+const fieldNotFound = () => fail(404, "not_found", "Maydon topilmadi")
+const fieldTaken = () => fail(409, "name_taken", "Bu nomli maydon allaqachon bor")
+const invalid = (message: string) => fail(400, "validation_error", message)
+const choiceUnique = () => invalid("Faqat matn va son maydoni takrorlanmas bo'ladi")
+
+const kinds: Record<CustomerFieldKind, { choice: boolean }> = {
+  string: { choice: false },
+  int: { choice: false },
+  dropdown: { choice: true },
+  multi_dropdown: { choice: true },
+  radio: { choice: true },
+  checkbox: { choice: true },
 }
 
 // fieldsUsing counts the fields that take their options from a dropdown:
@@ -196,6 +211,81 @@ export const customerSettingsHandlers = [
     // Its fields go with it.
     type.deleted = true
     type.fields.forEach((f) => (f.deleted = true))
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post(api("/app/customer-types/:id/fields"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const body = (await request.json()) as {
+      label?: unknown
+      kind?: string
+      required?: boolean
+      is_unique?: boolean
+      dropdown_id?: number | null
+    }
+    const label = cleanName(body.label)
+    if (label instanceof Response) return label
+    const kind = kinds[body.kind as CustomerFieldKind]
+    const dropdownId = body.dropdown_id ?? null
+    const unique = body.is_unique ?? false
+    if (!kind) return invalid("Maydon turini tanlang")
+    if (kind.choice && dropdownId === null) return invalid("Dropdownni tanlang")
+    if (kind.choice && unique) return choiceUnique()
+    if (!kind.choice && dropdownId !== null) return invalid("Matn va son maydoniga dropdown ulanmaydi")
+    if (dropdownId !== null && !liveDropdown(owner.companyId, dropdownId)) return invalid("Dropdownni tanlang")
+    const type = liveType(owner.companyId, Number(params.id))
+    if (!type) return typeNotFound()
+    if (type.fields.some((f) => !f.deleted && same(f.label, label))) return fieldTaken()
+    const field: FieldRow = {
+      id: nextId(),
+      label,
+      kind: body.kind as CustomerFieldKind,
+      required: body.required ?? false,
+      unique,
+      dropdownId,
+    }
+    type.fields.push(field)
+    return HttpResponse.json(toField(field), { status: 201 })
+  }),
+
+  http.put(api("/app/customer-types/:id/fields/order"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const { ids } = (await request.json()) as { ids?: unknown }
+    const type = liveType(owner.companyId, Number(params.id))
+    if (!type) return typeNotFound()
+    const live = type.fields.filter((f) => !f.deleted).map((f) => f.id)
+    if (!sameIds(ids, live)) return orderChanged()
+    type.fields = inOrder(type.fields, ids)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.patch(api("/app/customer-types/:id/fields/:fieldId"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const body = (await request.json()) as { label?: unknown; required?: boolean; is_unique?: boolean }
+    const label = body.label === undefined ? undefined : cleanName(body.label)
+    if (label instanceof Response) return label
+    const type = liveType(owner.companyId, Number(params.id))
+    const field = type?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
+    if (!type || !field) return fieldNotFound()
+    if (kinds[field.kind].choice && body.is_unique) return choiceUnique()
+    if (label !== undefined) {
+      if (type.fields.some((f) => f !== field && !f.deleted && same(f.label, label))) return fieldTaken()
+      field.label = label
+    }
+    if (body.required !== undefined) field.required = body.required
+    if (body.is_unique !== undefined) field.unique = body.is_unique
+    return HttpResponse.json(toField(field))
+  }),
+
+  http.delete(api("/app/customer-types/:id/fields/:fieldId"), ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const field = liveType(owner.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
+    if (!field) return fieldNotFound()
+    field.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
 ]
