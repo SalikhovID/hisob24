@@ -4,7 +4,9 @@ import { useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { Brand } from "@/components/brand"
+import { buttonVariants } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import { CodeField } from "./code-field"
 import { LoginFrame } from "./login-frame"
 
@@ -46,7 +48,7 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
               href={`https://t.me/${botUsername}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              className={cn(buttonVariants({ variant: "outline" }), "h-11 w-full rounded-xl")}
             >
               @{botUsername}
             </a>

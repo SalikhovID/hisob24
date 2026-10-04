@@ -51,3 +51,15 @@ test("on a wide screen the brand's panel stands beside the form, on a phone abov
   expect(form.y).toBeGreaterThan(panel.y)
   expect(form.y).toBeLessThan(panel.y + panel.height)
 })
+
+test("everything the login asks a thumb to press is at least 44px tall", async ({ page }) => {
+  await page.goto("/login")
+
+  const controls = {
+    "code field": page.getByRole("textbox", { name: "Kod" }),
+    "the bot's link": page.getByRole("link", { name: "@hisob24_admin_bot" }),
+  }
+  for (const [what, control] of Object.entries(controls)) {
+    expect((await control.boundingBox())!.height, what).toBeGreaterThanOrEqual(44)
+  }
+})
