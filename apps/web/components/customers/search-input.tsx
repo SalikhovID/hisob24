@@ -31,7 +31,7 @@ export function SearchInput({ value, onSearch }: { value: string; onSearch: (val
       <Input
         type="search"
         aria-label="Qidirish"
-        placeholder="Ism yoki telefon bo'yicha qidirish"
+        placeholder="Ism yoki telefon"
         value={text}
         onChange={(event) => setText(event.target.value)}
         className="h-9 bg-card pl-8"

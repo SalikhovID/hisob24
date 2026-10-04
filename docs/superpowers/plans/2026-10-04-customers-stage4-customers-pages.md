@@ -32,7 +32,7 @@ Qoidalar: `logic/customers.md` (4, 6, 7-bo'limlar). Dizayn: `docs/superpowers/sp
 | Bo'lim | "Mijozlar" |
 | Sahifa | "Mijozlar", "Kompaniyangiz mijozlari · N ta" |
 | Tablar | "Barchasi", keyin tur nomlari |
-| Qidiruv | "Ism yoki telefon bo'yicha qidirish" |
+| Qidiruv | "Ism yoki telefon" (maydon nomi "Qidirish") |
 | Ustunlar | "Mijoz", "Turi", maydon nomlari, "Qo'shgan", "Qo'shilgan"; menyu "Ustunlar" |
 | Tugmalar | "Mijoz qo'shish", "Tahrirlash", "O'chirish", dialogda "Qo'shish" / "Saqlash" |
 | Dialoglar | "Mijoz qo'shish", "Mijozni tahrirlash", "Mijozni o'chirasizmi?" |
