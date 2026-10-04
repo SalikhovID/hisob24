@@ -12,6 +12,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Every page but /login. The API behind the /api rewrite checks its own
-  // tokens, and Next's files and the icon need none.
-  matcher: ["/((?!login(?:$|/)|api/|_next/static|_next/image|favicon\\.ico).*)"],
+  // tokens, and Next's files and the icons need none: the login page shows
+  // them too.
+  matcher: ["/((?!login(?:$|/)|api/|_next/static|_next/image|favicon\\.ico|icon\\.svg|apple-icon\\.png).*)"],
 }
