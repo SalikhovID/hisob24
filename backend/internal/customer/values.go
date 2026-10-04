@@ -64,6 +64,15 @@ func readAnswer(f Field, offered []Option, raw json.RawMessage) (any, error) {
 			return nil, invalid(fmt.Sprintf("«%s» uchun variant noto'g'ri", f.Label))
 		}
 		return id, nil
+	case KindMultiDropdown, KindCheckbox:
+		chosen, ok := readChoices(offered, raw)
+		switch {
+		case !ok:
+			return nil, invalid(fmt.Sprintf("«%s» uchun variant noto'g'ri", f.Label))
+		case len(chosen) == 0:
+			return nil, nil
+		}
+		return chosen, nil
 	}
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
@@ -88,6 +97,30 @@ func offers(offered []Option, id int64) bool {
 		}
 	}
 	return false
+}
+
+// readChoices reads a list of the options a client chose and gives each
+// once, in the order of the dropdown that offers them.
+func readChoices(offered []Option, raw json.RawMessage) ([]int64, bool) {
+	var items []json.RawMessage
+	if json.Unmarshal(raw, &items) != nil {
+		return nil, false
+	}
+	picked := make(map[int64]bool, len(items))
+	for _, item := range items {
+		id, ok := readWhole(item)
+		if !ok || !offers(offered, id) {
+			return nil, false
+		}
+		picked[id] = true
+	}
+	var chosen []int64
+	for _, o := range offered {
+		if picked[o.ID] {
+			chosen = append(chosen, o.ID)
+		}
+	}
+	return chosen, true
 }
 
 // readWhole reads a JSON number that is whole and within maxInt: digits with

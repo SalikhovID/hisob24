@@ -115,3 +115,22 @@ func TestCheckValuesOneChoice(t *testing.T) {
 		{name: "a radio's wrong option", body: `{"4": 21}`, refusal: "«Holati» uchun variant noto'g'ri"},
 	})
 }
+
+func TestCheckValuesSeveralChoices(t *testing.T) {
+	const wrong = "«Tillar» uchun variant noto'g'ri"
+	runCheckCases(t, form, []checkCase{
+		{name: "the options chosen, in the order of the dropdown", body: `{"5": [21, 23, 22]}`, want: Values{5: []int64{22, 21, 23}}},
+		{name: "one option", body: `{"5": [21]}`, want: Values{5: []int64{21}}},
+		{name: "a dropdown of several takes a list too", body: `{"6": [12, 11]}`, want: Values{6: []int64{11, 12}}},
+		{name: "an option chosen twice counts once", body: `{"5": [21, 21, 22]}`, want: Values{5: []int64{22, 21}}},
+		{name: "an empty list is no choice", body: `{"5": []}`, want: Values{}},
+		{name: "null is no choice", body: `{"5": null}`, want: Values{}},
+		{name: "one option outside a list", body: `{"5": 21}`, refusal: wrong},
+		{name: "an option of another dropdown", body: `{"5": [21, 11]}`, refusal: wrong},
+		{name: "an option that is not there", body: `{"5": [999]}`, refusal: wrong},
+		{name: "an option that is turned off", body: `{"6": [11, 13]}`, refusal: "«Kanallar» uchun variant noto'g'ri"},
+		{name: "a name in the list", body: `{"5": ["Rus"]}`, refusal: wrong},
+		{name: "null in the list", body: `{"5": [null]}`, refusal: wrong},
+		{name: "a text", body: `{"5": "21"}`, refusal: wrong},
+	})
+}
