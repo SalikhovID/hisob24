@@ -335,3 +335,39 @@ func TestCustomerHistory(t *testing.T) {
 	assert.JSONEq(t, companyRequired, rec.Body.String())
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, path, "").Code, "no access token")
 }
+
+func TestWhatACustomerUsesIsNotDeleted(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	sh := api.customerShop(t, olma)
+	manba := api.id(t, "SELECT dropdown_id FROM customer_fields WHERE id = $1", sh.manba)
+	api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali","%d":%d}`, sh.fish, sh.manba, sh.instagram))
+	ali := api.enter(t, owner, sh.jismoniy, "998901112244", fmt.Sprintf(`{"%d":"ali"}`, sh.fish))
+
+	for _, tt := range []struct {
+		name, method, path, body, refusal string
+	}{
+		{name: "a type with customers", method: http.MethodDelete, path: fmt.Sprintf("/app/customer-types/%d", sh.jismoniy),
+			refusal: `{"error":"type_in_use","message":"Bu turda 2 ta mijoz bor"}`},
+		{name: "a field customers filled in", method: http.MethodDelete,
+			path:    fmt.Sprintf("/app/customer-types/%d/fields/%d", sh.jismoniy, sh.fish),
+			refusal: `{"error":"field_in_use","message":"Bu maydon 2 ta mijozda to'ldirilgan"}`},
+		{name: "an option a customer chose", method: http.MethodDelete,
+			path:    fmt.Sprintf("/app/customer-dropdowns/%d/options/%d", manba, sh.instagram),
+			refusal: `{"error":"option_in_use","message":"Bu variant 1 ta mijozda tanlangan"}`},
+		{name: "a field with repeated answers told not to repeat", method: http.MethodPatch,
+			path: fmt.Sprintf("/app/customer-types/%d/fields/%d", sh.jismoniy, sh.fish), body: `{"is_unique":true}`,
+			refusal: `{"error":"duplicates_exist","message":"Bu maydonda takrorlangan qiymatlar bor"}`},
+	} {
+		rec := api.do(t, tt.method, tt.path, tt.body, bearer(owner))
+		assert.Equal(t, http.StatusConflict, rec.Code, tt.name)
+		assert.JSONEq(t, tt.refusal, rec.Body.String(), tt.name)
+	}
+
+	// Once the customers are deleted, nothing holds the type.
+	require.Equal(t, http.StatusNoContent, api.do(t, http.MethodDelete, fmt.Sprintf("/app/customers/%v", ali["id"]), "", bearer(owner)).Code)
+	rec := api.do(t, http.MethodDelete, fmt.Sprintf("/app/customer-types/%d", sh.jismoniy), "", bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"type_in_use","message":"Bu turda 1 ta mijoz bor"}`, rec.Body.String(), "a deleted customer does not count")
+}
