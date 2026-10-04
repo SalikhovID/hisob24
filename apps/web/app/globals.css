@@ -73,7 +73,8 @@
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: 0.625rem;
-    /* The logo's color: the brand's own on a light page, white on a dark one. */
+    /* The logo's color: the brand's own on a light page, white on a dark one,
+       the chat's text color inside Telegram (its background is the chat's). */
     --brand: #174449;
     --sidebar: oklch(0.985 0.003 277);
     --sidebar-foreground: oklch(0.21 0.02 277);
@@ -146,6 +147,7 @@ html[data-telegram] {
     --sidebar-primary-foreground: var(--tg-theme-button-text-color);
     --sidebar-accent: var(--tg-theme-bg-color);
     --sidebar-accent-foreground: var(--tg-theme-text-color);
+    --brand: var(--tg-theme-text-color);
 }
 
 /* A list that scrolls without showing its scrollbar: the sidebar's sections. */

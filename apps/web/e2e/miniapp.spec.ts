@@ -76,6 +76,13 @@ test.describe("a phone that is no user's", () => {
     await expect(page.getByRole("button", { name: "Yopish" })).toBeVisible()
     await fits(page)
   })
+
+  test("sees the logo in the chat's text color", async ({ page }) => {
+    await page.goto("/")
+
+    await expect(page.getByRole("heading", { name: "Kirish huquqi yo'q" })).toBeVisible()
+    await expect(page.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(245, 245, 245)")
+  })
 })
 
 test.describe("an account that never shared its phone", () => {
