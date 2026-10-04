@@ -95,6 +95,17 @@ func (q *Queries) DeleteCustomer(ctx context.Context, arg DeleteCustomerParams) 
 	return id, err
 }
 
+const deleteCustomerValues = `-- name: DeleteCustomerValues :exec
+DELETE FROM customer_values WHERE customer_id = $1
+`
+
+// Clears a customer's answers: an edit writes them anew. What they were
+// stays in the customer's history.
+func (q *Queries) DeleteCustomerValues(ctx context.Context, customerID int64) error {
+	_, err := q.db.Exec(ctx, deleteCustomerValues, customerID)
+	return err
+}
+
 const getCustomer = `-- name: GetCustomer :one
 SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
        COALESCE(m.full_name, c.created_by_name) AS created_by_name

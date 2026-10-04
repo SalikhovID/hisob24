@@ -243,3 +243,36 @@ func TestAddCustomerValue(t *testing.T) {
 	err := q.AddCustomerValue(ctx, gen.AddCustomerValueParams{CustomerID: ali.ID, FieldID: s.fish.ID, TextValue: ptr("Vali")})
 	assert.Equal(t, "23505", sqlState(err), "a second text in the field") // unique_violation
 }
+
+// answer stores a text answer of the customer's.
+func answer(t *testing.T, q *gen.Queries, customerID, fieldID int64, text string) {
+	t.Helper()
+	require.NoError(t, q.AddCustomerValue(t.Context(), gen.AddCustomerValueParams{CustomerID: customerID, FieldID: fieldID, TextValue: &text}))
+}
+
+// answerNumber stores a whole number answer of the customer's.
+func answerNumber(t *testing.T, q *gen.Queries, customerID, fieldID, number int64) {
+	t.Helper()
+	require.NoError(t, q.AddCustomerValue(t.Context(), gen.AddCustomerValueParams{CustomerID: customerID, FieldID: fieldID, IntValue: &number}))
+}
+
+// choose stores an option the customer chose in a field.
+func choose(t *testing.T, q *gen.Queries, customerID, fieldID, optionID int64) {
+	t.Helper()
+	require.NoError(t, q.AddCustomerValue(t.Context(), gen.AddCustomerValueParams{CustomerID: customerID, FieldID: fieldID, OptionID: &optionID}))
+}
+
+func TestDeleteCustomerValues(t *testing.T) {
+	q, pool := setup(t)
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	vali := s.customer(t, q, "998905555555")
+	answer(t, q, ali.ID, s.fish.ID, "Ali Valiyev")
+	choose(t, q, ali.ID, s.manba.ID, s.instagram.ID)
+	answer(t, q, vali.ID, s.fish.ID, "Vali Aliyev")
+
+	require.NoError(t, q.DeleteCustomerValues(t.Context(), ali.ID))
+
+	assert.Empty(t, storedValues(t, pool, ali.ID), "an edit writes the answers anew")
+	assert.Equal(t, []string{"F.I.Sh.: Vali Aliyev"}, storedValues(t, pool, vali.ID), "the other customers' answers stay")
+}

@@ -40,3 +40,8 @@ RETURNING id;
 -- chosen. A choice of several options is a row for each.
 INSERT INTO customer_values (customer_id, field_id, option_id, text_value, int_value)
 VALUES (sqlc.arg('customer_id'), sqlc.arg('field_id'), sqlc.narg('option_id'), sqlc.narg('text_value'), sqlc.narg('int_value'));
+
+-- name: DeleteCustomerValues :exec
+-- Clears a customer's answers: an edit writes them anew. What they were
+-- stays in the customer's history.
+DELETE FROM customer_values WHERE customer_id = $1;
