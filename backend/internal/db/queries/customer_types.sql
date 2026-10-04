@@ -74,3 +74,11 @@ SET label = COALESCE(sqlc.narg('label'), label),
 WHERE id = sqlc.arg('id') AND type_id = sqlc.arg('type_id') AND company_id = sqlc.arg('company_id')
   AND deleted_at IS NULL
 RETURNING *;
+
+-- name: DeleteCustomerField :one
+-- Hides a field of the company's type. pgx.ErrNoRows when the type has no
+-- such field, or it is deleted already.
+UPDATE customer_fields SET deleted_at = now()
+WHERE id = sqlc.arg('id') AND type_id = sqlc.arg('type_id') AND company_id = sqlc.arg('company_id')
+  AND deleted_at IS NULL
+RETURNING id;

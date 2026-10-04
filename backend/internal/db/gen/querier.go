@@ -57,6 +57,9 @@ type Querier interface {
 	// Hides an option of the company's dropdown. pgx.ErrNoRows when the dropdown
 	// has no such option, or it is deleted already.
 	DeleteCustomerDropdownOption(ctx context.Context, arg DeleteCustomerDropdownOptionParams) (int64, error)
+	// Hides a field of the company's type. pgx.ErrNoRows when the type has no
+	// such field, or it is deleted already.
+	DeleteCustomerField(ctx context.Context, arg DeleteCustomerFieldParams) (int64, error)
 	// Hides the type: nothing is removed. pgx.ErrNoRows when the company has no
 	// such type, or deleted it already.
 	DeleteCustomerType(ctx context.Context, arg DeleteCustomerTypeParams) (int64, error)

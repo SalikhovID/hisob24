@@ -274,3 +274,27 @@ func TestUpdateCustomerField(t *testing.T) {
 	_, err = q.UpdateCustomerField(ctx, renamed)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted field")
 }
+
+func TestDeleteCustomerField(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	fish := addField(t, q, olma.ID, jismoniy.ID, "F.I.Sh.", "string", nil)
+	its := gen.DeleteCustomerFieldParams{CompanyID: olma.ID, TypeID: jismoniy.ID, ID: fish.ID}
+
+	begona := its
+	begona.CompanyID = nok.ID
+	_, err := q.DeleteCustomerField(ctx, begona)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's field")
+
+	id, err := q.DeleteCustomerField(ctx, its)
+	require.NoError(t, err)
+	assert.Equal(t, fish.ID, id)
+	var hidden bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM customer_fields WHERE id = $1", fish.ID).Scan(&hidden))
+	assert.True(t, hidden, "the row stays, marked deleted")
+	_, err = q.DeleteCustomerField(ctx, its)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
+}
