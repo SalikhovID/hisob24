@@ -7,6 +7,7 @@ package gen
 
 import (
 	"context"
+	"time"
 )
 
 const createCustomer = `-- name: CreateCustomer :one
@@ -44,6 +45,45 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getCustomer = `-- name: GetCustomer :one
+SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
+       COALESCE(m.full_name, c.created_by_name) AS created_by_name
+FROM customers c
+LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
+WHERE c.id = $1 AND c.company_id = $2 AND c.deleted_at IS NULL
+`
+
+type GetCustomerParams struct {
+	ID        int64
+	CompanyID int64
+}
+
+type GetCustomerRow struct {
+	ID            int64
+	TypeID        int64
+	Phone         string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CreatedByName *string
+}
+
+// The company's customer; pgx.ErrNoRows when it has none such, or deleted
+// it. created_by_name is the name the member who entered it goes by in the
+// company now; once they have left it (or go by no name), the name of then.
+func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error) {
+	row := q.db.QueryRow(ctx, getCustomer, arg.ID, arg.CompanyID)
+	var i GetCustomerRow
+	err := row.Scan(
+		&i.ID,
+		&i.TypeID,
+		&i.Phone,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedByName,
 	)
 	return i, err
 }

@@ -88,6 +88,10 @@ type Querier interface {
 	// passed and it is not blocked). pgx.ErrNoRows when the user is not its
 	// member.
 	GetCompanyAccess(ctx context.Context, arg GetCompanyAccessParams) (GetCompanyAccessRow, error)
+	// The company's customer; pgx.ErrNoRows when it has none such, or deleted
+	// it. created_by_name is the name the member who entered it goes by in the
+	// company now; once they have left it (or go by no name), the name of then.
+	GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error)
 	// The company's dropdown; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerDropdown(ctx context.Context, arg GetCustomerDropdownParams) (CustomerDropdown, error)
 	// A field of the company's type; pgx.ErrNoRows when the type has none such,

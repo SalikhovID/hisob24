@@ -3,6 +3,7 @@ package db_test
 import (
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -46,4 +47,47 @@ func TestCreateCustomer(t *testing.T) {
 	assert.Nil(t, createCustomer(t, q, olma.ID, jismoniy.ID, "998907654321").CreatedByName, "a member without a name")
 	_, err = q.CreateCustomer(ctx, gen.CreateCustomerParams{CompanyID: olma.ID, TypeID: jismoniy.ID, Phone: "998901234567", CreatedBy: enteredBy})
 	assert.Equal(t, "23505", sqlState(err), "the number is a customer of the company already") // unique_violation
+}
+
+func TestGetCustomer(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	createUser(t, q, enteredBy, "Ali")
+	addMember(t, q, olma.ID, enteredBy, "Ali Valiyev", "user")
+	c, err := q.CreateCustomer(ctx, gen.CreateCustomerParams{
+		CompanyID: olma.ID, TypeID: jismoniy.ID, Phone: "998901234567", CreatedBy: enteredBy, CreatedByName: ptr("Ali aka"),
+	})
+	require.NoError(t, err)
+
+	got, err := q.GetCustomer(ctx, gen.GetCustomerParams{ID: c.ID, CompanyID: olma.ID})
+
+	require.NoError(t, err)
+	assert.Equal(t, c.ID, got.ID)
+	assert.Equal(t, jismoniy.ID, got.TypeID)
+	assert.Equal(t, "998901234567", got.Phone)
+	assert.Equal(t, c.CreatedAt, got.CreatedAt)
+	assert.Equal(t, c.UpdatedAt, got.UpdatedAt)
+	assert.Equal(t, ptr("Ali Valiyev"), got.CreatedByName, "the name the member goes by in the company now")
+
+	mustExec(t, pool, "UPDATE user_companies SET full_name = NULL WHERE user_phone = $1", enteredBy)
+	got, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: c.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, ptr("Ali aka"), got.CreatedByName, "a member with no name now: the name of then")
+	mustExec(t, pool, "DELETE FROM user_companies WHERE user_phone = $1", enteredBy)
+	got, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: c.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, ptr("Ali aka"), got.CreatedByName, "a member who has left: the name of then")
+	nameless := createCustomer(t, q, olma.ID, jismoniy.ID, "998907654321")
+	got, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: nameless.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Nil(t, got.CreatedByName, "no name then and none now")
+
+	_, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: c.ID, CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's customer")
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", c.ID)
+	_, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: c.ID, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer")
 }
