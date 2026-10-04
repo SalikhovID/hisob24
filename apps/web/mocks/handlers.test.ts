@@ -248,3 +248,48 @@ test("the owner adds options, renames them, turns them off, orders and deletes t
   await chooseCompany(1)
   expect(await failure(addOption(manba.id, "Xodimniki"))).toMatchObject({ status: 403, code: "owner_only" })
 })
+
+const createType = (name: string) => call(api.POST("/app/customer-types", { body: { name } }))
+const renameType = (id: number, name: string) =>
+  call(api.PATCH("/app/customer-types/{id}", { params: { path: { id } }, body: { name } }))
+const deleteType = (id: number) => call(api.DELETE("/app/customer-types/{id}", { params: { path: { id } } }))
+const orderTypes = (ids: number[]) => call(api.PUT("/app/customer-types/order", { body: { ids } }))
+
+test("the owner makes, renames, orders and deletes customer types", async () => {
+  await signIn(ALI)
+  const [jismoniy, yuridik] = await customerTypes()
+  const names = async () => (await customerTypes()).map((t) => t.name)
+
+  const hamkor = await createType(" Hamkor ")
+  expect(hamkor).toMatchObject({ name: "Hamkor", fields: [] })
+  expect(await names()).toEqual(["Jismoniy", "Yuridik", "Hamkor"])
+  expect(await failure(createType("jismoniy"))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli tur allaqachon bor",
+  })
+  expect(await failure(createType(" "))).toMatchObject({ status: 400, message: "Nomni kiriting" })
+
+  expect(await renameType(hamkor.id, "Hamkorlar")).toEqual({ id: hamkor.id, name: "Hamkorlar", fields: [] })
+  expect(await failure(renameType(hamkor.id, "YURIDIK"))).toMatchObject({ status: 409, code: "name_taken" })
+  expect(await failure(renameType(999, "Yo'q"))).toMatchObject({ status: 404, code: "not_found", message: "Tur topilmadi" })
+
+  await orderTypes([hamkor.id, jismoniy.id, yuridik.id])
+  expect(await names()).toEqual(["Hamkorlar", "Jismoniy", "Yuridik"])
+  expect(await failure(orderTypes([jismoniy.id, yuridik.id]))).toMatchObject({
+    status: 409,
+    code: "order_changed",
+    message: "Ro'yxat o'zgargan. Sahifani yangilang",
+  })
+
+  await deleteType(hamkor.id)
+  expect(await names()).toEqual(["Jismoniy", "Yuridik"])
+  expect(await failure(deleteType(hamkor.id))).toMatchObject({ status: 404, message: "Tur topilmadi" })
+  // Manba's only field went with its type: the dropdown is free to delete.
+  await deleteType(jismoniy.id)
+  await deleteDropdown((await customerDropdowns())[0].id)
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await failure(createType("Xodimniki"))).toMatchObject({ status: 403, code: "owner_only" })
+})
