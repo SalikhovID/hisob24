@@ -404,7 +404,7 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 		if err != nil {
 			return err
 		}
-		values, err := checkValues(fields, options, nil, in.Values)
+		values, err := checkValues(fields, options, c.Values, in.Values)
 		if err != nil {
 			return err
 		}

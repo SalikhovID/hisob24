@@ -673,3 +673,42 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, before, read)
 }
+
+func TestUpdateKeepsATurnedOffOptionTheCustomerHas(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{
+		olma.fish.ID: "Ali", olma.manba.ID: olma.youtube.ID, olma.kanallar.ID: []int64{olma.instagram.ID, olma.youtube.ID},
+	})
+	vali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali", olma.manba.ID: olma.instagram.ID})
+	_, err := s.UpdateOption(ctx, olma.id, *olma.manba.DropdownID, olma.youtube.ID, OptionPatch{Active: ptr(false)})
+	require.NoError(t, err)
+	const wrong = "«Manba» uchun variant noto'g'ri"
+
+	got, err := s.Update(ctx, olma.id, ali.ID, owner, Input{Phone: aliPhone, Values: answers(t, map[int64]any{
+		olma.fish.ID: "Ali Valiyev", olma.manba.ID: olma.youtube.ID, olma.kanallar.ID: []int64{olma.youtube.ID, olma.linkedin.ID},
+	})})
+
+	require.NoError(t, err, "the customer who has the option keeps it through an edit")
+	assert.Equal(t, Values{
+		olma.fish.ID: "Ali Valiyev", olma.manba.ID: olma.youtube.ID, olma.kanallar.ID: []int64{olma.linkedin.ID, olma.youtube.ID},
+	}, got.Values)
+
+	_, err = s.Update(ctx, olma.id, vali.ID, owner, Input{Phone: valiPhone, Values: answers(t, map[int64]any{
+		olma.fish.ID: "Vali", olma.manba.ID: olma.youtube.ID,
+	})})
+	refused(t, err, apperr.Invalid, "validation_error", wrong, "a customer who has it not cannot take it")
+	_, err = s.Create(ctx, olma.id, owner, olma.jismoniy.ID, Input{Phone: "998900000009", Values: answers(t, map[int64]any{
+		olma.fish.ID: "Soli", olma.manba.ID: olma.youtube.ID,
+	})})
+	refused(t, err, apperr.Invalid, "validation_error", wrong, "nor can a new customer")
+
+	// Once Ali gives the option up, it is gone for Ali too.
+	_, err = s.Update(ctx, olma.id, ali.ID, owner, Input{Phone: aliPhone, Values: answers(t, map[int64]any{olma.fish.ID: "Ali Valiyev"})})
+	require.NoError(t, err)
+	_, err = s.Update(ctx, olma.id, ali.ID, owner, Input{Phone: aliPhone, Values: answers(t, map[int64]any{
+		olma.fish.ID: "Ali Valiyev", olma.manba.ID: olma.youtube.ID,
+	})})
+	refused(t, err, apperr.Invalid, "validation_error", wrong, "given up, it cannot be taken back")
+}
