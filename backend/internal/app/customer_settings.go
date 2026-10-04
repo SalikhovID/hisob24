@@ -225,3 +225,17 @@ func (h *Handler) createCustomerType(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusCreated, toCustomerTypeJSON(t))
 }
+
+// orderCustomerTypes puts the customer types of the owner's company in a
+// new order.
+func (h *Handler) orderCustomerTypes(w http.ResponseWriter, r *http.Request) {
+	var body orderBody
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	if err := h.customers.OrderTypes(r.Context(), sessionCompany(r), body.IDs); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

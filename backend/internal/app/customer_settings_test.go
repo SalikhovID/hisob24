@@ -312,3 +312,33 @@ func TestCreateCustomerType(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+// addType inserts a customer type of the company at a place and returns its id.
+func (api testAPI) addType(t *testing.T, companyID int64, name string, position int) int64 {
+	t.Helper()
+	return api.id(t, "INSERT INTO customer_types (company_id, name, position) VALUES ($1, $2, $3) RETURNING id",
+		companyID, name, position)
+}
+
+func TestOrderCustomerTypes(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	jismoniy := api.addType(t, olma, "Jismoniy", 1)
+	yuridik := api.addType(t, olma, "Yuridik", 2)
+
+	rec := api.do(t, http.MethodPut, "/app/customer-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, yuridik, jismoniy), bearer(owner))
+
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	types := list(t, api.do(t, http.MethodGet, "/app/customer-types", "", bearer(owner)))
+	require.Len(t, types, 2)
+	assert.Equal(t, "Yuridik", types[0]["name"], "the types stand in the new order")
+
+	rec = api.do(t, http.MethodPut, "/app/customer-types/order", fmt.Sprintf(`{"ids":[%d]}`, jismoniy), bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code, "a type is missing")
+	assert.JSONEq(t, orderChanged, rec.Body.String())
+	rec = api.do(t, http.MethodPut, "/app/customer-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, jismoniy, yuridik), bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}
