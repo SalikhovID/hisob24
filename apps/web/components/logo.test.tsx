@@ -23,3 +23,9 @@ test("LogoMark is the short mark, a decoration: what it stands beside carries th
   expect(mark).toHaveAttribute("fill", "currentColor")
   expect(screen.queryByRole("img")).not.toBeInTheDocument()
 })
+
+test("LogoMark takes the size it is given", () => {
+  const { container } = render(<LogoMark className="w-9" />)
+
+  expect(container.querySelector('[data-slot="logo-mark"]')).toHaveClass("w-9")
+})
