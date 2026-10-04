@@ -132,6 +132,46 @@ func (q *Queries) GetCustomerType(ctx context.Context, arg GetCustomerTypeParams
 	return i, err
 }
 
+const listCustomerFields = `-- name: ListCustomerFields :many
+SELECT id, company_id, type_id, label, kind, dropdown_id, required, is_unique, position, created_at, deleted_at FROM customer_fields
+WHERE company_id = $1 AND deleted_at IS NULL
+ORDER BY type_id, position, id
+`
+
+// Every field of the company's types, each type's in its order, without the
+// deleted ones (a deleted type's fields are deleted with it).
+func (q *Queries) ListCustomerFields(ctx context.Context, companyID int64) ([]CustomerField, error) {
+	rows, err := q.db.Query(ctx, listCustomerFields, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CustomerField{}
+	for rows.Next() {
+		var i CustomerField
+		if err := rows.Scan(
+			&i.ID,
+			&i.CompanyID,
+			&i.TypeID,
+			&i.Label,
+			&i.Kind,
+			&i.DropdownID,
+			&i.Required,
+			&i.IsUnique,
+			&i.Position,
+			&i.CreatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCustomerTypes = `-- name: ListCustomerTypes :many
 SELECT id, company_id, name, position, created_at, deleted_at FROM customer_types
 WHERE company_id = $1 AND deleted_at IS NULL

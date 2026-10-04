@@ -108,6 +108,9 @@ type Querier interface {
 	ListCustomerDropdownOptions(ctx context.Context, companyID int64) ([]CustomerDropdownOption, error)
 	// The company's dropdowns in the order they were made, without the deleted.
 	ListCustomerDropdowns(ctx context.Context, companyID int64) ([]CustomerDropdown, error)
+	// Every field of the company's types, each type's in its order, without the
+	// deleted ones (a deleted type's fields are deleted with it).
+	ListCustomerFields(ctx context.Context, companyID int64) ([]CustomerField, error)
 	// The company's types in their order, without the deleted.
 	ListCustomerTypes(ctx context.Context, companyID int64) ([]CustomerType, error)
 	// The user's companies for /app/me and for choosing one at login, each with

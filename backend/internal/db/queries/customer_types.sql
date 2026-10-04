@@ -48,3 +48,10 @@ SELECT t.company_id, t.id, sqlc.arg('label')::text, sqlc.arg('kind')::text, sqlc
 FROM customer_types t
 WHERE t.id = sqlc.arg('type_id') AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
 RETURNING *;
+
+-- name: ListCustomerFields :many
+-- Every field of the company's types, each type's in its order, without the
+-- deleted ones (a deleted type's fields are deleted with it).
+SELECT * FROM customer_fields
+WHERE company_id = $1 AND deleted_at IS NULL
+ORDER BY type_id, position, id;

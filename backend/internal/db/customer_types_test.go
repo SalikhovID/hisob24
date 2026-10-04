@@ -184,3 +184,27 @@ func TestAddCustomerField(t *testing.T) {
 	_, err = q.AddCustomerField(ctx, gen.AddCustomerFieldParams{CompanyID: nok.ID, TypeID: jismoniy.ID, Label: "Ism", Kind: "string"})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's type")
 }
+
+func TestListCustomerFields(t *testing.T) {
+	q, pool := setup(t)
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	yuridik := createType(t, q, olma.ID, "Yuridik")
+	fish := addField(t, q, olma.ID, jismoniy.ID, "F.I.Sh.", "string", nil)
+	yosh := addField(t, q, olma.ID, jismoniy.ID, "Yoshi", "int", nil)
+	eski := addField(t, q, olma.ID, jismoniy.ID, "Eski", "string", nil)
+	nomi := addField(t, q, olma.ID, yuridik.ID, "Nomi", "string", nil)
+	addField(t, q, nok.ID, createType(t, q, nok.ID, "Begona").ID, "Ism", "string", nil)
+	mustExec(t, pool, "UPDATE customer_fields SET position = 0 WHERE id = $1", yosh.ID)
+	mustExec(t, pool, "UPDATE customer_fields SET deleted_at = now() WHERE id = $1", eski.ID)
+
+	list, err := q.ListCustomerFields(t.Context(), olma.ID)
+
+	require.NoError(t, err)
+	ids := make([]int64, 0, len(list))
+	for _, f := range list {
+		ids = append(ids, f.ID)
+	}
+	assert.Equal(t, []int64{yosh.ID, fish.ID, nomi.ID}, ids, "each of the company's types' fields in their order, without the deleted")
+}
