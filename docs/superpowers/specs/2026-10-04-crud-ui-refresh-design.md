@@ -228,4 +228,4 @@ Hech bir test o'chirilmadi yoki o'tkazib yuborilmadi.
 Foydalanuvchi so'rovi bilan ("ishni tugatib commit push qilib yubor", "+ deploy"). Backend va migratsiya o'zgarmagan: faqat frontend image qayta quriladi.
 
 1. `3fbad9e` (review'dan oldingi holat): toza nusxada ikkala ilova `next build` dan o'tdi; baza nusxasi `/var/backups/hisob24-v2/hisob24-pre-crud-ui-20261004-0202.sql.gz`; `deploy/ship.sh` exit 0; tekshiruv 14 / 14 (sessiyasiz), goose 4, satrlar soni o'zgarmagan, API log'ida xato yo'q.
-2. Review tuzatishlari bilan ikkinchi deploy: natijasi yakuniy hisobotda.
+2. `df94ee9` (review tuzatishlari bilan): toza nusxada build o'tdi; baza nusxasi `/var/backups/hisob24-v2/hisob24-pre-crud-ui-review-20261004-0940.sql.gz`; `deploy/ship.sh` exit 0; tekshiruv 16 / 16 (shu jumladan kompaniya sahifasining yangi sarlavhasi: yangi build ishlayotganining belgisi), goose 4, satrlar soni o'zgarmagan, API log'ida xato yo'q. Avvalgi daraxt: `/var/www/hisob24-v2.prev`.
