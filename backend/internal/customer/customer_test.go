@@ -85,11 +85,23 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	yuridik := mustType(t, s, olma, "Yuridik")
 	fish := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "F.I.Sh.", Kind: "string"})
 	yosh := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Yoshi", Kind: "int"})
+	addMember(t, pool, olma, owner, "Egamberdi Egasi", "owner")
+	ali := mustCustomer(t, s, olma, jismoniy.ID, aliPhone, map[int64]any{fish.ID: "Ali"})
+	vali := mustCustomer(t, s, olma, jismoniy.ID, valiPhone, map[int64]any{fish.ID: "Vali"})
 
 	for _, w := range []struct {
 		name  string
 		write func() error
 	}{
+		{"Create", func() error {
+			_, err := s.Create(ctx, olma, owner, jismoniy.ID, Input{Phone: firmaPhone, Values: answers(t, map[int64]any{fish.ID: "Soli"})})
+			return err
+		}},
+		{"Update", func() error {
+			_, err := s.Update(ctx, olma, ali.ID, owner, Input{Phone: aliPhone, Values: answers(t, map[int64]any{fish.ID: "Ali Valiyev"})})
+			return err
+		}},
+		{"Delete", func() error { return s.Delete(ctx, olma, vali.ID, owner) }},
 		{"CreateDropdown", func() error { _, err := s.CreateDropdown(ctx, olma, "Holat"); return err }},
 		{"RenameDropdown", func() error { _, err := s.RenameDropdown(ctx, olma, manba.ID, "Qayerdan"); return err }},
 		{"OrderOptions", func() error { return s.OrderOptions(ctx, olma, manba.ID, []int64{linkedin.ID, instagram.ID}) }},
