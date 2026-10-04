@@ -160,6 +160,10 @@ Foydalanuvchi so'rovi bilan ("deploy qil"). Backend va migratsiya o'zgarmagan: f
 - Server: to'rt konteyner healthy; satrlar soni deploy'dan oldingi bilan bir xil (11 jadval); `.env` saqlangan. Avvalgi daraxt: `/var/www/hisob24-v2.prev` (CRUD review deploy'i).
 - Kirish bilan bog'liq oqimlar production'da sinalmadi (haqiqiy SMS ketadi): ular foydalanuvchiga qoladi.
 
+## Keyingi o'zgarish (2026-10-04, login dizayni)
+
+`/login` da logotip endi brend panelida turadi va ikkala mavzuda oq (Telegram ichida chat matn rangi): `docs/superpowers/specs/2026-10-04-login-design.md`. Shu sabab `e2e/logo.spec.ts` panelni tekshiradi; sahifa fonidagi brend rangi tekshiruvi web'da `e2e/login.spec.ts` ga (`/select-company`), admin'da `e2e/miniapp-and-mobile.spec.ts` ga (qobiq) ko'chdi. `logo.tsx` ga `Logo24` qo'shildi (belgining "24" i); belgining ikki yo'li konstantaga chiqdi, geometriya o'zgarmadi.
+
 ## Qamrovdan tashqari
 
 - UI urg'u rangini `#174449` ga o'tkazish (hozir indigo): alohida qaror.

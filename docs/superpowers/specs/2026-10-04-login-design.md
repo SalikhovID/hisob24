@@ -1,6 +1,6 @@
 # Login dizayni: brend paneli — dizayn
 
-Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja: `docs/superpowers/plans/2026-10-04-login.md`).
+Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja: `docs/superpowers/plans/2026-10-04-login.md`), amalga oshirilgan.
 
 ## Maqsad
 
@@ -73,7 +73,7 @@ Kompyuter (lg, 1024px dan)                         Telefon
 | Kod kataklari | 44px, yopishgan | 56px baland, alohida-alohida, 24px 600 raqam |
 | "Kodni qayta yuborish" | 32px ghost | 44px konturli |
 | "Raqamni o'zgartirish" | 32px link | 44px ghost |
-| Admin bot havolasi | matn havola | 44px konturli tugma ko'rinishida |
+| Admin bot havolasi | matn havola | 44px to'ldirilgan tugma ko'rinishida |
 | API rad javobi | qizil matn | `Refusal` (ikonka bilan, boshqa formalardagidek) |
 
 `h1` brend bo'lib qoladi (web "Hisob24", admin "Hisob24 Admin"); qadam sarlavhalari `h2`.
@@ -97,6 +97,44 @@ Kompyuter (lg, 1024px dan)                         Telefon
 **Talab o'zgargani uchun o'zgargan test.** `apps/{web,admin}/e2e/logo.spec.ts` (bitta test, ikkala ilovada bir xil) `/login` da logotip light'da `rgb(23, 68, 73)` ekanini tekshirardi. Endi login'da logotip panel ustida, ikkala mavzuda oq: test shunga qayta yozildi. Brend rangi tekshiruvi yo'qolmadi: undan oldin yangi testlar qo'shildi (web: `/select-company`; admin: qobiq), mutatsiya bilan tekshirilgan.
 
 Boshqa hech bir mavjud test o'zgarmaydi, o'chirilmaydi, o'tkazib yuborilmaydi.
+
+## Amalga oshirilgani (2026-10-04)
+
+**O'lchamlar.** Skrinshotlarda sozlangan: 375px va 1280px, light, dark, Telegram'ning to'q mavzusi; qo'shimcha 320, 768, 1024, 1280×600, 1920px.
+
+| Bo'lak | Class'lar | Natija |
+|---|---|---|
+| Ramka | `flex min-h-svh flex-col lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]` | lg dan boshlab ikki ustun (1280px da panel 582px), har biri ekran bo'yi |
+| Panel, telefonda | `px-6 pt-10 pb-16`; logotip `h-7`; tavsif 14px, 72% oq | tasma 160px, shundan 136px ko'rinadi (varaq 24px ustiga chiqadi) |
+| Panel, keng ekranda | `lg:p-12`, `justify-between`; logotip `h-8`; tavsif `lg:max-w-[14ch] lg:text-4xl lg:leading-[1.1] lg:font-semibold lg:tracking-tight` | logotip tepada, tavsif pastda: "Biznesingiz uchun / hisob tizimi" |
+| `Logo24` | telefonda `-right-16 bottom-0 h-[110%]`; lg dan `-right-20 w-[105%]`, bo'yi bo'yicha o'rtada; `opacity-[0.07]`, `-z-10` | telefonda tepasi va o'ng tomoni kesilgan; keng ekranda "2" butun, "4" tikuvda kesilgan |
+| Varaq (`main`) | `-mt-6 rounded-t-3xl px-6 pt-8 pb-10`; lg dan `mt-0 rounded-none px-12 justify-center`; ustun `max-w-sm` | telefonda forma tepadan boshlanadi (klaviatura ochilganda sakramaydi); keng ekranda bo'yi bo'yicha o'rtada |
+| Qadam sarlavhasi va izoh | `text-2xl font-semibold tracking-tight`; `text-sm text-muted-foreground`; orasi 6px, formagacha 32px | |
+| Telefon maydoni | `PhoneField size="lg"`: `h-12 rounded-xl`, raqamlar `text-lg font-medium tabular-nums` | 48px; yozilgan raqam yonidagi +998 bilan bir vaznda |
+| "Kodni olish" | `h-12 w-full rounded-xl text-base` | 48px |
+| Kod kataklari | `h-14 flex-1 rounded-xl border text-2xl font-semibold tabular-nums`, orasi 8px | 56px baland; eni 375px da 48px, 320px da 39px, 1280px da 57px |
+| Ikkinchi darajali amallar | `h-11 w-full rounded-xl`; qayta yuborish konturli, raqamni o'zgartirish ghost; kataklardan 8px pastroq | 44px |
+| Admin bot havolasi | `buttonVariants({ variant: "secondary" })`, `h-11 w-full rounded-xl` | 44px, to'ldirilgan |
+| Telegram'dan qaytgan xabar | `mb-6 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm` | sarlavha ustida |
+
+**Rejadan farqlar.**
+
+- `CodeField` ga ikki qo'shimcha sikl: maydon ochilganda klaviaturani oladi (`autoFocus`), va uni ushlab turgan qadam `ref` orqali inputga yetadi (rad etilgan koddan keyin fokusni qaytarish uchun). Ikkalasi avvalgi nusxalarda bor edi, endi testi ham bor.
+- Bot havolasi konturli emas, to'ldirilgan tugma (`secondary`): konturli holda kod ustidagi yettinchi bo'sh katakdek ko'rinardi.
+- Panel tavsifi `text-balance` siz, 14ch o'lchovda: muvozanatli o'rash uni birinchi so'zdan keyin sindirardi ("Biznesingiz / uchun hisob tizimi"; brauzerda o'lchangan: ikki bo'linish eni 297 va 296px, deyarli teng).
+- Yozilgan telefon raqami `font-medium`: +998 bilan bir vaznda.
+
+**Harakat** (brauzerda o'lchangan): sahifa ochilganda animatsiya yo'q; kod yuborilganda va raqamga qaytilganda `enter`, 0.2s. `prefers-reduced-motion` umumiy qoida bilan o'chadi.
+
+**Tekshiruv.**
+
+- `make lint`: 0 issues. `make test`: Go 15 paket; web 247 (avval 231), admin 216 (avval 202), api-client 1. `make e2e`: admin 40 (avval 32), web 62 (avval 54).
+- O'zgargan mavjud test bitta: `e2e/logo.spec.ts` (ikkala ilovada, yuqorida). Boshqa mavjud testlar o'zgarmadi, o'chirilmadi, o'tkazib yuborilmadi; mavjud test fayllariga faqat yangi testlar va import qo'shildi.
+- Xarakteristika testlari mutatsiya bilan tekshirildi: sahifa fonidagi logotip rangi (ikkala ilova; light va dark tokeni navbat bilan qizil qilindi) va admin'dagi joylashuv (grid va varaqning ustiga chiqishi olib tashlandi). Har safar fayl zaxira nusxadan tiklandi.
+- `cmp`: `components/logo.tsx`, `login/login-frame.tsx`, `login/code-field.tsx` (testlari bilan) va `e2e/logo.spec.ts` ikkala ilovada bayt-bir xil. `globals.css` faqat avvalgi ikki joyda farq qiladi.
+- Production build (`next build`): ikkala ilova.
+- Yon scroll yo'q: 320, 375, 768, 1024, 1280 (shu jumladan 1280×600) va 1920px da, ikkala qadamda.
+- Lokal haqiqiy stack (Go API, haqiqiy Postgres, `SMS_DRIVER=log`; telefon o'lchami va desktop), 12 / 12: sessiyasiz `/login` ga yo'naltirish, raqam, noto'g'ri kod rad etilishi, log'dagi kod bilan kirish, reload'dan keyin sessiya; admin'da noto'g'ri kod va `cmd/otp` kodi bilan kirish. API rad etgan javoblar faqat kutilganlari: ikki noto'g'ri kod (401) va reload'dan keyingi `GET /app/me` (401, keyin refresh). Shu tekshiruv ochgan satrlar o'chirildi, satrlar soni boshlang'ich bilan bir xil.
 
 ## Qamrovdan tashqari
 
