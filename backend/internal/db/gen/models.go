@@ -55,6 +55,18 @@ type Company struct {
 	CreatedAt time.Time
 }
 
+type Customer struct {
+	ID            int64
+	CompanyID     int64
+	TypeID        int64
+	Phone         string
+	CreatedBy     string
+	CreatedByName *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
+}
+
 type CustomerDropdown struct {
 	ID        int64
 	CompanyID int64
@@ -94,6 +106,14 @@ type CustomerType struct {
 	Position  int32
 	CreatedAt time.Time
 	DeletedAt *time.Time
+}
+
+type CustomerValue struct {
+	CustomerID int64
+	FieldID    int64
+	OptionID   *int64
+	TextValue  *string
+	IntValue   *int64
 }
 
 type RefreshToken struct {

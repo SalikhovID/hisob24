@@ -378,3 +378,54 @@ func TestCustomers(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, "SELECT created_by FROM customers WHERE id = $1", ali).Scan(&by))
 	assert.Equal(t, "998902222222", by, "the customers stay theirs")
 }
+
+func TestCustomerValues(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	jismoniy := addCustomerType(t, pool, olma, "Jismoniy")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	var manba, instagram, linkedin, ali int64
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma).Scan(&manba))
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdown_options (dropdown_id, label, position) VALUES ($1, 'Instagram', 1) RETURNING id", manba).Scan(&instagram))
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdown_options (dropdown_id, label, position) VALUES ($1, 'LinkedIn', 2) RETURNING id", manba).Scan(&linkedin))
+	addField := func(label, kind string, dropdownID *int64) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, `INSERT INTO customer_fields (company_id, type_id, label, kind, dropdown_id, position)
+			VALUES ($1, $2, $3, $4, $5, 1) RETURNING id`, olma, jismoniy, label, kind, dropdownID).Scan(&id))
+		return id
+	}
+	fish, yosh, izoh, qayerdan := addField("F.I.Sh.", "string", nil), addField("Yoshi", "int", nil),
+		addField("Izoh", "string", nil), addField("Qayerdan", "checkbox", &manba)
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO customers (company_id, type_id, phone, created_by)
+		VALUES ($1, $2, '998901234567', '998901111111') RETURNING id`, olma, jismoniy).Scan(&ali))
+	// answer writes one row of Ali's answers.
+	answer := func(fieldID int64, optionID *int64, text *string, number *int64) error {
+		_, err := pool.Exec(ctx, `INSERT INTO customer_values (customer_id, field_id, option_id, text_value, int_value)
+			VALUES ($1, $2, $3, $4, $5)`, ali, fieldID, optionID, text, number)
+		return err
+	}
+	name, other, age := "Ali Valiyev", "Vali Aliyev", int64(30)
+
+	require.NoError(t, answer(fish, nil, &name, nil), "a text")
+	require.NoError(t, answer(yosh, nil, nil, &age), "a whole number")
+	assert.Equal(t, "23505", sqlState(answer(fish, nil, &other, nil)), "a second text in the field") // unique_violation
+	assert.Equal(t, "23505", sqlState(answer(yosh, nil, nil, &age)), "a second number in the field")
+	require.NoError(t, answer(qayerdan, &instagram, nil, nil), "an option")
+	assert.NoError(t, answer(qayerdan, &linkedin, nil, nil), "another option of the same field")
+	assert.Equal(t, "23505", sqlState(answer(qayerdan, &instagram, nil, nil)), "the option is chosen already")
+
+	assert.Equal(t, "23514", sqlState(answer(izoh, nil, nil, nil)), "an answer of nothing") // check_violation
+	assert.Equal(t, "23514", sqlState(answer(izoh, nil, &name, &age)), "a text and a number at once")
+	assert.Equal(t, "23514", sqlState(answer(izoh, &instagram, &name, nil)), "an option and a text at once")
+
+	missing := int64(1 << 40)
+	assert.Equal(t, "23503", sqlState(answer(missing, nil, &name, nil)), "a field that is not there") // foreign_key_violation
+	assert.Equal(t, "23503", sqlState(answer(izoh, &missing, nil, nil)), "an option that is not there")
+	_, err = pool.Exec(ctx, "INSERT INTO customer_values (customer_id, field_id, text_value) VALUES ($1, $2, 'Ali')", missing, izoh)
+	assert.Equal(t, "23503", sqlState(err), "a customer that is not there")
+}
