@@ -1,4 +1,4 @@
-import { HouseIcon, type LucideIcon, UsersIcon } from "lucide-react"
+import { HouseIcon, type LucideIcon, SettingsIcon, UsersIcon } from "lucide-react"
 import type { Role } from "./types"
 
 // NavItem is a section of the app in the sidebar.
@@ -13,6 +13,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { label: "Bosh sahifa", href: "/", icon: HouseIcon },
   { label: "Xodimlar", href: "/employees", icon: UsersIcon, ownerOnly: true },
+  { label: "Sozlamalar", href: "/settings", icon: SettingsIcon, ownerOnly: true },
 ]
 
 // navFor is the sections someone with role may open; undefined is a session

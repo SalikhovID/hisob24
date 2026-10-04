@@ -5,7 +5,7 @@ import type { Role } from "./types"
 const labels = (role?: Role) => navFor(role).map((item) => item.label)
 
 test("the owner may open every section", () => {
-  expect(labels("owner")).toEqual(["Bosh sahifa", "Xodimlar"])
+  expect(labels("owner")).toEqual(["Bosh sahifa", "Xodimlar", "Sozlamalar"])
 })
 
 test("an employee, and a session whose role is not known yet, see no section of the owner's", () => {
@@ -20,6 +20,7 @@ test.each([
   ["/employees", "/employees/998901234567", true],
   ["/employees", "/employees-archive", false],
   ["/employees", "/", false],
+  ["/settings", "/settings/customer-types/7", true],
 ])("the section at %s holds the page %s: %s", (href, pathname, current) => {
   expect(isCurrent(href, pathname)).toBe(current)
 })
