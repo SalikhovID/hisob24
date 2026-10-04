@@ -100,3 +100,22 @@ WHERE f.id = n.id AND f.type_id = sqlc.arg('type_id') AND f.deleted_at IS NULL;
 -- deleted. Deleted fields do not count.
 SELECT count(*) FROM customer_fields
 WHERE dropdown_id = $1 AND deleted_at IS NULL;
+
+-- name: SeedCustomerTypes :exec
+-- Gives a new company the ready types: Jismoniy (F.I.Sh.) and Yuridik (Nomi,
+-- INN). The companies that were there before got them from migration 00005.
+WITH jismoniy AS (
+    INSERT INTO customer_types (company_id, name, position)
+    VALUES (sqlc.arg('company_id'), 'Jismoniy', 1)
+    RETURNING id, company_id
+), yuridik AS (
+    INSERT INTO customer_types (company_id, name, position)
+    VALUES (sqlc.arg('company_id'), 'Yuridik', 2)
+    RETURNING id, company_id
+)
+INSERT INTO customer_fields (company_id, type_id, label, kind, required, is_unique, position)
+SELECT company_id, id, 'F.I.Sh.', 'string', true, false, 1 FROM jismoniy
+UNION ALL
+SELECT company_id, id, 'Nomi', 'string', true, false, 1 FROM yuridik
+UNION ALL
+SELECT company_id, id, 'INN', 'int', true, true, 2 FROM yuridik;

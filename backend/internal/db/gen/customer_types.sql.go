@@ -349,6 +349,31 @@ func (q *Queries) RenameCustomerType(ctx context.Context, arg RenameCustomerType
 	return i, err
 }
 
+const seedCustomerTypes = `-- name: SeedCustomerTypes :exec
+WITH jismoniy AS (
+    INSERT INTO customer_types (company_id, name, position)
+    VALUES ($1, 'Jismoniy', 1)
+    RETURNING id, company_id
+), yuridik AS (
+    INSERT INTO customer_types (company_id, name, position)
+    VALUES ($1, 'Yuridik', 2)
+    RETURNING id, company_id
+)
+INSERT INTO customer_fields (company_id, type_id, label, kind, required, is_unique, position)
+SELECT company_id, id, 'F.I.Sh.', 'string', true, false, 1 FROM jismoniy
+UNION ALL
+SELECT company_id, id, 'Nomi', 'string', true, false, 1 FROM yuridik
+UNION ALL
+SELECT company_id, id, 'INN', 'int', true, true, 2 FROM yuridik
+`
+
+// Gives a new company the ready types: Jismoniy (F.I.Sh.) and Yuridik (Nomi,
+// INN). The companies that were there before got them from migration 00005.
+func (q *Queries) SeedCustomerTypes(ctx context.Context, companyID int64) error {
+	_, err := q.db.Exec(ctx, seedCustomerTypes, companyID)
+	return err
+}
+
 const updateCustomerField = `-- name: UpdateCustomerField :one
 UPDATE customer_fields
 SET label = COALESCE($1, label),

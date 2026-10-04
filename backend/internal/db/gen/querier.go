@@ -161,6 +161,9 @@ type Querier interface {
 	// step of rotation and of logout. A revoked, expired or unknown token gives
 	// pgx.ErrNoRows.
 	RevokeRefreshToken(ctx context.Context, tokenHash string) (RevokeRefreshTokenRow, error)
+	// Gives a new company the ready types: Jismoniy (F.I.Sh.) and Yuridik (Nomi,
+	// INN). The companies that were there before got them from migration 00005.
+	SeedCustomerTypes(ctx context.Context, companyID int64) error
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// Makes the user the company's owner under full_name, a member or not. The
 	// owner before has to be demoted first: a company has one owner.

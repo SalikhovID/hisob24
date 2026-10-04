@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -367,4 +368,36 @@ func TestCountCustomerDropdownFields(t *testing.T) {
 	unused, err := q.CountCustomerDropdownFields(ctx, &holat.ID)
 	require.NoError(t, err)
 	assert.Zero(t, unused)
+}
+
+func TestSeedCustomerTypes(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+
+	require.NoError(t, q.SeedCustomerTypes(ctx, olma.ID))
+
+	types, err := q.ListCustomerTypes(ctx, olma.ID)
+	require.NoError(t, err)
+	names := map[int64]string{}
+	for _, ct := range types {
+		names[ct.ID] = ct.Name
+	}
+	require.Len(t, types, 2)
+	assert.Equal(t, []string{"Jismoniy", "Yuridik"}, []string{types[0].Name, types[1].Name}, "in this order")
+	fields, err := q.ListCustomerFields(ctx, olma.ID)
+	require.NoError(t, err)
+	described := make([]string, 0, len(fields))
+	for _, f := range fields {
+		described = append(described, fmt.Sprintf("%s: %s %s required=%t unique=%t", names[f.TypeID], f.Label, f.Kind, f.Required, f.IsUnique))
+	}
+	assert.Equal(t, []string{
+		"Jismoniy: F.I.Sh. string required=true unique=false",
+		"Yuridik: Nomi string required=true unique=false",
+		"Yuridik: INN int required=true unique=true",
+	}, described)
+	none, err := q.ListCustomerTypes(ctx, nok.ID)
+	require.NoError(t, err)
+	assert.Empty(t, none, "another company gets nothing")
 }
