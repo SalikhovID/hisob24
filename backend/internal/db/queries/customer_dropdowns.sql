@@ -37,3 +37,11 @@ SELECT d.id, sqlc.arg('label')::text,
 FROM customer_dropdowns d
 WHERE d.id = sqlc.arg('dropdown_id') AND d.company_id = sqlc.arg('company_id') AND d.deleted_at IS NULL
 RETURNING *;
+
+-- name: ListCustomerDropdownOptions :many
+-- Every option of the company's dropdowns, each dropdown's in its order,
+-- without the deleted ones and those of deleted dropdowns.
+SELECT o.* FROM customer_dropdown_options o
+JOIN customer_dropdowns d ON d.id = o.dropdown_id
+WHERE d.company_id = $1 AND d.deleted_at IS NULL AND o.deleted_at IS NULL
+ORDER BY o.dropdown_id, o.position, o.id;

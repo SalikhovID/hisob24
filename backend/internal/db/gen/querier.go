@@ -87,6 +87,9 @@ type Querier interface {
 	// The company's members under the names they go by there: the owner first,
 	// then the users in the order they joined.
 	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
+	// Every option of the company's dropdowns, each dropdown's in its order,
+	// without the deleted ones and those of deleted dropdowns.
+	ListCustomerDropdownOptions(ctx context.Context, companyID int64) ([]CustomerDropdownOption, error)
 	// The company's dropdowns in the order they were made, without the deleted.
 	ListCustomerDropdowns(ctx context.Context, companyID int64) ([]CustomerDropdown, error)
 	// The user's companies for /app/me and for choosing one at login, each with

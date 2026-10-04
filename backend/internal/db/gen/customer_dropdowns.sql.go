@@ -110,6 +110,43 @@ func (q *Queries) GetCustomerDropdown(ctx context.Context, arg GetCustomerDropdo
 	return i, err
 }
 
+const listCustomerDropdownOptions = `-- name: ListCustomerDropdownOptions :many
+SELECT o.id, o.dropdown_id, o.label, o.position, o.is_active, o.created_at, o.deleted_at FROM customer_dropdown_options o
+JOIN customer_dropdowns d ON d.id = o.dropdown_id
+WHERE d.company_id = $1 AND d.deleted_at IS NULL AND o.deleted_at IS NULL
+ORDER BY o.dropdown_id, o.position, o.id
+`
+
+// Every option of the company's dropdowns, each dropdown's in its order,
+// without the deleted ones and those of deleted dropdowns.
+func (q *Queries) ListCustomerDropdownOptions(ctx context.Context, companyID int64) ([]CustomerDropdownOption, error) {
+	rows, err := q.db.Query(ctx, listCustomerDropdownOptions, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CustomerDropdownOption{}
+	for rows.Next() {
+		var i CustomerDropdownOption
+		if err := rows.Scan(
+			&i.ID,
+			&i.DropdownID,
+			&i.Label,
+			&i.Position,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCustomerDropdowns = `-- name: ListCustomerDropdowns :many
 SELECT id, company_id, name, created_at, deleted_at FROM customer_dropdowns
 WHERE company_id = $1 AND deleted_at IS NULL

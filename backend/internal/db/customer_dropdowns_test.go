@@ -139,3 +139,31 @@ func TestAddCustomerDropdownOption(t *testing.T) {
 		gen.AddCustomerDropdownOptionParams{CompanyID: nok.ID, DropdownID: manba.ID, Label: "Begona"})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's dropdown")
 }
+
+func TestListCustomerDropdownOptions(t *testing.T) {
+	q, pool := setup(t)
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+	holat := createDropdown(t, q, olma.ID, "Holat")
+	eski := createDropdown(t, q, olma.ID, "Eski")
+	instagram := addOption(t, q, olma.ID, manba.ID, "Instagram")
+	linkedin := addOption(t, q, olma.ID, manba.ID, "LinkedIn")
+	youtube := addOption(t, q, olma.ID, manba.ID, "YouTube")
+	yangi := addOption(t, q, olma.ID, holat.ID, "Yangi")
+	addOption(t, q, olma.ID, eski.ID, "Eski variant")
+	addOption(t, q, nok.ID, createDropdown(t, q, nok.ID, "Begona").ID, "Begona variant")
+	mustExec(t, pool, "UPDATE customer_dropdown_options SET position = 0 WHERE id = $1", youtube.ID)
+	mustExec(t, pool, "UPDATE customer_dropdown_options SET deleted_at = now() WHERE id = $1", linkedin.ID)
+	mustExec(t, pool, "UPDATE customer_dropdowns SET deleted_at = now() WHERE id = $1", eski.ID)
+
+	list, err := q.ListCustomerDropdownOptions(t.Context(), olma.ID)
+
+	require.NoError(t, err)
+	ids := make([]int64, 0, len(list))
+	for _, o := range list {
+		ids = append(ids, o.ID)
+	}
+	assert.Equal(t, []int64{youtube.ID, instagram.ID, yangi.ID}, ids,
+		"each of the company's dropdowns' options in their order, without the deleted")
+}
