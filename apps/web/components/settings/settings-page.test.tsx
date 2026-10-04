@@ -119,3 +119,21 @@ test("the add-type dialog says what is missing, and why the API refused", async 
   expect(screen.getByRole("dialog", { name: "Tur qo'shish" })).toBeInTheDocument()
   expect(typesOf(1)).toHaveLength(2)
 })
+
+test("a customer type is renamed from its row", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+  const types = await typeList()
+
+  await user.click(within(types).getByRole("button", { name: "Nomini o'zgartirish: Yuridik" }))
+  const dialog = await screen.findByRole("dialog", { name: "Tur nomini o'zgartirish" })
+  const name = within(dialog).getByLabelText("Nomi")
+  expect(name).toHaveValue("Yuridik")
+  await user.clear(name)
+  await user.type(name, "Firma")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Tur nomi o'zgartirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await typeList())).toEqual(["Jismoniy", "Firma"]))
+})

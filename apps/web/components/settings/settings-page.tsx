@@ -1,7 +1,7 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { PlusIcon } from "lucide-react"
+import { PencilIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { type ReactNode, useId } from "react"
 import { PageHeader } from "@/components/page-header"
@@ -11,7 +11,7 @@ import { api, call } from "@/lib/api"
 import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import { useOwner } from "@/lib/use-owner"
 import { NameDialog } from "./name-dialog"
-import { SettingRow, settingList } from "./setting-row"
+import { iconAction, SettingRow, settingList } from "./setting-row"
 
 const link = "rounded-sm underline-offset-4 hover:underline"
 
@@ -71,6 +71,30 @@ export function SettingsPage() {
                     </Link>
                   }
                   detail={type.fields.map((field) => field.label).join(", ")}
+                  actions={
+                    <NameDialog
+                      title="Tur nomini o'zgartirish"
+                      description="Turning maydonlari va shu turdagi mijozlar o'zgarmaydi."
+                      initial={type.name}
+                      submit="Saqlash"
+                      done="Tur nomi o'zgartirildi"
+                      tooltip="Nomini o'zgartirish"
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={iconAction}
+                          aria-label={`Nomini o'zgartirish: ${type.name}`}
+                        >
+                          <PencilIcon />
+                        </Button>
+                      }
+                      onSubmit={async (name) => {
+                        await call(api.PATCH("/app/customer-types/{id}", { params: { path: { id: type.id } }, body: { name } }))
+                        await refreshTypes()
+                      }}
+                    />
+                  }
                 />
               </li>
             ))}

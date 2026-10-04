@@ -5,6 +5,16 @@ import { cn } from "@/lib/utils"
 // border around the rows, a thin line between them.
 export const settingList = "divide-y rounded-xl border bg-card"
 
+// thumb makes an icon button big enough for a thumb where there is no
+// pointer: 36px to see, 44px to hit.
+const thumb =
+  "max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1 pointer-coarse:relative pointer-coarse:size-9 pointer-coarse:after:absolute pointer-coarse:after:-inset-1"
+
+// iconAction and iconDanger style the icon buttons at a row's end: quiet
+// until pointed at, the one that deletes in red.
+export const iconAction = `text-muted-foreground hover:text-foreground ${thumb}`
+export const iconDanger = `text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20 ${thumb}`
+
 // SettingRow is one line of a settings list: the name of what is set up
 // (a type, a field, a dropdown, an option) with its marks beside it, a
 // quieter line on what it holds, and at the end what can be done with it.
