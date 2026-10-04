@@ -217,3 +217,14 @@ func (s *Service) OrderOptions(ctx context.Context, companyID, dropdownID int64,
 		return q.OrderCustomerDropdownOptions(ctx, gen.OrderCustomerDropdownOptionsParams{DropdownID: dropdownID, Ids: ids})
 	})
 }
+
+// DeleteDropdown hides the company's dropdown; its name is free again.
+func (s *Service) DeleteDropdown(ctx context.Context, companyID, id int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.DeleteCustomerDropdown(ctx, gen.DeleteCustomerDropdownParams{ID: id, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errDropdownNotFound
+		}
+		return err
+	})
+}

@@ -241,3 +241,32 @@ func TestOrderOptions(t *testing.T) {
 	mustOption(t, s, olma, manba.ID, "Tavsiya")
 	assert.Equal(t, []string{"YouTube", "Instagram", "LinkedIn", "Tavsiya"}, labels(), "a new option still goes last")
 }
+
+func TestDeleteDropdown(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	manba := mustDropdown(t, s, olma, "Manba")
+	mustOption(t, s, olma, manba.ID, "Instagram")
+	holat := mustDropdown(t, s, olma, "Holat")
+
+	require.NoError(t, s.DeleteDropdown(ctx, olma, manba.ID))
+
+	list, err := s.Dropdowns(ctx, olma)
+	require.NoError(t, err)
+	assert.Equal(t, []Dropdown{{ID: holat.ID, Name: "Holat", Options: []Option{}}}, list, "the dropdown is gone from the company's")
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_dropdowns WHERE company_id = $1", olma).Scan(&rows))
+	assert.Equal(t, 2, rows, "nothing leaves the database")
+	again, err := s.CreateDropdown(ctx, olma, "Manba")
+	require.NoError(t, err, "the deleted dropdown's name is free again")
+	assert.NotEqual(t, manba.ID, again.ID)
+
+	const notFound = "Dropdown topilmadi"
+	refused(t, s.DeleteDropdown(ctx, olma, manba.ID), apperr.NotFound, "not_found", notFound, "deleted already")
+	refused(t, s.DeleteDropdown(ctx, nok, holat.ID), apperr.NotFound, "not_found", notFound, "another company's dropdown")
+	_, err = s.RenameDropdown(ctx, olma, manba.ID, "Qayta")
+	refused(t, err, apperr.NotFound, "not_found", notFound, "a deleted dropdown is not renamed")
+	_, err = s.AddOption(ctx, olma, manba.ID, "LinkedIn")
+	refused(t, err, apperr.NotFound, "not_found", notFound, "and takes no options")
+}
