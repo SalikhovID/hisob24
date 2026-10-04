@@ -47,3 +47,33 @@ func (s *Service) CreateType(ctx context.Context, companyID int64, name string) 
 	}
 	return Type{ID: ct.ID, Name: ct.Name, Fields: []Field{}}, nil
 }
+
+// Types lists the company's types in their order, each with its fields in
+// theirs.
+func (s *Service) Types(ctx context.Context, companyID int64) ([]Type, error) {
+	rows, err := s.q.ListCustomerTypes(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
+	fields, err := s.q.ListCustomerFields(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
+	of := map[int64][]Field{}
+	for _, f := range fields {
+		of[f.TypeID] = append(of[f.TypeID], toField(f))
+	}
+	list := make([]Type, 0, len(rows))
+	for _, ct := range rows {
+		t := Type{ID: ct.ID, Name: ct.Name, Fields: of[ct.ID]}
+		if t.Fields == nil {
+			t.Fields = []Field{}
+		}
+		list = append(list, t)
+	}
+	return list, nil
+}
+
+func toField(f gen.CustomerField) Field {
+	return Field{ID: f.ID, Label: f.Label, Kind: f.Kind, Required: f.Required, Unique: f.IsUnique, DropdownID: f.DropdownID}
+}
