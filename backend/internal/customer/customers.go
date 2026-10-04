@@ -291,3 +291,55 @@ func answersOf(ctx context.Context, q *gen.Queries, ids []int64) (map[int64]Valu
 	}
 	return of, nil
 }
+
+// PageSize is how many customers a page of the list holds.
+const PageSize = 20
+
+// maxPage keeps the offset inside int32.
+const maxPage = 1_000_000
+
+// ListInput narrows the list of customers. Page starts at 1.
+type ListInput struct {
+	Page int
+}
+
+// Page is one page of customers and how many there are on all of them.
+type Page struct {
+	Items    []Customer
+	Total    int64
+	Page     int
+	PageSize int
+}
+
+// List is a page of the company's customers, the newest first.
+func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page, error) {
+	if in.Page < 1 || in.Page > maxPage {
+		return Page{}, invalid("Sahifa raqami noto'g'ri")
+	}
+	total, err := s.q.CountCustomers(ctx, gen.CountCustomersParams{CompanyID: companyID})
+	if err != nil {
+		return Page{}, err
+	}
+	rows, err := s.q.ListCustomers(ctx, gen.ListCustomersParams{
+		CompanyID: companyID, Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
+	})
+	if err != nil {
+		return Page{}, err
+	}
+	ids := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	answers, err := answersOf(ctx, s.q, ids)
+	if err != nil {
+		return Page{}, err
+	}
+	items := make([]Customer, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, Customer{
+			ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: answers[row.ID],
+			CreatedByName: row.CreatedByName, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		})
+	}
+	return Page{Items: items, Total: total, Page: in.Page, PageSize: PageSize}, nil
+}

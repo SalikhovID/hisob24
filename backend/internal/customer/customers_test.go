@@ -2,6 +2,7 @@ package customer
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -393,4 +394,46 @@ func TestGet(t *testing.T) {
 	hide(t, pool, ali.ID)
 	_, err = s.Get(ctx, olma.id, ali.ID)
 	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "a deleted customer")
+}
+
+func TestList(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	var entered []Customer
+	for i := range 21 {
+		entered = append(entered, mustCustomer(t, s, olma.id, olma.jismoniy.ID, fmt.Sprintf("9989000000%02d", i),
+			map[int64]any{olma.fish.ID: fmt.Sprintf("Mijoz %d", i), olma.tillar.ID: []int64{olma.rus.ID, olma.uzbek.ID}}))
+	}
+	hide(t, pool, mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998909999999", map[int64]any{olma.fish.ID: "O'chirilgan"}).ID)
+	mustCustomer(t, s, nok.id, nok.jismoniy.ID, "998900000000", map[int64]any{nok.fish.ID: "Begona"})
+
+	first, err := s.List(ctx, olma.id, ListInput{Page: 1})
+
+	require.NoError(t, err)
+	assert.EqualValues(t, 21, first.Total, "the company's own, without the deleted one")
+	assert.Equal(t, 1, first.Page)
+	assert.Equal(t, 20, first.PageSize)
+	require.Len(t, first.Items, 20, "a page holds twenty")
+	assert.Equal(t, entered[20], first.Items[0], "the newest first, as it was entered")
+	assert.Equal(t, entered[1], first.Items[19])
+
+	second, err := s.List(ctx, olma.id, ListInput{Page: 2})
+	require.NoError(t, err)
+	assert.Equal(t, []Customer{entered[0]}, second.Items, "the oldest is on the last page")
+	assert.EqualValues(t, 21, second.Total)
+	assert.Equal(t, 2, second.Page)
+	past, err := s.List(ctx, olma.id, ListInput{Page: 3})
+	require.NoError(t, err)
+	assert.Equal(t, []Customer{}, past.Items, "a page past the last is empty")
+	assert.EqualValues(t, 21, past.Total)
+
+	for _, page := range []int{0, -1, 1_000_001} {
+		_, err = s.List(ctx, olma.id, ListInput{Page: page})
+		refused(t, err, apperr.Invalid, "validation_error", "Sahifa raqami noto'g'ri", page)
+	}
+	none, err := s.List(ctx, addCompany(t, pool, "Behi"), ListInput{Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, Page{Items: []Customer{}, Total: 0, Page: 1, PageSize: 20}, none, "a company with no customers")
 }
