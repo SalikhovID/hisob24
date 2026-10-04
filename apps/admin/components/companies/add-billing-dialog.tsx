@@ -83,6 +83,7 @@ export function AddBillingDialog({ company }: { company: Company }) {
               />
               <p
                 aria-live="polite"
+                aria-atomic="true"
                 className="flex items-baseline justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground tabular-nums"
               >
                 Yangi tugash sanasi:{" "}
@@ -114,7 +115,7 @@ export function AddBillingDialog({ company }: { company: Company }) {
           </FieldGroup>
           {add.isError && <Refusal>{add.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={add.isPending}>
+            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={add.isPending}>
               Qo&apos;shish
             </PendingButton>
           </DialogFooter>

@@ -301,6 +301,19 @@ test.each([
   expect(within(dialog).getByText(/Yangi tugash sanasi/)).toHaveTextContent(`Yangi tugash sanasi: ${preview}`)
 })
 
+test("the billing dialog's preview is announced whole: the date with its name, not the bare date", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Billing qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Billing qo'shish" })
+
+  const preview = within(dialog).getByText(/Yangi tugash sanasi/)
+  expect(preview).toHaveAttribute("aria-live", "polite")
+  // Only the date changes as the days are typed; without this a screen
+  // reader would read out the changed part alone.
+  expect(preview).toHaveAttribute("aria-atomic", "true")
+})
+
 test("a payment from the dialog moves the end date and joins the history", async () => {
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
