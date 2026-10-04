@@ -58,3 +58,10 @@ test("the field takes the keyboard as it appears", () => {
 
   expect(screen.getByRole("textbox", { name: "Kod" })).toHaveFocus()
 })
+
+test("whoever holds the field can reach its input, to hand the keyboard back to it", () => {
+  const input = createRef<HTMLInputElement>()
+  render(<CodeField ref={input} value="" onChange={vi.fn()} onComplete={vi.fn()} />)
+
+  expect(input.current).toBe(screen.getByRole("textbox", { name: "Kod" }))
+})
