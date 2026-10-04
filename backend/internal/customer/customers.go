@@ -3,8 +3,11 @@ package customer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
@@ -40,6 +43,13 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 	}
 	var c Customer
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: typeID, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return invalid("Mijoz turini tanlang")
+		}
+		if err != nil {
+			return err
+		}
 		fields, options, err := formOf(ctx, q, companyID, typeID)
 		if err != nil {
 			return err

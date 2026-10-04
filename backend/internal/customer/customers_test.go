@@ -162,3 +162,47 @@ func TestCustomerPhone(t *testing.T) {
 		refused(t, err, apperr.Invalid, "validation_error", "Telefon raqami noto'g'ri", raw)
 	}
 }
+
+// count is how many rows a query counts.
+func count(t *testing.T, pool *pgxpool.Pool, sql string, args ...any) int {
+	t.Helper()
+	var n int
+	require.NoError(t, pool.QueryRow(t.Context(), sql, args...).Scan(&n))
+	return n
+}
+
+func TestCreateRefusals(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	gone := mustType(t, s, olma.id, "Eski")
+	require.NoError(t, s.DeleteType(ctx, olma.id, gone.ID))
+	const phone = "998901234567"
+
+	for _, tt := range []struct {
+		name    string
+		typeID  int64
+		phone   string
+		values  map[int64]any
+		refusal string
+	}{
+		{name: "a phone that is no Uzbek number", typeID: olma.jismoniy.ID, phone: "+7 900 123 45 67",
+			values: map[int64]any{olma.fish.ID: "Ali"}, refusal: "Telefon raqami noto'g'ri"},
+		{name: "no phone", typeID: olma.jismoniy.ID, values: map[int64]any{olma.fish.ID: "Ali"}, refusal: "Telefon raqami noto'g'ri"},
+		{name: "no type", phone: phone, refusal: "Mijoz turini tanlang"},
+		{name: "another company's type", typeID: nok.jismoniy.ID, phone: phone,
+			values: map[int64]any{nok.fish.ID: "Ali"}, refusal: "Mijoz turini tanlang"},
+		{name: "a deleted type", typeID: gone.ID, phone: phone, refusal: "Mijoz turini tanlang"},
+		{name: "a required field left empty", typeID: olma.jismoniy.ID, phone: phone, refusal: "«F.I.Sh.» maydonini to'ldiring"},
+		{name: "an answer to a field of another type", typeID: olma.jismoniy.ID, phone: phone,
+			values: map[int64]any{olma.fish.ID: "Ali", olma.inn.ID: 5}, refusal: "Bu turda bunday maydon yo'q"},
+		{name: "the phone is told before the type", phone: "ali", refusal: "Telefon raqami noto'g'ri"},
+		{name: "the type is told before the answers", typeID: gone.ID, phone: phone,
+			values: map[int64]any{olma.inn.ID: "x"}, refusal: "Mijoz turini tanlang"},
+	} {
+		_, err := s.Create(ctx, olma.id, owner, tt.typeID, Input{Phone: tt.phone, Values: answers(t, tt.values)})
+		refused(t, err, apperr.Invalid, "validation_error", tt.refusal, tt.name)
+	}
+	assert.Zero(t, count(t, pool, "SELECT count(*) FROM customers"), "nobody is entered")
+}
