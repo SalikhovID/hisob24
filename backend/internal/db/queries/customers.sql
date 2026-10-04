@@ -120,3 +120,10 @@ SELECT EXISTS (
 -- customers do not count.
 SELECT count(*) FROM customers
 WHERE type_id = $1 AND deleted_at IS NULL;
+
+-- name: CountFieldCustomers :one
+-- How many customers filled the field in: one in use is not deleted.
+-- Deleted customers do not count.
+SELECT count(DISTINCT v.customer_id) FROM customer_values v
+JOIN customers c ON c.id = v.customer_id
+WHERE v.field_id = $1 AND c.deleted_at IS NULL;

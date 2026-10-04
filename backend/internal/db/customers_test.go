@@ -502,3 +502,28 @@ func TestCountTypeCustomers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Zero(t, n, "a type with no customers")
 }
+
+func TestCountFieldCustomers(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	answer(t, q, ali.ID, s.fish.ID, "Ali Valiyev")
+	choose(t, q, ali.ID, s.manba.ID, s.instagram.ID)
+	choose(t, q, ali.ID, s.manba.ID, s.linkedin.ID)
+	vali := s.customer(t, q, "998905555555")
+	answer(t, q, vali.ID, s.fish.ID, "Vali Aliyev")
+	choose(t, q, vali.ID, s.manba.ID, s.instagram.ID)
+
+	n, err := q.CountFieldCustomers(ctx, s.manba.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, n, "a customer who chose two options counts once")
+	n, err = q.CountFieldCustomers(ctx, s.yosh.ID)
+	require.NoError(t, err)
+	assert.Zero(t, n, "a field nobody filled in")
+
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", vali.ID)
+	n, err = q.CountFieldCustomers(ctx, s.fish.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "a deleted customer does not count")
+}

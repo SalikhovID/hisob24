@@ -36,6 +36,9 @@ type Querier interface {
 	// How many customers ListCustomers finds under the same filter, on all of
 	// its pages.
 	CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error)
+	// How many customers filled the field in: one in use is not deleted.
+	// Deleted customers do not count.
+	CountFieldCustomers(ctx context.Context, fieldID int64) (int64, error)
 	// How many customers are of the type: one in use is not deleted. Deleted
 	// customers do not count.
 	CountTypeCustomers(ctx context.Context, typeID int64) (int64, error)
