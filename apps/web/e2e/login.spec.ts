@@ -201,3 +201,14 @@ test("on a wide screen the brand's panel stands beside the form, on a phone abov
   expect(form.y).toBeGreaterThan(panel.y)
   expect(form.y).toBeLessThan(panel.y + panel.height)
 })
+
+test("on a page's own background the logo wears the brand's color, white in the dark", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" })
+  await signIn(page, "902223344")
+  await expect(page).toHaveURL(/\/select-company$/)
+  const logo = page.getByRole("img", { name: "Hisob24" })
+
+  await expect(logo).toHaveCSS("color", "rgb(23, 68, 73)")
+  await page.emulateMedia({ colorScheme: "dark" })
+  await expect(logo).toHaveCSS("color", "rgb(255, 255, 255)")
+})
