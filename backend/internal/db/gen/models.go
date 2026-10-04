@@ -55,6 +55,47 @@ type Company struct {
 	CreatedAt time.Time
 }
 
+type CustomerDropdown struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	CreatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type CustomerDropdownOption struct {
+	ID         int64
+	DropdownID int64
+	Label      string
+	Position   int32
+	IsActive   bool
+	CreatedAt  time.Time
+	DeletedAt  *time.Time
+}
+
+type CustomerField struct {
+	ID         int64
+	CompanyID  int64
+	TypeID     int64
+	Label      string
+	Kind       string
+	DropdownID *int64
+	Required   bool
+	IsUnique   bool
+	Position   int32
+	CreatedAt  time.Time
+	DeletedAt  *time.Time
+}
+
+type CustomerType struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	Position  int32
+	CreatedAt time.Time
+	DeletedAt *time.Time
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserPhone string
