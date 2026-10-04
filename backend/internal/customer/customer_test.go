@@ -78,9 +78,43 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	ctx := t.Context()
 	olma := addCompany(t, pool, "Olma")
 	manba := mustDropdown(t, s, olma, "Manba")
+	spare := mustDropdown(t, s, olma, "Ortiqcha")
+	instagram := mustOption(t, s, olma, manba.ID, "Instagram")
+	linkedin := mustOption(t, s, olma, manba.ID, "LinkedIn")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	yuridik := mustType(t, s, olma, "Yuridik")
+	fish := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "F.I.Sh.", Kind: "string"})
+	yosh := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Yoshi", Kind: "int"})
 
-	waits(t, pool, olma, func() error {
-		_, err := s.RenameDropdown(ctx, olma, manba.ID, "Qayerdan")
-		return err
-	})
+	for _, w := range []struct {
+		name  string
+		write func() error
+	}{
+		{"CreateDropdown", func() error { _, err := s.CreateDropdown(ctx, olma, "Holat"); return err }},
+		{"RenameDropdown", func() error { _, err := s.RenameDropdown(ctx, olma, manba.ID, "Qayerdan"); return err }},
+		{"OrderOptions", func() error { return s.OrderOptions(ctx, olma, manba.ID, []int64{linkedin.ID, instagram.ID}) }},
+		{"AddOption", func() error { _, err := s.AddOption(ctx, olma, manba.ID, "YouTube"); return err }},
+		{"UpdateOption", func() error {
+			_, err := s.UpdateOption(ctx, olma, manba.ID, instagram.ID, OptionPatch{Active: ptr(false)})
+			return err
+		}},
+		{"DeleteOption", func() error { return s.DeleteOption(ctx, olma, manba.ID, linkedin.ID) }},
+		{"DeleteDropdown", func() error { return s.DeleteDropdown(ctx, olma, spare.ID) }},
+		{"OrderTypes", func() error { return s.OrderTypes(ctx, olma, []int64{yuridik.ID, jismoniy.ID}) }},
+		{"CreateType", func() error { _, err := s.CreateType(ctx, olma, "Hamkor"); return err }},
+		{"RenameType", func() error { _, err := s.RenameType(ctx, olma, yuridik.ID, "Firma"); return err }},
+		{"OrderFields", func() error { return s.OrderFields(ctx, olma, jismoniy.ID, []int64{yosh.ID, fish.ID}) }},
+		{"AddField", func() error {
+			_, err := s.AddField(ctx, olma, jismoniy.ID, FieldInput{Label: "Izoh", Kind: "string"})
+			return err
+		}},
+		{"UpdateField", func() error {
+			_, err := s.UpdateField(ctx, olma, jismoniy.ID, fish.ID, FieldPatch{Required: ptr(true)})
+			return err
+		}},
+		{"DeleteField", func() error { return s.DeleteField(ctx, olma, jismoniy.ID, yosh.ID) }},
+		{"DeleteType", func() error { return s.DeleteType(ctx, olma, yuridik.ID) }},
+	} {
+		t.Run(w.name, func(t *testing.T) { waits(t, pool, olma, w.write) })
+	}
 }
