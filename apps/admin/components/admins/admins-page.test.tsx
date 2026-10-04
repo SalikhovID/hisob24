@@ -216,7 +216,7 @@ test("while a new admin is on its way the dialog's button says so", async () => 
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   const add = within(dialog).getByRole("button", { name: "Qo'shish" })
-  await waitFor(() => expect(add).toBeDisabled())
+  await waitFor(() => expect(add).toHaveAttribute("aria-disabled", "true"))
   expect(add).toHaveAttribute("aria-busy", "true")
 })
 
@@ -231,6 +231,6 @@ test("while the turning off is on its way the confirmation's button says so", as
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
   const remove = within(confirm).getByRole("button", { name: "O'chirish" })
-  await waitFor(() => expect(remove).toBeDisabled())
+  await waitFor(() => expect(remove).toHaveAttribute("aria-disabled", "true"))
   expect(remove).toHaveAttribute("aria-busy", "true")
 })

@@ -64,7 +64,7 @@ test("once the company is created the button stays off: a second press must not 
 
   // The next page is on its way; this one is still on screen.
   await user.click(screen.getByRole("button", { name: "Yaratish" }))
-  expect(screen.getByRole("button", { name: "Yaratish" })).toBeDisabled()
+  expect(screen.getByRole("button", { name: "Yaratish" })).toHaveAttribute("aria-disabled", "true")
   expect(posts).toBe(1)
 })
 
@@ -105,6 +105,6 @@ test("while the company is on its way the form's button says so", async () => {
   await user.click(screen.getByRole("button", { name: "Yaratish" }))
 
   const create = screen.getByRole("button", { name: "Yaratish" })
-  await waitFor(() => expect(create).toBeDisabled())
+  await waitFor(() => expect(create).toHaveAttribute("aria-disabled", "true"))
   expect(create).toHaveAttribute("aria-busy", "true")
 })

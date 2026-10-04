@@ -386,7 +386,7 @@ test("while a new name is on its way the dialog's button says so", async () => {
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
   const save = within(dialog).getByRole("button", { name: "Saqlash" })
-  await waitFor(() => expect(save).toBeDisabled())
+  await waitFor(() => expect(save).toHaveAttribute("aria-disabled", "true"))
   expect(save).toHaveAttribute("aria-busy", "true")
 })
 
@@ -399,7 +399,7 @@ test("while the block is on its way the confirmation's button says so", async ()
   await user.click(within(confirm).getByRole("button", { name: "Bloklash" }))
 
   const block = within(confirm).getByRole("button", { name: "Bloklash" })
-  await waitFor(() => expect(block).toBeDisabled())
+  await waitFor(() => expect(block).toHaveAttribute("aria-disabled", "true"))
   expect(block).toHaveAttribute("aria-busy", "true")
 })
 
@@ -411,7 +411,7 @@ test("while the activation is on its way its button says so", async () => {
   await user.click(await screen.findByRole("button", { name: "Faollashtirish" }))
 
   const activate = screen.getByRole("button", { name: "Faollashtirish" })
-  await waitFor(() => expect(activate).toBeDisabled())
+  await waitFor(() => expect(activate).toHaveAttribute("aria-disabled", "true"))
   expect(activate).toHaveAttribute("aria-busy", "true")
 })
 
@@ -426,7 +426,7 @@ test("while the new owner is on its way the dialog's button says so", async () =
   await user.click(within(dialog).getByRole("button", { name: "Almashtirish" }))
 
   const replace = within(dialog).getByRole("button", { name: "Almashtirish" })
-  await waitFor(() => expect(replace).toBeDisabled())
+  await waitFor(() => expect(replace).toHaveAttribute("aria-disabled", "true"))
   expect(replace).toHaveAttribute("aria-busy", "true")
 })
 
@@ -440,7 +440,7 @@ test("while a payment is on its way the dialog's button says so", async () => {
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   const add = within(dialog).getByRole("button", { name: "Qo'shish" })
-  await waitFor(() => expect(add).toBeDisabled())
+  await waitFor(() => expect(add).toHaveAttribute("aria-disabled", "true"))
   expect(add).toHaveAttribute("aria-busy", "true")
 })
 
