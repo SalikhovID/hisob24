@@ -165,3 +165,42 @@ test("with no dropdown yet, a choice field says where to make one", async () => 
 
   expect(within(dialog).getByText("Hali dropdown yo'q: avval Sozlamalarda dropdown yarating.")).toBeInTheDocument()
 })
+
+test("a field's name and marks are changed from its row; its kind stays as it is", async () => {
+  await signIn(ALI)
+  const [, yuridik] = typesOf(1)
+  const { user } = renderWithProviders(<CustomerTypePage id={yuridik.id} />)
+
+  await user.click(within(await fieldList()).getByRole("button", { name: "Tahrirlash: INN" }))
+  const dialog = await screen.findByRole("dialog", { name: "Maydonni tahrirlash" })
+  expect(within(dialog).getByText("Butun son")).toBeInTheDocument()
+  expect(within(dialog).queryByLabelText("Turi")).not.toBeInTheDocument()
+  const name = within(dialog).getByLabelText("Nomi")
+  expect(name).toHaveValue("INN")
+  expect(within(dialog).getByRole("checkbox", { name: "Majburiy" })).toBeChecked()
+  expect(within(dialog).getByRole("checkbox", { name: "Takrorlanmasin" })).toBeChecked()
+
+  await user.clear(name)
+  await user.type(name, "STIR")
+  await user.click(within(dialog).getByRole("checkbox", { name: "Takrorlanmasin" }))
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Maydon saqlandi")).toBeInTheDocument()
+  await waitFor(async () =>
+    expect(fieldsOf(await fieldList())[1]).toEqual({ label: "STIR", kind: "Butun son", marks: ["Majburiy"] }),
+  )
+})
+
+test("a choice field is edited without the mark that is for text and numbers", async () => {
+  await signIn(ALI)
+  const [jismoniy] = typesOf(1)
+  const { user } = renderWithProviders(<CustomerTypePage id={jismoniy.id} />)
+
+  await user.click(within(await fieldList()).getByRole("button", { name: "Tahrirlash: Manba" }))
+  const dialog = await screen.findByRole("dialog", { name: "Maydonni tahrirlash" })
+
+  expect(within(dialog).getByText("Dropdown (bitta tanlov) · Manba")).toBeInTheDocument()
+  expect(within(dialog).getByRole("checkbox", { name: "Majburiy" })).not.toBeChecked()
+  expect(within(dialog).queryByRole("checkbox", { name: "Takrorlanmasin" })).not.toBeInTheDocument()
+})

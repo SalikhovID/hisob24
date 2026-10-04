@@ -7,7 +7,7 @@ import { kindLabels, nameFieldOf } from "@/lib/customer-fields"
 import { useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import type { CustomerField } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
-import { AddFieldDialog } from "./field-dialog"
+import { AddFieldDialog, EditFieldDialog } from "./field-dialog"
 import { SettingRow, settingList } from "./setting-row"
 
 const back = { href: "/settings", label: "Sozlamalar" }
@@ -72,6 +72,9 @@ export function CustomerTypePage({ id }: { id: number }) {
                     {field.required && <Badge variant="secondary">Majburiy</Badge>}
                     {field.is_unique && <Badge variant="outline">Takrorlanmas</Badge>}
                   </>
+                }
+                actions={
+                  <EditFieldDialog companyId={owner.company.id} typeId={type.id} field={field} kind={kindOf(field)} />
                 }
               />
             </li>

@@ -70,3 +70,11 @@ export const fieldSchema = z
       dropdown_id: choice ? Number(field.dropdown_id) : null,
     }
   })
+
+// fieldPatchSchema is the edit-field dialog: what of a field may change
+// after it was made.
+export const fieldPatchSchema = z.object({
+  label: name(),
+  required: z.boolean(),
+  is_unique: z.boolean(),
+})
