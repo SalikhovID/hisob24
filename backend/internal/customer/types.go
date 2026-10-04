@@ -298,12 +298,24 @@ func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID in
 }
 
 // DeleteField hides a field of the company's type; its name is free again.
+// A field that customers have filled in is not deleted.
 func (s *Service) DeleteField(ctx context.Context, companyID, typeID, fieldID int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteCustomerField(ctx, gen.DeleteCustomerFieldParams{ID: fieldID, TypeID: typeID, CompanyID: companyID})
+		_, err := q.GetCustomerField(ctx, gen.GetCustomerFieldParams{ID: fieldID, TypeID: typeID, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errFieldNotFound
 		}
+		if err != nil {
+			return err
+		}
+		used, err := q.CountFieldCustomers(ctx, fieldID)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "field_in_use", fmt.Sprintf("Bu maydon %d ta mijozda to'ldirilgan", used))
+		}
+		_, err = q.DeleteCustomerField(ctx, gen.DeleteCustomerFieldParams{ID: fieldID, TypeID: typeID, CompanyID: companyID})
 		return err
 	})
 }
