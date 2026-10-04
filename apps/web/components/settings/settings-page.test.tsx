@@ -174,3 +174,33 @@ test("a customer type the API will not delete stays, and the reason is said", as
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
   expect(names(await typeList())).toEqual(["Jismoniy", "Yuridik"])
 })
+
+const handleOf = (list: HTMLElement, name: string) =>
+  within(list).getByRole("button", { name: `${name}: tartibini o'zgartirish` })
+
+test("the customer types are put in order from the keyboard, and the order is saved", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  handleOf(await typeList(), "Yuridik").focus()
+  await user.keyboard("{ArrowUp}")
+
+  expect(names(await typeList())).toEqual(["Yuridik", "Jismoniy"])
+  await waitFor(() => expect(typesOf(1).map((type) => type.name)).toEqual(["Yuridik", "Jismoniy"]))
+})
+
+test("an order the API refuses is taken back, and the reason is said", async () => {
+  await signIn(ALI)
+  server.use(
+    http.put("*/api/app/customer-types/order", () =>
+      HttpResponse.json({ error: "order_changed", message: "Ro'yxat o'zgargan. Sahifani yangilang" }, { status: 409 }),
+    ),
+  )
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  handleOf(await typeList(), "Yuridik").focus()
+  await user.keyboard("{ArrowUp}")
+
+  expect(await screen.findByText("Ro'yxat o'zgargan. Sahifani yangilang")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await typeList())).toEqual(["Jismoniy", "Yuridik"]))
+})
