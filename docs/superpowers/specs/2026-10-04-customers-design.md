@@ -305,7 +305,7 @@ Bajarildi: migratsiya `00005`, 26 ta so'rov, `internal/customer` servisi (dropdo
 Amalga oshirishda belgilangan tafsilotlar:
 
 - **Ruxsat tartibi.** Yozuvchi sozlama route'lari mavjud `requireOwner` guruhida (Xodimlar API'si bilan birga): kompaniya tanlanmagan token ham 403 `owner_only` oladi. 403 `company_required` faqat a'zo route'larida (`GET /app/customer-dropdowns`, `GET /app/customer-types`).
-- **Navbat.** Har yozuv `write()` orqali: bitta tranzaksiya, boshida `LockCompany`. Test 15 ta yozuvni qamraydi (`TestAWriteWaitsForAnotherWriteOfTheSameCompany`). Mutatsiya: lock olib tashlansa 13 tasi yiqiladi; `CreateDropdown` va `CreateType` kompaniyaga foreign key orqali baribir kutadi.
+- **Navbat.** Har yozuv `write()` orqali: bitta tranzaksiya, boshida kompaniya qatori lock qilinadi (avval `LockCompany`, yakuniy ko'rikda `LockCompanyCustomers` ga almashtirildi: pastga qarang). Test 15 ta yozuvni qamraydi (`TestAWriteWaitsForAnotherWriteOfTheSameCompany`). Mutatsiya: lock olib tashlansa 13 tasi yiqiladi; `CreateDropdown` va `CreateType` kompaniyaga foreign key orqali baribir kutadi.
 - **Tartib.** Yangi tur, maydon va variant `max(position) + 1` oladi. `PUT …/order {ids}`: `ids` hozirgi yozuvlarning har birini bir marta nomlashi shart, aks holda 409 `order_changed` (kam, ortiqcha, begona yoki takror ID).
 - **O'chirish.** Hamma joyda `deleted_at`. Tur o'chirilsa, maydonlari ham shu tranzaksiyada o'chirilgan deb belgilanadi. O'chirilgan dropdown nomi o'zgartirilmaydi va variant olmaydi (404).
 - **Dropdown ishlatilishi.** Faqat o'chirilmagan maydonlar sanaladi; begona kompaniya dropdowni avval 404 beradi, soni oshkor bo'lmaydi.
@@ -375,3 +375,12 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **Umumiy komponent.** `DataList` ga `Column.key` qo'shildi (ikkala ilovada bir xil nusxa): egasi maydonni "Turi" deb atasa ham ustunlar aralashmaydi.
 - **Mock API.** `mocks/customers.ts` Go API qoidalarini takrorlaydi (tekshiruv tartibi va xabarlari, takror, qidiruv, tarix, soft delete). Boshlang'ich holatda mijoz yo'q: test `seedCustomers()` yoki `seedSixKinds()` ni o'zi chaqiradi (aks holda sozlamalar testlaridagi o'chirishlar "ishlatilgan" qoidasiga urilardi).
 - **Tekshiruv.** `make lint` 0 issues; `make test`: Go 16 paket, web 380, admin 217, api-client 1; `make e2e`: admin 40, web 78. Skrinshotlar ko'rildi (375px va desktop, light va dark). Haqiqiy stack'da brauzer (Playwright, Go API, SMS kodi log'dan): 12 / 12: egasi dropdown, tanlov maydoni va xodim qo'shadi; xodim Jismoniy va Yuridik mijoz qo'shadi (butun son bo'lmagan INN formada rad etiladi), takror telefon mavjud mijozga olib boradi, tahrirlaydi, INN bo'yicha qidiradi, tur tanlaydi, ustun yashiradi (reload'dan keyin saqlanadi); egasi tarixni ko'radi, mijozi bor tur o'chmaydi, mijozni o'chiradi; 375px da yon scroll yo'q. Sahifa xatosi 0; rad javoblari kutilgan (ikki 409 va reload'dan keyingi `GET /api/app/me` 401). Sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan.
+
+## Yakuniy ko'rik (2026-10-04)
+
+To'rt bosqichdan keyin kod qayta ko'rib chiqildi. Ikki tuzatish kiritildi (ikkalasi ham test avval):
+
+- **Lock rejimi.** `write()` kompaniya qatorini `FOR UPDATE` bilan ushlar edi. Bu rejim foreign key tekshiruvini ham to'sadi: mijoz yozuvi davomida shu kompaniyaga a'zo qo'shish yoki sessiyani yangilash (refresh token) kutib qolardi. Endi `LockCompanyCustomers` (`FOR NO KEY UPDATE`): mijoz va sozlama yozuvlari o'zaro navbatda qoladi, kompaniyaga faqat havola qiladigan yozuvlar esa kutmaydi. Navbat testi kuchaydi: lock olib tashlansa 18 yozuvning hammasi yiqiladi (avval `Create*` foreign key orqali baribir kutardi).
+- **Tarixdagi bir xil nomlar.** Egasi maydonni "Telefon" deb atasa, bitta tahrirda shu nomli ikki o'zgarish bo'lishi mumkin: ikkalasi ham ko'rsatiladi (ro'yxat kaliti o'rin bo'yicha).
+
+Yakuniy tekshiruv: `make lint` 0 issues; `make test`: Go 16 paket, web 381, admin 217, api-client 1; `make e2e`: admin 40, web 78; lokal haqiqiy stack'da curl bilan 48 / 48 (lock o'zgarishidan keyin qayta) va brauzerda 12 / 12.
