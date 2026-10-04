@@ -678,6 +678,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mijozlar ro'yxati
+         * @description Access token'dagi kompaniyaning mijozlari, eng yangisi birinchi, sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan mijozlar chiqmaydi.
+         */
+        get: operations["listCustomers"];
+        put?: never;
+        /**
+         * Mijoz qo'shish
+         * @description Access token'dagi kompaniyaga mijoz qo'shadi; har a'zo qo'sha oladi. Telefon har doim majburiy: faqat O'zbekiston raqami, kompaniyaning faol mijozlari ichida takrorlanmaydi. values tanlangan turning maydonlariga javoblar; tekshiruv maydonlar tartibida, birinchi xato qaytadi (400 validation_error). Takror telefon (phone_taken) va takrorlanmas maydondagi takror javob (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan. Kim qo'shgani saqlanadi.
+         */
+        post: operations["createCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Mijoz
+         * @description Access token'dagi kompaniyaning mijozi, javoblari bilan. Har a'zo o'qiydi. O'chirilgan va boshqa kompaniyaning mijozi: 404.
+         */
+        get: operations["getCustomer"];
+        /**
+         * Mijozni tahrirlash
+         * @description Telefon va javoblar yuborilganiga almashadi: yuborilmagan maydonning javobi o'chadi. Mijozning turi o'zgarmaydi. Har a'zo tahrirlay oladi; ikki kishi bir vaqtda tahrirlasa, oxirgi saqlagan qoladi. Tekshiruv qo'shishdagidek; mijoz allaqachon tanlagan nofaol variant saqlanadi. O'zgargan har maydon tarixga yoziladi; hech narsa o'zgarmasa, hech narsa yozilmaydi.
+         */
+        put: operations["updateCustomer"];
+        post?: never;
+        /**
+         * Mijozni o'chirish
+         * @description Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
+         */
+        delete: operations["deleteCustomer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customers/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Mijozning o'zgarishlar tarixi (faqat owner)
+         * @description Mijoz bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani va har tahriri (o'chirilgan mijoz 404 beradi). Tahrirda o'zgargan har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida: maydon yoki variant keyin qayta nomlansa, tarix o'zgarmaydi.
+         */
+        get: operations["listCustomerHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/admin-bot": {
         parameters: {
             query?: never;
@@ -946,6 +1022,85 @@ export interface components {
             /** @description Hamma yozuvning ID'si, yangi tartibda, har biri bir marta */
             ids: number[];
         };
+        /** @description Mijozning javoblari, kaliti maydon ID'si. Matn: string; butun son: integer; dropdown va radio: variant ID'si; multi_dropdown va checkbox: variant ID'lari massivi (dropdown tartibida). Bo'sh qoldirilgan maydon bu yerda bo'lmaydi. */
+        CustomerValues: {
+            [key: string]: string | number | number[];
+        };
+        /** @description Saqlanadigan javoblar, kaliti maydon ID'si (CustomerValues kabi). Bo'sh javob (bo'sh matn, null, bo'sh massiv yoki yuborilmagan maydon) saqlanmaydi. Matn 500 belgigacha, butun son ±9007199254740991 ichida. */
+        CustomerAnswers: {
+            [key: string]: string | number | number[] | null;
+        };
+        Customer: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description Mijozning turi; o'zgarmaydi
+             */
+            type_id: number;
+            /** @description Faqat raqamlar, masalan 998901234567 */
+            phone: string;
+            values: components["schemas"]["CustomerValues"];
+            /** @description Mijozni qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, qo'shgan paytdagi ismi */
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CustomerCreate: {
+            /** Format: int64 */
+            type_id: number;
+            /** @description O'zbekiston raqami, masalan +998 90 123 45 67 */
+            phone: string;
+            values?: components["schemas"]["CustomerAnswers"];
+        };
+        CustomerTakenError: {
+            /** @enum {string} */
+            error: "phone_taken" | "value_taken";
+            /** @description O'zbekcha matn */
+            message: string;
+            /**
+             * Format: int64
+             * @description Shu telefon yoki javob allaqachon bor mijoz
+             */
+            customer_id: number;
+        };
+        CustomerPage: {
+            items: components["schemas"]["Customer"][];
+            /**
+             * Format: int64
+             * @description Filtrga mos mijozlar soni, hamma sahifalarda
+             */
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        CustomerUpdate: {
+            /** @description O'zbekiston raqami, masalan +998 90 123 45 67 */
+            phone: string;
+            values?: components["schemas"]["CustomerAnswers"];
+        };
+        CustomerChange: {
+            /** @description Maydonning o'sha paytdagi nomi; telefon uchun "Telefon" */
+            label: string;
+            /** @description Oldingi qiymat matn sifatida; bo'sh bo'lgan bo'lsa "" */
+            old: string;
+            /** @description Yangi qiymat matn sifatida; bo'shatilgan bo'lsa "" */
+            new: string;
+        };
+        CustomerHistoryEntry: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            action: "created" | "updated" | "deleted";
+            /** @description Buni qilgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, o'sha paytdagi ismi */
+            actor_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** @description Tahrirda o'zgargan maydonlar; qo'shish va o'chirishda bo'sh */
+            changes: components["schemas"]["CustomerChange"][];
+        };
     };
     responses: {
         /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
@@ -1077,6 +1232,24 @@ export interface components {
         };
         /** @description Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use, type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed) */
         CustomerSettingConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Telefon boshqa mijozda bor (phone_taken) yoki takrorlanmas maydondagi javob boshqa mijozda bor (value_taken); customer_id o'sha mijoz */
+        CustomerTaken: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["CustomerTakenError"];
+            };
+        };
+        /** @description Mijoz topilmadi (not_found) */
+        CustomerNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2301,6 +2474,181 @@ export interface operations {
             403: components["responses"]["OwnerOnly"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
+        };
+    };
+    listCustomers: {
+        parameters: {
+            query?: {
+                /** @description Matn javoblarida qidiriladi (katta-kichik harf farqsiz, harfma-harf). Faqat raqamlardan iborat qidiruv (bo'shliq, +, -, qavs bilan yozilgan bo'lishi mumkin) telefonlarda va butun son javoblarida ham qidiriladi. Variant nomi bo'yicha qidirilmaydi. */
+                search?: string;
+                /** @description Faqat shu turdagi mijozlar */
+                type_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mijozlar sahifasi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerCreate"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan mijoz */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            409: components["responses"]["CustomerTaken"];
+        };
+    };
+    getCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mijoz */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    updateCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan mijoz */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            404: components["responses"]["CustomerNotFound"];
+            409: components["responses"]["CustomerTaken"];
+        };
+    };
+    deleteCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    listCustomerHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tarix yozuvlari */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerHistoryEntry"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki user kompaniya egasi emas (owner_only) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["CustomerNotFound"];
         };
     };
     adminBotWebhook: {
