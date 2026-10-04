@@ -319,3 +319,30 @@ func TestDeleteCustomerTypeFields(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_fields WHERE type_id = $1", jismoniy.ID).Scan(&rows))
 	assert.Equal(t, 2, rows, "the rows stay")
 }
+
+func TestOrderCustomerFields(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	yuridik := createType(t, q, olma.ID, "Yuridik")
+	fish := addField(t, q, olma.ID, jismoniy.ID, "F.I.Sh.", "string", nil)
+	yosh := addField(t, q, olma.ID, jismoniy.ID, "Yoshi", "int", nil)
+	izoh := addField(t, q, olma.ID, jismoniy.ID, "Izoh", "string", nil)
+	nomi := addField(t, q, olma.ID, yuridik.ID, "Nomi", "string", nil)
+
+	err := q.OrderCustomerFields(ctx, gen.OrderCustomerFieldsParams{
+		TypeID: jismoniy.ID,
+		Ids:    []int64{izoh.ID, fish.ID, yosh.ID, nomi.ID},
+	})
+
+	require.NoError(t, err)
+	list, err := q.ListCustomerFields(ctx, olma.ID)
+	require.NoError(t, err)
+	ids := make([]int64, 0, len(list))
+	for _, f := range list {
+		ids = append(ids, f.ID)
+	}
+	assert.Equal(t, []int64{izoh.ID, fish.ID, yosh.ID, nomi.ID}, ids, "the type's fields stand as the ids were given")
+	assert.EqualValues(t, 1, list[3].Position, "another type's field stays where it was")
+}

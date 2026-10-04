@@ -87,3 +87,10 @@ RETURNING id;
 -- Hides every field of a type: they go with it when it is deleted.
 UPDATE customer_fields SET deleted_at = now()
 WHERE type_id = $1 AND deleted_at IS NULL;
+
+-- name: OrderCustomerFields :exec
+-- Puts the type's fields in the order of ids: the first gets position 1. An
+-- id that is not a live field of the type is passed over.
+UPDATE customer_fields f SET position = n.ord::int
+FROM unnest(sqlc.arg('ids')::bigint[]) WITH ORDINALITY AS n(id, ord)
+WHERE f.id = n.id AND f.type_id = sqlc.arg('type_id') AND f.deleted_at IS NULL;

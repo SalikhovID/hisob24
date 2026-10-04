@@ -137,6 +137,9 @@ type Querier interface {
 	// Puts the dropdown's options in the order of ids: the first gets position
 	// 1. An id that is not a live option of the dropdown is passed over.
 	OrderCustomerDropdownOptions(ctx context.Context, arg OrderCustomerDropdownOptionsParams) error
+	// Puts the type's fields in the order of ids: the first gets position 1. An
+	// id that is not a live field of the type is passed over.
+	OrderCustomerFields(ctx context.Context, arg OrderCustomerFieldsParams) error
 	// Puts the company's types in the order of ids: the first gets position 1.
 	// An id that is not a live type of the company is passed over.
 	OrderCustomerTypes(ctx context.Context, arg OrderCustomerTypesParams) error
