@@ -1,11 +1,16 @@
 "use client"
 
+import { useQueryClient } from "@tanstack/react-query"
+import { PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { type ReactNode, useId } from "react"
 import { PageHeader } from "@/components/page-header"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
-import { useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
+import { Button } from "@/components/ui/button"
+import { api, call } from "@/lib/api"
+import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import { useOwner } from "@/lib/use-owner"
+import { NameDialog } from "./name-dialog"
 import { SettingRow, settingList } from "./setting-row"
 
 const link = "rounded-sm underline-offset-4 hover:underline"
@@ -19,13 +24,37 @@ export function SettingsPage() {
   const companyId = owner ? owner.company.id : null
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
+  const queryClient = useQueryClient()
 
   if (!owner) return null
+  // What a change did shows once the list is asked for again.
+  const refreshTypes = () => queryClient.invalidateQueries({ queryKey: customerTypesKey(companyId) })
 
   return (
     <div className="space-y-8">
       <PageHeader title="Sozlamalar" description="Mijozlar bo'limi sozlamalari" />
-      <Section title="Mijoz turlari" description="Mijoz qo'shishda tanlanadi. Har turning o'z maydonlari bor.">
+      <Section
+        title="Mijoz turlari"
+        description="Mijoz qo'shishda tanlanadi. Har turning o'z maydonlari bor."
+        action={
+          <NameDialog
+            title="Tur qo'shish"
+            description="Masalan: Jismoniy, Yuridik. Maydonlari tur sahifasida qo'shiladi."
+            submit="Qo'shish"
+            done="Tur qo'shildi"
+            trigger={
+              <Button variant="outline" size="lg" className="px-3.5">
+                <PlusIcon />
+                Tur qo&apos;shish
+              </Button>
+            }
+            onSubmit={async (name) => {
+              await call(api.POST("/app/customer-types", { body: { name } }))
+              await refreshTypes()
+            }}
+          />
+        }
+      >
         {types.isPending && <ListLoading rows={2} mark="none" />}
         {types.isError && <Failed error={types.error} onRetry={() => types.refetch()} />}
         {types.data?.length === 0 && (

@@ -84,3 +84,38 @@ test("an empty list says what it is for", async () => {
   expect(screen.getByText("Dropdown, radio va checkbox maydonlari variantlarni dropdowndan oladi.")).toBeInTheDocument()
   expect(screen.queryByRole("list", { name: "Mijoz turlari" })).not.toBeInTheDocument()
 })
+
+const names = (list: HTMLElement) => rowsOf(list).map(([name]) => name)
+
+test("a customer type is added from the dialog and joins the list", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+  await typeList()
+
+  await user.click(screen.getByRole("button", { name: "Tur qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Tur qo'shish" })
+  await user.type(within(dialog).getByLabelText("Nomi"), "Hamkor")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Tur qo'shildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await typeList())).toEqual(["Jismoniy", "Yuridik", "Hamkor"]))
+})
+
+test("the add-type dialog says what is missing, and why the API refused", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+  await typeList()
+  await user.click(screen.getByRole("button", { name: "Tur qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Tur qo'shish" })
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Nomni kiriting")).toBeInTheDocument()
+
+  await user.type(within(dialog).getByLabelText("Nomi"), "jismoniy")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Bu nomli tur allaqachon bor")).toBeInTheDocument()
+  // The dialog stays open with the reason; nothing was added.
+  expect(screen.getByRole("dialog", { name: "Tur qo'shish" })).toBeInTheDocument()
+  expect(typesOf(1)).toHaveLength(2)
+})
