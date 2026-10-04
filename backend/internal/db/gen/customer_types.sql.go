@@ -37,6 +37,26 @@ func (q *Queries) CreateCustomerType(ctx context.Context, arg CreateCustomerType
 	return i, err
 }
 
+const deleteCustomerType = `-- name: DeleteCustomerType :one
+UPDATE customer_types SET deleted_at = now()
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+RETURNING id
+`
+
+type DeleteCustomerTypeParams struct {
+	ID        int64
+	CompanyID int64
+}
+
+// Hides the type: nothing is removed. pgx.ErrNoRows when the company has no
+// such type, or deleted it already.
+func (q *Queries) DeleteCustomerType(ctx context.Context, arg DeleteCustomerTypeParams) (int64, error) {
+	row := q.db.QueryRow(ctx, deleteCustomerType, arg.ID, arg.CompanyID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getCustomerType = `-- name: GetCustomerType :one
 SELECT id, company_id, name, position, created_at, deleted_at FROM customer_types
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL

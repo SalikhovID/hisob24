@@ -22,3 +22,10 @@ WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL;
 UPDATE customer_types SET name = sqlc.arg('name')
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
 RETURNING *;
+
+-- name: DeleteCustomerType :one
+-- Hides the type: nothing is removed. pgx.ErrNoRows when the company has no
+-- such type, or deleted it already.
+UPDATE customer_types SET deleted_at = now()
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+RETURNING id;

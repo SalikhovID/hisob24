@@ -90,3 +90,23 @@ func TestRenameCustomerType(t *testing.T) {
 	_, err = q.RenameCustomerType(ctx, gen.RenameCustomerTypeParams{ID: jismoniy.ID, CompanyID: nok.ID, Name: "Begona"})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's type")
 }
+
+func TestDeleteCustomerType(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+
+	_, err := q.DeleteCustomerType(ctx, gen.DeleteCustomerTypeParams{ID: jismoniy.ID, CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's type")
+	id, err := q.DeleteCustomerType(ctx, gen.DeleteCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, jismoniy.ID, id)
+
+	var hidden bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM customer_types WHERE id = $1", jismoniy.ID).Scan(&hidden))
+	assert.True(t, hidden, "the row stays, marked deleted")
+	_, err = q.DeleteCustomerType(ctx, gen.DeleteCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
+}
