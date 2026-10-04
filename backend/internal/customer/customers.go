@@ -386,3 +386,42 @@ func searchOf(raw string) (search, digits *string) {
 	number := b.String()
 	return &escaped, &number
 }
+
+// Update saves the company's customer with another phone and other answers;
+// its type stays. by is the phone of the member who edits it.
+func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in Input) (Customer, error) {
+	phone, err := customerPhone(in.Phone)
+	if err != nil {
+		return Customer{}, err
+	}
+	var c Customer
+	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		var err error
+		if c, err = customerOf(ctx, q, companyID, id); err != nil {
+			return err
+		}
+		fields, options, err := formOf(ctx, q, companyID, c.TypeID)
+		if err != nil {
+			return err
+		}
+		values, err := checkValues(fields, options, nil, in.Values)
+		if err != nil {
+			return err
+		}
+		if c.UpdatedAt, err = q.UpdateCustomer(ctx, gen.UpdateCustomerParams{ID: id, CompanyID: companyID, Phone: phone}); err != nil {
+			return err
+		}
+		if err := q.DeleteCustomerValues(ctx, id); err != nil {
+			return err
+		}
+		if err := store(ctx, q, id, fields, values); err != nil {
+			return err
+		}
+		c.Phone, c.Values = phone, values
+		return nil
+	})
+	if err != nil {
+		return Customer{}, err
+	}
+	return c, nil
+}

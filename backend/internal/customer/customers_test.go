@@ -523,3 +523,55 @@ func TestListSearch(t *testing.T) {
 		assert.EqualValues(t, len(tt.want), page.Total, tt.name)
 	}
 }
+
+// age makes every customer a day old, so that an edit shows.
+func age(t *testing.T, pool *pgxpool.Pool) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(),
+		"UPDATE customers SET created_at = now() - interval '1 day', updated_at = now() - interval '1 day'")
+	require.NoError(t, err)
+}
+
+func TestUpdate(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	ali, err := s.Create(ctx, olma.id, staff, olma.jismoniy.ID, Input{
+		Phone: "998901234567",
+		Values: answers(t, map[int64]any{
+			olma.fish.ID: "Ali Valiyev", olma.yosh.ID: 30, olma.manba.ID: olma.instagram.ID,
+			olma.tillar.ID: []int64{olma.uzbek.ID, olma.rus.ID},
+		}),
+	})
+	require.NoError(t, err)
+	vali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998905555555", map[int64]any{olma.fish.ID: "Vali", olma.yosh.ID: 45})
+	age(t, pool)
+
+	got, err := s.Update(ctx, olma.id, ali.ID, owner, Input{
+		Phone: "+998 90 765 43 21",
+		Values: answers(t, map[int64]any{
+			olma.fish.ID: " Ali Valiyev ", olma.yosh.ID: 31, olma.jinsi.ID: olma.erkak.ID, olma.tillar.ID: []int64{olma.rus.ID},
+		}),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ali.ID, got.ID)
+	assert.Equal(t, olma.jismoniy.ID, got.TypeID, "of the type it was")
+	assert.Equal(t, "998907654321", got.Phone)
+	assert.Equal(t, Values{
+		olma.fish.ID: "Ali Valiyev", olma.yosh.ID: int64(31), olma.jinsi.ID: olma.erkak.ID, olma.tillar.ID: []int64{olma.rus.ID},
+	}, got.Values, "the answers of the edit, and none of those it left out")
+	assert.Equal(t, ptr("Xurshid Xodim"), got.CreatedByName, "entered by whom it was")
+	assert.WithinDuration(t, time.Now().Add(-24*time.Hour), got.CreatedAt, time.Minute, "and when it was")
+	assert.WithinDuration(t, time.Now(), got.UpdatedAt, time.Minute, "edited now")
+
+	read, err := s.Get(ctx, olma.id, ali.ID)
+	require.NoError(t, err)
+	assert.Equal(t, got, read, "what the edit returns is what is kept")
+	assert.Equal(t, []string{"F.I.Sh.: Ali Valiyev", "Yoshi: 31", "Jinsi: Erkak", "Tillar: Rus"}, storedAnswers(t, pool, ali.ID))
+	other, err := s.Get(ctx, olma.id, vali.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "998905555555", other.Phone, "the other customers stay as they are")
+	assert.Equal(t, vali.Values, other.Values)
+	assert.Equal(t, other.CreatedAt, other.UpdatedAt)
+}
