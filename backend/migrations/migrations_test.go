@@ -198,3 +198,42 @@ func TestTheRolesMigrationDownBringsTheOldRolesBack(t *testing.T) {
 	_, err = pool.Exec(ctx, "SELECT full_name FROM user_companies")
 	assert.Equal(t, "42703", sqlState(err), "the member's name is gone") // undefined_column
 }
+
+func TestCustomerDropdownsAndOptions(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	addDropdown := func(companyID int64, name string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx,
+			"INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id)
+		return id, err
+	}
+
+	manba, err := addDropdown(olma, "Manba")
+	require.NoError(t, err)
+	_, err = addDropdown(olma, "manba")
+	assert.Equal(t, "23505", sqlState(err), "the name is taken in the company, in any case") // unique_violation
+	_, err = addDropdown(nok, "Manba")
+	assert.NoError(t, err, "another company's dropdown")
+
+	addOption := func(label string) error {
+		_, err := pool.Exec(ctx,
+			"INSERT INTO customer_dropdown_options (dropdown_id, label, position) VALUES ($1, $2, 1)", manba, label)
+		return err
+	}
+	require.NoError(t, addOption("Instagram"))
+	assert.Equal(t, "23505", sqlState(addOption("INSTAGRAM")), "the option is in the dropdown already")
+	var active bool
+	require.NoError(t, pool.QueryRow(ctx,
+		"SELECT is_active FROM customer_dropdown_options WHERE dropdown_id = $1", manba).Scan(&active))
+	assert.True(t, active, "an option is offered until it is turned off")
+
+	_, err = pool.Exec(ctx, "UPDATE customer_dropdown_options SET deleted_at = now() WHERE dropdown_id = $1", manba)
+	require.NoError(t, err)
+	assert.NoError(t, addOption("Instagram"), "a deleted option's name is free again")
+	_, err = pool.Exec(ctx, "UPDATE customer_dropdowns SET deleted_at = now() WHERE id = $1", manba)
+	require.NoError(t, err)
+	_, err = addDropdown(olma, "Manba")
+	assert.NoError(t, err, "a deleted dropdown's name is free again")
+}
