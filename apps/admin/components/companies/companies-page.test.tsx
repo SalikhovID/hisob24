@@ -175,6 +175,31 @@ test("a platform with no company yet says how to add the first", async () => {
   expect(screen.queryByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).not.toBeInTheDocument()
 })
 
+test("while the full list loads after a search that found nothing, the page does not say the platform is empty", async () => {
+  // The unfiltered answer is held back; the search's answer (nothing) is on screen meanwhile.
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  server.use(
+    http.get("*/api/admin/companies", async ({ request }) => {
+      if (!new URL(request.url).searchParams.get("search")) await held
+    }),
+  )
+  setLocation("/companies?search=behi")
+  const { user } = renderWithProviders(<CompaniesPage />)
+  expect(await screen.findByText("Kompaniyalar topilmadi")).toBeInTheDocument()
+
+  await user.clear(screen.getByRole("searchbox", { name: "Qidirish" }))
+  await waitFor(() => expect(currentUrl()).toBe("/companies"))
+
+  // Nothing is known about the full list yet: it is loading, not empty.
+  expect(screen.getByLabelText("Yuklanmoqda")).toBeInTheDocument()
+  expect(screen.queryByText("Kompaniyalar topilmadi")).not.toBeInTheDocument()
+  expect(screen.queryByText("Birinchi kompaniyani «Yangi kompaniya» tugmasi orqali qo'shing.")).not.toBeInTheDocument()
+
+  release()
+  expect(await screen.findByRole("table", { name: "Kompaniyalar" })).toBeInTheDocument()
+})
+
 test("when the list cannot load the page says why and tries again", async () => {
   let calls = 0
   server.use(

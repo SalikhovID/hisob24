@@ -61,6 +61,10 @@ export function CompaniesPage() {
   if (unfiltered && companies.data && !companies.isPlaceholderData && companies.data.total !== total) {
     setTotal(companies.data.total)
   }
+  // The answer on screen while the next one loads is the previous filter's.
+  // A list of it can stay; "nothing found" cannot: it would be said of a
+  // filter that has not answered yet.
+  const settling = companies.isPlaceholderData && companies.data?.total === 0
 
   return (
     <div className="space-y-5">
@@ -96,9 +100,9 @@ export function CompaniesPage() {
           </Tabs>
           <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
         </div>
-        {companies.isPending && <ListLoading rows={6} mark="square" />}
+        {(companies.isPending || settling) && <ListLoading rows={6} mark="square" />}
         {companies.isError && <Failed error={companies.error} onRetry={() => companies.refetch()} />}
-        {companies.data?.total === 0 && (
+        {companies.data?.total === 0 && !companies.isPlaceholderData && (
           <EmptyState
             title="Kompaniyalar topilmadi"
             description={
