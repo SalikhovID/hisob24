@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { db, LOGIN_CODE } from "../mocks/data"
 import { expect, test } from "./fixtures"
 
@@ -211,4 +211,21 @@ test("on a page's own background the logo wears the brand's color, white in the 
   await expect(logo).toHaveCSS("color", "rgb(23, 68, 73)")
   await page.emulateMedia({ colorScheme: "dark" })
   await expect(logo).toHaveCSS("color", "rgb(255, 255, 255)")
+})
+
+test("everything the login asks a thumb to press is at least 44px tall", async ({ page }) => {
+  const tall = async (control: Locator, what: string) =>
+    expect((await control.boundingBox())!.height, what).toBeGreaterThanOrEqual(44)
+
+  await page.goto("/login")
+  const phone = page.getByRole("textbox", { name: "Telefon raqami" })
+  await expect(phone).toBeEditable()
+  await tall(phone, "phone field")
+  await tall(page.getByRole("button", { name: "Kodni olish" }), "send button")
+
+  await phone.fill("901234567")
+  await page.getByRole("button", { name: "Kodni olish" }).click()
+  await tall(page.getByRole("textbox", { name: "Kod" }), "code field")
+  await tall(page.getByRole("button", { name: /^Kodni qayta yuborish/ }), "resend button")
+  await tall(page.getByRole("button", { name: "Raqamni o'zgartirish" }), "change number")
 })

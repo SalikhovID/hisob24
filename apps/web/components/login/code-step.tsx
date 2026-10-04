@@ -77,14 +77,14 @@ export function CodeStep({
       )}
       <Button
         type="button"
-        variant="ghost"
-        className="w-full"
+        variant="outline"
+        className="h-11 w-full rounded-xl tabular-nums"
         disabled={left > 0 || resend.isPending}
         onClick={() => resend.mutate()}
       >
         {left > 0 ? `Kodni qayta yuborish (${left})` : "Kodni qayta yuborish"}
       </Button>
-      <Button type="button" variant="link" className="w-full" onClick={onChangePhone}>
+      <Button type="button" variant="ghost" className="h-11 w-full rounded-xl" onClick={onChangePhone}>
         Raqamni o&apos;zgartirish
       </Button>
     </div>

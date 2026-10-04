@@ -42,13 +42,14 @@ export function PhoneStep({
         label="Telefon raqami"
         readOnly={!hydrated}
         autoComplete="tel"
+        size="lg"
       />
       {send.isError && (
         <p role="alert" className="text-sm text-destructive">
           {send.error.message}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={!hydrated || send.isPending}>
+      <Button type="submit" className="h-12 w-full rounded-xl text-base" disabled={!hydrated || send.isPending}>
         Kodni olish
       </Button>
     </form>
