@@ -2,32 +2,14 @@
 // status codes, error codes, Uzbek messages and token rotation. Tokens are
 // readable strings: "access:<phone>:<company|none>:<n>", "refresh:…".
 import { http, HttpResponse } from "msw"
+import { customerSettingsHandlers } from "./customer-settings"
+import { api, bearer, fail, isMember, normalizePhone, ownerSession, read, type Session } from "./gate"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, db, dropdownsOf, join, LOGIN_CODE, membersOf, nameIn, paidUp, typesOf } from "./data"
-
-const api = (path: string) => `*/api${path}`
-
-function fail(status: number, error: string, message: string, headers?: HeadersInit) {
-  return HttpResponse.json({ error, message }, { status, headers })
-}
-
-function normalizePhone(raw: string): string | null {
-  const digits = raw.replace(/[+\-()\s]/g, "")
-  if (!/^\d{9,15}$/.test(digits)) return null
-  return digits.length === 9 ? `998${digits}` : digits
-}
-
-type Session = { phone: string; companyId: number | null }
+import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp } from "./data"
 
 function token(kind: "access" | "refresh", session: Session): string {
   db.issued += 1
   return `${kind}:${session.phone}:${session.companyId ?? "none"}:${db.issued}`
-}
-
-function read(value: string | undefined | null, kind: "access" | "refresh"): Session | null {
-  const [prefix, phone, company] = (value ?? "").split(":")
-  if (prefix !== kind || !phone) return null
-  return { phone, companyId: company === "none" ? null : Number(company) }
 }
 
 const clearCookie = "refresh_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
@@ -52,49 +34,9 @@ function presentedRefresh(request: Request): string | null {
   return match ? decodeURIComponent(match[1]) : db.lastRefresh
 }
 
-function bearer(request: Request): Session | null {
-  const header = request.headers.get("authorization") ?? ""
-  return header.startsWith("Bearer ") ? read(header.slice(7), "access") : null
-}
-
-// isMember is the API's check on every request: the user may have been
-// taken out of the company since the token was issued.
-function isMember(phone: string, companyId: number): boolean {
-  return companiesOf(phone).some((company) => company.id === companyId)
-}
-
-const ownerOnly = () => fail(403, "owner_only", "Bu bo'lim faqat kompaniya egasi uchun")
 const employeeNotFound = () => fail(404, "not_found", "Xodim topilmadi")
 const ownerProtected = () =>
   fail(409, "cannot_change_owner", "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi")
-
-// ownerSession is the API's gate before the employees, in its order: the
-// token (401), the membership as it is now (401), the subscription (402),
-// the owner's role (403). The company is the token's, never the request's.
-function ownerSession(request: Request): { phone: string; companyId: number } | Response {
-  const user = bearer(request)
-  if (!user) return fail(401, "unauthorized", "Avval tizimga kiring")
-  if (user.companyId === null) return ownerOnly()
-  if (!isMember(user.phone, user.companyId)) return fail(401, "unauthorized", "Avval tizimga kiring")
-  const company = db.companies.find((c) => c.id === user.companyId)
-  if (!company || !paidUp(company)) return fail(402, "subscription_expired", "Kompaniya obunasi tugagan")
-  const membership = db.members[user.phone].find((m) => m.companyId === user.companyId)
-  if (membership?.role !== "owner") return ownerOnly()
-  return { phone: user.phone, companyId: user.companyId }
-}
-
-// memberSession is the API's gate before what every member of a company may
-// do, in its order: the token (401), the membership as it is now (401), the
-// subscription (402), a company chosen (403).
-function memberSession(request: Request): { phone: string; companyId: number } | Response {
-  const user = bearer(request)
-  if (!user) return fail(401, "unauthorized", "Avval tizimga kiring")
-  if (user.companyId === null) return fail(403, "company_required", "Avval kompaniyani tanlang")
-  if (!isMember(user.phone, user.companyId)) return fail(401, "unauthorized", "Avval tizimga kiring")
-  const company = db.companies.find((c) => c.id === user.companyId)
-  if (!company || !paidUp(company)) return fail(402, "subscription_expired", "Kompaniya obunasi tugagan")
-  return { phone: user.phone, companyId: user.companyId }
-}
 
 // maySignIn is the API's rule for who gets in: a member of at least one
 // company. A phone in no company gets no code and no session.
@@ -262,15 +204,5 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.get(api("/app/customer-dropdowns"), ({ request }) => {
-    const member = memberSession(request)
-    if (member instanceof Response) return member
-    return HttpResponse.json(dropdownsOf(member.companyId))
-  }),
-
-  http.get(api("/app/customer-types"), ({ request }) => {
-    const member = memberSession(request)
-    if (member instanceof Response) return member
-    return HttpResponse.json(typesOf(member.companyId))
-  }),
+  ...customerSettingsHandlers,
 ]

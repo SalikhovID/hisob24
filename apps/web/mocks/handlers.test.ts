@@ -151,3 +151,46 @@ test("every member reads the customer types and dropdowns of the company they wo
   ])
   expect(await customerDropdowns()).toEqual([])
 })
+
+const createDropdown = (name: string) => call(api.POST("/app/customer-dropdowns", { body: { name } }))
+const renameDropdown = (id: number, name: string) =>
+  call(api.PATCH("/app/customer-dropdowns/{id}", { params: { path: { id } }, body: { name } }))
+const deleteDropdown = (id: number) => call(api.DELETE("/app/customer-dropdowns/{id}", { params: { path: { id } } }))
+
+test("the owner makes, renames and deletes dropdowns; an employee does not", async () => {
+  await signIn(ALI)
+
+  const holat = await createDropdown(" Holat ")
+  expect(holat).toMatchObject({ name: "Holat", options: [] })
+  expect(await failure(createDropdown("holat"))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli dropdown allaqachon bor",
+  })
+  expect(await failure(createDropdown(" "))).toMatchObject({ status: 400, code: "validation_error", message: "Nomni kiriting" })
+  expect(await failure(createDropdown("x".repeat(61)))).toMatchObject({ status: 400, message: "Nom 60 belgidan oshmasin" })
+
+  expect(await renameDropdown(holat.id, " Holati ")).toEqual({ id: holat.id, name: "Holati", options: [] })
+  expect(await failure(renameDropdown(999, "Yo'q"))).toMatchObject({ status: 404, code: "not_found", message: "Dropdown topilmadi" })
+
+  // Manba gives its options to a field of Jismoniy.
+  const [manba] = await customerDropdowns()
+  expect(await failure(deleteDropdown(manba.id))).toMatchObject({
+    status: 409,
+    code: "dropdown_in_use",
+    message: "Bu dropdown 1 ta maydonda ishlatilgan",
+  })
+  await deleteDropdown(holat.id)
+  expect((await customerDropdowns()).map((d) => d.name)).toEqual(["Manba"])
+  expect(await failure(deleteDropdown(holat.id))).toMatchObject({ status: 404, code: "not_found" })
+  expect((await createDropdown("Holati")).id).not.toBe(holat.id)
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await failure(createDropdown("Xodimniki"))).toMatchObject({
+    status: 403,
+    code: "owner_only",
+    message: "Bu bo'lim faqat kompaniya egasi uchun",
+  })
+  expect(await failure(deleteDropdown(manba.id))).toMatchObject({ status: 403, code: "owner_only" })
+})
