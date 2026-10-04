@@ -4,13 +4,18 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
 var errNotImplemented = errors.New("not implemented")
 
-var errDropdownNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli dropdown allaqachon bor")
+var (
+	errDropdownNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli dropdown allaqachon bor")
+	errDropdownNotFound  = apperr.New(apperr.NotFound, "not_found", "Dropdown topilmadi")
+)
 
 // Option is one choice of a dropdown. An option that is not active is no
 // longer offered, but stays on the customers who chose it.
@@ -72,5 +77,32 @@ func (s *Service) Dropdowns(ctx context.Context, companyID int64) ([]Dropdown, e
 
 // RenameDropdown gives the company's dropdown another name.
 func (s *Service) RenameDropdown(ctx context.Context, companyID, id int64, name string) (Dropdown, error) {
-	return Dropdown{}, errNotImplemented
+	name, err := cleanName(name)
+	if err != nil {
+		return Dropdown{}, err
+	}
+	_, err = s.q.RenameCustomerDropdown(ctx, gen.RenameCustomerDropdownParams{ID: id, CompanyID: companyID, Name: name})
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return Dropdown{}, errDropdownNotFound
+	case taken(err):
+		return Dropdown{}, errDropdownNameTaken
+	case err != nil:
+		return Dropdown{}, err
+	}
+	return s.dropdown(ctx, companyID, id)
+}
+
+// dropdown is the company's dropdown with its options.
+func (s *Service) dropdown(ctx context.Context, companyID, id int64) (Dropdown, error) {
+	list, err := s.Dropdowns(ctx, companyID)
+	if err != nil {
+		return Dropdown{}, err
+	}
+	for _, d := range list {
+		if d.ID == id {
+			return d, nil
+		}
+	}
+	return Dropdown{}, errDropdownNotFound
 }
