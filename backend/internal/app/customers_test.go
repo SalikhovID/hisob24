@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -197,4 +198,58 @@ func TestListCustomers(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
 	assert.JSONEq(t, companyRequired, rec.Body.String())
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/customers", "").Code, "no access token")
+}
+
+func TestUpdateCustomer(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
+	stranger, _ := api.signIn(t, "998907777777", map[int64]string{nok: "user"})
+	sh := api.customerShop(t, olma)
+	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali","%d":"AA1234567"}`, sh.fish, sh.pasport))
+	vali := api.enter(t, owner, sh.jismoniy, "998901112244", fmt.Sprintf(`{"%d":"Vali","%d":"AB7654321"}`, sh.fish, sh.pasport))
+	path := fmt.Sprintf("/app/customers/%v", ali["id"])
+	// put edits Ali as the member the token is of.
+	put := func(token, phone, values string) *httptest.ResponseRecorder {
+		return api.do(t, http.MethodPut, path, fmt.Sprintf(`{"phone":%q,"values":%s}`, phone, values), bearer(token))
+	}
+
+	rec := put(employee, "+998 90 111 22 55", fmt.Sprintf(`{"%d":" Ali Valiyev ","%d":31}`, sh.fish, sh.yosh))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	edited := decode(t, rec)
+	assert.Equal(t, ali["id"], edited["id"])
+	assert.Equal(t, ali["type_id"], edited["type_id"])
+	assert.Equal(t, "998901112255", edited["phone"])
+	assert.Equal(t, map[string]any{key(sh.fish): "Ali Valiyev", key(sh.yosh): float64(31)}, edited["values"],
+		"an employee edits the customer: the answers are those of the edit")
+	assert.Equal(t, ali["created_at"], edited["created_at"])
+	rec = api.do(t, http.MethodGet, path, "", bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, edited, decode(t, rec), "what the edit answers is what is kept")
+
+	name := fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish)
+	rec = put(owner, "998901112244", name)
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, fmt.Sprintf(`{"error":"phone_taken","message":"Bu raqamli mijoz allaqachon bor","customer_id":%v}`, vali["id"]), rec.Body.String())
+	rec = put(owner, "998901112255", fmt.Sprintf(`{"%d":"Ali Valiyev","%d":"ab7654321"}`, sh.fish, sh.pasport))
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, fmt.Sprintf(`{"error":"value_taken","message":"Bu «Pasport» boshqa mijozda bor","customer_id":%v}`, vali["id"]), rec.Body.String())
+	rec = put(owner, "123", name)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Telefon raqami noto'g'ri"}`, rec.Body.String())
+	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPut, path, `{"phone":`, bearer(owner)).Code, "not JSON")
+
+	rec = put(stranger, "998901112255", name)
+	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's customer")
+	assert.JSONEq(t, customerNotFound, rec.Body.String())
+	assert.Equal(t, http.StatusNotFound,
+		api.do(t, http.MethodPut, "/app/customers/abc", `{"phone":"998901112255","values":{}}`, bearer(owner)).Code, "an id that is no number")
+	rec = put(undecided, "998901112255", name)
+	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
+	assert.JSONEq(t, companyRequired, rec.Body.String())
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPut, path, `{}`).Code, "no access token")
 }

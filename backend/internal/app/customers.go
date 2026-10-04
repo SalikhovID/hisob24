@@ -121,3 +121,22 @@ func (h *Handler) listCustomers(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, customerPageJSON{Items: items, Total: page.Total, Page: page.Page, PageSize: page.PageSize})
 }
+
+// updateCustomer saves a customer of the company the session works in with
+// another phone and other answers, as the member the session is of.
+func (h *Handler) updateCustomer(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Phone  string                     `json:"phone"`
+		Values map[string]json.RawMessage `json:"values"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	c, err := h.customers.Update(r.Context(), sessionCompany(r), pathID(r, "id"), currentUser(r.Context()).Phone,
+		customer.Input{Phone: body.Phone, Values: body.Values})
+	if err != nil {
+		writeCustomerError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toCustomerJSON(c))
+}
