@@ -96,3 +96,47 @@ func TestCreateCustomer(t *testing.T) {
 	assert.JSONEq(t, companyRequired, rec.Body.String())
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPost, "/app/customers", `{}`).Code, "no access token")
 }
+
+const customerNotFound = `{"error":"not_found","message":"Mijoz topilmadi"}`
+
+// enter enters a customer through the API, as the member the token is of,
+// and returns it as the API answers.
+func (api testAPI) enter(t *testing.T, token string, typeID int64, phone string, values string) map[string]any {
+	t.Helper()
+	rec := api.do(t, http.MethodPost, "/app/customers",
+		fmt.Sprintf(`{"type_id":%d,"phone":%q,"values":%s}`, typeID, phone, values), bearer(token))
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	return decode(t, rec)
+}
+
+func TestGetCustomer(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
+	stranger, _ := api.signIn(t, "998907777777", map[int64]string{nok: "user"})
+	sh := api.customerShop(t, olma)
+	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev","%d":%d}`, sh.fish, sh.manba, sh.linkedin))
+	path := fmt.Sprintf("/app/customers/%v", ali["id"])
+
+	rec := api.do(t, http.MethodGet, path, "", bearer(employee))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, ali, decode(t, rec), "any member reads the customer as it was entered")
+
+	rec = api.do(t, http.MethodGet, path, "", bearer(stranger))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's customer")
+	assert.JSONEq(t, customerNotFound, rec.Body.String())
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/app/customers/999999", "", bearer(owner)).Code, "a customer that is not there")
+	rec = api.do(t, http.MethodGet, "/app/customers/abc", "", bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "an id that is no number")
+	assert.JSONEq(t, customerNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodGet, path, "", bearer(undecided))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
+	assert.JSONEq(t, companyRequired, rec.Body.String())
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, path, "").Code, "no access token")
+	api.exec(t, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali["id"])
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, path, "", bearer(owner)).Code, "a deleted customer")
+}

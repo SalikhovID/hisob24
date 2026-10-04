@@ -69,3 +69,13 @@ func (h *Handler) createCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusCreated, toCustomerJSON(c))
 }
+
+// getCustomer is a customer of the company the session works in.
+func (h *Handler) getCustomer(w http.ResponseWriter, r *http.Request) {
+	c, err := h.customers.Get(r.Context(), sessionCompany(r), pathID(r, "id"))
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toCustomerJSON(c))
+}

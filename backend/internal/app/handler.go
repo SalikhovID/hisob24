@@ -85,6 +85,7 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Get("/customer-dropdowns", h.listCustomerDropdowns)
 				r.Get("/customer-types", h.listCustomerTypes)
 				r.Post("/customers", h.createCustomer)
+				r.Get("/customers/{id}", h.getCustomer)
 			})
 		})
 	})

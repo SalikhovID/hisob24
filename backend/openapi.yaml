@@ -1294,6 +1294,37 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "409":
           $ref: "#/components/responses/CustomerTaken"
+  /app/customers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getCustomer
+      summary: Mijoz
+      description: >
+        Access token'dagi kompaniyaning mijozi, javoblari bilan. Har a'zo
+        o'qiydi. O'chirilgan va boshqa kompaniyaning mijozi: 404.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Mijoz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -1486,6 +1517,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/CustomerTakenError"
+    CustomerNotFound:
+      description: Mijoz topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     TelegramLogin:
       type: object
