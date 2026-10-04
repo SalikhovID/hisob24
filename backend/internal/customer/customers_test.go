@@ -820,3 +820,45 @@ func TestDelete(t *testing.T) {
 	_, err = s.Get(ctx, nok.id, begona.ID)
 	assert.NoError(t, err, "the other company's customer stays")
 }
+
+func TestHistory(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	ali, err := s.Create(ctx, olma.id, staff, olma.jismoniy.ID, Input{
+		Phone: aliPhone, Values: answers(t, map[int64]any{olma.fish.ID: "Ali", olma.yosh.ID: 30}),
+	})
+	require.NoError(t, err)
+	_, err = s.Update(ctx, olma.id, ali.ID, owner, Input{
+		Phone: aliPhone, Values: answers(t, map[int64]any{olma.fish.ID: "Ali Valiyev", olma.manba.ID: olma.instagram.ID}),
+	})
+	require.NoError(t, err)
+	mustCustomer(t, s, olma.id, olma.jismoniy.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali"}) // another customer's history
+
+	history, err := s.History(ctx, olma.id, ali.ID)
+
+	require.NoError(t, err)
+	require.Len(t, history, 2, "the customer's own history")
+	edited, entered := history[0], history[1]
+	assert.Equal(t, "updated", edited.Action, "the latest first")
+	assert.Equal(t, ptr("Egamberdi Egasi"), edited.ActorName)
+	assert.Equal(t, []Change{
+		{Label: "F.I.Sh.", Old: "Ali", New: "Ali Valiyev"},
+		{Label: "Yoshi", Old: "30", New: ""},
+		{Label: "Manba", Old: "", New: "Instagram"},
+	}, edited.Changes)
+	assert.WithinDuration(t, time.Now(), edited.CreatedAt, time.Minute)
+	assert.Equal(t, "created", entered.Action)
+	assert.Equal(t, ptr("Xurshid Xodim"), entered.ActorName)
+	assert.Equal(t, []Change{}, entered.Changes, "entering changes no field")
+	assert.Greater(t, edited.ID, entered.ID)
+
+	_, err = s.History(ctx, nok.id, ali.ID)
+	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "another company's customer")
+	_, err = s.History(ctx, olma.id, 1<<40)
+	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "a customer that is not there")
+	require.NoError(t, s.Delete(ctx, olma.id, ali.ID, owner))
+	_, err = s.History(ctx, olma.id, ali.ID)
+	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "a deleted customer")
+}

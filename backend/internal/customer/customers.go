@@ -475,3 +475,39 @@ func (s *Service) Delete(ctx context.Context, companyID, id int64, by string) er
 		})
 	})
 }
+
+// HistoryEntry is one thing that happened to a customer: it was created,
+// updated or deleted, by whom and when. Changes is what an edit changed.
+type HistoryEntry struct {
+	ID     int64
+	Action string
+	// ActorName is the name the member who did it goes by in the company;
+	// nil when they go by none.
+	ActorName *string
+	CreatedAt time.Time
+	Changes   []Change
+}
+
+// History is what happened to the company's customer, the latest first.
+func (s *Service) History(ctx context.Context, companyID, id int64) ([]HistoryEntry, error) {
+	_, err := s.q.GetCustomer(ctx, gen.GetCustomerParams{ID: id, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errCustomerNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.q.ListCustomerHistory(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	history := make([]HistoryEntry, 0, len(rows))
+	for _, row := range rows {
+		e := HistoryEntry{ID: row.ID, Action: row.Action, ActorName: row.ActorName, CreatedAt: row.CreatedAt, Changes: []Change{}}
+		if err := json.Unmarshal(row.Changes, &e.Changes); err != nil {
+			return nil, err
+		}
+		history = append(history, e)
+	}
+	return history, nil
+}
