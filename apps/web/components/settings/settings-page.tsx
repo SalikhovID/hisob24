@@ -1,0 +1,98 @@
+"use client"
+
+import Link from "next/link"
+import { type ReactNode, useId } from "react"
+import { PageHeader } from "@/components/page-header"
+import { ListLoading } from "@/components/states"
+import { useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
+import { useOwner } from "@/lib/use-owner"
+import { SettingRow, settingList } from "./setting-row"
+
+const link = "rounded-sm underline-offset-4 hover:underline"
+
+// SettingsPage is where the company's owner sets up what its customers are
+// asked: the customer types with their fields, and the dropdowns the choice
+// fields take their options from. A type and a dropdown open on a page of
+// their own.
+export function SettingsPage() {
+  const owner = useOwner()
+  const companyId = owner ? owner.company.id : null
+  const types = useCustomerTypes(companyId)
+  const dropdowns = useCustomerDropdowns(companyId)
+
+  if (!owner) return null
+
+  return (
+    <div className="space-y-8">
+      <PageHeader title="Sozlamalar" description="Mijozlar bo'limi sozlamalari" />
+      <Section title="Mijoz turlari" description="Mijoz qo'shishda tanlanadi. Har turning o'z maydonlari bor.">
+        {types.isPending && <ListLoading rows={2} mark="none" />}
+        {types.data && (
+          <ul aria-label="Mijoz turlari" className={settingList}>
+            {types.data.map((type) => (
+              <li key={type.id}>
+                <SettingRow
+                  title={
+                    <Link href={`/settings/customer-types/${type.id}`} className={link}>
+                      {type.name}
+                    </Link>
+                  }
+                  detail={type.fields.map((field) => field.label).join(", ")}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+      <Section title="Dropdownlar" description="Tanlov maydonlari variantlarni shu ro'yxatlardan oladi.">
+        {dropdowns.isPending && <ListLoading rows={2} mark="none" />}
+        {dropdowns.data && (
+          <ul aria-label="Dropdownlar" className={settingList}>
+            {dropdowns.data.map((dropdown) => (
+              <li key={dropdown.id}>
+                <SettingRow
+                  title={
+                    <Link href={`/settings/dropdowns/${dropdown.id}`} className={link}>
+                      {dropdown.name}
+                    </Link>
+                  }
+                  detail={dropdown.options.map((option) => option.label).join(", ")}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+    </div>
+  )
+}
+
+// Section is a part of the page with a heading of its own: what it holds,
+// a line on what that is for and, beside them, what can be added to it.
+function Section({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string
+  description: string
+  action?: ReactNode
+  children: ReactNode
+}) {
+  const id = useId()
+  return (
+    <section aria-labelledby={id} className="space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <h2 id={id} className="text-base font-semibold">
+            {title}
+          </h2>
+          <p className="text-sm text-pretty text-muted-foreground">{description}</p>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
