@@ -70,6 +70,34 @@ function fieldsUsing(dropdownId: number): number {
     .filter((f) => !f.deleted && f.dropdownId === dropdownId).length
 }
 
+// What the customers use is not deleted; the deleted customers use nothing.
+const liveCustomers = () => db.customers.filter((c) => !c.deleted)
+
+// answered counts the customers who filled the field in.
+const answered = (field: FieldRow) => liveCustomers().filter((c) => c.values[field.id] !== undefined).length
+
+// chose counts the customers who chose the option, in any field that takes
+// its options from the dropdown.
+function chose(dropdown: DropdownRow, optionId: number): number {
+  const fields = db.types.flatMap((t) => t.fields).filter((f) => f.dropdownId === dropdown.id)
+  return liveCustomers().filter((c) =>
+    fields.some((f) => {
+      const answer = c.values[f.id]
+      return Array.isArray(answer) ? answer.includes(optionId) : answer === optionId
+    }),
+  ).length
+}
+
+// repeats tells whether two customers have the same answer in the field, a
+// text whatever its case.
+function repeats(field: FieldRow): boolean {
+  const answers = liveCustomers()
+    .map((c) => c.values[field.id])
+    .filter((answer) => answer !== undefined)
+    .map((answer) => (typeof answer === "string" ? answer.toLowerCase() : answer))
+  return new Set(answers).size < answers.length
+}
+
 export const customerSettingsHandlers = [
   http.get(api("/app/customer-dropdowns"), ({ request }) => {
     const member = memberSession(request)
@@ -164,7 +192,9 @@ export const customerSettingsHandlers = [
     if (owner instanceof Response) return owner
     const dropdown = liveDropdown(owner.companyId, Number(params.id))
     const option = dropdown?.options.find((o) => o.id === Number(params.optionId) && !o.deleted)
-    if (!option) return optionNotFound()
+    if (!dropdown || !option) return optionNotFound()
+    const used = chose(dropdown, option.id)
+    if (used > 0) return fail(409, "option_in_use", `Bu variant ${used} ta mijozda tanlangan`)
     option.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
@@ -208,6 +238,8 @@ export const customerSettingsHandlers = [
     if (owner instanceof Response) return owner
     const type = liveType(owner.companyId, Number(params.id))
     if (!type) return typeNotFound()
+    const used = liveCustomers().filter((c) => c.typeId === type.id).length
+    if (used > 0) return fail(409, "type_in_use", `Bu turda ${used} ta mijoz bor`)
     // Its fields go with it.
     type.deleted = true
     type.fields.forEach((f) => (f.deleted = true))
@@ -271,6 +303,7 @@ export const customerSettingsHandlers = [
     const field = type?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!type || !field) return fieldNotFound()
     if (kinds[field.kind].choice && body.is_unique) return choiceUnique()
+    if (body.is_unique && repeats(field)) return fail(409, "duplicates_exist", "Bu maydonda takrorlangan qiymatlar bor")
     if (label !== undefined) {
       if (type.fields.some((f) => f !== field && !f.deleted && same(f.label, label))) return fieldTaken()
       field.label = label
@@ -285,6 +318,8 @@ export const customerSettingsHandlers = [
     if (owner instanceof Response) return owner
     const field = liveType(owner.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!field) return fieldNotFound()
+    const used = answered(field)
+    if (used > 0) return fail(409, "field_in_use", `Bu maydon ${used} ta mijozda to'ldirilgan`)
     field.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

@@ -667,3 +667,49 @@ test("a deleted customer is gone from the app, stays in the database, and its ph
   await chooseCompany(null)
   expect(await failure(deleteCustomer(vali.id))).toMatchObject({ status: 403, code: "company_required" })
 })
+
+test("what the customers use is not deleted from the settings; the deleted customers use nothing", async () => {
+  await signIn(ALI)
+  const { jismoniy, yuridik, fish, manba, instagram, linkedin } = await setup()
+  const dropdown = (await customerDropdowns())[0]
+  const ali = await createCustomer(jismoniy.id, "998901234567", { [fish.id]: "Ali", [manba.id]: instagram.id })
+  const vali = await createCustomer(jismoniy.id, "998905555555", { [fish.id]: "ali" })
+  const inUse = { status: 409 }
+
+  expect(await failure(deleteType(jismoniy.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 2 ta mijoz bor" })
+  expect(await failure(deleteField(jismoniy.id, fish.id))).toMatchObject({
+    ...inUse,
+    code: "field_in_use",
+    message: "Bu maydon 2 ta mijozda to'ldirilgan",
+  })
+  expect(await failure(deleteField(jismoniy.id, manba.id))).toMatchObject({ ...inUse, message: "Bu maydon 1 ta mijozda to'ldirilgan" })
+  expect(await failure(deleteOption(dropdown.id, instagram.id))).toMatchObject({
+    ...inUse,
+    code: "option_in_use",
+    message: "Bu variant 1 ta mijozda tanlangan",
+  })
+  expect(await failure(updateField(jismoniy.id, fish.id, { is_unique: true }))).toMatchObject({
+    ...inUse,
+    code: "duplicates_exist",
+    message: "Bu maydonda takrorlangan qiymatlar bor",
+  })
+  expect((await customerTypes())[0].fields.map((f) => [f.label, f.is_unique])).toEqual([
+    ["F.I.Sh.", false],
+    ["Manba", false],
+  ])
+
+  // What nobody uses goes as before.
+  await deleteOption(dropdown.id, linkedin.id)
+  await deleteType(yuridik.id)
+  // An option in use can be turned off instead.
+  expect(await updateOption(dropdown.id, instagram.id, { is_active: false })).toMatchObject({ is_active: false })
+
+  await deleteCustomer(vali.id)
+  expect(await updateField(jismoniy.id, fish.id, { is_unique: true })).toMatchObject({ is_unique: true })
+  expect(await failure(deleteType(jismoniy.id))).toMatchObject({ code: "type_in_use", message: "Bu turda 1 ta mijoz bor" })
+  await deleteCustomer(ali.id)
+  await deleteOption(dropdown.id, instagram.id)
+  await deleteField(jismoniy.id, manba.id)
+  await deleteType(jismoniy.id)
+  expect(await customerTypes()).toEqual([])
+})
