@@ -387,3 +387,42 @@ func TestDeleteCustomerType(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
 	assert.JSONEq(t, typeNotFound, rec.Body.String())
 }
+
+const fieldNotFound = `{"error":"not_found","message":"Maydon topilmadi"}`
+
+func TestAddCustomerField(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	jismoniy := api.addType(t, olma, "Jismoniy", 1)
+	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
+	path := fmt.Sprintf("/app/customer-types/%d/fields", jismoniy)
+
+	rec := api.do(t, http.MethodPost, path, `{"label":" F.I.Sh. ","kind":"string","required":true,"is_unique":true}`, bearer(owner))
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	fish := decode(t, rec)
+	assert.NotEmpty(t, fish["id"])
+	delete(fish, "id")
+	assert.Equal(t, map[string]any{"label": "F.I.Sh.", "kind": "string", "required": true, "is_unique": true, "dropdown_id": nil}, fish)
+
+	rec = api.do(t, http.MethodPost, path, fmt.Sprintf(`{"label":"Manba","kind":"checkbox","dropdown_id":%d}`, manba), bearer(owner))
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	source := decode(t, rec)
+	assert.Equal(t, "checkbox", source["kind"])
+	assert.Equal(t, false, source["required"], "a mark that is not given is off")
+	assert.EqualValues(t, manba, source["dropdown_id"])
+
+	rec = api.do(t, http.MethodPost, path, `{"label":"Tanlov","kind":"radio"}`, bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code, "a choice field without a dropdown")
+	assert.JSONEq(t, `{"error":"validation_error","message":"Dropdownni tanlang"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, path, `{"label":"f.i.sh.","kind":"int"}`, bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"name_taken","message":"Bu nomli maydon allaqachon bor"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/customer-types/999/fields", `{"label":"Ism","kind":"string"}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, typeNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPost, path, `{"label":"Izoh","kind":"string"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}

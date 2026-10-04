@@ -266,3 +266,26 @@ func (h *Handler) deleteCustomerType(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// addCustomerField adds a field at the end of a customer type of the owner's
+// company.
+func (h *Handler) addCustomerField(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Label      string `json:"label"`
+		Kind       string `json:"kind"`
+		Required   bool   `json:"required"`
+		IsUnique   bool   `json:"is_unique"`
+		DropdownID *int64 `json:"dropdown_id"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	f, err := h.customers.AddField(r.Context(), sessionCompany(r), pathID(r, "id"), customer.FieldInput{
+		Label: body.Label, Kind: body.Kind, Required: body.Required, Unique: body.IsUnique, DropdownID: body.DropdownID,
+	})
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toFieldJSON(f))
+}

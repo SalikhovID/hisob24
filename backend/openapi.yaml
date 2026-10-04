@@ -1107,6 +1107,49 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customer-types/{id}/fields:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    post:
+      operationId: addCustomerField
+      summary: Turga maydon qo'shish (faqat owner)
+      description: >
+        Maydon tur oxiriga qo'shiladi. Tanlov turlari (dropdown,
+        multi_dropdown, radio, checkbox) kompaniyaning dropdownini talab
+        qiladi; matn va son dropdown olmaydi va faqat ular takrorlanmas
+        (is_unique) bo'la oladi. Tur va dropdown keyin o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FieldInput"
+      responses:
+        "201":
+          description: Qo'shilgan maydon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerField"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
