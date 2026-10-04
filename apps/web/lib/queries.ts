@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { api, call } from "./api"
 import { leave } from "./navigate"
@@ -76,6 +76,8 @@ export function useCustomers(companyId: number | null, filter: CustomerFilter) {
         }),
       ),
     enabled: companyId !== null,
+    // The list on screen stays while the next filter's answer is on its way.
+    placeholderData: keepPreviousData,
   })
 }
 

@@ -1,9 +1,9 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, seedCustomers, VALI } from "@/mocks/data"
+import { ALI, seedCustomers, typesOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
-import { setLocation } from "@/test/navigation"
+import { currentUrl, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -122,4 +122,69 @@ test("an employee sees the company's customers too", async () => {
   renderWithProviders(<CustomersPage />)
 
   expect(rowsOf(await table()).map(nameAndPhone)).toHaveLength(3)
+})
+
+// names are the customers the table shows, in order.
+const names = () => rowsOf(screen.getByRole("table", { name: "Mijozlar" })).map((row) => nameAndPhone(row)[0])
+const headers = () =>
+  within(screen.getByRole("table", { name: "Mijozlar" }))
+    .getAllByRole("columnheader")
+    .map((header) => header.textContent)
+
+test("a tab keeps the customers of one type, under that type's own fields, and stays in the address", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  const [jismoniy, yuridik] = typesOf(1)
+  setLocation("/customers")
+  const { user } = renderWithProviders(<CustomersPage />)
+  await table()
+
+  expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Barchasi", "Jismoniy", "Yuridik"])
+  expect(screen.getByRole("tab", { name: "Barchasi" })).toHaveAttribute("aria-selected", "true")
+
+  await user.click(screen.getByRole("tab", { name: "Yuridik" }))
+  await waitFor(() => expect(names()).toEqual(["Anor Tekstil MChJ"]))
+  expect(currentUrl()).toBe(`/customers?type=${yuridik.id}`)
+  // Every customer here is a Yuridik: the type is not said in each row, and
+  // the other types' fields are not asked about.
+  expect(headers()).toEqual(["Mijoz", "INN", "Qo'shgan", "Qo'shilgan"])
+  // One matches the tab; the company still has three. The count is not shown as the company's.
+  expect(screen.getByText("Kompaniyangiz mijozlari")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("tab", { name: "Jismoniy" }))
+  await waitFor(() => expect(names()).toEqual(["Malika Yusupova", "Dilshod Karimov"]))
+  expect(currentUrl()).toBe(`/customers?type=${jismoniy.id}`)
+  expect(headers()).toEqual(["Mijoz", "Manba", "Qo'shgan", "Qo'shilgan"])
+
+  await user.click(screen.getByRole("tab", { name: "Barchasi" }))
+  await waitFor(() => expect(names()).toHaveLength(3))
+  expect(currentUrl()).toBe("/customers")
+  expect(await screen.findByText("Kompaniyangiz mijozlari · 3 ta")).toBeInTheDocument()
+})
+
+test("the list opens under the tab the address names", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  const [jismoniy] = typesOf(1)
+  setLocation(`/customers?type=${jismoniy.id}`)
+
+  renderWithProviders(<CustomersPage />)
+
+  await table()
+  expect(names()).toEqual(["Malika Yusupova", "Dilshod Karimov"])
+  expect(screen.getByRole("tab", { name: "Jismoniy" })).toHaveAttribute("aria-selected", "true")
+})
+
+test("a tab with no customers says that none were found, not that the company has none", async () => {
+  await signIn(ALI)
+  const { anor } = seedCustomers()
+  anor.deleted = true
+  const [, yuridik] = typesOf(1)
+  setLocation(`/customers?type=${yuridik.id}`)
+
+  renderWithProviders(<CustomersPage />)
+
+  expect(await screen.findByText("Mijozlar topilmadi")).toBeInTheDocument()
+  expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
+  expect(screen.queryByText("Hali mijoz yo'q")).not.toBeInTheDocument()
 })
