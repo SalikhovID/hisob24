@@ -111,3 +111,20 @@ test("folded, the sidebar is headed by the logo's mark, inside the button that u
   expect(unfold.querySelector('[data-slot="logo-mark"]')).not.toBeNull()
   expect(within(sidebar()).queryByRole("img", { name: "Hisob24" })).not.toBeInTheDocument()
 })
+
+test("the phone's sheet is headed by the logo too, and is still named by the company", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props({ open: true })} />)
+
+  const sheet = await screen.findByRole("dialog", { name: "Olma Savdo" })
+  expect(within(sheet).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+})
+
+test("with no company chosen yet the phone's sheet is named by the app", async () => {
+  await signIn(VALI)
+  const { queryClient } = renderWithProviders(<Sidebar {...props({ open: true })} />)
+  await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+
+  const sheet = screen.getByRole("dialog", { name: "Hisob24" })
+  expect(within(sheet).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+})

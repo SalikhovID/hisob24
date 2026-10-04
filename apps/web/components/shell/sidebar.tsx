@@ -20,14 +20,14 @@ export interface SidebarProps {
   onToggleCollapsed: () => void
 }
 
-// Sidebar is the app's sections under the name of the company the session
-// works in: the owner sees them all, an employee those open to everyone. On
-// a wide screen it is a column that folds to icons; on a phone the column is
-// hidden and the sections come out as a sheet from the left.
+// Sidebar is the app's sections under Hisob24's logo and the name of the
+// company the session works in: the owner sees them all, an employee those
+// open to everyone. On a wide screen it is a column that folds to icons, the
+// logo to its mark; on a phone the column is hidden and the sections come out
+// as a sheet from the left.
 export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
   const company = me.data?.company
-  const title = company?.name ?? "Hisob24"
   const items = navFor(company?.role)
 
   return (
@@ -35,10 +35,11 @@ export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: Si
       <Column company={company?.name} items={items} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="left" className="gap-0 bg-sidebar text-sidebar-foreground data-[side=left]:w-72">
-          <SheetHeader className="border-b px-4 py-3 pr-12">
-            <SheetTitle className="flex items-center gap-2 text-left">
-              <Letter />
-              <span className="truncate">{title}</span>
+          <SheetHeader className="gap-0 border-b px-4 py-3 pr-12">
+            <Logo className="h-4 self-start" />
+            {/* The sheet is named by the company, as before; with none to name it, by the app, out of sight. */}
+            <SheetTitle className={company ? "h-5 truncate text-[0.8125rem] leading-5" : "sr-only"}>
+              {company?.name ?? "Hisob24"}
             </SheetTitle>
           </SheetHeader>
           <SidebarNav items={items} collapsed={false} onNavigate={() => onOpenChange(false)} />
@@ -103,21 +104,6 @@ function Column({
       </div>
       <SidebarNav items={items} collapsed={collapsed} />
     </aside>
-  )
-}
-
-// Letter is the mark from before there was a logo.
-function Letter({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "flex size-6 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground",
-        className,
-      )}
-    >
-      H
-    </span>
   )
 }
 
