@@ -950,6 +950,44 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customer-dropdowns/{id}/options/order:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: orderCustomerDropdownOptions
+      summary: Variantlar tartibini o'zgartirish (faqat owner)
+      description: >
+        ids dropdownning barcha variantlarini yangi tartibda, har birini bir
+        marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa (variant
+        qo'shilgan yoki o'chirilgan): 409 order_changed.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "204":
+          description: Tartib saqlandi
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

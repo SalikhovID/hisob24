@@ -190,3 +190,22 @@ func (h *Handler) deleteCustomerDropdownOption(w http.ResponseWriter, r *http.Re
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// orderBody is a new order: the ids of every record of a list, each once.
+type orderBody struct {
+	IDs []int64 `json:"ids"`
+}
+
+// orderCustomerDropdownOptions puts the options of a dropdown of the owner's
+// company in a new order.
+func (h *Handler) orderCustomerDropdownOptions(w http.ResponseWriter, r *http.Request) {
+	var body orderBody
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	if err := h.customers.OrderOptions(r.Context(), sessionCompany(r), pathID(r, "id"), body.IDs); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

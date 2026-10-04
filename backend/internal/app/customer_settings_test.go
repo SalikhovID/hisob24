@@ -252,3 +252,35 @@ func TestDeleteCustomerDropdownOption(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
 	assert.JSONEq(t, optionNotFound, rec.Body.String())
 }
+
+const orderChanged = `{"error":"order_changed","message":"Ro'yxat o'zgargan. Sahifani yangilang"}`
+
+func TestOrderCustomerDropdownOptions(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
+	instagram := api.id(t, `INSERT INTO customer_dropdown_options (dropdown_id, label, position)
+		VALUES ($1, 'Instagram', 1) RETURNING id`, manba)
+	linkedin := api.id(t, `INSERT INTO customer_dropdown_options (dropdown_id, label, position)
+		VALUES ($1, 'LinkedIn', 2) RETURNING id`, manba)
+	path := fmt.Sprintf("/app/customer-dropdowns/%d/options/order", manba)
+
+	rec := api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, linkedin, instagram), bearer(owner))
+
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	options, _ := list(t, api.do(t, http.MethodGet, "/app/customer-dropdowns", "", bearer(owner)))[0]["options"].([]any)
+	require.Len(t, options, 2)
+	assert.Equal(t, "LinkedIn", options[0].(map[string]any)["label"], "the options stand in the new order")
+
+	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d]}`, instagram), bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code, "an option is missing")
+	assert.JSONEq(t, orderChanged, rec.Body.String())
+	rec = api.do(t, http.MethodPut, "/app/customer-dropdowns/999/options/order", `{"ids":[]}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, instagram, linkedin), bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}
