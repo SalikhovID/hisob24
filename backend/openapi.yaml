@@ -928,6 +928,28 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+    delete:
+      operationId: deleteCustomerDropdownOption
+      summary: Variantni o'chirish (faqat owner)
+      description: >
+        Variant yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda
+        tanlangan variant o'chirilmaydi (409 option_in_use): uni nofaol qilish
+        mumkin.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

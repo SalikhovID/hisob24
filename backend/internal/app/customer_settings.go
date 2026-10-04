@@ -179,3 +179,14 @@ func (h *Handler) updateCustomerDropdownOption(w http.ResponseWriter, r *http.Re
 	}
 	httpx.JSON(w, http.StatusOK, toOptionJSON(o))
 }
+
+// deleteCustomerDropdownOption hides an option of a dropdown of the owner's
+// company.
+func (h *Handler) deleteCustomerDropdownOption(w http.ResponseWriter, r *http.Request) {
+	err := h.customers.DeleteOption(r.Context(), sessionCompany(r), pathID(r, "id"), pathID(r, "optionId"))
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

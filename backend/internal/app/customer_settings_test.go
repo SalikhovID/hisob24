@@ -228,3 +228,27 @@ func TestUpdateCustomerDropdownOption(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+func TestDeleteCustomerDropdownOption(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
+	instagram := api.id(t, `INSERT INTO customer_dropdown_options (dropdown_id, label, position)
+		VALUES ($1, 'Instagram', 1) RETURNING id`, manba)
+	path := fmt.Sprintf("/app/customer-dropdowns/%d/options/%d", manba, instagram)
+
+	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+
+	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	dropdowns := list(t, api.do(t, http.MethodGet, "/app/customer-dropdowns", "", bearer(owner)))
+	assert.Equal(t, []any{}, dropdowns[0]["options"], "it is gone from the dropdown")
+
+	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
+	assert.JSONEq(t, optionNotFound, rec.Body.String())
+}
