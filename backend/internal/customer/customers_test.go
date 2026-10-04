@@ -575,3 +575,71 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, vali.Values, other.Values)
 	assert.Equal(t, other.CreatedAt, other.UpdatedAt)
 }
+
+// entry is one entry of a customer's history as it is stored.
+type entry struct {
+	Action  string
+	Actor   string
+	Name    *string
+	Changes []Change
+}
+
+// entriesOf is the customer's history as it is stored, the oldest first.
+func entriesOf(t *testing.T, pool *pgxpool.Pool, customerID int64) []entry {
+	t.Helper()
+	rows, err := pool.Query(t.Context(),
+		"SELECT action, actor_phone, actor_name, changes FROM customer_history WHERE customer_id = $1 ORDER BY id", customerID)
+	require.NoError(t, err)
+	var entries []entry
+	var e entry
+	var changes []byte
+	_, err = pgx.ForEachRow(rows, []any{&e.Action, &e.Actor, &e.Name, &changes}, func() error {
+		e.Changes = nil
+		require.NoError(t, json.Unmarshal(changes, &e.Changes))
+		entries = append(entries, e)
+		return nil
+	})
+	require.NoError(t, err)
+	return entries
+}
+
+func TestUpdateWritesDownWhatChanged(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	ali, err := s.Create(ctx, olma.id, staff, olma.jismoniy.ID, Input{
+		Phone: "998901234567",
+		Values: answers(t, map[int64]any{
+			olma.fish.ID: "Ali Valiyev", olma.yosh.ID: 30, olma.manba.ID: olma.instagram.ID,
+			olma.tillar.ID: []int64{olma.uzbek.ID, olma.rus.ID},
+		}),
+	})
+	require.NoError(t, err)
+
+	_, err = s.Update(ctx, olma.id, ali.ID, owner, Input{
+		Phone: "998907654321",
+		Values: answers(t, map[int64]any{
+			olma.fish.ID: "Ali Valiyev", olma.yosh.ID: 31, olma.jinsi.ID: olma.erkak.ID, olma.tillar.ID: []int64{olma.rus.ID},
+		}),
+	})
+
+	require.NoError(t, err)
+	edit := entry{Action: "updated", Actor: owner, Name: ptr("Egamberdi Egasi"), Changes: []Change{
+		{Label: "Telefon", Old: "+998 90 123 45 67", New: "+998 90 765 43 21"},
+		{Label: "Yoshi", Old: "30", New: "31"},
+		{Label: "Manba", Old: "Instagram", New: ""},
+		{Label: "Jinsi", Old: "", New: "Erkak"},
+		{Label: "Tillar", Old: "O'zbek, Rus", New: "Rus"},
+	}}
+	require.Equal(t, []entry{
+		{Action: "created", Actor: staff, Name: ptr("Xurshid Xodim"), Changes: []Change{}},
+		edit,
+	}, entriesOf(t, pool, ali.ID), "who edited, and each field that changed: before and after")
+
+	// The history is kept as text: names given later do not rewrite it.
+	_, err = s.UpdateField(ctx, olma.id, olma.jismoniy.ID, olma.yosh.ID, FieldPatch{Label: ptr("Yosh")})
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "UPDATE customer_dropdown_options SET label = 'Ruscha' WHERE id = $1", olma.rus.ID)
+	require.NoError(t, err)
+	assert.Equal(t, edit, entriesOf(t, pool, ali.ID)[1], "under the names of that time")
+}

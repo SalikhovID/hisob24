@@ -417,6 +417,20 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 		if err := store(ctx, q, id, fields, values); err != nil {
 			return err
 		}
+		changes, err := json.Marshal(diff(fields, options, c.Phone, phone, c.Values, values))
+		if err != nil {
+			return err
+		}
+		name, err := memberName(ctx, q, companyID, by)
+		if err != nil {
+			return err
+		}
+		err = q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
+			CustomerID: id, Action: "updated", ActorPhone: by, ActorName: name, Changes: changes,
+		})
+		if err != nil {
+			return err
+		}
 		c.Phone, c.Values = phone, values
 		return nil
 	})
