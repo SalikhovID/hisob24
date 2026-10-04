@@ -155,5 +155,29 @@ type OptionPatch struct {
 // UpdateOption renames an option of the company's dropdown, or turns it off
 // or on.
 func (s *Service) UpdateOption(ctx context.Context, companyID, dropdownID, optionID int64, patch OptionPatch) (Option, error) {
-	return Option{}, errNotImplemented
+	if patch.Label != nil {
+		label, err := cleanName(*patch.Label)
+		if err != nil {
+			return Option{}, err
+		}
+		patch.Label = &label
+	}
+	var o gen.CustomerDropdownOption
+	err := s.write(ctx, companyID, func(q *gen.Queries) error {
+		var err error
+		o, err = q.UpdateCustomerDropdownOption(ctx, gen.UpdateCustomerDropdownOptionParams{
+			CompanyID: companyID, DropdownID: dropdownID, ID: optionID, Label: patch.Label, IsActive: patch.Active,
+		})
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return errOptionNotFound
+		case taken(err):
+			return errOptionTaken
+		}
+		return err
+	})
+	if err != nil {
+		return Option{}, err
+	}
+	return toOption(o), nil
 }
