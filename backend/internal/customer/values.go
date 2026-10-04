@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -26,7 +27,9 @@ const maxInt = 1<<53 - 1
 // checkValues reads the answers a client sent for the fields of a type and
 // gives them as they are kept, or the first thing that is wrong with them,
 // in the order of the fields. options is the options of each dropdown, in
-// its order.
+// its order. was is the customer's answers before the edit, nil for a new
+// customer: an option that is turned off is taken only where the customer
+// has it already.
 func checkValues(fields []Field, options map[int64][]Option, was Values, raw map[string]json.RawMessage) (Values, error) {
 	values := Values{}
 	for _, f := range fields {
@@ -34,7 +37,7 @@ func checkValues(fields []Field, options map[int64][]Option, was Values, raw map
 		if f.DropdownID != nil {
 			offered = options[*f.DropdownID]
 		}
-		answer, err := readAnswer(f, offered, raw[strconv.FormatInt(f.ID, 10)])
+		answer, err := readAnswer(f, offered, chosen(was[f.ID]), raw[strconv.FormatInt(f.ID, 10)])
 		if err != nil {
 			return nil, err
 		}
@@ -45,9 +48,21 @@ func checkValues(fields []Field, options map[int64][]Option, was Values, raw map
 	return values, nil
 }
 
-// readAnswer reads what a client sent for one field, whose dropdown offers
-// the options given; nil when the field is left empty.
-func readAnswer(f Field, offered []Option, raw json.RawMessage) (any, error) {
+// chosen is the options of an answer to a choice field.
+func chosen(answer any) []int64 {
+	switch a := answer.(type) {
+	case int64:
+		return []int64{a}
+	case []int64:
+		return a
+	}
+	return nil
+}
+
+// readAnswer reads what a client sent for one field; nil when the field is
+// left empty. offered is the options of the field's dropdown, has the ones
+// the customer has in the field already.
+func readAnswer(f Field, offered []Option, has []int64, raw json.RawMessage) (any, error) {
 	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
 		return nil, nil
 	}
@@ -60,19 +75,19 @@ func readAnswer(f Field, offered []Option, raw json.RawMessage) (any, error) {
 		return n, nil
 	case KindDropdown, KindRadio:
 		id, ok := readWhole(raw)
-		if !ok || !offers(offered, id) {
+		if !ok || !offers(offered, has, id) {
 			return nil, invalid(fmt.Sprintf("«%s» uchun variant noto'g'ri", f.Label))
 		}
 		return id, nil
 	case KindMultiDropdown, KindCheckbox:
-		chosen, ok := readChoices(offered, raw)
+		ids, ok := readChoices(offered, has, raw)
 		switch {
 		case !ok:
 			return nil, invalid(fmt.Sprintf("«%s» uchun variant noto'g'ri", f.Label))
-		case len(chosen) == 0:
+		case len(ids) == 0:
 			return nil, nil
 		}
-		return chosen, nil
+		return ids, nil
 	}
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
@@ -88,12 +103,12 @@ func readAnswer(f Field, offered []Option, raw json.RawMessage) (any, error) {
 	return text, nil
 }
 
-// offers tells whether the option is one a new choice may be made of: it is
-// in the dropdown and not turned off.
-func offers(offered []Option, id int64) bool {
+// offers tells whether the option may be chosen: it is in the dropdown, and
+// not turned off unless the customer has it in the field already.
+func offers(offered []Option, has []int64, id int64) bool {
 	for _, o := range offered {
 		if o.ID == id {
-			return o.Active
+			return o.Active || slices.Contains(has, id)
 		}
 	}
 	return false
@@ -101,7 +116,7 @@ func offers(offered []Option, id int64) bool {
 
 // readChoices reads a list of the options a client chose and gives each
 // once, in the order of the dropdown that offers them.
-func readChoices(offered []Option, raw json.RawMessage) ([]int64, bool) {
+func readChoices(offered []Option, has []int64, raw json.RawMessage) ([]int64, bool) {
 	var items []json.RawMessage
 	if json.Unmarshal(raw, &items) != nil {
 		return nil, false
@@ -109,18 +124,18 @@ func readChoices(offered []Option, raw json.RawMessage) ([]int64, bool) {
 	picked := make(map[int64]bool, len(items))
 	for _, item := range items {
 		id, ok := readWhole(item)
-		if !ok || !offers(offered, id) {
+		if !ok || !offers(offered, has, id) {
 			return nil, false
 		}
 		picked[id] = true
 	}
-	var chosen []int64
+	var ids []int64
 	for _, o := range offered {
 		if picked[o.ID] {
-			chosen = append(chosen, o.ID)
+			ids = append(ids, o.ID)
 		}
 	}
-	return chosen, true
+	return ids, true
 }
 
 // readWhole reads a JSON number that is whole and within maxInt: digits with

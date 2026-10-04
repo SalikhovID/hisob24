@@ -134,3 +134,32 @@ func TestCheckValuesSeveralChoices(t *testing.T) {
 		{name: "a text", body: `{"5": "21"}`, refusal: wrong},
 	})
 }
+
+// YouTube (13) is turned off: it is offered no more, but a customer who has
+// it keeps it through an edit.
+func TestCheckValuesKeepsATurnedOffOptionWhereTheCustomerHasIt(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		was     Values
+		body    string
+		want    Values
+		refusal string
+	}{
+		{name: "the one option the customer has", was: Values{3: int64(13)}, body: `{"3": 13}`, want: Values{3: int64(13)}},
+		{name: "one of the several the customer has", was: Values{6: []int64{11, 13}}, body: `{"6": [13, 12]}`, want: Values{6: []int64{12, 13}}},
+		{name: "the customer has it in another field", was: Values{3: int64(13)}, body: `{"4": 13}`, refusal: "«Holati» uchun variant noto'g'ri"},
+		{name: "the customer has another option", was: Values{3: int64(11)}, body: `{"3": 13}`, refusal: "«Manba» uchun variant noto'g'ri"},
+		{name: "the customer has other options", was: Values{6: []int64{11}}, body: `{"6": [11, 13]}`, refusal: "«Kanallar» uchun variant noto'g'ri"},
+		{name: "an option that is not there stays wrong", was: Values{3: int64(999)}, body: `{"3": 999}`, refusal: "«Manba» uchun variant noto'g'ri"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := check(t, form, tt.was, tt.body)
+			if tt.refusal != "" {
+				refused(t, err, apperr.Invalid, "validation_error", tt.refusal)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
