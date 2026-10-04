@@ -165,7 +165,7 @@ export interface Column<T> {
 
 ### Task 8: Review va yakun
 
-- [ ] Review workflow (UI agentlar): a11y, mobil, Next.js, kod sifati, izchillik. Tasdiqlangan topilmalar TDD bilan tuzatiladi.
+- [x] Review workflow (UI agentlar): a11y, mobil, Next.js, kod sifati, izchillik. Tasdiqlangan topilmalar TDD bilan tuzatiladi.
 - [x] `make lint`, `make test`, `make e2e`.
 - [x] `cmp`: `components/{data-list,avatar,identity,page-header,states,action-tooltip,role-badge,pending-button}.tsx` va testlari, `components/ui/tooltip.tsx`, `lib/initials.ts` (+test), `test/identity.ts`. `globals.css` farqi avvalgi ikki joyda.
 - [x] Skrinshotlar (oldin / keyin), real stack sinovi (lokal, haqiqiy API), push, yakuniy hisobot.
@@ -212,6 +212,30 @@ Reja jadvallaridan farqlar dizayn panelining sintezidan kelib chiqdi (dizayn huj
 | — | STYLE: `muted` identity; Adminlar | skrinshot | `style: a muted identity steps back`, `style(admin): the admins page` |
 | 7.1 | "Yaratish" tugmasi "yo'lda" | `aria-busy` yo'q | `feat(admin): the new company form's button says the company is on its way` |
 | — | STYLE: Yangi kompaniya; tooltip sensorli ekranda chiqmaydi | skrinshot | `style(admin): the new company page`, `style: an action's tooltip never shows where nothing hovers` |
+
+## Review'dan keyingi tuzatishlar (2026-10-04)
+
+42 topilma (kritik 0, o'rta 10, kichik 32); o'rtalarining hammasi skeptiklar tomonidan tasdiqlangan. 32 tasi tuzatildi, 10 tasi dizayn hujjatidagi kechiktirilganlar jadvaliga qo'shildi.
+
+| # | Xatti-harakat | RED (qisqa) | Commit |
+|---|---|---|---|
+| R1 | oldingi filtrning bo'sh javobi yangi filtrniki deb ko'rsatilmaydi | `Unable to find a label … Yuklanmoqda` | `fix(admin): an empty answer of the last filter is not shown as the next one's` |
+| R2 | son himoyalari uchun testlar (koddan keyin, mutatsiya bilan) | — | `test(admin): the count's two guards each have a test that fails without them` |
+| R3 | "Yaratish" muvaffaqiyatdan keyin ham band | `toBeDisabled()`: not disabled | `fix(admin): a created company's form cannot be sent twice` |
+| R4 | ismsiz admin amalda ham "Telegram ID N" | `role "button" and name "O'chirish: Telegram ID 44"` topilmadi | `fix(admin): an admin with no name is called by the Telegram ID in the action too` |
+| R5 | ismsiz user va userlar kartochkasi testlari (koddan keyin, mutatsiya bilan) | — | `test(admin): a user with no name, and the user's card on a phone` |
+| R6 | billing oldindan ko'rsatuvi to'liq o'qiladi | `aria-atomic` yo'q | `fix(admin): the billing preview is announced with its name` |
+| R7 | e2e bitta vaqt mintaqasida | — | `test: the browser tests run in one time zone` |
+| R8 | kompaniya sahifasining sarlavhasi | — (`metadata`) | `fix(admin): the company page has a title of its own` |
+| R9 | STYLE: kichik tuzatishlar (10 ta) | skrinshot | `style: small fixes from the review` |
+| R10 | bloklash xatosi aytiladi | xabar topilmadi | `fix(admin): a failed block says why` |
+| R11 | faollashtirish xatosi aytiladi | xabar topilmadi (o'z xabari bilan; birinchi nusxa eski toast tufayli noto'g'ri o'tgan edi) | `fix(admin): a failed activation says why` |
+| R12 | manzildan olib tashlangan qidiruv maydondan ham ketadi | `toHaveValue("")`, Received "olma" | `fix(admin): the search box follows a search dropped from the address` |
+| R13 | kutayotgan tugma fokusni saqlaydi | `aria-disabled` yo'q; `not.toBeDisabled()` yiqildi | `fix: a pending button keeps the keyboard's place` |
+| R14 | filtrning ikki tez o'zgarishi saqlanadi | `'/companies'` ≠ `'/companies?status=expired'` | `fix(admin): two quick changes of the companies filter keep both` |
+| R15 | telefonda butun kartochka ochadi | e2e: `…/companies` da qoldi | `feat: on a phone a linked card opens from anywhere on it` |
+| R16 | manzil yetib kelguncha yozilgan harflar saqlanadi (R12 dagi xato, skeptik topdi) | `toHaveValue("ol")`, Received "o" | `fix(admin): the search box keeps what is typed while the address catches up` |
+| R17 | STYLE: tab kontrasti, pager rangi, tugma chegarasi, 320px sarlavha, "Davr" ustuni (e2e 768px) | e2e: `columnheader "Davr"` ko'rinmaydi | `style: the review's confirmed findings on the admin pages` |
 
 ## Self-review
 

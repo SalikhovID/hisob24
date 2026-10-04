@@ -61,15 +61,15 @@ Hisoblangan kontrast (WCAG):
 
 | Komponent | Qoidasi |
 |---|---|
-| `PageHeader` | `h1` (20px, md'dan 24px, 600) + izoh (14px xira, soni bilan) + amallar. Telefonda nom va tugma bir qatorda, izoh ostida to'liq enda. Manbadagi tartib: nom, izoh, amal. `avatar`: yozuv sahifasida nom yonida, `h1` dan tashqarida (sarlavha nomi toza). `stack`: telefonda amallar nom ostidagi alohida qatorda (kompaniya sahifasi: ikki tugma). |
+| `PageHeader` | `h1` (20px, md'dan 24px, 600) + izoh (14px xira, soni bilan) + amallar. Telefonda nom va tugma bir qatorda, izoh ostida to'liq enda (352px dan tor ekranda tugma nom ostiga tushadi). Orqaga havolaning bosish maydoni 44px. Manbadagi tartib: nom, izoh, amal. `avatar`: yozuv sahifasida nom yonida, `h1` dan tashqarida (sarlavha nomi toza). `stack`: telefonda amallar nom ostidagi alohida qatorda (kompaniya sahifasi: ikki tugma). |
 | `DataList` | md'dan: bitta ramka (`rounded-xl border bg-card`), sarlavha tasmasi (`bg-muted/50`, 13px xira, oddiy registr), qatorlar `px-4 py-3`, hover `bg-muted/40`, footer tasmasi ("Jami: N" yoki pager). Birinchi katak qator sarlavhasi (`th scope="row"`). Ustunlar: `primary`, `actions`, `card`, `align`, `className`. Yo'q qiymat jadvalda xira "—" (amallar katagi bo'sh qoladi). Burchaklar kesilmaydi (fokus halqasi butun ko'rinsin). |
 | Telefon kartochkasi | `card`: `tag` (belgi, nomi faqat ekran o'quvchiga), `inline` (nomi bilan qiymat: "Qo'shilgan 02.10.2026"), `aside` (asosiy raqam, masalan summa: tepada, sarlavha qarshisida), `note` (erkin matn: oxirida o'z qatorida, o'raladi), `row` (default: nomli qator). Qatorda belgilar oldinda. Yo'q qiymat joy olmaydi. Manbadagi tartib: sarlavha, raqam, qator, qiymatlar, izoh, amallar (ekran o'quvchi avval yozuvni, keyin amallarni o'qiydi); ko'rinishda amallar tepada o'ngda. |
-| `Identity`, `Avatar` | avatar 36px bezak (`aria-hidden`); ism o'raladi, kesilmaydi; ikkinchi qator 13px xira, bo'linmaydi; "Siz" ism yonida. Havola nomi faqat ism, lekin butun identity bosiladi (avatar va ikkinchi qator ham: barmoq uchun ism yolg'iz kichik nishon). `muted`: faol bo'lmagan yozuv xira, avatar tussiz (bosh harflar qoladi). |
+| `Identity`, `Avatar` | avatar 36px bezak (`aria-hidden`); ism o'raladi, kesilmaydi; ikkinchi qator 13px xira, bo'linmaydi; "Siz" ism yonida. Havola nomi faqat ism, lekin butun identity bosiladi (avatar va ikkinchi qator ham: barmoq uchun ism yolg'iz kichik nishon); telefon kartochkasida esa butun kartochka (bosilganda qorayadi). `muted`: faol bo'lmagan yozuv xira, avatar tussiz (bosh harflar qoladi). |
 | `RoleBadge` | Egasi: `bg-primary/10` + oddiy matn + indigo nuqta (nuqta faqat egasida); Xodim: neytral. |
 | `ActionTooltip` | ikonka tugma ustida fe'l ("O'chirish"), 400ms; tugmaning `aria-label` i o'zgarmaydi. Telefonda 36px tugma, 44px nishon. |
 | `ListLoading` | ro'yxat shaklida va o'lchamida (tasmalar, qatorlar 65px, telefonda kartochka 106px): yozuvlar kelganda hech narsa siljimaydi (o'lchangan: 0px). `mark`: `round` (odam), `square` (kompaniya), `none` (to'lov). Bitta `status` "Yuklanmoqda". `Loading` (sahifa darvozasi uchun) shakli o'zgarmadi. |
 | `EmptyState`, `Failed` | ro'yxat ramkasida; xato `role="alert"`. `EmptyState`: sarlavha oddiy rangda (500), ostida xira izoh: keyin nima qilish kerakligi. Xodimlar'dagi izoh ro'yxat ostida oddiy satr. |
-| `PendingButton`, `Refusal` | yuborilayotganda spinner va `aria-busy` (hamma dialog, tasdiq va "Yaratish" tugmasida; har biri sahifa testi bilan); API rad javobi ikonka bilan, maydon xatosidan ajralib turadi. |
+| `PendingButton`, `Refusal` | yuborilayotganda spinner va `aria-busy` (hamma dialog, tasdiq va "Yaratish" tugmasida; har biri sahifa testi bilan); tugma kutayotganda fokusni saqlaydi (`aria-disabled`, brauzer `disabled` i emas); API rad javobi ikonka bilan, maydon xatosidan ajralib turadi. |
 | Dialoglar | sarlavha 16px 600; ekran bo'yidan oshmaydi (ichida scroll); footer tasmasi; telefonda tugma to'liq enda. |
 
 ## Sahifalar
@@ -80,7 +80,7 @@ Hisoblangan kontrast (WCAG):
 
 **Kompaniyalar (admin, amalga oshirilgan).** "Platformadagi kompaniyalar · N ta" (N — filtrsiz jami; tab yoki qidiruv paytida son ko'rsatilmaydi, chunki API u holda faqat mos kelganlarni sanaydi; ularni pager ko'rsatadi); tab va qidiruv bir qatorda (telefonda to'liq enda); ustunlar: Nomi (kvadrat avatar, nom havola, "Yaratilgan dd.mm.yyyy"), Tugash sanasi, Holat; pager footer'da; kartochkada holat belgisi, keyin "Tugash sanasi dd.mm.yyyy". Holat belgisi: yaxshi holat neytral, 7 kun va kam sariq, muddati o'tgan / bloklangan qizil. Bo'sh natija: "Kompaniyalar topilmadi" + nima qilish kerakligi.
 
-**Kompaniya sahifasi (admin, amalga oshirilgan).** Orqaga havola; kvadrat avatar + `h1` (aynan kompaniya nomi); "Nomini o'zgartirish" va "Bloklash" / "Faollashtirish" konturli (telefonda nom ostida); "Ma'lumot": bitta ramkada uch katak (KPI plitka emas); "Userlar": identity + rol belgisi + qo'shilgan, "Jami: N"; "Billing tarixi": sana qator sarlavhasi, kunlar va summa o'ngda, davr xira (tor jadvalda yashirin), izoh o'raladi, "Jami: N"; telefonda to'lov kartochkasi: sana va summa tepada, kunlar va davr bir qatorda, izoh oxirida. Sahifadagi yagona to'liq indigo tugma: "Billing qo'shish". Billing dialogida "Yangi tugash sanasi" kunlar maydoni ostida alohida qator.
+**Kompaniya sahifasi (admin, amalga oshirilgan).** Orqaga havola; kvadrat avatar + `h1` (aynan kompaniya nomi); "Nomini o'zgartirish" va "Bloklash" / "Faollashtirish" konturli (telefonda nom ostida); "Ma'lumot": bitta ramkada uch katak (KPI plitka emas); "Userlar": identity + rol belgisi + qo'shilgan, "Jami: N"; "Billing tarixi": sana qator sarlavhasi, kunlar va summa o'ngda, davr xira (hamma enda ko'rinadi), izoh o'raladi, "Jami: N"; telefonda to'lov kartochkasi: sana va summa tepada, kunlar va davr bir qatorda, izoh oxirida. Sahifadagi yagona to'liq indigo tugma: "Billing qo'shish". Billing dialogida "Yangi tugash sanasi" kunlar maydoni ostida alohida qator.
 
 **Adminlar (admin, amalga oshirilgan).** "Platforma adminlari · N kishi"; identity (ism + "Telegram ID …", monospace emas; ismsiz admin ID bilan ataladi), "Siz" ism yonida, holat ("Faol" neytral, "Nofaol" konturli; o'chirilgan admin butun qatori bilan xira), qo'shilgan, o'chirish tooltip bilan; "Jami: N".
 
@@ -98,12 +98,36 @@ Agentlar kod yozmaydi (main'da parallel yozib bo'lmaydi); kod TDD bilan yoziladi
 
 ## Tekshiruv (B-bosqich)
 
-- `make lint`: 0 issues. `make test`: Go 15 paket; web 212, admin 174, api-client 1. `make e2e`: admin 22, web 46.
+- `make lint`: 0 issues. `make test`: Go 15 paket; web 214, admin 189, api-client 1. `make e2e`: admin 26, web 46 (review tuzatishlaridan keyingi sonlar).
 - Yon scroll yo'q: 320, 360, 375, 768, 1024, 1280px da, juda uzun nomlar bilan (hujjat, `main`, jadval konteynerlari).
 - Yuklanish joyi → ro'yxat: to'rt ro'yxatda qatorlar 0px siljiydi.
 - User app (Xodimlar) telefon ko'rinishi A-bosqichdagi bilan piksel-bir xil (faqat yuklanish joyi ataylab o'zgargan).
 - Lokal haqiqiy stack (Go API + admin panel, brauzerda, desktop va 375px): 23 / 23: kirish, kompaniya yaratish, egasini almashtirish, to'lov, nom o'zgartirish, bloklash / faollashtirish, qidiruv, admin qo'shish va o'chirish. Sinov ma'lumoti o'chirilgan.
 - Umumiy fayllar ikkala ilovada bayt-bir xil (24 ta); `globals.css` faqat avvalgi ikki joyda farq qiladi (izoh satri va web'dagi `scrollbar-hide`).
+
+## Review paneli natijasi (B-bosqich)
+
+Besh agent (a11y, mobil, Next.js, kod sifati, dizayn izchilligi) 42 ta topilma berdi: kritik yo'q, 10 ta o'rta, 32 ta kichik. O'rta topilmalarning hammasini to'rt skeptik agent kodga qarab tekshirdi va tasdiqladi. 32 tasi tuzatildi, 10 tasi kechiktirildi (pastdagi jadvalga qo'shilgan).
+
+| Tuzatilgan | Qanday |
+|---|---|
+| Kutayotgan tugma fokusni yo'qotardi (Enter bosgan odam sahifa boshiga tushardi) | `PendingButton` kutayotganda `aria-disabled`, tab tartibida qoladi; test avval |
+| Bloklash / faollashtirish muvaffaqiyatsiz bo'lsa hech narsa deyilmasdi | API sababi toast'da, tasdiq oynasi yopiladi; ikki test avval |
+| Qidiruv maydoni manzildan olib tashlangan qidiruvni qaytarib yozardi (menyu havolasi ro'yxatni tozalay olmasdi) | maydon tashqi o'zgarishga ergashadi. Skeptik shu tuzatishning o'zida xato topdi (manzil kechiksa yozilayotgan harf o'chardi): u ham test bilan tuzatildi |
+| Filtrning ikki tez o'zgarishi bir-birini bekor qilardi (e2e sovuq serverda uchratdi) | keyingi o'zgarish oxirgi so'ralgan filtr ustiga quriladi; test avval |
+| Telefonda kompaniya kartochkasining 60% i bosilmasdi | butun kartochka havola, bosilganda qorayadi; e2e avval |
+| Billing "Davr" ustuni 768–1023px da hech qayerda ko'rinmasdi | ustun hamma enda; 768px da e2e |
+| Bo'sh holat: to'liq ro'yxat yuklanayotganda "birinchi kompaniyani qo'shing" deb turardi | bo'sh placeholder yuklanish deb ko'rsatiladi; test avval |
+| "Yaratish" ni ikki marta bosib ikki kompaniya yaratish mumkin edi | tugma muvaffaqiyatdan keyin ham band; test avval |
+| Ismsiz admin qatorda "Telegram ID 44", amalda "44" | ikkalasida bir xil; test avval |
+| Billing oldindan ko'rsatuvi faqat sanani o'qirdi | `aria-atomic`; test avval |
+| Kompaniya sahifasining o'z sarlavhasi yo'q edi | "Kompaniya — Hisob24 Admin" |
+| Faol bo'lmagan tab yorlig'i 4.45:1 | xira matn rangi, 5.3:1 |
+| Pager'ning ishlaydigan tugmasi o'chirilgandek kulrang | tugmalar oddiy rangda |
+| "Kompaniyalar ro'yxatiga" tugmasining light'da chegarasi yo'q | class'lar `cn()` orqali |
+| 320px da "Kompaniyalar" so'z o'rtasidan bo'linardi | tor ekranda tugma nom ostida |
+| Dark'da qizil hover ko'rinmasdi; ikonka tugmalar nishoni faqat tor ekranda katta edi; tasdiq oynasi 320px da chetga tegardi; orqaga havola 28px; tasmadagi tugmalar uch xil balandlikda; xato matni bir so'zli oxirgi qator; sarlavha tugmalari 2px pastda; "Holat" qatori 4px baland; telefon raqami 320px da bo'linardi | uslub tuzatishlari (skrinshot bilan) |
+| Testlar: son himoyalari, ismsiz user, userlar kartochkasi uchun test yo'q edi; e2e vaqt mintaqasiga bog'liq edi | testlar qo'shildi (mutatsiya bilan tekshirilgan); e2e `Asia/Tashkent` da |
 
 ## Panel talablaridan kiritilganlari
 
@@ -146,6 +170,16 @@ Sintezdan qo'shimcha olinganlar: kartochkada manba tartibi (avval yozuv, keyin a
 | Telegram'da asosiy tugma kontrasti (chat rangi 2.6–3.7:1) | a11y | Telegram'ning o'z juftligi; chetga chiqish foydalanuvchi qarori |
 | `/companies` uchun `Suspense` fallback'i (sarlavha + ro'yxat shakli) | Next.js | sahifa tuzilmasini ikkiga bo'lishni talab qiladi; hozir gidratsiyagacha bo'sh joy bir lahza ko'rinadi |
 | Kompaniya sahifasi yuklanayotganda sahifa shaklidagi skeleton | dizayner | `Loading` umumiy (sessiya darvozasi ham ishlatadi), o'zgartirilmadi |
+| Fon'dagi qayta yuklash xato bersa: xato paneli ro'yxat ustida chiqadi, kompaniya sahifasi esa butunlay xato paneliga almashadi | review (Next.js) | avvaldan shunday; to'rt sahifadagi xatti-harakat o'zgarishi |
+| "Bloklash" / "Faollashtirish" almashganda fokus yo'qoladi | review (a11y) | "fokusni qaytarish" bandi bilan birga |
+| Yo'q qiymat ("—") va davrdagi "→" ekran o'quvchi uchun so'z emas | review (a11y) | yangi ko'rinmas matn va test o'zgarishi kerak |
+| Maydon chegarasi kontrasti 1.4–1.6:1 (3:1 dan past) | review (a11y) | global token: hamma maydon o'zgaradi, foydalanuvchi qarori |
+| Telegram ichida kompaniyadan orqaga qaytganda ro'yxatning tab / qidiruv / sahifasi yo'qoladi | review (mobil) | avvaldan shunday; yangi funksiya (oxirgi ro'yxat manzilini eslab qolish) |
+| Telefon klaviaturasidagi "Qidirish" tugmasi hech narsa qilmaydi | review (mobil) | avvaldan shunday; kichik xatti-harakat |
+| 14 va undan ko'p xonali Telegram ID 320px da o'chirish tugmasi ostiga kiradi | review (mobil) | chekka holat (hozirgi ID'lar 10 xonagacha) |
+| User app: "Qo'shilgan" ustuni 768–1023px da yashirin (sidebar yonida joy yo'q) | review (a11y) | A-bosqich qarori; yechimi kartochka chegarasini o'zgartirishni talab qiladi |
+| `DataList` ning `href` i endi ishlatilmaydi; `formatAmount(null)` yo'li ham | review (kod) | olib tashlash ularning testlarini o'chirishni talab qiladi: foydalanuvchi roziligi bilan. Hozircha `href` izohda cheklangan |
+| Test yordamchilari (kartochka juftliklarini o'qish, `hang`) bir necha faylda takrorlangan | review (kod) | faqat refaktoring |
 
 ## Yangi matnlar
 
@@ -183,6 +217,15 @@ B-bosqich (admin):
 - `companies-page.test.tsx`: kompaniya nomi endi qator sarlavhasidagi havoladan o'qiladi (`nameOf`); kutilgan nomlar va tartib o'sha.
 - `company-page.test.tsx`: `cellsOf` qator sarlavhasini ham o'qiydi; userlar jadvali `usersOf` bilan (`[ism, telefon, rol, sana]`, avval `[telefon, ism, rol]`); billing jadvalining kutilgan qiymatlari o'zgarmadi.
 - `data-list.test.tsx`, `states.test.tsx`: web'dagi bilan bir xil nusxa.
-- e2e: yangi ikki ssenariy (kompaniya identity'ning istalgan joyidan ochiladi; amallar keng ekranda nom yonida, telefonda ostida). Mavjud ssenariylar o'zgarmadi.
+- e2e: yangi to'rt ssenariy (kompaniya identity'ning istalgan joyidan ochiladi; telefonda butun kartochkadan; amallar keng ekranda nom yonida, telefonda ostida; billing davri 768px da ham ko'rinadi).
+- Review'dan keyin: kutayotgan tugma haqidagi tasdiqlar `toBeDisabled()` dan `aria-disabled` ga o'tdi (`pending-button.test.tsx` va admin'dagi 9 ta sahifa testi): talab o'zgardi (tugma fokusda qolishi kerak).
+- e2e "the list searches and filters": yozishdan oldin ro'yxat ko'rinishini kutadi (sovuq dev serverda maydon sahifa tayyor bo'lmasdan to'ldirilardi). Tekshiradigan narsalari o'zgarmadi.
 
 Hech bir test o'chirilmadi yoki o'tkazib yuborilmadi.
+
+## Production'ga deploy (2026-10-04)
+
+Foydalanuvchi so'rovi bilan ("ishni tugatib commit push qilib yubor", "+ deploy"). Backend va migratsiya o'zgarmagan: faqat frontend image qayta quriladi.
+
+1. `3fbad9e` (review'dan oldingi holat): toza nusxada ikkala ilova `next build` dan o'tdi; baza nusxasi `/var/backups/hisob24-v2/hisob24-pre-crud-ui-20261004-0202.sql.gz`; `deploy/ship.sh` exit 0; tekshiruv 14 / 14 (sessiyasiz), goose 4, satrlar soni o'zgarmagan, API log'ida xato yo'q.
+2. Review tuzatishlari bilan ikkinchi deploy: natijasi yakuniy hisobotda.
