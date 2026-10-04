@@ -163,3 +163,39 @@ func TestCheckValuesKeepsATurnedOffOptionWhereTheCustomerHasIt(t *testing.T) {
 		})
 	}
 }
+
+// filled is a body that answers every field of the form, with the answer to
+// one field replaced; an empty answer leaves the field out.
+func filled(field, answer string) string {
+	answers := map[string]string{"1": `"Ali"`, "2": `30`, "3": `11`, "4": `12`, "5": `[21]`, "6": `[11]`}
+	answers[field] = answer
+	var parts []string
+	for _, id := range []string{"1", "2", "3", "4", "5", "6"} {
+		if answers[id] != "" {
+			parts = append(parts, `"`+id+`": `+answers[id])
+		}
+	}
+	return "{" + strings.Join(parts, ", ") + "}"
+}
+
+func TestCheckValuesRequired(t *testing.T) {
+	must := make([]Field, len(form))
+	for i, f := range form {
+		f.Required = true
+		must[i] = f
+	}
+	everything := Values{1: "Ali", 2: int64(30), 3: int64(11), 4: int64(12), 5: []int64{21}, 6: []int64{11}}
+	runCheckCases(t, must, []checkCase{
+		{name: "every field filled in", body: filled("", ""), want: everything},
+		{name: "zero fills a number in", body: filled("2", "0"),
+			want: Values{1: "Ali", 2: int64(0), 3: int64(11), 4: int64(12), 5: []int64{21}, 6: []int64{11}}},
+		{name: "a text left out", body: filled("1", ""), refusal: "«F.I.Sh.» maydonini to'ldiring"},
+		{name: "a text of spaces", body: filled("1", `"  "`), refusal: "«F.I.Sh.» maydonini to'ldiring"},
+		{name: "a number left out", body: filled("2", ""), refusal: "«Yoshi» maydonini to'ldiring"},
+		{name: "a number that is null", body: filled("2", "null"), refusal: "«Yoshi» maydonini to'ldiring"},
+		{name: "a dropdown with nothing chosen", body: filled("3", "null"), refusal: "«Manba» ni tanlang"},
+		{name: "a radio left out", body: filled("4", ""), refusal: "«Holati» ni tanlang"},
+		{name: "checkboxes with none ticked", body: filled("5", "[]"), refusal: "«Tillar» ni tanlang"},
+		{name: "a dropdown of several left out", body: filled("6", ""), refusal: "«Kanallar» ni tanlang"},
+	})
+}

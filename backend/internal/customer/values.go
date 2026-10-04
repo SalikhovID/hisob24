@@ -41,11 +41,23 @@ func checkValues(fields []Field, options map[int64][]Option, was Values, raw map
 		if err != nil {
 			return nil, err
 		}
-		if answer != nil {
+		switch {
+		case answer != nil:
 			values[f.ID] = answer
+		case f.Required:
+			return nil, errEmpty(f)
 		}
 	}
 	return values, nil
+}
+
+// errEmpty refuses a required field left empty: a text or a number has to
+// be filled in, a choice made.
+func errEmpty(f Field) error {
+	if choice, _ := kindOf(f.Kind); choice {
+		return invalid(fmt.Sprintf("«%s» ni tanlang", f.Label))
+	}
+	return invalid(fmt.Sprintf("«%s» maydonini to'ldiring", f.Label))
 }
 
 // chosen is the options of an answer to a choice field.
