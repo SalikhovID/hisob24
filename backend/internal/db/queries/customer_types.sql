@@ -36,3 +36,15 @@ RETURNING id;
 UPDATE customer_types t SET position = n.ord::int
 FROM unnest(sqlc.arg('ids')::bigint[]) WITH ORDINALITY AS n(id, ord)
 WHERE t.id = n.id AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL;
+
+-- name: AddCustomerField :one
+-- Adds a field at the end of the company's type. pgx.ErrNoRows when the
+-- company has no such type, or deleted it.
+INSERT INTO customer_fields (company_id, type_id, label, kind, dropdown_id, required, is_unique, position)
+SELECT t.company_id, t.id, sqlc.arg('label')::text, sqlc.arg('kind')::text, sqlc.narg('dropdown_id')::bigint,
+       sqlc.arg('required')::boolean, sqlc.arg('is_unique')::boolean,
+       COALESCE((SELECT max(f.position) FROM customer_fields f
+                 WHERE f.type_id = t.id AND f.deleted_at IS NULL), 0) + 1
+FROM customer_types t
+WHERE t.id = sqlc.arg('type_id') AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
+RETURNING *;

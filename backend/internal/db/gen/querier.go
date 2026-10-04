@@ -18,6 +18,9 @@ type Querier interface {
 	// Adds an option at the end of the company's dropdown. pgx.ErrNoRows when
 	// the company has no such dropdown, or deleted it.
 	AddCustomerDropdownOption(ctx context.Context, arg AddCustomerDropdownOptionParams) (CustomerDropdownOption, error)
+	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
+	// company has no such type, or deleted it.
+	AddCustomerField(ctx context.Context, arg AddCustomerFieldParams) (CustomerField, error)
 	// Spends a live code in one statement, so a code opens one session only.
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.

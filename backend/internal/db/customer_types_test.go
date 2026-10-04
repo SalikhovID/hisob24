@@ -141,3 +141,46 @@ func TestOrderCustomerTypes(t *testing.T) {
 	assert.Equal(t, []int64{hamkor.ID, jismoniy.ID, yuridik.ID}, typeIDs(t, q, olma.ID), "the types stand as the ids were given")
 	assert.Equal(t, begona.ID, typeIDs(t, q, nok.ID)[0], "another company's type stays where it was")
 }
+
+// addField adds a field to the company's type; a choice kind takes its
+// options from the dropdown.
+func addField(t *testing.T, q *gen.Queries, companyID, typeID int64, label, kind string, dropdownID *int64) gen.CustomerField {
+	t.Helper()
+	f, err := q.AddCustomerField(t.Context(), gen.AddCustomerFieldParams{
+		CompanyID: companyID, TypeID: typeID, Label: label, Kind: kind, DropdownID: dropdownID,
+	})
+	require.NoError(t, err)
+	return f
+}
+
+func TestAddCustomerField(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	manba := createDropdown(t, q, olma.ID, "Manba")
+
+	f, err := q.AddCustomerField(ctx, gen.AddCustomerFieldParams{
+		CompanyID: olma.ID, TypeID: jismoniy.ID, Label: "F.I.Sh.", Kind: "string", Required: true, IsUnique: true,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, olma.ID, f.CompanyID)
+	assert.Equal(t, jismoniy.ID, f.TypeID)
+	assert.Equal(t, "F.I.Sh.", f.Label)
+	assert.Equal(t, "string", f.Kind)
+	assert.True(t, f.Required)
+	assert.True(t, f.IsUnique)
+	assert.Nil(t, f.DropdownID)
+	assert.EqualValues(t, 1, f.Position)
+	choice := addField(t, q, olma.ID, jismoniy.ID, "Manba", "dropdown", &manba.ID)
+	assert.Equal(t, &manba.ID, choice.DropdownID)
+	assert.False(t, choice.Required)
+	assert.EqualValues(t, 2, choice.Position, "a new field goes last")
+
+	_, err = q.AddCustomerField(ctx, gen.AddCustomerFieldParams{CompanyID: olma.ID, TypeID: jismoniy.ID, Label: "f.i.sh.", Kind: "string"})
+	assert.Equal(t, "23505", sqlState(err), "the name is taken in the type")
+	_, err = q.AddCustomerField(ctx, gen.AddCustomerFieldParams{CompanyID: nok.ID, TypeID: jismoniy.ID, Label: "Ism", Kind: "string"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's type")
+}

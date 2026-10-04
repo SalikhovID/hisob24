@@ -9,6 +9,56 @@ import (
 	"context"
 )
 
+const addCustomerField = `-- name: AddCustomerField :one
+INSERT INTO customer_fields (company_id, type_id, label, kind, dropdown_id, required, is_unique, position)
+SELECT t.company_id, t.id, $1::text, $2::text, $3::bigint,
+       $4::boolean, $5::boolean,
+       COALESCE((SELECT max(f.position) FROM customer_fields f
+                 WHERE f.type_id = t.id AND f.deleted_at IS NULL), 0) + 1
+FROM customer_types t
+WHERE t.id = $6 AND t.company_id = $7 AND t.deleted_at IS NULL
+RETURNING id, company_id, type_id, label, kind, dropdown_id, required, is_unique, position, created_at, deleted_at
+`
+
+type AddCustomerFieldParams struct {
+	Label      string
+	Kind       string
+	DropdownID *int64
+	Required   bool
+	IsUnique   bool
+	TypeID     int64
+	CompanyID  int64
+}
+
+// Adds a field at the end of the company's type. pgx.ErrNoRows when the
+// company has no such type, or deleted it.
+func (q *Queries) AddCustomerField(ctx context.Context, arg AddCustomerFieldParams) (CustomerField, error) {
+	row := q.db.QueryRow(ctx, addCustomerField,
+		arg.Label,
+		arg.Kind,
+		arg.DropdownID,
+		arg.Required,
+		arg.IsUnique,
+		arg.TypeID,
+		arg.CompanyID,
+	)
+	var i CustomerField
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.TypeID,
+		&i.Label,
+		&i.Kind,
+		&i.DropdownID,
+		&i.Required,
+		&i.IsUnique,
+		&i.Position,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const createCustomerType = `-- name: CreateCustomerType :one
 INSERT INTO customer_types (company_id, name, position)
 VALUES ($1, $2,
