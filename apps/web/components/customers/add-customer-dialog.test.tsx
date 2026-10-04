@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, db, seedCustomers, typesOf, VALI } from "@/mocks/data"
+import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
@@ -119,4 +119,53 @@ test("a company with one type is asked for no type", async () => {
 
   expect(within(dialog).queryByRole("radiogroup")).not.toBeInTheDocument()
   expect(within(dialog).getByLabelText("F.I.Sh.")).toBeInTheDocument()
+})
+
+test("a field of each kind has an input of its own, and every answer is saved", async () => {
+  await signIn(ALI)
+  const { yosh, jinsi, tillar, kanallar, jins, til } = seedSixKinds()
+  const { user, dialog } = await openDialog()
+
+  // A whole number is typed on the digits keyboard.
+  expect(within(dialog).getByLabelText("Yoshi")).toHaveAttribute("inputmode", "numeric")
+  // A radio shows its options at once; one that may stay empty can be taken back.
+  const radios = within(dialog).getByRole("radiogroup", { name: "Jinsi" })
+  expect(within(radios).getAllByRole("radio")).toHaveLength(3)
+  expect(within(radios).getByRole("radio", { name: "Tanlanmagan" })).toHaveAttribute("aria-checked", "true")
+  // Checkboxes: one for each option that is offered (Ingliz is turned off).
+  const boxes = within(dialog).getByRole("group", { name: "Tillar" })
+  expect(within(boxes).getAllByRole("checkbox")).toHaveLength(2)
+  // A dropdown of several is a button that says what is chosen.
+  const several = within(dialog).getByRole("button", { name: /Kanallar/ })
+  expect(several).toHaveTextContent("Tanlanmagan")
+
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "Olti Tur")
+  await user.type(within(dialog).getByLabelText("Yoshi"), "30")
+  await user.selectOptions(within(dialog).getByLabelText("Manba"), "Instagram")
+  await user.click(within(radios).getByRole("radio", { name: "Ayol" }))
+  await user.click(within(boxes).getByRole("checkbox", { name: "Rus" }))
+  await user.click(within(boxes).getByRole("checkbox", { name: "O'zbek" }))
+  await user.click(several)
+  const menu = await screen.findByRole("menu")
+  expect(within(menu).getAllByRole("menuitemcheckbox").map((item) => item.textContent)).toEqual(["Instagram", "LinkedIn"])
+  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "LinkedIn" }))
+  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Instagram" }))
+  expect(several).toHaveTextContent("Instagram, LinkedIn")
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument())
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  const [fish, manba] = typesOf(1)[0].fields
+  const [instagram, linkedin] = db.dropdowns[0].options
+  expect(db.customers.at(-1)!.values).toEqual({
+    [fish.id]: "Olti Tur",
+    [yosh.id]: 30,
+    [manba.id]: instagram.id,
+    [jinsi.id]: jins.options[1].id,
+    [tillar.id]: [til.options[0].id, til.options[1].id],
+    [kanallar.id]: [instagram.id, linkedin.id],
+  })
 })

@@ -353,3 +353,33 @@ export function seedCustomers() {
     malika: enter(jismoniy.id, "998955556677", { [fish.id]: "Malika Yusupova", [manba.id]: youtube.id }, SARDOR),
   }
 }
+
+// seedSixKinds gives Olma Savdo's Jismoniy a field of every kind, beside its
+// name and its Manba dropdown: a whole number, a radio and checkboxes over
+// two more dropdowns (Ingliz is turned off), and a dropdown of several over
+// Manba. A test asks for it.
+export function seedSixKinds() {
+  const jismoniy = db.types.find((t) => t.companyId === 1)!
+  const option = (label: string, active = true): OptionRow => ({ id: nextId(), label, active })
+  const jins: DropdownRow = { id: nextId(), companyId: 1, name: "Jins", options: [option("Erkak"), option("Ayol")] }
+  const til: DropdownRow = {
+    id: nextId(),
+    companyId: 1,
+    name: "Til",
+    options: [option("O'zbek"), option("Rus"), option("Ingliz", false)],
+  }
+  db.dropdowns.push(jins, til)
+  const add = (label: string, kind: CustomerFieldKind, dropdownId: number | null = null): FieldRow => {
+    const field: FieldRow = { id: nextId(), label, kind, required: false, unique: false, dropdownId }
+    jismoniy.fields.push(field)
+    return field
+  }
+  return {
+    yosh: add("Yoshi", "int"),
+    jinsi: add("Jinsi", "radio", jins.id),
+    tillar: add("Tillar", "checkbox", til.id),
+    kanallar: add("Kanallar", "multi_dropdown", db.dropdowns[0].id),
+    jins,
+    til,
+  }
+}
