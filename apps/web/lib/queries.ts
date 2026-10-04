@@ -26,6 +26,31 @@ export function useEmployees(companyId: number | null) {
   })
 }
 
+// customerTypesKey and customerDropdownsKey name what a company's owner set
+// up for its customers in the cache, per company like the employees.
+export const customerTypesKey = (companyId: number | null) => ["customer-types", companyId] as const
+export const customerDropdownsKey = (companyId: number | null) => ["customer-dropdowns", companyId] as const
+
+// useCustomerTypes is the customer types of the company the session works
+// in, each with its fields; every member may ask. With companyId null (not
+// known yet) nothing is asked.
+export function useCustomerTypes(companyId: number | null) {
+  return useQuery({
+    queryKey: customerTypesKey(companyId),
+    queryFn: () => call(api.GET("/app/customer-types")),
+    enabled: companyId !== null,
+  })
+}
+
+// useCustomerDropdowns is the company's dropdowns, each with its options.
+export function useCustomerDropdowns(companyId: number | null) {
+  return useQuery({
+    queryKey: customerDropdownsKey(companyId),
+    queryFn: () => call(api.GET("/app/customer-dropdowns")),
+    enabled: companyId !== null,
+  })
+}
+
 // useSwitchCompany moves the session to a company, or to none, and keeps the
 // new access token. /app/me is dropped, so the next page asks for it afresh
 // rather than showing the old company.

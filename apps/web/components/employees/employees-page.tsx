@@ -1,7 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
@@ -10,8 +8,9 @@ import { RoleBadge } from "@/components/role-badge"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
-import { useEmployees, useMe } from "@/lib/queries"
+import { useEmployees } from "@/lib/queries"
 import type { Member } from "@/lib/types"
+import { useOwner } from "@/lib/use-owner"
 import { AddEmployeeDialog } from "./add-employee-dialog"
 import { RemoveEmployeeButton } from "./remove-employee-button"
 import { RenameEmployeeDialog } from "./rename-employee-dialog"
@@ -21,21 +20,13 @@ import { RenameEmployeeDialog } from "./rename-employee-dialog"
 // by in this company. An employee who opens it is sent home (the API would
 // refuse them all the same): the sidebar shows them no way here.
 export function EmployeesPage() {
-  const router = useRouter()
-  const me = useMe()
-  const company = me.data?.company
-  const isOwner = company?.role === "owner"
-  const employees = useEmployees(isOwner ? company.id : null)
-  const stranger = company !== undefined && company !== null && !isOwner
+  const owner = useOwner()
+  const employees = useEmployees(owner ? owner.company.id : null)
 
-  useEffect(() => {
-    if (stranger) router.replace("/")
-  }, [stranger, router])
-
-  if (!me.data || !isOwner) return null
-  const ownPhone = me.data.user.phone
-  const companyId = company.id
-  const companyName = company.name
+  if (!owner) return null
+  const ownPhone = owner.user.phone
+  const companyId = owner.company.id
+  const companyName = owner.company.name
 
   const columns: Column<Member>[] = [
     {
