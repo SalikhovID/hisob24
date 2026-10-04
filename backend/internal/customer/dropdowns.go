@@ -3,6 +3,7 @@ package customer
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 
@@ -218,13 +219,25 @@ func (s *Service) OrderOptions(ctx context.Context, companyID, dropdownID int64,
 	})
 }
 
-// DeleteDropdown hides the company's dropdown; its name is free again.
+// DeleteDropdown hides the company's dropdown; its name is free again. A
+// dropdown that a field takes its options from is not deleted.
 func (s *Service) DeleteDropdown(ctx context.Context, companyID, id int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteCustomerDropdown(ctx, gen.DeleteCustomerDropdownParams{ID: id, CompanyID: companyID})
+		_, err := q.GetCustomerDropdown(ctx, gen.GetCustomerDropdownParams{ID: id, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errDropdownNotFound
 		}
+		if err != nil {
+			return err
+		}
+		used, err := q.CountCustomerDropdownFields(ctx, &id)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "dropdown_in_use", fmt.Sprintf("Bu dropdown %d ta maydonda ishlatilgan", used))
+		}
+		_, err = q.DeleteCustomerDropdown(ctx, gen.DeleteCustomerDropdownParams{ID: id, CompanyID: companyID})
 		return err
 	})
 }

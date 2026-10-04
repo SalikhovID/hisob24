@@ -270,3 +270,26 @@ func TestDeleteDropdown(t *testing.T) {
 	_, err = s.AddOption(ctx, olma, manba.ID, "LinkedIn")
 	refused(t, err, apperr.NotFound, "not_found", notFound, "and takes no options")
 }
+
+func TestADropdownAFieldUsesIsNotDeleted(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	manba := mustDropdown(t, s, olma, "Manba")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	yuridik := mustType(t, s, olma, "Yuridik")
+	one := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Manba", Kind: "dropdown", DropdownID: &manba.ID})
+	mustField(t, s, olma, yuridik.ID, FieldInput{Label: "Kanallar", Kind: "checkbox", DropdownID: &manba.ID})
+
+	refused(t, s.DeleteDropdown(ctx, olma, manba.ID),
+		apperr.Conflict, "dropdown_in_use", "Bu dropdown 2 ta maydonda ishlatilgan", "two fields take their options from it")
+	list, err := s.Dropdowns(ctx, olma)
+	require.NoError(t, err)
+	assert.Len(t, list, 1, "the dropdown stays")
+
+	require.NoError(t, s.DeleteField(ctx, olma, jismoniy.ID, one.ID))
+	refused(t, s.DeleteDropdown(ctx, olma, manba.ID),
+		apperr.Conflict, "dropdown_in_use", "Bu dropdown 1 ta maydonda ishlatilgan", "one field is left")
+	require.NoError(t, s.DeleteType(ctx, olma, yuridik.ID))
+	assert.NoError(t, s.DeleteDropdown(ctx, olma, manba.ID), "the fields that used it are deleted: so may it be")
+}
