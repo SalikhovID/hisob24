@@ -485,3 +485,41 @@ func TestListOfOneType(t *testing.T) {
 		assert.EqualValues(t, len(tt.want), page.Total, tt.name)
 	}
 }
+
+func TestListSearch(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	seedCustomers(t, s, olma)
+	nok := newShop(t, s, pool, "Nok")
+	mustCustomer(t, s, nok.id, nok.jismoniy.ID, aliPhone, map[int64]any{nok.fish.ID: "Ali Begona"})
+	hide(t, pool, mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998909999999", map[int64]any{olma.fish.ID: "Ali O'chirilgan"}).ID)
+
+	for _, tt := range []struct {
+		name   string
+		search string
+		typeID int64
+		want   []string
+	}{
+		{name: "a part of a text answer, in any case", search: "ALI", want: []string{valiPhone, aliPhone}},
+		{name: "the spaces around the search do not count", search: "  valiyev ", want: []string{aliPhone}},
+		{name: "a phone as people write it", search: "+998 (90) 555-55", want: []string{valiPhone}},
+		{name: "digits, in the phones and in the whole numbers", search: "0123", want: []string{firmaPhone, aliPhone}},
+		{name: "a whole number", search: "301234567", want: []string{firmaPhone}},
+		{name: "digits inside a text answer", search: "100", want: []string{firmaPhone}},
+		{name: "a percent sign is a percent sign", search: "100%", want: []string{firmaPhone}},
+		{name: "an underscore is an underscore", search: "_", want: []string{}},
+		{name: "a backslash is a backslash", search: `\`, want: []string{}},
+		{name: "letters with digits are looked for as a text", search: "olma 100", want: []string{firmaPhone}},
+		{name: "and not as digits in the phones", search: "ali 5", want: []string{}},
+		{name: "an option's name is not searched", search: "Instagram", want: []string{}},
+		{name: "within one type", search: "ali", typeID: olma.yuridik.ID, want: []string{}},
+		{name: "nobody found", search: "zzz", want: []string{}},
+		{name: "spaces alone are no search", search: "   ", want: []string{firmaPhone, valiPhone, aliPhone}},
+	} {
+		page, err := s.List(ctx, olma.id, ListInput{Search: tt.search, TypeID: tt.typeID, Page: 1})
+		require.NoError(t, err, tt.name)
+		assert.Equal(t, tt.want, phones(page.Items), tt.name)
+		assert.EqualValues(t, len(tt.want), page.Total, tt.name)
+	}
+}

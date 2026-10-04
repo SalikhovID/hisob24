@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/jackc/pgx/v5"
 
@@ -298,9 +299,11 @@ const PageSize = 20
 // maxPage keeps the offset inside int32.
 const maxPage = 1_000_000
 
-// ListInput narrows the list of customers: TypeID keeps the customers of
-// one type, 0 those of every type. Page starts at 1.
+// ListInput narrows the list of customers: Search is looked for in the
+// phones and in the text and whole number answers, TypeID keeps the customers
+// of one type, 0 those of every type. Page starts at 1.
 type ListInput struct {
+	Search string
 	TypeID int64
 	Page   int
 }
@@ -322,12 +325,16 @@ func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page
 	if in.TypeID != 0 {
 		typeID = &in.TypeID
 	}
-	total, err := s.q.CountCustomers(ctx, gen.CountCustomersParams{CompanyID: companyID, TypeID: typeID})
+	search, digits := searchOf(in.Search)
+	total, err := s.q.CountCustomers(ctx, gen.CountCustomersParams{
+		CompanyID: companyID, TypeID: typeID, Search: search, Digits: digits,
+	})
 	if err != nil {
 		return Page{}, err
 	}
 	rows, err := s.q.ListCustomers(ctx, gen.ListCustomersParams{
-		CompanyID: companyID, TypeID: typeID, Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
+		CompanyID: companyID, TypeID: typeID, Search: search, Digits: digits,
+		Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
 	})
 	if err != nil {
 		return Page{}, err
@@ -348,4 +355,34 @@ func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page
 		})
 	}
 	return Page{Items: items, Total: total, Page: in.Page, PageSize: PageSize}, nil
+}
+
+// likeEscaper makes a search match literally inside ILIKE, whose escape
+// character is the backslash.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// searchOf is a search as the list queries take it: the text escaped for
+// ILIKE, and its digits when it is written the way a number or a phone is
+// (digits, spaces, "+", "-", parentheses). Neither when there is no search.
+func searchOf(raw string) (search, digits *string) {
+	text := strings.TrimSpace(raw)
+	if text == "" {
+		return nil, nil
+	}
+	escaped := likeEscaper.Replace(text)
+	var b strings.Builder
+	for _, r := range text {
+		switch {
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '+' || r == '-' || r == '(' || r == ')' || unicode.IsSpace(r):
+		default:
+			return &escaped, nil
+		}
+	}
+	if b.Len() == 0 {
+		return &escaped, nil
+	}
+	number := b.String()
+	return &escaped, &number
 }
