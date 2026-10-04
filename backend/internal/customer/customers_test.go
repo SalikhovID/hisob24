@@ -437,3 +437,51 @@ func TestList(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, Page{Items: []Customer{}, Total: 0, Page: 1, PageSize: 20}, none, "a company with no customers")
 }
+
+// phones is the phones of the customers, in their order.
+func phones(customers []Customer) []string {
+	list := make([]string, 0, len(customers))
+	for _, c := range customers {
+		list = append(list, c.Phone)
+	}
+	return list
+}
+
+// The customers of seedCustomers, by their phones.
+const (
+	aliPhone   = "998901234567" // Jismoniy: Ali Valiyev, 30, from Instagram
+	valiPhone  = "998905555555" // Jismoniy: Vali Aliyev, 45
+	firmaPhone = "998907777777" // Yuridik: Olma 100% MChJ, INN 301234567
+)
+
+// seedCustomers enters Ali, Vali and a firm into the shop, in that order.
+func seedCustomers(t *testing.T, s *Service, sh shop) {
+	t.Helper()
+	mustCustomer(t, s, sh.id, sh.jismoniy.ID, aliPhone,
+		map[int64]any{sh.fish.ID: "Ali Valiyev", sh.yosh.ID: 30, sh.manba.ID: sh.instagram.ID})
+	mustCustomer(t, s, sh.id, sh.jismoniy.ID, valiPhone, map[int64]any{sh.fish.ID: "Vali Aliyev", sh.yosh.ID: 45})
+	mustCustomer(t, s, sh.id, sh.yuridik.ID, firmaPhone, map[int64]any{sh.nomi.ID: "Olma 100% MChJ", sh.inn.ID: 301234567})
+}
+
+func TestListOfOneType(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	seedCustomers(t, s, olma)
+
+	for _, tt := range []struct {
+		name   string
+		typeID int64
+		want   []string
+	}{
+		{name: "every type", want: []string{firmaPhone, valiPhone, aliPhone}},
+		{name: "Jismoniy", typeID: olma.jismoniy.ID, want: []string{valiPhone, aliPhone}},
+		{name: "Yuridik", typeID: olma.yuridik.ID, want: []string{firmaPhone}},
+		{name: "a type that is not there", typeID: 1 << 40, want: []string{}},
+	} {
+		page, err := s.List(ctx, olma.id, ListInput{TypeID: tt.typeID, Page: 1})
+		require.NoError(t, err, tt.name)
+		assert.Equal(t, tt.want, phones(page.Items), tt.name)
+		assert.EqualValues(t, len(tt.want), page.Total, tt.name)
+	}
+}

@@ -298,9 +298,11 @@ const PageSize = 20
 // maxPage keeps the offset inside int32.
 const maxPage = 1_000_000
 
-// ListInput narrows the list of customers. Page starts at 1.
+// ListInput narrows the list of customers: TypeID keeps the customers of
+// one type, 0 those of every type. Page starts at 1.
 type ListInput struct {
-	Page int
+	TypeID int64
+	Page   int
 }
 
 // Page is one page of customers and how many there are on all of them.
@@ -316,12 +318,16 @@ func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page
 	if in.Page < 1 || in.Page > maxPage {
 		return Page{}, invalid("Sahifa raqami noto'g'ri")
 	}
-	total, err := s.q.CountCustomers(ctx, gen.CountCustomersParams{CompanyID: companyID})
+	var typeID *int64
+	if in.TypeID != 0 {
+		typeID = &in.TypeID
+	}
+	total, err := s.q.CountCustomers(ctx, gen.CountCustomersParams{CompanyID: companyID, TypeID: typeID})
 	if err != nil {
 		return Page{}, err
 	}
 	rows, err := s.q.ListCustomers(ctx, gen.ListCustomersParams{
-		CompanyID: companyID, Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
+		CompanyID: companyID, TypeID: typeID, Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
 	})
 	if err != nil {
 		return Page{}, err
