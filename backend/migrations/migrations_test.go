@@ -326,3 +326,55 @@ func TestTheCustomerSettingsMigrationGivesEveryCompanyTheReadyTypes(t *testing.T
 	assert.Equal(t, ready, customerTypesOf(t, pool, olma))
 	assert.Equal(t, ready, customerTypesOf(t, pool, nok), "every company gets its own")
 }
+
+// addCustomerType inserts a customer type of the company and returns its id.
+func addCustomerType(t *testing.T, pool *pgxpool.Pool, companyID int64, name string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO customer_types (company_id, name, position) VALUES ($1, $2, 1) RETURNING id", companyID, name).Scan(&id))
+	return id
+}
+
+func TestCustomers(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy, begona := addCustomerType(t, pool, olma, "Jismoniy"), addCustomerType(t, pool, nok, "Jismoniy")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	// addCustomer adds a customer whom the user 998901111111 enters.
+	addCustomer := func(companyID, typeID int64, phone string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx, `INSERT INTO customers (company_id, type_id, phone, created_by)
+			VALUES ($1, $2, $3, '998901111111') RETURNING id`, companyID, typeID, phone).Scan(&id)
+		return id, err
+	}
+
+	ali, err := addCustomer(olma, jismoniy, "998901234567")
+	require.NoError(t, err)
+	_, err = addCustomer(olma, jismoniy, "998901234567")
+	assert.Equal(t, "23505", sqlState(err), "the number is a customer of the company already") // unique_violation
+	_, err = addCustomer(nok, begona, "998901234567")
+	assert.NoError(t, err, "another company's customer with the same number")
+	for _, phone := range []string{"901234567", "+998901234567", "79001234567", "99890123456", "9989012345678", ""} {
+		_, err = addCustomer(olma, jismoniy, phone)
+		assert.Equal(t, "23514", sqlState(err), "a number that is not 998 and nine digits: %q", phone) // check_violation
+	}
+	_, err = addCustomer(olma, begona, "998907654321")
+	assert.Equal(t, "23503", sqlState(err), "another company's type") // foreign_key_violation
+	_, err = pool.Exec(ctx, `INSERT INTO customers (company_id, type_id, phone, created_by)
+		VALUES ($1, $2, '998907654321', '998909999999')`, olma, jismoniy)
+	assert.Equal(t, "23503", sqlState(err), "entered by someone who is no user")
+
+	_, err = pool.Exec(ctx, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali)
+	require.NoError(t, err)
+	_, err = addCustomer(olma, jismoniy, "998901234567")
+	assert.NoError(t, err, "a deleted customer's number is free again")
+
+	_, err = pool.Exec(ctx, "UPDATE users SET phone = '998902222222' WHERE phone = '998901111111'")
+	require.NoError(t, err, "a user who has entered customers gets another number")
+	var by string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT created_by FROM customers WHERE id = $1", ali).Scan(&by))
+	assert.Equal(t, "998902222222", by, "the customers stay theirs")
+}
