@@ -639,3 +639,31 @@ test("a customer who has an option that is turned off keeps it through an edit; 
     message: "«Manba» uchun variant noto'g'ri",
   })
 })
+
+const deleteCustomer = (id: number) => call(api.DELETE("/app/customers/{id}", { params: { path: { id } } }))
+
+test("a deleted customer is gone from the app, stays in the database, and its phone is free again", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { jismoniy, fish } = await setup()
+  const ali = await createCustomer(jismoniy.id, "998901234567", { [fish.id]: "Ali" })
+  const vali = await createCustomer(jismoniy.id, "998905555555", { [fish.id]: "Vali" })
+
+  await deleteCustomer(ali.id)
+
+  expect(await failure(getCustomer(ali.id))).toMatchObject({ status: 404, message: "Mijoz topilmadi" })
+  expect((await listCustomers()).items.map((c) => c.id)).toEqual([vali.id])
+  expect(await failure(deleteCustomer(ali.id))).toMatchObject({ status: 404, code: "not_found", message: "Mijoz topilmadi" })
+  expect(await failure(updateCustomer(ali.id, "998901234567", { [fish.id]: "Ali" }))).toMatchObject({ status: 404 })
+  expect(db.customers.find((c) => c.id === ali.id)).toMatchObject({ deleted: true, phone: "998901234567" })
+  expect(db.history.filter((entry) => entry.customerId === ali.id).map((entry) => [entry.action, entry.by])).toEqual([
+    ["created", VALI],
+    ["deleted", VALI],
+  ])
+  expect((await createCustomer(jismoniy.id, "998901234567", { [fish.id]: "Yangi Ali" })).id).not.toBe(ali.id)
+
+  await chooseCompany(2)
+  expect(await failure(deleteCustomer(vali.id))).toMatchObject({ status: 404, message: "Mijoz topilmadi" })
+  await chooseCompany(null)
+  expect(await failure(deleteCustomer(vali.id))).toMatchObject({ status: 403, code: "company_required" })
+})

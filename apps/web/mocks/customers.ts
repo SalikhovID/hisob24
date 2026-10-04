@@ -273,6 +273,25 @@ export const customersHandlers = [
     return HttpResponse.json(toCustomer(customer))
   }),
 
+  http.delete(api("/app/customers/:id"), ({ params, request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
+    if (!customer) return customerNotFound()
+    // Hidden, not removed: its answers and its history stay.
+    customer.deleted = true
+    db.history.push({
+      id: nextId(),
+      customerId: customer.id,
+      action: "deleted",
+      by: member.phone,
+      byName: nameIn(member.phone, member.companyId),
+      createdAt: now(),
+      changes: [],
+    })
+    return new HttpResponse(null, { status: 204 })
+  }),
+
   http.get(api("/app/customers/:id/history"), ({ params, request }) => {
     const member = memberSession(request)
     if (member instanceof Response) return member
