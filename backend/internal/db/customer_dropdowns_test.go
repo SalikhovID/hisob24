@@ -68,3 +68,21 @@ func TestGetCustomerDropdown(t *testing.T) {
 	_, err = q.GetCustomerDropdown(ctx, gen.GetCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted dropdown")
 }
+
+func TestRenameCustomerDropdown(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+	createDropdown(t, q, olma.ID, "Holat")
+
+	d, err := q.RenameCustomerDropdown(ctx, gen.RenameCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID, Name: "Qayerdan"})
+	require.NoError(t, err)
+	assert.Equal(t, "Qayerdan", d.Name)
+
+	_, err = q.RenameCustomerDropdown(ctx, gen.RenameCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID, Name: "holat"})
+	assert.Equal(t, "23505", sqlState(err), "another dropdown's name")
+	_, err = q.RenameCustomerDropdown(ctx, gen.RenameCustomerDropdownParams{ID: manba.ID, CompanyID: nok.ID, Name: "Begona"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's dropdown")
+}

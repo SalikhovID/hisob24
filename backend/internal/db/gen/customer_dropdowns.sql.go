@@ -89,3 +89,29 @@ func (q *Queries) ListCustomerDropdowns(ctx context.Context, companyID int64) ([
 	}
 	return items, nil
 }
+
+const renameCustomerDropdown = `-- name: RenameCustomerDropdown :one
+UPDATE customer_dropdowns SET name = $1
+WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
+RETURNING id, company_id, name, created_at, deleted_at
+`
+
+type RenameCustomerDropdownParams struct {
+	Name      string
+	ID        int64
+	CompanyID int64
+}
+
+// pgx.ErrNoRows when the company has no such dropdown, or deleted it.
+func (q *Queries) RenameCustomerDropdown(ctx context.Context, arg RenameCustomerDropdownParams) (CustomerDropdown, error) {
+	row := q.db.QueryRow(ctx, renameCustomerDropdown, arg.Name, arg.ID, arg.CompanyID)
+	var i CustomerDropdown
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
