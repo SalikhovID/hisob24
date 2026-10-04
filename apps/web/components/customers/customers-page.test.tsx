@@ -313,3 +313,85 @@ test("a tab chosen while the cleared search is still on its way keeps both chang
   await waitFor(() => expect(currentUrl()).toBe(`/customers?type=${yuridik.id}`), { timeout: 3000 })
   await waitFor(() => expect(names()).toEqual(["Anor Tekstil MChJ"]))
 })
+
+// ticks are the Ustunlar menu's columns as [name, shown or not].
+const ticks = (menu: HTMLElement) =>
+  within(menu)
+    .getAllByRole("menuitemcheckbox")
+    .map((item) => [item.textContent, item.getAttribute("aria-checked") === "true"])
+
+test("the Ustunlar menu hides and shows the columns; the choice is kept for the next visit", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  setLocation("/customers")
+  const { user, unmount } = renderWithProviders(<CustomersPage />)
+  await table()
+
+  await user.click(screen.getByRole("button", { name: "Ustunlar" }))
+  const menu = await screen.findByRole("menu")
+  // Every column but the customer itself, which is never hidden.
+  expect(ticks(menu)).toEqual([
+    ["Turi", true],
+    ["Manba", true],
+    ["INN", true],
+    ["Qo'shgan", true],
+    ["Qo'shilgan", true],
+  ])
+
+  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "INN" }))
+  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Qo'shgan" }))
+
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "Qo'shilgan"])
+  // The menu stays open, so several can be changed in one go.
+  expect(ticks(menu)).toEqual([
+    ["Turi", true],
+    ["Manba", true],
+    ["INN", false],
+    ["Qo'shgan", false],
+    ["Qo'shilgan", true],
+  ])
+  // A phone's card leaves the column out as well.
+  const [card] = within(screen.getByRole("list", { name: "Mijozlar" })).getAllByRole("listitem")
+  expect(within(card).queryByText("Sardor Karimov")).not.toBeInTheDocument()
+
+  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "INN" }))
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shilgan"])
+
+  unmount()
+  renderWithProviders(<CustomersPage />)
+  await table()
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shilgan"])
+})
+
+test("under a tab the menu offers that type's columns; a column hidden there is hidden everywhere", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  const [jismoniy] = typesOf(1)
+  setLocation(`/customers?type=${jismoniy.id}`)
+  const { user } = renderWithProviders(<CustomersPage />)
+  await table()
+
+  await user.click(screen.getByRole("button", { name: "Ustunlar" }))
+  const menu = await screen.findByRole("menu")
+  expect(ticks(menu).map(([name]) => name)).toEqual(["Manba", "Qo'shgan", "Qo'shilgan"])
+  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Manba" }))
+  expect(headers()).toEqual(["Mijoz", "Qo'shgan", "Qo'shilgan"])
+  await user.keyboard("{Escape}")
+
+  await user.click(screen.getByRole("tab", { name: "Barchasi" }))
+  await waitFor(() => expect(names()).toHaveLength(3))
+  expect(headers()).toEqual(["Mijoz", "Turi", "INN", "Qo'shgan", "Qo'shilgan"])
+})
+
+test("the columns one user hides stay shown for another", async () => {
+  localStorage.setItem(`customers_hidden_columns:1:${ALI}`, JSON.stringify(["type", "created_by"]))
+  await signIn(VALI)
+  await chooseCompany(1)
+  seedCustomers()
+  setLocation("/customers")
+
+  renderWithProviders(<CustomersPage />)
+
+  await table()
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shgan", "Qo'shilgan"])
+})

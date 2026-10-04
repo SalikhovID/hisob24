@@ -13,6 +13,8 @@ import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useCustomerDropdowns, useCustomers, useCustomerTypes, useMe } from "@/lib/queries"
 import type { Customer } from "@/lib/types"
+import { useHiddenColumns } from "@/lib/use-hidden-columns"
+import { ColumnsMenu } from "./columns-menu"
 import { SearchInput } from "./search-input"
 import { useCustomerFilter } from "./use-customer-filter"
 
@@ -38,7 +40,8 @@ export function CustomersPage() {
   const everyType = filter.typeId === null
   const shownTypes = (types.data ?? []).filter((type) => everyType || type.id === filter.typeId)
 
-  const columns: Column<Customer>[] = [
+  // Every column has a key: the menu and the user's choice go by it.
+  const columns: (Column<Customer> & { key: string })[] = [
     {
       key: "customer",
       header: "Mijoz",
@@ -71,7 +74,7 @@ export function CustomersPage() {
         ]
       : []),
     ...fieldColumns(shownTypes).map(
-      (column): Column<Customer> => ({
+      (column): Column<Customer> & { key: string } => ({
         key: column.key,
         header: column.label,
         // A long answer wraps inside its cell; it does not stretch the table.
@@ -91,6 +94,11 @@ export function CustomersPage() {
       cell: (c) => formatDate(c.created_at),
     },
   ]
+
+  // The customer itself always shows; any other column the user may hide.
+  const { hidden, toggle } = useHiddenColumns(companyId ?? 0, me.data?.user.phone ?? "")
+  const optional = columns.filter((column) => !column.primary)
+  const shown = columns.filter((column) => column.primary || !hidden.has(column.key))
 
   // The list needs all three: the customers, and what their answers are
   // read with. One that failed fails the list; trying again asks for them all.
@@ -140,7 +148,14 @@ export function CustomersPage() {
                 </TabsList>
               </Tabs>
             </div>
-            <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
+            <div className="flex items-center gap-2">
+              <SearchInput value={filter.search} onSearch={(search) => update({ search })} />
+              <ColumnsMenu
+                columns={optional.map((column) => ({ key: column.key, label: column.header }))}
+                hidden={hidden}
+                onToggle={toggle}
+              />
+            </div>
           </div>
         )}
         {loading && <ListLoading rows={6} />}
@@ -159,7 +174,7 @@ export function CustomersPage() {
           <DataList
             label="Mijozlar"
             items={customers.data.items}
-            columns={columns}
+            columns={shown}
             getKey={(c) => c.id}
             footer={
               <Pager
