@@ -256,3 +256,13 @@ func (h *Handler) renameCustomerType(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, toCustomerTypeJSON(t))
 }
+
+// deleteCustomerType hides a customer type of the owner's company, and its
+// fields with it.
+func (h *Handler) deleteCustomerType(w http.ResponseWriter, r *http.Request) {
+	if err := h.customers.DeleteType(r.Context(), sessionCompany(r), pathID(r, "id")); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

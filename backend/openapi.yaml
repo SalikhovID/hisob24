@@ -1086,6 +1086,27 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+    delete:
+      operationId: deleteCustomerType
+      summary: Mijoz turini o'chirish (faqat owner)
+      description: >
+        Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi
+        bo'shaydi. Faol mijozi bor tur o'chirilmaydi: 409 type_in_use.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
