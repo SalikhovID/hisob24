@@ -45,3 +45,45 @@ func (h *Handler) listCustomerDropdowns(w http.ResponseWriter, r *http.Request) 
 	}
 	httpx.JSON(w, http.StatusOK, body)
 }
+
+type fieldJSON struct {
+	ID         int64  `json:"id"`
+	Label      string `json:"label"`
+	Kind       string `json:"kind"`
+	Required   bool   `json:"required"`
+	IsUnique   bool   `json:"is_unique"`
+	DropdownID *int64 `json:"dropdown_id"`
+}
+
+type customerTypeJSON struct {
+	ID     int64       `json:"id"`
+	Name   string      `json:"name"`
+	Fields []fieldJSON `json:"fields"`
+}
+
+func toFieldJSON(f customer.Field) fieldJSON {
+	return fieldJSON{ID: f.ID, Label: f.Label, Kind: f.Kind, Required: f.Required, IsUnique: f.Unique, DropdownID: f.DropdownID}
+}
+
+func toCustomerTypeJSON(t customer.Type) customerTypeJSON {
+	fields := make([]fieldJSON, 0, len(t.Fields))
+	for _, f := range t.Fields {
+		fields = append(fields, toFieldJSON(f))
+	}
+	return customerTypeJSON{ID: t.ID, Name: t.Name, Fields: fields}
+}
+
+// listCustomerTypes is the customer types of the company the session works
+// in, each with its fields: what a customer's form asks, and in what order.
+func (h *Handler) listCustomerTypes(w http.ResponseWriter, r *http.Request) {
+	types, err := h.customers.Types(r.Context(), sessionCompany(r))
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	body := make([]customerTypeJSON, 0, len(types))
+	for _, t := range types {
+		body = append(body, toCustomerTypeJSON(t))
+	}
+	httpx.JSON(w, http.StatusOK, body)
+}

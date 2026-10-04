@@ -725,6 +725,31 @@ paths:
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
           $ref: "#/components/responses/CompanyRequired"
+  /app/customer-types:
+    get:
+      operationId: listCustomerTypes
+      summary: Mijoz turlari, maydonlari bilan
+      description: >
+        Access token'dagi kompaniyaning mijoz turlari o'z tartibida, har biri
+        maydonlari bilan. Har a'zo o'qiydi: mijoz formasi va ro'yxat ustunlari
+        shundan quriladi. Telefon maydon emas: u har mijozda bor.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Turlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerType"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
