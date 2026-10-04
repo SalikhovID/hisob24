@@ -12,6 +12,8 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${port}`,
     trace: "retain-on-failure",
+    // Dates made from timestamps show the browser's day: the same one on any machine.
+    timezoneId: "Asia/Tashkent",
   },
   projects: [
     {
