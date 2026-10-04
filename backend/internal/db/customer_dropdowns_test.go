@@ -106,3 +106,36 @@ func TestDeleteCustomerDropdown(t *testing.T) {
 	_, err = q.DeleteCustomerDropdown(ctx, gen.DeleteCustomerDropdownParams{ID: manba.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
 }
+
+func addOption(t *testing.T, q *gen.Queries, companyID, dropdownID int64, label string) gen.CustomerDropdownOption {
+	t.Helper()
+	o, err := q.AddCustomerDropdownOption(t.Context(),
+		gen.AddCustomerDropdownOptionParams{CompanyID: companyID, DropdownID: dropdownID, Label: label})
+	require.NoError(t, err)
+	return o
+}
+
+func TestAddCustomerDropdownOption(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+
+	first, err := q.AddCustomerDropdownOption(ctx,
+		gen.AddCustomerDropdownOptionParams{CompanyID: olma.ID, DropdownID: manba.ID, Label: "Instagram"})
+	require.NoError(t, err)
+	assert.Equal(t, manba.ID, first.DropdownID)
+	assert.Equal(t, "Instagram", first.Label)
+	assert.EqualValues(t, 1, first.Position)
+	assert.True(t, first.IsActive)
+	second := addOption(t, q, olma.ID, manba.ID, "LinkedIn")
+	assert.EqualValues(t, 2, second.Position, "a new option goes last")
+
+	_, err = q.AddCustomerDropdownOption(ctx,
+		gen.AddCustomerDropdownOptionParams{CompanyID: olma.ID, DropdownID: manba.ID, Label: "instagram"})
+	assert.Equal(t, "23505", sqlState(err), "the option is in the dropdown already")
+	_, err = q.AddCustomerDropdownOption(ctx,
+		gen.AddCustomerDropdownOptionParams{CompanyID: nok.ID, DropdownID: manba.ID, Label: "Begona"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's dropdown")
+}

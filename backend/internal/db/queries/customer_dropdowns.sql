@@ -26,3 +26,14 @@ RETURNING *;
 UPDATE customer_dropdowns SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 RETURNING id;
+
+-- name: AddCustomerDropdownOption :one
+-- Adds an option at the end of the company's dropdown. pgx.ErrNoRows when
+-- the company has no such dropdown, or deleted it.
+INSERT INTO customer_dropdown_options (dropdown_id, label, position)
+SELECT d.id, sqlc.arg('label')::text,
+       COALESCE((SELECT max(o.position) FROM customer_dropdown_options o
+                 WHERE o.dropdown_id = d.id AND o.deleted_at IS NULL), 0) + 1
+FROM customer_dropdowns d
+WHERE d.id = sqlc.arg('dropdown_id') AND d.company_id = sqlc.arg('company_id') AND d.deleted_at IS NULL
+RETURNING *;

@@ -9,6 +9,39 @@ import (
 	"context"
 )
 
+const addCustomerDropdownOption = `-- name: AddCustomerDropdownOption :one
+INSERT INTO customer_dropdown_options (dropdown_id, label, position)
+SELECT d.id, $1::text,
+       COALESCE((SELECT max(o.position) FROM customer_dropdown_options o
+                 WHERE o.dropdown_id = d.id AND o.deleted_at IS NULL), 0) + 1
+FROM customer_dropdowns d
+WHERE d.id = $2 AND d.company_id = $3 AND d.deleted_at IS NULL
+RETURNING id, dropdown_id, label, position, is_active, created_at, deleted_at
+`
+
+type AddCustomerDropdownOptionParams struct {
+	Label      string
+	DropdownID int64
+	CompanyID  int64
+}
+
+// Adds an option at the end of the company's dropdown. pgx.ErrNoRows when
+// the company has no such dropdown, or deleted it.
+func (q *Queries) AddCustomerDropdownOption(ctx context.Context, arg AddCustomerDropdownOptionParams) (CustomerDropdownOption, error) {
+	row := q.db.QueryRow(ctx, addCustomerDropdownOption, arg.Label, arg.DropdownID, arg.CompanyID)
+	var i CustomerDropdownOption
+	err := row.Scan(
+		&i.ID,
+		&i.DropdownID,
+		&i.Label,
+		&i.Position,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const createCustomerDropdown = `-- name: CreateCustomerDropdown :one
 INSERT INTO customer_dropdowns (company_id, name)
 VALUES ($1, $2)
