@@ -296,3 +296,31 @@ func (s *Service) DeleteField(ctx context.Context, companyID, typeID, fieldID in
 		return err
 	})
 }
+
+// OrderFields puts the fields of the company's type in the order of ids,
+// which has to name each of them once and nothing else.
+func (s *Service) OrderFields(ctx context.Context, companyID, typeID int64, ids []int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: typeID, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errTypeNotFound
+		}
+		if err != nil {
+			return err
+		}
+		fields, err := q.ListCustomerFields(ctx, companyID)
+		if err != nil {
+			return err
+		}
+		var live []int64
+		for _, f := range fields {
+			if f.TypeID == typeID {
+				live = append(live, f.ID)
+			}
+		}
+		if !sameIDs(ids, live) {
+			return errOrderChanged
+		}
+		return q.OrderCustomerFields(ctx, gen.OrderCustomerFieldsParams{TypeID: typeID, Ids: ids})
+	})
+}

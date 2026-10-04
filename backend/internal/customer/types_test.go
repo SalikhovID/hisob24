@@ -315,3 +315,44 @@ func TestDeleteField(t *testing.T) {
 	refused(t, s.DeleteField(ctx, nok, jismoniy.ID, yosh.ID), apperr.NotFound, "not_found", notFound, "another company's field")
 	refused(t, s.DeleteField(ctx, olma, yuridik.ID, yosh.ID), apperr.NotFound, "not_found", notFound, "a field of another type")
 }
+
+func TestOrderFields(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	yuridik := mustType(t, s, olma, "Yuridik")
+	fish := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "F.I.Sh.", Kind: "string"})
+	yosh := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Yoshi", Kind: "int"})
+	izoh := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Izoh", Kind: "string"})
+	nomi := mustField(t, s, olma, yuridik.ID, FieldInput{Label: "Nomi", Kind: "string"})
+	labels := func() []string {
+		list, err := s.Types(ctx, olma)
+		require.NoError(t, err)
+		names := []string{}
+		for _, f := range list[0].Fields {
+			names = append(names, f.Label)
+		}
+		return names
+	}
+
+	require.NoError(t, s.OrderFields(ctx, olma, jismoniy.ID, []int64{izoh.ID, fish.ID, yosh.ID}))
+
+	assert.Equal(t, []string{"Izoh", "F.I.Sh.", "Yoshi"}, labels())
+
+	const changed = "Ro'yxat o'zgargan. Sahifani yangilang"
+	for about, ids := range map[string][]int64{
+		"a field is missing":         {fish.ID, yosh.ID},
+		"a field of another type":    {fish.ID, yosh.ID, nomi.ID},
+		"a field named twice":        {fish.ID, fish.ID, yosh.ID},
+		"more fields than there are": {fish.ID, yosh.ID, izoh.ID, nomi.ID},
+	} {
+		refused(t, s.OrderFields(ctx, olma, jismoniy.ID, ids), apperr.Conflict, "order_changed", changed, about)
+	}
+	refused(t, s.OrderFields(ctx, nok, jismoniy.ID, []int64{fish.ID, yosh.ID, izoh.ID}),
+		apperr.NotFound, "not_found", "Tur topilmadi", "another company's type")
+	assert.Equal(t, []string{"Izoh", "F.I.Sh.", "Yoshi"}, labels(), "a refusal moves nothing")
+
+	mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Yangi", Kind: "string"})
+	assert.Equal(t, []string{"Izoh", "F.I.Sh.", "Yoshi", "Yangi"}, labels(), "a new field still goes last")
+}
