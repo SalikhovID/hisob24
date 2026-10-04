@@ -1,10 +1,11 @@
 "use client"
 
 import { PageHeader } from "@/components/page-header"
-import { ListLoading } from "@/components/states"
+import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { kindLabels, nameFieldOf } from "@/lib/customer-fields"
-import { useCustomerTypes } from "@/lib/queries"
+import { useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
+import type { CustomerField } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
 import { SettingRow, settingList } from "./setting-row"
 
@@ -15,44 +16,62 @@ const back = { href: "/settings", label: "Sozlamalar" }
 // customer has one. The first text field is the name a customer goes by.
 export function CustomerTypePage({ id }: { id: number }) {
   const owner = useOwner()
-  const types = useCustomerTypes(owner ? owner.company.id : null)
+  const companyId = owner ? owner.company.id : null
+  const types = useCustomerTypes(companyId)
+  const dropdowns = useCustomerDropdowns(companyId)
 
   if (!owner) return null
-  const type = types.data?.find((candidate) => candidate.id === id)
-  if (!type) {
+  if (!types.data) {
     return (
       <div className="space-y-5">
         <PageHeader title="Mijoz turi" back={back} />
         {types.isPending && <ListLoading rows={2} mark="none" />}
+        {types.isError && <Failed error={types.error} onRetry={() => types.refetch()} />}
       </div>
     )
   }
+  const type = types.data.find((candidate) => candidate.id === id)
+  if (!type) {
+    return (
+      <PageHeader title="Tur topilmadi" description="Bu tur o'chirilgan yoki sizning kompaniyangizniki emas." back={back} />
+    )
+  }
   const nameField = nameFieldOf(type)
+  // A choice says where its options come from, once the dropdowns are known.
+  const kindOf = (field: CustomerField) => {
+    const dropdown = dropdowns.data?.find((candidate) => candidate.id === field.dropdown_id)
+    return dropdown ? `${kindLabels[field.kind]} · ${dropdown.name}` : kindLabels[field.kind]
+  }
 
   return (
     <div className="space-y-5">
       <PageHeader title={type.name} description={`Mijoz turi · ${type.fields.length} ta maydon`} back={back} />
-      <ul aria-label="Maydonlar" className={settingList}>
-        {type.fields.map((field) => (
-          <li key={field.id}>
-            <SettingRow
-              title={field.label}
-              detail={kindLabels[field.kind]}
-              marks={
-                <>
-                  {field.id === nameField?.id && (
-                    <Badge variant="secondary" className="bg-primary/10 dark:bg-primary/15">
-                      Mijoz nomi
-                    </Badge>
-                  )}
-                  {field.required && <Badge variant="secondary">Majburiy</Badge>}
-                  {field.is_unique && <Badge variant="outline">Takrorlanmas</Badge>}
-                </>
-              }
-            />
-          </li>
-        ))}
-      </ul>
+      {type.fields.length === 0 && (
+        <EmptyState title="Bu turda maydon yo'q" description="Mijoz faqat telefon raqami bilan qo'shiladi." />
+      )}
+      {type.fields.length > 0 && (
+        <ul aria-label="Maydonlar" className={settingList}>
+          {type.fields.map((field) => (
+            <li key={field.id}>
+              <SettingRow
+                title={field.label}
+                detail={kindOf(field)}
+                marks={
+                  <>
+                    {field.id === nameField?.id && (
+                      <Badge variant="secondary" className="bg-primary/10 dark:bg-primary/15">
+                        Mijoz nomi
+                      </Badge>
+                    )}
+                    {field.required && <Badge variant="secondary">Majburiy</Badge>}
+                    {field.is_unique && <Badge variant="outline">Takrorlanmas</Badge>}
+                  </>
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="px-1 text-sm text-pretty text-muted-foreground md:px-4">
         Telefon har doim bor va majburiy: uni maydon qilib qo&apos;shish shart emas. Birinchi matn maydoni
         ro&apos;yxatda mijoz nomi bo&apos;lib ko&apos;rinadi.
