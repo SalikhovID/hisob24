@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
@@ -26,6 +27,19 @@ type Customer struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
+
+// TakenError refuses a customer whose phone, or whose answer to a field that
+// may not repeat, another customer of the company has already. It names that
+// customer, so that the form can lead to them.
+type TakenError struct {
+	Refusal    *apperr.Error
+	CustomerID int64
+}
+
+func (e *TakenError) Error() string { return e.Refusal.Error() }
+
+// Unwrap gives the refusal to those who do not look for the customer.
+func (e *TakenError) Unwrap() error { return e.Refusal }
 
 // Input is what a customer is saved with, as the client sent it: the phone
 // and the answers by the id of the field.
@@ -58,6 +72,9 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		if err != nil {
 			return err
 		}
+		if err := phoneFree(ctx, q, companyID, phone); err != nil {
+			return err
+		}
 		name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: by, CompanyID: companyID})
 		if err != nil {
 			return err
@@ -81,6 +98,22 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		return Customer{}, err
 	}
 	return c, nil
+}
+
+// phoneFree refuses a phone that a customer of the company has already: a
+// number is one customer's.
+func phoneFree(ctx context.Context, q *gen.Queries, companyID int64, phone string) error {
+	id, err := q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: companyID, Phone: phone})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return &TakenError{
+		Refusal:    apperr.New(apperr.Conflict, "phone_taken", "Bu raqamli mijoz allaqachon bor"),
+		CustomerID: id,
+	}
 }
 
 // formOf is what the form of a type asks and offers: the type's fields in

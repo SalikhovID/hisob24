@@ -206,3 +206,48 @@ func TestCreateRefusals(t *testing.T) {
 	}
 	assert.Zero(t, count(t, pool, "SELECT count(*) FROM customers"), "nobody is entered")
 }
+
+// mustCustomer enters a customer of the company's type, as the owner.
+func mustCustomer(t *testing.T, s *Service, companyID, typeID int64, phone string, of map[int64]any) Customer {
+	t.Helper()
+	c, err := s.Create(t.Context(), companyID, owner, typeID, Input{Phone: phone, Values: answers(t, of)})
+	require.NoError(t, err)
+	return c
+}
+
+// takenBy asserts that err refuses a customer because the customer of the
+// id given has its phone, or its answer, already.
+func takenBy(t *testing.T, err error, code, message string, customerID int64, about ...any) {
+	t.Helper()
+	refused(t, err, apperr.Conflict, code, message, about...)
+	var e *TakenError
+	if assert.ErrorAs(t, err, &e, about...) {
+		assert.Equal(t, customerID, e.CustomerID, about...)
+	}
+}
+
+func TestCreateRefusesAPhoneAnotherCustomerHas(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998901234567", map[int64]any{olma.fish.ID: "Ali"})
+	const taken = "Bu raqamli mijoz allaqachon bor"
+
+	_, err := s.Create(ctx, olma.id, staff, olma.jismoniy.ID, Input{
+		Phone: "+998 90 123 45 67", Values: answers(t, map[int64]any{olma.fish.ID: "Vali"}),
+	})
+	takenBy(t, err, "phone_taken", taken, ali.ID, "the same number, written another way")
+	_, err = s.Create(ctx, olma.id, staff, olma.yuridik.ID, Input{
+		Phone: "901234567", Values: answers(t, map[int64]any{olma.nomi.ID: "Olma MChJ", olma.inn.ID: 301234567}),
+	})
+	takenBy(t, err, "phone_taken", taken, ali.ID, "a customer of another type")
+	_, err = s.Create(ctx, olma.id, staff, olma.jismoniy.ID, Input{Phone: "998901234567"})
+	refused(t, err, apperr.Invalid, "validation_error", "«F.I.Sh.» maydonini to'ldiring", "what is wrong with the answers is told first")
+	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM customers WHERE company_id = $1", olma.id), "nobody else is entered")
+
+	mustCustomer(t, s, nok.id, nok.jismoniy.ID, "998901234567", map[int64]any{nok.fish.ID: "Ali"}) // another company's customer
+	_, err = pool.Exec(ctx, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali.ID)
+	require.NoError(t, err)
+	mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998901234567", map[int64]any{olma.fish.ID: "Vali"}) // a deleted customer's number is free
+}
