@@ -140,3 +140,14 @@ func (h *Handler) updateCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, toCustomerJSON(c))
 }
+
+// deleteCustomer hides a customer of the company the session works in, as
+// the member the session is of.
+func (h *Handler) deleteCustomer(w http.ResponseWriter, r *http.Request) {
+	err := h.customers.Delete(r.Context(), sessionCompany(r), pathID(r, "id"), currentUser(r.Context()).Phone)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -1407,6 +1407,26 @@ paths:
           $ref: "#/components/responses/CustomerNotFound"
         "409":
           $ref: "#/components/responses/CustomerTaken"
+    delete:
+      operationId: deleteCustomer
+      summary: Mijozni o'chirish
+      description: >
+        Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404
+        beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo
+        o'chira oladi. O'chirish tarixga yoziladi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

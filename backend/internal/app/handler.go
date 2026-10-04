@@ -88,6 +88,7 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Post("/customers", h.createCustomer)
 				r.Get("/customers/{id}", h.getCustomer)
 				r.Put("/customers/{id}", h.updateCustomer)
+				r.Delete("/customers/{id}", h.deleteCustomer)
 			})
 		})
 	})
