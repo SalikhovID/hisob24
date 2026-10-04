@@ -34,3 +34,21 @@ func TestCreateCustomerType(t *testing.T) {
 	_, err = q.CreateCustomerType(ctx, gen.CreateCustomerTypeParams{CompanyID: olma.ID, Name: "jismoniy"})
 	assert.Equal(t, "23505", sqlState(err), "the name is taken in the company") // unique_violation
 }
+
+func TestListCustomerTypes(t *testing.T) {
+	q, pool := setup(t)
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	yuridik := createType(t, q, olma.ID, "Yuridik")
+	eski := createType(t, q, olma.ID, "Eski")
+	createType(t, q, nok.ID, "Begona")
+	mustExec(t, pool, "UPDATE customer_types SET position = 0 WHERE id = $1", yuridik.ID)
+	mustExec(t, pool, "UPDATE customer_types SET deleted_at = now() WHERE id = $1", eski.ID)
+
+	list, err := q.ListCustomerTypes(t.Context(), olma.ID)
+
+	require.NoError(t, err)
+	require.Len(t, list, 2, "the company's own, without the deleted one")
+	assert.Equal(t, []int64{yuridik.ID, jismoniy.ID}, []int64{list[0].ID, list[1].ID}, "in their order")
+}

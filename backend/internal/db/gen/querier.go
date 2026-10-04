@@ -100,6 +100,8 @@ type Querier interface {
 	ListCustomerDropdownOptions(ctx context.Context, companyID int64) ([]CustomerDropdownOption, error)
 	// The company's dropdowns in the order they were made, without the deleted.
 	ListCustomerDropdowns(ctx context.Context, companyID int64) ([]CustomerDropdown, error)
+	// The company's types in their order, without the deleted.
+	ListCustomerTypes(ctx context.Context, companyID int64) ([]CustomerType, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the
 	// database's today, as the 402 check does.

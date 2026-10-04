@@ -5,3 +5,9 @@ VALUES (sqlc.arg('company_id'), sqlc.arg('name'),
         COALESCE((SELECT max(t.position) FROM customer_types t
                   WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL), 0) + 1)
 RETURNING *;
+
+-- name: ListCustomerTypes :many
+-- The company's types in their order, without the deleted.
+SELECT * FROM customer_types
+WHERE company_id = $1 AND deleted_at IS NULL
+ORDER BY position, id;

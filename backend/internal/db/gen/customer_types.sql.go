@@ -36,3 +36,37 @@ func (q *Queries) CreateCustomerType(ctx context.Context, arg CreateCustomerType
 	)
 	return i, err
 }
+
+const listCustomerTypes = `-- name: ListCustomerTypes :many
+SELECT id, company_id, name, position, created_at, deleted_at FROM customer_types
+WHERE company_id = $1 AND deleted_at IS NULL
+ORDER BY position, id
+`
+
+// The company's types in their order, without the deleted.
+func (q *Queries) ListCustomerTypes(ctx context.Context, companyID int64) ([]CustomerType, error) {
+	rows, err := q.db.Query(ctx, listCustomerTypes, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CustomerType{}
+	for rows.Next() {
+		var i CustomerType
+		if err := rows.Scan(
+			&i.ID,
+			&i.CompanyID,
+			&i.Name,
+			&i.Position,
+			&i.CreatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
