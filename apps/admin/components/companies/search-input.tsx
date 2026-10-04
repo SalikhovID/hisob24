@@ -13,8 +13,10 @@ export function SearchInput({ value, onSearch }: { value: string; onSearch: (val
   const [seen, setSeen] = useState(value)
   if (value !== seen) {
     setSeen(value)
-    // What the box itself reported comes back as value: it stays as typed.
-    if (value !== text.trim()) setText(value)
+    // The box follows only if it agreed with the search before the change.
+    // A box that is ahead of it is being typed in: the change is then its
+    // own earlier report arriving, and what was typed since stays.
+    if (text.trim() === seen) setText(value)
   }
 
   useEffect(() => {

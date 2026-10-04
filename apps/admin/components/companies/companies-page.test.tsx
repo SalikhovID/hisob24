@@ -170,6 +170,25 @@ test("a search dropped from the address is dropped from the box, and stays dropp
   expect(currentUrl()).toBe("/companies")
 })
 
+test("typing that goes on while the address catches up is kept", async () => {
+  setLocation("/companies")
+  // The address moves a moment after it is asked to, as the real router's does.
+  slowNavigation(120)
+  const { user } = renderWithProviders(<CompaniesPage />)
+  await screen.findByRole("table", { name: "Kompaniyalar" })
+  const box = screen.getByRole("searchbox", { name: "Qidirish" })
+
+  await user.type(box, "o")
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/companies?search=o"))
+  // The next key is typed while "o" is still on its way to the address.
+  await user.type(box, "l")
+  await waitFor(() => expect(currentUrl()).toBe("/companies?search=o"))
+
+  // The address arriving with "o" is the box's own report: it must not wipe the "l".
+  expect(box).toHaveValue("ol")
+  await waitFor(() => expect(currentUrl()).toBe("/companies?search=ol"))
+})
+
 test("a tab chosen while the cleared search is still on its way keeps both changes", async () => {
   setLocation("/companies?search=olma")
   // The address takes a while to change, as on a slow connection.
