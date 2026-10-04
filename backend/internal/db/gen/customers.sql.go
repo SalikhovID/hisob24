@@ -212,6 +212,80 @@ func (q *Queries) ListCustomerValues(ctx context.Context, customerIds []int64) (
 	return items, nil
 }
 
+const listCustomers = `-- name: ListCustomers :many
+SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
+       COALESCE(m.full_name, c.created_by_name) AS created_by_name
+FROM customers c
+LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
+WHERE c.company_id = $1 AND c.deleted_at IS NULL
+  AND ($2::bigint IS NULL OR c.type_id = $2::bigint)
+  AND ($3::text IS NULL
+       OR c.phone LIKE '%' || $4::text || '%'
+       OR EXISTS (SELECT 1 FROM customer_values v
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || $3::text || '%'
+                         OR v.int_value::text LIKE '%' || $4::text || '%')))
+ORDER BY c.id DESC
+LIMIT $6 OFFSET $5
+`
+
+type ListCustomersParams struct {
+	CompanyID int64
+	TypeID    *int64
+	Search    *string
+	Digits    *string
+	Offset    int32
+	Limit     int32
+}
+
+type ListCustomersRow struct {
+	ID            int64
+	TypeID        int64
+	Phone         string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CreatedByName *string
+}
+
+// A page of the company's customers, the newest first, without the deleted.
+// type_id keeps one type. search, escaped for ILIKE, is looked for in the
+// text answers, in any case; digits, the digits of a search that is a number,
+// in the phone and in the whole number answers. The names of the options are
+// not searched. A NULL argument leaves its filter out.
+func (q *Queries) ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error) {
+	rows, err := q.db.Query(ctx, listCustomers,
+		arg.CompanyID,
+		arg.TypeID,
+		arg.Search,
+		arg.Digits,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCustomersRow{}
+	for rows.Next() {
+		var i ListCustomersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TypeID,
+			&i.Phone,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCustomer = `-- name: UpdateCustomer :one
 UPDATE customers SET phone = $1, updated_at = now()
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL

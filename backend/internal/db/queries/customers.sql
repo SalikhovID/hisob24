@@ -56,3 +56,24 @@ JOIN customer_fields f ON f.id = v.field_id
 LEFT JOIN customer_dropdown_options o ON o.id = v.option_id
 WHERE v.customer_id = ANY(sqlc.arg('customer_ids')::bigint[])
 ORDER BY v.customer_id, f.position, f.id, o.position, o.id;
+
+-- name: ListCustomers :many
+-- A page of the company's customers, the newest first, without the deleted.
+-- type_id keeps one type. search, escaped for ILIKE, is looked for in the
+-- text answers, in any case; digits, the digits of a search that is a number,
+-- in the phone and in the whole number answers. The names of the options are
+-- not searched. A NULL argument leaves its filter out.
+SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
+       COALESCE(m.full_name, c.created_by_name) AS created_by_name
+FROM customers c
+LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
+WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
+  AND (sqlc.narg('type_id')::bigint IS NULL OR c.type_id = sqlc.narg('type_id')::bigint)
+  AND (sqlc.narg('search')::text IS NULL
+       OR c.phone LIKE '%' || sqlc.narg('digits')::text || '%'
+       OR EXISTS (SELECT 1 FROM customer_values v
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
+                         OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')))
+ORDER BY c.id DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');

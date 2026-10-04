@@ -307,3 +307,78 @@ func TestListCustomerValues(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, rows, "no customers, no answers")
 }
+
+// The customers of seedCustomers, by their numbers.
+const (
+	aliPhone   = "998901234567" // Jismoniy: Ali Valiyev, 30, from Instagram
+	valiPhone  = "998905555555" // Jismoniy: Vali Aliyev, 45
+	firmaPhone = "998907777777" // Yuridik: Olma 100% MChJ, INN 301234567
+)
+
+// seedCustomers enters Ali, Vali and a firm into the shop, in that order,
+// and what a list has to leave out: a deleted customer and another
+// company's. It returns the firm's type.
+func seedCustomers(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s shop) (yuridik gen.CustomerType) {
+	t.Helper()
+	yuridik = createType(t, q, s.company.ID, "Yuridik")
+	nomi := addField(t, q, s.company.ID, yuridik.ID, "Nomi", "string", nil)
+	inn := addField(t, q, s.company.ID, yuridik.ID, "INN", "int", nil)
+
+	ali := s.customer(t, q, aliPhone)
+	answer(t, q, ali.ID, s.fish.ID, "Ali Valiyev")
+	answerNumber(t, q, ali.ID, s.yosh.ID, 30)
+	choose(t, q, ali.ID, s.manba.ID, s.instagram.ID)
+	vali := s.customer(t, q, valiPhone)
+	answer(t, q, vali.ID, s.fish.ID, "Vali Aliyev")
+	answerNumber(t, q, vali.ID, s.yosh.ID, 45)
+	firma := createCustomer(t, q, s.company.ID, yuridik.ID, firmaPhone)
+	answer(t, q, firma.ID, nomi.ID, "Olma 100% MChJ")
+	answerNumber(t, q, firma.ID, inn.ID, 301234567)
+
+	gone := s.customer(t, q, "998909999999")
+	answer(t, q, gone.ID, s.fish.ID, "Ali O'chirilgan")
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", gone.ID)
+	nok := newShop(t, q, pool, "Nok")
+	answer(t, q, nok.customer(t, q, aliPhone).ID, nok.fish.ID, "Ali Begona")
+	return yuridik
+}
+
+func TestListCustomers(t *testing.T) {
+	q, pool := setup(t)
+	s := newShop(t, q, pool, "Olma")
+	yuridik := seedCustomers(t, q, pool, s)
+
+	tests := []struct {
+		name           string
+		typeID         *int64
+		search, digits *string
+		limit, offset  int32
+		want           []string
+	}{
+		{name: "everything, the newest first", limit: 20, want: []string{firmaPhone, valiPhone, aliPhone}},
+		{name: "one type", typeID: &yuridik.ID, limit: 20, want: []string{firmaPhone}},
+		{name: "a text answer, in any case", search: ptr("ALI"), limit: 20, want: []string{valiPhone, aliPhone}},
+		{name: "the search is literal", search: ptr(`100\%`), limit: 20, want: []string{firmaPhone}},
+		{name: "a wildcard matches nothing by itself", search: ptr(`\_`), limit: 20, want: []string{}},
+		{name: "the digits of a phone", search: ptr("90 555"), digits: ptr("90555"), limit: 20, want: []string{valiPhone}},
+		{name: "the digits of a whole number", search: ptr("3012"), digits: ptr("3012"), limit: 20, want: []string{firmaPhone}},
+		{name: "digits inside a text", search: ptr("100"), digits: ptr("100"), limit: 20, want: []string{firmaPhone}},
+		{name: "an option's name is not searched", search: ptr("Instagram"), limit: 20, want: []string{}},
+		{name: "search within a type", search: ptr("ali"), typeID: &s.jismoniy.ID, limit: 20, want: []string{valiPhone, aliPhone}},
+		{name: "search in another type", search: ptr("ali"), typeID: &yuridik.ID, limit: 20, want: []string{}},
+		{name: "a page", limit: 2, offset: 1, want: []string{valiPhone, aliPhone}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rows, err := q.ListCustomers(t.Context(), gen.ListCustomersParams{
+				CompanyID: s.company.ID, TypeID: tt.typeID, Search: tt.search, Digits: tt.digits, Limit: tt.limit, Offset: tt.offset,
+			})
+			require.NoError(t, err)
+			phones := make([]string, 0, len(rows))
+			for _, c := range rows {
+				phones = append(phones, c.Phone)
+			}
+			assert.Equal(t, tt.want, phones)
+		})
+	}
+}

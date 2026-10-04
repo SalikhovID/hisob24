@@ -147,6 +147,12 @@ type Querier interface {
 	// type's fields, the options of one field in the order of their dropdown.
 	// kind tells how a field's rows are read.
 	ListCustomerValues(ctx context.Context, customerIds []int64) ([]ListCustomerValuesRow, error)
+	// A page of the company's customers, the newest first, without the deleted.
+	// type_id keeps one type. search, escaped for ILIKE, is looked for in the
+	// text answers, in any case; digits, the digits of a search that is a number,
+	// in the phone and in the whole number answers. The names of the options are
+	// not searched. A NULL argument leaves its filter out.
+	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the
 	// database's today, as the 402 check does.
