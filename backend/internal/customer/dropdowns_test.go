@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -46,4 +47,69 @@ func TestCreateDropdownRefusals(t *testing.T) {
 	var dropdowns int
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_dropdowns WHERE company_id = $1", olma).Scan(&dropdowns))
 	assert.Equal(t, 2, dropdowns, "a refusal adds nothing")
+}
+
+func mustDropdown(t *testing.T, s *Service, companyID int64, name string) Dropdown {
+	t.Helper()
+	d, err := s.CreateDropdown(t.Context(), companyID, name)
+	require.NoError(t, err)
+	return d
+}
+
+// optionRow inserts an option as it would stand after the owner's changes:
+// at a place of its own, on or off.
+func optionRow(t *testing.T, pool *pgxpool.Pool, dropdownID int64, label string, position int, active bool) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(), `INSERT INTO customer_dropdown_options (dropdown_id, label, position, is_active)
+		VALUES ($1, $2, $3, $4) RETURNING id`, dropdownID, label, position, active).Scan(&id))
+	return id
+}
+
+func TestDropdowns(t *testing.T) {
+	s, pool := newService(t)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	manba := mustDropdown(t, s, olma, "Manba")
+	holat := mustDropdown(t, s, olma, "Holat")
+	mustDropdown(t, s, nok, "Begona")
+	instagram := optionRow(t, pool, manba.ID, "Instagram", 2, true)
+	linkedin := optionRow(t, pool, manba.ID, "LinkedIn", 1, false)
+
+	list, err := s.Dropdowns(t.Context(), olma)
+
+	require.NoError(t, err)
+	assert.Equal(t, []Dropdown{
+		{ID: manba.ID, Name: "Manba", Options: []Option{
+			{ID: linkedin, Label: "LinkedIn", Active: false},
+			{ID: instagram, Label: "Instagram", Active: true},
+		}},
+		{ID: holat.ID, Name: "Holat", Options: []Option{}},
+	}, list, "the company's dropdowns as they were made, each with its options in their order")
+}
+
+func TestRenameDropdown(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	manba := mustDropdown(t, s, olma, "Manba")
+	mustDropdown(t, s, olma, "Holat")
+	instagram := optionRow(t, pool, manba.ID, "Instagram", 1, true)
+
+	d, err := s.RenameDropdown(ctx, olma, manba.ID, " Qayerdan ")
+
+	require.NoError(t, err)
+	assert.Equal(t, Dropdown{ID: manba.ID, Name: "Qayerdan", Options: []Option{{ID: instagram, Label: "Instagram", Active: true}}}, d,
+		"the dropdown under its new name, with its options")
+
+	const notFound = "Dropdown topilmadi"
+	_, err = s.RenameDropdown(ctx, olma, manba.ID, " ")
+	refused(t, err, apperr.Invalid, "validation_error", "Nomni kiriting", "no name")
+	_, err = s.RenameDropdown(ctx, olma, manba.ID, "HOLAT")
+	refused(t, err, apperr.Conflict, "name_taken", "Bu nomli dropdown allaqachon bor", "another dropdown's name")
+	_, err = s.RenameDropdown(ctx, nok, manba.ID, "Begona")
+	refused(t, err, apperr.NotFound, "not_found", notFound, "another company's dropdown")
+	_, err = s.RenameDropdown(ctx, olma, manba.ID+100, "Yo'q")
+	refused(t, err, apperr.NotFound, "not_found", notFound, "no such dropdown")
+	_, err = s.RenameDropdown(ctx, olma, manba.ID, "qayerdan")
+	assert.NoError(t, err, "its own name in another case is not taken")
 }
