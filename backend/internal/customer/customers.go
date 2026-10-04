@@ -79,7 +79,7 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		if err := answersFree(ctx, q, fields, values, 0); err != nil {
 			return err
 		}
-		name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: by, CompanyID: companyID})
+		name, err := memberName(ctx, q, companyID, by)
 		if err != nil {
 			return err
 		}
@@ -108,6 +108,17 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		return Customer{}, err
 	}
 	return c, nil
+}
+
+// memberName is the name the user goes by in the company now: what is kept
+// beside what they do to its customers. None for a member without a name,
+// and for a user the company has let go meanwhile.
+func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone string) (*string, error) {
+	name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: phone, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return name, err
 }
 
 // phoneFree refuses a phone that a customer of the company has already: a

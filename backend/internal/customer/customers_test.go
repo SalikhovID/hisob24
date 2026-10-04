@@ -308,3 +308,20 @@ func TestCreateWritesDownWhoEnteredTheCustomer(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"created by 998902222222 (Xurshid Xodim): []"}, storedHistory(t, pool, c.ID))
 }
+
+// The API lets only a member through, but the member may be taken out of
+// the company before the write: the customer is entered under no name.
+func TestCreateByAUserWhoIsNoMemberNamesNobody(t *testing.T) {
+	s, pool := newService(t)
+	sh := newShop(t, s, pool, "Olma")
+	_, err := pool.Exec(t.Context(), "DELETE FROM user_companies WHERE user_phone = $1", staff)
+	require.NoError(t, err)
+
+	c, err := s.Create(t.Context(), sh.id, staff, sh.jismoniy.ID, Input{
+		Phone: "998901234567", Values: answers(t, map[int64]any{sh.fish.ID: "Ali"}),
+	})
+
+	require.NoError(t, err)
+	assert.Nil(t, c.CreatedByName)
+	assert.Equal(t, []string{"created by 998902222222 (-): []"}, storedHistory(t, pool, c.ID))
+}
