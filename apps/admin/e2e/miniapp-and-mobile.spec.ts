@@ -44,6 +44,14 @@ test.describe("inside Telegram", () => {
     await expect(page.getByRole("button", { name: "Chiqish" })).toHaveCount(0)
     await expect(page.getByRole("button", { name: "Mavzuni almashtirish" })).toHaveCount(0)
   })
+
+  test("the brand's logo takes the chat's text color", async ({ page }) => {
+    await page.goto("/companies")
+
+    await expect(page.getByRole("heading", { name: "Kompaniyalar" })).toBeVisible()
+    // One brand shows at a time: the sidebar's on a wide screen, the top bar's on a phone.
+    await expect(page.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(245, 245, 245)")
+  })
 })
 
 test("every page fits the screen without sideways scrolling", async ({ page, context, baseURL }) => {
