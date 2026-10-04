@@ -252,3 +252,27 @@ func TestListCustomerDropdownOptionIDs(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []int64{youtube.ID, instagram.ID}, ids, "the dropdown's own options in their order, without the deleted")
 }
+
+func TestOrderCustomerDropdownOptions(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+	instagram := addOption(t, q, olma.ID, manba.ID, "Instagram")
+	linkedin := addOption(t, q, olma.ID, manba.ID, "LinkedIn")
+	youtube := addOption(t, q, olma.ID, manba.ID, "YouTube")
+	yangi := addOption(t, q, olma.ID, createDropdown(t, q, olma.ID, "Holat").ID, "Yangi")
+
+	err := q.OrderCustomerDropdownOptions(ctx, gen.OrderCustomerDropdownOptionsParams{
+		DropdownID: manba.ID,
+		Ids:        []int64{youtube.ID, instagram.ID, linkedin.ID, yangi.ID},
+	})
+
+	require.NoError(t, err)
+	ids, err := q.ListCustomerDropdownOptionIDs(ctx, manba.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{youtube.ID, instagram.ID, linkedin.ID}, ids, "the options stand as the ids were given")
+	var position int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT position FROM customer_dropdown_options WHERE id = $1", yangi.ID).Scan(&position))
+	assert.Equal(t, 1, position, "another dropdown's option stays where it was")
+}

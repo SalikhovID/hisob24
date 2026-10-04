@@ -73,3 +73,10 @@ RETURNING o.id;
 SELECT id FROM customer_dropdown_options
 WHERE dropdown_id = $1 AND deleted_at IS NULL
 ORDER BY position, id;
+
+-- name: OrderCustomerDropdownOptions :exec
+-- Puts the dropdown's options in the order of ids: the first gets position
+-- 1. An id that is not a live option of the dropdown is passed over.
+UPDATE customer_dropdown_options o SET position = n.ord::int
+FROM unnest(sqlc.arg('ids')::bigint[]) WITH ORDINALITY AS n(id, ord)
+WHERE o.id = n.id AND o.dropdown_id = sqlc.arg('dropdown_id') AND o.deleted_at IS NULL;

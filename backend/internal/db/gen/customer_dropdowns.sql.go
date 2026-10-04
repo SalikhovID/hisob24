@@ -231,6 +231,24 @@ func (q *Queries) ListCustomerDropdowns(ctx context.Context, companyID int64) ([
 	return items, nil
 }
 
+const orderCustomerDropdownOptions = `-- name: OrderCustomerDropdownOptions :exec
+UPDATE customer_dropdown_options o SET position = n.ord::int
+FROM unnest($2::bigint[]) WITH ORDINALITY AS n(id, ord)
+WHERE o.id = n.id AND o.dropdown_id = $1 AND o.deleted_at IS NULL
+`
+
+type OrderCustomerDropdownOptionsParams struct {
+	DropdownID int64
+	Ids        []int64
+}
+
+// Puts the dropdown's options in the order of ids: the first gets position
+// 1. An id that is not a live option of the dropdown is passed over.
+func (q *Queries) OrderCustomerDropdownOptions(ctx context.Context, arg OrderCustomerDropdownOptionsParams) error {
+	_, err := q.db.Exec(ctx, orderCustomerDropdownOptions, arg.DropdownID, arg.Ids)
+	return err
+}
+
 const renameCustomerDropdown = `-- name: RenameCustomerDropdown :one
 UPDATE customer_dropdowns SET name = $1
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
