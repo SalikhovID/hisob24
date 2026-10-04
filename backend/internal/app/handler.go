@@ -10,6 +10,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
+	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
@@ -19,6 +20,7 @@ type Services struct {
 	Auth      *auth.UserAuth
 	Profiles  *user.Profiles
 	Companies *company.Service
+	Customers *customer.Service
 }
 
 // Handler serves /app.
@@ -26,6 +28,7 @@ type Handler struct {
 	auth          *auth.UserAuth
 	profiles      *user.Profiles
 	companies     *company.Service
+	customers     *customer.Service
 	cookieSecure  bool
 	sendLimiter   *httpx.RateLimiter
 	verifyLimiter *httpx.RateLimiter
@@ -35,7 +38,7 @@ type Handler struct {
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
 	return &Handler{
-		auth: s.Auth, profiles: s.Profiles, companies: s.Companies,
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers,
 		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
 	}
 }
@@ -58,6 +61,13 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Post("/employees", h.addEmployee)
 				r.Patch("/employees/{phone}", h.renameEmployee)
 				r.Delete("/employees/{phone}", h.removeEmployee)
+			})
+			// The customers and what they are set up with are for every
+			// member of the company the session works in; changing the
+			// setup is the owner's.
+			r.Group(func(r chi.Router) {
+				r.Use(h.requireCompany)
+				r.Get("/customer-dropdowns", h.listCustomerDropdowns)
 			})
 		})
 	})

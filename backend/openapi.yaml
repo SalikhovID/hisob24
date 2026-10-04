@@ -700,6 +700,31 @@ paths:
           $ref: "#/components/responses/EmployeeNotFound"
         "409":
           $ref: "#/components/responses/CannotChangeOwner"
+  /app/customer-dropdowns:
+    get:
+      operationId: listCustomerDropdowns
+      summary: Dropdownlar, variantlari bilan
+      description: >
+        Access token'dagi kompaniyaning dropdownlari yaratilgan tartibda, har
+        biri variantlari bilan (o'z tartibida, nofaollari ham). Har a'zo
+        o'qiydi: mijoz formasi va ro'yxati shundan quriladi.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Dropdownlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerDropdown"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -859,6 +884,27 @@ components:
             $ref: "#/components/schemas/Error"
     NotFound:
       description: Kompaniya topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    CompanyRequired:
+      description: Sessiya hali kompaniya tanlamagan (company_required)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    CustomerSettingNotFound:
+      description: Tur, maydon, dropdown yoki variant topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    CustomerSettingConflict:
+      description: >
+        Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use,
+        type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar
+        bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed)
       content:
         application/json:
           schema:
@@ -1145,3 +1191,132 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AppCompany"
+    CustomerOption:
+      type: object
+      required: [id, label, is_active]
+      properties:
+        id:
+          type: integer
+          format: int64
+        label:
+          type: string
+        is_active:
+          type: boolean
+          description: >
+            Nofaol variant yangi tanlovlarda chiqmaydi, uni tanlagan
+            mijozlarda qoladi
+    CustomerDropdown:
+      type: object
+      required: [id, name, options]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        options:
+          type: array
+          description: Variantlar o'z tartibida
+          items:
+            $ref: "#/components/schemas/CustomerOption"
+    CustomerFieldKind:
+      type: string
+      description: >
+        string: matn; int: butun son; dropdown va radio: variantlardan
+        bittasi; multi_dropdown va checkbox: variantlardan bir nechtasi
+      enum: [string, int, dropdown, multi_dropdown, radio, checkbox]
+    CustomerField:
+      type: object
+      required: [id, label, kind, required, is_unique, dropdown_id]
+      properties:
+        id:
+          type: integer
+          format: int64
+        label:
+          type: string
+        kind:
+          $ref: "#/components/schemas/CustomerFieldKind"
+        required:
+          type: boolean
+        is_unique:
+          type: boolean
+          description: Faol mijozlar ichida qiymat takrorlanmaydi (faqat matn va son)
+        dropdown_id:
+          type: [integer, "null"]
+          format: int64
+          description: Tanlov turlarida variantlar olinadigan dropdown
+    CustomerType:
+      type: object
+      required: [id, name, fields]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        fields:
+          type: array
+          description: Maydonlar o'z tartibida; birinchi matn maydoni mijoz nomi
+          items:
+            $ref: "#/components/schemas/CustomerField"
+    NameInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 60
+    OptionInput:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+          maxLength: 60
+    OptionPatch:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 60
+        is_active:
+          type: boolean
+    FieldInput:
+      type: object
+      required: [label, kind]
+      properties:
+        label:
+          type: string
+          maxLength: 60
+        kind:
+          $ref: "#/components/schemas/CustomerFieldKind"
+        required:
+          type: boolean
+          default: false
+        is_unique:
+          type: boolean
+          default: false
+        dropdown_id:
+          type: [integer, "null"]
+          format: int64
+          description: Tanlov turlarida majburiy, matn va sonda bo'lmaydi
+    FieldPatch:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 60
+        required:
+          type: boolean
+        is_unique:
+          type: boolean
+    OrderInput:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          description: Hamma yozuvning ID'si, yangi tartibda, har biri bir marta
+          items:
+            type: integer
+            format: int64

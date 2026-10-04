@@ -178,3 +178,16 @@ func (h *Handler) requireOwner(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// requireCompany lets through only a session that works in a company: one
+// that has not chosen yet (a user of several, right after signing in) gets
+// 403. requireAccess has checked the company the token names.
+func (h *Handler) requireCompany(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if currentUser(r.Context()).CompanyID == nil {
+			httpx.Error(w, http.StatusForbidden, "company_required", "Avval kompaniyani tanlang")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}

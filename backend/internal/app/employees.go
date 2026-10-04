@@ -21,16 +21,16 @@ func toMemberJSON(m company.Member) memberJSON {
 	return memberJSON{Phone: m.Phone, FullName: m.FullName, Role: m.Role, CreatedAt: m.CreatedAt}
 }
 
-// ownersCompany is the company the request acts on: always the one the
-// access token is for, never one named in the request. requireOwner has let
-// the request through, so there is one.
-func ownersCompany(r *http.Request) int64 {
+// sessionCompany is the company the request acts on: always the one the
+// access token is for, never one named in the request. requireOwner or
+// requireCompany has let the request through, so there is one.
+func sessionCompany(r *http.Request) int64 {
 	return *currentUser(r.Context()).CompanyID
 }
 
 // listEmployees is the members of the company the owner works in.
 func (h *Handler) listEmployees(w http.ResponseWriter, r *http.Request) {
-	members, err := h.companies.Members(r.Context(), ownersCompany(r))
+	members, err := h.companies.Members(r.Context(), sessionCompany(r))
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -52,7 +52,7 @@ func (h *Handler) addEmployee(w http.ResponseWriter, r *http.Request) {
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	m, err := h.companies.AddEmployee(r.Context(), ownersCompany(r), body.Phone, body.FullName)
+	m, err := h.companies.AddEmployee(r.Context(), sessionCompany(r), body.Phone, body.FullName)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -68,7 +68,7 @@ func (h *Handler) renameEmployee(w http.ResponseWriter, r *http.Request) {
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	m, err := h.companies.RenameEmployee(r.Context(), ownersCompany(r), chi.URLParam(r, "phone"), body.FullName)
+	m, err := h.companies.RenameEmployee(r.Context(), sessionCompany(r), chi.URLParam(r, "phone"), body.FullName)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -79,7 +79,7 @@ func (h *Handler) renameEmployee(w http.ResponseWriter, r *http.Request) {
 // removeEmployee takes an employee out of the owner's company. From their
 // next request on requireAccess turns them away from it.
 func (h *Handler) removeEmployee(w http.ResponseWriter, r *http.Request) {
-	if err := h.companies.RemoveEmployee(r.Context(), ownersCompany(r), chi.URLParam(r, "phone")); err != nil {
+	if err := h.companies.RemoveEmployee(r.Context(), sessionCompany(r), chi.URLParam(r, "phone")); err != nil {
 		httpx.WriteError(w, r, err)
 		return
 	}

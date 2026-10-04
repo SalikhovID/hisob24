@@ -24,6 +24,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/bot/userbot"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/config"
+	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/sms"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
@@ -70,6 +71,7 @@ func run() error {
 		Auth:      userAuth,
 		Profiles:  user.NewProfiles(pool),
 		Companies: companies,
+		Customers: customer.NewService(pool),
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 
