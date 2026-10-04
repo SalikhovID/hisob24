@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
 // The members of a shop, by their phones.
@@ -324,4 +325,22 @@ func TestCreateByAUserWhoIsNoMemberNamesNobody(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, c.CreatedByName)
 	assert.Equal(t, []string{"created by 998902222222 (-): []"}, storedHistory(t, pool, c.ID))
+}
+
+func TestCreateEntersACustomerWhollyOrNotAtAll(t *testing.T) {
+	for _, table := range []string{"customer_values", "customer_history"} {
+		t.Run(table, func(t *testing.T) {
+			s, pool := newService(t)
+			sh := newShop(t, s, pool, "Olma")
+			pgtest.FailInserts(t, pool, table)
+
+			_, err := s.Create(t.Context(), sh.id, owner, sh.jismoniy.ID, Input{
+				Phone: "998901234567", Values: answers(t, map[int64]any{sh.fish.ID: "Ali"}),
+			})
+
+			require.Error(t, err)
+			assert.Zero(t, count(t, pool, "SELECT count(*) FROM customers"), "no customer without its answers and its history")
+			assert.Zero(t, count(t, pool, "SELECT count(*) FROM customer_values"))
+		})
+	}
 }
