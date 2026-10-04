@@ -295,3 +295,34 @@ func TestCustomerTypesAndFields(t *testing.T) {
 	_, err = addType(olma, "Jismoniy")
 	assert.NoError(t, err, "a deleted type's name is free again")
 }
+
+// customerTypesOf describes a company's customer types, in their order, each
+// as "name: field kind [required] [unique], …" with the fields in theirs.
+func customerTypesOf(t *testing.T, pool *pgxpool.Pool, companyID int64) []string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), `SELECT t.name || ': ' || COALESCE(string_agg(
+			f.label || ' ' || f.kind || CASE WHEN f.required THEN ' required' ELSE '' END
+				|| CASE WHEN f.is_unique THEN ' unique' ELSE '' END, ', ' ORDER BY f.position), '')
+		FROM customer_types t LEFT JOIN customer_fields f ON f.type_id = t.id
+		WHERE t.company_id = $1 GROUP BY t.id ORDER BY t.position`, companyID)
+	require.NoError(t, err)
+	types, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return types
+}
+
+func TestTheCustomerSettingsMigrationGivesEveryCompanyTheReadyTypes(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 4)
+	require.NoError(t, err)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+
+	_, err = provider.UpTo(ctx, 5)
+	require.NoError(t, err)
+
+	ready := []string{"Jismoniy: F.I.Sh. string required", "Yuridik: Nomi string required, INN int required unique"}
+	assert.Equal(t, ready, customerTypesOf(t, pool, olma))
+	assert.Equal(t, ready, customerTypesOf(t, pool, nok), "every company gets its own")
+}

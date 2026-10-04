@@ -64,6 +64,25 @@ CREATE TABLE customer_fields (
 );
 CREATE UNIQUE INDEX customer_fields_label ON customer_fields (type_id, lower(label)) WHERE deleted_at IS NULL;
 
+-- Every company starts with two types, which its owner may change. The
+-- companies there are get them here; a new one gets them when it is created
+-- (SeedCustomerTypes).
+WITH jismoniy AS (
+    INSERT INTO customer_types (company_id, name, position)
+    SELECT id, 'Jismoniy', 1 FROM companies
+    RETURNING id, company_id
+), yuridik AS (
+    INSERT INTO customer_types (company_id, name, position)
+    SELECT id, 'Yuridik', 2 FROM companies
+    RETURNING id, company_id
+)
+INSERT INTO customer_fields (company_id, type_id, label, kind, required, is_unique, position)
+SELECT company_id, id, 'F.I.Sh.', 'string', true, false, 1 FROM jismoniy
+UNION ALL
+SELECT company_id, id, 'Nomi', 'string', true, false, 1 FROM yuridik
+UNION ALL
+SELECT company_id, id, 'INN', 'int', true, true, 2 FROM yuridik;
+
 -- +goose Down
 DROP TABLE customer_fields;
 DROP TABLE customer_types;
