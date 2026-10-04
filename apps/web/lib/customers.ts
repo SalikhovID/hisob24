@@ -23,3 +23,31 @@ export function answerText(field: CustomerField, answer: Answer | undefined, dro
   const chosen = Array.isArray(answer) ? answer : [answer]
   return chosen.flatMap((id) => options.find((option) => option.id === id)?.label ?? []).join(", ")
 }
+
+// FieldColumn is a column of the customers list that shows answers. Fields
+// of one name share a column, whatever the type: fields holds each type's
+// field of that name, by the id of the type.
+export interface FieldColumn {
+  key: string
+  label: string
+  fields: Record<number, CustomerField>
+}
+
+// fieldColumns are the list's answer columns for the types it shows, in the
+// order of the types and of their fields. A name counts whatever its case,
+// and is spelled as the first type spells it. The field a type's customers
+// go by is not a column: it is the customer's name.
+export function fieldColumns(types: CustomerType[]): FieldColumn[] {
+  const columns = new Map<string, FieldColumn>()
+  for (const type of types) {
+    const nameField = nameFieldOf(type)
+    for (const field of type.fields) {
+      if (field === nameField) continue
+      const key = `field:${field.label.toLowerCase()}`
+      const column = columns.get(key) ?? { key, label: field.label, fields: {} }
+      column.fields[type.id] = field
+      columns.set(key, column)
+    }
+  }
+  return [...columns.values()]
+}
