@@ -35,8 +35,8 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
           <MenuIcon />
         </Button>
         <div className="min-w-0 md:hidden">
-          <Logo className="h-3.5" />
-          <p className="h-4 truncate text-xs leading-4 font-medium">{me.data?.company?.name}</p>
+          <Logo className="h-4" />
+          <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium">{me.data?.company?.name}</p>
         </div>
       </div>
       <div className="flex items-center gap-1">
