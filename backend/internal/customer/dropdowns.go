@@ -2,10 +2,12 @@ package customer
 
 import (
 	"context"
-	"strings"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
+
+var errDropdownNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli dropdown allaqachon bor")
 
 // Option is one choice of a dropdown. An option that is not active is no
 // longer offered, but stays on the customers who chose it.
@@ -22,9 +24,17 @@ type Dropdown struct {
 	Options []Option
 }
 
-// CreateDropdown adds an empty dropdown to the company.
+// CreateDropdown adds an empty dropdown to the company. Its name is the
+// company's only one of the kind, whatever the case.
 func (s *Service) CreateDropdown(ctx context.Context, companyID int64, name string) (Dropdown, error) {
-	d, err := s.q.CreateCustomerDropdown(ctx, gen.CreateCustomerDropdownParams{CompanyID: companyID, Name: strings.TrimSpace(name)})
+	name, err := cleanName(name)
+	if err != nil {
+		return Dropdown{}, err
+	}
+	d, err := s.q.CreateCustomerDropdown(ctx, gen.CreateCustomerDropdownParams{CompanyID: companyID, Name: name})
+	if taken(err) {
+		return Dropdown{}, errDropdownNameTaken
+	}
 	if err != nil {
 		return Dropdown{}, err
 	}
