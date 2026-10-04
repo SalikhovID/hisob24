@@ -202,3 +202,42 @@ func TestDeleteOption(t *testing.T) {
 	refused(t, s.DeleteOption(ctx, olma, manba.ID, instagram.ID), apperr.NotFound, "not_found", notFound, "deleted already")
 	refused(t, s.DeleteOption(ctx, nok, manba.ID, linkedin.ID), apperr.NotFound, "not_found", notFound, "another company's dropdown")
 }
+
+func TestOrderOptions(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	manba := mustDropdown(t, s, olma, "Manba")
+	instagram := mustOption(t, s, olma, manba.ID, "Instagram")
+	linkedin := mustOption(t, s, olma, manba.ID, "LinkedIn")
+	youtube := mustOption(t, s, olma, manba.ID, "YouTube")
+	labels := func() []string {
+		list, err := s.Dropdowns(ctx, olma)
+		require.NoError(t, err)
+		names := []string{}
+		for _, o := range list[0].Options {
+			names = append(names, o.Label)
+		}
+		return names
+	}
+
+	require.NoError(t, s.OrderOptions(ctx, olma, manba.ID, []int64{youtube.ID, instagram.ID, linkedin.ID}))
+
+	assert.Equal(t, []string{"YouTube", "Instagram", "LinkedIn"}, labels())
+
+	const changed = "Ro'yxat o'zgargan. Sahifani yangilang"
+	for about, ids := range map[string][]int64{
+		"an option is missing":                   {instagram.ID, linkedin.ID},
+		"an option that is not the dropdown's":   {instagram.ID, linkedin.ID, youtube.ID + 100},
+		"an option named twice":                  {instagram.ID, instagram.ID, linkedin.ID},
+		"an option more than the dropdown holds": {instagram.ID, linkedin.ID, youtube.ID, youtube.ID + 100},
+	} {
+		refused(t, s.OrderOptions(ctx, olma, manba.ID, ids), apperr.Conflict, "order_changed", changed, about)
+	}
+	refused(t, s.OrderOptions(ctx, nok, manba.ID, []int64{instagram.ID, linkedin.ID, youtube.ID}),
+		apperr.NotFound, "not_found", "Dropdown topilmadi", "another company's dropdown")
+	assert.Equal(t, []string{"YouTube", "Instagram", "LinkedIn"}, labels(), "a refusal moves nothing")
+
+	mustOption(t, s, olma, manba.ID, "Tavsiya")
+	assert.Equal(t, []string{"YouTube", "Instagram", "LinkedIn", "Tavsiya"}, labels(), "a new option still goes last")
+}

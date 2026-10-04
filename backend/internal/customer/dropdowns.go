@@ -195,3 +195,25 @@ func (s *Service) DeleteOption(ctx context.Context, companyID, dropdownID, optio
 		return err
 	})
 }
+
+// OrderOptions puts the options of the company's dropdown in the order of
+// ids, which has to name each of them once and nothing else.
+func (s *Service) OrderOptions(ctx context.Context, companyID, dropdownID int64, ids []int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.GetCustomerDropdown(ctx, gen.GetCustomerDropdownParams{ID: dropdownID, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errDropdownNotFound
+		}
+		if err != nil {
+			return err
+		}
+		live, err := q.ListCustomerDropdownOptionIDs(ctx, dropdownID)
+		if err != nil {
+			return err
+		}
+		if !sameIDs(ids, live) {
+			return errOrderChanged
+		}
+		return q.OrderCustomerDropdownOptions(ctx, gen.OrderCustomerDropdownOptionsParams{DropdownID: dropdownID, Ids: ids})
+	})
+}

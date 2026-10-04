@@ -68,3 +68,25 @@ func taken(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
+
+// errOrderChanged refuses a new order that does not name what is there now:
+// the list was changed elsewhere since the client read it.
+var errOrderChanged = apperr.New(apperr.Conflict, "order_changed", "Ro'yxat o'zgargan. Sahifani yangilang")
+
+// sameIDs tells whether ids names each of live once and nothing else.
+func sameIDs(ids, live []int64) bool {
+	if len(ids) != len(live) {
+		return false
+	}
+	left := make(map[int64]bool, len(live))
+	for _, id := range live {
+		left[id] = true
+	}
+	for _, id := range ids {
+		if !left[id] {
+			return false
+		}
+		delete(left, id)
+	}
+	return true
+}
