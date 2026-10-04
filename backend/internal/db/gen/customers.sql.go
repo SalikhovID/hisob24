@@ -36,6 +36,39 @@ func (q *Queries) AddCustomerValue(ctx context.Context, arg AddCustomerValuePara
 	return err
 }
 
+const countCustomers = `-- name: CountCustomers :one
+SELECT count(*) FROM customers c
+WHERE c.company_id = $1 AND c.deleted_at IS NULL
+  AND ($2::bigint IS NULL OR c.type_id = $2::bigint)
+  AND ($3::text IS NULL
+       OR c.phone LIKE '%' || $4::text || '%'
+       OR EXISTS (SELECT 1 FROM customer_values v
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || $3::text || '%'
+                         OR v.int_value::text LIKE '%' || $4::text || '%')))
+`
+
+type CountCustomersParams struct {
+	CompanyID int64
+	TypeID    *int64
+	Search    *string
+	Digits    *string
+}
+
+// How many customers ListCustomers finds under the same filter, on all of
+// its pages.
+func (q *Queries) CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCustomers,
+		arg.CompanyID,
+		arg.TypeID,
+		arg.Search,
+		arg.Digits,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCustomer = `-- name: CreateCustomer :one
 INSERT INTO customers (company_id, type_id, phone, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5)

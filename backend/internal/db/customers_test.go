@@ -382,3 +382,33 @@ func TestListCustomers(t *testing.T) {
 		})
 	}
 }
+
+func TestCountCustomers(t *testing.T) {
+	q, pool := setup(t)
+	s := newShop(t, q, pool, "Olma")
+	yuridik := seedCustomers(t, q, pool, s)
+
+	tests := []struct {
+		name           string
+		typeID         *int64
+		search, digits *string
+		want           int64
+	}{
+		{name: "everything, without the deleted and the other company's", want: 3},
+		{name: "one type", typeID: &s.jismoniy.ID, want: 2},
+		{name: "a text answer, in any case", search: ptr("ALI"), want: 2},
+		{name: "the digits of a phone", search: ptr("90 555"), digits: ptr("90555"), want: 1},
+		{name: "the digits of a whole number", search: ptr("3012"), digits: ptr("3012"), want: 1},
+		{name: "search within a type", search: ptr("ali"), typeID: &yuridik.ID, want: 0},
+		{name: "an option's name is not searched", search: ptr("Instagram"), want: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			total, err := q.CountCustomers(t.Context(), gen.CountCustomersParams{
+				CompanyID: s.company.ID, TypeID: tt.typeID, Search: tt.search, Digits: tt.digits,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, total)
+		})
+	}
+}

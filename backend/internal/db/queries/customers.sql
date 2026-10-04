@@ -77,3 +77,16 @@ WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
                          OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')))
 ORDER BY c.id DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: CountCustomers :one
+-- How many customers ListCustomers finds under the same filter, on all of
+-- its pages.
+SELECT count(*) FROM customers c
+WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
+  AND (sqlc.narg('type_id')::bigint IS NULL OR c.type_id = sqlc.narg('type_id')::bigint)
+  AND (sqlc.narg('search')::text IS NULL
+       OR c.phone LIKE '%' || sqlc.narg('digits')::text || '%'
+       OR EXISTS (SELECT 1 FROM customer_values v
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
+                         OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')));
