@@ -315,3 +315,22 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **`Down`** alohida test olmadi: mavjud `TestInitDownRemovesTheSchema` jadvallar qo'shilganda yiqildi va `Down` yozilgach o'tdi.
 - **Keyinga qolgan:** `type_in_use`, `field_in_use`, `option_in_use`, `duplicates_exist` mijozlar jadvaliga bog'liq, 3-bosqichda.
 - **Tekshiruv.** `make lint` 0 issues; `make test`: Go 16 paket, web 247, admin 216, api-client 1; `make e2e`: admin 40, web 62. Lokal haqiqiy stack (Go API + user app origin'i, curl): 32 / 32: admin kompaniya yaratadi va u tayyor turlar bilan chiqadi, egasi dropdown, variant, tur va maydonlarni boshqaradi, xodim o'qiydi va yozuvda 403 oladi. Sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan. Lokal baza 5-versiyada: mavjud 6 kompaniya tayyor turlarni oldi.
+
+## 2-bosqich qarorlari (2026-10-04)
+
+Bajarildi: "Sozlamalar" bo'limi (faqat egasiga), `/settings`, `/settings/customer-types/[id]`, `/settings/dropdowns/[id]`, `SortableList`, mock API'da sozlamalarning 17 route'i, e2e. Reja: `docs/superpowers/plans/2026-10-04-customers-stage2-settings-pages.md`. Backend o'zgarmadi (faqat `openapi.yaml` da bitta tuzatish, pastda).
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Ro'yxat ko'rinishi.** Sozlama ro'yxatlari `DataList` emas, bitta ramkadagi `SettingRow` qatorlari: tutqich, nom va belgilar, ostida xira izoh, oxirida amallar. Turlar, maydonlar va variantlar sudraladi; dropdownlar yaratilgan tartibda turadi (tutqichsiz).
+- **Asosiy tugma.** `/settings` da ikkita "qo'shish" tugmasi ham konturli (sahifada yagona asosiy amal yo'q). Tur sahifasida "Maydon qo'shish", dropdown sahifasida satrdagi "Qo'shish" to'liq rangli.
+- **Umumiy bo'laklar.** `NameDialog` (bitta nomli forma: tur va dropdown qo'shish, uchala nomni o'zgartirish), `DeleteButton` (tasdiq; API rad etsa sababi toast'da), `useReorder` (tartib darhol ko'rinadi; rad etilsa sababi aytiladi va ro'yxat qayta so'raladi).
+- **Sudrash.** Tutqich orqali sichqoncha yoki barmoq bilan (barmoqda 150 ms ushlab turish kerak, sahifa skroli buzilmasin); klaviaturada tutqich fokusda bo'lsa strelkalar, Home va End. Har siljish ekran o'quvchiga aytiladi. e2e: desktop'da sichqoncha bilan sudrash, telefonda klaviatura.
+- **Variantlarni qo'shish.** Ro'yxat ostidagi satr: Enter yoki "Qo'shish". Satr tozalanadi va fokusda qoladi, toast chiqmaydi (yangi qator javobning o'zi). Rad javobi satr ostida, yozilgani saqlanadi. Bo'sh satr hech narsa yubormaydi.
+- **Maydon dialogi.** Tur brauzerning o'z `select` i bilan tanlanadi. Tanlov turida "Dropdown" tanlovi chiqadi va "Takrorlanmasin" yo'qoladi; dropdown yo'q bo'lsa qayerda yaratish aytiladi. Tahrirlashda tur va dropdown matn bilan ko'rsatiladi, so'ralmaydi.
+- **Toast matnlari** har yozuv turi uchun alohida ("Tur nomi o'zgartirildi", "Dropdown nomi o'zgartirildi", "Variant nomi o'zgartirildi"): foydalanuvchiga aniqroq, testlarda esa oldingi testdan qolgan toast bilan adashmaydi.
+- **Sahifa ma'lumoti.** Tur va dropdown sahifalari ro'yxat so'rovlaridan o'qiydi (alohida `GET …/{id}` yo'q). Yo'q yoki begona ID: "Tur topilmadi" / "Dropdown topilmadi" va orqaga havola.
+- **Darvoza.** `useOwner` hook'i (Xodimlar sahifasidan ajratildi): xodim `/settings…` ni ochsa hech narsa chizilmaydi, so'ralmaydi va u `/` ga qaytadi.
+- **Mock API.** Umumiy darvozalar `mocks/gate.ts` ga, sozlamalar `mocks/customer-settings.ts` ga ajratildi; qoidalari `mocks/handlers.test.ts` bilan mahkamlangan (tekshiruv tartibi, xabarlar, soft delete, tartib).
+- **Kontrakt tuzatishi.** `FieldInput` dagi `required` va `is_unique` dan `default` olib tashlandi: generatsiya qilingan TS turida ular majburiy bo'lib qolgan edi, API esa berilmasa `false` deb oladi.
+- **Tekshiruv.** `make lint` 0 issues; `make test`: Go 16 paket, web 305, admin 216; `make e2e`: admin 40, web 68. Skrinshotlar ko'rildi (375px va desktop, light va dark). Haqiqiy stack'da brauzer (Playwright, Go API, SMS kodi log'dan): 9 / 9: egasi kiradi, dropdown va variantlar yaratadi, tartiblaydi, nofaol qiladi (reload'dan keyin saqlanadi), turga tanlov maydoni qo'shadi va majburiy qiladi, ulangan dropdown o'chmaydi, 375px da yon scroll yo'q. Sahifa xatosi 0; rad javoblari kutilgan (ikki 409 va reload'dan keyingi `GET /api/app/me` 401). Sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan.

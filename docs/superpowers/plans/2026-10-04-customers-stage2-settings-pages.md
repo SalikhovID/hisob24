@@ -35,7 +35,7 @@ Qoidalar: `logic/customers.md` (2, 3, 5-bo'limlar). Dizayn: `docs/superpowers/sp
 | Maydon turlari | "Matn", "Butun son", "Dropdown (bitta tanlov)", "Dropdown (bir nechta tanlov)", "Radio (bitta tanlov)", "Checkbox (bir nechta tanlov)" |
 | Belgilar | "Majburiy", "Takrorlanmas", "Mijoz nomi", "Nofaol" |
 | Tasdiq | "Turni o'chirasizmi?", "Dropdownni o'chirasizmi?", "Maydonni o'chirasizmi?", "Variantni o'chirasizmi?" |
-| Toast | "Tur qo'shildi", "Dropdown qo'shildi", "Maydon qo'shildi", "Variant qo'shildi", "Nom o'zgartirildi", "Maydon saqlandi", "Tur o'chirildi", "Dropdown o'chirildi", "Maydon o'chirildi", "Variant o'chirildi", "Variant nofaol qilindi", "Variant faollashtirildi" |
+| Toast | "Tur qo'shildi", "Dropdown qo'shildi", "Maydon qo'shildi", "Tur nomi o'zgartirildi", "Dropdown nomi o'zgartirildi", "Variant nomi o'zgartirildi", "Maydon saqlandi", "Tur o'chirildi", "Dropdown o'chirildi", "Maydon o'chirildi", "Variant o'chirildi", "Variant nofaol qilindi", "Variant faollashtirildi" (variant qo'shilganda toast yo'q: yangi qator javobning o'zi) |
 | Tutqich | "<nom>: tartibini o'zgartirish"; e'lon: "<nom>: N tadan K-o'rinda" |
 | Bo'sh holat | "Hali tur yo'q", "Hali dropdown yo'q", "Bu turda maydon yo'q", "Hali variant yo'q" |
 | Forma xatolari | "Nomni kiriting", "Nom 60 belgidan oshmasin", "Dropdownni tanlang" |
