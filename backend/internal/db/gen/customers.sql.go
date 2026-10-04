@@ -108,6 +108,26 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 	return i, err
 }
 
+const customerFieldHasDuplicates = `-- name: CustomerFieldHasDuplicates :one
+SELECT EXISTS (
+    SELECT 1 FROM customer_values v
+    JOIN customers c ON c.id = v.customer_id
+    WHERE v.field_id = $1 AND v.option_id IS NULL AND c.deleted_at IS NULL
+    GROUP BY lower(v.text_value), v.int_value
+    HAVING count(*) > 1
+)
+`
+
+// Whether two customers have the same value in the field: such a field
+// cannot be told not to repeat. A text is compared in any case; the deleted
+// customers do not count.
+func (q *Queries) CustomerFieldHasDuplicates(ctx context.Context, fieldID int64) (bool, error) {
+	row := q.db.QueryRow(ctx, customerFieldHasDuplicates, fieldID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const deleteCustomer = `-- name: DeleteCustomer :one
 UPDATE customers SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL

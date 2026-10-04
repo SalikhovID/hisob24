@@ -56,6 +56,10 @@ type Querier interface {
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
 	// The database's today: every end_date check counts from it.
 	CurrentDate(ctx context.Context) (time.Time, error)
+	// Whether two customers have the same value in the field: such a field
+	// cannot be told not to repeat. A text is compared in any case; the deleted
+	// customers do not count.
+	CustomerFieldHasDuplicates(ctx context.Context, fieldID int64) (bool, error)
 	DeactivateAdmin(ctx context.Context, telegramID int64) (int64, error)
 	// Drops a code the bot could not deliver.
 	DeleteAdminLoginCode(ctx context.Context, id int64) error

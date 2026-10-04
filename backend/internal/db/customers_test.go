@@ -450,3 +450,37 @@ func TestFindCustomerByValue(t *testing.T) {
 	_, err = find(s.fish.ID, ptr("Ali Valiyev"), nil, 0)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer's value is free")
 }
+
+func TestCustomerFieldHasDuplicates(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	answer(t, q, ali.ID, s.fish.ID, "Ali Valiyev")
+	answerNumber(t, q, ali.ID, s.yosh.ID, 30)
+	vali := s.customer(t, q, "998905555555")
+	answer(t, q, vali.ID, s.fish.ID, "Vali Aliyev")
+	answerNumber(t, q, vali.ID, s.yosh.ID, 30)
+	// 30 as a text is no 30 as a number.
+	answer(t, q, s.customer(t, q, "998907777777").ID, s.fish.ID, "30")
+
+	repeats, err := q.CustomerFieldHasDuplicates(ctx, s.yosh.ID)
+	require.NoError(t, err)
+	assert.True(t, repeats, "two customers of the same age")
+	repeats, err = q.CustomerFieldHasDuplicates(ctx, s.fish.ID)
+	require.NoError(t, err)
+	assert.False(t, repeats, "every name is another")
+
+	answer(t, q, s.customer(t, q, "998908888888").ID, s.fish.ID, "ALI VALIYEV")
+	repeats, err = q.CustomerFieldHasDuplicates(ctx, s.fish.ID)
+	require.NoError(t, err)
+	assert.True(t, repeats, "the same text in another case")
+
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali.ID)
+	repeats, err = q.CustomerFieldHasDuplicates(ctx, s.yosh.ID)
+	require.NoError(t, err)
+	assert.False(t, repeats, "a deleted customer does not count")
+	repeats, err = q.CustomerFieldHasDuplicates(ctx, s.fish.ID)
+	require.NoError(t, err)
+	assert.False(t, repeats, "nor does its name")
+}

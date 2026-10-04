@@ -102,3 +102,15 @@ WHERE v.field_id = sqlc.arg('field_id') AND c.deleted_at IS NULL AND c.id <> sql
   AND (lower(v.text_value) = lower(sqlc.narg('text_value')::text) OR v.int_value = sqlc.narg('int_value')::bigint)
 ORDER BY c.id
 LIMIT 1;
+
+-- name: CustomerFieldHasDuplicates :one
+-- Whether two customers have the same value in the field: such a field
+-- cannot be told not to repeat. A text is compared in any case; the deleted
+-- customers do not count.
+SELECT EXISTS (
+    SELECT 1 FROM customer_values v
+    JOIN customers c ON c.id = v.customer_id
+    WHERE v.field_id = $1 AND v.option_id IS NULL AND c.deleted_at IS NULL
+    GROUP BY lower(v.text_value), v.int_value
+    HAVING count(*) > 1
+);
