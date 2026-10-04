@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { type ReactNode, useId } from "react"
 import { PageHeader } from "@/components/page-header"
-import { ListLoading } from "@/components/states"
+import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import { useOwner } from "@/lib/use-owner"
 import { SettingRow, settingList } from "./setting-row"
@@ -27,7 +27,11 @@ export function SettingsPage() {
       <PageHeader title="Sozlamalar" description="Mijozlar bo'limi sozlamalari" />
       <Section title="Mijoz turlari" description="Mijoz qo'shishda tanlanadi. Har turning o'z maydonlari bor.">
         {types.isPending && <ListLoading rows={2} mark="none" />}
-        {types.data && (
+        {types.isError && <Failed error={types.error} onRetry={() => types.refetch()} />}
+        {types.data?.length === 0 && (
+          <EmptyState title="Hali tur yo'q" description="Mijoz qo'shish uchun kamida bitta tur kerak." />
+        )}
+        {types.data && types.data.length > 0 && (
           <ul aria-label="Mijoz turlari" className={settingList}>
             {types.data.map((type) => (
               <li key={type.id}>
@@ -46,7 +50,14 @@ export function SettingsPage() {
       </Section>
       <Section title="Dropdownlar" description="Tanlov maydonlari variantlarni shu ro'yxatlardan oladi.">
         {dropdowns.isPending && <ListLoading rows={2} mark="none" />}
-        {dropdowns.data && (
+        {dropdowns.isError && <Failed error={dropdowns.error} onRetry={() => dropdowns.refetch()} />}
+        {dropdowns.data?.length === 0 && (
+          <EmptyState
+            title="Hali dropdown yo'q"
+            description="Dropdown, radio va checkbox maydonlari variantlarni dropdowndan oladi."
+          />
+        )}
+        {dropdowns.data && dropdowns.data.length > 0 && (
           <ul aria-label="Dropdownlar" className={settingList}>
             {dropdowns.data.map((dropdown) => (
               <li key={dropdown.id}>
