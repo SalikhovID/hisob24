@@ -21,3 +21,9 @@ test("the panel says what the product is", () => {
 
   expect(within(screen.getByRole("banner")).getByText("Biznesingiz uchun hisob tizimi")).toBeInTheDocument()
 })
+
+test("what is asked for stands in the page's main part", () => {
+  render(frame)
+
+  expect(within(screen.getByRole("main")).getByRole("button", { name: "Kodni olish" })).toBeInTheDocument()
+})
