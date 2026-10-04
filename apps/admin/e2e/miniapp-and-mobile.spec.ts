@@ -95,3 +95,16 @@ test("on a phone the sections are in the menu; on a wide screen in the sidebar",
   await expect(page).toHaveURL(/\/admins$/)
   await expect(page.getByRole("heading", { name: "Adminlar" })).toBeVisible()
 })
+
+test("in the shell the logo wears the brand's color, white in the dark", async ({ page, context, baseURL }) => {
+  await page.emulateMedia({ colorScheme: "light" })
+  await signIn(context, baseURL)
+  await page.goto("/companies")
+  await expect(page.getByRole("heading", { name: "Kompaniyalar" })).toBeVisible()
+  // One brand shows at a time: the sidebar's on a wide screen, the top bar's on a phone.
+  const logo = page.getByRole("img", { name: "Hisob24" })
+
+  await expect(logo).toHaveCSS("color", "rgb(23, 68, 73)")
+  await page.emulateMedia({ colorScheme: "dark" })
+  await expect(logo).toHaveCSS("color", "rgb(255, 255, 255)")
+})
