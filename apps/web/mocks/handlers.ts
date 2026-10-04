@@ -3,7 +3,7 @@
 // readable strings: "access:<phone>:<company|none>:<n>", "refresh:…".
 import { http, HttpResponse } from "msw"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp } from "./data"
+import { companiesOf, db, dropdownsOf, join, LOGIN_CODE, membersOf, nameIn, paidUp, typesOf } from "./data"
 
 const api = (path: string) => `*/api${path}`
 
@@ -80,6 +80,19 @@ function ownerSession(request: Request): { phone: string; companyId: number } | 
   if (!company || !paidUp(company)) return fail(402, "subscription_expired", "Kompaniya obunasi tugagan")
   const membership = db.members[user.phone].find((m) => m.companyId === user.companyId)
   if (membership?.role !== "owner") return ownerOnly()
+  return { phone: user.phone, companyId: user.companyId }
+}
+
+// memberSession is the API's gate before what every member of a company may
+// do, in its order: the token (401), the membership as it is now (401), the
+// subscription (402), a company chosen (403).
+function memberSession(request: Request): { phone: string; companyId: number } | Response {
+  const user = bearer(request)
+  if (!user) return fail(401, "unauthorized", "Avval tizimga kiring")
+  if (user.companyId === null) return fail(403, "company_required", "Avval kompaniyani tanlang")
+  if (!isMember(user.phone, user.companyId)) return fail(401, "unauthorized", "Avval tizimga kiring")
+  const company = db.companies.find((c) => c.id === user.companyId)
+  if (!company || !paidUp(company)) return fail(402, "subscription_expired", "Kompaniya obunasi tugagan")
   return { phone: user.phone, companyId: user.companyId }
 }
 
@@ -247,5 +260,17 @@ export const handlers = [
     // Only the membership goes: the user and their other companies stay.
     db.members[phone] = db.members[phone].filter((m) => m !== membership)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get(api("/app/customer-dropdowns"), ({ request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    return HttpResponse.json(dropdownsOf(member.companyId))
+  }),
+
+  http.get(api("/app/customer-types"), ({ request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    return HttpResponse.json(typesOf(member.companyId))
   }),
 ]

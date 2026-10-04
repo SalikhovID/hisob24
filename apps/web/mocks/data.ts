@@ -1,6 +1,6 @@
 // An in-memory copy of the user app API's data for MSW: Vitest and
 // Playwright work against the same people, companies and rules as the Go API.
-import type { AppCompany, Member, Role } from "@/lib/types"
+import type { AppCompany, CustomerDropdown, CustomerFieldKind, CustomerType, Member, Role } from "@/lib/types"
 
 export const TODAY = "2026-10-02"
 export const LOGIN_CODE = "123456"
@@ -50,10 +50,49 @@ interface Membership {
   fullName?: string
 }
 
+// What a company's owner sets up for its customers. A row is never removed:
+// deleted hides it. The order of an array is the order on screen.
+export interface OptionRow {
+  id: number
+  label: string
+  active: boolean
+  deleted?: boolean
+}
+
+export interface DropdownRow {
+  id: number
+  companyId: number
+  name: string
+  options: OptionRow[]
+  deleted?: boolean
+}
+
+export interface FieldRow {
+  id: number
+  label: string
+  kind: CustomerFieldKind
+  required: boolean
+  unique: boolean
+  dropdownId: number | null
+  deleted?: boolean
+}
+
+export interface TypeRow {
+  id: number
+  companyId: number
+  name: string
+  fields: FieldRow[]
+  deleted?: boolean
+}
+
 interface Db {
   users: Record<string, string | null>
   companies: Company[]
   members: Record<string, Membership[]>
+  dropdowns: DropdownRow[]
+  types: TypeRow[]
+  // lastId: the id the last settings or customer row took.
+  lastId: number
   // joined: the counter the next membership takes its place from.
   joined: number
   // codes: the code a phone may sign in with; sentAt: when its last code went.
@@ -70,15 +109,55 @@ interface Db {
   contacts: Record<number, string>
 }
 
+// seedSettings is what the companies start with: the two ready types every
+// company has and, in Olma Savdo, a dropdown with a field that uses it.
+function seedSettings(companies: Company[]): Pick<Db, "dropdowns" | "types" | "lastId"> {
+  let lastId = 0
+  const next = () => (lastId += 1)
+  const text = (label: string): FieldRow => ({ id: next(), label, kind: "string", required: true, unique: false, dropdownId: null })
+  const manba: DropdownRow = {
+    id: next(),
+    companyId: 1,
+    name: "Manba",
+    options: [
+      { id: next(), label: "Instagram", active: true },
+      { id: next(), label: "LinkedIn", active: true },
+      { id: next(), label: "YouTube", active: false },
+    ],
+  }
+  const types = companies.flatMap((company): TypeRow[] => [
+    {
+      id: next(),
+      companyId: company.id,
+      name: "Jismoniy",
+      fields: [
+        text("F.I.Sh."),
+        ...(company.id === 1
+          ? [{ id: next(), label: "Manba", kind: "dropdown" as const, required: false, unique: false, dropdownId: manba.id }]
+          : []),
+      ],
+    },
+    {
+      id: next(),
+      companyId: company.id,
+      name: "Yuridik",
+      fields: [text("Nomi"), { id: next(), label: "INN", kind: "int", required: true, unique: true, dropdownId: null }],
+    },
+  ])
+  return { dropdowns: [manba], types, lastId }
+}
+
 function seed(): Db {
+  const companies: Company[] = [
+    { id: 1, name: "Olma Savdo", end_date: addDays(TODAY, 30), is_active: true },
+    { id: 2, name: "Nok Market", end_date: addDays(TODAY, 10), is_active: true },
+    { id: 3, name: "Anor Servis", end_date: addDays(TODAY, -5), is_active: true },
+    { id: 4, name: "Behi Blok", end_date: addDays(TODAY, 30), is_active: false },
+  ]
   return {
     users: { [ALI]: "Ali Valiyev", [VALI]: "Vali Aliyev", [SARDOR]: "Sardor Karimov", [ZARINA]: null },
-    companies: [
-      { id: 1, name: "Olma Savdo", end_date: addDays(TODAY, 30), is_active: true },
-      { id: 2, name: "Nok Market", end_date: addDays(TODAY, 10), is_active: true },
-      { id: 3, name: "Anor Servis", end_date: addDays(TODAY, -5), is_active: true },
-      { id: 4, name: "Behi Blok", end_date: addDays(TODAY, 30), is_active: false },
-    ],
+    companies,
+    ...seedSettings(companies),
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],
       [VALI]: [
@@ -156,4 +235,41 @@ export function join(phone: string, companyId: number, name: string) {
   if (!(phone in db.users)) db.users[phone] = name
   db.joined += 1
   ;(db.members[phone] ??= []).push({ companyId, role: "user", joined: db.joined, fullName: name })
+}
+
+// nextId is the id of a new settings row.
+export function nextId(): number {
+  db.lastId += 1
+  return db.lastId
+}
+
+export const toDropdown = (d: DropdownRow): CustomerDropdown => ({
+  id: d.id,
+  name: d.name,
+  options: d.options.filter((o) => !o.deleted).map((o) => ({ id: o.id, label: o.label, is_active: o.active })),
+})
+
+export const toField = (f: FieldRow) => ({
+  id: f.id,
+  label: f.label,
+  kind: f.kind,
+  required: f.required,
+  is_unique: f.unique,
+  dropdown_id: f.dropdownId,
+})
+
+export const toType = (t: TypeRow): CustomerType => ({
+  id: t.id,
+  name: t.name,
+  fields: t.fields.filter((f) => !f.deleted).map(toField),
+})
+
+// dropdownsOf and typesOf are a company's dropdowns and customer types as
+// the API lists them: in their order, without what was deleted.
+export function dropdownsOf(companyId: number): CustomerDropdown[] {
+  return db.dropdowns.filter((d) => d.companyId === companyId && !d.deleted).map(toDropdown)
+}
+
+export function typesOf(companyId: number): CustomerType[] {
+  return db.types.filter((t) => t.companyId === companyId && !t.deleted).map(toType)
 }

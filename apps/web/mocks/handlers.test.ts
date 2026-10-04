@@ -108,3 +108,46 @@ test("/app/me names the user as the company they work in does", async () => {
   await chooseCompany(2)
   expect((await call(api.GET("/app/me"))).user.full_name).toBe("Vali Aliyev")
 })
+
+// The customer settings (logic/customers.md; backend/internal/app/customer_settings_test.go).
+const customerTypes = () => call(api.GET("/app/customer-types"))
+const customerDropdowns = () => call(api.GET("/app/customer-dropdowns"))
+
+test("every member reads the customer types and dropdowns of the company they work in", async () => {
+  await signIn(ALI)
+
+  expect((await customerTypes()).map((t) => [t.name, t.fields.map((f) => f.label)])).toEqual([
+    ["Jismoniy", ["F.I.Sh.", "Manba"]],
+    ["Yuridik", ["Nomi", "INN"]],
+  ])
+  const inn = (await customerTypes())[1].fields[1]
+  expect(inn).toMatchObject({ kind: "int", required: true, is_unique: true, dropdown_id: null })
+  expect((await customerDropdowns()).map((d) => [d.name, d.options.map((o) => [o.label, o.is_active])])).toEqual([
+    [
+      "Manba",
+      [
+        ["Instagram", true],
+        ["LinkedIn", true],
+        ["YouTube", false],
+      ],
+    ],
+  ])
+
+  // Vali is in two companies: the session has none until one is chosen.
+  await signIn(VALI)
+  expect(await failure(customerTypes())).toMatchObject({
+    status: 403,
+    code: "company_required",
+    message: "Avval kompaniyani tanlang",
+  })
+  expect(await failure(customerDropdowns())).toMatchObject({ status: 403, code: "company_required" })
+  await chooseCompany(1)
+  expect(await customerTypes()).toHaveLength(2)
+  expect(await customerDropdowns()).toHaveLength(1)
+  await chooseCompany(2)
+  expect((await customerTypes()).map((t) => [t.name, t.fields.map((f) => f.label)])).toEqual([
+    ["Jismoniy", ["F.I.Sh."]],
+    ["Yuridik", ["Nomi", "INN"]],
+  ])
+  expect(await customerDropdowns()).toEqual([])
+})
