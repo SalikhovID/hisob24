@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
 // Values is a customer's answers by the id of the field. What an answer is
@@ -27,10 +30,9 @@ const maxInt = 1<<53 - 1
 // checkValues reads the answers a client sent for the fields of a type and
 // gives them as they are kept, or the first thing that is wrong with them:
 // an answer to a field the type has not, then the fields in their order.
-// options is the options of each dropdown, in
-// its order. was is the customer's answers before the edit, nil for a new
-// customer: an option that is turned off is taken only where the customer
-// has it already.
+// options is the options of each dropdown, in its order. was is the
+// customer's answers before the edit, nil for a new customer: an option that
+// is turned off is taken only where the customer has it already.
 func checkValues(fields []Field, options map[int64][]Option, was Values, raw map[string]json.RawMessage) (Values, error) {
 	asked := make(map[string]bool, len(fields))
 	for _, f := range fields {
@@ -43,11 +45,7 @@ func checkValues(fields []Field, options map[int64][]Option, was Values, raw map
 	}
 	values := Values{}
 	for _, f := range fields {
-		var offered []Option
-		if f.DropdownID != nil {
-			offered = options[*f.DropdownID]
-		}
-		answer, err := readAnswer(f, offered, chosen(was[f.ID]), raw[strconv.FormatInt(f.ID, 10)])
+		answer, err := readAnswer(f, offeredBy(f, options), chosen(was[f.ID]), raw[strconv.FormatInt(f.ID, 10)])
 		if err != nil {
 			return nil, err
 		}
@@ -68,6 +66,15 @@ func errEmpty(f Field) error {
 		return invalid(fmt.Sprintf("«%s» ni tanlang", f.Label))
 	}
 	return invalid(fmt.Sprintf("«%s» maydonini to'ldiring", f.Label))
+}
+
+// offeredBy is the options of the field's dropdown, in their order; none
+// for a text and a number.
+func offeredBy(f Field, options map[int64][]Option) []Option {
+	if f.DropdownID == nil {
+		return nil
+	}
+	return options[*f.DropdownID]
 }
 
 // chosen is the options of an answer to a choice field.
@@ -168,4 +175,61 @@ func readWhole(raw json.RawMessage) (int64, bool) {
 		return 0, false
 	}
 	return n, true
+}
+
+// Change is one thing an edit changed in a customer, kept as text under the
+// names of the time: the field's name, and its answer before and after, ""
+// where there was none.
+type Change struct {
+	Label string `json:"label"`
+	Old   string `json:"old"`
+	New   string `json:"new"`
+}
+
+// diff tells what an edit changed: the phone first, then the fields in
+// their order. Nothing when the edit changed nothing.
+func diff(fields []Field, options map[int64][]Option, oldPhone, newPhone string, was, now Values) []Change {
+	var changes []Change
+	if oldPhone != newPhone {
+		changes = append(changes, Change{Label: "Telefon", Old: user.FormatPhone(oldPhone), New: user.FormatPhone(newPhone)})
+	}
+	for _, f := range fields {
+		before, after := was[f.ID], now[f.ID]
+		if reflect.DeepEqual(before, after) {
+			continue
+		}
+		offered := offeredBy(f, options)
+		changes = append(changes, Change{Label: f.Label, Old: asText(f, offered, before), New: asText(f, offered, after)})
+	}
+	return changes
+}
+
+// asText writes an answer for people to read: a number in its digits, the
+// options by their names; "" for no answer.
+func asText(f Field, offered []Option, answer any) string {
+	switch a := answer.(type) {
+	case string:
+		return a
+	case int64:
+		if choice, _ := kindOf(f.Kind); choice {
+			return optionNames(offered, []int64{a})
+		}
+		return strconv.FormatInt(a, 10)
+	case []int64:
+		return optionNames(offered, a)
+	}
+	return ""
+}
+
+// optionNames is the names of the options chosen, in their order.
+func optionNames(offered []Option, ids []int64) string {
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		for _, o := range offered {
+			if o.ID == id {
+				names = append(names, o.Label)
+			}
+		}
+	}
+	return strings.Join(names, ", ")
 }

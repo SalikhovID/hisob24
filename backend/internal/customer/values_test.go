@@ -223,3 +223,57 @@ func TestCheckValuesTellsTheFirstFieldThatIsWrong(t *testing.T) {
 		{name: "a wrong field before an empty one", body: `{"1": "Ali", "2": 30, "3": 21}`, refusal: "«Manba» uchun variant noto'g'ri"},
 	})
 }
+
+func TestDiff(t *testing.T) {
+	const phone = "998901234567"
+	was := Values{1: "Ali", 2: int64(30), 3: int64(11), 5: []int64{22, 21}}
+	// edited is was with one answer replaced; nil takes the answer away.
+	edited := func(fieldID int64, answer any) Values {
+		now := Values{}
+		for id, v := range was {
+			now[id] = v
+		}
+		if answer == nil {
+			delete(now, fieldID)
+		} else {
+			now[fieldID] = answer
+		}
+		return now
+	}
+
+	for _, tt := range []struct {
+		name  string
+		phone string
+		now   Values
+		want  []Change
+	}{
+		{name: "nothing", phone: phone, now: edited(1, "Ali"), want: nil},
+		{name: "the phone", phone: "998907654321", now: edited(1, "Ali"),
+			want: []Change{{Label: "Telefon", Old: "+998 90 123 45 67", New: "+998 90 765 43 21"}}},
+		{name: "a text", phone: phone, now: edited(1, "Vali"), want: []Change{{Label: "F.I.Sh.", Old: "Ali", New: "Vali"}}},
+		{name: "a number", phone: phone, now: edited(2, int64(31)), want: []Change{{Label: "Yoshi", Old: "30", New: "31"}}},
+		{name: "an option, by its name", phone: phone, now: edited(3, int64(12)),
+			want: []Change{{Label: "Manba", Old: "Instagram", New: "LinkedIn"}}},
+		{name: "an option that is turned off has a name too", phone: phone, now: edited(3, int64(13)),
+			want: []Change{{Label: "Manba", Old: "Instagram", New: "YouTube"}}},
+		{name: "several options, by their names", phone: phone, now: edited(5, []int64{22, 21, 23}),
+			want: []Change{{Label: "Tillar", Old: "Rus, O'zbek", New: "Rus, O'zbek, Ingliz"}}},
+		{name: "an answer where there was none", phone: phone, now: edited(4, int64(12)),
+			want: []Change{{Label: "Holati", Old: "", New: "LinkedIn"}}},
+		{name: "an answer taken away", phone: phone, now: edited(2, nil), want: []Change{{Label: "Yoshi", Old: "30", New: ""}}},
+		{name: "a field that stays empty", phone: phone, now: edited(6, nil), want: nil},
+		{name: "the phone first, then the fields in their order", phone: "998907654321",
+			now: Values{1: "Vali", 2: int64(0), 4: int64(11), 5: []int64{22, 21}},
+			want: []Change{
+				{Label: "Telefon", Old: "+998 90 123 45 67", New: "+998 90 765 43 21"},
+				{Label: "F.I.Sh.", Old: "Ali", New: "Vali"},
+				{Label: "Yoshi", Old: "30", New: "0"},
+				{Label: "Manba", Old: "Instagram", New: ""},
+				{Label: "Holati", Old: "", New: "Instagram"},
+			}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, diff(form, formOptions, phone, tt.phone, was, tt.now))
+		})
+	}
+}
