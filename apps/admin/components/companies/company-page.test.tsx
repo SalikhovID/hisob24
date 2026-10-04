@@ -444,23 +444,32 @@ test("while a payment is on its way the dialog's button says so", async () => {
   expect(add).toHaveAttribute("aria-busy", "true")
 })
 
-// refuse answers with the API's own words for a failure.
-const refuse = () =>
-  HttpResponse.json(
-    { error: "internal_error", message: "Ichki xatolik. Birozdan keyin qayta urinib ko'ring" },
-    { status: 500 },
-  )
+// refuse answers with a failure in the API's shape. Each test gives its own
+// words: toasts outlive a test (sonner keeps them outside React), so a
+// message shared by two tests would be found in the second whatever it did.
+const refuse = (message: string) => () => HttpResponse.json({ error: "internal_error", message }, { status: 500 })
 
 test("when the block fails the page says why, and the company is not shown as blocked", async () => {
-  server.use(http.patch("*/api/admin/companies/:id", refuse))
+  server.use(http.patch("*/api/admin/companies/:id", refuse("Bloklab bo'lmadi: ichki xatolik")))
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
   await user.click(await screen.findByRole("button", { name: "Bloklash" }))
   const confirm = await screen.findByRole("alertdialog", { name: "Kompaniyani bloklaysizmi?" })
   await user.click(within(confirm).getByRole("button", { name: "Bloklash" }))
 
-  expect(await screen.findByText("Ichki xatolik. Birozdan keyin qayta urinib ko'ring")).toBeInTheDocument()
+  expect(await screen.findByText("Bloklab bo'lmadi: ichki xatolik")).toBeInTheDocument()
   // The question is over; the company stands as it stood.
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
   expect(within(screen.getByRole("region", { name: "Ma'lumot" })).getByText("30 kun qoldi")).toBeInTheDocument()
+})
+
+test("when the activation fails the page says why, and the company stays blocked", async () => {
+  db.companies[0].is_active = false
+  server.use(http.patch("*/api/admin/companies/:id", refuse("Faollashtirib bo'lmadi: ichki xatolik")))
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Faollashtirish" }))
+
+  expect(await screen.findByText("Faollashtirib bo'lmadi: ichki xatolik")).toBeInTheDocument()
+  expect(within(screen.getByRole("region", { name: "Ma'lumot" })).getByText("Bloklangan")).toBeInTheDocument()
 })

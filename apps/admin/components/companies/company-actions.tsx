@@ -47,7 +47,13 @@ export function CompanyActions({ company }: { company: Company }) {
         size="lg"
         pending={update.isPending}
         onClick={() =>
-          update.mutate({ is_active: true }, { onSuccess: () => toast.success("Kompaniya faollashtirildi") })
+          update.mutate(
+            { is_active: true },
+            {
+              onSuccess: () => toast.success("Kompaniya faollashtirildi"),
+              onError: (error) => toast.error(error.message),
+            },
+          )
         }
       >
         {/* The spinner takes the icon's place while the request is on its way. */}
