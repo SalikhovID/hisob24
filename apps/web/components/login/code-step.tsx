@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { Refusal } from "@/components/refusal"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { setAccessToken } from "@/lib/session"
@@ -70,23 +71,21 @@ export function CodeStep({
         invalid={verify.isError}
         disabled={verify.isPending}
       />
-      {error && (
-        <p role="alert" className="text-center text-sm text-destructive">
-          {error.message}
-        </p>
-      )}
-      <Button
-        type="button"
-        variant="outline"
-        className="h-11 w-full rounded-xl tabular-nums"
-        disabled={left > 0 || resend.isPending}
-        onClick={() => resend.mutate()}
-      >
-        {left > 0 ? `Kodni qayta yuborish (${left})` : "Kodni qayta yuborish"}
-      </Button>
-      <Button type="button" variant="ghost" className="h-11 w-full rounded-xl" onClick={onChangePhone}>
-        Raqamni o&apos;zgartirish
-      </Button>
+      {error && <Refusal>{error.message}</Refusal>}
+      <div className="grid gap-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full rounded-xl tabular-nums"
+          disabled={left > 0 || resend.isPending}
+          onClick={() => resend.mutate()}
+        >
+          {left > 0 ? `Kodni qayta yuborish (${left})` : "Kodni qayta yuborish"}
+        </Button>
+        <Button type="button" variant="ghost" className="h-11 w-full rounded-xl" onClick={onChangePhone}>
+          Raqamni o&apos;zgartirish
+        </Button>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { PendingButton } from "@/components/pending-button"
 import { PhoneField } from "@/components/phone-field"
+import { Refusal } from "@/components/refusal"
 import { api, call } from "@/lib/api"
 import { formatPhoneInput, phoneDigits } from "@/lib/phone"
 import { useHydrated } from "@/lib/use-hydrated"
@@ -44,11 +45,7 @@ export function PhoneStep({
         autoComplete="tel"
         size="lg"
       />
-      {send.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {send.error.message}
-        </p>
-      )}
+      {send.isError && <Refusal>{send.error.message}</Refusal>}
       <PendingButton
         type="submit"
         className="h-12 w-full rounded-xl text-base"

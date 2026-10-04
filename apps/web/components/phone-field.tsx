@@ -48,7 +48,7 @@ export function PhoneField<T extends FieldValues, TOut extends FieldValues = T>(
               placeholder="__ ___ __ __"
               readOnly={readOnly}
               aria-invalid={fieldState.invalid}
-              className={cn(large && "h-full text-lg tabular-nums md:text-lg")}
+              className={cn(large && "h-full text-lg font-medium tabular-nums md:text-lg")}
               {...field}
               onChange={(event) => field.onChange(formatPhoneInput(event.target.value))}
             />

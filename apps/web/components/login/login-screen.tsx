@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Logo } from "@/components/logo"
 import { formatPhone } from "@/lib/phone"
 import { waitForWebApp } from "@/lib/telegram"
+import { cn } from "@/lib/utils"
 import type { TelegramWebApp } from "@/types/telegram"
 import { CodeStep } from "./code-step"
 import { LoginFrame } from "./login-frame"
@@ -42,14 +43,25 @@ export function LoginScreen() {
     )
   }
 
+  // The step on screen was reached by an action (a code sent, the number
+  // asked for again): only then does it slide in, from the side it came.
+  const moved = step.kind === "code" || step.phone !== undefined
+
   return (
     <LoginFrame brand={<Logo className="h-7 lg:h-8" />} tagline="Biznesingiz uchun hisob tizimi">
-      <div className="space-y-6">
-        {notice && (
-          <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {notice}
-          </p>
+      {notice && (
+        <p role="alert" className="mb-6 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm text-destructive">
+          {notice}
+        </p>
+      )}
+      <div
+        key={step.kind}
+        className={cn(
+          "space-y-8",
+          moved && "animate-in duration-200 fade-in-0",
+          moved && (step.kind === "code" ? "slide-in-from-right-4" : "slide-in-from-left-4"),
         )}
+      >
         <div className="space-y-1.5">
           <h2 className="text-2xl font-semibold tracking-tight">
             {step.kind === "phone" ? "Kirish" : "Kodni kiriting"}
