@@ -395,3 +395,37 @@ test("the columns one user hides stay shown for another", async () => {
   await table()
   expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shgan", "Qo'shilgan"])
 })
+
+// noTypes deletes every customer type of Olma Savdo, as its owner may.
+const noTypes = () => db.types.filter((type) => type.companyId === 1).forEach((type) => (type.deleted = true))
+
+test("with no customer types the owner is led to the settings, and no customer can be added", async () => {
+  await signIn(ALI)
+  noTypes()
+  setLocation("/customers")
+
+  renderWithProviders(<CustomersPage />)
+
+  expect(await screen.findByText("Mijoz turlari yo'q")).toBeInTheDocument()
+  expect(screen.getByText("Mijoz qo'shish uchun avval Sozlamalarda tur yarating.")).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings")
+  expect(screen.queryByRole("button", { name: "Mijoz qo'shish" })).not.toBeInTheDocument()
+  // Nothing to filter or to search either.
+  expect(screen.queryByRole("tab")).not.toBeInTheDocument()
+  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
+  expect(screen.queryByText("Hali mijoz yo'q")).not.toBeInTheDocument()
+})
+
+test("with no customer types an employee is told whose it is to set them up", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  noTypes()
+  setLocation("/customers")
+
+  renderWithProviders(<CustomersPage />)
+
+  expect(await screen.findByText("Mijoz turlari yo'q")).toBeInTheDocument()
+  expect(screen.getByText("Kompaniya egasi mijoz turlarini sozlashi kerak.")).toBeInTheDocument()
+  expect(screen.queryByRole("link", { name: "Sozlamalarni ochish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Mijoz qo'shish" })).not.toBeInTheDocument()
+})
