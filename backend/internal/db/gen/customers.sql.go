@@ -106,3 +106,24 @@ func (q *Queries) GetCustomerByPhone(ctx context.Context, arg GetCustomerByPhone
 	err := row.Scan(&id)
 	return id, err
 }
+
+const updateCustomer = `-- name: UpdateCustomer :one
+UPDATE customers SET phone = $1, updated_at = now()
+WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
+RETURNING updated_at
+`
+
+type UpdateCustomerParams struct {
+	Phone     string
+	ID        int64
+	CompanyID int64
+}
+
+// An edit: the customer's number as it is now, and the moment of the edit.
+// pgx.ErrNoRows when the company has no such customer, or deleted it.
+func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, updateCustomer, arg.Phone, arg.ID, arg.CompanyID)
+	var updated_at time.Time
+	err := row.Scan(&updated_at)
+	return updated_at, err
+}

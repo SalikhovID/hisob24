@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
@@ -113,4 +114,38 @@ func TestGetCustomerByPhone(t *testing.T) {
 	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali.ID)
 	_, err = q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: olma.ID, Phone: "998901234567"})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer's number is free")
+}
+
+func TestUpdateCustomer(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	createUser(t, q, enteredBy, "Ali")
+	ali := createCustomer(t, q, olma.ID, jismoniy.ID, "998901234567")
+	vali := createCustomer(t, q, olma.ID, jismoniy.ID, "998905555555")
+	mustExec(t, pool, "UPDATE customers SET created_at = now() - interval '1 day', updated_at = now() - interval '1 day'")
+
+	updatedAt, err := q.UpdateCustomer(ctx, gen.UpdateCustomerParams{ID: ali.ID, CompanyID: olma.ID, Phone: "998907654321"})
+
+	require.NoError(t, err)
+	got, err := q.GetCustomer(ctx, gen.GetCustomerParams{ID: ali.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "998907654321", got.Phone)
+	assert.Equal(t, updatedAt, got.UpdatedAt)
+	assert.WithinDuration(t, time.Now(), updatedAt, time.Minute, "edited now")
+	assert.WithinDuration(t, time.Now().Add(-24*time.Hour), got.CreatedAt, time.Minute, "entered when it was")
+	untouched, err := q.GetCustomer(ctx, gen.GetCustomerParams{ID: vali.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "998905555555", untouched.Phone, "the other customers stay as they are")
+	assert.Equal(t, untouched.CreatedAt, untouched.UpdatedAt)
+
+	_, err = q.UpdateCustomer(ctx, gen.UpdateCustomerParams{ID: ali.ID, CompanyID: olma.ID, Phone: "998905555555"})
+	assert.Equal(t, "23505", sqlState(err), "another customer's number") // unique_violation
+	_, err = q.UpdateCustomer(ctx, gen.UpdateCustomerParams{ID: ali.ID, CompanyID: nok.ID, Phone: "998900000000"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's customer")
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali.ID)
+	_, err = q.UpdateCustomer(ctx, gen.UpdateCustomerParams{ID: ali.ID, CompanyID: olma.ID, Phone: "998900000000"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer")
 }

@@ -20,3 +20,10 @@ WHERE c.id = $1 AND c.company_id = $2 AND c.deleted_at IS NULL;
 -- pgx.ErrNoRows when it is free, as a deleted customer's is.
 SELECT id FROM customers
 WHERE company_id = $1 AND phone = $2 AND deleted_at IS NULL;
+
+-- name: UpdateCustomer :one
+-- An edit: the customer's number as it is now, and the moment of the edit.
+-- pgx.ErrNoRows when the company has no such customer, or deleted it.
+UPDATE customers SET phone = sqlc.arg('phone'), updated_at = now()
+WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
+RETURNING updated_at;
