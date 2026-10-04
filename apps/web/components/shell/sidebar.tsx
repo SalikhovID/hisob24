@@ -3,7 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Logo } from "@/components/logo"
+import { Logo, LogoMark } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -75,9 +75,9 @@ function Column({
             type="button"
             aria-label="Menyuni yoyish"
             onClick={onToggleCollapsed}
-            className="group relative mx-auto flex size-8 items-center justify-center rounded"
+            className="group relative mx-auto flex h-8 w-10 items-center justify-center rounded"
           >
-            <Letter className="transition-opacity group-hover:opacity-0" />
+            <LogoMark className="h-auto w-9 transition-opacity group-hover:opacity-0" />
             <ChevronRightIcon
               strokeWidth={2.5}
               className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100"

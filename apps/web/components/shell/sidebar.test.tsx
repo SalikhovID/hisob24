@@ -101,3 +101,13 @@ test("with no company chosen yet the sidebar shows the logo alone: the name is n
   expect(within(sidebar()).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
   expect(within(sidebar()).queryByText("Hisob24")).not.toBeInTheDocument()
 })
+
+test("folded, the sidebar is headed by the logo's mark, inside the button that unfolds it", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props({ collapsed: true })} />)
+  await within(sidebar()).findByRole("link", { name: "Xodimlar" })
+
+  const unfold = within(sidebar()).getByRole("button", { name: "Menyuni yoyish" })
+  expect(unfold.querySelector('[data-slot="logo-mark"]')).not.toBeNull()
+  expect(within(sidebar()).queryByRole("img", { name: "Hisob24" })).not.toBeInTheDocument()
+})
