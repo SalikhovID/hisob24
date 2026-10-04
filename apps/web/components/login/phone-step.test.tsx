@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen, waitFor } from "@testing-library/react"
-import { http } from "msw"
+import { delay, http } from "msw"
 import { renderToString } from "react-dom/server"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
@@ -92,4 +92,27 @@ test("before React takes the page over, the number can be neither typed nor sent
 
   expect(page.querySelector("input")).toHaveAttribute("readonly")
   expect(page.querySelector("button[type=submit]")).toBeDisabled()
+})
+
+test("while the code is on its way the button says it is busy and cannot send again", async () => {
+  let requests = 0
+  server.use(
+    http.post("*/api/app/auth/sms/send", async () => {
+      requests += 1
+      await delay("infinite")
+    }),
+  )
+  const { user } = renderWithProviders(<PhoneStep onSent={vi.fn()} />)
+  const field = screen.getByRole("textbox", { name: "Telefon raqami" })
+  await user.type(field, "901234567")
+  const button = screen.getByRole("button", { name: "Kodni olish" })
+
+  await user.click(button)
+
+  await waitFor(() => expect(button).toHaveAttribute("aria-busy", "true"))
+  expect(button).toHaveAttribute("aria-disabled", "true")
+  // Neither a second press nor Enter in the field asks for another code.
+  await user.click(button)
+  await user.type(field, "{Enter}")
+  expect(requests).toBe(1)
 })

@@ -4,8 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { PendingButton } from "@/components/pending-button"
 import { PhoneField } from "@/components/phone-field"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { formatPhoneInput, phoneDigits } from "@/lib/phone"
 import { useHydrated } from "@/lib/use-hydrated"
@@ -49,9 +49,14 @@ export function PhoneStep({
           {send.error.message}
         </p>
       )}
-      <Button type="submit" className="h-12 w-full rounded-xl text-base" disabled={!hydrated || send.isPending}>
+      <PendingButton
+        type="submit"
+        className="h-12 w-full rounded-xl text-base"
+        disabled={!hydrated}
+        pending={send.isPending}
+      >
         Kodni olish
-      </Button>
+      </PendingButton>
     </form>
   )
 }
