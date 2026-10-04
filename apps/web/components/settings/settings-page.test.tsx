@@ -137,3 +137,40 @@ test("a customer type is renamed from its row", async () => {
   expect(await screen.findByText("Tur nomi o'zgartirildi")).toBeInTheDocument()
   await waitFor(async () => expect(names(await typeList())).toEqual(["Jismoniy", "Firma"]))
 })
+
+test("a customer type is deleted after asking; cancelling keeps it", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  await user.click(within(await typeList()).getByRole("button", { name: "O'chirish: Yuridik" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Turni o'chirasizmi?" })
+  expect(within(confirm).getByText(/«Yuridik» turi va uning maydonlari o'chadi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "Bekor qilish" }))
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(names(await typeList())).toEqual(["Jismoniy", "Yuridik"])
+
+  await user.click(within(await typeList()).getByRole("button", { name: "O'chirish: Yuridik" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Turni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Tur o'chirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await typeList())).toEqual(["Jismoniy"]))
+})
+
+test("a customer type the API will not delete stays, and the reason is said", async () => {
+  await signIn(ALI)
+  server.use(
+    http.delete("*/api/app/customer-types/:id", () =>
+      HttpResponse.json({ error: "type_in_use", message: "Bu turda 3 ta mijoz bor" }, { status: 409 }),
+    ),
+  )
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  await user.click(within(await typeList()).getByRole("button", { name: "O'chirish: Jismoniy" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Turni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Bu turda 3 ta mijoz bor")).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(names(await typeList())).toEqual(["Jismoniy", "Yuridik"])
+})

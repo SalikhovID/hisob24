@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import { useOwner } from "@/lib/use-owner"
+import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 import { iconAction, SettingRow, settingList } from "./setting-row"
 
@@ -72,6 +73,7 @@ export function SettingsPage() {
                   }
                   detail={type.fields.map((field) => field.label).join(", ")}
                   actions={
+                    <>
                     <NameDialog
                       title="Tur nomini o'zgartirish"
                       description="Turning maydonlari va shu turdagi mijozlar o'zgarmaydi."
@@ -94,6 +96,17 @@ export function SettingsPage() {
                         await refreshTypes()
                       }}
                     />
+                    <DeleteButton
+                      label={`O'chirish: ${type.name}`}
+                      title="Turni o'chirasizmi?"
+                      description={`«${type.name}» turi va uning maydonlari o'chadi. Mijozi bor tur o'chirilmaydi.`}
+                      done="Tur o'chirildi"
+                      onDelete={async () => {
+                        await call(api.DELETE("/app/customer-types/{id}", { params: { path: { id: type.id } } }))
+                        await refreshTypes()
+                      }}
+                    />
+                    </>
                   }
                 />
               </li>
