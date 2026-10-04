@@ -2,7 +2,7 @@
 
 Bu hujjat mijozlar bo'limi qoidalarini belgilaydi: mijoz nima, uning turi va maydonlari qanday sozlanadi, kim nima qila oladi, nima qachon o'chadi. Rollar: [roles.md](roles.md). Userlar va a'zolik: [user.md](user.md).
 
-> Holat: tasdiqlangan (2026-10-04), amalga oshirilmoqda. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-04-customers-design.md`.
+> Holat: tasdiqlangan va amalga oshirilgan (2026-10-04). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-04-customers-design.md`.
 
 ## 1. Tushunchalar
 

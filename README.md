@@ -6,7 +6,7 @@ Multi-tenant SaaS. Platforma adminlari company yaratadi, obunasini uzaytiradi va
 |---|---|---|
 | Go API (`backend/`) | http://localhost:8080 | HTTP API va ikkala Telegram bot, bitta jarayonda |
 | Admin panel (`apps/admin`) | http://localhost:3001 | Company'lar, billing va adminlar. Admin botda Mini App sifatida ham ochiladi |
-| User app (`apps/web`) | http://localhost:3000 | SMS kod bilan kirish, company tanlash, xodimlar (company egasi uchun) |
+| User app (`apps/web`) | http://localhost:3000 | SMS kod bilan kirish, company tanlash, mijozlar; xodimlar va sozlamalar (company egasi uchun) |
 | Admin bot | Telegram | `/login` → panelga kirish kodi |
 | User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi; menu tugmasi user app'ni Mini App sifatida ochadi (login'siz) |
 
@@ -17,6 +17,8 @@ Hujjatlar:
 - [`docs/superpowers/specs/2026-10-02-hisob24-design.md`](docs/superpowers/specs/2026-10-02-hisob24-design.md): kelishilgan qarorlar va spec'dan tasdiqlangan chetlanishlar;
 - [`logic/user.md`](logic/user.md), [`logic/roles.md`](logic/roles.md): userlar, multi-user, xodimlar va rollar qoidalari;
 - [`docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`](docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md): xodimlar, rollar va user app sidebar dizayni;
+- [`logic/customers.md`](logic/customers.md): mijozlar, turlar, maydonlar va dropdownlar qoidalari;
+- [`docs/superpowers/specs/2026-10-04-customers-design.md`](docs/superpowers/specs/2026-10-04-customers-design.md): mijozlar bo'limi dizayni va amalga oshirishdagi qarorlar;
 - [`CLAUDE.md`](CLAUDE.md): ish qoidalari (TDD, git);
 - [`backend/openapi.yaml`](backend/openapi.yaml): API kontrakti.
 
@@ -109,8 +111,8 @@ pnpm --filter @hisob24/web dev
 
 | Rol | Interfeysda | Qayerdan qo'shiladi | User app'da |
 |---|---|---|---|
-| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | **Xodimlar** bo'limi: xodim qo'shadi, ismini o'zgartiradi, o'chiradi |
-| `user` | Xodim | user app: egasi **Xodimlar → Xodim qo'shish** orqali | "Xodimlar" bo'limi ko'rinmaydi, `/employees` bosh sahifaga qaytaradi |
+| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | **Mijozlar**; **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi); **Sozlamalar** (mijoz turlari, maydonlar, dropdownlar) |
+| `user` | Xodim | user app: egasi **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**. "Xodimlar" va "Sozlamalar" ko'rinmaydi, `/employees` va `/settings` bosh sahifaga qaytaradi |
 
 - Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi xodim bo'lib qoladi.
 - Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
@@ -118,6 +120,25 @@ pnpm --filter @hisob24/web dev
 - Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.
 
 To'liq qoidalar va chekka holatlar: [`logic/user.md`](logic/user.md) (userlar, multi-user, ism, kirish huquqi) va [`logic/roles.md`](logic/roles.md) (rollar va ruxsatlar).
+
+## Mijozlar
+
+Company o'z mijozlarini user app'da yuritadi. Mijozning **turi** bor, tur esa formani belgilaydi: egasi **Sozlamalar** da turlarni, har turning maydonlarini va dropdownlarni tuzadi.
+
+| Bo'lim | Kim | Nima qiladi |
+|---|---|---|
+| **Mijozlar** (`/customers`) | egasi va xodim | ro'yxat (tur tablari, qidiruv, sahifalar), mijoz qo'shish, mijoz sahifasi (`/customers/[id]`), tahrirlash, o'chirish |
+| **Sozlamalar** (`/settings`) | faqat egasi | mijoz turlari va maydonlari, dropdownlar va variantlari; tartib sudrab o'zgartiriladi |
+
+- **Telefon** har mijozda bor va majburiy: faqat `+998`, companyning mijozlari ichida takrorlanmaydi. Maydon qilib qo'shilmaydi.
+- **Maydon turlari:** matn, butun son, dropdown (bitta yoki bir nechta tanlov), radio, checkbox. Tanlov turlari variantlarini dropdowndan oladi. Maydon "Majburiy" va (matn, son uchun) "Takrorlanmasin" bo'lishi mumkin.
+- **Mijoz nomi** alohida maydon emas: turning birinchi matn maydoni. Har yangi company ikki tayyor tur bilan boshlaydi: Jismoniy ("F.I.Sh.") va Yuridik ("Nomi", "INN").
+- **Ro'yxat:** turli turlardagi bir xil nomli maydonlar bitta ustun. Har user "Ustunlar" menyusida ustunlarni o'ziga yashiradi; tanlov brauzerda saqlanadi.
+- **Takror** telefon yoki takrorlanmas qiymat rad etiladi va forma mavjud mijozga havola beradi.
+- **O'chirish:** hech narsa bazadan o'chmaydi (`deleted_at`). O'chirilgan mijoz ko'rinmaydi, raqami bo'shaydi. Mijozlarda ishlatilgan tur, maydon va variant o'chirilmaydi; variantni nofaol qilish mumkin.
+- **Tarix:** mijozning har o'zgarishi (kim, qachon, qaysi maydon, eski va yangi qiymat) yoziladi; uni mijoz sahifasida faqat egasi ko'radi.
+
+To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/customers.md`](logic/customers.md).
 
 ## Buyruqlar
 
@@ -296,14 +317,14 @@ docker compose -f docker-compose.prod.yml logs -f api    # SMS va webhook xatola
 backend/
   cmd/api/           HTTP API + ikkala bot (bitta jarayon)
   cmd/otp/           make otp: lokal admin kodi
-  internal/          config, httpx, auth, admin, app, company, billing, user, sms, bot/{adminbot,userbot}
+  internal/          config, httpx, auth, admin, app, company, customer, billing, user, sms, bot/{adminbot,userbot}
   internal/db/       queries/*.sql (sqlc) va gen/ (generatsiya)
   migrations/        goose
   openapi.yaml       API kontrakti
 apps/admin/          admin panel (Next.js, shadcn), Telegram Mini App
 apps/web/            user app (Next.js, shadcn)
 packages/api-client/ openapi.yaml'dan generatsiya qilingan TS client
-logic/               qoidalar: user.md (userlar, multi-user, xodimlar), roles.md (rollar)
+logic/               qoidalar: user.md (userlar, multi-user, xodimlar), roles.md (rollar), customers.md (mijozlar)
 scripts/ensure-db.sh make db
 start.sh             make dev
 ```

@@ -1,6 +1,6 @@
 # Mijozlar: turlar, maydonlar, dropdownlar va tarix — dizayn
 
-Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja tasdig'i bilan), amalga oshirilmoqda. Qoidalar: `logic/customers.md`. Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-04-customers-stage<N>-*.md`.
+Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja tasdig'i bilan), to'rt bosqich amalga oshirilgan; production'ga deploy alohida so'raladi. Qoidalar: `logic/customers.md`. Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-04-customers-stage<N>-*.md`.
 
 ## Maqsad
 
@@ -355,3 +355,23 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **Navbat.** Mijoz yozuvlari ham `write()` orqali. Mutatsiya (lock olib tashlandi): `Update` va `Delete` kutmadi; `Create` kompaniyaga foreign key orqali baribir kutadi.
 - **Topilgan xato.** `phoneFree` da tahrirlanayotgan mijoz tekshiruvi baza xatosidan oldin turgan: yangi mijozda xato "raqam bo'sh" deb olinardi. Test (`downDB`) bilan qayd etildi va tuzatildi.
 - **Tekshiruv.** `make lint` 0 issues; `make test`: Go 16 paket, web 305, admin 216, api-client 1; `make e2e`: admin 40, web 68. Lokal haqiqiy stack (Go API + user app origin'i, curl): 48 / 48: egasi sozlaydi, xodim mijoz qo'shadi, takror telefon va takror INN `customer_id` bilan rad etiladi, ro'yxat (qidiruv, filtr, sahifa), tahrir va tarix (egasiga 200, xodimga 403), ishlatilgan tur, maydon va variant o'chmaydi, nofaol variant saqlanadi, o'chirilgan mijozning raqami bo'shaydi. API log'ida xato 0. Sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan. Lokal baza 6-versiyada.
+
+## 4-bosqich qarorlari (2026-10-04)
+
+Bajarildi: "Mijozlar" bo'limi (hammaga), `/customers` (tur tablari, qidiruv, pager, "Ustunlar"), "Mijoz qo'shish" dialogi (olti turdagi maydon), `/customers/[id]` (ma'lumot, tahrirlash, o'chirish, egasiga "Tarix"), mock API'da mijozlarning 6 route'i va sozlamalardagi "ishlatilgan" qoidalari, e2e. Reja: `docs/superpowers/plans/2026-10-04-customers-stage4-customers-pages.md`. Backend o'zgarmadi.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Ustunlar.** "Mijoz" (nom ustida, telefon ostida; nom mijoz sahifasiga havola), "Turi" (faqat "Barchasi" da: tab ostida hamma mijoz bitta turda), maydon ustunlari, "Qo'shgan", "Qo'shilgan". Maydon nomi harf farqsiz solishtiriladi va birinchi tur yozganidek ko'rsatiladi. Uzun javob katak ichida so'zlar orasidan o'raladi; so'z bo'linmaydi (skrinshotda topilgan nuqson: ustunlar bitta harfgacha torayib, "Manb a" bo'lib qolgan edi).
+- **Ustun tanlovi.** `localStorage` da `customers_hidden_columns:<kompaniya>:<telefon>` kaliti ostida ustun kalitlari ro'yxati. "Mijoz" menyuda yo'q (yashirilmaydi). Tanlov tab'lar orasida umumiy; telefondagi kartochkalarga ham ta'sir qiladi. Storage rad etsa yoki ichidagi qiymat yaroqsiz bo'lsa, hamma ustun ko'rinadi.
+- **Filtr.** `?type=&search=&page=` manzilda. Qidiruv 300 ms pauzadan keyin yuboriladi. Admin paneldagi filtr mantiqi ko'chirildi (manzil kechikkanda ikki o'zgarish bir-birini bekor qilmaydi; manzildan olib tashlangan qidiruv maydondan ham ketadi). Jami son ("· N ta") faqat filtrsiz holatda ko'rsatiladi.
+- **Forma.** Qiymatlar `values.f<ID>` kalitlari ostida (react-hook-form raqamli kalitni massiv indeksi deb oladi). Zod sxemasi turdan quriladi; hamma maydon xatosi birdan ko'rsatiladi (API esa faqat birinchisini qaytaradi), matnlari API'niki bilan bir xil. Ixtiyoriy maydon yonida xira "ixtiyoriy" (yorliqdan tashqarida: maydon faqat o'z nomi bilan ataladi).
+- **Maydon turlari.** Matn; butun son (`inputMode="numeric"`); dropdown (brauzerning `select` i, "Tanlanmagan" bilan); radio (ixtiyoriyda "Tanlanmagan" tugmasi bilan, majburiyda usiz); checkbox guruhi; ko'p tanlovli dropdown (tanlanganlarini aytadigan tugma va ochiq qoladigan checkbox'li menyu). Faol variant bo'lmasa maydon ostida "Faol variant yo'q. Variantlar Sozlamalarda qo'shiladi."
+- **Tur tugmalari.** Sahifadagi tablar bilan bir xil ko'rinishdagi `radiogroup`. Tur almashsa maydonlar bo'shaydi, telefon qoladi. Bitta turli kompaniyada tugmalar chiqmaydi. Dialog tanlangan tab turi bilan ochiladi.
+- **Rad javobi.** `ApiError.customerId` (API javobidagi `customer_id`); dialogda xabar yonida "Mijozni ochish" havolasi.
+- **Mijoz sahifasi.** Sarlavhada avatar va nom, ostida "tur · telefon" (ismsiz mijozda telefon sarlavhaning o'zi). "Tahrirlash" sahifadagi yagona to'liq rangli tugma, "O'chirish" konturli. Tahrirda nofaol variant faqat uni tanlagan mijozga taklif qilinadi. O'chirilgach `/customers` ga qaytadi. Yo'q yoki begona mijoz: "Mijoz topilmadi" va orqaga havola.
+- **Tarix.** Egasi bo'lmasa so'ralmaydi ham. Yozuv: amal ("Qo'shildi", "Tahrirlandi"), kim, `dd.mm.yyyy hh:mm`; o'zgarishlar "eski → yangi" (bo'shi "—", ekran o'quvchiga "avval" va "keyin" so'zlari bilan).
+- **Tur yo'q.** Egasiga "Sozlamalarni ochish" havolasi, xodimga "Kompaniya egasi mijoz turlarini sozlashi kerak."; qo'shish tugmasi, tab va qidiruv chiqmaydi.
+- **Umumiy komponent.** `DataList` ga `Column.key` qo'shildi (ikkala ilovada bir xil nusxa): egasi maydonni "Turi" deb atasa ham ustunlar aralashmaydi.
+- **Mock API.** `mocks/customers.ts` Go API qoidalarini takrorlaydi (tekshiruv tartibi va xabarlari, takror, qidiruv, tarix, soft delete). Boshlang'ich holatda mijoz yo'q: test `seedCustomers()` yoki `seedSixKinds()` ni o'zi chaqiradi (aks holda sozlamalar testlaridagi o'chirishlar "ishlatilgan" qoidasiga urilardi).
+- **Tekshiruv.** `make lint` 0 issues; `make test`: Go 16 paket, web 380, admin 217, api-client 1; `make e2e`: admin 40, web 78. Skrinshotlar ko'rildi (375px va desktop, light va dark). Haqiqiy stack'da brauzer (Playwright, Go API, SMS kodi log'dan): 12 / 12: egasi dropdown, tanlov maydoni va xodim qo'shadi; xodim Jismoniy va Yuridik mijoz qo'shadi (butun son bo'lmagan INN formada rad etiladi), takror telefon mavjud mijozga olib boradi, tahrirlaydi, INN bo'yicha qidiradi, tur tanlaydi, ustun yashiradi (reload'dan keyin saqlanadi); egasi tarixni ko'radi, mijozi bor tur o'chmaydi, mijozni o'chiradi; 375px da yon scroll yo'q. Sahifa xatosi 0; rad javoblari kutilgan (ikki 409 va reload'dan keyingi `GET /api/app/me` 401). Sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan.
