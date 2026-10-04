@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { useState } from "react"
+import { createRef, useState } from "react"
 import { expect, test, vi } from "vitest"
 import { CodeField } from "./code-field"
 
@@ -51,4 +51,10 @@ test("while a code is checked the field takes nothing", () => {
   render(<Held onComplete={vi.fn()} disabled />)
 
   expect(screen.getByRole("textbox", { name: "Kod" })).toBeDisabled()
+})
+
+test("the field takes the keyboard as it appears", () => {
+  render(<Held onComplete={vi.fn()} />)
+
+  expect(screen.getByRole("textbox", { name: "Kod" })).toHaveFocus()
 })

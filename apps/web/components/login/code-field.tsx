@@ -7,7 +7,8 @@ const SLOTS = [0, 1, 2, 3, 4, 5]
 
 // CodeField is a login's six-digit code, a box a digit. It has no button:
 // the sixth digit hands the code to onComplete. invalid marks the boxes of a
-// refused code; disabled holds the field while a code is checked.
+// refused code; disabled holds the field while a code is checked. It takes
+// the keyboard as it appears: the code is all its step asks for.
 export function CodeField({
   value,
   onChange,
@@ -30,6 +31,7 @@ export function CodeField({
       onChange={onChange}
       onComplete={onComplete}
       disabled={disabled}
+      autoFocus
       containerClassName="w-full"
     >
       <InputOTPGroup className="w-full gap-2 has-aria-invalid:ring-0">
