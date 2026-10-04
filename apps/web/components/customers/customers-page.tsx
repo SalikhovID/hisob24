@@ -3,6 +3,7 @@
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
+import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { answerText, customerName, fieldColumns } from "@/lib/customers"
 import { formatDate } from "@/lib/format"
@@ -73,10 +74,25 @@ export function CustomersPage() {
     },
   ]
 
+  // The list needs all three: the customers, and what their answers are
+  // read with. One that failed fails the list; trying again asks for them all.
+  const queries = [customers, types, dropdowns]
+  const failed = queries.find((query) => query.isError)
+  const loading = !failed && queries.some((query) => query.isPending)
+  const total = customers.data?.total
+
   return (
     <div className="space-y-5">
-      <PageHeader title="Mijozlar" description="Kompaniyangiz mijozlari" />
-      {customers.data && types.data && dropdowns.data && (
+      <PageHeader
+        title="Mijozlar"
+        description={total !== undefined ? `Kompaniyangiz mijozlari · ${total} ta` : "Kompaniyangiz mijozlari"}
+      />
+      {loading && <ListLoading rows={6} />}
+      {failed?.error && <Failed error={failed.error} onRetry={() => queries.forEach((query) => query.refetch())} />}
+      {!loading && !failed && total === 0 && (
+        <EmptyState title="Hali mijoz yo'q" description="Birinchi mijozni «Mijoz qo'shish» tugmasi orqali qo'shing." />
+      )}
+      {!loading && !failed && customers.data && customers.data.total > 0 && (
         <DataList label="Mijozlar" items={customers.data.items} columns={columns} getKey={(c) => c.id} />
       )}
     </div>
