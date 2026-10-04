@@ -107,6 +107,39 @@ func (q *Queries) DeleteCustomerType(ctx context.Context, arg DeleteCustomerType
 	return id, err
 }
 
+const getCustomerField = `-- name: GetCustomerField :one
+SELECT id, company_id, type_id, label, kind, dropdown_id, required, is_unique, position, created_at, deleted_at FROM customer_fields
+WHERE id = $1 AND type_id = $2 AND company_id = $3
+  AND deleted_at IS NULL
+`
+
+type GetCustomerFieldParams struct {
+	ID        int64
+	TypeID    int64
+	CompanyID int64
+}
+
+// A field of the company's type; pgx.ErrNoRows when the type has none such,
+// or it is deleted.
+func (q *Queries) GetCustomerField(ctx context.Context, arg GetCustomerFieldParams) (CustomerField, error) {
+	row := q.db.QueryRow(ctx, getCustomerField, arg.ID, arg.TypeID, arg.CompanyID)
+	var i CustomerField
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.TypeID,
+		&i.Label,
+		&i.Kind,
+		&i.DropdownID,
+		&i.Required,
+		&i.IsUnique,
+		&i.Position,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getCustomerType = `-- name: GetCustomerType :one
 SELECT id, company_id, name, position, created_at, deleted_at FROM customer_types
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL

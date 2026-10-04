@@ -55,3 +55,10 @@ RETURNING *;
 SELECT * FROM customer_fields
 WHERE company_id = $1 AND deleted_at IS NULL
 ORDER BY type_id, position, id;
+
+-- name: GetCustomerField :one
+-- A field of the company's type; pgx.ErrNoRows when the type has none such,
+-- or it is deleted.
+SELECT * FROM customer_fields
+WHERE id = sqlc.arg('id') AND type_id = sqlc.arg('type_id') AND company_id = sqlc.arg('company_id')
+  AND deleted_at IS NULL;

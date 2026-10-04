@@ -208,3 +208,30 @@ func TestListCustomerFields(t *testing.T) {
 	}
 	assert.Equal(t, []int64{yosh.ID, fish.ID, nomi.ID}, ids, "each of the company's types' fields in their order, without the deleted")
 }
+
+func TestGetCustomerField(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	yuridik := createType(t, q, olma.ID, "Yuridik")
+	fish := addField(t, q, olma.ID, jismoniy.ID, "F.I.Sh.", "string", nil)
+	its := gen.GetCustomerFieldParams{CompanyID: olma.ID, TypeID: jismoniy.ID, ID: fish.ID}
+
+	f, err := q.GetCustomerField(ctx, its)
+	require.NoError(t, err)
+	assert.Equal(t, "F.I.Sh.", f.Label)
+
+	begona := its
+	begona.CompanyID = nok.ID
+	_, err = q.GetCustomerField(ctx, begona)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's field")
+	elsewhere := its
+	elsewhere.TypeID = yuridik.ID
+	_, err = q.GetCustomerField(ctx, elsewhere)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a field of another type")
+	mustExec(t, pool, "UPDATE customer_fields SET deleted_at = now() WHERE id = $1", fish.ID)
+	_, err = q.GetCustomerField(ctx, its)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted field")
+}
