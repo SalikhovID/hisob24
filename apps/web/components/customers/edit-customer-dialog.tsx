@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
 import { type CustomerForm, type CustomerOutput, customerSchema, formDefaults } from "@/lib/customers"
-import { customerKey, customersKey } from "@/lib/queries"
+import { customerHistoryKey, customerKey, customersKey } from "@/lib/queries"
 import type { Customer, CustomerDropdown, CustomerType } from "@/lib/types"
 import { CustomerFields, CustomerRefusal } from "./customer-form"
 
@@ -50,6 +50,7 @@ export function EditCustomerDialog({
       // The page shows the answer at once; the lists ask again.
       queryClient.setQueryData(customerKey(companyId, customer.id), saved)
       queryClient.invalidateQueries({ queryKey: customersKey(companyId) })
+      queryClient.invalidateQueries({ queryKey: customerHistoryKey(companyId, customer.id) })
       toast.success("Mijoz saqlandi")
       setOpen(false)
     },

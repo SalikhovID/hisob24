@@ -8,6 +8,7 @@ import { answerText, customerName } from "@/lib/customers"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useCustomer, useCustomerDropdowns, useCustomerTypes, useMe } from "@/lib/queries"
+import { CustomerHistory } from "./customer-history"
 import { DeleteCustomerButton } from "./delete-customer-button"
 import { EditCustomerDialog } from "./edit-customer-dialog"
 
@@ -100,6 +101,10 @@ export function CustomerPage({ id }: { id: number }) {
           <Fact name="Qo'shilgan" value={formatDate(customer.data.created_at)} />
         </dl>
       </section>
+      {/* Who did what to the customer is the owner's to see. */}
+      {companyId !== null && me.data?.company?.role === "owner" && (
+        <CustomerHistory companyId={companyId} id={customer.data.id} />
+      )}
     </div>
   )
 }

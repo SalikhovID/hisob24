@@ -94,6 +94,20 @@ export function useCustomer(companyId: number | null, id: number) {
   })
 }
 
+// customerHistoryKey names a customer's history in the cache.
+export const customerHistoryKey = (companyId: number | null, id: number) => ["customer-history", companyId, id] as const
+
+// useCustomerHistory is what happened to a customer, the latest first. It
+// is the owner's to see: with companyId null (an employee, or not known yet)
+// nothing is asked.
+export function useCustomerHistory(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: customerHistoryKey(companyId, id),
+    queryFn: () => call(api.GET("/app/customers/{id}/history", { params: { path: { id } } })),
+    enabled: companyId !== null,
+  })
+}
+
 // useSwitchCompany moves the session to a company, or to none, and keeps the
 // new access token. /app/me is dropped, so the next page asks for it afresh
 // rather than showing the old company.

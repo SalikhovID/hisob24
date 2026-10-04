@@ -1,7 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, seedCustomers, seedSixKinds, VALI } from "@/mocks/data"
+import { api, call } from "@/lib/api"
+import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -242,4 +243,94 @@ test("a delete that is refused says why, and the customer stays", async () => {
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
   expect(router.replace).not.toHaveBeenCalled()
   expect(screen.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
+})
+
+// The history is a list of entries: who did what and when, then what changed.
+const slot = (element: Element, name: string) => element.querySelector(`[data-slot="${name}"]`)?.textContent ?? null
+const headOf = (entry: HTMLElement) => ["history-action", "history-actor", "history-time"].map((name) => slot(entry, name))
+const changesOf = (entry: HTMLElement) =>
+  Array.from(entry.querySelectorAll('[data-slot="history-change"]')).map((change) =>
+    ["change-label", "change-old", "change-new"].map((name) => slot(change, name)),
+  )
+const history = async () => within(await screen.findByRole("list", { name: "Tarix" })).getAllByRole("listitem")
+
+test("the owner sees what happened to the customer, the latest first: who, when, and each field before and after", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedCustomers()
+  const [fish] = typesOf(1)[0].fields
+  // Ali gives Dilshod another phone and takes the source away.
+  await call(
+    api.PUT("/app/customers/{id}", {
+      params: { path: { id: dilshod.id } },
+      body: { phone: "998911112299", values: { [fish.id]: "Dilshod Karimov" } },
+    }),
+  )
+
+  open(dilshod.id)
+
+  expect(await screen.findByRole("heading", { level: 2, name: "Tarix" })).toBeInTheDocument()
+  const entries = await history()
+  expect(entries.map(headOf)).toEqual([
+    ["Tahrirlandi", "Ali Valiyev", "02.10.2026 11:04"],
+    ["Qo'shildi", "Vali Aliyev", "02.10.2026 11:01"],
+  ])
+  expect(changesOf(entries[0])).toEqual([
+    ["Telefon", "+998 91 111 22 33", "+998 91 111 22 99"],
+    // An answer that was taken away: a dash stands where it was.
+    ["Manba", "Instagram", "—"],
+  ])
+  expect(changesOf(entries[1])).toEqual([])
+})
+
+test("an edit made on the page joins the history at once", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedCustomers()
+  const { user } = open(dilshod.id)
+  expect(await history()).toHaveLength(1)
+  const dialog = await edit(user)
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "ovich")
+
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(async () => expect(await history()).toHaveLength(2))
+  expect(changesOf((await history())[0])).toEqual([["F.I.Sh.", "Dilshod Karimov", "Dilshod Karimovovich"]])
+})
+
+test("the history is the owner's: an employee is shown none, and none is asked for", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { dilshod } = seedCustomers()
+  let asked = false
+  server.use(
+    http.get("*/api/app/customers/:id/history", () => {
+      asked = true
+      return HttpResponse.json([])
+    }),
+  )
+
+  open(dilshod.id)
+
+  expect(await info()).toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Tarix" })).not.toBeInTheDocument()
+  expect(asked).toBe(false)
+})
+
+test("a history that did not load says why and offers to try again", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedCustomers()
+  server.use(
+    http.get("*/api/app/customers/:id/history", () =>
+      HttpResponse.json({ error: "internal_error", message: "Tarix yuklanmadi: ichki xatolik" }, { status: 500 }),
+    ),
+  )
+  const { user } = open(dilshod.id)
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Tarix yuklanmadi: ichki xatolik")
+  // The customer itself is on the page all the same.
+  expect(await info()).toBeInTheDocument()
+
+  server.resetHandlers()
+  await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
+  expect(await history()).toHaveLength(1)
 })
