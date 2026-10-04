@@ -72,3 +72,9 @@ test("inside Telegram /expired has no sign-out, only the way to another company"
   expect(screen.getByRole("button", { name: "Boshqa kompaniyani tanlash" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
 })
+
+test("the page stands under Hisob24's logo", () => {
+  renderWithProviders(<Expired />)
+
+  expect(screen.getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+})
