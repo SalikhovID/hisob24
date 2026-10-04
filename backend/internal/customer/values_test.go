@@ -76,3 +76,25 @@ func TestCheckValuesText(t *testing.T) {
 		{name: "a list is no text", body: `{"1": ["Ali"]}`, refusal: "«F.I.Sh.» matn bo'lishi kerak"},
 	})
 }
+
+func TestCheckValuesNumbers(t *testing.T) {
+	const notWhole = "«Yoshi» butun son bo'lishi kerak"
+	runCheckCases(t, form, []checkCase{
+		{name: "a whole number", body: `{"2": 30}`, want: Values{2: int64(30)}},
+		{name: "zero is an answer", body: `{"2": 0}`, want: Values{2: int64(0)}},
+		{name: "a negative number", body: `{"2": -5}`, want: Values{2: int64(-5)}},
+		{name: "the largest", body: `{"2": 9007199254740991}`, want: Values{2: int64(9007199254740991)}},
+		{name: "the smallest", body: `{"2": -9007199254740991}`, want: Values{2: int64(-9007199254740991)}},
+		{name: "null is no answer", body: `{"2": null}`, want: Values{}},
+		{name: "past the largest", body: `{"2": 9007199254740992}`, refusal: notWhole},
+		{name: "past the smallest", body: `{"2": -9007199254740992}`, refusal: notWhole},
+		{name: "far past what fits", body: `{"2": 99999999999999999999}`, refusal: notWhole},
+		{name: "a fraction", body: `{"2": 30.5}`, refusal: notWhole},
+		{name: "a fraction that is whole", body: `{"2": 30.0}`, refusal: notWhole},
+		{name: "an exponent", body: `{"2": 3e1}`, refusal: notWhole},
+		{name: "digits as a text", body: `{"2": "30"}`, refusal: notWhole},
+		{name: "an empty text", body: `{"2": ""}`, refusal: notWhole},
+		{name: "true", body: `{"2": true}`, refusal: notWhole},
+		{name: "a list", body: `{"2": [30]}`, refusal: notWhole},
+	})
+}
