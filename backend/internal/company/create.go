@@ -20,8 +20,9 @@ type CreateInput struct {
 }
 
 // Create adds a company with its owner in one transaction: the company row,
-// the owner's user row (an existing user is reused unchanged) and the owner
-// membership, under the name the owner goes by in this company.
+// the owner's user row (an existing user is reused unchanged), the owner
+// membership, under the name the owner goes by in this company, and the
+// customer types every company starts with.
 func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Company, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
@@ -47,6 +48,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 			return err
 		}
 		if _, err := q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: phone, CompanyID: c.ID, Role: "owner", FullName: &ownerName}); err != nil {
+			return err
+		}
+		// Every company starts with the ready customer types (logic/customers.md).
+		if err := q.SeedCustomerTypes(ctx, c.ID); err != nil {
 			return err
 		}
 		today, err := q.CurrentDate(ctx)

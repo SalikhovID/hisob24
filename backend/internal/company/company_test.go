@@ -415,3 +415,18 @@ func TestUpdate(t *testing.T) {
 	_, err = s.Update(t.Context(), c.ID+1, new("X"), nil)
 	assert.Equal(t, apperr.NotFound, kindOf(t, err))
 }
+
+func TestCreateGivesTheCompanyTheReadyCustomerTypes(t *testing.T) {
+	s, pool := newService(t)
+
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	rows, err := pool.Query(t.Context(), `SELECT t.name || ': ' || string_agg(f.label || ' ' || f.kind, ', ' ORDER BY f.position)
+		FROM customer_types t JOIN customer_fields f ON f.type_id = t.id
+		WHERE t.company_id = $1 GROUP BY t.id ORDER BY t.position`, c.ID)
+	require.NoError(t, err)
+	types, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Jismoniy: F.I.Sh. string", "Yuridik: Nomi string, INN int"}, types,
+		"a new company starts with the two types every company has")
+}
