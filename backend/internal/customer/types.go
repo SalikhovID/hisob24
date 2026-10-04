@@ -138,3 +138,18 @@ func (s *Service) OrderTypes(ctx context.Context, companyID int64, ids []int64) 
 		return q.OrderCustomerTypes(ctx, gen.OrderCustomerTypesParams{CompanyID: companyID, Ids: ids})
 	})
 }
+
+// DeleteType hides the company's type and its fields with it; the type's
+// name is free again.
+func (s *Service) DeleteType(ctx context.Context, companyID, id int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.DeleteCustomerType(ctx, gen.DeleteCustomerTypeParams{ID: id, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errTypeNotFound
+		}
+		if err != nil {
+			return err
+		}
+		return q.DeleteCustomerTypeFields(ctx, id)
+	})
+}

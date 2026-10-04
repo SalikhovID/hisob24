@@ -141,3 +141,33 @@ func TestOrderTypes(t *testing.T) {
 	mustType(t, s, olma, "Yangi")
 	assert.Equal(t, []string{"Hamkor", "Jismoniy", "Yuridik", "Yangi"}, typeNames(t, s, olma), "a new type still goes last")
 }
+
+func TestDeleteType(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	yuridik := mustType(t, s, olma, "Yuridik")
+	fieldRow(t, pool, olma, jismoniy.ID, Field{Label: "F.I.Sh.", Kind: "string"}, 1)
+	fieldRow(t, pool, olma, jismoniy.ID, Field{Label: "Yoshi", Kind: "int"}, 2)
+	nomi := Field{Label: "Nomi", Kind: "string"}
+	nomi.ID = fieldRow(t, pool, olma, yuridik.ID, nomi, 1)
+
+	require.NoError(t, s.DeleteType(ctx, olma, jismoniy.ID))
+
+	list, err := s.Types(ctx, olma)
+	require.NoError(t, err)
+	assert.Equal(t, []Type{{ID: yuridik.ID, Name: "Yuridik", Fields: []Field{nomi}}}, list, "the type is gone from the company's")
+	var live, rows int
+	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE deleted_at IS NULL), count(*)
+		FROM customer_fields WHERE type_id = $1`, jismoniy.ID).Scan(&live, &rows))
+	assert.Zero(t, live, "its fields are deleted with it")
+	assert.Equal(t, 2, rows, "nothing leaves the database")
+	again, err := s.CreateType(ctx, olma, "Jismoniy")
+	require.NoError(t, err, "the deleted type's name is free again")
+	assert.NotEqual(t, jismoniy.ID, again.ID)
+
+	const notFound = "Tur topilmadi"
+	refused(t, s.DeleteType(ctx, olma, jismoniy.ID), apperr.NotFound, "not_found", notFound, "deleted already")
+	refused(t, s.DeleteType(ctx, nok, yuridik.ID), apperr.NotFound, "not_found", notFound, "another company's type")
+}
