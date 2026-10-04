@@ -39,6 +39,8 @@
     --color-foreground: var(--foreground);
     --color-background: var(--background);
     --color-brand: var(--brand);
+    --color-brand-panel: var(--brand-panel);
+    --color-brand-panel-foreground: var(--brand-panel-foreground);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -76,6 +78,10 @@
     /* The logo's color: the brand's own on a light page, white on a dark one,
        the chat's text color inside Telegram (its background is the chat's). */
     --brand: #174449;
+    /* The brand's own surface (the login's panel) and what stands on it: the
+       same in light and in dark, as the surface's color is known. */
+    --brand-panel: #174449;
+    --brand-panel-foreground: #ffffff;
     --sidebar: oklch(0.985 0.003 277);
     --sidebar-foreground: oklch(0.21 0.02 277);
     --sidebar-primary: oklch(0.511 0.262 276.966);
