@@ -1257,6 +1257,43 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customers:
+    post:
+      operationId: createCustomer
+      summary: Mijoz qo'shish
+      description: >
+        Access token'dagi kompaniyaga mijoz qo'shadi; har a'zo qo'sha oladi.
+        Telefon har doim majburiy: faqat O'zbekiston raqami, kompaniyaning
+        faol mijozlari ichida takrorlanmaydi. values tanlangan turning
+        maydonlariga javoblar; tekshiruv maydonlar tartibida, birinchi xato
+        qaytadi (400 validation_error). Takror telefon (phone_taken) va
+        takrorlanmas maydondagi takror javob (value_taken) 409 qaytaradi,
+        javobda o'sha mijozning ID'si bilan. Kim qo'shgani saqlanadi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerCreate"
+      responses:
+        "201":
+          description: Qo'shilgan mijoz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "409":
+          $ref: "#/components/responses/CustomerTaken"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -1441,6 +1478,14 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    CustomerTaken:
+      description: >
+        Telefon boshqa mijozda bor (phone_taken) yoki takrorlanmas maydondagi
+        javob boshqa mijozda bor (value_taken); customer_id o'sha mijoz
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CustomerTakenError"
   schemas:
     TelegramLogin:
       type: object
@@ -1852,3 +1897,81 @@ components:
           items:
             type: integer
             format: int64
+    CustomerValues:
+      type: object
+      description: >
+        Mijozning javoblari, kaliti maydon ID'si. Matn: string; butun son:
+        integer; dropdown va radio: variant ID'si; multi_dropdown va checkbox:
+        variant ID'lari massivi (dropdown tartibida). Bo'sh qoldirilgan maydon
+        bu yerda bo'lmaydi.
+      additionalProperties:
+        type: [string, integer, array]
+        format: int64
+        items:
+          type: integer
+          format: int64
+    CustomerAnswers:
+      type: object
+      description: >
+        Saqlanadigan javoblar, kaliti maydon ID'si (CustomerValues kabi).
+        Bo'sh javob (bo'sh matn, null, bo'sh massiv yoki yuborilmagan maydon)
+        saqlanmaydi. Matn 500 belgigacha, butun son ±9007199254740991 ichida.
+      additionalProperties:
+        type: [string, integer, array, "null"]
+        format: int64
+        items:
+          type: integer
+          format: int64
+    Customer:
+      type: object
+      required: [id, type_id, phone, values, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        type_id:
+          type: integer
+          format: int64
+          description: Mijozning turi; o'zgarmaydi
+        phone:
+          type: string
+          description: Faqat raqamlar, masalan 998901234567
+        values:
+          $ref: "#/components/schemas/CustomerValues"
+        created_by_name:
+          type: [string, "null"]
+          description: >
+            Mijozni qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan
+            chiqarilgan bo'lsa, qo'shgan paytdagi ismi
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CustomerCreate:
+      type: object
+      required: [type_id, phone]
+      properties:
+        type_id:
+          type: integer
+          format: int64
+        phone:
+          type: string
+          description: O'zbekiston raqami, masalan +998 90 123 45 67
+        values:
+          $ref: "#/components/schemas/CustomerAnswers"
+    CustomerTakenError:
+      type: object
+      required: [error, message, customer_id]
+      properties:
+        error:
+          type: string
+          enum: [phone_taken, value_taken]
+        message:
+          type: string
+          description: O'zbekcha matn
+        customer_id:
+          type: integer
+          format: int64
+          description: Shu telefon yoki javob allaqachon bor mijoz
