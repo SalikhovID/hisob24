@@ -129,6 +129,17 @@ func (q *Queries) DeleteCustomerType(ctx context.Context, arg DeleteCustomerType
 	return id, err
 }
 
+const deleteCustomerTypeFields = `-- name: DeleteCustomerTypeFields :exec
+UPDATE customer_fields SET deleted_at = now()
+WHERE type_id = $1 AND deleted_at IS NULL
+`
+
+// Hides every field of a type: they go with it when it is deleted.
+func (q *Queries) DeleteCustomerTypeFields(ctx context.Context, typeID int64) error {
+	_, err := q.db.Exec(ctx, deleteCustomerTypeFields, typeID)
+	return err
+}
+
 const getCustomerField = `-- name: GetCustomerField :one
 SELECT id, company_id, type_id, label, kind, dropdown_id, required, is_unique, position, created_at, deleted_at FROM customer_fields
 WHERE id = $1 AND type_id = $2 AND company_id = $3

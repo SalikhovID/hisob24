@@ -82,3 +82,8 @@ UPDATE customer_fields SET deleted_at = now()
 WHERE id = sqlc.arg('id') AND type_id = sqlc.arg('type_id') AND company_id = sqlc.arg('company_id')
   AND deleted_at IS NULL
 RETURNING id;
+
+-- name: DeleteCustomerTypeFields :exec
+-- Hides every field of a type: they go with it when it is deleted.
+UPDATE customer_fields SET deleted_at = now()
+WHERE type_id = $1 AND deleted_at IS NULL;

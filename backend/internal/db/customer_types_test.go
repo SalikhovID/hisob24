@@ -298,3 +298,24 @@ func TestDeleteCustomerField(t *testing.T) {
 	_, err = q.DeleteCustomerField(ctx, its)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
 }
+
+func TestDeleteCustomerTypeFields(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	yuridik := createType(t, q, olma.ID, "Yuridik")
+	addField(t, q, olma.ID, jismoniy.ID, "F.I.Sh.", "string", nil)
+	addField(t, q, olma.ID, jismoniy.ID, "Yoshi", "int", nil)
+	nomi := addField(t, q, olma.ID, yuridik.ID, "Nomi", "string", nil)
+
+	require.NoError(t, q.DeleteCustomerTypeFields(ctx, jismoniy.ID))
+
+	left, err := q.ListCustomerFields(ctx, olma.ID)
+	require.NoError(t, err)
+	require.Len(t, left, 1, "the type's fields are deleted, the other type's are not")
+	assert.Equal(t, nomi.ID, left[0].ID)
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_fields WHERE type_id = $1", jismoniy.ID).Scan(&rows))
+	assert.Equal(t, 2, rows, "the rows stay")
+}

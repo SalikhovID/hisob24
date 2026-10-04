@@ -63,6 +63,8 @@ type Querier interface {
 	// Hides the type: nothing is removed. pgx.ErrNoRows when the company has no
 	// such type, or deleted it already.
 	DeleteCustomerType(ctx context.Context, arg DeleteCustomerTypeParams) (int64, error)
+	// Hides every field of a type: they go with it when it is deleted.
+	DeleteCustomerTypeFields(ctx context.Context, typeID int64) error
 	// Drops a code after the fifth wrong attempt.
 	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
