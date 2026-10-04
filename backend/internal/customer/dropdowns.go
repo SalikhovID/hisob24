@@ -181,3 +181,17 @@ func (s *Service) UpdateOption(ctx context.Context, companyID, dropdownID, optio
 	}
 	return toOption(o), nil
 }
+
+// DeleteOption hides an option of the company's dropdown; its name is free
+// again.
+func (s *Service) DeleteOption(ctx context.Context, companyID, dropdownID, optionID int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.DeleteCustomerDropdownOption(ctx, gen.DeleteCustomerDropdownOptionParams{
+			CompanyID: companyID, DropdownID: dropdownID, ID: optionID,
+		})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errOptionNotFound
+		}
+		return err
+	})
+}

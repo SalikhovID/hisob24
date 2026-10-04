@@ -177,3 +177,28 @@ func TestUpdateOption(t *testing.T) {
 	_, err = s.UpdateOption(ctx, olma, holat.ID, instagram.ID, OptionPatch{Label: ptr("Begona")})
 	refused(t, err, apperr.NotFound, "not_found", notFound, "an option of another dropdown")
 }
+
+func TestDeleteOption(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	manba := mustDropdown(t, s, olma, "Manba")
+	instagram := mustOption(t, s, olma, manba.ID, "Instagram")
+	linkedin := mustOption(t, s, olma, manba.ID, "LinkedIn")
+
+	require.NoError(t, s.DeleteOption(ctx, olma, manba.ID, instagram.ID))
+
+	list, err := s.Dropdowns(ctx, olma)
+	require.NoError(t, err)
+	assert.Equal(t, []Option{linkedin}, list[0].Options, "the option is gone from the dropdown")
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_dropdown_options WHERE dropdown_id = $1", manba.ID).Scan(&rows))
+	assert.Equal(t, 2, rows, "nothing leaves the database")
+	again, err := s.AddOption(ctx, olma, manba.ID, "Instagram")
+	require.NoError(t, err, "the deleted option's name is free again")
+	assert.NotEqual(t, instagram.ID, again.ID)
+
+	const notFound = "Variant topilmadi"
+	refused(t, s.DeleteOption(ctx, olma, manba.ID, instagram.ID), apperr.NotFound, "not_found", notFound, "deleted already")
+	refused(t, s.DeleteOption(ctx, nok, manba.ID, linkedin.ID), apperr.NotFound, "not_found", notFound, "another company's dropdown")
+}
