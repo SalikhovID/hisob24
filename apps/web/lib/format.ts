@@ -10,3 +10,10 @@ export function formatDate(value: string): string {
   const date = new Date(value)
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`
 }
+
+// formatDateTime writes a moment as dd.mm.yyyy hh:mm, in the browser's time
+// zone: when something was done.
+export function formatDateTime(value: string): string {
+  const date = new Date(value)
+  return `${formatDate(value)} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
