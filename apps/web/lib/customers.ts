@@ -59,6 +59,10 @@ export function fieldColumns(types: CustomerType[]): FieldColumn[] {
 // are a string (an option's id, "" for none), a choice of several the ids.
 export type CustomerForm = { phone: string; values: Record<string, string | string[]> }
 
+// CustomerOutput is the form as the API takes it: the phone, and the answers
+// by the id of the field.
+export type CustomerOutput = { phone: string; values: CustomerAnswers }
+
 // fieldKey names a field's entry in the form. A bare number would not do:
 // react-hook-form reads a numeric key as a place in an array.
 export const fieldKey = (field: Pick<CustomerField, "id">) => `f${field.id}`
@@ -108,7 +112,7 @@ function readAnswer(field: CustomerField, entry: string | string[] | undefined):
 export function customerSchema(type: CustomerType) {
   return z
     .object({ phone: z.string(), values: z.record(z.string(), z.union([z.string(), z.array(z.string())])) })
-    .transform((form, context): { phone: string; values: CustomerAnswers } => {
+    .transform((form, context): CustomerOutput => {
       const phone = phoneDigits(form.phone)
       if (phone === null) context.addIssue({ code: "custom", message: "Telefon raqamini to'liq kiriting", path: ["phone"] })
       const values: CustomerAnswers = {}

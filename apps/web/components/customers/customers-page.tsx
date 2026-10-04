@@ -14,6 +14,7 @@ import { formatPhone } from "@/lib/phone"
 import { useCustomerDropdowns, useCustomers, useCustomerTypes, useMe } from "@/lib/queries"
 import type { Customer } from "@/lib/types"
 import { useHiddenColumns } from "@/lib/use-hidden-columns"
+import { AddCustomerDialog } from "./add-customer-dialog"
 import { ColumnsMenu } from "./columns-menu"
 import { SearchInput } from "./search-input"
 import { useCustomerFilter } from "./use-customer-filter"
@@ -124,6 +125,14 @@ export function CustomersPage() {
         title="Mijozlar"
         description={
           unfiltered && total !== undefined ? `Kompaniyangiz mijozlari · ${total} ta` : "Kompaniyangiz mijozlari"
+        }
+        actions={
+          companyId !== null &&
+          types.data &&
+          dropdowns.data &&
+          types.data.length > 0 && (
+            <AddCustomerDialog companyId={companyId} types={types.data} dropdowns={dropdowns.data} typeId={filter.typeId} />
+          )
         }
       />
       <div className="space-y-3">
