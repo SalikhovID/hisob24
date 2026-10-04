@@ -31,11 +31,12 @@ func NewService(pool *pgxpool.Pool) *Service {
 
 // write runs fn in one transaction that holds the company: the writes of a
 // company's customers and of their settings take turns, so what one of them
-// checks (a name, a count, an order) cannot change under it.
+// checks (a name, a count, an order) cannot change under it. Nothing else
+// waits for them: someone joining the company or signing in to it goes on.
 func (s *Service) write(ctx context.Context, companyID int64, fn func(q *gen.Queries) error) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
-		if _, err := q.LockCompany(ctx, companyID); err != nil {
+		if _, err := q.LockCompanyCustomers(ctx, companyID); err != nil {
 			return err
 		}
 		return fn(q)

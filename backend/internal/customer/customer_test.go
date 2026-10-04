@@ -3,12 +3,14 @@ package customer
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -49,7 +51,7 @@ func holdCompany(t *testing.T, pool *pgxpool.Pool, companyID int64) (release fun
 	tx, err := pool.Begin(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
-	_, err = tx.Exec(t.Context(), "SELECT id FROM companies WHERE id = $1 FOR UPDATE", companyID)
+	_, err = tx.Exec(t.Context(), "SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE", companyID)
 	require.NoError(t, err)
 	return func() { require.NoError(t, tx.Commit(t.Context())) }
 }
@@ -129,4 +131,33 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	} {
 		t.Run(w.name, func(t *testing.T) { waits(t, pool, olma, w.write) })
 	}
+}
+
+// A write holds the company only against other writes of its customers and
+// their settings. What merely refers to the company (someone joining it, a
+// session of it being refreshed) is not made to wait.
+func TestAWriteDoesNotHoldUpWhatOnlyRefersToTheCompany(t *testing.T) {
+	s, pool := newService(t)
+	olma := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(t.Context(), "INSERT INTO users (phone) VALUES ($1)", staff)
+	require.NoError(t, err)
+	held, release := make(chan struct{}), make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		done <- s.write(context.Background(), olma, func(*gen.Queries) error {
+			close(held)
+			<-release
+			return nil
+		})
+	}()
+	<-held
+
+	// A member joins the company while the write is still on its way.
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ($1, $2, 'user')", staff, olma)
+
+	close(release)
+	require.NoError(t, <-done)
+	assert.NoError(t, err, "the insert did not wait for the write")
 }
