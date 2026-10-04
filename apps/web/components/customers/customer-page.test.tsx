@@ -155,3 +155,50 @@ test("the dialog opens with the customer as it is now, whatever was typed and le
 
   expect(within(dialog).getByLabelText("F.I.Sh.")).toHaveValue("Dilshod Karimov")
 })
+
+// optionsOf are what a select offers, by their names.
+const optionsOf = (select: HTMLElement) =>
+  within(select)
+    .getAllByRole("option")
+    .map((option) => option.textContent)
+
+test("an option that is turned off is offered to the customer who has it, and to nobody else", async () => {
+  await signIn(ALI)
+  const { dilshod, malika } = seedCustomers()
+  const youtube = db.dropdowns[0].options[2]
+  const first = open(malika.id)
+
+  let dialog = await edit(first.user)
+
+  expect(optionsOf(within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan", "Instagram", "LinkedIn", "YouTube"])
+  expect(within(dialog).getByLabelText("Manba")).toHaveValue(String(youtube.id))
+  await first.user.clear(within(dialog).getByLabelText("F.I.Sh."))
+  await first.user.type(within(dialog).getByLabelText("F.I.Sh."), "Malika Yusupova (VIP)")
+  await first.user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(Object.values(malika.values)).toEqual(["Malika Yusupova (VIP)", youtube.id])
+  first.unmount()
+
+  const second = open(dilshod.id)
+  dialog = await edit(second.user)
+  expect(optionsOf(within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan", "Instagram", "LinkedIn"])
+})
+
+test("an edit that is refused says why in the dialog, and leads to the customer who has the phone", async () => {
+  await signIn(ALI)
+  const { dilshod, malika } = seedCustomers()
+  const { user } = open(dilshod.id)
+  const dialog = await edit(user)
+  await user.clear(within(dialog).getByLabelText("Telefon raqami"))
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "955556677")
+
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  expect(await within(dialog).findByText("Bu raqamli mijoz allaqachon bor")).toBeInTheDocument()
+  expect(within(dialog).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${malika.id}`)
+  expect(dilshod.phone).toBe("998911112233")
+  // What the form itself finds wrong is said under the field.
+  await user.clear(within(dialog).getByLabelText("F.I.Sh."))
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+  expect(await within(dialog).findByText("«F.I.Sh.» maydonini to'ldiring")).toBeInTheDocument()
+})

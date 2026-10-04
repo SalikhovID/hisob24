@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ApiError } from "@/lib/api"
 import { isChoice } from "@/lib/customer-fields"
 import { type CustomerForm, type CustomerOutput, fieldKey } from "@/lib/customers"
-import type { CustomerDropdown, CustomerField, CustomerOption, CustomerType } from "@/lib/types"
+import type { Customer, CustomerDropdown, CustomerField, CustomerOption, CustomerType } from "@/lib/types"
 
 type FormControl = Control<CustomerForm, unknown, CustomerOutput>
 
@@ -213,16 +213,24 @@ function Answer({ control, field, options }: { control: FormControl; field: Cust
 }
 
 // CustomerFields is the form of a type's customer: the phone, which every
-// customer has, then the type's fields in their order.
+// customer has, then the type's fields in their order. customer is the one
+// being edited, if any.
 export function CustomerFields({
   control,
   type,
   dropdowns,
+  customer,
 }: {
   control: FormControl
   type: CustomerType
   dropdowns: CustomerDropdown[]
+  customer?: Customer
 }) {
+  // has tells whether the customer being edited has the option in the field.
+  const has = (field: CustomerField, optionId: number) => {
+    const answer = customer?.values[field.id]
+    return Array.isArray(answer) ? answer.includes(optionId) : answer === optionId
+  }
   return (
     <FieldGroup>
       <PhoneField control={control} name="phone" label="Telefon raqami" autoComplete="off" />
@@ -231,9 +239,11 @@ export function CustomerFields({
           key={field.id}
           control={control}
           field={field}
-          // A choice offers the options of its dropdown that are not turned off.
+          // A choice offers the options of its dropdown that are not turned
+          // off, and the one turned off since that the customer has: an edit
+          // keeps it.
           options={(dropdowns.find((dropdown) => dropdown.id === field.dropdown_id)?.options ?? []).filter(
-            (o) => o.is_active,
+            (o) => o.is_active || has(field, o.id),
           )}
         />
       ))}

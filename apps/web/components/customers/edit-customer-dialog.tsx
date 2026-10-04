@@ -76,7 +76,7 @@ export function EditCustomerDialog({
           <DialogDescription>{type.name}</DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit((edited) => save.mutate(edited))} noValidate className="space-y-4">
-          <CustomerFields control={form.control} type={type} dropdowns={dropdowns} />
+          <CustomerFields control={form.control} type={type} dropdowns={dropdowns} customer={customer} />
           {save.isError && <CustomerRefusal error={save.error} />}
           <DialogFooter>
             <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
