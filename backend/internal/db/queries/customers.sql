@@ -14,3 +14,9 @@ SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
 FROM customers c
 LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
 WHERE c.id = $1 AND c.company_id = $2 AND c.deleted_at IS NULL;
+
+-- name: GetCustomerByPhone :one
+-- The company's customer with the number: a number is one customer's.
+-- pgx.ErrNoRows when it is free, as a deleted customer's is.
+SELECT id FROM customers
+WHERE company_id = $1 AND phone = $2 AND deleted_at IS NULL;

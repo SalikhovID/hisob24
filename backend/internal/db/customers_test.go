@@ -91,3 +91,26 @@ func TestGetCustomer(t *testing.T) {
 	_, err = q.GetCustomer(ctx, gen.GetCustomerParams{ID: c.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer")
 }
+
+func TestGetCustomerByPhone(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	createUser(t, q, enteredBy, "Ali")
+	ali := createCustomer(t, q, olma.ID, jismoniy.ID, "998901234567")
+	createCustomer(t, q, olma.ID, jismoniy.ID, "998907654321")
+
+	id, err := q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: olma.ID, Phone: "998901234567"})
+
+	require.NoError(t, err)
+	assert.Equal(t, ali.ID, id)
+	_, err = q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: olma.ID, Phone: "998900000000"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a number no customer has")
+	_, err = q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: nok.ID, Phone: "998901234567"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's customer")
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali.ID)
+	_, err = q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: olma.ID, Phone: "998901234567"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer's number is free")
+}

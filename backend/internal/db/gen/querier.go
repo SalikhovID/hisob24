@@ -92,6 +92,9 @@ type Querier interface {
 	// it. created_by_name is the name the member who entered it goes by in the
 	// company now; once they have left it (or go by no name), the name of then.
 	GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error)
+	// The company's customer with the number: a number is one customer's.
+	// pgx.ErrNoRows when it is free, as a deleted customer's is.
+	GetCustomerByPhone(ctx context.Context, arg GetCustomerByPhoneParams) (int64, error)
 	// The company's dropdown; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerDropdown(ctx context.Context, arg GetCustomerDropdownParams) (CustomerDropdown, error)
 	// A field of the company's type; pgx.ErrNoRows when the type has none such,

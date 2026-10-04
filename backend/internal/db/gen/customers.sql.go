@@ -87,3 +87,22 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 	)
 	return i, err
 }
+
+const getCustomerByPhone = `-- name: GetCustomerByPhone :one
+SELECT id FROM customers
+WHERE company_id = $1 AND phone = $2 AND deleted_at IS NULL
+`
+
+type GetCustomerByPhoneParams struct {
+	CompanyID int64
+	Phone     string
+}
+
+// The company's customer with the number: a number is one customer's.
+// pgx.ErrNoRows when it is free, as a deleted customer's is.
+func (q *Queries) GetCustomerByPhone(ctx context.Context, arg GetCustomerByPhoneParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getCustomerByPhone, arg.CompanyID, arg.Phone)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
