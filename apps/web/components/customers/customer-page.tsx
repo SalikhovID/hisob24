@@ -8,6 +8,7 @@ import { answerText, customerName } from "@/lib/customers"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useCustomer, useCustomerDropdowns, useCustomerTypes, useMe } from "@/lib/queries"
+import { EditCustomerDialog } from "./edit-customer-dialog"
 
 const back = { href: "/customers", label: "Mijozlar" }
 
@@ -73,6 +74,11 @@ export function CustomerPage({ id }: { id: number }) {
         description={[type?.name, name ? phone : null].filter(Boolean).join(" · ")}
         back={back}
         avatar={<Avatar name={name} seed={customer.data.id} />}
+        stack
+        actions={
+          companyId !== null &&
+          type && <EditCustomerDialog companyId={companyId} customer={customer.data} type={type} dropdowns={dropdowns.data} />
+        }
       />
       <section aria-labelledby="customer-info" className="space-y-3">
         <h2 id="customer-info" className="text-base font-semibold">

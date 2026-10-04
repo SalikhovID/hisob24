@@ -1,7 +1,7 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, seedCustomers, seedSixKinds, VALI } from "@/mocks/data"
+import { ALI, db, seedCustomers, seedSixKinds, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -100,4 +100,58 @@ test("while the customer loads the page holds its place; a failed load says why 
   server.resetHandlers()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
+})
+
+// edit opens the dialog that edits the customer on screen.
+async function edit(user: ReturnType<typeof open>["user"]) {
+  await user.click(await screen.findByRole("button", { name: "Tahrirlash" }))
+  return screen.findByRole("dialog", { name: "Mijozni tahrirlash" })
+}
+
+test("an employee edits the customer in a dialog that opens with its phone and answers", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { dilshod } = seedCustomers()
+  const [instagram] = db.dropdowns[0].options
+  const { user } = open(dilshod.id)
+
+  const dialog = await edit(user)
+
+  // The type was chosen when the customer was entered: it is not asked again.
+  expect(within(dialog).queryByRole("radiogroup", { name: "Mijoz turi" })).not.toBeInTheDocument()
+  expect(within(dialog).getByText("Jismoniy")).toBeInTheDocument()
+  expect(within(dialog).getByLabelText("Telefon raqami")).toHaveValue("91 111 22 33")
+  expect(within(dialog).getByLabelText("F.I.Sh.")).toHaveValue("Dilshod Karimov")
+  expect(within(dialog).getByLabelText("Manba")).toHaveValue(String(instagram.id))
+
+  await user.clear(within(dialog).getByLabelText("F.I.Sh."))
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "Dilshod Karimovich")
+  await user.selectOptions(within(dialog).getByLabelText("Manba"), "LinkedIn")
+  await user.clear(within(dialog).getByLabelText("Telefon raqami"))
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "911112299")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Mijoz saqlandi")).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimovich" })).toBeInTheDocument()
+  expect(pairsOf(await info()).slice(0, 3)).toEqual([
+    ["Telefon", "+998 91 111 22 99"],
+    ["F.I.Sh.", "Dilshod Karimovich"],
+    ["Manba", "LinkedIn"],
+  ])
+  expect(dilshod.phone).toBe("998911112299")
+})
+
+test("the dialog opens with the customer as it is now, whatever was typed and left before", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedCustomers()
+  const { user } = open(dilshod.id)
+  let dialog = await edit(user)
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), " tashlab ketilgan")
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+  dialog = await edit(user)
+
+  expect(within(dialog).getByLabelText("F.I.Sh.")).toHaveValue("Dilshod Karimov")
 })
