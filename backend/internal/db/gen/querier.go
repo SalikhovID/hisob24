@@ -36,6 +36,9 @@ type Querier interface {
 	CreateAdminSession(ctx context.Context, arg CreateAdminSessionParams) (AdminSession, error)
 	CreateBilling(ctx context.Context, arg CreateBillingParams) (Billing, error)
 	CreateCompany(ctx context.Context, arg CreateCompanyParams) (Company, error)
+	// Enters a customer. created_by_name is the name the member who enters it
+	// goes by in the company now: it stays when they leave the company.
+	CreateCustomer(ctx context.Context, arg CreateCustomerParams) (Customer, error)
 	CreateCustomerDropdown(ctx context.Context, arg CreateCustomerDropdownParams) (CustomerDropdown, error)
 	// A new type goes last among the company's.
 	CreateCustomerType(ctx context.Context, arg CreateCustomerTypeParams) (CustomerType, error)
