@@ -146,9 +146,22 @@ cp apps/web/app/{icon.svg,apple-icon.png,favicon.ico} apps/admin/app/
 - Production build (`next build` + `next start`, ikkala ilova): `/login` da uchta `<link>` (`favicon.ico` 48x48, `icon.svg` any, `apple-icon.png` 180x180); uchala manzil sessiyasiz 200 va to'g'ri `content-type` bilan; sahifalar esa avvalgidek `/login` ga yo'naltiriladi (307).
 - Skrinshotlar: web va admin, telefon va desktop, light va dark, Telegram'ning ikki mavzusi: logotip har fonda o'qiladi.
 
+## Production'ga deploy (2026-10-04)
+
+Foydalanuvchi so'rovi bilan ("deploy qil"). Backend va migratsiya o'zgarmagan: faqat frontend image qayta qurildi.
+
+- `6083024`: toza nusxada (`git archive HEAD`) ikkala ilova `next build` dan o'tdi; baza nusxasi `/var/backups/hisob24-v2/hisob24-pre-logo-20261004-1058.sql.gz` (11 jadval); `deploy/ship.sh` exit 0, 1 daqiqa 55 soniya; goose "no migrations to run", versiya 4.
+- Sessiyasiz tekshiruv 31 / 31:
+  - `healthz`;
+  - ikkala saytda `/login` (logotip va uchta ikon `<link>` i), `/favicon.ico`, `/icon.svg` (ichida `#174449`), `/apple-icon.png`: 200 va to'g'ri `content-type`; CSS'da brend rangi;
+  - sessiyasiz sahifa `/login` ga yo'naltiriladi (307); cookie nomi bor, qiymati soxta so'rovda qobiq HTML'ida logotip (admin'da "Admin" bilan); API soxta sessiyani rad etadi (401);
+  - webhook'lar secret'siz 401.
+- Birinchi o'tishda bitta so'rov (admin webhook) javobsiz qoldi (curl `000`). Uch marta qayta so'ralganda 401 keldi, to'liq qayta o'tkazilganda 31 / 31. Serverda sabab topilmadi: konteynerlar qayta ishga tushmagan (`restarts=0`), API log'ida ERROR / WARN yo'q.
+- Server: to'rt konteyner healthy; satrlar soni deploy'dan oldingi bilan bir xil (11 jadval); `.env` saqlangan. Avvalgi daraxt: `/var/www/hisob24-v2.prev` (CRUD review deploy'i).
+- Kirish bilan bog'liq oqimlar production'da sinalmadi (haqiqiy SMS ketadi): ular foydalanuvchiga qoladi.
+
 ## Qamrovdan tashqari
 
 - UI urg'u rangini `#174449` ga o'tkazish (hozir indigo): alohida qaror.
 - Web manifest (PWA), Open Graph rasmi, README'dagi logo.
 - BotFather'dagi bot rasmi: qo'lda o'rnatiladi.
-- Production deploy: alohida so'raladi.
