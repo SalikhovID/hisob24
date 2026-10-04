@@ -205,3 +205,45 @@ func (q *Queries) RenameCustomerDropdown(ctx context.Context, arg RenameCustomer
 	)
 	return i, err
 }
+
+const updateCustomerDropdownOption = `-- name: UpdateCustomerDropdownOption :one
+UPDATE customer_dropdown_options o
+SET label = COALESCE($1, o.label),
+    is_active = COALESCE($2, o.is_active)
+FROM customer_dropdowns d
+WHERE o.id = $3 AND o.dropdown_id = $4 AND d.id = o.dropdown_id
+  AND d.company_id = $5 AND d.deleted_at IS NULL AND o.deleted_at IS NULL
+RETURNING o.id, o.dropdown_id, o.label, o.position, o.is_active, o.created_at, o.deleted_at
+`
+
+type UpdateCustomerDropdownOptionParams struct {
+	Label      *string
+	IsActive   *bool
+	ID         int64
+	DropdownID int64
+	CompanyID  int64
+}
+
+// Renames an option of the company's dropdown, or turns it off or on; a NULL
+// argument leaves its column as it is. pgx.ErrNoRows when the dropdown has
+// no such option, or it is deleted.
+func (q *Queries) UpdateCustomerDropdownOption(ctx context.Context, arg UpdateCustomerDropdownOptionParams) (CustomerDropdownOption, error) {
+	row := q.db.QueryRow(ctx, updateCustomerDropdownOption,
+		arg.Label,
+		arg.IsActive,
+		arg.ID,
+		arg.DropdownID,
+		arg.CompanyID,
+	)
+	var i CustomerDropdownOption
+	err := row.Scan(
+		&i.ID,
+		&i.DropdownID,
+		&i.Label,
+		&i.Position,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}

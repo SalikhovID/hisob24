@@ -167,3 +167,46 @@ func TestListCustomerDropdownOptions(t *testing.T) {
 	assert.Equal(t, []int64{youtube.ID, instagram.ID, yangi.ID}, ids,
 		"each of the company's dropdowns' options in their order, without the deleted")
 }
+
+func TestUpdateCustomerDropdownOption(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+	holat := createDropdown(t, q, olma.ID, "Holat")
+	instagram := addOption(t, q, olma.ID, manba.ID, "Instagram")
+	addOption(t, q, olma.ID, manba.ID, "LinkedIn")
+	its := gen.UpdateCustomerDropdownOptionParams{CompanyID: olma.ID, DropdownID: manba.ID, ID: instagram.ID}
+
+	renamed := its
+	renamed.Label = ptr("Insta")
+	o, err := q.UpdateCustomerDropdownOption(ctx, renamed)
+	require.NoError(t, err)
+	assert.Equal(t, "Insta", o.Label)
+	assert.True(t, o.IsActive, "what is not given stays")
+
+	off := its
+	off.IsActive = ptr(false)
+	o, err = q.UpdateCustomerDropdownOption(ctx, off)
+	require.NoError(t, err)
+	assert.False(t, o.IsActive)
+	assert.Equal(t, "Insta", o.Label, "what is not given stays")
+
+	taken := its
+	taken.Label = ptr("linkedin")
+	_, err = q.UpdateCustomerDropdownOption(ctx, taken)
+	assert.Equal(t, "23505", sqlState(err), "another option's name")
+
+	begona := renamed
+	begona.CompanyID = nok.ID
+	_, err = q.UpdateCustomerDropdownOption(ctx, begona)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's dropdown")
+	elsewhere := renamed
+	elsewhere.DropdownID = holat.ID
+	_, err = q.UpdateCustomerDropdownOption(ctx, elsewhere)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "an option of another dropdown")
+	mustExec(t, pool, "UPDATE customer_dropdown_options SET deleted_at = now() WHERE id = $1", instagram.ID)
+	_, err = q.UpdateCustomerDropdownOption(ctx, renamed)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted option")
+}

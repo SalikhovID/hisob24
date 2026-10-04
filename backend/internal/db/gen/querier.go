@@ -124,6 +124,10 @@ type Querier interface {
 	SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
+	// Renames an option of the company's dropdown, or turns it off or on; a NULL
+	// argument leaves its column as it is. pgx.ErrNoRows when the dropdown has
+	// no such option, or it is deleted.
+	UpdateCustomerDropdownOption(ctx context.Context, arg UpdateCustomerDropdownOptionParams) (CustomerDropdownOption, error)
 	// Stores a new code unless the last one went out less than cooldown_seconds
 	// ago: 0 rows affected means "too soon" (429).
 	UpsertSMSCode(ctx context.Context, arg UpsertSMSCodeParams) (int64, error)
