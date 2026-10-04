@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Brand } from "@/components/brand"
 import { NavLinks } from "./nav-links"
 import { Topbar } from "./topbar"
 
@@ -8,7 +9,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh">
       <aside className="sticky top-0 hidden h-svh w-60 shrink-0 border-r bg-sidebar p-3 lg:block">
-        <p className="mb-4 px-3 py-2 text-lg font-semibold">Hisob24 Admin</p>
+        <Brand className="mb-4 flex px-3 py-2 text-lg" />
         <NavLinks />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
