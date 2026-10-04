@@ -99,3 +99,19 @@ test.describe("an account that never shared its phone", () => {
   })
 })
 
+
+test.describe("a Mini App whose sign-in fails", () => {
+  // hash=bad stands for forged initData: the API refuses it.
+  test.use({ telegramScript: fakeTelegram(TG_ALI).replace("hash=abc", "hash=bad") })
+
+  test("falls back to the SMS form, its panel in the chat's colors", async ({ page }) => {
+    await page.goto("/")
+
+    await expect(page.getByRole("alert").filter({ hasText: "Telegram ma'lumoti yaroqsiz" })).toBeVisible()
+    await expect(page.getByRole("textbox", { name: "Telefon raqami" })).toBeVisible()
+    const panel = page.getByRole("banner")
+    await expect(panel).toHaveCSS("background-color", "rgb(35, 46, 60)")
+    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(245, 245, 245)")
+    await fits(page)
+  })
+})

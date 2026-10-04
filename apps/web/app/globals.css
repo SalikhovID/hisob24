@@ -154,6 +154,8 @@ html[data-telegram] {
     --sidebar-accent: var(--tg-theme-bg-color);
     --sidebar-accent-foreground: var(--tg-theme-text-color);
     --brand: var(--tg-theme-text-color);
+    --brand-panel: var(--tg-theme-secondary-bg-color);
+    --brand-panel-foreground: var(--tg-theme-text-color);
 }
 
 /* A list that scrolls without showing its scrollbar: the sidebar's sections. */
