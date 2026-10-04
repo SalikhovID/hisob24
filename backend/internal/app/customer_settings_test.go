@@ -342,3 +342,24 @@ func TestOrderCustomerTypes(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+func TestRenameCustomerType(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	jismoniy := api.addType(t, olma, "Jismoniy", 1)
+	path := fmt.Sprintf("/app/customer-types/%d", jismoniy)
+
+	rec := api.do(t, http.MethodPatch, path, `{"name":"Shaxs"}`, bearer(owner))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, fmt.Sprintf(`{"id":%d,"name":"Shaxs","fields":[]}`, jismoniy), rec.Body.String())
+
+	rec = api.do(t, http.MethodPatch, "/app/customer-types/999", `{"name":"Yo'q"}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, typeNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPatch, path, `{"name":"Begona"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}

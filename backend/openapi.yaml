@@ -1048,6 +1048,44 @@ paths:
           $ref: "#/components/responses/OwnerOnly"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customer-types/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: renameCustomerType
+      summary: Mijoz turi nomini o'zgartirish (faqat owner)
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NameInput"
+      responses:
+        "200":
+          description: Yangi nomli tur, maydonlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerType"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

@@ -239,3 +239,20 @@ func (h *Handler) orderCustomerTypes(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// renameCustomerType gives a customer type of the owner's company another
+// name.
+func (h *Handler) renameCustomerType(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name string `json:"name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	t, err := h.customers.RenameType(r.Context(), sessionCompany(r), pathID(r, "id"), body.Name)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toCustomerTypeJSON(t))
+}
