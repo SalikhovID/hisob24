@@ -164,6 +164,54 @@ func (q *Queries) GetCustomerByPhone(ctx context.Context, arg GetCustomerByPhone
 	return id, err
 }
 
+const listCustomerValues = `-- name: ListCustomerValues :many
+SELECT v.customer_id, v.field_id, f.kind, v.option_id, v.text_value, v.int_value
+FROM customer_values v
+JOIN customer_fields f ON f.id = v.field_id
+LEFT JOIN customer_dropdown_options o ON o.id = v.option_id
+WHERE v.customer_id = ANY($1::bigint[])
+ORDER BY v.customer_id, f.position, f.id, o.position, o.id
+`
+
+type ListCustomerValuesRow struct {
+	CustomerID int64
+	FieldID    int64
+	Kind       string
+	OptionID   *int64
+	TextValue  *string
+	IntValue   *int64
+}
+
+// The answers of the customers named: each customer's in the order of its
+// type's fields, the options of one field in the order of their dropdown.
+// kind tells how a field's rows are read.
+func (q *Queries) ListCustomerValues(ctx context.Context, customerIds []int64) ([]ListCustomerValuesRow, error) {
+	rows, err := q.db.Query(ctx, listCustomerValues, customerIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCustomerValuesRow{}
+	for rows.Next() {
+		var i ListCustomerValuesRow
+		if err := rows.Scan(
+			&i.CustomerID,
+			&i.FieldID,
+			&i.Kind,
+			&i.OptionID,
+			&i.TextValue,
+			&i.IntValue,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCustomer = `-- name: UpdateCustomer :one
 UPDATE customers SET phone = $1, updated_at = now()
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL

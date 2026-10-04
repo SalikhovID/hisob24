@@ -276,3 +276,34 @@ func TestDeleteCustomerValues(t *testing.T) {
 	assert.Empty(t, storedValues(t, pool, ali.ID), "an edit writes the answers anew")
 	assert.Equal(t, []string{"F.I.Sh.: Vali Aliyev"}, storedValues(t, pool, vali.ID), "the other customers' answers stay")
 }
+
+func TestListCustomerValues(t *testing.T) {
+	q, pool := setup(t)
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	vali := s.customer(t, q, "998905555555")
+	other := s.customer(t, q, "998907777777")
+	answer(t, q, ali.ID, s.fish.ID, "Ali Valiyev")
+	answerNumber(t, q, ali.ID, s.yosh.ID, 30)
+	choose(t, q, ali.ID, s.manba.ID, s.instagram.ID)
+	choose(t, q, ali.ID, s.manba.ID, s.linkedin.ID)
+	answer(t, q, vali.ID, s.fish.ID, "Vali Aliyev")
+	answer(t, q, other.ID, s.fish.ID, "Boshqa")
+	// The owner has put the number before the name, and LinkedIn first.
+	mustExec(t, pool, "UPDATE customer_fields SET position = 0 WHERE id = $1", s.yosh.ID)
+	mustExec(t, pool, "UPDATE customer_dropdown_options SET position = 0 WHERE id = $1", s.linkedin.ID)
+
+	rows, err := q.ListCustomerValues(t.Context(), []int64{vali.ID, ali.ID})
+
+	require.NoError(t, err)
+	assert.Equal(t, []gen.ListCustomerValuesRow{
+		{CustomerID: ali.ID, FieldID: s.yosh.ID, Kind: "int", IntValue: ptr(int64(30))},
+		{CustomerID: ali.ID, FieldID: s.fish.ID, Kind: "string", TextValue: ptr("Ali Valiyev")},
+		{CustomerID: ali.ID, FieldID: s.manba.ID, Kind: "checkbox", OptionID: &s.linkedin.ID},
+		{CustomerID: ali.ID, FieldID: s.manba.ID, Kind: "checkbox", OptionID: &s.instagram.ID},
+		{CustomerID: vali.ID, FieldID: s.fish.ID, Kind: "string", TextValue: ptr("Vali Aliyev")},
+	}, rows, "the customers named, each one's answers in the order of the fields and of the options")
+	rows, err = q.ListCustomerValues(t.Context(), []int64{})
+	require.NoError(t, err)
+	assert.Empty(t, rows, "no customers, no answers")
+}

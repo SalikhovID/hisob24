@@ -143,6 +143,10 @@ type Querier interface {
 	ListCustomerFields(ctx context.Context, companyID int64) ([]CustomerField, error)
 	// The company's types in their order, without the deleted.
 	ListCustomerTypes(ctx context.Context, companyID int64) ([]CustomerType, error)
+	// The answers of the customers named: each customer's in the order of its
+	// type's fields, the options of one field in the order of their dropdown.
+	// kind tells how a field's rows are read.
+	ListCustomerValues(ctx context.Context, customerIds []int64) ([]ListCustomerValuesRow, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the
 	// database's today, as the 402 check does.

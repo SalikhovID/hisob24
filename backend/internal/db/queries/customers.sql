@@ -45,3 +45,14 @@ VALUES (sqlc.arg('customer_id'), sqlc.arg('field_id'), sqlc.narg('option_id'), s
 -- Clears a customer's answers: an edit writes them anew. What they were
 -- stays in the customer's history.
 DELETE FROM customer_values WHERE customer_id = $1;
+
+-- name: ListCustomerValues :many
+-- The answers of the customers named: each customer's in the order of its
+-- type's fields, the options of one field in the order of their dropdown.
+-- kind tells how a field's rows are read.
+SELECT v.customer_id, v.field_id, f.kind, v.option_id, v.text_value, v.int_value
+FROM customer_values v
+JOIN customer_fields f ON f.id = v.field_id
+LEFT JOIN customer_dropdown_options o ON o.id = v.option_id
+WHERE v.customer_id = ANY(sqlc.arg('customer_ids')::bigint[])
+ORDER BY v.customer_id, f.position, f.id, o.position, o.id;
