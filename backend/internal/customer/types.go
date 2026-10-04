@@ -15,6 +15,8 @@ var (
 	errTypeNotFound  = apperr.New(apperr.NotFound, "not_found", "Tur topilmadi")
 
 	errFieldNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli maydon allaqachon bor")
+	errFieldNotFound  = apperr.New(apperr.NotFound, "not_found", "Maydon topilmadi")
+	errChoiceUnique   = invalid("Faqat matn va son maydoni takrorlanmas bo'ladi")
 	errNoKind         = invalid("Maydon turini tanlang")
 	errNoDropdown     = invalid("Dropdownni tanlang")
 )
@@ -205,7 +207,7 @@ func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in Fiel
 	case choice && in.DropdownID == nil:
 		return Field{}, errNoDropdown
 	case choice && in.Unique:
-		return Field{}, invalid("Faqat matn va son maydoni takrorlanmas bo'ladi")
+		return Field{}, errChoiceUnique
 	case !choice && in.DropdownID != nil:
 		return Field{}, invalid("Matn va son maydoniga dropdown ulanmaydi")
 	}
@@ -229,6 +231,51 @@ func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in Fiel
 		case errors.Is(err, pgx.ErrNoRows):
 			return errTypeNotFound
 		case taken(err):
+			return errFieldNameTaken
+		}
+		return err
+	})
+	if err != nil {
+		return Field{}, err
+	}
+	return toField(f), nil
+}
+
+// FieldPatch is what to change in a field; nil leaves a part as it is. A
+// field's kind and dropdown are never changed.
+type FieldPatch struct {
+	Label    *string
+	Required *bool
+	Unique   *bool
+}
+
+// UpdateField changes the name and the marks of a field of the company's
+// type.
+func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID int64, patch FieldPatch) (Field, error) {
+	if patch.Label != nil {
+		label, err := cleanName(*patch.Label)
+		if err != nil {
+			return Field{}, err
+		}
+		patch.Label = &label
+	}
+	var f gen.CustomerField
+	err := s.write(ctx, companyID, func(q *gen.Queries) error {
+		was, err := q.GetCustomerField(ctx, gen.GetCustomerFieldParams{ID: fieldID, TypeID: typeID, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errFieldNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if choice, _ := kindOf(was.Kind); choice && patch.Unique != nil && *patch.Unique {
+			return errChoiceUnique
+		}
+		f, err = q.UpdateCustomerField(ctx, gen.UpdateCustomerFieldParams{
+			ID: fieldID, TypeID: typeID, CompanyID: companyID,
+			Label: patch.Label, Required: patch.Required, IsUnique: patch.Unique,
+		})
+		if taken(err) {
 			return errFieldNameTaken
 		}
 		return err

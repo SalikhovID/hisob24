@@ -246,3 +246,46 @@ func TestAddFieldRefusals(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_fields WHERE type_id = $1", jismoniy.ID).Scan(&fields))
 	assert.Equal(t, 1, fields, "a refusal adds nothing")
 }
+
+func mustField(t *testing.T, s *Service, companyID, typeID int64, in FieldInput) Field {
+	t.Helper()
+	f, err := s.AddField(t.Context(), companyID, typeID, in)
+	require.NoError(t, err)
+	return f
+}
+
+func TestUpdateField(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	yuridik := mustType(t, s, olma, "Yuridik")
+	manba := mustDropdown(t, s, olma, "Manba")
+	fish := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "F.I.Sh.", Kind: "string"})
+	source := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Manba", Kind: "dropdown", DropdownID: &manba.ID})
+
+	f, err := s.UpdateField(ctx, olma, jismoniy.ID, fish.ID, FieldPatch{Label: ptr(" Ism "), Required: ptr(true), Unique: ptr(true)})
+	require.NoError(t, err)
+	assert.Equal(t, Field{ID: fish.ID, Label: "Ism", Kind: "string", Required: true, Unique: true}, f)
+
+	f, err = s.UpdateField(ctx, olma, jismoniy.ID, fish.ID, FieldPatch{Required: ptr(false)})
+	require.NoError(t, err)
+	assert.Equal(t, Field{ID: fish.ID, Label: "Ism", Kind: "string", Unique: true}, f, "what is not given stays")
+
+	f, err = s.UpdateField(ctx, olma, jismoniy.ID, source.ID, FieldPatch{Required: ptr(true)})
+	require.NoError(t, err)
+	assert.Equal(t, Field{ID: source.ID, Label: "Manba", Kind: "dropdown", Required: true, DropdownID: &manba.ID}, f,
+		"a choice field may be required; its kind and dropdown stay")
+
+	const notFound = "Maydon topilmadi"
+	_, err = s.UpdateField(ctx, olma, jismoniy.ID, fish.ID, FieldPatch{Label: ptr(" ")})
+	refused(t, err, apperr.Invalid, "validation_error", "Nomni kiriting", "no name")
+	_, err = s.UpdateField(ctx, olma, jismoniy.ID, fish.ID, FieldPatch{Label: ptr("MANBA")})
+	refused(t, err, apperr.Conflict, "name_taken", "Bu nomli maydon allaqachon bor", "another field's name")
+	_, err = s.UpdateField(ctx, olma, jismoniy.ID, source.ID, FieldPatch{Unique: ptr(true)})
+	refused(t, err, apperr.Invalid, "validation_error", "Faqat matn va son maydoni takrorlanmas bo'ladi", "a choice field that may not repeat")
+	_, err = s.UpdateField(ctx, nok, jismoniy.ID, fish.ID, FieldPatch{Label: ptr("Begona")})
+	refused(t, err, apperr.NotFound, "not_found", notFound, "another company's field")
+	_, err = s.UpdateField(ctx, olma, yuridik.ID, fish.ID, FieldPatch{Label: ptr("Begona")})
+	refused(t, err, apperr.NotFound, "not_found", notFound, "a field of another type")
+}
