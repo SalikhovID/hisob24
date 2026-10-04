@@ -113,3 +113,67 @@ func TestRenameDropdown(t *testing.T) {
 	_, err = s.RenameDropdown(ctx, olma, manba.ID, "qayerdan")
 	assert.NoError(t, err, "its own name in another case is not taken")
 }
+
+func TestAddOption(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	manba := mustDropdown(t, s, olma, "Manba")
+
+	first, err := s.AddOption(ctx, olma, manba.ID, " Instagram ")
+
+	require.NoError(t, err)
+	assert.NotZero(t, first.ID)
+	assert.Equal(t, "Instagram", first.Label, "the name is trimmed")
+	assert.True(t, first.Active, "a new option is offered")
+	second, err := s.AddOption(ctx, olma, manba.ID, "LinkedIn")
+	require.NoError(t, err)
+	list, err := s.Dropdowns(ctx, olma)
+	require.NoError(t, err)
+	assert.Equal(t, []Option{first, second}, list[0].Options, "a new option goes last")
+
+	_, err = s.AddOption(ctx, olma, manba.ID, " ")
+	refused(t, err, apperr.Invalid, "validation_error", "Nomni kiriting", "no name")
+	_, err = s.AddOption(ctx, olma, manba.ID, "INSTAGRAM")
+	refused(t, err, apperr.Conflict, "name_taken", "Bu variant allaqachon bor", "the option in another case")
+	_, err = s.AddOption(ctx, nok, manba.ID, "Begona")
+	refused(t, err, apperr.NotFound, "not_found", "Dropdown topilmadi", "another company's dropdown")
+}
+
+func mustOption(t *testing.T, s *Service, companyID, dropdownID int64, label string) Option {
+	t.Helper()
+	o, err := s.AddOption(t.Context(), companyID, dropdownID, label)
+	require.NoError(t, err)
+	return o
+}
+
+func TestUpdateOption(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	manba := mustDropdown(t, s, olma, "Manba")
+	holat := mustDropdown(t, s, olma, "Holat")
+	instagram := mustOption(t, s, olma, manba.ID, "Instagram")
+	mustOption(t, s, olma, manba.ID, "LinkedIn")
+
+	o, err := s.UpdateOption(ctx, olma, manba.ID, instagram.ID, OptionPatch{Label: ptr(" Insta ")})
+	require.NoError(t, err)
+	assert.Equal(t, Option{ID: instagram.ID, Label: "Insta", Active: true}, o, "renamed, still offered")
+
+	o, err = s.UpdateOption(ctx, olma, manba.ID, instagram.ID, OptionPatch{Active: ptr(false)})
+	require.NoError(t, err)
+	assert.Equal(t, Option{ID: instagram.ID, Label: "Insta", Active: false}, o, "turned off, under the same name")
+	o, err = s.UpdateOption(ctx, olma, manba.ID, instagram.ID, OptionPatch{Active: ptr(true)})
+	require.NoError(t, err)
+	assert.True(t, o.Active, "and on again")
+
+	const notFound = "Variant topilmadi"
+	_, err = s.UpdateOption(ctx, olma, manba.ID, instagram.ID, OptionPatch{Label: ptr(" ")})
+	refused(t, err, apperr.Invalid, "validation_error", "Nomni kiriting", "no name")
+	_, err = s.UpdateOption(ctx, olma, manba.ID, instagram.ID, OptionPatch{Label: ptr("linkedin")})
+	refused(t, err, apperr.Conflict, "name_taken", "Bu variant allaqachon bor", "another option's name")
+	_, err = s.UpdateOption(ctx, nok, manba.ID, instagram.ID, OptionPatch{Label: ptr("Begona")})
+	refused(t, err, apperr.NotFound, "not_found", notFound, "another company's dropdown")
+	_, err = s.UpdateOption(ctx, olma, holat.ID, instagram.ID, OptionPatch{Label: ptr("Begona")})
+	refused(t, err, apperr.NotFound, "not_found", notFound, "an option of another dropdown")
+}

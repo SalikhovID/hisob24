@@ -15,6 +15,8 @@ var errNotImplemented = errors.New("not implemented")
 var (
 	errDropdownNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli dropdown allaqachon bor")
 	errDropdownNotFound  = apperr.New(apperr.NotFound, "not_found", "Dropdown topilmadi")
+	errOptionTaken       = apperr.New(apperr.Conflict, "name_taken", "Bu variant allaqachon bor")
+	errOptionNotFound    = apperr.New(apperr.NotFound, "not_found", "Variant topilmadi")
 )
 
 // Option is one choice of a dropdown. An option that is not active is no
@@ -66,7 +68,7 @@ func (s *Service) Dropdowns(ctx context.Context, companyID int64) ([]Dropdown, e
 	}
 	of := map[int64][]Option{}
 	for _, o := range options {
-		of[o.DropdownID] = append(of[o.DropdownID], Option{ID: o.ID, Label: o.Label, Active: o.IsActive})
+		of[o.DropdownID] = append(of[o.DropdownID], toOption(o))
 	}
 	list := make([]Dropdown, 0, len(rows))
 	for _, d := range rows {
@@ -113,4 +115,45 @@ func (s *Service) dropdown(ctx context.Context, companyID, id int64) (Dropdown, 
 		}
 	}
 	return Dropdown{}, errDropdownNotFound
+}
+
+// AddOption adds an option at the end of the company's dropdown.
+func (s *Service) AddOption(ctx context.Context, companyID, dropdownID int64, label string) (Option, error) {
+	label, err := cleanName(label)
+	if err != nil {
+		return Option{}, err
+	}
+	var o gen.CustomerDropdownOption
+	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		o, err = q.AddCustomerDropdownOption(ctx, gen.AddCustomerDropdownOptionParams{
+			CompanyID: companyID, DropdownID: dropdownID, Label: label,
+		})
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return errDropdownNotFound
+		case taken(err):
+			return errOptionTaken
+		}
+		return err
+	})
+	if err != nil {
+		return Option{}, err
+	}
+	return toOption(o), nil
+}
+
+func toOption(o gen.CustomerDropdownOption) Option {
+	return Option{ID: o.ID, Label: o.Label, Active: o.IsActive}
+}
+
+// OptionPatch is what to change in an option; nil leaves a part as it is.
+type OptionPatch struct {
+	Label  *string
+	Active *bool
+}
+
+// UpdateOption renames an option of the company's dropdown, or turns it off
+// or on.
+func (s *Service) UpdateOption(ctx context.Context, companyID, dropdownID, optionID int64, patch OptionPatch) (Option, error) {
+	return Option{}, errNotImplemented
 }

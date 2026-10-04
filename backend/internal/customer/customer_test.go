@@ -19,6 +19,8 @@ func newService(t *testing.T) (*Service, *pgxpool.Pool) {
 	return NewService(pool), pool
 }
 
+func ptr[T any](v T) *T { return &v }
+
 // addCompany inserts a company with no customer types and returns its id.
 func addCompany(t *testing.T, pool *pgxpool.Pool, name string) int64 {
 	t.Helper()
