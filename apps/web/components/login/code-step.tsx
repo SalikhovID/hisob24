@@ -1,15 +1,12 @@
 "use client"
 
 import { useMutation } from "@tanstack/react-query"
-import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { api, call } from "@/lib/api"
 import { setAccessToken } from "@/lib/session"
-
-const SLOTS = [0, 1, 2, 3, 4, 5]
+import { CodeField } from "./code-field"
 
 // useCountdown counts whole seconds down to zero. Timers only ever run late,
 // so the button never opens before the API's minute is over.
@@ -62,28 +59,17 @@ export function CodeStep({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-center">
-        <InputOTP
-          ref={input}
-          aria-label="Kod"
-          maxLength={6}
-          pattern={REGEXP_ONLY_DIGITS}
-          value={code}
-          onChange={(value: string) => {
-            setCode(value)
-            if (verify.isError) verify.reset()
-          }}
-          onComplete={(value: string) => verify.mutate(value)}
-          disabled={verify.isPending}
-          autoFocus
-        >
-          <InputOTPGroup>
-            {SLOTS.map((index) => (
-              <InputOTPSlot key={index} index={index} aria-invalid={verify.isError} className="size-11 text-lg" />
-            ))}
-          </InputOTPGroup>
-        </InputOTP>
-      </div>
+      <CodeField
+        ref={input}
+        value={code}
+        onChange={(value) => {
+          setCode(value)
+          if (verify.isError) verify.reset()
+        }}
+        onComplete={(value) => verify.mutate(value)}
+        invalid={verify.isError}
+        disabled={verify.isPending}
+      />
       {error && (
         <p role="alert" className="text-center text-sm text-destructive">
           {error.message}
