@@ -129,6 +129,8 @@ type Querier interface {
 	RenameCompanyUser(ctx context.Context, arg RenameCompanyUserParams) (UserCompany, error)
 	// pgx.ErrNoRows when the company has no such dropdown, or deleted it.
 	RenameCustomerDropdown(ctx context.Context, arg RenameCustomerDropdownParams) (CustomerDropdown, error)
+	// pgx.ErrNoRows when the company has no such type, or deleted it.
+	RenameCustomerType(ctx context.Context, arg RenameCustomerTypeParams) (CustomerType, error)
 	// Revokes a live token and returns its owner, company and source: the first
 	// step of rotation and of logout. A revoked, expired or unknown token gives
 	// pgx.ErrNoRows.

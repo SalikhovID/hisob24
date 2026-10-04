@@ -16,3 +16,9 @@ ORDER BY position, id;
 -- The company's type; pgx.ErrNoRows when it has none such, or deleted it.
 SELECT * FROM customer_types
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL;
+
+-- name: RenameCustomerType :one
+-- pgx.ErrNoRows when the company has no such type, or deleted it.
+UPDATE customer_types SET name = sqlc.arg('name')
+WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
+RETURNING *;

@@ -71,3 +71,22 @@ func TestGetCustomerType(t *testing.T) {
 	_, err = q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted type")
 }
+
+func TestRenameCustomerType(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	createType(t, q, olma.ID, "Yuridik")
+
+	ct, err := q.RenameCustomerType(ctx, gen.RenameCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID, Name: "Shaxs"})
+	require.NoError(t, err)
+	assert.Equal(t, "Shaxs", ct.Name)
+	assert.Equal(t, jismoniy.Position, ct.Position, "its place stays")
+
+	_, err = q.RenameCustomerType(ctx, gen.RenameCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID, Name: "yuridik"})
+	assert.Equal(t, "23505", sqlState(err), "another type's name")
+	_, err = q.RenameCustomerType(ctx, gen.RenameCustomerTypeParams{ID: jismoniy.ID, CompanyID: nok.ID, Name: "Begona"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's type")
+}

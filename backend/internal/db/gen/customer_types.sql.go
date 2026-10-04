@@ -95,3 +95,30 @@ func (q *Queries) ListCustomerTypes(ctx context.Context, companyID int64) ([]Cus
 	}
 	return items, nil
 }
+
+const renameCustomerType = `-- name: RenameCustomerType :one
+UPDATE customer_types SET name = $1
+WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
+RETURNING id, company_id, name, position, created_at, deleted_at
+`
+
+type RenameCustomerTypeParams struct {
+	Name      string
+	ID        int64
+	CompanyID int64
+}
+
+// pgx.ErrNoRows when the company has no such type, or deleted it.
+func (q *Queries) RenameCustomerType(ctx context.Context, arg RenameCustomerTypeParams) (CustomerType, error) {
+	row := q.db.QueryRow(ctx, renameCustomerType, arg.Name, arg.ID, arg.CompanyID)
+	var i CustomerType
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Name,
+		&i.Position,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
