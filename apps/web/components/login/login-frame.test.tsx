@@ -27,3 +27,10 @@ test("what is asked for stands in the page's main part", () => {
 
   expect(within(screen.getByRole("main")).getByRole("button", { name: "Kodni olish" })).toBeInTheDocument()
 })
+
+test("the panel's backdrop is the mark's number, a decoration: the brand is the page's only picture", () => {
+  render(frame)
+
+  expect(screen.getByRole("banner").querySelector('[data-slot="logo-24"]')).not.toBeNull()
+  expect(screen.getAllByRole("img")).toHaveLength(1)
+})
