@@ -90,3 +90,15 @@ WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
                   WHERE v.customer_id = c.id AND v.option_id IS NULL
                     AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
                          OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')));
+
+-- name: FindCustomerByValue :one
+-- The customer that has the value in the field already: a field may be told
+-- not to repeat. A text is compared in any case. The customer except_id (the
+-- one being edited, 0 for none) and the deleted do not count. pgx.ErrNoRows
+-- when the value is free.
+SELECT c.id FROM customer_values v
+JOIN customers c ON c.id = v.customer_id
+WHERE v.field_id = sqlc.arg('field_id') AND c.deleted_at IS NULL AND c.id <> sqlc.arg('except_id')
+  AND (lower(v.text_value) = lower(sqlc.narg('text_value')::text) OR v.int_value = sqlc.narg('int_value')::bigint)
+ORDER BY c.id
+LIMIT 1;

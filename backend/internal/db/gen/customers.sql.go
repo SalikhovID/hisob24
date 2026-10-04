@@ -139,6 +139,38 @@ func (q *Queries) DeleteCustomerValues(ctx context.Context, customerID int64) er
 	return err
 }
 
+const findCustomerByValue = `-- name: FindCustomerByValue :one
+SELECT c.id FROM customer_values v
+JOIN customers c ON c.id = v.customer_id
+WHERE v.field_id = $1 AND c.deleted_at IS NULL AND c.id <> $2
+  AND (lower(v.text_value) = lower($3::text) OR v.int_value = $4::bigint)
+ORDER BY c.id
+LIMIT 1
+`
+
+type FindCustomerByValueParams struct {
+	FieldID   int64
+	ExceptID  int64
+	TextValue *string
+	IntValue  *int64
+}
+
+// The customer that has the value in the field already: a field may be told
+// not to repeat. A text is compared in any case. The customer except_id (the
+// one being edited, 0 for none) and the deleted do not count. pgx.ErrNoRows
+// when the value is free.
+func (q *Queries) FindCustomerByValue(ctx context.Context, arg FindCustomerByValueParams) (int64, error) {
+	row := q.db.QueryRow(ctx, findCustomerByValue,
+		arg.FieldID,
+		arg.ExceptID,
+		arg.TextValue,
+		arg.IntValue,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getCustomer = `-- name: GetCustomer :one
 SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
        COALESCE(m.full_name, c.created_by_name) AS created_by_name

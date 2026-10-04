@@ -90,6 +90,11 @@ type Querier interface {
 	// The company's owner stays in it as a user: the step before another owner
 	// is set.
 	DemoteCompanyOwner(ctx context.Context, companyID int64) error
+	// The customer that has the value in the field already: a field may be told
+	// not to repeat. A text is compared in any case. The customer except_id (the
+	// one being edited, 0 for none) and the deleted do not count. pgx.ErrNoRows
+	// when the value is free.
+	FindCustomerByValue(ctx context.Context, arg FindCustomerByValueParams) (int64, error)
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
 	// The admin behind a live session; an expired session or a deactivated
 	// admin gives pgx.ErrNoRows.

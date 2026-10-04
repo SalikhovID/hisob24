@@ -412,3 +412,41 @@ func TestCountCustomers(t *testing.T) {
 		})
 	}
 }
+
+func TestFindCustomerByValue(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	ali := s.customer(t, q, "998901234567")
+	answer(t, q, ali.ID, s.fish.ID, "Ali Valiyev")
+	answerNumber(t, q, ali.ID, s.yosh.ID, 30)
+	vali := s.customer(t, q, "998905555555")
+	answer(t, q, vali.ID, s.fish.ID, "Vali Aliyev")
+	answerNumber(t, q, vali.ID, s.yosh.ID, 30)
+	// find looks for a customer other than except with the value in the field.
+	find := func(fieldID int64, text *string, number *int64, except int64) (int64, error) {
+		return q.FindCustomerByValue(ctx, gen.FindCustomerByValueParams{
+			FieldID: fieldID, TextValue: text, IntValue: number, ExceptID: except,
+		})
+	}
+
+	id, err := find(s.fish.ID, ptr("ALI valiyev"), nil, 0)
+	require.NoError(t, err)
+	assert.Equal(t, ali.ID, id, "a text, in any case")
+	id, err = find(s.yosh.ID, nil, ptr(int64(30)), 0)
+	require.NoError(t, err)
+	assert.Equal(t, ali.ID, id, "a whole number; of several customers, the first")
+	id, err = find(s.yosh.ID, nil, ptr(int64(30)), ali.ID)
+	require.NoError(t, err)
+	assert.Equal(t, vali.ID, id, "the customer being edited does not count")
+
+	_, err = find(s.fish.ID, ptr("Ali"), nil, 0)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a part of a text is another text")
+	_, err = find(s.fish.ID, ptr("Ali Valiyev"), nil, ali.ID)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "the customer's own value")
+	_, err = find(s.fish.ID, nil, ptr(int64(30)), 0)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "the value is in another field")
+	mustExec(t, pool, "UPDATE customers SET deleted_at = now() WHERE id = $1", ali.ID)
+	_, err = find(s.fish.ID, ptr("Ali Valiyev"), nil, 0)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted customer's value is free")
+}
