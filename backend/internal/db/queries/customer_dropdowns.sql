@@ -66,3 +66,10 @@ FROM customer_dropdowns d
 WHERE o.id = sqlc.arg('id') AND o.dropdown_id = sqlc.arg('dropdown_id') AND d.id = o.dropdown_id
   AND d.company_id = sqlc.arg('company_id') AND d.deleted_at IS NULL AND o.deleted_at IS NULL
 RETURNING o.id;
+
+-- name: ListCustomerDropdownOptionIDs :many
+-- The dropdown's options in their order: what a new order has to name, all
+-- of them and nothing else.
+SELECT id FROM customer_dropdown_options
+WHERE dropdown_id = $1 AND deleted_at IS NULL
+ORDER BY position, id;

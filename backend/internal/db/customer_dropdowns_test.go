@@ -235,3 +235,20 @@ func TestDeleteCustomerDropdownOption(t *testing.T) {
 	_, err = q.DeleteCustomerDropdownOption(ctx, its)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
 }
+
+func TestListCustomerDropdownOptionIDs(t *testing.T) {
+	q, pool := setup(t)
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	manba := createDropdown(t, q, olma.ID, "Manba")
+	instagram := addOption(t, q, olma.ID, manba.ID, "Instagram")
+	linkedin := addOption(t, q, olma.ID, manba.ID, "LinkedIn")
+	youtube := addOption(t, q, olma.ID, manba.ID, "YouTube")
+	addOption(t, q, olma.ID, createDropdown(t, q, olma.ID, "Holat").ID, "Yangi")
+	mustExec(t, pool, "UPDATE customer_dropdown_options SET position = 0 WHERE id = $1", youtube.ID)
+	mustExec(t, pool, "UPDATE customer_dropdown_options SET deleted_at = now() WHERE id = $1", linkedin.ID)
+
+	ids, err := q.ListCustomerDropdownOptionIDs(t.Context(), manba.ID)
+
+	require.NoError(t, err)
+	assert.Equal(t, []int64{youtube.ID, instagram.ID}, ids, "the dropdown's own options in their order, without the deleted")
+}

@@ -133,6 +133,34 @@ func (q *Queries) GetCustomerDropdown(ctx context.Context, arg GetCustomerDropdo
 	return i, err
 }
 
+const listCustomerDropdownOptionIDs = `-- name: ListCustomerDropdownOptionIDs :many
+SELECT id FROM customer_dropdown_options
+WHERE dropdown_id = $1 AND deleted_at IS NULL
+ORDER BY position, id
+`
+
+// The dropdown's options in their order: what a new order has to name, all
+// of them and nothing else.
+func (q *Queries) ListCustomerDropdownOptionIDs(ctx context.Context, dropdownID int64) ([]int64, error) {
+	rows, err := q.db.Query(ctx, listCustomerDropdownOptionIDs, dropdownID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCustomerDropdownOptions = `-- name: ListCustomerDropdownOptions :many
 SELECT o.id, o.dropdown_id, o.label, o.position, o.is_active, o.created_at, o.deleted_at FROM customer_dropdown_options o
 JOIN customer_dropdowns d ON d.id = o.dropdown_id
