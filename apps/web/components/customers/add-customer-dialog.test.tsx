@@ -253,3 +253,21 @@ test("while the customer is on its way the button waits and says so", async () =
   await waitFor(() => expect(button).toHaveAttribute("aria-busy", "true"))
   expect(button).toHaveAttribute("aria-disabled", "true")
 })
+
+test("a choice whose dropdown offers nothing says so, and a required one cannot be saved", async () => {
+  await signIn(ALI)
+  db.dropdowns[0].options.forEach((option) => (option.active = false))
+  const [jismoniy] = db.types.filter((type) => type.companyId === 1)
+  jismoniy.fields[1].required = true
+  const { user, dialog } = await openDialog()
+
+  expect(within(dialog).getByText("Faol variant yo'q. Variantlar Sozlamalarda qo'shiladi.")).toBeInTheDocument()
+  expect(within(within(dialog).getByLabelText("Manba")).getAllByRole("option").map((o) => o.textContent)).toEqual(["Tanlanmagan"])
+
+  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
+  await user.type(within(dialog).getByLabelText("F.I.Sh."), "Ali")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText("«Manba» ni tanlang")).toBeInTheDocument()
+  expect(db.customers).toHaveLength(0)
+})

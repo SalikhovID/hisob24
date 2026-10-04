@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ApiError } from "@/lib/api"
+import { isChoice } from "@/lib/customer-fields"
 import { type CustomerForm, type CustomerOutput, fieldKey } from "@/lib/customers"
 import type { CustomerDropdown, CustomerField, CustomerOption, CustomerType } from "@/lib/types"
 
@@ -30,6 +31,7 @@ function Labeled({
   required,
   state,
   group = false,
+  note,
   children,
 }: {
   id: string
@@ -37,6 +39,8 @@ function Labeled({
   required: boolean
   state: ControllerFieldState
   group?: boolean
+  // note is a quiet line under the input: why it offers nothing.
+  note?: string
   children: ReactNode
 }) {
   return (
@@ -50,6 +54,7 @@ function Labeled({
         )}
       </div>
       {children}
+      {note && <p className="text-[0.8125rem] leading-5 text-pretty text-muted-foreground">{note}</p>}
       <FieldError errors={[state.error]} />
     </Field>
   )
@@ -73,7 +78,15 @@ function Answer({ control, field, options }: { control: FormControl; field: Cust
       control={control}
       name={`values.${fieldKey(field)}`}
       render={({ field: input, fieldState }) => {
-        const labeled = { id, label: field.label, required: field.required, state: fieldState }
+        const labeled = {
+          id,
+          label: field.label,
+          required: field.required,
+          state: fieldState,
+          // A choice with nothing to choose from: the options are the
+          // owner's to add, or to turn back on.
+          note: isChoice(field.kind) && options.length === 0 ? "Faol variant yo'q. Variantlar Sozlamalarda qo'shiladi." : undefined,
+        }
         const one = typeof input.value === "string" ? input.value : ""
         const several = Array.isArray(input.value) ? input.value : []
         const toggle = (value: string, on: boolean) =>
