@@ -150,10 +150,14 @@ export function DataList<T>({
           return (
             // The card is a grid so that what it shows at its top right (the
             // actions) can come last in the source: a screen reader meets the
-            // record before what can be done with it.
+            // record before what can be done with it. A card whose title is
+            // a link opens from anywhere on it: the link's stretched area is
+            // measured from the card here (from the identity in a table
+            // cell), the card answers a press by darkening, and the actions
+            // stay above the link.
             <li
               key={getKey(item)}
-              className="grid grid-cols-[minmax(0,1fr)_auto_auto] rounded-xl border bg-card p-4 text-sm"
+              className="relative grid grid-cols-[minmax(0,1fr)_auto_auto] rounded-xl border bg-card p-4 text-sm has-[a:active]:bg-muted/40 [&_[data-slot=identity]]:static"
             >
               <div data-slot="data-list-title" className="col-start-1 row-start-1 min-w-0 font-medium">
                 {columns
@@ -213,7 +217,7 @@ export function DataList<T>({
                   role="group"
                   aria-label={actions[0].column.header}
                   data-slot="data-list-actions"
-                  className="col-start-3 row-start-1 -mt-1 -mr-2 ml-2 flex shrink-0 items-center gap-2 self-start"
+                  className="relative z-10 col-start-3 row-start-1 -mt-1 -mr-2 ml-2 flex shrink-0 items-center gap-2 self-start"
                 >
                   {actions.map(({ column, value }) => (
                     <span key={column.header} className="contents">

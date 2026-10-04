@@ -50,6 +50,9 @@ test("an admin creates a company, replaces its owner and pays for more days", as
 test("the list searches and filters the companies", async ({ page, context, baseURL }) => {
   await signIn(context, baseURL)
   await page.goto("/companies")
+  // The list on screen means the page answers typing: a box filled before
+  // that (a cold dev server takes a while) would lose what was typed.
+  await expect(page.getByText("Nok Market").filter({ visible: true })).toBeVisible()
 
   await page.getByRole("searchbox", { name: "Qidirish" }).fill("olma")
   await expect(page).toHaveURL(/\/companies\?search=olma$/)
@@ -99,5 +102,26 @@ test("a company's actions stand beside its name on a wide screen and under it on
   } else {
     expect(rename.y).toBeLessThan(name.y + name.height)
     expect(rename.x).toBeGreaterThan(name.x + name.width)
+  }
+})
+
+test("on a phone a company's whole card opens it; in the table only the company's own cell does", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await signIn(context, baseURL)
+  await page.goto("/companies")
+  const phone = (page.viewportSize()?.width ?? 0) < 768
+
+  // Olma Savdo ends on 01.11.2026: the date stands in the card's line, and in a cell of its own in the table.
+  await page.getByText("01.11.2026").filter({ visible: true }).click({ force: true })
+
+  if (phone) {
+    await expect(page).toHaveURL(/\/companies\/1$/)
+  } else {
+    // A row is not a link: nothing happens, the list stays.
+    await page.waitForTimeout(500)
+    await expect(page).toHaveURL(/\/companies$/)
   }
 })

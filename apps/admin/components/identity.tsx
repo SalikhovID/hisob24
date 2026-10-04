@@ -11,7 +11,7 @@ import { Avatar } from "./avatar"
 // name as null and gets the icon. With href the title is the record's link:
 // the title alone, so the link is named by it and nothing else, yet the
 // whole identity answers the pointer (a name alone is a small thing to hit
-// with a thumb). A mark (a badge such as "Siz") stands beside the title,
+// with a thumb); on a DataList card, the whole card. A mark (a badge such as "Siz") stands beside the title,
 // outside it. A muted identity (someone no longer active) steps back: its
 // title takes the color of the line under it and its avatar loses its tint.
 // A long title wraps; it is never cut short, and the line of figures under
