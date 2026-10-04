@@ -182,7 +182,8 @@ func (s *Service) UpdateOption(ctx context.Context, companyID, dropdownID, optio
 }
 
 // DeleteOption hides an option of the company's dropdown; its name is free
-// again.
+// again. An option that customers have chosen is not deleted: it can be
+// turned off instead.
 func (s *Service) DeleteOption(ctx context.Context, companyID, dropdownID, optionID int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
 		_, err := q.DeleteCustomerDropdownOption(ctx, gen.DeleteCustomerDropdownOptionParams{
@@ -191,7 +192,19 @@ func (s *Service) DeleteOption(ctx context.Context, companyID, dropdownID, optio
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errOptionNotFound
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		// The option is the company's own, so its count may be told. The
+		// refusal undoes the delete: the write is one transaction.
+		used, err := q.CountOptionCustomers(ctx, &optionID)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "option_in_use", fmt.Sprintf("Bu variant %d ta mijozda tanlangan", used))
+		}
+		return nil
 	})
 }
 

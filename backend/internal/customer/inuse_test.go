@@ -61,3 +61,33 @@ func TestAFieldCustomersFilledInIsNotDeleted(t *testing.T) {
 	require.NoError(t, err)
 	assert.NoError(t, s.DeleteField(ctx, olma.id, olma.jismoniy.ID, olma.jinsi.ID), "an answer that was taken away does not hold it")
 }
+
+func TestAnOptionCustomersChoseIsNotDeleted(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	manba := *olma.manba.DropdownID
+	// Ali chose Instagram in two fields, Vali in one.
+	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{
+		olma.fish.ID: "Ali", olma.manba.ID: olma.instagram.ID, olma.kanallar.ID: []int64{olma.instagram.ID, olma.linkedin.ID},
+	})
+	vali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali", olma.manba.ID: olma.instagram.ID})
+
+	err := s.DeleteOption(ctx, olma.id, manba, olma.instagram.ID)
+
+	refused(t, err, apperr.Conflict, "option_in_use", "Bu variant 2 ta mijozda tanlangan")
+	refused(t, s.DeleteOption(ctx, olma.id, manba, olma.linkedin.ID), apperr.Conflict, "option_in_use", "Bu variant 1 ta mijozda tanlangan")
+	dropdowns, err := s.Dropdowns(ctx, olma.id)
+	require.NoError(t, err)
+	assert.Len(t, dropdowns[0].Options, 3, "the options stay")
+
+	assert.NoError(t, s.DeleteOption(ctx, olma.id, manba, olma.youtube.ID), "an option nobody chose")
+	// An option in use can be turned off instead.
+	_, err = s.UpdateOption(ctx, olma.id, manba, olma.instagram.ID, OptionPatch{Active: ptr(false)})
+	assert.NoError(t, err, "turning off is no deleting")
+	require.NoError(t, s.Delete(ctx, olma.id, ali.ID, owner))
+	assert.NoError(t, s.DeleteOption(ctx, olma.id, manba, olma.linkedin.ID), "a deleted customer's choice does not hold the option")
+	_, err = s.Update(ctx, olma.id, vali.ID, owner, Input{Phone: valiPhone, Values: answers(t, map[int64]any{olma.fish.ID: "Vali"})})
+	require.NoError(t, err)
+	assert.NoError(t, s.DeleteOption(ctx, olma.id, manba, olma.instagram.ID), "a choice that was taken back does not hold it")
+}
