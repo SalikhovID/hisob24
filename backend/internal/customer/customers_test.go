@@ -643,3 +643,33 @@ func TestUpdateWritesDownWhatChanged(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, edit, entriesOf(t, pool, ali.ID)[1], "under the names of that time")
 }
+
+func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998901234567", map[int64]any{
+		olma.fish.ID: "Ali Valiyev", olma.yosh.ID: 30, olma.manba.ID: olma.linkedin.ID,
+		olma.tillar.ID: []int64{olma.uzbek.ID, olma.rus.ID},
+	})
+	// The owner has put the languages in another order since.
+	require.NoError(t, s.OrderOptions(ctx, olma.id, *olma.tillar.DropdownID, []int64{olma.rus.ID, olma.uzbek.ID}))
+	age(t, pool)
+	before, err := s.Get(ctx, olma.id, ali.ID)
+	require.NoError(t, err)
+
+	got, err := s.Update(ctx, olma.id, ali.ID, staff, Input{
+		Phone: "+998 90 123 45 67",
+		Values: answers(t, map[int64]any{
+			olma.fish.ID: " Ali Valiyev ", olma.yosh.ID: 30, olma.manba.ID: olma.linkedin.ID,
+			olma.tillar.ID: []int64{olma.uzbek.ID, olma.rus.ID}, olma.jinsi.ID: nil, olma.kanallar.ID: []int64{},
+		}),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, before, got, "the customer as it was: not edited")
+	assert.Len(t, entriesOf(t, pool, ali.ID), 1, "nothing for the history")
+	read, err := s.Get(ctx, olma.id, ali.ID)
+	require.NoError(t, err)
+	assert.Equal(t, before, read)
+}

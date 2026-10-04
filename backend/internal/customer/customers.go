@@ -408,6 +408,11 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 		if err != nil {
 			return err
 		}
+		changed := diff(fields, options, c.Phone, phone, c.Values, values)
+		if len(changed) == 0 {
+			// Nothing to save, and nothing for the history.
+			return nil
+		}
 		if c.UpdatedAt, err = q.UpdateCustomer(ctx, gen.UpdateCustomerParams{ID: id, CompanyID: companyID, Phone: phone}); err != nil {
 			return err
 		}
@@ -417,7 +422,7 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 		if err := store(ctx, q, id, fields, values); err != nil {
 			return err
 		}
-		changes, err := json.Marshal(diff(fields, options, c.Phone, phone, c.Values, values))
+		changes, err := json.Marshal(changed)
 		if err != nil {
 			return err
 		}
