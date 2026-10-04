@@ -2,13 +2,15 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { PageHeader } from "@/components/page-header"
+import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { api, call } from "@/lib/api"
 import { kindLabels, nameFieldOf } from "@/lib/customer-fields"
 import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
-import type { CustomerField } from "@/lib/types"
+import type { CustomerField, CustomerType } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
+import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteButton } from "./delete-button"
 import { AddFieldDialog, EditFieldDialog } from "./field-dialog"
 import { SettingRow, settingList } from "./setting-row"
@@ -24,6 +26,11 @@ export function CustomerTypePage({ id }: { id: number }) {
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const queryClient = useQueryClient()
+  const reorder = useReorder<CustomerType[]>(
+    customerTypesKey(companyId),
+    (all, ids) => all.map((type) => (type.id === id ? { ...type, fields: inOrder(type.fields, ids) } : type)),
+    (ids) => call(api.PUT("/app/customer-types/{id}/fields/order", { params: { path: { id } }, body: { ids } })),
+  )
 
   if (!owner) return null
   if (!types.data) {
@@ -60,46 +67,51 @@ export function CustomerTypePage({ id }: { id: number }) {
         <EmptyState title="Bu turda maydon yo'q" description="Mijoz faqat telefon raqami bilan qo'shiladi." />
       )}
       {type.fields.length > 0 && (
-        <ul aria-label="Maydonlar" className={settingList}>
-          {type.fields.map((field) => (
-            <li key={field.id}>
-              <SettingRow
-                title={field.label}
-                detail={kindOf(field)}
-                marks={
-                  <>
-                    {field.id === nameField?.id && (
-                      <Badge variant="secondary" className="bg-primary/10 dark:bg-primary/15">
-                        Mijoz nomi
-                      </Badge>
-                    )}
-                    {field.required && <Badge variant="secondary">Majburiy</Badge>}
-                    {field.is_unique && <Badge variant="outline">Takrorlanmas</Badge>}
-                  </>
-                }
-                actions={
-                  <>
-                    <EditFieldDialog companyId={owner.company.id} typeId={type.id} field={field} kind={kindOf(field)} />
-                    <DeleteButton
-                      label={`O'chirish: ${field.label}`}
-                      title="Maydonni o'chirasizmi?"
-                      description={`«${field.label}» maydoni formadan olib tashlanadi. Mijozlarda to'ldirilgan maydon o'chirilmaydi.`}
-                      done="Maydon o'chirildi"
-                      onDelete={async () => {
-                        await call(
-                          api.DELETE("/app/customer-types/{id}/fields/{fieldId}", {
-                            params: { path: { id: type.id, fieldId: field.id } },
-                          }),
-                        )
-                        await queryClient.invalidateQueries({ queryKey: customerTypesKey(owner.company.id) })
-                      }}
-                    />
-                  </>
-                }
-              />
-            </li>
-          ))}
-        </ul>
+        <SortableList
+          label="Maydonlar"
+          items={type.fields}
+          getId={(field) => String(field.id)}
+          getLabel={(field) => field.label}
+          onReorder={(ids) => reorder.mutate(ids.map(Number))}
+          className={settingList}
+          renderItem={(field, handle) => (
+            <SettingRow
+              handle={handle}
+              title={field.label}
+              detail={kindOf(field)}
+              marks={
+                <>
+                  {field.id === nameField?.id && (
+                    <Badge variant="secondary" className="bg-primary/10 dark:bg-primary/15">
+                      Mijoz nomi
+                    </Badge>
+                  )}
+                  {field.required && <Badge variant="secondary">Majburiy</Badge>}
+                  {field.is_unique && <Badge variant="outline">Takrorlanmas</Badge>}
+                </>
+              }
+              actions={
+                <>
+                  <EditFieldDialog companyId={owner.company.id} typeId={type.id} field={field} kind={kindOf(field)} />
+                  <DeleteButton
+                    label={`O'chirish: ${field.label}`}
+                    title="Maydonni o'chirasizmi?"
+                    description={`«${field.label}» maydoni formadan olib tashlanadi. Mijozlarda to'ldirilgan maydon o'chirilmaydi.`}
+                    done="Maydon o'chirildi"
+                    onDelete={async () => {
+                      await call(
+                        api.DELETE("/app/customer-types/{id}/fields/{fieldId}", {
+                          params: { path: { id: type.id, fieldId: field.id } },
+                        }),
+                      )
+                      await queryClient.invalidateQueries({ queryKey: customerTypesKey(owner.company.id) })
+                    }}
+                  />
+                </>
+              }
+            />
+          )}
+        />
       )}
       <p className="px-1 text-sm text-pretty text-muted-foreground md:px-4">
         Telefon har doim bor va majburiy: uni maydon qilib qo&apos;shish shart emas. Birinchi matn maydoni

@@ -228,3 +228,33 @@ test("a field is deleted after asking; one the API will not delete stays, and th
   expect(await screen.findByText("Bu maydon 4 ta mijozda to'ldirilgan")).toBeInTheDocument()
   expect(fieldsOf(await fieldList()).map((field) => field.label)).toEqual(["Nomi"])
 })
+
+test("the fields are put in order from the keyboard: the first text field is the customer's name", async () => {
+  await signIn(ALI)
+  const [jismoniy] = typesOf(1)
+  db.types.find((type) => type.id === jismoniy.id)!.fields.push({
+    id: 900,
+    label: "Laqabi",
+    kind: "string",
+    required: false,
+    unique: false,
+    dropdownId: null,
+  })
+  const { user } = renderWithProviders(<CustomerTypePage id={jismoniy.id} />)
+  const list = await fieldList()
+  expect(fieldsOf(list).map((field) => [field.label, field.marks.includes("Mijoz nomi")])).toEqual([
+    ["F.I.Sh.", true],
+    ["Manba", false],
+    ["Laqabi", false],
+  ])
+
+  within(list).getByRole("button", { name: "Laqabi: tartibini o'zgartirish" }).focus()
+  await user.keyboard("{Home}")
+
+  expect(fieldsOf(await fieldList()).map((field) => [field.label, field.marks.includes("Mijoz nomi")])).toEqual([
+    ["Laqabi", true],
+    ["F.I.Sh.", false],
+    ["Manba", false],
+  ])
+  await waitFor(() => expect(typesOf(1)[0].fields.map((field) => field.label)).toEqual(["Laqabi", "F.I.Sh.", "Manba"]))
+})
