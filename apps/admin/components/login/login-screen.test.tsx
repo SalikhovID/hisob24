@@ -80,3 +80,17 @@ test("when the browser keeps no session cookie the panel says so instead of loop
   await user.click(screen.getByRole("button", { name: "Yopish" }))
   expect(webApp.close).toHaveBeenCalled()
 })
+
+test("inside Telegram the login's screens are headed by the brand", async () => {
+  window.Telegram = {
+    WebApp: fakeWebApp({
+      initData: "user=%7B%22id%22%3A42%7D&hash=abc",
+      initDataUnsafe: { user: { id: 42, first_name: "Begona" } },
+    }),
+  }
+  renderWithProviders(<LoginScreen botUsername="hisob24_admin_bot" />)
+
+  expect(await screen.findByRole("heading", { name: "Sizda ruxsat yo'q" })).toBeInTheDocument()
+  expect(screen.getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+  expect(screen.getByText("Admin")).toBeInTheDocument()
+})

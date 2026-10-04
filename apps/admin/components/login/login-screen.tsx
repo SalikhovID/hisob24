@@ -3,6 +3,7 @@
 import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { type ReactNode, useEffect, useState } from "react"
+import { Brand } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { api, ApiError, call } from "@/lib/api"
 import { waitForWebApp } from "@/lib/telegram"
@@ -87,10 +88,14 @@ export function LoginScreen({ botUsername }: { botUsername: string }) {
   return <OtpLogin botUsername={botUsername} notice={stage.notice} />
 }
 
+// Centered is every screen of the Telegram sign-in: what it says, under the brand.
 function Centered({ children }: { children: ReactNode }) {
   return (
     <main className="flex min-h-svh items-center justify-center p-4">
-      <div className="flex max-w-sm flex-col items-center gap-3 text-center">{children}</div>
+      <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+        <Brand className="mb-3 text-xl" />
+        {children}
+      </div>
     </main>
   )
 }
