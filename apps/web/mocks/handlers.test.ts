@@ -480,3 +480,55 @@ test("a required choice has to be made; the owner enters customers too", async (
     created_by_name: "Ali Valiyev",
   })
 })
+
+type ListQuery = { search?: string; type_id?: number; page?: number }
+const listCustomers = (query: ListQuery = {}) => call(api.GET("/app/customers", { params: { query } }))
+
+test("the list: the newest first, twenty to a page, one type, a search in the phones, the texts and the numbers", async () => {
+  await signIn(ALI)
+  const { jismoniy, yuridik, fish, manba, nomi, inn, instagram } = await setup()
+  const ali = await createCustomer(jismoniy.id, "998901234567", { [fish.id]: "Ali Valiyev", [manba.id]: instagram.id })
+  const vali = await createCustomer(jismoniy.id, "998905555555", { [fish.id]: "Vali Aliyev" })
+  const firma = await createCustomer(yuridik.id, "998907777777", { [nomi.id]: "Olma 100% MChJ", [inn.id]: 301234567 })
+
+  expect(await listCustomers()).toEqual({ items: [firma, vali, ali], total: 3, page: 1, page_size: 20 })
+
+  const found = async (query: ListQuery) => (await listCustomers(query)).items.map((c) => c.id)
+  expect(await found({ type_id: yuridik.id })).toEqual([firma.id])
+  expect(await found({ type_id: 999 })).toEqual([])
+  expect(await found({ search: "ALI" })).toEqual([vali.id, ali.id])
+  expect(await found({ search: " valiyev " })).toEqual([ali.id])
+  expect(await found({ search: "+998 (90) 555-55" })).toEqual([vali.id])
+  expect(await found({ search: "0123" })).toEqual([firma.id, ali.id])
+  expect(await found({ search: "100%" })).toEqual([firma.id])
+  expect(await found({ search: "_" })).toEqual([])
+  expect(await found({ search: "olma 100" })).toEqual([firma.id])
+  // Letters with digits are a text: the digits are not looked for in the phones.
+  expect(await found({ search: "ali 5" })).toEqual([])
+  // An option's name is not searched.
+  expect(await found({ search: "Instagram" })).toEqual([])
+  expect(await found({ search: "ali", type_id: yuridik.id })).toEqual([])
+  expect((await listCustomers({ search: "ali" })).total).toBe(2)
+
+  for (let i = 0; i < 20; i += 1) {
+    await createCustomer(jismoniy.id, `9989000000${String(i).padStart(2, "0")}`, { [fish.id]: `Mijoz ${i}` })
+  }
+  const first = await listCustomers()
+  expect(first.items).toHaveLength(20)
+  expect(first.total).toBe(23)
+  const second = await listCustomers({ page: 2 })
+  expect(second.items.map((c) => c.id)).toEqual([firma.id, vali.id, ali.id])
+  expect(second).toMatchObject({ total: 23, page: 2, page_size: 20 })
+  expect(await listCustomers({ page: 3 })).toEqual({ items: [], total: 23, page: 3, page_size: 20 })
+  expect(await failure(listCustomers({ page: 0 }))).toMatchObject({ status: 400, code: "validation_error", message: "Sahifa raqami noto'g'ri" })
+  expect(await failure(listCustomers({ type_id: "abc" as unknown as number }))).toMatchObject({
+    status: 400,
+    message: "Mijoz turi noto'g'ri",
+  })
+
+  // Each company has its own customers.
+  await signIn(VALI)
+  expect(await failure(listCustomers())).toMatchObject({ status: 403, code: "company_required" })
+  await chooseCompany(2)
+  expect(await listCustomers()).toEqual({ items: [], total: 0, page: 1, page_size: 20 })
+})

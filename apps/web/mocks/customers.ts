@@ -122,7 +122,48 @@ const toCustomer = (c: CustomerRow): Customer => ({
   updated_at: c.updatedAt,
 })
 
+const PAGE_SIZE = 20
+
+// found tells whether a search finds the customer: the text in its text
+// answers, whatever the case; the digits of a search written as a number or
+// a phone is (digits, spaces, "+", "-", parentheses) in its phone and its
+// whole number answers too. The names of the options are not searched.
+function found(customer: CustomerRow, search: string): boolean {
+  const text = search.trim().toLowerCase()
+  if (!text) return true
+  const digits = /^[\d\s+\-()]+$/.test(text) ? text.replace(/\D/g, "") : ""
+  const fields = db.types.find((t) => t.id === customer.typeId)?.fields ?? []
+  return (
+    (digits !== "" && customer.phone.includes(digits)) ||
+    fields.some((field) => {
+      const answer = customer.values[field.id]
+      if (field.kind === "string") return typeof answer === "string" && answer.toLowerCase().includes(text)
+      return field.kind === "int" && typeof answer === "number" && digits !== "" && String(answer).includes(digits)
+    })
+  )
+}
+
 export const customersHandlers = [
+  http.get(api("/app/customers"), ({ request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    const query = new URL(request.url).searchParams
+    const page = query.has("page") ? Number(query.get("page")) : 1
+    if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
+    const typeId = query.has("type_id") ? Number(query.get("type_id")) : null
+    if (typeId !== null && (!Number.isInteger(typeId) || typeId < 1)) return invalid("Mijoz turi noto'g'ri")
+    const all = liveCustomers(member.companyId)
+      .filter((c) => (typeId === null || c.typeId === typeId) && found(c, query.get("search") ?? ""))
+      // The newest first.
+      .sort((a, b) => b.id - a.id)
+    return HttpResponse.json({
+      items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(toCustomer),
+      total: all.length,
+      page,
+      page_size: PAGE_SIZE,
+    })
+  }),
+
   http.post(api("/app/customers"), async ({ request }) => {
     const member = memberSession(request)
     if (member instanceof Response) return member
