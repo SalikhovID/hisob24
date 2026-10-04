@@ -236,3 +236,23 @@ test("a dropdown is renamed from its row", async () => {
   expect(await screen.findByText("Dropdown nomi o'zgartirildi")).toBeInTheDocument()
   await waitFor(async () => expect(names(await dropdownList())).toEqual(["Qayerdan"]))
 })
+
+test("a dropdown a field uses is not deleted, and the reason is said; one that is free is", async () => {
+  await signIn(ALI)
+  db.dropdowns.push({ id: 900, companyId: 1, name: "Holat", options: [] })
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  await user.click(within(await dropdownList()).getByRole("button", { name: "O'chirish: Manba" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })
+  expect(within(confirm).getByText(/«Manba» va uning variantlari o'chadi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Bu dropdown 1 ta maydonda ishlatilgan")).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(names(await dropdownList())).toEqual(["Manba", "Holat"])
+
+  await user.click(within(await dropdownList()).getByRole("button", { name: "O'chirish: Holat" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Dropdown o'chirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await dropdownList())).toEqual(["Manba"]))
+})
