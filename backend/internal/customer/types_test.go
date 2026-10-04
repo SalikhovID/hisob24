@@ -289,3 +289,29 @@ func TestUpdateField(t *testing.T) {
 	_, err = s.UpdateField(ctx, olma, yuridik.ID, fish.ID, FieldPatch{Label: ptr("Begona")})
 	refused(t, err, apperr.NotFound, "not_found", notFound, "a field of another type")
 }
+
+func TestDeleteField(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	yuridik := mustType(t, s, olma, "Yuridik")
+	fish := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "F.I.Sh.", Kind: "string"})
+	yosh := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "Yoshi", Kind: "int"})
+
+	require.NoError(t, s.DeleteField(ctx, olma, jismoniy.ID, fish.ID))
+
+	list, err := s.Types(ctx, olma)
+	require.NoError(t, err)
+	assert.Equal(t, []Field{yosh}, list[0].Fields, "the field is gone from the type")
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM customer_fields WHERE type_id = $1", jismoniy.ID).Scan(&rows))
+	assert.Equal(t, 2, rows, "nothing leaves the database")
+	again := mustField(t, s, olma, jismoniy.ID, FieldInput{Label: "F.I.Sh.", Kind: "string"})
+	assert.NotEqual(t, fish.ID, again.ID, "the deleted field's name is free again")
+
+	const notFound = "Maydon topilmadi"
+	refused(t, s.DeleteField(ctx, olma, jismoniy.ID, fish.ID), apperr.NotFound, "not_found", notFound, "deleted already")
+	refused(t, s.DeleteField(ctx, nok, jismoniy.ID, yosh.ID), apperr.NotFound, "not_found", notFound, "another company's field")
+	refused(t, s.DeleteField(ctx, olma, yuridik.ID, yosh.ID), apperr.NotFound, "not_found", notFound, "a field of another type")
+}
