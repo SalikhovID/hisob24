@@ -453,3 +453,25 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 	}
 	return c, nil
 }
+
+// Delete hides the company's customer: it is gone from the app, its phone is
+// free again, and nothing is removed. by is the phone of the member who
+// deletes it.
+func (s *Service) Delete(ctx context.Context, companyID, id int64, by string) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		_, err := q.DeleteCustomer(ctx, gen.DeleteCustomerParams{ID: id, CompanyID: companyID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errCustomerNotFound
+		}
+		if err != nil {
+			return err
+		}
+		name, err := memberName(ctx, q, companyID, by)
+		if err != nil {
+			return err
+		}
+		return q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
+			CustomerID: id, Action: "deleted", ActorPhone: by, ActorName: name, Changes: []byte("[]"),
+		})
+	})
+}

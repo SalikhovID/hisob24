@@ -788,3 +788,35 @@ func TestAFailedLookupIsNotTakenForAFreePhone(t *testing.T) {
 	assert.ErrorIs(t, phoneFree(t.Context(), q, 1, "998901234567", 0), errDown, "a new customer")
 	assert.ErrorIs(t, phoneFree(t.Context(), q, 1, "998901234567", 7), errDown, "a customer being edited")
 }
+
+func TestDelete(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{olma.fish.ID: "Ali", olma.manba.ID: olma.instagram.ID})
+	mustCustomer(t, s, olma.id, olma.jismoniy.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali"})
+	begona := mustCustomer(t, s, nok.id, nok.jismoniy.ID, aliPhone, map[int64]any{nok.fish.ID: "Begona"})
+
+	refused(t, s.Delete(ctx, olma.id, begona.ID, staff), apperr.NotFound, "not_found", customerNotFound, "another company's customer")
+	refused(t, s.Delete(ctx, olma.id, 1<<40, staff), apperr.NotFound, "not_found", customerNotFound, "a customer that is not there")
+
+	require.NoError(t, s.Delete(ctx, olma.id, ali.ID, staff))
+
+	_, err := s.Get(ctx, olma.id, ali.ID)
+	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "the customer is gone from the app")
+	page, err := s.List(ctx, olma.id, ListInput{Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []string{valiPhone}, phones(page.Items), "and from the list")
+	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM customers WHERE id = $1 AND deleted_at IS NOT NULL", ali.ID), "but is kept")
+	assert.Equal(t, []string{"F.I.Sh.: Ali", "Manba: Instagram"}, storedAnswers(t, pool, ali.ID), "with its answers")
+	assert.Equal(t, []string{
+		"created by 998901111111 (Egamberdi Egasi): []",
+		"deleted by 998902222222 (Xurshid Xodim): []",
+	}, storedHistory(t, pool, ali.ID), "who deleted it is written down")
+
+	refused(t, s.Delete(ctx, olma.id, ali.ID, staff), apperr.NotFound, "not_found", customerNotFound, "deleted already")
+	mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{olma.fish.ID: "Yangi Ali"}) // its phone is free again
+	_, err = s.Get(ctx, nok.id, begona.ID)
+	assert.NoError(t, err, "the other company's customer stays")
+}
