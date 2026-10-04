@@ -83,6 +83,26 @@ func (q *Queries) GetCompanyAccess(ctx context.Context, arg GetCompanyAccessPara
 	return i, err
 }
 
+const getMemberName = `-- name: GetMemberName :one
+SELECT full_name FROM user_companies
+WHERE user_phone = $1 AND company_id = $2
+`
+
+type GetMemberNameParams struct {
+	UserPhone string
+	CompanyID int64
+}
+
+// The name a user goes by in a company, NULL when they go by none there:
+// what is kept beside what they do to its customers. pgx.ErrNoRows when the
+// user is not its member.
+func (q *Queries) GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error) {
+	row := q.db.QueryRow(ctx, getMemberName, arg.UserPhone, arg.CompanyID)
+	var full_name *string
+	err := row.Scan(&full_name)
+	return full_name, err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT phone, full_name, created_at FROM users WHERE phone = $1
 `

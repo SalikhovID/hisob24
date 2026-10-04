@@ -82,3 +82,10 @@ RETURNING *;
 DELETE FROM user_companies
 WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
 RETURNING user_phone;
+
+-- name: GetMemberName :one
+-- The name a user goes by in a company, NULL when they go by none there:
+-- what is kept beside what they do to its customers. pgx.ErrNoRows when the
+-- user is not its member.
+SELECT full_name FROM user_companies
+WHERE user_phone = $1 AND company_id = $2;

@@ -136,6 +136,10 @@ type Querier interface {
 	GetCustomerField(ctx context.Context, arg GetCustomerFieldParams) (CustomerField, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerType(ctx context.Context, arg GetCustomerTypeParams) (CustomerType, error)
+	// The name a user goes by in a company, NULL when they go by none there:
+	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
+	// user is not its member.
+	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
 	// The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
 	// it never did (the user Mini App's sign-in).
 	GetTelegramContactPhone(ctx context.Context, chatID int64) (string, error)

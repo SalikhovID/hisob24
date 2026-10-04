@@ -609,3 +609,24 @@ func TestListCustomerHistory(t *testing.T) {
 	assert.JSONEq(t, `[]`, string(history[1].Changes))
 	assert.Greater(t, history[0].ID, history[1].ID)
 }
+
+func TestGetMemberName(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	createUser(t, q, enteredBy, "Ali")
+	createUser(t, q, "998902222222", "Vali")
+	addMember(t, q, olma.ID, enteredBy, "Ali Valiyev", "owner")
+	addMember(t, q, nok.ID, enteredBy, "Ali aka", "user")
+	mustExec(t, pool, "INSERT INTO user_companies (user_phone, company_id) VALUES ('998902222222', $1)", olma.ID)
+
+	name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: enteredBy, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, ptr("Ali Valiyev"), name, "the name the user goes by in this company")
+	name, err = q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: "998902222222", CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Nil(t, name, "a member without a name")
+	_, err = q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: "998902222222", CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member of the company")
+}
