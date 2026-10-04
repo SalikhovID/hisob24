@@ -85,14 +85,50 @@ export interface TypeRow {
   deleted?: boolean
 }
 
+// Answer is a customer's answer to one field: a text, a whole number or the
+// id of the one option chosen, or the ids of several options.
+export type Answer = string | number | number[]
+
+// A customer of a company. The values are the answers by the id of the
+// field. by is who entered it, byName the name they went by then. A deleted
+// customer is hidden, never removed.
+export interface CustomerRow {
+  id: number
+  companyId: number
+  typeId: number
+  phone: string
+  values: Record<number, Answer>
+  by: string
+  byName: string | null
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+}
+
+// What happened to a customer: who did it, under which name then, and what
+// an edit changed, as text.
+export interface HistoryRow {
+  id: number
+  customerId: number
+  action: "created" | "updated" | "deleted"
+  by: string
+  byName: string | null
+  createdAt: string
+  changes: { label: string; old: string; new: string }[]
+}
+
 interface Db {
   users: Record<string, string | null>
   companies: Company[]
   members: Record<string, Membership[]>
   dropdowns: DropdownRow[]
   types: TypeRow[]
+  customers: CustomerRow[]
+  history: HistoryRow[]
   // lastId: the id the last settings or customer row took.
   lastId: number
+  // minutes: how far the clock of the customers' timestamps has moved.
+  minutes: number
   // joined: the counter the next membership takes its place from.
   joined: number
   // codes: the code a phone may sign in with; sentAt: when its last code went.
@@ -158,6 +194,9 @@ function seed(): Db {
     users: { [ALI]: "Ali Valiyev", [VALI]: "Vali Aliyev", [SARDOR]: "Sardor Karimov", [ZARINA]: null },
     companies,
     ...seedSettings(companies),
+    customers: [],
+    history: [],
+    minutes: 0,
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],
       [VALI]: [
@@ -237,10 +276,17 @@ export function join(phone: string, companyId: number, name: string) {
   ;(db.members[phone] ??= []).push({ companyId, role: "user", joined: db.joined, fullName: name })
 }
 
-// nextId is the id of a new settings row.
+// nextId is the id of a new settings or customer row.
 export function nextId(): number {
   db.lastId += 1
   return db.lastId
+}
+
+// now is the moment of a customer's change. The clock moves a minute with
+// every reading, so what happened later is later, and the same in every run.
+export function now(): string {
+  db.minutes += 1
+  return new Date(Date.parse(`${TODAY}T06:00:00Z`) + db.minutes * 60_000).toISOString()
 }
 
 export const toDropdown = (d: DropdownRow): CustomerDropdown => ({

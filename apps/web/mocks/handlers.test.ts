@@ -379,3 +379,104 @@ test("the owner adds fields of the six kinds, changes, orders and deletes them",
   await chooseCompany(1)
   expect(await failure(addField(jismoniy.id, { label: "Xodimniki", kind: "string" }))).toMatchObject({ status: 403, code: "owner_only" })
 })
+
+// The customers (logic/customers.md; backend/internal/app/customers_test.go).
+type Answers = Record<string, string | number | number[] | null>
+const createCustomer = (typeId: number, phone: string, values?: Answers) =>
+  call(api.POST("/app/customers", { body: { type_id: typeId, phone, values } }))
+const getCustomer = (id: number) => call(api.GET("/app/customers/{id}", { params: { path: { id } } }))
+
+// setup is what Olma Savdo's customers are entered with: its two types, their
+// fields and the options of Manba (YouTube is turned off).
+async function setup() {
+  const [jismoniy, yuridik] = await customerTypes()
+  const [fish, manba] = jismoniy.fields
+  const [nomi, inn] = yuridik.fields
+  const [instagram, linkedin, youtube] = (await customerDropdowns())[0].options
+  return { jismoniy, yuridik, fish, manba, nomi, inn, instagram, linkedin, youtube }
+}
+
+test("a member enters a customer and reads it back; what is wrong is said in the API's words", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { jismoniy, yuridik, fish, manba, nomi, inn, instagram, youtube } = await setup()
+
+  const ali = await createCustomer(jismoniy.id, "+998 90 111 22 33", { [fish.id]: " Ali Valiyev ", [manba.id]: instagram.id })
+
+  expect(ali).toMatchObject({
+    type_id: jismoniy.id,
+    phone: "998901112233",
+    values: { [fish.id]: "Ali Valiyev", [manba.id]: instagram.id },
+    created_by_name: "Vali Aliyev",
+  })
+  expect(ali.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  expect(ali.updated_at).toBe(ali.created_at)
+  expect(await getCustomer(ali.id)).toEqual(ali)
+  // An answer left empty is not kept.
+  const vali = await createCustomer(jismoniy.id, "901112244", { [fish.id]: "Vali", [manba.id]: null })
+  expect(vali.values).toEqual({ [fish.id]: "Vali" })
+
+  const invalid = { status: 400, code: "validation_error" }
+  const refusals: [number, string, Answers | undefined, string][] = [
+    [jismoniy.id, "+7 900 123 45 67", { [fish.id]: "Chet el" }, "Telefon raqami noto'g'ri"],
+    [999, "998901112255", {}, "Mijoz turini tanlang"],
+    [jismoniy.id, "998901112255", { [fish.id]: "Ali", [inn.id]: 5 }, "Bu turda bunday maydon yo'q"],
+    [jismoniy.id, "998901112255", undefined, "«F.I.Sh.» maydonini to'ldiring"],
+    [jismoniy.id, "998901112255", { [fish.id]: "   " }, "«F.I.Sh.» maydonini to'ldiring"],
+    [jismoniy.id, "998901112255", { [fish.id]: 5 }, "«F.I.Sh.» matn bo'lishi kerak"],
+    [jismoniy.id, "998901112255", { [fish.id]: "a".repeat(501) }, "«F.I.Sh.» 500 belgidan oshmasin"],
+    [jismoniy.id, "998901112255", { [fish.id]: "Ali", [manba.id]: youtube.id }, "«Manba» uchun variant noto'g'ri"],
+    [jismoniy.id, "998901112255", { [fish.id]: "Ali", [manba.id]: 999 }, "«Manba» uchun variant noto'g'ri"],
+    [jismoniy.id, "998901112255", { [fish.id]: "Ali", [manba.id]: [instagram.id] }, "«Manba» uchun variant noto'g'ri"],
+    [yuridik.id, "998901112255", { [nomi.id]: "Olma", [inn.id]: 1.5 }, "«INN» butun son bo'lishi kerak"],
+    [yuridik.id, "998901112255", { [nomi.id]: "Olma", [inn.id]: "301" }, "«INN» butun son bo'lishi kerak"],
+    [yuridik.id, "998901112255", { [nomi.id]: "Olma", [inn.id]: 2 ** 53 }, "«INN» butun son bo'lishi kerak"],
+    [yuridik.id, "998901112255", { [nomi.id]: "Olma" }, "«INN» maydonini to'ldiring"],
+  ]
+  for (const [typeId, phone, values, message] of refusals) {
+    expect(await failure(createCustomer(typeId, phone, values)), message).toMatchObject({ ...invalid, message })
+  }
+
+  const firma = await createCustomer(yuridik.id, "998901112255", { [nomi.id]: "Olma MChJ", [inn.id]: 0 })
+  expect(firma.values).toEqual({ [nomi.id]: "Olma MChJ", [inn.id]: 0 })
+  expect(await failure(createCustomer(jismoniy.id, "901112233", { [fish.id]: "Boshqa" }))).toMatchObject({
+    status: 409,
+    code: "phone_taken",
+    message: "Bu raqamli mijoz allaqachon bor",
+    customerId: ali.id,
+  })
+  expect(await failure(createCustomer(yuridik.id, "998901112266", { [nomi.id]: "Nok MChJ", [inn.id]: 0 }))).toMatchObject({
+    status: 409,
+    code: "value_taken",
+    message: "Bu «INN» boshqa mijozda bor",
+    customerId: firma.id,
+  })
+  // What is wrong with the answers is said before a phone that is taken.
+  expect(await failure(createCustomer(jismoniy.id, "901112233", {}))).toMatchObject({ ...invalid, message: "«F.I.Sh.» maydonini to'ldiring" })
+
+  expect(await failure(getCustomer(999))).toMatchObject({ status: 404, code: "not_found", message: "Mijoz topilmadi" })
+  // Vali's own company is another one: Olma Savdo's customer is not there.
+  await chooseCompany(2)
+  expect(await failure(getCustomer(ali.id))).toMatchObject({ status: 404, message: "Mijoz topilmadi" })
+  await chooseCompany(null)
+  expect(await failure(getCustomer(ali.id))).toMatchObject({ status: 403, code: "company_required" })
+  expect(await failure(createCustomer(jismoniy.id, "998901112277", { [fish.id]: "Soli" }))).toMatchObject({
+    status: 403,
+    code: "company_required",
+    message: "Avval kompaniyani tanlang",
+  })
+})
+
+test("a required choice has to be made; the owner enters customers too", async () => {
+  await signIn(ALI)
+  const { jismoniy, fish, manba, linkedin } = await setup()
+  await updateField(jismoniy.id, manba.id, { required: true })
+
+  expect(await failure(createCustomer(jismoniy.id, "998901112233", { [fish.id]: "Ali" }))).toMatchObject({
+    status: 400,
+    message: "«Manba» ni tanlang",
+  })
+  expect(await createCustomer(jismoniy.id, "998901112233", { [fish.id]: "Ali", [manba.id]: linkedin.id })).toMatchObject({
+    created_by_name: "Ali Valiyev",
+  })
+})
