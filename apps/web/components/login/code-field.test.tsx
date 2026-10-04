@@ -46,3 +46,9 @@ test("a refused code marks every box", () => {
   expect(boxes).toHaveLength(6)
   boxes.forEach((box) => expect(box).toHaveAttribute("aria-invalid", "true"))
 })
+
+test("while a code is checked the field takes nothing", () => {
+  render(<Held onComplete={vi.fn()} disabled />)
+
+  expect(screen.getByRole("textbox", { name: "Kod" })).toBeDisabled()
+})
