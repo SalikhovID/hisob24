@@ -89,3 +89,38 @@ test("an employee is sent home: a type's page is the owner's", async () => {
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
   expect(screen.queryByRole("heading")).not.toBeInTheDocument()
 })
+
+test("a field is added from the dialog: a choice asks for its dropdown, text and numbers may be told not to repeat", async () => {
+  await signIn(ALI)
+  const [, yuridik] = typesOf(1)
+  const { user } = renderWithProviders(<CustomerTypePage id={yuridik.id} />)
+  await fieldList()
+
+  await user.click(screen.getByRole("button", { name: "Maydon qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Maydon qo'shish" })
+  // Text by default: no dropdown is asked for, and it may be told not to repeat.
+  expect(within(dialog).getByLabelText("Turi")).toHaveValue("string")
+  expect(within(dialog).queryByLabelText("Dropdown")).not.toBeInTheDocument()
+  expect(within(dialog).getByRole("checkbox", { name: "Takrorlanmasin" })).toBeInTheDocument()
+
+  await user.type(within(dialog).getByLabelText("Nomi"), "Manba")
+  await user.selectOptions(within(dialog).getByLabelText("Turi"), "Checkbox (bir nechta tanlov)")
+  expect(within(dialog).queryByRole("checkbox", { name: "Takrorlanmasin" })).not.toBeInTheDocument()
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Dropdownni tanlang")).toBeInTheDocument()
+
+  await user.selectOptions(within(dialog).getByLabelText("Dropdown"), "Manba")
+  await user.click(within(dialog).getByRole("checkbox", { name: "Majburiy" }))
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Maydon qo'shildi")).toBeInTheDocument()
+  await waitFor(async () =>
+    expect(fieldsOf(await fieldList())[2]).toEqual({
+      label: "Manba",
+      kind: "Checkbox (bir nechta tanlov) · Manba",
+      marks: ["Majburiy"],
+    }),
+  )
+  expect(screen.getByText("Mijoz turi · 3 ta maydon")).toBeInTheDocument()
+})

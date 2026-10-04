@@ -7,6 +7,7 @@ import { kindLabels, nameFieldOf } from "@/lib/customer-fields"
 import { useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import type { CustomerField } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
+import { AddFieldDialog } from "./field-dialog"
 import { SettingRow, settingList } from "./setting-row"
 
 const back = { href: "/settings", label: "Sozlamalar" }
@@ -45,7 +46,12 @@ export function CustomerTypePage({ id }: { id: number }) {
 
   return (
     <div className="space-y-5">
-      <PageHeader title={type.name} description={`Mijoz turi · ${type.fields.length} ta maydon`} back={back} />
+      <PageHeader
+        title={type.name}
+        description={`Mijoz turi · ${type.fields.length} ta maydon`}
+        back={back}
+        actions={<AddFieldDialog companyId={owner.company.id} typeId={type.id} dropdowns={dropdowns.data ?? []} />}
+      />
       {type.fields.length === 0 && (
         <EmptyState title="Bu turda maydon yo'q" description="Mijoz faqat telefon raqami bilan qo'shiladi." />
       )}
