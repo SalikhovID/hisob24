@@ -725,6 +725,37 @@ paths:
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
           $ref: "#/components/responses/CompanyRequired"
+    post:
+      operationId: createCustomerDropdown
+      summary: Dropdown yaratish (faqat owner)
+      description: >
+        Variantsiz yangi dropdown. Nomi kompaniyada takrorlanmaydi
+        (katta-kichik harf farqsiz), 60 belgigacha.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NameInput"
+      responses:
+        "201":
+          description: Yaratilgan dropdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDropdown"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /app/customer-types:
     get:
       operationId: listCustomerTypes

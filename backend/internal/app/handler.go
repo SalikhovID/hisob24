@@ -61,6 +61,7 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Post("/employees", h.addEmployee)
 				r.Patch("/employees/{phone}", h.renameEmployee)
 				r.Delete("/employees/{phone}", h.removeEmployee)
+				r.Post("/customer-dropdowns", h.createCustomerDropdown)
 			})
 			// The customers and what they are set up with are for every
 			// member of the company the session works in; changing the

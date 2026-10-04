@@ -89,3 +89,32 @@ func TestListCustomerTypes(t *testing.T) {
 	assert.JSONEq(t, companyRequired, rec.Body.String())
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/customer-types", "").Code, "no access token")
 }
+
+func TestCreateCustomerDropdown(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+
+	rec := api.do(t, http.MethodPost, "/app/customer-dropdowns", `{"name":" Manba "}`, bearer(owner))
+
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	created := decode(t, rec)
+	assert.Equal(t, "Manba", created["name"])
+	assert.Equal(t, []any{}, created["options"])
+	assert.NotEmpty(t, created["id"])
+	assert.Len(t, list(t, api.do(t, http.MethodGet, "/app/customer-dropdowns", "", bearer(owner))), 1, "it joins the company's dropdowns")
+
+	rec = api.do(t, http.MethodPost, "/app/customer-dropdowns", `{"name":"manba"}`, bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"name_taken","message":"Bu nomli dropdown allaqachon bor"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/customer-dropdowns", `{"name":""}`, bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Nomni kiriting"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/customer-dropdowns", `{"name":`, bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code, "not JSON")
+
+	rec = api.do(t, http.MethodPost, "/app/customer-dropdowns", `{"name":"Holat"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}

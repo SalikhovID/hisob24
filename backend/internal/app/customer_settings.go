@@ -87,3 +87,19 @@ func (h *Handler) listCustomerTypes(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, body)
 }
+
+// createCustomerDropdown adds an empty dropdown to the owner's company.
+func (h *Handler) createCustomerDropdown(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name string `json:"name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	d, err := h.customers.CreateDropdown(r.Context(), sessionCompany(r), body.Name)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toDropdownJSON(d))
+}
