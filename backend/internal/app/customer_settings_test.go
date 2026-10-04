@@ -426,3 +426,37 @@ func TestAddCustomerField(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, ownerOnly, rec.Body.String())
 }
+
+// addField inserts a text field of the type at a place and returns its id.
+func (api testAPI) addField(t *testing.T, companyID, typeID int64, label string, position int) int64 {
+	t.Helper()
+	return api.id(t, `INSERT INTO customer_fields (company_id, type_id, label, kind, position)
+		VALUES ($1, $2, $3, 'string', $4) RETURNING id`, companyID, typeID, label, position)
+}
+
+func TestUpdateCustomerField(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	jismoniy := api.addType(t, olma, "Jismoniy", 1)
+	fish := api.addField(t, olma, jismoniy, "F.I.Sh.", 1)
+	path := fmt.Sprintf("/app/customer-types/%d/fields/%d", jismoniy, fish)
+
+	rec := api.do(t, http.MethodPatch, path, `{"label":"Ism","required":true}`, bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, fmt.Sprintf(`{"id":%d,"label":"Ism","kind":"string","required":true,"is_unique":false,"dropdown_id":null}`, fish),
+		rec.Body.String())
+
+	rec = api.do(t, http.MethodPatch, path, `{"is_unique":true}`, bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, fmt.Sprintf(`{"id":%d,"label":"Ism","kind":"string","required":true,"is_unique":true,"dropdown_id":null}`, fish),
+		rec.Body.String(), "what the body leaves out stays")
+
+	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/customer-types/%d/fields/999", jismoniy), `{"label":"Yo'q"}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, fieldNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPatch, path, `{"label":"Begona"}`, bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}

@@ -289,3 +289,23 @@ func (h *Handler) addCustomerField(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusCreated, toFieldJSON(f))
 }
+
+// updateCustomerField changes the name and the marks of a field of a
+// customer type of the owner's company; what the body leaves out stays.
+func (h *Handler) updateCustomerField(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Label    *string `json:"label"`
+		Required *bool   `json:"required"`
+		IsUnique *bool   `json:"is_unique"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	f, err := h.customers.UpdateField(r.Context(), sessionCompany(r), pathID(r, "id"), pathID(r, "fieldId"),
+		customer.FieldPatch{Label: body.Label, Required: body.Required, Unique: body.IsUnique})
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toFieldJSON(f))
+}

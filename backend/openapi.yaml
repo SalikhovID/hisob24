@@ -1150,6 +1150,54 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customer-types/{id}/fields/{fieldId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: fieldId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: updateCustomerField
+      summary: Maydon nomi va belgilarini o'zgartirish (faqat owner)
+      description: >
+        Berilmagan maydon o'zgarmaydi. Tur va dropdown o'zgarmaydi. "Majburiy"
+        yoqilsa, mavjud mijozlarga tegilmaydi. Faol mijozlarda takror
+        qiymatlar bor paytda is_unique yoqilmaydi: 409 duplicates_exist.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FieldPatch"
+      responses:
+        "200":
+          description: O'zgargan maydon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerField"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

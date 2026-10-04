@@ -73,6 +73,7 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Patch("/customer-types/{id}", h.renameCustomerType)
 				r.Delete("/customer-types/{id}", h.deleteCustomerType)
 				r.Post("/customer-types/{id}/fields", h.addCustomerField)
+				r.Patch("/customer-types/{id}/fields/{fieldId}", h.updateCustomerField)
 			})
 			// The customers and what they are set up with are for every
 			// member of the company the session works in; changing the
