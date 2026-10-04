@@ -110,3 +110,34 @@ func TestDeleteCustomerType(t *testing.T) {
 	_, err = q.DeleteCustomerType(ctx, gen.DeleteCustomerTypeParams{ID: jismoniy.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
 }
+
+func typeIDs(t *testing.T, q *gen.Queries, companyID int64) []int64 {
+	t.Helper()
+	list, err := q.ListCustomerTypes(t.Context(), companyID)
+	require.NoError(t, err)
+	ids := make([]int64, 0, len(list))
+	for _, ct := range list {
+		ids = append(ids, ct.ID)
+	}
+	return ids
+}
+
+func TestOrderCustomerTypes(t *testing.T) {
+	q, pool := setup(t)
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	jismoniy := createType(t, q, olma.ID, "Jismoniy")
+	yuridik := createType(t, q, olma.ID, "Yuridik")
+	hamkor := createType(t, q, olma.ID, "Hamkor")
+	begona := createType(t, q, nok.ID, "Begona")
+	createType(t, q, nok.ID, "Ikkinchi")
+
+	err := q.OrderCustomerTypes(t.Context(), gen.OrderCustomerTypesParams{
+		CompanyID: olma.ID,
+		Ids:       []int64{hamkor.ID, jismoniy.ID, yuridik.ID, begona.ID},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, []int64{hamkor.ID, jismoniy.ID, yuridik.ID}, typeIDs(t, q, olma.ID), "the types stand as the ids were given")
+	assert.Equal(t, begona.ID, typeIDs(t, q, nok.ID)[0], "another company's type stays where it was")
+}

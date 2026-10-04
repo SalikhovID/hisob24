@@ -123,6 +123,9 @@ type Querier interface {
 	// Puts the dropdown's options in the order of ids: the first gets position
 	// 1. An id that is not a live option of the dropdown is passed over.
 	OrderCustomerDropdownOptions(ctx context.Context, arg OrderCustomerDropdownOptionsParams) error
+	// Puts the company's types in the order of ids: the first gets position 1.
+	// An id that is not a live type of the company is passed over.
+	OrderCustomerTypes(ctx context.Context, arg OrderCustomerTypesParams) error
 	// Takes a user out of the company; the user and their other companies stay.
 	// No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
 	// someone who is not a member.

@@ -116,6 +116,24 @@ func (q *Queries) ListCustomerTypes(ctx context.Context, companyID int64) ([]Cus
 	return items, nil
 }
 
+const orderCustomerTypes = `-- name: OrderCustomerTypes :exec
+UPDATE customer_types t SET position = n.ord::int
+FROM unnest($2::bigint[]) WITH ORDINALITY AS n(id, ord)
+WHERE t.id = n.id AND t.company_id = $1 AND t.deleted_at IS NULL
+`
+
+type OrderCustomerTypesParams struct {
+	CompanyID int64
+	Ids       []int64
+}
+
+// Puts the company's types in the order of ids: the first gets position 1.
+// An id that is not a live type of the company is passed over.
+func (q *Queries) OrderCustomerTypes(ctx context.Context, arg OrderCustomerTypesParams) error {
+	_, err := q.db.Exec(ctx, orderCustomerTypes, arg.CompanyID, arg.Ids)
+	return err
+}
+
 const renameCustomerType = `-- name: RenameCustomerType :one
 UPDATE customer_types SET name = $1
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL

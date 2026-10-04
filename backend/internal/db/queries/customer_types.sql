@@ -29,3 +29,10 @@ RETURNING *;
 UPDATE customer_types SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 RETURNING id;
+
+-- name: OrderCustomerTypes :exec
+-- Puts the company's types in the order of ids: the first gets position 1.
+-- An id that is not a live type of the company is passed over.
+UPDATE customer_types t SET position = n.ord::int
+FROM unnest(sqlc.arg('ids')::bigint[]) WITH ORDINALITY AS n(id, ord)
+WHERE t.id = n.id AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL;
