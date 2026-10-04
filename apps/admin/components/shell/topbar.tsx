@@ -35,7 +35,9 @@ export function Topbar() {
         </SheetTrigger>
         <SheetContent side="left" className="bg-sidebar p-3">
           <SheetHeader className="px-1">
-            <SheetTitle>Hisob24 Admin</SheetTitle>
+            <SheetTitle>
+              <Brand />
+            </SheetTitle>
           </SheetHeader>
           <NavLinks onNavigate={() => setMenuOpen(false)} />
         </SheetContent>

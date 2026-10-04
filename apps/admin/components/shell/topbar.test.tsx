@@ -71,3 +71,11 @@ test("on a phone the top bar is headed by the brand", async () => {
   expect(within(bar).getByText("Admin")).toBeInTheDocument()
   expect(await screen.findByText("Owner")).toBeInTheDocument()
 })
+
+test("the phone's menu is headed by the brand, which names it", async () => {
+  const { user } = renderWithProviders(<Topbar />)
+
+  await user.click(screen.getByRole("button", { name: "Menyu" }))
+  const menu = await screen.findByRole("dialog", { name: "Hisob24 Admin" })
+  expect(within(menu).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
+})
