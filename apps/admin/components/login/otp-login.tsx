@@ -37,9 +37,12 @@ export function OtpLogin({ botUsername, notice }: { botUsername: string; notice?
         </p>
       )}
       <div className="space-y-8">
-        <p className="text-sm text-muted-foreground">
-          Kodni olish uchun botga <code className="rounded bg-muted px-1 py-0.5 font-mono">/login</code> yozing
-        </p>
+        <div className="space-y-1.5">
+          <h2 className="text-2xl font-semibold tracking-tight">Kirish</h2>
+          <p className="text-sm text-muted-foreground">
+            Kodni olish uchun botga <code className="rounded bg-muted px-1 py-0.5 font-mono">/login</code> yozing
+          </p>
+        </div>
         <div className="space-y-4">
           {botUsername && (
             <a

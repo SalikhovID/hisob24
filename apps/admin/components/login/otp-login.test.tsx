@@ -92,3 +92,9 @@ test("the login stands in the frame: the brand's panel says what the panel is fo
   expect(within(panel).getByText("Kompaniyalar, billing va adminlar boshqaruvi")).toBeInTheDocument()
   expect(within(screen.getByRole("main")).getByRole("textbox", { name: "Kod" })).toBeInTheDocument()
 })
+
+test("the login is titled", () => {
+  renderWithProviders(<OtpLogin botUsername="" />)
+
+  expect(screen.getByRole("heading", { level: 2, name: "Kirish" })).toBeInTheDocument()
+})
