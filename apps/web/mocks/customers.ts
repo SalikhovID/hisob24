@@ -1,9 +1,21 @@
 // The customers of the mock API, under the Go API's rules
 // (logic/customers.md; backend/internal/customer).
 import { http, HttpResponse } from "msw"
+import { formatPhone } from "@/lib/phone"
 import type { Customer } from "@/lib/types"
-import { type Answer, type CustomerRow, db, type FieldRow, nameIn, nextId, now, type OptionRow, type TypeRow } from "./data"
-import { api, fail, isMember, memberSession, normalizePhone } from "./gate"
+import {
+  type Answer,
+  type CustomerRow,
+  db,
+  type FieldRow,
+  type HistoryRow,
+  nameIn,
+  nextId,
+  now,
+  type OptionRow,
+  type TypeRow,
+} from "./data"
+import { api, fail, isMember, memberSession, normalizePhone, ownerOnly } from "./gate"
 
 const invalid = (message: string) => fail(400, "validation_error", message)
 const customerNotFound = () => fail(404, "not_found", "Mijoz topilmadi")
@@ -122,6 +134,31 @@ const toCustomer = (c: CustomerRow): Customer => ({
   updated_at: c.updatedAt,
 })
 
+// asText writes an answer for people to read, as the history keeps it: a
+// number in its digits, the options by their names; "" for no answer.
+function asText(field: FieldRow, answer: Answer | undefined): string {
+  if (answer === undefined) return ""
+  if (!isChoice(field)) return String(answer)
+  const offered = offeredBy(field)
+  return chosen(answer)
+    .map((id) => offered.find((o) => o.id === id)?.label ?? "")
+    .join(", ")
+}
+
+// diff tells what an edit changed: the phone first, then the fields in
+// their order, each as text under the names of the moment.
+function diff(fields: FieldRow[], customer: CustomerRow, phone: string, values: Record<number, Answer>): HistoryRow["changes"] {
+  const changes: HistoryRow["changes"] = []
+  if (customer.phone !== phone) changes.push({ label: "Telefon", old: formatPhone(customer.phone), new: formatPhone(phone) })
+  for (const field of fields) {
+    const [before, after] = [customer.values[field.id], values[field.id]]
+    if (JSON.stringify(before) !== JSON.stringify(after)) {
+      changes.push({ label: field.label, old: asText(field, before), new: asText(field, after) })
+    }
+  }
+  return changes
+}
+
 const PAGE_SIZE = 20
 
 // found tells whether a search finds the customer: the text in its text
@@ -200,5 +237,61 @@ export const customersHandlers = [
     if (member instanceof Response) return member
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
     return customer ? HttpResponse.json(toCustomer(customer)) : customerNotFound()
+  }),
+
+  http.put(api("/app/customers/:id"), async ({ params, request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    const body = (await request.json()) as { phone?: unknown; values?: unknown }
+    // A customer that is not there is said first, whatever is sent.
+    const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
+    if (!customer) return customerNotFound()
+    const phone = customerPhone(body.phone)
+    if (!phone) return invalid("Telefon raqami noto'g'ri")
+    const fields = liveFields(db.types.find((t) => t.id === customer.typeId)!)
+    const values = checkValues(fields, customer.values, body.values)
+    if (values instanceof Response) return values
+    const refusal = free(member.companyId, fields, phone, values, customer.id)
+    if (refusal) return refusal
+    const changes = diff(fields, customer, phone, values)
+    // A save that changes nothing writes nothing.
+    if (changes.length > 0) {
+      const at = now()
+      customer.phone = phone
+      customer.values = values
+      customer.updatedAt = at
+      db.history.push({
+        id: nextId(),
+        customerId: customer.id,
+        action: "updated",
+        by: member.phone,
+        byName: nameIn(member.phone, member.companyId),
+        createdAt: at,
+        changes,
+      })
+    }
+    return HttpResponse.json(toCustomer(customer))
+  }),
+
+  http.get(api("/app/customers/:id/history"), ({ params, request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    // Who did what to a customer is for the owner to see.
+    if (db.members[member.phone].find((m) => m.companyId === member.companyId)?.role !== "owner") return ownerOnly()
+    const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
+    if (!customer) return customerNotFound()
+    return HttpResponse.json(
+      db.history
+        .filter((entry) => entry.customerId === customer.id)
+        // The latest first.
+        .sort((a, b) => b.id - a.id)
+        .map((entry) => ({
+          id: entry.id,
+          action: entry.action,
+          actor_name: nameOf(entry.by, customer.companyId, entry.byName),
+          created_at: entry.createdAt,
+          changes: entry.changes,
+        })),
+    )
   }),
 ]

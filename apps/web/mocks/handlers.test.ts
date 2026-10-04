@@ -532,3 +532,110 @@ test("the list: the newest first, twenty to a page, one type, a search in the ph
   await chooseCompany(2)
   expect(await listCustomers()).toEqual({ items: [], total: 0, page: 1, page_size: 20 })
 })
+
+const updateCustomer = (id: number, phone: string, values?: Answers) =>
+  call(api.PUT("/app/customers/{id}", { params: { path: { id } }, body: { phone, values } }))
+const customerHistory = (id: number) => call(api.GET("/app/customers/{id}/history", { params: { path: { id } } }))
+
+test("an edit replaces the phone and the answers and goes into the history, which is the owner's to see", async () => {
+  // Vali signs in twice here: no waiting a minute for the second code.
+  db.cooldown = false
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { jismoniy, yuridik, fish, manba, nomi, inn, instagram, linkedin } = await setup()
+  const ali = await createCustomer(jismoniy.id, "998901234567", { [fish.id]: "Ali", [manba.id]: instagram.id })
+  const vali = await createCustomer(jismoniy.id, "998905555555", { [fish.id]: "Vali" })
+  const firma = await createCustomer(yuridik.id, "998907777777", { [nomi.id]: "Olma MChJ", [inn.id]: 301234567 })
+  const boshqa = await createCustomer(yuridik.id, "998908888888", { [nomi.id]: "Nok MChJ", [inn.id]: 305555555 })
+
+  await signIn(ALI)
+  const edited = await updateCustomer(ali.id, "+998 90 765 43 21", { [fish.id]: " Ali Valiyev ", [manba.id]: linkedin.id })
+
+  expect(edited).toMatchObject({
+    id: ali.id,
+    type_id: jismoniy.id,
+    phone: "998907654321",
+    values: { [fish.id]: "Ali Valiyev", [manba.id]: linkedin.id },
+    created_by_name: "Vali Aliyev",
+    created_at: ali.created_at,
+  })
+  expect(edited.updated_at > ali.updated_at).toBe(true)
+  expect(await getCustomer(ali.id)).toEqual(edited)
+  // An answer the edit leaves out is taken away.
+  expect((await updateCustomer(ali.id, "998907654321", { [fish.id]: "Ali Valiyev" })).values).toEqual({ [fish.id]: "Ali Valiyev" })
+
+  // A save that changes nothing changes nothing, the moment of the edit too.
+  const before = await getCustomer(ali.id)
+  expect(await updateCustomer(ali.id, "+998 90 765-43-21", { [fish.id]: " Ali Valiyev ", [manba.id]: null })).toEqual(before)
+
+  const history = await customerHistory(ali.id)
+  expect(history.map((e) => [e.action, e.actor_name, e.changes])).toEqual([
+    ["updated", "Ali Valiyev", [{ label: "Manba", old: "LinkedIn", new: "" }]],
+    [
+      "updated",
+      "Ali Valiyev",
+      [
+        { label: "Telefon", old: "+998 90 123 45 67", new: "+998 90 765 43 21" },
+        { label: "F.I.Sh.", old: "Ali", new: "Ali Valiyev" },
+        { label: "Manba", old: "Instagram", new: "LinkedIn" },
+      ],
+    ],
+    ["created", "Vali Aliyev", []],
+  ])
+  expect(history[0].created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  expect(history[0].id).toBeGreaterThan(history[1].id)
+
+  expect(await failure(updateCustomer(ali.id, "998905555555", { [fish.id]: "Ali" }))).toMatchObject({
+    status: 409,
+    code: "phone_taken",
+    customerId: vali.id,
+  })
+  expect(await failure(updateCustomer(boshqa.id, "998908888888", { [nomi.id]: "Nok MChJ", [inn.id]: 301234567 }))).toMatchObject({
+    status: 409,
+    code: "value_taken",
+    message: "Bu «INN» boshqa mijozda bor",
+    customerId: firma.id,
+  })
+  // A customer's own phone and own answer are no repeat.
+  expect(await updateCustomer(firma.id, "998907777777", { [nomi.id]: "Olma Savdo MChJ", [inn.id]: 301234567 })).toMatchObject({
+    values: { [nomi.id]: "Olma Savdo MChJ" },
+  })
+  expect(await failure(updateCustomer(ali.id, "123", { [fish.id]: "Ali" }))).toMatchObject({ status: 400, message: "Telefon raqami noto'g'ri" })
+  expect(await failure(updateCustomer(ali.id, "998907654321", {}))).toMatchObject({ status: 400, message: "«F.I.Sh.» maydonini to'ldiring" })
+  // A customer that is not there is said first, whatever is sent.
+  expect(await failure(updateCustomer(999, "123", {}))).toMatchObject({ status: 404, code: "not_found", message: "Mijoz topilmadi" })
+  expect(await failure(customerHistory(999))).toMatchObject({ status: 404, message: "Mijoz topilmadi" })
+
+  // The history is not for an employee.
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await failure(customerHistory(ali.id))).toMatchObject({
+    status: 403,
+    code: "owner_only",
+    message: "Bu bo'lim faqat kompaniya egasi uchun",
+  })
+  // The owner of another company finds no such customer.
+  await chooseCompany(2)
+  expect(await failure(customerHistory(ali.id))).toMatchObject({ status: 404, message: "Mijoz topilmadi" })
+  expect(await failure(updateCustomer(ali.id, "998907654321", { [fish.id]: "Ali" }))).toMatchObject({ status: 404 })
+  await chooseCompany(null)
+  expect(await failure(customerHistory(ali.id))).toMatchObject({ status: 403, code: "company_required" })
+})
+
+test("a customer who has an option that is turned off keeps it through an edit; nobody else may take it", async () => {
+  await signIn(ALI)
+  const { jismoniy, fish, manba, instagram } = await setup()
+  const dropdown = (await customerDropdowns())[0]
+  const ali = await createCustomer(jismoniy.id, "998901234567", { [fish.id]: "Ali", [manba.id]: instagram.id })
+  const vali = await createCustomer(jismoniy.id, "998905555555", { [fish.id]: "Vali" })
+  await updateOption(dropdown.id, instagram.id, { is_active: false })
+
+  expect((await updateCustomer(ali.id, "998901234567", { [fish.id]: "Ali Valiyev", [manba.id]: instagram.id })).values).toEqual({
+    [fish.id]: "Ali Valiyev",
+    [manba.id]: instagram.id,
+  })
+  expect(await failure(updateCustomer(vali.id, "998905555555", { [fish.id]: "Vali", [manba.id]: instagram.id }))).toMatchObject({
+    status: 400,
+    message: "«Manba» uchun variant noto'g'ri",
+  })
+})
