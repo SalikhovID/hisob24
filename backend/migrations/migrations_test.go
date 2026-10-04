@@ -237,3 +237,61 @@ func TestCustomerDropdownsAndOptions(t *testing.T) {
 	_, err = addDropdown(olma, "Manba")
 	assert.NoError(t, err, "a deleted dropdown's name is free again")
 }
+
+func TestCustomerTypesAndFields(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	addType := func(companyID int64, name string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx,
+			"INSERT INTO customer_types (company_id, name, position) VALUES ($1, $2, 1) RETURNING id", companyID, name).Scan(&id)
+		return id, err
+	}
+	jismoniy, err := addType(olma, "Jismoniy")
+	require.NoError(t, err)
+	_, err = addType(olma, "JISMONIY")
+	assert.Equal(t, "23505", sqlState(err), "the type's name is taken in the company, in any case")
+	begona, err := addType(nok, "Jismoniy")
+	require.NoError(t, err, "another company's type")
+
+	var manba, nokManba int64
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma).Scan(&manba))
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", nok).Scan(&nokManba))
+
+	// addField adds a field of Olma's to a type.
+	addField := func(typeID int64, label, kind string, dropdownID *int64, unique bool) error {
+		_, err := pool.Exec(ctx, `INSERT INTO customer_fields (company_id, type_id, label, kind, dropdown_id, is_unique, position)
+			VALUES ($1, $2, $3, $4, $5, $6, 1)`, olma, typeID, label, kind, dropdownID, unique)
+		return err
+	}
+	require.NoError(t, addField(jismoniy, "F.I.Sh.", "string", nil, false))
+	var required bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT required FROM customer_fields WHERE type_id = $1", jismoniy).Scan(&required))
+	assert.False(t, required, "a field may stay empty unless said otherwise")
+	assert.Equal(t, "23505", sqlState(addField(jismoniy, "f.i.sh.", "string", nil, false)), "the field's name is taken in the type")
+	for _, kind := range []string{"int", "dropdown", "multi_dropdown", "radio", "checkbox"} {
+		var dropdown *int64
+		if kind != "int" {
+			dropdown = &manba
+		}
+		assert.NoError(t, addField(jismoniy, "Maydon "+kind, kind, dropdown, false), kind)
+	}
+	assert.Equal(t, "23514", sqlState(addField(jismoniy, "Sana", "date", nil, false)), "a kind that is not one of the six") // check_violation
+	assert.Equal(t, "23514", sqlState(addField(jismoniy, "Tanlov", "dropdown", nil, false)), "a choice field without a dropdown")
+	assert.Equal(t, "23514", sqlState(addField(jismoniy, "Matn", "string", &manba, false)), "a text field with a dropdown")
+	assert.NoError(t, addField(jismoniy, "Pasport", "string", nil, true), "a text field whose values may not repeat")
+	assert.Equal(t, "23514", sqlState(addField(jismoniy, "Tanlov", "radio", &manba, true)), "a choice field whose values may not repeat")
+	assert.Equal(t, "23503", sqlState(addField(jismoniy, "Tanlov", "dropdown", &nokManba, false)), "another company's dropdown") // foreign_key_violation
+	assert.Equal(t, "23503", sqlState(addField(begona, "Ism", "string", nil, false)), "another company's type")
+
+	_, err = pool.Exec(ctx, "UPDATE customer_fields SET deleted_at = now() WHERE type_id = $1 AND label = 'F.I.Sh.'", jismoniy)
+	require.NoError(t, err)
+	assert.NoError(t, addField(jismoniy, "F.I.Sh.", "string", nil, false), "a deleted field's name is free again")
+	_, err = pool.Exec(ctx, "UPDATE customer_types SET deleted_at = now() WHERE id = $1", jismoniy)
+	require.NoError(t, err)
+	_, err = addType(olma, "Jismoniy")
+	assert.NoError(t, err, "a deleted type's name is free again")
+}
