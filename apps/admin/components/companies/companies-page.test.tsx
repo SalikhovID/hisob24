@@ -90,6 +90,55 @@ test("on a phone a company is a card: how it stands, then when it ends", async (
   expect(within(olcha).getByText("Tugash sanasi")).not.toHaveClass("sr-only")
 })
 
+test("a filtered count never stands in for the platform's while the full list loads", async () => {
+  // The unfiltered answer is held back; the tab's answer (two companies) is on screen meanwhile.
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  server.use(
+    http.get("*/api/admin/companies", async ({ request }) => {
+      if (!new URL(request.url).searchParams.get("status")) await held
+    }),
+  )
+  setLocation("/companies?status=active")
+  const { user } = renderWithProviders(<CompaniesPage />)
+  await waitFor(() => expect(names()).toEqual(["Nok Market", "Olma Savdo"]))
+
+  await user.click(screen.getByRole("tab", { name: "Hammasi" }))
+  await waitFor(() => expect(currentUrl()).toBe("/companies"))
+
+  // Two is how many are active, not how many the platform has.
+  expect(screen.getByText("Platformadagi kompaniyalar")).toBeInTheDocument()
+  expect(screen.queryByText(/· \d+ ta/)).not.toBeInTheDocument()
+
+  release()
+  expect(await screen.findByText("Platformadagi kompaniyalar · 3 ta")).toBeInTheDocument()
+})
+
+test("the platform's count stays on screen while pages turn", async () => {
+  for (let i = 1; i <= 42; i++) db.companies.push(company(100 + i, `Kompaniya ${i}`, TODAY))
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  server.use(
+    http.get("*/api/admin/companies", async ({ request }) => {
+      if (new URL(request.url).searchParams.get("page") === "2") await held
+    }),
+  )
+  setLocation("/companies")
+  const { user } = renderWithProviders(<CompaniesPage />)
+  expect(await screen.findByText("Platformadagi kompaniyalar · 45 ta")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("button", { name: "Keyingi" }))
+  await waitFor(() => expect(currentUrl()).toBe("/companies?page=2"))
+
+  // The second page is still on its way; the count has not blinked.
+  expect(screen.getByText("1–20 / 45")).toBeInTheDocument()
+  expect(screen.getByText("Platformadagi kompaniyalar · 45 ta")).toBeInTheDocument()
+
+  release()
+  expect(await screen.findByText("21–40 / 45")).toBeInTheDocument()
+  expect(screen.getByText("Platformadagi kompaniyalar · 45 ta")).toBeInTheDocument()
+})
+
 test("searching narrows the list, starts from the first page and stays in the address", async () => {
   setLocation("/companies?page=2")
   const { user } = renderWithProviders(<CompaniesPage />)
