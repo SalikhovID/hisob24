@@ -483,3 +483,31 @@ func TestDeleteCustomerField(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
 	assert.JSONEq(t, fieldNotFound, rec.Body.String())
 }
+
+func TestOrderCustomerFields(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	jismoniy := api.addType(t, olma, "Jismoniy", 1)
+	fish := api.addField(t, olma, jismoniy, "F.I.Sh.", 1)
+	izoh := api.addField(t, olma, jismoniy, "Izoh", 2)
+	path := fmt.Sprintf("/app/customer-types/%d/fields/order", jismoniy)
+
+	rec := api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, izoh, fish), bearer(owner))
+
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	fields, _ := list(t, api.do(t, http.MethodGet, "/app/customer-types", "", bearer(owner)))[0]["fields"].([]any)
+	require.Len(t, fields, 2)
+	assert.Equal(t, "Izoh", fields[0].(map[string]any)["label"], "the fields stand in the new order")
+
+	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d]}`, fish), bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code, "a field is missing")
+	assert.JSONEq(t, orderChanged, rec.Body.String())
+	rec = api.do(t, http.MethodPut, "/app/customer-types/999/fields/order", `{"ids":[]}`, bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, typeNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, fish, izoh), bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
+	assert.JSONEq(t, ownerOnly, rec.Body.String())
+}

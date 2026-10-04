@@ -1219,6 +1219,44 @@ paths:
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
+  /app/customer-types/{id}/fields/order:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: orderCustomerFields
+      summary: Maydonlar tartibini o'zgartirish (faqat owner)
+      description: >
+        ids turning barcha maydonlarini yangi tartibda, har birini bir marta
+        nomlaydi. Birinchi matn maydoni mijoz nomi bo'ladi. Ro'yxat boshqa
+        joyda o'zgargan bo'lsa: 409 order_changed.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "204":
+          description: Tartib saqlandi
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/CustomerSettingNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook

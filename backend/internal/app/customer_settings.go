@@ -320,3 +320,17 @@ func (h *Handler) deleteCustomerField(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// orderCustomerFields puts the fields of a customer type of the owner's
+// company in a new order.
+func (h *Handler) orderCustomerFields(w http.ResponseWriter, r *http.Request) {
+	var body orderBody
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	if err := h.customers.OrderFields(r.Context(), sessionCompany(r), pathID(r, "id"), body.IDs); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
