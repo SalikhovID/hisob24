@@ -114,3 +114,9 @@ SELECT EXISTS (
     GROUP BY lower(v.text_value), v.int_value
     HAVING count(*) > 1
 );
+
+-- name: CountTypeCustomers :one
+-- How many customers are of the type: one in use is not deleted. Deleted
+-- customers do not count.
+SELECT count(*) FROM customers
+WHERE type_id = $1 AND deleted_at IS NULL;

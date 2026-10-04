@@ -69,6 +69,20 @@ func (q *Queries) CountCustomers(ctx context.Context, arg CountCustomersParams) 
 	return count, err
 }
 
+const countTypeCustomers = `-- name: CountTypeCustomers :one
+SELECT count(*) FROM customers
+WHERE type_id = $1 AND deleted_at IS NULL
+`
+
+// How many customers are of the type: one in use is not deleted. Deleted
+// customers do not count.
+func (q *Queries) CountTypeCustomers(ctx context.Context, typeID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countTypeCustomers, typeID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCustomer = `-- name: CreateCustomer :one
 INSERT INTO customers (company_id, type_id, phone, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5)

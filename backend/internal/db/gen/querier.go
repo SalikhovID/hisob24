@@ -36,6 +36,9 @@ type Querier interface {
 	// How many customers ListCustomers finds under the same filter, on all of
 	// its pages.
 	CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error)
+	// How many customers are of the type: one in use is not deleted. Deleted
+	// customers do not count.
+	CountTypeCustomers(ctx context.Context, typeID int64) (int64, error)
 	// A unique violation (23505) means the hash of another unused code: the
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)

@@ -484,3 +484,21 @@ func TestCustomerFieldHasDuplicates(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, repeats, "nor does its name")
 }
+
+func TestCountTypeCustomers(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	yuridik := seedCustomers(t, q, pool, s)
+	empty := createType(t, q, s.company.ID, "Hamkor")
+
+	n, err := q.CountTypeCustomers(ctx, s.jismoniy.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, n, "Ali and Vali; the deleted customer does not count")
+	n, err = q.CountTypeCustomers(ctx, yuridik.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n)
+	n, err = q.CountTypeCustomers(ctx, empty.ID)
+	require.NoError(t, err)
+	assert.Zero(t, n, "a type with no customers")
+}
