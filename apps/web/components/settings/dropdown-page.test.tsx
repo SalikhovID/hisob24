@@ -130,3 +130,16 @@ test("an option is renamed from its row", async () => {
   expect(await screen.findByText("Variant nomi o'zgartirildi")).toBeInTheDocument()
   await waitFor(async () => expect(optionsOf(await optionList())[1].label).toBe("Linkedin (ish)"))
 })
+
+test("an option is turned off and on again from its row", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<DropdownPage id={manbaId()} />)
+
+  await user.click(within(await optionList()).getByRole("button", { name: "Nofaol qilish: Instagram" }))
+  expect(await screen.findByText("Variant nofaol qilindi")).toBeInTheDocument()
+  await waitFor(async () => expect(optionsOf(await optionList())[0]).toEqual({ label: "Instagram", marks: ["Nofaol"] }))
+
+  await user.click(within(await optionList()).getByRole("button", { name: "Faollashtirish: YouTube" }))
+  expect(await screen.findByText("Variant faollashtirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(optionsOf(await optionList())[2]).toEqual({ label: "YouTube", marks: [] }))
+})

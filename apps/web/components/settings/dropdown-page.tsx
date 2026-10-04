@@ -1,13 +1,16 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
-import { PencilIcon } from "lucide-react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { EyeIcon, EyeOffIcon, PencilIcon } from "lucide-react"
+import { toast } from "sonner"
+import { ActionTooltip } from "@/components/action-tooltip"
 import { PageHeader } from "@/components/page-header"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { customerDropdownsKey, useCustomerDropdowns } from "@/lib/queries"
+import type { CustomerOption } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
 import { cn } from "@/lib/utils"
 import { AddOptionForm } from "./add-option-form"
@@ -62,6 +65,7 @@ export function DropdownPage({ id }: { id: number }) {
                 title={<span className={cn(!option.is_active && "text-muted-foreground")}>{option.label}</span>}
                 marks={!option.is_active && <Badge variant="outline">Nofaol</Badge>}
                 actions={
+                  <>
                   <NameDialog
                     title="Variant nomini o'zgartirish"
                     description="Bu variantni tanlagan mijozlarda ham yangi nom ko'rinadi."
@@ -89,6 +93,8 @@ export function DropdownPage({ id }: { id: number }) {
                       await refresh()
                     }}
                   />
+                  <ToggleOptionButton dropdownId={dropdown.id} option={option} onDone={refresh} />
+                  </>
                 }
               />
             </li>
@@ -97,5 +103,47 @@ export function DropdownPage({ id }: { id: number }) {
       )}
       <AddOptionForm companyId={owner.company.id} dropdownId={dropdown.id} />
     </div>
+  )
+}
+
+// ToggleOptionButton turns an option off, or on again. Off, it is no longer
+// offered when a customer is added; the customers who chose it keep it.
+function ToggleOptionButton({
+  dropdownId,
+  option,
+  onDone,
+}: {
+  dropdownId: number
+  option: CustomerOption
+  onDone: () => Promise<unknown>
+}) {
+  const toggle = useMutation({
+    mutationFn: () =>
+      call(
+        api.PATCH("/app/customer-dropdowns/{id}/options/{optionId}", {
+          params: { path: { id: dropdownId, optionId: option.id } },
+          body: { is_active: !option.is_active },
+        }),
+      ),
+    onSuccess: async (changed) => {
+      await onDone()
+      toast.success(changed.is_active ? "Variant faollashtirildi" : "Variant nofaol qilindi")
+    },
+    onError: (error) => toast.error(error.message),
+  })
+  const verb = option.is_active ? "Nofaol qilish" : "Faollashtirish"
+  return (
+    <ActionTooltip label={verb}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={iconAction}
+        aria-label={`${verb}: ${option.label}`}
+        disabled={toggle.isPending}
+        onClick={() => toggle.mutate()}
+      >
+        {option.is_active ? <EyeOffIcon /> : <EyeIcon />}
+      </Button>
+    </ActionTooltip>
   )
 }
