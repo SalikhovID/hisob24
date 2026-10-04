@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react"
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import { DataList } from "./data-list"
 
 const rows = [
@@ -291,4 +291,26 @@ test("DataList gives a card's note a line of its own, last of the values, its na
   // No note, no line.
   expect(bare.querySelector('[data-slot="data-list-note"]')).not.toBeInTheDocument()
   expect(within(bare).queryByText("Izoh")).not.toBeInTheDocument()
+})
+
+test("DataList tells two columns of one name apart by their keys", () => {
+  // A field the owner named like a built-in column: both show, and React is
+  // given a key for each (it warns of two children with one key).
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+  const twin = [
+    { header: "Nomi", cell: (r: (typeof rows)[number]) => r.name, primary: true },
+    { key: "type", header: "Turi", cell: () => "Jismoniy" },
+    { key: "field:turi", header: "Turi", cell: () => "Doimiy" },
+  ]
+
+  render(<DataList label="Mijozlar" items={rows} columns={twin} getKey={(r) => r.id} />)
+
+  const table = screen.getByRole("table", { name: "Mijozlar" })
+  expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Nomi", "Turi", "Turi"])
+  expect(within(within(table).getAllByRole("row")[1]).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Jismoniy", "Doimiy"])
+  const [card] = within(screen.getByRole("list", { name: "Mijozlar" })).getAllByRole("listitem")
+  expect(within(card).getByText("Jismoniy")).toBeInTheDocument()
+  expect(within(card).getByText("Doimiy")).toBeInTheDocument()
+  expect(errors).not.toHaveBeenCalled()
+  errors.mockRestore()
 })

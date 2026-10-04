@@ -4,6 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils"
 
 export interface Column<T> {
+  // key tells the column from the others where two may share a name (a field
+  // the owner named like a built-in column); without one the header does.
+  key?: string
   header: string
   cell: (item: T) => ReactNode
   // primary is the record's title: the header of its row in the table and
@@ -32,6 +35,9 @@ export interface Column<T> {
   // width, a quieter color.
   className?: string
 }
+
+// keyOf is what React tells a column's cells apart by.
+const keyOf = <T,>(column: Column<T>) => column.key ?? column.header
 
 // present tells a value from one that is not there (null, false, "").
 const present = (value: ReactNode) => value !== null && value !== undefined && value !== false && value !== ""
@@ -85,7 +91,7 @@ export function DataList<T>({
             <TableRow>
               {columns.map((column) => (
                 <TableHead
-                  key={column.header}
+                  key={keyOf(column)}
                   scope="col"
                   className={cn(
                     "px-4 text-[0.8125rem] text-muted-foreground",
@@ -105,7 +111,7 @@ export function DataList<T>({
                 {columns.map((column) =>
                   column.primary ? (
                     <th
-                      key={column.header}
+                      key={keyOf(column)}
                       scope="row"
                       className={cn("px-4 py-3 text-left align-middle font-normal", column.className)}
                     >
@@ -113,7 +119,7 @@ export function DataList<T>({
                     </th>
                   ) : (
                     <TableCell
-                      key={column.header}
+                      key={keyOf(column)}
                       className={cn(
                         "px-4 py-3",
                         column.align === "end" && "text-right",
@@ -163,13 +169,13 @@ export function DataList<T>({
                 {columns
                   .filter((column) => column.primary)
                   .map((column) => (
-                    <div key={column.header}>{title(column, item)}</div>
+                    <div key={keyOf(column)}>{title(column, item)}</div>
                   ))}
               </div>
               {aside.length > 0 && (
                 <dl data-slot="data-list-aside" className="col-start-2 row-start-1 ml-3 grid justify-items-end gap-1">
                   {aside.map(({ column, value }) => (
-                    <div key={column.header}>
+                    <div key={keyOf(column)}>
                       <dt className="sr-only">{column.header}</dt>
                       <dd className="font-medium whitespace-nowrap">{value}</dd>
                     </div>
@@ -182,7 +188,7 @@ export function DataList<T>({
                   className="col-span-3 row-start-2 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground"
                 >
                   {inline.map(({ column, value }) => (
-                    <div key={column.header} className="flex items-center gap-1.5">
+                    <div key={keyOf(column)} className="flex items-center gap-1.5">
                       <dt className={column.card === "tag" ? "sr-only" : undefined}>{column.header}</dt>
                       <dd className="whitespace-nowrap">{value}</dd>
                     </div>
@@ -192,7 +198,7 @@ export function DataList<T>({
               {labeled.length > 0 && (
                 <dl data-slot="data-list-values" className="col-span-3 row-start-3 mt-3 grid gap-1.5">
                   {labeled.map(({ column, value }) => (
-                    <div key={column.header} className="flex items-baseline justify-between gap-3">
+                    <div key={keyOf(column)} className="flex items-baseline justify-between gap-3">
                       <dt className="text-[0.8125rem] text-muted-foreground">{column.header}</dt>
                       <dd className="min-w-0 text-right break-words">{value}</dd>
                     </div>
@@ -205,7 +211,7 @@ export function DataList<T>({
                   className="col-span-3 row-start-4 mt-1.5 grid gap-1 text-[0.8125rem] leading-5 text-muted-foreground"
                 >
                   {notes.map(({ column, value }) => (
-                    <div key={column.header}>
+                    <div key={keyOf(column)}>
                       <dt className="sr-only">{column.header}</dt>
                       <dd className="[overflow-wrap:anywhere]">{value}</dd>
                     </div>
@@ -220,7 +226,7 @@ export function DataList<T>({
                   className="relative z-10 col-start-3 row-start-1 -mt-1 -mr-2 ml-2 flex shrink-0 items-center gap-2 self-start"
                 >
                   {actions.map(({ column, value }) => (
-                    <span key={column.header} className="contents">
+                    <span key={keyOf(column)} className="contents">
                       {value}
                     </span>
                   ))}
