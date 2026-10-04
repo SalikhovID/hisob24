@@ -153,3 +153,33 @@ func (s *Service) DeleteType(ctx context.Context, companyID, id int64) error {
 		return q.DeleteCustomerTypeFields(ctx, id)
 	})
 }
+
+// FieldInput is a new field: its name, kind and marks. A choice kind names
+// the dropdown it takes its options from.
+type FieldInput struct {
+	Label      string
+	Kind       string
+	Required   bool
+	Unique     bool
+	DropdownID *int64
+}
+
+// AddField adds a field at the end of the company's type.
+func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in FieldInput) (Field, error) {
+	label, err := cleanName(in.Label)
+	if err != nil {
+		return Field{}, err
+	}
+	var f gen.CustomerField
+	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		f, err = q.AddCustomerField(ctx, gen.AddCustomerFieldParams{
+			CompanyID: companyID, TypeID: typeID, Label: label, Kind: in.Kind,
+			DropdownID: in.DropdownID, Required: in.Required, IsUnique: in.Unique,
+		})
+		return err
+	})
+	if err != nil {
+		return Field{}, err
+	}
+	return toField(f), nil
+}

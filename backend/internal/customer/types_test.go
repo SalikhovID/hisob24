@@ -171,3 +171,33 @@ func TestDeleteType(t *testing.T) {
 	refused(t, s.DeleteType(ctx, olma, jismoniy.ID), apperr.NotFound, "not_found", notFound, "deleted already")
 	refused(t, s.DeleteType(ctx, nok, yuridik.ID), apperr.NotFound, "not_found", notFound, "another company's type")
 }
+
+func TestAddField(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	jismoniy := mustType(t, s, olma, "Jismoniy")
+	manba := mustDropdown(t, s, olma, "Manba")
+
+	fish, err := s.AddField(ctx, olma, jismoniy.ID, FieldInput{Label: " F.I.Sh. ", Kind: "string", Required: true, Unique: true})
+
+	require.NoError(t, err)
+	assert.NotZero(t, fish.ID)
+	assert.Equal(t, Field{ID: fish.ID, Label: "F.I.Sh.", Kind: "string", Required: true, Unique: true}, fish, "the name is trimmed")
+	added := []Field{fish}
+	for _, in := range []FieldInput{
+		{Label: "Yoshi", Kind: "int"},
+		{Label: "Manba", Kind: "dropdown", DropdownID: &manba.ID},
+		{Label: "Kanallar", Kind: "multi_dropdown", DropdownID: &manba.ID, Required: true},
+		{Label: "Holat", Kind: "radio", DropdownID: &manba.ID},
+		{Label: "Qiziqish", Kind: "checkbox", DropdownID: &manba.ID},
+	} {
+		f, err := s.AddField(ctx, olma, jismoniy.ID, in)
+		require.NoError(t, err, in.Kind)
+		assert.Equal(t, Field{ID: f.ID, Label: in.Label, Kind: in.Kind, Required: in.Required, DropdownID: in.DropdownID}, f, in.Kind)
+		added = append(added, f)
+	}
+	list, err := s.Types(ctx, olma)
+	require.NoError(t, err)
+	assert.Equal(t, added, list[0].Fields, "the fields stand as they were added")
+}
