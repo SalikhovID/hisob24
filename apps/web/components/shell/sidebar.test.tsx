@@ -83,3 +83,12 @@ test("on a phone the sections come out as a sheet, and picking one closes it", a
 
   expect(onOpenChange).toHaveBeenCalledWith(false)
 })
+
+test("the sidebar is headed by Hisob24's logo, the company's name after it", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  const name = await within(sidebar()).findByText("Olma Savdo")
+  const logo = within(sidebar()).getByRole("img", { name: "Hisob24" })
+  expect(logo.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})

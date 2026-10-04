@@ -3,6 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -36,7 +37,7 @@ export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: Si
         <SheetContent side="left" className="gap-0 bg-sidebar text-sidebar-foreground data-[side=left]:w-72">
           <SheetHeader className="border-b px-4 py-3 pr-12">
             <SheetTitle className="flex items-center gap-2 text-left">
-              <Logo />
+              <Letter />
               <span className="truncate">{title}</span>
             </SheetTitle>
           </SheetHeader>
@@ -75,7 +76,7 @@ function Column({
             onClick={onToggleCollapsed}
             className="group relative mx-auto flex size-8 items-center justify-center rounded"
           >
-            <Logo className="transition-opacity group-hover:opacity-0" />
+            <Letter className="transition-opacity group-hover:opacity-0" />
             <ChevronRightIcon
               strokeWidth={2.5}
               className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100"
@@ -83,9 +84,9 @@ function Column({
           </button>
         ) : (
           <>
-            <div className="flex min-w-0 items-center gap-2">
-              <Logo />
-              <span className="truncate font-semibold">{title}</span>
+            <div className="min-w-0">
+              <Logo className="h-4" />
+              <p className="truncate text-[0.8125rem] leading-5 font-medium">{title}</p>
             </div>
             <Button
               variant="ghost"
@@ -104,8 +105,8 @@ function Column({
   )
 }
 
-// Logo is Hisob24's mark.
-function Logo({ className }: { className?: string }) {
+// Letter is the mark from before there was a logo.
+function Letter({ className }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
