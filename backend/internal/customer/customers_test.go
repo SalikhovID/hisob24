@@ -712,3 +712,53 @@ func TestUpdateKeepsATurnedOffOptionTheCustomerHas(t *testing.T) {
 	})})
 	refused(t, err, apperr.Invalid, "validation_error", wrong, "given up, it cannot be taken back")
 }
+
+func TestUpdateRefusals(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{olma.fish.ID: "Ali"})
+	vali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali"})
+	firma := mustCustomer(t, s, olma.id, olma.yuridik.ID, firmaPhone, map[int64]any{olma.nomi.ID: "Olma MChJ", olma.inn.ID: 301234567})
+	boshqa := mustCustomer(t, s, olma.id, olma.yuridik.ID, "998900000001", map[int64]any{olma.nomi.ID: "Nok MChJ", olma.inn.ID: 305555555})
+	begona := mustCustomer(t, s, nok.id, nok.jismoniy.ID, "998900000002", map[int64]any{nok.fish.ID: "Begona"})
+	gone := mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998900000003", map[int64]any{olma.fish.ID: "O'chirilgan"})
+	hide(t, pool, gone.ID)
+	// update edits a customer of Olma's as the user.
+	update := func(id int64, phone string, of map[int64]any) error {
+		_, err := s.Update(ctx, olma.id, id, staff, Input{Phone: phone, Values: answers(t, of)})
+		return err
+	}
+	name := map[int64]any{olma.fish.ID: "Ali"}
+
+	refused(t, update(begona.ID, "998900000002", map[int64]any{nok.fish.ID: "Begona"}), apperr.NotFound, "not_found", customerNotFound, "another company's customer")
+	refused(t, update(gone.ID, "998900000003", name), apperr.NotFound, "not_found", customerNotFound, "a deleted customer")
+	refused(t, update(1<<40, "12345", nil), apperr.NotFound, "not_found", customerNotFound, "a customer that is not there, whatever is sent")
+
+	refused(t, update(ali.ID, "12345", name), apperr.Invalid, "validation_error", "Telefon raqami noto'g'ri")
+	refused(t, update(ali.ID, aliPhone, nil), apperr.Invalid, "validation_error", "«F.I.Sh.» maydonini to'ldiring")
+	refused(t, update(ali.ID, aliPhone, map[int64]any{olma.fish.ID: "Ali", olma.inn.ID: 5}),
+		apperr.Invalid, "validation_error", "Bu turda bunday maydon yo'q", "the customer stays of its type")
+
+	takenBy(t, update(ali.ID, "+998 90 555 55 55", name), "phone_taken", "Bu raqamli mijoz allaqachon bor", vali.ID)
+	takenBy(t, update(boshqa.ID, "998900000001", map[int64]any{olma.nomi.ID: "Nok MChJ", olma.inn.ID: 301234567}),
+		"value_taken", "Bu «INN» boshqa mijozda bor", firma.ID)
+	takenBy(t, update(boshqa.ID, firmaPhone, map[int64]any{olma.nomi.ID: "Nok MChJ", olma.inn.ID: 301234567}),
+		"phone_taken", "Bu raqamli mijoz allaqachon bor", firma.ID, "the phone is told before the answer")
+
+	unchanged, err := s.Get(ctx, olma.id, ali.ID)
+	require.NoError(t, err)
+	assert.Equal(t, ali, unchanged, "a refused edit changes nothing")
+	assert.Len(t, entriesOf(t, pool, ali.ID), 1, "and writes nothing down")
+
+	assert.NoError(t, update(firma.ID, firmaPhone, map[int64]any{olma.nomi.ID: "Olma Savdo MChJ", olma.inn.ID: 301234567}),
+		"a customer's own phone and own answer are no repeat")
+	assert.NoError(t, update(ali.ID, "998900000003", name), "a deleted customer's phone is free")
+
+	// A field made required since the customer was entered is asked for at the next save.
+	_, err = s.UpdateField(ctx, olma.id, olma.jismoniy.ID, olma.yosh.ID, FieldPatch{Required: ptr(true)})
+	require.NoError(t, err)
+	refused(t, update(vali.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali Aliyev"}),
+		apperr.Invalid, "validation_error", "«Yoshi» maydonini to'ldiring")
+}

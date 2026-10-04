@@ -74,7 +74,7 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		if err != nil {
 			return err
 		}
-		if err := phoneFree(ctx, q, companyID, phone); err != nil {
+		if err := phoneFree(ctx, q, companyID, phone, 0); err != nil {
 			return err
 		}
 		if err := answersFree(ctx, q, fields, values, 0); err != nil {
@@ -122,11 +122,12 @@ func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone stri
 	return name, err
 }
 
-// phoneFree refuses a phone that a customer of the company has already: a
-// number is one customer's.
-func phoneFree(ctx context.Context, q *gen.Queries, companyID int64, phone string) error {
+// phoneFree refuses a phone that another customer of the company has: a
+// number is one customer's. except is the customer being edited, 0 for a new
+// one.
+func phoneFree(ctx context.Context, q *gen.Queries, companyID int64, phone string, except int64) error {
 	id, err := q.GetCustomerByPhone(ctx, gen.GetCustomerByPhoneParams{CompanyID: companyID, Phone: phone})
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) || id == except {
 		return nil
 	}
 	if err != nil {
@@ -390,14 +391,14 @@ func searchOf(raw string) (search, digits *string) {
 // Update saves the company's customer with another phone and other answers;
 // its type stays. by is the phone of the member who edits it.
 func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in Input) (Customer, error) {
-	phone, err := customerPhone(in.Phone)
-	if err != nil {
-		return Customer{}, err
-	}
 	var c Customer
-	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+	err := s.write(ctx, companyID, func(q *gen.Queries) error {
 		var err error
 		if c, err = customerOf(ctx, q, companyID, id); err != nil {
+			return err
+		}
+		phone, err := customerPhone(in.Phone)
+		if err != nil {
 			return err
 		}
 		fields, options, err := formOf(ctx, q, companyID, c.TypeID)
@@ -406,6 +407,12 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 		}
 		values, err := checkValues(fields, options, c.Values, in.Values)
 		if err != nil {
+			return err
+		}
+		if err := phoneFree(ctx, q, companyID, phone, id); err != nil {
+			return err
+		}
+		if err := answersFree(ctx, q, fields, values, id); err != nil {
 			return err
 		}
 		changed := diff(fields, options, c.Phone, phone, c.Values, values)
