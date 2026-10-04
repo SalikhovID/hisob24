@@ -297,3 +297,21 @@ To'xtovsiz ketma-ket (24-qaror). Har bosqich: boshida batafsil reja `docs/superp
 - Variant nomi bo'yicha qidiruv; saralashni o'zgartirish; Excel import va eksport.
 - Ustun tanlovini bazada saqlash; bir vaqtda tahrirda ziddiyatni aniqlash; soniga limitlar.
 - Admin panel; production deploy (alohida so'raladi).
+
+## 1-bosqich qarorlari (2026-10-04)
+
+Bajarildi: migratsiya `00005`, 26 ta so'rov, `internal/customer` servisi (dropdownlar, variantlar, turlar, maydonlar), `company.Create` dagi tayyor turlar, `requireCompany`, 17 ta route, openapi va TS client. Reja: `docs/superpowers/plans/2026-10-04-customers-stage1-settings-api.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Ruxsat tartibi.** Yozuvchi sozlama route'lari mavjud `requireOwner` guruhida (Xodimlar API'si bilan birga): kompaniya tanlanmagan token ham 403 `owner_only` oladi. 403 `company_required` faqat a'zo route'larida (`GET /app/customer-dropdowns`, `GET /app/customer-types`).
+- **Navbat.** Har yozuv `write()` orqali: bitta tranzaksiya, boshida `LockCompany`. Test 15 ta yozuvni qamraydi (`TestAWriteWaitsForAnotherWriteOfTheSameCompany`). Mutatsiya: lock olib tashlansa 13 tasi yiqiladi; `CreateDropdown` va `CreateType` kompaniyaga foreign key orqali baribir kutadi.
+- **Tartib.** Yangi tur, maydon va variant `max(position) + 1` oladi. `PUT …/order {ids}`: `ids` hozirgi yozuvlarning har birini bir marta nomlashi shart, aks holda 409 `order_changed` (kam, ortiqcha, begona yoki takror ID).
+- **O'chirish.** Hamma joyda `deleted_at`. Tur o'chirilsa, maydonlari ham shu tranzaksiyada o'chirilgan deb belgilanadi. O'chirilgan dropdown nomi o'zgartirilmaydi va variant olmaydi (404).
+- **Dropdown ishlatilishi.** Faqat o'chirilmagan maydonlar sanaladi; begona kompaniya dropdowni avval 404 beradi, soni oshkor bo'lmaydi.
+- **Tayyor turlar** ikki joyda yoziladi: mavjud kompaniyalarga migratsiya, yangisiga `SeedCustomerTypes` (`company.Create` tranzaksiyasi ichida). Ikkalasi bir xil natija berishi alohida testlar bilan mahkamlangan.
+- **Maydon tekshiruvi.** Xabarlar: "Maydon turini tanlang", "Dropdownni tanlang" (yo'q, begona yoki o'chirilgan dropdown), "Matn va son maydoniga dropdown ulanmaydi", "Faqat matn va son maydoni takrorlanmas bo'ladi".
+- **Yo'ldagi ID** raqam bo'lmasa, yozuv topilmagan hisoblanadi (404).
+- **`Down`** alohida test olmadi: mavjud `TestInitDownRemovesTheSchema` jadvallar qo'shilganda yiqildi va `Down` yozilgach o'tdi.
+- **Keyinga qolgan:** `type_in_use`, `field_in_use`, `option_in_use`, `duplicates_exist` mijozlar jadvaliga bog'liq, 3-bosqichda.
+- **Tekshiruv.** `make lint` 0 issues; `make test`: Go 16 paket, web 247, admin 216, api-client 1; `make e2e`: admin 40, web 62. Lokal haqiqiy stack (Go API + user app origin'i, curl): 32 / 32: admin kompaniya yaratadi va u tayyor turlar bilan chiqadi, egasi dropdown, variant, tur va maydonlarni boshqaradi, xodim o'qiydi va yozuvda 403 oladi. Sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan. Lokal baza 5-versiyada: mavjud 6 kompaniya tayyor turlarni oldi.
