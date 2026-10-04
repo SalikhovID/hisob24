@@ -185,6 +185,32 @@ function Dropdowns({ companyId }: { companyId: number }) {
                   </Link>
                 }
                 detail={dropdown.options.map((option) => option.label).join(", ")}
+                actions={
+                  <NameDialog
+                    title="Dropdown nomini o'zgartirish"
+                    description="Variantlari va uni ishlatadigan maydonlar o'zgarmaydi."
+                    initial={dropdown.name}
+                    submit="Saqlash"
+                    done="Dropdown nomi o'zgartirildi"
+                    tooltip="Nomini o'zgartirish"
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={iconAction}
+                        aria-label={`Nomini o'zgartirish: ${dropdown.name}`}
+                      >
+                        <PencilIcon />
+                      </Button>
+                    }
+                    onSubmit={async (name) => {
+                      await call(
+                        api.PATCH("/app/customer-dropdowns/{id}", { params: { path: { id: dropdown.id } }, body: { name } }),
+                      )
+                      await refresh()
+                    }}
+                  />
+                }
               />
             </li>
           ))}

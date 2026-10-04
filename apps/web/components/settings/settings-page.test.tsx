@@ -219,3 +219,20 @@ test("a dropdown is added from the dialog and joins the list", async () => {
   expect(await screen.findByText("Dropdown qo'shildi")).toBeInTheDocument()
   await waitFor(async () => expect(rowsOf(await dropdownList())).toEqual([["Manba", "Instagram, LinkedIn, YouTube"], ["Holat", null]]))
 })
+
+test("a dropdown is renamed from its row", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  await user.click(within(await dropdownList()).getByRole("button", { name: "Nomini o'zgartirish: Manba" }))
+  const dialog = await screen.findByRole("dialog", { name: "Dropdown nomini o'zgartirish" })
+  const name = within(dialog).getByLabelText("Nomi")
+  expect(name).toHaveValue("Manba")
+  await user.clear(name)
+  await user.type(name, "Qayerdan")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Dropdown nomi o'zgartirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await dropdownList())).toEqual(["Qayerdan"]))
+})
