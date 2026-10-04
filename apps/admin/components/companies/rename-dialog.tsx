@@ -63,7 +63,7 @@ export function RenameDialog({ company }: { company: Company }) {
           <TextField control={form.control} name="name" label="Kompaniya nomi" autoComplete="off" />
           {update.isError && <Refusal>{update.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={update.isPending}>
+            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={update.isPending}>
               Saqlash
             </PendingButton>
           </DialogFooter>

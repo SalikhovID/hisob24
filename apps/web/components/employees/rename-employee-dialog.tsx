@@ -66,7 +66,7 @@ export function RenameEmployeeDialog({ companyId, employee }: { companyId: numbe
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:text-foreground max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1"
+              className="text-muted-foreground hover:text-foreground max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1 pointer-coarse:relative pointer-coarse:size-9 pointer-coarse:after:absolute pointer-coarse:after:-inset-1"
               aria-label={`Ismni o'zgartirish: ${employee.full_name ?? formatPhone(employee.phone)}`}
             />
           }
@@ -85,7 +85,7 @@ export function RenameEmployeeDialog({ companyId, employee }: { companyId: numbe
           </FieldGroup>
           {rename.isError && <Refusal>{rename.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={rename.isPending}>
+            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={rename.isPending}>
               Saqlash
             </PendingButton>
           </DialogFooter>

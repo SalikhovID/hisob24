@@ -55,7 +55,7 @@ export function RemoveEmployeeButton({
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1"
+              className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20 max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1 pointer-coarse:relative pointer-coarse:size-9 pointer-coarse:after:absolute pointer-coarse:after:-inset-1"
               aria-label={`O'chirish: ${name}`}
             />
           }
@@ -71,8 +71,16 @@ export function RemoveEmployeeButton({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
-          <PendingButton variant="destructive" pending={remove.isPending} onClick={() => remove.mutate()}>
+          <AlertDialogCancel size="lg" className="max-sm:h-10">
+            Bekor qilish
+          </AlertDialogCancel>
+          <PendingButton
+            variant="destructive"
+            size="lg"
+            className="max-sm:h-10"
+            pending={remove.isPending}
+            onClick={() => remove.mutate()}
+          >
             O&apos;chirish
           </PendingButton>
         </AlertDialogFooter>

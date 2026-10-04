@@ -65,7 +65,7 @@ export function CompanyActions({ company }: { company: Company }) {
           <Button
             variant="outline"
             size="lg"
-            className="hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+            className="hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive dark:hover:border-destructive/40 dark:hover:bg-destructive/20"
           />
         }
       >
@@ -80,9 +80,13 @@ export function CompanyActions({ company }: { company: Company }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+          <AlertDialogCancel size="lg" className="max-sm:h-10">
+            Bekor qilish
+          </AlertDialogCancel>
           <PendingButton
             variant="destructive"
+            size="lg"
+            className="max-sm:h-10"
             pending={update.isPending}
             onClick={() =>
               update.mutate(

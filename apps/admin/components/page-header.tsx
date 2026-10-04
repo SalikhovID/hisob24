@@ -32,7 +32,8 @@ export function PageHeader({
       {back && (
         <Link
           href={back.href}
-          className="inline-flex h-7 items-center gap-1 text-[0.8125rem] text-muted-foreground hover:text-foreground"
+          // The line is small; what answers a thumb around it is not.
+          className="relative inline-flex h-7 items-center gap-1 rounded-sm text-[0.8125rem] text-muted-foreground after:absolute after:-inset-2 hover:text-foreground"
         >
           <ArrowLeftIcon className="size-4" />
           {back.label}
@@ -49,7 +50,11 @@ export function PageHeader({
         {actions && (
           <div
             className={cn(
-              "col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 md:row-span-2 md:self-center",
+              "col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 md:self-center",
+              // Beside a name and its description the actions span both lines;
+              // beside a name alone there is one line, and no second row to
+              // push them off the name's centre.
+              description && "md:row-span-2",
               stack && "max-md:col-span-2 max-md:col-start-1 max-md:row-start-3 max-md:mt-2 max-md:justify-start",
             )}
           >

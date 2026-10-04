@@ -77,7 +77,7 @@ export function AddEmployeeDialog({ companyId }: { companyId: number }) {
           </FieldGroup>
           {add.isError && <Refusal>{add.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={add.isPending}>
+            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={add.isPending}>
               Qo&apos;shish
             </PendingButton>
           </DialogFooter>

@@ -69,7 +69,7 @@ export function NewCompanyForm() {
         <PendingButton
           type="submit"
           size="lg"
-          className="px-3.5 max-md:w-full"
+          className="px-3.5 max-md:w-full max-sm:h-10"
           pending={create.isPending || create.isSuccess}
         >
           Yaratish

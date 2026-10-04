@@ -81,7 +81,7 @@ export function CompanyPage({ id }: { id: number }) {
         {/* One frame of three cells, not three cards: these are facts about one thing. */}
         <dl className="mt-3 grid divide-y rounded-xl border bg-card tabular-nums sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <Detail label="Tugash sanasi">{formatDate(c.end_date)}</Detail>
-          <Detail label="Holat" className="flex h-6 items-center">
+          <Detail label="Holat" className="flex items-center sm:h-6">
             <CompanyStatusBadge company={c} />
           </Detail>
           <Detail label="Yaratilgan" className="font-normal">

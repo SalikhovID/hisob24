@@ -82,7 +82,7 @@ export function ListLoading({ rows = 3, mark = "round" }: { rows?: number; mark?
 export function Failed({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border bg-card px-4 py-10 text-center text-sm">
-      <p role="alert" className="text-destructive">
+      <p role="alert" className="text-balance text-destructive">
         {error.message}
       </p>
       <Button variant="outline" size="lg" onClick={onRetry}>

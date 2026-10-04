@@ -6,18 +6,20 @@ import { cn } from "@/lib/utils"
 export interface Column<T> {
   header: string
   cell: (item: T) => ReactNode
-  // primary is the record's title: the header of its row in the table, the
-  // top of its card on phones, and the record's link.
+  // primary is the record's title: the header of its row in the table and
+  // the top of its card on phones (and the record's link, when the list is
+  // given href).
   primary?: boolean
   // actions are what can be done with the record. The table names their
   // column for screen readers only; a card shows them at its top, beside the
-  // title, with no name.
+  // title, with no name on screen (the group is named for screen readers).
   actions?: boolean
   // card is how a card shows the value: "row" (the default) on a line of its
   // own beside the column's name. "inline" and "tag" share one line under
   // the title, the tags first: an inline value follows its column's name (a
-  // bare date could be any date); a tag (a badge) says what it is by itself,
-  // so its name is kept for screen readers only. "aside" is the figure the
+  // bare date could be any date); a tag is a value that says what it is by
+  // itself (a badge, a day count, a period), so its name is kept for screen
+  // readers only. "aside" is the figure the
   // record is read for (an amount): it stands at the card's top, across from
   // the title, its name for screen readers only. "note" is free text: it
   // takes a line of its own after everything else and wraps, its name for
@@ -57,6 +59,9 @@ export function DataList<T>({
   items: T[]
   columns: Column<T>[]
   getKey: (item: T) => Key
+  // href links every record by its whole title cell. It is for plain-text
+  // titles: a cell that links itself (an Identity with its own href) must not
+  // be combined with it, or one link would sit inside another.
   href?: (item: T) => string
   footer?: ReactNode
 }) {
@@ -208,7 +213,7 @@ export function DataList<T>({
                   role="group"
                   aria-label={actions[0].column.header}
                   data-slot="data-list-actions"
-                  className="col-start-3 row-start-1 -mt-1 -mr-2 ml-3 flex shrink-0 items-center gap-2 self-start"
+                  className="col-start-3 row-start-1 -mt-1 -mr-2 ml-2 flex shrink-0 items-center gap-2 self-start"
                 >
                   {actions.map(({ column, value }) => (
                     <span key={column.header} className="contents">

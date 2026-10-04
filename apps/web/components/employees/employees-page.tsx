@@ -67,7 +67,7 @@ export function EmployeesPage() {
       // The owner is the admin panel's to change: only employees get these.
       cell: (m) =>
         m.role === "user" && (
-          <span className="inline-flex items-center justify-end gap-1 max-md:gap-2">
+          <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
             <RenameEmployeeDialog companyId={companyId} employee={m} />
             <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />
           </span>

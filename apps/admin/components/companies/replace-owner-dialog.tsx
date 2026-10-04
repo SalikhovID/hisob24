@@ -82,7 +82,7 @@ export function ReplaceOwnerDialog({ companyId }: { companyId: number }) {
           </FieldGroup>
           {replace.isError && <Refusal>{replace.error.message}</Refusal>}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="max-sm:h-10" pending={replace.isPending}>
+            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={replace.isPending}>
               Almashtirish
             </PendingButton>
           </DialogFooter>
