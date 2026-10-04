@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, db, seedCustomers, seedSixKinds, VALI } from "@/mocks/data"
-import { setLocation } from "@/test/navigation"
+import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -201,4 +201,45 @@ test("an edit that is refused says why in the dialog, and leads to the customer 
   await user.clear(within(dialog).getByLabelText("F.I.Sh."))
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
   expect(await within(dialog).findByText("«F.I.Sh.» maydonini to'ldiring")).toBeInTheDocument()
+})
+
+test("an employee deletes the customer after being asked, and is taken back to the list", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { dilshod } = seedCustomers()
+  const { user } = open(dilshod.id)
+
+  await user.click(await screen.findByRole("button", { name: "O'chirish" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Mijozni o'chirasizmi?" })
+  expect(confirm).toHaveTextContent("Dilshod Karimov mijozlar ro'yxatidan olib tashlanadi. Qayta tiklab bo'lmaydi.")
+  await user.click(within(confirm).getByRole("button", { name: "Bekor qilish" }))
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(dilshod.deleted).toBeUndefined()
+
+  await user.click(screen.getByRole("button", { name: "O'chirish" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Mijozni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/customers"))
+  expect(await screen.findByText("Mijoz o'chirildi")).toBeInTheDocument()
+  expect(dilshod.deleted).toBe(true)
+})
+
+test("a delete that is refused says why, and the customer stays", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedCustomers()
+  server.use(
+    http.delete("*/api/app/customers/:id", () =>
+      HttpResponse.json({ error: "internal_error", message: "Mijoz o'chmadi: ichki xatolik" }, { status: 500 }),
+    ),
+  )
+  const { user } = open(dilshod.id)
+
+  await user.click(await screen.findByRole("button", { name: "O'chirish" }))
+  await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Mijoz o'chmadi: ichki xatolik")).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(router.replace).not.toHaveBeenCalled()
+  expect(screen.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
 })

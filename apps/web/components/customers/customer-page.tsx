@@ -8,6 +8,7 @@ import { answerText, customerName } from "@/lib/customers"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useCustomer, useCustomerDropdowns, useCustomerTypes, useMe } from "@/lib/queries"
+import { DeleteCustomerButton } from "./delete-customer-button"
 import { EditCustomerDialog } from "./edit-customer-dialog"
 
 const back = { href: "/customers", label: "Mijozlar" }
@@ -76,8 +77,14 @@ export function CustomerPage({ id }: { id: number }) {
         avatar={<Avatar name={name} seed={customer.data.id} />}
         stack
         actions={
-          companyId !== null &&
-          type && <EditCustomerDialog companyId={companyId} customer={customer.data} type={type} dropdowns={dropdowns.data} />
+          companyId !== null && (
+            <>
+              {type && (
+                <EditCustomerDialog companyId={companyId} customer={customer.data} type={type} dropdowns={dropdowns.data} />
+              )}
+              <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />
+            </>
+          )
         }
       />
       <section aria-labelledby="customer-info" className="space-y-3">
