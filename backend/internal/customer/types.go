@@ -3,6 +3,7 @@ package customer
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 
@@ -168,14 +169,24 @@ func (s *Service) OrderTypes(ctx context.Context, companyID int64, ids []int64) 
 }
 
 // DeleteType hides the company's type and its fields with it; the type's
-// name is free again.
+// name is free again. A type that has customers is not deleted.
 func (s *Service) DeleteType(ctx context.Context, companyID, id int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteCustomerType(ctx, gen.DeleteCustomerTypeParams{ID: id, CompanyID: companyID})
+		_, err := q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: id, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errTypeNotFound
 		}
 		if err != nil {
+			return err
+		}
+		used, err := q.CountTypeCustomers(ctx, id)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "type_in_use", fmt.Sprintf("Bu turda %d ta mijoz bor", used))
+		}
+		if _, err := q.DeleteCustomerType(ctx, gen.DeleteCustomerTypeParams{ID: id, CompanyID: companyID}); err != nil {
 			return err
 		}
 		return q.DeleteCustomerTypeFields(ctx, id)
