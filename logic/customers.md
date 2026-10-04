@@ -78,9 +78,9 @@ Owner ularni o'zgartirishi va o'chirishi mumkin. Tayyor dropdown yo'q.
 ## 4. Mijoz
 
 - **Qo'shish.** Tur tanlanadi, telefon va shu turning maydonlari to'ldiriladi (`POST /app/customers {type_id, phone, values}`). Kim qo'shgani saqlanadi.
-- **Tahrirlash.** Telefon va qiymatlar almashtiriladi (`PUT /app/customers/{id} {phone, values}`). Tur o'zgarmaydi. Ikki kishi bir vaqtda tahrirlasa, oxirgi saqlagan qoladi.
+- **Tahrirlash.** Telefon va qiymatlar yuborilganiga almashadi (`PUT /app/customers/{id} {phone, values}`): yuborilmagan maydonning qiymati o'chadi. Tur o'zgarmaydi. Ikki kishi bir vaqtda tahrirlasa, oxirgi saqlagan qoladi. Hech narsa o'zgarmagan saqlash hech narsani yozmaydi ("tahrirlangan" vaqti ham o'zgarmaydi).
 - **O'chirish.** Mijoz yashiriladi (`deleted_at`), bazadan o'chmaydi. U ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Tiklash yo'q.
-- **Qo'shgan.** Ro'yxatda mijozni qo'shgan a'zoning shu kompaniyadagi ismi ko'rinadi. A'zo kompaniyadan chiqarilgan bo'lsa, qo'shgan paytdagi ismi ko'rinadi.
+- **Qo'shgan.** Ro'yxatda mijozni qo'shgan a'zoning shu kompaniyadagi hozirgi ismi ko'rinadi. A'zo kompaniyadan chiqarilgan (yoki hozir ismsiz) bo'lsa, qo'shgan paytdagi ismi ko'rinadi.
 
 ### 4.1 Qiymatlar
 
@@ -93,20 +93,21 @@ Owner ularni o'zgartirishi va o'chirishi mumkin. Tayyor dropdown yo'q.
 | dropdown, radio | variant ID'si |
 | ko'p tanlovli dropdown, checkbox | variant ID'lari massivi |
 
-Bo'sh qiymat (bo'sh matn, `null`, bo'sh massiv) saqlanmaydi. Tekshiruv turning maydonlari tartibida, birinchi xato qaytadi:
+Bo'sh qiymat (bo'sh matn, `null`, bo'sh massiv, yuborilmagan maydon) saqlanmaydi. Matn chetidagi bo'shliqlar olib tashlanadi; nol (`0`) bo'sh emas. Ko'p tanlovda bir variant ikki marta yuborilsa, bir marta sanaladi; variantlar dropdown tartibida saqlanadi. Tekshiruv quyidagi tartibda, birinchi xato qaytadi: telefon, tur, turda yo'q maydon, keyin turning maydonlari o'z tartibida:
 
 | Holat | Xabar (400 `validation_error`) |
 |---|---|
 | telefon noto'g'ri | "Telefon raqami noto'g'ri" |
 | tur yo'q yoki o'chirilgan | "Mijoz turini tanlang" |
 | turda yo'q maydon yuborilgan | "Bu turda bunday maydon yo'q" |
+| matn maydoniga matn bo'lmagan qiymat | "«Nomi» matn bo'lishi kerak" |
 | matn 500 belgidan uzun | "«Nomi» 500 belgidan oshmasin" |
-| butun son emas yoki chegaradan tashqarida | "«INN» butun son bo'lishi kerak" |
-| variant shu maydonniki emas, o'chirilgan yoki nofaol | "«Manba» uchun variant noto'g'ri" |
+| butun son emas (kasr, eksponenta, matn) yoki chegaradan tashqarida | "«INN» butun son bo'lishi kerak" |
+| variant shu maydonniki emas, o'chirilgan yoki nofaol (mijozning shu maydonida allaqachon tanlangan nofaol variant bundan mustasno) | "«Manba» uchun variant noto'g'ri" |
 | majburiy matn yoki son bo'sh | "«INN» maydonini to'ldiring" |
 | majburiy tanlov bo'sh | "«Manba» ni tanlang" |
 
-Takror telefon va takrorlanmas qiymat 409 qaytaradi va javobda mavjud mijozning ID'si bor (`customer_id`): forma unga havola beradi.
+Takror telefon va takrorlanmas qiymat 409 qaytaradi va javobda mavjud mijozning ID'si bor (`customer_id`): forma unga havola beradi. Bu ikki tekshiruv javoblar to'g'ri bo'lgandan keyin: avval telefon, keyin takrorlanmas maydonlar o'z tartibida. Tahrirda mijozning o'z telefoni va o'z qiymati takror hisoblanmaydi. Yo'q mijozni tahrirlash nima yuborilganidan qat'i nazar 404.
 
 ## 5. O'chirish qoidalari
 
@@ -129,14 +130,17 @@ Hamma narsa yashiriladi, bazadan o'chmaydi. Faol mijozda ishlatilayotgan narsa o
 - Eng yangi qo'shilgan mijoz birinchi, sahifada 20 ta.
 - **Ustunlar.** "Mijoz" (nom, ostida telefon), "Turi", maydonlar, "Qo'shgan", "Qo'shilgan". Turli turlardagi bir xil nomli maydonlar bitta ustun bo'ladi. Nom maydoni alohida ustun bo'lmaydi. Tur filtri tanlansa, ustunlar shu turning maydonlari.
 - **Ustun tanlovi.** Har user "Ustunlar" menyusida ustunlarni o'ziga yashiradi yoki ko'rsatadi. Tanlov brauzerda saqlanadi (kompaniya va user bo'yicha). "Mijoz" ustuni yashirilmaydi.
-- **Qidiruv.** Telefon raqamlari, matn maydonlari (katta-kichik harf farqsiz, harfma-harf) va butun son maydonlari bo'yicha. Variant nomi bo'yicha qidirilmaydi.
-- **Tur filtri.** "Barchasi" yoki bitta tur.
+- **Qidiruv.** Matn maydonlarida qidiriladi (katta-kichik harf farqsiz, harfma-harf, so'z ichidan ham). Qidiruv faqat raqamlardan iborat bo'lsa (bo'shliq, `+`, `-` va qavs bilan yozilgan bo'lishi mumkin: `+998 (90) 123-45`), uning raqamlari telefonlarda va butun son maydonlarida ham qidiriladi. Harf aralash qidiruv ("Ali 5") faqat matn maydonlarida qidiriladi. Variant nomi bo'yicha qidirilmaydi.
+- **Tur filtri.** "Barchasi" yoki bitta tur. Qidiruv bilan birga ishlaydi.
+- **Sahifa.** `?page=` 1 dan boshlanadi; oxirgidan keyingi sahifa bo'sh ro'yxat va jami sonni qaytaradi.
 
 ## 7. Tarix
 
-Mijozning har o'zgarishi yoziladi: qo'shilgani, har tahriri va o'chirilgani. Tahrirda o'zgargan har maydon (telefon ham) eski va yangi qiymati bilan saqlanadi. Qiymatlar o'sha paytdagi nomlari bilan matn sifatida yoziladi: maydon yoki variant keyin qayta nomlansa, tarix o'zgarmaydi. Hech narsa o'zgarmagan saqlash tarixga yozilmaydi.
+Mijozning har o'zgarishi yoziladi: qo'shilgani, har tahriri va o'chirilgani, kim qilgani bilan. Tahrirda o'zgargan har maydon (telefon ham) eski va yangi qiymati bilan saqlanadi: avval telefon (`+998 90 123 45 67` ko'rinishida), keyin maydonlar o'z tartibida; bo'sh qiymat bo'sh matn. Qiymatlar o'sha paytdagi nomlari bilan matn sifatida yoziladi (variantlar nomi bilan, bir nechtasi vergul bilan): maydon yoki variant keyin qayta nomlansa, tarix o'zgarmaydi. Qo'shish va o'chirish yozuvida maydonlar ro'yxati bo'sh. Hech narsa o'zgarmagan saqlash tarixga yozilmaydi.
 
-Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`), mijoz sahifasida.
+Kim qilgani "Qo'shgan" kabi ko'rsatiladi: a'zoning hozirgi ismi, chiqarilgan bo'lsa o'sha paytdagi ismi.
+
+Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`, oxirgisi birinchi), mijoz sahifasida. O'chirilgan mijozning tarixi bazada qoladi, lekin interfeysda va API'da ko'rinmaydi (404).
 
 ## 8. Chekka holatlar
 
@@ -157,7 +161,7 @@ Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`), mijoz sahifasid
 
 | Kod | Status | Xabar |
 |---|---|---|
-| `validation_error` | 400 | 4.1-bo'limdagi xabarlar; "Nomni kiriting", "Nom 60 belgidan oshmasin", "Maydon turini tanlang", "Dropdownni tanlang" |
+| `validation_error` | 400 | 4.1-bo'limdagi xabarlar; "Nomni kiriting", "Nom 60 belgidan oshmasin", "Maydon turini tanlang", "Dropdownni tanlang"; ro'yxatda "Sahifa raqami noto'g'ri", "Mijoz turi noto'g'ri" |
 | `company_required` | 403 | "Avval kompaniyani tanlang" |
 | `owner_only` | 403 | "Bu bo'lim faqat kompaniya egasi uchun" |
 | `not_found` | 404 | "Mijoz topilmadi", "Tur topilmadi", "Maydon topilmadi", "Dropdown topilmadi", "Variant topilmadi" |
