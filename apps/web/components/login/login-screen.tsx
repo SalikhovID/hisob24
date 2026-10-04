@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Logo } from "@/components/logo"
 import { formatPhone } from "@/lib/phone"
 import { waitForWebApp } from "@/lib/telegram"
 import type { TelegramWebApp } from "@/types/telegram"
@@ -49,7 +50,9 @@ export function LoginScreen() {
           </p>
         )}
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold">Hisob24</h1>
+          <h1 className="flex justify-center">
+            <Logo className="h-8" />
+          </h1>
           <p className="text-sm text-muted-foreground">
             {step.kind === "phone" ? "Telefon raqamingizni kiriting" : `Kod ${formatPhone(step.phone)} raqamiga yuborildi`}
           </p>

@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { TG_ALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
@@ -46,4 +46,11 @@ test("when the Telegram sign-in fails the SMS form takes over and says why", asy
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Telegram ma'lumoti yaroqsiz. Mini App'ni qaytadan oching")
   expect(screen.getByRole("textbox", { name: "Telefon raqami" })).toBeInTheDocument()
+})
+
+test("the login is headed by Hisob24's logo", () => {
+  renderWithProviders(<LoginScreen />)
+
+  const heading = screen.getByRole("heading", { level: 1, name: "Hisob24" })
+  expect(within(heading).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
 })
