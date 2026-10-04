@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, seedCustomers, typesOf, VALI } from "@/mocks/data"
+import { ALI, db, nextId, seedCustomers, typesOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { currentUrl, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
@@ -222,4 +222,35 @@ test("the list opens with the search the address names, in the box too", async (
   await table()
   expect(names()).toEqual(["Anor Tekstil MChJ"])
   expect(screen.getByRole("searchbox", { name: "Qidirish" })).toHaveValue("anor")
+})
+
+// many enters n more customers of Olma Savdo, beside the three of the seed.
+function many(n: number) {
+  const { dilshod } = seedCustomers()
+  for (let i = 0; i < n; i += 1) {
+    db.customers.push({ ...dilshod, id: nextId(), phone: `9989000000${String(i).padStart(2, "0")}`, values: { ...dilshod.values } })
+  }
+}
+
+test("the list goes page by page, twenty at a time", async () => {
+  await signIn(ALI)
+  many(21)
+  setLocation("/customers")
+  const { user } = renderWithProviders(<CustomersPage />)
+
+  expect(rowsOf(await table())).toHaveLength(20)
+  expect(screen.getByText("1–20 / 24")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Oldingi" })).toBeDisabled()
+
+  await user.click(screen.getByRole("button", { name: "Keyingi" }))
+
+  await waitFor(() => expect(rowsOf(screen.getByRole("table", { name: "Mijozlar" }))).toHaveLength(4))
+  expect(currentUrl()).toBe("/customers?page=2")
+  expect(screen.getByText("21–24 / 24")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Keyingi" })).toBeDisabled()
+  // The company's count stays on screen while pages turn.
+  expect(screen.getByText("Kompaniyangiz mijozlari · 24 ta")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("button", { name: "Oldingi" }))
+  await waitFor(() => expect(currentUrl()).toBe("/customers"))
 })

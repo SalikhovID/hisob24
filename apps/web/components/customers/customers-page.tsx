@@ -4,6 +4,7 @@ import { useState } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
+import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -155,7 +156,20 @@ export function CustomersPage() {
           />
         )}
         {!loading && !failed && customers.data && customers.data.total > 0 && (
-          <DataList label="Mijozlar" items={customers.data.items} columns={columns} getKey={(c) => c.id} />
+          <DataList
+            label="Mijozlar"
+            items={customers.data.items}
+            columns={columns}
+            getKey={(c) => c.id}
+            footer={
+              <Pager
+                page={customers.data.page}
+                pageSize={customers.data.page_size}
+                total={customers.data.total}
+                onPage={(page) => update({ page })}
+              />
+            }
+          />
         )}
       </div>
     </div>
