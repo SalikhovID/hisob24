@@ -108,3 +108,18 @@ test("in the shell the logo wears the brand's color, white in the dark", async (
   await page.emulateMedia({ colorScheme: "dark" })
   await expect(logo).toHaveCSS("color", "rgb(255, 255, 255)")
 })
+
+test.describe("inside Telegram, with initData the API refuses", () => {
+  // No user in initData: the API cannot tell who is signing in.
+  test.use({ telegramScript: fakeTelegram.replace("user=%7B%22id%22%3A461603558%7D&", "") })
+
+  test("the code form takes over, its panel in the chat's colors", async ({ page }) => {
+    await page.goto("/companies")
+
+    await expect(page.getByRole("alert").filter({ hasText: "Telegram ma'lumotlari tasdiqlanmadi" })).toBeVisible()
+    await expect(page.getByRole("textbox", { name: "Kod" })).toBeVisible()
+    const panel = page.getByRole("banner")
+    await expect(panel).toHaveCSS("background-color", "rgb(35, 46, 60)")
+    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(245, 245, 245)")
+  })
+})
