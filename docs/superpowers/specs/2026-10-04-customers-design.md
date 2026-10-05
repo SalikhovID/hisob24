@@ -1,6 +1,6 @@
 # Mijozlar: turlar, maydonlar, dropdownlar va tarix — dizayn
 
-Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja tasdig'i bilan), to'rt bosqich amalga oshirilgan; production'ga deploy alohida so'raladi. Qoidalar: `logic/customers.md`. Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-04-customers-stage<N>-*.md`.
+Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja tasdig'i bilan), to'rt bosqich amalga oshirilgan; 2026-10-05 da production'ga chiqarilgan (pastda "Production'ga deploy"). Qoidalar: `logic/customers.md`. Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-04-customers-stage<N>-*.md`.
 
 ## Maqsad
 
@@ -296,7 +296,7 @@ To'xtovsiz ketma-ket (24-qaror). Har bosqich: boshida batafsil reja `docs/superp
 - Boshqa maydon turlari (sana, fayl, kasr son, xodimga havola); xonalar soni kabi son qoidalari; chet el raqamlari.
 - Variant nomi bo'yicha qidiruv; saralashni o'zgartirish; Excel import va eksport.
 - Ustun tanlovini bazada saqlash; bir vaqtda tahrirda ziddiyatni aniqlash; soniga limitlar.
-- Admin panel; production deploy (alohida so'raladi).
+- Admin panel.
 
 ## 1-bosqich qarorlari (2026-10-04)
 
@@ -384,3 +384,22 @@ To'rt bosqichdan keyin kod qayta ko'rib chiqildi. Ikki tuzatish kiritildi (ikkal
 - **Tarixdagi bir xil nomlar.** Egasi maydonni "Telefon" deb atasa, bitta tahrirda shu nomli ikki o'zgarish bo'lishi mumkin: ikkalasi ham ko'rsatiladi (ro'yxat kaliti o'rin bo'yicha).
 
 Yakuniy tekshiruv: `make lint` 0 issues; `make test`: Go 16 paket, web 381, admin 217, api-client 1; `make e2e`: admin 40, web 78; lokal haqiqiy stack'da curl bilan 48 / 48 (lock o'zgarishidan keyin qayta) va brauzerda 12 / 12.
+
+## Production'ga deploy (2026-10-05)
+
+Foydalanuvchi so'rovi bilan ("deploy qil"). Backend, ikki migratsiya va ikkala ilova birga chiqdi.
+
+- `587d20e`: toza nusxada (`git archive HEAD`) `pnpm install --frozen-lockfile`, ikkala ilovaning `next build` i va Go API build'i o'tdi. Shu commit'da `make lint` (0 issues), `make test` (Go 16 paket keshdan, kod o'zgarmagan; web 381, admin 217, api-client 1) va `make e2e` (admin 40, web 78) qayta o'tdi.
+- Server, deploy'dan oldin (faqat o'qish): to'rt konteyner healthy, `restarts=0`; goose versiya 4; `customer` bilan boshlanadigan jadval yo'q; `.env` da 16 kalit (`.env.example` o'zgarmagan); oxirgi 24 soatda API log'ida ERROR / WARN yo'q.
+- Baza nusxasi: `/var/backups/hisob24-v2/hisob24-pre-customers-20261005-1359.sql.gz` (11 jadval, `gzip -t` toza, oxirida "dump complete"). Nusxa skripti ssh stdin'i orqali yuborilgan edi, shuning uchun `docker compose exec` skriptning qolgan qatorlarini o'qib yubordi: fayl `.tmp` nomida qoldi, tekshirilgach nomi o'zgartirildi.
+- `deploy/ship.sh` exit 0, 4 daqiqa 38 soniya (api va next image'lari qayta qurildi); `00005_customer_settings.sql` (167 ms) va `00006_customers.sql` (107 ms) OK, goose versiya 6.
+- Serverdagi daraxt `587d20e` bilan fayl-ma-fayl bir xil (560 fayl); `/var/www/hisob24-v2.prev`: `7737522` (login deploy'i).
+- Sessiyasiz tekshiruv 34 / 34. Deploy'dan oldin xuddi shu skript 23 / 34 bergan: qolgan 11 tasi yangi route'lar, ular 404 qaytargan.
+  - `healthz`; webhook'lar secret'siz 401; `api.hisob24.uz` `/app/customers` ni bermaydi (404);
+  - `/customers`, `/customers/1`, `/settings`, `/settings/customer-types/1`, `/settings/dropdowns/1`: soxta cookie bilan qobiq 200 (oldin 404), cookie'siz `/login` ga 307;
+  - `GET /api/app/customers`, `…/customers/1`, `…/customers/1/history`, `…/customer-types`, `…/customer-dropdowns`: tokensiz va soxta token bilan 401 (oldin 404); noma'lum route 404;
+  - admin: `/login` 200, soxta cookie bilan `/companies` va `/admins` qobiq 200, API sessiyasiz 401;
+  - `/favicon.ico`, `/icon.svg`, `/apple-icon.png` (ikkala sayt): 200 va to'g'ri `content-type`. Birinchi o'tishda ikkala `apple-icon.png` FAIL chiqdi: skript PNG baytlarini UTF-8 regex bilan solishtirgan (javob 200, `image/png`, 4620 bayt, uch marta). Skriptga `LC_ALL=C` qo'shilgach, hammasi o'tdi.
+- Brauzerda (faqat sahifa ochildi; 375px va 1280px, ikkala saytda `/login`): 200, yon scroll 0px, konsol xatosi yo'q, 4xx / 5xx yo'q, GET'dan boshqa so'rov yuborilmadi.
+- Server: to'rt konteyner healthy, `restarts=0`; eski jadvallarda satrlar soni deploy'dan oldingi bilan bir xil; yangi jadvallar: bitta kompaniyaga `customer_types` 2 (Jismoniy, Yuridik) va `customer_fields` 3 (F.I.Sh.; Nomi; INN: butun son, takrorlanmas), qolganlarida 0 satr; 20 indeks; `.env` avvalgisi bilan bir xil (16 kalit); API log'ida ERROR / WARN yo'q.
+- Mijozlar va sozlamalar oqimlari production'da sinalmadi, chunki kirish uchun haqiqiy SMS ketadi. Ularni foydalanuvchi o'zi sinaydi.
