@@ -62,17 +62,21 @@ const option = "flex w-fit items-center gap-2 text-sm leading-5"
 // FieldAnswer is the input of one field of a type, at the form path it is
 // given, by the field's kind: a line of text, digits, the browser's own
 // select, radios, checkboxes, or a menu of checkboxes behind a button that
-// says what is chosen. options is what the field's dropdown offers.
+// says what is chosen. options is what the field's dropdown offers. A
+// disabled answer is shown and not changed (a customer that is there,
+// linked to a task).
 export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   name,
   field,
   options,
+  disabled,
 }: {
   control: Control<T, unknown, TOut>
   name: FieldPath<T>
   field: FormField
   options: CustomerOption[]
+  disabled?: boolean
 }) {
   const id = useId()
   const labelId = `${id}-label`
@@ -105,6 +109,7 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
                   aria-invalid={fieldState.invalid}
                   aria-describedby={hint}
                   className="w-full"
+                  disabled={disabled}
                   {...input}
                   value={one}
                 >
@@ -123,6 +128,7 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
                 <RadioGroup
                   aria-labelledby={labelId}
                   aria-describedby={hint}
+                  disabled={disabled}
                   value={one === "" ? NONE : one}
                   onValueChange={(value) => input.onChange(value === NONE ? "" : value)}
                 >
@@ -149,6 +155,7 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
                     <label key={o.id} className={option}>
                       <Checkbox
                         checked={several.includes(String(o.id))}
+                        disabled={disabled}
                         onCheckedChange={(checked) => toggle(String(o.id), checked)}
                       />
                       {o.label}
@@ -170,6 +177,7 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
                         id={id}
                         aria-labelledby={`${labelId} ${id}`}
                         aria-describedby={hint}
+                        disabled={disabled}
                         className="h-auto min-h-8 w-full justify-between gap-2 py-1 text-left font-normal whitespace-normal"
                       />
                     }
@@ -205,6 +213,7 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
                   aria-invalid={fieldState.invalid}
                   aria-describedby={hint}
                   autoComplete="off"
+                  disabled={disabled}
                   {...input}
                   value={one}
                 />

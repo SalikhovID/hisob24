@@ -2,7 +2,7 @@
 
 import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
-import { KanbanIcon, ListIcon } from "lucide-react"
+import { KanbanIcon, ListIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useState } from "react"
 import { ColumnsMenu } from "@/components/customers/columns-menu"
@@ -12,13 +12,22 @@ import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { answerText, fieldColumns } from "@/lib/fields"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
-import { type TaskFilter, useCustomerDropdowns, useMe, useMembers, useTasks, useTaskStages, useTaskTypes } from "@/lib/queries"
+import {
+  type TaskFilter,
+  useCustomerDropdowns,
+  useCustomerTypes,
+  useMe,
+  useMembers,
+  useTasks,
+  useTaskStages,
+  useTaskTypes,
+} from "@/lib/queries"
 import type { Task } from "@/lib/types"
 import { useHiddenColumns } from "@/lib/use-hidden-columns"
 import { useKept } from "@/lib/use-kept"
@@ -52,8 +61,12 @@ export function TasksPage() {
   const types = useTaskTypes(companyId)
   const stages = useTaskStages(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
+  const customerTypes = useCustomerTypes(companyId)
   const members = useMembers(companyId)
   const [filter, update] = useTaskFilter()
+  // The form for a new task, open for a stage (a column's +) or for the
+  // first one (the page's button); null while closed.
+  const [adding, setAdding] = useState<{ stageId: number | null } | null>(null)
 
   // The view is the address's; without one, the view chosen last time; the
   // first time, the board.
@@ -195,7 +208,14 @@ export function TasksPage() {
       <PageHeader
         title="Vazifalar"
         description={unfiltered && total !== undefined ? `Kompaniyangiz vazifalari · ${total} ta` : "Kompaniyangiz vazifalari"}
-        actions={ready && <AddTaskDialog />}
+        actions={
+          ready && (
+            <Button size="lg" className="px-3.5" onClick={() => setAdding({ stageId: null })}>
+              <PlusIcon />
+              Vazifa qo&apos;shish
+            </Button>
+          )
+        }
       />
       {noStages || noTypes ? (
         // A task stands in a stage and is of a type: with none there is
@@ -305,8 +325,20 @@ export function TasksPage() {
               everyType={everyType}
               filter={{ search: filter.search, typeId: filter.typeId, assignee: filter.assignee }}
               onTotal={onTotal}
-              // The dialog that opens for a stage comes with the task form.
-              onAdd={() => {}}
+              onAdd={(stageId) => setAdding({ stageId })}
+            />
+          )}
+          {adding && ready && (
+            <AddTaskDialog
+              companyId={companyId}
+              types={types.data}
+              stages={stages.data}
+              customerTypes={customerTypes.data ?? []}
+              dropdowns={dropdowns.data}
+              members={members.data ?? []}
+              typeId={filter.typeId}
+              stageId={adding.stageId}
+              onClose={() => setAdding(null)}
             />
           )}
           {view === "list" && loading && <ListLoading rows={6} mark="none" />}

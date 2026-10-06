@@ -256,6 +256,18 @@ export function useMoveTask(companyId: number | null) {
   })
 }
 
+// useCustomerSuggestions is the customers whose phones begin with the
+// digits typed (after 998), for the task form to pick one from; asked once
+// three digits are there, and never for fewer.
+export function useCustomerSuggestions(companyId: number | null, digits: string) {
+  return useQuery({
+    queryKey: [...customersKey(companyId), "suggest", digits],
+    queryFn: () => call(api.GET("/app/customers", { params: { query: { phone: digits, page: 1 } } })),
+    enabled: companyId !== null && digits.length >= 3,
+    placeholderData: keepPreviousData,
+  })
+}
+
 // customerKey names one customer of a company in the cache.
 export const customerKey = (companyId: number | null, id: number) => ["customer", companyId, id] as const
 
