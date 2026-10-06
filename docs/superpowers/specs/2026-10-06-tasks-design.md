@@ -243,3 +243,16 @@ To'xtovsiz ketma-ket (22-qaror; CLAUDE.md "tasdiqdan keyin" qoidasidan tasdiqlan
 - Eslatmalar va bildirishnomalar (bot orqali), takrorlanuvchi vazifalar, izohlar, fayllar, bosh sahifada "Mening vazifalarim" bloki, Excel eksport.
 - Muddatda vaqt; mas'ulga ko'ra ruxsatlar (hamma hamma vazifani ko'radi).
 - Admin panel.
+
+## 1-bosqich qarorlari (2026-10-06)
+
+Bajarildi: `internal/fields` (`Field`, `Option`, `Kind*`, `KindOf`, `CleanName`, `Taken`, `SameIDs`, `ErrOrderChanged`, `Invalid`; `Values`, `CheckValues`, `Change`, `DiffValues`), `internal/customer` unga o'tdi, `customer.CreateIn`; `apps/web`: `lib/fields.ts`, `components/field-answer.tsx` (`FieldAnswer`), `components/history-list.tsx` (`HistoryList`). Reja: `docs/superpowers/plans/2026-10-06-tasks-stage1-shared-fields.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Aliaslar.** `customer.Field`, `Option`, `Values`, `Change` va `Kind*` `fields` dagilarning aliasi: `internal/app` va mijoz testlari o'zgarmadi. `asText` eksport qilinmadi (tashqarida ishlatilmaydi).
+- **Ko'chirish ham TDD bilan.** Yangi joyda avval test, keyin kompilyatsiya bo'ladigan stub (mantiq bo'yicha yiqildi), keyin kod. Mijoz paketidagi `values_test.go` da faqat telefon holatlari (`TestDiff`) qoldi.
+- **`CreateIn` testi.** Ochiq tranzaksiya testning bazani o'chiradigan cleanup'ini to'sib qo'ygan edi (jarayon osilib qoldi): testdagi har tranzaksiyaga `t.Cleanup` rollback qo'shildi. Chaqiruvchining rollback'i mijozni va tarixini olib ketadi, commit saqlaydi.
+- **Frontend.** `lib/customer-fields.ts` yo'qoldi: `kindLabels`, `kinds`, `isChoice` `lib/fields.ts` ga, `nameFieldOf` `lib/customers.ts` ga. `fieldColumns` `lib/fields.ts` da hech qaysi maydonni o'tkazib yubormaydi; mijozlarning nusxasi nom maydonini olib tashlab chaqiradi. `readAnswers(fields, entries, refuse)` xatoni kalit bilan aytadi, sxema uni `path: ["values", key]` ga aylantiradi. `FieldAnswer` forma yo'lini (`name`) o'zi oladi (vazifa formasi mijoz maydonlarini `customer.values.*` ostida ushlaydi). `HistoryList` o'z `HistoryEntry` shakli bilan (`CustomerHistoryEntry` unga mos; `TaskHistoryEntry` ham shunday bo'ladi).
+- **Rejadan farq.** `useHiddenColumns` prefiksi va `FieldDialog` prop'lari 5- va 3-bosqichga qoldirildi: ularni talab qiladigan test o'sha yerda.
+- **Tekshiruv.** `make lint` 0 issues; `make test`: Go 17 paket (yangi `fields`), web 391, admin 217, api-client 1; `make e2e`: admin 40, web 78.
