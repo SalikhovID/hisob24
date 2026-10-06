@@ -248,3 +248,19 @@ Boshqa sessiya select'lar, `/settings` tablari va pager ustida ishlayapti (`80cf
 - `make lint`, `make test`, `make e2e` toza.
 - Mutatsiya: `requirePermission` o'rniga `requireCompany` qolsa rolli xodim testi yiqiladi; `Effective` da rol e'tiborsiz qolsa yiqiladi.
 - Lokal haqiqiy stack (`make dev`, Playwright vaqtinchalik spec, SMS kodi API log'idan): egasi rol yaratadi ("Sotuvchi": mijozlar hammasi, vazifalar ko'rish + qo'shish), xodimga biriktiradi; xodim kirgach: tab-bar'da faqat Bosh sahifa, Mijozlar, Vazifalar; vazifa sahifasida tahrir / o'chirish yo'q; `curl` bilan `PUT /api/app/tasks/{id}` → 403 `forbidden`; rol olib tashlangach xodim yana hozirgidek ishlaydi. Skrinshotlar: 375px tab-bar (egasi 5 tugma, xodim 3 tugma), 320px yon scroll yo'q, desktop sidebar o'zgarmagan, soxta Telegram skripti bilan Mini App.
+
+## 1-bosqich qarorlari (2026-10-06)
+
+Bajarildi: `internal/access` (katalog, `Set`, `Parse`, `Effective`), migratsiya `00009_roles.sql`, so'rovlar (`GetCompanyAccess`, `ListCompanyUsers`, `ListUserCompanies`, `SetCompanyOwner`, yangi `GetCompanyMember`), `user.Access.Permissions`, `company.Member.RoleID / RoleName`, `requirePermission` va route'lar, yangi mijozli vazifada `customers.create`, `/app/me` `permissions` + `role_name`, `memberJSON` rol maydonlari (app, admin), openapi + TS client, admin va web mock'lari, `lib/permissions.ts`, `query-client` `forbidden`. Reja: `docs/superpowers/plans/2026-10-06-roles-stage1-permissions.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`access.Effective(role, hasRole, rolePerms)`:** rol borligi alohida argument (`role_id IS NOT NULL`), bo'sh massiv bilan NULL farqiga tayanilmaydi: bo'sh ruxsatli rol ham rol.
+- **`access.Parse`** katalog tartibida yuradi: bir nechta bo'lim buzilgan bo'lsa, katalogda birinchi kelgani aytiladi ("«Vazifalar» bo'limida avval «Ko'rish» ni belgilang").
+- **Context'da `user.Access`** (`accessKey`): rol ham, ruxsatlar ham bitta qiymat. `currentRole` olib tashlandi (`golangci-lint` `unused`); `requireOwner` `currentAccess(ctx).Role` ni o'qiydi va 2-bosqichgacha route'siz, `//nolint:unused` bilan.
+- **Test konstantasi `noPermission`** (`{"error":"forbidden",…}`): `forbidden` nomi production yordamchisi `forbidden(w)` bilan to'qnashdi.
+- **`GetCompanyMember`** yangi so'rov: `RenameEmployee` javobi rol nomini ham qaytaradi (`RenameCompanyUser` RETURNING'da join yo'q).
+- **openapi summary'lari** `(employees.view ruxsati)` ko'rinishida: `(ruxsat: employees.view)` ichidagi ikki nuqta YAML'da xato berdi.
+- **Mock API:** `permittedSession` = `memberSession` + ruxsat; `permissionsOf` hozircha egasi → katalog, xodim → standart (rollar mock'ka 2-bosqichda keladi, `role_name` va `role_id` null).
+- **O'zgargan mavjud testlar** (talab o'zgargani uchun): Go'da ruxsatli route'larda `owner_only` → `forbidden` (`customer_settings`, `task_settings`, `members`, `customers`, `tasks`, `employees` testlari), `TestEmployeesAreForTheOwnerOnly` → `TestEmployeesNeedTheirPermission` (kompaniyasiz token → `company_required`), `TestAccess` ruxsat to'plami bilan, `TestGetCompanyAccess` / `TestListCompanyUsers` / `TestListUserCompanies` / `TestSetCompanyOwner` rol bilan, `TestMe` / `TestListEmployees` yangi maydonlar bilan, admin `TestGetCompany` rol maydonlari; web `handlers.test.ts` (`forbidden`, `company_required`, `/app/me` `permissions`, a'zolarda rol maydonlari), `query-client.test.tsx` (`forbidden`); admin `company-page.test.tsx` a'zo obyekti rol maydonlari bilan. Hech biri o'chirilmadi.
+- **Tekshiruv:** `make lint` toza; `make test`: Go barcha paketlar, api-client 1, admin 228, web 521; `make e2e`: admin 40, web 90.

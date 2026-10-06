@@ -169,12 +169,6 @@ func currentAccess(ctx context.Context) user.Access {
 	return standing
 }
 
-// currentRole is the member's role in the company; "" before a company is
-// chosen.
-func currentRole(ctx context.Context) string {
-	return currentAccess(ctx).Role
-}
-
 // currentPermissions is what the member may do in the company: the owner
 // everything, an employee what their role, or the default, allows.
 func currentPermissions(ctx context.Context) access.Set {
@@ -208,7 +202,7 @@ func (h *Handler) requirePermission(p access.Permission) func(http.Handler) http
 //nolint:unused // Stage 2 of the roles work mounts the roles API behind it.
 func (h *Handler) requireOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if currentRole(r.Context()) != "owner" {
+		if currentAccess(r.Context()).Role != "owner" {
 			httpx.Error(w, http.StatusForbidden, "owner_only", "Bu bo'lim faqat kompaniya egasi uchun")
 			return
 		}

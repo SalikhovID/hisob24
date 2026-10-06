@@ -45,12 +45,12 @@ Qoidalar: `logic/roles.md` (4, 7-bo'limlar), `logic/user.md` (7–9). Dizayn: `d
 
 **Files:** Create `backend/internal/access/access.go`, `backend/internal/access/access_test.go`.
 
-- [ ] **Test** (`access_test.go`, package `access_test`):
+- [x] **Test** (`access_test.go`, package `access_test`):
   - `TestAllHasEighteenPermissionsInOrder`: `len(All) == 18`, birinchi `customers.view`, oxirgi `settings.delete`.
   - `TestDefaultIsTheCustomersAndTheTasksWithoutHistory`: `Default` aynan 8 ta: `customers.view/create/edit/delete`, `tasks.view/create/edit/delete`.
   - `TestParse` (table): `{"customers.view","customers.create"}` → o'sha ikkisi; `{"tasks.view","customers.view","customers.view"}` → katalog tartibida, takrorsiz (`customers.view, tasks.view`); `{"customers.create"}` → `validation_error` "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang"; `{"settings.delete","settings.view","tasks.edit"}` → "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang" (katalog tartibida birinchi buzilgan bo'lim); `{"customers.fly"}` → "Ruxsat noto'g'ri"; `{}` → bo'sh ro'yxat, xato yo'q.
   - `TestEffective`: `("owner", false, nil)` → `All`; `("user", false, nil)` → `Default`; `("user", true, []string{"tasks.view"})` → faqat `tasks.view`; `("user", true, []string{})` → bo'sh; `Set.Has`.
-- [ ] **RED** → **Kod:**
+- [x] **RED** → **Kod:**
 
 ```go
 // Package access is the catalog of what a member of a company may do: the
@@ -115,14 +115,14 @@ func Parse(raw []string) ([]Permission, error)
 func Effective(role string, hasRole bool, rolePerms []string) Set
 ```
 
-- [ ] **GREEN**, commit `feat(access): the permission catalog`.
+- [x] **GREEN**, commit `feat(access): the permission catalog`.
 
 ### Task 2: Migratsiya `00009_roles.sql`
 
 **Files:** Create `backend/migrations/00009_roles.sql`; Modify `backend/migrations/migrations_test.go`.
 
-- [ ] **Test** `TestRolesAreACompanysAndItsUsersOnly`: kompaniya Olma va Nok; rol `INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Sotuvchi', '{customers.view}') RETURNING id`; a'zolar: egasi va xodim; `UPDATE user_companies SET role_id = $1 WHERE user_phone = xodim` → OK; egasiga → `23514`; Nok'ning xodimiga Olma roli → `23503`; `INSERT roles ('sotuvchi')` → `23505`; `DELETE FROM roles WHERE id = $1` (biriktirilgan) → `23503`; rol olib tashlangach DELETE → OK. Down: mavjud `TestInitDownRemovesTheSchema`.
-- [ ] **RED** (42P01) → **Kod** (spec'dagi SQL, izohlar bilan) → **GREEN**, commit `feat(db): company roles and the member's role`.
+- [x] **Test** `TestRolesAreACompanysAndItsUsersOnly`: kompaniya Olma va Nok; rol `INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Sotuvchi', '{customers.view}') RETURNING id`; a'zolar: egasi va xodim; `UPDATE user_companies SET role_id = $1 WHERE user_phone = xodim` → OK; egasiga → `23514`; Nok'ning xodimiga Olma roli → `23503`; `INSERT roles ('sotuvchi')` → `23505`; `DELETE FROM roles WHERE id = $1` (biriktirilgan) → `23503`; rol olib tashlangach DELETE → OK. Down: mavjud `TestInitDownRemovesTheSchema`.
+- [x] **RED** (42P01) → **Kod** (spec'dagi SQL, izohlar bilan) → **GREEN**, commit `feat(db): company roles and the member's role`.
 
 ### Task 3: So'rovlar
 
@@ -145,27 +145,27 @@ WHERE uc.user_phone = $1 AND uc.company_id = $2;
 -- name: SetCompanyOwner :one     (DO UPDATE SET role = 'owner', role_id = NULL, full_name = EXCLUDED.full_name)
 ```
 
-- [ ] **Test:** `TestGetCompanyAccess` ga rolli a'zo (rol `'{customers.view,customers.create}'`): `RoleID` to'ldirilgan, `Permissions` ikki kalit; rolsizda `RoleID == nil`. `TestListCompanyUsers`: rolli xodimda `RoleName == "Sotuvchi"`, egasida nil. `TestGetCompanyMember`: rolli xodim, a'zo emas → `pgx.ErrNoRows`. `TestListUserCompanies`: `RoleName`. `TestSetCompanyOwner`: rolli xodim egasi qilinsa `RoleID == nil`.
-- [ ] **RED** → **Kod** + `make sqlc` → **GREEN**, commit `feat(db): the member's role in the access, member and company queries`.
+- [x] **Test:** `TestGetCompanyAccess` ga rolli a'zo (rol `'{customers.view,customers.create}'`): `RoleID` to'ldirilgan, `Permissions` ikki kalit; rolsizda `RoleID == nil`. `TestListCompanyUsers`: rolli xodimda `RoleName == "Sotuvchi"`, egasida nil. `TestGetCompanyMember`: rolli xodim, a'zo emas → `pgx.ErrNoRows`. `TestListUserCompanies`: `RoleName`. `TestSetCompanyOwner`: rolli xodim egasi qilinsa `RoleID == nil`.
+- [x] **RED** → **Kod** + `make sqlc` → **GREEN**, commit `feat(db): the member's role in the access, member and company queries`.
 
 ### Task 4: `user.Profiles` va `company.Member`
 
 **Files:** Modify `backend/internal/user/profiles.go` (+`profiles_test.go`), `backend/internal/company/company.go`, `members.go`, `employees.go`, `detail.go` (+`employees_test.go`, `company_test.go`).
 
-- [ ] **Test** `TestAccess`: kutilgan `Access{Role: "owner", Permissions: access.NewSet(access.All), Active: true}` va h.k.; yangi holat "a user with a role": rol `'{tasks.view}'` → `Permissions` faqat `tasks.view`. `TestGetIsTheUserAndTheirCompanies`: `RoleName` nil; yangi `TestGetNamesTheRole`.
-- [ ] **Kod:** `Access.Permissions access.Set` (`access.Effective(row.Role, row.RoleID != nil, row.Permissions)`), `Membership.RoleName`.
-- [ ] **Test** (company): `TestMembersTellTheRole` (rolli xodim → `RoleID`, `RoleName`), `TestRenameEmployeeKeepsTheRole` (`RenameEmployee` javobida `RoleName`).
-- [ ] **Kod:** `Member{RoleID *int64, RoleName *string}`; `Members`, `Detail` mapping; `RenameEmployee` → `RenameCompanyUser` so'ng `GetCompanyMember`; `AddEmployee`, `ReplaceOwner` `RoleID: uc.RoleID` (nom yo'q: yangi xodim rolsiz, egasi rolsiz).
-- [ ] **GREEN**, commit `feat(user,company): the member's permissions and role`.
+- [x] **Test** `TestAccess`: kutilgan `Access{Role: "owner", Permissions: access.NewSet(access.All), Active: true}` va h.k.; yangi holat "a user with a role": rol `'{tasks.view}'` → `Permissions` faqat `tasks.view`. `TestGetIsTheUserAndTheirCompanies`: `RoleName` nil; yangi `TestGetNamesTheRole`.
+- [x] **Kod:** `Access.Permissions access.Set` (`access.Effective(row.Role, row.RoleID != nil, row.Permissions)`), `Membership.RoleName`.
+- [x] **Test** (company): `TestMembersTellTheRole` (rolli xodim → `RoleID`, `RoleName`), `TestRenameEmployeeKeepsTheRole` (`RenameEmployee` javobida `RoleName`).
+- [x] **Kod:** `Member{RoleID *int64, RoleName *string}`; `Members`, `Detail` mapping; `RenameEmployee` → `RenameCompanyUser` so'ng `GetCompanyMember`; `AddEmployee`, `ReplaceOwner` `RoleID: uc.RoleID` (nom yo'q: yangi xodim rolsiz, egasi rolsiz).
+- [x] **GREEN**, commit `feat(user,company): the member's permissions and role`.
 
 ### Task 5: `requirePermission` va route'lar
 
 **Files:** Modify `backend/internal/app/session.go`, `handler.go`; Create `backend/internal/app/permissions_test.go`; Modify `employees_test.go`, `members_test.go`, `customers_test.go`, `customer_settings_test.go`, `task_settings_test.go`, `tasks_test.go`.
 
-- [ ] **Test** (`permissions_test.go`): yordamchilar `api.addRole(t, companyID, name, perms ...string) int64`, `api.setRole(t, phone, companyID int64, roleID *int64)`; `const forbidden = {"error":"forbidden","message":"Bu amal uchun ruxsatingiz yo'q"}`.
+- [x] **Test** (`permissions_test.go`): yordamchilar `api.addRole(t, companyID, name, perms ...string) int64`, `api.setRole(t, phone, companyID int64, roleID *int64)`; `const forbidden = {"error":"forbidden","message":"Bu amal uchun ruxsatingiz yo'q"}`.
   - `TestARoleLimitsWhatAnEmployeeMayDo`: rol "Kuzatuvchi" `{customers.view, tasks.view}`; xodim: `GET /app/customers` 200, `POST /app/customers` 403 `forbidden`, `GET /app/tasks` 200, `PATCH /app/tasks/1/stage` 403, `GET /app/employees` 403, `POST /app/customer-types` 403, `GET /app/customers/1/history` 403, `GET /app/customer-types` 200 (hammaga), `GET /app/members` 200. Rolga `customers.create` qo'shilgach (UPDATE roles) `POST /app/customers` darhol 201. Rol olib tashlangach (role_id NULL) standart: `POST /app/customers` 201, `GET /app/employees` 403. Egasi hamma yerda 200/201.
   - `TestPermissionRoutesNeedACompany`: kompaniyasiz token `GET /app/employees` → 403 `company_required`.
-- [ ] **Kod** (`session.go`):
+- [x] **Kod** (`session.go`):
 
 ```go
 type accessKey struct{}
@@ -186,36 +186,36 @@ func (h *Handler) requirePermission(p access.Permission) func(http.Handler) http
 
 `handler.go`: `/me`; `requireCompany` guruhi ichida hammaga ochiq GET'lar; `employees` (view/create/edit/delete); `settings.create` guruhi (7 POST); `settings.edit` guruhi (PATCH va PUT …/order); `settings.delete` guruhi (7 DELETE); mijozlar va vazifalar har route'da `r.With(h.requirePermission(...))`. `requireOwner` qoladi (2-bosqich uchun), hozircha route'siz: `golangci-lint` unused deb bersa, `//nolint:unused // 2-bosqich: rollar API` izohi.
 
-- [ ] **Mavjud testlar:** `TestEmployeesAreForTheOwnerOnly` → `TestEmployeesNeedTheirPermission` (xodim → `forbidden`, kompaniyasiz → `companyRequired`); `customer_settings_test.go`, `task_settings_test.go`, `members_test.go`, `customers_test.go`, `tasks_test.go` dagi `ownerOnly` → `forbidden`.
-- [ ] **GREEN** (`go test ./internal/app/...`), commit `feat(app): routes are gated by the member's permissions`.
+- [x] **Mavjud testlar:** `TestEmployeesAreForTheOwnerOnly` → `TestEmployeesNeedTheirPermission` (xodim → `forbidden`, kompaniyasiz → `companyRequired`); `customer_settings_test.go`, `task_settings_test.go`, `members_test.go`, `customers_test.go`, `tasks_test.go` dagi `ownerOnly` → `forbidden`.
+- [x] **GREEN** (`go test ./internal/app/...`), commit `feat(app): routes are gated by the member's permissions`.
 
 ### Task 6: Yangi mijozli vazifa `customers.create` so'raydi
 
 **Files:** Modify `backend/internal/app/tasks.go`; Test `permissions_test.go`.
 
-- [ ] **Test** `TestATaskWithANewCustomerNeedsCustomersCreate`: rol `{tasks.view, tasks.create, customers.view}`; `POST /app/tasks` yangi mijoz bilan → 403 `forbidden`, `tasks` va `customers` bo'sh; mavjud mijoz (egasi qo'shgan) bilan → 201.
-- [ ] **Kod:** `createTask` da `in := body.Customer.input(); if in.New != nil && !currentPermissions(r.Context()).Has(access.CustomersCreate) { forbidden(w); return }`.
-- [ ] **GREEN**, commit `feat(app): a task with a new customer needs customers.create too`.
+- [x] **Test** `TestATaskWithANewCustomerNeedsCustomersCreate`: rol `{tasks.view, tasks.create, customers.view}`; `POST /app/tasks` yangi mijoz bilan → 403 `forbidden`, `tasks` va `customers` bo'sh; mavjud mijoz (egasi qo'shgan) bilan → 201.
+- [x] **Kod:** `createTask` da `in := body.Customer.input(); if in.New != nil && !currentPermissions(r.Context()).Has(access.CustomersCreate) { forbidden(w); return }`.
+- [x] **GREEN**, commit `feat(app): a task with a new customer needs customers.create too`.
 
 ### Task 7: `/app/me` va `memberJSON`
 
 **Files:** Modify `backend/internal/app/handler.go` (`meJSON`, `companyJSON`), `employees.go` (`memberJSON`), `backend/internal/admin/json.go`; Test `handler_test.go`, `employees_test.go`, `permissions_test.go`.
 
-- [ ] **Test:** `TestMe`: `permissions` = `access.All` (18 ta, tartibda), `company.role_name == nil`. Yangi `TestMeTellsThePermissionsAndTheRole`: rolli xodim → `permissions` rolniki, `company.role_name == "Kuzatuvchi"`, `companies[i].role_name`; kompaniyasiz token → `permissions == []`. `TestListEmployees`: `role_id == nil`, `role_name == nil`; rolli xodimda nom.
-- [ ] **Kod:** `meJSON.Permissions []string` (`currentPermissions(ctx).List()`, bo'sh bo'lsa `[]string{}`); `companyJSON.RoleName *string`; `memberJSON{RoleID *int64, RoleName *string}` ikkala paketda.
-- [ ] **GREEN**, commit `feat(app): /app/me tells the permissions; members tell their role`.
+- [x] **Test:** `TestMe`: `permissions` = `access.All` (18 ta, tartibda), `company.role_name == nil`. Yangi `TestMeTellsThePermissionsAndTheRole`: rolli xodim → `permissions` rolniki, `company.role_name == "Kuzatuvchi"`, `companies[i].role_name`; kompaniyasiz token → `permissions == []`. `TestListEmployees`: `role_id == nil`, `role_name == nil`; rolli xodimda nom.
+- [x] **Kod:** `meJSON.Permissions []string` (`currentPermissions(ctx).List()`, bo'sh bo'lsa `[]string{}`); `companyJSON.RoleName *string`; `memberJSON{RoleID *int64, RoleName *string}` ikkala paketda.
+- [x] **GREEN**, commit `feat(app): /app/me tells the permissions; members tell their role`.
 
 ### Task 8: openapi, TS client, mock'lar
 
 **Files:** Modify `backend/openapi.yaml`; `packages/api-client/src/schema.d.ts` (`make api-client`); `apps/admin/mocks/data.ts`; Create `apps/web/lib/permissions.ts` (+`permissions.test.ts`); Modify `apps/web/lib/types.ts`, `lib/query-client.ts` (+test), `mocks/data.ts`, `gate.ts`, `handlers.ts`, `customer-settings.ts`, `task-settings.ts`, `customers.ts`, `tasks.ts`, `handlers.test.ts`.
 
-- [ ] **openapi:** `Permission` (enum 18, description: bo'lim va amal ma'nosi); response `Forbidden` ("Sessiya hali kompaniya tanlamagan (company_required) yoki amalga ruxsati yo'q (forbidden)"); ruxsatli route'larda `OwnerOnly` → `Forbidden`, "(faqat owner)" → "(ruxsat: …)"; `Member` + `role_id`, `role_name`; `AppCompany` + `role_name`; `Me` + `permissions`; `OwnerOnly` izohi rollar uchun qoladi. `make api-client`.
-- [ ] **Admin:** `member()` → `role_id: null, role_name: null`; `pnpm --filter admin typecheck`.
-- [ ] **Web test** (`lib/permissions.test.ts`): `allPermissions` 18 ta, `defaultPermissions` 8 ta. (`query-client.test.tsx`): `forbidden` ham `/app/me` ni qayta so'ratadi. (`mocks/handlers.test.ts`): xodim `/app/employees` → `forbidden` "Bu amal uchun ruxsatingiz yo'q"; kompaniyasiz → `company_required`; `/app/me` da `permissions` (egasi 18, xodim 8, kompaniyasiz `[]`) va `company.role_name === null`; a'zolarda `role_id: null`.
-- [ ] **Kod:** `lib/permissions.ts` (`allPermissions`, `defaultPermissions`, `Permission` tipi `lib/types.ts` dan); `data.ts`: `permissionsOf(phone, companyId)`, `companiesOf` `role_name: null`, `membersOf` rol maydonlari; `gate.ts`: `forbidden()`, `permittedSession(request, permission)`; handler fayllarida `ownerSession`/`memberSession` → `permittedSession` tegishli ruxsat bilan (`/app/members` va sozlamalar GET'lari `memberSession` da qoladi); `/app/me` `permissions`; `query-client.ts` `standingChanged` ga `forbidden`.
-- [ ] **GREEN** (`pnpm --filter web test`, typecheck), commit `feat(api,web): the permission contract; the mock API gates by permission`.
+- [x] **openapi:** `Permission` (enum 18, description: bo'lim va amal ma'nosi); response `Forbidden` ("Sessiya hali kompaniya tanlamagan (company_required) yoki amalga ruxsati yo'q (forbidden)"); ruxsatli route'larda `OwnerOnly` → `Forbidden`, "(faqat owner)" → "(ruxsat: …)"; `Member` + `role_id`, `role_name`; `AppCompany` + `role_name`; `Me` + `permissions`; `OwnerOnly` izohi rollar uchun qoladi. `make api-client`.
+- [x] **Admin:** `member()` → `role_id: null, role_name: null`; `pnpm --filter admin typecheck`.
+- [x] **Web test** (`lib/permissions.test.ts`): `allPermissions` 18 ta, `defaultPermissions` 8 ta. (`query-client.test.tsx`): `forbidden` ham `/app/me` ni qayta so'ratadi. (`mocks/handlers.test.ts`): xodim `/app/employees` → `forbidden` "Bu amal uchun ruxsatingiz yo'q"; kompaniyasiz → `company_required`; `/app/me` da `permissions` (egasi 18, xodim 8, kompaniyasiz `[]`) va `company.role_name === null`; a'zolarda `role_id: null`.
+- [x] **Kod:** `lib/permissions.ts` (`allPermissions`, `defaultPermissions`, `Permission` tipi `lib/types.ts` dan); `data.ts`: `permissionsOf(phone, companyId)`, `companiesOf` `role_name: null`, `membersOf` rol maydonlari; `gate.ts`: `forbidden()`, `permittedSession(request, permission)`; handler fayllarida `ownerSession`/`memberSession` → `permittedSession` tegishli ruxsat bilan (`/app/members` va sozlamalar GET'lari `memberSession` da qoladi); `/app/me` `permissions`; `query-client.ts` `standingChanged` ga `forbidden`.
+- [x] **GREEN** (`pnpm --filter web test`, typecheck), commit `feat(api,web): the permission contract; the mock API gates by permission`.
 
 ### Task 9: Yakun
 
-- [ ] `make lint`, `make test`, `make e2e` toza.
-- [ ] Spec'ga "1-bosqich qarorlari"; `git push origin main`; hisobot.
+- [x] `make lint`, `make test`, `make e2e` toza.
+- [x] Spec'ga "1-bosqich qarorlari"; `git push origin main`; hisobot.
