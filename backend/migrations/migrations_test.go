@@ -603,3 +603,147 @@ func TestTheTaskSettingsMigrationGivesEveryCompanyTheReadySettings(t *testing.T)
 	assert.Equal(t, []string{"Vazifa: "}, taskTypesOf(t, pool, olma), "one type with no fields")
 	assert.Equal(t, []string{"Vazifa: "}, taskTypesOf(t, pool, nok))
 }
+
+// addTaskSettings inserts a stage and a task type of the company and returns
+// their ids.
+func addTaskSettings(t *testing.T, pool *pgxpool.Pool, companyID int64) (stage, typ int64) {
+	t.Helper()
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO task_stages (company_id, name, color, position) VALUES ($1, 'Yangi', 'blue', 1) RETURNING id", companyID).Scan(&stage))
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO task_types (company_id, name, position) VALUES ($1, 'Vazifa', 1) RETURNING id", companyID).Scan(&typ))
+	return stage, typ
+}
+
+// addCustomer inserts a customer of the company's type, entered by the user
+// 998901111111, and returns its id.
+func addCustomer(t *testing.T, pool *pgxpool.Pool, companyID, typeID int64, phone string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(), `INSERT INTO customers (company_id, type_id, phone, created_by)
+		VALUES ($1, $2, $3, '998901111111') RETURNING id`, companyID, typeID, phone).Scan(&id))
+	return id
+}
+
+func TestTasks(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222')")
+	require.NoError(t, err)
+	ali := addCustomer(t, pool, olma, addCustomerType(t, pool, olma, "Jismoniy"), "998901234567")
+	begona := addCustomer(t, pool, nok, addCustomerType(t, pool, nok, "Jismoniy"), "998901234567")
+	stage, typ := addTaskSettings(t, pool, olma)
+	nokStage, nokType := addTaskSettings(t, pool, nok)
+	// addTask adds a task the user 998901111111 enters.
+	addTask := func(typeID, stageID, customerID int64, deadline *string, assignee *string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, created_by)
+			VALUES ($1, $2, $3, $4, 'Qo''ng''iroq qilish', $5::date, $6, '998901111111') RETURNING id`,
+			olma, typeID, stageID, customerID, deadline, assignee).Scan(&id)
+		return id, err
+	}
+	day, staff, stranger := "2026-10-10", "998902222222", "998909999999"
+
+	first, err := addTask(typ, stage, ali, &day, nil)
+	require.NoError(t, err)
+	_, err = addTask(typ, stage, ali, &day, &staff)
+	assert.NoError(t, err, "assigned to a user")
+	_, err = addTask(typ, stage, ali, nil, nil)
+	assert.Equal(t, "23502", sqlState(err), "a task has a deadline") // not_null_violation
+	_, err = addTask(nokType, stage, ali, &day, nil)
+	assert.Equal(t, "23503", sqlState(err), "another company's type") // foreign_key_violation
+	_, err = addTask(typ, nokStage, ali, &day, nil)
+	assert.Equal(t, "23503", sqlState(err), "another company's stage")
+	_, err = addTask(typ, stage, begona, &day, nil)
+	assert.Equal(t, "23503", sqlState(err), "another company's customer")
+	_, err = addTask(typ, stage, ali, &day, &stranger)
+	assert.Equal(t, "23503", sqlState(err), "assigned to someone who is no user")
+	_, err = pool.Exec(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, 'X', '2026-10-10', '998909999999')`, olma, typ, stage, ali)
+	assert.Equal(t, "23503", sqlState(err), "entered by someone who is no user")
+
+	_, err = pool.Exec(ctx, "UPDATE tasks SET deleted_at = now() WHERE id = $1", first)
+	require.NoError(t, err, "a task is hidden, never removed")
+	_, err = pool.Exec(ctx, "UPDATE users SET phone = '998903333333' WHERE phone = '998902222222'")
+	require.NoError(t, err, "an assignee gets another number")
+	var assigned string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT assignee_phone FROM tasks WHERE assignee_phone IS NOT NULL").Scan(&assigned))
+	assert.Equal(t, "998903333333", assigned, "the task stays theirs")
+}
+
+func TestTaskValues(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	ali := addCustomer(t, pool, olma, addCustomerType(t, pool, olma, "Jismoniy"), "998901234567")
+	stage, typ := addTaskSettings(t, pool, olma)
+	var manba, instagram, linkedin, task int64
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma).Scan(&manba))
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdown_options (dropdown_id, label, position) VALUES ($1, 'Instagram', 1) RETURNING id", manba).Scan(&instagram))
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdown_options (dropdown_id, label, position) VALUES ($1, 'LinkedIn', 2) RETURNING id", manba).Scan(&linkedin))
+	addField := func(label, kind string, dropdownID *int64) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, `INSERT INTO task_fields (company_id, type_id, label, kind, dropdown_id, position)
+			VALUES ($1, $2, $3, $4, $5, 1) RETURNING id`, olma, typ, label, kind, dropdownID).Scan(&id))
+		return id
+	}
+	izoh, summa, manzil, kanal := addField("Izoh", "string", nil), addField("Summa", "int", nil),
+		addField("Manzil", "string", nil), addField("Kanal", "checkbox", &manba)
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`, olma, typ, stage, ali).Scan(&task))
+	// answer writes one row of the task's answers.
+	answer := func(fieldID int64, optionID *int64, text *string, number *int64) error {
+		_, err := pool.Exec(ctx, `INSERT INTO task_values (task_id, field_id, option_id, text_value, int_value)
+			VALUES ($1, $2, $3, $4, $5)`, task, fieldID, optionID, text, number)
+		return err
+	}
+	note, other, amount := "Ertalab", "Kechqurun", int64(5000)
+
+	require.NoError(t, answer(izoh, nil, &note, nil), "a text")
+	require.NoError(t, answer(summa, nil, nil, &amount), "a whole number")
+	assert.Equal(t, "23505", sqlState(answer(izoh, nil, &other, nil)), "a second text in the field") // unique_violation
+	require.NoError(t, answer(kanal, &instagram, nil, nil), "an option")
+	assert.NoError(t, answer(kanal, &linkedin, nil, nil), "another option of the same field")
+	assert.Equal(t, "23505", sqlState(answer(kanal, &instagram, nil, nil)), "the option is chosen already")
+	assert.Equal(t, "23514", sqlState(answer(manzil, nil, nil, nil)), "an answer of nothing") // check_violation
+	assert.Equal(t, "23514", sqlState(answer(manzil, nil, &note, &amount)), "a text and a number at once")
+	missing := int64(1 << 40)
+	assert.Equal(t, "23503", sqlState(answer(missing, nil, &note, nil)), "a field that is not there") // foreign_key_violation
+	assert.Equal(t, "23503", sqlState(answer(manzil, &missing, nil, nil)), "an option that is not there")
+	_, err = pool.Exec(ctx, "INSERT INTO task_values (task_id, field_id, text_value) VALUES ($1, $2, 'X')", missing, manzil)
+	assert.Equal(t, "23503", sqlState(err), "a task that is not there")
+}
+
+func TestTaskHistory(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	ali := addCustomer(t, pool, olma, addCustomerType(t, pool, olma, "Jismoniy"), "998901234567")
+	stage, typ := addTaskSettings(t, pool, olma)
+	var task int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`, olma, typ, stage, ali).Scan(&task))
+	// record writes down what the user did to the task.
+	record := func(taskID int64, action, actor string) error {
+		_, err := pool.Exec(ctx, "INSERT INTO task_history (task_id, action, actor_phone) VALUES ($1, $2, $3)", taskID, action, actor)
+		return err
+	}
+
+	for _, action := range []string{"created", "updated", "deleted"} {
+		assert.NoError(t, record(task, action, "998901111111"), action)
+	}
+	assert.Equal(t, "23514", sqlState(record(task, "moved", "998901111111")), "an action that is not one of the three") // check_violation
+	assert.Equal(t, "23503", sqlState(record(task, "updated", "998909999999")), "done by someone who is no user")      // foreign_key_violation
+	assert.Equal(t, "23503", sqlState(record(1<<40, "updated", "998901111111")), "a task that is not there")
+	var changes string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT changes::text FROM task_history LIMIT 1").Scan(&changes))
+	assert.Equal(t, "[]", changes, "nothing changed unless said otherwise")
+}
