@@ -156,6 +156,39 @@ export interface HistoryRow {
   changes: { label: string; old: string; new: string }[]
 }
 
+// A task of a company: of a type, in a stage, for a customer, due on a day
+// (YYYY-MM-DD), assigned to a member or nobody (assigneeName is the name
+// they went by when assigned). The values are the answers by the id of the
+// field. A deleted task is hidden, never removed.
+export interface TaskRow {
+  id: number
+  companyId: number
+  typeId: number
+  stageId: number
+  customerId: number
+  title: string
+  deadline: string
+  assignee: string | null
+  assigneeName: string | null
+  values: Record<number, Answer>
+  by: string
+  byName: string | null
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+}
+
+// What happened to a task: like a customer's history.
+export interface TaskHistoryRow {
+  id: number
+  taskId: number
+  action: "created" | "updated" | "deleted"
+  by: string
+  byName: string | null
+  createdAt: string
+  changes: { label: string; old: string; new: string }[]
+}
+
 interface Db {
   users: Record<string, string | null>
   companies: Company[]
@@ -166,6 +199,8 @@ interface Db {
   taskTypes: TaskTypeRow[]
   customers: CustomerRow[]
   history: HistoryRow[]
+  tasks: TaskRow[]
+  taskHistory: TaskHistoryRow[]
   // lastId: the id the last settings or customer row took.
   lastId: number
   // minutes: how far the clock of the customers' timestamps has moved.
@@ -244,6 +279,8 @@ function seed(): Db {
     ...seedSettings(companies),
     customers: [],
     history: [],
+    tasks: [],
+    taskHistory: [],
     minutes: 0,
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],
@@ -322,6 +359,22 @@ export function join(phone: string, companyId: number, name: string) {
   if (!(phone in db.users)) db.users[phone] = name
   db.joined += 1
   ;(db.members[phone] ??= []).push({ companyId, role: "user", joined: db.joined, fullName: name })
+}
+
+// customerNameOf is the name a customer goes by, as the API tells it with a
+// task: its answer to its type's first text field; null when it has none.
+export function customerNameOf(customer: CustomerRow): string | null {
+  const type = db.types.find((t) => t.id === customer.typeId)
+  const field = type?.fields.find((f) => f.kind === "string" && !f.deleted)
+  const answer = field ? customer.values[field.id] : undefined
+  return typeof answer === "string" && answer !== "" ? answer : null
+}
+
+// localToday is the day it is where the browser stands, as YYYY-MM-DD: what
+// a deadline is "today" against.
+export function localToday(): string {
+  const date = new Date()
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-")
 }
 
 // nextId is the id of a new settings or customer row.

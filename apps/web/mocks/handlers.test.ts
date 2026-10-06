@@ -1,6 +1,7 @@
 // The mock API has to answer /app/employees the way the Go API does, or the
 // pages tested against it would be tested against something else
 // (logic/user.md, logic/roles.md; backend/internal/app/employees_test.go).
+import type { components } from "@hisob24/api-client"
 import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
 import type { CustomerFieldKind } from "@/lib/types"
@@ -481,7 +482,7 @@ test("a required choice has to be made; the owner enters customers too", async (
   })
 })
 
-type ListQuery = { search?: string; type_id?: number; page?: number }
+type ListQuery = { search?: string; type_id?: number; phone?: string; page?: number }
 const listCustomers = (query: ListQuery = {}) => call(api.GET("/app/customers", { params: { query } }))
 
 test("the list: the newest first, twenty to a page, one type, a search in the phones, the texts and the numbers", async () => {
@@ -898,4 +899,366 @@ test("every member reads the company's members, the owner first; managing them s
   expect(await failure(call(api.GET("/app/employees")))).toMatchObject({ status: 403, code: "owner_only" })
   await chooseCompany(null)
   expect(await failure(call(api.GET("/app/members")))).toMatchObject({ status: 403, code: "company_required" })
+})
+
+// The tasks (logic/tasks.md; backend/internal/app/tasks_test.go).
+type TaskCreate = components["schemas"]["TaskCreate"]
+type TaskUpdate = components["schemas"]["TaskUpdate"]
+type TaskQuery = { search?: string; type_id?: number; stage_id?: number; assignee?: string; customer_id?: number; page?: number }
+const createTask = (body: TaskCreate) => call(api.POST("/app/tasks", { body }))
+const getTask = (id: number) => call(api.GET("/app/tasks/{id}", { params: { path: { id } } }))
+const listTasks = (query: TaskQuery = {}) => call(api.GET("/app/tasks", { params: { query } }))
+const updateTask = (id: number, body: TaskUpdate) => call(api.PUT("/app/tasks/{id}", { params: { path: { id } }, body }))
+const moveTask = (id: number, stageId: number) =>
+  call(api.PATCH("/app/tasks/{id}/stage", { params: { path: { id } }, body: { stage_id: stageId } }))
+const deleteTask = (id: number) => call(api.DELETE("/app/tasks/{id}", { params: { path: { id } } }))
+const taskHistory = (id: number) => call(api.GET("/app/tasks/{id}/history", { params: { path: { id } } }))
+const deleteStage = (id: number) => call(api.DELETE("/app/task-stages/{id}", { params: { path: { id } } }))
+const deleteTaskType = (id: number) => call(api.DELETE("/app/task-types/{id}", { params: { path: { id } } }))
+const deleteTaskField = (typeId: number, fieldId: number) =>
+  call(api.DELETE("/app/task-types/{id}/fields/{fieldId}", { params: { path: { id: typeId, fieldId } } }))
+
+// taskSetup is what Olma Savdo's tasks are entered with, by its owner: the
+// three ready stages, the ready type, a type Buyurtma with a required text
+// Izoh, a number Summa and a checkbox Kanal over Manba, and the customer Ali.
+async function taskSetup() {
+  const [yangi, jarayonda, bajarildi] = await call(api.GET("/app/task-stages"))
+  const [vazifa] = await call(api.GET("/app/task-types"))
+  const buyurtma = await call(api.POST("/app/task-types", { body: { name: "Buyurtma" } }))
+  const field = (body: components["schemas"]["TaskFieldInput"]) =>
+    call(api.POST("/app/task-types/{id}/fields", { params: { path: { id: buyurtma.id } }, body }))
+  const customers = await setup()
+  const dropdown = (await customerDropdowns())[0]
+  const izoh = await field({ label: "Izoh", kind: "string", required: true })
+  const summa = await field({ label: "Summa", kind: "int" })
+  const kanal = await field({ label: "Kanal", kind: "checkbox", dropdown_id: dropdown.id })
+  const ali = await createCustomer(customers.jismoniy.id, "998901112233", { [customers.fish.id]: "Ali Valiyev" })
+  return { ...customers, dropdown, yangi, jarayonda, bajarildi, vazifa, buyurtma, izoh, summa, kanal, ali }
+}
+type TaskSetup = Awaited<ReturnType<typeof taskSetup>>
+
+// taskBody is a task of the type Buyurtma for Ali, due on 10.10.2026, in
+// Yangi, with Izoh filled in; over changes what the test is about.
+const taskBody = (s: TaskSetup, over: Partial<TaskCreate> = {}): TaskCreate => ({
+  type_id: s.buyurtma.id,
+  title: "Qo'ng'iroq qilish",
+  deadline: "2026-10-10",
+  stage_id: s.yangi.id,
+  values: { [s.izoh.id]: "Ertalab" },
+  customer: { id: s.ali.id },
+  ...over,
+})
+
+test("a member enters a task for a customer that is there, or with a new one; what is wrong is said in the API's words", async () => {
+  // The owner signs in twice: once to set up, once to read a history.
+  db.cooldown = false
+  await signIn(ALI)
+  const s = await taskSetup()
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  const task = await createTask(
+    taskBody(s, {
+      title: " Qo'ng'iroq qilish ",
+      assignee_phone: "+998 90 123 45 67",
+      values: { [s.izoh.id]: " Ertalab ", [s.summa.id]: 45000, [s.kanal.id]: [s.linkedin.id, s.instagram.id] },
+    }),
+  )
+
+  expect(task).toMatchObject({
+    type_id: s.buyurtma.id,
+    stage_id: s.yangi.id,
+    title: "Qo'ng'iroq qilish",
+    deadline: "2026-10-10",
+    customer: { id: s.ali.id, phone: "998901112233", name: "Ali Valiyev" },
+    assignee: { phone: ALI, full_name: "Ali Valiyev" },
+    values: { [s.izoh.id]: "Ertalab", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id, s.linkedin.id] },
+    created_by_name: "Vali Aliyev",
+  })
+  expect(task.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  expect(task.updated_at).toBe(task.created_at)
+  expect(await getTask(task.id)).toEqual(task)
+
+  // A new customer, in one request.
+  const withNew = await createTask(
+    taskBody(s, {
+      title: "Shartnoma",
+      deadline: "2026-10-11",
+      customer: { type_id: s.jismoniy.id, phone: "+998 90 111 22 44", values: { [s.fish.id]: " Zarina Karimova " } },
+    }),
+  )
+  expect(withNew.customer).toMatchObject({ phone: "998901112244", name: "Zarina Karimova" })
+  expect(withNew.assignee).toBeNull()
+  expect(await getCustomer(withNew.customer.id)).toMatchObject({
+    type_id: s.jismoniy.id,
+    phone: "998901112244",
+    values: { [s.fish.id]: "Zarina Karimova" },
+    created_by_name: "Vali Aliyev",
+  })
+  await signIn(ALI)
+  expect((await customerHistory(withNew.customer.id)).map((e) => e.action)).toEqual(["created"])
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  // The phone of a customer that is there: nothing is entered.
+  const before = [db.tasks.length, db.customers.length]
+  expect(
+    await failure(createTask(taskBody(s, { customer: { type_id: s.jismoniy.id, phone: "998901112233", values: { [s.fish.id]: "Ali" } } }))),
+  ).toMatchObject({ status: 409, code: "phone_taken", message: "Bu raqamli mijoz allaqachon bor", customerId: s.ali.id })
+  expect([db.tasks.length, db.customers.length]).toEqual(before)
+
+  const invalid = { status: 400, code: "validation_error" }
+  const nokStage = db.stages.find((stage) => stage.companyId === 2)!.id
+  const refusals: [Partial<TaskCreate>, string][] = [
+    [{ title: " " }, "Vazifa nomini kiriting"],
+    [{ title: "ў".repeat(201) }, "Vazifa nomi 200 belgidan oshmasin"],
+    [{ deadline: "" }, "Muddatni kiriting"],
+    [{ deadline: "10.10.2026" }, "Muddat noto'g'ri"],
+    [{ deadline: "2026-02-30" }, "Muddat noto'g'ri"],
+    [{ type_id: 999 }, "Vazifa turini tanlang"],
+    [{ stage_id: 999 }, "Bosqichni tanlang"],
+    [{ stage_id: nokStage }, "Bosqichni tanlang"],
+    [{ assignee_phone: "998907777777" }, "Mas'ul kompaniya a'zosi emas"],
+    [{ values: { [s.izoh.id]: "X", [s.fish.id]: "Ali" } }, "Bu turda bunday maydon yo'q"],
+    [{ values: {} }, "«Izoh» maydonini to'ldiring"],
+    [{ values: { [s.izoh.id]: "X", [s.summa.id]: "ko'p" } }, "«Summa» butun son bo'lishi kerak"],
+    [{ customer: {} }, "Mijozni tanlang"],
+    [{ customer: { id: 999 } }, "Mijozni tanlang"],
+    [{ customer: { type_id: s.jismoniy.id, phone: "998901112266" } }, "«F.I.Sh.» maydonini to'ldiring"],
+    // The title is told before the type, the stage before the answers, the
+    // answers before the customer.
+    [{ title: "", type_id: 999 }, "Vazifa nomini kiriting"],
+    [{ stage_id: 0, values: {} }, "Bosqichni tanlang"],
+    [{ values: {}, customer: {} }, "«Izoh» maydonini to'ldiring"],
+  ]
+  for (const [over, message] of refusals) {
+    expect(await failure(createTask(taskBody(s, over))), message).toMatchObject({ ...invalid, message })
+  }
+  expect(db.tasks).toHaveLength(2)
+
+  expect(await failure(getTask(999))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
+  await chooseCompany(2)
+  expect(await failure(getTask(task.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  await chooseCompany(null)
+  expect(await failure(createTask(taskBody(s)))).toMatchObject({ status: 403, code: "company_required" })
+})
+
+test("the tasks list: the one due soonest first, twenty to a page, the filters and the search", async () => {
+  await signIn(ALI)
+  const s = await taskSetup()
+  const zarina = await createCustomer(s.jismoniy.id, "998905555555", { [s.fish.id]: "Zarina Karimova" })
+  const later = await createTask(
+    taskBody(s, { title: "Hisob yozish", deadline: "2026-10-12", values: { [s.izoh.id]: "Ertalab yozish", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }),
+  )
+  const sooner = await createTask(taskBody(s, { title: "Qo'ng'iroq qilish", deadline: "2026-10-10", assignee_phone: VALI, values: { [s.izoh.id]: "X" } }))
+  const other = await createTask({
+    type_id: s.vazifa.id,
+    title: "Shikoyatni ko'rish",
+    deadline: "2026-10-10",
+    stage_id: s.bajarildi.id,
+    customer: { id: zarina.id },
+  })
+
+  expect(await listTasks()).toEqual({ items: [sooner, other, later], total: 3, page: 1, page_size: 20 })
+
+  const found = async (query: TaskQuery) => (await listTasks(query)).items.map((t) => t.id)
+  expect(await found({ type_id: s.vazifa.id })).toEqual([other.id])
+  expect(await found({ stage_id: s.yangi.id })).toEqual([sooner.id, later.id])
+  expect(await found({ assignee: "+998 90 222 33 44" })).toEqual([sooner.id])
+  expect(await found({ customer_id: zarina.id })).toEqual([other.id])
+  expect(await found({ search: "qo'ng" })).toEqual([sooner.id])
+  expect(await found({ search: "ERTALAB" })).toEqual([later.id])
+  expect(await found({ search: "karim" })).toEqual([other.id])
+  expect(await found({ search: "90 555" })).toEqual([other.id])
+  expect(await found({ search: "450" })).toEqual([later.id])
+  // An option's name is not searched.
+  expect(await found({ search: "Instagram" })).toEqual([])
+  expect(await found({ stage_id: s.yangi.id, search: "karim" })).toEqual([])
+  expect((await listTasks({ search: "ali" })).total).toBe(2)
+
+  for (let i = 0; i < 20; i += 1) await createTask(taskBody(s, { title: `Vazifa ${i}`, deadline: "2026-11-01" }))
+  const first = await listTasks()
+  expect(first.items).toHaveLength(20)
+  expect(first.total).toBe(23)
+  const second = await listTasks({ page: 2 })
+  expect(second.items.map((t) => t.title)).toEqual(["Vazifa 17", "Vazifa 18", "Vazifa 19"])
+  expect(second).toMatchObject({ total: 23, page: 2, page_size: 20 })
+  expect(await listTasks({ page: 3 })).toEqual({ items: [], total: 23, page: 3, page_size: 20 })
+  const bad: [TaskQuery, string][] = [
+    [{ page: 0 }, "Sahifa raqami noto'g'ri"],
+    [{ type_id: "abc" as unknown as number }, "Vazifa turi noto'g'ri"],
+    [{ stage_id: 0 }, "Bosqich noto'g'ri"],
+    [{ customer_id: "abc" as unknown as number }, "Mijoz noto'g'ri"],
+    [{ assignee: "vali" }, "Mas'ul noto'g'ri"],
+  ]
+  for (const [query, message] of bad) {
+    expect(await failure(listTasks(query)), message).toMatchObject({ status: 400, code: "validation_error", message })
+  }
+
+  // Each company has its own tasks.
+  await signIn(VALI)
+  expect(await failure(listTasks())).toMatchObject({ status: 403, code: "company_required" })
+  await chooseCompany(2)
+  expect(await listTasks()).toEqual({ items: [], total: 0, page: 1, page_size: 20 })
+})
+
+test("an edit replaces the task's own fields and its answers and goes into the history, which is the owner's; the customer and the type stay", async () => {
+  await signIn(ALI)
+  const s = await taskSetup()
+  const task = await createTask(taskBody(s, { values: { [s.izoh.id]: "Ertalab", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }))
+  const same: TaskUpdate = {
+    title: "Qayta qo'ng'iroq",
+    deadline: "2026-10-12",
+    stage_id: s.jarayonda.id,
+    assignee_phone: VALI,
+    values: { [s.izoh.id]: "Kechqurun", [s.kanal.id]: [s.linkedin.id, s.instagram.id] },
+  }
+
+  const edited = await updateTask(task.id, { ...same, title: " Qayta qo'ng'iroq " })
+
+  expect(edited).toMatchObject({
+    title: "Qayta qo'ng'iroq",
+    deadline: "2026-10-12",
+    stage_id: s.jarayonda.id,
+    assignee: { phone: VALI, full_name: "Vali Aliyev" },
+    values: { [s.izoh.id]: "Kechqurun", [s.kanal.id]: [s.instagram.id, s.linkedin.id] },
+    customer: task.customer,
+    type_id: task.type_id,
+    created_at: task.created_at,
+  })
+  expect(edited.updated_at).not.toBe(task.updated_at)
+  expect(await getTask(task.id)).toEqual(edited)
+  const history = await taskHistory(task.id)
+  expect(history.map((e) => [e.action, e.actor_name])).toEqual([
+    ["updated", "Ali Valiyev"],
+    ["created", "Ali Valiyev"],
+  ])
+  expect(history[0].changes).toEqual([
+    { label: "Nomi", old: "Qo'ng'iroq qilish", new: "Qayta qo'ng'iroq" },
+    { label: "Muddat", old: "10.10.2026", new: "12.10.2026" },
+    { label: "Bosqich", old: "Yangi", new: "Jarayonda" },
+    { label: "Mas'ul", old: "", new: "Vali Aliyev" },
+    { label: "Izoh", old: "Ertalab", new: "Kechqurun" },
+    { label: "Summa", old: "45000", new: "" },
+    { label: "Kanal", old: "Instagram", new: "Instagram, LinkedIn" },
+  ])
+  expect(history[1].changes).toEqual([])
+
+  // A save that changes nothing writes nothing.
+  expect(await updateTask(task.id, { ...same, assignee_phone: "+998 90 222 33 44" })).toEqual(edited)
+  expect(await taskHistory(task.id)).toHaveLength(2)
+  // An assignee who left the company stays as long as the edit keeps them;
+  // another one has to be a member.
+  db.members[VALI] = db.members[VALI].filter((m) => m.companyId !== 1)
+  expect((await updateTask(task.id, { ...same, deadline: "2026-10-13" })).assignee).toEqual({ phone: VALI, full_name: "Vali Aliyev" })
+  expect(await failure(updateTask(task.id, { ...same, assignee_phone: ZARINA }))).toMatchObject({ status: 400, message: "Mas'ul kompaniya a'zosi emas" })
+
+  const refusals: [TaskUpdate, string][] = [
+    [{ ...same, title: "" }, "Vazifa nomini kiriting"],
+    [{ ...same, deadline: "soon" }, "Muddat noto'g'ri"],
+    [{ ...same, stage_id: db.stages.find((stage) => stage.companyId === 2)!.id }, "Bosqichni tanlang"],
+    [{ ...same, values: {} }, "«Izoh» maydonini to'ldiring"],
+  ]
+  for (const [body, message] of refusals) {
+    expect(await failure(updateTask(task.id, body)), message).toMatchObject({ status: 400, code: "validation_error", message })
+  }
+  // A task that is not there is said first, whatever is sent.
+  expect(await failure(updateTask(999, { ...same, title: "" }))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+
+  await signIn(SARDOR)
+  await chooseCompany(1)
+  expect(await failure(taskHistory(task.id))).toMatchObject({ status: 403, code: "owner_only" })
+})
+
+test("moving a task changes its stage alone and goes into the history; the same stage changes nothing", async () => {
+  db.cooldown = false
+  await signIn(ALI)
+  const s = await taskSetup()
+  const task = await createTask(taskBody(s))
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  const moved = await moveTask(task.id, s.bajarildi.id)
+
+  expect(moved).toMatchObject({ stage_id: s.bajarildi.id, title: task.title, values: task.values, customer: task.customer })
+  expect(await getTask(task.id)).toEqual(moved)
+  expect(await moveTask(task.id, s.bajarildi.id)).toEqual(moved)
+  for (const stageId of [0, 999, db.stages.find((stage) => stage.companyId === 2)!.id]) {
+    expect(await failure(moveTask(task.id, stageId)), String(stageId)).toMatchObject({ status: 400, message: "Bosqichni tanlang" })
+  }
+  expect(await failure(moveTask(999, s.yangi.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+
+  await signIn(ALI)
+  const history = await taskHistory(task.id)
+  expect(history).toHaveLength(2)
+  expect(history[0]).toMatchObject({
+    action: "updated",
+    actor_name: "Vali Aliyev",
+    changes: [{ label: "Bosqich", old: "Yangi", new: "Bajarildi" }],
+  })
+})
+
+test("a deleted task is gone from the app and its history is not shown; it stays in the database", async () => {
+  db.cooldown = false
+  await signIn(ALI)
+  const s = await taskSetup()
+  const task = await createTask(taskBody(s))
+  const another = await createTask(taskBody(s, { title: "Boshqa" }))
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  await deleteTask(task.id)
+
+  expect(await failure(getTask(task.id))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
+  expect(await failure(deleteTask(task.id))).toMatchObject({ status: 404 })
+  expect((await listTasks()).items.map((t) => t.id)).toEqual([another.id])
+  expect(db.tasks).toHaveLength(2)
+  await chooseCompany(2)
+  expect(await failure(deleteTask(another.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  await signIn(ALI)
+  expect(await failure(taskHistory(task.id))).toMatchObject({ status: 404 })
+  expect(db.taskHistory.filter((e) => e.taskId === task.id).map((e) => e.action)).toEqual(["created", "deleted"])
+})
+
+test("what the tasks use is not deleted; the customers are suggested by the digits a phone begins with", async () => {
+  await signIn(ALI)
+  const s = await taskSetup()
+  const task = await createTask(taskBody(s, { values: { [s.izoh.id]: "X", [s.kanal.id]: [s.instagram.id] } }))
+  const gone = await createTask(taskBody(s, { title: "O'chirilgan", values: { [s.izoh.id]: "X", [s.summa.id]: 1 } }))
+  await deleteTask(gone.id)
+  const inUse = { status: 409 }
+
+  expect(await failure(deleteCustomer(s.ali.id))).toMatchObject({ ...inUse, code: "customer_in_use", message: "Bu mijozda 1 ta vazifa bor" })
+  expect(await failure(deleteStage(s.yangi.id))).toMatchObject({ ...inUse, code: "stage_in_use", message: "Bu bosqichda 1 ta vazifa bor" })
+  expect(await failure(deleteTaskType(s.buyurtma.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 1 ta vazifa bor" })
+  expect(await failure(deleteTaskField(s.buyurtma.id, s.izoh.id))).toMatchObject({
+    ...inUse,
+    code: "field_in_use",
+    message: "Bu maydon 1 ta vazifada to'ldirilgan",
+  })
+  expect(await failure(deleteOption(s.dropdown.id, s.instagram.id))).toMatchObject({
+    ...inUse,
+    code: "option_in_use",
+    message: "Bu variant 1 ta vazifada tanlangan",
+  })
+  // The customers are told first.
+  const vali = await createCustomer(s.jismoniy.id, "998905555555", { [s.fish.id]: "Vali", [s.manba.id]: s.instagram.id })
+  expect(await failure(deleteOption(s.dropdown.id, s.instagram.id))).toMatchObject({ message: "Bu variant 1 ta mijozda tanlangan" })
+
+  // What nobody uses goes as before; a deleted task holds nothing.
+  await deleteStage(s.jarayonda.id)
+  await deleteTaskType(s.vazifa.id)
+  await deleteTaskField(s.buyurtma.id, s.summa.id)
+  await deleteTask(task.id)
+  await deleteCustomer(s.ali.id)
+  await deleteStage(s.yangi.id)
+  await deleteTaskType(s.buyurtma.id)
+
+  // The suggestions of the task form: the digits typed after 998.
+  const phones = async (phone: string) => (await listCustomers({ phone })).items.map((c) => c.phone)
+  expect(await phones("9055")).toEqual([vali.phone])
+  expect(await phones("90")).toEqual([vali.phone])
+  expect(await phones("5555")).toEqual([])
+  expect(await failure(listCustomers({ phone: "abc" }))).toMatchObject({ status: 400, message: "Telefon raqami noto'g'ri" })
+  expect(await failure(listCustomers({ phone: "9055555555" }))).toMatchObject({ status: 400, message: "Telefon raqami noto'g'ri" })
 })

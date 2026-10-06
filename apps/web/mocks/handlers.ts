@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw"
 import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
 import { taskSettingsHandlers } from "./task-settings"
+import { tasksHandlers } from "./tasks"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, read, type Session } from "./gate"
 import { formatPhone } from "@/lib/phone"
 import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp } from "./data"
@@ -217,4 +218,5 @@ export const handlers = [
   ...customerSettingsHandlers,
   ...customersHandlers,
   ...taskSettingsHandlers,
+  ...tasksHandlers,
 ]

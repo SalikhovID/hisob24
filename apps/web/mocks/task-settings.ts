@@ -76,6 +76,9 @@ const kinds: Record<CustomerFieldKind, { choice: boolean }> = {
 const liveDropdown = (companyId: number, id: number) =>
   db.dropdowns.find((d) => d.id === id && d.companyId === companyId && !d.deleted)
 
+// What the tasks use is not deleted; the deleted tasks use nothing.
+const liveTasks = () => db.tasks.filter((t) => !t.deleted)
+
 export const taskSettingsHandlers = [
   http.get(api("/app/task-stages"), ({ request }) => {
     const member = memberSession(request)
@@ -130,6 +133,8 @@ export const taskSettingsHandlers = [
     if (owner instanceof Response) return owner
     const stage = liveStage(owner.companyId, Number(params.id))
     if (!stage) return stageNotFound()
+    const used = liveTasks().filter((t) => t.stageId === stage.id).length
+    if (used > 0) return fail(409, "stage_in_use", `Bu bosqichda ${used} ta vazifa bor`)
     stage.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
@@ -179,6 +184,8 @@ export const taskSettingsHandlers = [
     if (owner instanceof Response) return owner
     const type = liveType(owner.companyId, Number(params.id))
     if (!type) return typeNotFound()
+    const used = liveTasks().filter((t) => t.typeId === type.id).length
+    if (used > 0) return fail(409, "type_in_use", `Bu turda ${used} ta vazifa bor`)
     // Its fields go with it.
     type.deleted = true
     type.fields.forEach((f) => (f.deleted = true))
@@ -239,6 +246,8 @@ export const taskSettingsHandlers = [
     if (owner instanceof Response) return owner
     const field = liveType(owner.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!field) return fieldNotFound()
+    const used = liveTasks().filter((t) => t.values[field.id] !== undefined).length
+    if (used > 0) return fail(409, "field_in_use", `Bu maydon ${used} ta vazifada to'ldirilgan`)
     field.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

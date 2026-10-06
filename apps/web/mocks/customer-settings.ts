@@ -91,6 +91,20 @@ function chose(dropdown: DropdownRow, optionId: number): number {
   ).length
 }
 
+// choseInTasks counts the live tasks that chose the option, in any task
+// field that takes its options from the dropdown.
+function choseInTasks(dropdown: DropdownRow, optionId: number): number {
+  const fields = db.taskTypes.flatMap((t) => t.fields).filter((f) => f.dropdownId === dropdown.id)
+  return db.tasks.filter(
+    (t) =>
+      !t.deleted &&
+      fields.some((f) => {
+        const answer = t.values[f.id]
+        return Array.isArray(answer) ? answer.includes(optionId) : answer === optionId
+      }),
+  ).length
+}
+
 // repeats tells whether two customers have the same answer in the field, a
 // text whatever its case.
 function repeats(field: FieldRow): boolean {
@@ -198,6 +212,9 @@ export const customerSettingsHandlers = [
     if (!dropdown || !option) return optionNotFound()
     const used = chose(dropdown, option.id)
     if (used > 0) return fail(409, "option_in_use", `Bu variant ${used} ta mijozda tanlangan`)
+    // The tasks hold it too, and are told after the customers.
+    const inTasks = choseInTasks(dropdown, option.id)
+    if (inTasks > 0) return fail(409, "option_in_use", `Bu variant ${inTasks} ta vazifada tanlangan`)
     option.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

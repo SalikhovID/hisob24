@@ -37,13 +37,17 @@ function liveType(companyId: number, id: unknown): TypeRow | undefined {
 
 const liveFields = (type: TypeRow) => type.fields.filter((f) => !f.deleted)
 
+// FormField is a field of a form the owner set up, of a customer type or of
+// a task type: what reading an answer needs of it.
+export type FormField = Pick<FieldRow, "id" | "label" | "kind" | "required" | "dropdownId">
+
 // offeredBy is the options of the field's dropdown, in their order.
-function offeredBy(field: FieldRow): OptionRow[] {
+function offeredBy(field: FormField): OptionRow[] {
   const dropdown = db.dropdowns.find((d) => d.id === field.dropdownId && !d.deleted)
   return dropdown ? dropdown.options.filter((o) => !o.deleted) : []
 }
 
-const isChoice = (field: FieldRow) => field.kind !== "string" && field.kind !== "int"
+const isChoice = (field: FormField) => field.kind !== "string" && field.kind !== "int"
 const isWhole = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && Math.abs(value) <= Number.MAX_SAFE_INTEGER
 
@@ -54,7 +58,7 @@ const chosen = (answer: Answer | undefined): number[] =>
 // readAnswer reads what a client sent for one field: the answer as it is
 // kept, undefined for a field left empty, or what is wrong with it. An
 // option that is turned off is taken only where the customer has it (has).
-function readAnswer(field: FieldRow, has: number[], raw: unknown): Answer | undefined | Response {
+function readAnswer(field: FormField, has: number[], raw: unknown): Answer | undefined | Response {
   if (raw === undefined || raw === null) return undefined
   const name = `«${field.label}»`
   const offers = (id: unknown): id is number =>
@@ -85,8 +89,9 @@ function readAnswer(field: FieldRow, has: number[], raw: unknown): Answer | unde
 // checkValues reads the answers a client sent for the fields of a type: the
 // answers as they are kept, or the first thing wrong with them, as the API
 // tells it (an answer to a field the type has not, then the fields in their
-// order). was is the customer's answers before an edit.
-function checkValues(fields: FieldRow[], was: Record<number, Answer>, raw: unknown): Record<number, Answer> | Response {
+// order). was is the record's answers before an edit. The tasks' answers
+// are read the same way.
+export function checkValues(fields: FormField[], was: Record<number, Answer>, raw: unknown): Record<number, Answer> | Response {
   const sent = (raw ?? {}) as Record<string, unknown>
   if (Object.keys(sent).some((key) => !fields.some((f) => String(f.id) === key))) return invalid("Bu turda bunday maydon yo'q")
   const values: Record<number, Answer> = {}
@@ -102,7 +107,7 @@ function checkValues(fields: FieldRow[], was: Record<number, Answer>, raw: unkno
 }
 
 // liveCustomers is a company's customers, without the deleted.
-const liveCustomers = (companyId: number) => db.customers.filter((c) => c.companyId === companyId && !c.deleted)
+export const liveCustomers = (companyId: number) => db.customers.filter((c) => c.companyId === companyId && !c.deleted)
 
 // free refuses a phone, or an answer to a field that may not repeat, that
 // another customer of the company has. except is the customer being edited.
@@ -121,7 +126,7 @@ function free(companyId: number, fields: FieldRow[], phone: string, values: Reco
 
 // nameOf is the name a member goes by in the company now; for someone who
 // has left it, the name they went by then.
-const nameOf = (phone: string, companyId: number, then: string | null) =>
+export const nameOf = (phone: string, companyId: number, then: string | null) =>
   isMember(phone, companyId) ? (nameIn(phone, companyId) ?? then) : then
 
 const toCustomer = (c: CustomerRow): Customer => ({
@@ -136,7 +141,7 @@ const toCustomer = (c: CustomerRow): Customer => ({
 
 // asText writes an answer for people to read, as the history keeps it: a
 // number in its digits, the options by their names; "" for no answer.
-function asText(field: FieldRow, answer: Answer | undefined): string {
+export function asText(field: FormField, answer: Answer | undefined): string {
   if (answer === undefined) return ""
   if (!isChoice(field)) return String(answer)
   const offered = offeredBy(field)
@@ -145,18 +150,58 @@ function asText(field: FieldRow, answer: Answer | undefined): string {
     .join(", ")
 }
 
-// diff tells what an edit changed: the phone first, then the fields in
+// diffValues tells what an edit changed in the answers: the fields in
 // their order, each as text under the names of the moment.
-function diff(fields: FieldRow[], customer: CustomerRow, phone: string, values: Record<number, Answer>): HistoryRow["changes"] {
+export function diffValues(fields: FormField[], was: Record<number, Answer>, values: Record<number, Answer>): HistoryRow["changes"] {
   const changes: HistoryRow["changes"] = []
-  if (customer.phone !== phone) changes.push({ label: "Telefon", old: formatPhone(customer.phone), new: formatPhone(phone) })
   for (const field of fields) {
-    const [before, after] = [customer.values[field.id], values[field.id]]
+    const [before, after] = [was[field.id], values[field.id]]
     if (JSON.stringify(before) !== JSON.stringify(after)) {
       changes.push({ label: field.label, old: asText(field, before), new: asText(field, after) })
     }
   }
   return changes
+}
+
+// diff tells what an edit changed: the phone first, then the answers.
+function diff(fields: FieldRow[], customer: CustomerRow, phone: string, values: Record<number, Answer>): HistoryRow["changes"] {
+  const changes: HistoryRow["changes"] = []
+  if (customer.phone !== phone) changes.push({ label: "Telefon", old: formatPhone(customer.phone), new: formatPhone(phone) })
+  return [...changes, ...diffValues(fields, customer.values, values)]
+}
+
+// enterCustomer enters a customer as a member of the company, under the
+// customers' rules, or says what is wrong. The task form enters one with
+// a task the same way.
+export function enterCustomer(
+  member: { phone: string; companyId: number },
+  body: { type_id?: unknown; phone?: unknown; values?: unknown },
+): CustomerRow | Response {
+  const phone = customerPhone(body.phone)
+  if (!phone) return invalid("Telefon raqami noto'g'ri")
+  const type = liveType(member.companyId, body.type_id)
+  if (!type) return invalid("Mijoz turini tanlang")
+  const fields = liveFields(type)
+  const values = checkValues(fields, {}, body.values)
+  if (values instanceof Response) return values
+  const refusal = free(member.companyId, fields, phone, values)
+  if (refusal) return refusal
+  const at = now()
+  const byName = nameIn(member.phone, member.companyId)
+  const customer: CustomerRow = {
+    id: nextId(),
+    companyId: member.companyId,
+    typeId: type.id,
+    phone,
+    values,
+    by: member.phone,
+    byName,
+    createdAt: at,
+    updatedAt: at,
+  }
+  db.customers.push(customer)
+  db.history.push({ id: nextId(), customerId: customer.id, action: "created", by: member.phone, byName, createdAt: at, changes: [] })
+  return customer
 }
 
 const PAGE_SIZE = 20
@@ -189,8 +234,16 @@ export const customersHandlers = [
     if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
     const typeId = query.has("type_id") ? Number(query.get("type_id")) : null
     if (typeId !== null && (!Number.isInteger(typeId) || typeId < 1)) return invalid("Mijoz turi noto'g'ri")
+    // The digits a phone begins with, after 998: the task form's suggestions.
+    const prefix = query.get("phone") || null
+    if (prefix !== null && !/^\d{1,9}$/.test(prefix)) return invalid("Telefon raqami noto'g'ri")
     const all = liveCustomers(member.companyId)
-      .filter((c) => (typeId === null || c.typeId === typeId) && found(c, query.get("search") ?? ""))
+      .filter(
+        (c) =>
+          (typeId === null || c.typeId === typeId) &&
+          (prefix === null || c.phone.startsWith(`998${prefix}`)) &&
+          found(c, query.get("search") ?? ""),
+      )
       // The newest first.
       .sort((a, b) => b.id - a.id)
     return HttpResponse.json({
@@ -205,30 +258,8 @@ export const customersHandlers = [
     const member = memberSession(request)
     if (member instanceof Response) return member
     const body = (await request.json()) as { type_id?: unknown; phone?: unknown; values?: unknown }
-    const phone = customerPhone(body.phone)
-    if (!phone) return invalid("Telefon raqami noto'g'ri")
-    const type = liveType(member.companyId, body.type_id)
-    if (!type) return invalid("Mijoz turini tanlang")
-    const fields = liveFields(type)
-    const values = checkValues(fields, {}, body.values)
-    if (values instanceof Response) return values
-    const refusal = free(member.companyId, fields, phone, values)
-    if (refusal) return refusal
-    const at = now()
-    const byName = nameIn(member.phone, member.companyId)
-    const customer: CustomerRow = {
-      id: nextId(),
-      companyId: member.companyId,
-      typeId: type.id,
-      phone,
-      values,
-      by: member.phone,
-      byName,
-      createdAt: at,
-      updatedAt: at,
-    }
-    db.customers.push(customer)
-    db.history.push({ id: nextId(), customerId: customer.id, action: "created", by: member.phone, byName, createdAt: at, changes: [] })
+    const customer = enterCustomer(member, body)
+    if (customer instanceof Response) return customer
     return HttpResponse.json(toCustomer(customer), { status: 201 })
   }),
 
@@ -278,6 +309,9 @@ export const customersHandlers = [
     if (member instanceof Response) return member
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
     if (!customer) return customerNotFound()
+    // A customer with a live task stays.
+    const used = db.tasks.filter((t) => t.customerId === customer.id && !t.deleted).length
+    if (used > 0) return fail(409, "customer_in_use", `Bu mijozda ${used} ta vazifa bor`)
     // Hidden, not removed: its answers and its history stay.
     customer.deleted = true
     db.history.push({
