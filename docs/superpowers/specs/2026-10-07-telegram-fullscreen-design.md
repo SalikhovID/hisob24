@@ -58,3 +58,17 @@ Hozir user app Mini App sifatida `expand()` bilan Telegram sarlavhasi ostida to'
 ## Deploy
 
 Frontend-only, `deploy/ship.sh`, oldingi tartib (pre-deploy dump, probe oldin/keyin). Yangi probe: qobiq chunk'larida `requestFullscreen` bor (eski build'da yo'q).
+
+## Qarorlar (2026-10-07)
+
+Bajarildi: `types/telegram.d.ts`, `components/telegram-sync.tsx` (`onPhone`, `isVersionAtLeast("8.0")`), `app/globals.css` (`--safe-top`, `pt-safe`, `pt-safe-*`), `AppShell` (`pt-safe`), `LoginFrame` (`pt-safe-10`, `lg:pt-safe-12`), `Centered`, `Expired`, `SelectCompany`, `components/ui/sonner.tsx` (`offset`, `mobileOffset`), e2e `miniapp.spec.ts`, README. Commitlar `5361082` … `40bb737`, test tuzatishi `ed8005d`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`pt-safe-*`** Tailwind v4 funksional utility: `padding-top: calc(--spacing(--value(integer)) + var(--safe-top))`; `lg:pt-safe-12` kabi variantlar bilan ishlaydi. `LoginFrame` panelida `lg:p-12` dan keyin `lg:pt-safe-12` turadi: katta ekranda ham (planshetdagi Telegram) chet hisobga olinadi.
+- **Toast offset'i** `Toaster` wrapper'ida (`components/ui/sonner.tsx`), `Providers` da emas: test render helper'i ham shu wrapper'ni ishlatadi. sonner `ol[data-sonner-toaster]` ni faqat toast bo'lganda chizadi, test avval `toast()` chaqiradi; offsetlar inline `--offset-top` / `--mobile-offset-top` da.
+- **Soxta Telegram** (`e2e/miniapp.spec.ts`): `requestFullscreen` chetlarni 47px + 46px qilib yozadi, `window.__fullscreen` belgisini qo'yadi; `fakeTelegram(id, platform)` bilan desktop client ssenariysi. Tekshiruvlar hisoblangan `padding-top` (93, 109, 133/141 px) va topbar'ning `y` koordinatasi bilan.
+- Full ekran holati JS'da saqlanmaydi, `fullscreenChanged` va `fullscreenFailed` tinglanmaydi (4 va 8-qarorlar); eski client va desktop testlari `requestFullscreen` chaqirilmasligini tekshiradi.
+- **Yo'l-yo'lakay tuzatilgan test** (`tasks-page.test.tsx`): bajarilgan vazifaning muddati `getByText(sana)` bilan topilardi; 2026-10-07 da `today − 5` = 02.10.2026 fixture'dagi "Qo'shilgan" 02.10.2026 bilan ustma-ust tushdi ("Found multiple elements"). Endi `[data-slot=deadline]` bilan topiladi; kod o'zgarmadi.
+- **Tekshiruv:** `make lint` 0 issues; `make test`: Go 19 paket, api-client 1, admin 228, web 579 (4 yangi: 3 `telegram-sync`, 1 `sonner`); `make e2e`: admin 40, web 94 (yangi desktop Telegram ssenariysi ikki project'da, 3 mavjud Mini App testi chet tekshiruvlari bilan).
+- Haqiqiy qurilmada tekshirilmadi (lokal bot tokeni yo'q): foydalanuvchi production'da sinaydi.

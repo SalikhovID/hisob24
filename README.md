@@ -231,6 +231,7 @@ BotFather menyusidagi nomlar Telegram yangilanishlari bilan biroz o'zgarishi mum
    - Raqam hech bir kompaniyaga a'zo bo'lmasa, "Kirish huquqi yo'q" va raqam ko'rsatiladi.
    - Raqam hali yuborilmagan bo'lsa, "Raqamni yuborish" tugmasi chiqadi. Telegram `requestContact` raqamni botga yuboradi va kirish qayta uriniladi.
    - Bot `/start` ga hozirgidek raqam so'raydi.
+   - Telefonda (iOS, Android; Bot API 8.0+) Mini App **to'liq ekranda** ochiladi: Telegram sarlavhasi yo'q, status bar va Telegram'ning suzuvchi tugmalari ostidan app o'zi joy qoldiradi (`--safe-top`). Desktop va web Telegram'da, eski client'larda hozirgidek sarlavha ostida.
 6. **Mini App'ni lokal sinash.** Telegram faqat https manzilni ochadi.
    - Admin panelni https tunnel orqali chiqaring (masalan `cloudflared tunnel --url http://localhost:3001`).
    - Berilgan manzilni `ADMIN_PANEL_URL` ga yozing va `make dev` ni qayta ishga tushiring.
