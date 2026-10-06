@@ -104,3 +104,12 @@ RETURNING user_phone;
 -- user is not its member.
 SELECT full_name FROM user_companies
 WHERE user_phone = $1 AND company_id = $2;
+
+-- name: SetCompanyUserRole :one
+-- Gives a user of the company a role, or takes it away (NULL). The role
+-- has to be the company's own (the foreign key refuses another's, 23503).
+-- No row (pgx.ErrNoRows) for the owner, who holds no role, and for someone
+-- who is not a member.
+UPDATE user_companies SET role_id = sqlc.narg('role_id')
+WHERE user_phone = sqlc.arg('user_phone') AND company_id = sqlc.arg('company_id') AND role = 'user'
+RETURNING *;

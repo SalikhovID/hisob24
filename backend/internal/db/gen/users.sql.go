@@ -387,6 +387,36 @@ func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams
 	return i, err
 }
 
+const setCompanyUserRole = `-- name: SetCompanyUserRole :one
+UPDATE user_companies SET role_id = $1
+WHERE user_phone = $2 AND company_id = $3 AND role = 'user'
+RETURNING user_phone, company_id, role, created_at, full_name, role_id
+`
+
+type SetCompanyUserRoleParams struct {
+	RoleID    *int64
+	UserPhone string
+	CompanyID int64
+}
+
+// Gives a user of the company a role, or takes it away (NULL). The role
+// has to be the company's own (the foreign key refuses another's, 23503).
+// No row (pgx.ErrNoRows) for the owner, who holds no role, and for someone
+// who is not a member.
+func (q *Queries) SetCompanyUserRole(ctx context.Context, arg SetCompanyUserRoleParams) (UserCompany, error) {
+	row := q.db.QueryRow(ctx, setCompanyUserRole, arg.RoleID, arg.UserPhone, arg.CompanyID)
+	var i UserCompany
+	err := row.Scan(
+		&i.UserPhone,
+		&i.CompanyID,
+		&i.Role,
+		&i.CreatedAt,
+		&i.FullName,
+		&i.RoleID,
+	)
+	return i, err
+}
+
 const upsertUser = `-- name: UpsertUser :exec
 INSERT INTO users (phone, full_name)
 VALUES ($1, $2)

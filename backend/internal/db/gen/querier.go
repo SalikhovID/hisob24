@@ -62,6 +62,8 @@ type Querier interface {
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
 	// How many tasks chose the option, in any field: one in use is not deleted.
 	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
+	// How many members hold the role: one that is held is not deleted.
+	CountRoleMembers(ctx context.Context, roleID *int64) (int64, error)
 	// How many tasks stand in the stage: one in use is not deleted. Deleted
 	// tasks do not count.
 	CountStageTasks(ctx context.Context, stageID int64) (int64, error)
@@ -92,6 +94,9 @@ type Querier interface {
 	// company_id is the company the access tokens it refreshes are for; source
 	// is where the session began ('sms' or 'telegram').
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
+	// A company role: the permissions are "section.action" keys, checked by
+	// internal/access before they get here.
+	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
 	// Enters a task. assignee_name and created_by_name are the names the members
 	// go by in the company now: they stay when the members leave the company.
 	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
@@ -132,6 +137,9 @@ type Querier interface {
 	// Clears a customer's answers: an edit writes them anew. What they were
 	// stays in the customer's history.
 	DeleteCustomerValues(ctx context.Context, customerID int64) error
+	// Removes the company's role for good. A role someone holds is refused by
+	// the foreign key (23503); pgx.ErrNoRows when the company has none such.
+	DeleteRole(ctx context.Context, arg DeleteRoleParams) (int64, error)
 	// Drops a code after the fifth wrong attempt.
 	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
@@ -193,6 +201,9 @@ type Querier interface {
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
 	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
+	// The company's role with how many members hold it; pgx.ErrNoRows when the
+	// company has none such.
+	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
 	// The company's task with its customer's phone and name (the customer's
 	// answer to its type's first text field); pgx.ErrNoRows when the company has
 	// no such task, or deleted it. assignee_name and created_by_name are the
@@ -254,6 +265,9 @@ type Querier interface {
 	// in the phone and in the whole number answers. The names of the options are
 	// not searched. A NULL argument leaves its filter out.
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
+	// The company's roles by name (whatever the case), each with how many
+	// members hold it.
+	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
 	// Every field of the company's types, each type's in its order, without the
 	// deleted ones (a deleted type's fields are deleted with it).
 	ListTaskFields(ctx context.Context, companyID int64) ([]TaskField, error)
@@ -346,6 +360,11 @@ type Querier interface {
 	// owner before has to be demoted first: a company has one owner. A role the
 	// user held as a member is taken away: the owner has every permission.
 	SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error)
+	// Gives a user of the company a role, or takes it away (NULL). The role
+	// has to be the company's own (the foreign key refuses another's, 23503).
+	// No row (pgx.ErrNoRows) for the owner, who holds no role, and for someone
+	// who is not a member.
+	SetCompanyUserRole(ctx context.Context, arg SetCompanyUserRoleParams) (UserCompany, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	// An edit: the customer's number as it is now, and the moment of the edit.
@@ -359,6 +378,9 @@ type Querier interface {
 	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
 	// type has no such field, or it is deleted.
 	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
+	// Replaces a role's name and permissions. pgx.ErrNoRows when the company
+	// has no such role.
+	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
 	// An edit: the task's title, deadline, stage and assignee as they are now,
 	// and the moment of the edit. pgx.ErrNoRows when the company has no such
 	// task, or deleted it.

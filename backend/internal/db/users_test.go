@@ -364,3 +364,30 @@ func TestGetUserCompany(t *testing.T) {
 	_, err = q.GetUserCompany(ctx, gen.GetUserCompanyParams{UserPhone: "998909999999", CompanyID: c.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
 }
+
+func TestSetCompanyUserRole(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma, nok := createCompany(t, q, "Olma", d), createCompany(t, q, "Nok", d)
+	addMember(t, q, olma.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, olma.ID, "998902222222", "Xodim", "user")
+	addMember(t, q, nok.ID, "998903333333", "Begona", "user")
+	sotuvchi := addRole(t, pool, olma.ID, "Sotuvchi", "customers.view")
+
+	m, err := q.SetCompanyUserRole(ctx, gen.SetCompanyUserRoleParams{UserPhone: "998902222222", CompanyID: olma.ID, RoleID: &sotuvchi})
+	require.NoError(t, err)
+	require.NotNil(t, m.RoleID)
+	assert.Equal(t, sotuvchi, *m.RoleID, "the employee holds the role")
+
+	m, err = q.SetCompanyUserRole(ctx, gen.SetCompanyUserRoleParams{UserPhone: "998902222222", CompanyID: olma.ID, RoleID: nil})
+	require.NoError(t, err)
+	assert.Nil(t, m.RoleID, "taken away")
+
+	_, err = q.SetCompanyUserRole(ctx, gen.SetCompanyUserRoleParams{UserPhone: "998901111111", CompanyID: olma.ID, RoleID: &sotuvchi})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "the owner holds no role")
+	_, err = q.SetCompanyUserRole(ctx, gen.SetCompanyUserRoleParams{UserPhone: "998909999999", CompanyID: olma.ID, RoleID: &sotuvchi})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
+	_, err = q.SetCompanyUserRole(ctx, gen.SetCompanyUserRoleParams{UserPhone: "998903333333", CompanyID: nok.ID, RoleID: &sotuvchi})
+	assert.Equal(t, "23503", sqlState(err), "another company's role") // foreign_key_violation
+}
