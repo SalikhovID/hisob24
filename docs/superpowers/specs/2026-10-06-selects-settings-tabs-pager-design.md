@@ -73,4 +73,11 @@ Namuna (`../enwin`): `enwin-admin/components/table-pagination.tsx`, `enwin-front
 
 ## Talab o'zgargani uchun o'zgargan testlar
 
-Ish oxirida to'ldiriladi.
+Har biri avval yangi talabga moslandi (RED), keyin kod yozildi (GREEN). Hech bir test o'chirilmadi yoki o'tkazib yuborilmadi.
+
+- **Pager.** `customers-page.test.tsx`, `tasks-page.test.tsx` (web), `companies-page.test.tsx` (admin): "1–20 / N" o'rniga "N tadan M ta ko'rsatilmoqda"; sahifa raqam bilan ochiladi, faol raqam `aria-current="page"`. Admin'dagi "ikkinchi sahifa yo'lda" testi endi sahifa raqamining faolligiga qaraydi (ikki sahifaning matni bir xil: ikkalasida ham 20 ta yozuv).
+- **Sozlamalar tablari.** `settings-page.test.tsx`: testlar o'z tabining manzilidan boshlanadi (`setLocation("/settings?tab=tasks")`); birinchi test ikkiga bo'lindi (mijoz turlari; dropdownlar); yiqilgan ro'yxat testi vazifalar tabida (`task-stages` yiqiladi, turlar turibdi); bo'sh holatlar ikki tabda; yangi testlar: uch tab, manzil tabni tanlaydi, tab manzilga tushadi, boshqa tabning ro'yxati DOM'da yo'q. `task-type-page.test.tsx`, `dropdown-page.test.tsx`: orqaga havola `/settings?tab=tasks` va `/settings?tab=dropdowns`. `tasks-page.test.tsx`: "Sozlamalarni ochish" `/settings?tab=tasks`. e2e `settings.spec.ts`, `tasks.spec.ts`: tab bosiladi, manzil tekshiriladi.
+- **Select'lar.** `field-answer.test.tsx`, `add-customer-dialog.test.tsx`, `customer-page.test.tsx`, `customer-type-page.test.tsx`, `task-type-page.test.tsx`, `task-dialog.test.tsx`, `edit-task-dialog.test.tsx`, `task-board.test.tsx`, `task-page.test.tsx`, `tasks-page.test.tsx`: `selectOptions` o'rniga `choose` (tugma bosiladi, variant bosiladi), `toHaveValue` o'rniga `toHaveTextContent` (tugma tanlangan nomni aytadi), variantlar ochiq `listbox` dan o'qiladi (`optionsOf`), ko'p tanlovda `menu` / `menuitemcheckbox` o'rniga `listbox` / `option` (`aria-selected`). e2e `customers.spec.ts`, `settings.spec.ts`, `tasks.spec.ts`: `selectOption` o'rniga `choose`; `toHaveValue` o'rniga `toContainText` (Base UI trigger ikonkasi matnda "▼" zaxirasini qoldiradi, ko'rinmaydi).
+- **Yangi testlar.** `pager.test.tsx` (ikkala ilovada), `use-settings-tab.test.ts`, `select-field.test.tsx`.
+
+Tekshiruv: `make lint` toza; `make test`: web 68 fayl / 517 test, admin 37 / 228; `make e2e` ikki ko'rinishda. Skrinshotlar (375px va desktop, light va dark) vaqtinchalik spec bilan ko'rildi. Raqamli pager jonli ro'yxatda faqat 20 dan ko'p yozuv bilan ko'rinadi; mock ma'lumotida shuncha yozuv yo'q, u birlik testlar bilan tekshirildi.

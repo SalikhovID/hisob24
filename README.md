@@ -128,7 +128,7 @@ Company o'z mijozlarini user app'da yuritadi. Mijozning **turi** bor, tur esa fo
 | Bo'lim | Kim | Nima qiladi |
 |---|---|---|
 | **Mijozlar** (`/customers`) | egasi va xodim | ro'yxat (tur tablari, qidiruv, sahifalar), mijoz qo'shish, mijoz sahifasi (`/customers/[id]`), tahrirlash, o'chirish |
-| **Sozlamalar** (`/settings`) | faqat egasi | mijoz turlari va maydonlari, dropdownlar va variantlari; tartib sudrab o'zgartiriladi |
+| **Sozlamalar** (`/settings`: «Mijozlar» va «Dropdownlar» tablari) | faqat egasi | mijoz turlari va maydonlari, dropdownlar va variantlari; tartib sudrab o'zgartiriladi |
 
 - **Telefon** har mijozda bor va majburiy: faqat `+998`, companyning mijozlari ichida takrorlanmaydi. Maydon qilib qo'shilmaydi.
 - **Maydon turlari:** matn, butun son, dropdown (bitta yoki bir nechta tanlov), radio, checkbox. Tanlov turlari variantlarini dropdowndan oladi. Maydon "Majburiy" va (matn, son uchun) "Takrorlanmasin" bo'lishi mumkin.
@@ -147,7 +147,7 @@ Company xodimlari bajaradigan ishlar. Har vazifa bitta mijozga biriktiriladi, **
 | Bo'lim | Kim | Nima qiladi |
 |---|---|---|
 | **Vazifalar** (`/tasks`) | egasi va xodim | kanban (birinchi marta) yoki ro'yxat; tur tablari, qidiruv, bosqich va mas'ul filtrlari; vazifa qo'shish (mavjud mijozni telefon takliflaridan tanlab yoki yangi mijoz bilan); vazifa sahifasi (`/tasks/[id]`), tahrirlash, bosqichni o'zgartirish, o'chirish |
-| **Sozlamalar** (`/settings`) | faqat egasi | bosqichlar (nom, rang, "Yakuniy", tartib), vazifa turlari va maydonlari |
+| **Sozlamalar** (`/settings?tab=tasks`: «Vazifalar» tabi) | faqat egasi | bosqichlar (nom, rang, "Yakuniy", tartib), vazifa turlari va maydonlari |
 
 - **Doimiy maydonlar:** nomi, muddat (sana), mijoz va bosqich majburiy; mas'ul (kompaniya a'zosi) ixtiyoriy. Mijoz va tur keyin o'zgarmaydi.
 - **Bosqichlar:** har yangi company "Yangi", "Jarayonda", "Bajarildi" (yakuniy) bosqichlari va "Vazifa" turi bilan boshlaydi. Yakuniy bosqichdagi vazifa muddati o'tgan deb belgilanmaydi; kanban'da yakuniy ustun yig'ilgan turadi.
