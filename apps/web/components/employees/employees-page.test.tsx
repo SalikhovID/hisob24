@@ -1,11 +1,12 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, membersOf, VALI } from "@/mocks/data"
+import { ALI, db, membersOf, nextId, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
+import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { EmployeesPage } from "./employees-page"
@@ -311,4 +312,66 @@ test("the employees actions follow the role: adding and renaming here, not delet
   expect(screen.getByRole("button", { name: "Xodim qo'shish" })).toBeInTheDocument()
   expect(within(sardor).getByRole("button", { name: /Ismni o'zgartirish/ })).toBeInTheDocument()
   expect(within(sardor).queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+})
+
+const roleButton = (row: HTMLElement) => within(row).getByRole("button", { name: "Rolni o'zgartirish: Vali Aliyev" })
+
+test("the owner gives an employee a role, and takes it away again", async () => {
+  const sotuvchi = { id: nextId(), companyId: 1, name: "Sotuvchi", permissions: ["customers.view" as const] }
+  db.roles.push(sotuvchi)
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+
+  await user.click(roleButton((await rows())[1]))
+  const dialog = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
+  expect(within(dialog).getByText("Vali Aliyev · +998 90 222 33 44")).toBeInTheDocument()
+  const box = within(dialog).getByRole("combobox", { name: "Rol" })
+  expect(box).toHaveTextContent("Rolsiz")
+  expect(within(dialog).getByText("Rolsiz xodim mijozlar va vazifalar bilan ishlaydi.")).toBeInTheDocument()
+  await choose(user, box, "Sotuvchi")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Rol o'zgartirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(within((await rows())[1]).getByText("Sotuvchi")).toBeInTheDocument())
+  expect(db.members[VALI].find((m) => m.companyId === 1)?.roleId).toBe(sotuvchi.id)
+
+  await user.click(roleButton((await rows())[1]))
+  const again = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
+  const box2 = within(again).getByRole("combobox", { name: "Rol" })
+  expect(box2).toHaveTextContent("Sotuvchi")
+  await choose(user, box2, "Rolsiz")
+  await user.click(within(again).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(db.members[VALI].find((m) => m.companyId === 1)?.roleId).toBeUndefined())
+  await waitFor(async () => expect(within((await rows())[1]).getByText("Xodim")).toBeInTheDocument())
+})
+
+test("with no role to give, the dialog says so and leads to the settings", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+
+  await user.click(roleButton((await rows())[1]))
+  const dialog = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
+  expect(await within(dialog).findByText(/Hali rol yo'q/)).toBeInTheDocument()
+  expect(within(dialog).getByRole("link", { name: "Sozlamalarda rol yarating" })).toHaveAttribute("href", "/settings?tab=roles")
+})
+
+test("the role button is the owner's alone, and never on the owner's own row", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+  const [owner, vali] = await rows()
+  expect(within(owner).queryByRole("button", { name: /^Rolni o'zgartirish/ })).not.toBeInTheDocument()
+  expect(within(vali).getByRole("button", { name: "Rolni o'zgartirish: Vali Aliyev" })).toBeInTheDocument()
+})
+
+test("an employee who manages the employees sees no role button", async () => {
+  giveRole(VALI, 1, "HR", ["employees.view", "employees.create", "employees.edit", "employees.delete"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<EmployeesPage />)
+
+  const [, , sardor] = await rows()
+  expect(within(sardor).getByRole("button", { name: /^O'chirish/ })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^Rolni o'zgartirish/ })).not.toBeInTheDocument()
 })

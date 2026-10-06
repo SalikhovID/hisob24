@@ -13,6 +13,7 @@ import { can } from "@/lib/permissions"
 import type { Member } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { AddEmployeeDialog } from "./add-employee-dialog"
+import { EmployeeRoleDialog } from "./employee-role-dialog"
 import { RemoveEmployeeButton } from "./remove-employee-button"
 import { RenameEmployeeDialog } from "./rename-employee-dialog"
 
@@ -32,6 +33,8 @@ export function EmployeesPage() {
   const companyId = gate.company.id
   const companyName = gate.company.name
   const allowed = (permission: Parameters<typeof can>[1]) => can(gate.permissions, permission)
+  // The roles are the owner's to give (logic/roles.md, section 5).
+  const isOwner = gate.company.role === "owner"
 
   const columns: Column<Member>[] = [
     {
@@ -61,11 +64,13 @@ export function EmployeesPage() {
       header: "Amallar",
       actions: true,
       // The owner is the admin panel's to change: only employees get these,
-      // and only from someone whose permissions hold the action.
+      // and only from someone whose permissions hold the action; the role
+      // is the owner's to give.
       cell: (m) =>
         m.role === "user" &&
-        (allowed("employees.edit") || allowed("employees.delete")) && (
+        (isOwner || allowed("employees.edit") || allowed("employees.delete")) && (
           <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
+            {isOwner && <EmployeeRoleDialog companyId={companyId} employee={m} />}
             {allowed("employees.edit") && <RenameEmployeeDialog companyId={companyId} employee={m} />}
             {allowed("employees.delete") && <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />}
           </span>
