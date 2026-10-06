@@ -42,6 +42,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
         },
       }}
       containerAriaLabel="Bildirishnomalar"
+      // sonner's own distances from the edge (24px, 16px on a phone), plus
+      // what Telegram lays over the top of a full-screen Mini App
+      // (--safe-top, 0 anywhere else).
+      offset={{ top: "calc(24px + var(--safe-top))" }}
+      mobileOffset={{ top: "calc(16px + var(--safe-top))" }}
       {...props}
     />
   )
