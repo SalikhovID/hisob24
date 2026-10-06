@@ -31,8 +31,9 @@ export function TelegramSync() {
       // Full screen on a phone: Telegram's header goes and the app takes the
       // whole screen; the status bar and Telegram's own controls then lie
       // over its top, which --safe-top keeps clear (globals.css). On a
-      // desktop client full screen would be the whole window.
-      if (onPhone(webApp.platform)) webApp.requestFullscreen?.()
+      // desktop client full screen would be the whole window, and a client
+      // older than Bot API 8.0 throws at the request.
+      if (onPhone(webApp.platform) && webApp.isVersionAtLeast?.("8.0")) webApp.requestFullscreen?.()
       document.documentElement.dataset.telegram = ""
       const follow = () => setTheme(webApp.colorScheme)
       follow()

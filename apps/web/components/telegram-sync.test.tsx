@@ -83,3 +83,14 @@ test("TelegramSync leaves a desktop Telegram at the client's height: full screen
   expect(webApp.expand).toHaveBeenCalled()
   expect(webApp.requestFullscreen).not.toHaveBeenCalled()
 })
+
+test("TelegramSync asks nothing of a client older than Bot API 8.0, which would throw at the request", async () => {
+  const webApp = fakeWebApp({ platform: "android", isVersionAtLeast: vi.fn(() => false), requestFullscreen: vi.fn() })
+  window.Telegram = { WebApp: webApp }
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(document.documentElement).toHaveAttribute("data-telegram"))
+  expect(webApp.isVersionAtLeast).toHaveBeenCalledWith("8.0")
+  expect(webApp.requestFullscreen).not.toHaveBeenCalled()
+})
