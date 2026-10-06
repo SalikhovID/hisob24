@@ -1,4 +1,4 @@
-import { ContactIcon, HouseIcon, type LucideIcon, SettingsIcon, UsersIcon } from "lucide-react"
+import { ContactIcon, HouseIcon, ListTodoIcon, type LucideIcon, SettingsIcon, UsersIcon } from "lucide-react"
 import type { Role } from "./types"
 
 // NavItem is a section of the app in the sidebar.
@@ -12,8 +12,10 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { label: "Bosh sahifa", href: "/", icon: HouseIcon },
-  // The customers are every member's (logic/customers.md).
+  // The customers and the tasks are every member's (logic/customers.md,
+  // logic/tasks.md).
   { label: "Mijozlar", href: "/customers", icon: ContactIcon },
+  { label: "Vazifalar", href: "/tasks", icon: ListTodoIcon },
   { label: "Xodimlar", href: "/employees", icon: UsersIcon, ownerOnly: true },
   { label: "Sozlamalar", href: "/settings", icon: SettingsIcon, ownerOnly: true },
 ]

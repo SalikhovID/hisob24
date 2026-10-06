@@ -57,3 +57,15 @@ test("a browser that refuses its storage shows every column, and hiding one does
 
   expect([...result.current.hidden]).toEqual([])
 })
+
+test("the tasks list keeps its own columns, apart from the customers'", () => {
+  localStorage.setItem(KEY, JSON.stringify(["type"]))
+
+  const { result } = renderHook(() => useHiddenColumns(1, "998901234567", "tasks"))
+  expect([...result.current.hidden]).toEqual([])
+
+  act(() => result.current.toggle("stage"))
+  expect([...result.current.hidden]).toEqual(["stage"])
+  expect(JSON.parse(localStorage.getItem("tasks_hidden_columns:1:998901234567")!)).toEqual(["stage"])
+  expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual(["type"])
+})

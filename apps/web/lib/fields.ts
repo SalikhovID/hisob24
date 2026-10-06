@@ -4,6 +4,11 @@ import type { Customer, CustomerDropdown, CustomerField, CustomerFieldKind } fro
 // customers and the tasks: the kinds, how an answer reads, the columns a
 // list of answers has, and how a form holds and reads the answers.
 
+// FormField is a field of a form the owner set up, of a customer type or of
+// a task type: what showing and reading an answer needs of it. (A customer
+// field may also be told not to repeat; that is the customers' own.)
+export type FormField = Pick<CustomerField, "id" | "label" | "kind" | "required" | "dropdown_id">
+
 // kindLabels are the field kinds' Uzbek names, in the order a form offers
 // them.
 export const kindLabels: Record<CustomerFieldKind, string> = {
@@ -26,7 +31,7 @@ export type Answer = Customer["values"][string]
 
 // answerText writes an answer for people to read: a text and a number as
 // they are, the options by their names. "" for a field left empty.
-export function answerText(field: CustomerField, answer: Answer | undefined, dropdowns: CustomerDropdown[]): string {
+export function answerText(field: FormField, answer: Answer | undefined, dropdowns: CustomerDropdown[]): string {
   if (answer === undefined) return ""
   if (!isChoice(field.kind)) return String(answer)
   const options = dropdowns.find((dropdown) => dropdown.id === field.dropdown_id)?.options ?? []
@@ -40,13 +45,13 @@ export function answerText(field: CustomerField, answer: Answer | undefined, dro
 export interface FieldColumn {
   key: string
   label: string
-  fields: Record<number, CustomerField>
+  fields: Record<number, FormField>
 }
 
 // fieldColumns are a list's answer columns for the types it shows, in the
 // order of the types and of their fields. A name counts whatever its case,
 // and is spelled as the first type spells it.
-export function fieldColumns(types: { id: number; fields: CustomerField[] }[]): FieldColumn[] {
+export function fieldColumns(types: { id: number; fields: FormField[] }[]): FieldColumn[] {
   const columns = new Map<string, FieldColumn>()
   for (const type of types) {
     for (const field of type.fields) {
@@ -61,10 +66,10 @@ export function fieldColumns(types: { id: number; fields: CustomerField[] }[]): 
 
 // fieldKey names a field's entry in a form. A bare number would not do:
 // react-hook-form reads a numeric key as a place in an array.
-export const fieldKey = (field: Pick<CustomerField, "id">) => `f${field.id}`
+export const fieldKey = (field: Pick<FormField, "id">) => `f${field.id}`
 
 // isSeveral tells a choice of several options from a choice of one.
-const isSeveral = (field: CustomerField) => field.kind === "multi_dropdown" || field.kind === "checkbox"
+const isSeveral = (field: FormField) => field.kind === "multi_dropdown" || field.kind === "checkbox"
 
 // Entries is what a form holds for the fields of a type, by fieldKey: a
 // text, a number and a single choice are a string (an option's id, "" for
@@ -73,7 +78,7 @@ export type Entries = Record<string, string | string[]>
 
 // answersDefaults is the entries of a form as it opens: empty for a new
 // record, holding the answers of one being edited.
-export function answersDefaults(fields: CustomerField[], values?: Record<string, Answer>): Entries {
+export function answersDefaults(fields: FormField[], values?: Record<string, Answer>): Entries {
   const entries: Entries = {}
   for (const field of fields) {
     const answer = values?.[field.id]
@@ -89,7 +94,7 @@ const MAX_TEXT = 500
 // readAnswer reads a field's entry of the form: the answer as the API takes
 // it, undefined for a field left empty, or what is wrong with it, in the
 // API's words.
-function readAnswer(field: CustomerField, entry: string | string[] | undefined): Answer | undefined | { error: string } {
+function readAnswer(field: FormField, entry: string | string[] | undefined): Answer | undefined | { error: string } {
   if (isSeveral(field)) return Array.isArray(entry) && entry.length > 0 ? entry.map(Number) : undefined
   const text = typeof entry === "string" ? entry.trim() : ""
   if (text === "") return undefined
@@ -112,7 +117,7 @@ function readAnswer(field: CustomerField, entry: string | string[] | undefined):
 // with an entry is told to refuse, under the entry's key and in the API's
 // words, and that entry is left out too.
 export function readAnswers(
-  fields: CustomerField[],
+  fields: FormField[],
   entries: Entries,
   refuse: (key: string, message: string) => void,
 ): Record<string, Answer> {

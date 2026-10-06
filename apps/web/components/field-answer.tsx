@@ -10,8 +10,8 @@ import { Field, FieldError, FieldLabel, FieldTitle } from "@/components/ui/field
 import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { isChoice } from "@/lib/fields"
-import type { CustomerField, CustomerOption } from "@/lib/types"
+import { type FormField, isChoice } from "@/lib/fields"
+import type { CustomerOption } from "@/lib/types"
 
 // Labeled is one question of a form: its name, a quiet word beside it when
 // it may be left empty, the input and what is wrong with the answer. The
@@ -71,7 +71,7 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
 }: {
   control: Control<T, unknown, TOut>
   name: FieldPath<T>
-  field: CustomerField
+  field: FormField
   options: CustomerOption[]
 }) {
   const id = useId()
