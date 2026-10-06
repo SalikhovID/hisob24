@@ -6,10 +6,9 @@ import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { api, call } from "@/lib/api"
-import { nameFieldOf } from "@/lib/customers"
 import { kindLabels } from "@/lib/fields"
-import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
-import type { CustomerField, CustomerType } from "@/lib/types"
+import { taskTypesKey, useCustomerDropdowns, useTaskTypes } from "@/lib/queries"
+import type { TaskField, TaskType } from "@/lib/types"
 import { useOwner } from "@/lib/use-owner"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteButton } from "./delete-button"
@@ -18,28 +17,28 @@ import { SettingRow, settingList } from "./setting-row"
 
 const back = { href: "/settings", label: "Sozlamalar" }
 
-// CustomerTypePage is one customer type of the owner's company: the fields
-// its form asks, in their order. The phone is not among them: every
-// customer has one. The first text field is the name a customer goes by.
-export function CustomerTypePage({ id }: { id: number }) {
+// TaskTypePage is one task type of the owner's company: the fields its form
+// asks, in their order. The title, the deadline, the customer and the
+// assignee are not among them: every task has those.
+export function TaskTypePage({ id }: { id: number }) {
   const owner = useOwner()
   const companyId = owner ? owner.company.id : null
-  const types = useCustomerTypes(companyId)
+  const types = useTaskTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const queryClient = useQueryClient()
-  const reorder = useReorder<CustomerType[]>(
-    customerTypesKey(companyId),
+  const reorder = useReorder<TaskType[]>(
+    taskTypesKey(companyId),
     (all, ids) => all.map((type) => (type.id === id ? { ...type, fields: inOrder(type.fields, ids) } : type)),
-    (ids) => call(api.PUT("/app/customer-types/{id}/fields/order", { params: { path: { id } }, body: { ids } })),
+    (ids) => call(api.PUT("/app/task-types/{id}/fields/order", { params: { path: { id } }, body: { ids } })),
   )
   // What a change did shows once the types are asked for again.
-  const refresh = () => queryClient.invalidateQueries({ queryKey: customerTypesKey(companyId) })
+  const refresh = () => queryClient.invalidateQueries({ queryKey: taskTypesKey(companyId) })
 
   if (!owner) return null
   if (!types.data) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Mijoz turi" back={back} />
+        <PageHeader title="Vazifa turi" back={back} />
         {types.isPending && <ListLoading rows={2} mark="none" />}
         {types.isError && <Failed error={types.error} onRetry={() => types.refetch()} />}
       </div>
@@ -51,9 +50,8 @@ export function CustomerTypePage({ id }: { id: number }) {
       <PageHeader title="Tur topilmadi" description="Bu tur o'chirilgan yoki sizning kompaniyangizniki emas." back={back} />
     )
   }
-  const nameField = nameFieldOf(type)
   // A choice says where its options come from, once the dropdowns are known.
-  const kindOf = (field: CustomerField) => {
+  const kindOf = (field: TaskField) => {
     const dropdown = dropdowns.data?.find((candidate) => candidate.id === field.dropdown_id)
     return dropdown ? `${kindLabels[field.kind]} · ${dropdown.name}` : kindLabels[field.kind]
   }
@@ -62,21 +60,27 @@ export function CustomerTypePage({ id }: { id: number }) {
     <div className="space-y-5">
       <PageHeader
         title={type.name}
-        description={`Mijoz turi · ${type.fields.length} ta maydon`}
+        description={`Vazifa turi · ${type.fields.length} ta maydon`}
         back={back}
         actions={
           <AddFieldDialog
             dropdowns={dropdowns.data ?? []}
-            unique
+            unique={false}
             add={async (field) => {
-              await call(api.POST("/app/customer-types/{id}/fields", { params: { path: { id: type.id } }, body: field }))
+              // A task field is never told not to repeat: the API takes no such mark.
+              await call(
+                api.POST("/app/task-types/{id}/fields", {
+                  params: { path: { id: type.id } },
+                  body: { label: field.label, kind: field.kind, required: field.required, dropdown_id: field.dropdown_id },
+                }),
+              )
               await refresh()
             }}
           />
         }
       />
       {type.fields.length === 0 && (
-        <EmptyState title="Bu turda maydon yo'q" description="Mijoz faqat telefon raqami bilan qo'shiladi." />
+        <EmptyState title="Bu turda maydon yo'q" description="Vazifa nomi, muddati, mijozi va mas'uli bilan qo'shiladi." />
       )}
       {type.fields.length > 0 && (
         <SortableList
@@ -91,28 +95,18 @@ export function CustomerTypePage({ id }: { id: number }) {
               handle={handle}
               title={field.label}
               detail={kindOf(field)}
-              marks={
-                <>
-                  {field.id === nameField?.id && (
-                    <Badge variant="secondary" className="bg-primary/10 dark:bg-primary/15">
-                      Mijoz nomi
-                    </Badge>
-                  )}
-                  {field.required && <Badge variant="secondary">Majburiy</Badge>}
-                  {field.is_unique && <Badge variant="outline">Takrorlanmas</Badge>}
-                </>
-              }
+              marks={field.required && <Badge variant="secondary">Majburiy</Badge>}
               actions={
                 <>
                   <EditFieldDialog
                     field={field}
                     kind={kindOf(field)}
-                    unique
+                    unique={false}
                     save={async (patch) => {
                       await call(
-                        api.PATCH("/app/customer-types/{id}/fields/{fieldId}", {
+                        api.PATCH("/app/task-types/{id}/fields/{fieldId}", {
                           params: { path: { id: type.id, fieldId: field.id } },
-                          body: patch,
+                          body: { label: patch.label, required: patch.required },
                         }),
                       )
                       await refresh()
@@ -121,11 +115,11 @@ export function CustomerTypePage({ id }: { id: number }) {
                   <DeleteButton
                     label={`O'chirish: ${field.label}`}
                     title="Maydonni o'chirasizmi?"
-                    description={`«${field.label}» maydoni formadan olib tashlanadi. Mijozlarda to'ldirilgan maydon o'chirilmaydi.`}
+                    description={`«${field.label}» maydoni formadan olib tashlanadi. Vazifalarda to'ldirilgan maydon o'chirilmaydi.`}
                     done="Maydon o'chirildi"
                     onDelete={async () => {
                       await call(
-                        api.DELETE("/app/customer-types/{id}/fields/{fieldId}", {
+                        api.DELETE("/app/task-types/{id}/fields/{fieldId}", {
                           params: { path: { id: type.id, fieldId: field.id } },
                         }),
                       )
@@ -139,8 +133,8 @@ export function CustomerTypePage({ id }: { id: number }) {
         />
       )}
       <p className="px-1 text-sm text-pretty text-muted-foreground md:px-4">
-        Telefon har doim bor va majburiy: uni maydon qilib qo&apos;shish shart emas. Birinchi matn maydoni
-        ro&apos;yxatda mijoz nomi bo&apos;lib ko&apos;rinadi.
+        Nomi, muddat va mijoz har vazifada bor va majburiy, mas&apos;ul ixtiyoriy: ularni maydon qilib qo&apos;shish
+        shart emas.
       </p>
     </div>
   )
