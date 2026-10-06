@@ -4,11 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback } from "react"
 
 // SettingsTab is one of the settings' tabs: what the company's customers
-// are asked, what its tasks are asked, and the dropdowns both take their
-// options from.
-export type SettingsTab = "customers" | "tasks" | "dropdowns"
+// are asked, what its tasks are asked, the dropdowns both take their
+// options from, and the roles (the owner's alone).
+export type SettingsTab = "customers" | "tasks" | "dropdowns" | "roles"
 
-const tabs: SettingsTab[] = ["customers", "tasks", "dropdowns"]
+const tabs: SettingsTab[] = ["customers", "tasks", "dropdowns", "roles"]
 
 // asTab reads a tab's name; anything else is the customers' tab.
 export function asTab(value: unknown): SettingsTab {

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { allPermissions, can, defaultPermissions, sectionLabels } from "./permissions"
+import { allPermissions, can, defaultPermissions, sectionLabels, summaryOf } from "./permissions"
 
 test("the catalog is the eighteen permissions in their order", () => {
   expect(allPermissions).toHaveLength(18)
@@ -30,4 +30,10 @@ test("can says whether the permissions hold one; none hold nothing", () => {
   expect(can(["customers.view"], "tasks.view")).toBe(false)
   expect(can([], "customers.view")).toBe(false)
   expect(can(undefined, "customers.view")).toBe(false)
+})
+
+test("summaryOf names the sections a set of permissions reaches into, in order", () => {
+  expect(summaryOf(["tasks.view", "customers.view", "customers.create"])).toBe("Mijozlar, Vazifalar")
+  expect(summaryOf(allPermissions)).toBe("Mijozlar, Vazifalar, Xodimlar, Sozlamalar")
+  expect(summaryOf([])).toBe("Ruxsat yo'q")
 })

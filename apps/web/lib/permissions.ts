@@ -60,3 +60,13 @@ export function sectionOf(permission: Permission): Section {
 export function can(permissions: readonly Permission[] | undefined, permission: Permission): boolean {
   return permissions?.includes(permission) ?? false
 }
+
+// sections are the sections in the catalog's order.
+export const sections: Section[] = ["customers", "tasks", "employees", "settings"]
+
+// summaryOf names the sections permissions reach into, in the catalog's
+// order: what a role is about, in a line. "Ruxsat yo'q" for none.
+export function summaryOf(permissions: readonly Permission[]): string {
+  const named = sections.filter((section) => permissions.some((permission) => sectionOf(permission) === section))
+  return named.length > 0 ? named.map((section) => sectionLabels[section]).join(", ") : "Ruxsat yo'q"
+}

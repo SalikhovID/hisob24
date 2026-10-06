@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, dropdownsOf, stagesOf, taskTypesOf, typesOf, VALI } from "@/mocks/data"
+import { ALI, db, dropdownsOf, nextId, stagesOf, taskTypesOf, typesOf, VALI } from "@/mocks/data"
 import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -26,9 +26,9 @@ test("the owner opens on the customers tab and sees the customer types with thei
 
   expect(await screen.findByRole("heading", { level: 1, name: "Sozlamalar" })).toBeInTheDocument()
   expect(screen.getAllByLabelText("Yuklanmoqda").length).toBeGreaterThan(0)
-  // The settings are three tabs; the customers' is the one open by default.
+  // The settings are four tabs for the owner; the customers' is the one open by default.
   const tabs = screen.getByRole("tablist", { name: "Sozlamalar bo'limlari" })
-  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar"])
+  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar", "Rollar"])
   expect(within(tabs).getByRole("tab", { name: "Mijozlar" })).toHaveAttribute("aria-selected", "true")
 
   const types = await typeList()
@@ -497,4 +497,74 @@ test("the settings actions follow the role: adding and changing here, not deleti
   expect(screen.getByRole("button", { name: "Tur qo'shish" })).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Nomini o'zgartirish: Jismoniy" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+})
+
+const roleList = () => screen.findByRole("list", { name: "Rollar" })
+
+test("the owner's roles tab lists the company's roles, what each holds and who holds it, and leads to a new one", async () => {
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.create", "tasks.view"])
+  db.roles.push({ id: nextId(), companyId: 1, name: "Kuzatuvchi", permissions: ["tasks.view"] })
+  await signIn(ALI)
+  setLocation("/settings?tab=roles")
+  renderWithProviders(<SettingsPage />)
+
+  const tabs = await screen.findByRole("tablist", { name: "Sozlamalar bo'limlari" })
+  expect(within(tabs).getByRole("tab", { name: "Rollar" })).toHaveAttribute("aria-selected", "true")
+  const roles = await roleList()
+  expect(rowsOf(roles)).toEqual([
+    ["Kuzatuvchi", "Vazifalar · Hech kimda"],
+    ["Sotuvchi", "Mijozlar, Vazifalar · 1 ta xodim"],
+  ])
+  const sotuvchi = db.roles.find((role) => role.name === "Sotuvchi")!
+  expect(within(roles).getByRole("link", { name: "Sotuvchi" })).toHaveAttribute("href", `/settings/roles/${sotuvchi.id}`)
+  expect(screen.getByRole("link", { name: "Rol qo'shish" })).toHaveAttribute("href", "/settings/roles/new")
+  expect(screen.getByRole("heading", { level: 2, name: "Rollar" })).toBeInTheDocument()
+})
+
+test("with no role yet the roles tab says what a role is for", async () => {
+  await signIn(ALI)
+  setLocation("/settings?tab=roles")
+  renderWithProviders(<SettingsPage />)
+
+  expect(await screen.findByText("Hali rol yo'q")).toBeInTheDocument()
+  expect(screen.getByText("Rol xodimga qaysi bo'limlarda nima qilishi mumkinligini belgilaydi.")).toBeInTheDocument()
+})
+
+test("an employee who may open the settings has no roles tab: the address of one opens the customers", async () => {
+  giveRole(VALI, 1, "Sozlovchi", ["settings.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  setLocation("/settings?tab=roles")
+  renderWithProviders(<SettingsPage />)
+
+  const tabs = await screen.findByRole("tablist", { name: "Sozlamalar bo'limlari" })
+  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar"])
+  expect(within(tabs).getByRole("tab", { name: "Mijozlar" })).toHaveAttribute("aria-selected", "true")
+  expect(await typeList()).toBeInTheDocument()
+})
+
+test("a role nobody holds is deleted; one someone holds is refused with the reason", async () => {
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view"])
+  db.roles.push({ id: nextId(), companyId: 1, name: "Bo'sh", permissions: [] })
+  await signIn(ALI)
+  setLocation("/settings?tab=roles")
+  const { user } = renderWithProviders(<SettingsPage />)
+  const roles = await roleList()
+  expect(rowsOf(roles)).toEqual([
+    ["Bo'sh", "Ruxsat yo'q · Hech kimda"],
+    ["Sotuvchi", "Mijozlar · 1 ta xodim"],
+  ])
+
+  await user.click(within(roles).getByRole("button", { name: "O'chirish: Bo'sh" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
+  expect(within(confirm).getByText("«Bo'sh» roli o'chadi. Xodimga biriktirilgan rol o'chirilmaydi.")).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  await waitFor(() => expect(rowsOf(roles)).toEqual([["Sotuvchi", "Mijozlar · 1 ta xodim"]]))
+  expect(await screen.findByText("Rol o'chirildi")).toBeInTheDocument()
+
+  await user.click(within(roles).getByRole("button", { name: "O'chirish: Sotuvchi" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Bu rol 1 ta xodimga biriktirilgan")).toBeInTheDocument()
+  expect(rowsOf(roles)).toHaveLength(1)
 })

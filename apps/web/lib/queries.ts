@@ -90,6 +90,21 @@ export function useMembers(companyId: number | null) {
   })
 }
 
+// rolesKey names a company's roles in the cache, per company like the
+// employees.
+export const rolesKey = (companyId: number | null) => ["roles", companyId] as const
+
+// useRoles is the roles of the company the owner works in, by name, each
+// with how many members hold it. Only the owner may ask: with companyId
+// null (an employee, or not known yet) nothing is asked.
+export function useRoles(companyId: number | null) {
+  return useQuery({
+    queryKey: rolesKey(companyId),
+    queryFn: () => call(api.GET("/app/roles")),
+    enabled: companyId !== null,
+  })
+}
+
 // customersKey names a company's customers in the cache, whatever the
 // filter: every list of them begins with it, so one call drops them all.
 export const customersKey = (companyId: number | null) => ["customers", companyId] as const

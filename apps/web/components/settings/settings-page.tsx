@@ -9,23 +9,26 @@ import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { StageDot } from "@/components/tasks/stage-dot"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api, call } from "@/lib/api"
 import {
   customerDropdownsKey,
   customerTypesKey,
+  rolesKey,
   taskStagesKey,
   taskTypesKey,
   useCustomerDropdowns,
   useCustomerTypes,
+  useRoles,
   useTaskStages,
   useTaskTypes,
 } from "@/lib/queries"
-import { can } from "@/lib/permissions"
+import { can, summaryOf } from "@/lib/permissions"
 import type { CustomerType, Permission, TaskStage, TaskType } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
+import { cn } from "@/lib/utils"
 import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 import { iconAction, SettingRow, settingList } from "./setting-row"
@@ -51,11 +54,15 @@ export function SettingsPage() {
   if (!gate) return null
   const companyId = gate.company.id
   const permissions = gate.permissions
+  // The roles are the owner's alone (logic/roles.md, section 5): their tab
+  // is theirs, and its address opens the customers for anyone else.
+  const isOwner = gate.company.role === "owner"
+  const shown = open === "roles" && !isOwner ? "customers" : open
 
   return (
     <div className="space-y-5">
       <PageHeader title="Sozlamalar" description="Mijozlar va vazifalar sozlamalari" />
-      <Tabs value={open} onValueChange={(value) => select(asTab(value))} className="gap-5">
+      <Tabs value={shown} onValueChange={(value) => select(asTab(value))} className="gap-5">
         {/* The strip of tabs scrolls sideways on a narrow screen rather than squeezing. */}
         <div className="-mx-1 min-w-0 overflow-x-auto px-1 py-0.5 scrollbar-hide">
           <TabsList aria-label="Sozlamalar bo'limlari" className="group-data-horizontal/tabs:h-9 max-sm:min-w-full">
@@ -68,6 +75,11 @@ export function SettingsPage() {
             <TabsTrigger value="dropdowns" className={tab}>
               Dropdownlar
             </TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="roles" className={tab}>
+                Rollar
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
         {/* A panel keeps the page's text size: its lists set their own. */}
@@ -81,6 +93,11 @@ export function SettingsPage() {
         <TabsContent value="dropdowns" className="space-y-8 text-base">
           <Dropdowns companyId={companyId} permissions={permissions} />
         </TabsContent>
+        {isOwner && (
+          <TabsContent value="roles" className="space-y-8 text-base">
+            <Roles companyId={companyId} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
@@ -498,6 +515,66 @@ function Dropdowns({ companyId, permissions }: SectionProps) {
                     />
                     )}
                   </>
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  )
+}
+
+// holders says how many members hold a role.
+const holders = (count: number) => (count === 0 ? "Hech kimda" : `${count} ta xodim`)
+
+// Roles is the company's roles, the owner's alone: what each lets an
+// employee do and who holds it, and the way to make or change one, on a
+// page of its own (the matrix of permissions is wide). A role someone holds
+// is not deleted: the API says so.
+function Roles({ companyId }: { companyId: number }) {
+  const roles = useRoles(companyId)
+  const queryClient = useQueryClient()
+  const refresh = () => queryClient.invalidateQueries({ queryKey: rolesKey(companyId) })
+
+  return (
+    <Section
+      title="Rollar"
+      description="Xodim rol olsa, faqat shu rol ruxsatlari bilan ishlaydi. Rolsiz xodim mijozlar va vazifalar bilan ishlaydi."
+      action={
+        <Link href="/settings/roles/new" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "px-3.5")}>
+          <PlusIcon />
+          Rol qo&apos;shish
+        </Link>
+      }
+    >
+      {roles.isPending && <ListLoading rows={2} mark="none" />}
+      {roles.isError && <Failed error={roles.error} onRetry={() => roles.refetch()} />}
+      {roles.data?.length === 0 && (
+        <EmptyState title="Hali rol yo'q" description="Rol xodimga qaysi bo'limlarda nima qilishi mumkinligini belgilaydi." />
+      )}
+      {roles.data && roles.data.length > 0 && (
+        <ul aria-label="Rollar" className={settingList}>
+          {roles.data.map((role) => (
+            <li key={role.id}>
+              <SettingRow
+                title={
+                  <Link href={`/settings/roles/${role.id}`} className={link}>
+                    {role.name}
+                  </Link>
+                }
+                detail={`${summaryOf(role.permissions)} · ${holders(role.members_count)}`}
+                actions={
+                  <DeleteButton
+                    label={`O'chirish: ${role.name}`}
+                    title="Rolni o'chirasizmi?"
+                    description={`«${role.name}» roli o'chadi. Xodimga biriktirilgan rol o'chirilmaydi.`}
+                    done="Rol o'chirildi"
+                    onDelete={async () => {
+                      await call(api.DELETE("/app/roles/{id}", { params: { path: { id: role.id } } }))
+                      await refresh()
+                    }}
+                  />
                 }
               />
             </li>
