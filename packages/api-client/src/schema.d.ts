@@ -724,7 +724,7 @@ export interface paths {
         post?: never;
         /**
          * Mijozni o'chirish
-         * @description Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
+         * @description Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. Faol vazifasi bor mijoz o'chirilmaydi (409 customer_in_use). O'chirish tarixga yoziladi.
          */
         delete: operations["deleteCustomer"];
         options?: never;
@@ -1016,6 +1016,104 @@ export interface paths {
          * @description Telegram update'larni shu manzilga yuboradi: API ishga tushganda setWebhook bilan PUBLIC_API_URL + /webhooks/user-bot o'rnatiladi. X-Telegram-Bot-Api-Secret-Token TELEGRAM_WEBHOOK_SECRET bilan solishtiriladi. Frontend uchun emas.
          */
         post: operations["userBotWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vazifalar ro'yxati
+         * @description Access token'dagi kompaniyaning vazifalari, muddati yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan vazifalar chiqmaydi. Filtrlar birga ishlaydi.
+         */
+        get: operations["listTasks"];
+        put?: never;
+        /**
+         * Vazifa qo'shish
+         * @description Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, tur, bosqich, mas'ul, maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
+         */
+        post: operations["createTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Vazifa
+         * @description Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo o'qiydi. Boshqa kompaniyaniki va o'chirilgani 404.
+         */
+        get: operations["getTask"];
+        /**
+         * Vazifani tahrirlash
+         * @description Nomi, muddati, bosqichi, mas'uli va javoblari to'liq qayta yoziladi; turi va mijozi o'zgarmaydi. Har a'zo tahrirlaydi. Tekshiruv qo'shishdagi kabi. Berilmagan maydon javobi o'chadi. Vazifadagi chiqarilgan mas'ul o'zgartirilmasa qoladi; boshqasi a'zo bo'lishi kerak. O'zgargan maydonlar tarixga yoziladi; o'zgarishsiz saqlash yozilmaydi.
+         */
+        put: operations["updateTask"];
+        post?: never;
+        /**
+         * Vazifani o'chirish
+         * @description Vazifa yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida ko'rinmaydi, sahifasi 404 beradi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
+         */
+        delete: operations["deleteTask"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/tasks/{id}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Vazifani boshqa bosqichga o'tkazish
+         * @description Kanbanda sudrab yoki menyudan ko'chirish: faqat bosqich o'zgaradi. Har a'zo ko'chiradi. O'sha bosqichning o'zi hech narsani o'zgartirmaydi va tarixga yozilmaydi; boshqasi "Bosqich" o'zgarishi sifatida yoziladi.
+         */
+        patch: operations["moveTask"];
+        trace?: never;
+    };
+    "/app/tasks/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Vazifaning o'zgarishlar tarixi (faqat owner)
+         * @description Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida: avval vazifaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy, Bosqich, Mas'ul), keyin turning maydonlari.
+         */
+        get: operations["listTaskHistory"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1387,6 +1485,117 @@ export interface components {
             label?: string;
             required?: boolean;
         };
+        TaskCustomer: {
+            /** Format: int64 */
+            id: number;
+            /** @description Faqat raqamlar, masalan 998901234567 */
+            phone: string;
+            /** @description Mijozning nomi: turining tartib bo'yicha birinchi matn maydonidagi javob; yo'q bo'lsa null */
+            name: string | null;
+        };
+        TaskAssignee: {
+            phone: string;
+            /** @description Mas'ulning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, biriktirilgan paytdagi ismi */
+            full_name: string | null;
+        };
+        Task: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description Vazifaning turi; o'zgarmaydi
+             */
+            type_id: number;
+            /** Format: int64 */
+            stage_id: number;
+            title: string;
+            /**
+             * Format: date
+             * @description Muddat, YYYY-MM-DD
+             */
+            deadline: string;
+            customer: components["schemas"]["TaskCustomer"];
+            /** @description Mas'ul; yo'q bo'lsa null */
+            assignee: components["schemas"]["TaskAssignee"] | null;
+            values: components["schemas"]["CustomerValues"];
+            /** @description Vazifani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, qo'shgan paytdagi ismi */
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description Vazifaning mijozi: mavjud mijoz (id) yoki vazifa bilan yoziladigan yangi mijoz (type_id, phone, values). Bo'sh bo'lsa "Mijozni tanlang". */
+        TaskCustomerInput: {
+            /**
+             * Format: int64
+             * @description Mavjud mijoz; berilsa qolganlari e'tiborga olinmaydi
+             */
+            id?: number;
+            /**
+             * Format: int64
+             * @description Yangi mijozning turi
+             */
+            type_id?: number;
+            /** @description Yangi mijozning telefoni, masalan +998 90 123 45 67 */
+            phone?: string;
+            values?: components["schemas"]["CustomerAnswers"];
+        };
+        TaskCreate: {
+            /** Format: int64 */
+            type_id: number;
+            title: string;
+            /**
+             * Format: date
+             * @description YYYY-MM-DD
+             */
+            deadline: string;
+            /** Format: int64 */
+            stage_id: number;
+            /** @description Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q */
+            assignee_phone?: string | null;
+            values?: components["schemas"]["CustomerAnswers"];
+            customer: components["schemas"]["TaskCustomerInput"];
+        };
+        TaskUpdate: {
+            title: string;
+            /**
+             * Format: date
+             * @description YYYY-MM-DD
+             */
+            deadline: string;
+            /** Format: int64 */
+            stage_id: number;
+            /** @description Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q */
+            assignee_phone?: string | null;
+            values?: components["schemas"]["CustomerAnswers"];
+        };
+        TaskMove: {
+            /** Format: int64 */
+            stage_id: number;
+        };
+        TaskPage: {
+            items: components["schemas"]["Task"][];
+            /**
+             * Format: int64
+             * @description Filtrga mos vazifalar soni, hamma sahifalarda
+             */
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        TaskHistoryEntry: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            action: "created" | "updated" | "deleted";
+            /** @description Buni qilgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, o'sha paytdagi ismi */
+            actor_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** @description Tahrirda yoki ko'chirishda o'zgargan maydonlar; qo'shish va o'chirishda bo'sh */
+            changes: components["schemas"]["CustomerChange"][];
+        };
     };
     responses: {
         /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
@@ -1554,6 +1763,24 @@ export interface components {
         };
         /** @description Nom band (name_taken); narsa ishlatilmoqda (stage_in_use, type_in_use, field_in_use); ro'yxat boshqa joyda o'zgargan (order_changed) */
         TaskSettingConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Mijozda faol vazifa bor (customer_in_use) */
+        CustomerInUse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Vazifa topilmadi (not_found) */
+        TaskNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2787,6 +3014,8 @@ export interface operations {
                 search?: string;
                 /** @description Faqat shu turdagi mijozlar */
                 type_id?: number;
+                /** @description Telefoni 998 va shu raqamlar bilan boshlanadigan mijozlar (vazifa formasidagi mijoz takliflari). Boshqa belgi 400 beradi. */
+                phone?: string;
                 page?: number;
             };
             header?: never;
@@ -2919,6 +3148,7 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["CompanyRequired"];
             404: components["responses"]["CustomerNotFound"];
+            409: components["responses"]["CustomerInUse"];
         };
     };
     listCustomerHistory: {
@@ -3419,6 +3649,217 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["InvalidSecretToken"];
+        };
+    };
+    listTasks: {
+        parameters: {
+            query?: {
+                /** @description Nomida, vazifaning matn javoblarida va mijozning matn javoblarida qidiriladi (katta-kichik harf farqsiz, harfma-harf). Faqat raqamlardan iborat qidiruv mijoz telefonida va vazifaning butun son javoblarida ham qidiriladi. */
+                search?: string;
+                /** @description Faqat shu turdagi vazifalar */
+                type_id?: number;
+                /** @description Faqat shu bosqichdagi vazifalar (kanban ustuni) */
+                stage_id?: number;
+                /** @description Faqat shu a'zoga biriktirilgan vazifalar (telefon) */
+                assignee?: string;
+                /** @description Faqat shu mijozning vazifalari (mijoz sahifasi) */
+                customer_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vazifalar sahifasi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskCreate"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan vazifa */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            409: components["responses"]["CustomerTaken"];
+        };
+    };
+    getTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vazifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            404: components["responses"]["TaskNotFound"];
+        };
+    };
+    updateTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan vazifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            404: components["responses"]["TaskNotFound"];
+        };
+    };
+    deleteTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            404: components["responses"]["TaskNotFound"];
+        };
+    };
+    moveTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskMove"];
+            };
+        };
+        responses: {
+            /** @description Ko'chirilgan vazifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+            404: components["responses"]["TaskNotFound"];
+        };
+    };
+    listTaskHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tarix yozuvlari */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskHistoryEntry"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki user kompaniya egasi emas (owner_only) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["TaskNotFound"];
         };
     };
 }

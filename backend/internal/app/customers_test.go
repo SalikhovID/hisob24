@@ -176,6 +176,9 @@ func TestListCustomers(t *testing.T) {
 	assert.Equal(t, []any{vali, ali}, get(url.Values{"search": {"ALI"}})["items"], "a search in the text answers")
 	assert.Equal(t, []any{vali}, get(url.Values{"search": {"+998 90 111 22 44"}})["items"], "in the phones")
 	assert.Equal(t, []any{vali}, get(url.Values{"search": {"45"}, "type_id": {fmt.Sprint(sh.jismoniy)}})["items"], "in the numbers, within a type")
+	assert.Equal(t, []any{firma, vali, ali}, get(url.Values{"phone": {"9011122"}})["items"], "the digits a phone begins with, after 998")
+	assert.Equal(t, []any{ali}, get(url.Values{"phone": {"90111223"}})["items"])
+	assert.Equal(t, []any{}, get(url.Values{"phone": {"1112233"}})["items"], "digits inside the number do not count")
 	found := get(url.Values{"type_id": {fmt.Sprint(yuridik)}})
 	assert.Equal(t, []any{firma}, found["items"], "one type")
 	assert.EqualValues(t, 1, found["total"])
@@ -185,10 +188,12 @@ func TestListCustomers(t *testing.T) {
 	assert.EqualValues(t, 2, past["page"])
 
 	for query, message := range map[string]string{
-		"page=abc":    "Sahifa raqami noto'g'ri",
-		"page=0":      "Sahifa raqami noto'g'ri",
-		"type_id=abc": "Mijoz turi noto'g'ri",
-		"type_id=0":   "Mijoz turi noto'g'ri",
+		"page=abc":         "Sahifa raqami noto'g'ri",
+		"page=0":           "Sahifa raqami noto'g'ri",
+		"type_id=abc":      "Mijoz turi noto'g'ri",
+		"type_id=0":        "Mijoz turi noto'g'ri",
+		"phone=abc":        "Telefon raqami noto'g'ri",
+		"phone=9011122334": "Telefon raqami noto'g'ri",
 	} {
 		rec := api.do(t, http.MethodGet, "/app/customers?"+query, "", bearer(owner))
 		assert.Equal(t, http.StatusBadRequest, rec.Code, query)

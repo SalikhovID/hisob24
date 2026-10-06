@@ -1318,6 +1318,14 @@ paths:
             type: integer
             format: int64
           description: Faqat shu turdagi mijozlar
+        - name: phone
+          in: query
+          schema:
+            type: string
+            pattern: "^[0-9]{1,9}$"
+          description: >
+            Telefoni 998 va shu raqamlar bilan boshlanadigan mijozlar (vazifa
+            formasidagi mijoz takliflari). Boshqa belgi 400 beradi.
         - name: page
           in: query
           schema:
@@ -1413,7 +1421,8 @@ paths:
       description: >
         Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404
         beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo
-        o'chira oladi. O'chirish tarixga yoziladi.
+        o'chira oladi. Faol vazifasi bor mijoz o'chirilmaydi (409
+        customer_in_use). O'chirish tarixga yoziladi.
       security:
         - appBearer: []
       responses:
@@ -1427,6 +1436,8 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "404":
           $ref: "#/components/responses/CustomerNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerInUse"
   /app/customers/{id}/history:
     parameters:
       - name: id
@@ -1976,6 +1987,279 @@ paths:
           description: Update qabul qilindi
         "401":
           $ref: "#/components/responses/InvalidSecretToken"
+  /app/tasks:
+    get:
+      operationId: listTasks
+      summary: Vazifalar ro'yxati
+      description: >
+        Access token'dagi kompaniyaning vazifalari, muddati yaqini birinchi
+        (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi.
+        O'chirilgan vazifalar chiqmaydi. Filtrlar birga ishlaydi.
+      security:
+        - appBearer: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: >
+            Nomida, vazifaning matn javoblarida va mijozning matn
+            javoblarida qidiriladi (katta-kichik harf farqsiz, harfma-harf).
+            Faqat raqamlardan iborat qidiruv mijoz telefonida va vazifaning
+            butun son javoblarida ham qidiriladi.
+        - name: type_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Faqat shu turdagi vazifalar
+        - name: stage_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Faqat shu bosqichdagi vazifalar (kanban ustuni)
+        - name: assignee
+          in: query
+          schema:
+            type: string
+          description: Faqat shu a'zoga biriktirilgan vazifalar (telefon)
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Faqat shu mijozning vazifalari (mijoz sahifasi)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        "200":
+          description: Vazifalar sahifasi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+    post:
+      operationId: createTask
+      summary: Vazifa qo'shish
+      description: >
+        Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi.
+        Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), turi, bosqichi va
+        mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning
+        maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki,
+        faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari
+        bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi:
+        nom, muddat, tur, bosqich, mas'ul, maydonlar, mijoz; birinchi xato
+        qaytadi (400 validation_error). Yangi mijozning takror telefoni
+        (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken)
+        409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham,
+        mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskCreate"
+      responses:
+        "201":
+          description: Qo'shilgan vazifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "409":
+          $ref: "#/components/responses/CustomerTaken"
+  /app/tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getTask
+      summary: Vazifa
+      description: >
+        Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo
+        o'qiydi. Boshqa kompaniyaniki va o'chirilgani 404.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Vazifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+    put:
+      operationId: updateTask
+      summary: Vazifani tahrirlash
+      description: >
+        Nomi, muddati, bosqichi, mas'uli va javoblari to'liq qayta yoziladi;
+        turi va mijozi o'zgarmaydi. Har a'zo tahrirlaydi. Tekshiruv
+        qo'shishdagi kabi. Berilmagan maydon javobi o'chadi. Vazifadagi
+        chiqarilgan mas'ul o'zgartirilmasa qoladi; boshqasi a'zo bo'lishi
+        kerak. O'zgargan maydonlar tarixga yoziladi; o'zgarishsiz saqlash
+        yozilmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Saqlangan vazifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+    delete:
+      operationId: deleteTask
+      summary: Vazifani o'chirish
+      description: >
+        Vazifa yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida
+        ko'rinmaydi, sahifasi 404 beradi. Bazadan o'chmaydi; tiklash yo'q.
+        Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+  /app/tasks/{id}/stage:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: moveTask
+      summary: Vazifani boshqa bosqichga o'tkazish
+      description: >
+        Kanbanda sudrab yoki menyudan ko'chirish: faqat bosqich o'zgaradi.
+        Har a'zo ko'chiradi. O'sha bosqichning o'zi hech narsani
+        o'zgartirmaydi va tarixga yozilmaydi; boshqasi "Bosqich" o'zgarishi
+        sifatida yoziladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskMove"
+      responses:
+        "200":
+          description: Ko'chirilgan vazifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
+  /app/tasks/{id}/history:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listTaskHistory
+      summary: Vazifaning o'zgarishlar tarixi (faqat owner)
+      description: >
+        Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har
+        tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan
+        har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn
+        sifatida: avval vazifaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy,
+        Bosqich, Mas'ul), keyin turning maydonlari.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Tarix yozuvlari
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskHistoryEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          description: >
+            Sessiya hali kompaniya tanlamagan (company_required) yoki user
+            kompaniya egasi emas (owner_only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/TaskNotFound"
 components:
   securitySchemes:
     adminSession:
@@ -2142,6 +2426,18 @@ components:
         Nom band (name_taken); narsa ishlatilmoqda (stage_in_use,
         type_in_use, field_in_use); ro'yxat boshqa joyda o'zgargan
         (order_changed)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    CustomerInUse:
+      description: Mijozda faol vazifa bor (customer_in_use)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TaskNotFound:
+      description: Vazifa topilmadi (not_found)
       content:
         application/json:
           schema:
@@ -2793,3 +3089,179 @@ components:
           maxLength: 60
         required:
           type: boolean
+    TaskCustomer:
+      type: object
+      required: [id, phone, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        phone:
+          type: string
+          description: Faqat raqamlar, masalan 998901234567
+        name:
+          type: [string, "null"]
+          description: >
+            Mijozning nomi: turining tartib bo'yicha birinchi matn maydonidagi
+            javob; yo'q bo'lsa null
+    TaskAssignee:
+      type: object
+      required: [phone, full_name]
+      properties:
+        phone:
+          type: string
+        full_name:
+          type: [string, "null"]
+          description: >
+            Mas'ulning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan
+            bo'lsa, biriktirilgan paytdagi ismi
+    Task:
+      type: object
+      required: [id, type_id, stage_id, title, deadline, customer, assignee, values, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        type_id:
+          type: integer
+          format: int64
+          description: Vazifaning turi; o'zgarmaydi
+        stage_id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        deadline:
+          type: string
+          format: date
+          description: Muddat, YYYY-MM-DD
+        customer:
+          $ref: "#/components/schemas/TaskCustomer"
+        assignee:
+          oneOf:
+            - $ref: "#/components/schemas/TaskAssignee"
+            - type: "null"
+          description: Mas'ul; yo'q bo'lsa null
+        values:
+          $ref: "#/components/schemas/CustomerValues"
+        created_by_name:
+          type: [string, "null"]
+          description: >
+            Vazifani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan
+            chiqarilgan bo'lsa, qo'shgan paytdagi ismi
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TaskCustomerInput:
+      type: object
+      description: >
+        Vazifaning mijozi: mavjud mijoz (id) yoki vazifa bilan yoziladigan
+        yangi mijoz (type_id, phone, values). Bo'sh bo'lsa "Mijozni tanlang".
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Mavjud mijoz; berilsa qolganlari e'tiborga olinmaydi
+        type_id:
+          type: integer
+          format: int64
+          description: Yangi mijozning turi
+        phone:
+          type: string
+          description: Yangi mijozning telefoni, masalan +998 90 123 45 67
+        values:
+          $ref: "#/components/schemas/CustomerAnswers"
+    TaskCreate:
+      type: object
+      required: [type_id, title, deadline, stage_id, customer]
+      properties:
+        type_id:
+          type: integer
+          format: int64
+        title:
+          type: string
+          maxLength: 200
+        deadline:
+          type: string
+          format: date
+          description: YYYY-MM-DD
+        stage_id:
+          type: integer
+          format: int64
+        assignee_phone:
+          type: [string, "null"]
+          description: Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q
+        values:
+          $ref: "#/components/schemas/CustomerAnswers"
+        customer:
+          $ref: "#/components/schemas/TaskCustomerInput"
+    TaskUpdate:
+      type: object
+      required: [title, deadline, stage_id]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        deadline:
+          type: string
+          format: date
+          description: YYYY-MM-DD
+        stage_id:
+          type: integer
+          format: int64
+        assignee_phone:
+          type: [string, "null"]
+          description: Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q
+        values:
+          $ref: "#/components/schemas/CustomerAnswers"
+    TaskMove:
+      type: object
+      required: [stage_id]
+      properties:
+        stage_id:
+          type: integer
+          format: int64
+    TaskPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        total:
+          type: integer
+          format: int64
+          description: Filtrga mos vazifalar soni, hamma sahifalarda
+        page:
+          type: integer
+        page_size:
+          type: integer
+    TaskHistoryEntry:
+      type: object
+      required: [id, action, actor_name, created_at, changes]
+      properties:
+        id:
+          type: integer
+          format: int64
+        action:
+          type: string
+          enum: [created, updated, deleted]
+        actor_name:
+          type: [string, "null"]
+          description: >
+            Buni qilgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan
+            chiqarilgan bo'lsa, o'sha paytdagi ismi
+        created_at:
+          type: string
+          format: date-time
+        changes:
+          type: array
+          description: >
+            Tahrirda yoki ko'chirishda o'zgargan maydonlar; qo'shish va
+            o'chirishda bo'sh
+          items:
+            $ref: "#/components/schemas/CustomerChange"
