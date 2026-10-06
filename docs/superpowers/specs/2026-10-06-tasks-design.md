@@ -338,3 +338,13 @@ Tekshiruvlar (sessiyasiz, hech narsa yozilmadi, SMS yuborilmadi):
 - Probe (24 ta): oldin 11/24 (yangi route'lar va sahifalar 404), keyin 24/24: `healthz`, ikkala login sahifasi, `/tasks`, `/tasks/1`, `/settings/task-types/1` placeholder cookie bilan 200 va "Vazifalar" matni, `GET/PATCH /api/app/tasks…`, `task-stages`, `task-types`, `members`, `customers?phone=` 401 (404 emas), noma'lum route 404, ikkala webhook sekretsiz 401, ikonlar.
 - Serverda: goose 8; `tasks`, `task_values`, `task_history`, `task_stages`, `task_types`, `task_fields` bor; `customers_company_id_id_key` cheklovi bor; `tasks` da 6 indeks; mavjud kompaniya Yangi (blue), Jarayonda (amber), Bajarildi (green, yakuniy) va "Vazifa" turi bilan; vazifalar 0, mijozlar 1 (o'zgarmagan); API logida 15 daqiqada ERROR/WARN 0; server daraxtining md5 si `git archive HEAD` bilan bir xil.
 - Haqiqiy kirish bilan oqim (vazifa qo'shish, kanban, taklif) production'da sinalmadi: `SMS_DRIVER=eskiz`, haqiqiy SMS — foydalanuvchining o'zi sinaydi.
+
+## Tuzatish (2026-10-07): ro'yxat kartasi vazifani ochadi
+
+Foydalanuvchi: "telegram mini appdan turib taskni bosganimda mijoz view sahifasiga o'tib ketyapti". Sabab: ro'yxat ko'rinishining telefon kartasida (`DataList`) vazifa nomi havolasi faqat matn ustida edi, karta tanasi bosilmasdi, "Mijoz" qatori esa bold, chizig'isiz havola — barmoq unga tushardi. Kanbanda muammo yo'q (mijoz matn), vazifa sahifasida ham. Jadvalda ham yo'q (ikkala havola ko'rinib turadi).
+
+Tuzatish: `DataList` kartasi `href` bilan istalgan joydan ochiladi (sarlavha havolasi karta ustiga cho'zilgan); kartada mijoz nom va telefon bilan matn, jadvalda havola qoladi (`Column.cell(item, place)`; `docs/superpowers/specs/2026-10-04-crud-ui-refresh-design.md`); mijozga yo'l vazifa sahifasidagi "Mijoz" kartasi. Kanban kartasi o'zgarmadi.
+
+Soxta ma'lumotlar bilan lokal tekshiruv (foydalanuvchi so'ragan): e2e `miniapp.spec.ts` da soxta Telegram (`fakeTelegram(TG_ALI)`) va `seedTasks()` bilan 375px da ro'yxat kartasining o'rtasiga bosish — tuzatishdan oldin hech narsa ochmadi (URL `/tasks?view=list` qoldi) va kartada ikkita havola bor edi (vazifa va mijoz); keyin vazifa sahifasi ochiladi, kartada bitta havola, jadvalda mijoz havolasi saqlanadi. Unit: `data-list.test.tsx` (cho'zilgan havola kartada, jadvalda emas; `place`), `tasks-page.test.tsx` (kartada mijoz matn, jadvalda havola).
+
+Tekshiruv: `make lint` 0 issues; `make test`: Go 19 paket, api-client 1, admin 228, web 582 (+3); `make e2e`: admin 40, web 98 (+4: ikki yangi Mini App testi ikki project'da). Skrinshot (375px, soxta Telegram): kartada "Mijoz" qatori oddiy matn, nom tepada, bitta havola. Haqiqiy telefonda foydalanuvchi tekshiradi.
