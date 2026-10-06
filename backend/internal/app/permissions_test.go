@@ -118,3 +118,43 @@ func TestATaskWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	rec = api.do(t, http.MethodPost, "/app/tasks", withExisting, bearer(employee))
 	assert.Equal(t, http.StatusCreated, rec.Code, "a task for a customer that is there needs tasks.create alone: %s", rec.Body.String())
 }
+
+// permissionsOf is the permissions /app/me tells, as strings.
+func permissionsOf(t *testing.T, body map[string]any) []string {
+	t.Helper()
+	raw, ok := body["permissions"].([]any)
+	require.True(t, ok, "permissions is a list: %v", body["permissions"])
+	list := make([]string, 0, len(raw))
+	for _, p := range raw {
+		list = append(list, p.(string))
+	}
+	return list
+}
+
+func TestMeTellsThePermissionsAndTheRole(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
+	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "tasks.view", "customers.view", "customers.history")
+	api.giveRole(t, valisPhone, olma, &kuzatuvchi)
+
+	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(employee))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Equal(t, []string{"customers.view", "customers.history", "tasks.view"}, permissionsOf(t, body),
+		"what the role holds, in the catalog's order")
+	company, _ := body["company"].(map[string]any)
+	assert.Equal(t, "Kuzatuvchi", company["role_name"], "the role the member holds, by name")
+	companies, _ := body["companies"].([]any)
+	require.Len(t, companies, 1)
+	first, _ := companies[0].(map[string]any)
+	assert.Equal(t, "Kuzatuvchi", first["role_name"], "in the list of companies too")
+
+	rec = api.do(t, http.MethodGet, "/app/me", "", bearer(undecided))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body = decode(t, rec)
+	assert.Equal(t, []string{}, permissionsOf(t, body), "no company chosen: nothing may be done yet")
+	assert.Nil(t, body["company"])
+}

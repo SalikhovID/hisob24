@@ -237,12 +237,15 @@ type userJSON struct {
 }
 
 type companyJSON struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Role     string `json:"role"`
-	EndDate  string `json:"end_date"`
-	DaysLeft int    `json:"days_left"`
-	IsActive bool   `json:"is_active"`
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Role string `json:"role"`
+	// RoleName is the company role the user holds there, null for the
+	// owner and for a user without one.
+	RoleName *string `json:"role_name"`
+	EndDate  string  `json:"end_date"`
+	DaysLeft int     `json:"days_left"`
+	IsActive bool    `json:"is_active"`
 }
 
 type meJSON struct {
@@ -250,11 +253,15 @@ type meJSON struct {
 	// Company is the one the access token is for, null before a choice.
 	Company   *companyJSON  `json:"company"`
 	Companies []companyJSON `json:"companies"`
+	// Permissions is what the user may do in that company, as it is now;
+	// empty before a choice.
+	Permissions []string `json:"permissions"`
 }
 
-// me is the signed-in user, the company they work in now and all of theirs.
-// The user's name is the one they go by in that company; before a choice of
-// company, or when the membership has no name, it is the user's own.
+// me is the signed-in user, the company they work in now, what they may do
+// there and all of their companies. The user's name is the one they go by
+// in that company; before a choice of company, or when the membership has
+// no name, it is the user's own.
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	claims := currentUser(r.Context())
 	profile, err := h.profiles.Get(r.Context(), claims.Phone)
@@ -262,10 +269,13 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, r, err)
 		return
 	}
-	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}}
+	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}, Permissions: []string{}}
+	for _, p := range currentPermissions(r.Context()).List() {
+		body.Permissions = append(body.Permissions, string(p))
+	}
 	for _, m := range profile.Companies {
 		c := companyJSON{
-			ID: m.CompanyID, Name: m.Name, Role: m.Role,
+			ID: m.CompanyID, Name: m.Name, Role: m.Role, RoleName: m.RoleName,
 			EndDate: m.EndDate.Format(time.DateOnly), DaysLeft: m.DaysLeft, IsActive: m.IsActive,
 		}
 		body.Companies = append(body.Companies, c)

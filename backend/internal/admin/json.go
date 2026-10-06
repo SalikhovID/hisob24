@@ -37,14 +37,18 @@ type pageJSON struct {
 }
 
 type memberJSON struct {
-	Phone     string    `json:"phone"`
-	FullName  *string   `json:"full_name"`
-	Role      string    `json:"role"`
+	Phone    string  `json:"phone"`
+	FullName *string `json:"full_name"`
+	Role     string  `json:"role"`
+	// RoleID and RoleName are the company role the member holds (the user
+	// app's), null for the owner and for a user without one.
+	RoleID    *int64    `json:"role_id"`
+	RoleName  *string   `json:"role_name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 func toMemberJSON(m company.Member) memberJSON {
-	return memberJSON{Phone: m.Phone, FullName: m.FullName, Role: m.Role, CreatedAt: m.CreatedAt}
+	return memberJSON{Phone: m.Phone, FullName: m.FullName, Role: m.Role, RoleID: m.RoleID, RoleName: m.RoleName, CreatedAt: m.CreatedAt}
 }
 
 type detailJSON struct {

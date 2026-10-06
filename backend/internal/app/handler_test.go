@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
@@ -314,10 +315,10 @@ func TestMe(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
-	access, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	token, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	api.addMember(t, alisPhone, nok, "user")
 
-	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(access))
+	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(token))
 
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	body := decode(t, rec)
@@ -326,9 +327,16 @@ func TestMe(t *testing.T) {
 	assert.EqualValues(t, olma, company["id"], "the company the token is for")
 	assert.Equal(t, "Olma", company["name"])
 	assert.Equal(t, "owner", company["role"])
+	assert.Contains(t, company, "role_name")
+	assert.Nil(t, company["role_name"], "the owner holds no company role")
 	assert.Equal(t, true, company["is_active"])
 	assert.Regexp(t, `^\d{4}-\d{2}-\d{2}$`, company["end_date"])
 	assert.Len(t, body["companies"], 2, "all of the user's companies")
+	all := make([]string, 0, len(access.All))
+	for _, p := range access.All {
+		all = append(all, string(p))
+	}
+	assert.Equal(t, all, permissionsOf(t, body), "the owner may do everything")
 }
 
 func TestMeNamesTheUserAsTheChosenCompanyDoes(t *testing.T) {

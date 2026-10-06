@@ -58,6 +58,8 @@ func TestListEmployees(t *testing.T) {
 	api.exec(t, "UPDATE user_companies SET full_name = 'Vali (hisobchi)' WHERE user_phone = $1", valisPhone)
 	api.addUser(t, sardorsPhone)
 	api.addMember(t, sardorsPhone, nok, "owner")
+	hisobchi := api.addRole(t, olma, "Hisobchi", "customers.view")
+	api.giveRole(t, valisPhone, olma, &hisobchi)
 
 	rec := api.do(t, http.MethodGet, "/app/employees", "", bearer(owner))
 
@@ -66,9 +68,14 @@ func TestListEmployees(t *testing.T) {
 	require.Len(t, list, 2, "the members of the company the owner works in, nobody else's")
 	assert.Equal(t, alisPhone, list[0]["phone"], "the owner first")
 	assert.Equal(t, "owner", list[0]["role"])
+	assert.Contains(t, list[0], "role_id")
+	assert.Nil(t, list[0]["role_id"], "the owner holds no company role")
+	assert.Nil(t, list[0]["role_name"])
 	assert.Equal(t, valisPhone, list[1]["phone"])
 	assert.Equal(t, "Vali (hisobchi)", list[1]["full_name"], "under the name in this company")
 	assert.Equal(t, "user", list[1]["role"])
+	assert.EqualValues(t, hisobchi, list[1]["role_id"], "the role the employee holds")
+	assert.Equal(t, "Hisobchi", list[1]["role_name"], "by name")
 	assert.NotEmpty(t, list[1]["created_at"])
 }
 
