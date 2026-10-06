@@ -314,3 +314,15 @@ test("DataList tells two columns of one name apart by their keys", () => {
   expect(errors).not.toHaveBeenCalled()
   errors.mockRestore()
 })
+
+test("DataList's card with an href opens from anywhere on it: the title's link is stretched over the card, the table's is not", () => {
+  render(
+    <DataList label="Kompaniyalar" items={rows} columns={columns} getKey={(r) => r.id} href={(r) => `/companies/${r.id}`} />,
+  )
+
+  const [card] = within(screen.getByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+  expect(within(card).getByRole("link", { name: "Olma Savdo" })).toHaveClass("after:absolute", "after:inset-0")
+  // In the table a stretched link would reach past its cell: there the title alone links.
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  expect(within(table).getByRole("link", { name: "Olma Savdo" })).not.toHaveClass("after:absolute")
+})

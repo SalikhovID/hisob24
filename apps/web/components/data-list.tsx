@@ -71,9 +71,17 @@ export function DataList<T>({
   href?: (item: T) => string
   footer?: ReactNode
 }) {
-  const title = (column: Column<T>, item: T) =>
+  // title is the record's title cell: its link when the list is given href.
+  // On a card the link is stretched over the whole card (the card is the
+  // nearest positioned ancestor), so a thumb opens the record from anywhere
+  // on it; in the table it would reach past its cell, so there the title
+  // alone links.
+  const title = (column: Column<T>, item: T, stretched = false) =>
     column.primary && href ? (
-      <Link href={href(item)} className="font-medium underline-offset-4 hover:underline">
+      <Link
+        href={href(item)}
+        className={cn("font-medium underline-offset-4 hover:underline", stretched && "rounded-sm after:absolute after:inset-0")}
+      >
         {column.cell(item)}
       </Link>
     ) : (
@@ -169,7 +177,7 @@ export function DataList<T>({
                 {columns
                   .filter((column) => column.primary)
                   .map((column) => (
-                    <div key={keyOf(column)}>{title(column, item)}</div>
+                    <div key={keyOf(column)}>{title(column, item, true)}</div>
                   ))}
               </div>
               {aside.length > 0 && (
