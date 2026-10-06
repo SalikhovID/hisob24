@@ -269,3 +269,16 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **`NewService(pool)`** hozircha mijoz servisisiz; 4-bosqichda `CreateIn` uchun `customers` qo'shiladi.
 - **Rang** `task.Colors` ro'yxatida (to'qqizta), API `StageColor` enum; noto'g'ri rang "Rangni tanlang" (400).
 - **Tekshiruv.** `make lint` 0 issues; `make test`: Go 18 paket (yangi `task`), web 391, admin 217, api-client 1; `make e2e`: admin 40, web 78. Lokal haqiqiy stack (API binary :8099, curl): 33 / 33: mavjud 6 kompaniya tayyor bosqich va turni oldi; egasi bosqich (rang, yakuniy), tur va maydon yaratadi, tartiblaydi, o'zgartiradi, o'chiradi; noto'g'ri rang va dropdownsiz tanlov 400, takror nom 409; xodim yozuvda 403, `GET /app/members` 200, `GET /app/employees` 403; vazifa maydoni ulangan dropdown o'chmaydi (409), maydon o'chirilgach o'chadi; API log'ida xato yo'q; sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan. Lokal baza 7-versiyada.
+
+## 3-bosqich qarorlari (2026-10-06)
+
+Bajarildi: `/settings` da "Vazifa turlari" va "Bosqichlar" bo'limlari, `StageDialog` (nom, rang swatch'lari, "Yakuniy bosqich"), `StageDot`, `/settings/task-types/[id]`, umumiy `FieldDialog`, mock API'da sozlamalarning 15 route'i va `/app/members`, e2e. Reja: `docs/superpowers/plans/2026-10-06-tasks-stage3-settings-pages.md`. Backend o'zgarmadi.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Ikki "Tur qo'shish".** Sahifada mijoz va vazifa turlari uchun ikkita qo'shish tugmasi bor: vazifaniki "Vazifa turi qo'shish" deb ataladi; dialog, toast va tasdiq matnlari ham "Vazifa turi …" bilan ("Vazifa turi qo'shildi", "Vazifa turini o'chirasizmi?"), testlar ularni mijoznikidan ajratadi.
+- **Rang swatch'lari.** Base UI `RadioGroup`: har swatch `role="radio"`, nomi rang nomi (Kulrang, Qizil, To'q sariq, Sariq, Yashil, Moviy, Ko'k, Binafsha, Pushti); tanlangani `ring-foreground` halqasi bilan. Forma qiymati matn (`""` tanlanmagan), sxema `z.string().pipe(z.enum(stageColors, "Rangni tanlang"))`.
+- **`SettingRow.lead`.** Rang nuqtasi nomdan oldin, `setting-title` dan tashqarida: testlar nomni o'qiganda rang nomi (ekran o'quvchiga, `sr-only`) qo'shilmaydi.
+- **`FieldDialog` umumiy.** `AddFieldDialog({ dropdowns, unique, add })`, `EditFieldDialog({ field, kind, unique, save })`: API chaqiruvi va keshni yangilash chaqiruvchida; `unique=false` da "Takrorlanmasin" chiqmaydi va vazifa sahifasi `is_unique` ni yubormaydi. Mijoz turi sahifasining testlari o'zgarmadi.
+- **Mock API.** `mocks/task-settings.ts`, `mocks/data.ts` da `StageRow`, `TaskTypeRow`, `TaskFieldRow` (`unique` yo'q), `seedSettings` har kompaniyaga uch bosqich va "Vazifa"; `fieldsUsing` ikkala tur maydonlarini sanaydi; `GET /app/members` `memberSession` bilan.
+- **Tekshiruv.** `make lint` 0 issues; `make test`: Go 18 paket, web 417, admin 217, api-client 1; `make e2e`: admin 40, web 82. Skrinshotlar ko'rildi (375px va desktop, light va dark: sozlamalar, bosqich dialogi, tahrirlash dialogi, tur sahifasi); yon scroll yo'q.

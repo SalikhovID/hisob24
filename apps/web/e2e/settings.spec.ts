@@ -114,3 +114,80 @@ test("an employee finds no settings, and the address typed by hand leads home", 
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 })
+
+test("the owner makes a stage with its color and the final mark, and puts the stages in a new order that stays", async ({ page }) => {
+  await openSettings(page)
+  const stages = page.getByRole("list", { name: "Bosqichlar" })
+  const names = () => stages.locator('[data-slot="setting-title"]').allTextContents()
+  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
+  await expect(stages.getByRole("listitem").filter({ hasText: "Bajarildi" }).getByText("Yakuniy")).toBeVisible()
+
+  await page.getByRole("button", { name: "Bosqich qo'shish" }).click()
+  const dialog = page.getByRole("dialog", { name: "Bosqich qo'shish" })
+  await dialog.getByLabel("Nomi").fill("Kutilmoqda")
+  await dialog.getByRole("radio", { name: "Moviy" }).click()
+  await dialog.getByRole("checkbox", { name: "Yakuniy bosqich" }).click()
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Bajarildi", "Kutilmoqda"])
+  await expect(stages.getByRole("listitem").filter({ hasText: "Kutilmoqda" }).getByText("Yakuniy")).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  const handle = stages.getByRole("button", { name: "Kutilmoqda: tartibini o'zgartirish" })
+  if (onPhone(page)) {
+    // A finger's drag needs a long press; the handle answers the keys too.
+    await handle.focus()
+    await page.keyboard.press("ArrowUp")
+  } else {
+    const from = (await handle.boundingBox())!
+    const to = (await stages.getByRole("button", { name: "Bajarildi: tartibini o'zgartirish" }).boundingBox())!
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2 - 6, { steps: 12 })
+    await page.mouse.up()
+  }
+
+  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Kutilmoqda", "Bajarildi"])
+  await page.reload()
+  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Kutilmoqda", "Bajarildi"])
+})
+
+test("the owner makes a task type and gives it a choice field; the dropdown it uses is not deleted", async ({ page }) => {
+  await openSettings(page)
+  const types = page.getByRole("list", { name: "Vazifa turlari" })
+  await expect(types.getByRole("link", { name: "Vazifa" })).toBeVisible()
+
+  await page.getByRole("button", { name: "Vazifa turi qo'shish" }).click()
+  let dialog = page.getByRole("dialog", { name: "Vazifa turi qo'shish" })
+  await dialog.getByLabel("Nomi").fill("Buyurtma")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await types.getByRole("link", { name: "Buyurtma" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Buyurtma" })).toBeVisible()
+  await expect(page.getByText("Bu turda maydon yo'q")).toBeVisible()
+  await expect(page.getByText("Vazifa turi · 0 ta maydon")).toBeVisible()
+
+  await page.getByRole("button", { name: "Maydon qo'shish" }).click()
+  dialog = page.getByRole("dialog", { name: "Maydon qo'shish" })
+  await expect(dialog.getByRole("checkbox", { name: "Takrorlanmasin" })).toHaveCount(0)
+  await dialog.getByLabel("Nomi").fill("Holati")
+  await dialog.getByLabel("Turi").selectOption({ label: "Radio (bitta tanlov)" })
+  await dialog.getByLabel("Dropdown").selectOption({ label: "Manba" })
+  await dialog.getByRole("checkbox", { name: "Majburiy" }).click()
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  const fields = page.getByRole("list", { name: "Maydonlar" })
+  await expect(fields.getByText("Radio (bitta tanlov) · Manba")).toBeVisible()
+  await expect(fields.getByText("Majburiy")).toBeVisible()
+  await expect(page.getByText("Vazifa turi · 1 ta maydon")).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  // A dropdown that a task field takes its options from is not deleted.
+  await backToSettings(page)
+  const dropdowns = page.getByRole("list", { name: "Dropdownlar" })
+  await dropdowns.getByRole("button", { name: "O'chirish: Manba" }).click()
+  const confirm = page.getByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })
+  await confirm.getByRole("button", { name: "O'chirish" }).click()
+  await expect(page.getByText("Bu dropdown 2 ta maydonda ishlatilgan")).toBeVisible()
+  await expect(dropdowns.getByRole("link", { name: "Manba" })).toBeVisible()
+})
