@@ -16,12 +16,21 @@ async function openSettings(page: Page) {
 // the same name).
 const backToSettings = (page: Page) => page.getByRole("main").getByRole("link", { name: "Sozlamalar" }).click()
 
+// openTab opens one of the settings' tabs.
+const openTab = (page: Page, name: string) => page.getByRole("tab", { name }).click()
+
 test("the owner makes a dropdown, types its options in, and uses it in a field of a new type", async ({ page }) => {
   await openSettings(page)
   const types = page.getByRole("list", { name: "Mijoz turlari" })
   const dropdowns = page.getByRole("list", { name: "Dropdownlar" })
   await expect(types.getByRole("link", { name: "Jismoniy" })).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  // The dropdowns are a tab of their own, and the open tab is in the address.
+  await openTab(page, "Dropdownlar")
+  await expect(page).toHaveURL(/\/settings\?tab=dropdowns$/)
   await expect(dropdowns.getByRole("link", { name: "Manba" })).toBeVisible()
+  await expect(types).toHaveCount(0)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   await page.getByRole("button", { name: "Dropdown qo'shish" }).click()
@@ -42,7 +51,12 @@ test("the owner makes a dropdown, types its options in, and uses it in a field o
   await expect(page.getByText("Dropdown · 3 ta variant")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
+  // The way back leads to the dropdowns' tab; the types are on theirs.
   await backToSettings(page)
+  await expect(page).toHaveURL(/\/settings\?tab=dropdowns$/)
+  await expect(dropdowns.getByRole("link", { name: "Holat" })).toBeVisible()
+  await openTab(page, "Mijozlar")
+  await expect(page).toHaveURL(/\/settings$/)
   await page.getByRole("button", { name: "Tur qo'shish" }).click()
   dialog = page.getByRole("dialog", { name: "Tur qo'shish" })
   await dialog.getByLabel("Nomi").fill("Hamkor")
@@ -67,6 +81,8 @@ test("the owner makes a dropdown, types its options in, and uses it in a field o
 
   // A dropdown that a field takes its options from is not deleted.
   await backToSettings(page)
+  await expect(page).toHaveURL(/\/settings$/)
+  await openTab(page, "Dropdownlar")
   await dropdowns.getByRole("button", { name: "O'chirish: Holat" }).click()
   const confirm = page.getByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })
   await confirm.getByRole("button", { name: "O'chirish" }).click()
@@ -117,6 +133,8 @@ test("an employee finds no settings, and the address typed by hand leads home", 
 
 test("the owner makes a stage with its color and the final mark, and puts the stages in a new order that stays", async ({ page }) => {
   await openSettings(page)
+  await openTab(page, "Vazifalar")
+  await expect(page).toHaveURL(/\/settings\?tab=tasks$/)
   const stages = page.getByRole("list", { name: "Bosqichlar" })
   const names = () => stages.locator('[data-slot="setting-title"]').allTextContents()
   await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
@@ -154,6 +172,7 @@ test("the owner makes a stage with its color and the final mark, and puts the st
 
 test("the owner makes a task type and gives it a choice field; the dropdown it uses is not deleted", async ({ page }) => {
   await openSettings(page)
+  await openTab(page, "Vazifalar")
   const types = page.getByRole("list", { name: "Vazifa turlari" })
   await expect(types.getByRole("link", { name: "Vazifa" })).toBeVisible()
 
@@ -182,8 +201,12 @@ test("the owner makes a task type and gives it a choice field; the dropdown it u
   await expect(page.getByText("Vazifa turi · 1 ta maydon")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  // A dropdown that a task field takes its options from is not deleted.
+  // A dropdown that a task field takes its options from is not deleted. The
+  // way back leads to the tasks' tab; the dropdowns are on theirs.
   await backToSettings(page)
+  await expect(page).toHaveURL(/\/settings\?tab=tasks$/)
+  await expect(types.getByRole("link", { name: "Buyurtma" })).toBeVisible()
+  await openTab(page, "Dropdownlar")
   const dropdowns = page.getByRole("list", { name: "Dropdownlar" })
   await dropdowns.getByRole("button", { name: "O'chirish: Manba" }).click()
   const confirm = page.getByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })
