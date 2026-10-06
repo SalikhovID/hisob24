@@ -12,6 +12,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
+	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
@@ -21,6 +22,7 @@ type Services struct {
 	Profiles  *user.Profiles
 	Companies *company.Service
 	Customers *customer.Service
+	Tasks     *task.Service
 }
 
 // Handler serves /app.
@@ -29,6 +31,7 @@ type Handler struct {
 	profiles      *user.Profiles
 	companies     *company.Service
 	customers     *customer.Service
+	tasks         *task.Service
 	cookieSecure  bool
 	sendLimiter   *httpx.RateLimiter
 	verifyLimiter *httpx.RateLimiter
@@ -38,7 +41,7 @@ type Handler struct {
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
 	return &Handler{
-		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers,
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks,
 		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
 	}
 }
@@ -76,14 +79,29 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Patch("/customer-types/{id}/fields/{fieldId}", h.updateCustomerField)
 				r.Delete("/customer-types/{id}/fields/{fieldId}", h.deleteCustomerField)
 				r.Put("/customer-types/{id}/fields/order", h.orderCustomerFields)
+				r.Post("/task-stages", h.createTaskStage)
+				r.Put("/task-stages/order", h.orderTaskStages)
+				r.Patch("/task-stages/{id}", h.updateTaskStage)
+				r.Delete("/task-stages/{id}", h.deleteTaskStage)
+				r.Post("/task-types", h.createTaskType)
+				r.Put("/task-types/order", h.orderTaskTypes)
+				r.Patch("/task-types/{id}", h.renameTaskType)
+				r.Delete("/task-types/{id}", h.deleteTaskType)
+				r.Post("/task-types/{id}/fields", h.addTaskField)
+				r.Patch("/task-types/{id}/fields/{fieldId}", h.updateTaskField)
+				r.Delete("/task-types/{id}/fields/{fieldId}", h.deleteTaskField)
+				r.Put("/task-types/{id}/fields/order", h.orderTaskFields)
 			})
-			// The customers and what they are set up with are for every
-			// member of the company the session works in; changing the
-			// setup is the owner's.
+			// The customers, the tasks and what they are set up with are for
+			// every member of the company the session works in, as is the
+			// list of its members; changing the setup is the owner's.
 			r.Group(func(r chi.Router) {
 				r.Use(h.requireCompany)
+				r.Get("/members", h.listMembers)
 				r.Get("/customer-dropdowns", h.listCustomerDropdowns)
 				r.Get("/customer-types", h.listCustomerTypes)
+				r.Get("/task-stages", h.listTaskStages)
+				r.Get("/task-types", h.listTaskTypes)
 				r.Get("/customers", h.listCustomers)
 				r.Post("/customers", h.createCustomer)
 				r.Get("/customers/{id}", h.getCustomer)
