@@ -85,6 +85,6 @@ export const fieldPatchSchema = z.object({
 // the API's.
 export const stageSchema = z.object({
   name: name(),
-  color: z.enum(stageColors, { message: "Rangni tanlang" }),
+  color: z.string().pipe(z.enum(stageColors, { message: "Rangni tanlang" })),
   is_done: z.boolean(),
 })

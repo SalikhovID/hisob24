@@ -16,17 +16,20 @@ export const iconAction = `text-muted-foreground hover:text-foreground ${thumb}`
 export const iconDanger = `text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20 ${thumb}`
 
 // SettingRow is one line of a settings list: the name of what is set up
-// (a type, a field, a dropdown, an option) with its marks beside it, a
-// quieter line on what it holds, and at the end what can be done with it.
-// A list that is put in order hands each row its drag handle.
+// (a type, a field, a dropdown, an option, a stage) with its marks beside
+// it, a quieter line on what it holds, and at the end what can be done with
+// it. A list that is put in order hands each row its drag handle; lead is
+// what stands before the name (a stage's color).
 export function SettingRow({
   handle,
+  lead,
   title,
   marks,
   detail,
   actions,
 }: {
   handle?: ReactNode
+  lead?: ReactNode
   title: ReactNode
   marks?: ReactNode
   detail?: ReactNode
@@ -37,6 +40,7 @@ export function SettingRow({
       {handle}
       <div className="min-w-0 flex-1 py-0.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          {lead}
           <span data-slot="setting-title" className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
             {title}
           </span>

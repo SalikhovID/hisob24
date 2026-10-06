@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, dropdownsOf, typesOf, VALI } from "@/mocks/data"
+import { ALI, db, dropdownsOf, stagesOf, taskTypesOf, typesOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -255,4 +255,167 @@ test("a dropdown a field uses is not deleted, and the reason is said; one that i
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
   expect(await screen.findByText("Dropdown o'chirildi")).toBeInTheDocument()
   await waitFor(async () => expect(names(await dropdownList())).toEqual(["Manba"]))
+})
+
+const taskTypeList = () => screen.findByRole("list", { name: "Vazifa turlari" })
+const stageList = () => screen.findByRole("list", { name: "Bosqichlar" })
+
+test("the owner sees the task types and the stages, each stage with its color and the final one marked", async () => {
+  await signIn(ALI)
+  renderWithProviders(<SettingsPage />)
+
+  expect(await screen.findByText("Mijozlar va vazifalar sozlamalari")).toBeInTheDocument()
+  const types = await taskTypeList()
+  expect(rowsOf(types)).toEqual([["Vazifa", null]])
+  const [vazifa] = taskTypesOf(1)
+  expect(within(types).getByRole("link", { name: "Vazifa" })).toHaveAttribute("href", `/settings/task-types/${vazifa.id}`)
+  const stages = await stageList()
+  expect(names(stages)).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
+  const rows = within(stages).getAllByRole("listitem")
+  // The color is said for a screen reader; the final mark stands on the done
+  // stage alone.
+  expect(within(rows[0]).getByText("Ko'k")).toHaveClass("sr-only")
+  expect(within(rows[1]).getByText("Sariq")).toHaveClass("sr-only")
+  expect(within(rows[2]).getByText("Yakuniy")).toBeInTheDocument()
+  expect(within(rows[0]).queryByText("Yakuniy")).not.toBeInTheDocument()
+  expect(screen.getByRole("heading", { level: 2, name: "Vazifa turlari" })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { level: 2, name: "Bosqichlar" })).toBeInTheDocument()
+})
+
+test("a stage is added from the dialog with its color and the final mark, and joins the list", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+  await stageList()
+
+  await user.click(screen.getByRole("button", { name: "Bosqich qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Bosqich qo'shish" })
+  await user.type(within(dialog).getByLabelText("Nomi"), "Kutilmoqda")
+  await user.click(within(within(dialog).getByRole("radiogroup", { name: "Rangi" })).getByRole("radio", { name: "Moviy" }))
+  await user.click(within(dialog).getByRole("checkbox", { name: "Yakuniy bosqich" }))
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Bosqich qo'shildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await stageList())).toEqual(["Yangi", "Jarayonda", "Bajarildi", "Kutilmoqda"]))
+  expect(db.stages.find((s) => s.name === "Kutilmoqda")).toMatchObject({ color: "teal", done: true, companyId: 1 })
+})
+
+test("the add-stage dialog says what is missing, and why the API refused", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+  await stageList()
+  await user.click(screen.getByRole("button", { name: "Bosqich qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Bosqich qo'shish" })
+
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Nomni kiriting")).toBeInTheDocument()
+  expect(within(dialog).getByText("Rangni tanlang")).toBeInTheDocument()
+
+  await user.type(within(dialog).getByLabelText("Nomi"), "yangi")
+  await user.click(within(dialog).getByRole("radio", { name: "Qizil" }))
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Bu nomli bosqich allaqachon bor")).toBeInTheDocument()
+  expect(screen.getByRole("dialog", { name: "Bosqich qo'shish" })).toBeInTheDocument()
+  expect(stagesOf(1)).toHaveLength(3)
+})
+
+test("a stage is edited from its row: its name, color and final mark come filled in", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  await user.click(within(await stageList()).getByRole("button", { name: "Tahrirlash: Jarayonda" }))
+  const dialog = await screen.findByRole("dialog", { name: "Bosqichni tahrirlash" })
+  const name = within(dialog).getByLabelText("Nomi")
+  expect(name).toHaveValue("Jarayonda")
+  expect(within(dialog).getByRole("radio", { name: "Sariq" })).toBeChecked()
+  expect(within(dialog).getByRole("checkbox", { name: "Yakuniy bosqich" })).not.toBeChecked()
+  await user.clear(name)
+  await user.type(name, "Ishda")
+  await user.click(within(dialog).getByRole("radio", { name: "Binafsha" }))
+  await user.click(within(dialog).getByRole("checkbox", { name: "Yakuniy bosqich" }))
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Bosqich saqlandi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await stageList())).toEqual(["Yangi", "Ishda", "Bajarildi"]))
+  expect(db.stages.find((s) => s.name === "Ishda")).toMatchObject({ color: "violet", done: true })
+})
+
+test("a stage is deleted after asking; one the API will not delete stays, and the reason is said", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  await user.click(within(await stageList()).getByRole("button", { name: "O'chirish: Yangi" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Bosqichni o'chirasizmi?" })
+  expect(within(confirm).getByText(/«Yangi» bosqichi o'chadi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Bosqich o'chirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await stageList())).toEqual(["Jarayonda", "Bajarildi"]))
+
+  server.use(
+    http.delete("*/api/app/task-stages/:id", () =>
+      HttpResponse.json({ error: "stage_in_use", message: "Bu bosqichda 2 ta vazifa bor" }, { status: 409 }),
+    ),
+  )
+  await user.click(within(await stageList()).getByRole("button", { name: "O'chirish: Jarayonda" }))
+  await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Bu bosqichda 2 ta vazifa bor")).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(names(await stageList())).toEqual(["Jarayonda", "Bajarildi"])
+})
+
+test("the stages are put in order from the keyboard, and the order is saved", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+
+  handleOf(await stageList(), "Bajarildi").focus()
+  await user.keyboard("{ArrowUp}")
+
+  expect(names(await stageList())).toEqual(["Yangi", "Bajarildi", "Jarayonda"])
+  await waitFor(() => expect(stagesOf(1).map((s) => s.name)).toEqual(["Yangi", "Bajarildi", "Jarayonda"]))
+})
+
+test("a task type is added, renamed and deleted from the settings", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<SettingsPage />)
+  await taskTypeList()
+
+  await user.click(screen.getByRole("button", { name: "Vazifa turi qo'shish" }))
+  let dialog = await screen.findByRole("dialog", { name: "Vazifa turi qo'shish" })
+  await user.type(within(dialog).getByLabelText("Nomi"), "Buyurtma")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Vazifa turi qo'shildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await taskTypeList())).toEqual(["Vazifa", "Buyurtma"]))
+
+  await user.click(within(await taskTypeList()).getByRole("button", { name: "Nomini o'zgartirish: Vazifa" }))
+  dialog = await screen.findByRole("dialog", { name: "Vazifa turi nomini o'zgartirish" })
+  const name = within(dialog).getByLabelText("Nomi")
+  expect(name).toHaveValue("Vazifa")
+  await user.clear(name)
+  await user.type(name, "Umumiy")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+  expect(await screen.findByText("Vazifa turi nomi o'zgartirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await taskTypeList())).toEqual(["Umumiy", "Buyurtma"]))
+
+  await user.click(within(await taskTypeList()).getByRole("button", { name: "O'chirish: Buyurtma" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Vazifa turini o'chirasizmi?" })
+  expect(within(confirm).getByText(/«Buyurtma» turi va uning maydonlari o'chadi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Vazifa turi o'chirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(names(await taskTypeList())).toEqual(["Umumiy"]))
+  expect(taskTypesOf(1).map((t) => t.name)).toEqual(["Umumiy"])
+})
+
+test("the empty task settings say what they are for", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  db.stages.forEach((stage) => (stage.deleted = true))
+  db.taskTypes.forEach((type) => (type.deleted = true))
+  renderWithProviders(<SettingsPage />)
+
+  expect(await screen.findByText("Hali bosqich yo'q")).toBeInTheDocument()
+  expect(screen.getByText("Vazifa qo'shish uchun kamida bitta bosqich kerak.")).toBeInTheDocument()
+  expect(await screen.findByText("Hali vazifa turi yo'q")).toBeInTheDocument()
+  expect(screen.getByText("Vazifa qo'shish uchun kamida bitta tur kerak.")).toBeInTheDocument()
 })
