@@ -144,6 +144,39 @@ type SmsCode struct {
 	SentAt    time.Time
 }
 
+type TaskField struct {
+	ID         int64
+	CompanyID  int64
+	TypeID     int64
+	Label      string
+	Kind       string
+	DropdownID *int64
+	Required   bool
+	Position   int32
+	CreatedAt  time.Time
+	DeletedAt  *time.Time
+}
+
+type TaskStage struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	Color     string
+	IsDone    bool
+	Position  int32
+	CreatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type TaskType struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	Position  int32
+	CreatedAt time.Time
+	DeletedAt *time.Time
+}
+
 type TelegramContact struct {
 	ChatID    int64
 	Phone     string

@@ -67,6 +67,8 @@ type Querier interface {
 	// company_id is the company the access tokens it refreshes are for; source
 	// is where the session began ('sms' or 'telegram').
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
+	// A new stage goes last among the company's.
+	CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (TaskStage, error)
 	// The database's today: every end_date check counts from it.
 	CurrentDate(ctx context.Context) (time.Time, error)
 	// Whether two customers have the same value in the field: such a field
@@ -104,6 +106,9 @@ type Querier interface {
 	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
+	// Hides the stage: nothing is removed. pgx.ErrNoRows when the company has
+	// no such stage, or deleted it already.
+	DeleteTaskStage(ctx context.Context, arg DeleteTaskStageParams) (int64, error)
 	// The company's owner stays in it as a user: the step before another owner
 	// is set.
 	DemoteCompanyOwner(ctx context.Context, companyID int64) error
@@ -140,6 +145,8 @@ type Querier interface {
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
 	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
+	// The company's stage; pgx.ErrNoRows when it has none such, or deleted it.
+	GetTaskStage(ctx context.Context, arg GetTaskStageParams) (TaskStage, error)
 	// The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
 	// it never did (the user Mini App's sign-in).
 	GetTelegramContactPhone(ctx context.Context, chatID int64) (string, error)
@@ -186,6 +193,8 @@ type Querier interface {
 	// in the phone and in the whole number answers. The names of the options are
 	// not searched. A NULL argument leaves its filter out.
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
+	// The company's stages in their order, without the deleted.
+	ListTaskStages(ctx context.Context, companyID int64) ([]TaskStage, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the
 	// database's today, as the 402 check does.
@@ -213,6 +222,9 @@ type Querier interface {
 	// Puts the company's types in the order of ids: the first gets position 1.
 	// An id that is not a live type of the company is passed over.
 	OrderCustomerTypes(ctx context.Context, arg OrderCustomerTypesParams) error
+	// Puts the company's stages in the order of ids: the first gets position 1.
+	// An id that is not a live stage of the company is passed over.
+	OrderTaskStages(ctx context.Context, arg OrderTaskStagesParams) error
 	// Takes a user out of the company; the user and their other companies stay.
 	// No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
 	// someone who is not a member.
@@ -248,6 +260,10 @@ type Querier interface {
 	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
 	// type has no such field, or it is deleted.
 	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
+	// Changes a stage's name, color and done mark; a NULL argument leaves its
+	// column as it is. pgx.ErrNoRows when the company has no such stage, or
+	// deleted it.
+	UpdateTaskStage(ctx context.Context, arg UpdateTaskStageParams) (TaskStage, error)
 	// Stores a new code unless the last one went out less than cooldown_seconds
 	// ago: 0 rows affected means "too soon" (429).
 	UpsertSMSCode(ctx context.Context, arg UpsertSMSCodeParams) (int64, error)
