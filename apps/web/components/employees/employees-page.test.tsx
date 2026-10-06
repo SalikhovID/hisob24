@@ -5,6 +5,7 @@ import { ALI, db, membersOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { EmployeesPage } from "./employees-page"
@@ -272,4 +273,16 @@ test("an employee is removed after asking; cancelling keeps them; the owner is n
       ["Sardor Karimov", "+998 90 333 44 55"],
     ]),
   )
+})
+
+test("the list names the role each employee holds", async () => {
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view"])
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+
+  const [owner, vali, sardor] = await rows()
+  expect(within(owner).getByText("Egasi")).toBeInTheDocument()
+  expect(within(vali).getByText("Sotuvchi")).toBeInTheDocument()
+  expect(within(vali).queryByText("Xodim")).not.toBeInTheDocument()
+  expect(within(sardor).getByText("Xodim")).toBeInTheDocument()
 })

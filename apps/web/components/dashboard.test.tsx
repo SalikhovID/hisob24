@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { ALI, db, SARDOR, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { Dashboard } from "./dashboard"
 
@@ -60,4 +61,15 @@ test("the dashboard is its content alone: the shell holds the top bar", async ()
   expect(screen.queryByRole("banner")).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
+})
+
+test("an employee with a role sees the role's name on the company card", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<Dashboard />)
+
+  await screen.findByRole("heading", { name: "Salom, Vali Aliyev" })
+  expect(screen.getByText("Kuzatuvchi")).toBeInTheDocument()
+  expect(screen.queryByText("Xodim")).not.toBeInTheDocument()
 })

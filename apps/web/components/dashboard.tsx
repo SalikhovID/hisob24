@@ -1,12 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
+import { RoleBadge } from "@/components/role-badge"
 import { buttonVariants } from "@/components/ui/button"
 import { unavailable } from "@/lib/companies"
 import { formatPhone } from "@/lib/phone"
 import { useMe } from "@/lib/queries"
-import { roleLabels } from "@/lib/roles"
 import { cn } from "@/lib/utils"
 
 // Dashboard is the app's home: for now who is signed in and where. The shell
@@ -24,7 +23,7 @@ export function Dashboard() {
           <span className="text-sm text-muted-foreground">Kompaniya</span>
           <span className="truncate font-medium">{company.name}</span>
         </div>
-        <Badge variant="secondary">{roleLabels[company.role]}</Badge>
+        <RoleBadge role={company.role} name={company.role_name} />
       </div>
       {me.data.companies.filter((c) => unavailable(c) === null).length > 1 && (
         <Link href="/select-company" className={cn(buttonVariants({ variant: "outline" }), "w-full")}>

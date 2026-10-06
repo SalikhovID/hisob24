@@ -43,7 +43,7 @@ export function EmployeesPage() {
         />
       ),
     },
-    { header: "Rol", card: "tag", cell: (m) => <RoleBadge role={m.role} /> },
+    { header: "Rol", card: "tag", cell: (m) => <RoleBadge role={m.role} name={m.role_name} /> },
     {
       header: "Qo'shilgan",
       card: "inline",
