@@ -12,15 +12,17 @@ import { cn } from "@/lib/utils"
 // number, far larger than the panel and cut by its edge. On the panel the
 // brand's color and the quiet text's are the panel's own foreground, as they
 // are white in the dark: whatever stands there (the logo, the word beside
-// it, the tagline) needs no variant of its own.
+// it, the tagline) needs no variant of its own. In a Mini App opened full
+// screen the panel's top padding grows by what Telegram lays over the top
+// (pt-safe-*), so the brand stays clear of the status bar and the controls.
 export function LoginFrame({ brand, tagline, children }: { brand: ReactNode; tagline: string; children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <header
         className={cn(
-          "relative isolate overflow-hidden bg-brand-panel px-6 pt-10 pb-16 text-brand-panel-foreground",
+          "relative isolate overflow-hidden bg-brand-panel px-6 pt-safe-10 pb-16 text-brand-panel-foreground",
           "[--brand:var(--brand-panel-foreground)] [--muted-foreground:color-mix(in_oklab,var(--brand-panel-foreground)_72%,transparent)]",
-          "lg:flex lg:flex-col lg:justify-between lg:p-12",
+          "lg:flex lg:flex-col lg:justify-between lg:p-12 lg:pt-safe-12",
         )}
       >
         <Logo24 className="pointer-events-none absolute -right-16 bottom-0 -z-10 h-[110%] opacity-[0.07] lg:top-1/2 lg:-right-20 lg:bottom-auto lg:h-auto lg:w-[105%] lg:-translate-y-1/2" />

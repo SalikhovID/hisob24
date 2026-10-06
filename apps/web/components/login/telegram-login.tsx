@@ -179,10 +179,11 @@ function BotInstructions({ webApp }: { webApp: TelegramWebApp }) {
   )
 }
 
-// Centered is every screen of this login: what it says, under the logo.
+// Centered is every screen of this login: what it says, under the logo. Its
+// top padding keeps clear of what Telegram lays over a full-screen Mini App.
 function Centered({ children }: { children: ReactNode }) {
   return (
-    <main className="flex min-h-svh items-center justify-center p-4">
+    <main className="flex min-h-svh items-center justify-center px-4 pb-4 pt-safe-4">
       <div className="flex w-full max-w-sm flex-col items-center gap-3 text-center">
         <Logo className="mb-3 h-7" />
         {children}

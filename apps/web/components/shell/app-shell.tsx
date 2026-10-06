@@ -16,7 +16,8 @@ import { Topbar } from "./topbar"
 // company that may be used, so an expired one goes to /expired and one with
 // no company yet to the company list, and a page is shown only once the
 // session is known to have its company. Inside Telegram the shell is as
-// tall as the Mini App's stable viewport (globals.css).
+// tall as the Mini App's stable viewport (globals.css) and, opened full
+// screen, starts under the status bar and Telegram's controls (pt-safe).
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const me = useMe()
@@ -28,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [away, router])
 
   return (
-    <div data-slot="app-shell" className="flex h-dvh overflow-hidden">
+    <div data-slot="app-shell" className="flex h-dvh overflow-hidden pt-safe">
       <Sidebar collapsed={sidebar.collapsed} onToggleCollapsed={sidebar.toggleCollapsed} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />

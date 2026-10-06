@@ -175,6 +175,27 @@ html[data-telegram] {
   padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px));
 }
 
+/* --safe-top is what lies over the top of the page: in a Telegram Mini App
+   opened full screen (TelegramSync asks for it on a phone) the status bar
+   (--tg-safe-area-inset-top) and Telegram's floating controls
+   (--tg-content-safe-area-inset-top); both are 0 under the client's header
+   and in a browser tab. pt-safe keeps a frame clear of it, pt-safe-<n> a
+   screen that has padding of its own. */
+:root {
+  --safe-top: max(
+    env(safe-area-inset-top),
+    calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))
+  );
+}
+
+@utility pt-safe {
+  padding-top: var(--safe-top);
+}
+
+@utility pt-safe-* {
+  padding-top: calc(--spacing(--value(integer)) + var(--safe-top));
+}
+
 /* Inside Telegram the shell is as tall as the Mini App's stable viewport
    (telegram-web-app.js publishes it), not the window, so the tab bar stays
    in sight while the client's own panels come and go; and the page does not

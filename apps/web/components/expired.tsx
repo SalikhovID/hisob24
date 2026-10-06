@@ -17,7 +17,7 @@ export function Expired() {
   const miniApp = useMiniApp()
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-4">
+    <main className="flex min-h-svh items-center justify-center px-4 pb-4 pt-safe-4">
       <div className="w-full max-w-sm space-y-6 text-center">
         <Logo className="mx-auto" />
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
