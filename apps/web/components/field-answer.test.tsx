@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { useForm } from "react-hook-form"
 import { expect, test, vi } from "vitest"
 import type { CustomerField, CustomerOption } from "@/lib/types"
+import { choose, optionsOf } from "@/test/select"
 import { FieldAnswer } from "./field-answer"
 
 const manba: CustomerField = { id: 3, label: "Manba", kind: "dropdown", required: false, is_unique: false, dropdown_id: 10 }
@@ -36,7 +37,7 @@ test("an answer lands at the form path the field is given", async () => {
   const onSubmit = vi.fn()
   render(<Harness onSubmit={onSubmit} />)
 
-  await user.selectOptions(screen.getByLabelText("Manba"), "LinkedIn")
+  await choose(user, screen.getByLabelText("Manba"), "LinkedIn")
   await user.click(within(screen.getByRole("group", { name: "Tillar" })).getByRole("checkbox", { name: "Rus" }))
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
@@ -51,9 +52,10 @@ test("a field that may be left empty says so beside its name; a required one doe
   expect(screen.getByRole("group", { name: "Tillar" })).not.toHaveAccessibleDescription("ixtiyoriy")
 })
 
-test("a choice with nothing to choose from says where the options come from", () => {
+test("a choice with nothing to choose from says where the options come from", async () => {
+  const user = userEvent.setup()
   render(<Harness onSubmit={() => {}} options={[]} />)
 
   expect(screen.getByText("Faol variant yo'q. Variantlar Sozlamalarda qo'shiladi.")).toBeInTheDocument()
-  expect(within(screen.getByLabelText("Manba")).getAllByRole("option").map((o) => o.textContent)).toEqual(["Tanlanmagan"])
+  expect(await optionsOf(user, screen.getByLabelText("Manba"))).toEqual(["Tanlanmagan"])
 })

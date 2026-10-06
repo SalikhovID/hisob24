@@ -4,6 +4,7 @@ import { expect, test } from "vitest"
 import { ALI, db, taskTypesOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { TaskTypePage } from "./task-type-page"
@@ -97,17 +98,17 @@ test("a field is added from the dialog: a choice asks for its dropdown, and a ta
 
   await user.click(screen.getByRole("button", { name: "Maydon qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "Maydon qo'shish" })
-  expect(within(dialog).getByLabelText("Turi")).toHaveValue("string")
+  expect(within(dialog).getByLabelText("Turi")).toHaveTextContent("Matn")
   expect(within(dialog).queryByLabelText("Dropdown")).not.toBeInTheDocument()
   expect(within(dialog).queryByRole("checkbox", { name: "Takrorlanmasin" })).not.toBeInTheDocument()
 
   await user.type(within(dialog).getByLabelText("Nomi"), "Manba")
-  await user.selectOptions(within(dialog).getByLabelText("Turi"), "Checkbox (bir nechta tanlov)")
+  await choose(user, within(dialog).getByLabelText("Turi"), "Checkbox (bir nechta tanlov)")
   expect(within(dialog).queryByRole("checkbox", { name: "Takrorlanmasin" })).not.toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Dropdownni tanlang")).toBeInTheDocument()
 
-  await user.selectOptions(within(dialog).getByLabelText("Dropdown"), "Manba")
+  await choose(user, within(dialog).getByLabelText("Dropdown"), "Manba")
   await user.click(within(dialog).getByRole("checkbox", { name: "Majburiy" }))
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -138,7 +139,7 @@ test("a text field is added with its mark; the dialog says what is missing, and 
 
   await user.clear(within(dialog).getByLabelText("Nomi"))
   await user.type(within(dialog).getByLabelText("Nomi"), "Summa")
-  await user.selectOptions(within(dialog).getByLabelText("Turi"), "Butun son")
+  await choose(user, within(dialog).getByLabelText("Turi"), "Butun son")
   await user.click(within(dialog).getByRole("checkbox", { name: "Majburiy" }))
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 

@@ -10,7 +10,6 @@ import { SelectField } from "@/components/select-field"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
-import { NativeSelectOption } from "@/components/ui/native-select"
 import { ApiError } from "@/lib/api"
 import { customerName } from "@/lib/customers"
 import { fieldKey, type FormField } from "@/lib/fields"
@@ -59,23 +58,24 @@ export function TaskFields({
     <FieldGroup>
       <TextField control={control} name="title" label="Nomi" autoComplete="off" />
       <TextField control={control} name="deadline" label="Muddat" type="date" />
-      <SelectField control={control} name="stage_id" label="Bosqich">
-        {stages.map((stage) => (
-          <NativeSelectOption key={stage.id} value={stage.id}>
-            {stage.name}
-          </NativeSelectOption>
-        ))}
-      </SelectField>
-      <SelectField control={control} name="assignee_phone" label="Mas'ul">
-        <NativeSelectOption value="">Tanlanmagan</NativeSelectOption>
-        {members.map((member) => (
-          <NativeSelectOption key={member.phone} value={member.phone}>
-            {member.full_name ?? formatPhone(member.phone)}
-          </NativeSelectOption>
-        ))}
-        {/* An assignee who left the company stays as long as the edit keeps them. */}
-        {gone && <NativeSelectOption value={gone.phone}>{`${gone.full_name ?? formatPhone(gone.phone)} (chiqarilgan)`}</NativeSelectOption>}
-      </SelectField>
+      <SelectField
+        control={control}
+        name="stage_id"
+        label="Bosqich"
+        placeholder="Tanlang"
+        options={stages.map((stage) => ({ value: String(stage.id), label: stage.name }))}
+      />
+      <SelectField
+        control={control}
+        name="assignee_phone"
+        label="Mas'ul"
+        empty="Tanlanmagan"
+        options={[
+          ...members.map((member) => ({ value: member.phone, label: member.full_name ?? formatPhone(member.phone) })),
+          // An assignee who left the company stays as long as the edit keeps them.
+          ...(gone ? [{ value: gone.phone, label: `${gone.full_name ?? formatPhone(gone.phone)} (chiqarilgan)` }] : []),
+        ]}
+      />
       {type.fields.map((field) => (
         <FieldAnswer
           key={field.id}

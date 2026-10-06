@@ -3,6 +3,7 @@ import { expect, test } from "vitest"
 import { addDays, ALI, db, localToday, seedTasks, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose } from "@/test/select"
 import { signIn } from "@/test/session"
 import { TaskPage } from "./task-page"
 
@@ -20,7 +21,7 @@ const setDate = (input: HTMLElement, value: string) => fireEvent.change(input, {
 
 test("the edit dialog opens with the task as it is, its customer shown and not asked about, and saves what changed", async () => {
   await signIn(ALI)
-  const { call, dilshod, yangi, jarayonda, izoh, summa, kanal } = seedTasks()
+  const { call, dilshod, jarayonda, izoh, summa, kanal } = seedTasks()
   const { user, dialog } = await openDialog(call.id)
 
   expect(within(dialog).getByText("Buyurtma · mijoz va tur o'zgarmaydi")).toBeInTheDocument()
@@ -32,8 +33,8 @@ test("the edit dialog opens with the task as it is, its customer shown and not a
   expect(within(dialog).queryByRole("radiogroup", { name: "Vazifa turi" })).not.toBeInTheDocument()
   expect(within(dialog).getByLabelText("Nomi")).toHaveValue("Qo'ng'iroq qilish")
   expect(within(dialog).getByLabelText("Muddat")).toHaveValue(addDays(today, 3))
-  expect(within(dialog).getByLabelText("Bosqich")).toHaveValue(String(yangi.id))
-  expect(within(dialog).getByLabelText("Mas'ul")).toHaveValue(VALI)
+  expect(within(dialog).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
+  expect(within(dialog).getByLabelText("Mas'ul")).toHaveTextContent("Vali Aliyev")
   expect(within(dialog).getByLabelText("Izoh")).toHaveValue("Ertalab qo'ng'iroq")
   expect(within(dialog).getByLabelText("Summa")).toHaveValue("45000")
   const channels = within(dialog).getByRole("group", { name: "Kanal" })
@@ -43,8 +44,8 @@ test("the edit dialog opens with the task as it is, its customer shown and not a
   await user.clear(within(dialog).getByLabelText("Nomi"))
   await user.type(within(dialog).getByLabelText("Nomi"), " Qayta qo'ng'iroq ")
   setDate(within(dialog).getByLabelText("Muddat"), addDays(today, 5))
-  await user.selectOptions(within(dialog).getByLabelText("Bosqich"), "Jarayonda")
-  await user.selectOptions(within(dialog).getByLabelText("Mas'ul"), "Tanlanmagan")
+  await choose(user, within(dialog).getByLabelText("Bosqich"), "Jarayonda")
+  await choose(user, within(dialog).getByLabelText("Mas'ul"), "Tanlanmagan")
   await user.clear(within(dialog).getByLabelText("Izoh"))
   await user.type(within(dialog).getByLabelText("Izoh"), "Kechqurun")
   await user.clear(within(dialog).getByLabelText("Summa"))
@@ -73,15 +74,18 @@ test("an assignee who left the company stays offered, marked so, and stays on th
   const { user, dialog } = await openDialog(call.id)
 
   const assignee = within(dialog).getByLabelText("Mas'ul")
+  expect(assignee).toHaveTextContent("Vali Aliyev (chiqarilgan)")
+  await user.click(assignee)
   await waitFor(() =>
-    expect(within(assignee).getAllByRole("option").map((option) => option.textContent)).toEqual([
+    expect(within(screen.getByRole("listbox")).getAllByRole("option").map((option) => option.textContent)).toEqual([
       "Tanlanmagan",
       "Ali Valiyev",
       "Sardor Karimov",
       "Vali Aliyev (chiqarilgan)",
     ]),
   )
-  expect(assignee).toHaveValue(VALI)
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
 
   setDate(within(dialog).getByLabelText("Muddat"), addDays(today, 4))
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))

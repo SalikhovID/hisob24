@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, seedCustomers, seedSixKinds, seedTasks, typesOf, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { CustomerPage } from "./customer-page"
@@ -114,7 +115,6 @@ test("an employee edits the customer in a dialog that opens with its phone and a
   await signIn(VALI)
   await chooseCompany(1)
   const { dilshod } = seedCustomers()
-  const [instagram] = db.dropdowns[0].options
   const { user } = open(dilshod.id)
 
   const dialog = await edit(user)
@@ -124,11 +124,11 @@ test("an employee edits the customer in a dialog that opens with its phone and a
   expect(within(dialog).getByText("Jismoniy")).toBeInTheDocument()
   expect(within(dialog).getByLabelText("Telefon raqami")).toHaveValue("91 111 22 33")
   expect(within(dialog).getByLabelText("F.I.Sh.")).toHaveValue("Dilshod Karimov")
-  expect(within(dialog).getByLabelText("Manba")).toHaveValue(String(instagram.id))
+  expect(within(dialog).getByLabelText("Manba")).toHaveTextContent("Instagram")
 
   await user.clear(within(dialog).getByLabelText("F.I.Sh."))
   await user.type(within(dialog).getByLabelText("F.I.Sh."), "Dilshod Karimovich")
-  await user.selectOptions(within(dialog).getByLabelText("Manba"), "LinkedIn")
+  await choose(user, within(dialog).getByLabelText("Manba"), "LinkedIn")
   await user.clear(within(dialog).getByLabelText("Telefon raqami"))
   await user.type(within(dialog).getByLabelText("Telefon raqami"), "911112299")
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
@@ -158,12 +158,6 @@ test("the dialog opens with the customer as it is now, whatever was typed and le
   expect(within(dialog).getByLabelText("F.I.Sh.")).toHaveValue("Dilshod Karimov")
 })
 
-// optionsOf are what a select offers, by their names.
-const optionsOf = (select: HTMLElement) =>
-  within(select)
-    .getAllByRole("option")
-    .map((option) => option.textContent)
-
 test("an option that is turned off is offered to the customer who has it, and to nobody else", async () => {
   await signIn(ALI)
   const { dilshod, malika } = seedCustomers()
@@ -172,8 +166,8 @@ test("an option that is turned off is offered to the customer who has it, and to
 
   let dialog = await edit(first.user)
 
-  expect(optionsOf(within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan", "Instagram", "LinkedIn", "YouTube"])
-  expect(within(dialog).getByLabelText("Manba")).toHaveValue(String(youtube.id))
+  expect(await optionsOf(first.user, within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan", "Instagram", "LinkedIn", "YouTube"])
+  expect(within(dialog).getByLabelText("Manba")).toHaveTextContent("YouTube")
   await first.user.clear(within(dialog).getByLabelText("F.I.Sh."))
   await first.user.type(within(dialog).getByLabelText("F.I.Sh."), "Malika Yusupova (VIP)")
   await first.user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
@@ -183,7 +177,7 @@ test("an option that is turned off is offered to the customer who has it, and to
 
   const second = open(dilshod.id)
   dialog = await edit(second.user)
-  expect(optionsOf(within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan", "Instagram", "LinkedIn"])
+  expect(await optionsOf(second.user, within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan", "Instagram", "LinkedIn"])
 })
 
 test("an edit that is refused says why in the dialog, and leads to the customer who has the phone", async () => {

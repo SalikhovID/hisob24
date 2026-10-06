@@ -5,8 +5,8 @@ import { toast } from "sonner"
 import { Fact } from "@/components/facts"
 import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
+import { SelectBox } from "@/components/select-field"
 import { Failed, ListLoading } from "@/components/states"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { ApiError } from "@/lib/api"
 import { customerName } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
@@ -95,15 +95,16 @@ export function TaskPage({ id }: { id: number }) {
               <EditTaskDialog companyId={companyId} task={task.data} type={type} stages={stages.data} members={members.data ?? []} dropdowns={dropdowns.data} />
             )}
             <DeleteTaskButton companyId={companyId} id={task.data.id} title={task.data.title} />
-            {/* The stage is changed right here, as on the board. */}
-            <NativeSelect
+            {/* The stage is changed right here, as on the board. The select
+                stands as tall as the buttons beside it. */}
+            <SelectBox
               aria-label="Bosqich"
-              className="h-9 bg-card [&_select]:h-9"
+              className="h-9! w-fit bg-card"
               value={String(task.data.stage_id)}
               disabled={move.isPending}
-              onChange={(event) =>
+              onChange={(stageId) =>
                 move.mutate(
-                  { task: task.data, stageId: Number(event.target.value) },
+                  { task: task.data, stageId: Number(stageId) },
                   {
                     onSuccess: () => {
                       toast.success("Bosqich o'zgartirildi")
@@ -112,13 +113,8 @@ export function TaskPage({ id }: { id: number }) {
                   },
                 )
               }
-            >
-              {stages.data.map((candidate) => (
-                <NativeSelectOption key={candidate.id} value={candidate.id}>
-                  {candidate.name}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              options={stages.data.map((candidate) => ({ value: String(candidate.id), label: candidate.name }))}
+            />
           </>
         }
       />

@@ -4,6 +4,7 @@ import { expect, test } from "vitest"
 import { ALI, db, typesOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { CustomerTypePage } from "./customer-type-page"
@@ -99,17 +100,17 @@ test("a field is added from the dialog: a choice asks for its dropdown, text and
   await user.click(screen.getByRole("button", { name: "Maydon qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "Maydon qo'shish" })
   // Text by default: no dropdown is asked for, and it may be told not to repeat.
-  expect(within(dialog).getByLabelText("Turi")).toHaveValue("string")
+  expect(within(dialog).getByLabelText("Turi")).toHaveTextContent("Matn")
   expect(within(dialog).queryByLabelText("Dropdown")).not.toBeInTheDocument()
   expect(within(dialog).getByRole("checkbox", { name: "Takrorlanmasin" })).toBeInTheDocument()
 
   await user.type(within(dialog).getByLabelText("Nomi"), "Manba")
-  await user.selectOptions(within(dialog).getByLabelText("Turi"), "Checkbox (bir nechta tanlov)")
+  await choose(user, within(dialog).getByLabelText("Turi"), "Checkbox (bir nechta tanlov)")
   expect(within(dialog).queryByRole("checkbox", { name: "Takrorlanmasin" })).not.toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Dropdownni tanlang")).toBeInTheDocument()
 
-  await user.selectOptions(within(dialog).getByLabelText("Dropdown"), "Manba")
+  await choose(user, within(dialog).getByLabelText("Dropdown"), "Manba")
   await user.click(within(dialog).getByRole("checkbox", { name: "Majburiy" }))
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -161,7 +162,7 @@ test("with no dropdown yet, a choice field says where to make one", async () => 
   await user.click(screen.getByRole("button", { name: "Maydon qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "Maydon qo'shish" })
 
-  await user.selectOptions(within(dialog).getByLabelText("Turi"), "Radio (bitta tanlov)")
+  await choose(user, within(dialog).getByLabelText("Turi"), "Radio (bitta tanlov)")
 
   expect(within(dialog).getByText("Hali dropdown yo'q: avval Sozlamalarda dropdown yarating.")).toBeInTheDocument()
 })

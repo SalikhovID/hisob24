@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, nextId, seedTasks, VALI } from "@/mocks/data"
 import { currentUrl, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { TasksPage } from "./tasks-page"
@@ -108,22 +109,29 @@ test("the stage and the assignee narrow the list and stay in the address", async
   await table()
 
   const stage = screen.getByRole("combobox", { name: "Bosqich" })
-  expect(within(stage).getAllByRole("option").map((option) => option.textContent)).toEqual(["Barcha bosqichlar", "Yangi", "Jarayonda", "Bajarildi"])
-  await user.selectOptions(stage, "Yangi")
+  expect(stage).toHaveTextContent("Barcha bosqichlar")
+  expect(await optionsOf(user, stage)).toEqual(["Barcha bosqichlar", "Yangi", "Jarayonda", "Bajarildi"])
+  await choose(user, stage, "Yangi")
   await waitFor(() => expect(titles()).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
   expect(currentUrl()).toBe(`/tasks?view=list&stage=${yangi.id}`)
 
   // The assignees are the company's members now, the signed-in one as "Men".
   const assignee = await screen.findByRole("combobox", { name: "Mas'ul" })
+  await user.click(assignee)
   await waitFor(() =>
-    expect(within(assignee).getAllByRole("option").map((option) => option.textContent)).toEqual(["Barcha mas'ullar", "Men", "Vali Aliyev", "Sardor Karimov"]),
+    expect(within(screen.getByRole("listbox")).getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Barcha mas'ullar",
+      "Men",
+      "Vali Aliyev",
+      "Sardor Karimov",
+    ]),
   )
-  await user.selectOptions(assignee, "Vali Aliyev")
+  await user.click(screen.getByRole("option", { name: "Vali Aliyev" }))
   await waitFor(() => expect(titles()).toEqual(["Qo'ng'iroq qilish"]))
   expect(currentUrl()).toBe(`/tasks?view=list&stage=${yangi.id}&assignee=${VALI}`)
 
-  await user.selectOptions(stage, "Barcha bosqichlar")
-  await user.selectOptions(assignee, "Men")
+  await choose(user, stage, "Barcha bosqichlar")
+  await choose(user, assignee, "Men")
   await waitFor(() => expect(titles()).toEqual(["Eski buyurtma"]))
   expect(currentUrl()).toBe(`/tasks?view=list&assignee=${ALI}`)
   expect(screen.getByText("Kompaniyangiz vazifalari")).toBeInTheDocument()
@@ -139,8 +147,8 @@ test("the list opens under the filters the address names", async () => {
   await table()
   expect(titles()).toEqual(["Qo'ng'iroq qilish"])
   expect(screen.getByRole("tab", { name: "Buyurtma" })).toHaveAttribute("aria-selected", "true")
-  expect(screen.getByRole("combobox", { name: "Bosqich" })).toHaveValue(String(yangi.id))
-  await waitFor(() => expect(screen.getByRole("combobox", { name: "Mas'ul" })).toHaveValue(VALI))
+  expect(screen.getByRole("combobox", { name: "Bosqich" })).toHaveTextContent("Yangi")
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Mas'ul" })).toHaveTextContent("Vali Aliyev"))
   expect(screen.getByRole("searchbox", { name: "Qidirish" })).toHaveValue("qo")
 })
 

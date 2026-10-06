@@ -1,14 +1,11 @@
 "use client"
 
-import { ChevronDownIcon } from "lucide-react"
 import { type ReactNode, useId } from "react"
 import { type Control, Controller, type ControllerFieldState, type FieldPath, type FieldValues } from "react-hook-form"
-import { Button } from "@/components/ui/button"
+import { MultiSelectBox, SelectBox } from "@/components/select-field"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Field, FieldError, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { type FormField, isChoice } from "@/lib/fields"
 import type { CustomerOption } from "@/lib/types"
@@ -16,8 +13,8 @@ import type { CustomerOption } from "@/lib/types"
 // Labeled is one question of a form: its name, a quiet word beside it when
 // it may be left empty, the input and what is wrong with the answer. The
 // word stands outside the name, so the input goes by the field's name alone.
-// A group of inputs (radios, checkboxes, a menu) is named by the name's id,
-// a single input by the label that points at it.
+// A group of inputs (radios, checkboxes) is named by the name's id, a single
+// input (a line, a select's button) by the label that points at it.
 function Labeled({
   id,
   label,
@@ -60,11 +57,10 @@ const NONE = "none"
 const option = "flex w-fit items-center gap-2 text-sm leading-5"
 
 // FieldAnswer is the input of one field of a type, at the form path it is
-// given, by the field's kind: a line of text, digits, the browser's own
-// select, radios, checkboxes, or a menu of checkboxes behind a button that
-// says what is chosen. options is what the field's dropdown offers. A
-// disabled answer is shown and not changed (a customer that is there,
-// linked to a task).
+// given, by the field's kind: a line of text, digits, a select of one option
+// or of several (shadcn's), radios, or checkboxes. options is what the
+// field's dropdown offers. A disabled answer is shown and not changed (a
+// customer that is there, linked to a task).
 export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   name,
@@ -81,6 +77,8 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
   const id = useId()
   const labelId = `${id}-label`
   const hint = field.required ? undefined : `${id}-hint`
+  // A select's options go by the option's id, as the form holds them.
+  const choices = options.map((o) => ({ value: String(o.id), label: o.label }))
   return (
     <Controller
       control={control}
@@ -104,22 +102,17 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
           case "dropdown":
             return (
               <Labeled {...labeled}>
-                <NativeSelect
+                <SelectBox
                   id={id}
                   aria-invalid={fieldState.invalid}
                   aria-describedby={hint}
-                  className="w-full"
                   disabled={disabled}
-                  {...input}
                   value={one}
-                >
-                  <NativeSelectOption value="">Tanlanmagan</NativeSelectOption>
-                  {options.map((o) => (
-                    <NativeSelectOption key={o.id} value={o.id}>
-                      {o.label}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
+                  onChange={input.onChange}
+                  onBlur={input.onBlur}
+                  empty="Tanlanmagan"
+                  options={choices}
+                />
               </Labeled>
             )
           case "radio":
@@ -164,45 +157,21 @@ export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>
                 </div>
               </Labeled>
             )
-          case "multi_dropdown": {
-            const chosen = options.filter((o) => several.includes(String(o.id)))
+          case "multi_dropdown":
             return (
-              <Labeled {...labeled} group>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button
-                        type="button"
-                        variant="outline"
-                        id={id}
-                        aria-labelledby={`${labelId} ${id}`}
-                        aria-describedby={hint}
-                        disabled={disabled}
-                        className="h-auto min-h-8 w-full justify-between gap-2 py-1 text-left font-normal whitespace-normal"
-                      />
-                    }
-                  >
-                    <span className={chosen.length > 0 ? "min-w-0 [overflow-wrap:anywhere]" : "text-muted-foreground"}>
-                      {chosen.length > 0 ? chosen.map((o) => o.label).join(", ") : "Tanlanmagan"}
-                    </span>
-                    <ChevronDownIcon className="text-muted-foreground" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="min-w-(--anchor-width)">
-                    {options.map((o) => (
-                      <DropdownMenuCheckboxItem
-                        key={o.id}
-                        checked={several.includes(String(o.id))}
-                        onCheckedChange={(checked) => toggle(String(o.id), checked)}
-                        closeOnClick={false}
-                      >
-                        {o.label}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <Labeled {...labeled}>
+                <MultiSelectBox
+                  id={id}
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={hint}
+                  disabled={disabled}
+                  value={several}
+                  onChange={input.onChange}
+                  onBlur={input.onBlur}
+                  options={choices}
+                />
               </Labeled>
             )
-          }
           default:
             return (
               <Labeled {...labeled}>

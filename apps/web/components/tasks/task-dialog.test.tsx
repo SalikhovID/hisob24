@@ -1,8 +1,9 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { addDays, ALI, db, localToday, seedTasks, stagesOf, taskTypesOf, typesOf, VALI } from "@/mocks/data"
+import { addDays, ALI, db, localToday, seedTasks, taskTypesOf, typesOf, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { TasksPage } from "./tasks-page"
 
@@ -43,18 +44,26 @@ test("the dialog: the type on top, the customer on the left and the task on the 
   expect(within(customer).getAllByRole("radio").map((radio) => radio.textContent)).toEqual(["Jismoniy", "Yuridik"])
   expect(within(customer).getByRole("combobox", { name: "Telefon raqami" })).toHaveValue("")
   expect(within(customer).getByLabelText("F.I.Sh.")).toHaveValue("")
-  expect(within(customer).getByLabelText("Manba")).toHaveValue("")
+  expect(within(customer).getByLabelText("Manba")).toHaveTextContent("Tanlanmagan")
   const task = within(dialog).getByRole("group", { name: "Vazifa" })
   expect(within(task).getByLabelText("Nomi")).toHaveValue("")
   expect(within(task).getByLabelText("Muddat")).toHaveAttribute("type", "date")
   expect(within(task).getByLabelText("Muddat")).toHaveValue("")
-  const [yangi] = stagesOf(1)
-  expect(within(task).getByLabelText("Bosqich")).toHaveValue(String(yangi.id))
+  expect(within(task).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
+  // The assignees are the company's members, once they are known.
   const assignee = within(task).getByLabelText("Mas'ul")
+  expect(assignee).toHaveTextContent("Tanlanmagan")
+  await user.click(assignee)
   await waitFor(() =>
-    expect(within(assignee).getAllByRole("option").map((option) => option.textContent)).toEqual(["Tanlanmagan", "Ali Valiyev", "Vali Aliyev", "Sardor Karimov"]),
+    expect(within(screen.getByRole("listbox")).getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Tanlanmagan",
+      "Ali Valiyev",
+      "Vali Aliyev",
+      "Sardor Karimov",
+    ]),
   )
-  expect(assignee).toHaveValue("")
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
   // The type's fields are the form's, under the task's own.
   expect(within(task).queryByLabelText("Izoh")).not.toBeInTheDocument()
   await user.click(within(types).getByRole("radio", { name: "Buyurtma" }))
@@ -78,8 +87,8 @@ test("a task with a new customer is entered in one go, and the list shows it at 
   const task = within(dialog).getByRole("group", { name: "Vazifa" })
   await user.type(within(task).getByLabelText("Nomi"), " Shartnoma imzolash ")
   setDate(within(task).getByLabelText("Muddat"), addDays(today, 7))
-  await user.selectOptions(within(task).getByLabelText("Bosqich"), "Jarayonda")
-  await user.selectOptions(within(task).getByLabelText("Mas'ul"), "Vali Aliyev")
+  await choose(user, within(task).getByLabelText("Bosqich"), "Jarayonda")
+  await choose(user, within(task).getByLabelText("Mas'ul"), "Vali Aliyev")
   await user.type(within(task).getByLabelText("Izoh"), "Ertalab")
   await user.type(within(task).getByLabelText("Summa"), "45000")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
@@ -121,7 +130,7 @@ test("a customer that is there is taken from the suggestions: its fields fill in
   expect(within(customer).getByRole("radio", { name: "Yuridik" })).toHaveAttribute("aria-disabled", "true")
   expect(within(customer).getByLabelText("F.I.Sh.")).toBeDisabled()
   expect(within(customer).getByLabelText("Manba")).toBeDisabled()
-  expect(within(customer).getByLabelText("Manba")).toHaveValue(String(db.dropdowns[0].options[0].id))
+  expect(within(customer).getByLabelText("Manba")).toHaveTextContent("Instagram")
   const linked = within(customer).getByRole("region", { name: "Mavjud mijoz" })
   expect(within(linked).getByText("+998 91 111 22 33")).toBeInTheDocument()
   expect(within(linked).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
@@ -234,7 +243,7 @@ test("with no customer types only a customer that is there will do", async () =>
 
 test("the + of a column opens the dialog for that stage; under a tab it opens with that tab's type; it opens empty every time", async () => {
   await signIn(ALI)
-  const { jarayonda, buyurtma } = seedTasks()
+  const { buyurtma } = seedTasks()
   setLocation(`/tasks?type=${buyurtma.id}`)
   const { user } = renderWithProviders(<TasksPage />)
   await screen.findByRole("region", { name: "Kanban" })
@@ -242,7 +251,7 @@ test("the + of a column opens the dialog for that stage; under a tab it opens wi
   await user.click(await screen.findByRole("button", { name: "Vazifa qo'shish: Jarayonda" }))
 
   const dialog = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
-  expect(within(dialog).getByLabelText("Bosqich")).toHaveValue(String(jarayonda.id))
+  expect(within(dialog).getByLabelText("Bosqich")).toHaveTextContent("Jarayonda")
   expect(within(dialog).getByRole("radio", { name: "Buyurtma" })).toHaveAttribute("aria-checked", "true")
   await user.type(within(dialog).getByLabelText("Nomi"), "Yarim yozilgan")
   await user.keyboard("{Escape}")
@@ -251,8 +260,7 @@ test("the + of a column opens the dialog for that stage; under a tab it opens wi
   await user.click(screen.getByRole("button", { name: "Vazifa qo'shish" }))
   const again = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
   expect(within(again).getByLabelText("Nomi")).toHaveValue("")
-  const [yangi] = stagesOf(1)
-  expect(within(again).getByLabelText("Bosqich")).toHaveValue(String(yangi.id))
+  expect(within(again).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
   expect(taskTypesOf(1)).toHaveLength(2)
   expect(typesOf(1)).toHaveLength(2)
 })

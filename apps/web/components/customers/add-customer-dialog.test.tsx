@@ -5,6 +5,7 @@ import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/dat
 import { identityOf } from "@/test/identity"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { CustomersPage } from "./customers-page"
@@ -38,12 +39,12 @@ test("an employee enters a customer: the type's fields are the form, and the lis
   ])
   expect(within(dialog).getByLabelText("Telefon raqami")).toHaveValue("")
   expect(within(dialog).getByLabelText("F.I.Sh.")).toHaveValue("")
-  expect(within(dialog).getByLabelText("Manba")).toHaveValue("")
+  expect(within(dialog).getByLabelText("Manba")).toHaveTextContent("Tanlanmagan")
   expect(within(dialog).queryByLabelText("INN")).not.toBeInTheDocument()
 
   await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
   await user.type(within(dialog).getByLabelText("F.I.Sh."), "Yangi Mijoz")
-  await user.selectOptions(within(dialog).getByLabelText("Manba"), "LinkedIn")
+  await choose(user, within(dialog).getByLabelText("Manba"), "LinkedIn")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
@@ -137,25 +138,26 @@ test("a field of each kind has an input of its own, and every answer is saved", 
   // Checkboxes: one for each option that is offered (Ingliz is turned off).
   const boxes = within(dialog).getByRole("group", { name: "Tillar" })
   expect(within(boxes).getAllByRole("checkbox")).toHaveLength(2)
-  // A dropdown of several is a button that says what is chosen.
-  const several = within(dialog).getByRole("button", { name: /Kanallar/ })
+  // A dropdown of several is a select that says what is chosen.
+  const several = within(dialog).getByRole("combobox", { name: "Kanallar" })
   expect(several).toHaveTextContent("Tanlanmagan")
 
   await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
   await user.type(within(dialog).getByLabelText("F.I.Sh."), "Olti Tur")
   await user.type(within(dialog).getByLabelText("Yoshi"), "30")
-  await user.selectOptions(within(dialog).getByLabelText("Manba"), "Instagram")
+  await choose(user, within(dialog).getByLabelText("Manba"), "Instagram")
   await user.click(within(radios).getByRole("radio", { name: "Ayol" }))
   await user.click(within(boxes).getByRole("checkbox", { name: "Rus" }))
   await user.click(within(boxes).getByRole("checkbox", { name: "O'zbek" }))
+  // The list of several stays open while options are chosen.
   await user.click(several)
-  const menu = await screen.findByRole("menu")
-  expect(within(menu).getAllByRole("menuitemcheckbox").map((item) => item.textContent)).toEqual(["Instagram", "LinkedIn"])
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "LinkedIn" }))
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Instagram" }))
+  const list = await screen.findByRole("listbox")
+  expect(within(list).getAllByRole("option").map((item) => item.textContent)).toEqual(["Instagram", "LinkedIn"])
+  await user.click(within(list).getByRole("option", { name: "LinkedIn" }))
+  await user.click(within(list).getByRole("option", { name: "Instagram" }))
   expect(several).toHaveTextContent("Instagram, LinkedIn")
   await user.keyboard("{Escape}")
-  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
 
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -262,7 +264,7 @@ test("a choice whose dropdown offers nothing says so, and a required one cannot 
   const { user, dialog } = await openDialog()
 
   expect(within(dialog).getByText("Faol variant yo'q. Variantlar Sozlamalarda qo'shiladi.")).toBeInTheDocument()
-  expect(within(within(dialog).getByLabelText("Manba")).getAllByRole("option").map((o) => o.textContent)).toEqual(["Tanlanmagan"])
+  expect(await optionsOf(user, within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan"])
 
   await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
   await user.type(within(dialog).getByLabelText("F.I.Sh."), "Ali")

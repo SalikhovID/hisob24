@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, nextId, seedTasks, stagesOf } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { signIn } from "@/test/session"
 import { TasksPage } from "./tasks-page"
@@ -194,7 +195,7 @@ test("the type tab, the search and the assignee narrow every column", async () =
   expect(cards("Jarayonda")).toEqual(["Shartnoma yuborish"])
 
   await user.clear(screen.getByRole("searchbox", { name: "Qidirish" }))
-  await user.selectOptions(await screen.findByRole("combobox", { name: "Mas'ul" }), "Vali Aliyev")
+  await choose(user, await screen.findByRole("combobox", { name: "Mas'ul" }), "Vali Aliyev")
   await waitFor(() => expect(cards("Yangi")).toEqual(["Qo'ng'iroq qilish"]))
   expect(cards("Jarayonda")).toEqual([])
 })

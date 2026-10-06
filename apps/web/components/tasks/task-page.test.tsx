@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, seedTasks, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { TaskPage } from "./task-page"
@@ -79,9 +80,10 @@ test("the stage is changed from the page at once", async () => {
   const { user } = open(call.id)
   await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })
   const stage = screen.getByRole("combobox", { name: "Bosqich" })
-  expect(within(stage).getAllByRole("option").map((option) => option.textContent)).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
+  expect(stage).toHaveTextContent("Yangi")
+  expect(await optionsOf(user, stage)).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
 
-  await user.selectOptions(stage, "Bajarildi")
+  await choose(user, stage, "Bajarildi")
 
   expect(await screen.findByText("Bosqich o'zgartirildi")).toBeInTheDocument()
   await waitFor(() => expect(screen.getByText(/Buyurtma · Bajarildi/)).toBeInTheDocument())

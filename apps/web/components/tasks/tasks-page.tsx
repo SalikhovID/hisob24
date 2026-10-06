@@ -10,11 +10,11 @@ import { SearchInput } from "@/components/customers/search-input"
 import { type Column, DataList } from "@/components/data-list"
 import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
+import { SelectBox } from "@/components/select-field"
 import { settingsHref } from "@/components/settings/use-settings-tab"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { answerText, fieldColumns } from "@/lib/fields"
 import { formatDate } from "@/lib/format"
@@ -48,8 +48,9 @@ const viewRadio =
   "inline-flex h-8 cursor-default items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:bg-card data-checked:text-foreground data-checked:shadow-sm [&_svg]:size-4"
 
 // Nothing says a filtered list: what a member keeps by hand (a type, a
-// stage, an assignee, a search) narrows the tasks and the count.
-const toolbarSelect = "h-9 bg-card [&_select]:h-9"
+// stage, an assignee, a search) narrows the tasks and the count. A select
+// of the toolbar stands as tall as the search beside it.
+const toolbarSelect = "h-9! w-fit bg-card"
 
 // TasksPage is the company's tasks, for every member of it: as a board of
 // the stages (the first time) or as a list, the one due soonest first, each
@@ -266,34 +267,27 @@ export function TasksPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <SearchInput value={filter.search} onSearch={(search) => update({ search })} placeholder="Nomi, mijoz yoki telefon" />
                 {view === "list" && (
-                  <NativeSelect
+                  <SelectBox
                     aria-label="Bosqich"
                     className={toolbarSelect}
                     value={filter.stageId === null ? "" : String(filter.stageId)}
-                    onChange={(event) => update({ stageId: event.target.value === "" ? null : Number(event.target.value) })}
-                  >
-                    <NativeSelectOption value="">Barcha bosqichlar</NativeSelectOption>
-                    {stages.data.map((stage) => (
-                      <NativeSelectOption key={stage.id} value={stage.id}>
-                        {stage.name}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                    onChange={(value) => update({ stageId: value === "" ? null : Number(value) })}
+                    empty="Barcha bosqichlar"
+                    options={stages.data.map((stage) => ({ value: String(stage.id), label: stage.name }))}
+                  />
                 )}
-                <NativeSelect
+                <SelectBox
                   aria-label="Mas'ul"
                   className={toolbarSelect}
                   value={filter.assignee}
-                  onChange={(event) => update({ assignee: event.target.value })}
-                >
-                  <NativeSelectOption value="">Barcha mas&apos;ullar</NativeSelectOption>
-                  {/* The company's members now; the signed-in one as "Men". */}
-                  {(members.data ?? []).map((member) => (
-                    <NativeSelectOption key={member.phone} value={member.phone}>
-                      {member.phone === phone ? "Men" : (member.full_name ?? formatPhone(member.phone))}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
+                  onChange={(assignee) => update({ assignee })}
+                  empty="Barcha mas'ullar"
+                  // The company's members now; the signed-in one as "Men".
+                  options={(members.data ?? []).map((member) => ({
+                    value: member.phone,
+                    label: member.phone === phone ? "Men" : (member.full_name ?? formatPhone(member.phone)),
+                  }))}
+                />
                 <RadioGroup
                   aria-label="Ko'rinish"
                   value={view}

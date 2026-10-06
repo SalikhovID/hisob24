@@ -24,7 +24,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { FieldGroup } from "@/components/ui/field"
-import { NativeSelectOption } from "@/components/ui/native-select"
 import { isChoice, kindLabels, kinds } from "@/lib/fields"
 import { fieldPatchSchema, fieldSchema } from "@/lib/schemas"
 import type { CustomerDropdown, CustomerFieldKind } from "@/lib/types"
@@ -86,22 +85,20 @@ export function AddFieldDialog({
         <form onSubmit={form.handleSubmit((field) => save.mutate(field))} noValidate className="space-y-4">
           <FieldGroup>
             <TextField control={form.control} name="label" label="Nomi" autoComplete="off" />
-            <SelectField control={form.control} name="kind" label="Turi">
-              {kinds.map((kind) => (
-                <NativeSelectOption key={kind} value={kind}>
-                  {kindLabels[kind]}
-                </NativeSelectOption>
-              ))}
-            </SelectField>
+            <SelectField
+              control={form.control}
+              name="kind"
+              label="Turi"
+              options={kinds.map((kind) => ({ value: kind, label: kindLabels[kind] }))}
+            />
             {choice && (
-              <SelectField control={form.control} name="dropdown_id" label="Dropdown">
-                <NativeSelectOption value="">Tanlang</NativeSelectOption>
-                {dropdowns.map((dropdown) => (
-                  <NativeSelectOption key={dropdown.id} value={dropdown.id}>
-                    {dropdown.name}
-                  </NativeSelectOption>
-                ))}
-              </SelectField>
+              <SelectField
+                control={form.control}
+                name="dropdown_id"
+                label="Dropdown"
+                placeholder="Tanlang"
+                options={dropdowns.map((dropdown) => ({ value: String(dropdown.id), label: dropdown.name }))}
+              />
             )}
             {choice && dropdowns.length === 0 && (
               <p className="-mt-3 text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
