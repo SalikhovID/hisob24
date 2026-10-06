@@ -1,7 +1,7 @@
-import { ALI, TG_ALI, TG_STRANGER, TG_UNLINKED } from "../mocks/data"
+import { ALI, seedTasks, TG_ALI, TG_STRANGER, TG_UNLINKED } from "../mocks/data"
 import type { Page } from "@playwright/test"
 import { expect, test } from "./fixtures"
-import { onPhone } from "./helpers"
+import { onPhone, openSection } from "./helpers"
 
 const fits = async (page: Page) =>
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
@@ -92,6 +92,50 @@ test.describe("a linked user", () => {
     await page.getByRole("button", { name: "Profil" }).click()
     await expect(page.getByRole("menu").getByText("+998 90 123 45 67")).toBeVisible()
     await expect(page.getByRole("menuitem", { name: "Chiqish" })).toHaveCount(0)
+  })
+
+  // openList goes to the tasks as a list, the way a thumb does: the tab bar,
+  // then the view switch.
+  const openList = async (page: Page) => {
+    await page.goto("/")
+    await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+    await openSection(page, "Vazifalar")
+    await page.getByRole("radiogroup", { name: "Ko'rinish" }).getByRole("radio", { name: "Ro'yxat" }).click()
+    await expect(page).toHaveURL(/view=list/)
+  }
+  const cardOf = (page: Page, title: string) =>
+    page.getByRole("list", { name: "Vazifalar" }).getByRole("listitem").filter({ hasText: title })
+  const rowOf = (page: Page, title: string) =>
+    page.getByRole("table", { name: "Vazifalar" }).getByRole("row").filter({ hasText: title })
+
+  test("opens a task from anywhere on its card in the list", async ({ page }) => {
+    const { call } = seedTasks()
+    await openList(page)
+
+    if (onPhone(page)) {
+      // A thumb lands on the card's body (its middle), not on the title: the
+      // task opens all the same.
+      await cardOf(page, "Qo'ng'iroq qilish").click()
+    } else {
+      await rowOf(page, "Qo'ng'iroq qilish").getByRole("link", { name: "Qo'ng'iroq qilish" }).click()
+    }
+
+    await expect(page).toHaveURL(new RegExp(`/tasks/${call.id}$`))
+    await expect(page.getByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeVisible()
+  })
+
+  test("names a task's customer on its card without a link; the table keeps the customer's link", async ({ page }) => {
+    const { dilshod } = seedTasks()
+    await openList(page)
+
+    if (onPhone(page)) {
+      const card = cardOf(page, "Qo'ng'iroq qilish")
+      await expect(card.getByText("Dilshod Karimov")).toBeVisible()
+      await expect(card.getByRole("link")).toHaveText(["Qo'ng'iroq qilish"])
+    } else {
+      const row = rowOf(page, "Qo'ng'iroq qilish")
+      await expect(row.getByRole("link", { name: "Dilshod Karimov" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
+    }
   })
 })
 
