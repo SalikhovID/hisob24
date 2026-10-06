@@ -1,6 +1,6 @@
 # Rollar: owner va user
 
-Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md).
+Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md). Vazifalar bo'limi: [tasks.md](tasks.md).
 
 > Holat: amalga oshirilgan (2026-10-03). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
 
@@ -54,10 +54,16 @@ Rol faqat egasini almashtirish orqali o'zgaradi:
 | Mijozlarni ko'rish, qo'shish, tahrirlash, o'chirish | ✓ | ✓ |
 | Mijoz turlari, maydonlar va dropdownlarni sozlash | ✓ | ✗ |
 | Mijozning o'zgarishlar tarixini ko'rish | ✓ | ✗ |
+| Vazifalarni ko'rish, qo'shish, tahrirlash, ko'chirish, o'chirish | ✓ | ✓ |
+| A'zolar ro'yxatini ko'rish (vazifaga mas'ul tanlash uchun: ism, telefon, rol) | ✓ | ✓ |
+| Bosqichlar, vazifa turlari va maydonlarini sozlash | ✓ | ✗ |
+| Vazifaning o'zgarishlar tarixini ko'rish | ✓ | ✗ |
 | Owner'ni o'zgartirish yoki o'chirish | ✗ | ✗ |
 | Kompaniya nomi, obuna, bloklash | ✗ | ✗ |
 
 Oxirgi ikki qator faqat platforma adminiga tegishli (admin panel).
+
+"Xodimlar ro'yxatini ko'rish" Xodimlar bo'limi va `GET /app/employees` haqida. A'zolar ro'yxati (`GET /app/members`) esa har a'zoga, faqat tanlash uchun: unda ism, telefon va rol bor, boshqaruv amallari yo'q.
 
 Ruxsat har doim **tanlangan kompaniyadagi rol** bo'yicha beriladi. Olma Savdo'da owner bo'lgan user Nok Market'da `user` bo'lsa, Nok Market'ning xodimlarini ko'rmaydi.
 
@@ -85,9 +91,9 @@ Admin kompaniya sahifasida **Egasini almashtirish** ni bosadi va telefon bilan i
 
 ## 7. Interfeys
 
-- Sidebar'dagi **Xodimlar** va **Sozlamalar** bo'limlari faqat owner'ga ko'rinadi. **Mijozlar** bo'limi hammaga ko'rinadi.
+- Sidebar'dagi **Xodimlar** va **Sozlamalar** bo'limlari faqat owner'ga ko'rinadi. **Mijozlar** va **Vazifalar** bo'limlari hammaga ko'rinadi.
 - `user` `/employees` yoki `/settings` manzilini qo'lda ochsa, bosh sahifaga qaytariladi. API baribir 403 qaytaradi.
-- Mijoz sahifasidagi "Tarix" bo'limi faqat owner'ga chiqadi ([customers.md](customers.md), 7-bo'lim).
+- Mijoz sahifasidagi "Tarix" bo'limi faqat owner'ga chiqadi ([customers.md](customers.md), 7-bo'lim); vazifa sahifasidagi ham ([tasks.md](tasks.md), 7-bo'lim).
 - Xodimlar ro'yxatida owner birinchi turadi va "Egasi" belgisi bilan ko'rinadi (o'z qatorida "Siz"). Tahrirlash va o'chirish tugmalari faqat xodimlarda bor.
 - Sessiyasi ochiq owner almashtirilsa, uning keyingi owner amali 403 `owner_only` oladi. User app shunda `/app/me` ni qayta so'raydi: "Xodimlar" bo'limi yo'qoladi va u bosh sahifaga qaytariladi.
 - Admin panelda kompaniya a'zolari "Egasi" yoki "Xodim" roli bilan ko'rinadi.

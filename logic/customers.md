@@ -1,6 +1,6 @@
 # Mijozlar: turlar, maydonlar, dropdownlar
 
-Bu hujjat mijozlar bo'limi qoidalarini belgilaydi: mijoz nima, uning turi va maydonlari qanday sozlanadi, kim nima qila oladi, nima qachon o'chadi. Rollar: [roles.md](roles.md). Userlar va a'zolik: [user.md](user.md).
+Bu hujjat mijozlar bo'limi qoidalarini belgilaydi: mijoz nima, uning turi va maydonlari qanday sozlanadi, kim nima qila oladi, nima qachon o'chadi. Rollar: [roles.md](roles.md). Userlar va a'zolik: [user.md](user.md). Vazifalar (mijozga biriktiriladi, dropdownlarni baham ko'radi): [tasks.md](tasks.md).
 
 > Holat: tasdiqlangan va amalga oshirilgan (2026-10-04). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-04-customers-design.md`.
 
@@ -11,7 +11,7 @@ Bu hujjat mijozlar bo'limi qoidalarini belgilaydi: mijoz nima, uning turi va may
 | **Mijoz** | Kompaniyaning mijozi: telefon, turi va shu turning maydonlaridagi qiymatlar. Mijoz tizimga kirmaydi, u user emas. | `customers` |
 | **Tur** | Mijozlar toifasi (masalan, Jismoniy, Yuridik). Mijoz formasini belgilaydi. | `customer_types` |
 | **Maydon** | Turning bitta savoli: nomi, turi, majburiyligi. Har tur o'z maydonlariga ega. | `customer_fields` |
-| **Dropdown** | Egasi tuzadigan variantlar ro'yxati. Tanlov maydonlari variantlarini undan oladi. | `customer_dropdowns` |
+| **Dropdown** | Egasi tuzadigan variantlar ro'yxati. Tanlov maydonlari variantlarini undan oladi; vazifa maydonlari ham ([tasks.md](tasks.md)). | `customer_dropdowns` |
 | **Variant** | Dropdown ichidagi bitta tanlov (masalan, Instagram). | `customer_dropdown_options` |
 | **Qiymat** | Mijozning bitta maydonga javobi. | `customer_values` |
 
@@ -79,7 +79,7 @@ Owner ularni o'zgartirishi va o'chirishi mumkin. Tayyor dropdown yo'q.
 
 - **Qo'shish.** Tur tanlanadi, telefon va shu turning maydonlari to'ldiriladi (`POST /app/customers {type_id, phone, values}`). Kim qo'shgani saqlanadi.
 - **Tahrirlash.** Telefon va qiymatlar yuborilganiga almashadi (`PUT /app/customers/{id} {phone, values}`): yuborilmagan maydonning qiymati o'chadi. Tur o'zgarmaydi. Ikki kishi bir vaqtda tahrirlasa, oxirgi saqlagan qoladi. Hech narsa o'zgarmagan saqlash hech narsani yozmaydi ("tahrirlangan" vaqti ham o'zgarmaydi).
-- **O'chirish.** Mijoz yashiriladi (`deleted_at`), bazadan o'chmaydi. U ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Tiklash yo'q.
+- **O'chirish.** Mijoz yashiriladi (`deleted_at`), bazadan o'chmaydi. U ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Tiklash yo'q. Faol vazifasi bor mijoz o'chirilmaydi (5-bo'lim).
 - **Qo'shgan.** Ro'yxatda mijozni qo'shgan a'zoning shu kompaniyadagi hozirgi ismi ko'rinadi. A'zo kompaniyadan chiqarilgan (yoki hozir ismsiz) bo'lsa, qo'shgan paytdagi ismi ko'rinadi.
 
 ### 4.1 Qiymatlar
@@ -117,10 +117,11 @@ Hamma narsa yashiriladi, bazadan o'chmaydi. Faol mijozda ishlatilayotgan narsa o
 |---|---|---|
 | tur | shu turda faol mijoz bor | `type_in_use`: "Bu turda N ta mijoz bor" |
 | maydon | faol mijozda to'ldirilgan | `field_in_use`: "Bu maydon N ta mijozda to'ldirilgan" |
-| variant | faol mijozda tanlangan | `option_in_use`: "Bu variant N ta mijozda tanlangan" |
-| dropdown | o'chirilmagan maydonga ulangan | `dropdown_in_use`: "Bu dropdown N ta maydonda ishlatilgan" |
+| variant | faol mijozda tanlangan; keyin faol vazifada tanlangan | `option_in_use`: "Bu variant N ta mijozda tanlangan", "Bu variant N ta vazifada tanlangan" |
+| dropdown | o'chirilmagan mijoz yoki vazifa maydoniga ulangan | `dropdown_in_use`: "Bu dropdown N ta maydonda ishlatilgan" (ikkala tur birga sanaladi) |
+| mijoz | faol vazifasi bor (har qanday bosqichda) | `customer_in_use`: "Bu mijozda N ta vazifa bor" |
 
-- O'chirilgan mijozlar hisobga olinmaydi.
+- O'chirilgan mijozlar va vazifalar hisobga olinmaydi.
 - Tur o'chirilsa, uning maydonlari ham o'chirilgan hisoblanadi.
 - O'chirilgan narsaning nomi qayta ishlatilishi mumkin.
 - Ishlatilgan variantni o'chirish o'rniga nofaol qilish mumkin (3.5).
@@ -132,6 +133,7 @@ Hamma narsa yashiriladi, bazadan o'chmaydi. Faol mijozda ishlatilayotgan narsa o
 - **Ustun tanlovi.** Har user "Ustunlar" menyusida ustunlarni o'ziga yashiradi yoki ko'rsatadi. Tanlov brauzerda saqlanadi (kompaniya va user bo'yicha). "Mijoz" ustuni yashirilmaydi.
 - **Qidiruv.** Matn maydonlarida qidiriladi (katta-kichik harf farqsiz, harfma-harf, so'z ichidan ham). Qidiruv faqat raqamlardan iborat bo'lsa (bo'shliq, `+`, `-` va qavs bilan yozilgan bo'lishi mumkin: `+998 (90) 123-45`), uning raqamlari telefonlarda va butun son maydonlarida ham qidiriladi. Harf aralash qidiruv ("Ali 5") faqat matn maydonlarida qidiriladi. Variant nomi bo'yicha qidirilmaydi.
 - **Tur filtri.** "Barchasi" yoki bitta tur. Qidiruv bilan birga ishlaydi.
+- **Telefon prefiksi.** `?phone=<raqamlar>` (1–9 ta raqam): telefoni `998<raqamlar>` bilan boshlanadigan mijozlar; vazifa formasidagi mijoz takliflari shu bilan olinadi. Boshqa belgi bo'lsa 400 "Telefon raqami noto'g'ri". Qolgan filtrlar bilan birga ishlaydi.
 - **Sahifa.** `?page=` 1 dan boshlanadi; oxirgidan keyingi sahifa bo'sh ro'yxat va jami sonni qaytaradi.
 
 ## 7. Tarix
@@ -152,6 +154,7 @@ Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`, oxirgisi birinch
 | Maydon keyin majburiy qilindi | mavjud mijozlar o'zgarmaydi; tahrirda to'ldirish talab qilinadi |
 | Ikki turda bir xil nomli maydon | ro'yxatda bitta ustun; takrorlanmaslik har turda alohida |
 | Owner turning barcha mijozlarini o'chirib, turni o'chiradi | tur o'chadi: o'chirilgan mijozlar to'sqinlik qilmaydi |
+| Vazifasi bor mijoz o'chirilmoqchi | 409 `customer_in_use`; avval vazifalari o'chiriladi |
 | Owner hamma turni o'chirdi | mijoz qo'shib bo'lmaydi; sahifa owner'ni Sozlamalarga yo'naltiradi |
 | Boshqa kompaniyaning mijozi, turi yoki dropdowni ID bo'yicha so'raldi | 404 `not_found` |
 | Xodim kompaniyadan chiqarildi | u qo'shgan mijozlar qoladi, "Qo'shgan" da o'sha paytdagi ismi |
@@ -169,5 +172,5 @@ Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`, oxirgisi birinch
 | `phone_taken` | 409 | "Bu raqamli mijoz allaqachon bor" (`customer_id` bilan) |
 | `value_taken` | 409 | "Bu «INN» boshqa mijozda bor" (`customer_id` bilan) |
 | `duplicates_exist` | 409 | "Bu maydonda takrorlangan qiymatlar bor" |
-| `type_in_use`, `field_in_use`, `option_in_use`, `dropdown_in_use` | 409 | 5-bo'limdagi xabarlar |
+| `type_in_use`, `field_in_use`, `option_in_use`, `dropdown_in_use`, `customer_in_use` | 409 | 5-bo'limdagi xabarlar |
 | `order_changed` | 409 | "Ro'yxat o'zgargan. Sahifani yangilang" |
