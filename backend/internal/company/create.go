@@ -50,8 +50,12 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 		if _, err := q.AddCompanyUser(ctx, gen.AddCompanyUserParams{UserPhone: phone, CompanyID: c.ID, Role: "owner", FullName: &ownerName}); err != nil {
 			return err
 		}
-		// Every company starts with the ready customer types (logic/customers.md).
+		// Every company starts with the ready customer types (logic/customers.md)
+		// and the ready task stages and type (logic/tasks.md).
 		if err := q.SeedCustomerTypes(ctx, c.ID); err != nil {
+			return err
+		}
+		if err := q.SeedTaskSettings(ctx, c.ID); err != nil {
 			return err
 		}
 		today, err := q.CurrentDate(ctx)

@@ -430,3 +430,25 @@ func TestCreateGivesTheCompanyTheReadyCustomerTypes(t *testing.T) {
 	assert.Equal(t, []string{"Jismoniy: F.I.Sh. string", "Yuridik: Nomi string, INN int"}, types,
 		"a new company starts with the two types every company has")
 }
+
+// Every company starts with the ready stages and task type (logic/tasks.md,
+// 3.4), the same ones migration 00007 gave the companies there were.
+func TestCreateGivesTheReadyTaskSettings(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	rows, err := pool.Query(ctx, `SELECT name || ' ' || color || CASE WHEN is_done THEN ' done' ELSE '' END
+		FROM task_stages WHERE company_id = $1 AND deleted_at IS NULL ORDER BY position`, c.ID)
+	require.NoError(t, err)
+	stages, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Yangi blue", "Jarayonda amber", "Bajarildi green done"}, stages)
+	rows, err = pool.Query(ctx, `SELECT t.name || ': ' || (SELECT count(*) FROM task_fields f WHERE f.type_id = t.id)
+		FROM task_types t WHERE t.company_id = $1 AND t.deleted_at IS NULL ORDER BY t.position`, c.ID)
+	require.NoError(t, err)
+	types, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Vazifa: 0"}, types, "one type with no fields")
+}
