@@ -63,21 +63,36 @@ func (q *Queries) AddCustomerValue(ctx context.Context, arg AddCustomerValuePara
 	return err
 }
 
+const countCustomerTasks = `-- name: CountCustomerTasks :one
+SELECT count(*) FROM tasks WHERE customer_id = $1 AND deleted_at IS NULL
+`
+
+// How many tasks the customer has: one with any is not deleted. Deleted
+// tasks do not count.
+func (q *Queries) CountCustomerTasks(ctx context.Context, customerID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countCustomerTasks, customerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countCustomers = `-- name: CountCustomers :one
 SELECT count(*) FROM customers c
 WHERE c.company_id = $1 AND c.deleted_at IS NULL
   AND ($2::bigint IS NULL OR c.type_id = $2::bigint)
-  AND ($3::text IS NULL
-       OR c.phone LIKE '%' || $4::text || '%'
+  AND ($3::text IS NULL OR c.phone LIKE '998' || $3::text || '%')
+  AND ($4::text IS NULL
+       OR c.phone LIKE '%' || $5::text || '%'
        OR EXISTS (SELECT 1 FROM customer_values v
                   WHERE v.customer_id = c.id AND v.option_id IS NULL
-                    AND (v.text_value ILIKE '%' || $3::text || '%'
-                         OR v.int_value::text LIKE '%' || $4::text || '%')))
+                    AND (v.text_value ILIKE '%' || $4::text || '%'
+                         OR v.int_value::text LIKE '%' || $5::text || '%')))
 `
 
 type CountCustomersParams struct {
 	CompanyID int64
 	TypeID    *int64
+	Phone     *string
 	Search    *string
 	Digits    *string
 }
@@ -88,6 +103,7 @@ func (q *Queries) CountCustomers(ctx context.Context, arg CountCustomersParams) 
 	row := q.db.QueryRow(ctx, countCustomers,
 		arg.CompanyID,
 		arg.TypeID,
+		arg.Phone,
 		arg.Search,
 		arg.Digits,
 	)
@@ -421,19 +437,21 @@ FROM customers c
 LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
 WHERE c.company_id = $1 AND c.deleted_at IS NULL
   AND ($2::bigint IS NULL OR c.type_id = $2::bigint)
-  AND ($3::text IS NULL
-       OR c.phone LIKE '%' || $4::text || '%'
+  AND ($3::text IS NULL OR c.phone LIKE '998' || $3::text || '%')
+  AND ($4::text IS NULL
+       OR c.phone LIKE '%' || $5::text || '%'
        OR EXISTS (SELECT 1 FROM customer_values v
                   WHERE v.customer_id = c.id AND v.option_id IS NULL
-                    AND (v.text_value ILIKE '%' || $3::text || '%'
-                         OR v.int_value::text LIKE '%' || $4::text || '%')))
+                    AND (v.text_value ILIKE '%' || $4::text || '%'
+                         OR v.int_value::text LIKE '%' || $5::text || '%')))
 ORDER BY c.id DESC
-LIMIT $6 OFFSET $5
+LIMIT $7 OFFSET $6
 `
 
 type ListCustomersParams struct {
 	CompanyID int64
 	TypeID    *int64
+	Phone     *string
 	Search    *string
 	Digits    *string
 	Offset    int32
@@ -450,7 +468,8 @@ type ListCustomersRow struct {
 }
 
 // A page of the company's customers, the newest first, without the deleted.
-// type_id keeps one type. search, escaped for ILIKE, is looked for in the
+// type_id keeps one type; phone, digits after 998, keeps the customers whose
+// number begins with them. search, escaped for ILIKE, is looked for in the
 // text answers, in any case; digits, the digits of a search that is a number,
 // in the phone and in the whole number answers. The names of the options are
 // not searched. A NULL argument leaves its filter out.
@@ -458,6 +477,7 @@ func (q *Queries) ListCustomers(ctx context.Context, arg ListCustomersParams) ([
 	rows, err := q.db.Query(ctx, listCustomers,
 		arg.CompanyID,
 		arg.TypeID,
+		arg.Phone,
 		arg.Search,
 		arg.Digits,
 		arg.Offset,

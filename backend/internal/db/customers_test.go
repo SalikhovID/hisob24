@@ -651,3 +651,29 @@ func TestLockCompanyCustomers(t *testing.T) {
 	_, err = q.WithTx(tx).LockCompanyCustomers(ctx, c.ID+1)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "no such company")
 }
+
+func TestListCustomersByPhonePrefix(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newShop(t, q, pool, "Olma")
+	nok := newShop(t, q, pool, "Nok")
+	first := s.customer(t, q, "998901234567")
+	second := s.customer(t, q, "998901299999")
+	s.customer(t, q, "998912345678")
+	nok.customer(t, q, "998901234567")
+
+	rows, err := q.ListCustomers(ctx, gen.ListCustomersParams{CompanyID: s.company.ID, Phone: ptr("9012"), Limit: 20})
+
+	require.NoError(t, err)
+	ids := make([]int64, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	assert.Equal(t, []int64{second.ID, first.ID}, ids, "the company's customers whose number begins with 998 and the digits, the newest first")
+	count, err := q.CountCustomers(ctx, gen.CountCustomersParams{CompanyID: s.company.ID, Phone: ptr("9012")})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, count)
+	none, err := q.CountCustomers(ctx, gen.CountCustomersParams{CompanyID: s.company.ID, Phone: ptr("1234")})
+	require.NoError(t, err)
+	assert.Zero(t, none, "digits inside the number do not count: the prefix is after 998")
+}

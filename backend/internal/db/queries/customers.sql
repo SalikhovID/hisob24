@@ -59,7 +59,8 @@ ORDER BY v.customer_id, f.position, f.id, o.position, o.id;
 
 -- name: ListCustomers :many
 -- A page of the company's customers, the newest first, without the deleted.
--- type_id keeps one type. search, escaped for ILIKE, is looked for in the
+-- type_id keeps one type; phone, digits after 998, keeps the customers whose
+-- number begins with them. search, escaped for ILIKE, is looked for in the
 -- text answers, in any case; digits, the digits of a search that is a number,
 -- in the phone and in the whole number answers. The names of the options are
 -- not searched. A NULL argument leaves its filter out.
@@ -69,6 +70,7 @@ FROM customers c
 LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
 WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
   AND (sqlc.narg('type_id')::bigint IS NULL OR c.type_id = sqlc.narg('type_id')::bigint)
+  AND (sqlc.narg('phone')::text IS NULL OR c.phone LIKE '998' || sqlc.narg('phone')::text || '%')
   AND (sqlc.narg('search')::text IS NULL
        OR c.phone LIKE '%' || sqlc.narg('digits')::text || '%'
        OR EXISTS (SELECT 1 FROM customer_values v
@@ -84,6 +86,7 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 SELECT count(*) FROM customers c
 WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
   AND (sqlc.narg('type_id')::bigint IS NULL OR c.type_id = sqlc.narg('type_id')::bigint)
+  AND (sqlc.narg('phone')::text IS NULL OR c.phone LIKE '998' || sqlc.narg('phone')::text || '%')
   AND (sqlc.narg('search')::text IS NULL
        OR c.phone LIKE '%' || sqlc.narg('digits')::text || '%'
        OR EXISTS (SELECT 1 FROM customer_values v
@@ -159,3 +162,8 @@ ORDER BY h.id DESC;
 -- refers to the company (a new member, a session being refreshed) does not
 -- wait. pgx.ErrNoRows when there is no such company.
 SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE;
+
+-- name: CountCustomerTasks :one
+-- How many tasks the customer has: one with any is not deleted. Deleted
+-- tasks do not count.
+SELECT count(*) FROM tasks WHERE customer_id = $1 AND deleted_at IS NULL;

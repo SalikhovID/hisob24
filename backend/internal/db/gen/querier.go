@@ -31,12 +31,22 @@ type Querier interface {
 	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
 	// company has no such type, or deleted it.
 	AddTaskField(ctx context.Context, arg AddTaskFieldParams) (TaskField, error)
+	// Writes down what a member did to a task: created, updated (a move too) or
+	// deleted. changes is what an edit changed, each thing as text under the
+	// names of that time; actor_name is the name the member goes by in the
+	// company now.
+	AddTaskHistory(ctx context.Context, arg AddTaskHistoryParams) error
+	// One row of a task's answers: a text, a whole number, or an option chosen.
+	AddTaskValue(ctx context.Context, arg AddTaskValueParams) error
 	// Spends a live code in one statement, so a code opens one session only.
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.
 	ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
+	// How many tasks the customer has: one with any is not deleted. Deleted
+	// tasks do not count.
+	CountCustomerTasks(ctx context.Context, customerID int64) (int64, error)
 	// How many customers ListCustomers finds under the same filter, on all of
 	// its pages.
 	CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error)
@@ -50,9 +60,20 @@ type Querier interface {
 	// How many customers chose the option, in any field: one in use is not
 	// deleted. Deleted customers do not count.
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
+	// How many tasks chose the option, in any field: one in use is not deleted.
+	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
+	// How many tasks stand in the stage: one in use is not deleted. Deleted
+	// tasks do not count.
+	CountStageTasks(ctx context.Context, stageID int64) (int64, error)
+	// How many tasks filled the field in: one in use is not deleted.
+	CountTaskFieldTasks(ctx context.Context, fieldID int64) (int64, error)
+	// How many tasks ListTasks finds under the same filter, on all of its pages.
+	CountTasks(ctx context.Context, arg CountTasksParams) (int64, error)
 	// How many customers are of the type: one in use is not deleted. Deleted
 	// customers do not count.
 	CountTypeCustomers(ctx context.Context, typeID int64) (int64, error)
+	// How many tasks are of the type: one in use is not deleted.
+	CountTypeTasks(ctx context.Context, typeID int64) (int64, error)
 	// A unique violation (23505) means the hash of another unused code: the
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)
@@ -71,6 +92,9 @@ type Querier interface {
 	// company_id is the company the access tokens it refreshes are for; source
 	// is where the session began ('sms' or 'telegram').
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
+	// Enters a task. assignee_name and created_by_name are the names the members
+	// go by in the company now: they stay when the members leave the company.
+	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
 	// A new stage goes last among the company's.
 	CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (TaskStage, error)
 	// A new type goes last among the company's.
@@ -112,6 +136,9 @@ type Querier interface {
 	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
+	// Hides the task: nothing is removed. pgx.ErrNoRows when the company has no
+	// such task, or deleted it already.
+	DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error)
 	// Hides a field of the company's type. pgx.ErrNoRows when the type has no
 	// such field, or it is deleted already.
 	DeleteTaskField(ctx context.Context, arg DeleteTaskFieldParams) (int64, error)
@@ -123,6 +150,9 @@ type Querier interface {
 	DeleteTaskType(ctx context.Context, arg DeleteTaskTypeParams) (int64, error)
 	// Hides every field of a type: they go with it when it is deleted.
 	DeleteTaskTypeFields(ctx context.Context, typeID int64) error
+	// Clears a task's answers: an edit writes them anew. What they were stays in
+	// the task's history.
+	DeleteTaskValues(ctx context.Context, taskID int64) error
 	// The company's owner stays in it as a user: the step before another owner
 	// is set.
 	DemoteCompanyOwner(ctx context.Context, companyID int64) error
@@ -159,6 +189,12 @@ type Querier interface {
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
 	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
+	// The company's task with its customer's phone and name (the customer's
+	// answer to its type's first text field); pgx.ErrNoRows when the company has
+	// no such task, or deleted it. assignee_name and created_by_name are the
+	// names the members go by in the company now; once they have left it (or go
+	// by no name), the names of then.
+	GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, error)
 	// A field of the company's type; pgx.ErrNoRows when the type has none such,
 	// or it is deleted.
 	GetTaskField(ctx context.Context, arg GetTaskFieldParams) (TaskField, error)
@@ -207,7 +243,8 @@ type Querier interface {
 	// kind tells how a field's rows are read.
 	ListCustomerValues(ctx context.Context, customerIds []int64) ([]ListCustomerValuesRow, error)
 	// A page of the company's customers, the newest first, without the deleted.
-	// type_id keeps one type. search, escaped for ILIKE, is looked for in the
+	// type_id keeps one type; phone, digits after 998, keeps the customers whose
+	// number begins with them. search, escaped for ILIKE, is looked for in the
 	// text answers, in any case; digits, the digits of a search that is a number,
 	// in the phone and in the whole number answers. The names of the options are
 	// not searched. A NULL argument leaves its filter out.
@@ -215,10 +252,26 @@ type Querier interface {
 	// Every field of the company's types, each type's in its order, without the
 	// deleted ones (a deleted type's fields are deleted with it).
 	ListTaskFields(ctx context.Context, companyID int64) ([]TaskField, error)
+	// What happened to the task, the latest first. actor_name is the name the
+	// member who did it goes by in the company now; once they have left it (or
+	// go by no name), the name of then.
+	ListTaskHistory(ctx context.Context, taskID int64) ([]ListTaskHistoryRow, error)
 	// The company's stages in their order, without the deleted.
 	ListTaskStages(ctx context.Context, companyID int64) ([]TaskStage, error)
 	// The company's types in their order, without the deleted.
 	ListTaskTypes(ctx context.Context, companyID int64) ([]TaskType, error)
+	// The answers of the tasks named: each task's in the order of its type's
+	// fields, the options of one field in the order of their dropdown. kind
+	// tells how a field's rows are read.
+	ListTaskValues(ctx context.Context, taskIds []int64) ([]ListTaskValuesRow, error)
+	// A page of the company's tasks, the one due soonest first (then the older
+	// task), without the deleted. type_id, stage_id, assignee_phone and
+	// customer_id each keep one; search, escaped for ILIKE, is looked for in the
+	// title, in the task's text answers and in the customer's text answers;
+	// digits, the digits of a search that is a number, in the customer's phone
+	// and in the task's whole number answers. A NULL argument leaves its filter
+	// out.
+	ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTasksRow, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the
 	// database's today, as the 402 check does.
@@ -237,6 +290,9 @@ type Querier interface {
 	// Locks the company for a billing transaction. today is the database's
 	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
 	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)
+	// Puts the task in another stage. pgx.ErrNoRows when the company has no such
+	// task, or deleted it.
+	MoveTask(ctx context.Context, arg MoveTaskParams) (time.Time, error)
 	// Puts the dropdown's options in the order of ids: the first gets position
 	// 1. An id that is not a live option of the dropdown is passed over.
 	OrderCustomerDropdownOptions(ctx context.Context, arg OrderCustomerDropdownOptionsParams) error
@@ -296,6 +352,10 @@ type Querier interface {
 	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
 	// type has no such field, or it is deleted.
 	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
+	// An edit: the task's title, deadline, stage and assignee as they are now,
+	// and the moment of the edit. pgx.ErrNoRows when the company has no such
+	// task, or deleted it.
+	UpdateTask(ctx context.Context, arg UpdateTaskParams) (time.Time, error)
 	// Changes a field's name and required mark; a NULL argument leaves its
 	// column as it is. The kind and the dropdown are never changed.
 	// pgx.ErrNoRows when the type has no such field, or it is deleted.
