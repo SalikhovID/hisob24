@@ -2,7 +2,7 @@
 
 Bu hujjat mijozlar bo'limi qoidalarini belgilaydi: mijoz nima, uning turi va maydonlari qanday sozlanadi, kim nima qila oladi, nima qachon o'chadi. Rollar: [roles.md](roles.md). Userlar va a'zolik: [user.md](user.md). Vazifalar (mijozga biriktiriladi, dropdownlarni baham ko'radi): [tasks.md](tasks.md).
 
-> Holat: tasdiqlangan va amalga oshirilgan (2026-10-04). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-04-customers-design.md`.
+> Holat: tasdiqlangan va amalga oshirilgan (2026-10-04). 2-bo'limdagi rolli xodim qoidasi (2026-10-06) kompaniya rollari bilan amalga oshirilmoqda: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-04-customers-design.md`.
 
 ## 1. Tushunchalar
 
@@ -27,8 +27,10 @@ Hamma narsa kompaniyaga tegishli: bir kompaniya boshqasining mijozlarini, turlar
 | Tur, maydon, dropdown va variantlarni sozlash | ✓ | ✗ |
 | Mijozning o'zgarishlar tarixini ko'rish | ✓ | ✗ |
 
-- "Mijozlar" bo'limi hammaga, "Sozlamalar" bo'limi faqat owner'ga ko'rinadi.
-- `user` sozlash amalini yuborsa: 403 `owner_only`. Kompaniya tanlanmagan sessiya: 403 `company_required`.
+Jadvaldagi `user` rolsiz xodim. Kompaniya roli biriktirilgan xodim ([roles.md](roles.md), 4-bo'lim) har amalni rolning ruxsati bilan qiladi: `customers.view` (ro'yxat, mijoz sahifasi, telefon takliflari), `customers.create`, `customers.edit`, `customers.delete`, `customers.history`; sozlash `settings.create`, `settings.edit` (nom, belgilar, tartib, nofaol variant), `settings.delete`.
+
+- "Mijozlar" bo'limi `customers.view` bo'lganga (egasi va rolsiz xodimga ham), "Sozlamalar" bo'limi egasiga va `settings.view` ruxsatli xodimga ko'rinadi.
+- Ruxsati yo'q xodim amalni yuborsa: 403 `forbidden`. Kompaniya tanlanmagan sessiya: 403 `company_required`.
 
 ## 3. Sozlamalar
 
@@ -142,7 +144,7 @@ Mijozning har o'zgarishi yoziladi: qo'shilgani, har tahriri va o'chirilgani, kim
 
 Kim qilgani "Qo'shgan" kabi ko'rsatiladi: a'zoning hozirgi ismi, chiqarilgan bo'lsa o'sha paytdagi ismi.
 
-Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`, oxirgisi birinchi), mijoz sahifasida. O'chirilgan mijozning tarixi bazada qoladi, lekin interfeysda va API'da ko'rinmaydi (404).
+Tarixni egasi va `customers.history` ruxsatli xodim ko'radi (`GET /app/customers/{id}/history`, oxirgisi birinchi), mijoz sahifasida; rolsiz xodim ko'rmaydi. O'chirilgan mijozning tarixi bazada qoladi, lekin interfeysda va API'da ko'rinmaydi (404).
 
 ## 8. Chekka holatlar
 
@@ -155,7 +157,7 @@ Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`, oxirgisi birinch
 | Ikki turda bir xil nomli maydon | ro'yxatda bitta ustun; takrorlanmaslik har turda alohida |
 | Owner turning barcha mijozlarini o'chirib, turni o'chiradi | tur o'chadi: o'chirilgan mijozlar to'sqinlik qilmaydi |
 | Vazifasi bor mijoz o'chirilmoqchi | 409 `customer_in_use`; avval vazifalari o'chiriladi |
-| Owner hamma turni o'chirdi | mijoz qo'shib bo'lmaydi; sahifa owner'ni Sozlamalarga yo'naltiradi |
+| Owner hamma turni o'chirdi | mijoz qo'shib bo'lmaydi; sahifa egasini (va `settings.view` ruxsatli xodimni) Sozlamalarga yo'naltiradi |
 | Boshqa kompaniyaning mijozi, turi yoki dropdowni ID bo'yicha so'raldi | 404 `not_found` |
 | Xodim kompaniyadan chiqarildi | u qo'shgan mijozlar qoladi, "Qo'shgan" da o'sha paytdagi ismi |
 | Tartib o'zgartirilayotganda ro'yxat boshqa joyda o'zgargan | 409 `order_changed`: "Ro'yxat o'zgargan. Sahifani yangilang" |
@@ -166,7 +168,7 @@ Tarixni faqat owner ko'radi (`GET /app/customers/{id}/history`, oxirgisi birinch
 |---|---|---|
 | `validation_error` | 400 | 4.1-bo'limdagi xabarlar; "Nomni kiriting", "Nom 60 belgidan oshmasin", "Maydon turini tanlang", "Dropdownni tanlang"; ro'yxatda "Sahifa raqami noto'g'ri", "Mijoz turi noto'g'ri" |
 | `company_required` | 403 | "Avval kompaniyani tanlang" |
-| `owner_only` | 403 | "Bu bo'lim faqat kompaniya egasi uchun" |
+| `forbidden` | 403 | "Bu amal uchun ruxsatingiz yo'q" |
 | `not_found` | 404 | "Mijoz topilmadi", "Tur topilmadi", "Maydon topilmadi", "Dropdown topilmadi", "Variant topilmadi" |
 | `name_taken` | 409 | "Bu nomli tur allaqachon bor", "Bu nomli maydon allaqachon bor", "Bu nomli dropdown allaqachon bor", "Bu variant allaqachon bor" |
 | `phone_taken` | 409 | "Bu raqamli mijoz allaqachon bor" (`customer_id` bilan) |

@@ -100,7 +100,7 @@ make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa
 - `docs/SPEC.md`: spetsifikatsiya, asosiy manba.
 - `README.md`: lokal ishga tushirish, env, BotFather sozlamalari va production'da webhook.
 - `docs/superpowers/specs/2026-10-02-hisob24-design.md`: kelishilgan qarorlar va spec'dan tasdiqlangan chetlanishlar.
-- `logic/user.md`, `logic/roles.md`: user, multi-user, xodimlar va rollar (`owner` / `user`) qoidalari. Shu sohadagi kod shu hujjatlarga mos yoziladi.
+- `logic/user.md`, `logic/roles.md`: user, multi-user, xodimlar, rollar (`owner` / `user`), kompaniya rollari va ruxsatlar qoidalari. Shu sohadagi kod shu hujjatlarga mos yoziladi.
 - `logic/customers.md`: mijozlar, mijoz turlari, maydonlar va dropdownlar qoidalari (kim nima qila oladi, qiymat tekshiruvi, o'chirish, tarix). Shu sohadagi kod shu hujjatga mos yoziladi.
 - `docs/superpowers/specs/2026-10-04-customers-design.md`: mijozlar bo'limi dizayni (jadvallar, API, sahifalar, bosqichlar, qarorlar).
 - `logic/tasks.md`: vazifalar, bosqichlar (kanban), vazifa turlari va maydonlari, mas'ul qoidalari (kim nima qila oladi, tekshiruv, ro'yxat va kanban, tarix, o'chirish). Shu sohadagi kod shu hujjatga mos yoziladi.
@@ -110,3 +110,4 @@ make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa
 - `docs/superpowers/specs/2026-10-04-logo-design.md`: logotip (`Logo`, `LogoMark`, admin'da `Brand`), `--brand` tokeni, tab ikonlari va ularni qayta yasash buyruqlari. Logotip kerak bo'lgan yangi joy shu qoidalarga mos yoziladi.
 - `docs/superpowers/specs/2026-10-04-login-design.md`: login sahifalari (`LoginFrame`, `CodeField`, `Logo24`, `--brand-panel` tokenlari, o'lchamlar va matnlar). Kirishga oid yangi ekran shu qoidalarga mos yoziladi.
 - `docs/superpowers/specs/2026-10-06-selects-settings-tabs-pager-design.md`: select'lar (`SelectBox`, `SelectField`, `MultiSelectBox` shadcn Select ustida), `/settings` tablari (`useSettingsTab`, `settingsHref`) va raqamli `Pager` (`pageNumbers`, matnlari). Yangi select, sozlama bo'limi yoki sahifalangan ro'yxat shu qoidalarga mos yoziladi.
+- `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`: kompaniya rollari (ruxsat katalogi `bo'lim.amal`, `internal/access`, `requirePermission` va 403 `forbidden`, rollar API va sahifalari, xodimga rol biriktirish) va tor ekrandagi pastki tab-bar (`TabBar`, Telegram balandligi va xavfsiz zona) dizayni. Ruxsatga oid yangi kod va qobiq o'zgarishi shu hujjatga mos yoziladi.

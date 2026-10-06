@@ -1,73 +1,139 @@
-# Rollar: owner va user
+# Rollar: owner, user va kompaniya rollari
 
 Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md). Vazifalar bo'limi: [tasks.md](tasks.md).
 
-> Holat: amalga oshirilgan (2026-10-03). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
+> Holat: `owner` / `user` qoidalari amalga oshirilgan (2026-10-03, `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`). Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar 2026-10-06 da kelishilgan, amalga oshirilmoqda: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
 
 ## 1. Rollar
+
+Ikki qatlam bor: a'zolik roli va kompaniya roli.
+
+**A'zolik roli** (`user_companies.role`) userning kompaniyadagi o'rnini aytadi:
 
 | Rol | Interfeysda | Kim | Bir kompaniyada nechta |
 |---|---|---|---|
 | `owner` | Egasi | kompaniya egasi, uni platforma admini qo'yadi | aynan bitta |
-| `user` | Xodim | owner user app ichidan qo'shgan xodim | cheklanmagan |
+| `user` | Xodim | egasi (yoki shunga ruxsatli xodim) user app ichidan qo'shgan xodim | cheklanmagan |
 
-Boshqa rol yo'q. Eski `manager` va `staff` rollari olib tashlangan.
+Boshqa a'zolik roli yo'q. Eski `manager` va `staff` rollari olib tashlangan.
+
+**Kompaniya roli** (`roles` jadvali, `user_companies.role_id`) egasi tuzadigan nom va ruxsatlar to'plami (masalan, "Sotuvchi": mijozlar hammasi, vazifalar ko'rish va qo'shish). U faqat `user` a'zolikka biriktiriladi:
+
+| Xodim | Interfeysda | Ruxsati |
+|---|---|---|
+| rolsiz (`role_id IS NULL`) | Xodim | standart: Mijozlar va Vazifalar (4.2) |
+| rolli | rol nomi | faqat rolda belgilangan ruxsatlar |
+
+Egasiga rol berilmaydi: u hamma narsani qila oladi. Rollar kompaniyaga tegishli: bir kompaniya boshqasining rollarini ko'rmaydi va ishlatmaydi.
 
 Platforma admini (`admins` jadvali, admin panel) bu rollardan tashqarida: u kompaniya a'zosi emas va user app'ga admin sifatida kirmaydi.
 
 ## 2. Asosiy qoidalar
 
-1. **Rol tanlanmaydi, qo'shilgan joyiga qarab belgilanadi.** Admin paneldan qo'yilgan user `owner` bo'ladi. User app ichidan qo'shilgan user `user` bo'ladi.
+1. **A'zolik roli tanlanmaydi, qo'shilgan joyiga qarab belgilanadi.** Admin paneldan qo'yilgan user `owner` bo'ladi. User app ichidan qo'shilgan user `user` bo'ladi.
 2. **Har kompaniyada aynan bitta owner.** Buni baza kafolatlaydi: bir `company_id` ga bitta `owner` (unique indeks).
-3. **Owner'ga tizim ichidan tegib bo'lmaydi.** User app'dan owner'ni (o'zini ham) o'chirib, ismini yoki rolini o'zgartirib bo'lmaydi. Buni faqat platforma admini qiladi.
-4. **Rol kompaniyaga bog'liq.** Bir user bir kompaniyada owner, boshqasida user bo'lishi mumkin.
-5. **Rol har so'rovda bazadan o'qiladi.** O'zgarish darhol kuchga kiradi.
+3. **Owner'ga tizim ichidan tegib bo'lmaydi.** User app'dan owner'ni (o'zini ham) o'chirib, ismini yoki rolini o'zgartirib, unga kompaniya roli biriktirib bo'lmaydi. Egasini faqat platforma admini almashtiradi; egasiga kompaniya rolini hech kim bermaydi (baza CHECK).
+4. **Rol kompaniyaga bog'liq.** Bir user bir kompaniyada owner, boshqasida user bo'lishi mumkin; kompaniya roli ham shu kompaniyadagi a'zolikniki.
+5. **Rol va ruxsat har so'rovda bazadan o'qiladi.** Egasining almashishi, rolning biriktirilishi yoki rol ruxsatlarining o'zgarishi keyingi so'rovdanoq kuchga kiradi.
+6. **Kompaniya rollarini faqat egasi boshqaradi.** Rol yaratish, o'zgartirish, o'chirish va xodimga biriktirish egasiniki; bu ruxsat sifatida berilmaydi. Aks holda xodim o'ziga yoki hamkasbiga keng rol berib, huquqini oshirib olardi.
+7. **Ruxsat yetmasa, tugma ko'rinmaydi va API rad etadi.** Interfeys ruxsatsiz amalni ko'rsatmaydi, lekin himoya API'da: 403.
 
 ## 3. Rol qayerdan keladi
 
-| Amal | Kim bajaradi | Kim qaysi rolni oladi |
+| Amal | Kim bajaradi | Natija |
 |---|---|---|
 | Company yaratish | platforma admini | kiritilgan raqam → `owner` |
-| Egasini almashtirish | platforma admini | kiritilgan raqam → `owner`, oldingi owner → `user` |
-| Xodim qo'shish | kompaniya owner'i | kiritilgan raqam → `user` |
+| Egasini almashtirish | platforma admini | kiritilgan raqam → `owner` (kompaniya roli bo'lsa, olib tashlanadi), oldingi owner → rolsiz `user` |
+| Xodim qo'shish | egasi yoki `employees.create` ruxsatli xodim | kiritilgan raqam → rolsiz `user` |
+| Rol biriktirish | egasi | `user` → shu rol bilan; `null` → yana rolsiz |
 
-Rol faqat egasini almashtirish orqali o'zgaradi:
+A'zolik roli faqat egasini almashtirish orqali o'zgaradi:
 
 | O'tish | Mumkinmi | Qanday |
 |---|---|---|
 | `user` → `owner` | ha | admin shu raqamni owner qiladi |
 | `owner` → `user` | ha | admin boshqa raqamni owner qilganda |
-| `user` → o'chirilgan | ha | owner xodimni o'chiradi |
+| `user` → o'chirilgan | ha | egasi (yoki `employees.delete` ruxsatli xodim) xodimni o'chiradi |
 | `owner` → o'chirilgan | yo'q | avval egasi almashtiriladi, keyin yangi owner uni xodim sifatida o'chiradi |
 
 ## 4. Ruxsatlar
 
-| Amal | owner | user |
-|---|---|---|
-| Tizimga kirish (SMS yoki Mini App) | ✓ | ✓ |
-| Bosh sahifa | ✓ | ✓ |
-| Kompaniyani almashtirish (boshqa kompaniyasi bo'lsa) | ✓ | ✓ |
-| Xodimlar ro'yxatini ko'rish | ✓ | ✗ |
-| Xodim qo'shish | ✓ | ✗ |
-| Xodim (`user`) ismini tahrirlash | ✓ | ✗ |
-| Xodim (`user`) ni o'chirish | ✓ | ✗ |
-| Mijozlarni ko'rish, qo'shish, tahrirlash, o'chirish | ✓ | ✓ |
-| Mijoz turlari, maydonlar va dropdownlarni sozlash | ✓ | ✗ |
-| Mijozning o'zgarishlar tarixini ko'rish | ✓ | ✗ |
-| Vazifalarni ko'rish, qo'shish, tahrirlash, ko'chirish, o'chirish | ✓ | ✓ |
-| A'zolar ro'yxatini ko'rish (vazifaga mas'ul tanlash uchun: ism, telefon, rol) | ✓ | ✓ |
-| Bosqichlar, vazifa turlari va maydonlarini sozlash | ✓ | ✗ |
-| Vazifaning o'zgarishlar tarixini ko'rish | ✓ | ✗ |
-| Owner'ni o'zgartirish yoki o'chirish | ✗ | ✗ |
-| Kompaniya nomi, obuna, bloklash | ✗ | ✗ |
+### 4.1 Katalog
+
+Ruxsat `bo'lim.amal` ko'rinishida, 18 ta:
+
+| Bo'lim | `view` Ko'rish | `create` Qo'shish | `edit` Tahrirlash | `delete` O'chirish | `history` Tarix |
+|---|---|---|---|---|---|
+| `customers` Mijozlar | ro'yxat, mijoz sahifasi, telefon takliflari | mijoz qo'shish | mijozni tahrirlash | mijozni o'chirish | mijoz tarixini ko'rish |
+| `tasks` Vazifalar | ro'yxat, kanban, vazifa sahifasi | vazifa qo'shish | vazifani tahrirlash, bosqichini o'zgartirish (sudrash ham) | vazifani o'chirish | vazifa tarixini ko'rish |
+| `employees` Xodimlar | xodimlar ro'yxati (rollari bilan) | xodim qo'shish | xodim ismini o'zgartirish | xodimni o'chirish | — |
+| `settings` Sozlamalar | Sozlamalar sahifasi | tur, maydon, dropdown, variant, bosqich qo'shish | nomini, belgilarini va tartibini o'zgartirish; variantni nofaol qilish | o'chirish | — |
+
+- Bo'limning `view` ruxsati bo'lsa, u menyuda ko'rinadi. Bosh sahifa hammaga.
+- **Amal `view`siz bo'lmaydi:** rolda biror bo'limning `create`, `edit`, `delete` yoki `history` ruxsati bo'lsa, shu bo'limning `view` ruxsati ham bo'lishi shart. API bunday rolni rad etadi (400 "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang"), forma esa amal belgilanganda "Ko'rish" ni o'zi belgilaydi, "Ko'rish" olib tashlansa bo'limni tozalaydi.
+- Katalogda yo'q kalit: 400 "Ruxsat noto'g'ri". Takror kalit bir marta sanaladi.
+- Katalogdan tashqarida: a'zolar ro'yxati (`GET /app/members`), turlar, dropdownlar, bosqichlar va vazifa turlarini o'qish (formalar uchun) hamma a'zoga ochiq; rollarni boshqarish va biriktirish faqat egasiga.
+
+### 4.2 Kim nimaga ega
+
+| Kim | Ruxsati |
+|---|---|
+| egasi | katalogning hammasi; qo'shimcha rollarni boshqarish va biriktirish |
+| rolsiz xodim | `customers.view`, `customers.create`, `customers.edit`, `customers.delete`, `tasks.view`, `tasks.create`, `tasks.edit`, `tasks.delete` (2026-10-03 dagi qoida bilan aynan bir xil) |
+| rolli xodim | faqat rolda belgilanganlar; standart to'plam qo'shilmaydi |
+
+Amallar bo'yicha:
+
+| Amal | owner | rolsiz `user` | rolli `user` |
+|---|---|---|---|
+| Tizimga kirish (SMS yoki Mini App) | ✓ | ✓ | ✓ |
+| Bosh sahifa | ✓ | ✓ | ✓ |
+| Kompaniyani almashtirish (boshqa kompaniyasi bo'lsa) | ✓ | ✓ | ✓ |
+| A'zolar ro'yxati (mas'ul tanlash uchun), turlar, dropdownlar, bosqichlarni o'qish | ✓ | ✓ | ✓ |
+| Mijozlarni ko'rish, qo'shish, tahrirlash, o'chirish | ✓ | ✓ | `customers.*` |
+| Mijozning o'zgarishlar tarixini ko'rish | ✓ | ✗ | `customers.history` |
+| Vazifalarni ko'rish, qo'shish, tahrirlash, ko'chirish, o'chirish | ✓ | ✓ | `tasks.*` |
+| Vazifaning o'zgarishlar tarixini ko'rish | ✓ | ✗ | `tasks.history` |
+| Xodimlar ro'yxatini ko'rish, xodim qo'shish, ismini o'zgartirish, o'chirish | ✓ | ✗ | `employees.*` |
+| Mijoz turlari, maydonlar, dropdownlar, bosqichlar, vazifa turlarini sozlash | ✓ | ✗ | `settings.*` |
+| Rollarni ko'rish, yaratish, o'zgartirish, o'chirish; xodimga rol biriktirish | ✓ | ✗ | ✗ |
+| Owner'ni o'zgartirish yoki o'chirish | ✗ | ✗ | ✗ |
+| Kompaniya nomi, obuna, bloklash | ✗ | ✗ | ✗ |
 
 Oxirgi ikki qator faqat platforma adminiga tegishli (admin panel).
 
-"Xodimlar ro'yxatini ko'rish" Xodimlar bo'limi va `GET /app/employees` haqida. A'zolar ro'yxati (`GET /app/members`) esa har a'zoga, faqat tanlash uchun: unda ism, telefon va rol bor, boshqaruv amallari yo'q.
+"Xodimlar ro'yxatini ko'rish" Xodimlar bo'limi va `GET /app/employees` haqida. A'zolar ro'yxati (`GET /app/members`) esa har a'zoga, faqat tanlash uchun: unda ism, telefon va a'zolik roli bor, boshqaruv amallari yo'q.
 
-Ruxsat har doim **tanlangan kompaniyadagi rol** bo'yicha beriladi. Olma Savdo'da owner bo'lgan user Nok Market'da `user` bo'lsa, Nok Market'ning xodimlarini ko'rmaydi.
+Ruxsat har doim **tanlangan kompaniyadagi a'zolik** bo'yicha beriladi. Olma Savdo'da owner bo'lgan user Nok Market'da rolli `user` bo'lsa, Nok Market'da faqat o'sha rol ruxsatlari bilan ishlaydi.
 
-## 5. Egasini almashtirish (admin panel)
+### 4.3 Ikki bo'limga tegadigan amallar
+
+| Amal | Kerak bo'lgan ruxsat |
+|---|---|
+| Vazifani yangi mijoz bilan qo'shish (`POST /app/tasks`, `customer` da `id` yo'q) | `tasks.create` **va** `customers.create`; ikkinchisi bo'lmasa 403 `forbidden` |
+| Vazifa qo'shishda mavjud mijozni telefon takliflaridan tanlash (`GET /app/customers?phone=`) | `customers.view` |
+| Mijoz sahifasida uning vazifalarini ko'rish (`GET /app/tasks?customer_id=`) | `tasks.view` |
+
+Interfeys: `customers.create` bo'lmasa vazifa formasida "yangi mijoz" qismi yo'q; `customers.view` bo'lmasa takliflar so'ralmaydi; ikkalasi ham bo'lmasa "Vazifa qo'shish" tugmasi ko'rinmaydi. Mijoz sahifasidagi "Vazifalar" bo'limi `tasks.view` bo'lsa chiqadi. Vazifa va mijoz orasidagi havolalar qoladi: ruxsatsiz sahifa ochilsa, bosh sahifaga qaytariladi.
+
+## 5. Kompaniya rollari
+
+Egasi **Sozlamalar → Rollar** da rollarni tuzadi va **Xodimlar** da biriktiradi.
+
+| Amal | Qoida |
+|---|---|
+| Yaratish (`POST /app/roles {name, permissions}`) | nom 1–60 belgi, chetidagi bo'shliqlar olib tashlanadi, kompaniyada takrorlanmaydi (katta-kichik harf farqsiz): 409 `name_taken`; ruxsatlar katalogdan (4.1); bo'sh ro'yxat mumkin (bunday xodim faqat Bosh sahifani ko'radi) |
+| O'zgartirish (`PUT /app/roles/{id} {name, permissions}`) | nom va ruxsatlar yuborilganiga butunlay almashadi; shu rolli xodimlarga keyingi so'rovdanoq ta'sir qiladi |
+| O'chirish (`DELETE /app/roles/{id}`) | biror xodimga biriktirilgan rol o'chirilmaydi: 409 `role_in_use` "Bu rol N ta xodimga biriktirilgan"; aks holda bazadan o'chadi (unga hech narsa havola qilmaydi), nomi darhol bo'shaydi |
+| Biriktirish (`PUT /app/employees/{phone}/role {role_id}`) | `role_id` shu kompaniyaning roli bo'lishi shart (yo'q yoki begona bo'lsa 404 "Rol topilmadi"); `null` rolni olib tashlaydi, xodim rolsiz bo'ladi; egasiga 409 `cannot_change_owner`; a'zo bo'lmagan raqam 404 "Xodim topilmadi" |
+
+- Ro'yxat (`GET /app/roles`) nom bo'yicha; har rolda biriktirilgan xodimlar soni bor.
+- Xodim o'chirilsa, a'zolik bilan biriktiruvi ketadi; rol qoladi. Qayta qo'shilgan xodim rolsiz.
+- Egasi almashtirilganda yangi egasining kompaniya roli olib tashlanadi (egasiga rol bo'lmaydi); eski egasi rolsiz xodim bo'ladi.
+- Rol biriktirilgan yoki o'zgargan xodimning ochiq sessiyasi uzilmaydi; keyingi so'rovdan yangi ruxsat bilan ishlaydi (7-bo'lim).
+- Tayyor rol yo'q: har kompaniya rolsiz boshlaydi.
+
+## 6. Egasini almashtirish (admin panel)
 
 Admin kompaniya sahifasida **Egasini almashtirish** ni bosadi va telefon bilan ismni kiritadi (`PUT /admin/companies/{id}/owner {phone, full_name}`). Hammasi bitta transaction ichida bajariladi.
 
@@ -75,39 +141,79 @@ Admin kompaniya sahifasida **Egasini almashtirish** ni bosadi va telefon bilan i
 |---|---|
 | tizimda yo'q | user yaratiladi va owner bo'ladi; oldingi owner → `user` |
 | boshqa kompaniyada bor | o'sha user shu kompaniyada owner bo'ladi (multi-user); oldingi owner → `user` |
-| shu kompaniyada `user` | owner'ga ko'tariladi, ismi kiritilgan ismga almashadi; oldingi owner → `user` |
+| shu kompaniyada `user` | owner'ga ko'tariladi, ismi kiritilgan ismga almashadi, kompaniya roli bo'lsa olib tashlanadi; oldingi owner → `user` |
 | hozirgi owner'ning o'zi | rol o'zgarmaydi, faqat ismi yangilanadi |
 
-- Oldingi owner kompaniyada xodim bo'lib qoladi, ismi saqlanadi. Kerak bo'lmasa, yangi owner uni Xodimlar'dan o'chiradi.
-- Oldingi owner'ning ochiq sessiyasi uzilmaydi, lekin keyingi so'rovdan boshlab u `user` huquqlari bilan ishlaydi: "Xodimlar" bo'limi yo'qoladi.
+- Oldingi owner kompaniyada rolsiz xodim bo'lib qoladi, ismi saqlanadi. Kerak bo'lmasa, yangi owner uni Xodimlar'dan o'chiradi.
+- Oldingi owner'ning ochiq sessiyasi uzilmaydi, lekin keyingi so'rovdan boshlab u rolsiz `user` huquqlari bilan ishlaydi: "Xodimlar" va "Sozlamalar" bo'limlari yo'qoladi.
 - Ikki admin bir kompaniyaning egasini bir vaqtda almashtirsa, amallar navbat bilan bajariladi va oxirgisi qoladi. Ikki owner paydo bo'lmaydi.
 
-## 6. Rol qanday tekshiriladi
+## 7. Rol va ruxsat qanday tekshiriladi
 
-- Rol `user_companies.role` da saqlanadi: `owner` yoki `user`.
-- Access token'da `company_id` va `role` bor, lekin ruxsat berishda token'dagi rolga ishonilmaydi. Har so'rovda a'zolik va rol bazadan o'qiladi (obuna tekshiruvi bilan bitta so'rovda).
-- Tekshiruv tartibi: token (401) → a'zolik (401) → obuna (402) → rol (403 `owner_only`). Batafsil: [user.md](user.md), 7-bo'lim.
-- Kompaniya ID so'rovdan emas, token'dan olinadi. Shuning uchun owner boshqa kompaniyaga ta'sir qila olmaydi.
+- A'zolik roli `user_companies.role` da (`owner` yoki `user`), kompaniya roli `user_companies.role_id` da (`roles` jadvaliga kompaniya bo'yicha FK), ruxsatlar `roles.permissions` da (`bo'lim.amal` kalitlari ro'yxati).
+- Access token'da `company_id` va `role` bor, lekin ruxsat berishda token'ga ishonilmaydi. Har so'rovda a'zolik, obuna, rol va ruxsatlar bazadan bitta so'rovda o'qiladi.
+- Amaldagi ruxsat: owner → hammasi; `user`, rolsiz → standart (4.2); `user`, rolli → rolniki.
+- Tekshiruv tartibi: token (401) → a'zolik (401) → obuna (402) → kompaniya tanlangan (403 `company_required`) → ruxsat (403 `forbidden`). Rollarni boshqarish va biriktirish: owner (403 `owner_only`). Batafsil: [user.md](user.md), 7-bo'lim.
+- Kompaniya ID so'rovdan emas, token'dan olinadi. Shuning uchun hech kim boshqa kompaniyaga ta'sir qila olmaydi; begona kompaniyaning roli biriktirilsa, baza (FK) ham rad etadi.
+- `/app/me` javobida `permissions` bor: tanlangan kompaniyadagi amaldagi ruxsatlar. Interfeys menyu va tugmalarni shundan quradi; kompaniya tanlanmagan bo'lsa ro'yxat bo'sh.
 
-## 7. Interfeys
+## 8. Interfeys
 
-- Sidebar'dagi **Xodimlar** va **Sozlamalar** bo'limlari faqat owner'ga ko'rinadi. **Mijozlar** va **Vazifalar** bo'limlari hammaga ko'rinadi.
-- `user` `/employees` yoki `/settings` manzilini qo'lda ochsa, bosh sahifaga qaytariladi. API baribir 403 qaytaradi.
-- Mijoz sahifasidagi "Tarix" bo'limi faqat owner'ga chiqadi ([customers.md](customers.md), 7-bo'lim); vazifa sahifasidagi ham ([tasks.md](tasks.md), 7-bo'lim).
+- Bo'limlar ruxsat bo'yicha: **Mijozlar** `customers.view`, **Vazifalar** `tasks.view`, **Xodimlar** `employees.view`, **Sozlamalar** `settings.view` bo'lganga ko'rinadi; **Bosh sahifa** hammaga. Keng ekranda (768px dan) bo'limlar chapdagi sidebar'da, tor ekranda (telefon, Telegram Mini App) pastdagi tab-bar'da; chapdan chiqadigan menyu yo'q.
+- Ruxsat bo'lmagan amalning tugmasi chizilmaydi (qo'shish, tahrirlash, o'chirish, bosqichni ko'chirish, tarix). Bo'lim manzili qo'lda ochilsa, bosh sahifaga qaytariladi. API baribir 403 qaytaradi.
+- **Rollar** Sozlamalarning alohida tabi, faqat egasiga ko'rinadi: ro'yxat (nom, bo'limlari, nechta xodimda), rol sahifasida nom va ruxsat matritsasi (bo'limlar × amallar), "Saqlash". Yangi rol `/settings/roles/new` da.
+- **Xodimlar** ro'yxatida "Rol" ustuni: owner "Egasi", rolli xodim rol nomi, rolsiz "Xodim". Egasi har xodim qatorida rolni almashtiradi (dialog: "Rolsiz" yoki rollardan biri). `employees.*` ruxsatli xodim ro'yxatni va o'z amallarini ko'radi, rol tugmasini ko'rmaydi.
+- Bosh sahifadagi kompaniya kartasida ham rol nomi (yoki "Egasi" / "Xodim").
 - Xodimlar ro'yxatida owner birinchi turadi va "Egasi" belgisi bilan ko'rinadi (o'z qatorida "Siz"). Tahrirlash va o'chirish tugmalari faqat xodimlarda bor.
-- Sessiyasi ochiq owner almashtirilsa, uning keyingi owner amali 403 `owner_only` oladi. User app shunda `/app/me` ni qayta so'raydi: "Xodimlar" bo'limi yo'qoladi va u bosh sahifaga qaytariladi.
-- Admin panelda kompaniya a'zolari "Egasi" yoki "Xodim" roli bilan ko'rinadi.
+- Sessiyasi ochiq paytda ruxsati o'zgargan xodimning keyingi rad etilgan so'rovi (403 `forbidden` yoki `owner_only`) `/app/me` ni qayta so'ratadi: menyu yangilanadi, ruxsati yo'qolgan sahifadan bosh sahifaga qaytariladi.
+- Mijoz va vazifa sahifalaridagi "Tarix" bo'limi egasiga va tegishli `history` ruxsatiga chiqadi ([customers.md](customers.md), 7-bo'lim; [tasks.md](tasks.md), 7-bo'lim).
+- Admin panelda kompaniya a'zolari "Egasi" yoki "Xodim" roli bilan ko'rinadi; kompaniya rollari admin panelda ko'rsatilmaydi va boshqarilmaydi.
 
-## 8. Eski ma'lumotdan o'tish (migratsiya 00004)
+## 9. Chekka holatlar
 
-Bu qoidalar kiritilganda mavjud a'zolar shunday aylantiriladi:
+| Holat | Natija |
+|---|---|
+| Egasiga rol biriktirilmoqchi | 409 `cannot_change_owner` |
+| Boshqa kompaniyaning roli biriktirilmoqchi | 404 "Rol topilmadi" (baza FK ham rad etadi) |
+| Rolli xodim egasi qilindi (admin) | rol olib tashlanadi, u egasi sifatida hamma narsani qila oladi |
+| Rolli xodim o'chirildi, keyin qayta qo'shildi | rolsiz qaytadi |
+| Rol o'chirilmoqchi, lekin xodimlarda bor | 409 `role_in_use`; avval xodimlardan olinadi |
+| Rolning ruxsatlari kamaytirildi, xodim sahifada turibdi | keyingi so'rovi 403 `forbidden`; app `/app/me` ni qayta so'raydi, bo'lim yo'qolsa bosh sahifaga |
+| `employees.delete` ruxsatli xodim o'zini o'chiradi | o'chadi: keyingi so'rovdan kompaniyaga kira olmaydi ([user.md](user.md), 6-bo'lim) |
+| `employees.edit` ruxsatli xodim egasining ismini o'zgartirmoqchi | 409 `cannot_change_owner` (avvalgidek) |
+| Bo'sh ruxsatli rol | xodim faqat Bosh sahifani ko'radi, kompaniyani almashtira oladi |
+| `tasks.create` bor, `customers.view` va `customers.create` yo'q | vazifa qo'shib bo'lmaydi: tugma ko'rinmaydi, API mijozni talab qiladi |
+| Kompaniyasi tanlanmagan token bilan ruxsatli API | 403 `company_required`; rollar API 403 `owner_only` |
+| Obunasi tugagan kompaniyada ruxsatli API | 402 `subscription_expired` |
+| Ikki sessiya bitta rolni bir vaqtda o'zgartiradi | oxirgi saqlagan qoladi |
+| Bir xil nomli rol (katta-kichik harf farqi bilan) | 409 `name_taken` |
+
+## 10. Xato kodlari
+
+| Kod | Status | Xabar |
+|---|---|---|
+| `validation_error` | 400 | "Nomni kiriting", "Nom 60 belgidan oshmasin", "Ruxsat noto'g'ri", "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang" |
+| `company_required` | 403 | "Avval kompaniyani tanlang" |
+| `forbidden` | 403 | "Bu amal uchun ruxsatingiz yo'q" |
+| `owner_only` | 403 | "Bu bo'lim faqat kompaniya egasi uchun" |
+| `not_found` | 404 | "Rol topilmadi", "Xodim topilmadi" |
+| `name_taken` | 409 | "Bu nomli rol allaqachon bor" |
+| `role_in_use` | 409 | "Bu rol N ta xodimga biriktirilgan" |
+| `cannot_change_owner` | 409 | "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi" |
+
+## 11. Eski ma'lumotdan o'tish
+
+Migratsiya 00004 (2026-10-03), `owner` / `user` kiritilganda:
 
 - har kompaniyada eng birinchi qo'shilgan owner (kompaniya yaratilganda qo'yilgan) owner bo'lib qoladi;
 - qolgan hamma a'zo (`manager`, `staff` va keyin qo'shilgan owner'lar) `user` bo'ladi;
 - har a'zolikning ismi userning o'sha paytdagi ismidan olinadi.
 
-## 9. Yangi bo'lim qo'shilganda
+Migratsiya 00009 (2026-10-06), kompaniya rollari kiritilganda: `roles` jadvali va `user_companies.role_id` qo'shiladi; mavjud a'zolar rolsiz qoladi, hech kimning huquqi o'zgarmaydi.
 
-- 4-bo'limdagi jadvalga qator qo'shiladi: bo'limni kim ko'radi, kim o'zgartiradi.
-- Faqat owner'ga tegishli bo'lsa: sidebar'da `ownerOnly` belgisi va API'da owner tekshiruvi (403 `owner_only`).
-- Yangi rol kerak bo'lsa, avval shu hujjat o'zgartiriladi, keyin kod.
+## 12. Yangi bo'lim qo'shilganda
+
+- Katalogga (4.1) bo'lim va amallari qo'shiladi: backend `internal/access`, frontend `lib/permissions.ts`, `openapi.yaml` dagi `Permission` enum.
+- 4.2 jadvaliga qator qo'shiladi; rolsiz xodimga kerak bo'lsa, standart to'plamga ham.
+- Menyuda `permission: "<bo'lim>.view"`, API'da `requirePermission`. Faqat egasiga tegishli bo'lsa (rollar kabi): API'da `requireOwner` (403 `owner_only`), interfeysda `useOwner`.
+- Yangi a'zolik roli kerak bo'lsa, avval shu hujjat o'zgartiriladi, keyin kod.

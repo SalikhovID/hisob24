@@ -2,7 +2,7 @@
 
 Bu hujjat vazifalar bo'limi qoidalarini belgilaydi: vazifa nima, u qaysi bosqichda turadi, turi va maydonlari qanday sozlanadi, mijozga qanday biriktiriladi, kim nima qila oladi, nima qachon o'chadi. Rollar: [roles.md](roles.md). Mijozlar, turlar, maydonlar va dropdownlarning umumiy qoidalari: [customers.md](customers.md).
 
-> Holat: amalga oshirilgan (2026-10-06). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-06-tasks-design.md`.
+> Holat: amalga oshirilgan (2026-10-06). 2 va 4-bo'limlardagi rolli xodim qoidasi (2026-10-06) kompaniya rollari bilan amalga oshirilmoqda: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-06-tasks-design.md`.
 
 ## 1. Tushunchalar
 
@@ -29,8 +29,10 @@ Hamma narsa kompaniyaga tegishli; kompaniya so'rovdan emas, access token'dan oli
 | Bosqich, tur va maydonlarni sozlash | ✓ | ✗ |
 | Vazifaning o'zgarishlar tarixini ko'rish | ✓ | ✗ |
 
-- "Vazifalar" bo'limi hammaga, sozlamalar faqat owner'ga ko'rinadi.
-- `user` sozlash amalini yuborsa: 403 `owner_only`. Kompaniya tanlanmagan sessiya: 403 `company_required`.
+Jadvaldagi `user` rolsiz xodim. Kompaniya roli biriktirilgan xodim ([roles.md](roles.md), 4-bo'lim) har amalni rolning ruxsati bilan qiladi: `tasks.view` (ro'yxat, kanban, vazifa sahifasi), `tasks.create`, `tasks.edit` (tahrirlash va bosqichni o'zgartirish), `tasks.delete`, `tasks.history`; sozlash `settings.*`. Yangi mijoz bilan vazifa qo'shish `customers.create` ni ham talab qiladi, mavjud mijozni takliflardan tanlash `customers.view` ni (4-bo'lim).
+
+- "Vazifalar" bo'limi `tasks.view` bo'lganga (egasi va rolsiz xodimga ham), sozlamalar egasiga va `settings.view` ruxsatli xodimga ko'rinadi.
+- Ruxsati yo'q xodim amalni yuborsa: 403 `forbidden`. Kompaniya tanlanmagan sessiya: 403 `company_required`.
 
 ## 3. Sozlamalar
 
@@ -77,7 +79,7 @@ va bitta tur: "Vazifa" (maydonsiz). Owner ularni o'zgartirishi va o'chirishi mum
 
 ## 4. Vazifa
 
-- **Qo'shish.** `POST /app/tasks {type_id, title, deadline, stage_id, assignee_phone?, values, customer}`. `customer` yo mavjud mijoz (`{id}`), yo yangi mijoz (`{type_id, phone, values}`, [customers.md](customers.md) 4-bo'lim qoidalari bilan). Yangi mijoz vazifa bilan bitta tranzaksiyada yaratiladi: ikkisi birga yoziladi yoki hech biri; mijozning o'z tarixiga "qo'shildi" yoziladi. Kim qo'shgani saqlanadi.
+- **Qo'shish.** `POST /app/tasks {type_id, title, deadline, stage_id, assignee_phone?, values, customer}`. `customer` yo mavjud mijoz (`{id}`), yo yangi mijoz (`{type_id, phone, values}`, [customers.md](customers.md) 4-bo'lim qoidalari bilan). Yangi mijoz vazifa bilan bitta tranzaksiyada yaratiladi: ikkisi birga yoziladi yoki hech biri; mijozning o'z tarixiga "qo'shildi" yoziladi. Kim qo'shgani saqlanadi. Yangi mijoz bilan qo'shish `tasks.create` dan tashqari `customers.create` ruxsatini ham talab qiladi (ikkinchisi bo'lmasa 403 `forbidden`); mavjud mijozni telefon takliflaridan tanlash uchun `customers.view` kerak. Ruxsati yo'q qism formada ko'rinmaydi ([roles.md](roles.md), 4.3).
 - **Tahrirlash.** `PUT /app/tasks/{id} {title, deadline, stage_id, assignee_phone, values}`: yuborilganiga almashadi, yuborilmagan maydonning qiymati o'chadi. Mijoz va tur o'zgarmaydi. Ikki kishi bir vaqtda tahrirlasa, oxirgi saqlagan qoladi. Hech narsa o'zgarmagan saqlash hech narsani yozmaydi.
 - **Ko'chirish.** `PATCH /app/tasks/{id}/stage {stage_id}`: faqat bosqich o'zgaradi (kanban'da sudrash, kartadagi va vazifa sahifasidagi "Bosqich" tanlovi). Tarixga "Bosqich" o'zgarishi yoziladi.
 - **O'chirish.** Vazifa yashiriladi (`deleted_at`), bazadan o'chmaydi: ro'yxatda, kanban'da, mijoz sahifasida ko'rinmaydi, sahifasi 404. Tiklash yo'q.
@@ -140,14 +142,14 @@ Hamma narsa yashiriladi, bazadan o'chmaydi. Faol vazifada ishlatilayotgan narsa 
 
 Vazifaning har o'zgarishi yoziladi: qo'shilgani, har tahriri va ko'chirilgani, o'chirilgani, kim qilgani bilan. Tahrirda va ko'chirishda o'zgargan har narsa eski va yangi qiymati bilan: "Nomi", "Muddat" (`dd.mm.yyyy`), "Bosqich" (nomi), "Mas'ul" (ismi, bo'shi bo'sh matn), keyin maydonlar o'z tartibida (variantlar nomi bilan). Qiymatlar o'sha paytdagi nomlari bilan matn sifatida yoziladi: keyin qayta nomlansa, tarix o'zgarmaydi. Qo'shish va o'chirish yozuvida o'zgarishlar ro'yxati bo'sh. Hech narsa o'zgarmagan saqlash tarixga yozilmaydi.
 
-Tarixni faqat owner ko'radi (`GET /app/tasks/{id}/history`, oxirgisi birinchi), vazifa sahifasida. O'chirilgan vazifaning tarixi bazada qoladi, lekin API'da ko'rinmaydi (404).
+Tarixni egasi va `tasks.history` ruxsatli xodim ko'radi (`GET /app/tasks/{id}/history`, oxirgisi birinchi), vazifa sahifasida; rolsiz xodim ko'rmaydi. O'chirilgan vazifaning tarixi bazada qoladi, lekin API'da ko'rinmaydi (404).
 
 ## 8. Chekka holatlar
 
 | Holat | Natija |
 |---|---|
 | Vazifa qo'shilayotganda yozilgan telefon mavjud mijozniki, lekin taklifdan tanlanmagan | 409 `phone_taken` (`customer_id` bilan): forma "Shu mijozni biriktirish" ni taklif qiladi |
-| Owner hamma bosqichni o'chirdi | vazifa qo'shib bo'lmaydi; sahifa owner'ni Sozlamalarga yo'naltiradi, xodimga aytadi |
+| Owner hamma bosqichni o'chirdi | vazifa qo'shib bo'lmaydi; sahifa egasini (va `settings.view` ruxsatli xodimni) Sozlamalarga yo'naltiradi, boshqa xodimga aytadi |
 | Owner hamma vazifa turini o'chirdi | vazifa qo'shib bo'lmaydi (mijozlardagi kabi) |
 | Owner hamma mijoz turini o'chirdi | vazifa faqat mavjud mijoz bilan qo'shiladi; forma yangi mijoz qismini yashirib, buni aytadi |
 | Bosqich ochiq kanban'da turganda boshqa joyda o'chirildi, karta unga tashlandi | 400 "Bosqichni tanlang": karta qaytadi, bosqichlar qayta so'raladi |
@@ -163,7 +165,7 @@ Tarixni faqat owner ko'radi (`GET /app/tasks/{id}/history`, oxirgisi birinchi), 
 |---|---|---|
 | `validation_error` | 400 | 4.1-bo'lim xabarlari; "Nomni kiriting", "Nom 60 belgidan oshmasin", "Rangni tanlang", "Maydon turini tanlang", "Dropdownni tanlang"; ro'yxatda "Sahifa raqami noto'g'ri", "Vazifa turi noto'g'ri", "Bosqich noto'g'ri", "Mijoz noto'g'ri" |
 | `company_required` | 403 | "Avval kompaniyani tanlang" |
-| `owner_only` | 403 | "Bu bo'lim faqat kompaniya egasi uchun" |
+| `forbidden` | 403 | "Bu amal uchun ruxsatingiz yo'q" |
 | `not_found` | 404 | "Vazifa topilmadi", "Bosqich topilmadi", "Tur topilmadi", "Maydon topilmadi" |
 | `name_taken` | 409 | "Bu nomli bosqich allaqachon bor", "Bu nomli tur allaqachon bor", "Bu nomli maydon allaqachon bor" |
 | `phone_taken`, `value_taken` | 409 | yangi mijoz bilan qo'shishda, mijozlardagi xabarlar (`customer_id` bilan) |
