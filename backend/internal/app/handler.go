@@ -59,6 +59,16 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireUser, h.requireAccess)
 			r.Get("/me", h.me)
+			// The roles are the owner's alone to make and to give
+			// (logic/roles.md, section 5).
+			r.Group(func(r chi.Router) {
+				r.Use(h.requireOwner)
+				r.Get("/roles", h.listRoles)
+				r.Post("/roles", h.createRole)
+				r.Put("/roles/{id}", h.updateRole)
+				r.Delete("/roles/{id}", h.deleteRole)
+				r.Put("/employees/{phone}/role", h.setEmployeeRole)
+			})
 			// Everything else is done inside a company, by what the member
 			// may do there (logic/roles.md, section 4).
 			r.Group(func(r chi.Router) {

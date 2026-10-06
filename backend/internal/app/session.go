@@ -198,8 +198,6 @@ func (h *Handler) requirePermission(p access.Permission) func(http.Handler) http
 // requireOwner lets through only the owner of the company the session works
 // in: the roles are theirs alone to manage. A user of the company, and a
 // session with no company chosen, get 403.
-//
-//nolint:unused // Stage 2 of the roles work mounts the roles API behind it.
 func (h *Handler) requireOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if currentAccess(r.Context()).Role != "owner" {
