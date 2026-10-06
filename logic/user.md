@@ -2,7 +2,7 @@
 
 Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tushadi, bir nechta kompaniyada qanday ishlaydi, ismi va kirish huquqi qanday boshqariladi. Rollar va ruxsatlar: [roles.md](roles.md).
 
-> Holat: amalga oshirilgan (2026-10-03). 2026-10-06 da kompaniya rollari bilan yangilangan qoidalar (kim xodim qo'shadi, ismini o'zgartiradi va o'chiradi; tekshiruv tartibidagi `company_required` va `forbidden`) amalga oshirilmoqda: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
+> Holat: amalga oshirilgan (2026-10-03). 2026-10-06 da kompaniya rollari bilan yangilangan qoidalar (kim xodim qo'shadi, ismini o'zgartiradi va o'chiradi; tekshiruv tartibidagi `company_required` va `forbidden`) amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
 
 ## 1. Tushunchalar
 

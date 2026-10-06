@@ -1,6 +1,6 @@
 # Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar — dizayn
 
-Sana: 2026-10-06. Holat: foydalanuvchi reja sifatida tasdiqlagan; bosqichlar amalga oshirilmoqda (hujjat oxiridagi "N-bosqich qarorlari" bo'limlari to'ldirib boriladi). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-06-roles-stage<N>-*.md`.
+Sana: 2026-10-06. Holat: foydalanuvchi reja sifatida tasdiqlagan; 0–5-bosqichlarning hammasi amalga oshirilgan (hujjat oxiridagi "N-bosqich qarorlari" bo'limlari). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-06-roles-stage<N>-*.md`.
 
 ## Maqsad
 
@@ -310,3 +310,17 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **e2e `roles.spec.ts`** bitta uzun oqim (uch marta kirish): `test.setTimeout(120_000)` va `db.cooldown = false` (mock SMS daqiqasi; `login.spec.ts` dagidek). Birinchi urinish shu daqiqa cheklovida to'xtab qolgan edi.
 - **Yangi testlar:** `role-form.test.tsx`, `role-page.test.tsx`, `settings-page.test.tsx` (tab, ro'yxat, o'chirish), `employees-page.test.tsx` (rol dialogi), `permissions.test.ts` (`actionsOf`, `toggled`, `summaryOf`), `schemas.test.ts` (`roleSchema`); egasining tablari testi 4 tabni kutadi (talab o'zgardi).
 - **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 575; `make e2e`: admin 40, web 92.
+
+## 5-bosqich qarorlari (2026-10-06)
+
+Bajarildi: `components/shell/tab-bar.tsx`, `AppShell` (`<TabBar />`, `data-slot="app-shell"`), `Sidebar` (`Sheet`siz), `Topbar` ("Menyu"siz), `useSidebar` (`open`siz), `TelegramSync` (`disableVerticalSwipes?.()`), `types/telegram.d.ts`, `app/layout.tsx` (`viewport.viewportFit = "cover"`), `globals.css` (`pb-safe`, Telegram qobiq balandligi, `overscroll-behavior`), e2e (`helpers.ts`, `employees.spec.ts`, `shell.spec.ts`, `miniapp.spec.ts`), README. Reja: `docs/superpowers/plans/2026-10-06-roles-stage5-tab-bar.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Tab-bar `flex` qator, har tugma `flex-1`:** egasida 5, rolli xodimda 2–5 tugma; 375px da besh nom sig'adi (`text-[0.6875rem]`, `truncate`). Joriy tugma: ikonka ostida `bg-sidebar-accent` plashka va `strokeWidth` 2.5, matn `text-sidebar-accent-foreground`; qolganlari xira. Telegram'da `--sidebar` chat ranglaridan (skrinshotda tekshirildi).
+- **Bitta `Bo'limlar` nomli ikki `nav`** (sidebar ustuni va tab-bar): CSS bir vaqtda bittasini ko'rsatadi (`hidden md:flex` / `md:hidden`), shuning uchun ekran o'quvchi ham bittasini eshitadi. Testlarda ikkinchisi tab-bar.
+- **`pb-safe` utility:** `max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px))`; `viewport-fit=cover` bo'lmasa `env()` nol bo'lardi.
+- **Telegram:** qobiq `[data-slot="app-shell"]` balandligi `var(--tg-viewport-stable-height, 100dvh)`; `body { overscroll-behavior: none }`; `disableVerticalSwipes` faqat bor bo'lsa chaqiriladi (Bot API 7.7+), eski client o'zgarmaydi. Haqiqiy qurilmada tekshirilmadi: soxta Telegram skripti bilan e2e va skrinshot.
+- **`Sheet` UI primitivi** (`components/ui/sheet.tsx`) o'z testi bilan to'plamda qoldi, ishlatilmaydi.
+- **O'zgargan mavjud testlar** (talab o'zgargani uchun): `sidebar.test.tsx` dan uchta sheet testi, `use-sidebar.test.tsx` dan sheet testi, `app-shell.test.tsx` dan "Menyu" testi olib tashlandi, o'rniga tab-bar testlari (`tab-bar.test.tsx`, `app-shell.test.tsx`); `topbar.test.tsx` `onMenuClick`siz; e2e `shell.spec.ts` telefon tarmoqlari tab-bar bilan, `helpers.ts` va `employees.spec.ts` `sections()` endi "Menyu" bosmaydi, `miniapp.spec.ts` tab-bar va uning chat rangini tekshiradi.
+- **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 575; `make e2e`: admin 40, web 92. Skrinshotlar (vaqtinchalik spec, o'chirildi): 375px bosh sahifa, xodimlar, yangi rol (guruhlar), Mini App (chat ranglari); 1280px yangi rol (jadval).

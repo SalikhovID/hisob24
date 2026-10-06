@@ -2,7 +2,7 @@
 
 Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md). Vazifalar bo'limi: [tasks.md](tasks.md).
 
-> Holat: `owner` / `user` qoidalari amalga oshirilgan (2026-10-03, `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`). Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar 2026-10-06 da kelishilgan, amalga oshirilmoqda: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
+> Holat: `owner` / `user` qoidalari amalga oshirilgan (2026-10-03, `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`). Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar 2026-10-06 da kelishilgan va amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
 
 ## 1. Rollar
 

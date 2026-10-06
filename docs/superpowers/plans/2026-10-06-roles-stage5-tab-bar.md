@@ -15,8 +15,8 @@
 ---
 
 ### Task 1: `TabBar` va qobiq
-- [ ] Test: `tab-bar.test.tsx` (egasi 5 tugma, joriy `aria-current`; rolli xodim faqat ruxsatli; sessiya noma'lum → Bosh sahifa), `app-shell.test.tsx` (tab-bar `main` dan keyin, "Menyu" yo'q), `sidebar.test.tsx` (sheet testlari olib tashlanadi: talab o'zgardi), `topbar.test.tsx` (`onMenuClick` yo'q), `use-sidebar.test.tsx` (sheet testi olib tashlanadi), `telegram-sync.test.tsx` (`disableVerticalSwipes`).
-- [ ] Kod → GREEN → commit `feat(web): the sections in a tab bar on a phone`.
+- [x] Test: `tab-bar.test.tsx` (egasi 5 tugma, joriy `aria-current`; rolli xodim faqat ruxsatli; sessiya noma'lum → Bosh sahifa), `app-shell.test.tsx` (tab-bar `main` dan keyin, "Menyu" yo'q), `sidebar.test.tsx` (sheet testlari olib tashlanadi: talab o'zgardi), `topbar.test.tsx` (`onMenuClick` yo'q), `use-sidebar.test.tsx` (sheet testi olib tashlanadi), `telegram-sync.test.tsx` (`disableVerticalSwipes`).
+- [x] Kod → GREEN → commit `feat(web): the sections in a tab bar on a phone`.
 
 ### Task 2: e2e va yakun
-- [ ] `helpers.ts`, `employees.spec.ts`, `shell.spec.ts`, `miniapp.spec.ts`; README; `make lint`, `make test`, `make e2e`; spec "5-bosqich qarorlari"; push.
+- [x] `helpers.ts`, `employees.spec.ts`, `shell.spec.ts`, `miniapp.spec.ts`; README; `make lint`, `make test`, `make e2e`; spec "5-bosqich qarorlari"; push.
