@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { z } from "zod"
-import { employeeSchema, fieldSchema, nameSchema, renameSchema, stageSchema } from "./schemas"
+import { employeeSchema, fieldSchema, nameSchema, renameSchema, roleSchema, stageSchema } from "./schemas"
 
 // problems lists the messages a schema gives for input; none means valid.
 function problems(schema: z.ZodType, input: unknown): string[] {
@@ -67,4 +67,11 @@ test("stageSchema trims the name and takes one of the nine colors; the done mark
   expect(stageSchema.parse({ name: "Bajarildi", color: "green", is_done: true }).is_done).toBe(true)
   expect(problems(stageSchema, { name: " ", color: "", is_done: false })).toEqual(["Nomni kiriting", "Rangni tanlang"])
   expect(problems(stageSchema, { name: "Oltin", color: "gold", is_done: true })).toEqual(["Rangni tanlang"])
+})
+
+test("roleSchema takes a role's name, trimmed and within sixty characters, and permissions from the catalog", () => {
+  expect(roleSchema.parse({ name: " Sotuvchi ", permissions: ["customers.view"] })).toEqual({ name: "Sotuvchi", permissions: ["customers.view"] })
+  expect(problems(roleSchema, { name: " ", permissions: [] })).toEqual(["Nomni kiriting"])
+  expect(problems(roleSchema, { name: "a".repeat(61), permissions: [] })).toEqual(["Nom 60 belgidan oshmasin"])
+  expect(problems(roleSchema, { name: "X", permissions: ["customers.fly"] })).toHaveLength(1)
 })

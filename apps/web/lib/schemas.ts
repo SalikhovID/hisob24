@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { isChoice, kinds } from "./fields"
+import { allPermissions } from "./permissions"
 import { phoneDigits } from "./phone"
 import { stageColors } from "./stage-colors"
 
@@ -87,4 +88,12 @@ export const stageSchema = z.object({
   name: name(),
   color: z.string().pipe(z.enum(stageColors, { message: "Rangni tanlang" })),
   is_done: z.boolean(),
+})
+
+// roleSchema is the role form: a name like any setting's, and the
+// permissions from the catalog. The API checks that an action comes with
+// its section's view; the form never sends one without.
+export const roleSchema = z.object({
+  name: name(),
+  permissions: z.array(z.enum(allPermissions)),
 })

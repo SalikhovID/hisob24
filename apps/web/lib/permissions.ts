@@ -70,3 +70,47 @@ export function summaryOf(permissions: readonly Permission[]): string {
   const named = sections.filter((section) => permissions.some((permission) => sectionOf(permission) === section))
   return named.length > 0 ? named.map((section) => sectionLabels[section]).join(", ") : "Ruxsat yo'q"
 }
+
+// Action is the part of a permission after the dot.
+export type Action = "view" | "create" | "edit" | "delete" | "history"
+
+// actions are the actions in the catalog's order; actionLabels their names
+// in the app.
+export const actions: Action[] = ["view", "create", "edit", "delete", "history"]
+export const actionLabels: Record<Action, string> = {
+  view: "Ko'rish",
+  create: "Qo'shish",
+  edit: "Tahrirlash",
+  delete: "O'chirish",
+  history: "Tarix",
+}
+
+// permissionOf is the permission of an action in a section.
+export function permissionOf(section: Section, action: Action): Permission {
+  return `${section}.${action}` as Permission
+}
+
+// actionsOf is the actions a section has: every section has view, create,
+// edit and delete; the customers and the tasks have a history too.
+export function actionsOf(section: Section): Action[] {
+  return actions.filter((action) => (allPermissions as string[]).includes(`${section}.${action}`))
+}
+
+// toggled is the permissions after one is ticked (on) or unticked: an action
+// brings its section's view with it, and the view taken away takes the
+// section's actions with it, as the API would refuse an action without the
+// view. The result is in the catalog's order.
+export function toggled(permissions: readonly Permission[], permission: Permission, on: boolean): Permission[] {
+  const set = new Set(permissions)
+  const section = sectionOf(permission)
+  const view = permissionOf(section, "view")
+  if (on) {
+    set.add(permission)
+    set.add(view)
+  } else if (permission === view) {
+    for (const candidate of allPermissions) if (sectionOf(candidate) === section) set.delete(candidate)
+  } else {
+    set.delete(permission)
+  }
+  return allPermissions.filter((candidate) => set.has(candidate))
+}
