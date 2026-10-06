@@ -256,3 +256,16 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **Frontend.** `lib/customer-fields.ts` yo'qoldi: `kindLabels`, `kinds`, `isChoice` `lib/fields.ts` ga, `nameFieldOf` `lib/customers.ts` ga. `fieldColumns` `lib/fields.ts` da hech qaysi maydonni o'tkazib yubormaydi; mijozlarning nusxasi nom maydonini olib tashlab chaqiradi. `readAnswers(fields, entries, refuse)` xatoni kalit bilan aytadi, sxema uni `path: ["values", key]` ga aylantiradi. `FieldAnswer` forma yo'lini (`name`) o'zi oladi (vazifa formasi mijoz maydonlarini `customer.values.*` ostida ushlaydi). `HistoryList` o'z `HistoryEntry` shakli bilan (`CustomerHistoryEntry` unga mos; `TaskHistoryEntry` ham shunday bo'ladi).
 - **Rejadan farq.** `useHiddenColumns` prefiksi va `FieldDialog` prop'lari 5- va 3-bosqichga qoldirildi: ularni talab qiladigan test o'sha yerda.
 - **Tekshiruv.** `make lint` 0 issues; `make test`: Go 17 paket (yangi `fields`), web 391, admin 217, api-client 1; `make e2e`: admin 40, web 78.
+
+## 2-bosqich qarorlari (2026-10-06)
+
+Bajarildi: migratsiya `00007` (`task_stages`, `task_types`, `task_fields`, tayyor bosqich va tur mavjud kompaniyalarga), 19 ta so'rov (`task_stages.sql`, `task_types.sql`, `SeedTaskSettings`; `CountCustomerDropdownFields` → `CountDropdownFields`), `internal/task` servisi (bosqichlar, turlar, maydonlar), `company.Create` da `SeedTaskSettings`, `GET /app/members`, 15 ta route, openapi va TS client. Reja: `docs/superpowers/plans/2026-10-06-tasks-stage2-settings-api.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`CountDropdownFields`** ikkala jadvalni `UNION ALL` orqali sanaydi: sqlc tahlilchisi ikki skalyar ichki so'rovdagi `dropdown_id` ni "ambiguous" deb rad etdi.
+- **Navbat testi.** 12 yozuv (`waits`); tartib o'zgartiruvchi yozuvlar yangi narsa qo'shadiganlardan oldin turadi (aks holda `order_changed`). Mutatsiya: lock olib tashlanganda 12 tasi ham yiqildi.
+- **`DeleteStage`, `DeleteType`, `DeleteField`** hozircha faqat soft delete; `stage_in_use`, `type_in_use`, `field_in_use` 4-bosqichda, `tasks` jadvali bilan.
+- **`NewService(pool)`** hozircha mijoz servisisiz; 4-bosqichda `CreateIn` uchun `customers` qo'shiladi.
+- **Rang** `task.Colors` ro'yxatida (to'qqizta), API `StageColor` enum; noto'g'ri rang "Rangni tanlang" (400).
+- **Tekshiruv.** `make lint` 0 issues; `make test`: Go 18 paket (yangi `task`), web 391, admin 217, api-client 1; `make e2e`: admin 40, web 78. Lokal haqiqiy stack (API binary :8099, curl): 33 / 33: mavjud 6 kompaniya tayyor bosqich va turni oldi; egasi bosqich (rang, yakuniy), tur va maydon yaratadi, tartiblaydi, o'zgartiradi, o'chiradi; noto'g'ri rang va dropdownsiz tanlov 400, takror nom 409; xodim yozuvda 403, `GET /app/members` 200, `GET /app/employees` 403; vazifa maydoni ulangan dropdown o'chmaydi (409), maydon o'chirilgach o'chadi; API log'ida xato yo'q; sinov ma'lumoti o'chirilgan, satrlar soni boshlang'ich holatga qaytgan. Lokal baza 7-versiyada.
