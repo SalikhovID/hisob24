@@ -140,6 +140,25 @@ Company o'z mijozlarini user app'da yuritadi. Mijozning **turi** bor, tur esa fo
 
 To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/customers.md`](logic/customers.md).
 
+## Vazifalar
+
+Company xodimlari bajaradigan ishlar. Har vazifa bitta mijozga biriktiriladi, **turi** bor (tur maydonlari mijoz turlaridagidek sozlanadi) va **bosqichda** (kanban ustunida) turadi.
+
+| Bo'lim | Kim | Nima qiladi |
+|---|---|---|
+| **Vazifalar** (`/tasks`) | egasi va xodim | kanban (birinchi marta) yoki ro'yxat; tur tablari, qidiruv, bosqich va mas'ul filtrlari; vazifa qo'shish (mavjud mijozni telefon takliflaridan tanlab yoki yangi mijoz bilan); vazifa sahifasi (`/tasks/[id]`), tahrirlash, bosqichni o'zgartirish, o'chirish |
+| **Sozlamalar** (`/settings`) | faqat egasi | bosqichlar (nom, rang, "Yakuniy", tartib), vazifa turlari va maydonlari |
+
+- **Doimiy maydonlar:** nomi, muddat (sana), mijoz va bosqich majburiy; mas'ul (kompaniya a'zosi) ixtiyoriy. Mijoz va tur keyin o'zgarmaydi.
+- **Bosqichlar:** har yangi company "Yangi", "Jarayonda", "Bajarildi" (yakuniy) bosqichlari va "Vazifa" turi bilan boshlaydi. Yakuniy bosqichdagi vazifa muddati o'tgan deb belgilanmaydi; kanban'da yakuniy ustun yig'ilgan turadi.
+- **Kanban:** karta sudrab yoki menyudan boshqa bosqichga o'tkaziladi; har ustunda 20 tadan, "Yana" bilan davomi; ustun sarlavhasidagi "+" shu bosqichga vazifa qo'shadi.
+- **Muddat:** `dd.mm.yyyy` va "Bugun" / "N kun qoldi" / "N kun kechikdi" (brauzerning sanasidan); kechikkan vazifa qizil.
+- **Mijoz takliflari:** telefonning 3 raqami yozilganda mavjud mijozlar taklif qilinadi (`GET /app/customers?phone=`); tanlangach mijoz maydonlari to'ldirilib, qulflanadi. Yangi mijoz vazifa bilan bitta so'rovda yoziladi; takror telefon rad etiladi va o'sha mijozni biriktirish taklif qilinadi.
+- **O'chirish:** vazifa yashiriladi (`deleted_at`). Vazifasi bor mijoz, bosqich, tur, maydon va variant o'chirilmaydi.
+- **Tarix:** vazifaning har o'zgarishi (qo'shilgani, tahriri, ko'chirilgani, o'chirilgani) yoziladi; vazifa sahifasida faqat egasi ko'radi. Mijoz sahifasida uning vazifalari ko'rinadi.
+
+To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/tasks.md`](logic/tasks.md).
+
 ## Buyruqlar
 
 | Buyruq | Nima qiladi |
