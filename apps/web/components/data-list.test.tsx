@@ -326,3 +326,15 @@ test("DataList's card with an href opens from anywhere on it: the title's link i
   const table = screen.getByRole("table", { name: "Kompaniyalar" })
   expect(within(table).getByRole("link", { name: "Olma Savdo" })).not.toHaveClass("after:absolute")
 })
+
+test("DataList tells a cell whether it draws a table cell or a card, so a value may differ between the two", () => {
+  type Row = (typeof rows)[number]
+  const placed = [{ header: "Nomi", primary: true, cell: (r: Row, place: "table" | "card") => `${r.name} (${place})` }]
+
+  render(<DataList label="Kompaniyalar" items={rows.slice(0, 1)} columns={placed} getKey={(r) => r.id} />)
+
+  const table = screen.getByRole("table", { name: "Kompaniyalar" })
+  expect(within(table).getByRole("rowheader")).toHaveTextContent("Olma Savdo (table)")
+  const [card] = within(screen.getByRole("list", { name: "Kompaniyalar" })).getAllByRole("listitem")
+  expect(within(card).getByText("Olma Savdo (card)")).toBeInTheDocument()
+})

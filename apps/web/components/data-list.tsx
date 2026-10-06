@@ -3,12 +3,19 @@ import type { Key, ReactNode } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
+// Place is where a cell is drawn: in the table of a wide screen or on a
+// phone's card.
+export type Place = "table" | "card"
+
 export interface Column<T> {
   // key tells the column from the others where two may share a name (a field
   // the owner named like a built-in column); without one the header does.
   key?: string
   header: string
-  cell: (item: T) => ReactNode
+  // cell is the record's value in the column; it is told where it is drawn,
+  // for a value that differs between the two (a link in the table that is
+  // plain text on a card, whose whole face is the record's own link).
+  cell: (item: T, place: Place) => ReactNode
   // primary is the record's title: the header of its row in the table and
   // the top of its card on phones (and the record's link, when the list is
   // given href).
@@ -82,10 +89,10 @@ export function DataList<T>({
         href={href(item)}
         className={cn("font-medium underline-offset-4 hover:underline", stretched && "rounded-sm after:absolute after:inset-0")}
       >
-        {column.cell(item)}
+        {column.cell(item, stretched ? "card" : "table")}
       </Link>
     ) : (
-      column.cell(item)
+      column.cell(item, stretched ? "card" : "table")
     )
 
   return (
@@ -135,7 +142,7 @@ export function DataList<T>({
                         column.className,
                       )}
                     >
-                      {column.actions ? column.cell(item) : filled(column.cell(item))}
+                      {column.actions ? column.cell(item, "table") : filled(column.cell(item, "table"))}
                     </TableCell>
                   ),
                 )}
@@ -149,7 +156,7 @@ export function DataList<T>({
           const valuesOf = (wanted: (column: Column<T>) => boolean) =>
             columns
               .filter(wanted)
-              .map((column) => ({ column, value: column.cell(item) }))
+              .map((column) => ({ column, value: column.cell(item, "card") }))
               .filter(({ value }) => present(value))
           // shown are a card's values of one kind; the title and the actions
           // have places of their own.
