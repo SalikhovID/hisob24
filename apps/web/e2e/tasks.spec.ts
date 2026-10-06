@@ -58,7 +58,14 @@ test("an employee enters a task with a new customer; the board opens first, and 
   await page.getByRole("radiogroup", { name: "Ko'rinish" }).getByRole("radio", { name: "Ro'yxat" }).click()
   await expect(page).toHaveURL(/view=list/)
   await expect(list(page).getByRole("link", { name: "Shartnoma tuzish" })).toBeVisible()
-  await expect(list(page).getByRole("link", { name: "Yangi Mijoz" })).toBeVisible()
+  // The table links the customer; a card only names it, its whole face being
+  // the task's link (a second link under a thumb would open the customer).
+  if (onPhone(page)) {
+    await expect(list(page).getByText("Yangi Mijoz")).toBeVisible()
+    await expect(list(page).getByRole("link", { name: "Yangi Mijoz" })).toHaveCount(0)
+  } else {
+    await expect(list(page).getByRole("link", { name: "Yangi Mijoz" })).toBeVisible()
+  }
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
   await page.goto("/tasks")
   await expect(list(page).getByRole("link", { name: "Shartnoma tuzish" })).toBeVisible()
