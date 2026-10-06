@@ -56,9 +56,11 @@ test("the tasks list shows the company's tasks, the one due soonest first, with 
     ["Vazifa", "Jarayonda", due(0, "Bugun"), "—", "—", "—", "—", "Vali Aliyev", "02.10.2026"],
     ["Buyurtma", "Yangi", due(3, "3 kun qoldi"), "Vali Aliyev", "Ertalab qo'ng'iroq", "45000", "Instagram, LinkedIn", "Ali Valiyev", "02.10.2026"],
   ])
-  // A task that is late and not done is marked; a done one is not.
+  // A task that is late and not done is marked; a done one is not. The done
+  // one's deadline is found by its slot: as a date alone it may read the
+  // same as the row's "Qo'shilgan" day.
   expect(within(rows[1]).getByText("2 kun kechikdi").closest("[data-slot=deadline]")).toHaveClass("text-destructive")
-  expect(within(rows[0]).getByText(due(-5, null)).closest("[data-slot=deadline]")).not.toHaveClass("text-destructive")
+  expect(rows[0].querySelector("[data-slot=deadline]")).not.toHaveClass("text-destructive")
   expect(await screen.findByText("Kompaniyangiz vazifalari · 4 ta")).toBeInTheDocument()
 })
 
