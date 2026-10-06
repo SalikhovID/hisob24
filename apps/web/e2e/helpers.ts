@@ -28,3 +28,10 @@ export async function openSection(page: Page, name: string) {
 // noSideScroll tells whether the page fits its width: nothing to scroll
 // sideways.
 export const sideScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
+
+// choose opens a select (shadcn's: a combobox button) and picks the option
+// by its name.
+export async function choose(box: Locator, name: string) {
+  await box.click()
+  await box.page().getByRole("option", { name, exact: true }).click()
+}

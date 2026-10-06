@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { addDays, db, localToday, seedTasks } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { onPhone, openSection, sideScroll, signIn } from "./helpers"
+import { choose, onPhone, openSection, sideScroll, signIn } from "./helpers"
 
 const today = localToday()
 
@@ -37,11 +37,11 @@ test("an employee enters a task with a new customer; the board opens first, and 
   const customer = dialog.getByRole("group", { name: "Mijoz" })
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill("901112233")
   await customer.getByLabel("F.I.Sh.").fill("Yangi Mijoz")
-  await customer.getByLabel("Manba").selectOption({ label: "LinkedIn" })
+  await choose(customer.getByLabel("Manba"), "LinkedIn")
   const task = dialog.getByRole("group", { name: "Vazifa" })
   await task.getByLabel("Nomi").fill("Shartnoma tuzish")
   await task.getByLabel("Muddat").fill(addDays(today, 2))
-  await task.getByLabel("Mas'ul").selectOption({ label: "Vali Aliyev" })
+  await choose(task.getByLabel("Mas'ul"), "Vali Aliyev")
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
@@ -73,7 +73,7 @@ test("a customer that is there is picked from the suggestions; the + of a column
   await column(page, "Jarayonda").getByRole("button", { name: "Vazifa qo'shish: Jarayonda" }).click()
   const dialog = page.getByRole("dialog", { name: "Vazifa qo'shish" })
   const task = dialog.getByRole("group", { name: "Vazifa" })
-  await expect(task.getByLabel("Bosqich")).toHaveValue(String(jarayonda.id))
+  await expect(task.getByLabel("Bosqich")).toContainText("Jarayonda")
 
   const customer = dialog.getByRole("group", { name: "Mijoz" })
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill("933")
@@ -149,7 +149,7 @@ test("the owner edits a task, reads its history, finds it on the customer's page
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("Ertalab qo'ng'iroq")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  await page.getByRole("combobox", { name: "Bosqich" }).selectOption({ label: "Jarayonda" })
+  await choose(page.getByRole("combobox", { name: "Bosqich" }), "Jarayonda")
   await expect(page.getByText("Bosqich o'zgartirildi")).toBeVisible()
 
   await page.getByRole("button", { name: "Tahrirlash" }).click()
@@ -179,8 +179,9 @@ test("the owner edits a task, reads its history, finds it on the customer's page
   await expect(page.getByText("Bu mijozda 2 ta vazifa bor")).toBeVisible()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
 
-  // Nor is a stage with a task in it.
+  // Nor is a stage with a task in it (the stages are on the tasks' tab).
   await openSection(page, "Sozlamalar")
+  await page.getByRole("tab", { name: "Vazifalar" }).click()
   await page.getByRole("list", { name: "Bosqichlar" }).getByRole("button", { name: "O'chirish: Jarayonda" }).click()
   await page.getByRole("alertdialog", { name: "Bosqichni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page.getByText("Bu bosqichda 2 ta vazifa bor")).toBeVisible()

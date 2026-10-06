@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { typesOf } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
+import { choose, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
 
 // openSettings signs the owner of Olma Savdo in and opens the settings.
 async function openSettings(page: Page) {
@@ -69,8 +69,8 @@ test("the owner makes a dropdown, types its options in, and uses it in a field o
   await page.getByRole("button", { name: "Maydon qo'shish" }).click()
   dialog = page.getByRole("dialog", { name: "Maydon qo'shish" })
   await dialog.getByLabel("Nomi").fill("Holati")
-  await dialog.getByLabel("Turi").selectOption({ label: "Radio (bitta tanlov)" })
-  await dialog.getByLabel("Dropdown").selectOption({ label: "Holat" })
+  await choose(dialog.getByLabel("Turi"), "Radio (bitta tanlov)")
+  await choose(dialog.getByLabel("Dropdown"), "Holat")
   await dialog.getByRole("checkbox", { name: "Majburiy" }).click()
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
@@ -190,8 +190,8 @@ test("the owner makes a task type and gives it a choice field; the dropdown it u
   dialog = page.getByRole("dialog", { name: "Maydon qo'shish" })
   await expect(dialog.getByRole("checkbox", { name: "Takrorlanmasin" })).toHaveCount(0)
   await dialog.getByLabel("Nomi").fill("Holati")
-  await dialog.getByLabel("Turi").selectOption({ label: "Radio (bitta tanlov)" })
-  await dialog.getByLabel("Dropdown").selectOption({ label: "Manba" })
+  await choose(dialog.getByLabel("Turi"), "Radio (bitta tanlov)")
+  await choose(dialog.getByLabel("Dropdown"), "Manba")
   await dialog.getByRole("checkbox", { name: "Majburiy" }).click()
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()

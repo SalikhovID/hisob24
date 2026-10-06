@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { db, seedCustomers, seedSixKinds } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { onPhone, openSection, sideScroll, signIn } from "./helpers"
+import { choose, onPhone, openSection, sideScroll, signIn } from "./helpers"
 
 // openCustomers signs the owner of Olma Savdo in and opens the customers.
 async function openCustomers(page: Page) {
@@ -61,7 +61,7 @@ test("an employee enters a customer, edits it and deletes it; the history is not
   let dialog = page.getByRole("dialog", { name: "Mijoz qo'shish" })
   await dialog.getByLabel("Telefon raqami").fill("901112233")
   await dialog.getByLabel("F.I.Sh.").fill("Yangi Mijoz")
-  await dialog.getByLabel("Manba").selectOption({ label: "LinkedIn" })
+  await choose(dialog.getByLabel("Manba"), "LinkedIn")
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
 
@@ -134,7 +134,7 @@ test("the owner searches, keeps one type, hides a column for good and reads a cu
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
   await page.getByRole("button", { name: "Tahrirlash" }).click()
   const dialog = page.getByRole("dialog", { name: "Mijozni tahrirlash" })
-  await dialog.getByLabel("Manba").selectOption({ label: "LinkedIn" })
+  await choose(dialog.getByLabel("Manba"), "LinkedIn")
   await dialog.getByRole("button", { name: "Saqlash" }).click()
   await expect(dialog).toBeHidden()
   const history = page.getByRole("list", { name: "Tarix" })
@@ -175,18 +175,20 @@ test("a customer with a field of each kind is entered, and its page shows every 
   const dialog = page.getByRole("dialog", { name: "Mijoz qo'shish" })
   await dialog.getByLabel("Telefon raqami").fill("901112233")
   await dialog.getByLabel("F.I.Sh.").fill("Olti Tur")
-  await dialog.getByLabel("Manba").selectOption({ label: "Instagram" })
+  await choose(dialog.getByLabel("Manba"), "Instagram")
   await dialog.getByLabel("Yoshi").fill("30")
   await dialog.getByRole("radiogroup", { name: "Jinsi" }).getByRole("radio", { name: "Ayol" }).click()
   const languages = dialog.getByRole("group", { name: "Tillar" })
   await languages.getByRole("checkbox", { name: "O'zbek" }).click()
   await languages.getByRole("checkbox", { name: "Rus" }).click()
-  await dialog.getByRole("button", { name: /Kanallar/ }).click()
-  await page.getByRole("menuitemcheckbox", { name: "LinkedIn" }).click()
-  await page.getByRole("menuitemcheckbox", { name: "Instagram" }).click()
+  // A select of several stays open while options are chosen.
+  const channels = dialog.getByRole("combobox", { name: "Kanallar" })
+  await channels.click()
+  await page.getByRole("option", { name: "LinkedIn", exact: true }).click()
+  await page.getByRole("option", { name: "Instagram", exact: true }).click()
   await page.keyboard.press("Escape")
-  await expect(page.getByRole("menu")).toHaveCount(0)
-  await expect(dialog.getByRole("button", { name: /Kanallar/ })).toContainText("Instagram, LinkedIn")
+  await expect(page.getByRole("listbox")).toHaveCount(0)
+  await expect(channels).toContainText("Instagram, LinkedIn")
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
