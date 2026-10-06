@@ -18,18 +18,19 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { answerText, fieldColumns } from "@/lib/fields"
 import { formatDate } from "@/lib/format"
+import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import {
   type TaskFilter,
   useCustomerDropdowns,
   useCustomerTypes,
-  useMe,
   useMembers,
   useTasks,
   useTaskStages,
   useTaskTypes,
 } from "@/lib/queries"
-import type { Task } from "@/lib/types"
+import type { Permission, Task } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { useHiddenColumns } from "@/lib/use-hidden-columns"
 import { useKept } from "@/lib/use-kept"
 import { cn } from "@/lib/utils"
@@ -52,14 +53,16 @@ const viewRadio =
 // of the toolbar stands as tall as the search beside it.
 const toolbarSelect = "h-9! w-fit bg-card"
 
-// TasksPage is the company's tasks, for every member of it: as a board of
+// TasksPage is the company's tasks, for whoever may see them (tasks.view;
+// adding takes tasks.create and customers.view, moving tasks.edit): as a board of
 // the stages (the first time) or as a list, the one due soonest first, each
 // with its customer, stage, deadline, assignee and answers. Fields of one
 // name share a column, whatever the type.
 export function TasksPage() {
-  const me = useMe()
-  const companyId = me.data?.company?.id ?? null
-  const phone = me.data?.user.phone ?? ""
+  const gate = usePermission("tasks.view")
+  const companyId = gate?.company.id ?? null
+  const phone = gate?.user.phone ?? ""
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const types = useTaskTypes(companyId)
   const stages = useTaskStages(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
@@ -199,19 +202,25 @@ export function TasksPage() {
   // The answer on screen while the next one loads is the previous filter's;
   // "nothing found" is not said of a filter that has not answered yet.
   const settling = tasks.isPlaceholderData && tasks.data?.total === 0
-  const isOwner = me.data?.company?.role === "owner"
+  const settingsAllowed = allowed("settings.view")
   const noStages = !failed && stages.data?.length === 0
   const noTypes = !failed && !noStages && types.data?.length === 0
   const loading = !failed && (queries.some((query) => query.isPending) || settling)
   const ready = companyId !== null && types.data && stages.data && dropdowns.data && types.data.length > 0 && stages.data.length > 0
+  // A task is for a customer: adding one takes a way to the customers too.
+  const canAdd = allowed("tasks.create") && allowed("customers.view")
 
+  // Until the session is known to be let in there is nothing to show; a
+  // stranger is on their way home.
+  if (!gate) return null
   return (
     <div className="space-y-5">
       <PageHeader
         title="Vazifalar"
         description={unfiltered && total !== undefined ? `Kompaniyangiz vazifalari · ${total} ta` : "Kompaniyangiz vazifalari"}
         actions={
-          ready && (
+          ready &&
+          canAdd && (
             <Button size="lg" className="px-3.5" onClick={() => setAdding({ stageId: null })}>
               <PlusIcon />
               Vazifa qo&apos;shish
@@ -221,19 +230,19 @@ export function TasksPage() {
       />
       {noStages || noTypes ? (
         // A task stands in a stage and is of a type: with none there is
-        // nothing to enter. Both are the owner's to make.
+        // nothing to enter. Both are the settings' to make.
         <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
           <p className="font-medium">{noStages ? "Bosqichlar yo'q" : "Vazifa turlari yo'q"}</p>
           <p className="mt-1 text-pretty text-muted-foreground">
             {noStages
-              ? isOwner
+              ? settingsAllowed
                 ? "Vazifa qo'shish uchun avval Sozlamalarda bosqich yarating."
                 : "Kompaniya egasi bosqichlarni sozlashi kerak."
-              : isOwner
+              : settingsAllowed
                 ? "Vazifa qo'shish uchun avval Sozlamalarda tur yarating."
                 : "Kompaniya egasi vazifa turlarini sozlashi kerak."}
           </p>
-          {isOwner && (
+          {settingsAllowed && (
             <Link href={settingsHref("tasks")} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-4")}>
               Sozlamalarni ochish
             </Link>
@@ -323,6 +332,8 @@ export function TasksPage() {
               filter={{ search: filter.search, typeId: filter.typeId, assignee: filter.assignee }}
               onTotal={onTotal}
               onAdd={(stageId) => setAdding({ stageId })}
+              canAdd={canAdd}
+              canMove={allowed("tasks.edit")}
             />
           )}
           {adding && ready && (
@@ -331,6 +342,7 @@ export function TasksPage() {
               types={types.data}
               stages={stages.data}
               customerTypes={customerTypes.data ?? []}
+              canCreateCustomer={allowed("customers.create")}
               dropdowns={dropdowns.data}
               members={members.data ?? []}
               typeId={filter.typeId}

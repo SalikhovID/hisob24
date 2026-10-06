@@ -129,13 +129,14 @@ export function LinkedCustomerCard({
 // new customer under, its phone (with the suggestions of the customers
 // that are there) and the type's fields. Once a customer that is there is
 // taken (linked), it is shown instead, its fields filled in and locked,
-// until it is let go. With no customer type to enter one under, only a
-// customer that is there will do.
+// until it is let go. With no customer type to enter one under, or without
+// the leave to enter one (canCreate), only a customer that is there will do.
 export function CustomerSection({
   control,
   companyId,
   customerTypes,
   customerType,
+  canCreate,
   onChangeType,
   dropdowns,
   linked,
@@ -146,6 +147,7 @@ export function CustomerSection({
   companyId: number
   customerTypes: CustomerType[]
   customerType: CustomerType | null
+  canCreate: boolean
   onChangeType: (id: number) => void
   dropdowns: CustomerDropdown[]
   linked: Customer | null
@@ -159,7 +161,11 @@ export function CustomerSection({
       {linked && (
         <LinkedCustomerCard name={linkedName} phone={linked.phone} typeName={linkedType?.name} href={`/customers/${linked.id}`} onUnlink={onUnlink} />
       )}
-      {customerTypes.length === 0 ? (
+      {!canCreate ? (
+        <p className="text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
+          Yangi mijoz qo&apos;shish ruxsatingiz yo&apos;q: mavjud mijozni biriktiring.
+        </p>
+      ) : customerTypes.length === 0 ? (
         <p className="text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
           Mijoz turlari yo&apos;q: faqat mavjud mijozni biriktirish mumkin.
         </p>

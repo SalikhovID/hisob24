@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, seedTasks, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -160,4 +161,35 @@ test("a deletion the API refuses says why and keeps the task", async () => {
   expect(await screen.findByText("Vazifani hozir o'chirib bo'lmaydi")).toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
   expect(db.tasks.find((task) => task.id === call.id)?.deleted).toBeUndefined()
+})
+
+test("an employee whose role holds tasks.view alone sees the task without a way to change it, move it or see its history", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view", "customers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { call } = seedTasks()
+  open(call.id)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
+  await info()
+  expect(screen.queryByRole("button", { name: "Tahrirlash" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("combobox", { name: "Bosqich" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test("the task's actions follow the role: editing and moving here, with the history; not deleting", async () => {
+  giveRole(VALI, 1, "Operator", ["tasks.view", "tasks.edit", "tasks.history"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { call } = seedTasks()
+  open(call.id)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
+  await info()
+  expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
+  expect(screen.getByRole("combobox", { name: "Bosqich" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
+  expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
 })

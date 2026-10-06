@@ -11,13 +11,14 @@ import { ApiError } from "@/lib/api"
 import { customerName } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
 import { formatDate } from "@/lib/format"
+import { can } from "@/lib/permissions"
+import type { Permission } from "@/lib/types"
 import { formatPhone } from "@/lib/phone"
 import {
   taskHistoryKey,
   useCustomer,
   useCustomerDropdowns,
   useCustomerTypes,
-  useMe,
   useMembers,
   useMoveTask,
   useTask,
@@ -27,17 +28,21 @@ import {
 import { Deadline } from "./deadline"
 import { DeleteTaskButton } from "./delete-task-button"
 import { EditTaskDialog } from "./edit-task-dialog"
+import { usePermission } from "@/lib/use-gate"
 import { StageBadge } from "./stage-badge"
 import { TaskHistory } from "./task-history"
 
 const back = { href: "/tasks", label: "Vazifalar" }
 
-// TaskPage is one task of the company, for every member of it: what it is,
+// TaskPage is one task of the company, for whoever may see the tasks
+// (changing, moving, deleting and the history each take their permission):
+// what it is,
 // its customer, its answer to every field of its type, in the type's order,
 // and who entered it and when. The stage is changed right here.
 export function TaskPage({ id }: { id: number }) {
-  const me = useMe()
-  const companyId = me.data?.company?.id ?? null
+  const gate = usePermission("tasks.view")
+  const companyId = gate?.company.id ?? null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const task = useTask(companyId, id)
   const types = useTaskTypes(companyId)
   const stages = useTaskStages(companyId)
@@ -90,13 +95,15 @@ export function TaskPage({ id }: { id: number }) {
         back={back}
         stack
         actions={
+          (allowed("tasks.edit") || allowed("tasks.delete")) && (
           <>
-            {type && (
+            {type && allowed("tasks.edit") && (
               <EditTaskDialog companyId={companyId} task={task.data} type={type} stages={stages.data} members={members.data ?? []} dropdowns={dropdowns.data} />
             )}
-            <DeleteTaskButton companyId={companyId} id={task.data.id} title={task.data.title} />
-            {/* The stage is changed right here, as on the board. The select
-                stands as tall as the buttons beside it. */}
+            {allowed("tasks.delete") && <DeleteTaskButton companyId={companyId} id={task.data.id} title={task.data.title} />}
+            {/* The stage is changed right here, as on the board, by whoever may
+                move tasks. The select stands as tall as the buttons beside it. */}
+            {allowed("tasks.edit") && (
             <SelectBox
               aria-label="Bosqich"
               className="h-9! w-fit bg-card"
@@ -115,7 +122,9 @@ export function TaskPage({ id }: { id: number }) {
               }
               options={stages.data.map((candidate) => ({ value: String(candidate.id), label: candidate.name }))}
             />
+            )}
           </>
+          )
         }
       />
       <section aria-labelledby="task-customer" className="space-y-3">
@@ -149,8 +158,8 @@ export function TaskPage({ id }: { id: number }) {
           <Fact name="Qo'shilgan" value={formatDate(task.data.created_at)} />
         </dl>
       </section>
-      {/* Who did what to the task is the owner's to see. */}
-      {me.data?.company?.role === "owner" && <TaskHistory companyId={companyId} id={task.data.id} />}
+      {/* Who did what to the task takes its permission. */}
+      {allowed("tasks.history") && <TaskHistory companyId={companyId} id={task.data.id} />}
     </div>
   )
 }

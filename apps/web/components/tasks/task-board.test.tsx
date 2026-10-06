@@ -2,12 +2,13 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { formatDate } from "@/lib/format"
-import { addDays, ALI, db, localToday, nextId, seedTasks, stagesOf } from "@/mocks/data"
+import { addDays, ALI, db, localToday, nextId, seedTasks, stagesOf, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { choose } from "@/test/select"
 import { server } from "@/test/server"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { TasksPage } from "./tasks-page"
 
 const board = () => screen.findByRole("region", { name: "Kanban" })
@@ -211,4 +212,18 @@ test("a board with no tasks says so in every column", async () => {
   expect(within(column("Jarayonda")).getByText("Vazifa yo'q")).toBeInTheDocument()
   expect(within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (0)" })).toBeInTheDocument()
   expect(await screen.findByText("Kompaniyangiz vazifalari · 0 ta")).toBeInTheDocument()
+})
+
+test("an employee whose role holds tasks.view alone sees the board without the stage menus or a way to add", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  seedTasks()
+  setLocation("/tasks")
+  renderWithProviders(<TasksPage />)
+
+  await board()
+  await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
+  expect(screen.queryByRole("button", { name: /^Bosqich: / })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^Vazifa qo'shish/ })).not.toBeInTheDocument()
 })

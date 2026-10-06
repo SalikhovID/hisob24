@@ -17,7 +17,9 @@ export interface CardProps {
   stage: TaskStage
   stages: TaskStage[]
   type?: TaskType
-  onMove: (task: Task, stage: TaskStage) => void
+  // onMove is undefined where the member may not move tasks: then there is
+  // no stage menu and no drag.
+  onMove?: (task: Task, stage: TaskStage) => void
 }
 
 // CardContent is the card's face: the title as the way into the task, the
@@ -30,7 +32,7 @@ export function CardContent({ task, stage, stages, type, onMove }: CardProps) {
         <Link href={`/tasks/${task.id}`} className="min-w-0 font-medium underline-offset-4 [overflow-wrap:anywhere] hover:underline">
           {task.title}
         </Link>
-        <StageMenu task={task} stages={stages} onMove={onMove} />
+        {onMove && <StageMenu task={task} stages={stages} onMove={onMove} />}
       </div>
       <p className="mt-0.5 text-[0.8125rem] leading-5 text-muted-foreground [overflow-wrap:anywhere]">
         {task.customer.name ?? formatPhone(task.customer.phone)}
@@ -51,7 +53,7 @@ export const cardClass = "rounded-xl border bg-card p-3 text-sm shadow-xs"
 // the stage menu for everyone else. While it is dragged the card itself
 // fades, and a copy follows the pointer.
 export function TaskCard(props: CardProps) {
-  const { setNodeRef, listeners, isDragging } = useDraggable({ id: props.task.id, data: { task: props.task } })
+  const { setNodeRef, listeners, isDragging } = useDraggable({ id: props.task.id, data: { task: props.task }, disabled: props.onMove === undefined })
   return (
     <li
       ref={setNodeRef}

@@ -50,6 +50,8 @@ export function TaskBoard({
   filter,
   onTotal,
   onAdd,
+  canAdd,
+  canMove,
 }: {
   companyId: number
   phone: string
@@ -64,6 +66,10 @@ export function TaskBoard({
   onTotal: (total: number | undefined) => void
   // onAdd opens the form for a task in the stage.
   onAdd: (stageId: number) => void
+  // canAdd and canMove are what the member may do: add a task (the + of a
+  // column), move one (a drag, the stage menu).
+  canAdd: boolean
+  canMove: boolean
 }) {
   const move = useMoveTask(companyId)
   const [dragging, setDragging] = useState<Task | null>(null)
@@ -133,8 +139,8 @@ export function TaskBoard({
               filter={filter}
               folded={stage.is_done && !opened.has(String(stage.id))}
               onToggle={() => toggle(stage)}
-              onAdd={() => onAdd(stage.id)}
-              onMove={moveTo}
+              onAdd={canAdd ? () => onAdd(stage.id) : undefined}
+              onMove={canMove ? moveTo : undefined}
               onLoaded={onLoaded}
             />
           ))}
@@ -148,7 +154,7 @@ export function TaskBoard({
               stage={stages.find((stage) => stage.id === dragging.stage_id) ?? stages[0]}
               stages={stages}
               type={everyType ? types.find((type) => type.id === dragging.type_id) : undefined}
-              onMove={moveTo}
+              onMove={canMove ? moveTo : undefined}
             />
           </div>
         )}
@@ -185,8 +191,9 @@ function StageColumn({
   filter: StageFilter
   folded: boolean
   onToggle: () => void
-  onAdd: () => void
-  onMove: (task: Task, stage: TaskStage) => void
+  // onAdd and onMove are undefined where the member may not add or move.
+  onAdd?: () => void
+  onMove?: (task: Task, stage: TaskStage) => void
   onLoaded: (stageId: number, total: number) => void
 }) {
   const tasks = useStageTasks(companyId, stage.id, filter)
@@ -247,11 +254,13 @@ function StageColumn({
                   </Button>
                 </ActionTooltip>
               )}
-              <ActionTooltip label="Vazifa qo'shish">
-                <Button variant="ghost" size="icon-sm" aria-label={`Vazifa qo'shish: ${stage.name}`} onClick={onAdd} className="text-muted-foreground">
-                  <PlusIcon />
-                </Button>
-              </ActionTooltip>
+              {onAdd && (
+                <ActionTooltip label="Vazifa qo'shish">
+                  <Button variant="ghost" size="icon-sm" aria-label={`Vazifa qo'shish: ${stage.name}`} onClick={onAdd} className="text-muted-foreground">
+                    <PlusIcon />
+                  </Button>
+                </ActionTooltip>
+              )}
             </span>
           </header>
           <div className="px-2">

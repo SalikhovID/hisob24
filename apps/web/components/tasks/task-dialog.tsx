@@ -28,6 +28,7 @@ export function AddTaskDialog({
   types,
   stages,
   customerTypes,
+  canCreateCustomer,
   dropdowns,
   members,
   typeId: preferred,
@@ -38,6 +39,10 @@ export function AddTaskDialog({
   types: TaskType[]
   stages: TaskStage[]
   customerTypes: CustomerType[]
+  // canCreateCustomer says whether the member may enter a new customer with
+  // the task (customers.create); without it only a customer that is there
+  // will do.
+  canCreateCustomer: boolean
   dropdowns: CustomerDropdown[]
   members: Member[]
   // typeId is the type the list is narrowed to, if any; stageId the stage
@@ -49,7 +54,9 @@ export function AddTaskDialog({
   const [typeId, setTypeId] = useState((types.find((candidate) => candidate.id === preferred) ?? types[0]).id)
   const type = types.find((candidate) => candidate.id === typeId) ?? types[0]
   const [customerTypeId, setCustomerTypeId] = useState<number | null>(customerTypes[0]?.id ?? null)
-  const customerType = customerTypes.find((candidate) => candidate.id === customerTypeId) ?? customerTypes[0] ?? null
+  // With no leave to enter a customer there is no type to enter one under:
+  // the form takes a customer that is there alone.
+  const customerType = canCreateCustomer ? (customerTypes.find((candidate) => candidate.id === customerTypeId) ?? customerTypes[0] ?? null) : null
   // linked is the customer that is there, taken for the task.
   const [linked, setLinked] = useState<Customer | null>(null)
   const queryClient = useQueryClient()
@@ -145,6 +152,7 @@ export function AddTaskDialog({
                 companyId={companyId}
                 customerTypes={customerTypes}
                 customerType={customerType}
+                canCreate={canCreateCustomer}
                 onChangeType={changeCustomerType}
                 dropdowns={dropdowns}
                 linked={linked}

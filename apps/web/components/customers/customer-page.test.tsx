@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, seedCustomers, seedSixKinds, seedTasks, typesOf, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -406,4 +407,35 @@ test("a customer with tasks is not deleted: the API's reason is shown, and the c
   expect(await screen.findByText("Bu mijozda 2 ta vazifa bor")).toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
   expect(db.customers.find((customer) => customer.id === dilshod.id)?.deleted).toBeUndefined()
+})
+
+test("an employee whose role holds customers.view alone sees the customer without a way to change it, its history or its tasks", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { dilshod } = seedCustomers()
+  open(dilshod.id)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
+  await info()
+  expect(screen.queryByRole("button", { name: "Tahrirlash" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test("the customer's actions follow the role: editing, the history and the tasks here; not deleting", async () => {
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.edit", "customers.history", "tasks.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { dilshod } = seedTasks()
+  open(dilshod.id)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
+  await info()
+  expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
+  expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { name: "Vazifalar" })).toBeInTheDocument()
 })

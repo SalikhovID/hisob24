@@ -3,6 +3,7 @@ import { expect, test } from "vitest"
 import { addDays, ALI, db, localToday, seedTasks, taskTypesOf, typesOf, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { TasksPage } from "./tasks-page"
@@ -263,4 +264,18 @@ test("the + of a column opens the dialog for that stage; under a tab it opens wi
   expect(within(again).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
   expect(taskTypesOf(1)).toHaveLength(2)
   expect(typesOf(1)).toHaveLength(2)
+})
+
+test("without customers.create the dialog takes a customer that is there alone: no type, no fields, a word on why", async () => {
+  giveRole(VALI, 1, "Operator", ["tasks.view", "tasks.create", "customers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  seedTasks()
+  const { dialog } = await openDialog()
+
+  const customer = within(dialog).getByRole("group", { name: "Mijoz" })
+  expect(within(customer).queryByRole("radiogroup", { name: "Mijoz turi" })).not.toBeInTheDocument()
+  expect(within(customer).getByText("Yangi mijoz qo'shish ruxsatingiz yo'q: mavjud mijozni biriktiring.")).toBeInTheDocument()
+  expect(within(customer).getByRole("combobox", { name: "Telefon raqami" })).toBeInTheDocument()
+  expect(within(customer).queryByLabelText("F.I.Sh.")).not.toBeInTheDocument()
 })

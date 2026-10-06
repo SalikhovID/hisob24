@@ -3,8 +3,9 @@ import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, nextId, seedTasks, VALI } from "@/mocks/data"
-import { currentUrl, setLocation } from "@/test/navigation"
+import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -380,4 +381,33 @@ test("with no task types the owner is led to the settings", async () => {
   expect(await screen.findByText("Vazifa turlari yo'q")).toBeInTheDocument()
   expect(screen.getByText("Vazifa qo'shish uchun avval Sozlamalarda tur yarating.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings?tab=tasks")
+})
+
+test.each([
+  ["tasks.view alone", ["tasks.view"], false],
+  ["tasks.create without a way to a customer", ["tasks.view", "tasks.create"], false],
+  ["tasks.create with customers.view", ["tasks.view", "tasks.create", "customers.view"], true],
+])("the way to add a task is there with %s: %s", async (_, permissions, shown) => {
+  giveRole(VALI, 1, "Rol", permissions as Parameters<typeof giveRole>[3])
+  await signIn(VALI)
+  await chooseCompany(1)
+  seedTasks()
+  setLocation("/tasks?view=list")
+  renderWithProviders(<TasksPage />)
+
+  await table()
+  if (shown) expect(screen.getByRole("button", { name: "Vazifa qo'shish" })).toBeInTheDocument()
+  else expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test("an employee whose role holds no tasks.view is sent home", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  setLocation("/tasks?view=list")
+  renderWithProviders(<TasksPage />)
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+  expect(screen.queryByRole("heading", { level: 1, name: "Vazifalar" })).not.toBeInTheDocument()
 })

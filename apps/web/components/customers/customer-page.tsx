@@ -9,7 +9,10 @@ import { customerName } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
-import { useCustomer, useCustomerDropdowns, useCustomerTypes, useMe } from "@/lib/queries"
+import { can } from "@/lib/permissions"
+import { useCustomer, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
+import type { Permission } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { CustomerHistory } from "./customer-history"
 import { CustomerTasks } from "./customer-tasks"
 import { DeleteCustomerButton } from "./delete-customer-button"
@@ -17,12 +20,14 @@ import { EditCustomerDialog } from "./edit-customer-dialog"
 
 const back = { href: "/customers", label: "Mijozlar" }
 
-// CustomerPage is one customer of the company, for every member of it: who
-// it is, its answer to every field of its type, in the type's order, and who
+// CustomerPage is one customer of the company, for whoever may see the
+// customers (changing, deleting, the history and the tasks each take their
+// permission): who it is, its answer to every field of its type, in the type's order, and who
 // entered it and when.
 export function CustomerPage({ id }: { id: number }) {
-  const me = useMe()
-  const companyId = me.data?.company?.id ?? null
+  const gate = usePermission("customers.view")
+  const companyId = gate?.company.id ?? null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const customer = useCustomer(companyId, id)
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
@@ -68,12 +73,13 @@ export function CustomerPage({ id }: { id: number }) {
         avatar={<Avatar name={name} seed={customer.data.id} />}
         stack
         actions={
-          companyId !== null && (
+          companyId !== null &&
+          (allowed("customers.edit") || allowed("customers.delete")) && (
             <>
-              {type && (
+              {type && allowed("customers.edit") && (
                 <EditCustomerDialog companyId={companyId} customer={customer.data} type={type} dropdowns={dropdowns.data} />
               )}
-              <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />
+              {allowed("customers.delete") && <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />}
             </>
           )
         }
@@ -91,10 +97,10 @@ export function CustomerPage({ id }: { id: number }) {
           <Fact name="Qo'shilgan" value={formatDate(customer.data.created_at)} />
         </dl>
       </section>
-      {/* The tasks the customer has: a customer with one is not deleted. */}
-      {companyId !== null && <CustomerTasks companyId={companyId} customerId={customer.data.id} />}
-      {/* Who did what to the customer is the owner's to see. */}
-      {companyId !== null && me.data?.company?.role === "owner" && (
+      {/* The tasks the customer has (for whoever may see the tasks): a customer with one is not deleted. */}
+      {companyId !== null && allowed("tasks.view") && <CustomerTasks companyId={companyId} customerId={customer.data.id} />}
+      {/* Who did what to the customer takes its permission. */}
+      {companyId !== null && allowed("customers.history") && (
         <CustomerHistory companyId={companyId} id={customer.data.id} />
       )}
     </div>

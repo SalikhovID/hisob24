@@ -14,8 +14,10 @@ import { customerName, fieldColumns } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
-import { useCustomerDropdowns, useCustomers, useCustomerTypes, useMe } from "@/lib/queries"
-import type { Customer } from "@/lib/types"
+import { can } from "@/lib/permissions"
+import { useCustomerDropdowns, useCustomers, useCustomerTypes } from "@/lib/queries"
+import type { Customer, Permission } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { useHiddenColumns } from "@/lib/use-hidden-columns"
 import { cn } from "@/lib/utils"
 import { AddCustomerDialog } from "./add-customer-dialog"
@@ -27,13 +29,14 @@ import { useCustomerFilter } from "./use-customer-filter"
 // on the muted strip. Never the brand color: that is the page's one button.
 const tab = "px-3 text-muted-foreground data-active:bg-card"
 
-// CustomersPage is the company's customers, for every member of it: the
-// newest first, each under the name it goes by (its answer to its type's
+// CustomersPage is the company's customers, for whoever may see them
+// (customers.view; adding takes customers.create): the newest first, each under the name it goes by (its answer to its type's
 // first text field) over its phone, with its answers to the other fields.
 // Fields of one name share a column, whatever the type.
 export function CustomersPage() {
-  const me = useMe()
-  const companyId = me.data?.company?.id ?? null
+  const gate = usePermission("customers.view")
+  const companyId = gate?.company.id ?? null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const [filter, update] = useCustomerFilter()
@@ -104,7 +107,7 @@ export function CustomersPage() {
   ]
 
   // The customer itself always shows; any other column the user may hide.
-  const { hidden, toggle } = useHiddenColumns(companyId ?? 0, me.data?.user.phone ?? "")
+  const { hidden, toggle } = useHiddenColumns(companyId ?? 0, gate?.user.phone ?? "")
   const optional = columns.filter((column) => !column.primary)
   const shown = columns.filter((column) => column.primary || !hidden.has(column.key))
 
@@ -124,10 +127,13 @@ export function CustomersPage() {
   // A list of it can stay; "nothing found" cannot: it would be said of a
   // filter that has not answered yet.
   const settling = customers.isPlaceholderData && customers.data?.total === 0
-  const isOwner = me.data?.company?.role === "owner"
+  const settingsAllowed = allowed("settings.view")
   const noTypes = !failed && types.data?.length === 0
   const loading = !failed && (queries.some((query) => query.isPending) || settling)
 
+  // Until the session is known to be let in there is nothing to show; a
+  // stranger is on their way home.
+  if (!gate) return null
   return (
     <div className="space-y-5">
       <PageHeader
@@ -137,6 +143,7 @@ export function CustomersPage() {
         }
         actions={
           companyId !== null &&
+          allowed("customers.create") &&
           types.data &&
           dropdowns.data &&
           types.data.length > 0 && (
@@ -146,15 +153,15 @@ export function CustomersPage() {
       />
       {noTypes ? (
         // A customer is of a type: with none there is nothing to enter, to
-        // filter or to search. The types are the owner's to make.
+        // filter or to search. The types are the settings' to make.
         <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
           <p className="font-medium">Mijoz turlari yo&apos;q</p>
           <p className="mt-1 text-pretty text-muted-foreground">
-            {isOwner
+            {settingsAllowed
               ? "Mijoz qo'shish uchun avval Sozlamalarda tur yarating."
               : "Kompaniya egasi mijoz turlarini sozlashi kerak."}
           </p>
-          {isOwner && (
+          {settingsAllowed && (
             <Link href="/settings" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-4")}>
               Sozlamalarni ochish
             </Link>

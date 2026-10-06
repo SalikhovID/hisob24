@@ -5,6 +5,7 @@ import { ALI, db, nextId, seedCustomers, typesOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
 import { currentUrl, router, setLocation, slowNavigation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { CustomersPage } from "./customers-page"
@@ -431,4 +432,42 @@ test("with no customer types an employee is told whose it is to set them up", as
   expect(screen.getByText("Kompaniya egasi mijoz turlarini sozlashi kerak.")).toBeInTheDocument()
   expect(screen.queryByRole("link", { name: "Sozlamalarni ochish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Mijoz qo'shish" })).not.toBeInTheDocument()
+})
+
+test("an employee whose role holds customers.view alone sees the list without a way to add", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  seedCustomers()
+  setLocation("/customers")
+  renderWithProviders(<CustomersPage />)
+
+  expect(rowsOf(await table())).toHaveLength(3)
+  expect(screen.queryByRole("button", { name: "Mijoz qo'shish" })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test("with no customer type the way to the settings is for whoever may open them", async () => {
+  giveRole(VALI, 1, "Sozlovchi", ["customers.view", "customers.create", "settings.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  db.types.forEach((type) => {
+    type.deleted = true
+  })
+  setLocation("/customers")
+  renderWithProviders(<CustomersPage />)
+
+  expect(await screen.findByText("Mijoz qo'shish uchun avval Sozlamalarda tur yarating.")).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings")
+})
+
+test("an employee whose role holds no customers.view is sent home", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  setLocation("/customers")
+  renderWithProviders(<CustomersPage />)
+
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
+  expect(screen.queryByRole("heading", { level: 1, name: "Mijozlar" })).not.toBeInTheDocument()
 })
