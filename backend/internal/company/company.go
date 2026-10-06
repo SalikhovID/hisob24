@@ -28,11 +28,14 @@ type Company struct {
 	DaysLeft int
 }
 
-// Member is a company user with the role there.
+// Member is a company user with the role there and the company role they
+// hold (none for the owner and for a user without one).
 type Member struct {
 	Phone     string
 	FullName  *string
 	Role      string
+	RoleID    *int64
+	RoleName  *string
 	CreatedAt time.Time
 }
 

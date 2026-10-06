@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -21,6 +22,9 @@ func TestGetIsTheUserAndTheirCompanies(t *testing.T) {
 	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role, full_name)
 		VALUES ('998901234567', $1, 'owner', 'Ali Valiyev'), ('998901234567', $2, 'user', 'Ali (hisobchi)')`, olma, nok)
 	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `WITH r AS (INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Hisobchi', '{customers.view}') RETURNING id)
+		UPDATE user_companies SET role_id = r.id FROM r WHERE user_phone = '998901234567' AND company_id = $1`, nok)
+	require.NoError(t, err)
 
 	profile, err := NewProfiles(pool).Get(ctx, "998901234567")
 
@@ -33,9 +37,12 @@ func TestGetIsTheUserAndTheirCompanies(t *testing.T) {
 	assert.Equal(t, "user", profile.Companies[0].Role)
 	require.NotNil(t, profile.Companies[0].FullName)
 	assert.Equal(t, "Ali (hisobchi)", *profile.Companies[0].FullName, "the name the user goes by in that company")
+	require.NotNil(t, profile.Companies[0].RoleName)
+	assert.Equal(t, "Hisobchi", *profile.Companies[0].RoleName, "the role the user holds there")
 	assert.False(t, profile.Companies[0].IsActive)
 	assert.Equal(t, olma, profile.Companies[1].CompanyID)
 	assert.Equal(t, "2026-11-01", profile.Companies[1].EndDate.Format("2006-01-02"))
+	assert.Nil(t, profile.Companies[1].RoleName, "the owner has no role")
 }
 
 func TestGetCountsTheDaysLeftFromTheDatabasesToday(t *testing.T) {
@@ -82,15 +89,24 @@ func TestAccess(t *testing.T) {
 		id   int64
 		want Access
 	}{
-		"the owner, paid up": {company("CURRENT_DATE + 30", true, "owner"), Access{Role: "owner", Active: true}},
-		"a user, ends today": {company("CURRENT_DATE", true, "user"), Access{Role: "user", Active: true}},
-		"expired":            {company("CURRENT_DATE - 1", true, "user"), Access{Role: "user"}},
-		"blocked":            {company("CURRENT_DATE + 30", false, "owner"), Access{Role: "owner"}},
+		"the owner, paid up": {company("CURRENT_DATE + 30", true, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), Active: true}},
+		"a user, ends today": {company("CURRENT_DATE", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), Active: true}},
+		"expired":            {company("CURRENT_DATE - 1", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default)}},
+		"blocked":            {company("CURRENT_DATE + 30", false, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All)}},
 	} {
 		got, err := profiles.Access(ctx, "998901234567", tc.id)
 		require.NoError(t, err, name)
 		assert.Equal(t, tc.want, got, name)
 	}
+
+	withRole := company("CURRENT_DATE + 30", true, "user")
+	_, err = pool.Exec(ctx, `WITH r AS (INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Kuzatuvchi', '{tasks.view,customers.view}') RETURNING id)
+		UPDATE user_companies SET role_id = r.id FROM r WHERE user_phone = '998901234567' AND company_id = $1`, withRole)
+	require.NoError(t, err)
+	got, err := profiles.Access(ctx, "998901234567", withRole)
+	require.NoError(t, err)
+	assert.Equal(t, Access{Role: "user", Permissions: access.NewSet([]access.Permission{access.CustomersView, access.TasksView}), Active: true}, got,
+		"a user with a role has what the role holds, nothing of the default")
 
 	paidUp := company("CURRENT_DATE + 30", true, "owner")
 	_, err = profiles.Access(ctx, "998909999999", paidUp)

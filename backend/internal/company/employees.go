@@ -18,8 +18,9 @@ var (
 	errEmployeeNotFound = apperr.New(apperr.NotFound, "not_found", "Xodim topilmadi")
 )
 
-// Members lists the company's members under the names they go by there: the
-// owner first, then the users in the order they joined.
+// Members lists the company's members under the names they go by there,
+// each with the role they hold: the owner first, then the users in the order
+// they joined.
 func (s *Service) Members(ctx context.Context, companyID int64) ([]Member, error) {
 	rows, err := s.q.ListCompanyUsers(ctx, companyID)
 	if err != nil {
@@ -27,7 +28,7 @@ func (s *Service) Members(ctx context.Context, companyID int64) ([]Member, error
 	}
 	members := make([]Member, 0, len(rows))
 	for _, u := range rows {
-		members = append(members, Member{Phone: u.Phone, FullName: u.FullName, Role: u.Role, CreatedAt: u.CreatedAt})
+		members = append(members, Member{Phone: u.Phone, FullName: u.FullName, Role: u.Role, RoleID: u.RoleID, RoleName: u.RoleName, CreatedAt: u.CreatedAt})
 	}
 	return members, nil
 }
@@ -60,6 +61,7 @@ func (s *Service) AddEmployee(ctx context.Context, companyID int64, phone, fullN
 		if err != nil {
 			return err
 		}
+		// A new employee holds no role.
 		m = Member{Phone: uc.UserPhone, FullName: uc.FullName, Role: uc.Role, CreatedAt: uc.CreatedAt}
 		return nil
 	})
@@ -67,7 +69,8 @@ func (s *Service) AddEmployee(ctx context.Context, companyID int64, phone, fullN
 }
 
 // RenameEmployee changes the name a user goes by in the company; the names
-// in their other companies stay. The owner is not renamed from the app.
+// in their other companies stay, and so does the role they hold. The owner
+// is not renamed from the app.
 func (s *Service) RenameEmployee(ctx context.Context, companyID int64, phone, fullName string) (Member, error) {
 	normalized, err := user.NormalizePhone(phone)
 	if err != nil {
@@ -77,14 +80,27 @@ func (s *Service) RenameEmployee(ctx context.Context, companyID int64, phone, fu
 	if name == "" {
 		return Member{}, invalid("Ismni kiriting")
 	}
-	uc, err := s.q.RenameCompanyUser(ctx, gen.RenameCompanyUserParams{UserPhone: normalized, CompanyID: companyID, FullName: &name})
+	_, err = s.q.RenameCompanyUser(ctx, gen.RenameCompanyUserParams{UserPhone: normalized, CompanyID: companyID, FullName: &name})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Member{}, s.whyNotAnEmployee(ctx, companyID, normalized)
 	}
 	if err != nil {
 		return Member{}, err
 	}
-	return Member{Phone: uc.UserPhone, FullName: uc.FullName, Role: uc.Role, CreatedAt: uc.CreatedAt}, nil
+	return s.member(ctx, companyID, normalized)
+}
+
+// member is one member of the company as the lists show them, with the
+// name of the role they hold.
+func (s *Service) member(ctx context.Context, companyID int64, phone string) (Member, error) {
+	row, err := s.q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: phone, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Member{}, errEmployeeNotFound // taken out between the two queries
+	}
+	if err != nil {
+		return Member{}, err
+	}
+	return Member{Phone: row.Phone, FullName: row.FullName, Role: row.Role, RoleID: row.RoleID, RoleName: row.RoleName, CreatedAt: row.CreatedAt}, nil
 }
 
 // whyNotAnEmployee says why the app may not change the member with phone:
