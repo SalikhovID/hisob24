@@ -44,7 +44,7 @@ test("the owner sees the type's fields: what each asks, of what kind, with its m
       { label: "Manba", kind: "Dropdown (bitta tanlov) · Manba", marks: [] },
     ]),
   )
-  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
+  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings?tab=tasks")
   expect(screen.getByText(/Nomi, muddat va mijoz har vazifada bor va majburiy/)).toBeInTheDocument()
 })
 
@@ -54,7 +54,7 @@ test("a type that is not there says so and leads back", async () => {
 
   expect(await screen.findByRole("heading", { level: 1, name: "Tur topilmadi" })).toBeInTheDocument()
   expect(screen.getByText("Bu tur o'chirilgan yoki sizning kompaniyangizniki emas.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
+  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings?tab=tasks")
   expect(screen.queryByRole("list", { name: "Maydonlar" })).not.toBeInTheDocument()
 })
 

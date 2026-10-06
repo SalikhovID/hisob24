@@ -10,6 +10,7 @@ import { SearchInput } from "@/components/customers/search-input"
 import { type Column, DataList } from "@/components/data-list"
 import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
+import { settingsHref } from "@/components/settings/use-settings-tab"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -232,7 +233,7 @@ export function TasksPage() {
                 : "Kompaniya egasi vazifa turlarini sozlashi kerak."}
           </p>
           {isOwner && (
-            <Link href="/settings" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-4")}>
+            <Link href={settingsHref("tasks")} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-4")}>
               Sozlamalarni ochish
             </Link>
           )}

@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, db, dropdownsOf, stagesOf, taskTypesOf, typesOf, VALI } from "@/mocks/data"
-import { router } from "@/test/navigation"
+import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -19,12 +19,16 @@ const rowsOf = (list: HTMLElement) =>
 const typeList = () => screen.findByRole("list", { name: "Mijoz turlari" })
 const dropdownList = () => screen.findByRole("list", { name: "Dropdownlar" })
 
-test("the owner sees the customer types with their fields and the dropdowns with their options", async () => {
+test("the owner opens on the customers tab and sees the customer types with their fields", async () => {
   await signIn(ALI)
   renderWithProviders(<SettingsPage />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Sozlamalar" })).toBeInTheDocument()
   expect(screen.getAllByLabelText("Yuklanmoqda").length).toBeGreaterThan(0)
+  // The settings are three tabs; the customers' is the one open by default.
+  const tabs = screen.getByRole("tablist", { name: "Sozlamalar bo'limlari" })
+  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar"])
+  expect(within(tabs).getByRole("tab", { name: "Mijozlar" })).toHaveAttribute("aria-selected", "true")
 
   const types = await typeList()
   expect(rowsOf(types)).toEqual([
@@ -33,13 +37,46 @@ test("the owner sees the customer types with their fields and the dropdowns with
   ])
   const [jismoniy] = typesOf(1)
   expect(within(types).getByRole("link", { name: "Jismoniy" })).toHaveAttribute("href", `/settings/customer-types/${jismoniy.id}`)
+  expect(screen.getByRole("heading", { level: 2, name: "Mijoz turlari" })).toBeInTheDocument()
+  // The other tabs' lists are not on the page.
+  expect(screen.queryByRole("list", { name: "Dropdownlar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { level: 2, name: "Bosqichlar" })).not.toBeInTheDocument()
+})
 
+test("the dropdowns tab shows the dropdowns with their options", async () => {
+  await signIn(ALI)
+  setLocation("/settings?tab=dropdowns")
+  renderWithProviders(<SettingsPage />)
+
+  expect(await screen.findByRole("tab", { name: "Dropdownlar" })).toHaveAttribute("aria-selected", "true")
   const dropdowns = await dropdownList()
   expect(rowsOf(dropdowns)).toEqual([["Manba", "Instagram, LinkedIn, YouTube"]])
   const [manba] = dropdownsOf(1)
   expect(within(dropdowns).getByRole("link", { name: "Manba" })).toHaveAttribute("href", `/settings/dropdowns/${manba.id}`)
-  expect(screen.getByRole("heading", { level: 2, name: "Mijoz turlari" })).toBeInTheDocument()
   expect(screen.getByRole("heading", { level: 2, name: "Dropdownlar" })).toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Mijoz turlari" })).not.toBeInTheDocument()
+})
+
+test("a tab opens its settings and goes into the address", async () => {
+  await signIn(ALI)
+  setLocation("/settings")
+  const { user } = renderWithProviders(<SettingsPage />)
+  await typeList()
+
+  await user.click(screen.getByRole("tab", { name: "Vazifalar" }))
+  expect(currentUrl()).toBe("/settings?tab=tasks")
+  expect(await taskTypeList()).toBeInTheDocument()
+  expect(await stageList()).toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Mijoz turlari" })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole("tab", { name: "Dropdownlar" }))
+  expect(currentUrl()).toBe("/settings?tab=dropdowns")
+  expect(await dropdownList()).toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Bosqichlar" })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole("tab", { name: "Mijozlar" }))
+  expect(currentUrl()).toBe("/settings")
+  expect(await typeList()).toBeInTheDocument()
 })
 
 test("an employee is sent home: the settings are the owner's", async () => {
@@ -61,28 +98,31 @@ test("an employee is sent home: the settings are the owner's", async () => {
 
 test("a list that fails to load says why and can be asked for again", async () => {
   await signIn(ALI)
-  server.use(http.get("*/api/app/customer-dropdowns", () => HttpResponse.error(), { once: true }))
+  setLocation("/settings?tab=tasks")
+  server.use(http.get("*/api/app/task-stages", () => HttpResponse.error(), { once: true }))
   const { user } = renderWithProviders(<SettingsPage />)
 
   expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
-  // The other list is there all the same.
-  expect(rowsOf(await typeList())).toHaveLength(2)
+  // The other list of the tab is there all the same.
+  expect(rowsOf(await taskTypeList())).toHaveLength(1)
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
 
-  expect(rowsOf(await dropdownList())).toHaveLength(1)
+  expect(rowsOf(await stageList())).toHaveLength(3)
 })
 
 test("an empty list says what it is for", async () => {
   await signIn(VALI)
   await chooseCompany(2)
   db.types.forEach((type) => (type.deleted = true))
-  renderWithProviders(<SettingsPage />)
+  const { user } = renderWithProviders(<SettingsPage />)
 
   expect(await screen.findByText("Hali tur yo'q")).toBeInTheDocument()
   expect(screen.getByText("Mijoz qo'shish uchun kamida bitta tur kerak.")).toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Mijoz turlari" })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole("tab", { name: "Dropdownlar" }))
   expect(await screen.findByText("Hali dropdown yo'q")).toBeInTheDocument()
   expect(screen.getByText("Dropdown, radio va checkbox maydonlari variantlarni dropdowndan oladi.")).toBeInTheDocument()
-  expect(screen.queryByRole("list", { name: "Mijoz turlari" })).not.toBeInTheDocument()
 })
 
 const names = (list: HTMLElement) => rowsOf(list).map(([name]) => name)
@@ -207,6 +247,7 @@ test("an order the API refuses is taken back, and the reason is said", async () 
 
 test("a dropdown is added from the dialog and joins the list", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=dropdowns")
   const { user } = renderWithProviders(<SettingsPage />)
   await dropdownList()
 
@@ -222,6 +263,7 @@ test("a dropdown is added from the dialog and joins the list", async () => {
 
 test("a dropdown is renamed from its row", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=dropdowns")
   const { user } = renderWithProviders(<SettingsPage />)
 
   await user.click(within(await dropdownList()).getByRole("button", { name: "Nomini o'zgartirish: Manba" }))
@@ -239,6 +281,7 @@ test("a dropdown is renamed from its row", async () => {
 
 test("a dropdown a field uses is not deleted, and the reason is said; one that is free is", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=dropdowns")
   db.dropdowns.push({ id: 900, companyId: 1, name: "Holat", options: [] })
   const { user } = renderWithProviders(<SettingsPage />)
 
@@ -262,9 +305,12 @@ const stageList = () => screen.findByRole("list", { name: "Bosqichlar" })
 
 test("the owner sees the task types and the stages, each stage with its color and the final one marked", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=tasks")
   renderWithProviders(<SettingsPage />)
 
   expect(await screen.findByText("Mijozlar va vazifalar sozlamalari")).toBeInTheDocument()
+  // The address opened the tasks' tab.
+  expect(screen.getByRole("tab", { name: "Vazifalar" })).toHaveAttribute("aria-selected", "true")
   const types = await taskTypeList()
   expect(rowsOf(types)).toEqual([["Vazifa", null]])
   const [vazifa] = taskTypesOf(1)
@@ -284,6 +330,7 @@ test("the owner sees the task types and the stages, each stage with its color an
 
 test("a stage is added from the dialog with its color and the final mark, and joins the list", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=tasks")
   const { user } = renderWithProviders(<SettingsPage />)
   await stageList()
 
@@ -302,6 +349,7 @@ test("a stage is added from the dialog with its color and the final mark, and jo
 
 test("the add-stage dialog says what is missing, and why the API refused", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=tasks")
   const { user } = renderWithProviders(<SettingsPage />)
   await stageList()
   await user.click(screen.getByRole("button", { name: "Bosqich qo'shish" }))
@@ -321,6 +369,7 @@ test("the add-stage dialog says what is missing, and why the API refused", async
 
 test("a stage is edited from its row: its name, color and final mark come filled in", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=tasks")
   const { user } = renderWithProviders(<SettingsPage />)
 
   await user.click(within(await stageList()).getByRole("button", { name: "Tahrirlash: Jarayonda" }))
@@ -343,6 +392,7 @@ test("a stage is edited from its row: its name, color and final mark come filled
 
 test("a stage is deleted after asking; one the API will not delete stays, and the reason is said", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=tasks")
   const { user } = renderWithProviders(<SettingsPage />)
 
   await user.click(within(await stageList()).getByRole("button", { name: "O'chirish: Yangi" }))
@@ -366,6 +416,7 @@ test("a stage is deleted after asking; one the API will not delete stays, and th
 
 test("the stages are put in order from the keyboard, and the order is saved", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=tasks")
   const { user } = renderWithProviders(<SettingsPage />)
 
   handleOf(await stageList(), "Bajarildi").focus()
@@ -377,6 +428,7 @@ test("the stages are put in order from the keyboard, and the order is saved", as
 
 test("a task type is added, renamed and deleted from the settings", async () => {
   await signIn(ALI)
+  setLocation("/settings?tab=tasks")
   const { user } = renderWithProviders(<SettingsPage />)
   await taskTypeList()
 
@@ -412,6 +464,7 @@ test("the empty task settings say what they are for", async () => {
   await chooseCompany(2)
   db.stages.forEach((stage) => (stage.deleted = true))
   db.taskTypes.forEach((type) => (type.deleted = true))
+  setLocation("/settings?tab=tasks")
   renderWithProviders(<SettingsPage />)
 
   expect(await screen.findByText("Hali bosqich yo'q")).toBeInTheDocument()

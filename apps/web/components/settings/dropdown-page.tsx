@@ -19,8 +19,9 @@ import { AddOptionForm } from "./add-option-form"
 import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 import { iconAction, SettingRow, settingList } from "./setting-row"
+import { settingsHref } from "./use-settings-tab"
 
-const back = { href: "/settings", label: "Sozlamalar" }
+const back = { href: settingsHref("dropdowns"), label: "Sozlamalar" }
 
 // DropdownPage is one dropdown of the owner's company: the options the
 // choice fields that use it offer, in their order. An option that is turned

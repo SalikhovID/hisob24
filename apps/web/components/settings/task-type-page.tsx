@@ -14,8 +14,9 @@ import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteButton } from "./delete-button"
 import { AddFieldDialog, EditFieldDialog } from "./field-dialog"
 import { SettingRow, settingList } from "./setting-row"
+import { settingsHref } from "./use-settings-tab"
 
-const back = { href: "/settings", label: "Sozlamalar" }
+const back = { href: settingsHref("tasks"), label: "Sozlamalar" }
 
 // TaskTypePage is one task type of the owner's company: the fields its form
 // asks, in their order. The title, the deadline, the customer and the

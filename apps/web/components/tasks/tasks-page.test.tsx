@@ -335,7 +335,7 @@ test("with no stages the owner is led to the settings, and no task can be added"
 
   expect(await screen.findByText("Bosqichlar yo'q")).toBeInTheDocument()
   expect(screen.getByText("Vazifa qo'shish uchun avval Sozlamalarda bosqich yarating.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings")
+  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings?tab=tasks")
   expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("tab")).not.toBeInTheDocument()
   expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
@@ -371,5 +371,5 @@ test("with no task types the owner is led to the settings", async () => {
 
   expect(await screen.findByText("Vazifa turlari yo'q")).toBeInTheDocument()
   expect(screen.getByText("Vazifa qo'shish uchun avval Sozlamalarda tur yarating.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings")
+  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings?tab=tasks")
 })

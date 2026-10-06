@@ -10,6 +10,7 @@ import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { StageDot } from "@/components/tasks/stage-dot"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api, call } from "@/lib/api"
 import {
   customerDropdownsKey,
@@ -28,25 +29,55 @@ import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 import { iconAction, SettingRow, settingList } from "./setting-row"
 import { StageDialog } from "./stage-dialog"
+import { asTab, useSettingsTab } from "./use-settings-tab"
 
 const link = "rounded-sm underline-offset-4 hover:underline"
 
+// A tab is quiet until it is the chosen one, which then stands out as a card
+// on the muted strip (the customers' and the tasks' tabs).
+const tab = "px-3 text-muted-foreground data-active:bg-card"
+
 // SettingsPage is where the company's owner sets up what its customers and
-// its tasks are asked: the customer types with their fields, the task types
-// with theirs, the stages the tasks go through, and the dropdowns the choice
-// fields of both take their options from. A type and a dropdown open on a
-// page of their own.
+// its tasks are asked, in three tabs: the customer types with their fields;
+// the task types with theirs and the stages the tasks go through; and the
+// dropdowns the choice fields of both take their options from. The open tab
+// is in the address. A type and a dropdown open on a page of their own.
 export function SettingsPage() {
   const owner = useOwner()
+  const [open, select] = useSettingsTab()
   if (!owner) return null
+  const companyId = owner.company.id
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <PageHeader title="Sozlamalar" description="Mijozlar va vazifalar sozlamalari" />
-      <CustomerTypes companyId={owner.company.id} />
-      <TaskTypes companyId={owner.company.id} />
-      <Stages companyId={owner.company.id} />
-      <Dropdowns companyId={owner.company.id} />
+      <Tabs value={open} onValueChange={(value) => select(asTab(value))} className="gap-5">
+        {/* The strip of tabs scrolls sideways on a narrow screen rather than squeezing. */}
+        <div className="-mx-1 min-w-0 overflow-x-auto px-1 py-0.5 scrollbar-hide">
+          <TabsList aria-label="Sozlamalar bo'limlari" className="group-data-horizontal/tabs:h-9 max-sm:min-w-full">
+            <TabsTrigger value="customers" className={tab}>
+              Mijozlar
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className={tab}>
+              Vazifalar
+            </TabsTrigger>
+            <TabsTrigger value="dropdowns" className={tab}>
+              Dropdownlar
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        {/* A panel keeps the page's text size: its lists set their own. */}
+        <TabsContent value="customers" className="space-y-8 text-base">
+          <CustomerTypes companyId={companyId} />
+        </TabsContent>
+        <TabsContent value="tasks" className="space-y-8 text-base">
+          <TaskTypes companyId={companyId} />
+          <Stages companyId={companyId} />
+        </TabsContent>
+        <TabsContent value="dropdowns" className="space-y-8 text-base">
+          <Dropdowns companyId={companyId} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

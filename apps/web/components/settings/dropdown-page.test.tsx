@@ -32,7 +32,7 @@ test("the owner sees the dropdown's options in their order, the ones turned off 
     { label: "LinkedIn", marks: [] },
     { label: "YouTube", marks: ["Nofaol"] },
   ])
-  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
+  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings?tab=dropdowns")
 })
 
 test("a dropdown that is not there says so and leads back", async () => {
@@ -41,7 +41,7 @@ test("a dropdown that is not there says so and leads back", async () => {
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dropdown topilmadi" })).toBeInTheDocument()
   expect(screen.getByText("Bu dropdown o'chirilgan yoki sizning kompaniyangizniki emas.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
+  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings?tab=dropdowns")
 })
 
 test("a dropdown with no options says how to add one", async () => {
