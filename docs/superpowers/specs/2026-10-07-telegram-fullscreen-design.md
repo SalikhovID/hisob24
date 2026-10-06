@@ -1,6 +1,6 @@
 # Telegram Mini App to'liq ekranda — dizayn
 
-Sana: 2026-10-07. Holat: foydalanuvchi suhbatda tasdiqlagan ("boshla"); amalga oshirilmoqda (oxirida "Qarorlar"). Reja: `docs/superpowers/plans/2026-10-07-telegram-fullscreen.md`.
+Sana: 2026-10-07. Holat: foydalanuvchi suhbatda tasdiqlagan ("boshla"); amalga oshirilgan va 2026-10-07 da production'ga chiqarilgan (pastda "Qarorlar" va "Production'ga deploy"). Reja: `docs/superpowers/plans/2026-10-07-telegram-fullscreen.md`.
 
 ## Kontekst
 
@@ -72,3 +72,15 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **Yo'l-yo'lakay tuzatilgan test** (`tasks-page.test.tsx`): bajarilgan vazifaning muddati `getByText(sana)` bilan topilardi; 2026-10-07 da `today − 5` = 02.10.2026 fixture'dagi "Qo'shilgan" 02.10.2026 bilan ustma-ust tushdi ("Found multiple elements"). Endi `[data-slot=deadline]` bilan topiladi; kod o'zgarmadi.
 - **Tekshiruv:** `make lint` 0 issues; `make test`: Go 19 paket, api-client 1, admin 228, web 579 (4 yangi: 3 `telegram-sync`, 1 `sonner`); `make e2e`: admin 40, web 94 (yangi desktop Telegram ssenariysi ikki project'da, 3 mavjud Mini App testi chet tekshiruvlari bilan).
 - Haqiqiy qurilmada tekshirilmadi (lokal bot tokeni yo'q): foydalanuvchi production'da sinaydi.
+
+## Production'ga deploy (2026-10-07)
+
+`deploy/ship.sh` bilan `9b4df34` yuborildi (01:40–01:42 Toshkent, exit 0): `next` image qayta build (api image qatlamlari keshdan, konteyner qayta ko'tarildi), migratsiya yo'q (goose 9), api/admin/web `--wait` bilan healthy. Oldingi daraxt: `/var/www/hisob24-v2.prev`. Pre-deploy dump: `/var/backups/hisob24-v2/hisob24-pre-fullscreen-20261006-2239.sql.gz` (25 jadval, gzip tekshirilgan).
+
+Tekshiruvlar (sessiyasiz, hech narsa yozilmadi, SMS yuborilmadi):
+
+- Lokal pre-flight: daraxt toza va push qilingan; toza `git archive HEAD` nusxasidan `go build`, `go vet` va ikkala Next build (exit 0). Yangi env kaliti yo'q.
+- Server pre-flight (read-only): konteynerlar healthy, deploy jarayoni yo'q, goose 9, satrlar: companies 1, users 2, user_companies 2, customers 2, customer_types 3, customer_dropdowns 1, tasks 1, task_stages 5, task_types 2, refresh_tokens 46, roles 0; API log ERROR/WARN 0.
+- Probe (30 ta): oldin 29/30, keyin 30/30. Yangi tekshiruv: qobiq chunk'larida `requestFullscreen` bor, eski build'da yo'q edi — yangi build jonli ekanining isboti. Qolganlari rollar deploy'idagi 29 ta: sahifalar placeholder cookie bilan 200, API route'lar 401, noma'lum 404, chunk matnlari, webhook'lar sekretsiz 401, ikonlar.
+- Serverda: goose 9, satrlar o'zgarmagan; `.env` `.prev` bilan bir xil; restart 0; API log ERROR/WARN 0, web/admin log xatosi 0; dangling image 0; server daraxtining sha256 si (`.env` dan tashqari, 686 fayl) `git archive HEAD` bilan bir xil (`076ef157…`).
+- Haqiqiy telefonda tekshirilmadi: foydalanuvchi Telegram'da (iOS yoki Android, Bot API 8.0+) Mini App'ni ochib sinaydi: sarlavha yo'q, topbar status bar va "⋯" tugmalari ostidan boshlanadi; login va boshqa ekranlarda ham.
