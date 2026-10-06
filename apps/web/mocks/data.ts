@@ -3,6 +3,7 @@
 import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type {
   AppCompany,
+  CompanyRole,
   CustomerDropdown,
   CustomerFieldKind,
   CustomerType,
@@ -54,12 +55,24 @@ interface Company {
 }
 
 // Membership is a user's place in a company. fullName is the name they go by
-// there; without one the user's own shows. joined orders the members.
-interface Membership {
+// there; without one the user's own shows. joined orders the members. roleId
+// is the company role an employee holds; without one they have the default
+// permissions.
+export interface Membership {
   companyId: number
   role: Role
   joined: number
   fullName?: string
+  roleId?: number
+}
+
+// A company role: a name and the permissions it holds (logic/roles.md,
+// section 5). A role nobody holds is removed for good.
+export interface RoleRow {
+  id: number
+  companyId: number
+  name: string
+  permissions: Permission[]
 }
 
 // What a company's owner sets up for its customers. A row is never removed:
@@ -195,6 +208,7 @@ interface Db {
   users: Record<string, string | null>
   companies: Company[]
   members: Record<string, Membership[]>
+  roles: RoleRow[]
   dropdowns: DropdownRow[]
   types: TypeRow[]
   stages: StageRow[]
@@ -297,6 +311,7 @@ function seed(): Db {
       ],
       [ZARINA]: [{ companyId: 3, role: "user", joined: 7 }],
     },
+    roles: [],
     joined: 7,
     codes: {},
     sentAt: {},
@@ -319,15 +334,21 @@ export function paidUp(company: Company): boolean {
   return company.is_active && company.end_date >= TODAY
 }
 
+// roleOf is the company role a member holds, if any.
+export function roleOf(membership: Membership): RoleRow | undefined {
+  return membership.roleId === undefined ? undefined : db.roles.find((r) => r.id === membership.roleId)
+}
+
 export function companiesOf(phone: string): AppCompany[] {
   return (db.members[phone] ?? [])
-    .map(({ companyId, role }) => {
+    .map((membership) => {
+      const { companyId, role } = membership
       const c = db.companies.find((company) => company.id === companyId)!
       return {
         id: c.id,
         name: c.name,
         role,
-        role_name: null,
+        role_name: roleOf(membership)?.name ?? null,
         end_date: c.end_date,
         days_left: daysLeft(c.end_date),
         is_active: c.is_active,
@@ -337,10 +358,27 @@ export function companiesOf(phone: string): AppCompany[] {
 }
 
 // permissionsOf is what phone may do in the company, as the API tells it
-// (logic/roles.md, section 4): the owner everything, an employee the default.
+// (logic/roles.md, section 4): the owner everything, an employee with a role
+// what the role holds, one without the default.
 export function permissionsOf(phone: string, companyId: number): Permission[] {
   const membership = (db.members[phone] ?? []).find((m) => m.companyId === companyId)
-  return membership?.role === "owner" ? allPermissions : defaultPermissions
+  if (!membership) return []
+  if (membership.role === "owner") return allPermissions
+  return roleOf(membership)?.permissions ?? defaultPermissions
+}
+
+// toRole is a role as the API lists it, with how many members hold it.
+export function toRole(role: RoleRow): CompanyRole {
+  const holders = Object.values(db.members).flat().filter((m) => m.roleId === role.id).length
+  return { id: role.id, name: role.name, permissions: role.permissions, members_count: holders }
+}
+
+// rolesOf lists a company's roles as the API does: by name, whatever the case.
+export function rolesOf(companyId: number): CompanyRole[] {
+  return db.roles
+    .filter((r) => r.companyId === companyId)
+    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id)
+    .map(toRole)
 }
 
 // nameIn is the name phone goes by in the company: the membership's, or the
@@ -366,8 +404,8 @@ export function membersOf(companyId: number): Member[] {
       phone,
       full_name: nameIn(phone, companyId),
       role: membership.role,
-      role_id: null,
-      role_name: null,
+      role_id: membership.roleId ?? null,
+      role_name: roleOf(membership)?.name ?? null,
       created_at: new Date(Date.parse(`${TODAY}T05:00:00Z`) + membership.joined * 60_000).toISOString(),
     }))
 }

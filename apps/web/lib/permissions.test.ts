@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { allPermissions, defaultPermissions } from "./permissions"
+import { allPermissions, defaultPermissions, sectionLabels } from "./permissions"
 
 test("the catalog is the eighteen permissions in their order", () => {
   expect(allPermissions).toHaveLength(18)
@@ -19,4 +19,8 @@ test("an employee without a role has the customers and the tasks, without their 
     "tasks.edit",
     "tasks.delete",
   ])
+})
+
+test("the sections have their names in the app", () => {
+  expect(sectionLabels).toEqual({ customers: "Mijozlar", tasks: "Vazifalar", employees: "Xodimlar", settings: "Sozlamalar" })
 })

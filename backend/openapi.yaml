@@ -1473,6 +1473,171 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerNotFound"
+  /app/employees/{phone}/role:
+    parameters:
+      - name: phone
+        in: path
+        required: true
+        description: Xodimning telefoni, 998901234567 ko'rinishida
+        schema:
+          type: string
+    put:
+      operationId: setEmployeeRole
+      summary: Xodimga rol biriktirish yoki olib tashlash (faqat owner)
+      description: >
+        Xodim shu kompaniyaning rolini oladi (role_id) yoki rolsiz qoladi
+        (null, standart ruxsat). Keyingi so'rovidanoq yangi ruxsat bilan
+        ishlaydi. Egasiga rol berilmaydi. Rollarni faqat egasi boshqaradi
+        (logic/roles.md, 5-bo'lim).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeRoleInput"
+      responses:
+        "200":
+          description: Xodim, roli bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/RoleOrEmployeeNotFound"
+        "409":
+          $ref: "#/components/responses/CannotChangeOwner"
+  /app/roles:
+    get:
+      operationId: listRoles
+      summary: Kompaniya rollari (faqat owner)
+      description: >
+        Access token'dagi kompaniyaning rollari nom bo'yicha (katta-kichik
+        harf farqsiz), har birida uni egallagan xodimlar soni.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Rollar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompanyRole"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+    post:
+      operationId: createRole
+      summary: Rol yaratish (faqat owner)
+      description: >
+        Nom kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60
+        belgigacha. Ruxsatlar katalogdan (Permission), takrori bir marta
+        sanaladi, javobda katalog tartibida; bo'limning amali uning view
+        ruxsatisiz qabul qilinmaydi (400 "«Mijozlar» bo'limida avval
+        «Ko'rish» ni belgilang"). Bo'sh ro'yxat mumkin.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleInput"
+      responses:
+        "201":
+          description: Yaratilgan rol
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyRole"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "409":
+          $ref: "#/components/responses/RoleConflict"
+  /app/roles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: updateRole
+      summary: Rol nomi va ruxsatlarini almashtirish (faqat owner)
+      description: >
+        Nom va ruxsatlar yuborilganiga butunlay almashadi (qoidalari rol
+        yaratishdagidek). Shu rolli xodimlar keyingi so'rovidanoq yangi
+        ruxsat bilan ishlaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleInput"
+      responses:
+        "200":
+          description: Yangilangan rol
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyRole"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/RoleNotFound"
+        "409":
+          $ref: "#/components/responses/RoleConflict"
+    delete:
+      operationId: deleteRole
+      summary: Rolni o'chirish (faqat owner)
+      description: >
+        Rol bazadan o'chadi, nomi darhol bo'shaydi. Biror xodimga
+        biriktirilgan rol o'chirilmaydi (409 role_in_use): avval
+        xodimlardan olinadi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/RoleNotFound"
+        "409":
+          $ref: "#/components/responses/RoleConflict"
   /app/members:
     get:
       operationId: listMembers
@@ -2385,6 +2550,29 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    RoleNotFound:
+      description: Kompaniyada bunday rol yo'q (not_found, "Rol topilmadi")
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RoleOrEmployeeNotFound:
+      description: >
+        Xodim kompaniya a'zosi emas ("Xodim topilmadi") yoki rol
+        kompaniyaniki emas ("Rol topilmadi") (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RoleConflict:
+      description: >
+        Bu nomli rol allaqachon bor (name_taken) yoki rol xodimlarga
+        biriktirilgan va o'chirilmaydi (role_in_use, "Bu rol N ta xodimga
+        biriktirilgan")
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     CustomerSettingNotFound:
       description: Tur, maydon, dropdown yoki variant topilmadi (not_found)
       content:
@@ -2730,6 +2918,46 @@ components:
           description: >
             Tanlangan kompaniyadagi ismi. Kompaniya tanlanmagan yoki a'zolikda
             ism bo'lmasa, userning o'z ismi.
+    CompanyRole:
+      type: object
+      required: [id, name, permissions, members_count]
+      description: >
+        Kompaniya roli: egasi tuzgan nom va ruxsatlar to'plami, xodimga
+        biriktiriladi (logic/roles.md, 5-bo'lim)
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        permissions:
+          type: array
+          description: Katalog tartibida, har biri bir marta
+          items:
+            $ref: "#/components/schemas/Permission"
+        members_count:
+          type: integer
+          format: int64
+          description: Shu rolni egallagan xodimlar soni
+    RoleInput:
+      type: object
+      required: [name, permissions]
+      properties:
+        name:
+          type: string
+          maxLength: 60
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+    EmployeeRoleInput:
+      type: object
+      required: [role_id]
+      properties:
+        role_id:
+          type: [integer, "null"]
+          format: int64
+          description: Shu kompaniyaning roli; null rolni olib tashlaydi
     AppCompany:
       type: object
       required: [id, name, role, role_name, end_date, days_left, is_active]

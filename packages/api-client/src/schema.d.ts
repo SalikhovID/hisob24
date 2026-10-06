@@ -754,6 +754,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/employees/{phone}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Xodimning telefoni, 998901234567 ko'rinishida */
+                phone: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Xodimga rol biriktirish yoki olib tashlash (faqat owner)
+         * @description Xodim shu kompaniyaning rolini oladi (role_id) yoki rolsiz qoladi (null, standart ruxsat). Keyingi so'rovidanoq yangi ruxsat bilan ishlaydi. Egasiga rol berilmaydi. Rollarni faqat egasi boshqaradi (logic/roles.md, 5-bo'lim).
+         */
+        put: operations["setEmployeeRole"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kompaniya rollari (faqat owner)
+         * @description Access token'dagi kompaniyaning rollari nom bo'yicha (katta-kichik harf farqsiz), har birida uni egallagan xodimlar soni.
+         */
+        get: operations["listRoles"];
+        put?: never;
+        /**
+         * Rol yaratish (faqat owner)
+         * @description Nom kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha. Ruxsatlar katalogdan (Permission), takrori bir marta sanaladi, javobda katalog tartibida; bo'limning amali uning view ruxsatisiz qabul qilinmaydi (400 "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang"). Bo'sh ro'yxat mumkin.
+         */
+        post: operations["createRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rol nomi va ruxsatlarini almashtirish (faqat owner)
+         * @description Nom va ruxsatlar yuborilganiga butunlay almashadi (qoidalari rol yaratishdagidek). Shu rolli xodimlar keyingi so'rovidanoq yangi ruxsat bilan ishlaydi.
+         */
+        put: operations["updateRole"];
+        post?: never;
+        /**
+         * Rolni o'chirish (faqat owner)
+         * @description Rol bazadan o'chadi, nomi darhol bo'shaydi. Biror xodimga biriktirilgan rol o'chirilmaydi (409 role_in_use): avval xodimlardan olinadi.
+         */
+        delete: operations["deleteRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/members": {
         parameters: {
             query?: never;
@@ -1272,6 +1345,30 @@ export interface components {
             /** @description Tanlangan kompaniyadagi ismi. Kompaniya tanlanmagan yoki a'zolikda ism bo'lmasa, userning o'z ismi. */
             full_name: string | null;
         };
+        /** @description Kompaniya roli: egasi tuzgan nom va ruxsatlar to'plami, xodimga biriktiriladi (logic/roles.md, 5-bo'lim) */
+        CompanyRole: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** @description Katalog tartibida, har biri bir marta */
+            permissions: components["schemas"]["Permission"][];
+            /**
+             * Format: int64
+             * @description Shu rolni egallagan xodimlar soni
+             */
+            members_count: number;
+        };
+        RoleInput: {
+            name: string;
+            permissions: components["schemas"]["Permission"][];
+        };
+        EmployeeRoleInput: {
+            /**
+             * Format: int64
+             * @description Shu kompaniyaning roli; null rolni olib tashlaydi
+             */
+            role_id: number | null;
+        };
         AppCompany: {
             /** Format: int64 */
             id: number;
@@ -1734,6 +1831,33 @@ export interface components {
         };
         /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki a'zoning ruxsati bu amalni qamrab olmaydi (forbidden). Egasi hammasini qila oladi; rolsiz xodim standart ruxsatga ega (mijozlar va vazifalar, tarixsiz); rolli xodim faqat rolidagi ruxsatlarga (logic/roles.md, 4-bo'lim) */
         Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Kompaniyada bunday rol yo'q (not_found, "Rol topilmadi") */
+        RoleNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Xodim kompaniya a'zosi emas ("Xodim topilmadi") yoki rol kompaniyaniki emas ("Rol topilmadi") (not_found) */
+        RoleOrEmployeeNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Bu nomli rol allaqachon bor (name_taken) yoki rol xodimlarga biriktirilgan va o'chirilmaydi (role_in_use, "Bu rol N ta xodimga biriktirilgan") */
+        RoleConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3200,6 +3324,148 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    setEmployeeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Xodimning telefoni, 998901234567 ko'rinishida */
+                phone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeRoleInput"];
+            };
+        };
+        responses: {
+            /** @description Xodim, roli bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["RoleOrEmployeeNotFound"];
+            409: components["responses"]["CannotChangeOwner"];
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rollar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyRole"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+        };
+    };
+    createRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description Yaratilgan rol */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyRole"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["RoleConflict"];
+        };
+    };
+    updateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description Yangilangan rol */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyRole"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["RoleNotFound"];
+            409: components["responses"]["RoleConflict"];
+        };
+    };
+    deleteRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["RoleNotFound"];
+            409: components["responses"]["RoleConflict"];
         };
     };
     listMembers: {

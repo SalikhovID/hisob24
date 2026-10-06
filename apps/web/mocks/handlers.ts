@@ -4,6 +4,7 @@
 import { http, HttpResponse } from "msw"
 import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
+import { rolesHandlers } from "./roles"
 import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, permittedSession, read, type Session } from "./gate"
@@ -217,6 +218,7 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
+  ...rolesHandlers,
   ...customerSettingsHandlers,
   ...customersHandlers,
   ...taskSettingsHandlers,

@@ -5,7 +5,8 @@ import type { components } from "@hisob24/api-client"
 import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
 import { allPermissions, defaultPermissions } from "@/lib/permissions"
-import type { CustomerFieldKind } from "@/lib/types"
+import type { CustomerFieldKind, Permission } from "@/lib/types"
+import { setAccessToken } from "@/lib/session"
 import { chooseCompany, signIn } from "@/test/session"
 import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
 
@@ -1288,4 +1289,87 @@ test("what the tasks use is not deleted; the customers are suggested by the digi
   expect(await phones("5555")).toEqual([])
   expect(await failure(listCustomers({ phone: "abc" }))).toMatchObject({ status: 400, message: "Telefon raqami noto'g'ri" })
   expect(await failure(listCustomers({ phone: "9055555555" }))).toMatchObject({ status: 400, message: "Telefon raqami noto'g'ri" })
+})
+
+// The roles (logic/roles.md, section 5; backend/internal/app/roles_test.go).
+type RoleInput = components["schemas"]["RoleInput"]
+const listRoles = () => call(api.GET("/app/roles"))
+const createRole = (body: RoleInput) => call(api.POST("/app/roles", { body }))
+const updateRole = (id: number, body: RoleInput) => call(api.PUT("/app/roles/{id}", { params: { path: { id } }, body }))
+const deleteRole = (id: number) => call(api.DELETE("/app/roles/{id}", { params: { path: { id } } }))
+const giveRole = (phone: string, roleId: number | null) =>
+  call(api.PUT("/app/employees/{phone}/role", { params: { path: { phone } }, body: { role_id: roleId } }))
+
+test("the owner makes, changes and deletes roles; the permissions come back in the catalog's order", async () => {
+  await signIn(ALI)
+  expect(await listRoles()).toEqual([])
+
+  const sotuvchi = await createRole({ name: " Sotuvchi ", permissions: ["tasks.view", "customers.view", "customers.view"] })
+  expect(sotuvchi).toMatchObject({ name: "Sotuvchi", permissions: ["customers.view", "tasks.view"], members_count: 0 })
+  const admin = await createRole({ name: "admin", permissions: [] })
+  expect((await listRoles()).map((r) => r.name)).toEqual(["admin", "Sotuvchi"])
+
+  expect(await updateRole(sotuvchi.id, { name: "Katta sotuvchi", permissions: ["customers.create", "customers.view"] })).toMatchObject({
+    name: "Katta sotuvchi",
+    permissions: ["customers.view", "customers.create"],
+  })
+  expect(await failure(createRole({ name: "katta SOTUVCHI", permissions: [] }))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli rol allaqachon bor",
+  })
+  expect(await failure(createRole({ name: " ", permissions: [] }))).toMatchObject({ status: 400, message: "Nomni kiriting" })
+  expect(await failure(createRole({ name: "Kassir", permissions: ["customers.fly" as Permission] }))).toMatchObject({
+    status: 400,
+    message: "Ruxsat noto'g'ri",
+  })
+  expect(await failure(updateRole(sotuvchi.id, { name: "Kassir", permissions: ["tasks.create"] }))).toMatchObject({
+    status: 400,
+    message: "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang",
+  })
+  expect(await failure(updateRole(999999, { name: "X", permissions: [] }))).toMatchObject({ status: 404, message: "Rol topilmadi" })
+
+  await deleteRole(admin.id)
+  expect((await listRoles()).map((r) => r.id)).toEqual([sotuvchi.id])
+  expect(await failure(deleteRole(admin.id))).toMatchObject({ status: 404, code: "not_found" })
+})
+
+test("an employee holds a role and works by it; a role someone holds is not deleted", async () => {
+  const owner = await signIn(ALI)
+  const kuzatuvchi = await createRole({ name: "Kuzatuvchi", permissions: ["tasks.view"] })
+  expect(await giveRole(VALI, kuzatuvchi.id)).toMatchObject({ phone: VALI, role: "user", role_id: kuzatuvchi.id, role_name: "Kuzatuvchi" })
+  expect((await listRoles())[0].members_count).toBe(1)
+  expect((await call(api.GET("/app/employees"))).find((m) => m.phone === VALI)).toMatchObject({ role_id: kuzatuvchi.id, role_name: "Kuzatuvchi" })
+  expect(await failure(deleteRole(kuzatuvchi.id))).toMatchObject({
+    status: 409,
+    code: "role_in_use",
+    message: "Bu rol 1 ta xodimga biriktirilgan",
+  })
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  const me = await call(api.GET("/app/me"))
+  expect(me.permissions).toEqual(["tasks.view"])
+  expect(me.company?.role_name).toBe("Kuzatuvchi")
+  expect(await failure(call(api.GET("/app/customers")))).toMatchObject({ status: 403, code: "forbidden" })
+
+  // Back as the owner (a second code within a minute would be refused).
+  setAccessToken(owner.access_token)
+  expect(await giveRole(VALI, null)).toMatchObject({ role_id: null, role_name: null })
+  await deleteRole(kuzatuvchi.id)
+  expect(await listRoles()).toEqual([])
+})
+
+test("the roles are the owner's: an employee, and a session with no company chosen, get owner_only; the owner takes no role", async () => {
+  await signIn(VALI)
+  expect(await failure(listRoles())).toMatchObject({ status: 403, code: "owner_only" })
+  await chooseCompany(1)
+  expect(await failure(listRoles())).toMatchObject({ status: 403, code: "owner_only", message: "Bu bo'lim faqat kompaniya egasi uchun" })
+  expect(await failure(createRole({ name: "X", permissions: [] }))).toMatchObject({ status: 403, code: "owner_only" })
+
+  await signIn(ALI)
+  const role = await createRole({ name: "X", permissions: [] })
+  expect(await failure(giveRole(ALI, role.id))).toMatchObject({ status: 409, code: "cannot_change_owner" })
+  expect(await failure(giveRole("998909999999", role.id))).toMatchObject({ status: 404, message: "Xodim topilmadi" })
+  expect(await failure(giveRole(VALI, 999999))).toMatchObject({ status: 404, message: "Rol topilmadi" })
 })

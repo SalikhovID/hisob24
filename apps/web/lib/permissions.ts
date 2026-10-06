@@ -38,3 +38,19 @@ export const defaultPermissions: Permission[] = [
   "tasks.edit",
   "tasks.delete",
 ]
+
+// Section is the part of a permission before the dot.
+export type Section = "customers" | "tasks" | "employees" | "settings"
+
+// sectionLabels are the sections' names in the app.
+export const sectionLabels: Record<Section, string> = {
+  customers: "Mijozlar",
+  tasks: "Vazifalar",
+  employees: "Xodimlar",
+  settings: "Sozlamalar",
+}
+
+// sectionOf is the section a permission belongs to.
+export function sectionOf(permission: Permission): Section {
+  return permission.split(".")[0] as Section
+}
