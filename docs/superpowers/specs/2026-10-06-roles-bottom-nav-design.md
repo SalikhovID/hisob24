@@ -295,3 +295,18 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **Mijoz sahifasida "Vazifalar" bo'limi `tasks.view` bilan**, tarix `customers.history`; vazifa sahifasida tahrir va bosqich `tasks.edit`, o'chirish `tasks.delete`, tarix `tasks.history`.
 - **Yangi va o'zgargan testlar:** `use-gate.test.tsx`, `nav.test.ts` (ruxsatlar bilan qayta yozildi), `permissions.test.ts` (`can`, `sectionLabels`), `sidebar.test.tsx`, `role-badge.test.tsx`, `dashboard.test.tsx`, `employees-page.test.tsx`, `settings-page.test.tsx`, `customer-type-page.test.tsx`, `task-type-page.test.tsx`, `dropdown-page.test.tsx`, `customers-page.test.tsx`, `customer-page.test.tsx`, `tasks-page.test.tsx`, `task-page.test.tsx`, `task-board.test.tsx`, `task-dialog.test.tsx` — har birida rolli xodim holati (`giveRole`). Hech bir test o'chirilmadi.
 - **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 555; `make e2e`: admin 40, web 90.
+
+## 4-bosqich qarorlari (2026-10-06)
+
+Bajarildi: Sozlamalarda "Rollar" tabi (`useSettingsTab` `"roles"`, `Roles` bo'limi, `useRoles`, `summaryOf`), `RoleForm` (nom + ruxsat matritsasi), `RolePage` / `NewRolePage` va route'lar (`/settings/roles/new`, `/settings/roles/[id]`), `EmployeeRoleDialog`, `roleSchema`, matritsa katalogi (`actions`, `actionLabels`, `actionsOf`, `permissionOf`, `toggled`), e2e `roles.spec.ts`, README. Reja: `docs/superpowers/plans/2026-10-06-roles-stage4-roles-pages.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **"Rollar" tabi faqat egasiga** (`gate.company.role === "owner"`); `?tab=roles` manzili boshqa a'zoga Mijozlar tabini ochadi (`shown`). `settingsHref("roles")` orqaga havolalar va saqlashdan keyingi manzil.
+- **Ro'yxat izohi:** `summaryOf(permissions) · holders(members_count)` — "Mijozlar, Vazifalar · 1 ta xodim", bo'sh rolda "Ruxsat yo'q", hech kimda "Hech kimda".
+- **Matritsa bitta DOM:** har bo'lim `role="group"` (nomi bo'lim), har amal `Checkbox` + `label` (md'dan `sr-only`, sarlavha qatori amallarni aytadi; telefonda label ko'rinadi, guruhlar ustma-ust). Yo'q katak (Xodimlar / Sozlamalar tarixi) bo'sh joy. `toggled` qoidasi: amal `view` ni olib keladi, `view` olib tashlansa bo'lim tozalanadi.
+- **`RoleForm` yaratishda `POST`, o'zgartirishda `PUT`;** muvaffaqiyatda `router.push(settingsHref("roles"))` va toast ("Rol yaratildi" / "Rol saqlandi"); `RolePage` formaga `key` beradi, saqlangan rol qayta yuklanganda forma undan boshlanadi. Rol o'chirish sahifa sarlavhasida ham, muvaffaqiyatda rollar tabi.
+- **`EmployeeRoleDialog`** `SelectBox` (`empty="Rolsiz"`), rollar faqat dialog ochilganda so'raladi (`useRoles(open ? companyId : null)`); rol yo'q bo'lsa "Hali rol yo'q. Sozlamalarda rol yarating" havolasi. Tugma faqat egasiga va faqat `user` qatorlarida; `employees.*` ruxsatli xodim ko'rmaydi.
+- **e2e `roles.spec.ts`** bitta uzun oqim (uch marta kirish): `test.setTimeout(120_000)` va `db.cooldown = false` (mock SMS daqiqasi; `login.spec.ts` dagidek). Birinchi urinish shu daqiqa cheklovida to'xtab qolgan edi.
+- **Yangi testlar:** `role-form.test.tsx`, `role-page.test.tsx`, `settings-page.test.tsx` (tab, ro'yxat, o'chirish), `employees-page.test.tsx` (rol dialogi), `permissions.test.ts` (`actionsOf`, `toggled`, `summaryOf`), `schemas.test.ts` (`roleSchema`); egasining tablari testi 4 tabni kutadi (talab o'zgardi).
+- **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 575; `make e2e`: admin 40, web 92.
