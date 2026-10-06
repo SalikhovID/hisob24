@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRightIcon, LogOutIcon, MenuIcon, UserIcon } from "lucide-react"
+import { ArrowLeftRightIcon, LogOutIcon, UserIcon } from "lucide-react"
 import Link from "next/link"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -19,25 +19,20 @@ import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 import { useMiniApp } from "@/lib/telegram"
 
-// Topbar is the bar above every page of the app: on a phone the button that
-// brings the sections out (the sidebar is hidden there) and what heads the
-// sidebar, Hisob24's logo over the company's name; on every screen the theme
-// button and who is signed in. Inside Telegram the chat sets the theme, so
-// there is no theme button.
-export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+// Topbar is the bar above every page of the app: on a phone what heads the
+// sidebar, Hisob24's logo over the company's name (the sidebar is hidden
+// there, the sections are the tab bar's); on every screen the theme button
+// and who is signed in. Inside Telegram the chat sets the theme, so there is
+// no theme button.
+export function Topbar() {
   const me = useMe()
   const miniApp = useMiniApp()
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background px-4">
-      <div className="flex min-w-0 items-center gap-2">
-        <Button variant="ghost" size="icon" aria-label="Menyu" onClick={onMenuClick} className="md:hidden">
-          <MenuIcon />
-        </Button>
-        <div className="min-w-0 md:hidden">
-          <Logo className="h-4" />
-          <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium">{me.data?.company?.name}</p>
-        </div>
+      <div className="min-w-0 md:hidden">
+        <Logo className="h-4" />
+        <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium">{me.data?.company?.name}</p>
       </div>
       <div className="flex items-center gap-1">
         {!miniApp && <ThemeToggle />}

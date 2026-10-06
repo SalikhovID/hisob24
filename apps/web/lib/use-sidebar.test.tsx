@@ -22,15 +22,3 @@ test("the sidebar opens the way it was left", () => {
 
   expect(result.current.collapsed).toBe(true)
 })
-
-test("the sections' sheet opens and closes apart from the fold", () => {
-  const { result } = renderHook(() => useSidebar())
-  expect(result.current.open).toBe(false)
-
-  act(() => result.current.setOpen(true))
-  expect(result.current.open).toBe(true)
-  expect(result.current.collapsed).toBe(false)
-
-  act(() => result.current.setOpen(false))
-  expect(result.current.open).toBe(false)
-})

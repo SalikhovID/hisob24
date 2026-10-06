@@ -5,48 +5,28 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Logo, LogoMark } from "@/components/logo"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { isCurrent, type NavItem, navFor } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 
 export interface SidebarProps {
-  // open and onOpenChange: the sections as a sheet, on a phone.
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  // collapsed: folded to icons, on a wide screen.
+  // collapsed: folded to icons.
   collapsed: boolean
   onToggleCollapsed: () => void
 }
 
 // Sidebar is the app's sections under Hisob24's logo and the name of the
-// company the session works in: each member sees the sections their
-// permissions open (the owner all of them). On a wide screen it is a column
-// that folds to icons, the logo to its mark; on a phone the column is hidden
-// and the sections come out as a sheet from the left.
-export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: SidebarProps) {
+// company the session works in, on a wide screen: each member sees the
+// sections their permissions open (the owner all of them). It is a column
+// that folds to icons, the logo to its mark. On a narrow screen it is hidden
+// and the sections are the tab bar's (tab-bar.tsx).
+export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
   const company = me.data?.company
   const items = navFor(me.data?.permissions)
 
-  return (
-    <>
-      <Column company={company?.name} items={items} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="gap-0 bg-sidebar text-sidebar-foreground data-[side=left]:w-72">
-          <SheetHeader className="gap-0 border-b px-4 py-3 pr-12">
-            <Logo className="h-4 self-start" />
-            {/* The sheet is named by the company, as before; with none to name it, by the app, out of sight. */}
-            <SheetTitle className={company ? "h-5 truncate text-[0.8125rem] leading-5" : "sr-only"}>
-              {company?.name ?? "Hisob24"}
-            </SheetTitle>
-          </SheetHeader>
-          <SidebarNav items={items} collapsed={false} onNavigate={() => onOpenChange(false)} />
-        </SheetContent>
-      </Sheet>
-    </>
-  )
+  return <Column company={company?.name} items={items} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
 }
 
 // Column is the sidebar of a wide screen. The company's name keeps its line
@@ -107,29 +87,14 @@ function Column({
   )
 }
 
-// SidebarNav lists the sections; onNavigate lets the phone's sheet close
-// itself when one is picked.
-function SidebarNav({
-  items,
-  collapsed,
-  onNavigate,
-}: {
-  items: NavItem[]
-  collapsed: boolean
-  onNavigate?: () => void
-}) {
+// SidebarNav lists the sections.
+function SidebarNav({ items, collapsed }: { items: NavItem[]; collapsed: boolean }) {
   const pathname = usePathname()
   return (
     <TooltipProvider>
       <nav aria-label="Bo'limlar" className="scrollbar-hide min-h-0 flex-1 overflow-y-auto py-2">
         {items.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            current={isCurrent(item.href, pathname)}
-            collapsed={collapsed}
-            onNavigate={onNavigate}
-          />
+          <SidebarLink key={item.href} item={item} current={isCurrent(item.href, pathname)} collapsed={collapsed} />
         ))}
       </nav>
     </TooltipProvider>
@@ -139,22 +104,11 @@ function SidebarNav({
 // SidebarLink is one section; the one the page belongs to stands out. Folded,
 // it is the icon alone: the name stays for screen readers and shows beside
 // it on hover.
-function SidebarLink({
-  item,
-  current,
-  collapsed,
-  onNavigate,
-}: {
-  item: NavItem
-  current: boolean
-  collapsed: boolean
-  onNavigate?: () => void
-}) {
+function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boolean; collapsed: boolean }) {
   const Icon = item.icon
   const link = (
     <Link
       href={item.href}
-      onClick={onNavigate}
       aria-current={current ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={cn(

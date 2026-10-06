@@ -52,16 +52,24 @@ test("a session that fails to load says why and can be asked for again", async (
   expect(await screen.findByText("Sahifa mazmuni")).toBeInTheDocument()
 })
 
-test("the menu button brings the sections out, and picking one puts them away", async () => {
+test("the tab bar names the sections under the page, for a phone; there is no menu button", async () => {
   await signIn(ALI)
-  const { user } = renderWithProviders(<AppShell>{page}</AppShell>)
+  renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
 
-  await user.click(screen.getByRole("button", { name: "Menyu" }))
-  const sheet = await screen.findByRole("dialog", { name: "Olma Savdo" })
-  await user.click(within(sheet).getByRole("link", { name: "Xodimlar" }))
-
-  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  // The sidebar's column and the tab bar name the same sections; CSS shows one or the other.
+  const bars = screen.getAllByRole("navigation", { name: "Bo'limlar" })
+  expect(bars).toHaveLength(2)
+  const tabBar = bars[1]
+  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual([
+    "Bosh sahifa",
+    "Mijozlar",
+    "Vazifalar",
+    "Xodimlar",
+    "Sozlamalar",
+  ])
+  expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
 })
 
 test("the sidebar folds, and a page opened later finds it folded", async () => {

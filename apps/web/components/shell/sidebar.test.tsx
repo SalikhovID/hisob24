@@ -8,8 +8,6 @@ import { chooseCompany, signIn } from "@/test/session"
 import { Sidebar, type SidebarProps } from "./sidebar"
 
 const props = (overrides: Partial<SidebarProps> = {}): SidebarProps => ({
-  open: false,
-  onOpenChange: vi.fn(),
   collapsed: false,
   onToggleCollapsed: vi.fn(),
   ...overrides,
@@ -83,18 +81,6 @@ test("folded, the sidebar shows icons that keep their names, and a button to unf
   expect(onToggleCollapsed).toHaveBeenCalledOnce()
 })
 
-test("on a phone the sections come out as a sheet, and picking one closes it", async () => {
-  await signIn(ALI)
-  const onOpenChange = vi.fn()
-  const { user } = renderWithProviders(<Sidebar {...props({ open: true, onOpenChange })} />)
-
-  const sheet = await screen.findByRole("dialog", { name: "Olma Savdo" })
-  expect(sections(sheet)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Xodimlar", "Sozlamalar"])
-  await user.click(within(sheet).getByRole("link", { name: "Xodimlar" }))
-
-  expect(onOpenChange).toHaveBeenCalledWith(false)
-})
-
 test("the sidebar is headed by Hisob24's logo, the company's name after it", async () => {
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
@@ -123,19 +109,3 @@ test("folded, the sidebar is headed by the logo's mark, inside the button that u
   expect(within(sidebar()).queryByRole("img", { name: "Hisob24" })).not.toBeInTheDocument()
 })
 
-test("the phone's sheet is headed by the logo too, and is still named by the company", async () => {
-  await signIn(ALI)
-  renderWithProviders(<Sidebar {...props({ open: true })} />)
-
-  const sheet = await screen.findByRole("dialog", { name: "Olma Savdo" })
-  expect(within(sheet).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
-})
-
-test("with no company chosen yet the phone's sheet is named by the app", async () => {
-  await signIn(VALI)
-  const { queryClient } = renderWithProviders(<Sidebar {...props({ open: true })} />)
-  await waitFor(() => expect(queryClient.isFetching()).toBe(0))
-
-  const sheet = screen.getByRole("dialog", { name: "Hisob24" })
-  expect(within(sheet).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
-})

@@ -52,3 +52,13 @@ test("useMiniApp is null in a browser tab", () => {
 
   expect(screen.getByText("browser")).toBeInTheDocument()
 })
+
+test("TelegramSync turns Telegram's vertical swipes off, so a drag on the board does not fold the Mini App", async () => {
+  const webApp = fakeWebApp({ disableVerticalSwipes: vi.fn() })
+  window.Telegram = { WebApp: webApp }
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(document.documentElement).toHaveAttribute("data-telegram"))
+  expect(webApp.disableVerticalSwipes).toHaveBeenCalled()
+})

@@ -18,6 +18,9 @@ export interface TelegramWebApp {
   // requestContact asks the user to share their phone with the bot (Bot API
   // 6.9+); the callback says whether they did.
   requestContact?: (callback: (shared: boolean) => void) => void
+  // disableVerticalSwipes keeps a vertical swipe from folding or closing the
+  // Mini App (Bot API 7.7+): a drag on the board stays a drag.
+  disableVerticalSwipes?: () => void
   onEvent: (event: "themeChanged", handler: () => void) => void
   offEvent: (event: "themeChanged", handler: () => void) => void
 }

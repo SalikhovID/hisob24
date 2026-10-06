@@ -168,6 +168,25 @@ html[data-telegram] {
   }
 }
 
+/* The bottom tab bar keeps clear of the phone's home indicator and, inside
+   Telegram (Bot API 8.0+ publishes --tg-safe-area-inset-*), of the client's
+   own bottom edge. */
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px));
+}
+
+/* Inside Telegram the shell is as tall as the Mini App's stable viewport
+   (telegram-web-app.js publishes it), not the window, so the tab bar stays
+   in sight while the client's own panels come and go; and the page does not
+   bounce, which the client would take for a swipe. */
+html[data-telegram] [data-slot="app-shell"] {
+  height: var(--tg-viewport-stable-height, 100dvh);
+}
+
+html[data-telegram] body {
+  overscroll-behavior: none;
+}
+
 /* Motion answers an action (a dialog opening, a row under the pointer) and
    nothing else; whoever asked for less of it gets none. */
 @media (prefers-reduced-motion: reduce) {

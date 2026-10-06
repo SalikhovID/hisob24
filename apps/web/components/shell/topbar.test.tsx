@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react"
-import { expect, test, vi } from "vitest"
+import { expect, test } from "vitest"
 import { accessToken } from "@/lib/session"
 import { setMiniApp } from "@/lib/telegram"
 import { ALI, SARDOR, VALI } from "@/mocks/data"
@@ -9,14 +9,11 @@ import { chooseCompany, signIn } from "@/test/session"
 import { fakeWebApp } from "@/test/telegram"
 import { Topbar } from "./topbar"
 
-test("the menu button asks for the sections, and the profile menu says who is signed in", async () => {
+test("the profile menu says who is signed in; the sections are the sidebar's and the tab bar's, not the top bar's", async () => {
   await signIn(ALI)
-  const onMenuClick = vi.fn()
-  const { user } = renderWithProviders(<Topbar onMenuClick={onMenuClick} />)
+  const { user } = renderWithProviders(<Topbar />)
 
-  await user.click(screen.getByRole("button", { name: "Menyu" }))
-  expect(onMenuClick).toHaveBeenCalledOnce()
-
+  expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Profil" }))
   const menu = await screen.findByRole("menu")
   expect(await within(menu).findByText("Ali Valiyev")).toBeInTheDocument()
@@ -25,7 +22,7 @@ test("the menu button asks for the sections, and the profile menu says who is si
 
 test("signing out from the profile menu ends the session and leaves for /login", async () => {
   await signIn(ALI)
-  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  const { user } = renderWithProviders(<Topbar />)
 
   await user.click(screen.getByRole("button", { name: "Profil" }))
   await user.click(await screen.findByRole("menuitem", { name: "Chiqish" }))
@@ -37,7 +34,7 @@ test("signing out from the profile menu ends the session and leaves for /login",
 test("someone with another company to work in can switch to it from the profile menu", async () => {
   await signIn(VALI)
   await chooseCompany(1)
-  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  const { user } = renderWithProviders(<Topbar />)
 
   await user.click(screen.getByRole("button", { name: "Profil" }))
 
@@ -50,7 +47,7 @@ test.each([
 ])("with %s the profile menu offers no switch", async (_, phone, company) => {
   await signIn(phone)
   if (company !== null) await chooseCompany(company)
-  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  const { user } = renderWithProviders(<Topbar />)
 
   await user.click(screen.getByRole("button", { name: "Profil" }))
 
@@ -61,7 +58,7 @@ test.each([
 
 test("the theme button switches between light and dark", async () => {
   await signIn(ALI)
-  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  const { user } = renderWithProviders(<Topbar />)
   const toggle = screen.getByRole("button", { name: "Mavzuni almashtirish" })
 
   await user.click(toggle)
@@ -73,7 +70,7 @@ test("the theme button switches between light and dark", async () => {
 test("inside Telegram there is no sign-out or theme button: closing the Mini App is the way out", async () => {
   setMiniApp(fakeWebApp())
   await signIn(ALI)
-  const { user } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  const { user } = renderWithProviders(<Topbar />)
 
   expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Profil" }))
@@ -83,7 +80,7 @@ test("inside Telegram there is no sign-out or theme button: closing the Mini App
 
 test("on a phone the top bar shows Hisob24's logo, the company's name after it", async () => {
   await signIn(ALI)
-  renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  renderWithProviders(<Topbar />)
 
   const bar = screen.getByRole("banner")
   const name = await within(bar).findByText("Olma Savdo")
@@ -93,7 +90,7 @@ test("on a phone the top bar shows Hisob24's logo, the company's name after it",
 
 test("with no company chosen yet the top bar shows the logo alone: the name is not said twice", async () => {
   await signIn(VALI)
-  const { queryClient } = renderWithProviders(<Topbar onMenuClick={vi.fn()} />)
+  const { queryClient } = renderWithProviders(<Topbar />)
   await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 
   const bar = screen.getByRole("banner")
