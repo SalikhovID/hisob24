@@ -201,6 +201,30 @@ export function useStageTasks(companyId: number | null, stageId: number, filter:
 // taskKey names one task of a company in the cache.
 export const taskKey = (companyId: number | null, id: number) => ["task", companyId, id] as const
 
+// useTask is a task of the company the session works in, with its answers;
+// every member may ask.
+export function useTask(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: taskKey(companyId, id),
+    queryFn: () => call(api.GET("/app/tasks/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null,
+  })
+}
+
+// taskHistoryKey names a task's history in the cache.
+export const taskHistoryKey = (companyId: number | null, id: number) => ["task-history", companyId, id] as const
+
+// useTaskHistory is what happened to a task, the latest first. It is the
+// owner's to see: with companyId null (an employee, or not known yet)
+// nothing is asked.
+export function useTaskHistory(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: taskHistoryKey(companyId, id),
+    queryFn: () => call(api.GET("/app/tasks/{id}/history", { params: { path: { id } } })),
+    enabled: companyId !== null,
+  })
+}
+
 // A stage's column as the cache holds it.
 type Column = InfiniteData<TaskPage, number>
 

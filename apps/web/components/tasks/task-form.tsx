@@ -89,6 +89,46 @@ export function TaskFields({
   )
 }
 
+// LinkedCustomerCard shows the customer a task is for, once it is known:
+// the name (or the phone), the type and the phone, the way to its page and,
+// where the customer may still be let go (a new task), the way to do so.
+export function LinkedCustomerCard({
+  name,
+  phone,
+  typeName,
+  href,
+  onUnlink,
+}: {
+  name: string | null
+  phone: string
+  typeName?: string
+  href: string
+  onUnlink?: () => void
+}) {
+  const facts = [typeName, name ? formatPhone(phone) : null].filter((fact): fact is string => !!fact)
+  return (
+    <section aria-label="Mavjud mijoz" className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2.5 text-sm">
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-muted-foreground">Mavjud mijoz</p>
+        <p className="font-medium [overflow-wrap:anywhere]">{name ?? formatPhone(phone)}</p>
+        <p className="text-[0.8125rem] leading-5 text-muted-foreground">
+          {facts.map((fact) => (
+            <span key={fact}>{fact} · </span>
+          ))}
+          <Link href={href} className="underline underline-offset-4 hover:text-foreground">
+            Mijozni ochish
+          </Link>
+        </p>
+      </div>
+      {onUnlink && (
+        <Button type="button" variant="outline" size="sm" className="shrink-0 bg-card" onClick={onUnlink}>
+          Boshqa mijoz
+        </Button>
+      )}
+    </section>
+  )
+}
+
 // CustomerSection is the customer's part of the form: the type to enter a
 // new customer under, its phone (with the suggestions of the customers
 // that are there) and the type's fields. Once a customer that is there is
@@ -121,22 +161,7 @@ export function CustomerSection({
   return (
     <FieldGroup>
       {linked && (
-        <section aria-label="Mavjud mijoz" className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2.5 text-sm">
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Mavjud mijoz</p>
-            <p className="font-medium [overflow-wrap:anywhere]">{linkedName ?? formatPhone(linked.phone)}</p>
-            <p className="text-[0.8125rem] leading-5 text-muted-foreground">
-              {[linkedType?.name, linkedName ? formatPhone(linked.phone) : null].filter(Boolean).join(" · ")}
-              {" · "}
-              <Link href={`/customers/${linked.id}`} className="underline underline-offset-4 hover:text-foreground">
-                Mijozni ochish
-              </Link>
-            </p>
-          </div>
-          <Button type="button" variant="outline" size="sm" className="shrink-0 bg-card" onClick={onUnlink}>
-            Boshqa mijoz
-          </Button>
-        </section>
+        <LinkedCustomerCard name={linkedName} phone={linked.phone} typeName={linkedType?.name} href={`/customers/${linked.id}`} onUnlink={onUnlink} />
       )}
       {customerTypes.length === 0 ? (
         <p className="text-[0.8125rem] leading-5 text-pretty text-muted-foreground">

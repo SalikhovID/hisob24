@@ -1,6 +1,7 @@
 "use client"
 
 import { Avatar } from "@/components/avatar"
+import { Fact } from "@/components/facts"
 import { PageHeader } from "@/components/page-header"
 import { Failed, ListLoading } from "@/components/states"
 import { ApiError } from "@/lib/api"
@@ -14,19 +15,6 @@ import { DeleteCustomerButton } from "./delete-customer-button"
 import { EditCustomerDialog } from "./edit-customer-dialog"
 
 const back = { href: "/customers", label: "Mijozlar" }
-
-// A line of the customer's facts: what it is, and the value, a dash where
-// there is none.
-function Fact({ name, value }: { name: string; value: string | null }) {
-  return (
-    <div className="grid gap-x-4 gap-y-0.5 px-4 py-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
-      <dt className="text-[0.8125rem] leading-5 text-muted-foreground [overflow-wrap:anywhere]">{name}</dt>
-      <dd className="min-w-0 text-sm [overflow-wrap:anywhere]">
-        {value === null || value === "" ? <span className="text-muted-foreground">—</span> : value}
-      </dd>
-    </div>
-  )
-}
 
 // CustomerPage is one customer of the company, for every member of it: who
 // it is, its answer to every field of its type, in the type's order, and who
