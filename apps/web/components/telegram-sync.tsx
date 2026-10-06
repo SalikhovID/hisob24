@@ -9,6 +9,10 @@ import { setMiniApp, waitForWebApp } from "@/lib/telegram"
 // vertical swipes from folding the app, marks <html>
 // with data-telegram (globals.css then takes the colors from Telegram's
 // themeParams) and follows Telegram's light or dark scheme.
+// onPhone tells a phone's Telegram (iOS, Android, Android X) from the
+// desktop and web clients by the platform name telegram-web-app.js reports.
+const onPhone = (platform: string) => platform === "ios" || platform.startsWith("android")
+
 export function TelegramSync() {
   const { setTheme } = useTheme()
 
@@ -24,10 +28,11 @@ export function TelegramSync() {
       // card is dragged up and down, so the swipe is turned off where the
       // client knows the switch (Bot API 7.7+).
       webApp.disableVerticalSwipes?.()
-      // Full screen: Telegram's header goes and the app takes the whole
-      // screen; the status bar and Telegram's own controls then lie over
-      // its top, which --safe-top keeps clear (globals.css).
-      webApp.requestFullscreen?.()
+      // Full screen on a phone: Telegram's header goes and the app takes the
+      // whole screen; the status bar and Telegram's own controls then lie
+      // over its top, which --safe-top keeps clear (globals.css). On a
+      // desktop client full screen would be the whole window.
+      if (onPhone(webApp.platform)) webApp.requestFullscreen?.()
       document.documentElement.dataset.telegram = ""
       const follow = () => setTheme(webApp.colorScheme)
       follow()

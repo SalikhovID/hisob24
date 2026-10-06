@@ -72,3 +72,14 @@ test("TelegramSync opens the Mini App full screen on a phone whose client knows 
   await waitFor(() => expect(document.documentElement).toHaveAttribute("data-telegram"))
   expect(webApp.requestFullscreen).toHaveBeenCalled()
 })
+
+test("TelegramSync leaves a desktop Telegram at the client's height: full screen there is the whole window", async () => {
+  const webApp = fakeWebApp({ platform: "tdesktop", isVersionAtLeast: vi.fn(() => true), requestFullscreen: vi.fn() })
+  window.Telegram = { WebApp: webApp }
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(document.documentElement).toHaveAttribute("data-telegram"))
+  expect(webApp.expand).toHaveBeenCalled()
+  expect(webApp.requestFullscreen).not.toHaveBeenCalled()
+})
