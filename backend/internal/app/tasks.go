@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
@@ -98,7 +99,14 @@ func (h *Handler) createTask(w http.ResponseWriter, r *http.Request) {
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	t, err := h.tasks.Create(r.Context(), sessionCompany(r), currentUser(r.Context()).Phone, body.TypeID, body.input(), body.Customer.input())
+	customer := body.Customer.input()
+	// A customer entered with the task is a customer entered: that takes
+	// its own permission (logic/roles.md, section 4.3).
+	if customer.New != nil && !currentPermissions(r.Context()).Has(access.CustomersCreate) {
+		forbidden(w)
+		return
+	}
+	t, err := h.tasks.Create(r.Context(), sessionCompany(r), currentUser(r.Context()).Phone, body.TypeID, body.input(), customer)
 	if err != nil {
 		// A new customer's phone or answer may be another customer's.
 		writeCustomerError(w, r, err)

@@ -91,3 +91,30 @@ func TestPermissionRoutesNeedACompany(t *testing.T) {
 		assert.JSONEq(t, companyRequired, rec.Body.String(), path)
 	}
 }
+
+func TestATaskWithANewCustomerNeedsCustomersCreate(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	sh := api.taskShop(t, olma)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	operator := api.addRole(t, olma, "Operator", "tasks.view", "tasks.create", "customers.view")
+	api.giveRole(t, valisPhone, olma, &operator)
+	customer := api.enter(t, owner, sh.jismoniy, "998911112233", fmt.Sprintf(`{"%s":"Dilshod"}`, key(sh.fish)))
+	newCustomer := fmt.Sprintf(`{"type_id":%d,"phone":"998911112244","values":{"%s":"Malika"}}`, sh.jismoniy, key(sh.fish))
+	withNew := fmt.Sprintf(`{"type_id":%d,"title":"Yangi mijozga","deadline":"2026-10-20","stage_id":%d,"values":{"%s":"Izoh"},"customer":%s}`,
+		sh.buyurtma, sh.yangi, key(sh.izoh), newCustomer)
+
+	rec := api.do(t, http.MethodPost, "/app/tasks", withNew, bearer(employee))
+
+	assert.Equal(t, http.StatusForbidden, rec.Code, "entering a customer with the task needs customers.create")
+	assert.JSONEq(t, noPermission, rec.Body.String())
+	var tasks, customers int
+	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT (SELECT count(*) FROM tasks), (SELECT count(*) FROM customers)").Scan(&tasks, &customers))
+	assert.Equal(t, 0, tasks, "no task")
+	assert.Equal(t, 1, customers, "no customer beside the one that was there")
+
+	withExisting := taskBody(sh, "Mavjud mijozga", "2026-10-20", sh.yangi, customer["id"], fmt.Sprintf(`{"%s":"Izoh"}`, key(sh.izoh)), "")
+	rec = api.do(t, http.MethodPost, "/app/tasks", withExisting, bearer(employee))
+	assert.Equal(t, http.StatusCreated, rec.Code, "a task for a customer that is there needs tasks.create alone: %s", rec.Body.String())
+}
