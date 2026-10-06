@@ -862,3 +862,41 @@ func TestHistory(t *testing.T) {
 	_, err = s.History(ctx, olma.id, ali.ID)
 	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "a deleted customer")
 }
+
+// CreateIn enters a customer inside a transaction the caller runs (a task
+// is entered with its new customer this way): the caller's rollback takes
+// the customer with it, the commit keeps it.
+func TestCreateInEntersACustomerInsideTheCallersTransaction(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, s, pool, "Olma")
+	in := Input{Phone: "998901234567", Values: answers(t, map[int64]any{sh.fish.ID: "Ali"})}
+	begin := func() (pgx.Tx, *gen.Queries) {
+		tx, err := pool.Begin(ctx)
+		require.NoError(t, err)
+		// A transaction left open would hold the database against the
+		// cleanup that drops it.
+		t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
+		q := gen.New(pool).WithTx(tx)
+		_, err = q.LockCompanyCustomers(ctx, sh.id)
+		require.NoError(t, err)
+		return tx, q
+	}
+
+	tx, q := begin()
+	c, err := s.CreateIn(ctx, q, sh.id, staff, sh.jismoniy.ID, in)
+	require.NoError(t, err)
+	assert.NotZero(t, c.ID)
+	require.NoError(t, tx.Rollback(ctx))
+	assert.Zero(t, count(t, pool, "SELECT count(*) FROM customers"), "the rollback takes the customer with it")
+	assert.Zero(t, count(t, pool, "SELECT count(*) FROM customer_history"), "and its history")
+
+	tx, q = begin()
+	c, err = s.CreateIn(ctx, q, sh.id, staff, sh.jismoniy.ID, in)
+	require.NoError(t, err)
+	require.NoError(t, tx.Commit(ctx))
+	got, err := s.Get(ctx, sh.id, c.ID)
+	require.NoError(t, err)
+	assert.Equal(t, Values{sh.fish.ID: "Ali"}, got.Values)
+	assert.Equal(t, []string{"created by 998902222222 (Xurshid Xodim): []"}, storedHistory(t, pool, c.ID))
+}

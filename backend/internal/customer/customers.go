@@ -56,62 +56,70 @@ var errCustomerNotFound = apperr.New(apperr.NotFound, "not_found", "Mijoz topilm
 // Create enters a customer of the company's type, with the answers to the
 // type's fields. by is the phone of the member who enters it.
 func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID int64, in Input) (Customer, error) {
-	phone, err := customerPhone(in.Phone)
-	if err != nil {
-		return Customer{}, err
-	}
 	var c Customer
-	err = s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: typeID, CompanyID: companyID})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return invalid("Mijoz turini tanlang")
-		}
-		if err != nil {
-			return err
-		}
-		form, options, err := formOf(ctx, q, companyID, typeID)
-		if err != nil {
-			return err
-		}
-		values, err := fields.CheckValues(form, options, nil, in.Values)
-		if err != nil {
-			return err
-		}
-		if err := phoneFree(ctx, q, companyID, phone, 0); err != nil {
-			return err
-		}
-		if err := answersFree(ctx, q, form, values, 0); err != nil {
-			return err
-		}
-		name, err := memberName(ctx, q, companyID, by)
-		if err != nil {
-			return err
-		}
-		row, err := q.CreateCustomer(ctx, gen.CreateCustomerParams{
-			CompanyID: companyID, TypeID: typeID, Phone: phone, CreatedBy: by, CreatedByName: name,
-		})
-		if err != nil {
-			return err
-		}
-		if err := store(ctx, q, row.ID, form, values); err != nil {
-			return err
-		}
-		err = q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
-			CustomerID: row.ID, Action: "created", ActorPhone: by, ActorName: name, Changes: []byte("[]"),
-		})
-		if err != nil {
-			return err
-		}
-		c = Customer{
-			ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: values,
-			CreatedByName: name, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
-		}
-		return nil
+	err := s.write(ctx, companyID, func(q *gen.Queries) error {
+		var err error
+		c, err = s.CreateIn(ctx, q, companyID, by, typeID, in)
+		return err
 	})
 	if err != nil {
 		return Customer{}, err
 	}
 	return c, nil
+}
+
+// CreateIn enters a customer inside the caller's transaction, which has to
+// hold the company (LockCompanyCustomers): a task is entered with its new
+// customer this way. by is the phone of the member who enters it.
+func (s *Service) CreateIn(ctx context.Context, q *gen.Queries, companyID int64, by string, typeID int64, in Input) (Customer, error) {
+	phone, err := customerPhone(in.Phone)
+	if err != nil {
+		return Customer{}, err
+	}
+	_, err = q.GetCustomerType(ctx, gen.GetCustomerTypeParams{ID: typeID, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Customer{}, invalid("Mijoz turini tanlang")
+	}
+	if err != nil {
+		return Customer{}, err
+	}
+	form, options, err := formOf(ctx, q, companyID, typeID)
+	if err != nil {
+		return Customer{}, err
+	}
+	values, err := fields.CheckValues(form, options, nil, in.Values)
+	if err != nil {
+		return Customer{}, err
+	}
+	if err := phoneFree(ctx, q, companyID, phone, 0); err != nil {
+		return Customer{}, err
+	}
+	if err := answersFree(ctx, q, form, values, 0); err != nil {
+		return Customer{}, err
+	}
+	name, err := memberName(ctx, q, companyID, by)
+	if err != nil {
+		return Customer{}, err
+	}
+	row, err := q.CreateCustomer(ctx, gen.CreateCustomerParams{
+		CompanyID: companyID, TypeID: typeID, Phone: phone, CreatedBy: by, CreatedByName: name,
+	})
+	if err != nil {
+		return Customer{}, err
+	}
+	if err := store(ctx, q, row.ID, form, values); err != nil {
+		return Customer{}, err
+	}
+	err = q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
+		CustomerID: row.ID, Action: "created", ActorPhone: by, ActorName: name, Changes: []byte("[]"),
+	})
+	if err != nil {
+		return Customer{}, err
+	}
+	return Customer{
+		ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: values,
+		CreatedByName: name, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+	}, nil
 }
 
 // Update saves the company's customer with another phone and other answers;
