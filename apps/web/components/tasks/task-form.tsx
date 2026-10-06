@@ -111,14 +111,10 @@ export function LinkedCustomerCard({
       <div className="min-w-0">
         <p className="text-xs font-medium text-muted-foreground">Mavjud mijoz</p>
         <p className="font-medium [overflow-wrap:anywhere]">{name ?? formatPhone(phone)}</p>
-        <p className="text-[0.8125rem] leading-5 text-muted-foreground">
-          {facts.map((fact) => (
-            <span key={fact}>{fact} · </span>
-          ))}
-          <Link href={href} className="underline underline-offset-4 hover:text-foreground">
-            Mijozni ochish
-          </Link>
-        </p>
+        {facts.length > 0 && <p className="text-[0.8125rem] leading-5 text-muted-foreground">{facts.join(" · ")}</p>}
+        <Link href={href} className="mt-0.5 inline-block text-[0.8125rem] leading-5 text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          Mijozni ochish
+        </Link>
       </div>
       {onUnlink && (
         <Button type="button" variant="outline" size="sm" className="shrink-0 bg-card" onClick={onUnlink}>

@@ -240,7 +240,9 @@ export function TasksPage() {
       ) : (
         <div className="space-y-3">
           {types.data && stages.data && (
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            // The toolbar is wide: the tabs take a row of their own until there
+            // is room for everything beside them.
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               {/* Types are the owner's to make: the strip of them scrolls
                   sideways rather than squeezing. */}
               <div className="-mx-1 min-w-0 overflow-x-auto px-1 py-0.5 scrollbar-hide">
