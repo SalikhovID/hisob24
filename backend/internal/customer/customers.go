@@ -297,7 +297,7 @@ func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page
 	if in.TypeID != 0 {
 		typeID = &in.TypeID
 	}
-	search, digits := searchOf(in.Search)
+	search, digits := SearchOf(in.Search)
 	total, err := s.q.CountCustomers(ctx, gen.CountCustomersParams{
 		CompanyID: companyID, TypeID: typeID, Search: search, Digits: digits,
 	})
@@ -330,10 +330,11 @@ func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page
 // character is the backslash.
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
-// searchOf is a search as the list queries take it: the text escaped for
+// SearchOf is a search as the list queries take it: the text escaped for
 // ILIKE, and its digits when it is written the way a number or a phone is
 // (digits, spaces, "+", "-", parentheses). Neither when there is no search.
-func searchOf(raw string) (search, digits *string) {
+// The tasks' list searches the same way.
+func SearchOf(raw string) (search, digits *string) {
 	text := strings.TrimSpace(raw)
 	if text == "" {
 		return nil, nil

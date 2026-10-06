@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -16,7 +17,7 @@ func newService(t *testing.T) (*Service, *pgxpool.Pool) {
 	t.Helper()
 	t.Parallel()
 	pool := pgtest.New(t)
-	return NewService(pool), pool
+	return NewService(pool, customer.NewService(pool)), pool
 }
 
 func ptr[T any](v T) *T { return &v }

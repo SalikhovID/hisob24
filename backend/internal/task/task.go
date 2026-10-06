@@ -9,20 +9,22 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
 
 // Service runs the task operations of every company; each call names the
-// company it acts in.
+// company it acts in. customers enters the customer a task is entered with.
 type Service struct {
-	pool *pgxpool.Pool
-	q    *gen.Queries
+	pool      *pgxpool.Pool
+	q         *gen.Queries
+	customers *customer.Service
 }
 
 // NewService wires the task service.
-func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{pool: pool, q: gen.New(pool)}
+func NewService(pool *pgxpool.Pool, customers *customer.Service) *Service {
+	return &Service{pool: pool, q: gen.New(pool), customers: customers}
 }
 
 // write runs fn in one transaction that holds the company the way the

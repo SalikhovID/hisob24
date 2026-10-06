@@ -68,12 +68,13 @@ func run() error {
 		slog.Warn("SMS_DRIVER=log: login codes go to this log, no SMS is sent")
 	}
 	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, cfg.UserBotToken, sms.New(cfg, slog.Default()))
+	customers := customer.NewService(pool)
 	appAPI := app.NewHandler(app.Services{
 		Auth:      userAuth,
 		Profiles:  user.NewProfiles(pool),
 		Companies: companies,
-		Customers: customer.NewService(pool),
-		Tasks:     task.NewService(pool),
+		Customers: customers,
+		Tasks:     task.NewService(pool, customers),
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 

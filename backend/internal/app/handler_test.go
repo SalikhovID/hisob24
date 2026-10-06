@@ -92,7 +92,7 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 			Profiles:  user.NewProfiles(pool),
 			Companies: company.NewService(pool),
 			Customers: customer.NewService(pool),
-			Tasks:     task.NewService(pool),
+			Tasks:     task.NewService(pool, customer.NewService(pool)),
 		},
 		cookieSecure,
 		httpx.NewRateLimiter(5, time.Minute),
