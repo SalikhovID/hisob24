@@ -900,3 +900,40 @@ func TestCreateInEntersACustomerInsideTheCallersTransaction(t *testing.T) {
 	assert.Equal(t, Values{sh.fish.ID: "Ali"}, got.Values)
 	assert.Equal(t, []string{"created by 998902222222 (Xurshid Xodim): []"}, storedHistory(t, pool, c.ID))
 }
+
+func TestListByPhonePrefix(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, s, pool, "Olma")
+	seedCustomers(t, s, olma)
+	nok := newShop(t, s, pool, "Nok")
+	mustCustomer(t, s, nok.id, nok.jismoniy.ID, "998901234568", map[int64]any{nok.fish.ID: "Begona"})
+	hide(t, pool, mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998901299999", map[int64]any{olma.fish.ID: "O'chirilgan"}).ID)
+
+	for _, tt := range []struct {
+		name   string
+		phone  string
+		typeID int64
+		search string
+		want   []string
+	}{
+		{name: "the digits typed after 998", phone: "90", want: []string{firmaPhone, valiPhone, aliPhone}},
+		{name: "more of them", phone: "9012", want: []string{aliPhone}},
+		{name: "the whole number", phone: "905555555", want: []string{valiPhone}},
+		{name: "digits inside the number do not count", phone: "1234", want: []string{}},
+		{name: "998 is not typed", phone: "998", want: []string{}},
+		{name: "with a type", phone: "90", typeID: olma.yuridik.ID, want: []string{firmaPhone}},
+		{name: "with a search", phone: "90", search: "vali", want: []string{valiPhone, aliPhone}},
+		{name: "nobody", phone: "91", want: []string{}},
+		{name: "no digits is no filter", want: []string{firmaPhone, valiPhone, aliPhone}},
+	} {
+		page, err := s.List(ctx, olma.id, ListInput{Phone: tt.phone, TypeID: tt.typeID, Search: tt.search, Page: 1})
+		require.NoError(t, err, tt.name)
+		assert.Equal(t, tt.want, phones(page.Items), tt.name)
+		assert.EqualValues(t, len(tt.want), page.Total, tt.name)
+	}
+	for _, raw := range []string{"+998", "90 12", "90-12", "abc", "9012345678", " "} {
+		_, err := s.List(ctx, olma.id, ListInput{Phone: raw, Page: 1})
+		refused(t, err, apperr.Invalid, "validation_error", "Telefon raqami noto'g'ri", "%q", raw)
+	}
+}

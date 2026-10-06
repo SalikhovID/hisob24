@@ -197,6 +197,14 @@ func (s *Service) DeleteOption(ctx context.Context, companyID, dropdownID, optio
 		if used > 0 {
 			return apperr.New(apperr.Conflict, "option_in_use", fmt.Sprintf("Bu variant %d ta mijozda tanlangan", used))
 		}
+		// The tasks hold it too, and are told after the customers.
+		used, err = q.CountOptionTasks(ctx, &optionID)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "option_in_use", fmt.Sprintf("Bu variant %d ta vazifada tanlangan", used))
+		}
 		return nil
 	})
 }

@@ -95,6 +95,14 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	shikoyat := mustType(t, s, olma, "Shikoyat")
 	izoh := mustField(t, s, olma, buyurtma.ID, FieldInput{Label: "Izoh", Kind: "string"})
 	summa := mustField(t, s, olma, buyurtma.ID, FieldInput{Label: "Summa", Kind: "int"})
+	addMember(t, pool, olma, owner, "Egamberdi Egasi", "owner")
+	jismoniy, err := s.customers.CreateType(ctx, olma, "Jismoniy")
+	require.NoError(t, err)
+	ali, err := s.customers.Create(ctx, olma, owner, jismoniy.ID, customer.Input{Phone: "998901234567"})
+	require.NoError(t, err)
+	in := Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: yangi.ID, Values: answers(t, map[int64]any{izoh.ID: "Ertalab"})}
+	entered, err := s.Create(ctx, olma, owner, buyurtma.ID, in, CustomerInput{ID: &ali.ID})
+	require.NoError(t, err)
 
 	for _, w := range []struct {
 		name  string
@@ -123,6 +131,16 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 		}},
 		{"DeleteField", func() error { return s.DeleteField(ctx, olma, buyurtma.ID, summa.ID) }},
 		{"DeleteType", func() error { return s.DeleteType(ctx, olma, shikoyat.ID) }},
+		{"Create", func() error {
+			_, err := s.Create(ctx, olma, owner, buyurtma.ID, in, CustomerInput{ID: &ali.ID})
+			return err
+		}},
+		{"Update", func() error {
+			_, err := s.Update(ctx, olma, entered.ID, owner, Input{Title: "Qayta qo'ng'iroq", Deadline: "2026-10-11", StageID: yangi.ID, Values: in.Values})
+			return err
+		}},
+		{"Move", func() error { _, err := s.Move(ctx, olma, entered.ID, owner, bajarildi.ID); return err }},
+		{"Delete", func() error { return s.Delete(ctx, olma, entered.ID, owner) }},
 	} {
 		t.Run(w.name, func(t *testing.T) { waits(t, pool, olma, w.write) })
 	}

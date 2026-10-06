@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 
@@ -149,6 +150,15 @@ func (s *Service) DeleteType(ctx context.Context, companyID, id int64) error {
 		if err != nil {
 			return err
 		}
+		// The type is the company's own, so its count may be told. The
+		// refusal undoes the delete: the write is one transaction.
+		used, err := q.CountTypeTasks(ctx, id)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "type_in_use", fmt.Sprintf("Bu turda %d ta vazifa bor", used))
+		}
 		return q.DeleteTaskTypeFields(ctx, id)
 	})
 }
@@ -251,7 +261,17 @@ func (s *Service) DeleteField(ctx context.Context, companyID, typeID, fieldID in
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errFieldNotFound
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		used, err := q.CountTaskFieldTasks(ctx, fieldID)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "field_in_use", fmt.Sprintf("Bu maydon %d ta vazifada to'ldirilgan", used))
+		}
+		return nil
 	})
 }
 

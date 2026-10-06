@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/jackc/pgx/v5"
@@ -125,7 +126,19 @@ func (s *Service) DeleteStage(ctx context.Context, companyID, id int64) error {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errStageNotFound
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		// The stage is the company's own, so its count may be told. The
+		// refusal undoes the delete: the write is one transaction.
+		used, err := q.CountStageTasks(ctx, id)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "stage_in_use", fmt.Sprintf("Bu bosqichda %d ta vazifa bor", used))
+		}
+		return nil
 	})
 }
 

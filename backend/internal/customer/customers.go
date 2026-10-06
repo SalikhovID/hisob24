@@ -198,6 +198,15 @@ func (s *Service) Delete(ctx context.Context, companyID, id int64, by string) er
 		if err != nil {
 			return err
 		}
+		// The customer is the company's own, so its count may be told. The
+		// refusal undoes the delete: the write is one transaction.
+		used, err := q.CountCustomerTasks(ctx, id)
+		if err != nil {
+			return err
+		}
+		if used > 0 {
+			return apperr.New(apperr.Conflict, "customer_in_use", fmt.Sprintf("Bu mijozda %d ta vazifa bor", used))
+		}
 		name, err := memberName(ctx, q, companyID, by)
 		if err != nil {
 			return err
@@ -277,7 +286,10 @@ const maxPage = 1_000_000
 type ListInput struct {
 	Search string
 	TypeID int64
-	Page   int
+	// Phone is the digits a phone begins with, after 998; "" leaves the
+	// filter out.
+	Phone string
+	Page  int
 }
 
 // Page is one page of customers and how many there are on all of them.
@@ -297,15 +309,19 @@ func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page
 	if in.TypeID != 0 {
 		typeID = &in.TypeID
 	}
+	phone, err := phonePrefix(in.Phone)
+	if err != nil {
+		return Page{}, err
+	}
 	search, digits := SearchOf(in.Search)
 	total, err := s.q.CountCustomers(ctx, gen.CountCustomersParams{
-		CompanyID: companyID, TypeID: typeID, Search: search, Digits: digits,
+		CompanyID: companyID, TypeID: typeID, Phone: phone, Search: search, Digits: digits,
 	})
 	if err != nil {
 		return Page{}, err
 	}
 	rows, err := s.q.ListCustomers(ctx, gen.ListCustomersParams{
-		CompanyID: companyID, TypeID: typeID, Search: search, Digits: digits,
+		CompanyID: companyID, TypeID: typeID, Phone: phone, Search: search, Digits: digits,
 		Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
 	})
 	if err != nil {
@@ -329,6 +345,23 @@ func (s *Service) List(ctx context.Context, companyID int64, in ListInput) (Page
 // likeEscaper makes a search match literally inside ILIKE, whose escape
 // character is the backslash.
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// phonePrefix is the digits a client typed of a phone, after 998: one to
+// nine of them, nothing else; nil when none were typed.
+func phonePrefix(raw string) (*string, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	if len(raw) > 9 {
+		return nil, invalid("Telefon raqami noto'g'ri")
+	}
+	for _, r := range raw {
+		if r < '0' || r > '9' {
+			return nil, invalid("Telefon raqami noto'g'ri")
+		}
+	}
+	return &raw, nil
+}
 
 // SearchOf is a search as the list queries take it: the text escaped for
 // ILIKE, and its digits when it is written the way a number or a phone is
