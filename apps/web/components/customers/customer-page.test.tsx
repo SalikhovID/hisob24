@@ -2,7 +2,8 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
-import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/data"
+import { formatDate } from "@/lib/format"
+import { addDays, ALI, db, localToday, seedCustomers, seedSixKinds, seedTasks, typesOf, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -365,4 +366,50 @@ test("two changes of one name in an entry are both shown", async () => {
   ])
   expect(errors).not.toHaveBeenCalled()
   errors.mockRestore()
+})
+
+// The customer's tasks, on its page (logic/tasks.md, 6).
+const tasksOf = () => screen.findByRole("region", { name: "Vazifalar" })
+
+test("a customer's page lists its tasks, the one due soonest first, with their stage and deadline, and says how many", async () => {
+  await signIn(ALI)
+  const { dilshod, call, old } = seedTasks()
+  const today = localToday()
+
+  open(dilshod.id)
+
+  const region = await tasksOf()
+  const table = await within(region).findByRole("table", { name: "Vazifalar" })
+  expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual(["Vazifa", "Bosqich", "Muddat"])
+  const rows = within(table).getAllByRole("row").slice(1)
+  expect(rows.map((row) => within(row).getByRole("rowheader").textContent)).toEqual(["Eski buyurtma", "Qo'ng'iroq qilish"])
+  expect(within(rows[0]).getByRole("link", { name: "Eski buyurtma" })).toHaveAttribute("href", `/tasks/${old.id}`)
+  expect(within(rows[1]).getByRole("link", { name: "Qo'ng'iroq qilish" })).toHaveAttribute("href", `/tasks/${call.id}`)
+  expect(within(rows[0]).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["Bajarildi", formatDate(addDays(today, -5))])
+  expect(within(rows[1]).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["Yangi", `${formatDate(addDays(today, 3))} · 3 kun qoldi`])
+  expect(within(region).getByText("Jami: 2")).toBeInTheDocument()
+})
+
+test("a customer with no tasks says so", async () => {
+  await signIn(ALI)
+  const { anor } = seedCustomers()
+
+  open(anor.id)
+
+  expect(await within(await tasksOf()).findByText("Bu mijozda vazifa yo'q")).toBeInTheDocument()
+  expect(screen.queryByRole("table", { name: "Vazifalar" })).not.toBeInTheDocument()
+})
+
+test("a customer with tasks is not deleted: the API's reason is shown, and the customer stays", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedTasks()
+  const { user } = open(dilshod.id)
+  await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })
+
+  await user.click(screen.getByRole("button", { name: "O'chirish" }))
+  await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Bu mijozda 2 ta vazifa bor")).toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+  expect(db.customers.find((customer) => customer.id === dilshod.id)?.deleted).toBeUndefined()
 })

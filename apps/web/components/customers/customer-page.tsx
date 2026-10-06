@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useCustomer, useCustomerDropdowns, useCustomerTypes, useMe } from "@/lib/queries"
 import { CustomerHistory } from "./customer-history"
+import { CustomerTasks } from "./customer-tasks"
 import { DeleteCustomerButton } from "./delete-customer-button"
 import { EditCustomerDialog } from "./edit-customer-dialog"
 
@@ -90,6 +91,8 @@ export function CustomerPage({ id }: { id: number }) {
           <Fact name="Qo'shilgan" value={formatDate(customer.data.created_at)} />
         </dl>
       </section>
+      {/* The tasks the customer has: a customer with one is not deleted. */}
+      {companyId !== null && <CustomerTasks companyId={companyId} customerId={customer.data.id} />}
       {/* Who did what to the customer is the owner's to see. */}
       {companyId !== null && me.data?.company?.role === "owner" && (
         <CustomerHistory companyId={companyId} id={customer.data.id} />
