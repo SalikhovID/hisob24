@@ -54,3 +54,9 @@ export const sectionLabels: Record<Section, string> = {
 export function sectionOf(permission: Permission): Section {
   return permission.split(".")[0] as Section
 }
+
+// can says whether permissions (what /app/me told, undefined before it
+// answered) hold permission.
+export function can(permissions: readonly Permission[] | undefined, permission: Permission): boolean {
+  return permissions?.includes(permission) ?? false
+}

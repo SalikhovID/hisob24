@@ -1,22 +1,28 @@
 import { expect, test } from "vitest"
 import { isCurrent, navFor } from "./nav"
-import type { Role } from "./types"
+import { allPermissions, defaultPermissions } from "./permissions"
+import type { Permission } from "./types"
 
-const labels = (role?: Role) => navFor(role).map((item) => item.label)
+const labels = (permissions?: Permission[]) => navFor(permissions).map((item) => item.label)
 
 test("the owner may open every section", () => {
-  expect(labels("owner")).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Xodimlar", "Sozlamalar"])
+  expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Xodimlar", "Sozlamalar"])
 })
 
-test("an employee, and a session whose role is not known yet, see no section of the owner's", () => {
-  // The customers and the tasks are every member's.
-  expect(labels("user")).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar"])
-  expect(labels(undefined)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar"])
+test("an employee without a role sees the customers and the tasks", () => {
+  expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar"])
+})
+
+test("an employee with a role sees the sections the role lets them view; before the session is known, the home alone", () => {
+  expect(labels(["tasks.view", "tasks.create", "settings.view"])).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
+  expect(labels(["employees.view"])).toEqual(["Bosh sahifa", "Xodimlar"])
+  expect(labels([])).toEqual(["Bosh sahifa"])
+  expect(labels(undefined)).toEqual(["Bosh sahifa"])
 })
 
 test("the customers open at /customers, the tasks at /tasks", () => {
-  expect(navFor("user").find((item) => item.label === "Mijozlar")?.href).toBe("/customers")
-  expect(navFor("user").find((item) => item.label === "Vazifalar")?.href).toBe("/tasks")
+  expect(navFor(defaultPermissions).find((item) => item.label === "Mijozlar")?.href).toBe("/customers")
+  expect(navFor(defaultPermissions).find((item) => item.label === "Vazifalar")?.href).toBe("/tasks")
 })
 
 test.each([

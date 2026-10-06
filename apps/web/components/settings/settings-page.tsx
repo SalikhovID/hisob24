@@ -23,7 +23,7 @@ import {
   useTaskTypes,
 } from "@/lib/queries"
 import type { CustomerType, TaskStage, TaskType } from "@/lib/types"
-import { useOwner } from "@/lib/use-owner"
+import { useOwner } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"

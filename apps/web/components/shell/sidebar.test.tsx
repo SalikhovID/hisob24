@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest"
 import { ALI, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { Sidebar, type SidebarProps } from "./sidebar"
 
@@ -37,6 +38,16 @@ test("an employee sees no section of the owner's", async () => {
 
   expect(await within(sidebar()).findByText("Olma Savdo")).toBeInTheDocument()
   expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar"])
+})
+
+test("an employee with a role sees the sections the role lets them view", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view", "settings.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(await within(sidebar()).findByRole("link", { name: "Sozlamalar" })).toBeInTheDocument()
+  expect(sections()).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
 })
 
 test("the section the page belongs to is marked", async () => {

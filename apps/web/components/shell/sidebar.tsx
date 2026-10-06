@@ -21,14 +21,14 @@ export interface SidebarProps {
 }
 
 // Sidebar is the app's sections under Hisob24's logo and the name of the
-// company the session works in: the owner sees them all, an employee those
-// open to everyone. On a wide screen it is a column that folds to icons, the
-// logo to its mark; on a phone the column is hidden and the sections come out
-// as a sheet from the left.
+// company the session works in: each member sees the sections their
+// permissions open (the owner all of them). On a wide screen it is a column
+// that folds to icons, the logo to its mark; on a phone the column is hidden
+// and the sections come out as a sheet from the left.
 export function Sidebar({ open, onOpenChange, collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
   const company = me.data?.company
-  const items = navFor(company?.role)
+  const items = navFor(me.data?.permissions)
 
   return (
     <>

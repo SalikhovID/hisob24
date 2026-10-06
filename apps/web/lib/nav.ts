@@ -1,29 +1,30 @@
 import { ContactIcon, HouseIcon, ListTodoIcon, type LucideIcon, SettingsIcon, UsersIcon } from "lucide-react"
-import type { Role } from "./types"
+import { can } from "./permissions"
+import type { Permission } from "./types"
 
-// NavItem is a section of the app in the sidebar.
+// NavItem is a section of the app in the sidebar and the tab bar.
 export interface NavItem {
   label: string
   href: string
   icon: LucideIcon
-  // ownerOnly sections are the company owner's alone (logic/roles.md).
-  ownerOnly?: boolean
+  // permission is what opens the section (logic/roles.md, section 8); a
+  // section without one is everyone's.
+  permission?: Permission
 }
 
 export const navItems: NavItem[] = [
   { label: "Bosh sahifa", href: "/", icon: HouseIcon },
-  // The customers and the tasks are every member's (logic/customers.md,
-  // logic/tasks.md).
-  { label: "Mijozlar", href: "/customers", icon: ContactIcon },
-  { label: "Vazifalar", href: "/tasks", icon: ListTodoIcon },
-  { label: "Xodimlar", href: "/employees", icon: UsersIcon, ownerOnly: true },
-  { label: "Sozlamalar", href: "/settings", icon: SettingsIcon, ownerOnly: true },
+  { label: "Mijozlar", href: "/customers", icon: ContactIcon, permission: "customers.view" },
+  { label: "Vazifalar", href: "/tasks", icon: ListTodoIcon, permission: "tasks.view" },
+  { label: "Xodimlar", href: "/employees", icon: UsersIcon, permission: "employees.view" },
+  { label: "Sozlamalar", href: "/settings", icon: SettingsIcon, permission: "settings.view" },
 ]
 
-// navFor is the sections someone with role may open; undefined is a session
-// whose role is not known yet.
-export function navFor(role: Role | undefined): NavItem[] {
-  return navItems.filter((item) => !item.ownerOnly || role === "owner")
+// navFor is the sections someone with permissions may open (what /app/me
+// told); undefined is a session not known yet, which may open the home
+// alone.
+export function navFor(permissions: readonly Permission[] | undefined): NavItem[] {
+  return navItems.filter((item) => !item.permission || can(permissions, item.permission))
 }
 
 // isCurrent says whether the page at pathname belongs to the section at href.
