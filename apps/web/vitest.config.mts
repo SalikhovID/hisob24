@@ -11,5 +11,8 @@ export default defineConfig({
     exclude: ["node_modules/**", ".next/**", ".next-e2e/**", "e2e/**"],
     // Dates render in the app's own time zone in every test run.
     env: { TZ: "Asia/Tashkent" },
+    // The page tests type through whole forms; under `pnpm -r test` three
+    // suites share the CPU, and the default five seconds ran out.
+    testTimeout: 15_000,
   },
 })
