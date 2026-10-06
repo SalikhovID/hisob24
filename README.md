@@ -111,10 +111,13 @@ pnpm --filter @hisob24/web dev
 
 | Rol | Interfeysda | Qayerdan qo'shiladi | User app'da |
 |---|---|---|---|
-| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | **Mijozlar**; **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi); **Sozlamalar** (mijoz turlari, maydonlar, dropdownlar) |
-| `user` | Xodim | user app: egasi **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**. "Xodimlar" va "Sozlamalar" ko'rinmaydi, `/employees` va `/settings` bosh sahifaga qaytaradi |
+| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Vazifalar**, **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
+| `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar** va **Vazifalar** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
+| `user`, rolli | rol nomi (masalan, Sotuvchi) | egasi **Xodimlar → Rolni o'zgartirish** da rol biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
 
-- Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi xodim bo'lib qoladi.
+- **Kompaniya rollari** egasi **Sozlamalar → Rollar** da tuzadi: nom va ruxsat matritsasi. Amal bo'limning "Ko'rish" ruxsatisiz qabul qilinmaydi. Xodimlarga biriktirilgan rol o'chirilmaydi. Rollarni faqat egasi boshqaradi va biriktiradi.
+- Ruxsat har so'rovda bazadan o'qiladi: rol o'zgarsa, xodim keyingi so'rovdanoq yangi ruxsat bilan ishlaydi. Ruxsati yo'q amal API'da 403 `forbidden`; rollar API xodimga 403 `owner_only`.
+- Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi rolsiz xodim bo'lib qoladi; yangi egasining roli olib tashlanadi.
 - Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
 - Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga SMS kod ham ketmaydi.
 - Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.
