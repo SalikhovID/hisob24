@@ -81,3 +81,19 @@ Har biri avval yangi talabga moslandi (RED), keyin kod yozildi (GREEN). Hech bir
 - **Yangi testlar.** `pager.test.tsx` (ikkala ilovada), `use-settings-tab.test.ts`, `select-field.test.tsx`.
 
 Tekshiruv: `make lint` toza; `make test`: web 68 fayl / 517 test, admin 37 / 228; `make e2e` ikki ko'rinishda. Skrinshotlar (375px va desktop, light va dark) vaqtinchalik spec bilan ko'rildi. Raqamli pager jonli ro'yxatda faqat 20 dan ko'p yozuv bilan ko'rinadi; mock ma'lumotida shuncha yozuv yo'q, u birlik testlar bilan tekshirildi.
+
+## Lokal stack'da tekshiruv (2026-10-06)
+
+Haqiqiy API (`cmd/api` binary, :8080) va `next dev` (:3000) vaqtinchalik `hisob24_smoke_sel` bazasida (goose 8; lokal `hisob24` bazasiga tegilmadi, oxirida `DROP DATABASE`). Admin API kompaniya yaratdi (tayyor turlar va bosqichlar), egasining tokeni bilan curl: "Manba" dropdowni (4 variant), Jismoniy turiga dropdown va ko'p tanlovli maydon, 24 mijoz, 22 vazifa (mas'ullar navbat bilan egasi va xodim). Playwright skripti (egasi telefon 375px, xodim desktop) 14/14: uch tab va manzil, dropdown sahifasidan o'z tabiga qaytish, maydon dialogining "Turi" va "Dropdown" select'lari bilan radio maydon, mijozlar pager'i ("24 tadan 20 ta", raqam bilan 2-sahifa, telefonda bir qator, yon scroll yo'q), mijoz qo'shishda select va ko'p tanlov (saqlandi, sahifa va tahrirlash dialogi mos), vazifalar pager'i, bosqich va mas'ul filtrlari manzilda (Jarayonda 7, Men 3, hammasi 11), vazifa sahifasida bosqich select'i (toast), tahrirlashda mas'ul "Tanlanmagan", yangi vazifa select'lar bilan. Sahifa xatosi 0, API log ERROR 0, rad etilgan javoblar faqat birinchi `GET /api/app/me` 401.
+
+## Production'ga deploy (2026-10-06)
+
+`deploy/ship.sh` bilan `214731b` yuborildi (20:23–20:26 Toshkent, exit 0): `next` image qayta build (api image o'zgarmadi, konteyner qayta ko'tarildi), migratsiya yo'q (goose 8), api/admin/web `--wait` bilan healthy. Oldingi daraxt: `/var/www/hisob24-v2.prev`. Pre-deploy dump: `/var/backups/hisob24-v2/hisob24-pre-selects-20261006-1723.sql.gz` (24 jadval, gzip tekshirilgan).
+
+Tekshiruvlar (sessiyasiz, hech narsa yozilmadi, SMS yuborilmadi):
+
+- Lokal pre-flight: daraxt toza va push qilingan; toza `git archive HEAD` nusxasidan ikkala Next build (`pnpm install --frozen-lockfile`, exit 0). Yangi env kaliti yo'q.
+- Server pre-flight (read-only): konteynerlar healthy, deploy jarayoni yo'q, goose 8, satrlar: companies 1, users 2, user_companies 2, customers 2, customer_types 3, customer_dropdowns 1, tasks 1, task_stages 5, task_types 2; `.env` kalitlari to'liq; disk 23%; API log ERROR/WARN 0.
+- Probe (29 ta): oldin 25/29, keyin 29/29. Yangi to'rt tekshiruv sahifalarning JS chunk'larini o'qiydi (placeholder cookie bilan HTML'dagi `script src` lar): `/settings` chunk'ida "Sozlamalar bo'limlari", `/customers` da "tadan", `/tasks?view=list` da `select-trigger` bor va `native-select` yo'q — eski build'da aksi edi, shu yangi build jonli ekanining isboti. Qolganlari: healthz, login sahifalari, `/settings`, `/settings?tab=tasks`, `/settings/dropdowns/1`, `/customers?page=2`, `/tasks?view=list`, `/tasks/1`, admin `/companies` 200; API route'lar 401, noma'lum 404; webhook'lar sekretsiz 401; ikonlar.
+- Serverda: satrlar soni o'zgarmagan, goose 8; `.env` `.prev` bilan bir xil; restart 0; API log ERROR/WARN 0, web/admin log xatosi 0; dangling image 0; server daraxtining sha256 si (`.env` dan tashqari) `git archive HEAD` bilan bir xil (`9c184e75…`).
+- Haqiqiy kirish bilan oqim production'da sinalmadi (`SMS_DRIVER=eskiz`): foydalanuvchining o'zi sinaydi.
