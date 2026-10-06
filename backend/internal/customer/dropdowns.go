@@ -234,7 +234,7 @@ func (s *Service) DeleteDropdown(ctx context.Context, companyID, id int64) error
 		if err != nil {
 			return err
 		}
-		used, err := q.CountCustomerDropdownFields(ctx, &id)
+		used, err := q.CountDropdownFields(ctx, &id)
 		if err != nil {
 			return err
 		}

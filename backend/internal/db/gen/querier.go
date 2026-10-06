@@ -28,18 +28,22 @@ type Querier interface {
 	// One row of a customer's answers: a text, a whole number, or an option
 	// chosen. A choice of several options is a row for each.
 	AddCustomerValue(ctx context.Context, arg AddCustomerValueParams) error
+	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
+	// company has no such type, or deleted it.
+	AddTaskField(ctx context.Context, arg AddTaskFieldParams) (TaskField, error)
 	// Spends a live code in one statement, so a code opens one session only.
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.
 	ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
-	// How many fields take their options from the dropdown: one in use is not
-	// deleted. Deleted fields do not count.
-	CountCustomerDropdownFields(ctx context.Context, dropdownID *int64) (int64, error)
 	// How many customers ListCustomers finds under the same filter, on all of
 	// its pages.
 	CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error)
+	// How many fields, of the customer types and of the task types, take their
+	// options from the dropdown: one in use is not deleted. Deleted fields do
+	// not count.
+	CountDropdownFields(ctx context.Context, dropdownID *int64) (int64, error)
 	// How many customers filled the field in: one in use is not deleted.
 	// Deleted customers do not count.
 	CountFieldCustomers(ctx context.Context, fieldID int64) (int64, error)
@@ -69,6 +73,8 @@ type Querier interface {
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
 	// A new stage goes last among the company's.
 	CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (TaskStage, error)
+	// A new type goes last among the company's.
+	CreateTaskType(ctx context.Context, arg CreateTaskTypeParams) (TaskType, error)
 	// The database's today: every end_date check counts from it.
 	CurrentDate(ctx context.Context) (time.Time, error)
 	// Whether two customers have the same value in the field: such a field
@@ -106,9 +112,17 @@ type Querier interface {
 	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
+	// Hides a field of the company's type. pgx.ErrNoRows when the type has no
+	// such field, or it is deleted already.
+	DeleteTaskField(ctx context.Context, arg DeleteTaskFieldParams) (int64, error)
 	// Hides the stage: nothing is removed. pgx.ErrNoRows when the company has
 	// no such stage, or deleted it already.
 	DeleteTaskStage(ctx context.Context, arg DeleteTaskStageParams) (int64, error)
+	// Hides the type: nothing is removed. pgx.ErrNoRows when the company has no
+	// such type, or deleted it already.
+	DeleteTaskType(ctx context.Context, arg DeleteTaskTypeParams) (int64, error)
+	// Hides every field of a type: they go with it when it is deleted.
+	DeleteTaskTypeFields(ctx context.Context, typeID int64) error
 	// The company's owner stays in it as a user: the step before another owner
 	// is set.
 	DemoteCompanyOwner(ctx context.Context, companyID int64) error
@@ -145,8 +159,13 @@ type Querier interface {
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
 	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
+	// A field of the company's type; pgx.ErrNoRows when the type has none such,
+	// or it is deleted.
+	GetTaskField(ctx context.Context, arg GetTaskFieldParams) (TaskField, error)
 	// The company's stage; pgx.ErrNoRows when it has none such, or deleted it.
 	GetTaskStage(ctx context.Context, arg GetTaskStageParams) (TaskStage, error)
+	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
+	GetTaskType(ctx context.Context, arg GetTaskTypeParams) (TaskType, error)
 	// The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
 	// it never did (the user Mini App's sign-in).
 	GetTelegramContactPhone(ctx context.Context, chatID int64) (string, error)
@@ -193,8 +212,13 @@ type Querier interface {
 	// in the phone and in the whole number answers. The names of the options are
 	// not searched. A NULL argument leaves its filter out.
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
+	// Every field of the company's types, each type's in its order, without the
+	// deleted ones (a deleted type's fields are deleted with it).
+	ListTaskFields(ctx context.Context, companyID int64) ([]TaskField, error)
 	// The company's stages in their order, without the deleted.
 	ListTaskStages(ctx context.Context, companyID int64) ([]TaskStage, error)
+	// The company's types in their order, without the deleted.
+	ListTaskTypes(ctx context.Context, companyID int64) ([]TaskType, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the
 	// database's today, as the 402 check does.
@@ -222,9 +246,15 @@ type Querier interface {
 	// Puts the company's types in the order of ids: the first gets position 1.
 	// An id that is not a live type of the company is passed over.
 	OrderCustomerTypes(ctx context.Context, arg OrderCustomerTypesParams) error
+	// Puts the type's fields in the order of ids: the first gets position 1. An
+	// id that is not a live field of the type is passed over.
+	OrderTaskFields(ctx context.Context, arg OrderTaskFieldsParams) error
 	// Puts the company's stages in the order of ids: the first gets position 1.
 	// An id that is not a live stage of the company is passed over.
 	OrderTaskStages(ctx context.Context, arg OrderTaskStagesParams) error
+	// Puts the company's types in the order of ids: the first gets position 1.
+	// An id that is not a live type of the company is passed over.
+	OrderTaskTypes(ctx context.Context, arg OrderTaskTypesParams) error
 	// Takes a user out of the company; the user and their other companies stay.
 	// No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
 	// someone who is not a member.
@@ -236,6 +266,8 @@ type Querier interface {
 	RenameCustomerDropdown(ctx context.Context, arg RenameCustomerDropdownParams) (CustomerDropdown, error)
 	// pgx.ErrNoRows when the company has no such type, or deleted it.
 	RenameCustomerType(ctx context.Context, arg RenameCustomerTypeParams) (CustomerType, error)
+	// pgx.ErrNoRows when the company has no such type, or deleted it.
+	RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) (TaskType, error)
 	// Revokes a live token and returns its owner, company and source: the first
 	// step of rotation and of logout. A revoked, expired or unknown token gives
 	// pgx.ErrNoRows.
@@ -243,6 +275,10 @@ type Querier interface {
 	// Gives a new company the ready types: Jismoniy (F.I.Sh.) and Yuridik (Nomi,
 	// INN). The companies that were there before got them from migration 00005.
 	SeedCustomerTypes(ctx context.Context, companyID int64) error
+	// Gives a new company the ready stages (Yangi, Jarayonda, Bajarildi) and the
+	// ready type (Vazifa). The companies that were there before got them from
+	// migration 00007.
+	SeedTaskSettings(ctx context.Context, companyID int64) error
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// Makes the user the company's owner under full_name, a member or not. The
 	// owner before has to be demoted first: a company has one owner.
@@ -260,6 +296,10 @@ type Querier interface {
 	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
 	// type has no such field, or it is deleted.
 	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
+	// Changes a field's name and required mark; a NULL argument leaves its
+	// column as it is. The kind and the dropdown are never changed.
+	// pgx.ErrNoRows when the type has no such field, or it is deleted.
+	UpdateTaskField(ctx context.Context, arg UpdateTaskFieldParams) (TaskField, error)
 	// Changes a stage's name, color and done mark; a NULL argument leaves its
 	// column as it is. pgx.ErrNoRows when the company has no such stage, or
 	// deleted it.
