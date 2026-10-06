@@ -9,6 +9,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
 
 var (
@@ -22,39 +23,6 @@ var (
 	errNoDropdown     = invalid("Dropdownni tanlang")
 )
 
-// The kinds a field may be of.
-const (
-	KindString        = "string"
-	KindInt           = "int"
-	KindDropdown      = "dropdown"
-	KindMultiDropdown = "multi_dropdown"
-	KindRadio         = "radio"
-	KindCheckbox      = "checkbox"
-)
-
-// kindOf tells whether kind is one of the six and, if so, whether it is a
-// choice: a field that takes its options from a dropdown.
-func kindOf(kind string) (choice, known bool) {
-	switch kind {
-	case KindString, KindInt:
-		return false, true
-	case KindDropdown, KindMultiDropdown, KindRadio, KindCheckbox:
-		return true, true
-	}
-	return false, false
-}
-
-// Field is one question of a customer type. The choice kinds take their
-// options from a dropdown.
-type Field struct {
-	ID         int64
-	Label      string
-	Kind       string
-	Required   bool
-	Unique     bool
-	DropdownID *int64
-}
-
 // Type is a kind of customer (Jismoniy, Yuridik) with the fields its form
 // asks, in their order.
 type Type struct {
@@ -65,14 +33,14 @@ type Type struct {
 
 // CreateType adds a type with no fields at the end of the company's types.
 func (s *Service) CreateType(ctx context.Context, companyID int64, name string) (Type, error) {
-	name, err := cleanName(name)
+	name, err := fields.CleanName(name)
 	if err != nil {
 		return Type{}, err
 	}
 	var ct gen.CustomerType
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
 		ct, err = q.CreateCustomerType(ctx, gen.CreateCustomerTypeParams{CompanyID: companyID, Name: name})
-		if taken(err) {
+		if fields.Taken(err) {
 			return errTypeNameTaken
 		}
 		return err
@@ -90,12 +58,12 @@ func (s *Service) Types(ctx context.Context, companyID int64) ([]Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	fields, err := s.q.ListCustomerFields(ctx, companyID)
+	all, err := s.q.ListCustomerFields(ctx, companyID)
 	if err != nil {
 		return nil, err
 	}
 	of := map[int64][]Field{}
-	for _, f := range fields {
+	for _, f := range all {
 		of[f.TypeID] = append(of[f.TypeID], toField(f))
 	}
 	list := make([]Type, 0, len(rows))
@@ -115,7 +83,7 @@ func toField(f gen.CustomerField) Field {
 
 // RenameType gives the company's type another name.
 func (s *Service) RenameType(ctx context.Context, companyID, id int64, name string) (Type, error) {
-	name, err := cleanName(name)
+	name, err := fields.CleanName(name)
 	if err != nil {
 		return Type{}, err
 	}
@@ -124,7 +92,7 @@ func (s *Service) RenameType(ctx context.Context, companyID, id int64, name stri
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return errTypeNotFound
-		case taken(err):
+		case fields.Taken(err):
 			return errTypeNameTaken
 		}
 		return err
@@ -161,8 +129,8 @@ func (s *Service) OrderTypes(ctx context.Context, companyID int64, ids []int64) 
 		for _, ct := range rows {
 			live = append(live, ct.ID)
 		}
-		if !sameIDs(ids, live) {
-			return errOrderChanged
+		if !fields.SameIDs(ids, live) {
+			return fields.ErrOrderChanged
 		}
 		return q.OrderCustomerTypes(ctx, gen.OrderCustomerTypesParams{CompanyID: companyID, Ids: ids})
 	})
@@ -207,11 +175,11 @@ type FieldInput struct {
 // needs a dropdown of the company's; text and whole numbers take none, and
 // only they may be told not to repeat.
 func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in FieldInput) (Field, error) {
-	label, err := cleanName(in.Label)
+	label, err := fields.CleanName(in.Label)
 	if err != nil {
 		return Field{}, err
 	}
-	choice, known := kindOf(in.Kind)
+	choice, known := fields.KindOf(in.Kind)
 	switch {
 	case !known:
 		return Field{}, errNoKind
@@ -241,7 +209,7 @@ func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in Fiel
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return errTypeNotFound
-		case taken(err):
+		case fields.Taken(err):
 			return errFieldNameTaken
 		}
 		return err
@@ -265,7 +233,7 @@ type FieldPatch struct {
 // to repeat.
 func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID int64, patch FieldPatch) (Field, error) {
 	if patch.Label != nil {
-		label, err := cleanName(*patch.Label)
+		label, err := fields.CleanName(*patch.Label)
 		if err != nil {
 			return Field{}, err
 		}
@@ -281,7 +249,7 @@ func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID in
 			return err
 		}
 		if patch.Unique != nil && *patch.Unique {
-			if choice, _ := kindOf(was.Kind); choice {
+			if choice, _ := fields.KindOf(was.Kind); choice {
 				return errChoiceUnique
 			}
 			repeats, err := q.CustomerFieldHasDuplicates(ctx, fieldID)
@@ -296,7 +264,7 @@ func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID in
 			ID: fieldID, TypeID: typeID, CompanyID: companyID,
 			Label: patch.Label, Required: patch.Required, IsUnique: patch.Unique,
 		})
-		if taken(err) {
+		if fields.Taken(err) {
 			return errFieldNameTaken
 		}
 		return err
@@ -341,18 +309,18 @@ func (s *Service) OrderFields(ctx context.Context, companyID, typeID int64, ids 
 		if err != nil {
 			return err
 		}
-		fields, err := q.ListCustomerFields(ctx, companyID)
+		all, err := q.ListCustomerFields(ctx, companyID)
 		if err != nil {
 			return err
 		}
 		var live []int64
-		for _, f := range fields {
+		for _, f := range all {
 			if f.TypeID == typeID {
 				live = append(live, f.ID)
 			}
 		}
-		if !sameIDs(ids, live) {
-			return errOrderChanged
+		if !fields.SameIDs(ids, live) {
+			return fields.ErrOrderChanged
 		}
 		return q.OrderCustomerFields(ctx, gen.OrderCustomerFieldsParams{TypeID: typeID, Ids: ids})
 	})

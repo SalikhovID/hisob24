@@ -5,16 +5,31 @@ package customer
 
 import (
 	"context"
-	"errors"
-	"strings"
-	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/fields"
+)
+
+// What a form of fields is made of is shared with the tasks
+// (internal/fields); these names keep the customer API as it was.
+type (
+	Field  = fields.Field
+	Option = fields.Option
+	Values = fields.Values
+	Change = fields.Change
+)
+
+// The kinds a field may be of.
+const (
+	KindString        = fields.KindString
+	KindInt           = fields.KindInt
+	KindDropdown      = fields.KindDropdown
+	KindMultiDropdown = fields.KindMultiDropdown
+	KindRadio         = fields.KindRadio
+	KindCheckbox      = fields.KindCheckbox
 )
 
 // Service runs the customer operations of every company; each call names
@@ -43,51 +58,6 @@ func (s *Service) write(ctx context.Context, companyID int64, fn func(q *gen.Que
 	})
 }
 
-// maxName is how long the name of a type, a field, a dropdown or an option
-// may be, in characters.
-const maxName = 60
-
 func invalid(message string) error {
-	return apperr.New(apperr.Invalid, "validation_error", message)
-}
-
-// cleanName is a name as it is kept: without the spaces around it, not empty
-// and not longer than maxName.
-func cleanName(raw string) (string, error) {
-	name := strings.TrimSpace(raw)
-	switch {
-	case name == "":
-		return "", invalid("Nomni kiriting")
-	case utf8.RuneCountInString(name) > maxName:
-		return "", invalid("Nom 60 belgidan oshmasin")
-	}
-	return name, nil
-}
-
-// taken tells that a name is in use already: its unique index refused it.
-func taken(err error) bool {
-	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == "23505"
-}
-
-// errOrderChanged refuses a new order that does not name what is there now:
-// the list was changed elsewhere since the client read it.
-var errOrderChanged = apperr.New(apperr.Conflict, "order_changed", "Ro'yxat o'zgargan. Sahifani yangilang")
-
-// sameIDs tells whether ids names each of live once and nothing else.
-func sameIDs(ids, live []int64) bool {
-	if len(ids) != len(live) {
-		return false
-	}
-	left := make(map[int64]bool, len(live))
-	for _, id := range live {
-		left[id] = true
-	}
-	for _, id := range ids {
-		if !left[id] {
-			return false
-		}
-		delete(left, id)
-	}
-	return true
+	return fields.Invalid(message)
 }

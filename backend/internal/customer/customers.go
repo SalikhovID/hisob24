@@ -13,6 +13,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/fields"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
@@ -68,18 +69,18 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		if err != nil {
 			return err
 		}
-		fields, options, err := formOf(ctx, q, companyID, typeID)
+		form, options, err := formOf(ctx, q, companyID, typeID)
 		if err != nil {
 			return err
 		}
-		values, err := checkValues(fields, options, nil, in.Values)
+		values, err := fields.CheckValues(form, options, nil, in.Values)
 		if err != nil {
 			return err
 		}
 		if err := phoneFree(ctx, q, companyID, phone, 0); err != nil {
 			return err
 		}
-		if err := answersFree(ctx, q, fields, values, 0); err != nil {
+		if err := answersFree(ctx, q, form, values, 0); err != nil {
 			return err
 		}
 		name, err := memberName(ctx, q, companyID, by)
@@ -92,7 +93,7 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 		if err != nil {
 			return err
 		}
-		if err := store(ctx, q, row.ID, fields, values); err != nil {
+		if err := store(ctx, q, row.ID, form, values); err != nil {
 			return err
 		}
 		err = q.AddCustomerHistory(ctx, gen.AddCustomerHistoryParams{
@@ -126,21 +127,21 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 		if err != nil {
 			return err
 		}
-		fields, options, err := formOf(ctx, q, companyID, c.TypeID)
+		form, options, err := formOf(ctx, q, companyID, c.TypeID)
 		if err != nil {
 			return err
 		}
-		values, err := checkValues(fields, options, c.Values, in.Values)
+		values, err := fields.CheckValues(form, options, c.Values, in.Values)
 		if err != nil {
 			return err
 		}
 		if err := phoneFree(ctx, q, companyID, phone, id); err != nil {
 			return err
 		}
-		if err := answersFree(ctx, q, fields, values, id); err != nil {
+		if err := answersFree(ctx, q, form, values, id); err != nil {
 			return err
 		}
-		changed := diff(fields, options, c.Phone, phone, c.Values, values)
+		changed := diff(form, options, c.Phone, phone, c.Values, values)
 		if len(changed) == 0 {
 			// Nothing to save, and nothing for the history.
 			return nil
@@ -151,7 +152,7 @@ func (s *Service) Update(ctx context.Context, companyID, id int64, by string, in
 		if err := q.DeleteCustomerValues(ctx, id); err != nil {
 			return err
 		}
-		if err := store(ctx, q, id, fields, values); err != nil {
+		if err := store(ctx, q, id, form, values); err != nil {
 			return err
 		}
 		changes, err := json.Marshal(changed)
@@ -401,10 +402,10 @@ func formOf(ctx context.Context, q *gen.Queries, companyID, typeID int64) ([]Fie
 	if err != nil {
 		return nil, nil, err
 	}
-	var fields []Field
+	var form []Field
 	for _, f := range all {
 		if f.TypeID == typeID {
-			fields = append(fields, toField(f))
+			form = append(form, toField(f))
 		}
 	}
 	rows, err := q.ListCustomerDropdownOptions(ctx, companyID)
@@ -415,7 +416,7 @@ func formOf(ctx context.Context, q *gen.Queries, companyID, typeID int64) ([]Fie
 	for _, o := range rows {
 		options[o.DropdownID] = append(options[o.DropdownID], toOption(o))
 	}
-	return fields, options, nil
+	return form, options, nil
 }
 
 // phoneFree refuses a phone that another customer of the company has: a
@@ -440,8 +441,8 @@ func phoneFree(ctx context.Context, q *gen.Queries, companyID int64, phone strin
 // answersFree refuses an answer that another customer has in a field told
 // not to repeat, the fields in their order. except is the customer being
 // edited, 0 for a new one.
-func answersFree(ctx context.Context, q *gen.Queries, fields []Field, values Values, except int64) error {
-	for _, f := range fields {
+func answersFree(ctx context.Context, q *gen.Queries, form []Field, values Values, except int64) error {
+	for _, f := range form {
 		if !f.Unique {
 			continue
 		}
@@ -481,8 +482,8 @@ func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone stri
 }
 
 // store writes a customer's answers to the fields.
-func store(ctx context.Context, q *gen.Queries, customerID int64, fields []Field, values Values) error {
-	for _, f := range fields {
+func store(ctx context.Context, q *gen.Queries, customerID int64, form []Field, values Values) error {
+	for _, f := range form {
 		for _, row := range valueRows(f, values[f.ID]) {
 			row.CustomerID = customerID
 			if err := q.AddCustomerValue(ctx, row); err != nil {
@@ -500,7 +501,7 @@ func valueRows(f Field, answer any) []gen.AddCustomerValueParams {
 	case string:
 		return []gen.AddCustomerValueParams{{FieldID: f.ID, TextValue: &a}}
 	case int64:
-		if choice, _ := kindOf(f.Kind); choice {
+		if choice, _ := fields.KindOf(f.Kind); choice {
 			return []gen.AddCustomerValueParams{{FieldID: f.ID, OptionID: &a}}
 		}
 		return []gen.AddCustomerValueParams{{FieldID: f.ID, IntValue: &a}}

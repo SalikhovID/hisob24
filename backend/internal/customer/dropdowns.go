@@ -9,6 +9,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
 
 var (
@@ -17,14 +18,6 @@ var (
 	errOptionTaken       = apperr.New(apperr.Conflict, "name_taken", "Bu variant allaqachon bor")
 	errOptionNotFound    = apperr.New(apperr.NotFound, "not_found", "Variant topilmadi")
 )
-
-// Option is one choice of a dropdown. An option that is not active is no
-// longer offered, but stays on the customers who chose it.
-type Option struct {
-	ID     int64
-	Label  string
-	Active bool
-}
 
 // Dropdown is a list of options the choice fields take theirs from.
 type Dropdown struct {
@@ -36,14 +29,14 @@ type Dropdown struct {
 // CreateDropdown adds an empty dropdown to the company. Its name is the
 // company's only one of the kind, whatever the case.
 func (s *Service) CreateDropdown(ctx context.Context, companyID int64, name string) (Dropdown, error) {
-	name, err := cleanName(name)
+	name, err := fields.CleanName(name)
 	if err != nil {
 		return Dropdown{}, err
 	}
 	var d gen.CustomerDropdown
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
 		d, err = q.CreateCustomerDropdown(ctx, gen.CreateCustomerDropdownParams{CompanyID: companyID, Name: name})
-		if taken(err) {
+		if fields.Taken(err) {
 			return errDropdownNameTaken
 		}
 		return err
@@ -82,7 +75,7 @@ func (s *Service) Dropdowns(ctx context.Context, companyID int64) ([]Dropdown, e
 
 // RenameDropdown gives the company's dropdown another name.
 func (s *Service) RenameDropdown(ctx context.Context, companyID, id int64, name string) (Dropdown, error) {
-	name, err := cleanName(name)
+	name, err := fields.CleanName(name)
 	if err != nil {
 		return Dropdown{}, err
 	}
@@ -91,7 +84,7 @@ func (s *Service) RenameDropdown(ctx context.Context, companyID, id int64, name 
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return errDropdownNotFound
-		case taken(err):
+		case fields.Taken(err):
 			return errDropdownNameTaken
 		}
 		return err
@@ -118,7 +111,7 @@ func (s *Service) dropdown(ctx context.Context, companyID, id int64) (Dropdown, 
 
 // AddOption adds an option at the end of the company's dropdown.
 func (s *Service) AddOption(ctx context.Context, companyID, dropdownID int64, label string) (Option, error) {
-	label, err := cleanName(label)
+	label, err := fields.CleanName(label)
 	if err != nil {
 		return Option{}, err
 	}
@@ -130,7 +123,7 @@ func (s *Service) AddOption(ctx context.Context, companyID, dropdownID int64, la
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return errDropdownNotFound
-		case taken(err):
+		case fields.Taken(err):
 			return errOptionTaken
 		}
 		return err
@@ -155,7 +148,7 @@ type OptionPatch struct {
 // or on.
 func (s *Service) UpdateOption(ctx context.Context, companyID, dropdownID, optionID int64, patch OptionPatch) (Option, error) {
 	if patch.Label != nil {
-		label, err := cleanName(*patch.Label)
+		label, err := fields.CleanName(*patch.Label)
 		if err != nil {
 			return Option{}, err
 		}
@@ -170,7 +163,7 @@ func (s *Service) UpdateOption(ctx context.Context, companyID, dropdownID, optio
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return errOptionNotFound
-		case taken(err):
+		case fields.Taken(err):
 			return errOptionTaken
 		}
 		return err
@@ -223,8 +216,8 @@ func (s *Service) OrderOptions(ctx context.Context, companyID, dropdownID int64,
 		if err != nil {
 			return err
 		}
-		if !sameIDs(ids, live) {
-			return errOrderChanged
+		if !fields.SameIDs(ids, live) {
+			return fields.ErrOrderChanged
 		}
 		return q.OrderCustomerDropdownOptions(ctx, gen.OrderCustomerDropdownOptionsParams{DropdownID: dropdownID, Ids: ids})
 	})
