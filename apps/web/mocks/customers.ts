@@ -15,7 +15,7 @@ import {
   type OptionRow,
   type TypeRow,
 } from "./data"
-import { api, fail, isMember, memberSession, normalizePhone, ownerOnly } from "./gate"
+import { api, fail, isMember, normalizePhone, permittedSession } from "./gate"
 
 const invalid = (message: string) => fail(400, "validation_error", message)
 const customerNotFound = () => fail(404, "not_found", "Mijoz topilmadi")
@@ -227,7 +227,7 @@ function found(customer: CustomerRow, search: string): boolean {
 
 export const customersHandlers = [
   http.get(api("/app/customers"), ({ request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "customers.view")
     if (member instanceof Response) return member
     const query = new URL(request.url).searchParams
     const page = query.has("page") ? Number(query.get("page")) : 1
@@ -255,7 +255,7 @@ export const customersHandlers = [
   }),
 
   http.post(api("/app/customers"), async ({ request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "customers.create")
     if (member instanceof Response) return member
     const body = (await request.json()) as { type_id?: unknown; phone?: unknown; values?: unknown }
     const customer = enterCustomer(member, body)
@@ -264,14 +264,14 @@ export const customersHandlers = [
   }),
 
   http.get(api("/app/customers/:id"), ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "customers.view")
     if (member instanceof Response) return member
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
     return customer ? HttpResponse.json(toCustomer(customer)) : customerNotFound()
   }),
 
   http.put(api("/app/customers/:id"), async ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "customers.edit")
     if (member instanceof Response) return member
     const body = (await request.json()) as { phone?: unknown; values?: unknown }
     // A customer that is not there is said first, whatever is sent.
@@ -305,7 +305,7 @@ export const customersHandlers = [
   }),
 
   http.delete(api("/app/customers/:id"), ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "customers.delete")
     if (member instanceof Response) return member
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
     if (!customer) return customerNotFound()
@@ -327,10 +327,8 @@ export const customersHandlers = [
   }),
 
   http.get(api("/app/customers/:id/history"), ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "customers.history")
     if (member instanceof Response) return member
-    // Who did what to a customer is for the owner to see.
-    if (db.members[member.phone].find((m) => m.companyId === member.companyId)?.role !== "owner") return ownerOnly()
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
     if (!customer) return customerNotFound()
     return HttpResponse.json(

@@ -4,7 +4,7 @@
 import { http, HttpResponse } from "msw"
 import type { CustomerFieldKind } from "@/lib/types"
 import { db, type DropdownRow, dropdownsOf, type FieldRow, nextId, toDropdown, toField, toType, type TypeRow, typesOf } from "./data"
-import { api, fail, memberSession, ownerSession } from "./gate"
+import { api, fail, memberSession, permittedSession } from "./gate"
 
 // cleanName is the API's rule for a name: trimmed, not empty, sixty
 // characters at most.
@@ -129,32 +129,32 @@ export const customerSettingsHandlers = [
   }),
 
   http.post(api("/app/customer-dropdowns"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.create")
+    if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
     if (name instanceof Response) return name
-    if (dropdownsOf(owner.companyId).some((d) => same(d.name, name))) return dropdownTaken()
-    const dropdown: DropdownRow = { id: nextId(), companyId: owner.companyId, name, options: [] }
+    if (dropdownsOf(member.companyId).some((d) => same(d.name, name))) return dropdownTaken()
+    const dropdown: DropdownRow = { id: nextId(), companyId: member.companyId, name, options: [] }
     db.dropdowns.push(dropdown)
     return HttpResponse.json(toDropdown(dropdown), { status: 201 })
   }),
 
   http.patch(api("/app/customer-dropdowns/:id"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
     if (name instanceof Response) return name
-    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const dropdown = liveDropdown(member.companyId, Number(params.id))
     if (!dropdown) return dropdownNotFound()
-    if (dropdownsOf(owner.companyId).some((d) => d.id !== dropdown.id && same(d.name, name))) return dropdownTaken()
+    if (dropdownsOf(member.companyId).some((d) => d.id !== dropdown.id && same(d.name, name))) return dropdownTaken()
     dropdown.name = name
     return HttpResponse.json(toDropdown(dropdown))
   }),
 
   http.delete(api("/app/customer-dropdowns/:id"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const member = permittedSession(request, "settings.delete")
+    if (member instanceof Response) return member
+    const dropdown = liveDropdown(member.companyId, Number(params.id))
     if (!dropdown) return dropdownNotFound()
     const used = fieldsUsing(dropdown.id)
     if (used > 0) return fail(409, "dropdown_in_use", `Bu dropdown ${used} ta maydonda ishlatilgan`)
@@ -163,11 +163,11 @@ export const customerSettingsHandlers = [
   }),
 
   http.post(api("/app/customer-dropdowns/:id/options"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.create")
+    if (member instanceof Response) return member
     const label = cleanName(((await request.json()) as { label?: unknown }).label)
     if (label instanceof Response) return label
-    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const dropdown = liveDropdown(member.companyId, Number(params.id))
     if (!dropdown) return dropdownNotFound()
     if (dropdown.options.some((o) => !o.deleted && same(o.label, label))) return optionTaken()
     const option = { id: nextId(), label, active: true }
@@ -176,10 +176,10 @@ export const customerSettingsHandlers = [
   }),
 
   http.put(api("/app/customer-dropdowns/:id/options/order"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
-    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const dropdown = liveDropdown(member.companyId, Number(params.id))
     if (!dropdown) return dropdownNotFound()
     const live = dropdown.options.filter((o) => !o.deleted).map((o) => o.id)
     if (!sameIds(ids, live)) return orderChanged()
@@ -188,12 +188,12 @@ export const customerSettingsHandlers = [
   }),
 
   http.patch(api("/app/customer-dropdowns/:id/options/:optionId"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const body = (await request.json()) as { label?: unknown; is_active?: boolean }
     const label = body.label === undefined ? undefined : cleanName(body.label)
     if (label instanceof Response) return label
-    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const dropdown = liveDropdown(member.companyId, Number(params.id))
     const option = dropdown?.options.find((o) => o.id === Number(params.optionId) && !o.deleted)
     if (!dropdown || !option) return optionNotFound()
     if (label !== undefined) {
@@ -205,9 +205,9 @@ export const customerSettingsHandlers = [
   }),
 
   http.delete(api("/app/customer-dropdowns/:id/options/:optionId"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    const dropdown = liveDropdown(owner.companyId, Number(params.id))
+    const member = permittedSession(request, "settings.delete")
+    if (member instanceof Response) return member
+    const dropdown = liveDropdown(member.companyId, Number(params.id))
     const option = dropdown?.options.find((o) => o.id === Number(params.optionId) && !o.deleted)
     if (!dropdown || !option) return optionNotFound()
     const used = chose(dropdown, option.id)
@@ -220,21 +220,21 @@ export const customerSettingsHandlers = [
   }),
 
   http.post(api("/app/customer-types"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.create")
+    if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
     if (name instanceof Response) return name
-    if (typesOf(owner.companyId).some((t) => same(t.name, name))) return typeTaken()
-    const type: TypeRow = { id: nextId(), companyId: owner.companyId, name, fields: [] }
+    if (typesOf(member.companyId).some((t) => same(t.name, name))) return typeTaken()
+    const type: TypeRow = { id: nextId(), companyId: member.companyId, name, fields: [] }
     db.types.push(type)
     return HttpResponse.json(toType(type), { status: 201 })
   }),
 
   http.put(api("/app/customer-types/order"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
-    const live = typesOf(owner.companyId).map((t) => t.id)
+    const live = typesOf(member.companyId).map((t) => t.id)
     if (!sameIds(ids, live)) return orderChanged()
     const others = db.types.filter((t) => !ids.includes(t.id))
     db.types = [...ids.map((id) => db.types.find((t) => t.id === id)!), ...others]
@@ -242,21 +242,21 @@ export const customerSettingsHandlers = [
   }),
 
   http.patch(api("/app/customer-types/:id"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
     if (name instanceof Response) return name
-    const type = liveType(owner.companyId, Number(params.id))
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
-    if (typesOf(owner.companyId).some((t) => t.id !== type.id && same(t.name, name))) return typeTaken()
+    if (typesOf(member.companyId).some((t) => t.id !== type.id && same(t.name, name))) return typeTaken()
     type.name = name
     return HttpResponse.json(toType(type))
   }),
 
   http.delete(api("/app/customer-types/:id"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    const type = liveType(owner.companyId, Number(params.id))
+    const member = permittedSession(request, "settings.delete")
+    if (member instanceof Response) return member
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
     const used = liveCustomers().filter((c) => c.typeId === type.id).length
     if (used > 0) return fail(409, "type_in_use", `Bu turda ${used} ta mijoz bor`)
@@ -267,8 +267,8 @@ export const customerSettingsHandlers = [
   }),
 
   http.post(api("/app/customer-types/:id/fields"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.create")
+    if (member instanceof Response) return member
     const body = (await request.json()) as {
       label?: unknown
       kind?: string
@@ -285,8 +285,8 @@ export const customerSettingsHandlers = [
     if (kind.choice && dropdownId === null) return invalid("Dropdownni tanlang")
     if (kind.choice && unique) return choiceUnique()
     if (!kind.choice && dropdownId !== null) return invalid("Matn va son maydoniga dropdown ulanmaydi")
-    if (dropdownId !== null && !liveDropdown(owner.companyId, dropdownId)) return invalid("Dropdownni tanlang")
-    const type = liveType(owner.companyId, Number(params.id))
+    if (dropdownId !== null && !liveDropdown(member.companyId, dropdownId)) return invalid("Dropdownni tanlang")
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
     if (type.fields.some((f) => !f.deleted && same(f.label, label))) return fieldTaken()
     const field: FieldRow = {
@@ -302,10 +302,10 @@ export const customerSettingsHandlers = [
   }),
 
   http.put(api("/app/customer-types/:id/fields/order"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
-    const type = liveType(owner.companyId, Number(params.id))
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
     const live = type.fields.filter((f) => !f.deleted).map((f) => f.id)
     if (!sameIds(ids, live)) return orderChanged()
@@ -314,12 +314,12 @@ export const customerSettingsHandlers = [
   }),
 
   http.patch(api("/app/customer-types/:id/fields/:fieldId"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const body = (await request.json()) as { label?: unknown; required?: boolean; is_unique?: boolean }
     const label = body.label === undefined ? undefined : cleanName(body.label)
     if (label instanceof Response) return label
-    const type = liveType(owner.companyId, Number(params.id))
+    const type = liveType(member.companyId, Number(params.id))
     const field = type?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!type || !field) return fieldNotFound()
     if (kinds[field.kind].choice && body.is_unique) return choiceUnique()
@@ -334,9 +334,9 @@ export const customerSettingsHandlers = [
   }),
 
   http.delete(api("/app/customer-types/:id/fields/:fieldId"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    const field = liveType(owner.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
+    const member = permittedSession(request, "settings.delete")
+    if (member instanceof Response) return member
+    const field = liveType(member.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!field) return fieldNotFound()
     const used = answered(field)
     if (used > 0) return fail(409, "field_in_use", `Bu maydon ${used} ta mijozda to'ldirilgan`)

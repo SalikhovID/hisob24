@@ -581,7 +581,7 @@ paths:
   /app/employees:
     get:
       operationId: listEmployees
-      summary: Kompaniya a'zolari (faqat owner)
+      summary: Kompaniya a'zolari (employees.view ruxsati)
       description: >
         Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin
         xodimlar qo'shilgan tartibda. Ism shu kompaniyadagi ism.
@@ -601,10 +601,10 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
     post:
       operationId: addEmployee
-      summary: Xodim qo'shish (faqat owner)
+      summary: Xodim qo'shish (employees.create ruxsati)
       description: >
         Raqam access token'dagi kompaniyaga user rolida qo'shiladi. Tizimda
         yo'q raqamdan user yaratiladi; boshqa kompaniyada bor raqam shu
@@ -633,7 +633,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/AlreadyMember"
   /app/employees/{phone}:
@@ -646,7 +646,7 @@ paths:
           type: string
     patch:
       operationId: renameEmployee
-      summary: Xodim ismini o'zgartirish (faqat owner)
+      summary: Xodim ismini o'zgartirish (employees.edit ruxsati)
       description: >
         Xodimning shu kompaniyadagi ismi o'zgaradi; boshqa kompaniyalardagi
         ismi o'zgarmaydi. Owner'ning ismi bu yerdan o'zgarmaydi.
@@ -672,14 +672,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/EmployeeNotFound"
         "409":
           $ref: "#/components/responses/CannotChangeOwner"
     delete:
       operationId: removeEmployee
-      summary: Xodimni kompaniyadan chiqarish (faqat owner)
+      summary: Xodimni kompaniyadan chiqarish (employees.delete ruxsati)
       description: >
         Xodimning shu kompaniyadagi a'zoligi o'chadi va u keyingi so'rovdayoq
         bu kompaniyaga kira olmaydi. User yozuvi va boshqa kompaniyalardagi
@@ -695,7 +695,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/EmployeeNotFound"
         "409":
@@ -727,7 +727,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
     post:
       operationId: createCustomerDropdown
-      summary: Dropdown yaratish (faqat owner)
+      summary: Dropdown yaratish (settings.create ruxsati)
       description: >
         Variantsiz yangi dropdown. Nomi kompaniyada takrorlanmaydi
         (katta-kichik harf farqsiz), 60 belgigacha.
@@ -753,7 +753,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
   /app/customer-types:
@@ -783,7 +783,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
     post:
       operationId: createCustomerType
-      summary: Mijoz turini yaratish (faqat owner)
+      summary: Mijoz turini yaratish (settings.create ruxsati)
       description: >
         Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi
         (katta-kichik harf farqsiz), 60 belgigacha.
@@ -809,7 +809,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
   /app/customer-dropdowns/{id}:
@@ -822,7 +822,7 @@ paths:
           format: int64
     patch:
       operationId: renameCustomerDropdown
-      summary: Dropdown nomini o'zgartirish (faqat owner)
+      summary: Dropdown nomini o'zgartirish (settings.edit ruxsati)
       security:
         - appBearer: []
       requestBody:
@@ -845,14 +845,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
     delete:
       operationId: deleteCustomerDropdown
-      summary: Dropdownni o'chirish (faqat owner)
+      summary: Dropdownni o'chirish (settings.delete ruxsati)
       description: >
         Dropdown yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Maydonga
         ulangan dropdown o'chirilmaydi: 409 dropdown_in_use.
@@ -866,7 +866,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -881,7 +881,7 @@ paths:
           format: int64
     post:
       operationId: addCustomerDropdownOption
-      summary: Dropdownga variant qo'shish (faqat owner)
+      summary: Dropdownga variant qo'shish (settings.create ruxsati)
       description: >
         Variant ro'yxat oxiriga qo'shiladi, faol holda. Nomi dropdown ichida
         takrorlanmaydi (katta-kichik harf farqsiz).
@@ -907,7 +907,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -928,7 +928,7 @@ paths:
           format: int64
     patch:
       operationId: updateCustomerDropdownOption
-      summary: Variant nomini yoki faolligini o'zgartirish (faqat owner)
+      summary: Variant nomini yoki faolligini o'zgartirish (settings.edit ruxsati)
       description: >
         Berilmagan maydon o'zgarmaydi. Nofaol variant (is_active = false)
         yangi tanlovlarda chiqmaydi, uni tanlagan mijozlarda qoladi.
@@ -954,14 +954,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
     delete:
       operationId: deleteCustomerDropdownOption
-      summary: Variantni o'chirish (faqat owner)
+      summary: Variantni o'chirish (settings.delete ruxsati)
       description: >
         Variant yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda
         tanlangan variant o'chirilmaydi (409 option_in_use): uni nofaol qilish
@@ -976,7 +976,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -991,7 +991,7 @@ paths:
           format: int64
     put:
       operationId: orderCustomerDropdownOptions
-      summary: Variantlar tartibini o'zgartirish (faqat owner)
+      summary: Variantlar tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids dropdownning barcha variantlarini yangi tartibda, har birini bir
         marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa (variant
@@ -1014,7 +1014,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -1022,7 +1022,7 @@ paths:
   /app/customer-types/order:
     put:
       operationId: orderCustomerTypes
-      summary: Mijoz turlari tartibini o'zgartirish (faqat owner)
+      summary: Mijoz turlari tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids kompaniyaning barcha turlarini yangi tartibda, har birini bir
         marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409
@@ -1045,7 +1045,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
   /app/customer-types/{id}:
@@ -1058,7 +1058,7 @@ paths:
           format: int64
     patch:
       operationId: renameCustomerType
-      summary: Mijoz turi nomini o'zgartirish (faqat owner)
+      summary: Mijoz turi nomini o'zgartirish (settings.edit ruxsati)
       security:
         - appBearer: []
       requestBody:
@@ -1081,14 +1081,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
     delete:
       operationId: deleteCustomerType
-      summary: Mijoz turini o'chirish (faqat owner)
+      summary: Mijoz turini o'chirish (settings.delete ruxsati)
       description: >
         Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi
         bo'shaydi. Faol mijozi bor tur o'chirilmaydi: 409 type_in_use.
@@ -1102,7 +1102,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -1117,7 +1117,7 @@ paths:
           format: int64
     post:
       operationId: addCustomerField
-      summary: Turga maydon qo'shish (faqat owner)
+      summary: Turga maydon qo'shish (settings.create ruxsati)
       description: >
         Maydon tur oxiriga qo'shiladi. Tanlov turlari (dropdown,
         multi_dropdown, radio, checkbox) kompaniyaning dropdownini talab
@@ -1145,7 +1145,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -1166,7 +1166,7 @@ paths:
           format: int64
     patch:
       operationId: updateCustomerField
-      summary: Maydon nomi va belgilarini o'zgartirish (faqat owner)
+      summary: Maydon nomi va belgilarini o'zgartirish (settings.edit ruxsati)
       description: >
         Berilmagan maydon o'zgarmaydi. Tur va dropdown o'zgarmaydi. "Majburiy"
         yoqilsa, mavjud mijozlarga tegilmaydi. Faol mijozlarda takror
@@ -1193,14 +1193,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
           $ref: "#/components/responses/CustomerSettingConflict"
     delete:
       operationId: deleteCustomerField
-      summary: Maydonni o'chirish (faqat owner)
+      summary: Maydonni o'chirish (settings.delete ruxsati)
       description: >
         Maydon yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda
         to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
@@ -1214,7 +1214,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -1229,7 +1229,7 @@ paths:
           format: int64
     put:
       operationId: orderCustomerFields
-      summary: Maydonlar tartibini o'zgartirish (faqat owner)
+      summary: Maydonlar tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids turning barcha maydonlarini yangi tartibda, har birini bir marta
         nomlaydi. Birinchi matn maydoni mijoz nomi bo'ladi. Ro'yxat boshqa
@@ -1252,7 +1252,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerSettingNotFound"
         "409":
@@ -1448,7 +1448,7 @@ paths:
           format: int64
     get:
       operationId: listCustomerHistory
-      summary: Mijozning o'zgarishlar tarixi (faqat owner)
+      summary: Mijozning o'zgarishlar tarixi (customers.history ruxsati)
       description: >
         Mijoz bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani va har
         tahriri (o'chirilgan mijoz 404 beradi). Tahrirda o'zgargan har maydon
@@ -1470,13 +1470,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          description: >
-            Sessiya hali kompaniya tanlamagan (company_required) yoki user
-            kompaniya egasi emas (owner_only)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerNotFound"
   /app/members:
@@ -1487,7 +1481,7 @@ paths:
         Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin
         xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo
         o'qiydi: vazifaga mas'ul shulardan tanlanadi. A'zolarni boshqarish
-        /app/employees orqali, faqat owner.
+        /app/employees orqali, employees.view ruxsati bilan.
       security:
         - appBearer: []
       responses:
@@ -1531,7 +1525,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
     post:
       operationId: createTaskStage
-      summary: Bosqich yaratish (faqat owner)
+      summary: Bosqich yaratish (settings.create ruxsati)
       description: >
         Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi
         (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor
@@ -1559,13 +1553,13 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
   /app/task-stages/order:
     put:
       operationId: orderTaskStages
-      summary: Bosqichlar tartibini o'zgartirish (faqat owner)
+      summary: Bosqichlar tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids kompaniyaning barcha bosqichlarini yangi tartibda, har birini
         bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409
@@ -1588,7 +1582,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
   /app/task-stages/{id}:
@@ -1601,7 +1595,7 @@ paths:
           format: int64
     patch:
       operationId: updateTaskStage
-      summary: Bosqichni o'zgartirish (faqat owner)
+      summary: Bosqichni o'zgartirish (settings.edit ruxsati)
       description: >
         Nomi, rangi va "Yakuniy" belgisi; berilmagani o'zgarmaydi.
       security:
@@ -1626,14 +1620,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
     delete:
       operationId: deleteTaskStage
-      summary: Bosqichni o'chirish (faqat owner)
+      summary: Bosqichni o'chirish (settings.delete ruxsati)
       description: >
         Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi
         bor bosqich o'chirilmaydi: 409 stage_in_use.
@@ -1647,7 +1641,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
@@ -1680,7 +1674,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
     post:
       operationId: createTaskType
-      summary: Vazifa turini yaratish (faqat owner)
+      summary: Vazifa turini yaratish (settings.create ruxsati)
       description: >
         Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi
         (katta-kichik harf farqsiz), 60 belgigacha.
@@ -1706,13 +1700,13 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
   /app/task-types/order:
     put:
       operationId: orderTaskTypes
-      summary: Vazifa turlari tartibini o'zgartirish (faqat owner)
+      summary: Vazifa turlari tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini
         bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409
@@ -1735,7 +1729,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
   /app/task-types/{id}:
@@ -1748,7 +1742,7 @@ paths:
           format: int64
     patch:
       operationId: renameTaskType
-      summary: Vazifa turi nomini o'zgartirish (faqat owner)
+      summary: Vazifa turi nomini o'zgartirish (settings.edit ruxsati)
       security:
         - appBearer: []
       requestBody:
@@ -1771,14 +1765,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
     delete:
       operationId: deleteTaskType
-      summary: Vazifa turini o'chirish (faqat owner)
+      summary: Vazifa turini o'chirish (settings.delete ruxsati)
       description: >
         Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi
         bo'shaydi. Faol vazifasi bor tur o'chirilmaydi: 409 type_in_use.
@@ -1792,7 +1786,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
@@ -1807,7 +1801,7 @@ paths:
           format: int64
     post:
       operationId: addTaskField
-      summary: Vazifa turiga maydon qo'shish (faqat owner)
+      summary: Vazifa turiga maydon qo'shish (settings.create ruxsati)
       description: >
         Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown,
         multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va
@@ -1835,7 +1829,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
@@ -1856,7 +1850,7 @@ paths:
           format: int64
     patch:
       operationId: updateTaskField
-      summary: Vazifa maydonini o'zgartirish (faqat owner)
+      summary: Vazifa maydonini o'zgartirish (settings.edit ruxsati)
       description: Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
       security:
         - appBearer: []
@@ -1880,14 +1874,14 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
     delete:
       operationId: deleteTaskField
-      summary: Vazifa maydonini o'chirish (faqat owner)
+      summary: Vazifa maydonini o'chirish (settings.delete ruxsati)
       description: >
         Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon
         o'chirilmaydi: 409 field_in_use.
@@ -1901,7 +1895,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
@@ -1916,7 +1910,7 @@ paths:
           format: int64
     put:
       operationId: orderTaskFields
-      summary: Vazifa turi maydonlari tartibini o'zgartirish (faqat owner)
+      summary: Vazifa turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids turning barcha maydonlarini yangi tartibda, har birini bir marta
         nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
@@ -1938,7 +1932,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/OwnerOnly"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
@@ -2228,7 +2222,7 @@ paths:
           format: int64
     get:
       operationId: listTaskHistory
-      summary: Vazifaning o'zgarishlar tarixi (faqat owner)
+      summary: Vazifaning o'zgarishlar tarixi (tasks.history ruxsati)
       description: >
         Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har
         tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan
@@ -2251,13 +2245,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          description: >
-            Sessiya hali kompaniya tanlamagan (company_required) yoki user
-            kompaniya egasi emas (owner_only)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskNotFound"
 components:
@@ -2343,8 +2331,9 @@ components:
             $ref: "#/components/schemas/Error"
     OwnerOnly:
       description: >
-        Amal faqat tanlangan kompaniyaning owner'i uchun (owner_only): so'rov
-        user rolida yoki kompaniya tanlanmagan token bilan kelgan
+        Amal faqat tanlangan kompaniyaning owner'i uchun (owner_only), rollarni
+        boshqarish va biriktirish kabi: so'rov user rolida yoki kompaniya
+        tanlanmagan token bilan kelgan
       content:
         application/json:
           schema:
@@ -2381,6 +2370,17 @@ components:
             $ref: "#/components/schemas/Error"
     CompanyRequired:
       description: Sessiya hali kompaniya tanlamagan (company_required)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: >
+        Sessiya hali kompaniya tanlamagan (company_required) yoki a'zoning
+        ruxsati bu amalni qamrab olmaydi (forbidden). Egasi hammasini qila
+        oladi; rolsiz xodim standart ruxsatga ega (mijozlar va vazifalar,
+        tarixsiz); rolli xodim faqat rolidagi ruxsatlarga (logic/roles.md,
+        4-bo'lim)
       content:
         application/json:
           schema:
@@ -2529,7 +2529,7 @@ components:
           type: integer
     Member:
       type: object
-      required: [phone, full_name, role, created_at]
+      required: [phone, full_name, role, role_id, role_name, created_at]
       properties:
         phone:
           type: string
@@ -2539,15 +2539,56 @@ components:
           description: Shu kompaniyadagi ismi
         role:
           $ref: "#/components/schemas/Role"
+        role_id:
+          type: [integer, "null"]
+          format: int64
+          description: >
+            A'zo egallagan kompaniya roli; egasida va rolsiz xodimda null
+            (standart ruxsat)
+        role_name:
+          type: [string, "null"]
+          description: Shu rolning nomi, rol bo'lmasa null
         created_at:
           type: string
           format: date-time
     Role:
       type: string
       description: >
-        owner: kompaniyaning yagona egasi, uni admin panel qo'yadi. user:
-        owner user app'dan qo'shgan xodim.
+        A'zolik roli. owner: kompaniyaning yagona egasi, uni admin panel
+        qo'yadi, hamma narsani qila oladi. user: user app'dan qo'shilgan xodim;
+        ruxsati egallagan kompaniya roli (role_id) bo'yicha, rolsiz bo'lsa
+        standart (mijozlar va vazifalar, tarixsiz).
       enum: [owner, user]
+    Permission:
+      type: string
+      description: >
+        Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida
+        (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), tasks
+        (vazifalar), employees (xodimlar), settings (sozlamalar: turlar,
+        maydonlar, dropdownlar, bosqichlar). Amallar: view (bo'limni ko'rish,
+        ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib,
+        vazifa bosqichini o'zgartirish), delete (o'chirish), history
+        (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning
+        view ruxsatisiz qabul qilinmaydi.
+      enum:
+        - customers.view
+        - customers.create
+        - customers.edit
+        - customers.delete
+        - customers.history
+        - tasks.view
+        - tasks.create
+        - tasks.edit
+        - tasks.delete
+        - tasks.history
+        - employees.view
+        - employees.create
+        - employees.edit
+        - employees.delete
+        - settings.view
+        - settings.create
+        - settings.edit
+        - settings.delete
     Billing:
       type: object
       required: [id, company_id, days, amount, prev_end_date, new_end_date, note, created_by, created_at]
@@ -2691,7 +2732,7 @@ components:
             ism bo'lmasa, userning o'z ismi.
     AppCompany:
       type: object
-      required: [id, name, role, end_date, days_left, is_active]
+      required: [id, name, role, role_name, end_date, days_left, is_active]
       properties:
         id:
           type: integer
@@ -2700,6 +2741,11 @@ components:
           type: string
         role:
           $ref: "#/components/schemas/Role"
+        role_name:
+          type: [string, "null"]
+          description: >
+            User shu kompaniyada egallagan kompaniya rolining nomi; egasida va
+            rolsiz xodimda null
         end_date:
           type: string
           format: date
@@ -2712,7 +2758,7 @@ components:
           type: boolean
     Me:
       type: object
-      required: [user, company, companies]
+      required: [user, company, companies, permissions]
       properties:
         user:
           $ref: "#/components/schemas/AppUser"
@@ -2724,6 +2770,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AppCompany"
+        permissions:
+          type: array
+          description: >
+            Tanlangan kompaniyada user hozir nima qila olishi, katalog
+            tartibida: egasida hammasi, rolsiz xodimda standart to'plam, rolli
+            xodimda rolniki. Kompaniya tanlanmagan bo'lsa bo'sh. Interfeys
+            bo'limlar va tugmalarni shundan quradi; API har so'rovda o'zi
+            tekshiradi.
+          items:
+            $ref: "#/components/schemas/Permission"
     CustomerOption:
       type: object
       required: [id, label, is_active]

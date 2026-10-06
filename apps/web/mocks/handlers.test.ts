@@ -4,6 +4,7 @@
 import type { components } from "@hisob24/api-client"
 import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
+import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type { CustomerFieldKind } from "@/lib/types"
 import { chooseCompany, signIn } from "@/test/session"
 import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
@@ -31,18 +32,39 @@ test("the owner gets the company's members: the owner first, then the users as t
     [SARDOR, "Sardor Karimov", "user"],
   ])
   expect(members[0].created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  // Nobody holds a company role yet.
+  expect(members.map((m) => [m.role_id, m.role_name])).toEqual([
+    [null, null],
+    [null, null],
+    [null, null],
+  ])
 })
 
-test("an employee, and a session with no company chosen, get 403 owner_only", async () => {
+test("a session with no company chosen gets 403 company_required, an employee without the permission 403 forbidden", async () => {
   await signIn(VALI)
-  expect(await failure(list())).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(list())).toMatchObject({ status: 403, code: "company_required" })
 
   await chooseCompany(1)
   expect(await failure(list())).toMatchObject({
     status: 403,
-    code: "owner_only",
-    message: "Bu bo'lim faqat kompaniya egasi uchun",
+    code: "forbidden",
+    message: "Bu amal uchun ruxsatingiz yo'q",
   })
+})
+
+test("/app/me tells what the user may do: nothing before a company, everything as the owner, the default as an employee", async () => {
+  await signIn(VALI)
+  expect((await call(api.GET("/app/me"))).permissions).toEqual([])
+
+  await chooseCompany(2)
+  const asOwner = await call(api.GET("/app/me"))
+  expect(asOwner.permissions).toEqual(allPermissions)
+  expect(asOwner.company?.role_name).toBeNull()
+
+  await chooseCompany(1)
+  const asEmployee = await call(api.GET("/app/me"))
+  expect(asEmployee.permissions).toEqual(defaultPermissions)
+  expect(asEmployee.companies.map((c) => c.role_name)).toEqual([null, null])
 })
 
 test("adding: a new phone, a phone that works in another company, a member already, bad input", async () => {
@@ -191,10 +213,10 @@ test("the owner makes, renames and deletes dropdowns; an employee does not", asy
   await chooseCompany(1)
   expect(await failure(createDropdown("Xodimniki"))).toMatchObject({
     status: 403,
-    code: "owner_only",
-    message: "Bu bo'lim faqat kompaniya egasi uchun",
+    code: "forbidden",
+    message: "Bu amal uchun ruxsatingiz yo'q",
   })
-  expect(await failure(deleteDropdown(manba.id))).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(deleteDropdown(manba.id))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
 const addOption = (id: number, label: string) =>
@@ -248,7 +270,7 @@ test("the owner adds options, renames them, turns them off, orders and deletes t
 
   await signIn(VALI)
   await chooseCompany(1)
-  expect(await failure(addOption(manba.id, "Xodimniki"))).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(addOption(manba.id, "Xodimniki"))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
 const createType = (name: string) => call(api.POST("/app/customer-types", { body: { name } }))
@@ -293,7 +315,7 @@ test("the owner makes, renames, orders and deletes customer types", async () => 
 
   await signIn(VALI)
   await chooseCompany(1)
-  expect(await failure(createType("Xodimniki"))).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(createType("Xodimniki"))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
 type FieldBody = { label: string; kind: CustomerFieldKind; required?: boolean; is_unique?: boolean; dropdown_id?: number | null }
@@ -378,7 +400,7 @@ test("the owner adds fields of the six kinds, changes, orders and deletes them",
 
   await signIn(VALI)
   await chooseCompany(1)
-  expect(await failure(addField(jismoniy.id, { label: "Xodimniki", kind: "string" }))).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(addField(jismoniy.id, { label: "Xodimniki", kind: "string" }))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
 // The customers (logic/customers.md; backend/internal/app/customers_test.go).
@@ -612,8 +634,8 @@ test("an edit replaces the phone and the answers and goes into the history, whic
   await chooseCompany(1)
   expect(await failure(customerHistory(ali.id))).toMatchObject({
     status: 403,
-    code: "owner_only",
-    message: "Bu bo'lim faqat kompaniya egasi uchun",
+    code: "forbidden",
+    message: "Bu amal uchun ruxsatingiz yo'q",
   })
   // The owner of another company finds no such customer.
   await chooseCompany(2)
@@ -784,7 +806,7 @@ test("the owner makes, changes, orders and deletes stages; an employee does not"
   await chooseCompany(1)
   expect(await failure(call(api.POST("/app/task-stages", { body: { name: "Xodimniki", color: "red" } })))).toMatchObject({
     status: 403,
-    code: "owner_only",
+    code: "forbidden",
   })
 })
 
@@ -863,7 +885,7 @@ test("the owner makes, renames, orders and deletes task types, and adds, changes
 
   await signIn(VALI)
   await chooseCompany(1)
-  expect(await failure(call(api.POST("/app/task-types", { body: { name: "Xodimniki" } })))).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(call(api.POST("/app/task-types", { body: { name: "Xodimniki" } })))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
 test("a dropdown a task field takes its options from is not deleted either", async () => {
@@ -896,7 +918,7 @@ test("every member reads the company's members, the owner first; managing them s
     [VALI, "Vali Aliyev", "user"],
     [SARDOR, "Sardor Karimov", "user"],
   ])
-  expect(await failure(call(api.GET("/app/employees")))).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(call(api.GET("/app/employees")))).toMatchObject({ status: 403, code: "forbidden" })
   await chooseCompany(null)
   expect(await failure(call(api.GET("/app/members")))).toMatchObject({ status: 403, code: "company_required" })
 })
@@ -1172,7 +1194,7 @@ test("an edit replaces the task's own fields and its answers and goes into the h
 
   await signIn(SARDOR)
   await chooseCompany(1)
-  expect(await failure(taskHistory(task.id))).toMatchObject({ status: 403, code: "owner_only" })
+  expect(await failure(taskHistory(task.id))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
 test("moving a task changes its stage alone and goes into the history; the same stage changes nothing", async () => {

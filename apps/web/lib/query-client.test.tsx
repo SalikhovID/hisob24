@@ -81,10 +81,12 @@ test("a server failure is tried twice more", async () => {
 // request: a refusal for one of them means /app/me, as the app has it, is old.
 const expired = () => new ApiError(402, "subscription_expired", "Kompaniya obunasi tugagan")
 const ownerOnly = () => new ApiError(403, "owner_only", "Bu bo'lim faqat kompaniya egasi uchun")
+const forbidden = () => new ApiError(403, "forbidden", "Bu amal uchun ruxsatingiz yo'q")
 
 test.each([
   ["the subscription ran out", expired],
   ["the user is the owner no more", ownerOnly],
+  ["the user's permissions changed", forbidden],
 ])("an action refused because %s asks /app/me again", async (_, refusal) => {
   const me = vi.fn(() => Promise.resolve({ company: { id: 1 } }))
   const { result } = renderHook(

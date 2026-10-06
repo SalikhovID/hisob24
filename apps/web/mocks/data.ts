@@ -1,11 +1,13 @@
 // An in-memory copy of the user app API's data for MSW: Vitest and
 // Playwright work against the same people, companies and rules as the Go API.
+import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type {
   AppCompany,
   CustomerDropdown,
   CustomerFieldKind,
   CustomerType,
   Member,
+  Permission,
   Role,
   StageColor,
   TaskStage,
@@ -321,9 +323,24 @@ export function companiesOf(phone: string): AppCompany[] {
   return (db.members[phone] ?? [])
     .map(({ companyId, role }) => {
       const c = db.companies.find((company) => company.id === companyId)!
-      return { id: c.id, name: c.name, role, end_date: c.end_date, days_left: daysLeft(c.end_date), is_active: c.is_active }
+      return {
+        id: c.id,
+        name: c.name,
+        role,
+        role_name: null,
+        end_date: c.end_date,
+        days_left: daysLeft(c.end_date),
+        is_active: c.is_active,
+      }
     })
     .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// permissionsOf is what phone may do in the company, as the API tells it
+// (logic/roles.md, section 4): the owner everything, an employee the default.
+export function permissionsOf(phone: string, companyId: number): Permission[] {
+  const membership = (db.members[phone] ?? []).find((m) => m.companyId === companyId)
+  return membership?.role === "owner" ? allPermissions : defaultPermissions
 }
 
 // nameIn is the name phone goes by in the company: the membership's, or the
@@ -349,6 +366,8 @@ export function membersOf(companyId: number): Member[] {
       phone,
       full_name: nameIn(phone, companyId),
       role: membership.role,
+      role_id: null,
+      role_name: null,
       created_at: new Date(Date.parse(`${TODAY}T05:00:00Z`) + membership.joined * 60_000).toISOString(),
     }))
 }

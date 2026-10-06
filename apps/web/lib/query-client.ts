@@ -7,17 +7,19 @@ import { meKey } from "./queries"
 const refused = (error: unknown) => error instanceof ApiError && error.status >= 400 && error.status < 500
 
 // standingChanged is a refusal that says what /app/me told the app is old:
-// the company's subscription ran out (402), or the user is its owner no more
-// (403 owner_only). The API reads both on every request.
+// the company's subscription ran out (402), the user's permissions there
+// changed (403 forbidden) or they are its owner no more (403 owner_only).
+// The API reads all of it on every request.
 const standingChanged = (error: unknown) =>
-  error instanceof ApiError && (error.code === "subscription_expired" || error.code === "owner_only")
+  error instanceof ApiError &&
+  (error.code === "subscription_expired" || error.code === "forbidden" || error.code === "owner_only")
 
 // makeQueryClient builds the app's query client. A lost session (401
 // unauthorized, which the API client answers only once the refresh failed
 // too) leads to /login; a wrong login code is a 401 too, but with its own
-// code, and stays put. A refusal for the subscription or the owner's role
+// code, and stays put. A refusal for the subscription or the permissions
 // has /app/me asked again, so the shell shows where the session stands now:
-// /expired, or the sections of an employee. Refusals are not retried.
+// /expired, or the sections the member may open. Refusals are not retried.
 export function makeQueryClient(onUnauthorized = () => leave("/login")) {
   const onError = (error: unknown, fromMe: boolean) => {
     if (error instanceof ApiError && error.status === 401 && error.code === "unauthorized") onUnauthorized()

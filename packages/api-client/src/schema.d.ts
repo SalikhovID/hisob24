@@ -379,13 +379,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Kompaniya a'zolari (faqat owner)
+         * Kompaniya a'zolari (employees.view ruxsati)
          * @description Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin xodimlar qo'shilgan tartibda. Ism shu kompaniyadagi ism.
          */
         get: operations["listEmployees"];
         put?: never;
         /**
-         * Xodim qo'shish (faqat owner)
+         * Xodim qo'shish (employees.create ruxsati)
          * @description Raqam access token'dagi kompaniyaga user rolida qo'shiladi. Tizimda yo'q raqamdan user yaratiladi; boshqa kompaniyada bor raqam shu kompaniyaga ham a'zo bo'ladi (multi-user). Javob ikkala holatda bir xil: kiritilgan ism qaytadi, raqam oldin tizimda bo'lgan-bo'lmagani bilinmaydi. Qo'shilgan odamga xabar yuborilmaydi.
          */
         post: operations["addEmployee"];
@@ -409,14 +409,14 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Xodimni kompaniyadan chiqarish (faqat owner)
+         * Xodimni kompaniyadan chiqarish (employees.delete ruxsati)
          * @description Xodimning shu kompaniyadagi a'zoligi o'chadi va u keyingi so'rovdayoq bu kompaniyaga kira olmaydi. User yozuvi va boshqa kompaniyalardagi a'zoliklari qoladi; boshqa kompaniyasi qolmasa, tizimga kira olmaydi. Keyin qayta qo'shish mumkin.
          */
         delete: operations["removeEmployee"];
         options?: never;
         head?: never;
         /**
-         * Xodim ismini o'zgartirish (faqat owner)
+         * Xodim ismini o'zgartirish (employees.edit ruxsati)
          * @description Xodimning shu kompaniyadagi ismi o'zgaradi; boshqa kompaniyalardagi ismi o'zgarmaydi. Owner'ning ismi bu yerdan o'zgarmaydi.
          */
         patch: operations["renameEmployee"];
@@ -436,7 +436,7 @@ export interface paths {
         get: operations["listCustomerDropdowns"];
         put?: never;
         /**
-         * Dropdown yaratish (faqat owner)
+         * Dropdown yaratish (settings.create ruxsati)
          * @description Variantsiz yangi dropdown. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
          */
         post: operations["createCustomerDropdown"];
@@ -460,7 +460,7 @@ export interface paths {
         get: operations["listCustomerTypes"];
         put?: never;
         /**
-         * Mijoz turini yaratish (faqat owner)
+         * Mijoz turini yaratish (settings.create ruxsati)
          * @description Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
          */
         post: operations["createCustomerType"];
@@ -483,13 +483,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Dropdownni o'chirish (faqat owner)
+         * Dropdownni o'chirish (settings.delete ruxsati)
          * @description Dropdown yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Maydonga ulangan dropdown o'chirilmaydi: 409 dropdown_in_use.
          */
         delete: operations["deleteCustomerDropdown"];
         options?: never;
         head?: never;
-        /** Dropdown nomini o'zgartirish (faqat owner) */
+        /** Dropdown nomini o'zgartirish (settings.edit ruxsati) */
         patch: operations["renameCustomerDropdown"];
         trace?: never;
     };
@@ -505,7 +505,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Dropdownga variant qo'shish (faqat owner)
+         * Dropdownga variant qo'shish (settings.create ruxsati)
          * @description Variant ro'yxat oxiriga qo'shiladi, faol holda. Nomi dropdown ichida takrorlanmaydi (katta-kichik harf farqsiz).
          */
         post: operations["addCustomerDropdownOption"];
@@ -529,14 +529,14 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Variantni o'chirish (faqat owner)
+         * Variantni o'chirish (settings.delete ruxsati)
          * @description Variant yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda tanlangan variant o'chirilmaydi (409 option_in_use): uni nofaol qilish mumkin.
          */
         delete: operations["deleteCustomerDropdownOption"];
         options?: never;
         head?: never;
         /**
-         * Variant nomini yoki faolligini o'zgartirish (faqat owner)
+         * Variant nomini yoki faolligini o'zgartirish (settings.edit ruxsati)
          * @description Berilmagan maydon o'zgarmaydi. Nofaol variant (is_active = false) yangi tanlovlarda chiqmaydi, uni tanlagan mijozlarda qoladi.
          */
         patch: operations["updateCustomerDropdownOption"];
@@ -553,7 +553,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Variantlar tartibini o'zgartirish (faqat owner)
+         * Variantlar tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids dropdownning barcha variantlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa (variant qo'shilgan yoki o'chirilgan): 409 order_changed.
          */
         put: operations["orderCustomerDropdownOptions"];
@@ -573,7 +573,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Mijoz turlari tartibini o'zgartirish (faqat owner)
+         * Mijoz turlari tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids kompaniyaning barcha turlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
         put: operations["orderCustomerTypes"];
@@ -597,13 +597,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Mijoz turini o'chirish (faqat owner)
+         * Mijoz turini o'chirish (settings.delete ruxsati)
          * @description Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozi bor tur o'chirilmaydi: 409 type_in_use.
          */
         delete: operations["deleteCustomerType"];
         options?: never;
         head?: never;
-        /** Mijoz turi nomini o'zgartirish (faqat owner) */
+        /** Mijoz turi nomini o'zgartirish (settings.edit ruxsati) */
         patch: operations["renameCustomerType"];
         trace?: never;
     };
@@ -619,7 +619,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Turga maydon qo'shish (faqat owner)
+         * Turga maydon qo'shish (settings.create ruxsati)
          * @description Maydon tur oxiriga qo'shiladi. Tanlov turlari (dropdown, multi_dropdown, radio, checkbox) kompaniyaning dropdownini talab qiladi; matn va son dropdown olmaydi va faqat ular takrorlanmas (is_unique) bo'la oladi. Tur va dropdown keyin o'zgarmaydi.
          */
         post: operations["addCustomerField"];
@@ -643,14 +643,14 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Maydonni o'chirish (faqat owner)
+         * Maydonni o'chirish (settings.delete ruxsati)
          * @description Maydon yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol mijozda to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
          */
         delete: operations["deleteCustomerField"];
         options?: never;
         head?: never;
         /**
-         * Maydon nomi va belgilarini o'zgartirish (faqat owner)
+         * Maydon nomi va belgilarini o'zgartirish (settings.edit ruxsati)
          * @description Berilmagan maydon o'zgarmaydi. Tur va dropdown o'zgarmaydi. "Majburiy" yoqilsa, mavjud mijozlarga tegilmaydi. Faol mijozlarda takror qiymatlar bor paytda is_unique yoqilmaydi: 409 duplicates_exist.
          */
         patch: operations["updateCustomerField"];
@@ -667,7 +667,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Maydonlar tartibini o'zgartirish (faqat owner)
+         * Maydonlar tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids turning barcha maydonlarini yangi tartibda, har birini bir marta nomlaydi. Birinchi matn maydoni mijoz nomi bo'ladi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
         put: operations["orderCustomerFields"];
@@ -742,7 +742,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Mijozning o'zgarishlar tarixi (faqat owner)
+         * Mijozning o'zgarishlar tarixi (customers.history ruxsati)
          * @description Mijoz bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani va har tahriri (o'chirilgan mijoz 404 beradi). Tahrirda o'zgargan har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida: maydon yoki variant keyin qayta nomlansa, tarix o'zgarmaydi.
          */
         get: operations["listCustomerHistory"];
@@ -763,7 +763,7 @@ export interface paths {
         };
         /**
          * Kompaniya a'zolari (har a'zo)
-         * @description Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo o'qiydi: vazifaga mas'ul shulardan tanlanadi. A'zolarni boshqarish /app/employees orqali, faqat owner.
+         * @description Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo o'qiydi: vazifaga mas'ul shulardan tanlanadi. A'zolarni boshqarish /app/employees orqali, employees.view ruxsati bilan.
          */
         get: operations["listMembers"];
         put?: never;
@@ -788,7 +788,7 @@ export interface paths {
         get: operations["listTaskStages"];
         put?: never;
         /**
-         * Bosqich yaratish (faqat owner)
+         * Bosqich yaratish (settings.create ruxsati)
          * @description Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi vazifa bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.
          */
         post: operations["createTaskStage"];
@@ -807,7 +807,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Bosqichlar tartibini o'zgartirish (faqat owner)
+         * Bosqichlar tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids kompaniyaning barcha bosqichlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
         put: operations["orderTaskStages"];
@@ -831,14 +831,14 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Bosqichni o'chirish (faqat owner)
+         * Bosqichni o'chirish (settings.delete ruxsati)
          * @description Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor bosqich o'chirilmaydi: 409 stage_in_use.
          */
         delete: operations["deleteTaskStage"];
         options?: never;
         head?: never;
         /**
-         * Bosqichni o'zgartirish (faqat owner)
+         * Bosqichni o'zgartirish (settings.edit ruxsati)
          * @description Nomi, rangi va "Yakuniy" belgisi; berilmagani o'zgarmaydi.
          */
         patch: operations["updateTaskStage"];
@@ -858,7 +858,7 @@ export interface paths {
         get: operations["listTaskTypes"];
         put?: never;
         /**
-         * Vazifa turini yaratish (faqat owner)
+         * Vazifa turini yaratish (settings.create ruxsati)
          * @description Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
          */
         post: operations["createTaskType"];
@@ -877,7 +877,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Vazifa turlari tartibini o'zgartirish (faqat owner)
+         * Vazifa turlari tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
         put: operations["orderTaskTypes"];
@@ -901,13 +901,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Vazifa turini o'chirish (faqat owner)
+         * Vazifa turini o'chirish (settings.delete ruxsati)
          * @description Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor tur o'chirilmaydi: 409 type_in_use.
          */
         delete: operations["deleteTaskType"];
         options?: never;
         head?: never;
-        /** Vazifa turi nomini o'zgartirish (faqat owner) */
+        /** Vazifa turi nomini o'zgartirish (settings.edit ruxsati) */
         patch: operations["renameTaskType"];
         trace?: never;
     };
@@ -923,7 +923,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Vazifa turiga maydon qo'shish (faqat owner)
+         * Vazifa turiga maydon qo'shish (settings.create ruxsati)
          * @description Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown, multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va son maydoniga dropdown ulanmaydi. Vazifa maydonida "Takrorlanmasin" yo'q. Maydonning turi va dropdowni keyin o'zgarmaydi.
          */
         post: operations["addTaskField"];
@@ -947,14 +947,14 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Vazifa maydonini o'chirish (faqat owner)
+         * Vazifa maydonini o'chirish (settings.delete ruxsati)
          * @description Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
          */
         delete: operations["deleteTaskField"];
         options?: never;
         head?: never;
         /**
-         * Vazifa maydonini o'zgartirish (faqat owner)
+         * Vazifa maydonini o'zgartirish (settings.edit ruxsati)
          * @description Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
          */
         patch: operations["updateTaskField"];
@@ -971,7 +971,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Vazifa turi maydonlari tartibini o'zgartirish (faqat owner)
+         * Vazifa turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids turning barcha maydonlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
         put: operations["orderTaskFields"];
@@ -1108,7 +1108,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Vazifaning o'zgarishlar tarixi (faqat owner)
+         * Vazifaning o'zgarishlar tarixi (tasks.history ruxsati)
          * @description Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida: avval vazifaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy, Bosqich, Mas'ul), keyin turning maydonlari.
          */
         get: operations["listTaskHistory"];
@@ -1175,14 +1175,26 @@ export interface components {
             /** @description Shu kompaniyadagi ismi */
             full_name: string | null;
             role: components["schemas"]["Role"];
+            /**
+             * Format: int64
+             * @description A'zo egallagan kompaniya roli; egasida va rolsiz xodimda null (standart ruxsat)
+             */
+            role_id: number | null;
+            /** @description Shu rolning nomi, rol bo'lmasa null */
+            role_name: string | null;
             /** Format: date-time */
             created_at: string;
         };
         /**
-         * @description owner: kompaniyaning yagona egasi, uni admin panel qo'yadi. user: owner user app'dan qo'shgan xodim.
+         * @description A'zolik roli. owner: kompaniyaning yagona egasi, uni admin panel qo'yadi, hamma narsani qila oladi. user: user app'dan qo'shilgan xodim; ruxsati egallagan kompaniya roli (role_id) bo'yicha, rolsiz bo'lsa standart (mijozlar va vazifalar, tarixsiz).
          * @enum {string}
          */
         Role: "owner" | "user";
+        /**
+         * @description Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), tasks (vazifalar), employees (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar, bosqichlar). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini o'zgartirish), delete (o'chirish), history (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning view ruxsatisiz qabul qilinmaydi.
+         * @enum {string}
+         */
+        Permission: "customers.view" | "customers.create" | "customers.edit" | "customers.delete" | "customers.history" | "tasks.view" | "tasks.create" | "tasks.edit" | "tasks.delete" | "tasks.history" | "employees.view" | "employees.create" | "employees.edit" | "employees.delete" | "settings.view" | "settings.create" | "settings.edit" | "settings.delete";
         Billing: {
             /** Format: int64 */
             id: number;
@@ -1265,6 +1277,8 @@ export interface components {
             id: number;
             name: string;
             role: components["schemas"]["Role"];
+            /** @description User shu kompaniyada egallagan kompaniya rolining nomi; egasida va rolsiz xodimda null */
+            role_name: string | null;
             /** Format: date */
             end_date: string;
             /** @description end_date - bugun (baza sanasi). Muddati o'tgan bo'lsa manfiy: bunday company bilan so'rovlar 402 oladi. */
@@ -1275,6 +1289,8 @@ export interface components {
             user: components["schemas"]["AppUser"];
             company: components["schemas"]["AppCompany"] | null;
             companies: components["schemas"]["AppCompany"][];
+            /** @description Tanlangan kompaniyada user hozir nima qila olishi, katalog tartibida: egasida hammasi, rolsiz xodimda standart to'plam, rolli xodimda rolniki. Kompaniya tanlanmagan bo'lsa bo'sh. Interfeys bo'limlar va tugmalarni shundan quradi; API har so'rovda o'zi tekshiradi. */
+            permissions: components["schemas"]["Permission"][];
         };
         CustomerOption: {
             /** Format: int64 */
@@ -1661,7 +1677,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Amal faqat tanlangan kompaniyaning owner'i uchun (owner_only): so'rov user rolida yoki kompaniya tanlanmagan token bilan kelgan */
+        /** @description Amal faqat tanlangan kompaniyaning owner'i uchun (owner_only), rollarni boshqarish va biriktirish kabi: so'rov user rolida yoki kompaniya tanlanmagan token bilan kelgan */
         OwnerOnly: {
             headers: {
                 [name: string]: unknown;
@@ -1709,6 +1725,15 @@ export interface components {
         };
         /** @description Sessiya hali kompaniya tanlamagan (company_required) */
         CompanyRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki a'zoning ruxsati bu amalni qamrab olmaydi (forbidden). Egasi hammasini qila oladi; rolsiz xodim standart ruxsatga ega (mijozlar va vazifalar, tarixsiz); rolli xodim faqat rolidagi ruxsatlarga (logic/roles.md, 4-bo'lim) */
+        Forbidden: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2429,7 +2454,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
         };
     };
     addEmployee: {
@@ -2457,7 +2482,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["AlreadyMember"];
         };
     };
@@ -2482,7 +2507,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["EmployeeNotFound"];
             409: components["responses"]["CannotChangeOwner"];
         };
@@ -2515,7 +2540,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["EmployeeNotFound"];
             409: components["responses"]["CannotChangeOwner"];
         };
@@ -2568,7 +2593,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["CustomerSettingConflict"];
         };
     };
@@ -2620,7 +2645,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["CustomerSettingConflict"];
         };
     };
@@ -2644,7 +2669,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2676,7 +2701,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2708,7 +2733,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2734,7 +2759,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2767,7 +2792,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2797,7 +2822,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2825,7 +2850,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["CustomerSettingConflict"];
         };
     };
@@ -2849,7 +2874,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2881,7 +2906,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2913,7 +2938,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2939,7 +2964,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -2972,7 +2997,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -3002,7 +3027,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerSettingNotFound"];
             409: components["responses"]["CustomerSettingConflict"];
         };
@@ -3173,15 +3198,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki user kompaniya egasi emas (owner_only) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerNotFound"];
         };
     };
@@ -3256,7 +3273,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["TaskSettingConflict"];
         };
     };
@@ -3283,7 +3300,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["TaskSettingConflict"];
         };
     };
@@ -3307,7 +3324,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3339,7 +3356,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3392,7 +3409,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["TaskSettingConflict"];
         };
     };
@@ -3419,7 +3436,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["TaskSettingConflict"];
         };
     };
@@ -3443,7 +3460,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3475,7 +3492,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3507,7 +3524,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3533,7 +3550,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3566,7 +3583,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3596,7 +3613,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["OwnerOnly"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskSettingNotFound"];
             409: components["responses"]["TaskSettingConflict"];
         };
@@ -3850,15 +3867,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki user kompaniya egasi emas (owner_only) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskNotFound"];
         };
     };

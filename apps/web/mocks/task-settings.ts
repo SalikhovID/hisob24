@@ -15,7 +15,7 @@ import {
   toTaskField,
   toTaskType,
 } from "./data"
-import { api, fail, memberSession, ownerSession } from "./gate"
+import { api, fail, memberSession, permittedSession } from "./gate"
 
 // cleanName is the API's rule for a name: trimmed, not empty, sixty
 // characters at most.
@@ -87,23 +87,23 @@ export const taskSettingsHandlers = [
   }),
 
   http.post(api("/app/task-stages"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.create")
+    if (member instanceof Response) return member
     const body = (await request.json()) as { name?: unknown; color?: unknown; is_done?: boolean }
     const name = cleanName(body.name)
     if (name instanceof Response) return name
     if (!isColor(body.color)) return invalid("Rangni tanlang")
-    if (stagesOf(owner.companyId).some((s) => same(s.name, name))) return stageTaken()
-    const stage: StageRow = { id: nextId(), companyId: owner.companyId, name, color: body.color, done: body.is_done ?? false }
+    if (stagesOf(member.companyId).some((s) => same(s.name, name))) return stageTaken()
+    const stage: StageRow = { id: nextId(), companyId: member.companyId, name, color: body.color, done: body.is_done ?? false }
     db.stages.push(stage)
     return HttpResponse.json(toStage(stage), { status: 201 })
   }),
 
   http.put(api("/app/task-stages/order"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
-    const live = stagesOf(owner.companyId).map((s) => s.id)
+    const live = stagesOf(member.companyId).map((s) => s.id)
     if (!sameIds(ids, live)) return orderChanged()
     const others = db.stages.filter((s) => !ids.includes(s.id))
     db.stages = [...ids.map((id) => db.stages.find((s) => s.id === id)!), ...others]
@@ -111,16 +111,16 @@ export const taskSettingsHandlers = [
   }),
 
   http.patch(api("/app/task-stages/:id"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const body = (await request.json()) as { name?: unknown; color?: unknown; is_done?: boolean }
     const name = body.name === undefined ? undefined : cleanName(body.name)
     if (name instanceof Response) return name
     if (body.color !== undefined && !isColor(body.color)) return invalid("Rangni tanlang")
-    const stage = liveStage(owner.companyId, Number(params.id))
+    const stage = liveStage(member.companyId, Number(params.id))
     if (!stage) return stageNotFound()
     if (name !== undefined) {
-      if (stagesOf(owner.companyId).some((s) => s.id !== stage.id && same(s.name, name))) return stageTaken()
+      if (stagesOf(member.companyId).some((s) => s.id !== stage.id && same(s.name, name))) return stageTaken()
       stage.name = name
     }
     if (isColor(body.color)) stage.color = body.color
@@ -129,9 +129,9 @@ export const taskSettingsHandlers = [
   }),
 
   http.delete(api("/app/task-stages/:id"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    const stage = liveStage(owner.companyId, Number(params.id))
+    const member = permittedSession(request, "settings.delete")
+    if (member instanceof Response) return member
+    const stage = liveStage(member.companyId, Number(params.id))
     if (!stage) return stageNotFound()
     const used = liveTasks().filter((t) => t.stageId === stage.id).length
     if (used > 0) return fail(409, "stage_in_use", `Bu bosqichda ${used} ta vazifa bor`)
@@ -146,21 +146,21 @@ export const taskSettingsHandlers = [
   }),
 
   http.post(api("/app/task-types"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.create")
+    if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
     if (name instanceof Response) return name
-    if (taskTypesOf(owner.companyId).some((t) => same(t.name, name))) return typeTaken()
-    const type: TaskTypeRow = { id: nextId(), companyId: owner.companyId, name, fields: [] }
+    if (taskTypesOf(member.companyId).some((t) => same(t.name, name))) return typeTaken()
+    const type: TaskTypeRow = { id: nextId(), companyId: member.companyId, name, fields: [] }
     db.taskTypes.push(type)
     return HttpResponse.json(toTaskType(type), { status: 201 })
   }),
 
   http.put(api("/app/task-types/order"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
-    const live = taskTypesOf(owner.companyId).map((t) => t.id)
+    const live = taskTypesOf(member.companyId).map((t) => t.id)
     if (!sameIds(ids, live)) return orderChanged()
     const others = db.taskTypes.filter((t) => !ids.includes(t.id))
     db.taskTypes = [...ids.map((id) => db.taskTypes.find((t) => t.id === id)!), ...others]
@@ -168,21 +168,21 @@ export const taskSettingsHandlers = [
   }),
 
   http.patch(api("/app/task-types/:id"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
     if (name instanceof Response) return name
-    const type = liveType(owner.companyId, Number(params.id))
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
-    if (taskTypesOf(owner.companyId).some((t) => t.id !== type.id && same(t.name, name))) return typeTaken()
+    if (taskTypesOf(member.companyId).some((t) => t.id !== type.id && same(t.name, name))) return typeTaken()
     type.name = name
     return HttpResponse.json(toTaskType(type))
   }),
 
   http.delete(api("/app/task-types/:id"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    const type = liveType(owner.companyId, Number(params.id))
+    const member = permittedSession(request, "settings.delete")
+    if (member instanceof Response) return member
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
     const used = liveTasks().filter((t) => t.typeId === type.id).length
     if (used > 0) return fail(409, "type_in_use", `Bu turda ${used} ta vazifa bor`)
@@ -193,8 +193,8 @@ export const taskSettingsHandlers = [
   }),
 
   http.post(api("/app/task-types/:id/fields"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.create")
+    if (member instanceof Response) return member
     const body = (await request.json()) as { label?: unknown; kind?: string; required?: boolean; dropdown_id?: number | null }
     const label = cleanName(body.label)
     if (label instanceof Response) return label
@@ -203,8 +203,8 @@ export const taskSettingsHandlers = [
     if (!kind) return invalid("Maydon turini tanlang")
     if (kind.choice && dropdownId === null) return invalid("Dropdownni tanlang")
     if (!kind.choice && dropdownId !== null) return invalid("Matn va son maydoniga dropdown ulanmaydi")
-    if (dropdownId !== null && !liveDropdown(owner.companyId, dropdownId)) return invalid("Dropdownni tanlang")
-    const type = liveType(owner.companyId, Number(params.id))
+    if (dropdownId !== null && !liveDropdown(member.companyId, dropdownId)) return invalid("Dropdownni tanlang")
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
     if (type.fields.some((f) => !f.deleted && same(f.label, label))) return fieldTaken()
     const field: TaskFieldRow = { id: nextId(), label, kind: body.kind as CustomerFieldKind, required: body.required ?? false, dropdownId }
@@ -213,10 +213,10 @@ export const taskSettingsHandlers = [
   }),
 
   http.put(api("/app/task-types/:id/fields/order"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
-    const type = liveType(owner.companyId, Number(params.id))
+    const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
     const live = type.fields.filter((f) => !f.deleted).map((f) => f.id)
     if (!sameIds(ids, live)) return orderChanged()
@@ -225,12 +225,12 @@ export const taskSettingsHandlers = [
   }),
 
   http.patch(api("/app/task-types/:id/fields/:fieldId"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "settings.edit")
+    if (member instanceof Response) return member
     const body = (await request.json()) as { label?: unknown; required?: boolean }
     const label = body.label === undefined ? undefined : cleanName(body.label)
     if (label instanceof Response) return label
-    const type = liveType(owner.companyId, Number(params.id))
+    const type = liveType(member.companyId, Number(params.id))
     const field = type?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!type || !field) return fieldNotFound()
     if (label !== undefined) {
@@ -242,9 +242,9 @@ export const taskSettingsHandlers = [
   }),
 
   http.delete(api("/app/task-types/:id/fields/:fieldId"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    const field = liveType(owner.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
+    const member = permittedSession(request, "settings.delete")
+    if (member instanceof Response) return member
+    const field = liveType(member.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!field) return fieldNotFound()
     const used = liveTasks().filter((t) => t.values[field.id] !== undefined).length
     if (used > 0) return fail(409, "field_in_use", `Bu maydon ${used} ta vazifada to'ldirilgan`)

@@ -15,8 +15,9 @@ import {
   type TaskHistoryRow,
   type TaskRow,
   type TaskTypeRow,
+  permissionsOf,
 } from "./data"
-import { api, fail, isMember, memberSession, normalizePhone, ownerOnly } from "./gate"
+import { api, fail, forbidden, isMember, normalizePhone, permittedSession } from "./gate"
 
 const invalid = (message: string) => fail(400, "validation_error", message)
 const taskNotFound = () => fail(404, "not_found", "Vazifa topilmadi")
@@ -147,7 +148,7 @@ function found(task: TaskRow, search: string): boolean {
 
 export const tasksHandlers = [
   http.get(api("/app/tasks"), ({ request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "tasks.view")
     if (member instanceof Response) return member
     const query = new URL(request.url).searchParams
     const page = query.has("page") ? Number(query.get("page")) : 1
@@ -189,7 +190,7 @@ export const tasksHandlers = [
   }),
 
   http.post(api("/app/tasks"), async ({ request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "tasks.create")
     if (member instanceof Response) return member
     const body = (await request.json()) as {
       type_id?: unknown
@@ -214,6 +215,12 @@ export const tasksHandlers = [
     if (assignee instanceof Response) return assignee
     const values = checkValues(liveFields(type), {}, body.values)
     if (values instanceof Response) return values
+    // A customer entered with the task is a customer entered: that takes
+    // its own permission (logic/roles.md, section 4.3).
+    const wanted = body.customer as { id?: unknown } | null | undefined
+    if (wanted && typeof wanted === "object" && wanted.id === undefined && !permissionsOf(member.phone, member.companyId).includes("customers.create")) {
+      return forbidden()
+    }
     // A new customer is entered last: nothing after it can refuse the task.
     const customerId = customerOf(member, body.customer)
     if (customerId instanceof Response) return customerId
@@ -240,14 +247,14 @@ export const tasksHandlers = [
   }),
 
   http.get(api("/app/tasks/:id"), ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "tasks.view")
     if (member instanceof Response) return member
     const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
     return task ? HttpResponse.json(toTask(task)) : taskNotFound()
   }),
 
   http.put(api("/app/tasks/:id"), async ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "tasks.edit")
     if (member instanceof Response) return member
     const body = (await request.json()) as { title?: unknown; deadline?: unknown; stage_id?: unknown; assignee_phone?: unknown; values?: unknown }
     // A task that is not there is said first, whatever is sent.
@@ -291,7 +298,7 @@ export const tasksHandlers = [
   }),
 
   http.patch(api("/app/tasks/:id/stage"), async ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "tasks.edit")
     if (member instanceof Response) return member
     const { stage_id: stageId } = (await request.json()) as { stage_id?: unknown }
     const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
@@ -309,7 +316,7 @@ export const tasksHandlers = [
   }),
 
   http.delete(api("/app/tasks/:id"), ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "tasks.delete")
     if (member instanceof Response) return member
     const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()
@@ -320,10 +327,8 @@ export const tasksHandlers = [
   }),
 
   http.get(api("/app/tasks/:id/history"), ({ params, request }) => {
-    const member = memberSession(request)
+    const member = permittedSession(request, "tasks.history")
     if (member instanceof Response) return member
-    // Who did what to a task is for the owner to see.
-    if (db.members[member.phone].find((m) => m.companyId === member.companyId)?.role !== "owner") return ownerOnly()
     const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()
     return HttpResponse.json(

@@ -6,9 +6,9 @@ import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
 import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
-import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, read, type Session } from "./gate"
+import { api, bearer, fail, isMember, memberSession, normalizePhone, permittedSession, read, type Session } from "./gate"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp } from "./data"
+import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
 
 function token(kind: "access" | "refresh", session: Session): string {
   db.issued += 1
@@ -156,13 +156,15 @@ export const handlers = [
       user: { phone: user.phone, full_name: nameIn(user.phone, user.companyId) },
       company: companies.find((c) => c.id === user.companyId) ?? null,
       companies,
+      // What the user may do in the company, as it is now; nothing before a choice.
+      permissions: user.companyId === null ? [] : permissionsOf(user.phone, user.companyId),
     })
   }),
 
   http.get(api("/app/employees"), ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
-    return HttpResponse.json(membersOf(owner.companyId))
+    const member = permittedSession(request, "employees.view")
+    if (member instanceof Response) return member
+    return HttpResponse.json(membersOf(member.companyId))
   }),
 
   // The members are every member's to see: a task's assignee is chosen
@@ -174,40 +176,40 @@ export const handlers = [
   }),
 
   http.post(api("/app/employees"), async ({ request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "employees.create")
+    if (member instanceof Response) return member
     const body = (await request.json()) as { phone?: string; full_name?: string }
     const phone = normalizePhone(body.phone ?? "")
     if (!phone) return fail(400, "validation_error", "Telefon raqami noto'g'ri")
     const name = body.full_name?.trim()
     if (!name) return fail(400, "validation_error", "Ismni kiriting")
     // A member already, the owner too: nothing changes.
-    if (isMember(phone, owner.companyId)) {
+    if (isMember(phone, member.companyId)) {
       return fail(409, "already_member", "Bu raqam kompaniyangizga allaqachon qo'shilgan")
     }
     // A phone that works in another company gets the answer a new one does.
-    join(phone, owner.companyId, name)
-    return HttpResponse.json(membersOf(owner.companyId).find((m) => m.phone === phone), { status: 201 })
+    join(phone, member.companyId, name)
+    return HttpResponse.json(membersOf(member.companyId).find((m) => m.phone === phone), { status: 201 })
   }),
 
   http.patch(api("/app/employees/:phone"), async ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "employees.edit")
+    if (member instanceof Response) return member
     const phone = String(params.phone)
     const name = ((await request.json()) as { full_name?: string }).full_name?.trim()
     if (!name) return fail(400, "validation_error", "Ismni kiriting")
-    const membership = (db.members[phone] ?? []).find((m) => m.companyId === owner.companyId)
+    const membership = (db.members[phone] ?? []).find((m) => m.companyId === member.companyId)
     if (!membership) return employeeNotFound()
     if (membership.role === "owner") return ownerProtected()
     membership.fullName = name
-    return HttpResponse.json(membersOf(owner.companyId).find((m) => m.phone === phone))
+    return HttpResponse.json(membersOf(member.companyId).find((m) => m.phone === phone))
   }),
 
   http.delete(api("/app/employees/:phone"), ({ params, request }) => {
-    const owner = ownerSession(request)
-    if (owner instanceof Response) return owner
+    const member = permittedSession(request, "employees.delete")
+    if (member instanceof Response) return member
     const phone = String(params.phone)
-    const membership = (db.members[phone] ?? []).find((m) => m.companyId === owner.companyId)
+    const membership = (db.members[phone] ?? []).find((m) => m.companyId === member.companyId)
     if (!membership) return employeeNotFound()
     if (membership.role === "owner") return ownerProtected()
     // Only the membership goes: the user and their other companies stay.

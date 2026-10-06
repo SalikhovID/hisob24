@@ -1,7 +1,8 @@
 // What the mock API's handlers share: the paths, the error answers and the
 // gates the Go API puts before its routes.
 import { HttpResponse } from "msw"
-import { companiesOf, db, paidUp } from "./data"
+import type { Permission } from "@/lib/types"
+import { companiesOf, db, paidUp, permissionsOf } from "./data"
 
 export const api = (path: string) => `*/api${path}`
 
@@ -35,6 +36,7 @@ export function isMember(phone: string, companyId: number): boolean {
 }
 
 export const ownerOnly = () => fail(403, "owner_only", "Bu bo'lim faqat kompaniya egasi uchun")
+export const forbidden = () => fail(403, "forbidden", "Bu amal uchun ruxsatingiz yo'q")
 
 // ownerSession is the API's gate before the employees, in its order: the
 // token (401), the membership as it is now (401), the subscription (402),
@@ -64,3 +66,14 @@ export function memberSession(request: Request): { phone: string; companyId: num
   return { phone: user.phone, companyId: user.companyId }
 }
 
+// permittedSession is the API's gate before what takes a permission, in its
+// order: the token (401), a company chosen (403 company_required), the
+// membership as it is now (401), the subscription (402), the permission as
+// the member has it now (403 forbidden). The company is the token's, never
+// the request's.
+export function permittedSession(request: Request, permission: Permission): { phone: string; companyId: number } | Response {
+  const member = memberSession(request)
+  if (member instanceof Response) return member
+  if (!permissionsOf(member.phone, member.companyId).includes(permission)) return forbidden()
+  return member
+}
