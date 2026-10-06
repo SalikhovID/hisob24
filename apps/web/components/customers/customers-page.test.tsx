@@ -239,14 +239,17 @@ test("the list goes page by page, twenty at a time", async () => {
   const { user } = renderWithProviders(<CustomersPage />)
 
   expect(rowsOf(await table())).toHaveLength(20)
-  expect(screen.getByText("1–20 / 24")).toBeInTheDocument()
+  expect(screen.getByText("24 tadan 20 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Oldingi" })).toBeDisabled()
+  expect(screen.getByRole("button", { name: "1" })).toHaveAttribute("aria-current", "page")
 
-  await user.click(screen.getByRole("button", { name: "Keyingi" }))
+  // A page is opened by its number.
+  await user.click(screen.getByRole("button", { name: "2" }))
 
   await waitFor(() => expect(rowsOf(screen.getByRole("table", { name: "Mijozlar" }))).toHaveLength(4))
   expect(currentUrl()).toBe("/customers?page=2")
-  expect(screen.getByText("21–24 / 24")).toBeInTheDocument()
+  expect(screen.getByText("24 tadan 4 ta ko'rsatilmoqda")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page")
   expect(screen.getByRole("button", { name: "Keyingi" })).toBeDisabled()
   // The company's count stays on screen while pages turn.
   expect(screen.getByText("Kompaniyangiz mijozlari · 24 ta")).toBeInTheDocument()

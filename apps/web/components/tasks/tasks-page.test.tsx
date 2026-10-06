@@ -186,14 +186,15 @@ test("the list goes page by page, twenty at a time", async () => {
   const { user } = renderWithProviders(<TasksPage />)
 
   expect(rowsOf(await table())).toHaveLength(20)
-  expect(screen.getByText("1–20 / 25")).toBeInTheDocument()
+  expect(screen.getByText("25 tadan 20 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Oldingi" })).toBeDisabled()
 
   await user.click(screen.getByRole("button", { name: "Keyingi" }))
 
   await waitFor(() => expect(rowsOf(screen.getByRole("table", { name: "Vazifalar" }))).toHaveLength(5))
   expect(currentUrl()).toBe("/tasks?view=list&page=2")
-  expect(screen.getByText("21–25 / 25")).toBeInTheDocument()
+  expect(screen.getByText("25 tadan 5 ta ko'rsatilmoqda")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page")
   expect(screen.getByRole("button", { name: "Keyingi" })).toBeDisabled()
   expect(screen.getByText("Kompaniyangiz vazifalari · 25 ta")).toBeInTheDocument()
 })

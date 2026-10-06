@@ -46,13 +46,7 @@ export function CustomerTasks({ companyId, customerId }: { companyId: number; cu
           columns={columns}
           getKey={(task) => task.id}
           href={(task) => `/tasks/${task.id}`}
-          footer={
-            tasks.data.total > tasks.data.page_size ? (
-              <Pager page={tasks.data.page} pageSize={tasks.data.page_size} total={tasks.data.total} onPage={setPage} />
-            ) : (
-              <span>Jami: {tasks.data.total}</span>
-            )
-          }
+          footer={<Pager page={tasks.data.page} pageSize={tasks.data.page_size} total={tasks.data.total} onPage={setPage} />}
         />
       )}
     </section>
