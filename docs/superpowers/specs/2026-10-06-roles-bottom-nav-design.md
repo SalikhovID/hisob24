@@ -278,3 +278,20 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **Handler testlarida `ownerOnly` konstantasi** `roles_test.go` da qayta kiritildi (1-bosqichda `noPermission` ga almashgan edi): rollar API uchun kerak.
 - **Mock:** `rolesHandlers` `ownerSession` bilan; `parsePermissions` Go `access.Parse` bilan bir xil xabarlar; xodim roli `Membership.roleId`; `handlers.test.ts` dagi "rol bilan ishlash" testi egasiga qaytish uchun qayta kirmaydi (mock SMS 60 soniya cheklovi), tokenini `setAccessToken` bilan tiklaydi.
 - **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 525; `make e2e`: admin 40, web 90.
+
+## 3-bosqich qarorlari (2026-10-06)
+
+Bajarildi: `lib/permissions.ts` (`can`, `sectionLabels`, `sectionOf`), `lib/use-gate.ts` (`useGate`, `useOwner`, `usePermission`; `lib/use-owner.ts` o'chirildi), `lib/nav.ts` (`permission`, `navFor(permissions)`), `Sidebar`, `RoleBadge {role, name}`, `Dashboard`, `EmployeesPage`, `SettingsPage` va tur / dropdown sahifalari, `CustomersPage`, `CustomerPage`, `TasksPage`, `TaskBoard`, `TaskCard`, `TaskPage`, `AddTaskDialog` / `CustomerSection`; `test/roles.ts` (`giveRole`). Reja: `docs/superpowers/plans/2026-10-06-roles-stage3-permissions-ui.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`useGate(allowed)`** `Gate {company, user, permissions}` qaytaradi; kompaniya tanlanmagan sessiya hech qayerga yo'naltirilmaydi (qobiq uni `/select-company` ga olib boradi). `useOwner` rollar sahifalari uchun qoldi (4-bosqich).
+- **Menyu noma'lum sessiyada faqat Bosh sahifa** (avval Mijozlar va Vazifalar ham): ilovada qobiq `/app/me` ni sahifadan oldin oladi, shuning uchun ko'rinishda farq yo'q.
+- **Ro'yxat sahifalari (`CustomersPage`, `TasksPage`) darvoza ochilguncha hech narsa chizmaydi**, Xodimlar va Sozlamalar kabi: begona sahifa sarlavhasini ko'rmaydi.
+- **`customers.create ⇒ customers.view`** (katalog qoidasi): "Vazifa qo'shish" `tasks.create` **va** `customers.view` bilan; spec'dagi "`customers.view` bo'lmasa takliflar so'ralmaydi" qoidasi ortiqcha bo'lib chiqdi (bunday holat bo'lmaydi) va qilinmadi.
+- **`customers.create` siz vazifa formasi** `taskSchema` ga `customerType = null` beradi: yangi mijoz "Mijozni tanlang" bilan rad etiladi; formada "Yangi mijoz qo'shish ruxsatingiz yo'q: mavjud mijozni biriktiring." va tur tanlovi yo'q; biriktirilgan mavjud mijozning turi va maydonlari ko'rinadi (qulflangan).
+- **Kanban:** `TaskBoard {canAdd, canMove}`; `TaskCard.onMove` ixtiyoriy: yo'q bo'lsa bosqich menyusi chizilmaydi va `useDraggable` o'chiq; ustun "+" `onAdd` bo'lmasa yo'q.
+- **Sozlamalar:** har ro'yxatda uchta ruxsat (`create` qo'shish tugmasi, `edit` nom / belgilar / tartib (`SortableList disabled`) / nofaol variant, `delete` o'chirish); tur va dropdown sahifalari ham.
+- **Mijoz sahifasida "Vazifalar" bo'limi `tasks.view` bilan**, tarix `customers.history`; vazifa sahifasida tahrir va bosqich `tasks.edit`, o'chirish `tasks.delete`, tarix `tasks.history`.
+- **Yangi va o'zgargan testlar:** `use-gate.test.tsx`, `nav.test.ts` (ruxsatlar bilan qayta yozildi), `permissions.test.ts` (`can`, `sectionLabels`), `sidebar.test.tsx`, `role-badge.test.tsx`, `dashboard.test.tsx`, `employees-page.test.tsx`, `settings-page.test.tsx`, `customer-type-page.test.tsx`, `task-type-page.test.tsx`, `dropdown-page.test.tsx`, `customers-page.test.tsx`, `customer-page.test.tsx`, `tasks-page.test.tsx`, `task-page.test.tsx`, `task-board.test.tsx`, `task-dialog.test.tsx` — har birida rolli xodim holati (`giveRole`). Hech bir test o'chirilmadi.
+- **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 555; `make e2e`: admin 40, web 90.
