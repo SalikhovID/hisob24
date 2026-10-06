@@ -350,3 +350,14 @@ Soxta ma'lumotlar bilan lokal tekshiruv (foydalanuvchi so'ragan): e2e `miniapp.s
 Tekshiruv: `make lint` 0 issues; `make test`: Go 19 paket, api-client 1, admin 228, web 582 (+3); `make e2e`: admin 40, web 98 (+4: ikki yangi Mini App testi ikki project'da). Skrinshot (375px, soxta Telegram): kartada "Mijoz" qatori oddiy matn, nom tepada, bitta havola. Haqiqiy telefonda foydalanuvchi tekshiradi.
 
 Talab o'zgargani uchun o'zgargan test: `e2e/tasks.spec.ts` ("an employee enters a task with a new customer…") telefon kartasida mijoz nomini havola deb kutardi; endi telefonda matn (havola yo'q), desktopda jadvaldagi havola tekshiriladi.
+
+## Production'ga deploy (2026-10-07, ro'yxat kartasi)
+
+`deploy/ship.sh` bilan `9621a34` yuborildi (02:21–02:23 Toshkent, exit 0; oldin toza `git archive HEAD` nusxasidan `go build`, `go vet` va ikkala Next build): `next` image qayta build, api image qatlamlari keshdan, migratsiya yo'q (goose 9), api/admin/web `--wait` bilan healthy. Oldingi daraxt: `/var/www/hisob24-v2.prev`. Pre-deploy dump: `/var/backups/hisob24-v2/hisob24-pre-taskcard-20261006-2319.sql.gz` (25 jadval, gzip tekshirilgan).
+
+Tekshiruvlar (sessiyasiz, hech narsa yozilmadi, SMS yuborilmadi):
+
+- Server pre-flight (read-only): konteynerlar healthy, deploy jarayoni yo'q, goose 9, satrlar: companies 1, users 2, user_companies 2, customers 2, customer_types 3, customer_dropdowns 1, tasks 1, task_stages 5, task_types 2, refresh_tokens 48, roles 0; API log ERROR/WARN 0. Web/admin logida bitta qator: "Server Reference ID did not match the expected format. Received "x"" — tashqaridan noto'g'ri `Next-Action` sarlavhali so'rov, Next rad etgan; app server action ishlatmaydi, deploy'ga aloqasi yo'q.
+- Probe (31 ta): oldin 30/31, keyin 31/31. Yangi tekshiruv: `/tasks?view=list` chunk'larida kartaning cho'zilgan havolasi (`rounded-sm after:absolute after:inset-0`) bor, eski build'da yo'q edi — yangi build jonli ekanining isboti. Qolganlari oldingi deploy'larniki (sahifalar, API 401/404, chunk matnlari, webhook'lar, ikonlar).
+- Serverda: goose 9, satrlar o'zgarmagan; `.env` `.prev` bilan bir xil; restart 0; API log ERROR/WARN 0, web/admin log xatosi 0; dangling image 0; server daraxtining sha256 si (`.env` dan tashqari, 686 fayl) `git archive HEAD` bilan bir xil (`b666d7e9…`).
+- Haqiqiy telefonda foydalanuvchi tekshiradi: Mini App → Vazifalar → Ro'yxat → kartaning istalgan joyi → vazifa sahifasi.
