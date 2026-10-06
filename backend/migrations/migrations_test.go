@@ -747,3 +747,40 @@ func TestTaskHistory(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, "SELECT changes::text FROM task_history LIMIT 1").Scan(&changes))
 	assert.Equal(t, "[]", changes, "nothing changed unless said otherwise")
 }
+
+func TestRolesAreACompanysAndItsUsersOnly(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222'), ('998903333333')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role) VALUES
+		('998901111111', $1, 'owner'), ('998902222222', $1, 'user'), ('998903333333', $2, 'user')`, olma, nok)
+	require.NoError(t, err)
+
+	var role int64
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Sotuvchi', '{customers.view}') RETURNING id", olma).Scan(&role))
+	var perms []string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT permissions FROM roles WHERE id = $1", role).Scan(&perms))
+	assert.Equal(t, []string{"customers.view"}, perms)
+
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET role_id = $1 WHERE user_phone = '998902222222'", role)
+	assert.NoError(t, err, "a user of the company takes its role")
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET role_id = $1 WHERE user_phone = '998901111111'", role)
+	assert.Equal(t, "23514", sqlState(err), "the owner has no role") // check_violation
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET role_id = $1 WHERE user_phone = '998903333333'", role)
+	assert.Equal(t, "23503", sqlState(err), "another company's user cannot take it") // foreign_key_violation
+	_, err = pool.Exec(ctx, "INSERT INTO roles (company_id, name) VALUES ($1, 'sotuvchi')", olma)
+	assert.Equal(t, "23505", sqlState(err), "a name is one role's in a company, whatever the case") // unique_violation
+	_, err = pool.Exec(ctx, "INSERT INTO roles (company_id, name) VALUES ($1, 'Sotuvchi')", nok)
+	assert.NoError(t, err, "another company may use the name")
+	require.NoError(t, pool.QueryRow(ctx, "SELECT permissions FROM roles WHERE company_id = $1", nok).Scan(&perms))
+	assert.Equal(t, []string{}, perms, "a role starts with no permissions")
+	_, err = pool.Exec(ctx, "DELETE FROM roles WHERE id = $1", role)
+	assert.Equal(t, "23503", sqlState(err), "a role someone holds is not deleted")
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET role_id = NULL WHERE user_phone = '998902222222'")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "DELETE FROM roles WHERE id = $1", role)
+	assert.NoError(t, err, "a role nobody holds")
+}
