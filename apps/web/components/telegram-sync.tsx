@@ -24,6 +24,10 @@ export function TelegramSync() {
       // card is dragged up and down, so the swipe is turned off where the
       // client knows the switch (Bot API 7.7+).
       webApp.disableVerticalSwipes?.()
+      // Full screen: Telegram's header goes and the app takes the whole
+      // screen; the status bar and Telegram's own controls then lie over
+      // its top, which --safe-top keeps clear (globals.css).
+      webApp.requestFullscreen?.()
       document.documentElement.dataset.telegram = ""
       const follow = () => setTheme(webApp.colorScheme)
       follow()

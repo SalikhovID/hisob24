@@ -62,3 +62,13 @@ test("TelegramSync turns Telegram's vertical swipes off, so a drag on the board 
   await waitFor(() => expect(document.documentElement).toHaveAttribute("data-telegram"))
   expect(webApp.disableVerticalSwipes).toHaveBeenCalled()
 })
+
+test("TelegramSync opens the Mini App full screen on a phone whose client knows it (Bot API 8.0)", async () => {
+  const webApp = fakeWebApp({ platform: "ios", isVersionAtLeast: vi.fn(() => true), requestFullscreen: vi.fn() })
+  window.Telegram = { WebApp: webApp }
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(document.documentElement).toHaveAttribute("data-telegram"))
+  expect(webApp.requestFullscreen).toHaveBeenCalled()
+})

@@ -21,6 +21,14 @@ export interface TelegramWebApp {
   // disableVerticalSwipes keeps a vertical swipe from folding or closing the
   // Mini App (Bot API 7.7+): a drag on the board stays a drag.
   disableVerticalSwipes?: () => void
+  // isVersionAtLeast says whether the client's Bot API is at least version
+  // (telegram-web-app.js throws at a method the client is too old for).
+  isVersionAtLeast?: (version: string) => boolean
+  // requestFullscreen opens the Mini App over the whole screen, Telegram's
+  // header gone (Bot API 8.0+); exitFullscreen gives the header back.
+  requestFullscreen?: () => void
+  exitFullscreen?: () => void
+  isFullscreen?: boolean
   onEvent: (event: "themeChanged", handler: () => void) => void
   offEvent: (event: "themeChanged", handler: () => void) => void
 }
