@@ -51,6 +51,44 @@ export function useCustomerDropdowns(companyId: number | null) {
   })
 }
 
+// taskStagesKey and taskTypesKey name what a company's owner set up for its
+// tasks in the cache, membersKey the company's members; per company like
+// the customer settings.
+export const taskStagesKey = (companyId: number | null) => ["task-stages", companyId] as const
+export const taskTypesKey = (companyId: number | null) => ["task-types", companyId] as const
+export const membersKey = (companyId: number | null) => ["members", companyId] as const
+
+// useTaskStages is the stages (the columns of the board) of the company the
+// session works in, in their order; every member may ask. With companyId
+// null (not known yet) nothing is asked.
+export function useTaskStages(companyId: number | null) {
+  return useQuery({
+    queryKey: taskStagesKey(companyId),
+    queryFn: () => call(api.GET("/app/task-stages")),
+    enabled: companyId !== null,
+  })
+}
+
+// useTaskTypes is the task types of the company the session works in, each
+// with its fields; every member may ask.
+export function useTaskTypes(companyId: number | null) {
+  return useQuery({
+    queryKey: taskTypesKey(companyId),
+    queryFn: () => call(api.GET("/app/task-types")),
+    enabled: companyId !== null,
+  })
+}
+
+// useMembers is the members of the company the session works in, the owner
+// first; every member may ask: a task's assignee is chosen among them.
+export function useMembers(companyId: number | null) {
+  return useQuery({
+    queryKey: membersKey(companyId),
+    queryFn: () => call(api.GET("/app/members")),
+    enabled: companyId !== null,
+  })
+}
+
 // customersKey names a company's customers in the cache, whatever the
 // filter: every list of them begins with it, so one call drops them all.
 export const customersKey = (companyId: number | null) => ["customers", companyId] as const

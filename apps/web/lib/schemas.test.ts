@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { z } from "zod"
-import { employeeSchema, fieldSchema, nameSchema, renameSchema } from "./schemas"
+import { employeeSchema, fieldSchema, nameSchema, renameSchema, stageSchema } from "./schemas"
 
 // problems lists the messages a schema gives for input; none means valid.
 function problems(schema: z.ZodType, input: unknown): string[] {
@@ -60,4 +60,11 @@ test("fieldSchema names a missing name and a choice without a dropdown", () => {
     "Dropdownni tanlang",
   ])
   expect(problems(fieldSchema, { label: "Yoshi", kind: "int", dropdown_id: "", required: false, is_unique: false })).toEqual([])
+})
+
+test("stageSchema trims the name and takes one of the nine colors; the done mark as given", () => {
+  expect(stageSchema.parse({ name: " Yangi ", color: "blue", is_done: false })).toEqual({ name: "Yangi", color: "blue", is_done: false })
+  expect(stageSchema.parse({ name: "Bajarildi", color: "green", is_done: true }).is_done).toBe(true)
+  expect(problems(stageSchema, { name: " ", color: "", is_done: false })).toEqual(["Nomni kiriting", "Rangni tanlang"])
+  expect(problems(stageSchema, { name: "Oltin", color: "gold", is_done: true })).toEqual(["Rangni tanlang"])
 })

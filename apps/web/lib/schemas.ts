@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { isChoice, kinds } from "./fields"
 import { phoneDigits } from "./phone"
+import { stageColors } from "./stage-colors"
 
 // required is a text field that must hold more than spaces.
 const required = (message: string) => z.string().trim().min(1, message)
@@ -77,4 +78,13 @@ export const fieldPatchSchema = z.object({
   label: name(),
   required: z.boolean(),
   is_unique: z.boolean(),
+})
+
+// stageSchema is the stage dialog: the name, one of the nine colors (the
+// swatches' value, "" for none yet) and the done mark. The messages match
+// the API's.
+export const stageSchema = z.object({
+  name: name(),
+  color: z.enum(stageColors, { message: "Rangni tanlang" }),
+  is_done: z.boolean(),
 })
