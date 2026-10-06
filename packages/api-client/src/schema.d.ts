@@ -754,6 +754,234 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kompaniya a'zolari (har a'zo)
+         * @description Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo o'qiydi: vazifaga mas'ul shulardan tanlanadi. A'zolarni boshqarish /app/employees orqali, faqat owner.
+         */
+        get: operations["listMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/task-stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bosqichlar
+         * @description Access token'dagi kompaniyaning bosqichlari (kanban ustunlari) o'z tartibida. Har a'zo o'qiydi: kanban va vazifa formasi shundan quriladi.
+         */
+        get: operations["listTaskStages"];
+        put?: never;
+        /**
+         * Bosqich yaratish (faqat owner)
+         * @description Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi vazifa bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.
+         */
+        post: operations["createTaskStage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/task-stages/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Bosqichlar tartibini o'zgartirish (faqat owner)
+         * @description ids kompaniyaning barcha bosqichlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
+         */
+        put: operations["orderTaskStages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/task-stages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Bosqichni o'chirish (faqat owner)
+         * @description Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor bosqich o'chirilmaydi: 409 stage_in_use.
+         */
+        delete: operations["deleteTaskStage"];
+        options?: never;
+        head?: never;
+        /**
+         * Bosqichni o'zgartirish (faqat owner)
+         * @description Nomi, rangi va "Yakuniy" belgisi; berilmagani o'zgarmaydi.
+         */
+        patch: operations["updateTaskStage"];
+        trace?: never;
+    };
+    "/app/task-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vazifa turlari, maydonlari bilan
+         * @description Access token'dagi kompaniyaning vazifa turlari o'z tartibida, har biri maydonlari bilan. Har a'zo o'qiydi: vazifa formasi va ro'yxat ustunlari shundan quriladi. Nomi, muddat, mijoz va mas'ul maydon emas: ular har vazifada bor.
+         */
+        get: operations["listTaskTypes"];
+        put?: never;
+        /**
+         * Vazifa turini yaratish (faqat owner)
+         * @description Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
+         */
+        post: operations["createTaskType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/task-types/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Vazifa turlari tartibini o'zgartirish (faqat owner)
+         * @description ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
+         */
+        put: operations["orderTaskTypes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/task-types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Vazifa turini o'chirish (faqat owner)
+         * @description Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor tur o'chirilmaydi: 409 type_in_use.
+         */
+        delete: operations["deleteTaskType"];
+        options?: never;
+        head?: never;
+        /** Vazifa turi nomini o'zgartirish (faqat owner) */
+        patch: operations["renameTaskType"];
+        trace?: never;
+    };
+    "/app/task-types/{id}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vazifa turiga maydon qo'shish (faqat owner)
+         * @description Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown, multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va son maydoniga dropdown ulanmaydi. Vazifa maydonida "Takrorlanmasin" yo'q. Maydonning turi va dropdowni keyin o'zgarmaydi.
+         */
+        post: operations["addTaskField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/task-types/{id}/fields/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                fieldId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Vazifa maydonini o'chirish (faqat owner)
+         * @description Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
+         */
+        delete: operations["deleteTaskField"];
+        options?: never;
+        head?: never;
+        /**
+         * Vazifa maydonini o'zgartirish (faqat owner)
+         * @description Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
+         */
+        patch: operations["updateTaskField"];
+        trace?: never;
+    };
+    "/app/task-types/{id}/fields/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Vazifa turi maydonlari tartibini o'zgartirish (faqat owner)
+         * @description ids turning barcha maydonlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
+         */
+        put: operations["orderTaskFields"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/admin-bot": {
         parameters: {
             query?: never;
@@ -1101,6 +1329,64 @@ export interface components {
             /** @description Tahrirda o'zgargan maydonlar; qo'shish va o'chirishda bo'sh */
             changes: components["schemas"]["CustomerChange"][];
         };
+        /**
+         * @description Bosqich rangi, interfeys shu nomdagi tusda ko'rsatadi
+         * @enum {string}
+         */
+        StageColor: "slate" | "red" | "orange" | "amber" | "green" | "teal" | "blue" | "violet" | "pink";
+        TaskStage: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            color: components["schemas"]["StageColor"];
+            /** @description Yakuniy bosqich: undagi vazifa bajarilgan hisoblanadi va muddati o'tgan deb belgilanmaydi */
+            is_done: boolean;
+        };
+        StageInput: {
+            name: string;
+            color: components["schemas"]["StageColor"];
+            /** @description Berilmasa false */
+            is_done?: boolean;
+        };
+        StagePatch: {
+            name?: string;
+            color?: components["schemas"]["StageColor"];
+            is_done?: boolean;
+        };
+        TaskField: {
+            /** Format: int64 */
+            id: number;
+            label: string;
+            kind: components["schemas"]["CustomerFieldKind"];
+            required: boolean;
+            /**
+             * Format: int64
+             * @description Tanlov turlarida variantlar olinadigan dropdown (mijozlar dropdownlari)
+             */
+            dropdown_id: number | null;
+        };
+        TaskType: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** @description Maydonlar o'z tartibida */
+            fields: components["schemas"]["TaskField"][];
+        };
+        TaskFieldInput: {
+            label: string;
+            kind: components["schemas"]["CustomerFieldKind"];
+            /** @description Berilmasa false */
+            required?: boolean;
+            /**
+             * Format: int64
+             * @description Tanlov turlarida majburiy, matn va sonda bo'lmaydi
+             */
+            dropdown_id?: number | null;
+        };
+        TaskFieldPatch: {
+            label?: string;
+            required?: boolean;
+        };
     };
     responses: {
         /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
@@ -1230,7 +1516,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use, type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed) */
+        /** @description Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use: mijoz yoki vazifa maydoni ulangan, type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed) */
         CustomerSettingConflict: {
             headers: {
                 [name: string]: unknown;
@@ -1250,6 +1536,24 @@ export interface components {
         };
         /** @description Mijoz topilmadi (not_found) */
         CustomerNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Bosqich, tur yoki maydon topilmadi (not_found) */
+        TaskSettingNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Nom band (name_taken); narsa ishlatilmoqda (stage_in_use, type_in_use, field_in_use); ro'yxat boshqa joyda o'zgargan (order_changed) */
+        TaskSettingConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2649,6 +2953,422 @@ export interface operations {
                 };
             };
             404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    listMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A'zolar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    listTaskStages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bosqichlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStage"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createTaskStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StageInput"];
+            };
+        };
+        responses: {
+            /** @description Yaratilgan bosqich */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    orderTaskStages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderInput"];
+            };
+        };
+        responses: {
+            /** @description Tartib saqlandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    deleteTaskStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    updateTaskStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StagePatch"];
+            };
+        };
+        responses: {
+            /** @description O'zgartirilgan bosqich */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    listTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Turlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskType"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createTaskType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Yaratilgan tur */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskType"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    orderTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderInput"];
+            };
+        };
+        responses: {
+            /** @description Tartib saqlandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    deleteTaskType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    renameTaskType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameInput"];
+            };
+        };
+        responses: {
+            /** @description Yangi nomli tur, maydonlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskType"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    addTaskField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskFieldInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan maydon */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskField"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    deleteTaskField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                fieldId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    updateTaskField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                fieldId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskFieldPatch"];
+            };
+        };
+        responses: {
+            /** @description O'zgartirilgan maydon */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskField"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
+        };
+    };
+    orderTaskFields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderInput"];
+            };
+        };
+        responses: {
+            /** @description Tartib saqlandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["TaskSettingNotFound"];
+            409: components["responses"]["TaskSettingConflict"];
         };
     };
     adminBotWebhook: {

@@ -1468,6 +1468,470 @@ paths:
                 $ref: "#/components/schemas/Error"
         "404":
           $ref: "#/components/responses/CustomerNotFound"
+  /app/members:
+    get:
+      operationId: listMembers
+      summary: Kompaniya a'zolari (har a'zo)
+      description: >
+        Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin
+        xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo
+        o'qiydi: vazifaga mas'ul shulardan tanlanadi. A'zolarni boshqarish
+        /app/employees orqali, faqat owner.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: A'zolar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+  /app/task-stages:
+    get:
+      operationId: listTaskStages
+      summary: Bosqichlar
+      description: >
+        Access token'dagi kompaniyaning bosqichlari (kanban ustunlari) o'z
+        tartibida. Har a'zo o'qiydi: kanban va vazifa formasi shundan quriladi.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Bosqichlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskStage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+    post:
+      operationId: createTaskStage
+      summary: Bosqich yaratish (faqat owner)
+      description: >
+        Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi
+        (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor
+        rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi vazifa
+        bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageInput"
+      responses:
+        "201":
+          description: Yaratilgan bosqich
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-stages/order:
+    put:
+      operationId: orderTaskStages
+      summary: Bosqichlar tartibini o'zgartirish (faqat owner)
+      description: >
+        ids kompaniyaning barcha bosqichlarini yangi tartibda, har birini
+        bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409
+        order_changed.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "204":
+          description: Tartib saqlandi
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-stages/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: updateTaskStage
+      summary: Bosqichni o'zgartirish (faqat owner)
+      description: >
+        Nomi, rangi va "Yakuniy" belgisi; berilmagani o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StagePatch"
+      responses:
+        "200":
+          description: O'zgartirilgan bosqich
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+    delete:
+      operationId: deleteTaskStage
+      summary: Bosqichni o'chirish (faqat owner)
+      description: >
+        Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi
+        bor bosqich o'chirilmaydi: 409 stage_in_use.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-types:
+    get:
+      operationId: listTaskTypes
+      summary: Vazifa turlari, maydonlari bilan
+      description: >
+        Access token'dagi kompaniyaning vazifa turlari o'z tartibida, har
+        biri maydonlari bilan. Har a'zo o'qiydi: vazifa formasi va ro'yxat
+        ustunlari shundan quriladi. Nomi, muddat, mijoz va mas'ul maydon
+        emas: ular har vazifada bor.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Turlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskType"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+    post:
+      operationId: createTaskType
+      summary: Vazifa turini yaratish (faqat owner)
+      description: >
+        Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi
+        (katta-kichik harf farqsiz), 60 belgigacha.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NameInput"
+      responses:
+        "201":
+          description: Yaratilgan tur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskType"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-types/order:
+    put:
+      operationId: orderTaskTypes
+      summary: Vazifa turlari tartibini o'zgartirish (faqat owner)
+      description: >
+        ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini
+        bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409
+        order_changed.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "204":
+          description: Tartib saqlandi
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-types/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: renameTaskType
+      summary: Vazifa turi nomini o'zgartirish (faqat owner)
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NameInput"
+      responses:
+        "200":
+          description: Yangi nomli tur, maydonlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskType"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+    delete:
+      operationId: deleteTaskType
+      summary: Vazifa turini o'chirish (faqat owner)
+      description: >
+        Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi
+        bo'shaydi. Faol vazifasi bor tur o'chirilmaydi: 409 type_in_use.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-types/{id}/fields:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    post:
+      operationId: addTaskField
+      summary: Vazifa turiga maydon qo'shish (faqat owner)
+      description: >
+        Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown,
+        multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va
+        son maydoniga dropdown ulanmaydi. Vazifa maydonida "Takrorlanmasin"
+        yo'q. Maydonning turi va dropdowni keyin o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskFieldInput"
+      responses:
+        "201":
+          description: Qo'shilgan maydon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskField"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-types/{id}/fields/{fieldId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: fieldId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: updateTaskField
+      summary: Vazifa maydonini o'zgartirish (faqat owner)
+      description: Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskFieldPatch"
+      responses:
+        "200":
+          description: O'zgartirilgan maydon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskField"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+    delete:
+      operationId: deleteTaskField
+      summary: Vazifa maydonini o'chirish (faqat owner)
+      description: >
+        Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon
+        o'chirilmaydi: 409 field_in_use.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
+  /app/task-types/{id}/fields/order:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: orderTaskFields
+      summary: Vazifa turi maydonlari tartibini o'zgartirish (faqat owner)
+      description: >
+        ids turning barcha maydonlarini yangi tartibda, har birini bir marta
+        nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "204":
+          description: Tartib saqlandi
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/TaskSettingNotFound"
+        "409":
+          $ref: "#/components/responses/TaskSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -1645,9 +2109,10 @@ components:
             $ref: "#/components/schemas/Error"
     CustomerSettingConflict:
       description: >
-        Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use,
-        type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar
-        bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed)
+        Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use: mijoz
+        yoki vazifa maydoni ulangan, type_in_use, field_in_use,
+        option_in_use); maydonda takror qiymatlar bor (duplicates_exist);
+        ro'yxat boshqa joyda o'zgargan (order_changed)
       content:
         application/json:
           schema:
@@ -1662,6 +2127,21 @@ components:
             $ref: "#/components/schemas/CustomerTakenError"
     CustomerNotFound:
       description: Mijoz topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TaskSettingNotFound:
+      description: Bosqich, tur yoki maydon topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TaskSettingConflict:
+      description: >
+        Nom band (name_taken); narsa ishlatilmoqda (stage_in_use,
+        type_in_use, field_in_use); ro'yxat boshqa joyda o'zgargan
+        (order_changed)
       content:
         application/json:
           schema:
@@ -2216,3 +2696,100 @@ components:
           description: Tahrirda o'zgargan maydonlar; qo'shish va o'chirishda bo'sh
           items:
             $ref: "#/components/schemas/CustomerChange"
+    StageColor:
+      type: string
+      description: Bosqich rangi, interfeys shu nomdagi tusda ko'rsatadi
+      enum: [slate, red, orange, amber, green, teal, blue, violet, pink]
+    TaskStage:
+      type: object
+      required: [id, name, color, is_done]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        color:
+          $ref: "#/components/schemas/StageColor"
+        is_done:
+          type: boolean
+          description: >
+            Yakuniy bosqich: undagi vazifa bajarilgan hisoblanadi va muddati
+            o'tgan deb belgilanmaydi
+    StageInput:
+      type: object
+      required: [name, color]
+      properties:
+        name:
+          type: string
+          maxLength: 60
+        color:
+          $ref: "#/components/schemas/StageColor"
+        is_done:
+          type: boolean
+          description: Berilmasa false
+    StagePatch:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 60
+        color:
+          $ref: "#/components/schemas/StageColor"
+        is_done:
+          type: boolean
+    TaskField:
+      type: object
+      required: [id, label, kind, required, dropdown_id]
+      properties:
+        id:
+          type: integer
+          format: int64
+        label:
+          type: string
+        kind:
+          $ref: "#/components/schemas/CustomerFieldKind"
+        required:
+          type: boolean
+        dropdown_id:
+          type: [integer, "null"]
+          format: int64
+          description: Tanlov turlarida variantlar olinadigan dropdown (mijozlar dropdownlari)
+    TaskType:
+      type: object
+      required: [id, name, fields]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        fields:
+          type: array
+          description: Maydonlar o'z tartibida
+          items:
+            $ref: "#/components/schemas/TaskField"
+    TaskFieldInput:
+      type: object
+      required: [label, kind]
+      properties:
+        label:
+          type: string
+          maxLength: 60
+        kind:
+          $ref: "#/components/schemas/CustomerFieldKind"
+        required:
+          type: boolean
+          description: Berilmasa false
+        dropdown_id:
+          type: [integer, "null"]
+          format: int64
+          description: Tanlov turlarida majburiy, matn va sonda bo'lmaydi
+    TaskFieldPatch:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 60
+        required:
+          type: boolean
