@@ -510,3 +510,95 @@ export function seedSixKinds() {
     til,
   }
 }
+
+// seedOrderType gives Olma Savdo a task type Buyurtma with a required text
+// Izoh, a number Summa and a checkbox Kanal over Manba. A test asks for it.
+export function seedOrderType() {
+  const manba = db.dropdowns[0]
+  const field = (label: string, kind: CustomerFieldKind, required = false, dropdownId: number | null = null): TaskFieldRow => ({
+    id: nextId(),
+    label,
+    kind,
+    required,
+    dropdownId,
+  })
+  const buyurtma: TaskTypeRow = {
+    id: nextId(),
+    companyId: 1,
+    name: "Buyurtma",
+    fields: [field("Izoh", "string", true), field("Summa", "int"), field("Kanal", "checkbox", false, manba.id)],
+  }
+  db.taskTypes.push(buyurtma)
+  const [izoh, summa, kanal] = buyurtma.fields
+  return { buyurtma, izoh, summa, kanal }
+}
+
+// seedTasks enters the customers of seedCustomers, the type of seedOrderType
+// and the tasks the pages are tested with into Olma Savdo, with deadlines
+// measured from the browser's day: "Eski buyurtma" (a Vazifa for Dilshod,
+// Bajarildi, five days late, assigned to Ali, entered by Ali), "Hisob-
+// faktura" (a Buyurtma for Malika, Yangi, two days late, nobody's, by
+// Sardor), "Shartnoma yuborish" (a Vazifa for Anor Tekstil, Jarayonda,
+// today, nobody's, by Vali) and "Qo'ng'iroq qilish" (a Buyurtma for
+// Dilshod, Yangi, three days off, assigned to Vali, by Ali): in that order
+// they are due. The company starts with none: a test asks for them.
+export function seedTasks() {
+  const customers = seedCustomers()
+  const order = seedOrderType()
+  const [yangi, jarayonda, bajarildi] = db.stages.filter((s) => s.companyId === 1)
+  const [vazifa] = db.taskTypes.filter((t) => t.companyId === 1)
+  const [instagram, linkedin] = db.dropdowns[0].options
+  const today = localToday()
+  const enter = (
+    typeId: number,
+    stageId: number,
+    customerId: number,
+    title: string,
+    deadline: string,
+    assignee: string | null,
+    values: Record<number, Answer>,
+    by: string,
+  ): TaskRow => {
+    const at = now()
+    const task: TaskRow = {
+      id: nextId(),
+      companyId: 1,
+      typeId,
+      stageId,
+      customerId,
+      title,
+      deadline,
+      assignee,
+      assigneeName: assignee === null ? null : nameIn(assignee, 1),
+      values,
+      by,
+      byName: nameIn(by, 1),
+      createdAt: at,
+      updatedAt: at,
+    }
+    db.tasks.push(task)
+    db.taskHistory.push({ id: nextId(), taskId: task.id, action: "created", by, byName: task.byName, createdAt: at, changes: [] })
+    return task
+  }
+  return {
+    ...customers,
+    ...order,
+    yangi,
+    jarayonda,
+    bajarildi,
+    vazifa,
+    old: enter(vazifa.id, bajarildi.id, customers.dilshod.id, "Eski buyurtma", addDays(today, -5), ALI, {}, ALI),
+    invoice: enter(order.buyurtma.id, yangi.id, customers.malika.id, "Hisob-faktura", addDays(today, -2), null, { [order.izoh.id]: "Kechikkan" }, SARDOR),
+    contract: enter(vazifa.id, jarayonda.id, customers.anor.id, "Shartnoma yuborish", today, null, {}, VALI),
+    call: enter(
+      order.buyurtma.id,
+      yangi.id,
+      customers.dilshod.id,
+      "Qo'ng'iroq qilish",
+      addDays(today, 3),
+      VALI,
+      { [order.izoh.id]: "Ertalab qo'ng'iroq", [order.summa.id]: 45000, [order.kanal.id]: [instagram.id, linkedin.id] },
+      ALI,
+    ),
+  }
+}

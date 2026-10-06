@@ -119,6 +119,49 @@ export function useCustomers(companyId: number | null, filter: CustomerFilter) {
   })
 }
 
+// tasksKey names a company's tasks in the cache, whatever the filter: every
+// list of them begins with it, so one call drops them all.
+export const tasksKey = (companyId: number | null) => ["tasks", companyId] as const
+
+// TaskFilter narrows the tasks list: a search, one type, one stage, one
+// assignee (a phone; "" for every one), one customer (null for every one)
+// and the page.
+export interface TaskFilter {
+  search: string
+  typeId: number | null
+  stageId: number | null
+  assignee: string
+  customerId: number | null
+  page: number
+}
+
+// useTasks is a page of the tasks of the company the session works in, the
+// one due soonest first; every member may ask. With companyId null (not
+// known yet, or the list not on screen) nothing is asked.
+export function useTasks(companyId: number | null, filter: TaskFilter) {
+  return useQuery({
+    queryKey: [...tasksKey(companyId), filter],
+    queryFn: () =>
+      call(
+        api.GET("/app/tasks", {
+          params: {
+            query: {
+              search: filter.search || undefined,
+              type_id: filter.typeId ?? undefined,
+              stage_id: filter.stageId ?? undefined,
+              assignee: filter.assignee || undefined,
+              customer_id: filter.customerId ?? undefined,
+              page: filter.page,
+            },
+          },
+        }),
+      ),
+    enabled: companyId !== null,
+    // The list on screen stays while the next filter's answer is on its way.
+    placeholderData: keepPreviousData,
+  })
+}
+
 // customerKey names one customer of a company in the cache.
 export const customerKey = (companyId: number | null, id: number) => ["customer", companyId, id] as const
 

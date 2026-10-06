@@ -7,8 +7,17 @@ import { Input } from "@/components/ui/input"
 // SearchInput reports what was typed once typing pauses for 300 ms. The
 // search it is given may also change from outside (a link to the bare list
 // drops it from the address): the box then follows, so what was typed
-// before is not taken for fresh typing and sent again.
-export function SearchInput({ value, onSearch }: { value: string; onSearch: (value: string) => void }) {
+// before is not taken for fresh typing and sent again. placeholder says what
+// is searched: the customers' names and phones unless told otherwise.
+export function SearchInput({
+  value,
+  onSearch,
+  placeholder = "Ism yoki telefon",
+}: {
+  value: string
+  onSearch: (value: string) => void
+  placeholder?: string
+}) {
   const [text, setText] = useState(value)
   const [seen, setSeen] = useState(value)
   if (value !== seen) {
@@ -31,7 +40,7 @@ export function SearchInput({ value, onSearch }: { value: string; onSearch: (val
       <Input
         type="search"
         aria-label="Qidirish"
-        placeholder="Ism yoki telefon"
+        placeholder={placeholder}
         value={text}
         onChange={(event) => setText(event.target.value)}
         className="h-9 bg-card pl-8"
