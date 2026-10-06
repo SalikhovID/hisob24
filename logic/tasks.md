@@ -2,7 +2,7 @@
 
 Bu hujjat vazifalar bo'limi qoidalarini belgilaydi: vazifa nima, u qaysi bosqichda turadi, turi va maydonlari qanday sozlanadi, mijozga qanday biriktiriladi, kim nima qila oladi, nima qachon o'chadi. Rollar: [roles.md](roles.md). Mijozlar, turlar, maydonlar va dropdownlarning umumiy qoidalari: [customers.md](customers.md).
 
-> Holat: tasdiqlangan (2026-10-06), amalga oshirilmoqda. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-06-tasks-design.md`.
+> Holat: amalga oshirilgan (2026-10-06). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-06-tasks-design.md`.
 
 ## 1. Tushunchalar
 
