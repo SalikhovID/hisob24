@@ -1,6 +1,6 @@
 # Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar — dizayn
 
-Sana: 2026-10-06. Holat: foydalanuvchi reja sifatida tasdiqlagan; 0–5-bosqichlarning hammasi amalga oshirilgan (hujjat oxiridagi "N-bosqich qarorlari" bo'limlari). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-06-roles-stage<N>-*.md`.
+Sana: 2026-10-06. Holat: foydalanuvchi reja sifatida tasdiqlagan; 0–5-bosqichlarning hammasi amalga oshirilgan (hujjat oxiridagi "N-bosqich qarorlari" bo'limlari); 2026-10-07 da production'ga chiqarilgan (pastda "Production'ga deploy"). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-06-roles-stage<N>-*.md`.
 
 ## Maqsad
 
@@ -324,3 +324,15 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **`Sheet` UI primitivi** (`components/ui/sheet.tsx`) o'z testi bilan to'plamda qoldi, ishlatilmaydi.
 - **O'zgargan mavjud testlar** (talab o'zgargani uchun): `sidebar.test.tsx` dan uchta sheet testi, `use-sidebar.test.tsx` dan sheet testi, `app-shell.test.tsx` dan "Menyu" testi olib tashlandi, o'rniga tab-bar testlari (`tab-bar.test.tsx`, `app-shell.test.tsx`); `topbar.test.tsx` `onMenuClick`siz; e2e `shell.spec.ts` telefon tarmoqlari tab-bar bilan, `helpers.ts` va `employees.spec.ts` `sections()` endi "Menyu" bosmaydi, `miniapp.spec.ts` tab-bar va uning chat rangini tekshiradi.
 - **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 575; `make e2e`: admin 40, web 92. Skrinshotlar (vaqtinchalik spec, o'chirildi): 375px bosh sahifa, xodimlar, yangi rol (guruhlar), Mini App (chat ranglari); 1280px yangi rol (jadval).
+
+## Production'ga deploy (2026-10-07)
+
+`deploy/ship.sh` bilan `268caa8` yuborildi (00:51–00:55 Toshkent, exit 0): api image qayta build (Go), `next` image qayta build, migratsiya `00009_roles.sql` (goose 8 → 9, 109 ms), api/admin/web `--wait` bilan healthy. Oldingi daraxt: `/var/www/hisob24-v2.prev`. Pre-deploy dump: `/var/backups/hisob24-v2/hisob24-pre-roles-20261006-2150.sql.gz` (24 jadval, gzip tekshirilgan).
+
+Tekshiruvlar (sessiyasiz, hech narsa yozilmadi, SMS yuborilmadi):
+
+- Lokal pre-flight: daraxt toza va push qilingan; toza `git archive HEAD` nusxasidan `go build`, `go vet` va ikkala Next build (exit 0). Yangi env kaliti yo'q. Deploy'dan oldin rol oqimi lokal haqiqiy stack'da sinalgan (vaqtinchalik DB, curl va Playwright 375/1280: rol yaratish, biriktirish, rolli xodimning cheklovlari, rol olingach standart ruxsat).
+- Server pre-flight (read-only): konteynerlar healthy, deploy jarayoni yo'q, goose 8, satrlar: companies 1, users 2, user_companies 2, customers 2, customer_types 3, customer_dropdowns 1, tasks 1, task_stages 5, task_types 2, refresh_tokens 44; `roles` jadvali yo'q; `.env` kalitlari to'liq; disk 23%; API log ERROR/WARN 0.
+- Probe (29 ta): oldin 21/29, keyin 29/29. Yangi sakkiz tekshiruv: `/settings/roles/new` va `/settings/roles/1` sahifalari placeholder cookie bilan (404 → 200), `GET /api/app/roles` va `PUT /api/app/employees/{phone}/role` (404 → 401), `/settings` chunk'ida "Rol qo'shish", `/employees` chunk'ida "Rolni o'zgartirish", qobiq chunk'ida `pb-safe` (tab-bar) bor va `sheet-content` (olib tashlangan `Sheet`) yo'q — eski build'da aksi edi, shu yangi build jonli ekanining isboti. "Menyu" matni tekshiruvga yaramadi: sidebar ustunining `aria-label` i hali "Menyu". Qolganlari: healthz, login sahifalari, `/settings?tab=roles`, `/employees`, `/customers`, `/tasks`, admin `/companies` 200; API route'lar 401, noma'lum 404; webhook'lar sekretsiz 401; ikonlar.
+- Serverda: goose 9; `roles` jadvali (0 satr), `user_companies.role_id`, `user_companies_role_fk`, `user_companies_owner_has_no_role`, `roles_name` va `user_companies_role_id` bor; rolli a'zo 0, ya'ni migratsiya hech kimning huquqini o'zgartirmagan; qolgan satrlar soni o'zgarmagan; `.env` `.prev` bilan bir xil; restart 0; API log ERROR/WARN 0, web/admin log xatosi 0; dangling image 0; server daraxtining sha256 si (`.env` dan tashqari, 684 fayl) `git archive HEAD` bilan bir xil (`c19c224c…`).
+- Haqiqiy kirish bilan oqim production'da sinalmadi (`SMS_DRIVER=eskiz`): foydalanuvchining o'zi sinaydi.
