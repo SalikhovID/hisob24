@@ -22,8 +22,9 @@ import {
   useTaskStages,
   useTaskTypes,
 } from "@/lib/queries"
-import type { CustomerType, TaskStage, TaskType } from "@/lib/types"
-import { useOwner } from "@/lib/use-gate"
+import { can } from "@/lib/permissions"
+import type { CustomerType, Permission, TaskStage, TaskType } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
@@ -37,16 +38,19 @@ const link = "rounded-sm underline-offset-4 hover:underline"
 // on the muted strip (the customers' and the tasks' tabs).
 const tab = "px-3 text-muted-foreground data-active:bg-card"
 
-// SettingsPage is where the company's owner sets up what its customers and
-// its tasks are asked, in three tabs: the customer types with their fields;
+// SettingsPage is where what the company's customers and its tasks are
+// asked is set up, by the owner or an employee whose role holds
+// settings.view (adding, changing and deleting each take their own
+// permission), in three tabs: the customer types with their fields;
 // the task types with theirs and the stages the tasks go through; and the
 // dropdowns the choice fields of both take their options from. The open tab
 // is in the address. A type and a dropdown open on a page of their own.
 export function SettingsPage() {
-  const owner = useOwner()
+  const gate = usePermission("settings.view")
   const [open, select] = useSettingsTab()
-  if (!owner) return null
-  const companyId = owner.company.id
+  if (!gate) return null
+  const companyId = gate.company.id
+  const permissions = gate.permissions
 
   return (
     <div className="space-y-5">
@@ -68,23 +72,31 @@ export function SettingsPage() {
         </div>
         {/* A panel keeps the page's text size: its lists set their own. */}
         <TabsContent value="customers" className="space-y-8 text-base">
-          <CustomerTypes companyId={companyId} />
+          <CustomerTypes companyId={companyId} permissions={permissions} />
         </TabsContent>
         <TabsContent value="tasks" className="space-y-8 text-base">
-          <TaskTypes companyId={companyId} />
-          <Stages companyId={companyId} />
+          <TaskTypes companyId={companyId} permissions={permissions} />
+          <Stages companyId={companyId} permissions={permissions} />
         </TabsContent>
         <TabsContent value="dropdowns" className="space-y-8 text-base">
-          <Dropdowns companyId={companyId} />
+          <Dropdowns companyId={companyId} permissions={permissions} />
         </TabsContent>
       </Tabs>
     </div>
   )
 }
 
+// SectionProps is what a section of the settings works with: the company and
+// what the member may do to the settings.
+interface SectionProps {
+  companyId: number
+  permissions: Permission[]
+}
+
 // CustomerTypes is the company's customer types in the order the owner put
 // them in: the order of the type buttons when a customer is added.
-function CustomerTypes({ companyId }: { companyId: number }) {
+function CustomerTypes({ companyId, permissions }: SectionProps) {
+  const allowed = (permission: Permission) => can(permissions, permission)
   const types = useCustomerTypes(companyId)
   const queryClient = useQueryClient()
   const queryKey = customerTypesKey(companyId)
@@ -99,6 +111,7 @@ function CustomerTypes({ companyId }: { companyId: number }) {
       title="Mijoz turlari"
       description="Mijoz qo'shishda tanlanadi. Har turning o'z maydonlari bor."
       action={
+        allowed("settings.create") && (
         <NameDialog
           title="Tur qo'shish"
           description="Masalan: Jismoniy, Yuridik. Maydonlari tur sahifasida qo'shiladi."
@@ -115,6 +128,7 @@ function CustomerTypes({ companyId }: { companyId: number }) {
             await refresh()
           }}
         />
+        )
       }
     >
       {types.isPending && <ListLoading rows={2} mark="none" />}
@@ -130,6 +144,7 @@ function CustomerTypes({ companyId }: { companyId: number }) {
           getLabel={(type) => type.name}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
           className={settingList}
+          disabled={!allowed("settings.edit")}
           renderItem={(type, handle) => (
             <SettingRow
               handle={handle}
@@ -141,6 +156,7 @@ function CustomerTypes({ companyId }: { companyId: number }) {
               detail={type.fields.map((field) => field.label).join(", ")}
               actions={
                 <>
+                  {allowed("settings.edit") && (
                   <NameDialog
                     title="Tur nomini o'zgartirish"
                     description="Turning maydonlari va shu turdagi mijozlar o'zgarmaydi."
@@ -163,6 +179,8 @@ function CustomerTypes({ companyId }: { companyId: number }) {
                       await refresh()
                     }}
                   />
+                  )}
+                  {allowed("settings.delete") && (
                   <DeleteButton
                     label={`O'chirish: ${type.name}`}
                     title="Turni o'chirasizmi?"
@@ -173,6 +191,7 @@ function CustomerTypes({ companyId }: { companyId: number }) {
                       await refresh()
                     }}
                   />
+                  )}
                 </>
               }
             />
@@ -185,7 +204,8 @@ function CustomerTypes({ companyId }: { companyId: number }) {
 
 // TaskTypes is the company's task types in the order the owner put them in:
 // the order of the type buttons when a task is added.
-function TaskTypes({ companyId }: { companyId: number }) {
+function TaskTypes({ companyId, permissions }: SectionProps) {
+  const allowed = (permission: Permission) => can(permissions, permission)
   const types = useTaskTypes(companyId)
   const queryClient = useQueryClient()
   const queryKey = taskTypesKey(companyId)
@@ -197,6 +217,7 @@ function TaskTypes({ companyId }: { companyId: number }) {
       title="Vazifa turlari"
       description="Vazifa qo'shishda tanlanadi. Har turning o'z maydonlari bor."
       action={
+        allowed("settings.create") && (
         <NameDialog
           title="Vazifa turi qo'shish"
           description="Masalan: Buyurtma, Shikoyat. Maydonlari tur sahifasida qo'shiladi."
@@ -213,6 +234,7 @@ function TaskTypes({ companyId }: { companyId: number }) {
             await refresh()
           }}
         />
+        )
       }
     >
       {types.isPending && <ListLoading rows={2} mark="none" />}
@@ -228,6 +250,7 @@ function TaskTypes({ companyId }: { companyId: number }) {
           getLabel={(type) => type.name}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
           className={settingList}
+          disabled={!allowed("settings.edit")}
           renderItem={(type, handle) => (
             <SettingRow
               handle={handle}
@@ -239,6 +262,7 @@ function TaskTypes({ companyId }: { companyId: number }) {
               detail={type.fields.map((field) => field.label).join(", ")}
               actions={
                 <>
+                  {allowed("settings.edit") && (
                   <NameDialog
                     title="Vazifa turi nomini o'zgartirish"
                     description="Turning maydonlari va shu turdagi vazifalar o'zgarmaydi."
@@ -261,6 +285,8 @@ function TaskTypes({ companyId }: { companyId: number }) {
                       await refresh()
                     }}
                   />
+                  )}
+                  {allowed("settings.delete") && (
                   <DeleteButton
                     label={`O'chirish: ${type.name}`}
                     title="Vazifa turini o'chirasizmi?"
@@ -271,6 +297,7 @@ function TaskTypes({ companyId }: { companyId: number }) {
                       await refresh()
                     }}
                   />
+                  )}
                 </>
               }
             />
@@ -283,7 +310,8 @@ function TaskTypes({ companyId }: { companyId: number }) {
 
 // Stages is the company's stages in the order the owner put them in: the
 // columns of the board, left to right.
-function Stages({ companyId }: { companyId: number }) {
+function Stages({ companyId, permissions }: SectionProps) {
+  const allowed = (permission: Permission) => can(permissions, permission)
   const stages = useTaskStages(companyId)
   const queryClient = useQueryClient()
   const queryKey = taskStagesKey(companyId)
@@ -295,6 +323,7 @@ function Stages({ companyId }: { companyId: number }) {
       title="Bosqichlar"
       description="Kanban ustunlari. Vazifa shulardan birida turadi."
       action={
+        allowed("settings.create") && (
         <StageDialog
           title="Bosqich qo'shish"
           description="Masalan: Yangi, Jarayonda, Bajarildi. Bosqich ro'yxat oxiriga qo'shiladi."
@@ -311,6 +340,7 @@ function Stages({ companyId }: { companyId: number }) {
             await refresh()
           }}
         />
+        )
       }
     >
       {stages.isPending && <ListLoading rows={3} mark="none" />}
@@ -326,6 +356,7 @@ function Stages({ companyId }: { companyId: number }) {
           getLabel={(stage) => stage.name}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
           className={settingList}
+          disabled={!allowed("settings.edit")}
           renderItem={(stage, handle) => (
             <SettingRow
               handle={handle}
@@ -334,6 +365,7 @@ function Stages({ companyId }: { companyId: number }) {
               marks={stage.is_done && <Badge variant="secondary">Yakuniy</Badge>}
               actions={
                 <>
+                  {allowed("settings.edit") && (
                   <StageDialog
                     title="Bosqichni tahrirlash"
                     description="Bu bosqichdagi vazifalar o'z joyida qoladi."
@@ -351,6 +383,8 @@ function Stages({ companyId }: { companyId: number }) {
                       await refresh()
                     }}
                   />
+                  )}
+                  {allowed("settings.delete") && (
                   <DeleteButton
                     label={`O'chirish: ${stage.name}`}
                     title="Bosqichni o'chirasizmi?"
@@ -361,6 +395,7 @@ function Stages({ companyId }: { companyId: number }) {
                       await refresh()
                     }}
                   />
+                  )}
                 </>
               }
             />
@@ -372,7 +407,8 @@ function Stages({ companyId }: { companyId: number }) {
 }
 
 // Dropdowns is the company's dropdowns, in the order they were made.
-function Dropdowns({ companyId }: { companyId: number }) {
+function Dropdowns({ companyId, permissions }: SectionProps) {
+  const allowed = (permission: Permission) => can(permissions, permission)
   const dropdowns = useCustomerDropdowns(companyId)
   const queryClient = useQueryClient()
   const refresh = () => queryClient.invalidateQueries({ queryKey: customerDropdownsKey(companyId) })
@@ -382,6 +418,7 @@ function Dropdowns({ companyId }: { companyId: number }) {
       title="Dropdownlar"
       description="Mijoz va vazifa maydonlari variantlarni shu ro'yxatlardan oladi."
       action={
+        allowed("settings.create") && (
         <NameDialog
           title="Dropdown qo'shish"
           description="Masalan: Manba. Variantlari dropdown sahifasida qo'shiladi."
@@ -398,6 +435,7 @@ function Dropdowns({ companyId }: { companyId: number }) {
             await refresh()
           }}
         />
+        )
       }
     >
       {dropdowns.isPending && <ListLoading rows={2} mark="none" />}
@@ -421,6 +459,7 @@ function Dropdowns({ companyId }: { companyId: number }) {
                 detail={dropdown.options.map((option) => option.label).join(", ")}
                 actions={
                   <>
+                    {allowed("settings.edit") && (
                     <NameDialog
                       title="Dropdown nomini o'zgartirish"
                       description="Variantlari va uni ishlatadigan maydonlar o'zgarmaydi."
@@ -445,6 +484,8 @@ function Dropdowns({ companyId }: { companyId: number }) {
                         await refresh()
                       }}
                     />
+                    )}
+                    {allowed("settings.delete") && (
                     <DeleteButton
                       label={`O'chirish: ${dropdown.name}`}
                       title="Dropdownni o'chirasizmi?"
@@ -455,6 +496,7 @@ function Dropdowns({ companyId }: { companyId: number }) {
                         await refresh()
                       }}
                     />
+                    )}
                   </>
                 }
               />

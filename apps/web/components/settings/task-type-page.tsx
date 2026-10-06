@@ -6,10 +6,11 @@ import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { api, call } from "@/lib/api"
+import { can } from "@/lib/permissions"
 import { kindLabels } from "@/lib/fields"
 import { taskTypesKey, useCustomerDropdowns, useTaskTypes } from "@/lib/queries"
-import type { TaskField, TaskType } from "@/lib/types"
-import { useOwner } from "@/lib/use-gate"
+import type { Permission, TaskField, TaskType } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteButton } from "./delete-button"
 import { AddFieldDialog, EditFieldDialog } from "./field-dialog"
@@ -22,8 +23,9 @@ const back = { href: settingsHref("tasks"), label: "Sozlamalar" }
 // asks, in their order. The title, the deadline, the customer and the
 // assignee are not among them: every task has those.
 export function TaskTypePage({ id }: { id: number }) {
-  const owner = useOwner()
-  const companyId = owner ? owner.company.id : null
+  const gate = usePermission("settings.view")
+  const companyId = gate ? gate.company.id : null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const types = useTaskTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const queryClient = useQueryClient()
@@ -35,7 +37,7 @@ export function TaskTypePage({ id }: { id: number }) {
   // What a change did shows once the types are asked for again.
   const refresh = () => queryClient.invalidateQueries({ queryKey: taskTypesKey(companyId) })
 
-  if (!owner) return null
+  if (!gate) return null
   if (!types.data) {
     return (
       <div className="space-y-5">
@@ -64,6 +66,7 @@ export function TaskTypePage({ id }: { id: number }) {
         description={`Vazifa turi · ${type.fields.length} ta maydon`}
         back={back}
         actions={
+          allowed("settings.create") && (
           <AddFieldDialog
             dropdowns={dropdowns.data ?? []}
             unique={false}
@@ -78,6 +81,7 @@ export function TaskTypePage({ id }: { id: number }) {
               await refresh()
             }}
           />
+          )
         }
       />
       {type.fields.length === 0 && (
@@ -91,6 +95,7 @@ export function TaskTypePage({ id }: { id: number }) {
           getLabel={(field) => field.label}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
           className={settingList}
+          disabled={!allowed("settings.edit")}
           renderItem={(field, handle) => (
             <SettingRow
               handle={handle}
@@ -99,6 +104,7 @@ export function TaskTypePage({ id }: { id: number }) {
               marks={field.required && <Badge variant="secondary">Majburiy</Badge>}
               actions={
                 <>
+                  {allowed("settings.edit") && (
                   <EditFieldDialog
                     field={field}
                     kind={kindOf(field)}
@@ -113,6 +119,8 @@ export function TaskTypePage({ id }: { id: number }) {
                       await refresh()
                     }}
                   />
+                  )}
+                  {allowed("settings.delete") && (
                   <DeleteButton
                     label={`O'chirish: ${field.label}`}
                     title="Maydonni o'chirasizmi?"
@@ -127,6 +135,7 @@ export function TaskTypePage({ id }: { id: number }) {
                       await refresh()
                     }}
                   />
+                  )}
                 </>
               }
             />

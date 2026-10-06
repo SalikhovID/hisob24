@@ -6,11 +6,12 @@ import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { api, call } from "@/lib/api"
+import { can } from "@/lib/permissions"
 import { nameFieldOf } from "@/lib/customers"
 import { kindLabels } from "@/lib/fields"
 import { customerTypesKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
-import type { CustomerField, CustomerType } from "@/lib/types"
-import { useOwner } from "@/lib/use-gate"
+import type { CustomerField, CustomerType, Permission } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteButton } from "./delete-button"
 import { AddFieldDialog, EditFieldDialog } from "./field-dialog"
@@ -22,8 +23,9 @@ const back = { href: "/settings", label: "Sozlamalar" }
 // its form asks, in their order. The phone is not among them: every
 // customer has one. The first text field is the name a customer goes by.
 export function CustomerTypePage({ id }: { id: number }) {
-  const owner = useOwner()
-  const companyId = owner ? owner.company.id : null
+  const gate = usePermission("settings.view")
+  const companyId = gate ? gate.company.id : null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const queryClient = useQueryClient()
@@ -35,7 +37,7 @@ export function CustomerTypePage({ id }: { id: number }) {
   // What a change did shows once the types are asked for again.
   const refresh = () => queryClient.invalidateQueries({ queryKey: customerTypesKey(companyId) })
 
-  if (!owner) return null
+  if (!gate) return null
   if (!types.data) {
     return (
       <div className="space-y-5">
@@ -65,6 +67,7 @@ export function CustomerTypePage({ id }: { id: number }) {
         description={`Mijoz turi · ${type.fields.length} ta maydon`}
         back={back}
         actions={
+          allowed("settings.create") && (
           <AddFieldDialog
             dropdowns={dropdowns.data ?? []}
             unique
@@ -73,6 +76,7 @@ export function CustomerTypePage({ id }: { id: number }) {
               await refresh()
             }}
           />
+          )
         }
       />
       {type.fields.length === 0 && (
@@ -86,6 +90,7 @@ export function CustomerTypePage({ id }: { id: number }) {
           getLabel={(field) => field.label}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
           className={settingList}
+          disabled={!allowed("settings.edit")}
           renderItem={(field, handle) => (
             <SettingRow
               handle={handle}
@@ -104,6 +109,7 @@ export function CustomerTypePage({ id }: { id: number }) {
               }
               actions={
                 <>
+                  {allowed("settings.edit") && (
                   <EditFieldDialog
                     field={field}
                     kind={kindOf(field)}
@@ -118,6 +124,8 @@ export function CustomerTypePage({ id }: { id: number }) {
                       await refresh()
                     }}
                   />
+                  )}
+                  {allowed("settings.delete") && (
                   <DeleteButton
                     label={`O'chirish: ${field.label}`}
                     title="Maydonni o'chirasizmi?"
@@ -132,6 +140,7 @@ export function CustomerTypePage({ id }: { id: number }) {
                       await refresh()
                     }}
                   />
+                  )}
                 </>
               }
             />

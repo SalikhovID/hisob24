@@ -4,6 +4,7 @@ import { expect, test } from "vitest"
 import { ALI, db, dropdownsOf, stagesOf, taskTypesOf, typesOf, VALI } from "@/mocks/data"
 import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { SettingsPage } from "./settings-page"
@@ -471,4 +472,29 @@ test("the empty task settings say what they are for", async () => {
   expect(screen.getByText("Vazifa qo'shish uchun kamida bitta bosqich kerak.")).toBeInTheDocument()
   expect(await screen.findByText("Hali vazifa turi yo'q")).toBeInTheDocument()
   expect(screen.getByText("Vazifa qo'shish uchun kamida bitta tur kerak.")).toBeInTheDocument()
+})
+
+test("an employee whose role holds settings.view alone sees the settings without any way to change them", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["settings.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<SettingsPage />)
+
+  expect(rowsOf(await typeList())).toHaveLength(2)
+  expect(screen.queryByRole("button", { name: "Tur qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /Nomini o'zgartirish/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test("the settings actions follow the role: adding and changing here, not deleting", async () => {
+  giveRole(VALI, 1, "Sozlovchi", ["settings.view", "settings.create", "settings.edit"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<SettingsPage />)
+
+  await typeList()
+  expect(screen.getByRole("button", { name: "Tur qo'shish" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Nomini o'zgartirish: Jismoniy" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
 })

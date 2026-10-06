@@ -10,9 +10,10 @@ import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
+import { can } from "@/lib/permissions"
 import { customerDropdownsKey, useCustomerDropdowns } from "@/lib/queries"
-import type { CustomerDropdown, CustomerOption } from "@/lib/types"
-import { useOwner } from "@/lib/use-gate"
+import type { CustomerDropdown, CustomerOption, Permission } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
 import { AddOptionForm } from "./add-option-form"
@@ -27,8 +28,9 @@ const back = { href: settingsHref("dropdowns"), label: "Sozlamalar" }
 // choice fields that use it offer, in their order. An option that is turned
 // off is no longer offered, but stays on the customers who chose it.
 export function DropdownPage({ id }: { id: number }) {
-  const owner = useOwner()
-  const companyId = owner ? owner.company.id : null
+  const gate = usePermission("settings.view")
+  const companyId = gate ? gate.company.id : null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const dropdowns = useCustomerDropdowns(companyId)
   const queryClient = useQueryClient()
   // What a change did shows once the dropdowns are asked for again.
@@ -40,7 +42,7 @@ export function DropdownPage({ id }: { id: number }) {
     (ids) => call(api.PUT("/app/customer-dropdowns/{id}/options/order", { params: { path: { id } }, body: { ids } })),
   )
 
-  if (!owner) return null
+  if (!gate) return null
   if (!dropdowns.data) {
     return (
       <div className="space-y-5">
@@ -75,6 +77,7 @@ export function DropdownPage({ id }: { id: number }) {
           getLabel={(option) => option.label}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
           className={settingList}
+          disabled={!allowed("settings.edit")}
           renderItem={(option, handle) => (
             <SettingRow
               handle={handle}
@@ -82,6 +85,7 @@ export function DropdownPage({ id }: { id: number }) {
               marks={!option.is_active && <Badge variant="outline">Nofaol</Badge>}
               actions={
                 <>
+                  {allowed("settings.edit") && (
                   <NameDialog
                     title="Variant nomini o'zgartirish"
                     description="Bu variantni tanlagan mijozlarda ham yangi nom ko'rinadi."
@@ -109,7 +113,9 @@ export function DropdownPage({ id }: { id: number }) {
                       await refresh()
                     }}
                   />
-                  <ToggleOptionButton dropdownId={dropdown.id} option={option} onDone={refresh} />
+                  )}
+                  {allowed("settings.edit") && <ToggleOptionButton dropdownId={dropdown.id} option={option} onDone={refresh} />}
+                  {allowed("settings.delete") && (
                   <DeleteButton
                     label={`O'chirish: ${option.label}`}
                     title="Variantni o'chirasizmi?"
@@ -124,13 +130,14 @@ export function DropdownPage({ id }: { id: number }) {
                       await refresh()
                     }}
                   />
+                  )}
                 </>
               }
             />
           )}
         />
       )}
-      <AddOptionForm companyId={owner.company.id} dropdownId={dropdown.id} />
+      {allowed("settings.create") && <AddOptionForm companyId={gate.company.id} dropdownId={dropdown.id} />}
     </div>
   )
 }

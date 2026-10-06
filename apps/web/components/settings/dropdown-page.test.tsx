@@ -4,6 +4,7 @@ import { expect, test } from "vitest"
 import { ALI, db, dropdownsOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { DropdownPage } from "./dropdown-page"
@@ -176,4 +177,19 @@ test("the options are put in order from the keyboard, and the order is saved", a
 
   expect(optionsOf(await optionList()).map((option) => option.label)).toEqual(["YouTube", "Instagram", "LinkedIn"])
   await waitFor(() => expect(dropdownsOf(1)[0].options.map((option) => option.label)).toEqual(["YouTube", "Instagram", "LinkedIn"]))
+})
+
+test("an employee whose role holds settings.view alone sees the options without a way to change them", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["settings.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<DropdownPage id={manbaId()} />)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Manba" })).toBeInTheDocument()
+  expect(optionsOf(await optionList())).toHaveLength(3)
+  expect(screen.queryByRole("textbox", { name: "Yangi variant" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /Nomini o'zgartirish/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /Nofaol qilish|Faollashtirish/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
 })

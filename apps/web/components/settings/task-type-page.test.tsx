@@ -4,6 +4,7 @@ import { expect, test } from "vitest"
 import { ALI, db, taskTypesOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -207,4 +208,19 @@ test("the fields are put in order from the keyboard, and the order is saved", as
 
   expect(fieldsOf(await fieldList()).map((field) => field.label)).toEqual(["Manba", "Izoh"])
   await waitFor(() => expect(taskTypesOf(1)[0].fields.map((field) => field.label)).toEqual(["Manba", "Izoh"]))
+})
+
+test("an employee whose role holds settings.view alone sees the fields without a way to change them", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["settings.view"])
+  const vazifa = withFields()
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<TaskTypePage id={vazifa.id} />)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Vazifa" })).toBeInTheDocument()
+  expect(fieldsOf(await fieldList())).toHaveLength(2)
+  expect(screen.queryByRole("button", { name: "Maydon qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^Tahrirlash/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
 })

@@ -4,6 +4,7 @@ import { expect, test } from "vitest"
 import { ALI, db, typesOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { giveRole } from "@/test/roles"
 import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
@@ -258,4 +259,19 @@ test("the fields are put in order from the keyboard: the first text field is the
     ["Manba", false],
   ])
   await waitFor(() => expect(typesOf(1)[0].fields.map((field) => field.label)).toEqual(["Laqabi", "F.I.Sh.", "Manba"]))
+})
+
+test("an employee whose role holds settings.view alone sees the fields without a way to change them", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["settings.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const [, yuridik] = typesOf(1)
+  renderWithProviders(<CustomerTypePage id={yuridik.id} />)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Yuridik" })).toBeInTheDocument()
+  expect(fieldsOf(await fieldList())).toHaveLength(2)
+  expect(screen.queryByRole("button", { name: "Maydon qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^Tahrirlash/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
 })
