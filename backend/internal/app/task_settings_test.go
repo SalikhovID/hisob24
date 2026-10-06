@@ -80,7 +80,7 @@ func TestCreateTaskStage(t *testing.T) {
 	assert.JSONEq(t, `{"error":"validation_error","message":"Nomni kiriting"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPost, "/app/task-stages", `{"name":"Yangi","color":"blue"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestUpdateTaskStage(t *testing.T) {
@@ -109,7 +109,7 @@ func TestUpdateTaskStage(t *testing.T) {
 	assert.JSONEq(t, stageNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"name":"Yopiq"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestDeleteTaskStage(t *testing.T) {
@@ -154,7 +154,7 @@ func TestOrderTaskStages(t *testing.T) {
 	assert.JSONEq(t, orderChanged, rec.Body.String())
 	rec = api.do(t, http.MethodPut, "/app/task-stages/order", fmt.Sprintf(`{"ids":[%d,%d]}`, yangi, bajarildi), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestListTaskTypes(t *testing.T) {
@@ -211,7 +211,7 @@ func TestCreateTaskType(t *testing.T) {
 	assert.JSONEq(t, `{"error":"validation_error","message":"Nomni kiriting"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPost, "/app/task-types", `{"name":"Shikoyat"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestOrderTaskTypes(t *testing.T) {
@@ -234,7 +234,7 @@ func TestOrderTaskTypes(t *testing.T) {
 	assert.JSONEq(t, orderChanged, rec.Body.String())
 	rec = api.do(t, http.MethodPut, "/app/task-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, buyurtma, shikoyat), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestRenameTaskType(t *testing.T) {
@@ -256,7 +256,7 @@ func TestRenameTaskType(t *testing.T) {
 	assert.JSONEq(t, `{"error":"not_found","message":"Tur topilmadi"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/task-types/%d", buyurtma), `{"name":"Xodimniki"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestDeleteTaskType(t *testing.T) {
@@ -325,7 +325,7 @@ func TestAddTaskField(t *testing.T) {
 	assert.JSONEq(t, `{"error":"not_found","message":"Tur topilmadi"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPost, path, `{"label":"Summa","kind":"int"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestUpdateTaskField(t *testing.T) {
@@ -352,7 +352,7 @@ func TestUpdateTaskField(t *testing.T) {
 	assert.JSONEq(t, `{"error":"not_found","message":"Maydon topilmadi"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"label":"Xodimniki"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestDeleteTaskField(t *testing.T) {
@@ -400,5 +400,5 @@ func TestOrderTaskFields(t *testing.T) {
 	assert.JSONEq(t, orderChanged, rec.Body.String())
 	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, izoh, summa), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }

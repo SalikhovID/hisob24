@@ -39,5 +39,5 @@ func TestListMembers(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/members", "").Code, "no access token")
 	rec = api.do(t, http.MethodGet, "/app/employees", "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "managing the members stays the owner's")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }

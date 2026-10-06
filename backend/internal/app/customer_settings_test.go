@@ -29,7 +29,6 @@ func (api testAPI) id(t *testing.T, sql string, args ...any) int64 {
 
 const (
 	companyRequired = `{"error":"company_required","message":"Avval kompaniyani tanlang"}`
-	ownerOnly       = `{"error":"owner_only","message":"Bu bo'lim faqat kompaniya egasi uchun"}`
 )
 
 func TestListCustomerDropdowns(t *testing.T) {
@@ -116,7 +115,7 @@ func TestCreateCustomerDropdown(t *testing.T) {
 
 	rec = api.do(t, http.MethodPost, "/app/customer-dropdowns", `{"name":"Holat"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 const dropdownNotFound = `{"error":"not_found","message":"Dropdown topilmadi"}`
@@ -142,7 +141,7 @@ func TestRenameCustomerDropdown(t *testing.T) {
 	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"name":"Begona"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestDeleteCustomerDropdown(t *testing.T) {
@@ -159,7 +158,7 @@ func TestDeleteCustomerDropdown(t *testing.T) {
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
@@ -200,7 +199,7 @@ func TestAddCustomerDropdownOption(t *testing.T) {
 	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPost, path, `{"label":"LinkedIn"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestUpdateCustomerDropdownOption(t *testing.T) {
@@ -226,7 +225,7 @@ func TestUpdateCustomerDropdownOption(t *testing.T) {
 	assert.JSONEq(t, optionNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"label":"Begona"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestDeleteCustomerDropdownOption(t *testing.T) {
@@ -241,7 +240,7 @@ func TestDeleteCustomerDropdownOption(t *testing.T) {
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
@@ -282,7 +281,7 @@ func TestOrderCustomerDropdownOptions(t *testing.T) {
 	assert.JSONEq(t, dropdownNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, instagram, linkedin), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 const typeNotFound = `{"error":"not_found","message":"Tur topilmadi"}`
@@ -310,7 +309,7 @@ func TestCreateCustomerType(t *testing.T) {
 	assert.JSONEq(t, `{"error":"validation_error","message":"Nomni kiriting"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPost, "/app/customer-types", `{"name":"Yuridik"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 // addType inserts a customer type of the company at a place and returns its id.
@@ -340,7 +339,7 @@ func TestOrderCustomerTypes(t *testing.T) {
 	assert.JSONEq(t, orderChanged, rec.Body.String())
 	rec = api.do(t, http.MethodPut, "/app/customer-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, jismoniy, yuridik), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestRenameCustomerType(t *testing.T) {
@@ -361,7 +360,7 @@ func TestRenameCustomerType(t *testing.T) {
 	assert.JSONEq(t, typeNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"name":"Begona"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestDeleteCustomerType(t *testing.T) {
@@ -375,7 +374,7 @@ func TestDeleteCustomerType(t *testing.T) {
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
@@ -424,7 +423,7 @@ func TestAddCustomerField(t *testing.T) {
 	assert.JSONEq(t, typeNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPost, path, `{"label":"Izoh","kind":"string"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 // addField inserts a text field of the type at a place and returns its id.
@@ -458,7 +457,7 @@ func TestUpdateCustomerField(t *testing.T) {
 	assert.JSONEq(t, fieldNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"label":"Begona"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
 func TestDeleteCustomerField(t *testing.T) {
@@ -472,7 +471,7 @@ func TestDeleteCustomerField(t *testing.T) {
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
@@ -509,5 +508,5 @@ func TestOrderCustomerFields(t *testing.T) {
 	assert.JSONEq(t, typeNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, fish, izoh), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 }

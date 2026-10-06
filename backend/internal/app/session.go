@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
@@ -127,16 +128,17 @@ func unauthorized(w http.ResponseWriter) {
 	httpx.Error(w, http.StatusUnauthorized, "unauthorized", "Avval tizimga kiring")
 }
 
-type roleKey struct{}
+type accessKey struct{}
 
 // requireAccess checks the access token's company against the database on
 // every request, so a change counts at once, not when the token expires:
 //   - the user is no longer its member: 401 unauthorized, and the app
 //     refreshes the session, which drops the company or ends;
 //   - the company has expired or been blocked: 402;
-//   - otherwise the role there, as it is now, goes into the context.
+//   - otherwise their standing there as it is now, the role and the
+//     permissions (logic/roles.md, section 7), goes into the context.
 //
-// A token before the choice of a company passes with no role, and
+// A token before the choice of a company passes with no standing, and
 // /app/auth/* is outside it, so the user can switch to another company.
 func (h *Handler) requireAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -145,30 +147,65 @@ func (h *Handler) requireAccess(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		access, err := h.profiles.Access(r.Context(), claims.Phone, *claims.CompanyID)
+		standing, err := h.profiles.Access(r.Context(), claims.Phone, *claims.CompanyID)
 		switch {
 		case errors.Is(err, user.ErrNotMember):
 			unauthorized(w)
 		case err != nil:
 			httpx.InternalError(w, r, err)
-		case !access.Active:
+		case !standing.Active:
 			httpx.Error(w, http.StatusPaymentRequired, "subscription_expired", "Kompaniya obunasi tugagan")
 		default:
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), roleKey{}, access.Role)))
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), accessKey{}, standing)))
 		}
 	})
 }
 
-// currentRole is the user's role in the access token's company as
+// currentAccess is the member's standing in the access token's company as
 // requireAccess read it from the database: the token's own role claim may be
-// minutes old. "" before a company is chosen.
+// minutes old. Empty before a company is chosen.
+func currentAccess(ctx context.Context) user.Access {
+	standing, _ := ctx.Value(accessKey{}).(user.Access)
+	return standing
+}
+
+// currentRole is the member's role in the company; "" before a company is
+// chosen.
 func currentRole(ctx context.Context) string {
-	role, _ := ctx.Value(roleKey{}).(string)
-	return role
+	return currentAccess(ctx).Role
+}
+
+// currentPermissions is what the member may do in the company: the owner
+// everything, an employee what their role, or the default, allows.
+func currentPermissions(ctx context.Context) access.Set {
+	return currentAccess(ctx).Permissions
+}
+
+// forbidden answers a request for something the member may not do.
+func forbidden(w http.ResponseWriter) {
+	httpx.Error(w, http.StatusForbidden, "forbidden", "Bu amal uchun ruxsatingiz yo'q")
+}
+
+// requirePermission lets through only a member whose permissions in the
+// company, as requireAccess read them, hold p; anyone else gets 403.
+// requireCompany has run before it, so there is a company.
+func (h *Handler) requirePermission(p access.Permission) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !currentPermissions(r.Context()).Has(p) {
+				forbidden(w)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // requireOwner lets through only the owner of the company the session works
-// in; a user of the company, and a session with no company chosen, get 403.
+// in: the roles are theirs alone to manage. A user of the company, and a
+// session with no company chosen, get 403.
+//
+//nolint:unused // Stage 2 of the roles work mounts the roles API behind it.
 func (h *Handler) requireOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if currentRole(r.Context()) != "owner" {

@@ -330,7 +330,7 @@ func TestCustomerHistory(t *testing.T) {
 
 	rec = api.do(t, http.MethodGet, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "the history is for the owner")
-	assert.JSONEq(t, ownerOnly, rec.Body.String())
+	assert.JSONEq(t, noPermission, rec.Body.String())
 	rec = api.do(t, http.MethodGet, path, "", bearer(stranger))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "the owner of another company")
 	assert.JSONEq(t, customerNotFound, rec.Body.String())

@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
@@ -58,64 +59,77 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireUser, h.requireAccess)
 			r.Get("/me", h.me)
-			r.Group(func(r chi.Router) {
-				r.Use(h.requireOwner)
-				r.Get("/employees", h.listEmployees)
-				r.Post("/employees", h.addEmployee)
-				r.Patch("/employees/{phone}", h.renameEmployee)
-				r.Delete("/employees/{phone}", h.removeEmployee)
-				r.Post("/customer-dropdowns", h.createCustomerDropdown)
-				r.Patch("/customer-dropdowns/{id}", h.renameCustomerDropdown)
-				r.Delete("/customer-dropdowns/{id}", h.deleteCustomerDropdown)
-				r.Post("/customer-dropdowns/{id}/options", h.addCustomerDropdownOption)
-				r.Patch("/customer-dropdowns/{id}/options/{optionId}", h.updateCustomerDropdownOption)
-				r.Delete("/customer-dropdowns/{id}/options/{optionId}", h.deleteCustomerDropdownOption)
-				r.Put("/customer-dropdowns/{id}/options/order", h.orderCustomerDropdownOptions)
-				r.Post("/customer-types", h.createCustomerType)
-				r.Put("/customer-types/order", h.orderCustomerTypes)
-				r.Patch("/customer-types/{id}", h.renameCustomerType)
-				r.Delete("/customer-types/{id}", h.deleteCustomerType)
-				r.Post("/customer-types/{id}/fields", h.addCustomerField)
-				r.Patch("/customer-types/{id}/fields/{fieldId}", h.updateCustomerField)
-				r.Delete("/customer-types/{id}/fields/{fieldId}", h.deleteCustomerField)
-				r.Put("/customer-types/{id}/fields/order", h.orderCustomerFields)
-				r.Post("/task-stages", h.createTaskStage)
-				r.Put("/task-stages/order", h.orderTaskStages)
-				r.Patch("/task-stages/{id}", h.updateTaskStage)
-				r.Delete("/task-stages/{id}", h.deleteTaskStage)
-				r.Post("/task-types", h.createTaskType)
-				r.Put("/task-types/order", h.orderTaskTypes)
-				r.Patch("/task-types/{id}", h.renameTaskType)
-				r.Delete("/task-types/{id}", h.deleteTaskType)
-				r.Post("/task-types/{id}/fields", h.addTaskField)
-				r.Patch("/task-types/{id}/fields/{fieldId}", h.updateTaskField)
-				r.Delete("/task-types/{id}/fields/{fieldId}", h.deleteTaskField)
-				r.Put("/task-types/{id}/fields/order", h.orderTaskFields)
-			})
-			// The customers, the tasks and what they are set up with are for
-			// every member of the company the session works in, as is the
-			// list of its members; changing the setup is the owner's.
+			// Everything else is done inside a company, by what the member
+			// may do there (logic/roles.md, section 4).
 			r.Group(func(r chi.Router) {
 				r.Use(h.requireCompany)
+				// What every member reads: the lists the forms are built from.
 				r.Get("/members", h.listMembers)
 				r.Get("/customer-dropdowns", h.listCustomerDropdowns)
 				r.Get("/customer-types", h.listCustomerTypes)
 				r.Get("/task-stages", h.listTaskStages)
 				r.Get("/task-types", h.listTaskTypes)
-				r.Get("/customers", h.listCustomers)
-				r.Post("/customers", h.createCustomer)
-				r.Get("/customers/{id}", h.getCustomer)
-				r.Put("/customers/{id}", h.updateCustomer)
-				r.Delete("/customers/{id}", h.deleteCustomer)
-				// Who did what to a customer is for the owner to see.
-				r.With(h.requireOwner).Get("/customers/{id}/history", h.customerHistory)
-				r.Get("/tasks", h.listTasks)
-				r.Post("/tasks", h.createTask)
-				r.Get("/tasks/{id}", h.getTask)
-				r.Put("/tasks/{id}", h.updateTask)
-				r.Delete("/tasks/{id}", h.deleteTask)
-				r.Patch("/tasks/{id}/stage", h.moveTask)
-				r.With(h.requireOwner).Get("/tasks/{id}/history", h.taskHistory)
+
+				allowed := func(p access.Permission) chi.Router { return r.With(h.requirePermission(p)) }
+
+				allowed(access.EmployeesView).Get("/employees", h.listEmployees)
+				allowed(access.EmployeesCreate).Post("/employees", h.addEmployee)
+				allowed(access.EmployeesEdit).Patch("/employees/{phone}", h.renameEmployee)
+				allowed(access.EmployeesDelete).Delete("/employees/{phone}", h.removeEmployee)
+
+				// The settings: what the customers and the tasks are asked,
+				// and the stages the tasks go through.
+				r.Group(func(r chi.Router) {
+					r.Use(h.requirePermission(access.SettingsCreate))
+					r.Post("/customer-dropdowns", h.createCustomerDropdown)
+					r.Post("/customer-dropdowns/{id}/options", h.addCustomerDropdownOption)
+					r.Post("/customer-types", h.createCustomerType)
+					r.Post("/customer-types/{id}/fields", h.addCustomerField)
+					r.Post("/task-stages", h.createTaskStage)
+					r.Post("/task-types", h.createTaskType)
+					r.Post("/task-types/{id}/fields", h.addTaskField)
+				})
+				r.Group(func(r chi.Router) {
+					r.Use(h.requirePermission(access.SettingsEdit))
+					r.Patch("/customer-dropdowns/{id}", h.renameCustomerDropdown)
+					r.Patch("/customer-dropdowns/{id}/options/{optionId}", h.updateCustomerDropdownOption)
+					r.Put("/customer-dropdowns/{id}/options/order", h.orderCustomerDropdownOptions)
+					r.Put("/customer-types/order", h.orderCustomerTypes)
+					r.Patch("/customer-types/{id}", h.renameCustomerType)
+					r.Patch("/customer-types/{id}/fields/{fieldId}", h.updateCustomerField)
+					r.Put("/customer-types/{id}/fields/order", h.orderCustomerFields)
+					r.Put("/task-stages/order", h.orderTaskStages)
+					r.Patch("/task-stages/{id}", h.updateTaskStage)
+					r.Put("/task-types/order", h.orderTaskTypes)
+					r.Patch("/task-types/{id}", h.renameTaskType)
+					r.Patch("/task-types/{id}/fields/{fieldId}", h.updateTaskField)
+					r.Put("/task-types/{id}/fields/order", h.orderTaskFields)
+				})
+				r.Group(func(r chi.Router) {
+					r.Use(h.requirePermission(access.SettingsDelete))
+					r.Delete("/customer-dropdowns/{id}", h.deleteCustomerDropdown)
+					r.Delete("/customer-dropdowns/{id}/options/{optionId}", h.deleteCustomerDropdownOption)
+					r.Delete("/customer-types/{id}", h.deleteCustomerType)
+					r.Delete("/customer-types/{id}/fields/{fieldId}", h.deleteCustomerField)
+					r.Delete("/task-stages/{id}", h.deleteTaskStage)
+					r.Delete("/task-types/{id}", h.deleteTaskType)
+					r.Delete("/task-types/{id}/fields/{fieldId}", h.deleteTaskField)
+				})
+
+				allowed(access.CustomersView).Get("/customers", h.listCustomers)
+				allowed(access.CustomersCreate).Post("/customers", h.createCustomer)
+				allowed(access.CustomersView).Get("/customers/{id}", h.getCustomer)
+				allowed(access.CustomersEdit).Put("/customers/{id}", h.updateCustomer)
+				allowed(access.CustomersDelete).Delete("/customers/{id}", h.deleteCustomer)
+				allowed(access.CustomersHistory).Get("/customers/{id}/history", h.customerHistory)
+
+				allowed(access.TasksView).Get("/tasks", h.listTasks)
+				allowed(access.TasksCreate).Post("/tasks", h.createTask)
+				allowed(access.TasksView).Get("/tasks/{id}", h.getTask)
+				allowed(access.TasksEdit).Put("/tasks/{id}", h.updateTask)
+				allowed(access.TasksDelete).Delete("/tasks/{id}", h.deleteTask)
+				allowed(access.TasksEdit).Patch("/tasks/{id}/stage", h.moveTask)
+				allowed(access.TasksHistory).Get("/tasks/{id}/history", h.taskHistory)
 			})
 		})
 	})
