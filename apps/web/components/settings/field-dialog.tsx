@@ -26,7 +26,7 @@ import {
 import { FieldGroup } from "@/components/ui/field"
 import { NativeSelectOption } from "@/components/ui/native-select"
 import { api, call } from "@/lib/api"
-import { isChoice, kindLabels, kinds } from "@/lib/customer-fields"
+import { isChoice, kindLabels, kinds } from "@/lib/fields"
 import { customerTypesKey } from "@/lib/queries"
 import { fieldPatchSchema, fieldSchema } from "@/lib/schemas"
 import type { CustomerDropdown, CustomerField } from "@/lib/types"

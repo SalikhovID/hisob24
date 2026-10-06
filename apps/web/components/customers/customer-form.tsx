@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ApiError } from "@/lib/api"
-import { isChoice } from "@/lib/customer-fields"
-import { type CustomerForm, type CustomerOutput, fieldKey } from "@/lib/customers"
+import { type CustomerForm, type CustomerOutput } from "@/lib/customers"
+import { fieldKey, isChoice } from "@/lib/fields"
 import type { Customer, CustomerDropdown, CustomerField, CustomerOption, CustomerType } from "@/lib/types"
 
 type FormControl = Control<CustomerForm, unknown, CustomerOutput>

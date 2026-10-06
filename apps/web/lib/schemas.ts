@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { isChoice, kinds } from "./customer-fields"
+import { isChoice, kinds } from "./fields"
 import { phoneDigits } from "./phone"
 
 // required is a text field that must hold more than spaces.
