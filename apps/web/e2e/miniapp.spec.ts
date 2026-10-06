@@ -1,6 +1,7 @@
 import { ALI, TG_ALI, TG_STRANGER, TG_UNLINKED } from "../mocks/data"
 import type { Page } from "@playwright/test"
 import { expect, test } from "./fixtures"
+import { onPhone } from "./helpers"
 
 const fits = async (page: Page) =>
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
@@ -58,6 +59,13 @@ test.describe("a linked user", () => {
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(23, 33, 43)")
     await expect(page.getByRole("button", { name: "Mavzuni almashtirish" })).toHaveCount(0)
     await fits(page)
+    // On a phone the sections are a tab bar along the bottom, in the chat's colors.
+    if (onPhone(page)) {
+      const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
+      await expect(bar.getByRole("link", { name: "Xodimlar" })).toBeVisible()
+      await expect(bar).toHaveCSS("background-color", "rgb(35, 46, 60)")
+      await expect(page.getByRole("button", { name: "Menyu", exact: true })).toHaveCount(0)
+    }
     // Closing the Mini App is the way out: the profile menu offers none.
     await page.getByRole("button", { name: "Profil" }).click()
     await expect(page.getByRole("menu").getByText("+998 90 123 45 67")).toBeVisible()

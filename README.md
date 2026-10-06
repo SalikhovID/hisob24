@@ -118,6 +118,7 @@ pnpm --filter @hisob24/web dev
 - **Kompaniya rollari** egasi **Sozlamalar → Rollar** da tuzadi: nom va ruxsat matritsasi. Amal bo'limning "Ko'rish" ruxsatisiz qabul qilinmaydi. Xodimlarga biriktirilgan rol o'chirilmaydi. Rollarni faqat egasi boshqaradi va biriktiradi.
 - Ruxsat har so'rovda bazadan o'qiladi: rol o'zgarsa, xodim keyingi so'rovdanoq yangi ruxsat bilan ishlaydi. Ruxsati yo'q amal API'da 403 `forbidden`; rollar API xodimga 403 `owner_only`.
 - Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi rolsiz xodim bo'lib qoladi; yangi egasining roli olib tashlanadi.
+- Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar, tor ekranda (telefon brauzeri va Telegram Mini App) pastdagi tab-bar. Bosh sahifa hammaga.
 - Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
 - Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga SMS kod ham ketmaydi.
 - Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.

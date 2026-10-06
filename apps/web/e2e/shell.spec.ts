@@ -10,28 +10,41 @@ async function signIn(page: Page, number: string) {
   await page.getByRole("textbox", { name: "Kod" }).fill(LOGIN_CODE)
 }
 
-// The sidebar is a column from the md breakpoint up, a sheet below it.
+// The sidebar is a column from the md breakpoint up, a tab bar along the
+// bottom below it.
 const onPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 768
 
 const width = (page: Page) => async () => (await page.getByRole("complementary", { name: "Menyu" }).boundingBox())?.width
 
-test("the sections are a folding sidebar on a wide screen and a sheet on a phone", async ({ page }) => {
+// tabBar is the phone's sections: the navigation that is shown, the
+// sidebar's being hidden there.
+const tabBar = (page: Page) => page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
+
+test("the sections are a folding sidebar on a wide screen and a tab bar along the bottom of a phone", async ({ page }) => {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   const sidebar = page.getByRole("complementary", { name: "Menyu" })
 
   if (onPhone(page)) {
     await expect(sidebar).toBeHidden()
-    await page.getByRole("button", { name: "Menyu", exact: true }).click()
-    const sheet = page.getByRole("dialog", { name: "Olma Savdo" })
-    await expect(sheet.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
-    await expect(sheet.getByRole("link", { name: "Xodimlar" })).toBeVisible()
-    await sheet.getByRole("link", { name: "Bosh sahifa" }).click()
-    await expect(sheet).toBeHidden()
+    await expect(page.getByRole("button", { name: "Menyu", exact: true })).toHaveCount(0)
+    const bar = tabBar(page)
+    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Xodimlar", "Sozlamalar"])
+    await expect(bar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
+    // The bar stands along the bottom, under the page, and the page fits its width.
+    const box = (await bar.boundingBox())!
+    const viewport = page.viewportSize()!
+    expect(box.y + box.height).toBeGreaterThanOrEqual(viewport.height - 1)
+    expect(box.width).toBe(viewport.width)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
+    await bar.getByRole("link", { name: "Xodimlar" }).click()
+    await expect(page).toHaveURL(/\/employees$/)
+    await expect(bar.getByRole("link", { name: "Xodimlar" })).toHaveAttribute("aria-current", "page")
+    await expect(bar.getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current", "page")
     return
   }
 
-  await expect(page.getByRole("button", { name: "Menyu", exact: true })).toBeHidden()
+  await expect(page.getByRole("button", { name: "Menyu", exact: true })).toHaveCount(0)
   await expect(sidebar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
   await expect(sidebar.getByRole("link", { name: "Xodimlar" })).toBeVisible()
   await expect(sidebar.getByText("Olma Savdo")).toBeVisible()
@@ -57,8 +70,7 @@ test("an employee sees no section of the owner's", async ({ page }) => {
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 
-  if (onPhone(page)) await page.getByRole("button", { name: "Menyu", exact: true }).click()
-  const sections = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
+  const sections = tabBar(page)
   await expect(sections.getByRole("link", { name: "Bosh sahifa" })).toBeVisible()
   await expect(sections.getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
 })
@@ -91,14 +103,12 @@ test("the shell is headed by Hisob24's logo, the company's name under it, and by
   }
 
   if (onPhone(page)) {
-    // The top bar stands for the sidebar, which a phone hides.
+    // The top bar stands for the sidebar, which a phone hides; the tab bar
+    // has the sections alone, no logo.
     const bar = page.getByRole("banner")
     await expect(bar.getByRole("img", logo)).toBeVisible()
     await under(bar)
-    await page.getByRole("button", { name: "Menyu", exact: true }).click()
-    const sheet = page.getByRole("dialog", { name: "Olma Savdo" })
-    await expect(sheet.getByRole("img", logo)).toBeVisible()
-    await under(sheet)
+    await expect(tabBar(page).getByRole("img", logo)).toHaveCount(0)
     return
   }
 

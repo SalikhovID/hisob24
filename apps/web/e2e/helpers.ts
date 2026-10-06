@@ -9,18 +9,17 @@ export async function signIn(page: Page, number: string) {
   await page.getByRole("textbox", { name: "Kod" }).fill(LOGIN_CODE)
 }
 
-// The sidebar is a column from the md breakpoint up, a sheet below it; lists
-// are tables there and cards here.
+// The sidebar is a column from the md breakpoint up, a tab bar along the
+// bottom below it; lists are tables there and cards here.
 export const onPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 768
 
-// sections is the list of sections as the screen shows it: on a phone the
-// menu's sheet is opened for it.
+// sections is the list of sections as the screen shows it: the sidebar's on
+// a wide screen, the tab bar's on a phone.
 export async function sections(page: Page): Promise<Locator> {
-  if (onPhone(page)) await page.getByRole("button", { name: "Menyu", exact: true }).click()
   return page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
 }
 
-// openSection goes to a section through the sidebar.
+// openSection goes to a section through the sidebar or the tab bar.
 export async function openSection(page: Page, name: string) {
   await (await sections(page)).getByRole("link", { name }).click()
 }
