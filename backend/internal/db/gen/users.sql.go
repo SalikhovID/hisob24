@@ -14,7 +14,7 @@ const addCompanyUser = `-- name: AddCompanyUser :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_phone, company_id) DO NOTHING
-RETURNING user_phone, company_id, role, created_at, full_name
+RETURNING user_phone, company_id, role, created_at, full_name, role_id
 `
 
 type AddCompanyUserParams struct {
@@ -40,6 +40,7 @@ func (q *Queries) AddCompanyUser(ctx context.Context, arg AddCompanyUserParams) 
 		&i.Role,
 		&i.CreatedAt,
 		&i.FullName,
+		&i.RoleID,
 	)
 	return i, err
 }
@@ -56,9 +57,10 @@ func (q *Queries) DemoteCompanyOwner(ctx context.Context, companyID int64) error
 }
 
 const getCompanyAccess = `-- name: GetCompanyAccess :one
-SELECT uc.role, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
+SELECT uc.role, uc.role_id, r.permissions, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
+LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.user_phone = $1 AND uc.company_id = $2
 `
 
@@ -68,18 +70,63 @@ type GetCompanyAccessParams struct {
 }
 
 type GetCompanyAccessRow struct {
-	Role   string
-	Active bool
+	Role        string
+	RoleID      *int64
+	Permissions []string
+	Active      bool
 }
 
-// A user's standing in a company, read on every request: the role there and
-// whether the subscription lets the company be used (the end date has not
-// passed and it is not blocked). pgx.ErrNoRows when the user is not its
-// member.
+// A user's standing in a company, read on every request: the role there,
+// the company role they hold with its permissions (NULL for the owner and
+// for a user without one) and whether the subscription lets the company be
+// used (the end date has not passed and it is not blocked). pgx.ErrNoRows
+// when the user is not its member.
 func (q *Queries) GetCompanyAccess(ctx context.Context, arg GetCompanyAccessParams) (GetCompanyAccessRow, error) {
 	row := q.db.QueryRow(ctx, getCompanyAccess, arg.UserPhone, arg.CompanyID)
 	var i GetCompanyAccessRow
-	err := row.Scan(&i.Role, &i.Active)
+	err := row.Scan(
+		&i.Role,
+		&i.RoleID,
+		&i.Permissions,
+		&i.Active,
+	)
+	return i, err
+}
+
+const getCompanyMember = `-- name: GetCompanyMember :one
+SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.created_at
+FROM user_companies uc
+LEFT JOIN roles r ON r.id = uc.role_id
+WHERE uc.user_phone = $1 AND uc.company_id = $2
+`
+
+type GetCompanyMemberParams struct {
+	UserPhone string
+	CompanyID int64
+}
+
+type GetCompanyMemberRow struct {
+	Phone     string
+	FullName  *string
+	Role      string
+	RoleID    *int64
+	RoleName  *string
+	CreatedAt time.Time
+}
+
+// One member of the company under the name they go by there, with the role
+// they hold; pgx.ErrNoRows when the user is not its member.
+func (q *Queries) GetCompanyMember(ctx context.Context, arg GetCompanyMemberParams) (GetCompanyMemberRow, error) {
+	row := q.db.QueryRow(ctx, getCompanyMember, arg.UserPhone, arg.CompanyID)
+	var i GetCompanyMemberRow
+	err := row.Scan(
+		&i.Phone,
+		&i.FullName,
+		&i.Role,
+		&i.RoleID,
+		&i.RoleName,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -162,21 +209,25 @@ func (q *Queries) HasCompany(ctx context.Context, userPhone string) (bool, error
 }
 
 const listCompanyUsers = `-- name: ListCompanyUsers :many
-SELECT user_phone AS phone, full_name, role, created_at
-FROM user_companies
-WHERE company_id = $1
-ORDER BY (role = 'owner') DESC, created_at, user_phone
+SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.created_at
+FROM user_companies uc
+LEFT JOIN roles r ON r.id = uc.role_id
+WHERE uc.company_id = $1
+ORDER BY (uc.role = 'owner') DESC, uc.created_at, uc.user_phone
 `
 
 type ListCompanyUsersRow struct {
 	Phone     string
 	FullName  *string
 	Role      string
+	RoleID    *int64
+	RoleName  *string
 	CreatedAt time.Time
 }
 
-// The company's members under the names they go by there: the owner first,
-// then the users in the order they joined.
+// The company's members under the names they go by there, each with the
+// role they hold (none for the owner and for a user without one): the owner
+// first, then the users in the order they joined.
 func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error) {
 	rows, err := q.db.Query(ctx, listCompanyUsers, companyID)
 	if err != nil {
@@ -190,6 +241,8 @@ func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]List
 			&i.Phone,
 			&i.FullName,
 			&i.Role,
+			&i.RoleID,
+			&i.RoleName,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -203,9 +256,10 @@ func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]List
 }
 
 const listUserCompanies = `-- name: ListUserCompanies :many
-SELECT c.id, c.name, c.end_date, (c.end_date - CURRENT_DATE)::int AS days_left, c.is_active, uc.role, uc.full_name
+SELECT c.id, c.name, c.end_date, (c.end_date - CURRENT_DATE)::int AS days_left, c.is_active, uc.role, uc.full_name, r.name AS role_name
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
+LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.user_phone = $1
 ORDER BY c.name, c.id
 `
@@ -218,11 +272,13 @@ type ListUserCompaniesRow struct {
 	IsActive bool
 	Role     string
 	FullName *string
+	RoleName *string
 }
 
 // The user's companies for /app/me and for choosing one at login, each with
-// the role and the name the user goes by there. days_left counts from the
-// database's today, as the 402 check does.
+// the role, the company role they hold (if any) and the name the user goes
+// by there. days_left counts from the database's today, as the 402 check
+// does.
 func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]ListUserCompaniesRow, error) {
 	rows, err := q.db.Query(ctx, listUserCompanies, userPhone)
 	if err != nil {
@@ -240,6 +296,7 @@ func (q *Queries) ListUserCompanies(ctx context.Context, userPhone string) ([]Li
 			&i.IsActive,
 			&i.Role,
 			&i.FullName,
+			&i.RoleName,
 		); err != nil {
 			return nil, err
 		}
@@ -275,7 +332,7 @@ func (q *Queries) RemoveCompanyUser(ctx context.Context, arg RemoveCompanyUserPa
 const renameCompanyUser = `-- name: RenameCompanyUser :one
 UPDATE user_companies SET full_name = $3
 WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
-RETURNING user_phone, company_id, role, created_at, full_name
+RETURNING user_phone, company_id, role, created_at, full_name, role_id
 `
 
 type RenameCompanyUserParams struct {
@@ -295,6 +352,7 @@ func (q *Queries) RenameCompanyUser(ctx context.Context, arg RenameCompanyUserPa
 		&i.Role,
 		&i.CreatedAt,
 		&i.FullName,
+		&i.RoleID,
 	)
 	return i, err
 }
@@ -302,8 +360,8 @@ func (q *Queries) RenameCompanyUser(ctx context.Context, arg RenameCompanyUserPa
 const setCompanyOwner = `-- name: SetCompanyOwner :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, 'owner', $3)
-ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', full_name = EXCLUDED.full_name
-RETURNING user_phone, company_id, role, created_at, full_name
+ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', role_id = NULL, full_name = EXCLUDED.full_name
+RETURNING user_phone, company_id, role, created_at, full_name, role_id
 `
 
 type SetCompanyOwnerParams struct {
@@ -313,7 +371,8 @@ type SetCompanyOwnerParams struct {
 }
 
 // Makes the user the company's owner under full_name, a member or not. The
-// owner before has to be demoted first: a company has one owner.
+// owner before has to be demoted first: a company has one owner. A role the
+// user held as a member is taken away: the owner has every permission.
 func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error) {
 	row := q.db.QueryRow(ctx, setCompanyOwner, arg.UserPhone, arg.CompanyID, arg.FullName)
 	var i UserCompany
@@ -323,6 +382,7 @@ func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams
 		&i.Role,
 		&i.CreatedAt,
 		&i.FullName,
+		&i.RoleID,
 	)
 	return i, err
 }

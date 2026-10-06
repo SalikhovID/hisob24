@@ -77,6 +77,9 @@ func TestGetCompanyAccess(t *testing.T) {
 	addMember(t, q, anor.ID, "998901234567", "Ali", "user")
 	addMember(t, q, behi.ID, "998901234567", "Ali", "user")
 	createUser(t, q, "998909999999", "Vali")
+	sotuvchi := addRole(t, pool, olma.ID, "Sotuvchi", "customers.view", "customers.create")
+	addMember(t, q, olma.ID, "998905555555", "Sardor", "user")
+	mustExec(t, pool, "UPDATE user_companies SET role_id = $1 WHERE user_phone = '998905555555'", sotuvchi)
 	access := func(phone string, companyID int64) (gen.GetCompanyAccessRow, error) {
 		return q.GetCompanyAccess(ctx, gen.GetCompanyAccessParams{UserPhone: phone, CompanyID: companyID})
 	}
@@ -85,6 +88,15 @@ func TestGetCompanyAccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "owner", got.Role)
 	assert.True(t, got.Active, "the last paid day counts")
+	assert.Nil(t, got.RoleID, "the owner has no role")
+	assert.Nil(t, got.Permissions)
+
+	got, err = access("998905555555", olma.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "user", got.Role)
+	require.NotNil(t, got.RoleID)
+	assert.Equal(t, sotuvchi, *got.RoleID, "the role the member holds")
+	assert.Equal(t, []string{"customers.view", "customers.create"}, got.Permissions, "with its permissions")
 
 	got, err = access("998901234567", anor.ID)
 	require.NoError(t, err)
@@ -140,6 +152,8 @@ func TestSetCompanyOwner(t *testing.T) {
 
 	nok := createCompany(t, q, "Nok", d)
 	addMember(t, q, nok.ID, "998902222222", "Vali", "user")
+	kassir := addRole(t, pool, nok.ID, "Kassir", "tasks.view")
+	mustExec(t, pool, "UPDATE user_companies SET role_id = $1 WHERE company_id = $2", kassir, nok.ID)
 	var joined time.Time
 	require.NoError(t, pool.QueryRow(ctx, "SELECT created_at FROM user_companies WHERE company_id = $1", nok.ID).Scan(&joined))
 	m, err = q.SetCompanyOwner(ctx, gen.SetCompanyOwnerParams{UserPhone: "998902222222", CompanyID: nok.ID, FullName: ptr("Vali Egasi")})
@@ -148,6 +162,7 @@ func TestSetCompanyOwner(t *testing.T) {
 	require.NotNil(t, m.FullName)
 	assert.Equal(t, "Vali Egasi", *m.FullName, "and renamed")
 	assert.True(t, m.CreatedAt.Equal(joined), "the membership is the same one")
+	assert.Nil(t, m.RoleID, "the owner has no role: the one held as a user is taken away")
 	var members int
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM user_companies WHERE company_id = $1", nok.ID).Scan(&members))
 	assert.Equal(t, 1, members)
@@ -247,6 +262,8 @@ func TestListCompanyUsers(t *testing.T) {
 	addMember(t, q, other.ID, "998909999999", "Begona", "owner")
 	mustExec(t, pool, "UPDATE user_companies SET created_at = now() - interval '2 days' WHERE user_phone = '998903333333'")
 	mustExec(t, pool, "UPDATE user_companies SET full_name = 'Xodim (hisobchi)' WHERE user_phone = '998902222222'")
+	sotuvchi := addRole(t, pool, c.ID, "Sotuvchi", "customers.view")
+	mustExec(t, pool, "UPDATE user_companies SET role_id = $1 WHERE user_phone = '998902222222'", sotuvchi)
 
 	users, err := q.ListCompanyUsers(t.Context(), c.ID)
 
@@ -259,6 +276,38 @@ func TestListCompanyUsers(t *testing.T) {
 	assert.Equal(t, "user", users[2].Role)
 	require.NotNil(t, users[2].FullName)
 	assert.Equal(t, "Xodim (hisobchi)", *users[2].FullName, "the name in the company, not the user's own")
+	require.NotNil(t, users[2].RoleID)
+	assert.Equal(t, sotuvchi, *users[2].RoleID)
+	require.NotNil(t, users[2].RoleName)
+	assert.Equal(t, "Sotuvchi", *users[2].RoleName, "the role the member holds, by name")
+	assert.Nil(t, users[0].RoleID, "the owner has no role")
+	assert.Nil(t, users[0].RoleName)
+	assert.Nil(t, users[1].RoleName, "a user with no role")
+}
+
+func TestGetCompanyMember(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	c := createCompany(t, q, "Olma", today(t, pool))
+	addMember(t, q, c.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, c.ID, "998902222222", "Xodim", "user")
+	sotuvchi := addRole(t, pool, c.ID, "Sotuvchi", "customers.view")
+	mustExec(t, pool, "UPDATE user_companies SET role_id = $1 WHERE user_phone = '998902222222'", sotuvchi)
+
+	m, err := q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: "998902222222", CompanyID: c.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "998902222222", m.Phone)
+	assert.Equal(t, "user", m.Role)
+	require.NotNil(t, m.FullName)
+	assert.Equal(t, "Xodim", *m.FullName)
+	require.NotNil(t, m.RoleName)
+	assert.Equal(t, "Sotuvchi", *m.RoleName, "the role the member holds, by name")
+
+	m, err = q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: "998901111111", CompanyID: c.ID})
+	require.NoError(t, err)
+	assert.Nil(t, m.RoleName, "the owner has no role")
+	_, err = q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: "998909999999", CompanyID: c.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
 }
 
 func addMember(t *testing.T, q *gen.Queries, companyID int64, phone, name, role string) {
@@ -278,6 +327,8 @@ func TestListUserCompanies(t *testing.T) {
 	addMember(t, q, behi.ID, "998901234567", "Ali", "user")
 	addMember(t, q, nok.ID, "998909999999", "Vali", "owner")
 	mustExec(t, pool, "UPDATE user_companies SET full_name = 'Ali (hisobchi)' WHERE company_id = $1", behi.ID)
+	hisobchi := addRole(t, pool, behi.ID, "Hisobchi", "customers.view")
+	mustExec(t, pool, "UPDATE user_companies SET role_id = $1 WHERE company_id = $2", hisobchi, behi.ID)
 
 	got, err := q.ListUserCompanies(t.Context(), "998901234567")
 
@@ -293,6 +344,9 @@ func TestListUserCompanies(t *testing.T) {
 	assert.True(t, got[1].IsActive)
 	require.NotNil(t, got[1].FullName)
 	assert.Equal(t, "Ali", *got[1].FullName)
+	require.NotNil(t, got[0].RoleName)
+	assert.Equal(t, "Hisobchi", *got[0].RoleName, "the role the user holds there")
+	assert.Nil(t, got[1].RoleName, "the owner has no role")
 }
 
 func TestGetUserCompany(t *testing.T) {

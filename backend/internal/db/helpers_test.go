@@ -52,3 +52,13 @@ func sqlState(err error) string {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// addRole makes a company role with permissions and returns its id.
+func addRole(t *testing.T, pool *pgxpool.Pool, companyID int64, name string, permissions ...string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(context.Background(),
+		"INSERT INTO roles (company_id, name, permissions) VALUES ($1, $2, $3) RETURNING id",
+		companyID, name, append([]string{}, permissions...)).Scan(&id))
+	return id
+}

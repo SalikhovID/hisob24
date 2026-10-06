@@ -136,6 +136,15 @@ type RefreshToken struct {
 	Source    string
 }
 
+type Role struct {
+	ID          int64
+	CompanyID   int64
+	Name        string
+	Permissions []string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type SmsCode struct {
 	Phone     string
 	CodeHash  string
@@ -233,4 +242,5 @@ type UserCompany struct {
 	Role      string
 	CreatedAt time.Time
 	FullName  *string
+	RoleID    *int64
 }

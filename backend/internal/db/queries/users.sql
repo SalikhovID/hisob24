@@ -8,20 +8,32 @@ ON CONFLICT (phone) DO NOTHING;
 SELECT * FROM users WHERE phone = $1;
 
 -- name: ListCompanyUsers :many
--- The company's members under the names they go by there: the owner first,
--- then the users in the order they joined.
-SELECT user_phone AS phone, full_name, role, created_at
-FROM user_companies
-WHERE company_id = $1
-ORDER BY (role = 'owner') DESC, created_at, user_phone;
+-- The company's members under the names they go by there, each with the
+-- role they hold (none for the owner and for a user without one): the owner
+-- first, then the users in the order they joined.
+SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.created_at
+FROM user_companies uc
+LEFT JOIN roles r ON r.id = uc.role_id
+WHERE uc.company_id = $1
+ORDER BY (uc.role = 'owner') DESC, uc.created_at, uc.user_phone;
+
+-- name: GetCompanyMember :one
+-- One member of the company under the name they go by there, with the role
+-- they hold; pgx.ErrNoRows when the user is not its member.
+SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.created_at
+FROM user_companies uc
+LEFT JOIN roles r ON r.id = uc.role_id
+WHERE uc.user_phone = $1 AND uc.company_id = $2;
 
 -- name: ListUserCompanies :many
 -- The user's companies for /app/me and for choosing one at login, each with
--- the role and the name the user goes by there. days_left counts from the
--- database's today, as the 402 check does.
-SELECT c.id, c.name, c.end_date, (c.end_date - CURRENT_DATE)::int AS days_left, c.is_active, uc.role, uc.full_name
+-- the role, the company role they hold (if any) and the name the user goes
+-- by there. days_left counts from the database's today, as the 402 check
+-- does.
+SELECT c.id, c.name, c.end_date, (c.end_date - CURRENT_DATE)::int AS days_left, c.is_active, uc.role, uc.full_name, r.name AS role_name
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
+LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.user_phone = $1
 ORDER BY c.name, c.id;
 
@@ -42,10 +54,11 @@ RETURNING *;
 
 -- name: SetCompanyOwner :one
 -- Makes the user the company's owner under full_name, a member or not. The
--- owner before has to be demoted first: a company has one owner.
+-- owner before has to be demoted first: a company has one owner. A role the
+-- user held as a member is taken away: the owner has every permission.
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, 'owner', $3)
-ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', full_name = EXCLUDED.full_name
+ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', role_id = NULL, full_name = EXCLUDED.full_name
 RETURNING *;
 
 -- name: DemoteCompanyOwner :exec
@@ -59,13 +72,15 @@ UPDATE user_companies SET role = 'user' WHERE company_id = $1 AND role = 'owner'
 SELECT EXISTS (SELECT 1 FROM user_companies WHERE user_phone = $1);
 
 -- name: GetCompanyAccess :one
--- A user's standing in a company, read on every request: the role there and
--- whether the subscription lets the company be used (the end date has not
--- passed and it is not blocked). pgx.ErrNoRows when the user is not its
--- member.
-SELECT uc.role, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
+-- A user's standing in a company, read on every request: the role there,
+-- the company role they hold with its permissions (NULL for the owner and
+-- for a user without one) and whether the subscription lets the company be
+-- used (the end date has not passed and it is not blocked). pgx.ErrNoRows
+-- when the user is not its member.
+SELECT uc.role, uc.role_id, r.permissions, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
+LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.user_phone = $1 AND uc.company_id = $2;
 
 -- name: RenameCompanyUser :one

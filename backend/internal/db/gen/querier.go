@@ -166,11 +166,15 @@ type Querier interface {
 	// admin gives pgx.ErrNoRows.
 	GetAdminBySession(ctx context.Context, id uuid.UUID) (Admin, error)
 	GetCompany(ctx context.Context, id int64) (Company, error)
-	// A user's standing in a company, read on every request: the role there and
-	// whether the subscription lets the company be used (the end date has not
-	// passed and it is not blocked). pgx.ErrNoRows when the user is not its
-	// member.
+	// A user's standing in a company, read on every request: the role there,
+	// the company role they hold with its permissions (NULL for the owner and
+	// for a user without one) and whether the subscription lets the company be
+	// used (the end date has not passed and it is not blocked). pgx.ErrNoRows
+	// when the user is not its member.
 	GetCompanyAccess(ctx context.Context, arg GetCompanyAccessParams) (GetCompanyAccessRow, error)
+	// One member of the company under the name they go by there, with the role
+	// they hold; pgx.ErrNoRows when the user is not its member.
+	GetCompanyMember(ctx context.Context, arg GetCompanyMemberParams) (GetCompanyMemberRow, error)
 	// The company's customer; pgx.ErrNoRows when it has none such, or deleted
 	// it. created_by_name is the name the member who entered it goes by in the
 	// company now; once they have left it (or go by no name), the name of then.
@@ -218,8 +222,9 @@ type Querier interface {
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
 	ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error)
-	// The company's members under the names they go by there: the owner first,
-	// then the users in the order they joined.
+	// The company's members under the names they go by there, each with the
+	// role they hold (none for the owner and for a user without one): the owner
+	// first, then the users in the order they joined.
 	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
 	// The dropdown's options in their order: what a new order has to name, all
 	// of them and nothing else.
@@ -273,8 +278,9 @@ type Querier interface {
 	// leaves its filter out.
 	ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTasksRow, error)
 	// The user's companies for /app/me and for choosing one at login, each with
-	// the role and the name the user goes by there. days_left counts from the
-	// database's today, as the 402 check does.
+	// the role, the company role they hold (if any) and the name the user goes
+	// by there. days_left counts from the database's today, as the 402 check
+	// does.
 	ListUserCompanies(ctx context.Context, userPhone string) ([]ListUserCompaniesRow, error)
 	// Locks every active admin row, so "keep at least one active admin" holds
 	// under concurrent deactivations.
@@ -337,7 +343,8 @@ type Querier interface {
 	SeedTaskSettings(ctx context.Context, companyID int64) error
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// Makes the user the company's owner under full_name, a member or not. The
-	// owner before has to be demoted first: a company has one owner.
+	// owner before has to be demoted first: a company has one owner. A role the
+	// user held as a member is taken away: the owner has every permission.
 	SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
