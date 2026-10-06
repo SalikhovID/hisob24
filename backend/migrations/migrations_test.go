@@ -466,3 +466,140 @@ func TestCustomerHistory(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"998902222222"}, actors, "what they did stays theirs")
 }
+
+func TestTaskStages(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	addStage := func(companyID int64, name, color string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx,
+			"INSERT INTO task_stages (company_id, name, color, position) VALUES ($1, $2, $3, 1) RETURNING id", companyID, name, color).Scan(&id)
+		return id, err
+	}
+
+	yangi, err := addStage(olma, "Yangi", "blue")
+	require.NoError(t, err)
+	_, err = addStage(olma, "YANGI", "red")
+	assert.Equal(t, "23505", sqlState(err), "the name is taken in the company, in any case") // unique_violation
+	_, err = addStage(nok, "Yangi", "blue")
+	assert.NoError(t, err, "another company's stage")
+	for _, color := range []string{"slate", "red", "orange", "amber", "green", "teal", "blue", "violet", "pink"} {
+		_, err = addStage(nok, "Rang "+color, color)
+		assert.NoError(t, err, color)
+	}
+	_, err = addStage(olma, "Oltin", "gold")
+	assert.Equal(t, "23514", sqlState(err), "a color that is not one of the nine") // check_violation
+	_, err = addStage(olma, "Rangsiz", "")
+	assert.Equal(t, "23514", sqlState(err), "no color")
+	var done bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT is_done FROM task_stages WHERE id = $1", yangi).Scan(&done))
+	assert.False(t, done, "a stage holds unfinished tasks unless said otherwise")
+
+	_, err = pool.Exec(ctx, "UPDATE task_stages SET deleted_at = now() WHERE id = $1", yangi)
+	require.NoError(t, err)
+	_, err = addStage(olma, "Yangi", "blue")
+	assert.NoError(t, err, "a deleted stage's name is free again")
+}
+
+func TestTaskTypesAndFields(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	addType := func(companyID int64, name string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx,
+			"INSERT INTO task_types (company_id, name, position) VALUES ($1, $2, 1) RETURNING id", companyID, name).Scan(&id)
+		return id, err
+	}
+	vazifa, err := addType(olma, "Vazifa")
+	require.NoError(t, err)
+	_, err = addType(olma, "VAZIFA")
+	assert.Equal(t, "23505", sqlState(err), "the type's name is taken in the company, in any case")
+	begona, err := addType(nok, "Vazifa")
+	require.NoError(t, err, "another company's type")
+
+	var manba, nokManba int64
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma).Scan(&manba))
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", nok).Scan(&nokManba))
+
+	// addField adds a field of Olma's to a task type.
+	addField := func(typeID int64, label, kind string, dropdownID *int64) error {
+		_, err := pool.Exec(ctx, `INSERT INTO task_fields (company_id, type_id, label, kind, dropdown_id, position)
+			VALUES ($1, $2, $3, $4, $5, 1)`, olma, typeID, label, kind, dropdownID)
+		return err
+	}
+	require.NoError(t, addField(vazifa, "Izoh", "string", nil))
+	var required bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT required FROM task_fields WHERE type_id = $1", vazifa).Scan(&required))
+	assert.False(t, required, "a field may stay empty unless said otherwise")
+	assert.Equal(t, "23505", sqlState(addField(vazifa, "izoh", "string", nil)), "the field's name is taken in the type")
+	for _, kind := range []string{"int", "dropdown", "multi_dropdown", "radio", "checkbox"} {
+		var dropdown *int64
+		if kind != "int" {
+			dropdown = &manba
+		}
+		assert.NoError(t, addField(vazifa, "Maydon "+kind, kind, dropdown), kind)
+	}
+	assert.Equal(t, "23514", sqlState(addField(vazifa, "Sana", "date", nil)), "a kind that is not one of the six") // check_violation
+	assert.Equal(t, "23514", sqlState(addField(vazifa, "Tanlov", "dropdown", nil)), "a choice field without a dropdown")
+	assert.Equal(t, "23514", sqlState(addField(vazifa, "Matn", "string", &manba)), "a text field with a dropdown")
+	assert.Equal(t, "23503", sqlState(addField(vazifa, "Tanlov", "dropdown", &nokManba)), "another company's dropdown") // foreign_key_violation
+	assert.Equal(t, "23503", sqlState(addField(begona, "Izoh", "string", nil)), "another company's type")
+	_, err = pool.Exec(ctx, "SELECT is_unique FROM task_fields")
+	assert.Equal(t, "42703", sqlState(err), "a task field is never told not to repeat") // undefined_column
+
+	_, err = pool.Exec(ctx, "UPDATE task_fields SET deleted_at = now() WHERE type_id = $1 AND label = 'Izoh'", vazifa)
+	require.NoError(t, err)
+	assert.NoError(t, addField(vazifa, "Izoh", "string", nil), "a deleted field's name is free again")
+	_, err = pool.Exec(ctx, "UPDATE task_types SET deleted_at = now() WHERE id = $1", vazifa)
+	require.NoError(t, err)
+	_, err = addType(olma, "Vazifa")
+	assert.NoError(t, err, "a deleted type's name is free again")
+}
+
+// taskStagesOf describes a company's stages in their order, each as
+// "name color [done]".
+func taskStagesOf(t *testing.T, pool *pgxpool.Pool, companyID int64) []string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), `SELECT name || ' ' || color || CASE WHEN is_done THEN ' done' ELSE '' END
+		FROM task_stages WHERE company_id = $1 AND deleted_at IS NULL ORDER BY position`, companyID)
+	require.NoError(t, err)
+	stages, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return stages
+}
+
+// taskTypesOf describes a company's task types, in their order, each as
+// "name: field kind [required], …" with the fields in theirs.
+func taskTypesOf(t *testing.T, pool *pgxpool.Pool, companyID int64) []string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), `SELECT t.name || ': ' || COALESCE(string_agg(
+			f.label || ' ' || f.kind || CASE WHEN f.required THEN ' required' ELSE '' END, ', ' ORDER BY f.position), '')
+		FROM task_types t LEFT JOIN task_fields f ON f.type_id = t.id
+		WHERE t.company_id = $1 GROUP BY t.id ORDER BY t.position`, companyID)
+	require.NoError(t, err)
+	types, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return types
+}
+
+func TestTheTaskSettingsMigrationGivesEveryCompanyTheReadySettings(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 6)
+	require.NoError(t, err)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+
+	_, err = provider.UpTo(ctx, 7)
+	require.NoError(t, err)
+
+	stages := []string{"Yangi blue", "Jarayonda amber", "Bajarildi green done"}
+	assert.Equal(t, stages, taskStagesOf(t, pool, olma))
+	assert.Equal(t, stages, taskStagesOf(t, pool, nok), "every company gets its own")
+	assert.Equal(t, []string{"Vazifa: "}, taskTypesOf(t, pool, olma), "one type with no fields")
+	assert.Equal(t, []string{"Vazifa: "}, taskTypesOf(t, pool, nok))
+}
