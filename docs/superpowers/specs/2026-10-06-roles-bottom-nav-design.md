@@ -264,3 +264,17 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **Mock API:** `permittedSession` = `memberSession` + ruxsat; `permissionsOf` hozircha egasi → katalog, xodim → standart (rollar mock'ka 2-bosqichda keladi, `role_name` va `role_id` null).
 - **O'zgargan mavjud testlar** (talab o'zgargani uchun): Go'da ruxsatli route'larda `owner_only` → `forbidden` (`customer_settings`, `task_settings`, `members`, `customers`, `tasks`, `employees` testlari), `TestEmployeesAreForTheOwnerOnly` → `TestEmployeesNeedTheirPermission` (kompaniyasiz token → `company_required`), `TestAccess` ruxsat to'plami bilan, `TestGetCompanyAccess` / `TestListCompanyUsers` / `TestListUserCompanies` / `TestSetCompanyOwner` rol bilan, `TestMe` / `TestListEmployees` yangi maydonlar bilan, admin `TestGetCompany` rol maydonlari; web `handlers.test.ts` (`forbidden`, `company_required`, `/app/me` `permissions`, a'zolarda rol maydonlari), `query-client.test.tsx` (`forbidden`); admin `company-page.test.tsx` a'zo obyekti rol maydonlari bilan. Hech biri o'chirilmadi.
 - **Tekshiruv:** `make lint` toza; `make test`: Go barcha paketlar, api-client 1, admin 228, web 521; `make e2e`: admin 40, web 90.
+
+## 2-bosqich qarorlari (2026-10-06)
+
+Bajarildi: `roles.sql` (`CreateRole`, `ListRoles`, `GetRole`, `UpdateRole`, `DeleteRole`, `CountRoleMembers`), `users.sql` `SetCompanyUserRole`, `company/roles.go` (`Roles`, `CreateRole`, `UpdateRole`, `DeleteRole`, `SetEmployeeRole`), `app/roles.go` va route'lar (`requireOwner`), openapi (`/app/roles`, `/app/roles/{id}`, `/app/employees/{phone}/role`; `CompanyRole`, `RoleInput`, `EmployeeRoleInput`; `RoleNotFound`, `RoleOrEmployeeNotFound`, `RoleConflict`) + TS client, web mock (`db.roles`, `Membership.roleId`, `mocks/roles.ts`, `permissionsOf` rol bilan, `rolesOf`, `roleOf`), `lib/permissions.ts` (`Section`, `sectionLabels`, `sectionOf`). Reja: `docs/superpowers/plans/2026-10-06-roles-stage2-roles-api.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Rollar API `requireCompany`siz, to'g'ridan-to'g'ri `requireOwner` ostida:** kompaniyasiz token `owner_only` oladi (`logic/roles.md`, 9-bo'lim), ruxsatli route'lardagi `company_required` emas.
+- **`UpdateRole` va `SetEmployeeRole` tranzaksiyada:** yozuvdan keyin javob uchun `GetRole` / `GetCompanyMember` o'qiladi (RETURNING'da a'zolar soni va rol nomi yo'q). `DeleteRole`: `GetRole` (404) → `MembersCount > 0` (409 `role_in_use`) → `DELETE`; FK baribir himoya qiladi.
+- **`SetEmployeeRole` tartibi:** telefon (404 "Xodim topilmadi") → rol kompaniyaniki (404 "Rol topilmadi") → `SetCompanyUserRole` (qator yo'q: egasi 409 `cannot_change_owner`, a'zo emas 404). Egasiga berilayotgan rol begona bo'lsa, "Rol topilmadi" birinchi.
+- **`ListRoles` tartibi** `lower(name), id`; `CountRoleMembers` parametri `*int64` (`role_id` nullable ustun), servis uni ishlatmaydi: `GetRole` dagi `members_count` yetarli, so'rov kelajak uchun qoldi.
+- **Handler testlarida `ownerOnly` konstantasi** `roles_test.go` da qayta kiritildi (1-bosqichda `noPermission` ga almashgan edi): rollar API uchun kerak.
+- **Mock:** `rolesHandlers` `ownerSession` bilan; `parsePermissions` Go `access.Parse` bilan bir xil xabarlar; xodim roli `Membership.roleId`; `handlers.test.ts` dagi "rol bilan ishlash" testi egasiga qaytish uchun qayta kirmaydi (mock SMS 60 soniya cheklovi), tokenini `setAccessToken` bilan tiklaydi.
+- **Tekshiruv:** `make lint` 0 issues; `make test`: Go barcha paketlar, api-client 1, admin 228, web 525; `make e2e`: admin 40, web 90.
