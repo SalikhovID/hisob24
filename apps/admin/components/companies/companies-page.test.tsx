@@ -130,12 +130,14 @@ test("the platform's count stays on screen while pages turn", async () => {
   await user.click(screen.getByRole("button", { name: "Keyingi" }))
   await waitFor(() => expect(currentUrl()).toBe("/companies?page=2"))
 
-  // The second page is still on its way; the count has not blinked.
-  expect(screen.getByText("1–20 / 45")).toBeInTheDocument()
+  // The second page is still on its way: the first is still on screen, and
+  // the count has not blinked.
+  expect(screen.getByText("45 tadan 20 ta ko'rsatilmoqda")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "1" })).toHaveAttribute("aria-current", "page")
   expect(screen.getByText("Platformadagi kompaniyalar · 45 ta")).toBeInTheDocument()
 
   release()
-  expect(await screen.findByText("21–40 / 45")).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page"))
   expect(screen.getByText("Platformadagi kompaniyalar · 45 ta")).toBeInTheDocument()
 })
 
@@ -223,15 +225,16 @@ test("the list goes page by page, twenty at a time", async () => {
   setLocation("/companies")
   const { user } = renderWithProviders(<CompaniesPage />)
 
-  expect(await screen.findByText("1–20 / 45")).toBeInTheDocument()
+  expect(await screen.findByText("45 tadan 20 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Oldingi" })).toBeDisabled()
 
   await user.click(screen.getByRole("button", { name: "Keyingi" }))
   await waitFor(() => expect(currentUrl()).toBe("/companies?page=2"))
-  expect(await screen.findByText("21–40 / 45")).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page"))
 
-  await user.click(screen.getByRole("button", { name: "Keyingi" }))
-  expect(await screen.findByText("41–45 / 45")).toBeInTheDocument()
+  // The last page is opened by its number, and holds what is left.
+  await user.click(screen.getByRole("button", { name: "3" }))
+  expect(await screen.findByText("45 tadan 5 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Keyingi" })).toBeDisabled()
 })
 
