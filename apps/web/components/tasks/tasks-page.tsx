@@ -4,7 +4,7 @@ import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import { KanbanIcon, ListIcon } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { ColumnsMenu } from "@/components/customers/columns-menu"
 import { SearchInput } from "@/components/customers/search-input"
 import { type Column, DataList } from "@/components/data-list"
@@ -170,11 +170,17 @@ export function TasksPage() {
   // How many tasks the company has is the unfiltered list's total: under a
   // filter the API counts the matches only. The total is kept from the last
   // unfiltered answer, so a filtered number never stands in for it.
-  const unfiltered = everyType && filter.stageId === null && !filter.assignee && !filter.search
+  // The board has no stage filter: there every stage is a column.
+  const unfiltered = everyType && !filter.assignee && !filter.search && (view === "board" || filter.stageId === null)
   const [total, setTotal] = useState<number>()
   if (unfiltered && tasks.data && !tasks.isPlaceholderData && tasks.data.total !== total) {
     setTotal(tasks.data.total)
   }
+  // The board counts its columns up and tells the page, when nothing
+  // narrows them.
+  const onTotal = useCallback((sum: number | undefined) => {
+    if (sum !== undefined) setTotal(sum)
+  }, [])
   // The answer on screen while the next one loads is the previous filter's;
   // "nothing found" is not said of a filter that has not answered yet.
   const settling = tasks.isPlaceholderData && tasks.data?.total === 0
@@ -290,7 +296,19 @@ export function TasksPage() {
               </div>
             </div>
           )}
-          {view === "board" && ready && <TaskBoard />}
+          {view === "board" && ready && (
+            <TaskBoard
+              companyId={companyId}
+              phone={phone}
+              stages={stages.data}
+              types={types.data}
+              everyType={everyType}
+              filter={{ search: filter.search, typeId: filter.typeId, assignee: filter.assignee }}
+              onTotal={onTotal}
+              // The dialog that opens for a stage comes with the task form.
+              onAdd={() => {}}
+            />
+          )}
           {view === "list" && loading && <ListLoading rows={6} mark="none" />}
           {failed?.error && <Failed error={failed.error} onRetry={() => queries.forEach((query) => query.refetch())} />}
           {view === "list" && !loading && !failed && tasks.data?.total === 0 && (

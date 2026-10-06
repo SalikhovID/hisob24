@@ -1,8 +1,9 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { type InfiniteData, keepPreviousData, type QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { api, call } from "./api"
+import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
 import { clearSession, setAccessToken } from "./session"
+import type { Task, TaskPage } from "./types"
 
 export const meKey = ["me"] as const
 
@@ -159,6 +160,99 @@ export function useTasks(companyId: number | null, filter: TaskFilter) {
     enabled: companyId !== null,
     // The list on screen stays while the next filter's answer is on its way.
     placeholderData: keepPreviousData,
+  })
+}
+
+// StageFilter narrows a stage's column of the board: the search, one type
+// and one assignee; the stage is the column's own.
+export type StageFilter = Pick<TaskFilter, "search" | "typeId" | "assignee">
+
+// stageTasksKey names a stage's column in the cache: the tasks of the stage
+// under the filter, page after page.
+export const stageTasksKey = (companyId: number | null, stageId: number, filter: StageFilter) =>
+  [...tasksKey(companyId), "stage", stageId, filter] as const
+
+// useStageTasks is a stage's column of the board: the tasks of the stage,
+// the one due soonest first, twenty at a time, with more to ask for.
+export function useStageTasks(companyId: number | null, stageId: number, filter: StageFilter) {
+  return useInfiniteQuery({
+    queryKey: stageTasksKey(companyId, stageId, filter),
+    queryFn: ({ pageParam }) =>
+      call(
+        api.GET("/app/tasks", {
+          params: {
+            query: {
+              search: filter.search || undefined,
+              type_id: filter.typeId ?? undefined,
+              assignee: filter.assignee || undefined,
+              stage_id: stageId,
+              page: pageParam,
+            },
+          },
+        }),
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page * last.page_size < last.total ? last.page + 1 : undefined),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+// taskKey names one task of a company in the cache.
+export const taskKey = (companyId: number | null, id: number) => ["task", companyId, id] as const
+
+// A stage's column as the cache holds it.
+type Column = InfiniteData<TaskPage, number>
+
+// sooner is the API's order: the task due first, then the older of one day.
+const sooner = (a: Task, b: Task) => a.deadline.localeCompare(b.deadline) || a.id - b.id
+
+// moveInColumns moves the task into the stage across every column of the
+// board in the cache: out of the column it stands in, into the new one at
+// its place by its deadline, the totals following; the pages keep their
+// size, so what is left to ask for stays right. The server's answer, asked
+// for after, settles anything a filter would have changed.
+function moveInColumns(queryClient: QueryClient, companyId: number, task: Task, stageId: number) {
+  for (const [key, column] of queryClient.getQueriesData<Column>({ queryKey: [...tasksKey(companyId), "stage"] })) {
+    const columnStage = key[3]
+    if (!column || typeof columnStage !== "number") continue
+    const items = column.pages.flatMap((page) => page.items)
+    const held = items.some((item) => item.id === task.id)
+    let next: Task[]
+    let total = column.pages[0]?.total ?? 0
+    if (columnStage === stageId) {
+      next = [...items.filter((item) => item.id !== task.id), { ...task, stage_id: stageId }].sort(sooner)
+      total += held ? 0 : 1
+    } else if (held) {
+      next = items.filter((item) => item.id !== task.id)
+      total -= 1
+    } else continue
+    const size = column.pages[0]?.page_size ?? 20
+    const pages: TaskPage[] = []
+    for (let i = 0; i < Math.max(1, Math.ceil(next.length / size)); i += 1) {
+      pages.push({ items: next.slice(i * size, (i + 1) * size), total, page: i + 1, page_size: size })
+    }
+    queryClient.setQueryData<Column>(key, { pages, pageParams: pages.map((page) => page.page) })
+  }
+}
+
+// useMoveTask puts a task into another stage. The board shows the move at
+// once and the lists ask again after; a refusal says why, puts things back
+// and, since the stage may be gone, asks for the stages again too.
+export function useMoveTask(companyId: number | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ task, stageId }: { task: Task; stageId: number }) =>
+      call(api.PATCH("/app/tasks/{id}/stage", { params: { path: { id: task.id } }, body: { stage_id: stageId } })),
+    onMutate: ({ task, stageId }) => {
+      if (companyId !== null) moveInColumns(queryClient, companyId, task, stageId)
+    },
+    onSuccess: (moved) => queryClient.setQueryData(taskKey(companyId, moved.id), moved),
+    onError: (error) => {
+      toast.error(error.message)
+      if (error instanceof ApiError && error.status === 400) queryClient.invalidateQueries({ queryKey: taskStagesKey(companyId) })
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: tasksKey(companyId) }),
   })
 }
 
