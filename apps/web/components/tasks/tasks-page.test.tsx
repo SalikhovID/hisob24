@@ -413,3 +413,20 @@ test("an employee whose role holds no tasks.view is sent home", async () => {
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
   expect(screen.queryByRole("heading", { level: 1, name: "Vazifalar" })).not.toBeInTheDocument()
 })
+
+test("the list's card names the task's customer without a link, so the card is the task's alone; the table links the customer", async () => {
+  await signIn(ALI)
+  const seeded = seedTasks()
+  setLocation("/tasks?view=list")
+
+  renderWithProviders(<TasksPage />)
+
+  const list = await table()
+  const row = rowsOf(list)[3]
+  expect(titleOf(row)).toBe("Qo'ng'iroq qilish")
+  expect(within(row).getByRole("link", { name: "Dilshod Karimov" })).toHaveAttribute("href", `/customers/${seeded.dilshod.id}`)
+  const card = within(screen.getByRole("list", { name: "Vazifalar" })).getAllByRole("listitem")[3]
+  expect(within(card).getByText("Dilshod Karimov")).toBeInTheDocument()
+  expect(within(card).getByText("+998 91 111 22 33")).toBeInTheDocument()
+  expect(within(card).getAllByRole("link").map((link) => link.textContent)).toEqual(["Qo'ng'iroq qilish"])
+})

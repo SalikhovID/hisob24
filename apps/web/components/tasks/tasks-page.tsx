@@ -105,20 +105,31 @@ export function TasksPage() {
     {
       key: "customer",
       header: "Mijoz",
-      // A customer with no name goes by the phone, which then is not said twice.
-      cell: (task) => (
-        <span className="flex min-w-0 flex-col">
-          <Link
-            href={`/customers/${task.customer.id}`}
-            className="min-w-0 font-medium underline-offset-4 [overflow-wrap:anywhere] hover:underline"
-          >
-            {task.customer.name ?? formatPhone(task.customer.phone)}
-          </Link>
-          {task.customer.name && (
-            <span className="text-[0.8125rem] leading-5 whitespace-nowrap text-muted-foreground">{formatPhone(task.customer.phone)}</span>
-          )}
-        </span>
-      ),
+      // A customer with no name goes by the phone, which then is not said
+      // twice. In the table the customer links to its page; on a card it is
+      // only named, as on the board's cards: the card's whole face is the
+      // task's link, and a second link under a thumb would open the customer
+      // instead (the task's page links the customer).
+      cell: (task, place) => {
+        const name = task.customer.name ?? formatPhone(task.customer.phone)
+        return (
+          <span className="flex min-w-0 flex-col">
+            {place === "card" ? (
+              <span className="min-w-0 [overflow-wrap:anywhere]">{name}</span>
+            ) : (
+              <Link
+                href={`/customers/${task.customer.id}`}
+                className="min-w-0 font-medium underline-offset-4 [overflow-wrap:anywhere] hover:underline"
+              >
+                {name}
+              </Link>
+            )}
+            {task.customer.name && (
+              <span className="text-[0.8125rem] leading-5 whitespace-nowrap text-muted-foreground">{formatPhone(task.customer.phone)}</span>
+            )}
+          </span>
+        )
+      },
     },
     ...(everyType
       ? [
