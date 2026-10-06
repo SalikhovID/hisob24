@@ -741,7 +741,7 @@ func TestTaskHistory(t *testing.T) {
 		assert.NoError(t, record(task, action, "998901111111"), action)
 	}
 	assert.Equal(t, "23514", sqlState(record(task, "moved", "998901111111")), "an action that is not one of the three") // check_violation
-	assert.Equal(t, "23503", sqlState(record(task, "updated", "998909999999")), "done by someone who is no user")      // foreign_key_violation
+	assert.Equal(t, "23503", sqlState(record(task, "updated", "998909999999")), "done by someone who is no user")       // foreign_key_violation
 	assert.Equal(t, "23503", sqlState(record(1<<40, "updated", "998901111111")), "a task that is not there")
 	var changes string
 	require.NoError(t, pool.QueryRow(ctx, "SELECT changes::text FROM task_history LIMIT 1").Scan(&changes))
