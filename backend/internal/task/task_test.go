@@ -102,7 +102,10 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 		// A new order names what is there now: the orders go before what
 		// adds a stage, a type or a field.
 		{"OrderStages", func() error { return s.OrderStages(ctx, olma, []int64{bajarildi.ID, yangi.ID, spare.ID}) }},
-		{"CreateStage", func() error { _, err := s.CreateStage(ctx, olma, StageInput{Name: "Kutilmoqda", Color: "amber"}); return err }},
+		{"CreateStage", func() error {
+			_, err := s.CreateStage(ctx, olma, StageInput{Name: "Kutilmoqda", Color: "amber"})
+			return err
+		}},
 		{"UpdateStage", func() error { _, err := s.UpdateStage(ctx, olma, yangi.ID, StagePatch{Name: ptr("Ochiq")}); return err }},
 		{"DeleteStage", func() error { return s.DeleteStage(ctx, olma, spare.ID) }},
 		{"OrderTypes", func() error { return s.OrderTypes(ctx, olma, []int64{shikoyat.ID, buyurtma.ID}) }},
