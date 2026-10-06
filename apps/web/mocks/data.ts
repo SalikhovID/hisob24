@@ -1,6 +1,16 @@
 // An in-memory copy of the user app API's data for MSW: Vitest and
 // Playwright work against the same people, companies and rules as the Go API.
-import type { AppCompany, CustomerDropdown, CustomerFieldKind, CustomerType, Member, Role } from "@/lib/types"
+import type {
+  AppCompany,
+  CustomerDropdown,
+  CustomerFieldKind,
+  CustomerType,
+  Member,
+  Role,
+  StageColor,
+  TaskStage,
+  TaskType,
+} from "@/lib/types"
 
 export const TODAY = "2026-10-02"
 export const LOGIN_CODE = "123456"
@@ -85,6 +95,35 @@ export interface TypeRow {
   deleted?: boolean
 }
 
+// What a company's owner sets up for its tasks: the stages (the columns of
+// the board) and the task types with their fields, which are never told not
+// to repeat. A row is never removed: deleted hides it.
+export interface StageRow {
+  id: number
+  companyId: number
+  name: string
+  color: StageColor
+  done: boolean
+  deleted?: boolean
+}
+
+export interface TaskFieldRow {
+  id: number
+  label: string
+  kind: CustomerFieldKind
+  required: boolean
+  dropdownId: number | null
+  deleted?: boolean
+}
+
+export interface TaskTypeRow {
+  id: number
+  companyId: number
+  name: string
+  fields: TaskFieldRow[]
+  deleted?: boolean
+}
+
 // Answer is a customer's answer to one field: a text, a whole number or the
 // id of the one option chosen, or the ids of several options.
 export type Answer = string | number | number[]
@@ -123,6 +162,8 @@ interface Db {
   members: Record<string, Membership[]>
   dropdowns: DropdownRow[]
   types: TypeRow[]
+  stages: StageRow[]
+  taskTypes: TaskTypeRow[]
   customers: CustomerRow[]
   history: HistoryRow[]
   // lastId: the id the last settings or customer row took.
@@ -145,9 +186,10 @@ interface Db {
   contacts: Record<number, string>
 }
 
-// seedSettings is what the companies start with: the two ready types every
-// company has and, in Olma Savdo, a dropdown with a field that uses it.
-function seedSettings(companies: Company[]): Pick<Db, "dropdowns" | "types" | "lastId"> {
+// seedSettings is what the companies start with: the two ready customer
+// types, the three ready stages and the ready task type every company has
+// and, in Olma Savdo, a dropdown with a field that uses it.
+function seedSettings(companies: Company[]): Pick<Db, "dropdowns" | "types" | "stages" | "taskTypes" | "lastId"> {
   let lastId = 0
   const next = () => (lastId += 1)
   const text = (label: string): FieldRow => ({ id: next(), label, kind: "string", required: true, unique: false, dropdownId: null })
@@ -180,7 +222,13 @@ function seedSettings(companies: Company[]): Pick<Db, "dropdowns" | "types" | "l
       fields: [text("Nomi"), { id: next(), label: "INN", kind: "int", required: true, unique: true, dropdownId: null }],
     },
   ])
-  return { dropdowns: [manba], types, lastId }
+  const stages = companies.flatMap((company): StageRow[] => [
+    { id: next(), companyId: company.id, name: "Yangi", color: "blue", done: false },
+    { id: next(), companyId: company.id, name: "Jarayonda", color: "amber", done: false },
+    { id: next(), companyId: company.id, name: "Bajarildi", color: "green", done: true },
+  ])
+  const taskTypes = companies.map((company): TaskTypeRow => ({ id: next(), companyId: company.id, name: "Vazifa", fields: [] }))
+  return { dropdowns: [manba], types, stages, taskTypes, lastId }
 }
 
 function seed(): Db {
@@ -318,6 +366,32 @@ export function dropdownsOf(companyId: number): CustomerDropdown[] {
 
 export function typesOf(companyId: number): CustomerType[] {
   return db.types.filter((t) => t.companyId === companyId && !t.deleted).map(toType)
+}
+
+export const toStage = (s: StageRow): TaskStage => ({ id: s.id, name: s.name, color: s.color, is_done: s.done })
+
+export const toTaskField = (f: TaskFieldRow) => ({
+  id: f.id,
+  label: f.label,
+  kind: f.kind,
+  required: f.required,
+  dropdown_id: f.dropdownId,
+})
+
+export const toTaskType = (t: TaskTypeRow): TaskType => ({
+  id: t.id,
+  name: t.name,
+  fields: t.fields.filter((f) => !f.deleted).map(toTaskField),
+})
+
+// stagesOf and taskTypesOf are a company's stages and task types as the API
+// lists them: in their order, without what was deleted.
+export function stagesOf(companyId: number): TaskStage[] {
+  return db.stages.filter((s) => s.companyId === companyId && !s.deleted).map(toStage)
+}
+
+export function taskTypesOf(companyId: number): TaskType[] {
+  return db.taskTypes.filter((t) => t.companyId === companyId && !t.deleted).map(toTaskType)
 }
 
 // seedCustomers enters the customers the pages are tested with into Olma

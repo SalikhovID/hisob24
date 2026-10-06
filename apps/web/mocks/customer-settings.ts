@@ -61,13 +61,16 @@ const kinds: Record<CustomerFieldKind, { choice: boolean }> = {
   checkbox: { choice: true },
 }
 
-// fieldsUsing counts the fields that take their options from a dropdown:
-// those not deleted, of types not deleted.
+// fieldsUsing counts the fields, of the customer types and of the task
+// types, that take their options from a dropdown: those not deleted, of
+// types not deleted.
 function fieldsUsing(dropdownId: number): number {
-  return db.types
-    .filter((t) => !t.deleted)
-    .flatMap((t) => t.fields)
-    .filter((f) => !f.deleted && f.dropdownId === dropdownId).length
+  const live = (fields: { deleted?: boolean; dropdownId: number | null }[]) =>
+    fields.filter((f) => !f.deleted && f.dropdownId === dropdownId).length
+  return (
+    live(db.types.filter((t) => !t.deleted).flatMap((t) => t.fields)) +
+    live(db.taskTypes.filter((t) => !t.deleted).flatMap((t) => t.fields))
+  )
 }
 
 // What the customers use is not deleted; the deleted customers use nothing.

@@ -4,7 +4,8 @@
 import { http, HttpResponse } from "msw"
 import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
-import { api, bearer, fail, isMember, normalizePhone, ownerSession, read, type Session } from "./gate"
+import { taskSettingsHandlers } from "./task-settings"
+import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, read, type Session } from "./gate"
 import { formatPhone } from "@/lib/phone"
 import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp } from "./data"
 
@@ -163,6 +164,14 @@ export const handlers = [
     return HttpResponse.json(membersOf(owner.companyId))
   }),
 
+  // The members are every member's to see: a task's assignee is chosen
+  // among them.
+  http.get(api("/app/members"), ({ request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    return HttpResponse.json(membersOf(member.companyId))
+  }),
+
   http.post(api("/app/employees"), async ({ request }) => {
     const owner = ownerSession(request)
     if (owner instanceof Response) return owner
@@ -207,4 +216,5 @@ export const handlers = [
 
   ...customerSettingsHandlers,
   ...customersHandlers,
+  ...taskSettingsHandlers,
 ]

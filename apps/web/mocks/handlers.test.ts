@@ -713,3 +713,189 @@ test("what the customers use is not deleted from the settings; the deleted custo
   await deleteType(jismoniy.id)
   expect(await customerTypes()).toEqual([])
 })
+
+test("every company starts with the ready stages and task type; every member reads them", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  const stages = await call(api.GET("/app/task-stages"))
+  expect(stages.map((s) => [s.name, s.color, s.is_done])).toEqual([
+    ["Yangi", "blue", false],
+    ["Jarayonda", "amber", false],
+    ["Bajarildi", "green", true],
+  ])
+  const types = await call(api.GET("/app/task-types"))
+  expect(types.map((t) => [t.name, t.fields])).toEqual([["Vazifa", []]])
+
+  await chooseCompany(2)
+  expect((await call(api.GET("/app/task-stages"))).map((s) => s.name)).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
+  expect((await call(api.GET("/app/task-stages"))).map((s) => s.id)).not.toEqual(stages.map((s) => s.id))
+  await chooseCompany(null)
+  expect(await failure(call(api.GET("/app/task-stages")))).toMatchObject({ status: 403, code: "company_required" })
+  expect(await failure(call(api.GET("/app/task-types")))).toMatchObject({ status: 403, code: "company_required" })
+})
+
+test("the owner makes, changes, orders and deletes stages; an employee does not", async () => {
+  await signIn(ALI)
+
+  const made = await call(api.POST("/app/task-stages", { body: { name: " Kutilmoqda ", color: "teal" } }))
+  expect(made).toMatchObject({ name: "Kutilmoqda", color: "teal", is_done: false })
+  const done = await call(api.POST("/app/task-stages", { body: { name: "Yopildi", color: "slate", is_done: true } }))
+  expect(done.is_done).toBe(true)
+  expect(await failure(call(api.POST("/app/task-stages", { body: { name: "kutilmoqda", color: "red" } })))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli bosqich allaqachon bor",
+  })
+  expect(await failure(call(api.POST("/app/task-stages", { body: { name: "Oltin", color: "gold" as never } })))).toMatchObject({
+    status: 400,
+    message: "Rangni tanlang",
+  })
+  expect(await failure(call(api.POST("/app/task-stages", { body: { name: " ", color: "red" } })))).toMatchObject({
+    status: 400,
+    message: "Nomni kiriting",
+  })
+
+  const changed = await call(api.PATCH("/app/task-stages/{id}", { params: { path: { id: made.id } }, body: { color: "pink" } }))
+  expect(changed).toMatchObject({ name: "Kutilmoqda", color: "pink", is_done: false })
+  expect(
+    await failure(call(api.PATCH("/app/task-stages/{id}", { params: { path: { id: made.id } }, body: { name: "YOPILDI" } }))),
+  ).toMatchObject({ status: 409, code: "name_taken" })
+  expect(
+    await failure(call(api.PATCH("/app/task-stages/{id}", { params: { path: { id: 9999 } }, body: { name: "Yo'q" } }))),
+  ).toMatchObject({ status: 404, message: "Bosqich topilmadi" })
+
+  const ids = (await call(api.GET("/app/task-stages"))).map((s) => s.id)
+  expect(ids).toHaveLength(5)
+  await call(api.PUT("/app/task-stages/order", { body: { ids: [...ids].reverse() } }))
+  expect((await call(api.GET("/app/task-stages"))).map((s) => s.name)).toEqual(["Yopildi", "Kutilmoqda", "Bajarildi", "Jarayonda", "Yangi"])
+  expect(await failure(call(api.PUT("/app/task-stages/order", { body: { ids: ids.slice(1) } })))).toMatchObject({
+    status: 409,
+    code: "order_changed",
+  })
+
+  await call(api.DELETE("/app/task-stages/{id}", { params: { path: { id: made.id } } }))
+  expect((await call(api.GET("/app/task-stages"))).map((s) => s.name)).toEqual(["Yopildi", "Bajarildi", "Jarayonda", "Yangi"])
+  expect(await failure(call(api.DELETE("/app/task-stages/{id}", { params: { path: { id: made.id } } })))).toMatchObject({ status: 404 })
+  expect(db.stages.filter((s) => s.companyId === 1)).toHaveLength(5)
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await failure(call(api.POST("/app/task-stages", { body: { name: "Xodimniki", color: "red" } })))).toMatchObject({
+    status: 403,
+    code: "owner_only",
+  })
+})
+
+test("the owner makes, renames, orders and deletes task types, and adds, changes, orders and deletes their fields", async () => {
+  await signIn(ALI)
+  const [manba] = db.dropdowns
+  const nokManba = { id: 950, companyId: 2, name: "Begona", options: [] }
+  db.dropdowns.push(nokManba)
+
+  const buyurtma = await call(api.POST("/app/task-types", { body: { name: " Buyurtma " } }))
+  expect(buyurtma).toMatchObject({ name: "Buyurtma", fields: [] })
+  expect(await failure(call(api.POST("/app/task-types", { body: { name: "vazifa" } })))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli tur allaqachon bor",
+  })
+  expect(await call(api.PATCH("/app/task-types/{id}", { params: { path: { id: buyurtma.id } }, body: { name: "Zakaz" } }))).toMatchObject({
+    name: "Zakaz",
+  })
+  const [vazifa] = db.taskTypes
+  await call(api.PUT("/app/task-types/order", { body: { ids: [buyurtma.id, vazifa.id] } }))
+  expect((await call(api.GET("/app/task-types"))).map((t) => t.name)).toEqual(["Zakaz", "Vazifa"])
+  expect(await failure(call(api.PUT("/app/task-types/order", { body: { ids: [vazifa.id] } })))).toMatchObject({ status: 409, code: "order_changed" })
+
+  const path = { params: { path: { id: buyurtma.id } } }
+  const izoh = await call(api.POST("/app/task-types/{id}/fields", { ...path, body: { label: " Izoh ", kind: "string", required: true } }))
+  expect(izoh).toEqual({ id: izoh.id, label: "Izoh", kind: "string", required: true, dropdown_id: null })
+  const source = await call(api.POST("/app/task-types/{id}/fields", { ...path, body: { label: "Manba", kind: "dropdown", dropdown_id: manba.id } }))
+  expect(source).toMatchObject({ kind: "dropdown", required: false, dropdown_id: manba.id })
+  for (const [body, message] of [
+    [{ label: "Sana", kind: "date" }, "Maydon turini tanlang"],
+    [{ label: "Holat", kind: "radio" }, "Dropdownni tanlang"],
+    [{ label: "Holat", kind: "radio", dropdown_id: nokManba.id }, "Dropdownni tanlang"],
+    [{ label: "Matn", kind: "string", dropdown_id: manba.id }, "Matn va son maydoniga dropdown ulanmaydi"],
+    [{ label: " ", kind: "string" }, "Nomni kiriting"],
+  ] as const) {
+    expect(await failure(call(api.POST("/app/task-types/{id}/fields", { ...path, body: body as never }))), message).toMatchObject({
+      status: 400,
+      message,
+    })
+  }
+  expect(await failure(call(api.POST("/app/task-types/{id}/fields", { ...path, body: { label: "izoh", kind: "int" } })))).toMatchObject({
+    status: 409,
+    message: "Bu nomli maydon allaqachon bor",
+  })
+  expect(
+    await failure(call(api.POST("/app/task-types/{id}/fields", { params: { path: { id: 9999 } }, body: { label: "Izoh", kind: "string" } }))),
+  ).toMatchObject({ status: 404, message: "Tur topilmadi" })
+
+  const fieldPath = { params: { path: { id: buyurtma.id, fieldId: izoh.id } } }
+  expect(await call(api.PATCH("/app/task-types/{id}/fields/{fieldId}", { ...fieldPath, body: { label: "Tavsif" } }))).toMatchObject({
+    label: "Tavsif",
+    required: true,
+  })
+  expect(await call(api.PATCH("/app/task-types/{id}/fields/{fieldId}", { ...fieldPath, body: { required: false } }))).toMatchObject({
+    label: "Tavsif",
+    required: false,
+  })
+  await call(api.PUT("/app/task-types/{id}/fields/order", { ...path, body: { ids: [source.id, izoh.id] } }))
+  expect((await call(api.GET("/app/task-types")))[0].fields.map((f) => f.label)).toEqual(["Manba", "Tavsif"])
+  expect(await failure(call(api.PUT("/app/task-types/{id}/fields/order", { ...path, body: { ids: [izoh.id] } })))).toMatchObject({
+    status: 409,
+    code: "order_changed",
+  })
+  await call(api.DELETE("/app/task-types/{id}/fields/{fieldId}", fieldPath))
+  expect((await call(api.GET("/app/task-types")))[0].fields.map((f) => f.label)).toEqual(["Manba"])
+  expect(await failure(call(api.DELETE("/app/task-types/{id}/fields/{fieldId}", fieldPath)))).toMatchObject({
+    status: 404,
+    message: "Maydon topilmadi",
+  })
+
+  await call(api.DELETE("/app/task-types/{id}", path))
+  expect((await call(api.GET("/app/task-types"))).map((t) => t.name)).toEqual(["Vazifa"])
+  expect(db.taskTypes.find((t) => t.id === buyurtma.id)?.fields.every((f) => f.deleted)).toBe(true)
+  expect(await failure(call(api.DELETE("/app/task-types/{id}", path)))).toMatchObject({ status: 404, message: "Tur topilmadi" })
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await failure(call(api.POST("/app/task-types", { body: { name: "Xodimniki" } })))).toMatchObject({ status: 403, code: "owner_only" })
+})
+
+test("a dropdown a task field takes its options from is not deleted either", async () => {
+  await signIn(ALI)
+  const holat = await call(api.POST("/app/customer-dropdowns", { body: { name: "Holat" } }))
+  const [vazifa] = db.taskTypes
+  const field = await call(
+    api.POST("/app/task-types/{id}/fields", { params: { path: { id: vazifa.id } }, body: { label: "Holati", kind: "radio", dropdown_id: holat.id } }),
+  )
+
+  expect(await failure(call(api.DELETE("/app/customer-dropdowns/{id}", { params: { path: { id: holat.id } } })))).toMatchObject({
+    status: 409,
+    code: "dropdown_in_use",
+    message: "Bu dropdown 1 ta maydonda ishlatilgan",
+  })
+
+  await call(api.DELETE("/app/task-types/{id}/fields/{fieldId}", { params: { path: { id: vazifa.id, fieldId: field.id } } }))
+  await call(api.DELETE("/app/customer-dropdowns/{id}", { params: { path: { id: holat.id } } }))
+  expect((await call(api.GET("/app/customer-dropdowns"))).map((d) => d.name)).toEqual(["Manba"])
+})
+
+test("every member reads the company's members, the owner first; managing them stays the owner's", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  const members = await call(api.GET("/app/members"))
+
+  expect(members.map((m) => [m.phone, m.full_name, m.role])).toEqual([
+    [ALI, "Ali Valiyev", "owner"],
+    [VALI, "Vali Aliyev", "user"],
+    [SARDOR, "Sardor Karimov", "user"],
+  ])
+  expect(await failure(call(api.GET("/app/employees")))).toMatchObject({ status: 403, code: "owner_only" })
+  await chooseCompany(null)
+  expect(await failure(call(api.GET("/app/members")))).toMatchObject({ status: 403, code: "company_required" })
+})
