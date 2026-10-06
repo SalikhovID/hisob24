@@ -9,24 +9,29 @@ import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useEmployees } from "@/lib/queries"
+import { can } from "@/lib/permissions"
 import type { Member } from "@/lib/types"
-import { useOwner } from "@/lib/use-gate"
+import { usePermission } from "@/lib/use-gate"
 import { AddEmployeeDialog } from "./add-employee-dialog"
 import { RemoveEmployeeButton } from "./remove-employee-button"
 import { RenameEmployeeDialog } from "./rename-employee-dialog"
 
-// EmployeesPage is the company's members, for its owner: the owner first,
+// EmployeesPage is the company's members, for whoever may see them (the
+// owner, and an employee whose role holds employees.view): the owner first,
 // then the employees in the order they joined, each under the name they go
-// by in this company. An employee who opens it is sent home (the API would
-// refuse them all the same): the sidebar shows them no way here.
+// by in this company and with the role they hold. Adding, renaming and
+// removing each take their permission; anyone without the page's is sent
+// home (the API would refuse them all the same): the menu shows them no
+// way here.
 export function EmployeesPage() {
-  const owner = useOwner()
-  const employees = useEmployees(owner ? owner.company.id : null)
+  const gate = usePermission("employees.view")
+  const employees = useEmployees(gate ? gate.company.id : null)
 
-  if (!owner) return null
-  const ownPhone = owner.user.phone
-  const companyId = owner.company.id
-  const companyName = owner.company.name
+  if (!gate) return null
+  const ownPhone = gate.user.phone
+  const companyId = gate.company.id
+  const companyName = gate.company.name
+  const allowed = (permission: Parameters<typeof can>[1]) => can(gate.permissions, permission)
 
   const columns: Column<Member>[] = [
     {
@@ -55,12 +60,14 @@ export function EmployeesPage() {
     {
       header: "Amallar",
       actions: true,
-      // The owner is the admin panel's to change: only employees get these.
+      // The owner is the admin panel's to change: only employees get these,
+      // and only from someone whose permissions hold the action.
       cell: (m) =>
-        m.role === "user" && (
+        m.role === "user" &&
+        (allowed("employees.edit") || allowed("employees.delete")) && (
           <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-            <RenameEmployeeDialog companyId={companyId} employee={m} />
-            <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />
+            {allowed("employees.edit") && <RenameEmployeeDialog companyId={companyId} employee={m} />}
+            {allowed("employees.delete") && <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />}
           </span>
         ),
     },
@@ -73,7 +80,7 @@ export function EmployeesPage() {
         description={
           employees.data ? `Kompaniyangiz a'zolari · ${employees.data.length} kishi` : "Kompaniyangiz a'zolari"
         }
-        actions={<AddEmployeeDialog companyId={companyId} />}
+        actions={allowed("employees.create") && <AddEmployeeDialog companyId={companyId} />}
       />
       {employees.isPending && <ListLoading />}
       {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}

@@ -286,3 +286,29 @@ test("the list names the role each employee holds", async () => {
   expect(within(vali).queryByText("Xodim")).not.toBeInTheDocument()
   expect(within(sardor).getByText("Xodim")).toBeInTheDocument()
 })
+
+test("an employee whose role lets them see the employees sees the list, without the actions the role lacks", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["employees.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<EmployeesPage />)
+
+  const members = await rows()
+  expect(members).toHaveLength(3)
+  expect(screen.queryByRole("button", { name: "Xodim qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /Ismni o'zgartirish/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test("the employees actions follow the role: adding and renaming here, not deleting", async () => {
+  giveRole(VALI, 1, "HR", ["employees.view", "employees.create", "employees.edit"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<EmployeesPage />)
+
+  const [, , sardor] = await rows()
+  expect(screen.getByRole("button", { name: "Xodim qo'shish" })).toBeInTheDocument()
+  expect(within(sardor).getByRole("button", { name: /Ismni o'zgartirish/ })).toBeInTheDocument()
+  expect(within(sardor).queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+})
