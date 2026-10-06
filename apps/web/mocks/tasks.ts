@@ -118,8 +118,8 @@ function record(task: TaskRow, action: TaskHistoryRow["action"], by: string, at:
 // found tells whether a search finds the task: the text in its title, its
 // text answers and its customer's text answers, whatever the case; the
 // digits of a search written as a number or a phone is in the customer's
-// phone and the task's whole number answers too. The names of the options
-// are not searched.
+// phone and in the task's and the customer's whole number answers too. The
+// names of the options are not searched.
 function found(task: TaskRow, search: string): boolean {
   const text = search.trim().toLowerCase()
   if (!text) return true
@@ -132,15 +132,16 @@ function found(task: TaskRow, search: string): boolean {
       const answer = values[f.id]
       return f.kind === "string" && typeof answer === "string" && answer.toLowerCase().includes(text)
     })
-  const inNumbers = taskFields.some((f) => {
-    const answer = task.values[f.id]
-    return f.kind === "int" && typeof answer === "number" && String(answer).includes(digits)
-  })
+  const inNumbers = (fields: { id: number; kind: string }[], values: Record<number, Answer>) =>
+    fields.some((f) => {
+      const answer = values[f.id]
+      return f.kind === "int" && typeof answer === "number" && String(answer).includes(digits)
+    })
   return (
     task.title.toLowerCase().includes(text) ||
     inTexts(taskFields, task.values) ||
     inTexts(customerFields, customer.values) ||
-    (digits !== "" && (customer.phone.includes(digits) || inNumbers))
+    (digits !== "" && (customer.phone.includes(digits) || inNumbers(taskFields, task.values) || inNumbers(customerFields, customer.values)))
   )
 }
 

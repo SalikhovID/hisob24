@@ -269,8 +269,8 @@ type Querier interface {
 	// customer_id each keep one; search, escaped for ILIKE, is looked for in the
 	// title, in the task's text answers and in the customer's text answers;
 	// digits, the digits of a search that is a number, in the customer's phone
-	// and in the task's whole number answers. A NULL argument leaves its filter
-	// out.
+	// and in the task's and the customer's whole number answers. A NULL argument
+	// leaves its filter out.
 	ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTasksRow, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role and the name the user goes by there. days_left counts from the

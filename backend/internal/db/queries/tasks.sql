@@ -33,8 +33,8 @@ WHERE t.id = $1 AND t.company_id = $2 AND t.deleted_at IS NULL;
 -- customer_id each keep one; search, escaped for ILIKE, is looked for in the
 -- title, in the task's text answers and in the customer's text answers;
 -- digits, the digits of a search that is a number, in the customer's phone
--- and in the task's whole number answers. A NULL argument leaves its filter
--- out.
+-- and in the task's and the customer's whole number answers. A NULL argument
+-- leaves its filter out.
 SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
@@ -61,7 +61,9 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
                     AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
                          OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
-                  WHERE v.customer_id = c.id AND v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'))
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
+                         OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')))
 ORDER BY t.deadline, t.id
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
@@ -82,7 +84,9 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
                     AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
                          OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
-                  WHERE v.customer_id = c.id AND v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'));
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
+                         OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')));
 
 -- name: UpdateTask :one
 -- An edit: the task's title, deadline, stage and assignee as they are now,

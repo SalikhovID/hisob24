@@ -33,9 +33,9 @@ type shop struct {
 	id        int64
 	customers *customer.Service
 
-	jismoniy customer.Type
-	fish     customer.Field
-	ali      customer.Customer
+	jismoniy   customer.Type
+	fish, yosh customer.Field
+	ali        customer.Customer
 
 	instagram, linkedin, youtube customer.Option
 	manba                        customer.Dropdown
@@ -79,6 +79,8 @@ func newShop(t *testing.T, s *Service, pool *pgxpool.Pool, name string) shop {
 	sh.jismoniy, err = sh.customers.CreateType(ctx, sh.id, "Jismoniy")
 	require.NoError(t, err)
 	sh.fish, err = sh.customers.AddField(ctx, sh.id, sh.jismoniy.ID, customer.FieldInput{Label: "F.I.Sh.", Kind: "string", Required: true})
+	require.NoError(t, err)
+	sh.yosh, err = sh.customers.AddField(ctx, sh.id, sh.jismoniy.ID, customer.FieldInput{Label: "Yoshi", Kind: "int"})
 	require.NoError(t, err)
 	sh.ali, err = sh.customers.Create(ctx, sh.id, owner, sh.jismoniy.ID, customer.Input{
 		Phone: "998901234567", Values: answers(t, map[int64]any{sh.fish.ID: "Ali Valiyev"}),
@@ -334,7 +336,7 @@ func TestList(t *testing.T) {
 	soonest := mustTask(t, s, sh, "Shartnoma", "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
 	shikoyat := mustType(t, s, sh.id, "Shikoyat")
 	other, err := s.Create(ctx, sh.id, owner, shikoyat.ID, Input{Title: "Shikoyatni ko'rish", Deadline: "2026-10-10", StageID: sh.bajarildi.ID},
-		CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Zarina Karimova"})}})
+		CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Zarina Karimova", sh.yosh.ID: 37})}})
 	require.NoError(t, err)
 	gone := mustTask(t, s, sh, "O'chirilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
 	require.NoError(t, s.Delete(ctx, sh.id, gone.ID, owner))
@@ -353,18 +355,19 @@ func TestList(t *testing.T) {
 		in   ListInput
 		want []string
 	}{
-		"of one type":                      {ListInput{TypeID: shikoyat.ID, Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"in one stage":                     {ListInput{StageID: sh.yangi.ID, Page: 1}, []string{"Shartnoma", "Qo'ng'iroq qilish", "Hisob yozish"}},
-		"of one assignee":                  {ListInput{Assignee: "+998 90 222 22 22", Page: 1}, []string{"Qo'ng'iroq qilish"}},
-		"of one customer":                  {ListInput{CustomerID: other.Customer.ID, Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"a search in the title":            {ListInput{Search: "qo'ng", Page: 1}, []string{"Qo'ng'iroq qilish"}},
-		"a search in the task's answers":   {ListInput{Search: "ERTALAB", Page: 1}, []string{"Hisob yozish"}},
-		"a search in the customer's name":  {ListInput{Search: "karim", Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"a number in the customer's phone": {ListInput{Search: "90 555", Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"a number in the task's answers":   {ListInput{Search: "450", Page: 1}, []string{"Hisob yozish"}},
-		"a search that finds nothing":      {ListInput{Search: "yo'q", Page: 1}, []string{}},
-		"a stage and a search together":    {ListInput{StageID: sh.yangi.ID, Search: "karim", Page: 1}, []string{}},
-		"a page past the last":             {ListInput{Page: 2}, []string{}},
+		"of one type":                               {ListInput{TypeID: shikoyat.ID, Page: 1}, []string{"Shikoyatni ko'rish"}},
+		"in one stage":                              {ListInput{StageID: sh.yangi.ID, Page: 1}, []string{"Shartnoma", "Qo'ng'iroq qilish", "Hisob yozish"}},
+		"of one assignee":                           {ListInput{Assignee: "+998 90 222 22 22", Page: 1}, []string{"Qo'ng'iroq qilish"}},
+		"of one customer":                           {ListInput{CustomerID: other.Customer.ID, Page: 1}, []string{"Shikoyatni ko'rish"}},
+		"a search in the title":                     {ListInput{Search: "qo'ng", Page: 1}, []string{"Qo'ng'iroq qilish"}},
+		"a search in the task's answers":            {ListInput{Search: "ERTALAB", Page: 1}, []string{"Hisob yozish"}},
+		"a search in the customer's name":           {ListInput{Search: "karim", Page: 1}, []string{"Shikoyatni ko'rish"}},
+		"a number in the customer's phone":          {ListInput{Search: "90 555", Page: 1}, []string{"Shikoyatni ko'rish"}},
+		"a number in the customer's number answers": {ListInput{Search: "37", Page: 1}, []string{"Shikoyatni ko'rish"}},
+		"a number in the task's answers":            {ListInput{Search: "450", Page: 1}, []string{"Hisob yozish"}},
+		"a search that finds nothing":               {ListInput{Search: "yo'q", Page: 1}, []string{}},
+		"a stage and a search together":             {ListInput{StageID: sh.yangi.ID, Search: "karim", Page: 1}, []string{}},
+		"a page past the last":                      {ListInput{Page: 2}, []string{}},
 	} {
 		page, err := s.List(ctx, sh.id, tc.in)
 		require.NoError(t, err, about)

@@ -170,6 +170,8 @@ func seedTasks(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s taskShop) (la
 	soonest = s.task(t, q, "Shartnoma", "2026-10-09", nil)
 	vali := createCustomer(t, q, s.company.ID, s.jismoniy.ID, "998905555555")
 	answer(t, q, vali.ID, s.fish.ID, "Zarina Karimova")
+	inn := addField(t, q, s.company.ID, s.jismoniy.ID, "INN", "int", nil)
+	answerNumber(t, q, vali.ID, inn.ID, 301234567)
 	shikoyat := createTaskType(t, q, s.company.ID, "Shikoyat")
 	done := createStage(t, q, s.company.ID, "Yopiq", "slate")
 	var err error
@@ -226,7 +228,11 @@ func TestListTasks(t *testing.T) {
 			return p
 		}, []string{"Shikoyatni ko'rish"}},
 		"a number in the task's answers": {func(p gen.ListTasksParams) gen.ListTasksParams { p.Search, p.Digits = ptr("450"), ptr("450"); return p }, []string{"Hisob yozish"}},
-		"a search that finds nothing":    {func(p gen.ListTasksParams) gen.ListTasksParams { p.Search = ptr("yo'q"); return p }, []string{}},
+		"a number in the customer's number answers": {func(p gen.ListTasksParams) gen.ListTasksParams {
+			p.Search, p.Digits = ptr("3012"), ptr("3012")
+			return p
+		}, []string{"Shikoyatni ko'rish"}},
+		"a search that finds nothing": {func(p gen.ListTasksParams) gen.ListTasksParams { p.Search = ptr("yo'q"); return p }, []string{}},
 		"a stage and a search together": {func(p gen.ListTasksParams) gen.ListTasksParams {
 			p.StageID, p.Search = &s.yangi.ID, ptr("karim")
 			return p

@@ -1075,15 +1075,20 @@ test("the tasks list: the one due soonest first, twenty to a page, the filters a
   expect(await found({ search: "Instagram" })).toEqual([])
   expect(await found({ stage_id: s.yangi.id, search: "karim" })).toEqual([])
   expect((await listTasks({ search: "ali" })).total).toBe(2)
+  // A number is looked for in the customer's whole number answers too.
+  const firma = await createCustomer(s.yuridik.id, "998907777777", { [s.nomi.id]: "Olma MChJ", [s.inn.id]: 301234567 })
+  const firmas = await createTask(taskBody(s, { title: "Hisob-faktura", deadline: "2026-10-13", customer: { id: firma.id } }))
+  expect(await found({ search: "3012" })).toEqual([firmas.id])
+  expect(await found({ search: "7777" })).toEqual([firmas.id])
 
   for (let i = 0; i < 20; i += 1) await createTask(taskBody(s, { title: `Vazifa ${i}`, deadline: "2026-11-01" }))
   const first = await listTasks()
   expect(first.items).toHaveLength(20)
-  expect(first.total).toBe(23)
+  expect(first.total).toBe(24)
   const second = await listTasks({ page: 2 })
-  expect(second.items.map((t) => t.title)).toEqual(["Vazifa 17", "Vazifa 18", "Vazifa 19"])
-  expect(second).toMatchObject({ total: 23, page: 2, page_size: 20 })
-  expect(await listTasks({ page: 3 })).toEqual({ items: [], total: 23, page: 3, page_size: 20 })
+  expect(second.items.map((t) => t.title)).toEqual(["Vazifa 16", "Vazifa 17", "Vazifa 18", "Vazifa 19"])
+  expect(second).toMatchObject({ total: 24, page: 2, page_size: 20 })
+  expect(await listTasks({ page: 3 })).toEqual({ items: [], total: 24, page: 3, page_size: 20 })
   const bad: [TaskQuery, string][] = [
     [{ page: 0 }, "Sahifa raqami noto'g'ri"],
     [{ type_id: "abc" as unknown as number }, "Vazifa turi noto'g'ri"],

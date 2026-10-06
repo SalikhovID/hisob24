@@ -120,7 +120,9 @@ WHERE t.company_id = $1 AND t.deleted_at IS NULL
                     AND (v.text_value ILIKE '%' || $6::text || '%'
                          OR v.int_value::text LIKE '%' || $7::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
-                  WHERE v.customer_id = c.id AND v.text_value ILIKE '%' || $6::text || '%'))
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || $6::text || '%'
+                         OR v.int_value::text LIKE '%' || $7::text || '%')))
 `
 
 type CountTasksParams struct {
@@ -432,7 +434,9 @@ WHERE t.company_id = $1 AND t.deleted_at IS NULL
                     AND (v.text_value ILIKE '%' || $6::text || '%'
                          OR v.int_value::text LIKE '%' || $7::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
-                  WHERE v.customer_id = c.id AND v.text_value ILIKE '%' || $6::text || '%'))
+                  WHERE v.customer_id = c.id AND v.option_id IS NULL
+                    AND (v.text_value ILIKE '%' || $6::text || '%'
+                         OR v.int_value::text LIKE '%' || $7::text || '%')))
 ORDER BY t.deadline, t.id
 LIMIT $9 OFFSET $8
 `
@@ -470,8 +474,8 @@ type ListTasksRow struct {
 // customer_id each keep one; search, escaped for ILIKE, is looked for in the
 // title, in the task's text answers and in the customer's text answers;
 // digits, the digits of a search that is a number, in the customer's phone
-// and in the task's whole number answers. A NULL argument leaves its filter
-// out.
+// and in the task's and the customer's whole number answers. A NULL argument
+// leaves its filter out.
 func (q *Queries) ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTasksRow, error) {
 	rows, err := q.db.Query(ctx, listTasks,
 		arg.CompanyID,
