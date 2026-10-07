@@ -161,6 +161,20 @@ func addTask(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, dele
 	return task
 }
 
+// addPurchaseIn enters a purchase standing in the location, from a supplier
+// made for it; deleted hides it.
+func addPurchaseIn(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, deleted bool) {
+	t.Helper()
+	ctx := context.Background()
+	var supplier int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO suppliers (company_id, name, created_by) VALUES ($1, 'Bozor ' || gen_random_uuid()::text, '998900000001') RETURNING id", companyID).Scan(&supplier))
+	var number int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT COALESCE(max(number), 0) + 1 FROM purchases WHERE company_id = $1", companyID).Scan(&number))
+	_, err := pool.Exec(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, created_by, deleted_at)
+		VALUES ($1, $2, $3, $4, CURRENT_DATE, '998900000001', CASE WHEN $5 THEN now() END)`, companyID, number, locationID, supplier, deleted)
+	require.NoError(t, err)
+}
+
 // describe is the admin's list of locations as "name (N)".
 func describe(locations []AdminLocation) []string {
 	list := make([]string, 0, len(locations))
@@ -299,13 +313,28 @@ func TestDeleteLocation(t *testing.T) {
 	assert.Equal(t, "location_in_use", e.Code, "a location with a task standing in it")
 	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the deleted task not counted")
 
+	// A location with a purchase standing in it is kept too (checked after
+	// the tasks).
+	qoyliq := addLocation(t, pool, c.ID, "Qo'yliq")
+	addPurchaseIn(t, pool, c.ID, qoyliq, false)
+	addPurchaseIn(t, pool, c.ID, qoyliq, true)
+	err = s.DeleteLocation(ctx, c.ID, qoyliq)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, apperr.Conflict, e.Kind)
+	assert.Equal(t, "location_in_use", e.Code, "a location with a purchase standing in it")
+	assert.Equal(t, "Bu lokatsiyada 1 ta xarid bor", e.Message, "the deleted purchase not counted")
+	addTask(t, pool, c.ID, qoyliq, false)
+	err = s.DeleteLocation(ctx, c.ID, qoyliq)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the tasks come first")
+
 	yunusobod := addLocation(t, pool, c.ID, "Yunusobod")
 	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
 	restrictTo(t, pool, "998902223344", c.ID, yunusobod)
 	require.NoError(t, s.DeleteLocation(ctx, c.ID, yunusobod), "a location with no task")
 	locations, err := s.Locations(ctx, c.ID)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (1)"}, describe(locations), "hidden")
+	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (1)", "Qo'yliq (1)"}, describe(locations), "hidden")
 	_, err = s.AddLocation(ctx, c.ID, "Yunusobod")
 	assert.NoError(t, err, "its name is free again")
 	var rows int
