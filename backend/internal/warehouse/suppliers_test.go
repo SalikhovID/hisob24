@@ -222,9 +222,28 @@ func TestDeleteSupplier(t *testing.T) {
 	nok := newShop(t, pool, "Nok")
 	bozor, err := s.CreateSupplier(ctx, olma.company, ali, SupplierInput{Name: "Bozor"})
 	require.NoError(t, err)
+	olmaID := addProduct(t, pool, olma.company, "Olma", ptr("kg"), true)
 
 	err = s.DeleteSupplier(ctx, nok.company, bozor.ID)
 	refused(t, err, apperr.NotFound, "not_found", "Ta'minotchi topilmadi", "another company's")
+
+	// In a live purchase: kept.
+	one, err := s.CreatePurchase(ctx, olma.scope(), ali, olma.asosiy, PurchaseInput{SupplierID: bozor.ID, PurchasedOn: "2026-10-07", Items: []ItemInput{line(olmaID, "1", "1000")}})
+	require.NoError(t, err)
+	err = s.DeleteSupplier(ctx, olma.company, bozor.ID)
+	refused(t, err, apperr.Conflict, "supplier_in_use", "Bu ta'minotchida 1 ta xarid bor")
+	require.NoError(t, s.DeletePurchase(ctx, olma.scope(), one.ID))
+
+	// With live payments: kept.
+	_, err = s.AddPayment(ctx, olma.company, ali, bozor.ID, PaymentInput{Amount: ptr("500"), PaidOn: "2026-10-07"})
+	require.NoError(t, err)
+	_, err = s.AddPayment(ctx, olma.company, ali, bozor.ID, PaymentInput{Amount: ptr("500"), PaidOn: "2026-10-07"})
+	require.NoError(t, err)
+	err = s.DeleteSupplier(ctx, olma.company, bozor.ID)
+	refused(t, err, apperr.Conflict, "supplier_in_use", "Bu ta'minotchida 2 ta to'lov bor", "no purchase, but payments")
+	_, err = pool.Exec(ctx, "UPDATE supplier_payments SET deleted_at = now() WHERE supplier_id = $1", bozor.ID)
+	require.NoError(t, err)
+
 	require.NoError(t, s.DeleteSupplier(ctx, olma.company, bozor.ID))
 	_, err = s.GetSupplier(ctx, olma.company, bozor.ID)
 	refused(t, err, apperr.NotFound, "not_found", "Ta'minotchi topilmadi")
