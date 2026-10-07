@@ -36,19 +36,36 @@ type pageJSON struct {
 	PageSize int           `json:"page_size"`
 }
 
+// locationJSON is a location of the company, as the user app names it.
+type locationJSON struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 type memberJSON struct {
 	Phone    string  `json:"phone"`
 	FullName *string `json:"full_name"`
 	Role     string  `json:"role"`
 	// RoleID and RoleName are the company role the member holds (the user
 	// app's), null for the owner and for a user without one.
-	RoleID    *int64    `json:"role_id"`
-	RoleName  *string   `json:"role_name"`
-	CreatedAt time.Time `json:"created_at"`
+	RoleID   *int64  `json:"role_id"`
+	RoleName *string `json:"role_name"`
+	// Locations is the locations the member may work in (the user app's):
+	// null for every one, the restriction's live ones otherwise.
+	Locations *[]locationJSON `json:"locations"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 func toMemberJSON(m company.Member) memberJSON {
-	return memberJSON{Phone: m.Phone, FullName: m.FullName, Role: m.Role, RoleID: m.RoleID, RoleName: m.RoleName, CreatedAt: m.CreatedAt}
+	body := memberJSON{Phone: m.Phone, FullName: m.FullName, Role: m.Role, RoleID: m.RoleID, RoleName: m.RoleName, CreatedAt: m.CreatedAt}
+	if !m.AllLocations {
+		locations := make([]locationJSON, 0, len(m.Locations))
+		for _, l := range m.Locations {
+			locations = append(locations, locationJSON{ID: l.ID, Name: l.Name})
+		}
+		body.Locations = &locations
+	}
+	return body
 }
 
 type detailJSON struct {

@@ -60,6 +60,8 @@ func TestListEmployees(t *testing.T) {
 	api.addMember(t, sardorsPhone, nok, "owner")
 	hisobchi := api.addRole(t, olma, "Hisobchi", "customers.view")
 	api.giveRole(t, valisPhone, olma, &hisobchi)
+	chilonzor := api.addLocation(t, olma, "Chilonzor")
+	api.restrictTo(t, valisPhone, olma, chilonzor)
 
 	rec := api.do(t, http.MethodGet, "/app/employees", "", bearer(owner))
 
@@ -71,6 +73,9 @@ func TestListEmployees(t *testing.T) {
 	assert.Contains(t, list[0], "role_id")
 	assert.Nil(t, list[0]["role_id"], "the owner holds no company role")
 	assert.Nil(t, list[0]["role_name"])
+	assert.Contains(t, list[0], "locations")
+	assert.Nil(t, list[0]["locations"], "the owner works in every location: null")
+	assert.Equal(t, []any{location(chilonzor, "Chilonzor")}, list[1]["locations"], "a restricted employee's locations")
 	assert.Equal(t, valisPhone, list[1]["phone"])
 	assert.Equal(t, "Vali (hisobchi)", list[1]["full_name"], "under the name in this company")
 	assert.Equal(t, "user", list[1]["role"])

@@ -97,6 +97,8 @@ func TestGetCompany(t *testing.T) {
 	assert.Equal(t, "owner", owner["role"])
 	assert.Contains(t, owner, "role_id", "the member's company role goes with the member")
 	assert.Nil(t, owner["role_name"], "the owner holds none")
+	assert.Contains(t, owner, "locations", "and the locations they may work in")
+	assert.Nil(t, owner["locations"], "every one: null")
 
 	rec = api.do(t, http.MethodGet, "/admin/companies/999999", "", cookie)
 	assert.Equal(t, http.StatusNotFound, rec.Code)

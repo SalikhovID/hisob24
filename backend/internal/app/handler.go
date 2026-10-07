@@ -266,12 +266,15 @@ type meJSON struct {
 	// Permissions is what the user may do in that company, as it is now;
 	// empty before a choice.
 	Permissions []string `json:"permissions"`
+	// Locations is the locations the user may work in there, as they are
+	// now (logic/locations.md, section 4); empty before a choice.
+	Locations []locationJSON `json:"locations"`
 }
 
 // me is the signed-in user, the company they work in now, what they may do
-// there and all of their companies. The user's name is the one they go by
-// in that company; before a choice of company, or when the membership has
-// no name, it is the user's own.
+// there, the locations they may work in and all of their companies. The
+// user's name is the one they go by in that company; before a choice of
+// company, or when the membership has no name, it is the user's own.
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	claims := currentUser(r.Context())
 	profile, err := h.profiles.Get(r.Context(), claims.Phone)
@@ -279,9 +282,17 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, r, err)
 		return
 	}
-	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}, Permissions: []string{}}
+	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}, Permissions: []string{}, Locations: []locationJSON{}}
 	for _, p := range currentPermissions(r.Context()).List() {
 		body.Permissions = append(body.Permissions, string(p))
+	}
+	if claims.CompanyID != nil {
+		locations, err := h.companies.MemberLocations(r.Context(), *claims.CompanyID, claims.Phone)
+		if err != nil {
+			httpx.InternalError(w, r, err)
+			return
+		}
+		body.Locations = toLocationsJSON(locations)
 	}
 	for _, m := range profile.Companies {
 		c := companyJSON{

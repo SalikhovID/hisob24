@@ -30,6 +30,8 @@ func TestListMembers(t *testing.T) {
 	assert.Equal(t, valisPhone, list[1]["phone"], "then the users, in the order they joined")
 	assert.Equal(t, "Vali (hisobchi)", list[1]["full_name"], "under the name in this company")
 	assert.Equal(t, "user", list[1]["role"])
+	assert.Contains(t, list[1], "locations", "and the locations they work in: a task's assignee has to work in the task's")
+	assert.Nil(t, list[1]["locations"], "every one, unless restricted")
 	assert.Equal(t, sardorsPhone, list[2]["phone"])
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/members", "", bearer(owner)).Code, "the owner")
 

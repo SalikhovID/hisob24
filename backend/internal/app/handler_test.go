@@ -315,6 +315,7 @@ func TestMe(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
+	asosiy := api.addLocation(t, olma, "Asosiy")
 	token, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	api.addMember(t, alisPhone, nok, "user")
 
@@ -337,6 +338,36 @@ func TestMe(t *testing.T) {
 		all = append(all, string(p))
 	}
 	assert.Equal(t, all, permissionsOf(t, body), "the owner may do everything")
+	assert.Equal(t, []any{location(asosiy, "Asosiy")}, body["locations"], "the locations the member may work in")
+}
+
+// /app/me tells the locations the member may work in (logic/locations.md,
+// section 4): every live one of the company's, or the live ones of a
+// restriction; none before a company is chosen.
+func TestMeTellsTheMembersLocations(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	nok := api.addCompany(t, "Nok", 30)
+	asosiy := api.addLocation(t, olma, "Asosiy")
+	chilonzor := api.addLocation(t, olma, "Chilonzor")
+	gone := api.addLocation(t, olma, "Yopilgan")
+	api.exec(t, "UPDATE locations SET deleted_at = now() WHERE id = $1", gone)
+	api.addLocation(t, nok, "Begona")
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	restricted, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user"})
+	api.restrictTo(t, sardorsPhone, olma, chilonzor, gone)
+	undecided, _ := api.signIn(t, "998904445566", map[int64]string{olma: "user", nok: "user"})
+	locationsOf := func(token string) any {
+		rec := api.do(t, http.MethodGet, "/app/me", "", bearer(token))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		return decode(t, rec)["locations"]
+	}
+
+	assert.Equal(t, []any{location(asosiy, "Asosiy"), location(chilonzor, "Chilonzor")}, locationsOf(owner), "the owner: every live location")
+	assert.Equal(t, []any{location(asosiy, "Asosiy"), location(chilonzor, "Chilonzor")}, locationsOf(employee), "an employee without a restriction: the same")
+	assert.Equal(t, []any{location(chilonzor, "Chilonzor")}, locationsOf(restricted), "a restricted employee: the live ones of the restriction")
+	assert.Equal(t, []any{}, locationsOf(undecided), "none before a company is chosen")
 }
 
 func TestMeNamesTheUserAsTheChosenCompanyDoes(t *testing.T) {
@@ -506,4 +537,19 @@ func (api testAPI) addLocation(t *testing.T, companyID int64, name string) int64
 	require.NoError(t, api.pool.QueryRow(t.Context(),
 		"INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id))
 	return id
+}
+
+// restrictTo restricts the member to the locations: they may work in these
+// alone (logic/locations.md, section 5).
+func (api testAPI) restrictTo(t *testing.T, phone string, companyID int64, locationIDs ...int64) {
+	t.Helper()
+	api.exec(t, "UPDATE user_companies SET all_locations = false WHERE user_phone = $1 AND company_id = $2", phone, companyID)
+	for _, id := range locationIDs {
+		api.exec(t, "INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ($1, $2, $3)", phone, companyID, id)
+	}
+}
+
+// location is a location as /app/me and the members tell it.
+func location(id int64, name string) map[string]any {
+	return map[string]any{"id": float64(id), "name": name}
 }
