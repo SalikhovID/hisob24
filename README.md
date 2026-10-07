@@ -163,6 +163,24 @@ Company xodimlari bajaradigan ishlar. Har vazifa bitta mijozga biriktiriladi, **
 
 To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/tasks.md`](logic/tasks.md).
 
+## Lokatsiyalar
+
+Company'ning filiallari. Har vazifa bitta lokatsiyada turadi; mijozlar, xodimlar, rollar va sozlamalar lokatsiyaga bog'liq emas, company bo'yicha umumiy.
+
+| Kim | Qayerda | Nima qiladi |
+|---|---|---|
+| platforma admini | admin panel → kompaniya sahifasi → **Lokatsiyalar** | lokatsiya qo'shadi, nomini o'zgartiradi, bo'shini o'chiradi |
+| egasi | user app → **Xodimlar** → lokatsiya tugmasi | xodimni ayrim lokatsiyalar bilan cheklaydi yoki cheklovni olib tashlaydi |
+| egasi va xodim | user app → topbar'dagi tanlovchi | joriy lokatsiyani almashtiradi (2+ ruxsatli lokatsiya bo'lsa) |
+
+- Har company **"Asosiy"** lokatsiya bilan boshlaydi (mavjud company'larning vazifalari unga tushgan); keyingilarini admin qo'shadi. Vazifasi bor lokatsiya va yagona lokatsiya o'chirilmaydi.
+- **Joriy lokatsiya** brauzerda eslanadi (company va user bo'yicha). Vazifalar ro'yxati va kanban joriy lokatsiyaniki, yangi vazifa unga tushadi va keyin o'zgarmaydi. Tanlovchi faqat 2+ ruxsatli lokatsiyada ko'rinadi; 1 ta bo'lsa hech narsa ko'rinmaydi.
+- **Mijoz sahifasi** mijozning hamma ruxsatli lokatsiyadagi vazifalarini ko'rsatadi (2+ lokatsiyada belgisi bilan); vazifa sahifasida "Lokatsiya" fakti.
+- **Mas'ul** vazifa lokatsiyasida ishlaydigan a'zo bo'lishi shart: formada faqat shular taklif qilinadi, API 400 "Mas'ul bu lokatsiyada ishlamaydi".
+- **Xodim cheklovi** faqat egasiniki (rollar kabi): standart holat hammasi; cheklanganda faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi, keyingi so'rovdanoq. Boshqa lokatsiyalarda unga biriktirilgan vazifalar qoladi (dialog ogohlantiradi). Ruxsatsiz lokatsiya bilan so'rov 403 `forbidden`; ruxsatsiz lokatsiyadagi vazifa 404. Lokatsiyasi qolmagan xodim "Sizga lokatsiya biriktirilmagan" ko'radi.
+
+To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/locations.md`](logic/locations.md).
+
 ## Buyruqlar
 
 | Buyruq | Nima qiladi |
