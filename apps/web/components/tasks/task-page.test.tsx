@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, seedTasks, VALI } from "@/mocks/data"
+import { addLocation } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -192,4 +193,18 @@ test("the task's actions follow the role: editing and moving here, with the hist
   expect(screen.getByRole("combobox", { name: "Bosqich" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
   expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
+})
+
+test("with two or more locations the page says the task's; with one there is nothing to say", async () => {
+  await signIn(ALI)
+  const { call } = seedTasks()
+  const first = open(call.id)
+  expect(pairsOf(await info()).map(([name]) => name)).not.toContain("Lokatsiya")
+  first.unmount()
+
+  const chilonzor = addLocation(1, "Chilonzor")
+  call.locationId = chilonzor.id
+  open(call.id)
+
+  await waitFor(() => expect(pairsOf(screen.getByRole("region", { name: "Ma'lumot" }))).toContainEqual(["Lokatsiya", "Chilonzor"]))
 })

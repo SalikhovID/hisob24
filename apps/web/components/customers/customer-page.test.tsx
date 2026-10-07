@@ -3,7 +3,9 @@ import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { formatDate } from "@/lib/format"
+import { keep } from "@/lib/use-kept"
 import { addDays, ALI, db, localToday, seedCustomers, seedSixKinds, seedTasks, typesOf, VALI } from "@/mocks/data"
+import { addLocation, asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -438,4 +440,24 @@ test("the customer's actions follow the role: editing, the history and the tasks
   expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
   expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
   expect(screen.getByRole("heading", { name: "Vazifalar" })).toBeInTheDocument()
+})
+
+// A customer's tasks are those of every location the member works in,
+// whatever the current one (logic/locations.md, section 6).
+test("a customer's tasks are of every location the member works in; with two or more locations each says its own", async () => {
+  await signIn(ALI)
+  const { dilshod, call } = seedTasks()
+  const chilonzor = addLocation(1, "Chilonzor")
+  call.locationId = chilonzor.id
+  keep(`location:1:${ALI}`, String(asosiyOf(1).id))
+
+  open(dilshod.id)
+
+  const table = await within(await tasksOf()).findByRole("table", { name: "Vazifalar" })
+  expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual(["Vazifa", "Bosqich", "Lokatsiya", "Muddat"])
+  const rows = within(table).getAllByRole("row").slice(1)
+  expect(rows.map((row) => [within(row).getByRole("rowheader").textContent, within(row).getAllByRole("cell")[1].textContent])).toEqual([
+    ["Eski buyurtma", "Asosiy"],
+    ["Qo'ng'iroq qilish", "Chilonzor"],
+  ])
 })

@@ -25,6 +25,7 @@ import { choice, choices, CustomerSection, TaskFields, TaskRefusal } from "./tas
 // opened for (or the first), with the deadline empty and nobody assigned.
 export function AddTaskDialog({
   companyId,
+  locationId,
   types,
   stages,
   customerTypes,
@@ -36,6 +37,8 @@ export function AddTaskDialog({
   onClose,
 }: {
   companyId: number
+  // locationId is the current location: the task is entered into it.
+  locationId: number
   types: TaskType[]
   stages: TaskStage[]
   customerTypes: CustomerType[]
@@ -65,7 +68,7 @@ export function AddTaskDialog({
     defaultValues: taskDefaults(type, customerType, stageId ?? stages[0]?.id ?? null),
   })
   const add = useMutation({
-    mutationFn: (task: TaskOutput) => call(api.POST("/app/tasks", { body: { type_id: type.id, ...task } })),
+    mutationFn: (task: TaskOutput) => call(api.POST("/app/tasks", { body: { type_id: type.id, location_id: locationId, ...task } })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tasksKey(companyId) })
       // A new customer is among the customers now.
@@ -162,7 +165,7 @@ export function AddTaskDialog({
             </fieldset>
             <fieldset className="min-w-0">
               <legend className="mb-3 text-sm font-semibold">Vazifa</legend>
-              <TaskFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} />
+              <TaskFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} locationId={locationId} />
             </fieldset>
           </div>
           {add.isError && <TaskRefusal error={add.error} onLink={linkById} />}

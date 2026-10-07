@@ -29,6 +29,7 @@ import { Deadline } from "./deadline"
 import { DeleteTaskButton } from "./delete-task-button"
 import { EditTaskDialog } from "./edit-task-dialog"
 import { usePermission } from "@/lib/use-gate"
+import { useLocation } from "@/lib/use-location"
 import { StageBadge } from "./stage-badge"
 import { TaskHistory } from "./task-history"
 
@@ -54,6 +55,8 @@ export function TaskPage({ id }: { id: number }) {
   const customer = useCustomer(task.data ? companyId : null, task.data?.customer.id ?? 0)
   const move = useMoveTask(companyId)
   const queryClient = useQueryClient()
+  // With two or more locations to work in the page says the task's one.
+  const { locations } = useLocation()
 
   // A task that is gone, or is another company's, is not found: there is
   // nothing to try again.
@@ -150,6 +153,7 @@ export function TaskPage({ id }: { id: number }) {
           <Fact name="Nomi" value={task.data.title} />
           <Fact name="Muddat" value={<Deadline value={task.data.deadline} done={done} />} />
           <Fact name="Bosqich" value={stage && <StageBadge stage={stage} />} />
+          {locations.length >= 2 && <Fact name="Lokatsiya" value={locations.find((l) => l.id === task.data.location_id)?.name} />}
           <Fact name="Mas'ul" value={task.data.assignee && (task.data.assignee.full_name ?? formatPhone(task.data.assignee.phone))} />
           {type?.fields.map((field) => (
             <Fact key={field.id} name={field.label} value={answerText(field, task.data.values[field.id], dropdowns.data)} />

@@ -1,9 +1,10 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { addDays, ALI, db, localToday, seedTasks, VALI } from "@/mocks/data"
+import { addLocation, restrictTo } from "@/test/locations"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
-import { choose } from "@/test/select"
+import { choose, optionsOf } from "@/test/select"
 import { signIn } from "@/test/session"
 import { TaskPage } from "./task-page"
 
@@ -119,4 +120,24 @@ test("the dialog opens with the task as it is every time", async () => {
   await user.click(screen.getByRole("button", { name: "Tahrirlash" }))
 
   expect(within(await screen.findByRole("dialog", { name: "Vazifani tahrirlash" })).getByLabelText("Nomi")).toHaveValue("Qo'ng'iroq qilish")
+})
+
+// The assignee of a task in Asosiy who works in Chilonzor alone now
+// (logic/locations.md, section 6) stays as long as the edit keeps them.
+test("an assignee who works elsewhere now stays offered, marked so, and stays on the task through an edit", async () => {
+  await signIn(ALI)
+  const { call } = seedTasks()
+  const chilonzor = addLocation(1, "Chilonzor")
+  restrictTo(VALI, 1, [chilonzor.id])
+  const { user, dialog } = await openDialog(call.id)
+
+  const assignee = within(dialog).getByLabelText("Mas'ul")
+  expect(assignee).toHaveTextContent("Vali Aliyev (bu lokatsiyada ishlamaydi)")
+  expect(await optionsOf(user, assignee)).toEqual(["Tanlanmagan", "Ali Valiyev", "Sardor Karimov", "Vali Aliyev (bu lokatsiyada ishlamaydi)"])
+
+  setDate(within(dialog).getByLabelText("Muddat"), addDays(today, 4))
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(db.tasks.find((task) => task.id === call.id)).toMatchObject({ assignee: VALI, deadline: addDays(today, 4) })
 })

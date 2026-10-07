@@ -1,10 +1,12 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { addDays, ALI, db, localToday, seedTasks, taskTypesOf, typesOf, VALI } from "@/mocks/data"
+import { keep } from "@/lib/use-kept"
+import { addDays, ALI, db, localToday, SARDOR, seedTasks, taskTypesOf, typesOf, VALI } from "@/mocks/data"
+import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
-import { choose } from "@/test/select"
+import { choose, optionsOf } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { TasksPage } from "./tasks-page"
 
@@ -278,4 +280,28 @@ test("without customers.create the dialog takes a customer that is there alone: 
   expect(within(customer).getByText("Yangi mijoz qo'shish ruxsatingiz yo'q: mavjud mijozni biriktiring.")).toBeInTheDocument()
   expect(within(customer).getByRole("combobox", { name: "Telefon raqami" })).toBeInTheDocument()
   expect(within(customer).queryByLabelText("F.I.Sh.")).not.toBeInTheDocument()
+})
+
+// A task is entered into the current location, and assigned among the
+// members who work there (logic/locations.md, section 6).
+test("a task is entered into the current location, and assigned among the members who work there", async () => {
+  const chilonzor = addLocation(1, "Chilonzor")
+  restrictTo(SARDOR, 1, [asosiyOf(1).id])
+  await signIn(ALI)
+  seedTasks()
+  keep(`location:1:${ALI}`, String(chilonzor.id))
+  const { user, dialog } = await openDialog()
+
+  const customer = within(dialog).getByRole("group", { name: "Mijoz" })
+  await user.type(within(customer).getByRole("combobox", { name: "Telefon raqami" }), "901112233")
+  await user.type(within(customer).getByLabelText("F.I.Sh."), "Yangi Mijoz")
+  const task = within(dialog).getByRole("group", { name: "Vazifa" })
+  // Sardor works in Asosiy alone: not offered for a task in Chilonzor.
+  expect(await optionsOf(user, within(task).getByLabelText("Mas'ul"))).toEqual(["Tanlanmagan", "Ali Valiyev", "Vali Aliyev"])
+  await user.type(within(task).getByLabelText("Nomi"), "Chilonzorda")
+  setDate(within(task).getByLabelText("Muddat"), addDays(today, 2))
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(db.tasks.at(-1)).toMatchObject({ title: "Chilonzorda", locationId: chilonzor.id })
 })

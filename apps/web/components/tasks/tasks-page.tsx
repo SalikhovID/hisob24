@@ -4,7 +4,7 @@ import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import { KanbanIcon, ListIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ColumnsMenu } from "@/components/customers/columns-menu"
 import { SearchInput } from "@/components/customers/search-input"
 import { type Column, DataList } from "@/components/data-list"
@@ -33,6 +33,7 @@ import type { Permission, Task } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useHiddenColumns } from "@/lib/use-hidden-columns"
 import { useKept } from "@/lib/use-kept"
+import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
 import { Deadline } from "./deadline"
 import { StageBadge } from "./stage-badge"
@@ -53,9 +54,10 @@ const viewRadio =
 // of the toolbar stands as tall as the search beside it.
 const toolbarSelect = "h-9! w-fit bg-card"
 
-// TasksPage is the company's tasks, for whoever may see them (tasks.view;
-// adding takes tasks.create and customers.view, moving tasks.edit): as a board of
-// the stages (the first time) or as a list, the one due soonest first, each
+// TasksPage is the tasks of the current location (logic/locations.md,
+// section 6), for whoever may see them (tasks.view; adding takes
+// tasks.create and customers.view, moving tasks.edit): as a board of the
+// stages (the first time) or as a list, the one due soonest first, each
 // with its customer, stage, deadline, assignee and answers. Fields of one
 // name share a column, whatever the type.
 export function TasksPage() {
@@ -63,6 +65,8 @@ export function TasksPage() {
   const companyId = gate?.company.id ?? null
   const phone = gate?.user.phone ?? ""
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
+  const location = useLocation()
+  const locationId = location.current?.id ?? null
   const types = useTaskTypes(companyId)
   const stages = useTaskStages(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
@@ -83,6 +87,7 @@ export function TasksPage() {
   }
 
   const listFilter: TaskFilter = {
+    locationId,
     search: filter.search,
     typeId: filter.typeId,
     stageId: filter.stageId,
@@ -90,7 +95,17 @@ export function TasksPage() {
     customerId: null,
     page: filter.page,
   }
-  const tasks = useTasks(view === "list" ? companyId : null, listFilter)
+  // The list is of the current location: nothing is asked until there is one.
+  const tasks = useTasks(view === "list" && locationId !== null ? companyId : null, listFilter)
+
+  // Another location is another list: it starts from its first page. The
+  // first location known is not a change.
+  const shownLocation = useRef(locationId)
+  useEffect(() => {
+    const changed = shownLocation.current !== null && locationId !== null && shownLocation.current !== locationId
+    shownLocation.current = locationId
+    if (changed && filter.page > 1) update({ page: 1 })
+  }, [locationId, filter.page, update])
 
   const typeOf = (task: Task) => types.data?.find((type) => type.id === task.type_id)
   const stageOf = (task: Task) => stages.data?.find((stage) => stage.id === task.stage_id)
@@ -218,8 +233,12 @@ export function TasksPage() {
   const noTypes = !failed && !noStages && types.data?.length === 0
   const loading = !failed && (queries.some((query) => query.isPending) || settling)
   const ready = companyId !== null && types.data && stages.data && dropdowns.data && types.data.length > 0 && stages.data.length > 0
-  // A task is for a customer: adding one takes a way to the customers too.
-  const canAdd = allowed("tasks.create") && allowed("customers.view")
+  // A task is for a customer: adding one takes a way to the customers too,
+  // and a location to enter it into.
+  const canAdd = allowed("tasks.create") && allowed("customers.view") && locationId !== null
+  // A member with no location to work in sees no tasks: the owner has to
+  // give them one (logic/locations.md, section 5).
+  const noLocation = location.ready && locationId === null
 
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
@@ -239,7 +258,12 @@ export function TasksPage() {
           )
         }
       />
-      {noStages || noTypes ? (
+      {noLocation ? (
+        <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
+          <p className="font-medium">Sizga lokatsiya biriktirilmagan</p>
+          <p className="mt-1 text-pretty text-muted-foreground">Kompaniya egasi lokatsiya biriktirishi kerak.</p>
+        </div>
+      ) : noStages || noTypes ? (
         // A task stands in a stage and is of a type: with none there is
         // nothing to enter. Both are the settings' to make.
         <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
@@ -333,23 +357,24 @@ export function TasksPage() {
               </div>
             </div>
           )}
-          {view === "board" && ready && (
+          {view === "board" && ready && locationId !== null && (
             <TaskBoard
               companyId={companyId}
               phone={phone}
               stages={stages.data}
               types={types.data}
               everyType={everyType}
-              filter={{ search: filter.search, typeId: filter.typeId, assignee: filter.assignee }}
+              filter={{ locationId, search: filter.search, typeId: filter.typeId, assignee: filter.assignee }}
               onTotal={onTotal}
               onAdd={(stageId) => setAdding({ stageId })}
               canAdd={canAdd}
               canMove={allowed("tasks.edit")}
             />
           )}
-          {adding && ready && (
+          {adding && ready && locationId !== null && (
             <AddTaskDialog
               companyId={companyId}
+              locationId={locationId}
               types={types.data}
               stages={stages.data}
               customerTypes={customerTypes.data ?? []}

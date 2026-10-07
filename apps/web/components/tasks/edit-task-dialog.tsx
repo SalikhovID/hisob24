@@ -101,7 +101,15 @@ export function EditTaskDialog({
             </fieldset>
             <fieldset className="min-w-0">
               <legend className="mb-3 text-sm font-semibold">Vazifa</legend>
-              <TaskFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} task={task} />
+              <TaskFields
+                control={form.control}
+                type={type}
+                stages={stages}
+                members={members}
+                dropdowns={dropdowns}
+                locationId={task.location_id}
+                task={task}
+              />
             </fieldset>
           </div>
           {save.isError && <Refusal>{save.error.message}</Refusal>}

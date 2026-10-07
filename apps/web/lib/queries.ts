@@ -139,10 +139,12 @@ export function useCustomers(companyId: number | null, filter: CustomerFilter) {
 // list of them begins with it, so one call drops them all.
 export const tasksKey = (companyId: number | null) => ["tasks", companyId] as const
 
-// TaskFilter narrows the tasks list: a search, one type, one stage, one
+// TaskFilter narrows the tasks list: one location (null for every one the
+// member works in: the customer's page), a search, one type, one stage, one
 // assignee (a phone; "" for every one), one customer (null for every one)
 // and the page.
 export interface TaskFilter {
+  locationId: number | null
   search: string
   typeId: number | null
   stageId: number | null
@@ -162,6 +164,7 @@ export function useTasks(companyId: number | null, filter: TaskFilter) {
         api.GET("/app/tasks", {
           params: {
             query: {
+              location_id: filter.locationId ?? undefined,
               search: filter.search || undefined,
               type_id: filter.typeId ?? undefined,
               stage_id: filter.stageId ?? undefined,
@@ -178,9 +181,9 @@ export function useTasks(companyId: number | null, filter: TaskFilter) {
   })
 }
 
-// StageFilter narrows a stage's column of the board: the search, one type
-// and one assignee; the stage is the column's own.
-export type StageFilter = Pick<TaskFilter, "search" | "typeId" | "assignee">
+// StageFilter narrows a stage's column of the board: the location, the
+// search, one type and one assignee; the stage is the column's own.
+export type StageFilter = Pick<TaskFilter, "locationId" | "search" | "typeId" | "assignee">
 
 // stageTasksKey names a stage's column in the cache: the tasks of the stage
 // under the filter, page after page.
@@ -197,6 +200,7 @@ export function useStageTasks(companyId: number | null, stageId: number, filter:
         api.GET("/app/tasks", {
           params: {
             query: {
+              location_id: filter.locationId ?? undefined,
               search: filter.search || undefined,
               type_id: filter.typeId ?? undefined,
               assignee: filter.assignee || undefined,

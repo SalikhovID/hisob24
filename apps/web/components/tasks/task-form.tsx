@@ -13,6 +13,7 @@ import { FieldGroup } from "@/components/ui/field"
 import { ApiError } from "@/lib/api"
 import { customerName } from "@/lib/customers"
 import { fieldKey, type FormField } from "@/lib/fields"
+import { assigneeOptions } from "@/lib/members"
 import { formatPhone } from "@/lib/phone"
 import type { TaskForm, TaskOutput } from "@/lib/tasks"
 import type { Customer, CustomerDropdown, CustomerType, Member, Task, TaskStage, TaskType } from "@/lib/types"
@@ -34,15 +35,17 @@ function offered(field: FormField, dropdowns: CustomerDropdown[], values?: Recor
 }
 
 // TaskFields is the task's own part of the form: the title, the deadline,
-// the stage, the assignee, then the fields of its type in their order. task
-// is the one being edited, if any: its answers keep the options turned off
-// since, and its assignee stays offered after leaving the company.
+// the stage, the assignee (a member who works in the task's location,
+// locationId), then the fields of its type in their order. task is the one
+// being edited, if any: its answers keep the options turned off since, and
+// its assignee stays offered after leaving the company or the location.
 export function TaskFields({
   control,
   type,
   stages,
   members,
   dropdowns,
+  locationId,
   task,
 }: {
   control: FormControl
@@ -50,10 +53,9 @@ export function TaskFields({
   stages: TaskStage[]
   members: Member[]
   dropdowns: CustomerDropdown[]
+  locationId: number
   task?: Task
 }) {
-  const assignee = task?.assignee
-  const gone = assignee && !members.some((member) => member.phone === assignee.phone) ? assignee : null
   return (
     <FieldGroup>
       <TextField control={control} name="title" label="Nomi" autoComplete="off" />
@@ -65,17 +67,7 @@ export function TaskFields({
         placeholder="Tanlang"
         options={stages.map((stage) => ({ value: String(stage.id), label: stage.name }))}
       />
-      <SelectField
-        control={control}
-        name="assignee_phone"
-        label="Mas'ul"
-        empty="Tanlanmagan"
-        options={[
-          ...members.map((member) => ({ value: member.phone, label: member.full_name ?? formatPhone(member.phone) })),
-          // An assignee who left the company stays as long as the edit keeps them.
-          ...(gone ? [{ value: gone.phone, label: `${gone.full_name ?? formatPhone(gone.phone)} (chiqarilgan)` }] : []),
-        ]}
-      />
+      <SelectField control={control} name="assignee_phone" label="Mas'ul" empty="Tanlanmagan" options={assigneeOptions(members, locationId, task)} />
       {type.fields.map((field) => (
         <FieldAnswer
           key={field.id}

@@ -1,8 +1,10 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { formatDate } from "@/lib/format"
+import { keep } from "@/lib/use-kept"
 import { addDays, ALI, db, localToday, nextId, seedTasks, VALI } from "@/mocks/data"
+import { addLocation, restrictTo } from "@/test/locations"
 import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -429,4 +431,61 @@ test("the list's card names the task's customer without a link, so the card is t
   expect(within(card).getByText("Dilshod Karimov")).toBeInTheDocument()
   expect(within(card).getByText("+998 91 111 22 33")).toBeInTheDocument()
   expect(within(card).getAllByRole("link").map((link) => link.textContent)).toEqual(["Qo'ng'iroq qilish"])
+})
+
+// The tasks the page shows are the current location's (logic/locations.md,
+// section 6): the one chosen in the top bar, kept in the browser.
+test("the list and the board show the current location's tasks alone; another location's come when it is chosen", async () => {
+  await signIn(ALI)
+  const seeded = seedTasks()
+  const chilonzor = addLocation(1, "Chilonzor")
+  seeded.call.locationId = chilonzor.id
+  setLocation("/tasks?view=list")
+  const first = renderWithProviders(<TasksPage />)
+
+  await table()
+  expect(titles()).toEqual(["Eski buyurtma", "Hisob-faktura", "Shartnoma yuborish"])
+  expect(await screen.findByText("Kompaniyangiz vazifalari · 3 ta")).toBeInTheDocument()
+  first.unmount()
+
+  keep(`location:1:${ALI}`, String(chilonzor.id))
+  setLocation("/tasks?view=board")
+  renderWithProviders(<TasksPage />)
+  const board = await screen.findByRole("region", { name: "Kanban" })
+  const yangi = within(board).getByRole("region", { name: "Yangi" })
+  await waitFor(() => expect(within(yangi).getByText("Qo'ng'iroq qilish")).toBeInTheDocument())
+  expect(within(yangi).queryByText("Hisob-faktura")).not.toBeInTheDocument()
+  expect(await screen.findByText("Kompaniyangiz vazifalari · 1 ta")).toBeInTheDocument()
+})
+
+test("a change of location takes the list back to its first page", async () => {
+  await signIn(ALI)
+  seedTasks()
+  const chilonzor = addLocation(1, "Chilonzor")
+  setLocation("/tasks?view=list&page=2")
+  renderWithProviders(<TasksPage />)
+  await screen.findByRole("heading", { level: 1, name: "Vazifalar" })
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Mas'ul" })).toBeInTheDocument())
+  expect(currentUrl()).toBe("/tasks?view=list&page=2")
+
+  act(() => keep(`location:1:${ALI}`, String(chilonzor.id)))
+
+  await waitFor(() => expect(currentUrl()).toBe("/tasks?view=list"))
+})
+
+test("a member with no location to work in is told so, and cannot add a task", async () => {
+  const gone = addLocation(1, "Yopilgan")
+  gone.deleted = true
+  restrictTo(VALI, 1, [gone.id])
+  await signIn(VALI)
+  await chooseCompany(1)
+  seedTasks()
+  setLocation("/tasks?view=list")
+  renderWithProviders(<TasksPage />)
+
+  expect(await screen.findByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
+  expect(screen.getByText("Kompaniya egasi lokatsiya biriktirishi kerak.")).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("table", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("region", { name: "Kanban" })).not.toBeInTheDocument()
 })
