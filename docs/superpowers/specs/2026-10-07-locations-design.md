@@ -287,3 +287,18 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **1-bosqich kamchiligi tuzatildi:** `SetEmployeeRole` javobi `Member` ni `AllLocations`siz qurar edi (JSON'da `locations: []` chiqardi); endi `memberIn` orqali to'liq (`TestSetEmployeeRoleTellsTheLocations`).
 - **Lokatsiya ID'lari tranzaksiyadan oldin tekshiriladi** (`GetLocation` pool orqali), yozuv esa tranzaksiyada: rad etilgan so'rov hech narsani o'zgartirmaydi; `FailInserts member_locations` bayroqni ham qaytaradi (atomik).
 - **Egasiga `null` ham 409** (`SetMemberAllLocations` `role = 'user'` sharti): egasiga tegilmaydi.
+
+## 5-bosqich qarorlari (2026-10-07)
+
+Bajarildi: `lib/use-location.ts` (`useLocation`: `locations`, `current`, `choose`, `ready`), `lib/members.ts` (`worksIn`, `assigneeOptions`), `components/shell/location-switcher.tsx` (`SelectBox`, `MapPinIcon`; `Topbar` o'rtasida), `lib/queries.ts` (`TaskFilter.locationId`, `StageFilter`), `tasks-page.tsx` (joriy lokatsiya filtri, lokatsiyasiz karta, almashtirishda 1-sahifa), `task-dialog.tsx` (`location_id`), `task-form.tsx` (`locationId` → `assigneeOptions`), `edit-task-dialog.tsx`, `task-page.tsx` ("Lokatsiya" fakti), `customer-tasks.tsx` (`locationId: null`, "Lokatsiya" ustuni), mock qat'iy (`location_id` majburiy), openapi `TaskCreate.required` + `location_id`, seed (Nok Market "Chilonzor"), `DILNOZA` konstantasi, e2e `locations.spec.ts`. Reja: `docs/superpowers/plans/2026-10-07-locations-stage5-web-tasks.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Tanlovchi `SelectBox`** (`aria-label="Lokatsiya"`, `h-8`, `max-w-[8.5rem]`, keng ekranda `sm:max-w-56`), yonida `MapPinIcon`; topbar uch bo'lak: kompaniya nomi (`min-w-0 shrink`, telefonda), tanlovchi (`flex-1`, telefonda o'ngga, keng ekranda chapga), tema va profil (`shrink-0`).
+- **Almashtirishda 1-sahifa:** `useRef` bilan oldingi lokatsiya; birinchi ma'lum bo'lgan lokatsiya o'zgarish emas (manzildagi `page` saqlanadi), keyingi o'zgarish `page > 1` bo'lsa `update({page: 1})`.
+- **Ro'yxat va kanban lokatsiya ma'lum bo'lguncha so'ralmaydi** (`useTasks(..., null)` / `TaskBoard` chizilmaydi); lokatsiyasiz xodimga karta (`location.ready && current === null`).
+- **Mas'ul tanlovi `assigneeOptions`:** lokatsiyada ishlaydiganlar; tahrirda hozirgi mas'ul u yerda ishlamasa "(bu lokatsiyada ishlamaydi)", a'zo bo'lmasa "(chiqarilgan)" — eski `gone` mantiqi shu yordamchiga ko'chdi.
+- **`customer-tasks` "Lokatsiya" ustuni** "Bosqich"dan keyin, `card: "tag"`, `Badge variant="outline"`; faqat 2+ ruxsatli lokatsiyada.
+- **DILNOZA seed'da a'zo emas:** Nok Market'da xodim bo'lsa "an owner with nobody added yet…" testi buzilardi; e2e va testlar uni `join` bilan qo'shadi. `TG_DILNOZA` kiritilmadi (kerak bo'lmadi).
+- **Mavjud testlar o'zgardi (talab o'zgargani uchun):** `handlers.test.ts` `taskBody` `location_id` bilan, "Nomsiz" va "until the app names one" holatlari 400 "Lokatsiyani tanlang" ga, `/app/me` Nok Market ikki lokatsiya bilan; `lib/tasks.test.ts` fixture (1-bosqichdayoq). Hech biri o'chirilmadi.
+- **Tekshiruv:** web Vitest 603; `locations.spec.ts` 4 (375px va desktop).
