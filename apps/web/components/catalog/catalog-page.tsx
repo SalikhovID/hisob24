@@ -8,12 +8,13 @@ import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatAmount, formatDate, unitLabel } from "@/lib/format"
+import { formatAmount, formatDate, formatQuantity, unitLabel } from "@/lib/format"
 import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { useProducts } from "@/lib/queries"
 import type { Permission, Product, ProductKind } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
+import { useLocation } from "@/lib/use-location"
 import { SearchInput } from "@/components/customers/search-input"
 import { ActiveButton } from "./active-button"
 import { DeleteProductButton } from "./delete-product-button"
@@ -37,7 +38,9 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const [filter, update] = useCatalogFilter()
-  const products = useProducts(companyId, { kind, ...filter })
+  // The stock shown is the current location's (logic/products.md, section 5).
+  const location = useLocation()
+  const products = useProducts(companyId, { kind, ...filter, locationId: location.current?.id ?? null })
   const isProduct = kind === "product"
   const noun = isProduct ? "Mahsulot" : "Xizmat"
   const plural = isProduct ? "Mahsulotlar" : "Xizmatlar"
@@ -56,6 +59,9 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
         ]
       : []),
     { header: "Narx", align: "end", card: "aside", cell: (p) => p.price && formatAmount(p.price) },
+    ...(isProduct
+      ? [{ header: "Qoldiq", card: "inline", className: "tabular-nums", cell: (p) => p.quantity !== null && formatQuantity(p.quantity, p.unit) } satisfies Column<Product>]
+      : []),
     { header: "Qo'shgan", className: "text-muted-foreground", cell: (p) => p.created_by_name },
     { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (p) => formatDate(p.created_at) },
     ...(isProduct

@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, seedCatalog, VALI } from "@/mocks/data"
+import { ALI, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
+import { addLocation } from "@/test/locations"
 import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -15,8 +16,10 @@ const titles = (table: HTMLElement) =>
     .getAllByRole("rowheader")
     .map((cell) => within(cell).queryByRole("link")?.textContent ?? cell.textContent)
 
-test("the owner's products: by name, with the SKU, the unit and the price; the inactive ones under their own tab", async () => {
-  const { olma, nok } = seedCatalog()
+test("the owner's products: by name, with the SKU, the unit, the price and the stock of the current location; the inactive ones under their own tab", async () => {
+  const catalog = seedCatalog()
+  const { olma, nok } = catalog
+  seedWarehouse(catalog)
   await signIn(ALI)
   setLocation("/products")
   const { user } = renderWithProviders(<CatalogPage kind="product" />)
@@ -27,6 +30,7 @@ test("the owner's products: by name, with the SKU, the unit and the price; the i
   const tabs = screen.getByRole("navigation", { name: "Mahsulotlar bo'limi" })
   expect(within(tabs).getByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("aria-current", "page")
   expect(within(tabs).getByRole("link", { name: "Xizmatlar" })).toHaveAttribute("href", "/services")
+  expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Mahsulot", "Artikul", "Birlik", "Narx", "Qoldiq", "Qo'shgan", "Qo'shilgan"])
   expect(titles(list)).toEqual(["Nok", "Olma"])
   expect(within(list).getByRole("link", { name: "Olma" })).toHaveAttribute("href", `/products/${olma.id}`)
   expect(within(list).getByRole("link", { name: "Nok" })).toHaveAttribute("href", `/products/${nok.id}`)
@@ -34,15 +38,31 @@ test("the owner's products: by name, with the SKU, the unit and the price; the i
   expect(within(olmaRow).getByText("OL-1")).toBeInTheDocument()
   expect(within(olmaRow).getByText("kg")).toBeInTheDocument()
   expect(within(olmaRow).getByText("12 000")).toBeInTheDocument()
+  expect(within(olmaRow).getByText("12,5 kg")).toBeInTheDocument()
   expect(within(olmaRow).getByText("Ali Valiyev")).toBeInTheDocument()
   const nokRow = within(list).getByRole("link", { name: "Nok" }).closest("tr")!
   expect(within(nokRow).getByText("dona")).toBeInTheDocument()
+  expect(within(nokRow).getByText("3 dona")).toBeInTheDocument()
   expect(within(list).queryByText("Eski mahsulot")).not.toBeInTheDocument()
 
   await user.click(screen.getByRole("tab", { name: "Nofaol" }))
   await waitFor(() => expect(currentUrl()).toBe("/products?status=inactive"))
   expect(await within(await table("Mahsulotlar")).findByText("Eski mahsulot")).toBeInTheDocument()
   expect(screen.queryByText("Olma")).not.toBeInTheDocument()
+})
+
+test("the stock shown is the current location's: Chilonzor holds none of what Asosiy got", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const chilonzor = addLocation(1, "Chilonzor")
+  localStorage.setItem(`location:1:${ALI}`, String(chilonzor.id))
+  await signIn(ALI)
+  setLocation("/products")
+  renderWithProviders(<CatalogPage kind="product" />)
+
+  const list = await table("Mahsulotlar")
+  const olmaRow = within(list).getByRole("link", { name: "Olma" }).closest("tr")!
+  expect(within(olmaRow).getByText("0 kg")).toBeInTheDocument()
 })
 
 test("a search looks in the names and the SKUs", async () => {
