@@ -85,14 +85,16 @@ func TestAccess(t *testing.T) {
 	}
 	profiles := NewProfiles(pool)
 
+	// The companies here are made without a location: none to work in.
+	none := []int64{}
 	for name, tc := range map[string]struct {
 		id   int64
 		want Access
 	}{
-		"the owner, paid up": {company("CURRENT_DATE + 30", true, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), Active: true}},
-		"a user, ends today": {company("CURRENT_DATE", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), Active: true}},
-		"expired":            {company("CURRENT_DATE - 1", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default)}},
-		"blocked":            {company("CURRENT_DATE + 30", false, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All)}},
+		"the owner, paid up": {company("CURRENT_DATE + 30", true, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), LocationIDs: none, Active: true}},
+		"a user, ends today": {company("CURRENT_DATE", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), LocationIDs: none, Active: true}},
+		"expired":            {company("CURRENT_DATE - 1", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), LocationIDs: none}},
+		"blocked":            {company("CURRENT_DATE + 30", false, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), LocationIDs: none}},
 	} {
 		got, err := profiles.Access(ctx, "998901234567", tc.id)
 		require.NoError(t, err, name)
@@ -105,8 +107,26 @@ func TestAccess(t *testing.T) {
 	require.NoError(t, err)
 	got, err := profiles.Access(ctx, "998901234567", withRole)
 	require.NoError(t, err)
-	assert.Equal(t, Access{Role: "user", Permissions: access.NewSet([]access.Permission{access.CustomersView, access.TasksView}), Active: true}, got,
+	assert.Equal(t, Access{Role: "user", Permissions: access.NewSet([]access.Permission{access.CustomersView, access.TasksView}), LocationIDs: none, Active: true}, got,
 		"a user with a role has what the role holds, nothing of the default")
+
+	// The locations a member may work in (logic/locations.md, section 5):
+	// every live one of the company's, or the live ones of a restriction.
+	withLocations := company("CURRENT_DATE + 30", true, "owner")
+	var asosiy, chilonzor, gone int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO locations (company_id, name) VALUES ($1, 'Asosiy') RETURNING id", withLocations).Scan(&asosiy))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO locations (company_id, name) VALUES ($1, 'Chilonzor') RETURNING id", withLocations).Scan(&chilonzor))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO locations (company_id, name, deleted_at) VALUES ($1, 'Yopilgan', now()) RETURNING id", withLocations).Scan(&gone))
+	got, err = profiles.Access(ctx, "998901234567", withLocations)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{asosiy, chilonzor}, got.LocationIDs, "the owner: every live location, in the order they were added")
+	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role, all_locations) VALUES ('998909999999', $1, 'user', false)`, withLocations)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ('998909999999', $1, $2), ('998909999999', $1, $3)`, withLocations, chilonzor, gone)
+	require.NoError(t, err)
+	got, err = profiles.Access(ctx, "998909999999", withLocations)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{chilonzor}, got.LocationIDs, "a restricted user: the live locations of the restriction")
 
 	paidUp := company("CURRENT_DATE + 30", true, "owner")
 	_, err = profiles.Access(ctx, "998909999999", paidUp)

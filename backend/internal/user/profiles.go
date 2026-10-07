@@ -65,12 +65,16 @@ func (p *Profiles) Get(ctx context.Context, phone string) (Profile, error) {
 }
 
 // Access is a user's standing in a company right now: the role there, what
-// they may do (logic/roles.md, section 4) and whether the company's
-// subscription lets it be used (its end date has not passed and it is not
-// blocked).
+// they may do (logic/roles.md, section 4), the locations they may work in
+// (logic/locations.md, section 5) and whether the company's subscription
+// lets it be used (its end date has not passed and it is not blocked).
 type Access struct {
 	Role        string
 	Permissions access.Set
+	// LocationIDs is the live locations the user may work in, in the order
+	// they were added: every one of the company's unless restricted to
+	// some. Empty, never nil.
+	LocationIDs []int64
 	Active      bool
 }
 
@@ -78,9 +82,10 @@ type Access struct {
 var ErrNotMember = errors.New("not a member of the company")
 
 // Access reads a user's standing in a company afresh, so a membership taken
-// away, a role given or a role's permissions changed count from the next
-// request on. The owner may do everything, a user with no role what the
-// default allows, a user with a role what the role holds.
+// away, a role given, a role's permissions changed or a restriction to some
+// locations count from the next request on. The owner may do everything, a
+// user with no role what the default allows, a user with a role what the
+// role holds.
 func (p *Profiles) Access(ctx context.Context, phone string, companyID int64) (Access, error) {
 	row, err := p.q.GetCompanyAccess(ctx, gen.GetCompanyAccessParams{UserPhone: phone, CompanyID: companyID})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -89,5 +94,9 @@ func (p *Profiles) Access(ctx context.Context, phone string, companyID int64) (A
 	if err != nil {
 		return Access{}, err
 	}
-	return Access{Role: row.Role, Permissions: access.Effective(row.Role, row.RoleID != nil, row.Permissions), Active: row.Active}, nil
+	locations := row.LocationIds
+	if locations == nil {
+		locations = []int64{}
+	}
+	return Access{Role: row.Role, Permissions: access.Effective(row.Role, row.RoleID != nil, row.Permissions), LocationIDs: locations, Active: row.Active}, nil
 }
