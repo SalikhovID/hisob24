@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { formatAmount } from "./format"
-import { phoneDigits } from "./phone"
+import { formatPhoneInput, phoneDigits } from "./phone"
 import type { Payment, PurchaseDetail, Supplier } from "./types"
 
 const trimmed = z.string().trim()
@@ -158,7 +158,7 @@ export function today(): string {
 // supplierDefaults is the supplier dialog as it opens: empty, or with the
 // fields of the one being edited (its phone as the field shows it).
 export function supplierDefaults(supplier?: Supplier): SupplierForm {
-  return { name: supplier?.name ?? "", phone: supplier?.phone ? supplier.phone.slice(3) : "", note: supplier?.note ?? "" }
+  return { name: supplier?.name ?? "", phone: supplier?.phone ? formatPhoneInput(supplier.phone) : "", note: supplier?.note ?? "" }
 }
 
 // paymentDefaults is the payment dialog as it opens: today and nothing, or

@@ -4,7 +4,7 @@ import { NextRequest } from "next/server"
 import { expect, test } from "vitest"
 import { config, proxy } from "./proxy"
 
-test.each(["/", "/customers", "/customers/7", "/tasks", "/tasks/7", "/products", "/products/7", "/services", "/employees", "/settings", "/settings/customer-types/7", "/select-company", "/expired"])("proxy sends %s without a session to /login", (path) => {
+test.each(["/", "/customers", "/customers/7", "/tasks", "/tasks/7", "/products", "/products/7", "/services", "/suppliers", "/suppliers/3", "/purchases", "/purchases/new", "/purchases/3", "/purchases/3/edit", "/employees", "/settings", "/settings/customer-types/7", "/select-company", "/expired"])("proxy sends %s without a session to /login", (path) => {
   const response = proxy(new NextRequest(`http://localhost:3000${path}`))
 
   expect(getRedirectUrl(response)).toBe("http://localhost:3000/login")
@@ -26,6 +26,12 @@ test.each([
   ["/products", true],
   ["/products/7", true],
   ["/services?status=inactive", true],
+  ["/suppliers", true],
+  ["/suppliers/3", true],
+  ["/purchases?page=2", true],
+  ["/purchases/new", true],
+  ["/purchases/3", true],
+  ["/purchases/3/edit", true],
   ["/settings", true],
   ["/settings/dropdowns/7", true],
   ["/select-company", true],
