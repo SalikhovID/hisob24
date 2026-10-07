@@ -18,23 +18,30 @@ import { unavailable } from "@/lib/companies"
 import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 import { useMiniApp } from "@/lib/telegram"
+import { LocationSwitcher } from "./location-switcher"
 
 // Topbar is the bar above every page of the app: on a phone what heads the
 // sidebar, Hisob24's logo over the company's name (the sidebar is hidden
-// there, the sections are the tab bar's); on every screen the theme button
-// and who is signed in. Inside Telegram the chat sets the theme, so there is
-// no theme button.
+// there, the sections are the tab bar's); on every screen the switch
+// between the locations (when there are two or more), the theme button and
+// who is signed in. Inside Telegram the chat sets the theme, so there is no
+// theme button.
 export function Topbar() {
   const me = useMe()
   const miniApp = useMiniApp()
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background px-4">
-      <div className="min-w-0 md:hidden">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+      <div className="min-w-0 shrink md:hidden">
         <Logo className="h-4" />
         <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium">{me.data?.company?.name}</p>
       </div>
-      <div className="flex items-center gap-1">
+      {/* Between the company's name and the profile on a phone, at the
+          left on a wide screen, where the sidebar names the company. */}
+      <div className="flex min-w-0 flex-1 items-center justify-end md:justify-start">
+        <LocationSwitcher />
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
         {!miniApp && <ThemeToggle />}
         <ProfileMenu />
       </div>
