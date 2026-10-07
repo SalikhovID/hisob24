@@ -84,12 +84,23 @@ func TestGetCompanyAccess(t *testing.T) {
 		return q.GetCompanyAccess(ctx, gen.GetCompanyAccessParams{UserPhone: phone, CompanyID: companyID})
 	}
 
+	asosiy := addLocation(t, pool, olma.ID, "Asosiy")
+	chilonzor := addLocation(t, pool, olma.ID, "Chilonzor")
+	gone := addLocation(t, pool, olma.ID, "Yopilgan")
+	mustExec(t, pool, "UPDATE user_companies SET full_name = 'Sardor' WHERE user_phone = '998905555555'")
+	mustExec(t, pool, "UPDATE locations SET deleted_at = now() WHERE id = $1", gone)
+	restrictTo(t, pool, "998905555555", olma.ID, chilonzor, gone)
+	addMember(t, q, olma.ID, "998906666666", "Lokatsiyasiz", "user")
+	restrictTo(t, pool, "998906666666", olma.ID, gone)
+
 	got, err := access("998901234567", olma.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "owner", got.Role)
 	assert.True(t, got.Active, "the last paid day counts")
 	assert.Nil(t, got.RoleID, "the owner has no role")
 	assert.Nil(t, got.Permissions)
+	assert.True(t, got.AllLocations, "the owner works in every location")
+	assert.Equal(t, []int64{asosiy, chilonzor}, got.LocationIds, "the company's live locations, in the order they were added")
 
 	got, err = access("998905555555", olma.ID)
 	require.NoError(t, err)
@@ -97,11 +108,18 @@ func TestGetCompanyAccess(t *testing.T) {
 	require.NotNil(t, got.RoleID)
 	assert.Equal(t, sotuvchi, *got.RoleID, "the role the member holds")
 	assert.Equal(t, []string{"customers.view", "customers.create"}, got.Permissions, "with its permissions")
+	assert.False(t, got.AllLocations, "a restricted member")
+	assert.Equal(t, []int64{chilonzor}, got.LocationIds, "the live locations of the restriction")
+
+	got, err = access("998906666666", olma.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{}, got.LocationIds, "a member whose restriction's locations are all deleted: none, not nil")
 
 	got, err = access("998901234567", anor.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "user", got.Role, "the role in that company")
 	assert.False(t, got.Active, "expired")
+	assert.Equal(t, []int64{}, got.LocationIds, "a company with no location yet: none, not nil")
 
 	got, err = access("998901234567", behi.ID)
 	require.NoError(t, err)
@@ -154,6 +172,7 @@ func TestSetCompanyOwner(t *testing.T) {
 	addMember(t, q, nok.ID, "998902222222", "Vali", "user")
 	kassir := addRole(t, pool, nok.ID, "Kassir", "tasks.view")
 	mustExec(t, pool, "UPDATE user_companies SET role_id = $1 WHERE company_id = $2", kassir, nok.ID)
+	restrictTo(t, pool, "998902222222", nok.ID, addLocation(t, pool, nok.ID, "Asosiy"))
 	var joined time.Time
 	require.NoError(t, pool.QueryRow(ctx, "SELECT created_at FROM user_companies WHERE company_id = $1", nok.ID).Scan(&joined))
 	m, err = q.SetCompanyOwner(ctx, gen.SetCompanyOwnerParams{UserPhone: "998902222222", CompanyID: nok.ID, FullName: ptr("Vali Egasi")})
@@ -163,6 +182,7 @@ func TestSetCompanyOwner(t *testing.T) {
 	assert.Equal(t, "Vali Egasi", *m.FullName, "and renamed")
 	assert.True(t, m.CreatedAt.Equal(joined), "the membership is the same one")
 	assert.Nil(t, m.RoleID, "the owner has no role: the one held as a user is taken away")
+	assert.True(t, m.AllLocations, "the owner works in every location: the restriction held as a user is lifted")
 	var members int
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM user_companies WHERE company_id = $1", nok.ID).Scan(&members))
 	assert.Equal(t, 1, members)
@@ -283,6 +303,12 @@ func TestListCompanyUsers(t *testing.T) {
 	assert.Nil(t, users[0].RoleID, "the owner has no role")
 	assert.Nil(t, users[0].RoleName)
 	assert.Nil(t, users[1].RoleName, "a user with no role")
+	assert.True(t, users[0].AllLocations, "the owner works in every location")
+	assert.True(t, users[1].AllLocations, "a user, unless restricted")
+	restrictTo(t, pool, "998903333333", c.ID, addLocation(t, pool, c.ID, "Asosiy"))
+	users, err = q.ListCompanyUsers(t.Context(), c.ID)
+	require.NoError(t, err)
+	assert.False(t, users[1].AllLocations, "a restricted user")
 }
 
 func TestGetCompanyMember(t *testing.T) {
@@ -302,6 +328,12 @@ func TestGetCompanyMember(t *testing.T) {
 	assert.Equal(t, "Xodim", *m.FullName)
 	require.NotNil(t, m.RoleName)
 	assert.Equal(t, "Sotuvchi", *m.RoleName, "the role the member holds, by name")
+
+	assert.True(t, m.AllLocations, "a user, unless restricted")
+	restrictTo(t, pool, "998902222222", c.ID, addLocation(t, pool, c.ID, "Asosiy"))
+	m, err = q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: "998902222222", CompanyID: c.ID})
+	require.NoError(t, err)
+	assert.False(t, m.AllLocations, "a restricted user")
 
 	m, err = q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: "998901111111", CompanyID: c.ID})
 	require.NoError(t, err)

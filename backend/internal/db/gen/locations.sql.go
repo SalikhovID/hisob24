@@ -9,6 +9,22 @@ import (
 	"context"
 )
 
+const deleteMemberLocations = `-- name: DeleteMemberLocations :exec
+DELETE FROM member_locations WHERE user_phone = $1 AND company_id = $2
+`
+
+type DeleteMemberLocationsParams struct {
+	UserPhone string
+	CompanyID int64
+}
+
+// Drops a member's restriction: the locations it named. The member works in
+// every location once all_locations is raised with it.
+func (q *Queries) DeleteMemberLocations(ctx context.Context, arg DeleteMemberLocationsParams) error {
+	_, err := q.db.Exec(ctx, deleteMemberLocations, arg.UserPhone, arg.CompanyID)
+	return err
+}
+
 const getLocation = `-- name: GetLocation :one
 SELECT id, company_id, name, created_at, deleted_at FROM locations WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 `
@@ -22,6 +38,106 @@ type GetLocationParams struct {
 // location, or deleted it.
 func (q *Queries) GetLocation(ctx context.Context, arg GetLocationParams) (Location, error) {
 	row := q.db.QueryRow(ctx, getLocation, arg.ID, arg.CompanyID)
+	var i Location
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const listCompanyMemberLocations = `-- name: ListCompanyMemberLocations :many
+SELECT ml.user_phone, l.id, l.name
+FROM member_locations ml
+JOIN locations l ON l.id = ml.location_id AND l.deleted_at IS NULL
+WHERE ml.company_id = $1
+ORDER BY ml.user_phone, l.id
+`
+
+type ListCompanyMemberLocationsRow struct {
+	UserPhone string
+	ID        int64
+	Name      string
+}
+
+// The restrictions of the company's members: each restricted member's live
+// locations, by member and in the order the locations were added. A member
+// without a restriction has no rows.
+func (q *Queries) ListCompanyMemberLocations(ctx context.Context, companyID int64) ([]ListCompanyMemberLocationsRow, error) {
+	rows, err := q.db.Query(ctx, listCompanyMemberLocations, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCompanyMemberLocationsRow{}
+	for rows.Next() {
+		var i ListCompanyMemberLocationsRow
+		if err := rows.Scan(&i.UserPhone, &i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMemberLocations = `-- name: ListMemberLocations :many
+SELECT l.id, l.name
+FROM locations l
+JOIN user_companies uc ON uc.company_id = l.company_id AND uc.user_phone = $1
+WHERE l.company_id = $2 AND l.deleted_at IS NULL
+  AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
+       WHERE ml.user_phone = uc.user_phone AND ml.company_id = uc.company_id AND ml.location_id = l.id))
+ORDER BY l.id
+`
+
+type ListMemberLocationsParams struct {
+	UserPhone string
+	CompanyID int64
+}
+
+type ListMemberLocationsRow struct {
+	ID   int64
+	Name string
+}
+
+// The locations a member may work in (logic/locations.md, section 5): every
+// live one of the company's for the owner and for a member without a
+// restriction, the live ones among the restriction's otherwise; in the
+// order they were added. Nothing for someone who is not a member.
+func (q *Queries) ListMemberLocations(ctx context.Context, arg ListMemberLocationsParams) ([]ListMemberLocationsRow, error) {
+	rows, err := q.db.Query(ctx, listMemberLocations, arg.UserPhone, arg.CompanyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListMemberLocationsRow{}
+	for rows.Next() {
+		var i ListMemberLocationsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const seedLocation = `-- name: SeedLocation :one
+INSERT INTO locations (company_id, name) VALUES ($1, 'Asosiy') RETURNING id, company_id, name, created_at, deleted_at
+`
+
+// Gives a new company the ready location ("Asosiy"). The companies that
+// were there before got theirs from migration 00010.
+func (q *Queries) SeedLocation(ctx context.Context, companyID int64) (Location, error) {
+	row := q.db.QueryRow(ctx, seedLocation, companyID)
 	var i Location
 	err := row.Scan(
 		&i.ID,

@@ -138,6 +138,9 @@ type Querier interface {
 	// Clears a customer's answers: an edit writes them anew. What they were
 	// stays in the customer's history.
 	DeleteCustomerValues(ctx context.Context, customerID int64) error
+	// Drops a member's restriction: the locations it named. The member works in
+	// every location once all_locations is raised with it.
+	DeleteMemberLocations(ctx context.Context, arg DeleteMemberLocationsParams) error
 	// Removes the company's role for good. A role someone holds is refused by
 	// the foreign key (23503); pgx.ErrNoRows when the company has none such.
 	DeleteRole(ctx context.Context, arg DeleteRoleParams) (int64, error)
@@ -177,12 +180,15 @@ type Querier interface {
 	GetCompany(ctx context.Context, id int64) (Company, error)
 	// A user's standing in a company, read on every request: the role there,
 	// the company role they hold with its permissions (NULL for the owner and
-	// for a user without one) and whether the subscription lets the company be
-	// used (the end date has not passed and it is not blocked). pgx.ErrNoRows
+	// for a user without one), the locations they may work in (every live one
+	// of the company's unless restricted to some, in the order they were
+	// added; logic/locations.md) and whether the subscription lets the company
+	// be used (the end date has not passed and it is not blocked). pgx.ErrNoRows
 	// when the user is not its member.
 	GetCompanyAccess(ctx context.Context, arg GetCompanyAccessParams) (GetCompanyAccessRow, error)
 	// One member of the company under the name they go by there, with the role
-	// they hold; pgx.ErrNoRows when the user is not its member.
+	// they hold and whether they may work in every location; pgx.ErrNoRows when
+	// the user is not its member.
 	GetCompanyMember(ctx context.Context, arg GetCompanyMemberParams) (GetCompanyMemberRow, error)
 	// The company's customer; pgx.ErrNoRows when it has none such, or deleted
 	// it. created_by_name is the name the member who entered it goes by in the
@@ -237,9 +243,14 @@ type Querier interface {
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
 	ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error)
+	// The restrictions of the company's members: each restricted member's live
+	// locations, by member and in the order the locations were added. A member
+	// without a restriction has no rows.
+	ListCompanyMemberLocations(ctx context.Context, companyID int64) ([]ListCompanyMemberLocationsRow, error)
 	// The company's members under the names they go by there, each with the
-	// role they hold (none for the owner and for a user without one): the owner
-	// first, then the users in the order they joined.
+	// role they hold (none for the owner and for a user without one) and whether
+	// they may work in every location: the owner first, then the users in the
+	// order they joined.
 	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
 	// The dropdown's options in their order: what a new order has to name, all
 	// of them and nothing else.
@@ -269,6 +280,11 @@ type Querier interface {
 	// in the phone and in the whole number answers. The names of the options are
 	// not searched. A NULL argument leaves its filter out.
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
+	// The locations a member may work in (logic/locations.md, section 5): every
+	// live one of the company's for the owner and for a member without a
+	// restriction, the live ones among the restriction's otherwise; in the
+	// order they were added. Nothing for someone who is not a member.
+	ListMemberLocations(ctx context.Context, arg ListMemberLocationsParams) ([]ListMemberLocationsRow, error)
 	// The company's roles by name (whatever the case), each with how many
 	// members hold it.
 	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
@@ -355,6 +371,9 @@ type Querier interface {
 	// Gives a new company the ready types: Jismoniy (F.I.Sh.) and Yuridik (Nomi,
 	// INN). The companies that were there before got them from migration 00005.
 	SeedCustomerTypes(ctx context.Context, companyID int64) error
+	// Gives a new company the ready location ("Asosiy"). The companies that
+	// were there before got theirs from migration 00010.
+	SeedLocation(ctx context.Context, companyID int64) (Location, error)
 	// Gives a new company the ready stages (Yangi, Jarayonda, Bajarildi) and the
 	// ready type (Vazifa). The companies that were there before got them from
 	// migration 00007.
@@ -362,7 +381,9 @@ type Querier interface {
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// Makes the user the company's owner under full_name, a member or not. The
 	// owner before has to be demoted first: a company has one owner. A role the
-	// user held as a member is taken away: the owner has every permission.
+	// user held as a member is taken away: the owner has every permission. So
+	// is a restriction to some locations: the owner works in every one (the
+	// restriction's rows are dropped apart, DeleteMemberLocations).
 	SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error)
 	// Gives a user of the company a role, or takes it away (NULL). The role
 	// has to be the company's own (the foreign key refuses another's, 23503).

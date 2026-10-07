@@ -71,3 +71,13 @@ func addLocation(t *testing.T, pool *pgxpool.Pool, companyID int64, name string)
 		"INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id))
 	return id
 }
+
+// restrictTo restricts the member to the locations: they may work in these
+// alone (logic/locations.md, section 5).
+func restrictTo(t *testing.T, pool *pgxpool.Pool, phone string, companyID int64, locationIDs ...int64) {
+	t.Helper()
+	mustExec(t, pool, "UPDATE user_companies SET all_locations = false WHERE user_phone = $1 AND company_id = $2", phone, companyID)
+	for _, id := range locationIDs {
+		mustExec(t, pool, "INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ($1, $2, $3)", phone, companyID, id)
+	}
+}

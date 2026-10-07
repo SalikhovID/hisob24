@@ -58,7 +58,12 @@ func (q *Queries) DemoteCompanyOwner(ctx context.Context, companyID int64) error
 }
 
 const getCompanyAccess = `-- name: GetCompanyAccess :one
-SELECT uc.role, uc.role_id, r.permissions, (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
+SELECT uc.role, uc.role_id, r.permissions, uc.all_locations,
+       (SELECT COALESCE(array_agg(l.id ORDER BY l.id), '{}') FROM locations l
+         WHERE l.company_id = uc.company_id AND l.deleted_at IS NULL
+           AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
+                WHERE ml.user_phone = uc.user_phone AND ml.company_id = uc.company_id AND ml.location_id = l.id)))::bigint[] AS location_ids,
+       (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
 LEFT JOIN roles r ON r.id = uc.role_id
@@ -71,16 +76,20 @@ type GetCompanyAccessParams struct {
 }
 
 type GetCompanyAccessRow struct {
-	Role        string
-	RoleID      *int64
-	Permissions []string
-	Active      bool
+	Role         string
+	RoleID       *int64
+	Permissions  []string
+	AllLocations bool
+	LocationIds  []int64
+	Active       bool
 }
 
 // A user's standing in a company, read on every request: the role there,
 // the company role they hold with its permissions (NULL for the owner and
-// for a user without one) and whether the subscription lets the company be
-// used (the end date has not passed and it is not blocked). pgx.ErrNoRows
+// for a user without one), the locations they may work in (every live one
+// of the company's unless restricted to some, in the order they were
+// added; logic/locations.md) and whether the subscription lets the company
+// be used (the end date has not passed and it is not blocked). pgx.ErrNoRows
 // when the user is not its member.
 func (q *Queries) GetCompanyAccess(ctx context.Context, arg GetCompanyAccessParams) (GetCompanyAccessRow, error) {
 	row := q.db.QueryRow(ctx, getCompanyAccess, arg.UserPhone, arg.CompanyID)
@@ -89,13 +98,15 @@ func (q *Queries) GetCompanyAccess(ctx context.Context, arg GetCompanyAccessPara
 		&i.Role,
 		&i.RoleID,
 		&i.Permissions,
+		&i.AllLocations,
+		&i.LocationIds,
 		&i.Active,
 	)
 	return i, err
 }
 
 const getCompanyMember = `-- name: GetCompanyMember :one
-SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.created_at
+SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.all_locations, uc.created_at
 FROM user_companies uc
 LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.user_phone = $1 AND uc.company_id = $2
@@ -107,16 +118,18 @@ type GetCompanyMemberParams struct {
 }
 
 type GetCompanyMemberRow struct {
-	Phone     string
-	FullName  *string
-	Role      string
-	RoleID    *int64
-	RoleName  *string
-	CreatedAt time.Time
+	Phone        string
+	FullName     *string
+	Role         string
+	RoleID       *int64
+	RoleName     *string
+	AllLocations bool
+	CreatedAt    time.Time
 }
 
 // One member of the company under the name they go by there, with the role
-// they hold; pgx.ErrNoRows when the user is not its member.
+// they hold and whether they may work in every location; pgx.ErrNoRows when
+// the user is not its member.
 func (q *Queries) GetCompanyMember(ctx context.Context, arg GetCompanyMemberParams) (GetCompanyMemberRow, error) {
 	row := q.db.QueryRow(ctx, getCompanyMember, arg.UserPhone, arg.CompanyID)
 	var i GetCompanyMemberRow
@@ -126,6 +139,7 @@ func (q *Queries) GetCompanyMember(ctx context.Context, arg GetCompanyMemberPara
 		&i.Role,
 		&i.RoleID,
 		&i.RoleName,
+		&i.AllLocations,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -210,7 +224,7 @@ func (q *Queries) HasCompany(ctx context.Context, userPhone string) (bool, error
 }
 
 const listCompanyUsers = `-- name: ListCompanyUsers :many
-SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.created_at
+SELECT uc.user_phone AS phone, uc.full_name, uc.role, uc.role_id, r.name AS role_name, uc.all_locations, uc.created_at
 FROM user_companies uc
 LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.company_id = $1
@@ -218,17 +232,19 @@ ORDER BY (uc.role = 'owner') DESC, uc.created_at, uc.user_phone
 `
 
 type ListCompanyUsersRow struct {
-	Phone     string
-	FullName  *string
-	Role      string
-	RoleID    *int64
-	RoleName  *string
-	CreatedAt time.Time
+	Phone        string
+	FullName     *string
+	Role         string
+	RoleID       *int64
+	RoleName     *string
+	AllLocations bool
+	CreatedAt    time.Time
 }
 
 // The company's members under the names they go by there, each with the
-// role they hold (none for the owner and for a user without one): the owner
-// first, then the users in the order they joined.
+// role they hold (none for the owner and for a user without one) and whether
+// they may work in every location: the owner first, then the users in the
+// order they joined.
 func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error) {
 	rows, err := q.db.Query(ctx, listCompanyUsers, companyID)
 	if err != nil {
@@ -244,6 +260,7 @@ func (q *Queries) ListCompanyUsers(ctx context.Context, companyID int64) ([]List
 			&i.Role,
 			&i.RoleID,
 			&i.RoleName,
+			&i.AllLocations,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -362,7 +379,7 @@ func (q *Queries) RenameCompanyUser(ctx context.Context, arg RenameCompanyUserPa
 const setCompanyOwner = `-- name: SetCompanyOwner :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, 'owner', $3)
-ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', role_id = NULL, full_name = EXCLUDED.full_name
+ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', role_id = NULL, all_locations = true, full_name = EXCLUDED.full_name
 RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
 `
 
@@ -374,7 +391,9 @@ type SetCompanyOwnerParams struct {
 
 // Makes the user the company's owner under full_name, a member or not. The
 // owner before has to be demoted first: a company has one owner. A role the
-// user held as a member is taken away: the owner has every permission.
+// user held as a member is taken away: the owner has every permission. So
+// is a restriction to some locations: the owner works in every one (the
+// restriction's rows are dropped apart, DeleteMemberLocations).
 func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams) (UserCompany, error) {
 	row := q.db.QueryRow(ctx, setCompanyOwner, arg.UserPhone, arg.CompanyID, arg.FullName)
 	var i UserCompany
