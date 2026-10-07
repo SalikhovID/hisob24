@@ -926,3 +926,52 @@ func TestTheLocationsMigrationDownRemovesTheLocations(t *testing.T) {
 	_, err = pool.Exec(ctx, "SELECT all_locations FROM user_companies")
 	assert.Equal(t, "42703", sqlState(err), "a member is not restricted")
 }
+
+// The products and the services of a company (logic/products.md): a product
+// has a unit and may have a SKU, a service has neither; the names are one
+// row's among the company's rows of the kind, the SKUs one product's.
+func TestProductsAreOfTwoKindsWithTheirOwnRules(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	nok := addCompany(t, pool, "Nok")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	str := func(s string) *string { return &s }
+	insert := func(companyID int64, kind, name string, unit, sku, price *string) error {
+		_, err := pool.Exec(ctx, `INSERT INTO products (company_id, kind, name, unit, sku, price, created_by)
+			VALUES ($1, $2, $3, $4, $5, $6::numeric, '998901111111')`, companyID, kind, name, unit, sku, price)
+		return err
+	}
+
+	require.NoError(t, insert(olma, "product", "Olma", str("kg"), str("A-1"), str("1200.50")), "a product has a unit")
+	require.NoError(t, insert(olma, "service", "Yetkazish", nil, nil, nil), "a service has no unit")
+	assert.Equal(t, "23514", sqlState(insert(olma, "product", "Nok", nil, nil, nil)), "a product without a unit") // check_violation
+	assert.Equal(t, "23514", sqlState(insert(olma, "service", "Ta'mirlash", str("dona"), nil, nil)), "a service with a unit")
+	assert.Equal(t, "23514", sqlState(insert(olma, "service", "Ta'mirlash", nil, str("S-1"), nil)), "a service with a SKU")
+	assert.Equal(t, "23514", sqlState(insert(olma, "product", "Nok", str("tonna"), nil, nil)), "a unit not in the list")
+	assert.Equal(t, "23514", sqlState(insert(olma, "product", "Nok", str("dona"), nil, str("-1"))), "a price below zero")
+	assert.Equal(t, "23514", sqlState(insert(olma, "thing", "Nok", nil, nil, nil)), "a kind not of the two")
+	assert.Equal(t, "23505", sqlState(insert(olma, "product", "OLMA", str("dona"), nil, nil)), "the name is taken among the products, whatever the case") // unique_violation
+	assert.Equal(t, "23505", sqlState(insert(olma, "product", "Nok", str("dona"), str("a-1"), nil)), "the SKU is taken, whatever the case")
+	require.NoError(t, insert(olma, "service", "Olma", nil, nil, nil), "a service may have a product's name")
+	require.NoError(t, insert(nok, "product", "Olma", str("dona"), str("A-1"), nil), "another company has its own names and SKUs")
+	_, err = pool.Exec(ctx, "UPDATE products SET deleted_at = now() WHERE company_id = $1 AND kind = 'product' AND name = 'Olma'", olma)
+	require.NoError(t, err)
+	require.NoError(t, insert(olma, "product", "Olma", str("dona"), str("A-1"), nil), "a deleted product's name and SKU are free")
+	assert.Equal(t, "23503", sqlState(insert(999999, "product", "Begona", str("dona"), nil, nil)), "a product is a company's") // foreign_key_violation
+	var active bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT is_active FROM products WHERE company_id = $1 AND name = 'Yetkazish'", olma).Scan(&active))
+	assert.True(t, active, "a product starts active")
+}
+
+func TestTheCatalogMigrationDownRemovesTheProducts(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+
+	_, err := newProvider(t, pool).DownTo(ctx, 10)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "SELECT 1 FROM products")
+	assert.Equal(t, "42P01", sqlState(err), "undefined_table")
+}
