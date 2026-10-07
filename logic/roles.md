@@ -1,8 +1,8 @@
 # Rollar: owner, user va kompaniya rollari
 
-Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md). Vazifalar bo'limi: [tasks.md](tasks.md).
+Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md). Vazifalar bo'limi: [tasks.md](tasks.md). Lokatsiyalar va xodimning lokatsiya cheklovi: [locations.md](locations.md).
 
-> Holat: `owner` / `user` qoidalari amalga oshirilgan (2026-10-03, `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`). Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar 2026-10-06 da kelishilgan va amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
+> Holat: `owner` / `user` qoidalari amalga oshirilgan (2026-10-03, `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`). Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar 2026-10-06 da kelishilgan va amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Xodimning lokatsiya cheklovi (4-bo'limdagi qatorlar, 6 va 7-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-locations-design.md` bilan amalga oshirilmoqda. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
 
 ## 1. Rollar
 
@@ -72,7 +72,7 @@ Ruxsat `bo'lim.amal` ko'rinishida, 18 ta:
 - Bo'limning `view` ruxsati bo'lsa, u menyuda ko'rinadi. Bosh sahifa hammaga.
 - **Amal `view`siz bo'lmaydi:** rolda biror bo'limning `create`, `edit`, `delete` yoki `history` ruxsati bo'lsa, shu bo'limning `view` ruxsati ham bo'lishi shart. API bunday rolni rad etadi (400 "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang"), forma esa amal belgilanganda "Ko'rish" ni o'zi belgilaydi, "Ko'rish" olib tashlansa bo'limni tozalaydi.
 - Katalogda yo'q kalit: 400 "Ruxsat noto'g'ri". Takror kalit bir marta sanaladi.
-- Katalogdan tashqarida: a'zolar ro'yxati (`GET /app/members`), turlar, dropdownlar, bosqichlar va vazifa turlarini o'qish (formalar uchun) hamma a'zoga ochiq; rollarni boshqarish va biriktirish faqat egasiga.
+- Katalogdan tashqarida: a'zolar ro'yxati (`GET /app/members`), turlar, dropdownlar, bosqichlar va vazifa turlarini o'qish (formalar uchun) hamma a'zoga ochiq; rollarni boshqarish va biriktirish faqat egasiga. Xodimni lokatsiya bilan cheklash ham faqat egasiga ([locations.md](locations.md), 5-bo'lim): cheklov ruxsat emas, a'zolikning o'z xususiyati; `tasks.*` ruxsatlari a'zoning ruxsatli lokatsiyalari ichida amal qiladi.
 
 ### 4.2 Kim nimaga ega
 
@@ -97,6 +97,7 @@ Amallar bo'yicha:
 | Xodimlar ro'yxatini ko'rish, xodim qo'shish, ismini o'zgartirish, o'chirish | ✓ | ✗ | `employees.*` |
 | Mijoz turlari, maydonlar, dropdownlar, bosqichlar, vazifa turlarini sozlash | ✓ | ✗ | `settings.*` |
 | Rollarni ko'rish, yaratish, o'zgartirish, o'chirish; xodimga rol biriktirish | ✓ | ✗ | ✗ |
+| Xodimni lokatsiya bilan cheklash ([locations.md](locations.md)) | ✓ | ✗ | ✗ |
 | Owner'ni o'zgartirish yoki o'chirish | ✗ | ✗ | ✗ |
 | Kompaniya nomi, obuna, bloklash | ✗ | ✗ | ✗ |
 
@@ -141,7 +142,7 @@ Admin kompaniya sahifasida **Egasini almashtirish** ni bosadi va telefon bilan i
 |---|---|
 | tizimda yo'q | user yaratiladi va owner bo'ladi; oldingi owner → `user` |
 | boshqa kompaniyada bor | o'sha user shu kompaniyada owner bo'ladi (multi-user); oldingi owner → `user` |
-| shu kompaniyada `user` | owner'ga ko'tariladi, ismi kiritilgan ismga almashadi, kompaniya roli bo'lsa olib tashlanadi; oldingi owner → `user` |
+| shu kompaniyada `user` | owner'ga ko'tariladi, ismi kiritilgan ismga almashadi, kompaniya roli va lokatsiya cheklovi bo'lsa olib tashlanadi; oldingi owner → `user` |
 | hozirgi owner'ning o'zi | rol o'zgarmaydi, faqat ismi yangilanadi |
 
 - Oldingi owner kompaniyada rolsiz xodim bo'lib qoladi, ismi saqlanadi. Kerak bo'lmasa, yangi owner uni Xodimlar'dan o'chiradi.
@@ -156,6 +157,7 @@ Admin kompaniya sahifasida **Egasini almashtirish** ni bosadi va telefon bilan i
 - Tekshiruv tartibi: token (401) → a'zolik (401) → obuna (402) → kompaniya tanlangan (403 `company_required`) → ruxsat (403 `forbidden`). Rollarni boshqarish va biriktirish: owner (403 `owner_only`). Batafsil: [user.md](user.md), 7-bo'lim.
 - Kompaniya ID so'rovdan emas, token'dan olinadi. Shuning uchun hech kim boshqa kompaniyaga ta'sir qila olmaydi; begona kompaniyaning roli biriktirilsa, baza (FK) ham rad etadi.
 - `/app/me` javobida `permissions` bor: tanlangan kompaniyadagi amaldagi ruxsatlar. Interfeys menyu va tugmalarni shundan quradi; kompaniya tanlanmagan bo'lsa ro'yxat bo'sh.
+- `/app/me` javobida `locations` ham bor: a'zoning tanlangan kompaniyadagi ruxsatli lokatsiyalari ([locations.md](locations.md), 4-bo'lim); ular ham har so'rovda bazadan o'qiladi.
 
 ## 8. Interfeys
 

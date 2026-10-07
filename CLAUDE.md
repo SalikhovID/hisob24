@@ -105,6 +105,8 @@ make otp [ID=…]   # lokal: admin login kodi (faqat SMS_DRIVER=log; ID bo'lmasa
 - `docs/superpowers/specs/2026-10-04-customers-design.md`: mijozlar bo'limi dizayni (jadvallar, API, sahifalar, bosqichlar, qarorlar).
 - `logic/tasks.md`: vazifalar, bosqichlar (kanban), vazifa turlari va maydonlari, mas'ul qoidalari (kim nima qila oladi, tekshiruv, ro'yxat va kanban, tarix, o'chirish). Shu sohadagi kod shu hujjatga mos yoziladi.
 - `docs/superpowers/specs/2026-10-06-tasks-design.md`: vazifalar bo'limi dizayni (jadvallar, API, sahifalar, bosqichlar, qarorlar).
+- `logic/locations.md`: lokatsiyalar (filiallar): tayyor lokatsiya, admin paneldagi amallar, joriy lokatsiya va topbar'dagi tanlovchi, xodimning lokatsiya cheklovi (faqat egasi), vazifalar bilan bog'liqlik (yaratish, mas'ul, ro'yxat, mijoz sahifasi, 404). Shu sohadagi kod shu hujjatga mos yoziladi.
+- `docs/superpowers/specs/2026-10-07-locations-design.md`: lokatsiyalar dizayni (jadvallar, API, sahifalar, bosqichlar, qarorlar).
 - `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`: xodimlar, rollar va user app sidebar dizayni.
 - `docs/superpowers/specs/2026-10-04-crud-ui-refresh-design.md`: CRUD sahifalar ko'rinishi (tokenlar, `DataList`, `Identity`, `PageHeader` va boshqa umumiy bo'laklar qoidalari, kechiktirilgan tavsiyalar). Yangi ro'yxat yoki forma sahifasi shu qoidalarga mos yoziladi.
 - `docs/superpowers/specs/2026-10-04-logo-design.md`: logotip (`Logo`, `LogoMark`, admin'da `Brand`), `--brand` tokeni, tab ikonlari va ularni qayta yasash buyruqlari. Logotip kerak bo'lgan yangi joy shu qoidalarga mos yoziladi.

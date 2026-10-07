@@ -1,6 +1,6 @@
 # User: kim, qanday qo'shiladi, qanday kiradi
 
-Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tushadi, bir nechta kompaniyada qanday ishlaydi, ismi va kirish huquqi qanday boshqariladi. Rollar va ruxsatlar: [roles.md](roles.md).
+Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tushadi, bir nechta kompaniyada qanday ishlaydi, ismi va kirish huquqi qanday boshqariladi. Rollar va ruxsatlar: [roles.md](roles.md). Lokatsiyalar va xodimning lokatsiya cheklovi: [locations.md](locations.md).
 
 > Holat: amalga oshirilgan (2026-10-03). 2026-10-06 da kompaniya rollari bilan yangilangan qoidalar (kim xodim qo'shadi, ismini o'zgartiradi va o'chiradi; tekshiruv tartibidagi `company_required` va `forbidden`) amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
 
@@ -9,7 +9,7 @@ Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tu
 | Tushuncha | Ma'nosi | Bazada |
 |---|---|---|
 | **User** | Bitta telefon raqami. Platformada bitta raqam = bitta user, nechta kompaniyada ishlashidan qat'i nazar. | `users.phone` (`998901234567` ko'rinishida) |
-| **A'zolik** | Userning bitta kompaniyadagi o'rni: roli, kompaniya roli (bo'lsa) va shu kompaniyadagi ismi. | `user_companies` (`user_phone`, `company_id`, `role`, `role_id`, `full_name`) |
+| **A'zolik** | Userning bitta kompaniyadagi o'rni: roli, kompaniya roli (bo'lsa), shu kompaniyadagi ismi va lokatsiya cheklovi ([locations.md](locations.md)). | `user_companies` (`user_phone`, `company_id`, `role`, `role_id`, `full_name`, `all_locations`), `member_locations` |
 | **Egasi (owner)** | Kompaniyaning yagona egasi. Uni platforma admini qo'ygan. | `role = 'owner'` |
 | **Xodim** | `user` rolidagi a'zo. Uni kompaniya egasi (yoki `employees.create` ruxsatli xodim) qo'shgan. Egasi unga kompaniya rolini biriktirishi mumkin ([roles.md](roles.md), 5-bo'lim); rolsiz xodim standart ruxsat bilan ishlaydi. | `role = 'user'`, `role_id` |
 | **Multi-user** | Bir nechta kompaniyaga a'zo user. | bir nechta `user_companies` qatori |
@@ -49,7 +49,7 @@ Kompaniya so'rovdan emas, qo'shuvchining access token'idan olinadi. U faqat hozi
 
 Tafsilotlar:
 
-- Qo'shilgan har doim rolsiz `user` bo'ladi. User app'dan owner qo'shib bo'lmaydi. Kompaniya rolini keyin egasi **Xodimlar** da biriktiradi ([roles.md](roles.md), 5-bo'lim).
+- Qo'shilgan har doim rolsiz `user` bo'ladi. User app'dan owner qo'shib bo'lmaydi. Kompaniya rolini keyin egasi **Xodimlar** da biriktiradi ([roles.md](roles.md), 5-bo'lim). Qo'shilgan xodim hamma lokatsiyada ishlaydi; egasi keyin **Xodimlar** da cheklashi mumkin ([locations.md](locations.md), 5-bo'lim).
 - Javob raqam tizimda oldin bo'lgan-bo'lmaganiga bog'liq emas: ikkala holatda ham 201 va owner kiritgan ism qaytadi. Shuning uchun owner begona kompaniyadagi ismni ko'rmaydi va raqam Hisob24'da bor-yo'qligini bila olmaydi.
 - Qo'shilgan odamga SMS yoki bot xabari yuborilmaydi, undan rozilik so'ralmaydi. Owner unga o'zi aytadi: `app.hisob24.uz` ga o'z raqami bilan kiradi (SMS kod) yoki botdagi Mini App'ni ochadi.
 - Xodimlar soniga limit yo'q.
@@ -97,6 +97,7 @@ Egasi (yoki `employees.delete` ruxsatli xodim) **Xodimlar** ro'yxatida `user` ro
 |---|---|
 | shu kompaniyadagi a'zolik | o'chadi |
 | kompaniya roli biriktiruvi | a'zolik bilan ketadi; rolning o'zi qoladi |
+| lokatsiya cheklovi | a'zolik bilan ketadi |
 | `users` yozuvi | qoladi |
 | boshqa kompaniyalardagi a'zoliklar | qoladi |
 | botga ulangan raqam (`telegram_contacts`) | qoladi |
@@ -112,7 +113,7 @@ O'chirilgan xodim uchun oqibat:
 
 Owner'ni (o'zini ham) o'chirib bo'lmaydi: 409 `cannot_change_owner`. Ruxsatli xodim o'zini o'chirsa, o'chadi va yuqoridagi oqibatlar unga ham tegishli.
 
-O'chirilgan xodimni keyin qayta qo'shish mumkin. U kiritilgan ism bilan oddiy xodim bo'lib qaytadi.
+O'chirilgan xodimni keyin qayta qo'shish mumkin. U kiritilgan ism bilan oddiy xodim bo'lib qaytadi: rolsiz, hamma lokatsiyada.
 
 ## 7. Kirish huquqi
 
