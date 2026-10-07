@@ -2716,9 +2716,19 @@ components:
           type: integer
         page_size:
           type: integer
+    Location:
+      type: object
+      description: Kompaniyaning lokatsiyasi (filiali), logic/locations.md
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
     Member:
       type: object
-      required: [phone, full_name, role, role_id, role_name, created_at]
+      required: [phone, full_name, role, role_id, role_name, locations, created_at]
       properties:
         phone:
           type: string
@@ -2737,6 +2747,15 @@ components:
         role_name:
           type: [string, "null"]
           description: Shu rolning nomi, rol bo'lmasa null
+        locations:
+          type: [array, "null"]
+          description: >
+            A'zo ishlay oladigan lokatsiyalar (logic/locations.md, 5-bo'lim):
+            hammasi bo'lsa null (egasida har doim), cheklangan bo'lsa
+            cheklovdagi jonli lokatsiyalar (hammasi o'chirilgan bo'lsa bo'sh
+            ro'yxat)
+          items:
+            $ref: "#/components/schemas/Location"
         created_at:
           type: string
           format: date-time
@@ -2987,7 +3006,7 @@ components:
           type: boolean
     Me:
       type: object
-      required: [user, company, companies, permissions]
+      required: [user, company, companies, permissions, locations]
       properties:
         user:
           $ref: "#/components/schemas/AppUser"
@@ -3009,6 +3028,16 @@ components:
             tekshiradi.
           items:
             $ref: "#/components/schemas/Permission"
+        locations:
+          type: array
+          description: >
+            Tanlangan kompaniyada user ishlay oladigan jonli lokatsiyalar,
+            qo'shilish tartibida (logic/locations.md, 4-bo'lim): egasida va
+            cheklanmagan xodimda kompaniyaning hammasi, cheklanganda
+            cheklovdagilar. Kompaniya tanlanmagan bo'lsa bo'sh. Tepadagi
+            tanlovchi shundan quriladi; 2+ bo'lsa ko'rinadi.
+          items:
+            $ref: "#/components/schemas/Location"
     CustomerOption:
       type: object
       required: [id, label, is_active]

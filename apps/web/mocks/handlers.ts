@@ -9,7 +9,7 @@ import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, permittedSession, read, type Session } from "./gate"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, db, join, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
+import { companiesOf, db, join, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
 
 function token(kind: "access" | "refresh", session: Session): string {
   db.issued += 1
@@ -159,6 +159,8 @@ export const handlers = [
       companies,
       // What the user may do in the company, as it is now; nothing before a choice.
       permissions: user.companyId === null ? [] : permissionsOf(user.phone, user.companyId),
+      // And the locations they may work in there.
+      locations: user.companyId === null ? [] : locationsOf(user.phone, user.companyId),
     })
   }),
 

@@ -1242,6 +1242,12 @@ export interface components {
             page: number;
             page_size: number;
         };
+        /** @description Kompaniyaning lokatsiyasi (filiali), logic/locations.md */
+        Location: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
         Member: {
             /** @description 998XXXXXXXXX ko'rinishida */
             phone: string;
@@ -1255,6 +1261,8 @@ export interface components {
             role_id: number | null;
             /** @description Shu rolning nomi, rol bo'lmasa null */
             role_name: string | null;
+            /** @description A'zo ishlay oladigan lokatsiyalar (logic/locations.md, 5-bo'lim): hammasi bo'lsa null (egasida har doim), cheklangan bo'lsa cheklovdagi jonli lokatsiyalar (hammasi o'chirilgan bo'lsa bo'sh ro'yxat) */
+            locations: components["schemas"]["Location"][] | null;
             /** Format: date-time */
             created_at: string;
         };
@@ -1388,6 +1396,8 @@ export interface components {
             companies: components["schemas"]["AppCompany"][];
             /** @description Tanlangan kompaniyada user hozir nima qila olishi, katalog tartibida: egasida hammasi, rolsiz xodimda standart to'plam, rolli xodimda rolniki. Kompaniya tanlanmagan bo'lsa bo'sh. Interfeys bo'limlar va tugmalarni shundan quradi; API har so'rovda o'zi tekshiradi. */
             permissions: components["schemas"]["Permission"][];
+            /** @description Tanlangan kompaniyada user ishlay oladigan jonli lokatsiyalar, qo'shilish tartibida (logic/locations.md, 4-bo'lim): egasida va cheklanmagan xodimda kompaniyaning hammasi, cheklanganda cheklovdagilar. Kompaniya tanlanmagan bo'lsa bo'sh. Tepadagi tanlovchi shundan quriladi; 2+ bo'lsa ko'rinadi. */
+            locations: components["schemas"]["Location"][];
         };
         CustomerOption: {
             /** Format: int64 */

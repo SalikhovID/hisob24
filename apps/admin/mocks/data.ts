@@ -32,10 +32,11 @@ export function company(id: number, name: string, endDate: string, isActive = tr
   }
 }
 
-// The company roles of the user app are not the admin panel's: nobody here
-// holds one.
+// The company roles and the location restrictions of the user app are not
+// the admin panel's: nobody here holds one, everybody works in every
+// location.
 export function member(phone: string, fullName: string, role: Member["role"]): Member {
-  return { phone, full_name: fullName, role, role_id: null, role_name: null, created_at: "2026-09-20T05:00:00Z" }
+  return { phone, full_name: fullName, role, role_id: null, role_name: null, locations: null, created_at: "2026-09-20T05:00:00Z" }
 }
 
 interface Db {

@@ -7,6 +7,7 @@ import type {
   CustomerDropdown,
   CustomerFieldKind,
   CustomerType,
+  Location,
   Member,
   Permission,
   Role,
@@ -57,13 +58,16 @@ interface Company {
 // Membership is a user's place in a company. fullName is the name they go by
 // there; without one the user's own shows. joined orders the members. roleId
 // is the company role an employee holds; without one they have the default
-// permissions.
+// permissions. locationIds is the restriction an employee is under (the
+// locations they may work in); without one they work in every location, as
+// the owner always does.
 export interface Membership {
   companyId: number
   role: Role
   joined: number
   fullName?: string
   roleId?: number
+  locationIds?: number[]
 }
 
 // A company role: a name and the permissions it holds (logic/roles.md,
@@ -420,6 +424,8 @@ export function membersOf(companyId: number): Member[] {
       role: membership.role,
       role_id: membership.roleId ?? null,
       role_name: roleOf(membership)?.name ?? null,
+      // Every location (null), or the live ones of the restriction.
+      locations: membership.locationIds === undefined ? null : locationsOf(phone, companyId),
       created_at: new Date(Date.parse(`${TODAY}T05:00:00Z`) + membership.joined * 60_000).toISOString(),
     }))
 }
@@ -522,6 +528,20 @@ export function taskTypesOf(companyId: number): TaskType[] {
 // deleted, in the order they were added.
 export function liveLocations(companyId: number): LocationRow[] {
   return db.locations.filter((l) => l.companyId === companyId && !l.deleted)
+}
+
+export const toLocation = (l: LocationRow): Location => ({ id: l.id, name: l.name })
+
+// locationsOf is the locations phone may work in, as the API tells them
+// (logic/locations.md, section 5): every live one of the company's for the
+// owner and for a member without a restriction, the live ones of the
+// restriction otherwise; none for someone who is not a member.
+export function locationsOf(phone: string, companyId: number): Location[] {
+  const membership = (db.members[phone] ?? []).find((m) => m.companyId === companyId)
+  if (!membership) return []
+  return liveLocations(companyId)
+    .filter((l) => membership.locationIds === undefined || membership.locationIds.includes(l.id))
+    .map(toLocation)
 }
 
 // seedCustomers enters the customers the pages are tested with into Olma

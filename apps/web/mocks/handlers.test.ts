@@ -7,7 +7,7 @@ import { api, call } from "@/lib/api"
 import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type { CustomerFieldKind, Permission } from "@/lib/types"
 import { setAccessToken } from "@/lib/session"
-import { addLocation, asosiyOf } from "@/test/locations"
+import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { chooseCompany, signIn } from "@/test/session"
 import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
 
@@ -67,6 +67,47 @@ test("/app/me tells what the user may do: nothing before a company, everything a
   const asEmployee = await call(api.GET("/app/me"))
   expect(asEmployee.permissions).toEqual(defaultPermissions)
   expect(asEmployee.companies.map((c) => c.role_name)).toEqual([null, null])
+})
+
+// The locations a member may work in (logic/locations.md, sections 4 and
+// 5; backend/internal/app/handler_test.go TestMeTellsTheMembersLocations).
+test("/app/me tells the member's locations: the company's live ones, or the live ones of a restriction; none before a company", async () => {
+  const asosiy = asosiyOf(1)
+  const chilonzor = addLocation(1, "Chilonzor")
+  const gone = addLocation(1, "Yopilgan")
+  gone.deleted = true
+  await signIn(VALI)
+  expect((await call(api.GET("/app/me"))).locations).toEqual([])
+
+  await chooseCompany(1)
+  const both = [
+    { id: asosiy.id, name: "Asosiy" },
+    { id: chilonzor.id, name: "Chilonzor" },
+  ]
+  expect((await call(api.GET("/app/me"))).locations).toEqual(both)
+  restrictTo(VALI, 1, [gone.id, chilonzor.id])
+  expect((await call(api.GET("/app/me"))).locations).toEqual([{ id: chilonzor.id, name: "Chilonzor" }])
+  restrictTo(VALI, 1, [gone.id])
+  expect((await call(api.GET("/app/me"))).locations).toEqual([])
+  restrictTo(VALI, 1, null)
+  expect((await call(api.GET("/app/me"))).locations).toEqual(both)
+
+  await chooseCompany(2)
+  expect((await call(api.GET("/app/me"))).locations).toEqual([{ id: asosiyOf(2).id, name: "Asosiy" }])
+})
+
+test("the employees and the members tell each member's locations: null for every one, the restriction's otherwise", async () => {
+  const chilonzor = addLocation(1, "Chilonzor")
+  restrictTo(VALI, 1, [chilonzor.id])
+  await signIn(ALI)
+
+  const employees = await call(api.GET("/app/employees"))
+  const members = await call(api.GET("/app/members"))
+
+  expect(employees.find((m) => m.phone === ALI)?.locations).toBeNull()
+  expect(employees.find((m) => m.phone === VALI)?.locations).toEqual([{ id: chilonzor.id, name: "Chilonzor" }])
+  expect(members.find((m) => m.phone === VALI)?.locations).toEqual([{ id: chilonzor.id, name: "Chilonzor" }])
+  expect(members.find((m) => m.phone === SARDOR)?.locations).toBeNull()
 })
 
 test("adding: a new phone, a phone that works in another company, a member already, bad input", async () => {

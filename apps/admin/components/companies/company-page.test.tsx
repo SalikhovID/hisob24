@@ -58,7 +58,7 @@ test("the company page shows the company and its users", async () => {
 })
 
 test("a user with no name goes by the phone, said once, with an icon for an avatar", async () => {
-  db.members[1].push({ phone: "998905556677", full_name: null, role: "user", role_id: null, role_name: null, created_at: "2026-09-21T05:00:00Z" })
+  db.members[1].push({ phone: "998905556677", full_name: null, role: "user", role_id: null, role_name: null, locations: null, created_at: "2026-09-21T05:00:00Z" })
 
   renderWithProviders(<CompanyPage id={1} />)
 

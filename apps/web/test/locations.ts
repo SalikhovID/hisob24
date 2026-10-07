@@ -15,3 +15,12 @@ export function asosiyOf(companyId: number): LocationRow {
   if (!location) throw new Error(`company ${companyId} has no location`)
   return location
 }
+
+// restrictTo restricts the member to the locations, as the owner would
+// (logic/locations.md, section 5); null lifts the restriction.
+export function restrictTo(phone: string, companyId: number, locationIds: number[] | null) {
+  const membership = db.members[phone]?.find((m) => m.companyId === companyId)
+  if (!membership) throw new Error(`${phone} is no member of company ${companyId}`)
+  if (locationIds === null) delete membership.locationIds
+  else membership.locationIds = [...locationIds]
+}
