@@ -111,14 +111,14 @@ pnpm --filter @hisob24/web dev
 
 | Rol | Interfeysda | Qayerdan qo'shiladi | User app'da |
 |---|---|---|---|
-| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Vazifalar**, **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
-| `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar** va **Vazifalar** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
-| `user`, rolli | rol nomi (masalan, Sotuvchi) | egasi **Xodimlar → Rolni o'zgartirish** da rol biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
+| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Vazifalar**, **Mahsulotlar** (mahsulotlar va xizmatlar), **Ombor** (xaridlar va ta'minotchilar), **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
+| `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**, **Vazifalar**, **Mahsulotlar** va **Ombor** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
+| `user`, rolli | rol nomi (masalan, Sotuvchi) | egasi **Xodimlar → Rolni o'zgartirish** da rol biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
 
 - **Kompaniya rollari** egasi **Sozlamalar → Rollar** da tuzadi: nom va ruxsat matritsasi. Amal bo'limning "Ko'rish" ruxsatisiz qabul qilinmaydi. Xodimlarga biriktirilgan rol o'chirilmaydi. Rollarni faqat egasi boshqaradi va biriktiradi.
 - Ruxsat har so'rovda bazadan o'qiladi: rol o'zgarsa, xodim keyingi so'rovdanoq yangi ruxsat bilan ishlaydi. Ruxsati yo'q amal API'da 403 `forbidden`; rollar API xodimga 403 `owner_only`.
 - Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi rolsiz xodim bo'lib qoladi; yangi egasining roli olib tashlanadi.
-- Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar, tor ekranda (telefon brauzeri va Telegram Mini App) pastdagi tab-bar. Bosh sahifa hammaga.
+- Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar, tor ekranda (telefon brauzeri va Telegram Mini App) pastdagi tab-bar. Bosh sahifa hammaga. Tab-bar'da 5 tagacha bo'lim sig'adi; ko'proq bo'lsa birinchi 4 tasi va **Yana** (qolganlari pastdan chiqadigan ro'yxatda). Har a'zo **Menyuni sozlash** (profil menyusida va «Yana» pastida) orqali bo'limlarni sudrab o'z tartibiga qo'yadi; tartib serverda, har company'da alohida saqlanadi va sidebar bilan tab-bar'ga birdek tegadi.
 - Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
 - Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga SMS kod ham ketmaydi.
 - Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.
@@ -180,6 +180,37 @@ Company'ning filiallari. Har vazifa bitta lokatsiyada turadi; mijozlar, xodimlar
 - **Xodim cheklovi** faqat egasiniki (rollar kabi): standart holat hammasi; cheklanganda faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi, keyingi so'rovdanoq. Boshqa lokatsiyalarda unga biriktirilgan vazifalar qoladi (dialog ogohlantiradi). Ruxsatsiz lokatsiya bilan so'rov 403 `forbidden`; ruxsatsiz lokatsiyadagi vazifa 404. Lokatsiyasi qolmagan xodim "Sizga lokatsiya biriktirilmagan" ko'radi.
 
 To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/locations.md`](logic/locations.md).
+
+## Mahsulotlar va xizmatlar
+
+Company sotadigan narsalar: **mahsulot** (omborga olinadigan tovar, birligi bor) va **xizmat** (birliksiz va artikulsiz). Ikkalasi «Mahsulotlar» bo'limida, alohida tablarda.
+
+| Bo'lim | Kim | Nima qiladi |
+|---|---|---|
+| **Mahsulotlar** (`/products`) | `products.view` (rolsiz xodimga hammasi) | ro'yxat (Faol / Nofaol tablari, nom va artikul bo'yicha qidiruv, joriy lokatsiyadagi qoldiq), mahsulot qo'shish, mahsulot sahifasi (`/products/[id]`: qoldiq lokatsiyalar bo'yicha, oxirgi xarid narxi, xaridlari), tahrirlash, nofaol qilish, o'chirish |
+| **Xizmatlar** (`/services`) | `products.view` | ro'yxat va qator amallari (tahrirlash, nofaol, o'chirish); xizmatning alohida sahifasi yo'q |
+
+- **Mahsulot maydonlari:** nom (majburiy, mahsulotlar ichida takrorlanmaydi), birlik (tayyor ro'yxat: dona, kg, g, l, ml, m, m², quti, juft, komplekt), sotuv narxi, artikul (company'da takrorlanmaydi), izoh. **Xizmat:** nom (xizmatlar ichida takrorlanmaydi), narx, izoh.
+- **Nofaol** mahsulot yoki xizmat xarid formasining takliflarida chiqmaydi, nomi band qoladi, qoldig'i va xaridlari ko'rinaveradi; qayta faollashtiriladi.
+- **O'chirish:** yashiriladi (`deleted_at`), nom va artikul bo'shaydi. Jonli xaridda bor mahsulot o'chirilmaydi (409 `product_in_use`): uni nofaol qilish mumkin.
+
+To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/products.md`](logic/products.md).
+
+## Ombor
+
+Har lokatsiya bitta **ombor**: xarid joriy lokatsiyaga tushadi va shu lokatsiyadagi qoldiqni oshiradi. Statuslar yo'q: saqlangan zahoti qoldiqda.
+
+| Bo'lim | Kim | Nima qiladi |
+|---|---|---|
+| **Xaridlar** (`/purchases`) | `purchases.view`; qo'shish uchun `purchases.create` + `suppliers.view` + `products.view` | joriy lokatsiya xaridlari (yangi birinchi), xarid qo'shish (`/purchases/new`: ta'minotchi va mahsulotlar nom bo'yicha tanlanadi, qatorlar, «To'langan» va «To'liq»), xarid sahifasi (`/purchases/[id]`: qatorlar, jami, to'langan), tahrirlash (`/purchases/[id]/edit`), o'chirish |
+| **Ta'minotchilar** (`/suppliers`) | `suppliers.view`; balans `purchases.view` bilan | ro'yxat (Faol / Nofaol, nom yoki telefon bo'yicha qidiruv, qarz), ta'minotchi qo'shish (nom, telefon, izoh), sahifasi (`/suppliers/[id]`: balans kartasi, xaridlari, to'lovlari, to'lov qo'shish), tahrirlash, nofaol qilish, o'chirish |
+
+- **Xarid:** company ichida tartib raqami («№ 12», o'chirilganniki bo'shamaydi), lokatsiya (keyin o'zgarmaydi), ta'minotchi, sana, qatorlar (har mahsulot bir marta; miqdor 3 kasrgacha, narx 2 kasrgacha), to'langan summa (xaridga bog'langan to'lov sifatida yoziladi), izoh. Tahrirda qoldiq farq bilan yangilanadi; o'chirishda qaytadi. Mahsulot tanlanganda narx maydoniga oxirgi xarid narxi tushadi.
+- **Balans** = ta'minotchining jonli xaridlari jami − jonli to'lovlari jami: musbat **Qarz**, manfiy **Avans** (qarzdan ortiq to'lash mumkin), 0 «Qarz yo'q». Xarid bilan kiritilgan to'lov faqat xarid orqali o'zgaradi (409 `payment_linked`); o'z to'lovlari ta'minotchi sahifasida tahrirlanadi va o'chiriladi.
+- **Lokatsiya:** xaridlar ro'yxati joriy lokatsiyaniki; ta'minotchi va mahsulot sahifalarida a'zoga ruxsatli hamma lokatsiyaning xaridlari (2+ da lokatsiya belgisi). Cheklangan xodim boshqa lokatsiya xaridini ko'rmaydi (404) va u yerga xarid kirita olmaydi (403); balans company bo'yicha to'liq ko'rinadi. Admin jonli xaridi bor lokatsiyani o'chira olmaydi.
+- **O'chirish:** xaridi yoki to'lovi bor ta'minotchi o'chirilmaydi (409 `supplier_in_use`); nofaol qilish mumkin. Hech narsa bazadan o'chmaydi.
+
+To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/warehouse.md`](logic/warehouse.md).
 
 ## Buyruqlar
 
