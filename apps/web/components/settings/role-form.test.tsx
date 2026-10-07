@@ -14,10 +14,13 @@ test("the matrix is a row per section with its actions; an action brings its sec
   await signIn(ALI)
   const { user } = renderWithProviders(<RoleForm companyId={1} />)
 
-  for (const section of ["Mijozlar", "Vazifalar", "Xodimlar", "Sozlamalar"]) expect(group(section)).toBeInTheDocument()
+  for (const section of ["Mijozlar", "Vazifalar", "Mahsulotlar", "Ta'minotchilar", "Xaridlar", "Xodimlar", "Sozlamalar"]) {
+    expect(group(section)).toBeInTheDocument()
+  }
   expect(within(group("Mijozlar")).getAllByRole("checkbox").map((checkbox) => checkbox.getAttribute("aria-label") ?? "")).toHaveLength(5)
   expect(within(group("Xodimlar")).queryByRole("checkbox", { name: "Tarix" })).not.toBeInTheDocument()
   expect(within(group("Xodimlar")).getAllByRole("checkbox")).toHaveLength(4)
+  expect(within(group("Xaridlar")).getAllByRole("checkbox")).toHaveLength(4)
 
   await user.click(box("Mijozlar", "Qo'shish"))
   expect(box("Mijozlar", "Qo'shish")).toBeChecked()

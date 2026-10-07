@@ -1346,10 +1346,10 @@ export interface components {
          */
         Role: "owner" | "user";
         /**
-         * @description Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), tasks (vazifalar), employees (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar, bosqichlar). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini o'zgartirish), delete (o'chirish), history (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning view ruxsatisiz qabul qilinmaydi.
+         * @description Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), tasks (vazifalar), products (mahsulotlar va xizmatlar), suppliers (ta'minotchilar), purchases (xaridlar va to'lovlar), employees (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar, bosqichlar). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini o'zgartirish, nofaol qilish), delete (o'chirish), history (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning view ruxsatisiz qabul qilinmaydi.
          * @enum {string}
          */
-        Permission: "customers.view" | "customers.create" | "customers.edit" | "customers.delete" | "customers.history" | "tasks.view" | "tasks.create" | "tasks.edit" | "tasks.delete" | "tasks.history" | "employees.view" | "employees.create" | "employees.edit" | "employees.delete" | "settings.view" | "settings.create" | "settings.edit" | "settings.delete";
+        Permission: "customers.view" | "customers.create" | "customers.edit" | "customers.delete" | "customers.history" | "tasks.view" | "tasks.create" | "tasks.edit" | "tasks.delete" | "tasks.history" | "products.view" | "products.create" | "products.edit" | "products.delete" | "suppliers.view" | "suppliers.create" | "suppliers.edit" | "suppliers.delete" | "purchases.view" | "purchases.create" | "purchases.edit" | "purchases.delete" | "employees.view" | "employees.create" | "employees.edit" | "employees.delete" | "settings.view" | "settings.create" | "settings.edit" | "settings.delete";
         Billing: {
             /** Format: int64 */
             id: number;

@@ -2953,10 +2953,12 @@ components:
       description: >
         Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida
         (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), tasks
-        (vazifalar), employees (xodimlar), settings (sozlamalar: turlar,
-        maydonlar, dropdownlar, bosqichlar). Amallar: view (bo'limni ko'rish,
-        ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib,
-        vazifa bosqichini o'zgartirish), delete (o'chirish), history
+        (vazifalar), products (mahsulotlar va xizmatlar), suppliers
+        (ta'minotchilar), purchases (xaridlar va to'lovlar), employees
+        (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar,
+        bosqichlar). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar),
+        create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini
+        o'zgartirish, nofaol qilish), delete (o'chirish), history
         (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning
         view ruxsatisiz qabul qilinmaydi.
       enum:
@@ -2970,6 +2972,18 @@ components:
         - tasks.edit
         - tasks.delete
         - tasks.history
+        - products.view
+        - products.create
+        - products.edit
+        - products.delete
+        - suppliers.view
+        - suppliers.create
+        - suppliers.edit
+        - suppliers.delete
+        - purchases.view
+        - purchases.create
+        - purchases.edit
+        - purchases.delete
         - employees.view
         - employees.create
         - employees.edit

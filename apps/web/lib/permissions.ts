@@ -16,6 +16,18 @@ export const allPermissions: Permission[] = [
   "tasks.edit",
   "tasks.delete",
   "tasks.history",
+  "products.view",
+  "products.create",
+  "products.edit",
+  "products.delete",
+  "suppliers.view",
+  "suppliers.create",
+  "suppliers.edit",
+  "suppliers.delete",
+  "purchases.view",
+  "purchases.create",
+  "purchases.edit",
+  "purchases.delete",
   "employees.view",
   "employees.create",
   "employees.edit",
@@ -27,7 +39,9 @@ export const allPermissions: Permission[] = [
 ]
 
 // defaultPermissions is what an employee without a role has: the customers
-// and the tasks, without their history. It is the rule from before roles.
+// and the tasks, without their history (the rule from before roles), and the
+// warehouse sections: the products, the suppliers and the purchases
+// (logic/roles.md, 4.2).
 export const defaultPermissions: Permission[] = [
   "customers.view",
   "customers.create",
@@ -37,15 +51,30 @@ export const defaultPermissions: Permission[] = [
   "tasks.create",
   "tasks.edit",
   "tasks.delete",
+  "products.view",
+  "products.create",
+  "products.edit",
+  "products.delete",
+  "suppliers.view",
+  "suppliers.create",
+  "suppliers.edit",
+  "suppliers.delete",
+  "purchases.view",
+  "purchases.create",
+  "purchases.edit",
+  "purchases.delete",
 ]
 
 // Section is the part of a permission before the dot.
-export type Section = "customers" | "tasks" | "employees" | "settings"
+export type Section = "customers" | "tasks" | "products" | "suppliers" | "purchases" | "employees" | "settings"
 
 // sectionLabels are the sections' names in the app.
 export const sectionLabels: Record<Section, string> = {
   customers: "Mijozlar",
   tasks: "Vazifalar",
+  products: "Mahsulotlar",
+  suppliers: "Ta'minotchilar",
+  purchases: "Xaridlar",
   employees: "Xodimlar",
   settings: "Sozlamalar",
 }
@@ -62,7 +91,7 @@ export function can(permissions: readonly Permission[] | undefined, permission: 
 }
 
 // sections are the sections in the catalog's order.
-export const sections: Section[] = ["customers", "tasks", "employees", "settings"]
+export const sections: Section[] = ["customers", "tasks", "products", "suppliers", "purchases", "employees", "settings"]
 
 // summaryOf names the sections permissions reach into, in the catalog's
 // order: what a role is about, in a line. "Ruxsat yo'q" for none.
