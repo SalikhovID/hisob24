@@ -165,12 +165,8 @@ func (s *Service) SetEmployeeRole(ctx context.Context, companyID int64, phone st
 		if err != nil {
 			return err
 		}
-		row, err := q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: normalized, CompanyID: companyID})
-		if err != nil {
-			return err
-		}
-		m = Member{Phone: row.Phone, FullName: row.FullName, Role: row.Role, RoleID: row.RoleID, RoleName: row.RoleName, CreatedAt: row.CreatedAt}
-		return nil
+		m, err = memberIn(ctx, q, companyID, normalized)
+		return err
 	})
 	return m, err
 }

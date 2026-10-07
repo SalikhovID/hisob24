@@ -11,6 +11,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
+	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
 var (
@@ -176,4 +177,59 @@ func (s *Service) DeleteLocation(ctx context.Context, companyID, id int64) error
 		_, err = q.DeleteLocation(ctx, gen.DeleteLocationParams{ID: id, CompanyID: companyID})
 		return err
 	})
+}
+
+// SetEmployeeLocations restricts a user of the company to the locations
+// (logic/locations.md, section 5), or lets them work in every one again
+// (nil). The locations have to be the company's live ones, at least one, a
+// repeated one counts once; the owner is never restricted. It takes effect
+// from the member's next request on.
+func (s *Service) SetEmployeeLocations(ctx context.Context, companyID int64, phone string, ids *[]int64) (Member, error) {
+	normalized, err := user.NormalizePhone(phone)
+	if err != nil {
+		return Member{}, errEmployeeNotFound // no member has such a phone
+	}
+	var chosen []int64
+	if ids != nil {
+		if len(*ids) == 0 {
+			return Member{}, invalid("Kamida bitta lokatsiyani tanlang")
+		}
+		seen := map[int64]bool{}
+		for _, id := range *ids {
+			if seen[id] {
+				continue
+			}
+			seen[id] = true
+			if _, err := s.q.GetLocation(ctx, gen.GetLocationParams{ID: id, CompanyID: companyID}); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return Member{}, errLocationNotFound
+				}
+				return Member{}, err
+			}
+			chosen = append(chosen, id)
+		}
+	}
+	var m Member
+	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		q := s.q.WithTx(tx)
+		_, err := q.SetMemberAllLocations(ctx, gen.SetMemberAllLocationsParams{UserPhone: normalized, CompanyID: companyID, AllLocations: ids == nil})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return s.whyNotAnEmployee(ctx, companyID, normalized)
+		}
+		if err != nil {
+			return err
+		}
+		// The restriction before gives way to this one, or to none.
+		if err := q.DeleteMemberLocations(ctx, gen.DeleteMemberLocationsParams{UserPhone: normalized, CompanyID: companyID}); err != nil {
+			return err
+		}
+		for _, id := range chosen {
+			if err := q.AddMemberLocation(ctx, gen.AddMemberLocationParams{UserPhone: normalized, CompanyID: companyID, LocationID: id}); err != nil {
+				return err
+			}
+		}
+		m, err = memberIn(ctx, q, companyID, normalized)
+		return err
+	})
+	return m, err
 }

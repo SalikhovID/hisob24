@@ -100,7 +100,13 @@ func (s *Service) RenameEmployee(ctx context.Context, companyID int64, phone, fu
 // member is one member of the company as the lists show them, with the
 // name of the role they hold and the locations they may work in.
 func (s *Service) member(ctx context.Context, companyID int64, phone string) (Member, error) {
-	row, err := s.q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: phone, CompanyID: companyID})
+	return memberIn(ctx, s.q, companyID, phone)
+}
+
+// memberIn reads one member with q, inside a transaction or not, so what a
+// transaction wrote is what it answers with.
+func memberIn(ctx context.Context, q *gen.Queries, companyID int64, phone string) (Member, error) {
+	row, err := q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: phone, CompanyID: companyID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Member{}, errEmployeeNotFound // taken out between the two queries
 	}
@@ -111,8 +117,13 @@ func (s *Service) member(ctx context.Context, companyID int64, phone string) (Me
 	if !m.AllLocations {
 		// A restricted member's locations are the live ones of the
 		// restriction: what ListMemberLocations tells for them.
-		if m.Locations, err = s.MemberLocations(ctx, companyID, phone); err != nil {
+		rows, err := q.ListMemberLocations(ctx, gen.ListMemberLocationsParams{UserPhone: phone, CompanyID: companyID})
+		if err != nil {
 			return Member{}, err
+		}
+		m.Locations = make([]Location, 0, len(rows))
+		for _, r := range rows {
+			m.Locations = append(m.Locations, Location{ID: r.ID, Name: r.Name})
 		}
 	}
 	return m, nil

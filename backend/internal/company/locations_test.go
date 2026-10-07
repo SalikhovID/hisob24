@@ -351,3 +351,112 @@ func TestDeleteLocationWaitsForAWriteOfTheSameCompany(t *testing.T) {
 
 	require.NoError(t, <-done, "the delete runs once the write is over")
 }
+
+// namesOf is the names of a member's locations, in their order.
+func namesOf(locations []Location) []string {
+	names := make([]string, 0, len(locations))
+	for _, l := range locations {
+		names = append(names, l.Name)
+	}
+	return names
+}
+
+func TestSetEmployeeLocations(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	nok := mustCreate(t, s, "Nok", dbToday(t, pool))
+	asosiy := nokLocation(t, pool, c.ID)
+	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
+	gone := addLocation(t, pool, c.ID, "Yopilgan")
+	hideLocation(t, pool, gone)
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+
+	m, err := s.SetEmployeeLocations(ctx, c.ID, "+998 90 222 33 44", &[]int64{chilonzor, asosiy, chilonzor})
+	require.NoError(t, err)
+	assert.False(t, m.AllLocations, "restricted")
+	assert.Equal(t, []string{"Asosiy", "Chilonzor"}, namesOf(m.Locations), "the restriction's locations, in the order they were added, each once")
+	assert.Equal(t, "998902223344", m.Phone)
+
+	m, err = s.SetEmployeeLocations(ctx, c.ID, "998902223344", &[]int64{chilonzor})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Chilonzor"}, namesOf(m.Locations), "another restriction replaces the one before")
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM member_locations WHERE user_phone = '998902223344'").Scan(&rows))
+	assert.Equal(t, 1, rows)
+
+	m, err = s.SetEmployeeLocations(ctx, c.ID, "998902223344", nil)
+	require.NoError(t, err)
+	assert.True(t, m.AllLocations, "every location again")
+	assert.Nil(t, m.Locations)
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM member_locations WHERE user_phone = '998902223344'").Scan(&rows))
+	assert.Zero(t, rows, "the restriction's rows are gone")
+
+	var e *apperr.Error
+	for name, tc := range map[string]struct {
+		phone   string
+		ids     *[]int64
+		kind    apperr.Kind
+		code    string
+		message string
+	}{
+		"no location":                  {"998902223344", &[]int64{}, apperr.Invalid, "validation_error", "Kamida bitta lokatsiyani tanlang"},
+		"a deleted location":           {"998902223344", &[]int64{gone}, apperr.NotFound, "not_found", "Lokatsiya topilmadi"},
+		"another company's location":   {"998902223344", &[]int64{nokLocation(t, pool, nok.ID)}, apperr.NotFound, "not_found", "Lokatsiya topilmadi"},
+		"a location that is not there": {"998902223344", &[]int64{chilonzor + 1000}, apperr.NotFound, "not_found", "Lokatsiya topilmadi"},
+		"the owner":                    {"998900000001", &[]int64{chilonzor}, apperr.Conflict, "cannot_change_owner", "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi"},
+		"not a member":                 {"998909999999", &[]int64{chilonzor}, apperr.NotFound, "not_found", "Xodim topilmadi"},
+		"no phone":                     {"vali", &[]int64{chilonzor}, apperr.NotFound, "not_found", "Xodim topilmadi"},
+	} {
+		_, err := s.SetEmployeeLocations(ctx, c.ID, tc.phone, tc.ids)
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.kind, e.Kind, name)
+			assert.Equal(t, tc.code, e.Code, name)
+			assert.Equal(t, tc.message, e.Message, name)
+		}
+	}
+	members, err := s.Members(ctx, c.ID)
+	require.NoError(t, err)
+	assert.True(t, members[1].AllLocations, "a refused change changes nothing")
+	_, err = s.SetEmployeeLocations(ctx, c.ID, "998900000001", nil)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "cannot_change_owner", e.Code, "the owner, even to every location")
+}
+
+func TestSetEmployeeLocationsIsAtomic(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+	pgtest.FailInserts(t, pool, "member_locations")
+
+	_, err := s.SetEmployeeLocations(ctx, c.ID, "998902223344", &[]int64{chilonzor})
+
+	require.Error(t, err)
+	var all bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT all_locations FROM user_companies WHERE user_phone = '998902223344'").Scan(&all))
+	assert.True(t, all, "no restriction without its locations")
+}
+
+// A role given or taken away leaves the restriction as it was, and the
+// answer tells it.
+func TestSetEmployeeRoleTellsTheLocations(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+	addEmployee(t, pool, c.ID, "998903334455", "Hamma Yerda")
+	restrictTo(t, pool, "998902223344", c.ID, chilonzor)
+	sotuvchi := addRole(t, pool, c.ID, "Sotuvchi", "customers.view")
+
+	m, err := s.SetEmployeeRole(ctx, c.ID, "998902223344", &sotuvchi)
+	require.NoError(t, err)
+	assert.False(t, m.AllLocations)
+	assert.Equal(t, []string{"Chilonzor"}, namesOf(m.Locations), "a restricted employee's locations")
+	m, err = s.SetEmployeeRole(ctx, c.ID, "998903334455", &sotuvchi)
+	require.NoError(t, err)
+	assert.True(t, m.AllLocations, "an unrestricted employee works in every location")
+	assert.Nil(t, m.Locations)
+}
