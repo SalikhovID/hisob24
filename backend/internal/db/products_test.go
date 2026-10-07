@@ -19,7 +19,9 @@ func numeric(t *testing.T, s string) pgtype.Numeric {
 	return n
 }
 
-// numericText is a stored amount as the database writes it ("1200.50").
+// numericText is a stored amount as pgx writes it: with the column's
+// decimals ("1200.50"), but a zero without them ("0": pgx decodes a zero
+// numeric without its scale; the services pad it on the way out).
 func numericText(t *testing.T, n pgtype.Numeric) string {
 	t.Helper()
 	require.True(t, n.Valid, "an amount is there")

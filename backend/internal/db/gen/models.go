@@ -157,6 +157,30 @@ type Product struct {
 	DeletedAt     *time.Time
 }
 
+type Purchase struct {
+	ID            int64
+	CompanyID     int64
+	Number        int32
+	LocationID    int64
+	SupplierID    int64
+	PurchasedOn   time.Time
+	Note          *string
+	Total         pgtype.Numeric
+	CreatedBy     string
+	CreatedByName *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
+}
+
+type PurchaseItem struct {
+	PurchaseID int64
+	ProductID  int64
+	Quantity   pgtype.Numeric
+	Price      pgtype.Numeric
+	Position   int32
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserPhone string
@@ -182,6 +206,42 @@ type SmsCode struct {
 	ExpiresAt time.Time
 	Attempts  int32
 	SentAt    time.Time
+}
+
+type Stock struct {
+	CompanyID  int64
+	LocationID int64
+	ProductID  int64
+	Quantity   pgtype.Numeric
+}
+
+type Supplier struct {
+	ID            int64
+	CompanyID     int64
+	Name          string
+	Phone         *string
+	Note          *string
+	IsActive      bool
+	CreatedBy     string
+	CreatedByName *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
+}
+
+type SupplierPayment struct {
+	ID            int64
+	CompanyID     int64
+	SupplierID    int64
+	PurchaseID    *int64
+	Amount        pgtype.Numeric
+	PaidOn        time.Time
+	Note          *string
+	CreatedBy     string
+	CreatedByName *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
 }
 
 type Task struct {

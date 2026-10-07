@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -31,6 +32,9 @@ type Querier interface {
 	// Names a location in a member's restriction. The location has to be the
 	// company's own (23503), and is named once (23505).
 	AddMemberLocation(ctx context.Context, arg AddMemberLocationParams) error
+	// Enters a line of the purchase: a product once per purchase (23505), a
+	// quantity above zero and a price not below it (23514).
+	AddPurchaseItem(ctx context.Context, arg AddPurchaseItemParams) error
 	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
 	// company has no such type, or deleted it.
 	AddTaskField(ctx context.Context, arg AddTaskFieldParams) (TaskField, error)
@@ -60,6 +64,9 @@ type Querier interface {
 	// How many customers filled the field in: one in use is not deleted.
 	// Deleted customers do not count.
 	CountFieldCustomers(ctx context.Context, fieldID int64) (int64, error)
+	// How many live purchases stand in the location: one with any is not
+	// deleted (logic/locations.md, section 7).
+	CountLocationPurchases(ctx context.Context, locationID int64) (int64, error)
 	// How many tasks stand in the location: one in use is not deleted. Deleted
 	// tasks do not count.
 	CountLocationTasks(ctx context.Context, locationID int64) (int64, error)
@@ -72,11 +79,19 @@ type Querier interface {
 	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
 	// How many rows ListProducts finds under the same filter, on all of its pages.
 	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
+	// How many rows ListPurchases finds under the same filter, on all of its pages.
+	CountPurchases(ctx context.Context, arg CountPurchasesParams) (int64, error)
 	// How many members hold the role: one that is held is not deleted.
 	CountRoleMembers(ctx context.Context, roleID *int64) (int64, error)
 	// How many tasks stand in the stage: one in use is not deleted. Deleted
 	// tasks do not count.
 	CountStageTasks(ctx context.Context, stageID int64) (int64, error)
+	// How many live payments the supplier has: one with any is not deleted.
+	CountSupplierPayments(ctx context.Context, supplierID int64) (int64, error)
+	// How many live purchases the supplier has: one with any is not deleted.
+	CountSupplierPurchases(ctx context.Context, supplierID int64) (int64, error)
+	// How many rows ListSuppliers finds under the same filter, on all of its pages.
+	CountSuppliers(ctx context.Context, arg CountSuppliersParams) (int64, error)
 	// How many tasks filled the field in: one in use is not deleted.
 	CountTaskFieldTasks(ctx context.Context, fieldID int64) (int64, error)
 	// How many tasks ListTasks finds under the same filter, on all of its pages.
@@ -109,12 +124,20 @@ type Querier interface {
 	// when they leave. The name is one row's among the company's rows of the
 	// kind, the SKU one product's in the company (23505, whatever the case).
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	// Enters a purchase in a location of the company, from a supplier of it,
+	// with no lines yet (total 0). created_by_name is the name the member goes
+	// by in the company now: it stays when they leave.
+	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
 	// company_id is the company the access tokens it refreshes are for; source
 	// is where the session began ('sms' or 'telegram').
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
 	// A company role: the permissions are "section.action" keys, checked by
 	// internal/access before they get here.
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
+	// Enters a supplier. created_by_name is the name the member who enters it
+	// goes by in the company now: it stays when they leave. The name is one
+	// live supplier's in the company (23505, whatever the case).
+	CreateSupplier(ctx context.Context, arg CreateSupplierParams) (Supplier, error)
 	// Enters a task, in a location of the company. assignee_name and
 	// created_by_name are the names the members go by in the company now: they
 	// stay when the members leave the company.
@@ -167,6 +190,11 @@ type Querier interface {
 	// are free again. pgx.ErrNoRows when the company has no such row, or
 	// deleted it already.
 	DeleteProduct(ctx context.Context, arg DeleteProductParams) (int64, error)
+	// Hides the purchase: nothing is removed, its number is never given again.
+	// pgx.ErrNoRows when the company has no such purchase, or deleted it already.
+	DeletePurchase(ctx context.Context, arg DeletePurchaseParams) (int64, error)
+	// Removes the lines of the purchase (an edit writes them anew).
+	DeletePurchaseItems(ctx context.Context, purchaseID int64) error
 	// Removes the company's role for good. A role someone holds is refused by
 	// the foreign key (23503); pgx.ErrNoRows when the company has none such.
 	DeleteRole(ctx context.Context, arg DeleteRoleParams) (int64, error)
@@ -174,6 +202,9 @@ type Querier interface {
 	DeleteSMSCode(ctx context.Context, phone string) error
 	// Before a new code: this admin's unused codes and everyone's expired ones.
 	DeleteStaleAdminLoginCodes(ctx context.Context, adminID int64) error
+	// Hides the supplier: nothing is removed, and its name is free again.
+	// pgx.ErrNoRows when the company has no such supplier, or deleted it already.
+	DeleteSupplier(ctx context.Context, arg DeleteSupplierParams) (int64, error)
 	// Hides the task: nothing is removed. pgx.ErrNoRows when the company has no
 	// such task, or deleted it already.
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error)
@@ -194,6 +225,9 @@ type Querier interface {
 	// The company's owner stays in it as a user: the step before another owner
 	// is set.
 	DemoteCompanyOwner(ctx context.Context, companyID int64) error
+	// Makes the product's stock row in the location, with nothing in it, when
+	// there is none yet; a row is never removed.
+	EnsureStock(ctx context.Context, arg EnsureStockParams) error
 	// The customer that has the value in the field already: a field may be told
 	// not to repeat. A text is compared in any case. The customer except_id (the
 	// one being edited, 0 for none) and the deleted do not count. pgx.ErrNoRows
@@ -243,9 +277,20 @@ type Querier interface {
 	// in the company now; once they have left it (or go by no name), the name
 	// of then.
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
+	// The company's purchase, in one of the locations given (the member's):
+	// with its supplier's and location's names, what was paid with it (the
+	// live payment linked to it, 0 when none), how many lines it has.
+	// pgx.ErrNoRows when the company has none such in those locations, or
+	// deleted it.
+	GetPurchase(ctx context.Context, arg GetPurchaseParams) (GetPurchaseRow, error)
 	// The company's role with how many members hold it; pgx.ErrNoRows when the
 	// company has none such.
 	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
+	// The company's supplier with its balance: what its live purchases come to,
+	// what its live payments come to, and the difference (owed when above zero,
+	// an advance when below). pgx.ErrNoRows when the company has none such, or
+	// deleted it.
+	GetSupplier(ctx context.Context, arg GetSupplierParams) (GetSupplierRow, error)
 	// The company's task with its location, its customer's phone and name (the
 	// customer's answer to its type's first text field); pgx.ErrNoRows when the
 	// company has no such task, or deleted it. assignee_name and
@@ -325,9 +370,21 @@ type Querier interface {
 	// search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
 	// leaves it out.
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error)
+	// The lines of the purchase in the order entered, each with its product's
+	// name and unit and what it comes to.
+	ListPurchaseItems(ctx context.Context, purchaseID int64) ([]ListPurchaseItemsRow, error)
+	// A page of the company's purchases in the locations given, the newest
+	// first (then the later entered), without the deleted; supplier_id keeps
+	// one supplier's, NULL leaves the filter out. The columns are GetPurchase's.
+	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
 	// The company's roles by name (whatever the case), each with how many
 	// members hold it.
 	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
+	// A page of the company's suppliers, the active or the inactive ones, by
+	// name whatever the case, without the deleted, each with its balance.
+	// search, escaped for ILIKE, is looked for in the name; digits in the
+	// phone. A NULL argument leaves its filter out.
+	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]ListSuppliersRow, error)
 	// Every field of the company's types, each type's in its order, without the
 	// deleted ones (a deleted type's fields are deleted with it).
 	ListTaskFields(ctx context.Context, companyID int64) ([]TaskField, error)
@@ -375,9 +432,20 @@ type Querier interface {
 	// company's, a restricted member in the restriction's. False for someone
 	// who is not a member, and for another company's location.
 	MemberInLocation(ctx context.Context, arg MemberInLocationParams) (bool, error)
+	// Moves the product's stock in the location by added − removed: a purchase
+	// adds its quantity, a deletion removes it, an edit passes both (the
+	// difference). The row has to be there (EnsureStock). Below zero: 23514,
+	// stock_quantity_check. (One INSERT ... ON CONFLICT DO UPDATE cannot do
+	// this: the check runs on the proposed row before the conflict is seen.)
+	MoveStock(ctx context.Context, arg MoveStockParams) error
 	// Puts the task in another stage. pgx.ErrNoRows when the company has no such
 	// task, or deleted it.
 	MoveTask(ctx context.Context, arg MoveTaskParams) (time.Time, error)
+	// The number the company's next purchase takes: one past the highest so
+	// far, the deleted purchases counted (a number is never given twice). Run
+	// under the company's lock (LockCompanyCustomers), so two purchases entered
+	// at once take two numbers.
+	NextPurchaseNumber(ctx context.Context, companyID int64) (int32, error)
 	// Puts the dropdown's options in the order of ids: the first gets position
 	// 1. An id that is not a live option of the dropdown is passed over.
 	OrderCustomerDropdownOptions(ctx context.Context, arg OrderCustomerDropdownOptionsParams) error
@@ -450,6 +518,15 @@ type Querier interface {
 	// Turns a product or a service off (no longer offered) or on again.
 	// pgx.ErrNoRows when the company has no such row, or deleted it.
 	SetProductActive(ctx context.Context, arg SetProductActiveParams) (Product, error)
+	// Writes the purchase's total as the sum of its lines (quantity × price),
+	// 0 with no lines, and returns it.
+	SetPurchaseTotal(ctx context.Context, id int64) (pgtype.Numeric, error)
+	// Turns a supplier off (offered to no new purchase) or on again.
+	// pgx.ErrNoRows when the company has no such supplier, or deleted it.
+	SetSupplierActive(ctx context.Context, arg SetSupplierActiveParams) (Supplier, error)
+	// Whether the company's live supplier is active; pgx.ErrNoRows when the
+	// company has none such, or deleted it (a purchase may not name it).
+	SupplierStanding(ctx context.Context, arg SupplierStandingParams) (bool, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	// An edit: the customer's number as it is now, and the moment of the edit.
@@ -467,9 +544,17 @@ type Querier interface {
 	// moment of the edit. The kind stays. pgx.ErrNoRows when the company has no
 	// such row, or deleted it; 23505 when the name or the SKU is another's.
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
+	// An edit of the head: the supplier, the day and the note (NULL clears it),
+	// and the moment of the edit. The number and the location stay.
+	// pgx.ErrNoRows when the company has no such purchase, or deleted it.
+	UpdatePurchase(ctx context.Context, arg UpdatePurchaseParams) (Purchase, error)
 	// Replaces a role's name and permissions. pgx.ErrNoRows when the company
 	// has no such role.
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
+	// An edit: every field as it is now (NULL clears an optional one), and the
+	// moment of the edit. pgx.ErrNoRows when the company has no such supplier,
+	// or deleted it; 23505 when the name is another's.
+	UpdateSupplier(ctx context.Context, arg UpdateSupplierParams) (Supplier, error)
 	// An edit: the task's title, deadline, stage and assignee as they are now,
 	// and the moment of the edit. pgx.ErrNoRows when the company has no such
 	// task, or deleted it.
