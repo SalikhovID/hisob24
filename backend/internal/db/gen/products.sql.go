@@ -12,6 +12,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countProductPurchaseLines = `-- name: CountProductPurchaseLines :one
+SELECT count(*) FROM purchase_items i JOIN purchases p ON p.id = i.purchase_id
+WHERE i.product_id = $1 AND p.deleted_at IS NULL AND p.location_id = ANY($2::bigint[])
+`
+
+type CountProductPurchaseLinesParams struct {
+	ProductID   int64
+	LocationIds []int64
+}
+
+// How many rows ListProductPurchases finds, on all of its pages.
+func (q *Queries) CountProductPurchaseLines(ctx context.Context, arg CountProductPurchaseLinesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductPurchaseLines, arg.ProductID, arg.LocationIds)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countProductPurchases = `-- name: CountProductPurchases :one
+SELECT count(*) FROM purchase_items i JOIN purchases p ON p.id = i.purchase_id
+WHERE i.product_id = $1 AND p.deleted_at IS NULL
+`
+
+// How many live purchases hold the product, in any location: one held is
+// not deleted (logic/products.md, section 4).
+func (q *Queries) CountProductPurchases(ctx context.Context, productID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductPurchases, productID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countProducts = `-- name: CountProducts :one
 SELECT count(*) FROM products p
 WHERE p.company_id = $1 AND p.deleted_at IS NULL
@@ -119,15 +151,23 @@ func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) (i
 
 const getProduct = `-- name: GetProduct :one
 SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.note, p.is_active, p.created_at, p.updated_at,
-       COALESCE(m.full_name, p.created_by_name) AS created_by_name
+       COALESCE(m.full_name, p.created_by_name) AS created_by_name,
+       CASE WHEN p.kind = 'product'
+            THEN COALESCE((SELECT sum(s.quantity) FROM stock s
+                           WHERE s.product_id = p.id AND s.location_id = ANY($1::bigint[])), 0)
+       END::numeric(14,3) AS quantity,
+       (SELECT i.price FROM purchase_items i JOIN purchases pu ON pu.id = i.purchase_id
+         WHERE i.product_id = p.id AND pu.deleted_at IS NULL
+         ORDER BY pu.purchased_on DESC, pu.id DESC LIMIT 1) AS last_price
 FROM products p
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
-WHERE p.id = $1 AND p.company_id = $2 AND p.deleted_at IS NULL
+WHERE p.id = $2 AND p.company_id = $3 AND p.deleted_at IS NULL
 `
 
 type GetProductParams struct {
-	ID        int64
-	CompanyID int64
+	LocationIds []int64
+	ID          int64
+	CompanyID   int64
 }
 
 type GetProductRow struct {
@@ -142,14 +182,19 @@ type GetProductRow struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	CreatedByName *string
+	Quantity      pgtype.Numeric
+	LastPrice     pgtype.Numeric
 }
 
 // The company's product or service; pgx.ErrNoRows when it has none such, or
 // deleted it. created_by_name is the name the member who entered it goes by
 // in the company now; once they have left it (or go by no name), the name
-// of then.
+// of then. quantity is the product's stock in the locations given (the
+// member's, or the one asked for), NULL for a service; last_price is the
+// price of its newest live purchase line, whatever the location, NULL when
+// it was never bought.
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
-	row := q.db.QueryRow(ctx, getProduct, arg.ID, arg.CompanyID)
+	row := q.db.QueryRow(ctx, getProduct, arg.LocationIds, arg.ID, arg.CompanyID)
 	var i GetProductRow
 	err := row.Scan(
 		&i.ID,
@@ -163,31 +208,154 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedByName,
+		&i.Quantity,
+		&i.LastPrice,
 	)
 	return i, err
 }
 
+const listProductPurchases = `-- name: ListProductPurchases :many
+SELECT p.id AS purchase_id, p.number, p.purchased_on, p.supplier_id, s.name AS supplier_name, p.location_id, l.name AS location_name,
+       i.quantity, i.price, (i.quantity * i.price)::numeric(14,2) AS amount
+FROM purchase_items i
+JOIN purchases p ON p.id = i.purchase_id
+JOIN suppliers s ON s.id = p.supplier_id
+JOIN locations l ON l.id = p.location_id
+WHERE i.product_id = $1 AND p.deleted_at IS NULL AND p.location_id = ANY($2::bigint[])
+ORDER BY p.purchased_on DESC, p.id DESC
+LIMIT $4 OFFSET $3
+`
+
+type ListProductPurchasesParams struct {
+	ProductID   int64
+	LocationIds []int64
+	Offset      int32
+	Limit       int32
+}
+
+type ListProductPurchasesRow struct {
+	PurchaseID   int64
+	Number       int32
+	PurchasedOn  time.Time
+	SupplierID   int64
+	SupplierName string
+	LocationID   int64
+	LocationName string
+	Quantity     pgtype.Numeric
+	Price        pgtype.Numeric
+	Amount       pgtype.Numeric
+}
+
+// A page of the live purchase lines of the product in the locations given,
+// the newest purchase first: the purchase, its supplier and location, the
+// line's quantity, price and what it comes to.
+func (q *Queries) ListProductPurchases(ctx context.Context, arg ListProductPurchasesParams) ([]ListProductPurchasesRow, error) {
+	rows, err := q.db.Query(ctx, listProductPurchases,
+		arg.ProductID,
+		arg.LocationIds,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProductPurchasesRow{}
+	for rows.Next() {
+		var i ListProductPurchasesRow
+		if err := rows.Scan(
+			&i.PurchaseID,
+			&i.Number,
+			&i.PurchasedOn,
+			&i.SupplierID,
+			&i.SupplierName,
+			&i.LocationID,
+			&i.LocationName,
+			&i.Quantity,
+			&i.Price,
+			&i.Amount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProductStock = `-- name: ListProductStock :many
+SELECT l.id AS location_id, l.name AS location_name, COALESCE(s.quantity, 0)::numeric(14,3) AS quantity
+FROM locations l
+LEFT JOIN stock s ON s.location_id = l.id AND s.product_id = $1
+WHERE l.company_id = $2 AND l.deleted_at IS NULL AND l.id = ANY($3::bigint[])
+ORDER BY l.created_at, l.id
+`
+
+type ListProductStockParams struct {
+	ProductID   int64
+	CompanyID   int64
+	LocationIds []int64
+}
+
+type ListProductStockRow struct {
+	LocationID   int64
+	LocationName string
+	Quantity     pgtype.Numeric
+}
+
+// The product's stock in each of the locations given (the member's), in
+// the order the locations were added; a location with none is listed with 0.
+func (q *Queries) ListProductStock(ctx context.Context, arg ListProductStockParams) ([]ListProductStockRow, error) {
+	rows, err := q.db.Query(ctx, listProductStock, arg.ProductID, arg.CompanyID, arg.LocationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProductStockRow{}
+	for rows.Next() {
+		var i ListProductStockRow
+		if err := rows.Scan(&i.LocationID, &i.LocationName, &i.Quantity); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProducts = `-- name: ListProducts :many
 SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.note, p.is_active, p.created_at, p.updated_at,
-       COALESCE(m.full_name, p.created_by_name) AS created_by_name
+       COALESCE(m.full_name, p.created_by_name) AS created_by_name,
+       CASE WHEN p.kind = 'product'
+            THEN COALESCE((SELECT sum(s.quantity) FROM stock s
+                           WHERE s.product_id = p.id AND s.location_id = ANY($1::bigint[])), 0)
+       END::numeric(14,3) AS quantity,
+       (SELECT i.price FROM purchase_items i JOIN purchases pu ON pu.id = i.purchase_id
+         WHERE i.product_id = p.id AND pu.deleted_at IS NULL
+         ORDER BY pu.purchased_on DESC, pu.id DESC LIMIT 1) AS last_price
 FROM products p
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
-WHERE p.company_id = $1 AND p.deleted_at IS NULL
-  AND p.kind = $2 AND p.is_active = $3
-  AND ($4::text IS NULL
-       OR p.name ILIKE '%' || $4::text || '%'
-       OR p.sku ILIKE '%' || $4::text || '%')
+WHERE p.company_id = $2 AND p.deleted_at IS NULL
+  AND p.kind = $3 AND p.is_active = $4
+  AND ($5::text IS NULL
+       OR p.name ILIKE '%' || $5::text || '%'
+       OR p.sku ILIKE '%' || $5::text || '%')
 ORDER BY lower(p.name), p.id
-LIMIT $6 OFFSET $5
+LIMIT $7 OFFSET $6
 `
 
 type ListProductsParams struct {
-	CompanyID int64
-	Kind      string
-	IsActive  bool
-	Search    *string
-	Offset    int32
-	Limit     int32
+	LocationIds []int64
+	CompanyID   int64
+	Kind        string
+	IsActive    bool
+	Search      *string
+	Offset      int32
+	Limit       int32
 }
 
 type ListProductsRow struct {
@@ -202,14 +370,18 @@ type ListProductsRow struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	CreatedByName *string
+	Quantity      pgtype.Numeric
+	LastPrice     pgtype.Numeric
 }
 
 // A page of the company's products or services (kind), the active or the
 // inactive ones (is_active), by name whatever the case, without the deleted.
 // search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
-// leaves it out.
+// leaves it out. The columns are GetProduct's (quantity in the locations
+// given, last_price).
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {
 	rows, err := q.db.Query(ctx, listProducts,
+		arg.LocationIds,
 		arg.CompanyID,
 		arg.Kind,
 		arg.IsActive,
@@ -236,6 +408,8 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CreatedByName,
+			&i.Quantity,
+			&i.LastPrice,
 		); err != nil {
 			return nil, err
 		}
@@ -245,6 +419,31 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 		return nil, err
 	}
 	return items, nil
+}
+
+const productStanding = `-- name: ProductStanding :one
+SELECT kind, name, is_active FROM products WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+`
+
+type ProductStandingParams struct {
+	ID        int64
+	CompanyID int64
+}
+
+type ProductStandingRow struct {
+	Kind     string
+	Name     string
+	IsActive bool
+}
+
+// The company's live product or service: its kind, name and whether it is
+// active (what a purchase line may name). pgx.ErrNoRows when the company
+// has none such, or deleted it.
+func (q *Queries) ProductStanding(ctx context.Context, arg ProductStandingParams) (ProductStandingRow, error) {
+	row := q.db.QueryRow(ctx, productStanding, arg.ID, arg.CompanyID)
+	var i ProductStandingRow
+	err := row.Scan(&i.Kind, &i.Name, &i.IsActive)
+	return i, err
 }
 
 const setProductActive = `-- name: SetProductActive :one

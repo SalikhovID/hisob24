@@ -79,6 +79,11 @@ type Querier interface {
 	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
 	// How many rows ListPayments finds, on all of its pages.
 	CountPayments(ctx context.Context, arg CountPaymentsParams) (int64, error)
+	// How many rows ListProductPurchases finds, on all of its pages.
+	CountProductPurchaseLines(ctx context.Context, arg CountProductPurchaseLinesParams) (int64, error)
+	// How many live purchases hold the product, in any location: one held is
+	// not deleted (logic/products.md, section 4).
+	CountProductPurchases(ctx context.Context, productID int64) (int64, error)
 	// How many rows ListProducts finds under the same filter, on all of its pages.
 	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
 	// How many rows ListPurchases finds under the same filter, on all of its pages.
@@ -291,7 +296,10 @@ type Querier interface {
 	// The company's product or service; pgx.ErrNoRows when it has none such, or
 	// deleted it. created_by_name is the name the member who entered it goes by
 	// in the company now; once they have left it (or go by no name), the name
-	// of then.
+	// of then. quantity is the product's stock in the locations given (the
+	// member's, or the one asked for), NULL for a service; last_price is the
+	// price of its newest live purchase line, whatever the location, NULL when
+	// it was never bought.
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
 	// The company's purchase, in one of the locations given (the member's):
 	// with its supplier's and location's names, what was paid with it (the
@@ -387,10 +395,18 @@ type Querier interface {
 	// A page of the supplier's live payments, the newest first (then the later
 	// entered). The columns are GetPayment's.
 	ListPayments(ctx context.Context, arg ListPaymentsParams) ([]ListPaymentsRow, error)
+	// A page of the live purchase lines of the product in the locations given,
+	// the newest purchase first: the purchase, its supplier and location, the
+	// line's quantity, price and what it comes to.
+	ListProductPurchases(ctx context.Context, arg ListProductPurchasesParams) ([]ListProductPurchasesRow, error)
+	// The product's stock in each of the locations given (the member's), in
+	// the order the locations were added; a location with none is listed with 0.
+	ListProductStock(ctx context.Context, arg ListProductStockParams) ([]ListProductStockRow, error)
 	// A page of the company's products or services (kind), the active or the
 	// inactive ones (is_active), by name whatever the case, without the deleted.
 	// search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
-	// leaves it out.
+	// leaves it out. The columns are GetProduct's (quantity in the locations
+	// given, last_price).
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error)
 	// The lines of the purchase in the order entered, each with its product's
 	// name and unit and what it comes to.
@@ -486,6 +502,10 @@ type Querier interface {
 	// Puts the company's types in the order of ids: the first gets position 1.
 	// An id that is not a live type of the company is passed over.
 	OrderTaskTypes(ctx context.Context, arg OrderTaskTypesParams) error
+	// The company's live product or service: its kind, name and whether it is
+	// active (what a purchase line may name). pgx.ErrNoRows when the company
+	// has none such, or deleted it.
+	ProductStanding(ctx context.Context, arg ProductStandingParams) (ProductStandingRow, error)
 	// Takes a user out of the company; the user and their other companies stay.
 	// No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
 	// someone who is not a member.
