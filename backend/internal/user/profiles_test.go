@@ -134,3 +134,29 @@ func TestAccess(t *testing.T) {
 	_, err = profiles.Access(ctx, "998901234567", 999999)
 	assert.ErrorIs(t, err, ErrNotMember, "no such company")
 }
+
+// A member's own order of the menu is kept with the membership and read
+// with their standing (logic/roles.md, section 8).
+func TestSetNavOrder(t *testing.T) {
+	t.Parallel()
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901234567')")
+	require.NoError(t, err)
+	var olma int64
+	require.NoError(t, pool.QueryRow(ctx, `WITH c AS (INSERT INTO companies (name, end_date) VALUES ('Olma', CURRENT_DATE + 30) RETURNING id)
+		INSERT INTO user_companies (user_phone, company_id, role) SELECT '998901234567', id, 'owner' FROM c RETURNING company_id`).Scan(&olma))
+	profiles := NewProfiles(pool)
+
+	require.NoError(t, profiles.SetNavOrder(ctx, "998901234567", olma, []string{"tasks", "home"}))
+	standing, err := profiles.Access(ctx, "998901234567", olma)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"tasks", "home"}, standing.NavOrder, "the member's own order, read on every request")
+
+	require.NoError(t, profiles.SetNavOrder(ctx, "998901234567", olma, nil))
+	standing, err = profiles.Access(ctx, "998901234567", olma)
+	require.NoError(t, err)
+	assert.Nil(t, standing.NavOrder, "the default again")
+
+	assert.ErrorIs(t, profiles.SetNavOrder(ctx, "998909999999", olma, []string{"home"}), ErrNotMember)
+}
