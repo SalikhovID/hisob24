@@ -735,3 +735,28 @@ export function seedTasks() {
     ),
   }
 }
+
+// seedCatalog gives Olma Savdo two products, an inactive one and a service,
+// as the tests and the e2e start from: the lists are empty otherwise.
+export function seedCatalog() {
+  const row = (fields: Pick<ProductRow, "kind" | "name" | "unit" | "sku" | "price" | "note"> & { active?: boolean }): ProductRow => {
+    const at = now()
+    const product: ProductRow = {
+      id: nextId(),
+      companyId: 1,
+      active: true,
+      by: ALI,
+      byName: "Ali Valiyev",
+      createdAt: at,
+      updatedAt: at,
+      ...fields,
+    }
+    db.products.push(product)
+    return product
+  }
+  const olma = row({ kind: "product", name: "Olma", unit: "kg", sku: "OL-1", price: "12000.00", note: "Qizil" })
+  const nok = row({ kind: "product", name: "Nok", unit: "dona", sku: null, price: null, note: null })
+  const eski = row({ kind: "product", name: "Eski mahsulot", unit: "dona", sku: null, price: null, note: null, active: false })
+  const yetkazish = row({ kind: "service", name: "Yetkazish", unit: null, sku: null, price: "50000.00", note: null })
+  return { olma, nok, eski, yetkazish }
+}
