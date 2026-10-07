@@ -1153,13 +1153,13 @@ export interface paths {
         };
         /**
          * Vazifalar ro'yxati
-         * @description Access token'dagi kompaniyaning vazifalari, muddati yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan vazifalar chiqmaydi. Filtrlar birga ishlaydi.
+         * @description Access token'dagi kompaniyaning vazifalari, a'zo ishlay oladigan lokatsiyalardagilari (logic/locations.md, 6-bo'lim): location_id berilsa shu lokatsiyadagilar, berilmasa ruxsatli hammasi. Muddati yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan vazifalar chiqmaydi. Filtrlar birga ishlaydi.
          */
         get: operations["listTasks"];
         put?: never;
         /**
          * Vazifa qo'shish
-         * @description Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, lokatsiya, tur, bosqich, mas'ul, maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
+         * @description Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, lokatsiya, tur, bosqich, mas'ul (a'zo emas: "Mas'ul kompaniya a'zosi emas"; vazifa lokatsiyasida ishlamaydi: "Mas'ul bu lokatsiyada ishlamaydi"), maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). A'zo ishlay olmaydigan lokatsiya: 403 forbidden (hammasidan oldin). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
          */
         post: operations["createTask"];
         delete?: never;
@@ -1179,7 +1179,7 @@ export interface paths {
         };
         /**
          * Vazifa
-         * @description Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo o'qiydi. Boshqa kompaniyaniki va o'chirilgani 404.
+         * @description Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo o'qiydi. Boshqa kompaniyaniki, o'chirilgani va a'zoga ruxsatsiz lokatsiyadagisi 404 (logic/locations.md, 6-bo'lim).
          */
         get: operations["getTask"];
         /**
@@ -4127,6 +4127,8 @@ export interface operations {
     listTasks: {
         parameters: {
             query?: {
+                /** @description Faqat shu lokatsiyadagi vazifalar (joriy lokatsiya); berilmasa a'zoga ruxsatli hamma lokatsiya. A'zo ishlay olmaydigan lokatsiya (begona, o'chirilgan, cheklov bilan yopilgan): 403 forbidden. Son emas: 400 "Lokatsiya noto'g'ri". */
+                location_id?: number;
                 /** @description Nomida, vazifaning matn javoblarida va mijozning matn javoblarida qidiriladi (katta-kichik harf farqsiz, harfma-harf). Faqat raqamlardan iborat qidiruv mijoz telefonida va vazifaning butun son javoblarida ham qidiriladi. */
                 search?: string;
                 /** @description Faqat shu turdagi vazifalar */
@@ -4157,7 +4159,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
-            403: components["responses"]["CompanyRequired"];
+            403: components["responses"]["Forbidden"];
         };
     };
     createTask: {

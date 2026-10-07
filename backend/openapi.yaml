@@ -2241,12 +2241,25 @@ paths:
       operationId: listTasks
       summary: Vazifalar ro'yxati
       description: >
-        Access token'dagi kompaniyaning vazifalari, muddati yaqini birinchi
-        (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi.
-        O'chirilgan vazifalar chiqmaydi. Filtrlar birga ishlaydi.
+        Access token'dagi kompaniyaning vazifalari, a'zo ishlay oladigan
+        lokatsiyalardagilari (logic/locations.md, 6-bo'lim): location_id
+        berilsa shu lokatsiyadagilar, berilmasa ruxsatli hammasi. Muddati
+        yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta.
+        Har a'zo o'qiydi. O'chirilgan vazifalar chiqmaydi. Filtrlar birga
+        ishlaydi.
       security:
         - appBearer: []
       parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: >
+            Faqat shu lokatsiyadagi vazifalar (joriy lokatsiya); berilmasa
+            a'zoga ruxsatli hamma lokatsiya. A'zo ishlay olmaydigan lokatsiya
+            (begona, o'chirilgan, cheklov bilan yopilgan): 403 forbidden.
+            Son emas: 400 "Lokatsiya noto'g'ri".
         - name: search
           in: query
           schema:
@@ -2299,7 +2312,7 @@ paths:
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
-          $ref: "#/components/responses/CompanyRequired"
+          $ref: "#/components/responses/Forbidden"
     post:
       operationId: createTask
       summary: Vazifa qo'shish
@@ -2311,8 +2324,11 @@ paths:
         maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki,
         faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari
         bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi:
-        nom, muddat, lokatsiya, tur, bosqich, mas'ul, maydonlar, mijoz;
-        birinchi xato qaytadi (400 validation_error). Yangi mijozning takror telefoni
+        nom, muddat, lokatsiya, tur, bosqich, mas'ul (a'zo emas: "Mas'ul
+        kompaniya a'zosi emas"; vazifa lokatsiyasida ishlamaydi: "Mas'ul bu
+        lokatsiyada ishlamaydi"), maydonlar, mijoz; birinchi xato qaytadi
+        (400 validation_error). A'zo ishlay olmaydigan lokatsiya: 403
+        forbidden (hammasidan oldin). Yangi mijozning takror telefoni
         (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken)
         409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham,
         mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
@@ -2354,7 +2370,8 @@ paths:
       summary: Vazifa
       description: >
         Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo
-        o'qiydi. Boshqa kompaniyaniki va o'chirilgani 404.
+        o'qiydi. Boshqa kompaniyaniki, o'chirilgani va a'zoga ruxsatsiz
+        lokatsiyadagisi 404 (logic/locations.md, 6-bo'lim).
       security:
         - appBearer: []
       responses:

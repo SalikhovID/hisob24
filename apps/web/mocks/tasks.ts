@@ -8,7 +8,7 @@ import {
   type Answer,
   customerNameOf,
   db,
-  liveLocations,
+  locationsOf,
   nameIn,
   nextId,
   now,
@@ -25,6 +25,20 @@ const taskNotFound = () => fail(404, "not_found", "Vazifa topilmadi")
 
 // liveTasks is a company's tasks, without the deleted.
 export const liveTasks = (companyId: number) => db.tasks.filter((t) => t.companyId === companyId && !t.deleted)
+
+// Member is who a request is of: a member of the company the token is for.
+type Member = { phone: string; companyId: number }
+
+// scopeOf is the locations the member may work in, by id
+// (logic/locations.md, section 5).
+const scopeOf = (member: Member) => locationsOf(member.phone, member.companyId).map((l) => l.id)
+
+// visibleTasks is the tasks the member works with: those of the locations
+// they may work in (logic/locations.md, section 6).
+const visibleTasks = (member: Member) => {
+  const scope = scopeOf(member)
+  return liveTasks(member.companyId).filter((t) => scope.includes(t.locationId))
+}
 
 const liveStage = (companyId: number, id: unknown): StageRow | undefined =>
   db.stages.find((s) => s.id === id && s.companyId === companyId && !s.deleted)
@@ -80,11 +94,13 @@ function taskDeadline(raw: unknown): string | Response {
 type Assignee = { phone: string | null; name: string | null }
 
 // assigneeOf reads the phone a client sent as the assignee: nothing for
-// nobody, otherwise a member of the company.
-function assigneeOf(companyId: number, raw: unknown): Assignee | Response {
+// nobody, otherwise a member of the company who works in the task's
+// location (logic/locations.md, section 6).
+function assigneeOf(companyId: number, locationId: number, raw: unknown): Assignee | Response {
   if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) return { phone: null, name: null }
   const phone = typeof raw === "string" ? normalizePhone(raw) : null
   if (!phone || !isMember(phone, companyId)) return invalid("Mas'ul kompaniya a'zosi emas")
+  if (!locationsOf(phone, companyId).some((l) => l.id === locationId)) return invalid("Mas'ul bu lokatsiyada ishlamaydi")
   return { phone, name: nameIn(phone, companyId) }
 }
 
@@ -167,14 +183,20 @@ export const tasksHandlers = [
     if (stageId instanceof Response) return stageId
     const customerId = one("customer_id", "Mijoz noto'g'ri")
     if (customerId instanceof Response) return customerId
+    // The tasks of one location, which the member has to work in; without
+    // one, of every location they work in.
+    const locationId = one("location_id", "Lokatsiya noto'g'ri")
+    if (locationId instanceof Response) return locationId
+    if (locationId !== null && !scopeOf(member).includes(locationId)) return forbidden()
     let assignee: string | null = null
     if (query.get("assignee")) {
       assignee = normalizePhone(query.get("assignee")!)
       if (!assignee) return invalid("Mas'ul noto'g'ri")
     }
-    const all = liveTasks(member.companyId)
+    const all = visibleTasks(member)
       .filter(
         (t) =>
+          (locationId === null || t.locationId === locationId) &&
           (typeId === null || t.typeId === typeId) &&
           (stageId === null || t.stageId === stageId) &&
           (customerId === null || t.customerId === customerId) &&
@@ -204,22 +226,24 @@ export const tasksHandlers = [
       values?: unknown
       customer?: unknown
     }
+    // A location the member may not work in is refused before anything
+    // else, the way a missing permission is. Until the app names one, the
+    // task stands in the first location the member works in.
+    const scope = scopeOf(member)
+    if (typeof body.location_id === "number" && body.location_id > 0 && !scope.includes(body.location_id)) return forbidden()
     // What is wrong is said in this order: the title, the deadline, the
     // location, the type, the stage, the assignee, the answers, the customer.
     const title = taskTitle(body.title)
     if (title instanceof Response) return title
     const deadline = taskDeadline(body.deadline)
     if (deadline instanceof Response) return deadline
-    // The task stands in the location named; until the app names one, in
-    // the company's ready location.
-    const location =
-      body.location_id === undefined ? liveLocations(member.companyId)[0] : liveLocations(member.companyId).find((l) => l.id === body.location_id)
-    if (!location) return invalid("Lokatsiyani tanlang")
+    const locationId = body.location_id === undefined ? scope[0] : body.location_id
+    if (typeof locationId !== "number" || !scope.includes(locationId)) return invalid("Lokatsiyani tanlang")
     const type = liveTaskType(member.companyId, body.type_id)
     if (!type) return invalid("Vazifa turini tanlang")
     const stage = liveStage(member.companyId, body.stage_id)
     if (!stage) return invalid("Bosqichni tanlang")
-    const assignee = assigneeOf(member.companyId, body.assignee_phone)
+    const assignee = assigneeOf(member.companyId, locationId, body.assignee_phone)
     if (assignee instanceof Response) return assignee
     const values = checkValues(liveFields(type), {}, body.values)
     if (values instanceof Response) return values
@@ -238,7 +262,7 @@ export const tasksHandlers = [
       companyId: member.companyId,
       typeId: type.id,
       stageId: stage.id,
-      locationId: location.id,
+      locationId,
       customerId,
       title,
       deadline,
@@ -258,7 +282,7 @@ export const tasksHandlers = [
   http.get(api("/app/tasks/:id"), ({ params, request }) => {
     const member = permittedSession(request, "tasks.view")
     if (member instanceof Response) return member
-    const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
+    const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     return task ? HttpResponse.json(toTask(task)) : taskNotFound()
   }),
 
@@ -267,7 +291,7 @@ export const tasksHandlers = [
     if (member instanceof Response) return member
     const body = (await request.json()) as { title?: unknown; deadline?: unknown; stage_id?: unknown; assignee_phone?: unknown; values?: unknown }
     // A task that is not there is said first, whatever is sent.
-    const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
+    const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()
     const title = taskTitle(body.title)
     if (title instanceof Response) return title
@@ -279,7 +303,7 @@ export const tasksHandlers = [
     // another one has to be a member.
     const assignee = sameAssignee(body.assignee_phone, task)
       ? { phone: task.assignee, name: task.assignee === null ? null : nameOf(task.assignee, task.companyId, task.assigneeName) }
-      : assigneeOf(member.companyId, body.assignee_phone)
+      : assigneeOf(member.companyId, task.locationId, body.assignee_phone)
     if (assignee instanceof Response) return assignee
     const fields = liveFields(db.taskTypes.find((t) => t.id === task.typeId)!)
     const values = checkValues(fields, task.values, body.values)
@@ -310,7 +334,7 @@ export const tasksHandlers = [
     const member = permittedSession(request, "tasks.edit")
     if (member instanceof Response) return member
     const { stage_id: stageId } = (await request.json()) as { stage_id?: unknown }
-    const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
+    const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()
     // The same stage changes nothing.
     if (task.stageId === stageId) return HttpResponse.json(toTask(task))
@@ -327,7 +351,7 @@ export const tasksHandlers = [
   http.delete(api("/app/tasks/:id"), ({ params, request }) => {
     const member = permittedSession(request, "tasks.delete")
     if (member instanceof Response) return member
-    const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
+    const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()
     // Hidden, not removed: its answers and its history stay.
     task.deleted = true
@@ -338,7 +362,7 @@ export const tasksHandlers = [
   http.get(api("/app/tasks/:id/history"), ({ params, request }) => {
     const member = permittedSession(request, "tasks.history")
     if (member instanceof Response) return member
-    const task = liveTasks(member.companyId).find((t) => t.id === Number(params.id))
+    const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()
     return HttpResponse.json(
       db.taskHistory

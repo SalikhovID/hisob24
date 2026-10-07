@@ -969,7 +969,15 @@ test("every member reads the company's members, the owner first; managing them s
 // The tasks (logic/tasks.md; backend/internal/app/tasks_test.go).
 type TaskCreate = components["schemas"]["TaskCreate"]
 type TaskUpdate = components["schemas"]["TaskUpdate"]
-type TaskQuery = { search?: string; type_id?: number; stage_id?: number; assignee?: string; customer_id?: number; page?: number }
+type TaskQuery = {
+  search?: string
+  location_id?: number
+  type_id?: number
+  stage_id?: number
+  assignee?: string
+  customer_id?: number
+  page?: number
+}
 const createTask = (body: TaskCreate) => call(api.POST("/app/tasks", { body }))
 const getTask = (id: number) => call(api.GET("/app/tasks/{id}", { params: { path: { id } } }))
 const listTasks = (query: TaskQuery = {}) => call(api.GET("/app/tasks", { params: { query } }))
@@ -1012,6 +1020,66 @@ const taskBody = (s: TaskSetup, over: Partial<TaskCreate> = {}): TaskCreate => (
   values: { [s.izoh.id]: "Ertalab" },
   customer: { id: s.ali.id },
   ...over,
+})
+
+// The tasks a member works with are those of the locations they may work
+// in (logic/locations.md, section 6; backend/internal/app/tasks_test.go
+// TestTasksAreTheLocationsTheMemberMayWorkIn).
+test("the tasks are those of the locations the member works in: the list, a task by its id, entering one, the assignee", async () => {
+  db.cooldown = false
+  await signIn(ALI)
+  const s = await taskSetup()
+  const asosiy = asosiyOf(1)
+  const chilonzor = addLocation(1, "Chilonzor")
+  const inAsosiy = await createTask(taskBody(s, { title: "Asosiyda", location_id: asosiy.id }))
+  const inChilonzor = await createTask(taskBody(s, { title: "Chilonzorda", deadline: "2026-10-09", location_id: chilonzor.id }))
+  const titles = async (query?: TaskQuery) => (await listTasks(query)).items.map((t) => t.title)
+  const edit = (over: Partial<TaskUpdate> = {}): TaskUpdate => ({
+    title: "X",
+    deadline: "2026-10-10",
+    stage_id: s.yangi.id,
+    values: { [s.izoh.id]: "Ertalab" },
+    ...over,
+  })
+
+  expect(await titles()).toEqual(["Chilonzorda", "Asosiyda"])
+  expect(await titles({ location_id: asosiy.id })).toEqual(["Asosiyda"])
+  expect(await failure(listTasks({ location_id: 999999 }))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(listTasks({ location_id: 0 }))).toMatchObject({ status: 400, message: "Lokatsiya noto'g'ri" })
+
+  // The assignee works in the task's location: Vali, restricted to
+  // Chilonzor, is not assigned a task in Asosiy; one assigned stays theirs
+  // while the edit keeps them, another has to work there.
+  restrictTo(VALI, 1, [chilonzor.id])
+  expect(await failure(createTask(taskBody(s, { location_id: asosiy.id, assignee_phone: VALI })))).toMatchObject({
+    status: 400,
+    message: "Mas'ul bu lokatsiyada ishlamaydi",
+  })
+  const valis = await createTask(taskBody(s, { title: "Valiga", location_id: chilonzor.id, assignee_phone: VALI }))
+  expect(valis.assignee?.phone).toBe(VALI)
+  restrictTo(VALI, 1, [asosiy.id])
+  expect((await updateTask(valis.id, edit({ title: "Valiga", assignee_phone: VALI }))).assignee?.phone).toBe(VALI)
+  expect(await failure(updateTask(inChilonzor.id, edit({ assignee_phone: VALI })))).toMatchObject({
+    status: 400,
+    message: "Mas'ul bu lokatsiyada ishlamaydi",
+  })
+
+  restrictTo(VALI, 1, [chilonzor.id])
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect(await titles()).toEqual(["Chilonzorda", "Valiga"])
+  expect(await failure(listTasks({ location_id: asosiy.id }))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(getTask(inAsosiy.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(updateTask(inAsosiy.id, edit()))).toMatchObject({ status: 404 })
+  expect(await failure(moveTask(inAsosiy.id, s.bajarildi.id))).toMatchObject({ status: 404 })
+  expect(await failure(deleteTask(inAsosiy.id))).toMatchObject({ status: 404 })
+  expect((await getTask(inChilonzor.id)).location_id).toBe(chilonzor.id)
+  expect(await failure(createTask(taskBody(s, { location_id: asosiy.id })))).toMatchObject({ status: 403, code: "forbidden" })
+  expect((await createTask(taskBody(s, { title: "Yangi", location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
+  // Until the app names a location, the first one the member may work in.
+  expect((await createTask(taskBody(s, { title: "Nomsiz" }))).location_id).toBe(chilonzor.id)
+  restrictTo(VALI, 1, null)
+  expect((await listTasks()).total).toBe(5)
 })
 
 test("a member enters a task for a customer that is there, or with a new one; what is wrong is said in the API's words", async () => {
@@ -1084,7 +1152,6 @@ test("a member enters a task for a customer that is there, or with a new one; wh
     [{ type_id: 999 }, "Vazifa turini tanlang"],
     [{ stage_id: 999 }, "Bosqichni tanlang"],
     [{ stage_id: nokStage }, "Bosqichni tanlang"],
-    [{ location_id: 999999 }, "Lokatsiyani tanlang"],
     [{ assignee_phone: "998907777777" }, "Mas'ul kompaniya a'zosi emas"],
     [{ values: { [s.izoh.id]: "X", [s.fish.id]: "Ali" } }, "Bu turda bunday maydon yo'q"],
     [{ values: {} }, "«Izoh» maydonini to'ldiring"],
@@ -1101,9 +1168,12 @@ test("a member enters a task for a customer that is there, or with a new one; wh
   for (const [over, message] of refusals) {
     expect(await failure(createTask(taskBody(s, over))), message).toMatchObject({ ...invalid, message })
   }
+  // A location that is not there is one the member may not work in: refused
+  // the way a missing permission is, before anything else.
+  expect(await failure(createTask(taskBody(s, { title: "", location_id: 999999 })))).toMatchObject({ status: 403, code: "forbidden" })
   expect(db.tasks).toHaveLength(2)
   // The task stands in the location named; until the app names one, in the
-  // company's ready location (logic/locations.md, section 6).
+  // first location the member works in (logic/locations.md, section 6).
   const chilonzor = addLocation(1, "Chilonzor")
   expect((await createTask(taskBody(s, { location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
 
