@@ -52,6 +52,9 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await expect(page.getByRole("heading", { level: 1, name: "Olma" })).toBeVisible()
   await expect(page.getByText("kg · OL-1")).toBeVisible()
   await expect(page.getByRole("main").getByText(/^12\s000$/)).toBeVisible()
+  // Nothing bought yet: the stock of the location is 0, the last price none.
+  await expect(page.getByRole("region", { name: "Qoldiq" }).getByText("0 kg")).toBeVisible()
+  await expect(page.getByText("Bu mahsulot hali xarid qilinmagan")).toBeVisible()
   await page.getByRole("button", { name: "Tahrirlash" }).click()
   const edit = page.getByRole("dialog", { name: "Mahsulotni tahrirlash" })
   await expect(edit.getByLabel("Artikul")).toHaveValue("OL-1")
