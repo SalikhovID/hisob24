@@ -316,3 +316,19 @@ Har bosqich boshida batafsil reja `docs/superpowers/plans/2026-10-07-inventory-s
 - Xizmatlarni vazifa yoki sotuvga biriktirish.
 - Admin panelda mahsulot, ta'minotchi, xarid ko'rsatish (faqat lokatsiya o'chirish qoidasi).
 - Menyu tartibini user bo'yicha hamma kompaniyada bir xil saqlash; sidebar'da bo'limlarni guruhlash.
+
+## 1-bosqich qarorlari (2026-10-07)
+
+Bajarildi: ruxsat katalogi 30 ta (`internal/access`: `products.*`, `suppliers.*`, `purchases.*`; `Default` ularni ham oladi; openapi `Permission` enum; `lib/permissions.ts`), migratsiya `00011_catalog.sql` (testlari bilan), `products.sql` (7 so'rov), `internal/catalog` (`catalog.go`: `Service`, `write()`, `Product`, `Input`, `check`; `numbers.go`: `Money`, `Text`; `units.go`: `Units`; `products.go`: `List`, `Get`, `Create`, `Update`, `SetActive`, `Delete`), `internal/app/catalog.go` va 6 route, `cmd/api` ulashi, openapi (`ProductKind`, `Unit`, `Product`, `ProductInput`, `ProductUpdate`, `ActiveInput`, `ProductPage`, `ProductNotFound`, `ProductConflict`, ikki path) + TS client, web mock (`mocks/catalog.ts`, `ProductRow`, `db.products`). Reja: `docs/superpowers/plans/2026-10-07-inventory-stage1-catalog-api.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **Pul `pgtype.Numeric` bilan, matn sifatida qaytadi** (`catalog.Text`, admin `amountText` kabi): `"12000.5"` kiritilsa baza `"12000.50"` qaytaradi, `"50000"` → `"50000.00"`. Tekshiruv regex `^\d{1,12}(\.\d{1,2})?$` (billing bilan bir xil); vergul 400.
+- **`check(kind, in)` sof funksiya**, tartibi: tur → nom → birlik → artikul → narx → izoh; tahrirda tur bazadagi yozuvniki (`in.Kind` e'tiborga olinmaydi) va eng avval yozuvning o'zi (404). Takror indeksni `pgconn.PgError.ConstraintName` ajratadi: `products_sku` → `sku_taken`, aks holda `name_taken` (xabar turga qarab).
+- **Yozuvdan keyin `GetProduct` bilan qayta o'qiladi** (tranzaksiya ichida): `created_by_name` a'zoning hozirgi ismi bilan; `gen.ListProductsRow` → `gen.GetProductRow` o'tkazmasi (bir xil ustunlar) bitta `toProduct`.
+- **Qidiruv `customer.SearchOf` bilan** (ILIKE escape; raqamlar qismi ishlatilmaydi): nom va artikulda, so'z ichidan.
+- **`PATCH` holat tekshiruvi yozuvdan oldin** (`is_active` yo'q → 400 «Holat noto'g'ri», keyin 404); mock ham shu tartibda.
+- **Xizmat 404 xabari «Mahsulot topilmadi»** (bitta yo'l, tur noma'lum); xizmatning alohida sahifasi yo'q.
+- **Mavjud testlar o'zgardi (talab o'zgargani uchun):** `access_test` (18 → 30, standart to'plam), `permissions.test.ts`, `role-form.test.tsx` (yetti bo'lim), `permissions_test.go` (rol `products` ni ham cheklaydi, standart to'plam mahsulot qo'shadi). Hech biri o'chirilmadi.
+- **Testdagi xatolar (kod emas):** `db` ro'yxat testida `"NO"` qidiruvi `aNOr` va `NOk` ikkalasini topardi (so'z ichidan qidiruv to'g'ri) — kutilma `"ANO"` ga; mock testida bir foydalanuvchi bir testda ikki marta kirsa mock SMS cooldown 429 — kirish tartibi o'zgartirildi.
+- **Tekshiruv:** `make lint` 0 issues; `make test`: Go 20 paket, api-client 1, admin 235, web 612; `make e2e`: admin 42, web 104. Lokal haqiqiy stack (`hisob24_smoke_cat` nusxasi `TEMPLATE hisob24` dan, goose 11, API :8090, botlar o'chiq): 27 / 27 — egasi 30 ruxsat, mahsulot va xizmat qo'shadi (trim, ikki kasr), takror nom (ikki xabar) va artikul 409, birliksiz / xizmatga birlik / vergulli narx 400, rolsiz xodim 201, bo'sh rolli 403 `forbidden`, kompaniyasiz token 403 `company_required`, ro'yxat nom bo'yicha, `kind=service`, artikul qidiruvi, nofaol (faol ro'yxatdan ketadi, `status=inactive` da), tahrir (tur qoladi, yuborilmagani bo'shaydi), xizmatga birlik tahrirda 400, o'chirish 204 → 404 → nom bo'shaydi, `page=abc` 400. API log'ida xato 0; vaqtinchalik DB o'chirildi, `hisob24` ga tegilmadi. macOS'da `setsid` yo'q: API `nohup … & disown` bilan.
