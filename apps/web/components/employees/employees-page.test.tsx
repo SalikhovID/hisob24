@@ -1,8 +1,9 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, membersOf, nextId, VALI } from "@/mocks/data"
+import { ALI, db, membersOf, nextId, SARDOR, seedTasks, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
+import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -374,4 +375,115 @@ test("an employee who manages the employees sees no role button", async () => {
   const [, , sardor] = await rows()
   expect(within(sardor).getByRole("button", { name: /^O'chirish/ })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /^Rolni o'zgartirish/ })).not.toBeInTheDocument()
+})
+
+// The locations each member works in, and the owner's way to restrict an
+// employee to some (logic/locations.md, section 5).
+const locationsButton = (row: HTMLElement) => within(row).getByRole("button", { name: "Lokatsiyalarni o'zgartirish: Vali Aliyev" })
+// locationsOf reads a member's locations from the table: the cell under
+// "Lokatsiyalar".
+function locationsOf(row: HTMLElement) {
+  const headers = within(screen.getByRole("table", { name: "Xodimlar" }))
+    .getAllByRole("columnheader")
+    .map((header) => header.textContent)
+  return within(row).getAllByRole("cell")[headers.indexOf("Lokatsiyalar") - 1].textContent
+}
+
+test("with one location the list says nothing of locations", async () => {
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+
+  await rows()
+  expect(within(screen.getByRole("table", { name: "Xodimlar" })).queryByRole("columnheader", { name: "Lokatsiyalar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^Lokatsiyalarni o'zgartirish/ })).not.toBeInTheDocument()
+})
+
+test("with two or more locations the list says each member's: every one, the restriction's live ones, or none", async () => {
+  const chilonzor = addLocation(1, "Chilonzor")
+  const gone = addLocation(1, "Yopilgan")
+  gone.deleted = true
+  restrictTo(VALI, 1, [chilonzor.id, gone.id])
+  restrictTo(SARDOR, 1, [gone.id])
+  await signIn(ALI)
+  renderWithProviders(<EmployeesPage />)
+
+  const members = await rows()
+  expect(locationsOf(members[0])).toBe("Barchasi")
+  expect(locationsOf(members[1])).toBe("Chilonzor")
+  expect(locationsOf(members[2])).toBe("—")
+  // The restriction is the owner's to set, and never on the owner's own row.
+  expect(within(members[0]).queryByRole("button", { name: /^Lokatsiyalarni o'zgartirish/ })).not.toBeInTheDocument()
+  expect(locationsButton(members[1])).toBeInTheDocument()
+})
+
+test("the owner restricts an employee to some locations, and lifts the restriction again", async () => {
+  const chilonzor = addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+
+  await user.click(locationsButton((await rows())[1]))
+  const dialog = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
+  expect(within(dialog).getByText("Vali Aliyev · +998 90 222 33 44")).toBeInTheDocument()
+  expect(within(dialog).getByText("Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi.")).toBeInTheDocument()
+  const all = within(dialog).getByRole("checkbox", { name: "Barcha lokatsiyalar" })
+  expect(all).toBeChecked()
+  // Base UI's checkbox is a button that says it is disabled either way.
+  const disabled = (box: HTMLElement) => box.hasAttribute("disabled") || box.getAttribute("aria-disabled") === "true"
+  expect(disabled(within(dialog).getByRole("checkbox", { name: "Asosiy" }))).toBe(true)
+  await user.click(all)
+  expect(disabled(within(dialog).getByRole("checkbox", { name: "Asosiy" }))).toBe(false)
+  // Nothing chosen: refused in the API's words, before anything is sent.
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+  expect(await within(dialog).findByText("Kamida bitta lokatsiyani tanlang")).toBeInTheDocument()
+  await user.click(within(dialog).getByRole("checkbox", { name: "Chilonzor" }))
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Lokatsiyalar o'zgartirildi")).toBeInTheDocument()
+  await waitFor(async () => expect(locationsOf((await rows())[1])).toBe("Chilonzor"))
+  expect(db.members[VALI].find((m) => m.companyId === 1)?.locationIds).toEqual([chilonzor.id])
+
+  await user.click(locationsButton((await rows())[1]))
+  const again = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
+  expect(within(again).getByRole("checkbox", { name: "Barcha lokatsiyalar" })).not.toBeChecked()
+  expect(within(again).getByRole("checkbox", { name: "Chilonzor" })).toBeChecked()
+  expect(within(again).getByRole("checkbox", { name: "Asosiy" })).not.toBeChecked()
+  await user.click(within(again).getByRole("checkbox", { name: "Barcha lokatsiyalar" }))
+  await user.click(within(again).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(db.members[VALI].find((m) => m.companyId === 1)?.locationIds).toBeUndefined())
+  await waitFor(async () => expect(locationsOf((await rows())[1])).toBe("Barchasi"))
+})
+
+test("the dialog warns of the tasks the employee is assigned in the locations left out", async () => {
+  addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  const seeded = seedTasks()
+  // Vali is assigned "Qo'ng'iroq qilish" already; "Shartnoma yuborish" too.
+  seeded.contract.assignee = VALI
+  seeded.contract.assigneeName = "Vali Aliyev"
+  const { user } = renderWithProviders(<EmployeesPage />)
+
+  await user.click(locationsButton((await rows())[1]))
+  const dialog = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
+  await user.click(within(dialog).getByRole("checkbox", { name: "Barcha lokatsiyalar" }))
+  await user.click(within(dialog).getByRole("checkbox", { name: "Chilonzor" }))
+  expect(await within(dialog).findByText("Boshqa lokatsiyalarda 2 ta vazifaga mas'ul")).toBeInTheDocument()
+
+  await user.click(within(dialog).getByRole("checkbox", { name: "Asosiy" }))
+  await waitFor(() => expect(within(dialog).queryByText(/Boshqa lokatsiyalarda/)).not.toBeInTheDocument())
+  expect(asosiyOf(1).name).toBe("Asosiy")
+})
+
+test("an employee who manages the employees sees the locations, not the way to change them", async () => {
+  const chilonzor = addLocation(1, "Chilonzor")
+  restrictTo(SARDOR, 1, [chilonzor.id])
+  giveRole(VALI, 1, "HR", ["employees.view", "employees.create", "employees.edit", "employees.delete"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<EmployeesPage />)
+
+  const members = await rows()
+  expect(locationsOf(members[2])).toBe("Chilonzor")
+  expect(screen.queryByRole("button", { name: /^Lokatsiyalarni o'zgartirish/ })).not.toBeInTheDocument()
 })

@@ -12,7 +12,9 @@ import { useEmployees } from "@/lib/queries"
 import { can } from "@/lib/permissions"
 import type { Member } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
+import { useLocation } from "@/lib/use-location"
 import { AddEmployeeDialog } from "./add-employee-dialog"
+import { EmployeeLocationsDialog } from "./employee-locations-dialog"
 import { EmployeeRoleDialog } from "./employee-role-dialog"
 import { RemoveEmployeeButton } from "./remove-employee-button"
 import { RenameEmployeeDialog } from "./rename-employee-dialog"
@@ -27,6 +29,10 @@ import { RenameEmployeeDialog } from "./rename-employee-dialog"
 export function EmployeesPage() {
   const gate = usePermission("employees.view")
   const employees = useEmployees(gate ? gate.company.id : null)
+  // With two or more locations the list says each member's, and the owner
+  // (who works in every one) may restrict an employee to some.
+  const { locations } = useLocation()
+  const severalLocations = locations.length >= 2
 
   if (!gate) return null
   const ownPhone = gate.user.phone
@@ -52,6 +58,15 @@ export function EmployeesPage() {
       ),
     },
     { header: "Rol", card: "tag", cell: (m) => <RoleBadge role={m.role} name={m.role_name} /> },
+    ...(severalLocations
+      ? [
+          {
+            header: "Lokatsiyalar",
+            // Every one, the restriction's live ones, or none (a dash).
+            cell: (m) => (m.locations === null ? "Barchasi" : m.locations.map((l) => l.name).join(", ")),
+          } satisfies Column<Member>,
+        ]
+      : []),
     {
       header: "Qo'shilgan",
       card: "inline",
@@ -71,6 +86,7 @@ export function EmployeesPage() {
         (isOwner || allowed("employees.edit") || allowed("employees.delete")) && (
           <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
             {isOwner && <EmployeeRoleDialog companyId={companyId} employee={m} />}
+            {isOwner && severalLocations && <EmployeeLocationsDialog companyId={companyId} employee={m} locations={locations} />}
             {allowed("employees.edit") && <RenameEmployeeDialog companyId={companyId} employee={m} />}
             {allowed("employees.delete") && <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />}
           </span>

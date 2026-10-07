@@ -1,9 +1,18 @@
-import { type InfiniteData, keepPreviousData, type QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  type InfiniteData,
+  keepPreviousData,
+  type QueryClient,
+  useInfiniteQuery,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { toast } from "sonner"
 import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
 import { clearSession, setAccessToken } from "./session"
-import type { Task, TaskPage } from "./types"
+import type { Location, Task, TaskPage } from "./types"
 
 export const meKey = ["me"] as const
 
@@ -215,6 +224,25 @@ export function useStageTasks(companyId: number | null, stageId: number, filter:
     enabled: companyId !== null,
     placeholderData: keepPreviousData,
   })
+}
+
+// useAssignedCounts is how many tasks the member is assigned in each of
+// the locations, by the location's id, for the owner's warning before
+// restricting them (logic/locations.md, section 5): one list request per
+// location, the total of each. With companyId null nothing is asked.
+export function useAssignedCounts(companyId: number | null, phone: string, locations: Location[]): Record<number, number> {
+  const results = useQueries({
+    queries: locations.map((location) => ({
+      queryKey: [...tasksKey(companyId), "assigned", phone, location.id],
+      queryFn: () => call(api.GET("/app/tasks", { params: { query: { assignee: phone, location_id: location.id, page: 1 } } })),
+      enabled: companyId !== null,
+    })),
+  })
+  const counts: Record<number, number> = {}
+  results.forEach((result, i) => {
+    if (result.data) counts[locations[i].id] = result.data.total
+  })
+  return counts
 }
 
 // taskKey names one task of a company in the cache.
