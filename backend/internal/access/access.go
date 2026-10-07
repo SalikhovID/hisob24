@@ -27,6 +27,18 @@ const (
 	TasksEdit        Permission = "tasks.edit"
 	TasksDelete      Permission = "tasks.delete"
 	TasksHistory     Permission = "tasks.history"
+	ProductsView     Permission = "products.view"
+	ProductsCreate   Permission = "products.create"
+	ProductsEdit     Permission = "products.edit"
+	ProductsDelete   Permission = "products.delete"
+	SuppliersView    Permission = "suppliers.view"
+	SuppliersCreate  Permission = "suppliers.create"
+	SuppliersEdit    Permission = "suppliers.edit"
+	SuppliersDelete  Permission = "suppliers.delete"
+	PurchasesView    Permission = "purchases.view"
+	PurchasesCreate  Permission = "purchases.create"
+	PurchasesEdit    Permission = "purchases.edit"
+	PurchasesDelete  Permission = "purchases.delete"
 	EmployeesView    Permission = "employees.view"
 	EmployeesCreate  Permission = "employees.create"
 	EmployeesEdit    Permission = "employees.edit"
@@ -41,21 +53,32 @@ const (
 var All = []Permission{
 	CustomersView, CustomersCreate, CustomersEdit, CustomersDelete, CustomersHistory,
 	TasksView, TasksCreate, TasksEdit, TasksDelete, TasksHistory,
+	ProductsView, ProductsCreate, ProductsEdit, ProductsDelete,
+	SuppliersView, SuppliersCreate, SuppliersEdit, SuppliersDelete,
+	PurchasesView, PurchasesCreate, PurchasesEdit, PurchasesDelete,
 	EmployeesView, EmployeesCreate, EmployeesEdit, EmployeesDelete,
 	SettingsView, SettingsCreate, SettingsEdit, SettingsDelete,
 }
 
 // Default is what a user with no role has: the customers and the tasks,
-// without their history. It is the rule from before roles existed.
+// without their history (the rule from before roles existed), and the
+// warehouse sections, the products, the suppliers and the purchases
+// (logic/roles.md, 4.2).
 var Default = []Permission{
 	CustomersView, CustomersCreate, CustomersEdit, CustomersDelete,
 	TasksView, TasksCreate, TasksEdit, TasksDelete,
+	ProductsView, ProductsCreate, ProductsEdit, ProductsDelete,
+	SuppliersView, SuppliersCreate, SuppliersEdit, SuppliersDelete,
+	PurchasesView, PurchasesCreate, PurchasesEdit, PurchasesDelete,
 }
 
 // sectionNames are the sections' names in the app, for the messages.
 var sectionNames = map[string]string{
 	"customers": "Mijozlar",
 	"tasks":     "Vazifalar",
+	"products":  "Mahsulotlar",
+	"suppliers": "Ta'minotchilar",
+	"purchases": "Xaridlar",
 	"employees": "Xodimlar",
 	"settings":  "Sozlamalar",
 }

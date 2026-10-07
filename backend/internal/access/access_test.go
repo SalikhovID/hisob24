@@ -10,11 +10,14 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 )
 
-func TestAllHasEighteenPermissionsInOrder(t *testing.T) {
+func TestAllHasThirtyPermissionsInOrder(t *testing.T) {
 	t.Parallel()
-	require.Len(t, access.All, 18)
+	require.Len(t, access.All, 30)
 	assert.Equal(t, access.CustomersView, access.All[0])
-	assert.Equal(t, access.SettingsDelete, access.All[17])
+	assert.Equal(t, access.ProductsView, access.All[10], "the warehouse sections come after the tasks")
+	assert.Equal(t, access.PurchasesDelete, access.All[21])
+	assert.Equal(t, access.EmployeesView, access.All[22])
+	assert.Equal(t, access.SettingsDelete, access.All[29])
 	seen := map[access.Permission]bool{}
 	for _, p := range access.All {
 		assert.False(t, seen[p], "%s twice", p)
@@ -22,11 +25,14 @@ func TestAllHasEighteenPermissionsInOrder(t *testing.T) {
 	}
 }
 
-func TestDefaultIsTheCustomersAndTheTasksWithoutHistory(t *testing.T) {
+func TestDefaultIsTheCustomersTheTasksAndTheWarehouseWithoutHistory(t *testing.T) {
 	t.Parallel()
 	assert.Equal(t, []access.Permission{
 		"customers.view", "customers.create", "customers.edit", "customers.delete",
 		"tasks.view", "tasks.create", "tasks.edit", "tasks.delete",
+		"products.view", "products.create", "products.edit", "products.delete",
+		"suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete",
+		"purchases.view", "purchases.create", "purchases.edit", "purchases.delete",
 	}, access.Default)
 }
 
@@ -44,6 +50,8 @@ func TestParse(t *testing.T) {
 		"the first section at fault":           {[]string{"settings.delete", "settings.view", "tasks.edit"}, nil, "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang"},
 		"not in the catalog":                   {[]string{"customers.fly"}, nil, "Ruxsat noto'g'ri"},
 		"the owner's rights are no permission": {[]string{"roles.manage"}, nil, "Ruxsat noto'g'ri"},
+		"a warehouse action without the view":  {[]string{"purchases.create"}, nil, "«Xaridlar» bo'limida avval «Ko'rish» ni belgilang"},
+		"a product action with its view":       {[]string{"products.edit", "products.view"}, []access.Permission{"products.view", "products.edit"}, ""},
 	} {
 		got, err := access.Parse(tc.raw)
 		if tc.err == "" {
