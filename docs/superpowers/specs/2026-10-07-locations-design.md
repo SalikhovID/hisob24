@@ -302,3 +302,18 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **DILNOZA seed'da a'zo emas:** Nok Market'da xodim bo'lsa "an owner with nobody added yet…" testi buzilardi; e2e va testlar uni `join` bilan qo'shadi. `TG_DILNOZA` kiritilmadi (kerak bo'lmadi).
 - **Mavjud testlar o'zgardi (talab o'zgargani uchun):** `handlers.test.ts` `taskBody` `location_id` bilan, "Nomsiz" va "until the app names one" holatlari 400 "Lokatsiyani tanlang" ga, `/app/me` Nok Market ikki lokatsiya bilan; `lib/tasks.test.ts` fixture (1-bosqichdayoq). Hech biri o'chirilmadi.
 - **Tekshiruv:** web Vitest 603; `locations.spec.ts` 4 (375px va desktop).
+
+## 6-bosqich qarorlari (2026-10-07)
+
+Bajarildi: `employees-page.tsx` ("Lokatsiyalar" ustuni, egasiga dialog tugmasi), `employee-locations-dialog.tsx` (`EmployeeLocationsDialog`), `lib/queries.ts` (`useAssignedCounts`), Vitest (`employees-page.test.tsx`, 5 yangi test), e2e (`locations.spec.ts`, cheklov oqimi), README "Lokatsiyalar". Reja: `docs/superpowers/plans/2026-10-07-locations-stage6-web-restriction.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`employeeLocationsSchema` yozilmadi** (rejadan chetlanish): dialog ikki xil checkbox'dan iborat, forma kutubxonasi kerak emas; yagona tekshiruv ("Kamida bitta lokatsiyani tanlang") `useState` holatida, so'rov yuborilmasdan oldin. Sxema qo'shilsa sun'iy bo'lardi.
+- **Ogohlantirish sanog'i `useAssignedCounts(companyId, phone, locations)`** (`lib/queries.ts`): `useQueries` bilan har lokatsiyaga `GET /app/tasks?assignee=&location_id=&page=1`, kalit `[...tasksKey, "assigned", phone, locationId]` (vazifalar invalidatsiyasi ularni ham yangilaydi); faqat dialog ochiq paytda so'raladi (`companyId` null bo'lsa o'chiq). Tanlanmagan lokatsiyalar `total` yig'indisi > 0 bo'lsa `role="status"` eslatma (`amber`).
+- **"Lokatsiyalar" ustuni** "Rol"dan keyin, oddiy matn: "Barchasi" / nomlar `, ` bilan / "—" (bo'sh ro'yxat: hamma lokatsiyasi o'chirilgan xodim). Faqat 2+ lokatsiyada (`useLocation().locations`, ya'ni egasiniki = kompaniyaniki).
+- **Tugma `MapPinIcon`** rol tugmasi yonida, `ActionTooltip` "Lokatsiyalarni o'zgartirish", `aria-label` "Lokatsiyalarni o'zgartirish: <ism>"; faqat egasiga, faqat `user` qatorlarida, faqat 2+ lokatsiyada.
+- **Har ochilishda hozirgi cheklovdan boshlanadi** (rol dialogi kabi): "Barcha lokatsiyalar" belgisi `locations === null` dan, ro'yxat belgilari ID'lardan; "Barchasi" belgilansa lokatsiya checkbox'lari belgilangan va o'chiq ko'rinadi.
+- **Base UI `Checkbox` tugma**: o'chiqligi `disabled` yoki `aria-disabled` atributi bilan tekshiriladi (test yordamchisi `disabled(box)`).
+- **e2e**: bitta testda uch marta kirish (egasi → Dilnoza → egasi → Dilnoza), shuning uchun `db.cooldown = false` va `test.setTimeout(120_000)`; Dilnoza testda `join` bilan qo'shiladi; "Mas'ul" tanlovida Dilnoza yo'qligi listbox ochib tekshiriladi, keyin ikki Escape (listbox, dialog).
+- **Tekshiruv:** web Vitest 608; `locations.spec.ts` 6 (375px va desktop).
