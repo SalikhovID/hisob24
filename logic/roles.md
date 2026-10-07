@@ -1,8 +1,8 @@
 # Rollar: owner, user va kompaniya rollari
 
-Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md). Vazifalar bo'limi: [tasks.md](tasks.md). Lokatsiyalar va xodimning lokatsiya cheklovi: [locations.md](locations.md).
+Bu hujjat rollarni belgilaydi: qanday rollar bor, rol qayerdan keladi, kim nima qila oladi va bu qanday tekshiriladi. Userlar, multi-user va xodimlarni boshqarish: [user.md](user.md). Mijozlar bo'limi: [customers.md](customers.md). Vazifalar bo'limi: [tasks.md](tasks.md). Lokatsiyalar va xodimning lokatsiya cheklovi: [locations.md](locations.md). Mahsulotlar va xizmatlar: [products.md](products.md). Ombor (ta'minotchilar, xaridlar, to'lovlar): [warehouse.md](warehouse.md).
 
-> Holat: `owner` / `user` qoidalari amalga oshirilgan (2026-10-03, `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`). Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar 2026-10-06 da kelishilgan va amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Xodimning lokatsiya cheklovi (4-bo'limdagi qatorlar, 6 va 7-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-locations-design.md` bilan amalga oshirilmoqda. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
+> Holat: `owner` / `user` qoidalari amalga oshirilgan (2026-10-03, `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`). Kompaniya rollari (ruxsat matritsasi) va tor ekrandagi pastki tab-bar 2026-10-06 da kelishilgan va amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Xodimning lokatsiya cheklovi (4-bo'limdagi qatorlar, 6 va 7-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-locations-design.md` bilan amalga oshirilmoqda. Mahsulotlar, Ombor bo'limlari va menyu tartibi (4.1, 4.2, 4.3 va 8-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-inventory-design.md` bilan amalga oshirilmoqda. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
 
 ## 1. Rollar
 
@@ -60,26 +60,29 @@ A'zolik roli faqat egasini almashtirish orqali o'zgaradi:
 
 ### 4.1 Katalog
 
-Ruxsat `bo'lim.amal` ko'rinishida, 18 ta:
+Ruxsat `bo'lim.amal` ko'rinishida, 30 ta:
 
 | Bo'lim | `view` Ko'rish | `create` Qo'shish | `edit` Tahrirlash | `delete` O'chirish | `history` Tarix |
 |---|---|---|---|---|---|
 | `customers` Mijozlar | ro'yxat, mijoz sahifasi, telefon takliflari | mijoz qo'shish | mijozni tahrirlash | mijozni o'chirish | mijoz tarixini ko'rish |
 | `tasks` Vazifalar | ro'yxat, kanban, vazifa sahifasi | vazifa qo'shish | vazifani tahrirlash, bosqichini o'zgartirish (sudrash ham) | vazifani o'chirish | vazifa tarixini ko'rish |
+| `products` Mahsulotlar | mahsulotlar va xizmatlar ro'yxati, mahsulot sahifasi, xarid formasidagi mahsulot takliflari | mahsulot yoki xizmat qo'shish | tahrirlash, nofaol qilish, faollashtirish | o'chirish | — |
+| `suppliers` Ta'minotchilar | ro'yxat, ta'minotchi sahifasi, xarid formasidagi ta'minotchi takliflari | ta'minotchi qo'shish | tahrirlash, nofaol qilish, faollashtirish | o'chirish | — |
+| `purchases` Xaridlar | xaridlar ro'yxati, xarid sahifasi, ta'minotchi balansi va to'lovlari, mahsulot sahifasidagi xaridlar | xarid va to'lov qo'shish | xarid va to'lovni tahrirlash | xarid va to'lovni o'chirish | — |
 | `employees` Xodimlar | xodimlar ro'yxati (rollari bilan) | xodim qo'shish | xodim ismini o'zgartirish | xodimni o'chirish | — |
 | `settings` Sozlamalar | Sozlamalar sahifasi | tur, maydon, dropdown, variant, bosqich qo'shish | nomini, belgilarini va tartibini o'zgartirish; variantni nofaol qilish | o'chirish | — |
 
 - Bo'limning `view` ruxsati bo'lsa, u menyuda ko'rinadi. Bosh sahifa hammaga.
 - **Amal `view`siz bo'lmaydi:** rolda biror bo'limning `create`, `edit`, `delete` yoki `history` ruxsati bo'lsa, shu bo'limning `view` ruxsati ham bo'lishi shart. API bunday rolni rad etadi (400 "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang"), forma esa amal belgilanganda "Ko'rish" ni o'zi belgilaydi, "Ko'rish" olib tashlansa bo'limni tozalaydi.
 - Katalogda yo'q kalit: 400 "Ruxsat noto'g'ri". Takror kalit bir marta sanaladi.
-- Katalogdan tashqarida: a'zolar ro'yxati (`GET /app/members`), turlar, dropdownlar, bosqichlar va vazifa turlarini o'qish (formalar uchun) hamma a'zoga ochiq; rollarni boshqarish va biriktirish faqat egasiga. Xodimni lokatsiya bilan cheklash ham faqat egasiga ([locations.md](locations.md), 5-bo'lim): cheklov ruxsat emas, a'zolikning o'z xususiyati; `tasks.*` ruxsatlari a'zoning ruxsatli lokatsiyalari ichida amal qiladi.
+- Katalogdan tashqarida: a'zolar ro'yxati (`GET /app/members`), turlar, dropdownlar, bosqichlar va vazifa turlarini o'qish (formalar uchun) hamma a'zoga ochiq; rollarni boshqarish va biriktirish faqat egasiga. Xodimni lokatsiya bilan cheklash ham faqat egasiga ([locations.md](locations.md), 5-bo'lim): cheklov ruxsat emas, a'zolikning o'z xususiyati; `tasks.*` va `purchases.*` ruxsatlari a'zoning ruxsatli lokatsiyalari ichida amal qiladi ([warehouse.md](warehouse.md), 7-bo'lim). Menyu tartibi (`PUT /app/me/nav`) har a'zoning o'ziniki (8-bo'lim).
 
 ### 4.2 Kim nimaga ega
 
 | Kim | Ruxsati |
 |---|---|
 | egasi | katalogning hammasi; qo'shimcha rollarni boshqarish va biriktirish |
-| rolsiz xodim | `customers.view`, `customers.create`, `customers.edit`, `customers.delete`, `tasks.view`, `tasks.create`, `tasks.edit`, `tasks.delete` (2026-10-03 dagi qoida bilan aynan bir xil) |
+| rolsiz xodim | `customers.view`, `customers.create`, `customers.edit`, `customers.delete`, `tasks.view`, `tasks.create`, `tasks.edit`, `tasks.delete` (2026-10-03 dagi qoida) va `products.*`, `suppliers.*`, `purchases.*` ning to'rttala amali (2026-10-07) |
 | rolli xodim | faqat rolda belgilanganlar; standart to'plam qo'shilmaydi |
 
 Amallar bo'yicha:
@@ -94,6 +97,10 @@ Amallar bo'yicha:
 | Mijozning o'zgarishlar tarixini ko'rish | ✓ | ✗ | `customers.history` |
 | Vazifalarni ko'rish, qo'shish, tahrirlash, ko'chirish, o'chirish | ✓ | ✓ | `tasks.*` |
 | Vazifaning o'zgarishlar tarixini ko'rish | ✓ | ✗ | `tasks.history` |
+| Mahsulot va xizmatlarni ko'rish, qo'shish, tahrirlash, nofaol qilish, o'chirish ([products.md](products.md)) | ✓ | ✓ | `products.*` |
+| Ta'minotchilarni ko'rish, qo'shish, tahrirlash, nofaol qilish, o'chirish ([warehouse.md](warehouse.md)) | ✓ | ✓ | `suppliers.*` |
+| Xaridlar va to'lovlarni ko'rish, qo'shish, tahrirlash, o'chirish; ta'minotchi balansi | ✓ | ✓ | `purchases.*` |
+| Menyu tartibini sozlash (8-bo'lim) | ✓ | ✓ | ✓ |
 | Xodimlar ro'yxatini ko'rish, xodim qo'shish, ismini o'zgartirish, o'chirish | ✓ | ✗ | `employees.*` |
 | Mijoz turlari, maydonlar, dropdownlar, bosqichlar, vazifa turlarini sozlash | ✓ | ✗ | `settings.*` |
 | Rollarni ko'rish, yaratish, o'zgartirish, o'chirish; xodimga rol biriktirish | ✓ | ✗ | ✗ |
@@ -114,8 +121,10 @@ Ruxsat har doim **tanlangan kompaniyadagi a'zolik** bo'yicha beriladi. Olma Savd
 | Vazifani yangi mijoz bilan qo'shish (`POST /app/tasks`, `customer` da `id` yo'q) | `tasks.create` **va** `customers.create`; ikkinchisi bo'lmasa 403 `forbidden` |
 | Vazifa qo'shishda mavjud mijozni telefon takliflaridan tanlash (`GET /app/customers?phone=`) | `customers.view` |
 | Mijoz sahifasida uning vazifalarini ko'rish (`GET /app/tasks?customer_id=`) | `tasks.view` |
+| Xarid qo'shish yoki tahrirlash (`POST` / `PUT /app/purchases`) | `purchases.create` / `purchases.edit`; formadagi ta'minotchi va mahsulot takliflari uchun `suppliers.view` **va** `products.view` |
+| Ta'minotchi sahifasida balans, xaridlar va to'lovlar; mahsulot sahifasida xaridlar | `purchases.view` |
 
-Interfeys: `customers.create` bo'lmasa vazifa formasida "yangi mijoz" qismi yo'q; `customers.view` bo'lmasa takliflar so'ralmaydi; ikkalasi ham bo'lmasa "Vazifa qo'shish" tugmasi ko'rinmaydi. Mijoz sahifasidagi "Vazifalar" bo'limi `tasks.view` bo'lsa chiqadi. Vazifa va mijoz orasidagi havolalar qoladi: ruxsatsiz sahifa ochilsa, bosh sahifaga qaytariladi.
+Interfeys: `customers.create` bo'lmasa vazifa formasida "yangi mijoz" qismi yo'q; `customers.view` bo'lmasa takliflar so'ralmaydi; ikkalasi ham bo'lmasa "Vazifa qo'shish" tugmasi ko'rinmaydi. Mijoz sahifasidagi "Vazifalar" bo'limi `tasks.view` bo'lsa chiqadi. Vazifa va mijoz orasidagi havolalar qoladi: ruxsatsiz sahifa ochilsa, bosh sahifaga qaytariladi. «Xarid qo'shish» tugmasi uchala ruxsat bo'lsa ko'rinadi; ta'minotchi va mahsulot sahifalaridagi xarid va to'lov bo'limlari `purchases.view` bo'lsa chiqadi.
 
 ## 5. Kompaniya rollari
 
@@ -161,7 +170,8 @@ Admin kompaniya sahifasida **Egasini almashtirish** ni bosadi va telefon bilan i
 
 ## 8. Interfeys
 
-- Bo'limlar ruxsat bo'yicha: **Mijozlar** `customers.view`, **Vazifalar** `tasks.view`, **Xodimlar** `employees.view`, **Sozlamalar** `settings.view` bo'lganga ko'rinadi; **Bosh sahifa** hammaga. Keng ekranda (768px dan) bo'limlar chapdagi sidebar'da, tor ekranda (telefon, Telegram Mini App) pastdagi tab-bar'da; chapdan chiqadigan menyu yo'q.
+- Bo'limlar ruxsat bo'yicha: **Mijozlar** `customers.view`, **Vazifalar** `tasks.view`, **Mahsulotlar** `products.view` (Mahsulotlar va Xizmatlar tablari), **Ombor** `purchases.view` yoki `suppliers.view` (Xaridlar va Ta'minotchilar tablari; ruxsatli birinchi tabiga ochiladi), **Xodimlar** `employees.view`, **Sozlamalar** `settings.view` bo'lganga ko'rinadi; **Bosh sahifa** hammaga. Keng ekranda (768px dan) bo'limlar chapdagi sidebar'da, tor ekranda (telefon, Telegram Mini App) pastdagi tab-bar'da; chapdan chiqadigan menyu yo'q.
+- **Menyu tartibi** a'zoniki. Standart tartib: Bosh sahifa, Mijozlar, Vazifalar, Mahsulotlar, Ombor, Xodimlar, Sozlamalar. A'zo «Menyuni sozlash» dialogida (tab-bar'dagi «Yana» pastida va topbar profil menyusida) bo'limlarni sudrab tartiblaydi; tartib a'zolikda saqlanadi (`user_companies.nav_order`, `PUT /app/me/nav {sections}`, `/app/me` da `nav_order`; `null` standart) va shu kompaniyada har qurilmada bir xil. Sidebar va tab-bar bir tartibda. Tab-bar'da a'zoning bo'limlari 5 tagacha bo'lsa hammasi, 6 va undan ko'p bo'lsa birinchi 4 tasi va **«Yana»** (pastdan chiqadigan ro'yxat, qolgan bo'limlar; joriy sahifa ulardan birida bo'lsa «Yana» belgilangan). Ruxsati yo'qolgan bo'lim tartibda e'tiborga olinmaydi, ruxsati keyin ochilgan bo'lim standart tartibda oxiriga tushadi. Kalitlar: `home`, `customers`, `tasks`, `products`, `warehouse`, `employees`, `settings`; boshqasi 400 «Bo'lim noto'g'ri», takror bir marta.
 - Ruxsat bo'lmagan amalning tugmasi chizilmaydi (qo'shish, tahrirlash, o'chirish, bosqichni ko'chirish, tarix). Bo'lim manzili qo'lda ochilsa, bosh sahifaga qaytariladi. API baribir 403 qaytaradi.
 - **Rollar** Sozlamalarning alohida tabi, faqat egasiga ko'rinadi: ro'yxat (nom, bo'limlari, nechta xodimda), rol sahifasida nom va ruxsat matritsasi (bo'limlar × amallar), "Saqlash". Yangi rol `/settings/roles/new` da.
 - **Xodimlar** ro'yxatida "Rol" ustuni: owner "Egasi", rolli xodim rol nomi, rolsiz "Xodim". Egasi har xodim qatorida rolni almashtiradi (dialog: "Rolsiz" yoki rollardan biri). `employees.*` ruxsatli xodim ro'yxatni va o'z amallarini ko'radi, rol tugmasini ko'rmaydi.
@@ -218,4 +228,5 @@ Migratsiya 00009 (2026-10-06), kompaniya rollari kiritilganda: `roles` jadvali v
 - Katalogga (4.1) bo'lim va amallari qo'shiladi: backend `internal/access`, frontend `lib/permissions.ts`, `openapi.yaml` dagi `Permission` enum.
 - 4.2 jadvaliga qator qo'shiladi; rolsiz xodimga kerak bo'lsa, standart to'plamga ham.
 - Menyuda `permission: "<bo'lim>.view"`, API'da `requirePermission`. Faqat egasiga tegishli bo'lsa (rollar kabi): API'da `requireOwner` (403 `owner_only`), interfeysda `useOwner`.
+- Menyuda bo'limning kaliti (`lib/nav.ts`, `NavItem.key`) va standart tartibdagi o'rni; `PUT /app/me/nav` kalitlari shu ro'yxatdan (backend `internal/access` yoki `internal/user` dagi kalitlar ro'yxati).
 - Yangi a'zolik roli kerak bo'lsa, avval shu hujjat o'zgartiriladi, keyin kod.

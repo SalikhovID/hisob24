@@ -2,14 +2,14 @@
 
 Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tushadi, bir nechta kompaniyada qanday ishlaydi, ismi va kirish huquqi qanday boshqariladi. Rollar va ruxsatlar: [roles.md](roles.md). Lokatsiyalar va xodimning lokatsiya cheklovi: [locations.md](locations.md).
 
-> Holat: amalga oshirilgan (2026-10-03). 2026-10-06 da kompaniya rollari bilan yangilangan qoidalar (kim xodim qo'shadi, ismini o'zgartiradi va o'chiradi; tekshiruv tartibidagi `company_required` va `forbidden`) amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`.
+> Holat: amalga oshirilgan (2026-10-03). 2026-10-06 da kompaniya rollari bilan yangilangan qoidalar (kim xodim qo'shadi, ismini o'zgartiradi va o'chiradi; tekshiruv tartibidagi `company_required` va `forbidden`) amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`. A'zolikdagi menyu tartibi (1 va 6-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-inventory-design.md` bilan amalga oshirilmoqda.
 
 ## 1. Tushunchalar
 
 | Tushuncha | Ma'nosi | Bazada |
 |---|---|---|
 | **User** | Bitta telefon raqami. Platformada bitta raqam = bitta user, nechta kompaniyada ishlashidan qat'i nazar. | `users.phone` (`998901234567` ko'rinishida) |
-| **A'zolik** | Userning bitta kompaniyadagi o'rni: roli, kompaniya roli (bo'lsa), shu kompaniyadagi ismi va lokatsiya cheklovi ([locations.md](locations.md)). | `user_companies` (`user_phone`, `company_id`, `role`, `role_id`, `full_name`, `all_locations`), `member_locations` |
+| **A'zolik** | Userning bitta kompaniyadagi o'rni: roli, kompaniya roli (bo'lsa), shu kompaniyadagi ismi, lokatsiya cheklovi ([locations.md](locations.md)) va menyu tartibi ([roles.md](roles.md), 8-bo'lim). | `user_companies` (`user_phone`, `company_id`, `role`, `role_id`, `full_name`, `all_locations`, `nav_order`), `member_locations` |
 | **Egasi (owner)** | Kompaniyaning yagona egasi. Uni platforma admini qo'ygan. | `role = 'owner'` |
 | **Xodim** | `user` rolidagi a'zo. Uni kompaniya egasi (yoki `employees.create` ruxsatli xodim) qo'shgan. Egasi unga kompaniya rolini biriktirishi mumkin ([roles.md](roles.md), 5-bo'lim); rolsiz xodim standart ruxsat bilan ishlaydi. | `role = 'user'`, `role_id` |
 | **Multi-user** | Bir nechta kompaniyaga a'zo user. | bir nechta `user_companies` qatori |
@@ -98,6 +98,7 @@ Egasi (yoki `employees.delete` ruxsatli xodim) **Xodimlar** ro'yxatida `user` ro
 | shu kompaniyadagi a'zolik | o'chadi |
 | kompaniya roli biriktiruvi | a'zolik bilan ketadi; rolning o'zi qoladi |
 | lokatsiya cheklovi | a'zolik bilan ketadi |
+| menyu tartibi | a'zolik bilan ketadi; qayta qo'shilsa standart |
 | `users` yozuvi | qoladi |
 | boshqa kompaniyalardagi a'zoliklar | qoladi |
 | botga ulangan raqam (`telegram_contacts`) | qoladi |
