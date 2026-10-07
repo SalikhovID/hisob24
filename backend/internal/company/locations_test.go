@@ -2,11 +2,16 @@ package company
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
 // addLocation makes a location of the company and returns its id.
@@ -137,4 +142,212 @@ func TestReplaceOwnerLiftsTheRestriction(t *testing.T) {
 	for _, member := range members {
 		assert.True(t, member.AllLocations, "%s works in every location", member.Phone)
 	}
+}
+
+// addTask enters a task of the company in the location, for a customer
+// entered with it, as the task service would (that package is built on this
+// one, so it cannot be called here). The company's ready settings are used.
+func addTask(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, deleted bool) int64 {
+	t.Helper()
+	ctx := context.Background()
+	var customer, task int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO customers (company_id, type_id, phone, created_by)
+		SELECT $1, id, '99890' || lpad((random() * 9999999)::int::text, 7, '0'), '998900000001' FROM customer_types WHERE company_id = $1 LIMIT 1
+		RETURNING id`, companyID).Scan(&customer))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at)
+		SELECT $1, (SELECT id FROM task_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM task_stages WHERE company_id = $1 LIMIT 1), $2, $3,
+		       'Qo''ng''iroq', CURRENT_DATE, '998900000001', CASE WHEN $4 THEN now() END
+		RETURNING id`, companyID, customer, locationID, deleted).Scan(&task))
+	return task
+}
+
+// describe is the admin's list of locations as "name (N)".
+func describe(locations []AdminLocation) []string {
+	list := make([]string, 0, len(locations))
+	for _, l := range locations {
+		list = append(list, fmt.Sprintf("%s (%d)", l.Name, l.TasksCount))
+	}
+	return list
+}
+
+func TestLocations(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	nok := mustCreate(t, s, "Nok", dbToday(t, pool))
+	asosiy := addLocation(t, pool, nok.ID, "Chilonzor") // Nok's: not Olma's
+	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
+	hideLocation(t, pool, addLocation(t, pool, c.ID, "Yopilgan"))
+	addTask(t, pool, c.ID, chilonzor, false)
+	addTask(t, pool, c.ID, chilonzor, false)
+	addTask(t, pool, c.ID, chilonzor, true)
+	_ = asosiy
+
+	locations, err := s.Locations(ctx, c.ID)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (2)"}, describe(locations), "the live locations in the order they were added, each with its tasks (the deleted not counted)")
+	assert.Equal(t, chilonzor, locations[1].ID)
+	assert.False(t, locations[1].CreatedAt.IsZero())
+}
+
+func TestAddLocation(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+
+	l, err := s.AddLocation(ctx, c.ID, "  Chilonzor ")
+
+	require.NoError(t, err)
+	assert.Equal(t, "Chilonzor", l.Name, "the name without the spaces around it")
+	assert.Positive(t, l.ID)
+	assert.Zero(t, l.TasksCount)
+	assert.False(t, l.CreatedAt.IsZero())
+	locations, err := s.Locations(ctx, c.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (0)"}, describe(locations))
+
+	for name, tc := range map[string]struct {
+		name    string
+		kind    apperr.Kind
+		code    string
+		message string
+	}{
+		"no name":      {"  ", apperr.Invalid, "validation_error", "Nomni kiriting"},
+		"a long name":  {strings.Repeat("a", 61), apperr.Invalid, "validation_error", "Nom 60 belgidan oshmasin"},
+		"a name taken": {"chilonzor", apperr.Conflict, "name_taken", "Bu nomli lokatsiya allaqachon bor"},
+	} {
+		_, err := s.AddLocation(ctx, c.ID, tc.name)
+		var e *apperr.Error
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, tc.kind, e.Kind, name)
+			assert.Equal(t, tc.code, e.Code, name)
+			assert.Equal(t, tc.message, e.Message, name)
+		}
+	}
+	_, err = s.AddLocation(ctx, c.ID+1000, "Yunusobod")
+	var e *apperr.Error
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "not_found", e.Code, "no such company")
+	assert.Equal(t, "Kompaniya topilmadi", e.Message)
+
+	hideLocation(t, pool, l.ID)
+	_, err = s.AddLocation(ctx, c.ID, "Chilonzor")
+	assert.NoError(t, err, "a deleted location's name is free again")
+}
+
+func TestRenameLocation(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	nok := mustCreate(t, s, "Nok", dbToday(t, pool))
+	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
+	gone := addLocation(t, pool, c.ID, "Yopilgan")
+	hideLocation(t, pool, gone)
+
+	l, err := s.RenameLocation(ctx, c.ID, chilonzor, " Chilonzor filiali ")
+	require.NoError(t, err)
+	assert.Equal(t, "Chilonzor filiali", l.Name)
+	assert.Equal(t, chilonzor, l.ID)
+	l, err = s.RenameLocation(ctx, c.ID, chilonzor, "chilonzor FILIALI")
+	require.NoError(t, err, "its own name, in another case")
+	assert.Equal(t, "chilonzor FILIALI", l.Name)
+
+	var e *apperr.Error
+	_, err = s.RenameLocation(ctx, c.ID, chilonzor, "asosiy")
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "name_taken", e.Code, "another location's name")
+	for name, id := range map[string]int64{"no such location": chilonzor + 1000, "a deleted location": gone, "another company's location": nokLocation(t, pool, nok.ID)} {
+		_, err = s.RenameLocation(ctx, c.ID, id, "X")
+		if assert.ErrorAs(t, err, &e, name) {
+			assert.Equal(t, apperr.NotFound, e.Kind, name)
+			assert.Equal(t, "Lokatsiya topilmadi", e.Message, name)
+		}
+	}
+	_, err = s.RenameLocation(ctx, c.ID, chilonzor, " ")
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "Nomni kiriting", e.Message)
+}
+
+// nokLocation is the ready location of the company.
+func nokLocation(t *testing.T, pool *pgxpool.Pool, companyID int64) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(context.Background(), "SELECT id FROM locations WHERE company_id = $1 ORDER BY id LIMIT 1", companyID).Scan(&id))
+	return id
+}
+
+func TestDeleteLocation(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	asosiy := nokLocation(t, pool, c.ID)
+	var e *apperr.Error
+
+	err := s.DeleteLocation(ctx, c.ID, asosiy)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, apperr.Conflict, e.Kind)
+	assert.Equal(t, "last_location", e.Code, "the company's only location")
+	assert.Equal(t, "Kompaniyaning yagona lokatsiyasi o'chirilmaydi", e.Message)
+
+	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
+	addTask(t, pool, c.ID, chilonzor, false)
+	addTask(t, pool, c.ID, chilonzor, true)
+	err = s.DeleteLocation(ctx, c.ID, chilonzor)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, apperr.Conflict, e.Kind)
+	assert.Equal(t, "location_in_use", e.Code, "a location with a task standing in it")
+	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the deleted task not counted")
+
+	yunusobod := addLocation(t, pool, c.ID, "Yunusobod")
+	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
+	restrictTo(t, pool, "998902223344", c.ID, yunusobod)
+	require.NoError(t, s.DeleteLocation(ctx, c.ID, yunusobod), "a location with no task")
+	locations, err := s.Locations(ctx, c.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (1)"}, describe(locations), "hidden")
+	_, err = s.AddLocation(ctx, c.ID, "Yunusobod")
+	assert.NoError(t, err, "its name is free again")
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM member_locations WHERE location_id = $1", yunusobod).Scan(&rows))
+	assert.Equal(t, 1, rows, "a member's restriction keeps naming it (logic/locations.md, section 5)")
+	members, err := s.Members(ctx, c.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []Location{}, members[1].Locations, "and the member is left with none")
+
+	err = s.DeleteLocation(ctx, c.ID, yunusobod)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "Lokatsiya topilmadi", e.Message, "deleted already")
+	nok := mustCreate(t, s, "Nok", dbToday(t, pool))
+	err = s.DeleteLocation(ctx, nok.ID, chilonzor)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "Lokatsiya topilmadi", e.Message, "another company's location")
+}
+
+// A location is deleted while no task is being entered into it: the delete
+// holds the company the way a write of its tasks does, so the count it
+// checks cannot change under it.
+func TestDeleteLocationWaitsForAWriteOfTheSameCompany(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	c := mustCreate(t, s, "Olma", dbToday(t, pool))
+	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
+	// A task is being entered: it holds the company, not committed yet.
+	other, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = other.Rollback(context.Background()) })
+	_, err = other.Exec(ctx, "SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE", c.ID)
+	require.NoError(t, err)
+
+	done := make(chan error, 1)
+	go func() { done <- s.DeleteLocation(ctx, c.ID, chilonzor) }()
+	pgtest.WaitForLockWait(t, pool)
+	select {
+	case err := <-done:
+		t.Fatalf("the delete did not wait: %v", err)
+	default:
+	}
+	require.NoError(t, other.Commit(ctx))
+
+	require.NoError(t, <-done, "the delete runs once the write is over")
 }
