@@ -77,6 +77,8 @@ type Querier interface {
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
 	// How many tasks chose the option, in any field: one in use is not deleted.
 	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
+	// How many rows ListPayments finds, on all of its pages.
+	CountPayments(ctx context.Context, arg CountPaymentsParams) (int64, error)
 	// How many rows ListProducts finds under the same filter, on all of its pages.
 	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
 	// How many rows ListPurchases finds under the same filter, on all of its pages.
@@ -119,6 +121,10 @@ type Querier interface {
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
+	// Enters a payment to the supplier; purchase_id links the one entered with
+	// a purchase. created_by_name stays when the member leaves. 23514 on an
+	// amount not above zero; 23505 on a second live payment of a purchase.
+	CreatePayment(ctx context.Context, arg CreatePaymentParams) (SupplierPayment, error)
 	// Enters a product (unit set) or a service (unit NULL). created_by_name is
 	// the name the member who enters it goes by in the company now: it stays
 	// when they leave. The name is one row's among the company's rows of the
@@ -186,6 +192,9 @@ type Querier interface {
 	// Drops a member's restriction: the locations it named. The member works in
 	// every location once all_locations is raised with it.
 	DeleteMemberLocations(ctx context.Context, arg DeleteMemberLocationsParams) error
+	// Hides the payment. pgx.ErrNoRows when the company has none such, or
+	// deleted it already.
+	DeletePayment(ctx context.Context, arg DeletePaymentParams) (int64, error)
 	// Hides the product or the service: nothing is removed, and its name and SKU
 	// are free again. pgx.ErrNoRows when the company has no such row, or
 	// deleted it already.
@@ -195,6 +204,9 @@ type Querier interface {
 	DeletePurchase(ctx context.Context, arg DeletePurchaseParams) (int64, error)
 	// Removes the lines of the purchase (an edit writes them anew).
 	DeletePurchaseItems(ctx context.Context, purchaseID int64) error
+	// Hides the payment entered with the purchase, when there is one: the
+	// purchase was deleted, or is paid nothing now.
+	DeletePurchasePayment(ctx context.Context, purchaseID int64) error
 	// Removes the company's role for good. A role someone holds is refused by
 	// the foreign key (23503); pgx.ErrNoRows when the company has none such.
 	DeleteRole(ctx context.Context, arg DeleteRoleParams) (int64, error)
@@ -272,6 +284,10 @@ type Querier interface {
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
 	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
+	// The supplier's payment in the company, with the number of the purchase it
+	// was entered with (NULL for one entered on its own). pgx.ErrNoRows when
+	// there is none such, or it is deleted.
+	GetPayment(ctx context.Context, arg GetPaymentParams) (GetPaymentRow, error)
 	// The company's product or service; pgx.ErrNoRows when it has none such, or
 	// deleted it. created_by_name is the name the member who entered it goes by
 	// in the company now; once they have left it (or go by no name), the name
@@ -283,6 +299,9 @@ type Querier interface {
 	// pgx.ErrNoRows when the company has none such in those locations, or
 	// deleted it.
 	GetPurchase(ctx context.Context, arg GetPurchaseParams) (GetPurchaseRow, error)
+	// The live payment entered with the purchase; pgx.ErrNoRows when there is
+	// none.
+	GetPurchasePayment(ctx context.Context, purchaseID int64) (SupplierPayment, error)
 	// The company's role with how many members hold it; pgx.ErrNoRows when the
 	// company has none such.
 	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
@@ -365,6 +384,9 @@ type Querier interface {
 	// restriction, the live ones among the restriction's otherwise; in the
 	// order they were added. Nothing for someone who is not a member.
 	ListMemberLocations(ctx context.Context, arg ListMemberLocationsParams) ([]ListMemberLocationsRow, error)
+	// A page of the supplier's live payments, the newest first (then the later
+	// entered). The columns are GetPayment's.
+	ListPayments(ctx context.Context, arg ListPaymentsParams) ([]ListPaymentsRow, error)
 	// A page of the company's products or services (kind), the active or the
 	// inactive ones (is_active), by name whatever the case, without the deleted.
 	// search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
@@ -540,6 +562,10 @@ type Querier interface {
 	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
 	// type has no such field, or it is deleted.
 	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
+	// An edit of a payment entered on its own: the amount, the day and the note
+	// (NULL clears it). pgx.ErrNoRows when the company has none such, or
+	// deleted it. (A linked one is refused by the service before this.)
+	UpdatePayment(ctx context.Context, arg UpdatePaymentParams) (SupplierPayment, error)
 	// An edit: every field as it is now (NULL clears an optional one), and the
 	// moment of the edit. The kind stays. pgx.ErrNoRows when the company has no
 	// such row, or deleted it; 23505 when the name or the SKU is another's.
@@ -548,6 +574,9 @@ type Querier interface {
 	// and the moment of the edit. The number and the location stay.
 	// pgx.ErrNoRows when the company has no such purchase, or deleted it.
 	UpdatePurchase(ctx context.Context, arg UpdatePurchaseParams) (Purchase, error)
+	// The payment entered with the purchase follows an edit of it: the
+	// purchase's supplier, the amount paid and the purchase's day.
+	UpdatePurchasePayment(ctx context.Context, arg UpdatePurchasePaymentParams) error
 	// Replaces a role's name and permissions. pgx.ErrNoRows when the company
 	// has no such role.
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
