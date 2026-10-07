@@ -14,7 +14,7 @@ const addCompanyUser = `-- name: AddCompanyUser :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_phone, company_id) DO NOTHING
-RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations, nav_order
 `
 
 type AddCompanyUserParams struct {
@@ -42,6 +42,7 @@ func (q *Queries) AddCompanyUser(ctx context.Context, arg AddCompanyUserParams) 
 		&i.FullName,
 		&i.RoleID,
 		&i.AllLocations,
+		&i.NavOrder,
 	)
 	return i, err
 }
@@ -58,7 +59,7 @@ func (q *Queries) DemoteCompanyOwner(ctx context.Context, companyID int64) error
 }
 
 const getCompanyAccess = `-- name: GetCompanyAccess :one
-SELECT uc.role, uc.role_id, r.permissions, uc.all_locations,
+SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order,
        (SELECT COALESCE(array_agg(l.id ORDER BY l.id), '{}') FROM locations l
          WHERE l.company_id = uc.company_id AND l.deleted_at IS NULL
            AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
@@ -80,13 +81,15 @@ type GetCompanyAccessRow struct {
 	RoleID       *int64
 	Permissions  []string
 	AllLocations bool
+	NavOrder     []string
 	LocationIds  []int64
 	Active       bool
 }
 
 // A user's standing in a company, read on every request: the role there,
 // the company role they hold with its permissions (NULL for the owner and
-// for a user without one), the locations they may work in (every live one
+// for a user without one), their own order of the menu (NULL for the
+// default; logic/roles.md, section 8), the locations they may work in (every live one
 // of the company's unless restricted to some, in the order they were
 // added; logic/locations.md) and whether the subscription lets the company
 // be used (the end date has not passed and it is not blocked). pgx.ErrNoRows
@@ -99,6 +102,7 @@ func (q *Queries) GetCompanyAccess(ctx context.Context, arg GetCompanyAccessPara
 		&i.RoleID,
 		&i.Permissions,
 		&i.AllLocations,
+		&i.NavOrder,
 		&i.LocationIds,
 		&i.Active,
 	)
@@ -350,7 +354,7 @@ func (q *Queries) RemoveCompanyUser(ctx context.Context, arg RemoveCompanyUserPa
 const renameCompanyUser = `-- name: RenameCompanyUser :one
 UPDATE user_companies SET full_name = $3
 WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
-RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations, nav_order
 `
 
 type RenameCompanyUserParams struct {
@@ -372,6 +376,7 @@ func (q *Queries) RenameCompanyUser(ctx context.Context, arg RenameCompanyUserPa
 		&i.FullName,
 		&i.RoleID,
 		&i.AllLocations,
+		&i.NavOrder,
 	)
 	return i, err
 }
@@ -380,7 +385,7 @@ const setCompanyOwner = `-- name: SetCompanyOwner :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, 'owner', $3)
 ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', role_id = NULL, all_locations = true, full_name = EXCLUDED.full_name
-RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations, nav_order
 `
 
 type SetCompanyOwnerParams struct {
@@ -405,6 +410,7 @@ func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams
 		&i.FullName,
 		&i.RoleID,
 		&i.AllLocations,
+		&i.NavOrder,
 	)
 	return i, err
 }
@@ -412,7 +418,7 @@ func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams
 const setCompanyUserRole = `-- name: SetCompanyUserRole :one
 UPDATE user_companies SET role_id = $1
 WHERE user_phone = $2 AND company_id = $3 AND role = 'user'
-RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations, nav_order
 `
 
 type SetCompanyUserRoleParams struct {
@@ -436,8 +442,31 @@ func (q *Queries) SetCompanyUserRole(ctx context.Context, arg SetCompanyUserRole
 		&i.FullName,
 		&i.RoleID,
 		&i.AllLocations,
+		&i.NavOrder,
 	)
 	return i, err
+}
+
+const setNavOrder = `-- name: SetNavOrder :one
+UPDATE user_companies SET nav_order = $1::text[]
+WHERE user_phone = $2 AND company_id = $3
+RETURNING user_phone
+`
+
+type SetNavOrderParams struct {
+	NavOrder  []string
+	UserPhone string
+	CompanyID int64
+}
+
+// Keeps the member's own order of the menu in the company (NULL: the
+// default; logic/roles.md, section 8). pgx.ErrNoRows when the user is not
+// its member.
+func (q *Queries) SetNavOrder(ctx context.Context, arg SetNavOrderParams) (string, error) {
+	row := q.db.QueryRow(ctx, setNavOrder, arg.NavOrder, arg.UserPhone, arg.CompanyID)
+	var user_phone string
+	err := row.Scan(&user_phone)
+	return user_phone, err
 }
 
 const upsertUser = `-- name: UpsertUser :exec

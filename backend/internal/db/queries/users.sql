@@ -78,12 +78,13 @@ SELECT EXISTS (SELECT 1 FROM user_companies WHERE user_phone = $1);
 -- name: GetCompanyAccess :one
 -- A user's standing in a company, read on every request: the role there,
 -- the company role they hold with its permissions (NULL for the owner and
--- for a user without one), the locations they may work in (every live one
+-- for a user without one), their own order of the menu (NULL for the
+-- default; logic/roles.md, section 8), the locations they may work in (every live one
 -- of the company's unless restricted to some, in the order they were
 -- added; logic/locations.md) and whether the subscription lets the company
 -- be used (the end date has not passed and it is not blocked). pgx.ErrNoRows
 -- when the user is not its member.
-SELECT uc.role, uc.role_id, r.permissions, uc.all_locations,
+SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order,
        (SELECT COALESCE(array_agg(l.id ORDER BY l.id), '{}') FROM locations l
          WHERE l.company_id = uc.company_id AND l.deleted_at IS NULL
            AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
@@ -124,3 +125,11 @@ WHERE user_phone = $1 AND company_id = $2;
 UPDATE user_companies SET role_id = sqlc.narg('role_id')
 WHERE user_phone = sqlc.arg('user_phone') AND company_id = sqlc.arg('company_id') AND role = 'user'
 RETURNING *;
+
+-- name: SetNavOrder :one
+-- Keeps the member's own order of the menu in the company (NULL: the
+-- default; logic/roles.md, section 8). pgx.ErrNoRows when the user is not
+-- its member.
+UPDATE user_companies SET nav_order = sqlc.narg('nav_order')::text[]
+WHERE user_phone = sqlc.arg('user_phone') AND company_id = sqlc.arg('company_id')
+RETURNING user_phone;

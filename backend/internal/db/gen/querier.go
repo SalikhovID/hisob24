@@ -206,7 +206,8 @@ type Querier interface {
 	GetCompany(ctx context.Context, id int64) (Company, error)
 	// A user's standing in a company, read on every request: the role there,
 	// the company role they hold with its permissions (NULL for the owner and
-	// for a user without one), the locations they may work in (every live one
+	// for a user without one), their own order of the menu (NULL for the
+	// default; logic/roles.md, section 8), the locations they may work in (every live one
 	// of the company's unless restricted to some, in the order they were
 	// added; logic/locations.md) and whether the subscription lets the company
 	// be used (the end date has not passed and it is not blocked). pgx.ErrNoRows
@@ -442,6 +443,10 @@ type Querier interface {
 	// again (true). No row (pgx.ErrNoRows) for the owner, who is never
 	// restricted, and for someone who is not a member.
 	SetMemberAllLocations(ctx context.Context, arg SetMemberAllLocationsParams) (UserCompany, error)
+	// Keeps the member's own order of the menu in the company (NULL: the
+	// default; logic/roles.md, section 8). pgx.ErrNoRows when the user is not
+	// its member.
+	SetNavOrder(ctx context.Context, arg SetNavOrderParams) (string, error)
 	// Turns a product or a service off (no longer offered) or on again.
 	// pgx.ErrNoRows when the company has no such row, or deleted it.
 	SetProductActive(ctx context.Context, arg SetProductActiveParams) (Product, error)

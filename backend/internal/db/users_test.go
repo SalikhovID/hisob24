@@ -423,3 +423,42 @@ func TestSetCompanyUserRole(t *testing.T) {
 	_, err = q.SetCompanyUserRole(ctx, gen.SetCompanyUserRoleParams{UserPhone: "998903333333", CompanyID: nok.ID, RoleID: &sotuvchi})
 	assert.Equal(t, "23503", sqlState(err), "another company's role") // foreign_key_violation
 }
+
+// The access row tells the member's own order of the menu in the company
+// (logic/roles.md, section 8): nil for the default.
+func TestGetCompanyAccessTellsTheMembersOrderOfTheMenu(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
+	access := func() gen.GetCompanyAccessRow {
+		got, err := q.GetCompanyAccess(ctx, gen.GetCompanyAccessParams{UserPhone: "998901234567", CompanyID: olma.ID})
+		require.NoError(t, err)
+		return got
+	}
+
+	assert.Nil(t, access().NavOrder, "the default order")
+	mustExec(t, pool, "UPDATE user_companies SET nav_order = '{tasks,home}' WHERE user_phone = '998901234567' AND company_id = $1", olma.ID)
+	assert.Equal(t, []string{"tasks", "home"}, access().NavOrder)
+}
+
+func TestSetNavOrder(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
+	access := func() gen.GetCompanyAccessRow {
+		got, err := q.GetCompanyAccess(ctx, gen.GetCompanyAccessParams{UserPhone: "998901234567", CompanyID: olma.ID})
+		require.NoError(t, err)
+		return got
+	}
+
+	_, err := q.SetNavOrder(ctx, gen.SetNavOrderParams{UserPhone: "998901234567", CompanyID: olma.ID, NavOrder: []string{"tasks", "home"}})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"tasks", "home"}, access().NavOrder)
+	_, err = q.SetNavOrder(ctx, gen.SetNavOrderParams{UserPhone: "998901234567", CompanyID: olma.ID, NavOrder: nil})
+	require.NoError(t, err)
+	assert.Nil(t, access().NavOrder, "back to the default")
+	_, err = q.SetNavOrder(ctx, gen.SetNavOrderParams{UserPhone: "998909999999", CompanyID: olma.ID, NavOrder: []string{"home"}})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
+}

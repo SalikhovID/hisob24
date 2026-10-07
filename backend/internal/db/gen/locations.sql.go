@@ -335,7 +335,7 @@ func (q *Queries) SeedLocation(ctx context.Context, companyID int64) (Location, 
 const setMemberAllLocations = `-- name: SetMemberAllLocations :one
 UPDATE user_companies SET all_locations = $1
 WHERE user_phone = $2 AND company_id = $3 AND role = 'user'
-RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations, nav_order
 `
 
 type SetMemberAllLocationsParams struct {
@@ -359,6 +359,7 @@ func (q *Queries) SetMemberAllLocations(ctx context.Context, arg SetMemberAllLoc
 		&i.FullName,
 		&i.RoleID,
 		&i.AllLocations,
+		&i.NavOrder,
 	)
 	return i, err
 }
