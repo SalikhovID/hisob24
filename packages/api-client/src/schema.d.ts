@@ -826,6 +826,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/employees/{phone}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Xodimning telefoni, 998901234567 ko'rinishida */
+                phone: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Xodimni lokatsiyalar bilan cheklash yoki cheklovni olib tashlash (faqat owner)
+         * @description Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi (logic/locations.md, 5-bo'lim); null bilan yana hammasida. Keyingi so'rovidanoq amal qiladi. Boshqa lokatsiyalarda unga biriktirilgan vazifalar o'zgarmaydi. Egasi cheklanmaydi. Cheklovni faqat egasi belgilaydi.
+         */
+        put: operations["setEmployeeLocations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/roles": {
         parameters: {
             query?: never;
@@ -1444,6 +1467,10 @@ export interface components {
              */
             role_id: number | null;
         };
+        EmployeeLocationsInput: {
+            /** @description Xodim ishlay oladigan lokatsiyalar: kompaniyaning jonli lokatsiyalari, kamida bitta (bo'sh ro'yxat 400 "Kamida bitta lokatsiyani tanlang"; begona, o'chirilgan yoki yo'q ID 404 "Lokatsiya topilmadi"), takror bir marta sanaladi. null cheklovni olib tashlaydi: xodim hamma lokatsiyada ishlaydi. */
+            location_ids: number[] | null;
+        };
         AppCompany: {
             /** Format: int64 */
             id: number;
@@ -1954,6 +1981,15 @@ export interface components {
         };
         /** @description Xodim kompaniya a'zosi emas ("Xodim topilmadi") yoki rol kompaniyaniki emas ("Rol topilmadi") (not_found) */
         RoleOrEmployeeNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Xodim kompaniya a'zosi emas ("Xodim topilmadi") yoki lokatsiya kompaniyaning jonli lokatsiyasi emas ("Lokatsiya topilmadi") (not_found) */
+        LocationOrEmployeeNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3546,6 +3582,39 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["OwnerOnly"];
             404: components["responses"]["RoleOrEmployeeNotFound"];
+            409: components["responses"]["CannotChangeOwner"];
+        };
+    };
+    setEmployeeLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Xodimning telefoni, 998901234567 ko'rinishida */
+                phone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeLocationsInput"];
+            };
+        };
+        responses: {
+            /** @description Xodim, lokatsiyalari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["OwnerOnly"];
+            404: components["responses"]["LocationOrEmployeeNotFound"];
             409: components["responses"]["CannotChangeOwner"];
         };
     };

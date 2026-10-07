@@ -1606,6 +1606,50 @@ paths:
           $ref: "#/components/responses/RoleOrEmployeeNotFound"
         "409":
           $ref: "#/components/responses/CannotChangeOwner"
+  /app/employees/{phone}/locations:
+    parameters:
+      - name: phone
+        in: path
+        required: true
+        description: Xodimning telefoni, 998901234567 ko'rinishida
+        schema:
+          type: string
+    put:
+      operationId: setEmployeeLocations
+      summary: Xodimni lokatsiyalar bilan cheklash yoki cheklovni olib tashlash (faqat owner)
+      description: >
+        Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va
+        qo'shadi (logic/locations.md, 5-bo'lim); null bilan yana hammasida.
+        Keyingi so'rovidanoq amal qiladi. Boshqa lokatsiyalarda unga
+        biriktirilgan vazifalar o'zgarmaydi. Egasi cheklanmaydi. Cheklovni
+        faqat egasi belgilaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeLocationsInput"
+      responses:
+        "200":
+          description: Xodim, lokatsiyalari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/OwnerOnly"
+        "404":
+          $ref: "#/components/responses/LocationOrEmployeeNotFound"
+        "409":
+          $ref: "#/components/responses/CannotChangeOwner"
   /app/roles:
     get:
       operationId: listRoles
@@ -2688,6 +2732,15 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    LocationOrEmployeeNotFound:
+      description: >
+        Xodim kompaniya a'zosi emas ("Xodim topilmadi") yoki lokatsiya
+        kompaniyaning jonli lokatsiyasi emas ("Lokatsiya topilmadi")
+        (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     RoleConflict:
       description: >
         Bu nomli rol allaqachon bor (name_taken) yoki rol xodimlarga
@@ -3131,6 +3184,21 @@ components:
           type: [integer, "null"]
           format: int64
           description: Shu kompaniyaning roli; null rolni olib tashlaydi
+    EmployeeLocationsInput:
+      type: object
+      required: [location_ids]
+      properties:
+        location_ids:
+          type: [array, "null"]
+          description: >
+            Xodim ishlay oladigan lokatsiyalar: kompaniyaning jonli
+            lokatsiyalari, kamida bitta (bo'sh ro'yxat 400 "Kamida bitta
+            lokatsiyani tanlang"; begona, o'chirilgan yoki yo'q ID 404
+            "Lokatsiya topilmadi"), takror bir marta sanaladi. null cheklovni
+            olib tashlaydi: xodim hamma lokatsiyada ishlaydi.
+          items:
+            type: integer
+            format: int64
     AppCompany:
       type: object
       required: [id, name, role, role_name, end_date, days_left, is_active]

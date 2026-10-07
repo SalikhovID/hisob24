@@ -68,6 +68,9 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Put("/roles/{id}", h.updateRole)
 				r.Delete("/roles/{id}", h.deleteRole)
 				r.Put("/employees/{phone}/role", h.setEmployeeRole)
+				// So is an employee's restriction to some locations
+				// (logic/locations.md, section 5).
+				r.Put("/employees/{phone}/locations", h.setEmployeeLocations)
 			})
 			// Everything else is done inside a company, by what the member
 			// may do there (logic/roles.md, section 4).

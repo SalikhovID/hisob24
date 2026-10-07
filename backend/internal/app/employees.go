@@ -111,3 +111,20 @@ func (h *Handler) removeEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// setEmployeeLocations restricts an employee of the owner's company to some
+// locations (location_ids), or lets them work in every one again (null).
+func (h *Handler) setEmployeeLocations(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		LocationIDs *[]int64 `json:"location_ids"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	m, err := h.companies.SetEmployeeLocations(r.Context(), sessionCompany(r), chi.URLParam(r, "phone"), body.LocationIDs)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toMemberJSON(m))
+}
