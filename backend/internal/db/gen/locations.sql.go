@@ -27,6 +27,19 @@ func (q *Queries) AddMemberLocation(ctx context.Context, arg AddMemberLocationPa
 	return err
 }
 
+const countLocationPurchases = `-- name: CountLocationPurchases :one
+SELECT count(*) FROM purchases WHERE location_id = $1 AND deleted_at IS NULL
+`
+
+// How many live purchases stand in the location: one with any is not
+// deleted (logic/locations.md, section 7).
+func (q *Queries) CountLocationPurchases(ctx context.Context, locationID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countLocationPurchases, locationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countLocationTasks = `-- name: CountLocationTasks :one
 SELECT count(*) FROM tasks WHERE location_id = $1 AND deleted_at IS NULL
 `

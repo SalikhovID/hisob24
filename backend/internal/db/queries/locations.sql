@@ -99,3 +99,8 @@ RETURNING *;
 -- Names a location in a member's restriction. The location has to be the
 -- company's own (23503), and is named once (23505).
 INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ($1, $2, $3);
+
+-- name: CountLocationPurchases :one
+-- How many live purchases stand in the location: one with any is not
+-- deleted (logic/locations.md, section 7).
+SELECT count(*) FROM purchases WHERE location_id = $1 AND deleted_at IS NULL;
