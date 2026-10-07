@@ -93,7 +93,8 @@ test("/app/me tells the member's locations: the company's live ones, or the live
   expect((await call(api.GET("/app/me"))).locations).toEqual(both)
 
   await chooseCompany(2)
-  expect((await call(api.GET("/app/me"))).locations).toEqual([{ id: asosiyOf(2).id, name: "Asosiy" }])
+  // Nok Market has two locations in the seed.
+  expect((await call(api.GET("/app/me"))).locations.map((l) => l.name)).toEqual(["Asosiy", "Chilonzor"])
 })
 
 // The restriction is the owner's to set (logic/locations.md, section 5;
@@ -1050,10 +1051,12 @@ async function taskSetup() {
 }
 type TaskSetup = Awaited<ReturnType<typeof taskSetup>>
 
-// taskBody is a task of the type Buyurtma for Ali, due on 10.10.2026, in
-// Yangi, with Izoh filled in; over changes what the test is about.
+// taskBody is a task of the type Buyurtma for Ali, in Asosiy, due on
+// 10.10.2026, in Yangi, with Izoh filled in; over changes what the test is
+// about.
 const taskBody = (s: TaskSetup, over: Partial<TaskCreate> = {}): TaskCreate => ({
   type_id: s.buyurtma.id,
+  location_id: asosiyOf(1).id,
   title: "Qo'ng'iroq qilish",
   deadline: "2026-10-10",
   stage_id: s.yangi.id,
@@ -1116,10 +1119,12 @@ test("the tasks are those of the locations the member works in: the list, a task
   expect((await getTask(inChilonzor.id)).location_id).toBe(chilonzor.id)
   expect(await failure(createTask(taskBody(s, { location_id: asosiy.id })))).toMatchObject({ status: 403, code: "forbidden" })
   expect((await createTask(taskBody(s, { title: "Yangi", location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
-  // Until the app names a location, the first one the member may work in.
-  expect((await createTask(taskBody(s, { title: "Nomsiz" }))).location_id).toBe(chilonzor.id)
+  expect(await failure(createTask({ ...taskBody(s, { title: "Nomsiz" }), location_id: undefined } as unknown as TaskCreate))).toMatchObject({
+    status: 400,
+    message: "Lokatsiyani tanlang",
+  })
   restrictTo(VALI, 1, null)
-  expect((await listTasks()).total).toBe(5)
+  expect((await listTasks()).total).toBe(4)
 })
 
 test("a member enters a task for a customer that is there, or with a new one; what is wrong is said in the API's words", async () => {
@@ -1212,10 +1217,14 @@ test("a member enters a task for a customer that is there, or with a new one; wh
   // the way a missing permission is, before anything else.
   expect(await failure(createTask(taskBody(s, { title: "", location_id: 999999 })))).toMatchObject({ status: 403, code: "forbidden" })
   expect(db.tasks).toHaveLength(2)
-  // The task stands in the location named; until the app names one, in the
-  // first location the member works in (logic/locations.md, section 6).
+  // The task stands in the location named; one has to be named
+  // (logic/locations.md, section 6).
   const chilonzor = addLocation(1, "Chilonzor")
   expect((await createTask(taskBody(s, { location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
+  expect(await failure(createTask({ ...taskBody(s), location_id: undefined } as unknown as TaskCreate))).toMatchObject({
+    status: 400,
+    message: "Lokatsiyani tanlang",
+  })
 
   expect(await failure(getTask(999))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
   await chooseCompany(2)
@@ -1234,6 +1243,7 @@ test("the tasks list: the one due soonest first, twenty to a page, the filters a
   const sooner = await createTask(taskBody(s, { title: "Qo'ng'iroq qilish", deadline: "2026-10-10", assignee_phone: VALI, values: { [s.izoh.id]: "X" } }))
   const other = await createTask({
     type_id: s.vazifa.id,
+    location_id: asosiyOf(1).id,
     title: "Shikoyatni ko'rish",
     deadline: "2026-10-10",
     stage_id: s.bajarildi.id,

@@ -29,6 +29,9 @@ export const SARDOR = "998903334455"
 export const ZARINA = "998904445566"
 // Shared with the user bot, but no user's.
 export const STRANGER = "998905556677"
+// A phone no company has yet: the e2e tests add it to Nok Market, which
+// has two locations, as an employee to restrict.
+export const DILNOZA = "998906667788"
 
 // Telegram accounts of the Mini App tests: 1001 Ali, 1002 Vali, 1003 the
 // stranger; 1004 never shared a phone.
@@ -261,6 +264,8 @@ function seedSettings(companies: Company[]): Pick<Db, "locations" | "dropdowns" 
   let lastId = 0
   const next = () => (lastId += 1)
   const locations = companies.map((company): LocationRow => ({ id: next(), companyId: company.id, name: "Asosiy" }))
+  // Nok Market has a second location: where the switch between them is tested.
+  locations.push({ id: next(), companyId: 2, name: "Chilonzor" })
   const text = (label: string): FieldRow => ({ id: next(), label, kind: "string", required: true, unique: false, dropdownId: null })
   const manba: DropdownRow = {
     id: next(),

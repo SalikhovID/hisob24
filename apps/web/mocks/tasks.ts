@@ -227,8 +227,7 @@ export const tasksHandlers = [
       customer?: unknown
     }
     // A location the member may not work in is refused before anything
-    // else, the way a missing permission is. Until the app names one, the
-    // task stands in the first location the member works in.
+    // else, the way a missing permission is.
     const scope = scopeOf(member)
     if (typeof body.location_id === "number" && body.location_id > 0 && !scope.includes(body.location_id)) return forbidden()
     // What is wrong is said in this order: the title, the deadline, the
@@ -237,7 +236,7 @@ export const tasksHandlers = [
     if (title instanceof Response) return title
     const deadline = taskDeadline(body.deadline)
     if (deadline instanceof Response) return deadline
-    const locationId = body.location_id === undefined ? scope[0] : body.location_id
+    const locationId = body.location_id
     if (typeof locationId !== "number" || !scope.includes(locationId)) return invalid("Lokatsiyani tanlang")
     const type = liveTaskType(member.companyId, body.type_id)
     if (!type) return invalid("Vazifa turini tanlang")

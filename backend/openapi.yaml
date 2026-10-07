@@ -3715,7 +3715,7 @@ components:
           $ref: "#/components/schemas/CustomerAnswers"
     TaskCreate:
       type: object
-      required: [type_id, title, deadline, stage_id, customer]
+      required: [type_id, location_id, title, deadline, stage_id, customer]
       properties:
         type_id:
           type: integer
@@ -3724,8 +3724,9 @@ components:
           type: integer
           format: int64
           description: >
-            Vazifa tushadigan lokatsiya: kompaniyaning jonli lokatsiyasi
-            (joriy lokatsiya). Berilmasa 400 "Lokatsiyani tanlang".
+            Vazifa tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya
+            (joriy lokatsiya; logic/locations.md, 6-bo'lim). Berilmasa 400
+            "Lokatsiyani tanlang", ruxsatsiz bo'lsa 403 forbidden.
         title:
           type: string
           maxLength: 200

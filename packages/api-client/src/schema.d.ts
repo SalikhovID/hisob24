@@ -1768,9 +1768,9 @@ export interface components {
             type_id: number;
             /**
              * Format: int64
-             * @description Vazifa tushadigan lokatsiya: kompaniyaning jonli lokatsiyasi (joriy lokatsiya). Berilmasa 400 "Lokatsiyani tanlang".
+             * @description Vazifa tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya (joriy lokatsiya; logic/locations.md, 6-bo'lim). Berilmasa 400 "Lokatsiyani tanlang", ruxsatsiz bo'lsa 403 forbidden.
              */
-            location_id?: number;
+            location_id: number;
             title: string;
             /**
              * Format: date
