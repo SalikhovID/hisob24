@@ -140,6 +140,23 @@ type MemberLocation struct {
 	LocationID int64
 }
 
+type Product struct {
+	ID            int64
+	CompanyID     int64
+	Kind          string
+	Name          string
+	Unit          *string
+	Sku           *string
+	Price         pgtype.Numeric
+	Note          *string
+	IsActive      bool
+	CreatedBy     string
+	CreatedByName *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserPhone string

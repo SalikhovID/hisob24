@@ -70,6 +70,8 @@ type Querier interface {
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
 	// How many tasks chose the option, in any field: one in use is not deleted.
 	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
+	// How many rows ListProducts finds under the same filter, on all of its pages.
+	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
 	// How many members hold the role: one that is held is not deleted.
 	CountRoleMembers(ctx context.Context, roleID *int64) (int64, error)
 	// How many tasks stand in the stage: one in use is not deleted. Deleted
@@ -102,6 +104,11 @@ type Querier interface {
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
+	// Enters a product (unit set) or a service (unit NULL). created_by_name is
+	// the name the member who enters it goes by in the company now: it stays
+	// when they leave. The name is one row's among the company's rows of the
+	// kind, the SKU one product's in the company (23505, whatever the case).
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	// company_id is the company the access tokens it refreshes are for; source
 	// is where the session began ('sms' or 'telegram').
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
@@ -156,6 +163,10 @@ type Querier interface {
 	// Drops a member's restriction: the locations it named. The member works in
 	// every location once all_locations is raised with it.
 	DeleteMemberLocations(ctx context.Context, arg DeleteMemberLocationsParams) error
+	// Hides the product or the service: nothing is removed, and its name and SKU
+	// are free again. pgx.ErrNoRows when the company has no such row, or
+	// deleted it already.
+	DeleteProduct(ctx context.Context, arg DeleteProductParams) (int64, error)
 	// Removes the company's role for good. A role someone holds is refused by
 	// the foreign key (23503); pgx.ErrNoRows when the company has none such.
 	DeleteRole(ctx context.Context, arg DeleteRoleParams) (int64, error)
@@ -226,6 +237,11 @@ type Querier interface {
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
 	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
+	// The company's product or service; pgx.ErrNoRows when it has none such, or
+	// deleted it. created_by_name is the name the member who entered it goes by
+	// in the company now; once they have left it (or go by no name), the name
+	// of then.
+	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
 	// The company's role with how many members hold it; pgx.ErrNoRows when the
 	// company has none such.
 	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
@@ -303,6 +319,11 @@ type Querier interface {
 	// restriction, the live ones among the restriction's otherwise; in the
 	// order they were added. Nothing for someone who is not a member.
 	ListMemberLocations(ctx context.Context, arg ListMemberLocationsParams) ([]ListMemberLocationsRow, error)
+	// A page of the company's products or services (kind), the active or the
+	// inactive ones (is_active), by name whatever the case, without the deleted.
+	// search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
+	// leaves it out.
+	ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error)
 	// The company's roles by name (whatever the case), each with how many
 	// members hold it.
 	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
@@ -421,6 +442,9 @@ type Querier interface {
 	// again (true). No row (pgx.ErrNoRows) for the owner, who is never
 	// restricted, and for someone who is not a member.
 	SetMemberAllLocations(ctx context.Context, arg SetMemberAllLocationsParams) (UserCompany, error)
+	// Turns a product or a service off (no longer offered) or on again.
+	// pgx.ErrNoRows when the company has no such row, or deleted it.
+	SetProductActive(ctx context.Context, arg SetProductActiveParams) (Product, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	// An edit: the customer's number as it is now, and the moment of the edit.
@@ -434,6 +458,10 @@ type Querier interface {
 	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
 	// type has no such field, or it is deleted.
 	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
+	// An edit: every field as it is now (NULL clears an optional one), and the
+	// moment of the edit. The kind stays. pgx.ErrNoRows when the company has no
+	// such row, or deleted it; 23505 when the name or the SKU is another's.
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	// Replaces a role's name and permissions. pgx.ErrNoRows when the company
 	// has no such role.
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
