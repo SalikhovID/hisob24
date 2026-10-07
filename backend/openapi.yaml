@@ -2215,13 +2215,14 @@ paths:
       summary: Vazifa qo'shish
       description: >
         Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi.
-        Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), turi, bosqichi va
+        Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi
+        (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va
         mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning
         maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki,
         faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari
         bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi:
-        nom, muddat, tur, bosqich, mas'ul, maydonlar, mijoz; birinchi xato
-        qaytadi (400 validation_error). Yangi mijozning takror telefoni
+        nom, muddat, lokatsiya, tur, bosqich, mas'ul, maydonlar, mijoz;
+        birinchi xato qaytadi (400 validation_error). Yangi mijozning takror telefoni
         (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken)
         409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham,
         mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
@@ -3401,7 +3402,7 @@ components:
             bo'lsa, biriktirilgan paytdagi ismi
     Task:
       type: object
-      required: [id, type_id, stage_id, title, deadline, customer, assignee, values, created_by_name, created_at, updated_at]
+      required: [id, type_id, stage_id, location_id, title, deadline, customer, assignee, values, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -3413,6 +3414,10 @@ components:
         stage_id:
           type: integer
           format: int64
+        location_id:
+          type: integer
+          format: int64
+          description: Vazifa turadigan lokatsiya (logic/locations.md); o'zgarmaydi
         title:
           type: string
         deadline:
@@ -3465,6 +3470,12 @@ components:
         type_id:
           type: integer
           format: int64
+        location_id:
+          type: integer
+          format: int64
+          description: >
+            Vazifa tushadigan lokatsiya: kompaniyaning jonli lokatsiyasi
+            (joriy lokatsiya). Berilmasa 400 "Lokatsiyani tanlang".
         title:
           type: string
           maxLength: 200

@@ -75,6 +75,16 @@ export interface RoleRow {
   permissions: Permission[]
 }
 
+// A location of a company (logic/locations.md): a task stands in one. A row
+// is never removed: deleted hides it. The order of the array is the order
+// the admin added them in.
+export interface LocationRow {
+  id: number
+  companyId: number
+  name: string
+  deleted?: boolean
+}
+
 // What a company's owner sets up for its customers. A row is never removed:
 // deleted hides it. The order of an array is the order on screen.
 export interface OptionRow {
@@ -171,15 +181,16 @@ export interface HistoryRow {
   changes: { label: string; old: string; new: string }[]
 }
 
-// A task of a company: of a type, in a stage, for a customer, due on a day
-// (YYYY-MM-DD), assigned to a member or nobody (assigneeName is the name
-// they went by when assigned). The values are the answers by the id of the
-// field. A deleted task is hidden, never removed.
+// A task of a company: of a type, in a stage, in a location, for a
+// customer, due on a day (YYYY-MM-DD), assigned to a member or nobody
+// (assigneeName is the name they went by when assigned). The values are the
+// answers by the id of the field. A deleted task is hidden, never removed.
 export interface TaskRow {
   id: number
   companyId: number
   typeId: number
   stageId: number
+  locationId: number
   customerId: number
   title: string
   deadline: string
@@ -209,6 +220,7 @@ interface Db {
   companies: Company[]
   members: Record<string, Membership[]>
   roles: RoleRow[]
+  locations: LocationRow[]
   dropdowns: DropdownRow[]
   types: TypeRow[]
   stages: StageRow[]
@@ -237,12 +249,14 @@ interface Db {
   contacts: Record<number, string>
 }
 
-// seedSettings is what the companies start with: the two ready customer
-// types, the three ready stages and the ready task type every company has
-// and, in Olma Savdo, a dropdown with a field that uses it.
-function seedSettings(companies: Company[]): Pick<Db, "dropdowns" | "types" | "stages" | "taskTypes" | "lastId"> {
+// seedSettings is what the companies start with: the ready location Asosiy,
+// the two ready customer types, the three ready stages and the ready task
+// type every company has and, in Olma Savdo, a dropdown with a field that
+// uses it.
+function seedSettings(companies: Company[]): Pick<Db, "locations" | "dropdowns" | "types" | "stages" | "taskTypes" | "lastId"> {
   let lastId = 0
   const next = () => (lastId += 1)
+  const locations = companies.map((company): LocationRow => ({ id: next(), companyId: company.id, name: "Asosiy" }))
   const text = (label: string): FieldRow => ({ id: next(), label, kind: "string", required: true, unique: false, dropdownId: null })
   const manba: DropdownRow = {
     id: next(),
@@ -279,7 +293,7 @@ function seedSettings(companies: Company[]): Pick<Db, "dropdowns" | "types" | "s
     { id: next(), companyId: company.id, name: "Bajarildi", color: "green", done: true },
   ])
   const taskTypes = companies.map((company): TaskTypeRow => ({ id: next(), companyId: company.id, name: "Vazifa", fields: [] }))
-  return { dropdowns: [manba], types, stages, taskTypes, lastId }
+  return { locations, dropdowns: [manba], types, stages, taskTypes, lastId }
 }
 
 function seed(): Db {
@@ -504,6 +518,12 @@ export function taskTypesOf(companyId: number): TaskType[] {
   return db.taskTypes.filter((t) => t.companyId === companyId && !t.deleted).map(toTaskType)
 }
 
+// liveLocations is a company's locations as they are now, without the
+// deleted, in the order they were added.
+export function liveLocations(companyId: number): LocationRow[] {
+  return db.locations.filter((l) => l.companyId === companyId && !l.deleted)
+}
+
 // seedCustomers enters the customers the pages are tested with into Olma
 // Savdo, the oldest first: Dilshod (a Jismoniy who came from Instagram,
 // entered by Vali), Anor Tekstil (a Yuridik, entered by Ali) and Malika (a
@@ -591,7 +611,8 @@ export function seedOrderType() {
 }
 
 // seedTasks enters the customers of seedCustomers, the type of seedOrderType
-// and the tasks the pages are tested with into Olma Savdo, with deadlines
+// and the tasks the pages are tested with into Olma Savdo, in its ready
+// location Asosiy, with deadlines
 // measured from the browser's day: "Eski buyurtma" (a Vazifa for Dilshod,
 // Bajarildi, five days late, assigned to Ali, entered by Ali), "Hisob-
 // faktura" (a Buyurtma for Malika, Yangi, two days late, nobody's, by
@@ -604,6 +625,7 @@ export function seedTasks() {
   const order = seedOrderType()
   const [yangi, jarayonda, bajarildi] = db.stages.filter((s) => s.companyId === 1)
   const [vazifa] = db.taskTypes.filter((t) => t.companyId === 1)
+  const [asosiy] = liveLocations(1)
   const [instagram, linkedin] = db.dropdowns[0].options
   const today = localToday()
   const enter = (
@@ -622,6 +644,7 @@ export function seedTasks() {
       companyId: 1,
       typeId,
       stageId,
+      locationId: asosiy.id,
       customerId,
       title,
       deadline,

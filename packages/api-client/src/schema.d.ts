@@ -1110,7 +1110,7 @@ export interface paths {
         put?: never;
         /**
          * Vazifa qo'shish
-         * @description Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, tur, bosqich, mas'ul, maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
+         * @description Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, lokatsiya, tur, bosqich, mas'ul, maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
          */
         post: operations["createTask"];
         delete?: never;
@@ -1621,6 +1621,11 @@ export interface components {
             type_id: number;
             /** Format: int64 */
             stage_id: number;
+            /**
+             * Format: int64
+             * @description Vazifa turadigan lokatsiya (logic/locations.md); o'zgarmaydi
+             */
+            location_id: number;
             title: string;
             /**
              * Format: date
@@ -1657,6 +1662,11 @@ export interface components {
         TaskCreate: {
             /** Format: int64 */
             type_id: number;
+            /**
+             * Format: int64
+             * @description Vazifa tushadigan lokatsiya: kompaniyaning jonli lokatsiyasi (joriy lokatsiya). Berilmasa 400 "Lokatsiyani tanlang".
+             */
+            location_id?: number;
             title: string;
             /**
              * Format: date

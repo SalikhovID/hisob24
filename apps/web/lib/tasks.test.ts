@@ -130,6 +130,7 @@ test("the form opens empty for a new task, in the stage it was opened for, and f
     id: 1,
     type_id: 7,
     stage_id: 13,
+    location_id: 1,
     title: "Qo'ng'iroq qilish",
     deadline: "2026-10-10",
     customer: { id: 42, phone: "998901112233", name: "Zarina Karimova" },

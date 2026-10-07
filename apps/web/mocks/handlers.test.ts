@@ -7,6 +7,7 @@ import { api, call } from "@/lib/api"
 import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type { CustomerFieldKind, Permission } from "@/lib/types"
 import { setAccessToken } from "@/lib/session"
+import { addLocation, asosiyOf } from "@/test/locations"
 import { chooseCompany, signIn } from "@/test/session"
 import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
 
@@ -991,6 +992,7 @@ test("a member enters a task for a customer that is there, or with a new one; wh
   expect(task).toMatchObject({
     type_id: s.buyurtma.id,
     stage_id: s.yangi.id,
+    location_id: asosiyOf(1).id,
     title: "Qo'ng'iroq qilish",
     deadline: "2026-10-10",
     customer: { id: s.ali.id, phone: "998901112233", name: "Ali Valiyev" },
@@ -1041,6 +1043,7 @@ test("a member enters a task for a customer that is there, or with a new one; wh
     [{ type_id: 999 }, "Vazifa turini tanlang"],
     [{ stage_id: 999 }, "Bosqichni tanlang"],
     [{ stage_id: nokStage }, "Bosqichni tanlang"],
+    [{ location_id: 999999 }, "Lokatsiyani tanlang"],
     [{ assignee_phone: "998907777777" }, "Mas'ul kompaniya a'zosi emas"],
     [{ values: { [s.izoh.id]: "X", [s.fish.id]: "Ali" } }, "Bu turda bunday maydon yo'q"],
     [{ values: {} }, "«Izoh» maydonini to'ldiring"],
@@ -1058,6 +1061,10 @@ test("a member enters a task for a customer that is there, or with a new one; wh
     expect(await failure(createTask(taskBody(s, over))), message).toMatchObject({ ...invalid, message })
   }
   expect(db.tasks).toHaveLength(2)
+  // The task stands in the location named; until the app names one, in the
+  // company's ready location (logic/locations.md, section 6).
+  const chilonzor = addLocation(1, "Chilonzor")
+  expect((await createTask(taskBody(s, { location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
 
   expect(await failure(getTask(999))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
   await chooseCompany(2)

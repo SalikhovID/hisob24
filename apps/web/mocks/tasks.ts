@@ -8,6 +8,7 @@ import {
   type Answer,
   customerNameOf,
   db,
+  liveLocations,
   nameIn,
   nextId,
   now,
@@ -42,6 +43,7 @@ export const toTask = (t: TaskRow): Task => {
     id: t.id,
     type_id: t.typeId,
     stage_id: t.stageId,
+    location_id: t.locationId,
     title: t.title,
     deadline: t.deadline,
     customer: { id: customer.id, phone: customer.phone, name: customerNameOf(customer) },
@@ -194,6 +196,7 @@ export const tasksHandlers = [
     if (member instanceof Response) return member
     const body = (await request.json()) as {
       type_id?: unknown
+      location_id?: unknown
       title?: unknown
       deadline?: unknown
       stage_id?: unknown
@@ -202,11 +205,16 @@ export const tasksHandlers = [
       customer?: unknown
     }
     // What is wrong is said in this order: the title, the deadline, the
-    // type, the stage, the assignee, the answers, the customer.
+    // location, the type, the stage, the assignee, the answers, the customer.
     const title = taskTitle(body.title)
     if (title instanceof Response) return title
     const deadline = taskDeadline(body.deadline)
     if (deadline instanceof Response) return deadline
+    // The task stands in the location named; until the app names one, in
+    // the company's ready location.
+    const location =
+      body.location_id === undefined ? liveLocations(member.companyId)[0] : liveLocations(member.companyId).find((l) => l.id === body.location_id)
+    if (!location) return invalid("Lokatsiyani tanlang")
     const type = liveTaskType(member.companyId, body.type_id)
     if (!type) return invalid("Vazifa turini tanlang")
     const stage = liveStage(member.companyId, body.stage_id)
@@ -230,6 +238,7 @@ export const tasksHandlers = [
       companyId: member.companyId,
       typeId: type.id,
       stageId: stage.id,
+      locationId: location.id,
       customerId,
       title,
       deadline,
