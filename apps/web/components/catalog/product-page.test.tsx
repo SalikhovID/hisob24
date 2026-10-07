@@ -131,3 +131,23 @@ test("a service opened by its id leads back to the services", async () => {
   expect(screen.queryByRole("region", { name: "Qoldiq" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Xaridlar" })).not.toBeInTheDocument()
 })
+
+test("an edit or a switch on the page keeps the stock on screen (the answer carries no stock)", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  await signIn(ALI)
+  const { user } = renderWithProviders(<ProductPage id={catalog.olma.id} />)
+  await screen.findByRole("heading", { level: 1, name: "Olma" })
+
+  await user.click(screen.getByRole("button", { name: "Tahrirlash" }))
+  const dialog = await screen.findByRole("dialog", { name: "Mahsulotni tahrirlash" })
+  await user.clear(within(dialog).getByLabelText("Nomi"))
+  await user.type(within(dialog).getByLabelText("Nomi"), "Qizil olma")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+  expect(await screen.findByRole("heading", { level: 1, name: "Qizil olma" })).toBeInTheDocument()
+  expect(stock()).toEqual({ Asosiy: "12,5 kg" })
+
+  await user.click(screen.getByRole("button", { name: "Nofaol qilish" }))
+  expect(await screen.findByRole("button", { name: "Faollashtirish" })).toBeInTheDocument()
+  expect(stock()).toEqual({ Asosiy: "12,5 kg" })
+})

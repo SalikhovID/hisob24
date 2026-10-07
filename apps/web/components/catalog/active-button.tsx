@@ -23,7 +23,9 @@ export function ActiveButton({ companyId, product, iconOnly = false }: { company
       call(api.PATCH("/app/products/{id}", { params: { path: { id: product.id } }, body: { is_active: !product.is_active } })),
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: productsKey(companyId) })
-      queryClient.setQueryData(productKey(companyId, product.id), saved)
+      // The page's product carries its stock, which the answer does not:
+      // the fields change, the stock stays.
+      queryClient.setQueryData<Product>(productKey(companyId, product.id), (old) => (old ? { ...old, ...saved } : old))
       toast.success(`${nounOf(product.kind)} ${saved.is_active ? "faollashtirildi" : "nofaol qilindi"}`)
     },
     onError: (error) => toast.error(error.message),

@@ -45,7 +45,9 @@ export function ProductDialog({ companyId, product, iconOnly = false }: { compan
         : call(api.POST("/app/products", { body: { kind: "product", ...fields } })),
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: productsKey(companyId) })
-      if (product) queryClient.setQueryData(productKey(companyId, product.id), saved)
+      // The page's product carries its stock, which the answer does not:
+      // the fields change, the stock stays.
+      if (product) queryClient.setQueryData<Product>(productKey(companyId, product.id), (old) => (old ? { ...old, ...saved } : old))
       toast.success(product ? "Mahsulot saqlandi" : "Mahsulot qo'shildi")
       setOpen(false)
     },
