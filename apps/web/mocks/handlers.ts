@@ -7,9 +7,9 @@ import { customersHandlers } from "./customers"
 import { rolesHandlers } from "./roles"
 import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
-import { api, bearer, fail, isMember, memberSession, normalizePhone, permittedSession, read, type Session } from "./gate"
+import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, permittedSession, read, type Session } from "./gate"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, db, join, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
+import { companiesOf, db, join, liveLocations, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
 
 function token(kind: "access" | "refresh", session: Session): string {
   db.issued += 1
@@ -218,6 +218,34 @@ export const handlers = [
     // Only the membership goes: the user and their other companies stay.
     db.members[phone] = db.members[phone].filter((m) => m !== membership)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  // The restriction of an employee to some locations is the owner's to set
+  // (logic/locations.md, section 5), under the Go API's rules
+  // (backend/internal/company/locations.go SetEmployeeLocations).
+  http.put(api("/app/employees/:phone/locations"), async ({ params, request }) => {
+    const owner = ownerSession(request)
+    if (owner instanceof Response) return owner
+    const phone = normalizePhone(String(params.phone))
+    if (!phone) return employeeNotFound()
+    const { location_ids: ids } = (await request.json()) as { location_ids?: unknown }
+    let chosen: number[] | null = null
+    if (ids !== null && ids !== undefined) {
+      if (!Array.isArray(ids) || ids.length === 0) return fail(400, "validation_error", "Kamida bitta lokatsiyani tanlang")
+      chosen = []
+      for (const id of ids as unknown[]) {
+        if (typeof id !== "number" || !liveLocations(owner.companyId).some((l) => l.id === id)) {
+          return fail(404, "not_found", "Lokatsiya topilmadi")
+        }
+        if (!chosen.includes(id)) chosen.push(id)
+      }
+    }
+    const membership = (db.members[phone] ?? []).find((m) => m.companyId === owner.companyId)
+    if (!membership) return employeeNotFound()
+    if (membership.role === "owner") return ownerProtected()
+    if (chosen === null) delete membership.locationIds
+    else membership.locationIds = chosen
+    return HttpResponse.json(membersOf(owner.companyId).find((m) => m.phone === phone))
   }),
 
   ...rolesHandlers,

@@ -96,6 +96,46 @@ test("/app/me tells the member's locations: the company's live ones, or the live
   expect((await call(api.GET("/app/me"))).locations).toEqual([{ id: asosiyOf(2).id, name: "Asosiy" }])
 })
 
+// The restriction is the owner's to set (logic/locations.md, section 5;
+// backend/internal/app/locations_test.go).
+const setLocations = (phone: string, ids: number[] | null) =>
+  call(api.PUT("/app/employees/{phone}/locations", { params: { path: { phone } }, body: { location_ids: ids } }))
+
+test("the owner restricts an employee to some locations, or lifts the restriction; it holds from the next request on", async () => {
+  db.cooldown = false
+  const asosiy = asosiyOf(1)
+  const chilonzor = addLocation(1, "Chilonzor")
+  const gone = addLocation(1, "Yopilgan")
+  gone.deleted = true
+  await signIn(ALI)
+
+  expect(await setLocations(VALI, [chilonzor.id, asosiy.id, chilonzor.id])).toMatchObject({
+    phone: VALI,
+    locations: [
+      { id: asosiy.id, name: "Asosiy" },
+      { id: chilonzor.id, name: "Chilonzor" },
+    ],
+  })
+  expect((await setLocations(VALI, [chilonzor.id])).locations).toEqual([{ id: chilonzor.id, name: "Chilonzor" }])
+  expect((await call(api.GET("/app/employees"))).find((m) => m.phone === VALI)?.locations).toEqual([{ id: chilonzor.id, name: "Chilonzor" }])
+  expect(await failure(setLocations(VALI, []))).toMatchObject({ status: 400, message: "Kamida bitta lokatsiyani tanlang" })
+  expect(await failure(setLocations(VALI, [gone.id]))).toMatchObject({ status: 404, message: "Lokatsiya topilmadi" })
+  expect(await failure(setLocations(VALI, [asosiyOf(2).id]))).toMatchObject({ status: 404, message: "Lokatsiya topilmadi" })
+  expect(await failure(setLocations(VALI, [999999]))).toMatchObject({ status: 404, message: "Lokatsiya topilmadi" })
+  expect(await failure(setLocations(ALI, [chilonzor.id]))).toMatchObject({ status: 409, code: "cannot_change_owner" })
+  expect(await failure(setLocations("998909999999", [chilonzor.id]))).toMatchObject({ status: 404, message: "Xodim topilmadi" })
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect((await call(api.GET("/app/me"))).locations).toEqual([{ id: chilonzor.id, name: "Chilonzor" }])
+  expect(await failure(setLocations(SARDOR, [chilonzor.id]))).toMatchObject({ status: 403, code: "owner_only" })
+  await chooseCompany(null)
+  expect(await failure(setLocations(SARDOR, [chilonzor.id]))).toMatchObject({ status: 403, code: "owner_only" })
+
+  await signIn(ALI)
+  expect((await setLocations(VALI, null)).locations).toBeNull()
+})
+
 test("the employees and the members tell each member's locations: null for every one, the restriction's otherwise", async () => {
   const chilonzor = addLocation(1, "Chilonzor")
   restrictTo(VALI, 1, [chilonzor.id])
