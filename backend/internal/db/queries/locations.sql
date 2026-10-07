@@ -85,3 +85,17 @@ SELECT EXISTS (
     WHERE uc.user_phone = sqlc.arg('user_phone') AND uc.company_id = sqlc.arg('company_id')
       AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
            WHERE ml.user_phone = uc.user_phone AND ml.company_id = uc.company_id AND ml.location_id = l.id)));
+
+-- name: SetMemberAllLocations :one
+-- Restricts a user of the company to some locations (false; the
+-- restriction's rows are written apart) or lets them work in every one
+-- again (true). No row (pgx.ErrNoRows) for the owner, who is never
+-- restricted, and for someone who is not a member.
+UPDATE user_companies SET all_locations = sqlc.arg('all_locations')
+WHERE user_phone = sqlc.arg('user_phone') AND company_id = sqlc.arg('company_id') AND role = 'user'
+RETURNING *;
+
+-- name: AddMemberLocation :exec
+-- Names a location in a member's restriction. The location has to be the
+-- company's own (23503), and is named once (23505).
+INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ($1, $2, $3);

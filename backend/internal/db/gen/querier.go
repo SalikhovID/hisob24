@@ -28,6 +28,9 @@ type Querier interface {
 	// One row of a customer's answers: a text, a whole number, or an option
 	// chosen. A choice of several options is a row for each.
 	AddCustomerValue(ctx context.Context, arg AddCustomerValueParams) error
+	// Names a location in a member's restriction. The location has to be the
+	// company's own (23503), and is named once (23505).
+	AddMemberLocation(ctx context.Context, arg AddMemberLocationParams) error
 	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
 	// company has no such type, or deleted it.
 	AddTaskField(ctx context.Context, arg AddTaskFieldParams) (TaskField, error)
@@ -413,6 +416,11 @@ type Querier interface {
 	// No row (pgx.ErrNoRows) for the owner, who holds no role, and for someone
 	// who is not a member.
 	SetCompanyUserRole(ctx context.Context, arg SetCompanyUserRoleParams) (UserCompany, error)
+	// Restricts a user of the company to some locations (false; the
+	// restriction's rows are written apart) or lets them work in every one
+	// again (true). No row (pgx.ErrNoRows) for the owner, who is never
+	// restricted, and for someone who is not a member.
+	SetMemberAllLocations(ctx context.Context, arg SetMemberAllLocationsParams) (UserCompany, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	// An edit: the customer's number as it is now, and the moment of the edit.

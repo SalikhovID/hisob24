@@ -273,3 +273,42 @@ func TestMemberInLocation(t *testing.T) {
 	assert.False(t, in("998905555555", asosiy), "not a member of the company")
 	assert.False(t, in("998901111111", noksAsosiy), "the owner works in the company's own locations alone")
 }
+
+func TestSetMemberAllLocations(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	addMember(t, q, olma.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, olma.ID, "998902222222", "Xodim", "user")
+
+	m, err := q.SetMemberAllLocations(ctx, gen.SetMemberAllLocationsParams{UserPhone: "998902222222", CompanyID: olma.ID, AllLocations: false})
+	require.NoError(t, err)
+	assert.False(t, m.AllLocations, "restricted")
+	m, err = q.SetMemberAllLocations(ctx, gen.SetMemberAllLocationsParams{UserPhone: "998902222222", CompanyID: olma.ID, AllLocations: true})
+	require.NoError(t, err)
+	assert.True(t, m.AllLocations, "every location again")
+
+	_, err = q.SetMemberAllLocations(ctx, gen.SetMemberAllLocationsParams{UserPhone: "998901111111", CompanyID: olma.ID, AllLocations: false})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "the owner is never restricted")
+	_, err = q.SetMemberAllLocations(ctx, gen.SetMemberAllLocationsParams{UserPhone: "998909999999", CompanyID: olma.ID, AllLocations: false})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
+}
+
+func TestAddMemberLocation(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma, nok := createCompany(t, q, "Olma", d), createCompany(t, q, "Nok", d)
+	asosiy, noksAsosiy := addLocation(t, pool, olma.ID, "Asosiy"), addLocation(t, pool, nok.ID, "Asosiy")
+	addMember(t, q, olma.ID, "998902222222", "Xodim", "user")
+
+	require.NoError(t, q.AddMemberLocation(ctx, gen.AddMemberLocationParams{UserPhone: "998902222222", CompanyID: olma.ID, LocationID: asosiy}))
+
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM member_locations WHERE user_phone = '998902222222' AND location_id = $1", asosiy).Scan(&rows))
+	assert.Equal(t, 1, rows)
+	err := q.AddMemberLocation(ctx, gen.AddMemberLocationParams{UserPhone: "998902222222", CompanyID: olma.ID, LocationID: asosiy})
+	assert.Equal(t, "23505", sqlState(err), "a location is in the restriction once") // unique_violation
+	err = q.AddMemberLocation(ctx, gen.AddMemberLocationParams{UserPhone: "998902222222", CompanyID: olma.ID, LocationID: noksAsosiy})
+	assert.Equal(t, "23503", sqlState(err), "another company's location") // foreign_key_violation
+}

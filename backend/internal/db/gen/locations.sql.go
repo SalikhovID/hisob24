@@ -10,6 +10,23 @@ import (
 	"time"
 )
 
+const addMemberLocation = `-- name: AddMemberLocation :exec
+INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ($1, $2, $3)
+`
+
+type AddMemberLocationParams struct {
+	UserPhone  string
+	CompanyID  int64
+	LocationID int64
+}
+
+// Names a location in a member's restriction. The location has to be the
+// company's own (23503), and is named once (23505).
+func (q *Queries) AddMemberLocation(ctx context.Context, arg AddMemberLocationParams) error {
+	_, err := q.db.Exec(ctx, addMemberLocation, arg.UserPhone, arg.CompanyID, arg.LocationID)
+	return err
+}
+
 const countLocationTasks = `-- name: CountLocationTasks :one
 SELECT count(*) FROM tasks WHERE location_id = $1 AND deleted_at IS NULL
 `
@@ -311,6 +328,37 @@ func (q *Queries) SeedLocation(ctx context.Context, companyID int64) (Location, 
 		&i.Name,
 		&i.CreatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const setMemberAllLocations = `-- name: SetMemberAllLocations :one
+UPDATE user_companies SET all_locations = $1
+WHERE user_phone = $2 AND company_id = $3 AND role = 'user'
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
+`
+
+type SetMemberAllLocationsParams struct {
+	AllLocations bool
+	UserPhone    string
+	CompanyID    int64
+}
+
+// Restricts a user of the company to some locations (false; the
+// restriction's rows are written apart) or lets them work in every one
+// again (true). No row (pgx.ErrNoRows) for the owner, who is never
+// restricted, and for someone who is not a member.
+func (q *Queries) SetMemberAllLocations(ctx context.Context, arg SetMemberAllLocationsParams) (UserCompany, error) {
+	row := q.db.QueryRow(ctx, setMemberAllLocations, arg.AllLocations, arg.UserPhone, arg.CompanyID)
+	var i UserCompany
+	err := row.Scan(
+		&i.UserPhone,
+		&i.CompanyID,
+		&i.Role,
+		&i.CreatedAt,
+		&i.FullName,
+		&i.RoleID,
+		&i.AllLocations,
 	)
 	return i, err
 }
