@@ -13,7 +13,7 @@ import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
 import { clearSession, setAccessToken } from "./session"
 import type { NavKey } from "./nav"
-import type { Location, Task, TaskPage } from "./types"
+import type { Location, ProductKind, Task, TaskPage } from "./types"
 
 export const meKey = ["me"] as const
 
@@ -379,6 +379,48 @@ export function useSwitchCompany() {
       setAccessToken(tokens.access_token)
       queryClient.removeQueries({ queryKey: meKey })
     },
+  })
+}
+
+// productsKey names a company's products and services in the cache,
+// whatever the filter: every list of them begins with it.
+export const productsKey = (companyId: number | null) => ["products", companyId] as const
+
+// ProductFilter narrows the catalog list: the kind, the active or the
+// inactive ones, a search and the page.
+export interface ProductFilter {
+  kind: ProductKind
+  status: "active" | "inactive"
+  search: string
+  page: number
+}
+
+// useProducts is a page of the products or the services of the company the
+// session works in, by name (logic/products.md, section 5). With companyId
+// null (not known yet) nothing is asked.
+export function useProducts(companyId: number | null, filter: ProductFilter) {
+  return useQuery({
+    queryKey: [...productsKey(companyId), filter],
+    queryFn: () =>
+      call(
+        api.GET("/app/products", {
+          params: { query: { kind: filter.kind, status: filter.status, search: filter.search || undefined, page: filter.page } },
+        }),
+      ),
+    enabled: companyId !== null,
+    // The list on screen stays while the next filter's answer is on its way.
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const productKey = (companyId: number | null, id: number) => ["product", companyId, id] as const
+
+// useProduct is one product or service of the company the session works in.
+export function useProduct(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: productKey(companyId, id),
+    queryFn: () => call(api.GET("/app/products/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null,
   })
 }
 

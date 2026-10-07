@@ -17,3 +17,17 @@ export function formatDateTime(value: string): string {
   const date = new Date(value)
   return `${formatDate(value)} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
+
+// formatAmount writes a stored amount ("150000.50") for people to read:
+// thousands apart by a no-break space, the decimals after a comma as the
+// database writes them, and left out when they are all zero ("12000.00").
+export function formatAmount(amount: string): string {
+  const [whole, decimals = ""] = amount.split(".")
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+  return /^0*$/.test(decimals) ? grouped : `${grouped},${decimals}`
+}
+
+// unitLabel is a unit's name on screen: its code, but m2 as m².
+export function unitLabel(unit: string): string {
+  return unit === "m2" ? "m²" : unit
+}
