@@ -10,13 +10,14 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-// Detail is a company with its users.
+// Detail is a company with its users and its locations.
 type Detail struct {
 	Company
-	Users []Member
+	Users     []Member
+	Locations []AdminLocation
 }
 
-// Get returns a company and its users.
+// Get returns a company with its users and its locations.
 func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 	c, err := s.q.GetCompany(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -29,11 +30,15 @@ func (s *Service) Get(ctx context.Context, id int64) (Detail, error) {
 	if err != nil {
 		return Detail{}, err
 	}
+	locations, err := s.Locations(ctx, id)
+	if err != nil {
+		return Detail{}, err
+	}
 	today, err := s.q.CurrentDate(ctx)
 	if err != nil {
 		return Detail{}, err
 	}
-	return Detail{Company: withDaysLeft(c, today), Users: users}, nil
+	return Detail{Company: withDaysLeft(c, today), Users: users, Locations: locations}, nil
 }
 
 // Update changes the name and the active flag; a nil argument keeps the

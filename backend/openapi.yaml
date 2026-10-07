@@ -273,6 +273,96 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/companies/{id}/locations:
+    parameters:
+      - $ref: "#/components/parameters/CompanyID"
+    post:
+      operationId: addLocation
+      summary: Kompaniyaga lokatsiya qo'shish
+      description: >
+        Kompaniyaning lokatsiyalari (filiallari) admin paneldan qo'shiladi
+        (logic/locations.md, 3-bo'lim). Nom 1–60 belgi, chetidagi
+        bo'shliqlar olib tashlanadi, kompaniyada takrorlanmaydi
+        (katta-kichik harf farqsiz; o'chirilgan lokatsiyaning nomi bo'sh).
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "201":
+          description: Qo'shilgan lokatsiya
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLocation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/LocationConflict"
+  /admin/companies/{id}/locations/{locationId}:
+    parameters:
+      - $ref: "#/components/parameters/CompanyID"
+      - name: locationId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: renameLocation
+      summary: Lokatsiya nomini o'zgartirish
+      description: Nom qoidalari qo'shishdagidek. Boshqa kompaniyaniki yoki o'chirilgan lokatsiya topilmaydi.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "200":
+          description: Lokatsiya, yangi nomi bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLocation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/LocationNotFound"
+        "409":
+          $ref: "#/components/responses/LocationConflict"
+    delete:
+      operationId: deleteLocation
+      summary: Lokatsiyani o'chirish
+      description: >
+        Lokatsiya yashiriladi (bazadan o'chmaydi), nomi bo'shaydi.
+        Kompaniyaning yagona lokatsiyasi (last_location) va faol vazifasi
+        bor lokatsiya (location_in_use; o'chirilgan vazifalar sanalmaydi)
+        o'chirilmaydi, shu tartibda tekshiriladi. Xodimlarning cheklovlariga
+        tegilmaydi (logic/locations.md, 5-bo'lim).
+      security:
+        - adminSession: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/LocationNotFound"
+        "409":
+          $ref: "#/components/responses/LocationConflict"
   /admin/companies/{id}/billings:
     parameters:
       - $ref: "#/components/parameters/CompanyID"
@@ -2479,6 +2569,22 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    LocationNotFound:
+      description: Kompaniyada bunday lokatsiya yo'q (not_found, "Lokatsiya topilmadi")
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    LocationConflict:
+      description: >
+        Bu nomli lokatsiya bor (name_taken, "Bu nomli lokatsiya allaqachon
+        bor"); kompaniyaning yagona lokatsiyasi (last_location,
+        "Kompaniyaning yagona lokatsiyasi o'chirilmaydi"); faol vazifasi bor
+        lokatsiya (location_in_use, "Bu lokatsiyada N ta vazifa bor")
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     CannotChangeOwner:
       description: >
         Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi
@@ -2695,12 +2801,17 @@ components:
       allOf:
         - $ref: "#/components/schemas/Company"
         - type: object
-          required: [users]
+          required: [users, locations]
           properties:
             users:
               type: array
               items:
                 $ref: "#/components/schemas/Member"
+            locations:
+              type: array
+              description: Kompaniyaning jonli lokatsiyalari, qo'shilish tartibida (logic/locations.md)
+              items:
+                $ref: "#/components/schemas/AdminLocation"
     CompanyPage:
       type: object
       required: [items, total, page, page_size]
@@ -2840,6 +2951,31 @@ components:
         created_at:
           type: string
           format: date-time
+    AdminLocation:
+      type: object
+      description: Lokatsiya, admin panel ko'radigan ko'rinishda
+      required: [id, name, tasks_count, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tasks_count:
+          type: integer
+          format: int64
+          description: Shu lokatsiyada turgan faol vazifalar soni (o'chirilganlar sanalmaydi)
+        created_at:
+          type: string
+          format: date-time
+    LocationInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
     CreateCompany:
       type: object
       required: [name, end_date, owner_phone, owner_full_name]

@@ -86,7 +86,84 @@ func (h *Handler) getCompany(w http.ResponseWriter, r *http.Request) {
 	for _, m := range d.Users {
 		users = append(users, toMemberJSON(m))
 	}
-	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users})
+	locations := make([]adminLocationJSON, 0, len(d.Locations))
+	for _, l := range d.Locations {
+		locations = append(locations, toAdminLocationJSON(l))
+	}
+	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users, Locations: locations})
+}
+
+// locationID reads {locationId}; anything but a positive number is a
+// missing location.
+func locationID(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "locationId"), 10, 64)
+	if err != nil || id <= 0 {
+		httpx.Error(w, http.StatusNotFound, "not_found", "Lokatsiya topilmadi")
+		return 0, false
+	}
+	return id, true
+}
+
+// addLocation adds a location to the company.
+func (h *Handler) addLocation(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	var body struct {
+		Name string `json:"name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	l, err := h.companies.AddLocation(r.Context(), id, body.Name)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toAdminLocationJSON(l))
+}
+
+// renameLocation renames a location of the company.
+func (h *Handler) renameLocation(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	lid, ok := locationID(w, r)
+	if !ok {
+		return
+	}
+	var body struct {
+		Name string `json:"name"`
+	}
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	l, err := h.companies.RenameLocation(r.Context(), id, lid, body.Name)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toAdminLocationJSON(l))
+}
+
+// deleteLocation hides a location of the company: neither its last one nor
+// one a task stands in.
+func (h *Handler) deleteLocation(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	lid, ok := locationID(w, r)
+	if !ok {
+		return
+	}
+	if err := h.companies.DeleteLocation(r.Context(), id, lid); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) patchCompany(w http.ResponseWriter, r *http.Request) {

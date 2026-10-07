@@ -164,6 +164,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/companies/{id}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kompaniyaga lokatsiya qo'shish
+         * @description Kompaniyaning lokatsiyalari (filiallari) admin paneldan qo'shiladi (logic/locations.md, 3-bo'lim). Nom 1–60 belgi, chetidagi bo'shliqlar olib tashlanadi, kompaniyada takrorlanmaydi (katta-kichik harf farqsiz; o'chirilgan lokatsiyaning nomi bo'sh).
+         */
+        post: operations["addLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/companies/{id}/locations/{locationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+                locationId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Lokatsiyani o'chirish
+         * @description Lokatsiya yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Kompaniyaning yagona lokatsiyasi (last_location) va faol vazifasi bor lokatsiya (location_in_use; o'chirilgan vazifalar sanalmaydi) o'chirilmaydi, shu tartibda tekshiriladi. Xodimlarning cheklovlariga tegilmaydi (logic/locations.md, 5-bo'lim).
+         */
+        delete: operations["deleteLocation"];
+        options?: never;
+        head?: never;
+        /**
+         * Lokatsiya nomini o'zgartirish
+         * @description Nom qoidalari qo'shishdagidek. Boshqa kompaniyaniki yoki o'chirilgan lokatsiya topilmaydi.
+         */
+        patch: operations["renameLocation"];
+        trace?: never;
+    };
     "/admin/companies/{id}/billings": {
         parameters: {
             query?: never;
@@ -1234,6 +1283,8 @@ export interface components {
         };
         CompanyDetail: components["schemas"]["Company"] & {
             users: components["schemas"]["Member"][];
+            /** @description Kompaniyaning jonli lokatsiyalari, qo'shilish tartibida (logic/locations.md) */
+            locations: components["schemas"]["AdminLocation"][];
         };
         CompanyPage: {
             items: components["schemas"]["Company"][];
@@ -1301,6 +1352,22 @@ export interface components {
             is_active: boolean;
             /** Format: date-time */
             created_at: string;
+        };
+        /** @description Lokatsiya, admin panel ko'radigan ko'rinishda */
+        AdminLocation: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /**
+             * Format: int64
+             * @description Shu lokatsiyada turgan faol vazifalar soni (o'chirilganlar sanalmaydi)
+             */
+            tasks_count: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        LocationInput: {
+            name: string;
         };
         CreateCompany: {
             name: string;
@@ -1769,6 +1836,24 @@ export interface components {
         };
         /** @description Bunday raqam shu kompaniyaning a'zosi emas (not_found) */
         EmployeeNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Kompaniyada bunday lokatsiya yo'q (not_found, "Lokatsiya topilmadi") */
+        LocationNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Bu nomli lokatsiya bor (name_taken, "Bu nomli lokatsiya allaqachon bor"); kompaniyaning yagona lokatsiyasi (last_location, "Kompaniyaning yagona lokatsiyasi o'chirilmaydi"); faol vazifasi bor lokatsiya (location_in_use, "Bu lokatsiyada N ta vazifa bor") */
+        LocationConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2253,6 +2338,91 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    addLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan lokatsiya */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLocation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["LocationConflict"];
+        };
+    };
+    deleteLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+                locationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["LocationNotFound"];
+            409: components["responses"]["LocationConflict"];
+        };
+    };
+    renameLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+                locationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationInput"];
+            };
+        };
+        responses: {
+            /** @description Lokatsiya, yangi nomi bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLocation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["LocationNotFound"];
+            409: components["responses"]["LocationConflict"];
         };
     };
     listBillings: {

@@ -68,9 +68,22 @@ func toMemberJSON(m company.Member) memberJSON {
 	return body
 }
 
+// adminLocationJSON is a location as the admin panel lists it.
+type adminLocationJSON struct {
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	TasksCount int64     `json:"tasks_count"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func toAdminLocationJSON(l company.AdminLocation) adminLocationJSON {
+	return adminLocationJSON{ID: l.ID, Name: l.Name, TasksCount: l.TasksCount, CreatedAt: l.CreatedAt}
+}
+
 type detailJSON struct {
 	companyJSON
-	Users []memberJSON `json:"users"`
+	Users     []memberJSON        `json:"users"`
+	Locations []adminLocationJSON `json:"locations"`
 }
 
 type billingJSON struct {

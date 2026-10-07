@@ -99,6 +99,13 @@ func TestGetCompany(t *testing.T) {
 	assert.Nil(t, owner["role_name"], "the owner holds none")
 	assert.Contains(t, owner, "locations", "and the locations they may work in")
 	assert.Nil(t, owner["locations"], "every one: null")
+	locations, _ := body["locations"].([]any)
+	require.Len(t, locations, 1, "the company's locations: the ready one")
+	asosiy, _ := locations[0].(map[string]any)
+	assert.NotEmpty(t, asosiy["id"])
+	assert.Equal(t, "Asosiy", asosiy["name"])
+	assert.EqualValues(t, 0, asosiy["tasks_count"], "with how many tasks stand in it")
+	assert.NotEmpty(t, asosiy["created_at"])
 
 	rec = api.do(t, http.MethodGet, "/admin/companies/999999", "", cookie)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
@@ -162,4 +169,94 @@ func TestReplaceCompanyOwner(t *testing.T) {
 	assert.JSONEq(t, `{"error":"not_found","message":"Kompaniya topilmadi"}`, rec.Body.String())
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPut, path, `{"phone":"998903334455","full_name":"Ism"}`).Code,
 		"needs a session")
+}
+
+// locationsOf reads the company's locations as "name (N)".
+func (api testAPI) locationsOf(t *testing.T, cookie *http.Cookie, id string) []string {
+	t.Helper()
+	rec := api.do(t, http.MethodGet, "/admin/companies/"+id, "", cookie)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	raw, _ := decode(t, rec)["locations"].([]any)
+	list := make([]string, 0, len(raw))
+	for _, l := range raw {
+		location, _ := l.(map[string]any)
+		list = append(list, fmt.Sprintf("%s (%.0f)", location["name"], location["tasks_count"]))
+	}
+	return list
+}
+
+// addTask enters a task of the company in the location, as the user app
+// would, for a customer entered with it; the company's ready settings are
+// used.
+func (api testAPI) addTask(t *testing.T, companyID string, locationID any) {
+	t.Helper()
+	_, err := api.pool.Exec(t.Context(), `WITH c AS (
+		INSERT INTO customers (company_id, type_id, phone, created_by)
+		SELECT $1, id, '998901234567', '998901234567' FROM customer_types WHERE company_id = $1 LIMIT 1 RETURNING id)
+		INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		SELECT $1, (SELECT id FROM task_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM task_stages WHERE company_id = $1 LIMIT 1),
+		       c.id, $2, 'Qo''ng''iroq', CURRENT_DATE, '998901234567' FROM c`, companyID, locationID)
+	require.NoError(t, err)
+}
+
+func TestLocations(t *testing.T) {
+	api := newTestAPI(t, true)
+	cookie := api.login(t)
+	id := api.createCompany(t, cookie, "Olma", dbToday(t, api.pool))
+	nok := api.createCompany(t, cookie, "Nok", dbToday(t, api.pool))
+	path := "/admin/companies/" + id + "/locations"
+
+	rec := api.do(t, http.MethodPost, path, `{"name":"  Chilonzor "}`, cookie)
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	chilonzor := decode(t, rec)
+	assert.Equal(t, "Chilonzor", chilonzor["name"], "the name without the spaces around it")
+	assert.NotEmpty(t, chilonzor["id"])
+	assert.EqualValues(t, 0, chilonzor["tasks_count"])
+	assert.NotEmpty(t, chilonzor["created_at"])
+	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (0)"}, api.locationsOf(t, cookie, id), "in the order they were added")
+
+	rec = api.do(t, http.MethodPost, path, `{"name":" "}`, cookie)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Nomni kiriting"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, path, `{"name":"chilonzor"}`, cookie)
+	assert.Equal(t, http.StatusConflict, rec.Code, "the name is taken, whatever the case")
+	assert.JSONEq(t, `{"error":"name_taken","message":"Bu nomli lokatsiya allaqachon bor"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/admin/companies/999999/locations", `{"name":"X"}`, cookie)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, `{"error":"not_found","message":"Kompaniya topilmadi"}`, rec.Body.String())
+	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPost, path, `{"name":`, cookie).Code, "not JSON")
+
+	one := fmt.Sprintf("%s/%.0f", path, chilonzor["id"])
+	rec = api.do(t, http.MethodPatch, one, `{"name":" Chilonzor filiali "}`, cookie)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "Chilonzor filiali", decode(t, rec)["name"])
+	rec = api.do(t, http.MethodPatch, one, `{"name":"asosiy"}`, cookie)
+	assert.Equal(t, http.StatusConflict, rec.Code, "another location's name")
+	rec = api.do(t, http.MethodPatch, path+"/999999", `{"name":"X"}`, cookie)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, `{"error":"not_found","message":"Lokatsiya topilmadi"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPatch, "/admin/companies/"+nok+"/locations/"+fmt.Sprintf("%.0f", chilonzor["id"]), `{"name":"X"}`, cookie)
+	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's location")
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPatch, path+"/abc", `{"name":"X"}`, cookie).Code, "an id that is no number")
+
+	asosiy := fmt.Sprintf("%s/%.0f", path, decode(t, api.do(t, http.MethodGet, "/admin/companies/"+id, "", cookie))["locations"].([]any)[0].(map[string]any)["id"])
+	api.addTask(t, id, chilonzor["id"])
+	rec = api.do(t, http.MethodDelete, one, "", cookie)
+	assert.Equal(t, http.StatusConflict, rec.Code, "a task stands in it")
+	assert.JSONEq(t, `{"error":"location_in_use","message":"Bu lokatsiyada 1 ta vazifa bor"}`, rec.Body.String())
+	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor filiali (1)"}, api.locationsOf(t, cookie, id), "the count on the list")
+	_, err := api.pool.Exec(t.Context(), "UPDATE tasks SET deleted_at = now()")
+	require.NoError(t, err)
+	rec = api.do(t, http.MethodDelete, one, "", cookie)
+	assert.Equal(t, http.StatusNoContent, rec.Code, "the deleted task does not hold it: %s", rec.Body.String())
+	assert.Equal(t, []string{"Asosiy (0)"}, api.locationsOf(t, cookie, id), "hidden")
+	rec = api.do(t, http.MethodDelete, asosiy, "", cookie)
+	assert.Equal(t, http.StatusConflict, rec.Code, "the company's only location")
+	assert.JSONEq(t, `{"error":"last_location","message":"Kompaniyaning yagona lokatsiyasi o'chirilmaydi"}`, rec.Body.String())
+	rec = api.do(t, http.MethodDelete, one, "", cookie)
+	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
+
+	for _, r := range []struct{ method, path string }{{http.MethodPost, path}, {http.MethodPatch, one}, {http.MethodDelete, one}} {
+		assert.Equal(t, http.StatusUnauthorized, api.do(t, r.method, r.path, `{"name":"X"}`).Code, "%s without a session", r.method)
+	}
 }

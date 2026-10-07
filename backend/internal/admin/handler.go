@@ -55,6 +55,10 @@ func (h *Handler) Routes(r chi.Router) {
 			r.Get("/companies/{id}", h.getCompany)
 			r.Patch("/companies/{id}", h.patchCompany)
 			r.Put("/companies/{id}/owner", h.replaceCompanyOwner)
+			// The company's locations (logic/locations.md, section 3).
+			r.Post("/companies/{id}/locations", h.addLocation)
+			r.Patch("/companies/{id}/locations/{locationId}", h.renameLocation)
+			r.Delete("/companies/{id}/locations/{locationId}", h.deleteLocation)
 			r.Get("/companies/{id}/billings", h.listBillings)
 			r.Post("/companies/{id}/billings", h.createBilling)
 			r.Get("/admins", h.listAdmins)
