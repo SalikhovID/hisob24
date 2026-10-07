@@ -1006,3 +1006,146 @@ func TestTheNavOrderMigrationDownRemovesTheColumn(t *testing.T) {
 	_, err = pool.Exec(ctx, "SELECT nav_order FROM user_companies")
 	assert.Equal(t, "42703", sqlState(err), "undefined_column")
 }
+
+// warehouseFixture is a company with a user, a location, a supplier and a
+// product: what a purchase needs.
+type warehouseFixture struct {
+	company, location, supplier, product int64
+}
+
+func addWarehouseFixture(t *testing.T, pool *pgxpool.Pool, company string) warehouseFixture {
+	t.Helper()
+	ctx := t.Context()
+	f := warehouseFixture{company: addCompany(t, pool, company)}
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111') ON CONFLICT DO NOTHING")
+	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO locations (company_id, name) VALUES ($1, 'Asosiy') RETURNING id", f.company).Scan(&f.location))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO suppliers (company_id, name, created_by) VALUES ($1, 'Bozor', '998901111111') RETURNING id", f.company).Scan(&f.supplier))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO products (company_id, kind, name, unit, created_by) VALUES ($1, 'product', 'Olma', 'kg', '998901111111') RETURNING id", f.company).Scan(&f.product))
+	return f
+}
+
+func TestSuppliersAreACompanysWithTheirOwnNames(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addWarehouseFixture(t, pool, "Olma")
+	nok := addWarehouseFixture(t, pool, "Nok")
+	insert := func(companyID int64, name string, phone *string) error {
+		_, err := pool.Exec(ctx, "INSERT INTO suppliers (company_id, name, phone, created_by) VALUES ($1, $2, $3, '998901111111')", companyID, name, phone)
+		return err
+	}
+	str := func(s string) *string { return &s }
+
+	// Both fixtures hold a Bozor already: a new name tells the rules apart.
+	require.NoError(t, insert(olma.company, "Do'kon", nil))
+	assert.Equal(t, "23505", sqlState(insert(olma.company, "DO'KON", nil)), "the name is taken, whatever the case")
+	require.NoError(t, insert(nok.company, "Do'kon", str("998901234567")), "another company has its own names")
+	assert.Equal(t, "23514", sqlState(insert(olma.company, "Rasta", str("+998901234567"))), "a phone is 998 and nine digits")
+	_, err := pool.Exec(ctx, "UPDATE suppliers SET deleted_at = now() WHERE id = $1", olma.supplier)
+	require.NoError(t, err)
+	require.NoError(t, insert(olma.company, "Bozor", nil), "a deleted supplier's name is free")
+	var active bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT is_active FROM suppliers WHERE id = $1", nok.supplier).Scan(&active))
+	assert.True(t, active, "a supplier starts active")
+}
+
+func TestPurchasesAreNumberedInTheCompanyAndStandInItsLocations(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addWarehouseFixture(t, pool, "Olma")
+	nok := addWarehouseFixture(t, pool, "Nok")
+	insert := func(f warehouseFixture, number int, locationID, supplierID int64) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, created_by)
+			VALUES ($1, $2, $3, $4, '2026-10-07', '998901111111') RETURNING id`, f.company, number, locationID, supplierID).Scan(&id)
+		return id, err
+	}
+
+	first, err := insert(olma, 1, olma.location, olma.supplier)
+	require.NoError(t, err)
+	_, err = insert(olma, 1, olma.location, olma.supplier)
+	assert.Equal(t, "23505", sqlState(err), "a number is one purchase's in the company")
+	_, err = insert(nok, 1, nok.location, nok.supplier)
+	require.NoError(t, err, "another company counts its own")
+	_, err = insert(olma, 2, nok.location, olma.supplier)
+	assert.Equal(t, "23503", sqlState(err), "the location is the company's")
+	_, err = insert(olma, 2, olma.location, nok.supplier)
+	assert.Equal(t, "23503", sqlState(err), "the supplier is the company's")
+	var total string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT total::text FROM purchases WHERE id = $1", first).Scan(&total))
+	assert.Equal(t, "0.00", total, "a purchase starts with no total")
+
+	item := func(purchaseID, productID int64, quantity, price string) error {
+		_, err := pool.Exec(ctx, "INSERT INTO purchase_items (purchase_id, product_id, quantity, price, position) VALUES ($1, $2, $3::numeric, $4::numeric, 1)", purchaseID, productID, quantity, price)
+		return err
+	}
+	require.NoError(t, item(first, olma.product, "12.5", "1000"))
+	assert.Equal(t, "23505", sqlState(item(first, olma.product, "1", "1000")), "a product once in a purchase")
+	assert.Equal(t, "23514", sqlState(item(first, nok.product, "0", "1000")), "a quantity above zero")
+	assert.Equal(t, "23514", sqlState(item(first, nok.product, "1", "-1")), "a price not below zero")
+	var quantity string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT quantity::text FROM purchase_items WHERE purchase_id = $1", first).Scan(&quantity))
+	assert.Equal(t, "12.500", quantity, "three decimals, as the column keeps it")
+}
+
+func TestStockIsALocationsAndNeverBelowZero(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addWarehouseFixture(t, pool, "Olma")
+	nok := addWarehouseFixture(t, pool, "Nok")
+	insert := func(companyID, locationID, productID int64, quantity string) error {
+		_, err := pool.Exec(ctx, "INSERT INTO stock (company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4::numeric)", companyID, locationID, productID, quantity)
+		return err
+	}
+
+	require.NoError(t, insert(olma.company, olma.location, olma.product, "0"))
+	assert.Equal(t, "23505", sqlState(insert(olma.company, olma.location, olma.product, "1")), "one row per location and product")
+	assert.Equal(t, "23514", sqlState(insert(nok.company, nok.location, nok.product, "-1")), "stock is never below zero")
+	assert.Equal(t, "23503", sqlState(insert(olma.company, nok.location, olma.product, "1")), "the location is the company's")
+	assert.Equal(t, "23503", sqlState(insert(olma.company, olma.location, nok.product, "1")), "the product is the company's")
+	var pgErr *pgconn.PgError
+	require.ErrorAs(t, insert(nok.company, nok.location, nok.product, "-1"), &pgErr)
+	assert.Equal(t, "stock_quantity_check", pgErr.ConstraintName, "the service tells the refusal by this name")
+}
+
+func TestAPaymentIsASuppliersAndAPurchaseHoldsOne(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addWarehouseFixture(t, pool, "Olma")
+	nok := addWarehouseFixture(t, pool, "Nok")
+	var purchase int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, created_by)
+		VALUES ($1, 1, $2, $3, '2026-10-07', '998901111111') RETURNING id`, olma.company, olma.location, olma.supplier).Scan(&purchase))
+	insert := func(companyID, supplierID int64, purchaseID *int64, amount string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx, `INSERT INTO supplier_payments (company_id, supplier_id, purchase_id, amount, paid_on, created_by)
+			VALUES ($1, $2, $3, $4::numeric, '2026-10-07', '998901111111') RETURNING id`, companyID, supplierID, purchaseID, amount).Scan(&id)
+		return id, err
+	}
+
+	linked, err := insert(olma.company, olma.supplier, &purchase, "5000")
+	require.NoError(t, err)
+	_, err = insert(olma.company, olma.supplier, &purchase, "1")
+	assert.Equal(t, "23505", sqlState(err), "a purchase holds one live payment")
+	_, err = pool.Exec(ctx, "UPDATE supplier_payments SET deleted_at = now() WHERE id = $1", linked)
+	require.NoError(t, err)
+	_, err = insert(olma.company, olma.supplier, &purchase, "1")
+	require.NoError(t, err, "a deleted one does not count")
+	_, err = insert(olma.company, olma.supplier, nil, "0")
+	assert.Equal(t, "23514", sqlState(err), "an amount above zero")
+	_, err = insert(olma.company, nok.supplier, nil, "1")
+	assert.Equal(t, "23503", sqlState(err), "the supplier is the company's")
+}
+
+func TestTheWarehouseMigrationDownRemovesItsTables(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+
+	_, err := newProvider(t, pool).DownTo(ctx, 12)
+	require.NoError(t, err)
+
+	for _, table := range []string{"supplier_payments", "stock", "purchase_items", "purchases", "suppliers"} {
+		_, err = pool.Exec(ctx, "SELECT 1 FROM "+table)
+		assert.Equal(t, "42P01", sqlState(err), table)
+	}
+}
