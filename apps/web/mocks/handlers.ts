@@ -9,6 +9,7 @@ import { rolesHandlers } from "./roles"
 import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, permittedSession, read, type Session } from "./gate"
+import { navKeys } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
 import { companiesOf, db, join, liveLocations, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
 
@@ -42,6 +43,25 @@ function presentedRefresh(request: Request): string | null {
 const employeeNotFound = () => fail(404, "not_found", "Xodim topilmadi")
 const ownerProtected = () =>
   fail(409, "cannot_change_owner", "Kompaniya egasini o'zgartirib yoki o'chirib bo'lmaydi")
+
+// meOf is what /app/me answers for a session: the user under the name they
+// go by in the company, the company and all of theirs, what they may do,
+// the locations they may work in and their own order of the menu there.
+function meOf(user: Session) {
+  const companies = companiesOf(user.phone)
+  const membership = user.companyId === null ? undefined : db.members[user.phone]?.find((m) => m.companyId === user.companyId)
+  return {
+    user: { phone: user.phone, full_name: nameIn(user.phone, user.companyId) },
+    company: companies.find((c) => c.id === user.companyId) ?? null,
+    companies,
+    // What the user may do in the company, as it is now; nothing before a choice.
+    permissions: user.companyId === null ? [] : permissionsOf(user.phone, user.companyId),
+    // And the locations they may work in there.
+    locations: user.companyId === null ? [] : locationsOf(user.phone, user.companyId),
+    // And the order of the menu they set there, null for the default.
+    nav_order: membership?.navOrder ?? null,
+  }
+}
 
 // maySignIn is the API's rule for who gets in: a member of at least one
 // company. A phone in no company gets no code and no session.
@@ -153,16 +173,25 @@ export const handlers = [
       const company = db.companies.find((c) => c.id === user.companyId)
       if (!company || !paidUp(company)) return fail(402, "subscription_expired", "Kompaniya obunasi tugagan")
     }
-    const companies = companiesOf(user.phone)
-    return HttpResponse.json({
-      user: { phone: user.phone, full_name: nameIn(user.phone, user.companyId) },
-      company: companies.find((c) => c.id === user.companyId) ?? null,
-      companies,
-      // What the user may do in the company, as it is now; nothing before a choice.
-      permissions: user.companyId === null ? [] : permissionsOf(user.phone, user.companyId),
-      // And the locations they may work in there.
-      locations: user.companyId === null ? [] : locationsOf(user.phone, user.companyId),
-    })
+    return HttpResponse.json(meOf(user))
+  }),
+
+  // The member's own order of the menu in the company (logic/roles.md,
+  // section 8): the keys from the list, a repeated one once; null drops it.
+  http.put(api("/app/me/nav"), async ({ request }) => {
+    const member = memberSession(request)
+    if (member instanceof Response) return member
+    const { sections } = (await request.json()) as { sections?: unknown }
+    const membership = db.members[member.phone].find((m) => m.companyId === member.companyId)!
+    if (sections === null || sections === undefined) {
+      delete membership.navOrder
+    } else {
+      if (!Array.isArray(sections) || sections.some((key) => !(navKeys as string[]).includes(key as string))) {
+        return fail(400, "validation_error", "Bo'lim noto'g'ri")
+      }
+      membership.navOrder = [...new Set(sections as string[])]
+    }
+    return HttpResponse.json(meOf({ phone: member.phone, companyId: member.companyId }))
   }),
 
   http.get(api("/app/employees"), ({ request }) => {

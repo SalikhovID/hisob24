@@ -1,7 +1,8 @@
 "use client"
 
-import { ArrowLeftRightIcon, LogOutIcon, UserIcon } from "lucide-react"
+import { ArrowLeftRightIcon, LogOutIcon, SlidersHorizontalIcon, UserIcon } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 import { useMiniApp } from "@/lib/telegram"
 import { LocationSwitcher } from "./location-switcher"
+import { NavOrderDialog } from "./nav-order-dialog"
 
 // Topbar is the bar above every page of the app: on a phone what heads the
 // sidebar, Hisob24's logo over the company's name (the sidebar is hidden
@@ -50,8 +52,9 @@ export function Topbar() {
 }
 
 // ProfileMenu is who is signed in (the name they go by in the company and
-// their phone), the way to another company of theirs, when there is one that
-// may be used, and the way out. Inside Telegram there is no sign-out:
+// their phone), the way to put the sections of the menu in one's own order
+// (in a company), the way to another company of theirs, when there is one
+// that may be used, and the way out. Inside Telegram there is no sign-out:
 // closing the Mini App is the way out, and opening it signs the user in again.
 function ProfileMenu() {
   const me = useMe()
@@ -59,37 +62,48 @@ function ProfileMenu() {
   const miniApp = useMiniApp()
   const user = me.data?.user
   const name = user ? (user.full_name ?? formatPhone(user.phone)) : null
+  const inCompany = !!me.data?.company
   const canSwitch = (me.data?.companies ?? []).filter((company) => unavailable(company) === null).length > 1
+  const [orderOpen, setOrderOpen] = useState(false)
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" aria-label="Profil" className="gap-2 px-2" />}>
-        {name && <span className="hidden max-w-40 truncate font-medium sm:inline">{name}</span>}
-        <UserIcon />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        {user && (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>
-              <span className="block truncate text-sm font-medium text-foreground">{name}</span>
-              {user.full_name && <span className="block">{formatPhone(user.phone)}</span>}
-            </DropdownMenuLabel>
-          </DropdownMenuGroup>
-        )}
-        {user && (canSwitch || !miniApp) && <DropdownMenuSeparator />}
-        {canSwitch && (
-          <DropdownMenuItem render={<Link href="/select-company" />}>
-            <ArrowLeftRightIcon />
-            Kompaniyani almashtirish
-          </DropdownMenuItem>
-        )}
-        {!miniApp && (
-          <DropdownMenuItem variant="destructive" disabled={logout.isPending} onClick={() => logout.mutate()}>
-            <LogOutIcon />
-            Chiqish
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" aria-label="Profil" className="gap-2 px-2" />}>
+          {name && <span className="hidden max-w-40 truncate font-medium sm:inline">{name}</span>}
+          <UserIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          {user && (
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <span className="block truncate text-sm font-medium text-foreground">{name}</span>
+                {user.full_name && <span className="block">{formatPhone(user.phone)}</span>}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+          )}
+          {user && (inCompany || canSwitch || !miniApp) && <DropdownMenuSeparator />}
+          {inCompany && (
+            <DropdownMenuItem onClick={() => setOrderOpen(true)}>
+              <SlidersHorizontalIcon />
+              Menyuni sozlash
+            </DropdownMenuItem>
+          )}
+          {canSwitch && (
+            <DropdownMenuItem render={<Link href="/select-company" />}>
+              <ArrowLeftRightIcon />
+              Kompaniyani almashtirish
+            </DropdownMenuItem>
+          )}
+          {!miniApp && (
+            <DropdownMenuItem variant="destructive" disabled={logout.isPending} onClick={() => logout.mutate()}>
+              <LogOutIcon />
+              Chiqish
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <NavOrderDialog open={orderOpen} onOpenChange={setOrderOpen} />
+    </>
   )
 }

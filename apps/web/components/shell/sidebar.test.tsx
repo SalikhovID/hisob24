@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
-import { ALI, VALI } from "@/mocks/data"
+import { ALI, db, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -24,8 +24,9 @@ test("the owner sees every section, under the company's name", async () => {
   renderWithProviders(<Sidebar {...props()} />)
 
   expect(await within(sidebar()).findByRole("link", { name: "Xodimlar" })).toHaveAttribute("href", "/employees")
-  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Xodimlar", "Sozlamalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Ombor", "Xodimlar", "Sozlamalar"])
   expect(within(sidebar()).getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
+  expect(within(sidebar()).getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/purchases")
   expect(within(sidebar()).getByText("Olma Savdo")).toBeInTheDocument()
 })
 
@@ -35,7 +36,16 @@ test("an employee sees no section of the owner's", async () => {
   renderWithProviders(<Sidebar {...props()} />)
 
   expect(await within(sidebar()).findByText("Olma Savdo")).toBeInTheDocument()
-  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Ombor"])
+})
+
+test("the sidebar follows the member's own order", async () => {
+  db.members[ALI][0].navOrder = ["tasks", "home"]
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  await within(sidebar()).findByRole("link", { name: "Xodimlar" })
+  expect(sections()).toEqual(["Vazifalar", "Bosh sahifa", "Mijozlar", "Mahsulotlar", "Ombor", "Xodimlar", "Sozlamalar"])
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {

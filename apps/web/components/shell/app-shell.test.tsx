@@ -65,9 +65,9 @@ test("the tab bar names the sections under the page, for a phone; there is no me
     "Bosh sahifa",
     "Mijozlar",
     "Vazifalar",
-    "Xodimlar",
-    "Sozlamalar",
+    "Mahsulotlar",
   ])
+  expect(within(tabBar).getByRole("button", { name: "Yana" })).toBeInTheDocument()
   expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
 })

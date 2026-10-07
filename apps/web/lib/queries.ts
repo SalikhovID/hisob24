@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
 import { clearSession, setAccessToken } from "./session"
+import type { NavKey } from "./nav"
 import type { Location, Task, TaskPage } from "./types"
 
 export const meKey = ["me"] as const
@@ -378,6 +379,17 @@ export function useSwitchCompany() {
       setAccessToken(tokens.access_token)
       queryClient.removeQueries({ queryKey: meKey })
     },
+  })
+}
+
+// useSetNavOrder keeps the member's own order of the menu in the company
+// (null: the default; logic/roles.md, section 8). The API answers with
+// /app/me as it is now, which the cache takes.
+export function useSetNavOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (sections: NavKey[] | null) => call(api.PUT("/app/me/nav", { body: { sections } })),
+    onSuccess: (me) => queryClient.setQueryData(meKey, me),
   })
 }
 

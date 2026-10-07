@@ -97,3 +97,14 @@ test("with no company chosen yet the top bar shows the logo alone: the name is n
   expect(within(bar).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
   expect(within(bar).queryByText("Hisob24")).not.toBeInTheDocument()
 })
+
+test("«Menyuni sozlash» in the profile menu opens the dialog that sets the order of the sections", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Topbar />)
+
+  await user.click(screen.getByRole("button", { name: "Profil" }))
+  await user.click(await screen.findByRole("menuitem", { name: "Menyuni sozlash" }))
+
+  const dialog = await screen.findByRole("dialog", { name: "Menyuni sozlash" })
+  expect(within(dialog).getByRole("list", { name: "Bo'limlar tartibi" })).toBeInTheDocument()
+})

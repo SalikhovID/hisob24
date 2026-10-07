@@ -1657,3 +1657,25 @@ test("the products take their permissions: an employee without a role has them a
   await chooseCompany(1)
   await expect(addProduct({ kind: "product", name: "Nok", unit: "dona" })).resolves.toMatchObject({ name: "Nok" })
 })
+
+// The member's own order of the menu (logic/roles.md, section 8;
+// backend/internal/app/nav_test.go).
+test("/app/me tells the member's own order of the menu; PUT /app/me/nav keeps it, a repeated key once, null drops it", async () => {
+  await signIn(ALI)
+  expect((await call(api.GET("/app/me"))).nav_order).toBeNull()
+
+  const me = await call(api.PUT("/app/me/nav", { body: { sections: ["tasks", "home", "tasks"] } }))
+  expect(me.nav_order).toEqual(["tasks", "home"])
+  expect(me.company?.name).toBe("Olma Savdo")
+  expect((await call(api.GET("/app/me"))).nav_order).toEqual(["tasks", "home"])
+  expect(await failure(call(api.PUT("/app/me/nav", { body: { sections: ["tasks", "reports" as never] } })))).toMatchObject({
+    status: 400,
+    message: "Bo'lim noto'g'ri",
+  })
+  expect((await call(api.GET("/app/me"))).nav_order).toEqual(["tasks", "home"])
+  expect((await call(api.PUT("/app/me/nav", { body: { sections: [] } }))).nav_order).toEqual([])
+  expect((await call(api.PUT("/app/me/nav", { body: { sections: null } }))).nav_order).toBeNull()
+
+  await signIn(VALI)
+  expect(await failure(call(api.PUT("/app/me/nav", { body: { sections: ["home"] } })))).toMatchObject({ status: 403, code: "company_required" })
+})

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Logo, LogoMark } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { isCurrent, type NavItem, navFor } from "@/lib/nav"
+import { isCurrentItem, type NavItem, navFor } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 
@@ -24,7 +24,8 @@ export interface SidebarProps {
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
   const company = me.data?.company
-  const items = navFor(me.data?.permissions)
+  // The sections the member may open, in their own order (logic/roles.md, section 8).
+  const items = navFor(me.data?.permissions, me.data?.nav_order)
 
   return <Column company={company?.name} items={items} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
 }
@@ -94,7 +95,7 @@ function SidebarNav({ items, collapsed }: { items: NavItem[]; collapsed: boolean
     <TooltipProvider>
       <nav aria-label="Bo'limlar" className="scrollbar-hide min-h-0 flex-1 overflow-y-auto py-2">
         {items.map((item) => (
-          <SidebarLink key={item.href} item={item} current={isCurrent(item.href, pathname)} collapsed={collapsed} />
+          <SidebarLink key={item.key} item={item} current={isCurrentItem(item, pathname)} collapsed={collapsed} />
         ))}
       </nav>
     </TooltipProvider>
