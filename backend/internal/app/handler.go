@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -79,6 +80,8 @@ func (h *Handler) Routes(r chi.Router) {
 			// may do there (logic/roles.md, section 4).
 			r.Group(func(r chi.Router) {
 				r.Use(h.requireCompany)
+				// The member's own order of the menu (logic/roles.md, section 8).
+				r.Put("/me/nav", h.setNavOrder)
 				// What every member reads: the lists the forms are built from.
 				r.Get("/members", h.listMembers)
 				r.Get("/customer-dropdowns", h.listCustomerDropdowns)
@@ -284,30 +287,48 @@ type meJSON struct {
 	// Locations is the locations the user may work in there, as they are
 	// now (logic/locations.md, section 4); empty before a choice.
 	Locations []locationJSON `json:"locations"`
+	// NavOrder is the user's own order of the menu there, by section key
+	// (logic/roles.md, section 8); null for the default, and before a choice.
+	NavOrder *[]string `json:"nav_order"`
 }
 
 // me is the signed-in user, the company they work in now, what they may do
-// there, the locations they may work in and all of their companies. The
-// user's name is the one they go by in that company; before a choice of
-// company, or when the membership has no name, it is the user's own.
+// there, the locations they may work in, their order of the menu and all of
+// their companies.
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
-	claims := currentUser(r.Context())
-	profile, err := h.profiles.Get(r.Context(), claims.Phone)
+	body, err := h.meBody(r.Context(), currentUser(r.Context()), currentAccess(r.Context()))
 	if err != nil {
 		httpx.InternalError(w, r, err)
 		return
 	}
+	httpx.JSON(w, http.StatusOK, body)
+}
+
+// meBody is what /app/me answers: the user, the company the token is for,
+// what they may do, the locations they may work in and their order of the
+// menu there (from standing, as requireAccess read it, or as read anew after
+// a change), and all of their companies. The user's name is the one they go
+// by in that company; before a choice of company, or when the membership
+// has no name, it is the user's own.
+func (h *Handler) meBody(ctx context.Context, claims auth.AccessClaims, standing user.Access) (meJSON, error) {
+	profile, err := h.profiles.Get(ctx, claims.Phone)
+	if err != nil {
+		return meJSON{}, err
+	}
 	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}, Permissions: []string{}, Locations: []locationJSON{}}
-	for _, p := range currentPermissions(r.Context()).List() {
+	for _, p := range standing.Permissions.List() {
 		body.Permissions = append(body.Permissions, string(p))
 	}
 	if claims.CompanyID != nil {
-		locations, err := h.companies.MemberLocations(r.Context(), *claims.CompanyID, claims.Phone)
+		locations, err := h.companies.MemberLocations(ctx, *claims.CompanyID, claims.Phone)
 		if err != nil {
-			httpx.InternalError(w, r, err)
-			return
+			return meJSON{}, err
 		}
 		body.Locations = toLocationsJSON(locations)
+		if standing.NavOrder != nil {
+			order := standing.NavOrder
+			body.NavOrder = &order
+		}
 	}
 	for _, m := range profile.Companies {
 		c := companyJSON{
@@ -324,7 +345,7 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	httpx.JSON(w, http.StatusOK, body)
+	return body, nil
 }
 
 // switchCompany chooses one of the user's companies. It is not behind the

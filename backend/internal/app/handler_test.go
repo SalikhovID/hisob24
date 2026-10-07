@@ -341,6 +341,8 @@ func TestMe(t *testing.T) {
 	}
 	assert.Equal(t, all, permissionsOf(t, body), "the owner may do everything")
 	assert.Equal(t, []any{location(asosiy, "Asosiy")}, body["locations"], "the locations the member may work in")
+	assert.Contains(t, body, "nav_order")
+	assert.Nil(t, body["nav_order"], "the default order of the menu")
 }
 
 // /app/me tells the locations the member may work in (logic/locations.md,

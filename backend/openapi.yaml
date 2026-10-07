@@ -668,6 +668,37 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
+  /app/me/nav:
+    put:
+      operationId: setNavOrder
+      summary: Menyu tartibini saqlash
+      description: >
+        A'zo tanlangan kompaniyadagi bo'limlar tartibini saqlaydi
+        (logic/roles.md, 8-bo'lim): kalitlar katalogdan, takror bir marta;
+        null standart tartibga qaytaradi. Javob /app/me yangi tartib bilan.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NavOrderInput"
+      responses:
+        "200":
+          description: Joriy user, yangi tartib bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
   /app/employees:
     get:
       operationId: listEmployees
@@ -3450,7 +3481,7 @@ components:
           type: boolean
     Me:
       type: object
-      required: [user, company, companies, permissions, locations]
+      required: [user, company, companies, permissions, locations, nav_order]
       properties:
         user:
           $ref: "#/components/schemas/AppUser"
@@ -3482,6 +3513,28 @@ components:
             tanlovchi shundan quriladi; 2+ bo'lsa ko'rinadi.
           items:
             $ref: "#/components/schemas/Location"
+        nav_order:
+          type: [array, "null"]
+          description: >
+            A'zoning tanlangan kompaniyadagi menyu tartibi, bo'lim kalitlari
+            bilan (logic/roles.md, 8-bo'lim): sidebar va tab-bar shu tartibda,
+            tartibda yo'q bo'limlar standart tartibda oxirida. null standart
+            tartib yoki kompaniya tanlanmagan.
+          items:
+            $ref: "#/components/schemas/NavSection"
+    NavSection:
+      type: string
+      description: Bo'lim kaliti, standart tartibida
+      enum: [home, customers, tasks, products, warehouse, employees, settings]
+    NavOrderInput:
+      type: object
+      required: [sections]
+      properties:
+        sections:
+          type: [array, "null"]
+          description: Bo'limlar tartibi (takror kalit bir marta); null standart tartibga qaytaradi
+          items:
+            $ref: "#/components/schemas/NavSection"
     CustomerOption:
       type: object
       required: [id, label, is_active]
