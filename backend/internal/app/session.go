@@ -9,6 +9,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
+	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
@@ -181,6 +182,12 @@ func currentPermissions(ctx context.Context) access.Set {
 // requireAccess read them (logic/locations.md).
 func taskScope(r *http.Request) task.Scope {
 	return task.Scope{CompanyID: sessionCompany(r), LocationIDs: currentAccess(r.Context()).LocationIDs}
+}
+
+// catalogScope is the request's member's reach in the company for the
+// catalog: the stock they see is their locations'.
+func catalogScope(r *http.Request) catalog.Scope {
+	return catalog.Scope{CompanyID: sessionCompany(r), LocationIDs: currentAccess(r.Context()).LocationIDs}
 }
 
 // allowedLocation tells whether the request's member may work in the

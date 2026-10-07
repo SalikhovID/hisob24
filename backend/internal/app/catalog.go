@@ -70,7 +70,7 @@ func (h *Handler) listProducts(w http.ResponseWriter, r *http.Request) {
 		}
 		in.Page = n
 	}
-	page, err := h.catalog.List(r.Context(), sessionCompany(r), in)
+	page, err := h.catalog.List(r.Context(), catalogScope(r), in)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -89,7 +89,7 @@ func (h *Handler) createProduct(w http.ResponseWriter, r *http.Request) {
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	p, err := h.catalog.Create(r.Context(), sessionCompany(r), currentUser(r.Context()).Phone, body.input())
+	p, err := h.catalog.Create(r.Context(), catalogScope(r), currentUser(r.Context()).Phone, body.input())
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -99,7 +99,7 @@ func (h *Handler) createProduct(w http.ResponseWriter, r *http.Request) {
 
 // getProduct is a product or a service of the company the session works in.
 func (h *Handler) getProduct(w http.ResponseWriter, r *http.Request) {
-	p, err := h.catalog.Get(r.Context(), sessionCompany(r), pathID(r, "id"))
+	p, err := h.catalog.Get(r.Context(), catalogScope(r), pathID(r, "id"))
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -114,7 +114,7 @@ func (h *Handler) updateProduct(w http.ResponseWriter, r *http.Request) {
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	p, err := h.catalog.Update(r.Context(), sessionCompany(r), pathID(r, "id"), body.input())
+	p, err := h.catalog.Update(r.Context(), catalogScope(r), pathID(r, "id"), body.input())
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -135,7 +135,7 @@ func (h *Handler) setProductActive(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "validation_error", "Holat noto'g'ri")
 		return
 	}
-	p, err := h.catalog.SetActive(r.Context(), sessionCompany(r), pathID(r, "id"), *body.IsActive)
+	p, err := h.catalog.SetActive(r.Context(), catalogScope(r), pathID(r, "id"), *body.IsActive)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -146,7 +146,7 @@ func (h *Handler) setProductActive(w http.ResponseWriter, r *http.Request) {
 // deleteProduct hides a product or a service of the company the session
 // works in.
 func (h *Handler) deleteProduct(w http.ResponseWriter, r *http.Request) {
-	if err := h.catalog.Delete(r.Context(), sessionCompany(r), pathID(r, "id")); err != nil {
+	if err := h.catalog.Delete(r.Context(), catalogScope(r), pathID(r, "id")); err != nil {
 		httpx.WriteError(w, r, err)
 		return
 	}

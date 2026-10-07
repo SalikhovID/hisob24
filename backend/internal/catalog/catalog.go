@@ -42,7 +42,24 @@ var (
 	errServiceSKU      = invalid("Xizmatga artikul berilmaydi")
 )
 
-// Service runs the catalog of every company; each call names the company it
+// Scope is a member's reach in a company: the company and the locations of
+// it they may work in. The stock a member sees is these locations'.
+type Scope struct {
+	CompanyID   int64
+	LocationIDs []int64
+}
+
+// has tells whether the location is one of the scope's.
+func (sc Scope) has(locationID int64) bool {
+	for _, id := range sc.LocationIDs {
+		if id == locationID {
+			return true
+		}
+	}
+	return false
+}
+
+// Service runs the catalog of every company; each call names the scope it
 // acts in.
 type Service struct {
 	pool *pgxpool.Pool
@@ -84,6 +101,12 @@ type Product struct {
 	Note  *string
 	// Active says whether it is still offered (logic/products.md, 3.3).
 	Active bool
+	// Quantity is the product's stock in the scope's locations (or the one
+	// asked for), three decimals; nil for a service.
+	Quantity *string
+	// LastPrice is the price of the product's newest live purchase line,
+	// whatever the location; nil when it was never bought.
+	LastPrice *string
 	// CreatedByName is the name the member who entered it goes by in the
 	// company; nil when they go by none.
 	CreatedByName *string
@@ -214,7 +237,8 @@ func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone stri
 
 func toProduct(r gen.GetProductRow) Product {
 	return Product{
-		ID: r.ID, Kind: r.Kind, Name: r.Name, Unit: r.Unit, SKU: r.Sku, Price: Text(r.Price), Note: r.Note, Active: r.IsActive,
+		ID: r.ID, Kind: r.Kind, Name: r.Name, Unit: r.Unit, SKU: r.Sku, Price: Amount(r.Price), Note: r.Note, Active: r.IsActive,
+		Quantity: QuantityText(r.Quantity), LastPrice: Amount(r.LastPrice),
 		CreatedByName: r.CreatedByName, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}
 }
