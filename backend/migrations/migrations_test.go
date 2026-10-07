@@ -975,3 +975,34 @@ func TestTheCatalogMigrationDownRemovesTheProducts(t *testing.T) {
 	_, err = pool.Exec(ctx, "SELECT 1 FROM products")
 	assert.Equal(t, "42P01", sqlState(err), "undefined_table")
 }
+
+// A membership keeps the member's own order of the menu in the company
+// (logic/roles.md, section 8): NULL until they set one.
+func TestAMembershipKeepsTheMembersOrderOfTheMenu(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998901111111', $1, 'owner')", olma)
+	require.NoError(t, err)
+
+	var order []string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT nav_order FROM user_companies WHERE user_phone = '998901111111'").Scan(&order))
+	assert.Nil(t, order, "the default order until the member sets one")
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET nav_order = '{tasks,home}' WHERE user_phone = '998901111111'")
+	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(ctx, "SELECT nav_order FROM user_companies WHERE user_phone = '998901111111'").Scan(&order))
+	assert.Equal(t, []string{"tasks", "home"}, order)
+}
+
+func TestTheNavOrderMigrationDownRemovesTheColumn(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+
+	_, err := newProvider(t, pool).DownTo(ctx, 11)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "SELECT nav_order FROM user_companies")
+	assert.Equal(t, "42703", sqlState(err), "undefined_column")
+}
