@@ -420,8 +420,9 @@ type Querier interface {
 	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
 	// A page of the company's suppliers, the active or the inactive ones, by
 	// name whatever the case, without the deleted, each with its balance.
-	// search, escaped for ILIKE, is looked for in the name; digits in the
-	// phone. A NULL argument leaves its filter out.
+	// search, escaped for ILIKE, is looked for in the name; digits, the digits
+	// of a search that is a number (always with search), in the phone too. A
+	// NULL search leaves the filter out.
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]ListSuppliersRow, error)
 	// Every field of the company's types, each type's in its order, without the
 	// deleted ones (a deleted type's fields are deleted with it).

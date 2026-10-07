@@ -1318,7 +1318,10 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Mahsulot yoki xizmat (products.view ruxsati) */
+        /**
+         * Mahsulot yoki xizmat, qoldig'i bilan (products.view ruxsati)
+         * @description Mahsulotda stock: a'zoga ruxsatli har lokatsiyadagi qoldiq (0 ham), lokatsiyalar qo'shilgan tartibda; xizmatda bo'sh ro'yxat (logic/products.md, 6-bo'lim).
+         */
         get: operations["getProduct"];
         /**
          * Mahsulot yoki xizmatni tahrirlash (products.edit ruxsati)
@@ -1338,6 +1341,190 @@ export interface paths {
          * @description Nofaol mahsulot xarid takliflarida chiqmaydi; nomi va artikuli band qoladi (logic/products.md, 3.3).
          */
         patch: operations["setProductActive"];
+        trace?: never;
+    };
+    "/app/products/{id}/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Mahsulotning xaridlari (purchases.view ruxsati)
+         * @description Shu mahsulot kirgan jonli xarid qatorlari, a'zoga ruxsatli lokatsiyalardagi, yangi xarid birinchi, sahifada 20 ta (logic/products.md, 6-bo'lim). Mahsulot topilmasa 404.
+         */
+        get: operations["listProductPurchases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ta'minotchilar ro'yxati (suppliers.view ruxsati)
+         * @description Access token'dagi kompaniyaning ta'minotchilari, faol (status=active, standart) yoki nofaol (status=inactive) lari, nom bo'yicha (katta-kichik harf farqsiz), sahifada 20 ta. search nomda qidiradi; raqamdan iborat bo'lsa telefonda ham. balance faqat purchases.view bo'lganga (logic/warehouse.md, 3.3).
+         */
+        get: operations["listSuppliers"];
+        put?: never;
+        /**
+         * Ta'minotchi qo'shish (suppliers.create ruxsati)
+         * @description Nom 1–120 belgi, kompaniyada takrorlanmaydi (409 name_taken); telefon ixtiyoriy, faqat O'zbekiston raqami; izoh 500 belgigacha (logic/warehouse.md, 3.1).
+         */
+        post: operations["createSupplier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/suppliers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** Ta'minotchi, balansi bilan (suppliers.view ruxsati) */
+        get: operations["getSupplier"];
+        /**
+         * Ta'minotchini tahrirlash (suppliers.edit ruxsati)
+         * @description Maydonlar yuborilganiga almashadi, yuborilmagan ixtiyoriy maydon bo'shaydi.
+         */
+        put: operations["updateSupplier"];
+        post?: never;
+        /**
+         * Ta'minotchini o'chirish (suppliers.delete ruxsati)
+         * @description Yashiriladi, nomi bo'shaydi. Jonli xaridi yoki to'lovi bor ta'minotchi o'chirilmaydi: 409 supplier_in_use.
+         */
+        delete: operations["deleteSupplier"];
+        options?: never;
+        head?: never;
+        /**
+         * Nofaol qilish yoki faollashtirish (suppliers.edit ruxsati)
+         * @description Nofaol ta'minotchi xarid takliflarida chiqmaydi; xaridlari, balansi qoladi va unga to'lov kiritiladi (logic/warehouse.md, 3.2).
+         */
+        patch: operations["setSupplierActive"];
+        trace?: never;
+    };
+    "/app/suppliers/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Ta'minotchiga to'lovlar (purchases.view ruxsati)
+         * @description Jonli to'lovlar, yangi birinchi, sahifada 20 ta; xarid bilan kiritilganida purchase_id va purchase_number (logic/warehouse.md, 6-bo'lim). Ta'minotchi topilmasa 404.
+         */
+        get: operations["listPayments"];
+        put?: never;
+        /**
+         * To'lov qo'shish (purchases.create ruxsati)
+         * @description Summa > 0 ("Summani kiriting" / "Summa noto'g'ri"), sana YYYY-MM-DD ("Sanani kiriting" / "Sana noto'g'ri"), izoh 500 belgigacha. Nofaol ta'minotchiga ham kiritiladi.
+         */
+        post: operations["addPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/suppliers/{id}/payments/{paymentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * To'lovni tahrirlash (purchases.edit ruxsati)
+         * @description Faqat o'zi kiritilgan to'lov; xarid bilan kiritilgani 409 payment_linked (xaridni tahrirlang).
+         */
+        put: operations["updatePayment"];
+        post?: never;
+        /**
+         * To'lovni o'chirish (purchases.delete ruxsati)
+         * @description Yashiriladi. Xarid bilan kiritilgani 409 payment_linked.
+         */
+        delete: operations["deletePayment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Xaridlar ro'yxati (purchases.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyalardagi xaridlar, yoki location_id berilgan bittasidagi (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"); supplier_id bitta ta'minotchiniki (son emas: 400 "Ta'minotchi noto'g'ri"). Sana bo'yicha yangi birinchi, sahifada 20 ta; qatorlar ro'yxatda yo'q (logic/warehouse.md, 4.5).
+         */
+        get: operations["listPurchases"];
+        put?: never;
+        /**
+         * Xarid qo'shish (purchases.create ruxsati)
+         * @description Bitta tranzaksiyada: kompaniyadagi navbatdagi raqam, xarid, qatorlar, jami, har qator mahsulotining shu lokatsiyadagi qoldig'i oshadi, to'langan > 0 bo'lsa xaridga bog'langan to'lov. Tekshiruv tartibi: lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), ta'minotchi, sana, izoh, qatorlar (kamida bitta; har birida mahsulot, xizmat emas, faol, bir marta, miqdor > 0, narx), to'langan (logic/warehouse.md, 4.2).
+         */
+        post: operations["createPurchase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/purchases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Xarid, qatorlari bilan (purchases.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyadagi xarid; boshqasi 404 "Xarid topilmadi".
+         */
+        get: operations["getPurchase"];
+        /**
+         * Xaridni tahrirlash (purchases.edit ruxsati)
+         * @description Lokatsiya va raqam o'zgarmaydi. Qatorlar yuborilganiga butunlay almashadi, qoldiq har mahsulot uchun farq bilan yangilanadi (manfiy bo'lsa 409 stock_insufficient); jami qayta hisoblanadi; to'langan bog'langan to'lovni o'zgartiradi (0: yashirinadi). Xaridda avvaldan bor ta'minotchi va mahsulotlar nofaol bo'lsa ham qoladi (logic/warehouse.md, 4.3).
+         */
+        put: operations["updatePurchase"];
+        post?: never;
+        /**
+         * Xaridni o'chirish (purchases.delete ruxsati)
+         * @description Yashiriladi, qatorlari miqdori qoldiqdan olinadi (yetmasa 409 stock_insufficient), bog'langan to'lov yashirinadi; raqam bo'shamaydi (logic/warehouse.md, 4.4).
+         */
+        delete: operations["deletePurchase"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -1569,6 +1756,189 @@ export interface components {
             locations: components["schemas"]["Location"][];
             /** @description A'zoning tanlangan kompaniyadagi menyu tartibi, bo'lim kalitlari bilan (logic/roles.md, 8-bo'lim): sidebar va tab-bar shu tartibda, tartibda yo'q bo'limlar standart tartibda oxirida. null standart tartib yoki kompaniya tanlanmagan. */
             nav_order: components["schemas"]["NavSection"][] | null;
+        };
+        Ref: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
+        StockLine: {
+            /** Format: int64 */
+            location_id: number;
+            location_name: string;
+            /** @description Shu lokatsiyadagi qoldiq, uch kasr xonasi bilan ("12.500"); 0 ham ko'rsatiladi */
+            quantity: string;
+        };
+        ProductDetail: components["schemas"]["Product"] & {
+            /** @description A'zoga ruxsatli har lokatsiyadagi qoldiq, lokatsiyalar qo'shilgan tartibda; xizmatda bo'sh */
+            stock: components["schemas"]["StockLine"][];
+        };
+        ProductPurchase: {
+            /** Format: int64 */
+            purchase_id: number;
+            /** @description Xaridning kompaniyadagi tartib raqami */
+            number: number;
+            /** Format: date */
+            purchased_on: string;
+            supplier: components["schemas"]["Ref"];
+            /** Format: int64 */
+            location_id: number;
+            location_name: string;
+            /** @description Qatordagi miqdor, uch kasr xonasi bilan */
+            quantity: string;
+            /** @description Qatordagi narx, ikki kasr xonasi bilan */
+            price: string;
+            /** @description Qator summasi (miqdor × narx), ikki kasr xonasi bilan */
+            amount: string;
+        };
+        ProductPurchasePage: {
+            items: components["schemas"]["ProductPurchase"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        Supplier: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** @description Saqlangan ko'rinishda (998901234567) */
+            phone: string | null;
+            note: string | null;
+            /** @description Nofaol (false) bo'lsa xarid takliflarida chiqmaydi */
+            is_active: boolean;
+            /** @description Qarz: jonli xaridlar jami − jonli to'lovlar jami, ikki kasr xonasi bilan; musbat qarz, manfiy avans. Faqat purchases.view bo'lganga, aks holda null */
+            balance: string | null;
+            /** @description Jonli xaridlar jami; faqat purchases.view bo'lganga */
+            purchases_total: string | null;
+            /** @description Jonli to'lovlar jami; faqat purchases.view bo'lganga */
+            payments_total: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SupplierInput: {
+            name: string;
+            /** @description Ixtiyoriy; +998 va 9 raqam, bo'shliq, "-", qavs qabul qilinadi */
+            phone?: string | null;
+            note?: string | null;
+        };
+        SupplierPage: {
+            items: components["schemas"]["Supplier"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        Payment: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            supplier_id: number;
+            /**
+             * Format: int64
+             * @description Xarid bilan kiritilgan to'lovda xarid; o'zi kiritilganida null
+             */
+            purchase_id: number | null;
+            /** @description O'sha xaridning raqami */
+            purchase_number: number | null;
+            /** @description Summa, ikki kasr xonasi bilan ("1200.50") */
+            amount: string;
+            /** Format: date */
+            paid_on: string;
+            note: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PaymentInput: {
+            /** @description Summa > 0, 12 xonagacha butun va 2 kasr ("1200.50") */
+            amount: string;
+            /** Format: date */
+            paid_on: string;
+            note?: string | null;
+        };
+        PaymentPage: {
+            items: components["schemas"]["Payment"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        PurchaseItem: {
+            /** Format: int64 */
+            product_id: number;
+            /** @description Mahsulotning hozirgi nomi */
+            name: string;
+            unit: components["schemas"]["Unit"] | null;
+            /** @description Uch kasr xonasi bilan ("12.500") */
+            quantity: string;
+            /** @description Ikki kasr xonasi bilan */
+            price: string;
+            /** @description Miqdor × narx, ikki kasr xonasi bilan */
+            amount: string;
+        };
+        Purchase: {
+            /** Format: int64 */
+            id: number;
+            /** @description Kompaniya ichida 1 dan tartib raqami ("№ 12"); o'chirilganniki bo'shamaydi */
+            number: number;
+            /**
+             * Format: int64
+             * @description Xarid tushgan lokatsiya (ombor); o'zgarmaydi
+             */
+            location_id: number;
+            location_name: string;
+            supplier: components["schemas"]["Ref"];
+            /** Format: date */
+            purchased_on: string;
+            note: string | null;
+            /** @description Qatorlar jami, ikki kasr xonasi bilan */
+            total: string;
+            /** @description Xarid bilan kiritilgan to'lov summasi, 0.00 bo'lmasa */
+            paid: string;
+            items_count: number;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PurchaseDetail: components["schemas"]["Purchase"] & {
+            /** @description Qatorlar kiritilgan tartibda */
+            items: components["schemas"]["PurchaseItem"][];
+        };
+        PurchaseItemInput: {
+            /** Format: int64 */
+            product_id: number;
+            /** @description > 0, 9 xonagacha butun va 3 kasr ("12.5") */
+            quantity: string;
+            /** @description >= 0, 12 xonagacha butun va 2 kasr */
+            price: string;
+        };
+        PurchaseInput: {
+            /** Format: int64 */
+            supplier_id: number;
+            /** Format: date */
+            purchased_on: string;
+            note?: string | null;
+            /** @description To'langan summa (>= 0); berilmasa yoki 0 bo'lsa to'lov yozilmaydi */
+            paid?: string | null;
+            items: components["schemas"]["PurchaseItemInput"][];
+        };
+        PurchaseCreate: components["schemas"]["PurchaseInput"] & {
+            /**
+             * Format: int64
+             * @description Xarid tushadigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+             */
+            location_id: number;
+        };
+        PurchasePage: {
+            items: components["schemas"]["Purchase"][];
+            total: number;
+            page: number;
+            page_size: number;
         };
         /**
          * @description Bo'lim kaliti, standart tartibida
@@ -1933,6 +2303,10 @@ export interface components {
             note: string | null;
             /** @description Nofaol (false) bo'lsa xarid takliflarida chiqmaydi */
             is_active: boolean;
+            /** @description Mahsulotning so'ralgan lokatsiya (location_id) yoki a'zoga ruxsatli lokatsiyalardagi qoldig'i, uch kasr xonasi bilan ("12.500"); xizmatda null */
+            quantity: string | null;
+            /** @description Oxirgi jonli xarid qatoridagi narx, qaysi lokatsiyada bo'lmasin ("1200.50"); hech qachon olinmagan bo'lsa null */
+            last_price: string | null;
             /** @description Qo'shgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi */
             created_by_name: string | null;
             /** Format: date-time */
@@ -2231,6 +2605,60 @@ export interface components {
         };
         /** @description Nom band (name_taken: "Bu nomli mahsulot allaqachon bor" / "Bu nomli xizmat allaqachon bor"), artikul band (sku_taken), mahsulot jonli xaridda bor (product_in_use) */
         ProductConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Ta'minotchi topilmadi (not_found) */
+        SupplierNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Nom band (name_taken: "Bu nomli ta'minotchi allaqachon bor") yoki ta'minotchida jonli xarid / to'lov bor (supplier_in_use) */
+        SupplierConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description To'lov topilmadi (not_found) */
+        PaymentNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description To'lov xarid bilan kiritilgan (payment_linked) */
+        PaymentConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Xarid topilmadi (not_found) */
+        PurchaseNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Omborda yetarli qoldiq yo'q (stock_insufficient) */
+        PurchaseConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -4589,6 +5017,8 @@ export interface operations {
     listProducts: {
         parameters: {
             query?: {
+                /** @description Qoldiq (quantity) shu lokatsiyaniki (joriy lokatsiya); berilmasa a'zoga ruxsatli hamma lokatsiya yig'indisi. A'zo ishlay olmaydigan lokatsiya: 403 forbidden. Son emas: 400 "Lokatsiya noto'g'ri". */
+                location_id?: number;
                 kind?: components["schemas"]["ProductKind"];
                 status?: "active" | "inactive";
                 search?: string;
@@ -4661,7 +5091,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Product"];
+                    "application/json": components["schemas"]["ProductDetail"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -4756,6 +5186,464 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["ProductNotFound"];
+        };
+    };
+    listProductPurchases: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPurchasePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ProductNotFound"];
+        };
+    };
+    listSuppliers: {
+        parameters: {
+            query?: {
+                status?: "active" | "inactive";
+                search?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan ta'minotchi */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["SupplierConflict"];
+        };
+    };
+    getSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ta'minotchi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+        };
+    };
+    updateSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan ta'minotchi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+            409: components["responses"]["SupplierConflict"];
+        };
+    };
+    deleteSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+            409: components["responses"]["SupplierConflict"];
+        };
+    };
+    setSupplierActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActiveInput"];
+            };
+        };
+        responses: {
+            /** @description Ta'minotchi yangi holatida */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+        };
+    };
+    listPayments: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+        };
+    };
+    addPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan to'lov */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+        };
+    };
+    updatePayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan to'lov */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PaymentNotFound"];
+            409: components["responses"]["PaymentConflict"];
+        };
+    };
+    deletePayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PaymentNotFound"];
+            409: components["responses"]["PaymentConflict"];
+        };
+    };
+    listPurchases: {
+        parameters: {
+            query?: {
+                location_id?: number;
+                supplier_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchasePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createPurchase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseCreate"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan xarid, qatorlari bilan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getPurchase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Xarid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PurchaseNotFound"];
+        };
+    };
+    updatePurchase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan xarid, qatorlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PurchaseNotFound"];
+            409: components["responses"]["PurchaseConflict"];
+        };
+    };
+    deletePurchase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PurchaseNotFound"];
+            409: components["responses"]["PurchaseConflict"];
         };
     };
 }

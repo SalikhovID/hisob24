@@ -73,6 +73,8 @@ export const toProduct = (p: ProductRow): Product => ({
   price: p.price,
   note: p.note,
   is_active: p.active,
+  quantity: null,
+  last_price: null,
   created_by_name: nameOf(p.by, p.companyId, p.byName),
   created_at: p.createdAt,
   updated_at: p.updatedAt,
