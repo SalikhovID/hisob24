@@ -22,6 +22,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/billing"
 	"github.com/SalikhovID/hisob24/backend/internal/bot/adminbot"
 	"github.com/SalikhovID/hisob24/backend/internal/bot/userbot"
+	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/config"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
@@ -75,6 +76,7 @@ func run() error {
 		Companies: companies,
 		Customers: customers,
 		Tasks:     task.NewService(pool, customers),
+		Catalog:   catalog.NewService(pool),
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 

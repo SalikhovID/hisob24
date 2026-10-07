@@ -52,6 +52,8 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 		"moving a task":          {http.MethodPatch, "/app/tasks/1/stage", `{"stage_id":1}`},
 		"the employees":          {http.MethodGet, "/app/employees", ""},
 		"adding a type":          {http.MethodPost, "/app/customer-types", `{"name":"Yuridik"}`},
+		"the products":           {http.MethodGet, "/app/products", ""},
+		"adding a product":       {http.MethodPost, "/app/products", `{"kind":"product","name":"Nok","unit":"dona"}`},
 		"deleting a type":        {http.MethodDelete, fmt.Sprintf("/app/customer-types/%d", sh.jismoniy), ""},
 	} {
 		rec := api.do(t, req.method, req.path, req.body, bearer(employee))
@@ -73,6 +75,8 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	rec = api.do(t, http.MethodGet, "/app/employees", "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 	assert.JSONEq(t, noPermission, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/products", `{"kind":"product","name":"Nok","unit":"dona"}`, bearer(employee))
+	assert.Equal(t, http.StatusCreated, rec.Code, "the default holds the warehouse sections too: %s", rec.Body.String())
 
 	// The owner may do everything.
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner)).Code)

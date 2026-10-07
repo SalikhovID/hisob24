@@ -10,6 +10,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
+	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
@@ -24,6 +25,7 @@ type Services struct {
 	Companies *company.Service
 	Customers *customer.Service
 	Tasks     *task.Service
+	Catalog   *catalog.Service
 }
 
 // Handler serves /app.
@@ -33,6 +35,7 @@ type Handler struct {
 	companies     *company.Service
 	customers     *customer.Service
 	tasks         *task.Service
+	catalog       *catalog.Service
 	cookieSecure  bool
 	sendLimiter   *httpx.RateLimiter
 	verifyLimiter *httpx.RateLimiter
@@ -42,7 +45,7 @@ type Handler struct {
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
 	return &Handler{
-		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks,
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog,
 		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
 	}
 }
@@ -143,6 +146,15 @@ func (h *Handler) Routes(r chi.Router) {
 				allowed(access.TasksDelete).Delete("/tasks/{id}", h.deleteTask)
 				allowed(access.TasksEdit).Patch("/tasks/{id}/stage", h.moveTask)
 				allowed(access.TasksHistory).Get("/tasks/{id}/history", h.taskHistory)
+
+				// The catalog: the products the company buys into its stock
+				// and the services it offers (logic/products.md).
+				allowed(access.ProductsView).Get("/products", h.listProducts)
+				allowed(access.ProductsCreate).Post("/products", h.createProduct)
+				allowed(access.ProductsView).Get("/products/{id}", h.getProduct)
+				allowed(access.ProductsEdit).Put("/products/{id}", h.updateProduct)
+				allowed(access.ProductsEdit).Patch("/products/{id}", h.setProductActive)
+				allowed(access.ProductsDelete).Delete("/products/{id}", h.deleteProduct)
 			})
 		})
 	})
