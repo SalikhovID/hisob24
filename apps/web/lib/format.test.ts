@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { formatAmount, formatDate, formatDateTime, unitLabel } from "./format"
+import { formatAmount, formatDate, formatDateTime, formatQuantity, unitLabel } from "./format"
 
 test("formatDate writes a date as dd.mm.yyyy", () => {
   expect(formatDate("2026-10-07")).toBe("07.10.2026")
@@ -28,4 +28,13 @@ test("formatAmount writes an amount for people: thousands apart, the decimals af
 test("unitLabel names a unit on screen: m2 as m²", () => {
   expect(unitLabel("kg")).toBe("kg")
   expect(unitLabel("m2")).toBe("m²")
+})
+
+test("formatQuantity writes a quantity with its unit, the decimals without the trailing zeros", () => {
+  expect(formatQuantity("12.000", "dona")).toBe("12 dona")
+  expect(formatQuantity("1.500", "kg")).toBe("1,5 kg")
+  expect(formatQuantity("0.125", "l")).toBe("0,125 l")
+  expect(formatQuantity("1200.000", "m2")).toBe("1 200 m²")
+  expect(formatQuantity("0.000", "kg")).toBe("0 kg")
+  expect(formatQuantity("3.000", null)).toBe("3")
 })

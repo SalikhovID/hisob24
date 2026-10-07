@@ -31,3 +31,15 @@ export function formatAmount(amount: string): string {
 export function unitLabel(unit: string): string {
   return unit === "m2" ? "m²" : unit
 }
+
+// formatQuantity writes a stored quantity ("1.500") with its unit for
+// people to read: thousands apart by a no-break space, the decimals after a
+// comma without the trailing zeros ("1,5 kg", "12 dona"); no unit, no
+// suffix.
+export function formatQuantity(quantity: string, unit: string | null): string {
+  const [whole, decimals = ""] = quantity.split(".")
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+  const trimmed = decimals.replace(/0+$/, "")
+  const number = trimmed ? `${grouped},${trimmed}` : grouped
+  return unit ? `${number} ${unitLabel(unit)}` : number
+}

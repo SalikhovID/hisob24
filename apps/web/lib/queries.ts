@@ -393,6 +393,8 @@ export interface ProductFilter {
   status: "active" | "inactive"
   search: string
   page: number
+  // locationId keeps the stock shown to one location (the current one); null is every location of the member.
+  locationId?: number | null
 }
 
 // useProducts is a page of the products or the services of the company the
@@ -404,7 +406,9 @@ export function useProducts(companyId: number | null, filter: ProductFilter) {
     queryFn: () =>
       call(
         api.GET("/app/products", {
-          params: { query: { kind: filter.kind, status: filter.status, search: filter.search || undefined, page: filter.page } },
+          params: {
+            query: { kind: filter.kind, status: filter.status, search: filter.search || undefined, page: filter.page, location_id: filter.locationId ?? undefined },
+          },
         }),
       ),
     enabled: companyId !== null,
@@ -427,6 +431,124 @@ export function useProduct(companyId: number | null, id: number) {
 // useSetNavOrder keeps the member's own order of the menu in the company
 // (null: the default; logic/roles.md, section 8). The API answers with
 // /app/me as it is now, which the cache takes.
+export const suppliersKey = (companyId: number | null) => ["suppliers", companyId] as const
+
+// SupplierFilter narrows the suppliers: the active or the inactive ones, a
+// search (by name, or by phone when it is digits) and the page.
+export interface SupplierFilter {
+  status: "active" | "inactive"
+  search: string
+  page: number
+}
+
+// useSuppliers is a page of the company's suppliers, by name, with their
+// balances for whoever may see the purchases.
+export function useSuppliers(companyId: number | null, filter: SupplierFilter) {
+  return useQuery({
+    queryKey: [...suppliersKey(companyId), filter],
+    queryFn: () => call(api.GET("/app/suppliers", { params: { query: { status: filter.status, search: filter.search || undefined, page: filter.page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const supplierKey = (companyId: number | null, id: number) => ["supplier", companyId, id] as const
+
+// useSupplier is one supplier of the company, with its balance.
+export function useSupplier(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: supplierKey(companyId, id),
+    queryFn: () => call(api.GET("/app/suppliers/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null && Number.isInteger(id) && id > 0,
+  })
+}
+
+// useSupplierSuggestions is the active suppliers whose names hold the text
+// typed, for the picker of the purchase form; nothing typed, nothing asked.
+export function useSupplierSuggestions(companyId: number | null, text: string) {
+  const search = text.trim()
+  return useQuery({
+    queryKey: [...suppliersKey(companyId), "suggest", search],
+    queryFn: () => call(api.GET("/app/suppliers", { params: { query: { status: "active", search, page: 1 } } })),
+    enabled: companyId !== null && search.length > 0,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const paymentsKey = (companyId: number | null, supplierId: number) => ["payments", companyId, supplierId] as const
+
+// usePayments is a page of the payments to a supplier, the newest first.
+export function usePayments(companyId: number | null, supplierId: number, page: number) {
+  return useQuery({
+    queryKey: [...paymentsKey(companyId, supplierId), page],
+    queryFn: () => call(api.GET("/app/suppliers/{id}/payments", { params: { path: { id: supplierId }, query: { page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const purchasesKey = (companyId: number | null) => ["purchases", companyId] as const
+
+// PurchaseFilter narrows the purchases: one location (the current one) or
+// every one of the member's, one supplier, the page.
+export interface PurchaseFilter {
+  locationId: number | null
+  supplierId: number | null
+  page: number
+}
+
+// usePurchases is a page of the purchases the member may see, the newest
+// first.
+export function usePurchases(companyId: number | null, filter: PurchaseFilter) {
+  return useQuery({
+    queryKey: [...purchasesKey(companyId), filter],
+    queryFn: () =>
+      call(
+        api.GET("/app/purchases", {
+          params: { query: { location_id: filter.locationId ?? undefined, supplier_id: filter.supplierId ?? undefined, page: filter.page } },
+        }),
+      ),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const purchaseKey = (companyId: number | null, id: number) => ["purchase", companyId, id] as const
+
+// usePurchase is one purchase in the member's locations, with its lines.
+export function usePurchase(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: purchaseKey(companyId, id),
+    queryFn: () => call(api.GET("/app/purchases/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null && Number.isInteger(id) && id > 0,
+  })
+}
+
+export const productPurchasesKey = (companyId: number | null, id: number) => ["product-purchases", companyId, id] as const
+
+// useProductPurchases is a page of the purchase lines of a product, in the
+// member's locations, the newest purchase first.
+export function useProductPurchases(companyId: number | null, id: number, page: number) {
+  return useQuery({
+    queryKey: [...productPurchasesKey(companyId, id), page],
+    queryFn: () => call(api.GET("/app/products/{id}/purchases", { params: { path: { id }, query: { page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+// useProductSuggestions is the active products whose names or SKUs hold the
+// text typed, for the picker of the purchase form.
+export function useProductSuggestions(companyId: number | null, text: string) {
+  const search = text.trim()
+  return useQuery({
+    queryKey: [...productsKey(companyId), "suggest", search],
+    queryFn: () => call(api.GET("/app/products", { params: { query: { kind: "product", status: "active", search, page: 1 } } })),
+    enabled: companyId !== null && search.length > 0,
+    placeholderData: keepPreviousData,
+  })
+}
+
 export function useSetNavOrder() {
   const queryClient = useQueryClient()
   return useMutation({

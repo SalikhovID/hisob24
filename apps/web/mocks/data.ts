@@ -836,3 +836,47 @@ export function seedCatalog() {
   const yetkazish = row({ kind: "service", name: "Yetkazish", unit: null, sku: null, price: "50000.00", note: null })
   return { olma, nok, eski, yetkazish }
 }
+
+// seedWarehouse enters what the warehouse pages are tested with into Olma
+// Savdo: the suppliers Bozor (with a phone and a note) and Dehqon
+// (inactive), and, given the catalog's products, purchase № 1 in Asosiy by
+// Ali on 2026-10-01 (12.5 kg of Olma at 1000, 3 Nok at 2500.5, 5000 paid
+// with it) with its stock and its payment.
+export function seedWarehouse(products?: { olma: ProductRow; nok: ProductRow }) {
+  const at = now()
+  const supplier = (fields: Pick<SupplierRow, "name"> & Partial<SupplierRow>): SupplierRow => {
+    const row: SupplierRow = { id: nextId(), companyId: 1, phone: null, note: null, active: true, by: ALI, byName: "Ali Valiyev", createdAt: at, updatedAt: at, ...fields }
+    db.suppliers.push(row)
+    return row
+  }
+  const bozor = supplier({ name: "Bozor", phone: "998901234567", note: "Chorsu" })
+  const dehqon = supplier({ name: "Dehqon", active: false })
+  let purchase: PurchaseRow | undefined
+  if (products) {
+    const asosiy = db.locations.find((l) => l.companyId === 1 && !l.deleted)!
+    purchase = {
+      id: nextId(),
+      companyId: 1,
+      number: 1,
+      locationId: asosiy.id,
+      supplierId: bozor.id,
+      purchasedOn: "2026-10-01",
+      note: "Ertalab",
+      items: [
+        { productId: products.olma.id, quantity: 12.5, price: 1000 },
+        { productId: products.nok.id, quantity: 3, price: 2500.5 },
+      ],
+      by: ALI,
+      byName: "Ali Valiyev",
+      createdAt: at,
+      updatedAt: at,
+    }
+    db.purchases.push(purchase)
+    db.stock.push(
+      { companyId: 1, locationId: asosiy.id, productId: products.olma.id, quantity: 12.5 },
+      { companyId: 1, locationId: asosiy.id, productId: products.nok.id, quantity: 3 },
+    )
+    db.payments.push({ id: nextId(), companyId: 1, supplierId: bozor.id, purchaseId: purchase.id, amount: 5000, paidOn: "2026-10-01", note: null, by: ALI, byName: "Ali Valiyev", createdAt: at, updatedAt: at })
+  }
+  return { bozor, dehqon, purchase }
+}
