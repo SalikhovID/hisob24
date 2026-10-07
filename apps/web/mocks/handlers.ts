@@ -2,6 +2,7 @@
 // status codes, error codes, Uzbek messages and token rotation. Tokens are
 // readable strings: "access:<phone>:<company|none>:<n>", "refresh:…".
 import { http, HttpResponse } from "msw"
+import { catalogHandlers } from "./catalog"
 import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
 import { rolesHandlers } from "./roles"
@@ -253,4 +254,5 @@ export const handlers = [
   ...customersHandlers,
   ...taskSettingsHandlers,
   ...tasksHandlers,
+  ...catalogHandlers,
 ]

@@ -10,10 +10,12 @@ import type {
   Location,
   Member,
   Permission,
+  ProductKind,
   Role,
   StageColor,
   TaskStage,
   TaskType,
+  Unit,
 } from "@/lib/types"
 
 export const TODAY = "2026-10-02"
@@ -211,6 +213,27 @@ export interface TaskRow {
   deleted?: boolean
 }
 
+// A product or a service of a company (logic/products.md): a product has a
+// unit, a service none and no SKU. The amounts are text as the API sends
+// them ("150000.50"). by is who entered it, byName the name they went by
+// then. A deleted row is hidden, never removed; an inactive one stays.
+export interface ProductRow {
+  id: number
+  companyId: number
+  kind: ProductKind
+  name: string
+  unit: Unit | null
+  sku: string | null
+  price: string | null
+  note: string | null
+  active: boolean
+  by: string
+  byName: string | null
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+}
+
 // What happened to a task: like a customer's history.
 export interface TaskHistoryRow {
   id: number
@@ -236,6 +259,7 @@ interface Db {
   history: HistoryRow[]
   tasks: TaskRow[]
   taskHistory: TaskHistoryRow[]
+  products: ProductRow[]
   // lastId: the id the last settings or customer row took.
   lastId: number
   // minutes: how far the clock of the customers' timestamps has moved.
@@ -320,6 +344,7 @@ function seed(): Db {
     history: [],
     tasks: [],
     taskHistory: [],
+    products: [],
     minutes: 0,
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],

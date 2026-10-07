@@ -8,6 +8,7 @@ import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type { CustomerFieldKind, Permission } from "@/lib/types"
 import { setAccessToken } from "@/lib/session"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
+import { giveRole as holdRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
 
@@ -1540,4 +1541,119 @@ test("the roles are the owner's: an employee, and a session with no company chos
   expect(await failure(giveRole(ALI, role.id))).toMatchObject({ status: 409, code: "cannot_change_owner" })
   expect(await failure(giveRole("998909999999", role.id))).toMatchObject({ status: 404, message: "Xodim topilmadi" })
   expect(await failure(giveRole(VALI, 999999))).toMatchObject({ status: 404, message: "Rol topilmadi" })
+})
+
+// The catalog (logic/products.md; backend/internal/app/catalog_test.go).
+const products = (query: Record<string, string> = {}) => call(api.GET("/app/products", { params: { query } }))
+const addProduct = (body: components["schemas"]["ProductInput"]) => call(api.POST("/app/products", { body }))
+
+test("a product is entered with its fields trimmed, a service without a unit; the names and the SKUs are checked like the Go API's", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  const olma = await addProduct({ kind: "product", name: " Olma ", unit: "kg", sku: "A-1", price: "12000.5", note: "Qizil" })
+  expect(olma).toMatchObject({
+    kind: "product",
+    name: "Olma",
+    unit: "kg",
+    sku: "A-1",
+    price: "12000.50",
+    note: "Qizil",
+    is_active: true,
+    created_by_name: "Vali Aliyev",
+  })
+  expect(olma.created_at).toBe(olma.updated_at)
+  const service = await addProduct({ kind: "service", name: "Yetkazish", price: "50000" })
+  expect(service).toMatchObject({ kind: "service", unit: null, sku: null, price: "50000.00", note: null })
+
+  for (const [body, message] of [
+    [{ name: "Nok" }, "Turni tanlang"],
+    [{ kind: "product", name: " ", unit: "kg" }, "Nomni kiriting"],
+    [{ kind: "product", name: "a".repeat(121), unit: "kg" }, "Nom 120 belgidan oshmasin"],
+    [{ kind: "product", name: "Nok" }, "Birlikni tanlang"],
+    [{ kind: "product", name: "Nok", unit: "tonna" }, "Birlikni tanlang"],
+    [{ kind: "service", name: "Ta'mirlash", unit: "dona" }, "Xizmatga birlik berilmaydi"],
+    [{ kind: "service", name: "Ta'mirlash", sku: "S-1" }, "Xizmatga artikul berilmaydi"],
+    [{ kind: "product", name: "Nok", unit: "kg", sku: "1".repeat(61) }, "Artikul 60 belgidan oshmasin"],
+    [{ kind: "product", name: "Nok", unit: "kg", price: "1,5" }, "Narx noto'g'ri"],
+    [{ kind: "product", name: "Nok", unit: "kg", note: "x".repeat(501) }, "Izoh 500 belgidan oshmasin"],
+  ] as [components["schemas"]["ProductInput"], string][]) {
+    expect(await failure(addProduct(body)), message).toMatchObject({ status: 400, code: "validation_error", message })
+  }
+  expect(await failure(addProduct({ kind: "product", name: "OLMA", unit: "dona" }))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli mahsulot allaqachon bor",
+  })
+  expect(await failure(addProduct({ kind: "service", name: "yetkazish" }))).toMatchObject({
+    status: 409,
+    code: "name_taken",
+    message: "Bu nomli xizmat allaqachon bor",
+  })
+  expect(await failure(addProduct({ kind: "product", name: "Nok", unit: "dona", sku: "a-1" }))).toMatchObject({
+    status: 409,
+    code: "sku_taken",
+    message: "Bu artikulli mahsulot allaqachon bor",
+  })
+  await expect(addProduct({ kind: "service", name: "Olma" })).resolves.toMatchObject({ kind: "service" })
+})
+
+test("the list is the active products by name, the services and the inactive apart, searched by name or SKU, 20 a page", async () => {
+  await signIn(ALI)
+  await addProduct({ kind: "product", name: "Nok", unit: "dona", sku: "N-1" })
+  await addProduct({ kind: "product", name: "anor", unit: "kg" })
+  const off = await addProduct({ kind: "product", name: "Olma", unit: "kg" })
+  await addProduct({ kind: "service", name: "Yetkazish" })
+  await call(api.PATCH("/app/products/{id}", { params: { path: { id: off.id } }, body: { is_active: false } }))
+  const names = async (query: Record<string, string> = {}) => (await products(query)).items.map((p) => p.name)
+
+  expect(await names()).toEqual(["anor", "Nok"])
+  expect(await names({ status: "inactive" })).toEqual(["Olma"])
+  expect(await names({ kind: "service" })).toEqual(["Yetkazish"])
+  expect(await names({ search: "n-1" })).toEqual(["Nok"])
+  expect(await names({ search: "ANO" })).toEqual(["anor"])
+  expect(await products({ page: "2" })).toMatchObject({ items: [], total: 2, page: 2, page_size: 20 })
+  expect(await failure(products({ page: "abc" }))).toMatchObject({ status: 400, message: "Sahifa raqami noto'g'ri" })
+  expect(await failure(products({ kind: "thing" }))).toMatchObject({ status: 400, message: "Tur noto'g'ri" })
+  expect(await failure(products({ status: "gone" }))).toMatchObject({ status: 400, message: "Holat noto'g'ri" })
+})
+
+test("a product is read, edited (its kind stays, what is not sent is cleared), turned off and deleted; another company's is not found", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const theirs = await addProduct({ kind: "product", name: "Nok", unit: "dona" })
+
+  await signIn(ALI)
+  expect(await failure(call(api.GET("/app/products/{id}", { params: { path: { id: theirs.id } } })))).toMatchObject({ status: 404 })
+  const p = await addProduct({ kind: "product", name: "Olma", unit: "kg", sku: "A-1", price: "100", note: "Qizil" })
+  const path = { params: { path: { id: p.id } } }
+
+  expect(await call(api.GET("/app/products/{id}", path))).toEqual(p)
+  const edited = await call(api.PUT("/app/products/{id}", { ...path, body: { name: "Qizil olma", unit: "dona" } }))
+  expect(edited).toMatchObject({ kind: "product", name: "Qizil olma", unit: "dona", sku: null, price: null, note: null })
+  expect(await failure(call(api.PUT("/app/products/{id}", { ...path, body: { name: "Qizil olma" } })))).toMatchObject({
+    status: 400,
+    message: "Birlikni tanlang",
+  })
+  expect((await call(api.PATCH("/app/products/{id}", { ...path, body: { is_active: false } }))).is_active).toBe(false)
+  expect(await failure(call(api.PATCH("/app/products/{id}", { ...path, body: {} as { is_active: boolean } })))).toMatchObject({
+    status: 400,
+    message: "Holat noto'g'ri",
+  })
+  await call(api.DELETE("/app/products/{id}", path))
+  expect(await failure(call(api.GET("/app/products/{id}", path)))).toMatchObject({ status: 404, code: "not_found", message: "Mahsulot topilmadi" })
+  expect(await failure(call(api.DELETE("/app/products/{id}", path)))).toMatchObject({ status: 404 })
+  await expect(addProduct({ kind: "product", name: "Olma", unit: "kg", sku: "A-1" })).resolves.toMatchObject({ name: "Olma" })
+})
+
+test("the products take their permissions: an employee without a role has them all, a role without them gets 403", async () => {
+  holdRole(SARDOR, 1, "Kuzatuvchi", ["customers.view"])
+  await signIn(SARDOR)
+  await chooseCompany(1)
+  expect(await failure(products())).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(addProduct({ kind: "product", name: "Nok", unit: "dona" }))).toMatchObject({ status: 403, code: "forbidden" })
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  await expect(addProduct({ kind: "product", name: "Nok", unit: "dona" })).resolves.toMatchObject({ name: "Nok" })
 })
