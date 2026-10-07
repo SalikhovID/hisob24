@@ -25,11 +25,15 @@ export async function sections(page: Page): Promise<Locator> {
 export async function openSection(page: Page, name: string) {
   const bar = await sections(page)
   const link = bar.getByRole("link", { name })
+  const more = bar.getByRole("button", { name: "Yana" })
+  // The sections come with the session: until then the bar has the home
+  // alone. Wait for the link, or for «Yana» where the bar is short.
+  await link.or(more).first().waitFor()
   if ((await link.count()) > 0) {
     await link.click()
     return
   }
-  await bar.getByRole("button", { name: "Yana" }).click()
+  await more.click()
   await page.getByRole("dialog", { name: "Yana" }).getByRole("link", { name }).click()
 }
 
