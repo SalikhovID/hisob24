@@ -1,8 +1,8 @@
 // An in-memory copy of the admin API's data for MSW: Vitest and Playwright
 // work against the same records and rules as the Go API.
-import type { AdminAccount, Billing, Company, Member } from "@/lib/types"
+import type { AdminAccount, AdminLocation, Billing, Company, Member } from "@/lib/types"
 
-export type { AdminAccount, Billing, Company, Member }
+export type { AdminAccount, AdminLocation, Billing, Company, Member }
 
 // The mock database's today, so day counts never drift.
 export const TODAY = "2026-10-02"
@@ -42,6 +42,9 @@ export function member(phone: string, fullName: string, role: Member["role"]): M
 interface Db {
   companies: Company[]
   members: Record<number, Member[]>
+  // locations: each company's live locations, in the order they were added
+  // (logic/locations.md); tasks_count is what the API counts for them.
+  locations: Record<number, AdminLocation[]>
   billings: Record<number, Billing[]>
   admins: AdminAccount[]
   nextId: number
@@ -58,6 +61,12 @@ function seed(): Db {
       1: [member("998901234567", "Ali Valiyev", "owner"), member("998902223344", "Vali Aliyev", "user")],
       2: [member("998903334455", "Sardor Karimov", "owner")],
       3: [member("998904445566", "Dilnoza Rahimova", "owner")],
+    },
+    // Every company starts with the ready location.
+    locations: {
+      1: [{ id: 101, name: "Asosiy", tasks_count: 0, created_at: "2026-09-20T05:00:00Z" }],
+      2: [{ id: 102, name: "Asosiy", tasks_count: 0, created_at: "2026-09-20T05:00:00Z" }],
+      3: [{ id: 103, name: "Asosiy", tasks_count: 0, created_at: "2026-09-20T05:00:00Z" }],
     },
     billings: { 1: [], 2: [], 3: [] },
     admins: [{ telegram_id: OWNER_ID, full_name: "Owner", is_active: true, created_at: "2026-10-01T04:00:00Z" }],

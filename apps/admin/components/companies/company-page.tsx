@@ -13,11 +13,12 @@ import { buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { formatDate, formatPhone } from "@/lib/format"
 import { useCompany } from "@/lib/queries"
-import type { Member } from "@/lib/types"
+import type { AdminLocation, Member } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { AddBillingDialog } from "./add-billing-dialog"
 import { BillingHistory } from "./billing-history"
 import { CompanyActions } from "./company-actions"
+import { AddLocationDialog, DeleteLocationButton, RenameLocationDialog } from "./location-dialogs"
 import { RenameDialog } from "./rename-dialog"
 import { ReplaceOwnerDialog } from "./replace-owner-dialog"
 import { CompanyStatusBadge } from "./status-badge"
@@ -40,12 +41,34 @@ const memberColumns: Column<Member>[] = [
   { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (m) => formatDate(m.created_at) },
 ]
 
-// CompanyPage shows one company: how its subscription stands, who is in it
-// and what has been paid. Each part is a section under its own heading, with
-// at most one action beside it; the page's one solid button adds a payment.
+// locationColumns is the company's locations: the name, how many tasks
+// stand in it, when it was added, and what the admin may do with it.
+function locationColumns(companyId: number): Column<AdminLocation>[] {
+  return [
+    { header: "Lokatsiya", primary: true, cell: (l) => l.name },
+    { header: "Vazifalar", card: "inline", align: "end", cell: (l) => l.tasks_count },
+    { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (l) => formatDate(l.created_at) },
+    {
+      header: "Amallar",
+      actions: true,
+      cell: (l) => (
+        <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
+          <RenameLocationDialog companyId={companyId} location={l} />
+          <DeleteLocationButton companyId={companyId} location={l} />
+        </span>
+      ),
+    },
+  ]
+}
+
+// CompanyPage shows one company: how its subscription stands, its
+// locations, who is in it and what has been paid. Each part is a section
+// under its own heading, with at most one action beside it; the page's one
+// solid button adds a payment.
 export function CompanyPage({ id }: { id: number }) {
   const company = useCompany(id)
   const infoId = useId()
+  const locationsId = useId()
   const usersId = useId()
   const billingId = useId()
 
@@ -88,6 +111,20 @@ export function CompanyPage({ id }: { id: number }) {
             {formatDate(c.created_at)}
           </Detail>
         </dl>
+      </section>
+      <section aria-labelledby={locationsId}>
+        <SectionHeading id={locationsId} action={<AddLocationDialog companyId={c.id} />}>
+          Lokatsiyalar
+        </SectionHeading>
+        <div className="mt-3">
+          <DataList
+            label="Lokatsiyalar"
+            items={c.locations}
+            columns={locationColumns(c.id)}
+            getKey={(l) => l.id}
+            footer={`Jami: ${c.locations.length}`}
+          />
+        </div>
       </section>
       <section aria-labelledby={usersId}>
         <SectionHeading id={usersId} action={<ReplaceOwnerDialog companyId={c.id} />}>

@@ -3,6 +3,7 @@
 import { http, HttpResponse } from "msw"
 import {
   addDays,
+  type AdminLocation,
   type Billing,
   company,
   daysBetween,
@@ -25,6 +26,20 @@ function fail(status: number, error: string, message: string) {
 }
 
 const notFound = () => fail(404, "not_found", "Kompaniya topilmadi")
+const locationNotFound = () => fail(404, "not_found", "Lokatsiya topilmadi")
+const nameTaken = () => fail(409, "name_taken", "Bu nomli lokatsiya allaqachon bor")
+
+// locationName is the API's rule for a location's name: trimmed, not
+// empty, sixty characters at most.
+function locationName(raw: unknown): string | Response {
+  const name = typeof raw === "string" ? raw.trim() : ""
+  if (!name) return fail(400, "validation_error", "Nomni kiriting")
+  if ([...name].length > 60) return fail(400, "validation_error", "Nom 60 belgidan oshmasin")
+  return name
+}
+
+// sameName tells two names apart as the API does: whatever the case.
+const sameName = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
 function normalizePhone(raw: string): string | null {
   const digits = raw.replace(/[+\-()\s]/g, "")
@@ -108,6 +123,8 @@ export const handlers = [
     const created = company(db.nextId++, name, body.end_date!)
     db.companies.push(created)
     db.members[created.id] = [member(phone, ownerName, "owner")]
+    // A new company starts with the ready location.
+    db.locations[created.id] = [{ id: db.nextId++, name: "Asosiy", tasks_count: 0, created_at: new Date().toISOString() }]
     db.billings[created.id] = []
     return HttpResponse.json(created, { status: 201 })
   }),
@@ -115,7 +132,46 @@ export const handlers = [
   http.get(api("/admin/companies/:id"), ({ params }) => {
     const c = findCompany(params.id)
     if (!c) return notFound()
-    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []) })
+    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []), locations: db.locations[c.id] ?? [] })
+  }),
+
+  // The company's locations (logic/locations.md, section 3): added, renamed
+  // and deleted by the admin, under the Go API's rules
+  // (backend/internal/company/locations.go).
+  http.post(api("/admin/companies/:id/locations"), async ({ params, request }) => {
+    const body = (await request.json()) as { name?: unknown }
+    const name = locationName(body.name)
+    if (name instanceof Response) return name
+    const c = findCompany(params.id)
+    if (!c) return notFound()
+    const locations = (db.locations[c.id] ??= [])
+    if (locations.some((l) => sameName(l.name, name))) return nameTaken()
+    const location: AdminLocation = { id: db.nextId++, name, tasks_count: 0, created_at: new Date().toISOString() }
+    locations.push(location)
+    return HttpResponse.json(location, { status: 201 })
+  }),
+
+  http.patch(api("/admin/companies/:id/locations/:locationId"), async ({ params, request }) => {
+    const body = (await request.json()) as { name?: unknown }
+    const name = locationName(body.name)
+    if (name instanceof Response) return name
+    const c = findCompany(params.id)
+    const location = c && db.locations[c.id]?.find((l) => l.id === Number(params.locationId))
+    if (!location) return locationNotFound()
+    if (db.locations[c.id].some((l) => l !== location && sameName(l.name, name))) return nameTaken()
+    location.name = name
+    return HttpResponse.json(location)
+  }),
+
+  http.delete(api("/admin/companies/:id/locations/:locationId"), ({ params }) => {
+    const c = findCompany(params.id)
+    const locations = c ? (db.locations[c.id] ?? []) : []
+    const location = locations.find((l) => l.id === Number(params.locationId))
+    if (!c || !location) return locationNotFound()
+    if (locations.length <= 1) return fail(409, "last_location", "Kompaniyaning yagona lokatsiyasi o'chirilmaydi")
+    if (location.tasks_count > 0) return fail(409, "location_in_use", `Bu lokatsiyada ${location.tasks_count} ta vazifa bor`)
+    db.locations[c.id] = locations.filter((l) => l !== location)
+    return new HttpResponse(null, { status: 204 })
   }),
 
   http.patch(api("/admin/companies/:id"), async ({ params, request }) => {

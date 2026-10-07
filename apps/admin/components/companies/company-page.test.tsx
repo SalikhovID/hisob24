@@ -473,3 +473,135 @@ test("when the activation fails the page says why, and the company stays blocked
   expect(await screen.findByText("Faollashtirib bo'lmadi: ichki xatolik")).toBeInTheDocument()
   expect(within(screen.getByRole("region", { name: "Ma'lumot" })).getByText("Bloklangan")).toBeInTheDocument()
 })
+
+// locationsOf reads the locations table row by row: the name, the task
+// count and the day it was added (the actions are left out).
+function locationsOf(table: HTMLElement) {
+  return within(table)
+    .getAllByRole("row")
+    .slice(1)
+    .map((row) => [
+      within(row).getByRole("rowheader").textContent,
+      ...within(row)
+        .getAllByRole("cell")
+        .slice(0, 2)
+        .map((cell) => cell.textContent),
+    ])
+}
+
+test("the company page lists the locations with their task counts, the ready one first", async () => {
+  db.locations[1].push({ id: 110, name: "Chilonzor", tasks_count: 3, created_at: "2026-09-25T05:00:00Z" })
+
+  renderWithProviders(<CompanyPage id={1} />)
+
+  const locations = await screen.findByRole("table", { name: "Lokatsiyalar" })
+  expect(within(locations).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+    "Lokatsiya",
+    "Vazifalar",
+    "Qo'shilgan",
+    "Amallar",
+  ])
+  expect(locationsOf(locations)).toEqual([
+    ["Asosiy", "0", "20.09.2026"],
+    ["Chilonzor", "3", "25.09.2026"],
+  ])
+  expect(within(screen.getByRole("region", { name: "Lokatsiyalar" })).getByText("Jami: 2")).toBeInTheDocument()
+})
+
+test("a location is added from the dialog; a missing or a taken name is refused in the API's words", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  await user.click(await screen.findByRole("button", { name: "Lokatsiya qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Lokatsiya qo'shish" })
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Nomni kiriting")).toBeInTheDocument()
+
+  await user.type(within(dialog).getByLabelText("Nomi"), "asosiy")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  expect(await within(dialog).findByText("Bu nomli lokatsiya allaqachon bor")).toBeInTheDocument()
+
+  await user.clear(within(dialog).getByLabelText("Nomi"))
+  await user.type(within(dialog).getByLabelText("Nomi"), " Chilonzor ")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Lokatsiya qo'shildi")).toBeInTheDocument()
+  await waitFor(() =>
+    expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toEqual([
+      ["Asosiy", "0", "20.09.2026"],
+      ["Chilonzor", "0", expect.any(String)],
+    ]),
+  )
+})
+
+test("a location is renamed from its row", async () => {
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  // The list is a table and a list of cards, one of them hidden by CSS: the
+  // table's buttons are the ones clicked.
+  const table = await screen.findByRole("table", { name: "Lokatsiyalar" })
+  await user.click(within(table).getByRole("button", { name: "Nomini o'zgartirish: Asosiy" }))
+  const dialog = await screen.findByRole("dialog", { name: "Lokatsiya nomini o'zgartirish" })
+  const name = within(dialog).getByLabelText("Nomi")
+  expect(name).toHaveValue("Asosiy")
+  await user.clear(name)
+  await user.type(name, "Markaz")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  // Not "Nomi o'zgartirildi": the company's rename says that, and a toast
+  // outlives its test.
+  expect(await screen.findByText("Lokatsiya nomi o'zgartirildi")).toBeInTheDocument()
+  await waitFor(() => expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))[0][0]).toBe("Markaz"))
+})
+
+test("the only location is not deleted; a second, empty one is, after asking", async () => {
+  db.locations[1].push({ id: 110, name: "Chilonzor", tasks_count: 0, created_at: "2026-09-25T05:00:00Z" })
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  const table = await screen.findByRole("table", { name: "Lokatsiyalar" })
+  await user.click(within(table).getByRole("button", { name: "O'chirish: Chilonzor" }))
+  let confirm = await screen.findByRole("alertdialog", { name: "Lokatsiyani o'chirasizmi?" })
+  expect(within(confirm).getByText(/«Chilonzor» lokatsiyasi o'chadi/)).toBeInTheDocument()
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Lokatsiya o'chirildi")).toBeInTheDocument()
+  await waitFor(() => expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toEqual([["Asosiy", "0", "20.09.2026"]]))
+
+  await user.click(within(table).getByRole("button", { name: "O'chirish: Asosiy" }))
+  confirm = await screen.findByRole("alertdialog", { name: "Lokatsiyani o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  expect(await screen.findByText("Kompaniyaning yagona lokatsiyasi o'chirilmaydi")).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+  expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toEqual([["Asosiy", "0", "20.09.2026"]])
+})
+
+test("a location with tasks is not deleted: the refusal says how many", async () => {
+  db.locations[1].push({ id: 110, name: "Chilonzor", tasks_count: 2, created_at: "2026-09-25T05:00:00Z" })
+  const { user } = renderWithProviders(<CompanyPage id={1} />)
+
+  const table = await screen.findByRole("table", { name: "Lokatsiyalar" })
+  await user.click(within(table).getByRole("button", { name: "O'chirish: Chilonzor" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Lokatsiyani o'chirasizmi?" })
+  await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+
+  expect(await screen.findByText("Bu lokatsiyada 2 ta vazifa bor")).toBeInTheDocument()
+  expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toHaveLength(2)
+})
+
+test("on a phone a location is a card: the task count and the day under its name, the actions beside it", async () => {
+  renderWithProviders(<CompanyPage id={1} />)
+
+  const [asosiy] = within(await screen.findByRole("list", { name: "Lokatsiyalar" })).getAllByRole("listitem")
+
+  expect(within(asosiy).getByText("Asosiy")).toBeInTheDocument()
+  const line = Array.from(asosiy.querySelectorAll('[data-slot="data-list-meta"] > div')).map((pair) => [
+    pair.querySelector("dt")?.textContent,
+    pair.querySelector("dd")?.textContent,
+  ])
+  expect(line).toEqual([
+    ["Vazifalar", "0"],
+    ["Qo'shilgan", "20.09.2026"],
+  ])
+  expect(within(asosiy).getByRole("button", { name: "Nomini o'zgartirish: Asosiy" })).toBeInTheDocument()
+  expect(within(asosiy).getByRole("button", { name: "O'chirish: Asosiy" })).toBeInTheDocument()
+})

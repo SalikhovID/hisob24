@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { z } from "zod"
-import { adminSchema, billingSchema, companySchema, ownerSchema, phoneField } from "./schemas"
+import { adminSchema, billingSchema, companySchema, locationSchema, ownerSchema, phoneField } from "./schemas"
 
 // problems lists the messages a schema gives for input; none means valid.
 function problems(schema: z.ZodType, input: unknown): string[] {
@@ -82,4 +82,11 @@ test.each([
   [{ telegram_id: "42", full_name: " " }, ["Adminning ismini kiriting"]],
 ])("adminSchema refuses %j", (input, want) => {
   expect(problems(adminSchema, input)).toEqual(want)
+})
+
+test("locationSchema trims the name and refuses an empty or a long one", () => {
+  expect(locationSchema.parse({ name: " Chilonzor " })).toEqual({ name: "Chilonzor" })
+  expect(problems(locationSchema, { name: " " })).toEqual(["Nomni kiriting"])
+  expect(problems(locationSchema, { name: "a".repeat(61) })).toEqual(["Nom 60 belgidan oshmasin"])
+  expect(problems(locationSchema, { name: "a".repeat(60) })).toEqual([])
 })

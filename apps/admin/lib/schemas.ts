@@ -63,3 +63,9 @@ export const adminSchema = z.object({
     .refine((id) => id > 0 && Number.isSafeInteger(id), TELEGRAM_ID_MESSAGE),
   full_name: required("Adminning ismini kiriting"),
 })
+
+// locationSchema is the add-location and rename-location dialogs: a name
+// trimmed to 1–60 characters, as the API's CleanName takes it.
+export const locationSchema = z.object({
+  name: required("Nomni kiriting").max(60, "Nom 60 belgidan oshmasin"),
+})
