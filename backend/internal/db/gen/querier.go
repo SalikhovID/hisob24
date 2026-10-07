@@ -57,6 +57,11 @@ type Querier interface {
 	// How many customers filled the field in: one in use is not deleted.
 	// Deleted customers do not count.
 	CountFieldCustomers(ctx context.Context, fieldID int64) (int64, error)
+	// How many tasks stand in the location: one in use is not deleted. Deleted
+	// tasks do not count.
+	CountLocationTasks(ctx context.Context, locationID int64) (int64, error)
+	// How many live locations the company has: the last one is not deleted.
+	CountLocations(ctx context.Context, companyID int64) (int64, error)
 	// How many customers chose the option, in any field: one in use is not
 	// deleted. Deleted customers do not count.
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
@@ -88,6 +93,9 @@ type Querier interface {
 	CreateCustomerDropdown(ctx context.Context, arg CreateCustomerDropdownParams) (CustomerDropdown, error)
 	// A new type goes last among the company's.
 	CreateCustomerType(ctx context.Context, arg CreateCustomerTypeParams) (CustomerType, error)
+	// Adds a location to the company. The name is one location's in a company
+	// (23505, whatever the case, among the live ones).
+	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
@@ -138,6 +146,10 @@ type Querier interface {
 	// Clears a customer's answers: an edit writes them anew. What they were
 	// stays in the customer's history.
 	DeleteCustomerValues(ctx context.Context, customerID int64) error
+	// Hides the location: nothing is removed, and its name is free again.
+	// pgx.ErrNoRows when the company has no such location, or deleted it
+	// already.
+	DeleteLocation(ctx context.Context, arg DeleteLocationParams) (int64, error)
 	// Drops a member's restriction: the locations it named. The member works in
 	// every location once all_locations is raised with it.
 	DeleteMemberLocations(ctx context.Context, arg DeleteMemberLocationsParams) error
@@ -280,6 +292,9 @@ type Querier interface {
 	// in the phone and in the whole number answers. The names of the options are
 	// not searched. A NULL argument leaves its filter out.
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
+	// The company's live locations for the admin, in the order they were
+	// added, each with how many tasks stand in it (the deleted not counted).
+	ListLocations(ctx context.Context, companyID int64) ([]ListLocationsRow, error)
 	// The locations a member may work in (logic/locations.md, section 5): every
 	// live one of the company's for the owner and for a member without a
 	// restriction, the live ones among the restriction's otherwise; in the
@@ -362,6 +377,9 @@ type Querier interface {
 	RenameCustomerDropdown(ctx context.Context, arg RenameCustomerDropdownParams) (CustomerDropdown, error)
 	// pgx.ErrNoRows when the company has no such type, or deleted it.
 	RenameCustomerType(ctx context.Context, arg RenameCustomerTypeParams) (CustomerType, error)
+	// Renames the company's location; pgx.ErrNoRows when the company has no
+	// such location, or deleted it.
+	RenameLocation(ctx context.Context, arg RenameLocationParams) (Location, error)
 	// pgx.ErrNoRows when the company has no such type, or deleted it.
 	RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) (TaskType, error)
 	// Revokes a live token and returns its owner, company and source: the first

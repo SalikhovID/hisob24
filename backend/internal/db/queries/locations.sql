@@ -35,3 +35,41 @@ ORDER BY ml.user_phone, l.id;
 -- Drops a member's restriction: the locations it named. The member works in
 -- every location once all_locations is raised with it.
 DELETE FROM member_locations WHERE user_phone = $1 AND company_id = $2;
+
+-- name: ListLocations :many
+-- The company's live locations for the admin, in the order they were
+-- added, each with how many tasks stand in it (the deleted not counted).
+SELECT l.id, l.name, l.created_at,
+       (SELECT count(*) FROM tasks t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS tasks_count
+FROM locations l
+WHERE l.company_id = $1 AND l.deleted_at IS NULL
+ORDER BY l.id;
+
+-- name: CreateLocation :one
+-- Adds a location to the company. The name is one location's in a company
+-- (23505, whatever the case, among the live ones).
+INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING *;
+
+-- name: RenameLocation :one
+-- Renames the company's location; pgx.ErrNoRows when the company has no
+-- such location, or deleted it.
+UPDATE locations SET name = sqlc.arg('name')
+WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
+RETURNING *;
+
+-- name: DeleteLocation :one
+-- Hides the location: nothing is removed, and its name is free again.
+-- pgx.ErrNoRows when the company has no such location, or deleted it
+-- already.
+UPDATE locations SET deleted_at = now()
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+RETURNING id;
+
+-- name: CountLocations :one
+-- How many live locations the company has: the last one is not deleted.
+SELECT count(*) FROM locations WHERE company_id = $1 AND deleted_at IS NULL;
+
+-- name: CountLocationTasks :one
+-- How many tasks stand in the location: one in use is not deleted. Deleted
+-- tasks do not count.
+SELECT count(*) FROM tasks WHERE location_id = $1 AND deleted_at IS NULL;

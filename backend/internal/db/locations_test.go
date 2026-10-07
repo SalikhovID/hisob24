@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
@@ -135,4 +136,113 @@ func TestDeleteMemberLocations(t *testing.T) {
 	assert.Zero(t, rows, "the member's restriction is gone")
 	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM member_locations").Scan(&rows))
 	assert.Equal(t, 1, rows, "the other member's stays")
+}
+
+func TestListLocations(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newTaskShop(t, q, pool, "Olma")
+	chilonzor := addLocation(t, pool, s.company.ID, "Chilonzor")
+	gone := addLocation(t, pool, s.company.ID, "Yopilgan")
+	mustExec(t, pool, "UPDATE locations SET deleted_at = now() WHERE id = $1", gone)
+	addLocation(t, pool, createCompany(t, q, "Nok", today(t, pool)).ID, "Begona")
+	s.task(t, q, "Qo'ng'iroq", "2026-10-10", nil)
+	deleted := s.task(t, q, "O'chirilgan", "2026-10-11", nil)
+	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", deleted.ID)
+
+	rows, err := q.ListLocations(ctx, s.company.ID)
+
+	require.NoError(t, err)
+	require.Len(t, rows, 2, "the company's live locations, in the order they were added")
+	assert.Equal(t, s.asosiy, rows[0].ID)
+	assert.Equal(t, "Asosiy", rows[0].Name)
+	assert.EqualValues(t, 1, rows[0].TasksCount, "the tasks standing in it, the deleted not counted")
+	assert.False(t, rows[0].CreatedAt.IsZero())
+	assert.Equal(t, chilonzor, rows[1].ID)
+	assert.EqualValues(t, 0, rows[1].TasksCount)
+}
+
+func TestCreateLocation(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+
+	l, err := q.CreateLocation(ctx, gen.CreateLocationParams{CompanyID: olma.ID, Name: "Chilonzor"})
+
+	require.NoError(t, err)
+	assert.Positive(t, l.ID)
+	assert.Equal(t, "Chilonzor", l.Name)
+	assert.Equal(t, olma.ID, l.CompanyID)
+	assert.Nil(t, l.DeletedAt)
+	_, err = q.CreateLocation(ctx, gen.CreateLocationParams{CompanyID: olma.ID, Name: "chilonzor"})
+	assert.Equal(t, "23505", sqlState(err), "a name is one location's in a company, whatever the case") // unique_violation
+}
+
+func TestRenameLocation(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma, nok := createCompany(t, q, "Olma", d), createCompany(t, q, "Nok", d)
+	asosiy := addLocation(t, pool, olma.ID, "Asosiy")
+	gone := addLocation(t, pool, olma.ID, "Yopilgan")
+	mustExec(t, pool, "UPDATE locations SET deleted_at = now() WHERE id = $1", gone)
+
+	l, err := q.RenameLocation(ctx, gen.RenameLocationParams{ID: asosiy, CompanyID: olma.ID, Name: "Markaz"})
+	require.NoError(t, err)
+	assert.Equal(t, "Markaz", l.Name)
+
+	_, err = q.RenameLocation(ctx, gen.RenameLocationParams{ID: asosiy, CompanyID: nok.ID, Name: "X"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's location")
+	_, err = q.RenameLocation(ctx, gen.RenameLocationParams{ID: gone, CompanyID: olma.ID, Name: "X"})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted location")
+}
+
+func TestDeleteLocation(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma, nok := createCompany(t, q, "Olma", d), createCompany(t, q, "Nok", d)
+	asosiy := addLocation(t, pool, olma.ID, "Asosiy")
+
+	_, err := q.DeleteLocation(ctx, gen.DeleteLocationParams{ID: asosiy, CompanyID: nok.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's location")
+	id, err := q.DeleteLocation(ctx, gen.DeleteLocationParams{ID: asosiy, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, asosiy, id)
+	var deleted *time.Time
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at FROM locations WHERE id = $1", asosiy).Scan(&deleted))
+	assert.NotNil(t, deleted, "hidden, not removed")
+	_, err = q.DeleteLocation(ctx, gen.DeleteLocationParams{ID: asosiy, CompanyID: olma.ID})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
+}
+
+func TestCountLocations(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma, nok := createCompany(t, q, "Olma", d), createCompany(t, q, "Nok", d)
+	addLocation(t, pool, olma.ID, "Asosiy")
+	gone := addLocation(t, pool, olma.ID, "Yopilgan")
+	mustExec(t, pool, "UPDATE locations SET deleted_at = now() WHERE id = $1", gone)
+	addLocation(t, pool, nok.ID, "Asosiy")
+
+	n, err := q.CountLocations(ctx, olma.ID)
+
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "the live locations of the company")
+}
+
+func TestCountLocationTasks(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newTaskShop(t, q, pool, "Olma")
+	s.task(t, q, "Qo'ng'iroq", "2026-10-10", nil)
+	s.task(t, q, "Shartnoma", "2026-10-11", nil)
+	deleted := s.task(t, q, "O'chirilgan", "2026-10-12", nil)
+	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", deleted.ID)
+
+	n, err := q.CountLocationTasks(ctx, s.asosiy)
+
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, n, "the tasks standing in the location, the deleted not counted")
 }

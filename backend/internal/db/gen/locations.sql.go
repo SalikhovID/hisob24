@@ -7,7 +7,78 @@ package gen
 
 import (
 	"context"
+	"time"
 )
+
+const countLocationTasks = `-- name: CountLocationTasks :one
+SELECT count(*) FROM tasks WHERE location_id = $1 AND deleted_at IS NULL
+`
+
+// How many tasks stand in the location: one in use is not deleted. Deleted
+// tasks do not count.
+func (q *Queries) CountLocationTasks(ctx context.Context, locationID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countLocationTasks, locationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countLocations = `-- name: CountLocations :one
+SELECT count(*) FROM locations WHERE company_id = $1 AND deleted_at IS NULL
+`
+
+// How many live locations the company has: the last one is not deleted.
+func (q *Queries) CountLocations(ctx context.Context, companyID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countLocations, companyID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createLocation = `-- name: CreateLocation :one
+INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id, company_id, name, created_at, deleted_at
+`
+
+type CreateLocationParams struct {
+	CompanyID int64
+	Name      string
+}
+
+// Adds a location to the company. The name is one location's in a company
+// (23505, whatever the case, among the live ones).
+func (q *Queries) CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error) {
+	row := q.db.QueryRow(ctx, createLocation, arg.CompanyID, arg.Name)
+	var i Location
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const deleteLocation = `-- name: DeleteLocation :one
+UPDATE locations SET deleted_at = now()
+WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+RETURNING id
+`
+
+type DeleteLocationParams struct {
+	ID        int64
+	CompanyID int64
+}
+
+// Hides the location: nothing is removed, and its name is free again.
+// pgx.ErrNoRows when the company has no such location, or deleted it
+// already.
+func (q *Queries) DeleteLocation(ctx context.Context, arg DeleteLocationParams) (int64, error) {
+	row := q.db.QueryRow(ctx, deleteLocation, arg.ID, arg.CompanyID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
 
 const deleteMemberLocations = `-- name: DeleteMemberLocations :exec
 DELETE FROM member_locations WHERE user_phone = $1 AND company_id = $2
@@ -86,6 +157,48 @@ func (q *Queries) ListCompanyMemberLocations(ctx context.Context, companyID int6
 	return items, nil
 }
 
+const listLocations = `-- name: ListLocations :many
+SELECT l.id, l.name, l.created_at,
+       (SELECT count(*) FROM tasks t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS tasks_count
+FROM locations l
+WHERE l.company_id = $1 AND l.deleted_at IS NULL
+ORDER BY l.id
+`
+
+type ListLocationsRow struct {
+	ID         int64
+	Name       string
+	CreatedAt  time.Time
+	TasksCount int64
+}
+
+// The company's live locations for the admin, in the order they were
+// added, each with how many tasks stand in it (the deleted not counted).
+func (q *Queries) ListLocations(ctx context.Context, companyID int64) ([]ListLocationsRow, error) {
+	rows, err := q.db.Query(ctx, listLocations, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLocationsRow{}
+	for rows.Next() {
+		var i ListLocationsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.TasksCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMemberLocations = `-- name: ListMemberLocations :many
 SELECT l.id, l.name
 FROM locations l
@@ -128,6 +241,33 @@ func (q *Queries) ListMemberLocations(ctx context.Context, arg ListMemberLocatio
 		return nil, err
 	}
 	return items, nil
+}
+
+const renameLocation = `-- name: RenameLocation :one
+UPDATE locations SET name = $1
+WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
+RETURNING id, company_id, name, created_at, deleted_at
+`
+
+type RenameLocationParams struct {
+	Name      string
+	ID        int64
+	CompanyID int64
+}
+
+// Renames the company's location; pgx.ErrNoRows when the company has no
+// such location, or deleted it.
+func (q *Queries) RenameLocation(ctx context.Context, arg RenameLocationParams) (Location, error) {
+	row := q.db.QueryRow(ctx, renameLocation, arg.Name, arg.ID, arg.CompanyID)
+	var i Location
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const seedLocation = `-- name: SeedLocation :one
