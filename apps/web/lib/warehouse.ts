@@ -1,7 +1,8 @@
 import { z } from "zod"
+import { unitCodes } from "./catalog"
 import { formatAmount } from "./format"
 import { formatPhoneInput, phoneDigits } from "./phone"
-import type { Payment, PurchaseDetail, Supplier } from "./types"
+import type { Payment, PurchaseDetail, Supplier, Unit } from "./types"
 
 const trimmed = z.string().trim()
 
@@ -71,9 +72,12 @@ export const paymentSchema = z.object({
 })
 
 // lineSchema checks one line of the purchase form: a product chosen, a
-// quantity above zero, a price.
+// quantity above zero, a price. The product's name and unit the form holds
+// for the chip and the quantity's suffix are left behind.
 const lineSchema = z.object({
   product_id: z.number().int().positive("Mahsulotni tanlang"),
+  product_name: z.string(),
+  unit: z.enum(unitCodes).nullable(),
   quantity: z.string().transform((value, context) => {
     const text = digits(value)
     if (!quantityPattern.test(text) || Number(text) === 0) {
@@ -90,27 +94,31 @@ const lineSchema = z.object({
     }
     return text
   }),
-})
+}).transform(({ product_id, quantity, price }) => ({ product_id, quantity, price }))
 
 // purchaseSchema checks the purchase form in the API's words and turns it
-// into what the API takes (the location is the page's). A product once per
+// into what the API takes (the location is the page's; the supplier's name
+// the form holds for the chip is left behind). A product once per
 // purchase: the second line of one is told.
-export const purchaseSchema = z.object({
-  supplier_id: z.number().int().positive("Ta'minotchini tanlang"),
-  purchased_on: day,
-  note,
-  paid: amount("To'langan summa noto'g'ri"),
-  items: z
-    .array(lineSchema)
-    .min(1, "Kamida bitta mahsulot qo'shing")
-    .superRefine((items, context) => {
-      const seen = new Set<number>()
-      items.forEach((item, index) => {
-        if (seen.has(item.product_id)) context.addIssue({ code: "custom", message: "Bu mahsulot allaqachon kiritilgan", path: [index, "product_id"] })
-        seen.add(item.product_id)
-      })
-    }),
-})
+export const purchaseSchema = z
+  .object({
+    supplier_id: z.number().int().positive("Ta'minotchini tanlang"),
+    supplier_name: z.string(),
+    purchased_on: day,
+    note,
+    paid: amount("To'langan summa noto'g'ri"),
+    items: z
+      .array(lineSchema)
+      .min(1, "Kamida bitta mahsulot qo'shing")
+      .superRefine((items, context) => {
+        const seen = new Set<number>()
+        items.forEach((item, index) => {
+          if (seen.has(item.product_id)) context.addIssue({ code: "custom", message: "Bu mahsulot allaqachon kiritilgan", path: [index, "product_id"] })
+          seen.add(item.product_id)
+        })
+      }),
+  })
+  .transform(({ supplier_id, purchased_on, note, paid, items }) => ({ supplier_id, purchased_on, note, paid, items }))
 
 export type SupplierForm = { name: string; phone: string; note: string }
 export type SupplierOutput = z.output<typeof supplierSchema>
@@ -119,7 +127,7 @@ export type PaymentOutput = z.output<typeof paymentSchema>
 // LineForm is one line as the form holds it: the product chosen (its name
 // and unit for the chip and the quantity's unit), the quantity and the
 // price as typed.
-export type LineForm = { product_id: number; product_name: string; unit: string | null; quantity: string; price: string }
+export type LineForm = { product_id: number; product_name: string; unit: Unit | null; quantity: string; price: string }
 export type PurchaseForm = { supplier_id: number; supplier_name: string; purchased_on: string; note: string; paid: string; items: LineForm[] }
 export type PurchaseOutput = z.output<typeof purchaseSchema>
 

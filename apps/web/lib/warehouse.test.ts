@@ -19,29 +19,31 @@ test("the payment form: an amount above zero as typed, a day, a note", () => {
 })
 
 describe("the purchase form", () => {
-  const line = (product_id: number, quantity: string, price: string) => ({ product_id, quantity, price })
+  // line is a line as the form holds it; out is the same as the API takes it.
+  const line = (product_id: number, quantity: string, price: string) => ({ product_id, product_name: "", unit: null, quantity, price })
+  const out = (product_id: number, quantity: string, price: string) => ({ product_id, quantity, price })
   test("is turned into what the API takes: the lines with their numbers as typed, what was paid, the note", () => {
     expect(
-      purchaseSchema.parse({ supplier_id: 3, purchased_on: "2026-10-07", note: " Ertalab ", paid: "5 000", items: [line(1, "12,5", "1 000"), line(2, "3", "2500,5")] }),
+      purchaseSchema.parse({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: " Ertalab ", paid: "5 000", items: [line(1, "12,5", "1 000"), line(2, "3", "2500,5")] }),
     ).toEqual({
       supplier_id: 3,
       purchased_on: "2026-10-07",
       note: "Ertalab",
       paid: "5000",
-      items: [line(1, "12.5", "1000"), line(2, "3", "2500.5")],
+      items: [out(1, "12.5", "1000"), out(2, "3", "2500.5")],
     })
-    expect(purchaseSchema.parse({ supplier_id: 3, purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "1")] })).toMatchObject({ paid: null, note: null })
+    expect(purchaseSchema.parse({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "1")] })).toMatchObject({ paid: null, note: null })
   })
   test("tells what is wrong where it is wrong", () => {
     const bad = (input: unknown) => purchaseSchema.safeParse(input).error?.issues.map((i) => [i.path.join("."), i.message])
-    expect(bad({ supplier_id: 0, purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "1")] })).toEqual([["supplier_id", "Ta'minotchini tanlang"]])
-    expect(bad({ supplier_id: 3, purchased_on: "", note: "", paid: "", items: [line(1, "1", "1")] })).toEqual([["purchased_on", "Sanani kiriting"]])
-    expect(bad({ supplier_id: 3, purchased_on: "2026-10-07", note: "", paid: "", items: [] })).toEqual([["items", "Kamida bitta mahsulot qo'shing"]])
-    expect(bad({ supplier_id: 3, purchased_on: "2026-10-07", note: "", paid: "", items: [line(0, "1", "1")] })).toEqual([["items.0.product_id", "Mahsulotni tanlang"]])
-    expect(bad({ supplier_id: 3, purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "0", "1")] })).toEqual([["items.0.quantity", "Miqdor noto'g'ri"]])
-    expect(bad({ supplier_id: 3, purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "x")] })).toEqual([["items.0.price", "Narx noto'g'ri"]])
-    expect(bad({ supplier_id: 3, purchased_on: "2026-10-07", note: "", paid: "-1", items: [line(1, "1", "1")] })).toEqual([["paid", "To'langan summa noto'g'ri"]])
-    expect(bad({ supplier_id: 3, purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "1"), line(1, "2", "1")] })).toEqual([["items.1.product_id", "Bu mahsulot allaqachon kiritilgan"]])
+    expect(bad({ supplier_id: 0, supplier_name: "", purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "1")] })).toEqual([["supplier_id", "Ta'minotchini tanlang"]])
+    expect(bad({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "", note: "", paid: "", items: [line(1, "1", "1")] })).toEqual([["purchased_on", "Sanani kiriting"]])
+    expect(bad({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: "", paid: "", items: [] })).toEqual([["items", "Kamida bitta mahsulot qo'shing"]])
+    expect(bad({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: "", paid: "", items: [line(0, "1", "1")] })).toEqual([["items.0.product_id", "Mahsulotni tanlang"]])
+    expect(bad({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "0", "1")] })).toEqual([["items.0.quantity", "Miqdor noto'g'ri"]])
+    expect(bad({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "x")] })).toEqual([["items.0.price", "Narx noto'g'ri"]])
+    expect(bad({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: "", paid: "-1", items: [line(1, "1", "1")] })).toEqual([["paid", "To'langan summa noto'g'ri"]])
+    expect(bad({ supplier_id: 3, supplier_name: "Bozor", purchased_on: "2026-10-07", note: "", paid: "", items: [line(1, "1", "1"), line(1, "2", "1")] })).toEqual([["items.1.product_id", "Bu mahsulot allaqachon kiritilgan"]])
   })
   test("the amounts on screen: a line, the total", () => {
     expect(lineAmount("12,5", "1 000")).toBe("12500")
