@@ -95,7 +95,8 @@ test("a company's actions stand beside its name on a wide screen and under it on
   await page.goto("/companies/1")
 
   const name = (await page.getByRole("heading", { name: "Olma Savdo" }).boundingBox())!
-  const rename = (await page.getByRole("button", { name: "Nomini o'zgartirish" }).boundingBox())!
+  // The company's own button, not a location's ("Nomini o'zgartirish: Asosiy").
+  const rename = (await page.getByRole("button", { name: "Nomini o'zgartirish", exact: true }).boundingBox())!
   if ((page.viewportSize()?.width ?? 0) < 768) {
     // Two buttons beside the name would leave it a few letters a line.
     expect(rename.y).toBeGreaterThanOrEqual(name.y + name.height)
@@ -148,4 +149,45 @@ test("the billing table shows each payment's period on a tablet too", async ({ p
     return box.scrollWidth - box.clientWidth
   })
   expect(overflow).toBeLessThanOrEqual(0)
+})
+
+test("the admin adds a location, renames it, cannot delete the only one and deletes the second", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await signIn(context, baseURL)
+  await page.goto("/companies/1")
+  const locations = page.getByRole("region", { name: "Lokatsiyalar" })
+  await expect(locations.getByText("Asosiy").filter({ visible: true })).toBeVisible()
+  await expect(locations.getByText("Jami: 1")).toBeVisible()
+
+  await page.getByRole("button", { name: "Lokatsiya qo'shish" }).click()
+  const add = page.getByRole("dialog", { name: "Lokatsiya qo'shish" })
+  await add.getByLabel("Nomi").fill("Chilonzor")
+  await add.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(add).toBeHidden()
+  await expect(locations.getByText("Chilonzor").filter({ visible: true })).toBeVisible()
+  await expect(locations.getByText("Jami: 2")).toBeVisible()
+
+  await locations.getByRole("button", { name: "Nomini o'zgartirish: Chilonzor" }).click()
+  const rename = page.getByRole("dialog", { name: "Lokatsiya nomini o'zgartirish" })
+  await rename.getByLabel("Nomi").fill("Chilonzor filiali")
+  await rename.getByRole("button", { name: "Saqlash" }).click()
+  await expect(rename).toBeHidden()
+  await expect(locations.getByText("Chilonzor filiali").filter({ visible: true })).toBeVisible()
+
+  await locations.getByRole("button", { name: "O'chirish: Chilonzor filiali" }).click()
+  let confirm = page.getByRole("alertdialog", { name: "Lokatsiyani o'chirasizmi?" })
+  await confirm.getByRole("button", { name: "O'chirish" }).click()
+  await expect(confirm).toBeHidden()
+  await expect(locations.getByText("Chilonzor filiali").filter({ visible: true })).toHaveCount(0)
+  await expect(locations.getByText("Jami: 1")).toBeVisible()
+
+  // The company's only location stays: the API refuses, the page says why.
+  await locations.getByRole("button", { name: "O'chirish: Asosiy" }).click()
+  confirm = page.getByRole("alertdialog", { name: "Lokatsiyani o'chirasizmi?" })
+  await confirm.getByRole("button", { name: "O'chirish" }).click()
+  await expect(page.getByText("Kompaniyaning yagona lokatsiyasi o'chirilmaydi")).toBeVisible()
+  await expect(locations.getByText("Jami: 1")).toBeVisible()
 })
