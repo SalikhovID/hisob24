@@ -250,3 +250,40 @@ Amalga oshirishda belgilangan tafsilotlar:
 - **`GetCompanyAccess.location_ids`** `array_agg` subquery, bo'shi `'{}'`; `user.Access.LocationIDs` hech qachon nil emas.
 - **Mavjud testlar o'zgardi (talab o'zgargani uchun):** migratsiya, `internal/db`, `internal/task`, `internal/app`, `internal/customer` (inuse) testlaridagi vazifa fixture'lari lokatsiya bilan; `TestAccess` `LocationIDs: []int64{}` bilan; `TestMe`, `TestListEmployees`, `TestListMembers`, admin `TestGetCompany` yangi maydon bilan; web `lib/tasks.test.ts` `Task` fixture'i `location_id` bilan; admin `company-page.test.tsx` a'zo fixture'i `locations: null` bilan. Hech biri o'chirilmadi.
 - **Tekshiruv:** `make lint` 0 issues; `make test`: Go 19 paket, api-client 1, admin 228, web 584; `make e2e`: admin 40, web 98.
+
+## 2-bosqich qarorlari (2026-10-07)
+
+Bajarildi: `locations.sql` (`ListLocations` `tasks_count` bilan, `CreateLocation`, `RenameLocation`, `DeleteLocation`, `CountLocations`, `CountLocationTasks`), `company/locations.go` (`AdminLocation`, `Locations`, `AddLocation`, `RenameLocation`, `DeleteLocation`), `company.Detail.Locations`, admin handlerlar va uch route, openapi (`AdminLocation`, `LocationInput`, `CompanyDetail.locations`, `LocationNotFound`, `LocationConflict`) + TS client, admin UI (`company-page.tsx` "Lokatsiyalar" bo'limi, `location-dialogs.tsx`: `AddLocationDialog`, `RenameLocationDialog`, `DeleteLocationButton`), `locationSchema`, admin mock (`db.locations`, uch handler), Vitest, e2e. Reja: `docs/superpowers/plans/2026-10-07-locations-stage2-admin.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`AddLocation` `LockCompany` (FOR UPDATE) bilan,** `DeleteLocation` `LockCompanyCustomers` (FOR NO KEY UPDATE, vazifa yozuvlari bilan bir navbat) bilan: o'chirish sanagan `location_in_use` soni ostida vazifa qo'shilmaydi (`TestDeleteLocationWaitsForAWriteOfTheSameCompany`).
+- **`DeleteLocation` tartibi:** 404 → `last_location` → `location_in_use` → yashirish; `member_locations` qatorlariga tegilmaydi (11-qaror), nomi bo'shaydi.
+- **`RenameLocation` o'z nomiga (boshqa harf bilan) mumkin:** unique indeks `lower(name)` bitta qatorni o'zi bilan solishtirmaydi.
+- **Admin UI toast'i "Lokatsiya nomi o'zgartirildi"** (12-qarordagi "Nomi o'zgartirildi" emas): kompaniya nomi dialogi ham o'sha toast'ni qoldiradi, sonner toast'i testdan tashqarida yashaydi va `findByText` ikkitasini topardi. O'chirish dialogi izohi "«X» lokatsiyasi o'chadi. Vazifasi bor yoki yagona lokatsiya o'chirilmaydi." (toast matnini takrorlamaydi: e2e `getByText` substring bilan topadi).
+- **`DataList` jadval va kartochkani birga chizadi** (CSS bittasini yashiradi): Vitest'da tugmalar jadval ichidan (`within(table)`) olinadi.
+- **Mavjud e2e testi o'zgardi:** `companies.spec.ts` "a company's actions…" `getByRole("button", { name: "Nomini o'zgartirish", exact: true })` — lokatsiya tugmasining nomi ("Nomini o'zgartirish: Asosiy") uni ham qamrab olardi.
+- **Admin mock lokatsiya ID'lari 101–103** (kompaniya ID'lari bilan adashmasin), yangilari `db.nextId++`.
+- **Tekshiruv:** admin Vitest 235, e2e 42.
+
+## 3-bosqich qarorlari (2026-10-07)
+
+Bajarildi: `MemberInLocation` so'rovi; `GetTask`, `ListTasks`, `CountTasks`, `UpdateTask`, `MoveTask`, `DeleteTask` `location_ids bigint[]` bilan (`= ANY`); `task.Scope{CompanyID, LocationIDs}` yetti metodda; `Create` lokatsiyani scope'dan tekshiradi (`GetLocation` tekshiruvi olib tashlandi: scope jonli lokatsiyalardan tuziladi); `ListInput.LocationID`; `assigneeOf(…, locationID, …)` → `MemberInLocation` (400 "Mas'ul bu lokatsiyada ishlamaydi"), `Update` o'zgargan mas'ulni vazifaning lokatsiyasi bilan; `taskScope(r)`, `allowedLocation(r, id)`, `listTasks` `?location_id=` (400 "Lokatsiya noto'g'ri" / 403 `forbidden`), `createTask` ruxsatsiz `location_id` → 403 (`customers.create` tekshiruvidan keyin, servisdan oldin); openapi (`location_id` so'rov parametri, izohlar, ro'yxatda 403 `Forbidden`); web mock (`scopeOf`, `visibleTasks`, `?location_id=`, 403, mas'ul `locationsOf` bilan; `location_id` berilmasa a'zoning birinchi ruxsatli lokatsiyasi). Reja: `docs/superpowers/plans/2026-10-07-locations-stage3-tasks-api.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **`location_ids` so'rovlarda majburiy (`sqlc.arg`), `narg` emas:** scope berilmasa (`nil`) hech narsa chiqmaydi (fail-closed); lokatsiyasiz xodim ro'yxati bo'sh, vazifalari 404.
+- **`List` scope'dan tashqaridagi `LocationID` bilan bo'sh sahifa qaytaradi** (xato emas): 403 ni handler beradi; servis darajasida ortiqcha `Forbidden` turi kiritilmadi (`apperr` da yo'q).
+- **`POST /app/tasks` da 403 `location_id` ≠ 0 bo'lganda,** 0 yoki yo'q bo'lsa servis 400 "Lokatsiyani tanlang"; yo'q lokatsiya (999999) ham 403: a'zo ishlay olmaydigan lokatsiya bilan bir xil (6-qaror).
+- **Mock'dagi vaqtinchalik qoida o'zgardi:** `location_id` berilmasa kompaniyaning tayyor lokatsiyasi emas, a'zoning **birinchi ruxsatli** lokatsiyasi (cheklangan xodim uchun to'g'ri); 5-bosqichda 400 bo'ladi. Eski mock testidagi "yo'q lokatsiya → 400" holati 403 ga o'zgardi (Go bilan bir xil).
+- **Tekshiruv:** `make lint` 0; Go 19 paket; admin 235, web 585; e2e admin 42, web 98.
+
+## 4-bosqich qarorlari (2026-10-07)
+
+Bajarildi: `SetMemberAllLocations`, `AddMemberLocation` so'rovlari; `company.SetEmployeeLocations` (telefon → `nil` / bo'sh 400 / har ID jonli va kompaniyaniki 404, takror bir marta → tranzaksiyada `SetMemberAllLocations` (egasi 409 / a'zo emas 404) → `DeleteMemberLocations` → `AddMemberLocation` → `memberIn`); `memberIn(ctx, q, …)` tranzaksiyaga mos a'zo o'quvchi (`member`, `SetEmployeeRole`, `SetEmployeeLocations` undan); `PUT /app/employees/{phone}/locations` (`requireOwner` guruhida); openapi (`EmployeeLocationsInput`, path, `LocationOrEmployeeNotFound`); web mock handler. Reja: `docs/superpowers/plans/2026-10-07-locations-stage4-restriction-api.md`.
+
+Amalga oshirishda belgilangan tafsilotlar:
+
+- **1-bosqich kamchiligi tuzatildi:** `SetEmployeeRole` javobi `Member` ni `AllLocations`siz qurar edi (JSON'da `locations: []` chiqardi); endi `memberIn` orqali to'liq (`TestSetEmployeeRoleTellsTheLocations`).
+- **Lokatsiya ID'lari tranzaksiyadan oldin tekshiriladi** (`GetLocation` pool orqali), yozuv esa tranzaksiyada: rad etilgan so'rov hech narsani o'zgartirmaydi; `FailInserts member_locations` bayroqni ham qaytaradi (atomik).
+- **Egasiga `null` ham 409** (`SetMemberAllLocations` `role = 'user'` sharti): egasiga tegilmaydi.
