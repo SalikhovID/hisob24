@@ -14,7 +14,8 @@ import (
 // ReplaceOwner makes the user with phone the company's owner under fullName,
 // in one transaction; the owner before stays in the company as a user. A
 // phone that is no user yet becomes one; the owner's own phone only gets the
-// new name.
+// new name. A restriction to some locations the new owner held as a user is
+// lifted: the owner works in every location.
 func (s *Service) ReplaceOwner(ctx context.Context, companyID int64, phone, fullName string) (Member, error) {
 	normalized, err := user.NormalizePhone(phone)
 	if err != nil {
@@ -46,7 +47,12 @@ func (s *Service) ReplaceOwner(ctx context.Context, companyID int64, phone, full
 		if err != nil {
 			return err
 		}
-		m = Member{Phone: owner.UserPhone, FullName: owner.FullName, Role: owner.Role, CreatedAt: owner.CreatedAt}
+		// The owner works in every location: a restriction held as a user
+		// is lifted (SetCompanyOwner raised all_locations).
+		if err := q.DeleteMemberLocations(ctx, gen.DeleteMemberLocationsParams{UserPhone: normalized, CompanyID: companyID}); err != nil {
+			return err
+		}
+		m = Member{Phone: owner.UserPhone, FullName: owner.FullName, Role: owner.Role, AllLocations: owner.AllLocations, CreatedAt: owner.CreatedAt}
 		return nil
 	})
 	return m, err

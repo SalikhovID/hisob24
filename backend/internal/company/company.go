@@ -28,15 +28,26 @@ type Company struct {
 	DaysLeft int
 }
 
-// Member is a company user with the role there and the company role they
-// hold (none for the owner and for a user without one).
+// Member is a company user with the role there, the company role they
+// hold (none for the owner and for a user without one) and the locations
+// they may work in (logic/locations.md, section 5): every one of the
+// company's (AllLocations; the owner always) or the live ones of their
+// restriction (Locations; nil when AllLocations).
 type Member struct {
-	Phone     string
-	FullName  *string
-	Role      string
-	RoleID    *int64
-	RoleName  *string
-	CreatedAt time.Time
+	Phone        string
+	FullName     *string
+	Role         string
+	RoleID       *int64
+	RoleName     *string
+	AllLocations bool
+	Locations    []Location
+	CreatedAt    time.Time
+}
+
+// Location is a location of a company, as the app names it.
+type Location struct {
+	ID   int64
+	Name string
 }
 
 var errNotFound = apperr.New(apperr.NotFound, "not_found", "Kompaniya topilmadi")

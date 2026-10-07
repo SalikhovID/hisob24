@@ -21,8 +21,9 @@ type CreateInput struct {
 
 // Create adds a company with its owner in one transaction: the company row,
 // the owner's user row (an existing user is reused unchanged), the owner
-// membership, under the name the owner goes by in this company, and the
-// customer types every company starts with.
+// membership, under the name the owner goes by in this company, and what
+// every company starts with: the customer types, the task settings and the
+// location "Asosiy".
 func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Company, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
@@ -56,6 +57,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 			return err
 		}
 		if err := q.SeedTaskSettings(ctx, c.ID); err != nil {
+			return err
+		}
+		// And the location its tasks stand in (logic/locations.md).
+		if _, err := q.SeedLocation(ctx, c.ID); err != nil {
 			return err
 		}
 		today, err := q.CurrentDate(ctx)

@@ -19,16 +19,23 @@ var (
 )
 
 // Members lists the company's members under the names they go by there,
-// each with the role they hold: the owner first, then the users in the order
-// they joined.
+// each with the role they hold and the locations they may work in: the
+// owner first, then the users in the order they joined.
 func (s *Service) Members(ctx context.Context, companyID int64) ([]Member, error) {
 	rows, err := s.q.ListCompanyUsers(ctx, companyID)
 	if err != nil {
 		return nil, err
 	}
+	restrictions, err := s.restrictions(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
 	members := make([]Member, 0, len(rows))
 	for _, u := range rows {
-		members = append(members, Member{Phone: u.Phone, FullName: u.FullName, Role: u.Role, RoleID: u.RoleID, RoleName: u.RoleName, CreatedAt: u.CreatedAt})
+		members = append(members, Member{
+			Phone: u.Phone, FullName: u.FullName, Role: u.Role, RoleID: u.RoleID, RoleName: u.RoleName,
+			AllLocations: u.AllLocations, Locations: restrictedTo(u.AllLocations, restrictions[u.Phone]), CreatedAt: u.CreatedAt,
+		})
 	}
 	return members, nil
 }
@@ -61,8 +68,8 @@ func (s *Service) AddEmployee(ctx context.Context, companyID int64, phone, fullN
 		if err != nil {
 			return err
 		}
-		// A new employee holds no role.
-		m = Member{Phone: uc.UserPhone, FullName: uc.FullName, Role: uc.Role, CreatedAt: uc.CreatedAt}
+		// A new employee holds no role and works in every location.
+		m = Member{Phone: uc.UserPhone, FullName: uc.FullName, Role: uc.Role, AllLocations: uc.AllLocations, CreatedAt: uc.CreatedAt}
 		return nil
 	})
 	return m, err
@@ -91,7 +98,7 @@ func (s *Service) RenameEmployee(ctx context.Context, companyID int64, phone, fu
 }
 
 // member is one member of the company as the lists show them, with the
-// name of the role they hold.
+// name of the role they hold and the locations they may work in.
 func (s *Service) member(ctx context.Context, companyID int64, phone string) (Member, error) {
 	row, err := s.q.GetCompanyMember(ctx, gen.GetCompanyMemberParams{UserPhone: phone, CompanyID: companyID})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -100,7 +107,15 @@ func (s *Service) member(ctx context.Context, companyID int64, phone string) (Me
 	if err != nil {
 		return Member{}, err
 	}
-	return Member{Phone: row.Phone, FullName: row.FullName, Role: row.Role, RoleID: row.RoleID, RoleName: row.RoleName, CreatedAt: row.CreatedAt}, nil
+	m := Member{Phone: row.Phone, FullName: row.FullName, Role: row.Role, RoleID: row.RoleID, RoleName: row.RoleName, AllLocations: row.AllLocations, CreatedAt: row.CreatedAt}
+	if !m.AllLocations {
+		// A restricted member's locations are the live ones of the
+		// restriction: what ListMemberLocations tells for them.
+		if m.Locations, err = s.MemberLocations(ctx, companyID, phone); err != nil {
+			return Member{}, err
+		}
+	}
+	return m, nil
 }
 
 // whyNotAnEmployee says why the app may not change the member with phone:
