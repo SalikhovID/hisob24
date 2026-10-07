@@ -238,6 +238,74 @@ export interface ProductRow {
 }
 
 // What happened to a task: like a customer's history.
+// A supplier of a company (logic/warehouse.md, section 3). A row is never
+// removed: deleted hides it; active false keeps it out of new purchases.
+export interface SupplierRow {
+  id: number
+  companyId: number
+  name: string
+  phone: string | null
+  note: string | null
+  active: boolean
+  by: string
+  byName: string | null
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+}
+
+// A line of a purchase: a product, its quantity and price as numbers (the
+// Go API keeps them as numeric; the mock rounds to the columns' decimals).
+export interface PurchaseItemRow {
+  productId: number
+  quantity: number
+  price: number
+}
+
+// A purchase (logic/warehouse.md, section 4): numbered in the company, in
+// one location, from one supplier, with its lines. deleted hides it; its
+// number is never given again.
+export interface PurchaseRow {
+  id: number
+  companyId: number
+  number: number
+  locationId: number
+  supplierId: number
+  purchasedOn: string
+  note: string | null
+  items: PurchaseItemRow[]
+  by: string
+  byName: string | null
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+}
+
+// A payment to a supplier (logic/warehouse.md, section 6); purchaseId links
+// the one entered with a purchase.
+export interface PaymentRow {
+  id: number
+  companyId: number
+  supplierId: number
+  purchaseId: number | null
+  amount: number
+  paidOn: string
+  note: string | null
+  by: string
+  byName: string | null
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+}
+
+// The stock of a product in a location, moved by the purchases alone.
+export interface StockRow {
+  companyId: number
+  locationId: number
+  productId: number
+  quantity: number
+}
+
 export interface TaskHistoryRow {
   id: number
   taskId: number
@@ -263,6 +331,10 @@ interface Db {
   tasks: TaskRow[]
   taskHistory: TaskHistoryRow[]
   products: ProductRow[]
+  suppliers: SupplierRow[]
+  purchases: PurchaseRow[]
+  payments: PaymentRow[]
+  stock: StockRow[]
   // lastId: the id the last settings or customer row took.
   lastId: number
   // minutes: how far the clock of the customers' timestamps has moved.
@@ -348,6 +420,10 @@ function seed(): Db {
     tasks: [],
     taskHistory: [],
     products: [],
+    suppliers: [],
+    purchases: [],
+    payments: [],
+    stock: [],
     minutes: 0,
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],

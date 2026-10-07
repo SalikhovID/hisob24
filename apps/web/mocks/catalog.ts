@@ -5,6 +5,7 @@ import type { Product, ProductKind, Unit } from "@/lib/types"
 import { nameOf } from "./customers"
 import { db, nameIn, nextId, now, type ProductRow } from "./data"
 import { api, fail, permittedSession } from "./gate"
+import { asAmount, asQuantity, lastPriceOf, liveLocationsIn, locationParam, memberLocationIds, purchasesHolding, stockOf } from "./warehouse"
 
 const PAGE_SIZE = 20
 export const units: Unit[] = ["dona", "kg", "g", "l", "ml", "m", "m2", "quti", "juft", "komplekt"]
@@ -64,7 +65,10 @@ function taken(companyId: number, kind: ProductKind, c: Checked, except?: number
   return null
 }
 
-export const toProduct = (p: ProductRow): Product => ({
+// toProduct is the product as the API shows it; quantity is its stock in
+// the locations given (the member's, or the one asked for), null for a
+// service.
+export const toProduct = (p: ProductRow, locationIds: number[] = []): Product => ({
   id: p.id,
   kind: p.kind,
   name: p.name,
@@ -73,8 +77,8 @@ export const toProduct = (p: ProductRow): Product => ({
   price: p.price,
   note: p.note,
   is_active: p.active,
-  quantity: null,
-  last_price: null,
+  quantity: p.kind === "product" ? asQuantity(stockOf(p.id, locationIds)) : null,
+  last_price: lastPriceOf(p.id),
   created_by_name: nameOf(p.by, p.companyId, p.byName),
   created_at: p.createdAt,
   updated_at: p.updatedAt,
@@ -89,6 +93,10 @@ export const catalogHandlers = [
     const member = permittedSession(request, "products.view")
     if (member instanceof Response) return member
     const query = new URL(request.url).searchParams
+    const mine = memberLocationIds(member.phone, member.companyId)
+    const location = locationParam(query, mine)
+    if (location instanceof Response) return location
+    const locations = location ? [location] : mine
     const page = query.has("page") ? Number(query.get("page")) : 1
     if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
     const kind = query.get("kind") || "product"
@@ -101,7 +109,7 @@ export const catalogHandlers = [
       .filter((p) => !search || p.name.toLowerCase().includes(search) || (p.sku !== null && p.sku.toLowerCase().includes(search)))
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id)
     return HttpResponse.json({
-      items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(toProduct),
+      items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p) => toProduct(p, locations)),
       total: all.length,
       page,
       page_size: PAGE_SIZE,
@@ -130,14 +138,52 @@ export const catalogHandlers = [
       updatedAt: at,
     }
     db.products.push(row)
-    return HttpResponse.json(toProduct(row), { status: 201 })
+    return HttpResponse.json(toProduct(row, memberLocationIds(member.phone, member.companyId)), { status: 201 })
   }),
 
+  // The product's page: with its stock in each of the member's locations
+  // (0 too), in the order the locations were added; a service has none.
   http.get(api("/app/products/:id"), ({ params, request }) => {
     const member = permittedSession(request, "products.view")
     if (member instanceof Response) return member
     const p = liveProduct(member.companyId, params.id)
-    return p ? HttpResponse.json(toProduct(p)) : productNotFound()
+    if (!p) return productNotFound()
+    const mine = memberLocationIds(member.phone, member.companyId)
+    const stock = p.kind === "product" ? liveLocationsIn(member.companyId, mine).map((l) => ({ location_id: l.id, location_name: l.name, quantity: asQuantity(stockOf(p.id, [l.id])) })) : []
+    return HttpResponse.json({ ...toProduct(p, mine), stock })
+  }),
+
+  // The product's live purchase lines in the member's locations, the newest
+  // purchase first.
+  http.get(api("/app/products/:id/purchases"), ({ params, request }) => {
+    const member = permittedSession(request, "purchases.view")
+    if (member instanceof Response) return member
+    const query = new URL(request.url).searchParams
+    const page = query.has("page") ? Number(query.get("page")) : 1
+    if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
+    const p = liveProduct(member.companyId, params.id)
+    if (!p) return productNotFound()
+    const mine = memberLocationIds(member.phone, member.companyId)
+    const all = db.purchases
+      .filter((x) => !x.deleted && mine.includes(x.locationId) && x.items.some((i) => i.productId === p.id))
+      .sort((a, b) => b.purchasedOn.localeCompare(a.purchasedOn) || b.id - a.id)
+      .map((x) => {
+        const item = x.items.find((i) => i.productId === p.id)!
+        const supplier = db.suppliers.find((s) => s.id === x.supplierId)
+        const location = db.locations.find((l) => l.id === x.locationId)
+        return {
+          purchase_id: x.id,
+          number: x.number,
+          purchased_on: x.purchasedOn,
+          supplier: { id: x.supplierId, name: supplier?.name ?? "" },
+          location_id: x.locationId,
+          location_name: location?.name ?? "",
+          quantity: asQuantity(item.quantity),
+          price: asAmount(item.price),
+          amount: asAmount(Math.round(item.quantity * item.price * 100) / 100),
+        }
+      })
+    return HttpResponse.json({ items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), total: all.length, page, page_size: PAGE_SIZE })
   }),
 
   http.put(api("/app/products/:id"), async ({ params, request }) => {
@@ -151,7 +197,7 @@ export const catalogHandlers = [
     const refusal = taken(member.companyId, p.kind, c, p.id)
     if (refusal) return refusal
     Object.assign(p, c, { updatedAt: now() })
-    return HttpResponse.json(toProduct(p))
+    return HttpResponse.json(toProduct(p, memberLocationIds(member.phone, member.companyId)))
   }),
 
   http.patch(api("/app/products/:id"), async ({ params, request }) => {
@@ -163,7 +209,7 @@ export const catalogHandlers = [
     if (!p) return productNotFound()
     p.active = body.is_active
     p.updatedAt = now()
-    return HttpResponse.json(toProduct(p))
+    return HttpResponse.json(toProduct(p, memberLocationIds(member.phone, member.companyId)))
   }),
 
   http.delete(api("/app/products/:id"), ({ params, request }) => {
@@ -171,6 +217,8 @@ export const catalogHandlers = [
     if (member instanceof Response) return member
     const p = liveProduct(member.companyId, params.id)
     if (!p) return productNotFound()
+    const held = purchasesHolding(p.id)
+    if (held > 0) return fail(409, "product_in_use", `Bu mahsulot ${held} ta xaridda bor`)
     p.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

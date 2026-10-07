@@ -10,7 +10,7 @@ import { setAccessToken } from "@/lib/session"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { giveRole as holdRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
-import { ALI, db, nameIn, SARDOR, VALI, ZARINA } from "./data"
+import { ALI, db, nameIn, SARDOR, seedCatalog, VALI, ZARINA } from "./data"
 
 const list = () => call(api.GET("/app/employees"))
 const add = (phone: string, fullName: string) =>
@@ -1628,7 +1628,8 @@ test("a product is read, edited (its kind stays, what is not sent is cleared), t
   const p = await addProduct({ kind: "product", name: "Olma", unit: "kg", sku: "A-1", price: "100", note: "Qizil" })
   const path = { params: { path: { id: p.id } } }
 
-  expect(await call(api.GET("/app/products/{id}", path))).toEqual(p)
+  // The page adds the stock in each of the member's locations.
+  expect(await call(api.GET("/app/products/{id}", path))).toEqual({ ...p, stock: [{ location_id: asosiyOf(1).id, location_name: "Asosiy", quantity: "0.000" }] })
   const edited = await call(api.PUT("/app/products/{id}", { ...path, body: { name: "Qizil olma", unit: "dona" } }))
   expect(edited).toMatchObject({ kind: "product", name: "Qizil olma", unit: "dona", sku: null, price: null, note: null })
   expect(await failure(call(api.PUT("/app/products/{id}", { ...path, body: { name: "Qizil olma" } })))).toMatchObject({
@@ -1678,4 +1679,175 @@ test("/app/me tells the member's own order of the menu; PUT /app/me/nav keeps it
 
   await signIn(VALI)
   expect(await failure(call(api.PUT("/app/me/nav", { body: { sections: ["home"] } })))).toMatchObject({ status: 403, code: "company_required" })
+})
+
+// The warehouse (logic/warehouse.md; backend/internal/app/warehouse_test.go).
+const suppliers = (query: Record<string, string> = {}) => call(api.GET("/app/suppliers", { params: { query } }))
+const addSupplier = (body: components["schemas"]["SupplierInput"]) => call(api.POST("/app/suppliers", { body }))
+const getSupplier = (id: number) => call(api.GET("/app/suppliers/{id}", { params: { path: { id } } }))
+const purchases = (query: Record<string, string> = {}) => call(api.GET("/app/purchases", { params: { query } }))
+const addPurchase = (body: components["schemas"]["PurchaseCreate"]) => call(api.POST("/app/purchases", { body }))
+const getPurchase = (id: number) => call(api.GET("/app/purchases/{id}", { params: { path: { id } } }))
+const getProduct = (id: number) => call(api.GET("/app/products/{id}", { params: { path: { id } } }))
+const payments = (id: number) => call(api.GET("/app/suppliers/{id}/payments", { params: { path: { id } } }))
+
+test("a supplier is entered with its phone normalized, listed with its balance for whoever may see the purchases, turned off, and kept while in use", async () => {
+  await signIn(ALI)
+  await chooseCompany(1)
+  const { olma } = seedCatalog()
+  const asosiy = asosiyOf(1).id
+
+  const supplier = await addSupplier({ name: " Bozor ", phone: "+998 90 123-45-67" })
+  expect(supplier).toMatchObject({ name: "Bozor", phone: "998901234567", note: null, is_active: true, balance: "0.00", purchases_total: "0.00", payments_total: "0.00", created_by_name: "Ali Valiyev" })
+  expect(supplier.created_at).toBe(supplier.updated_at)
+  for (const [body, message] of [
+    [{ name: " " }, "Nomni kiriting"],
+    [{ name: "a".repeat(121) }, "Nom 120 belgidan oshmasin"],
+    [{ name: "X", phone: "12" }, "Telefon raqami noto'g'ri"],
+    [{ name: "X", phone: "+7 900 000 00 00" }, "Telefon raqami noto'g'ri"],
+    [{ name: "X", note: "x".repeat(501) }, "Izoh 500 belgidan oshmasin"],
+  ] as [components["schemas"]["SupplierInput"], string][]) {
+    expect(await failure(addSupplier(body)), message).toMatchObject({ status: 400, code: "validation_error", message })
+  }
+  expect(await failure(addSupplier({ name: "bozor" }))).toMatchObject({ status: 409, code: "name_taken", message: "Bu nomli ta'minotchi allaqachon bor" })
+  const saved = await call(api.PUT("/app/suppliers/{id}", { params: { path: { id: supplier.id } }, body: { name: "Eski bozor", note: "Chorsu" } }))
+  expect(saved).toMatchObject({ name: "Eski bozor", phone: null, note: "Chorsu" })
+
+  const purchase = await addPurchase({ location_id: asosiy, supplier_id: supplier.id, purchased_on: "2026-10-07", paid: "500", items: [{ product_id: olma.id, quantity: "10", price: "1000" }] })
+  expect(purchase).toMatchObject({ number: 1, total: "10000.00", paid: "500.00", items_count: 1 })
+  expect(await getSupplier(supplier.id)).toMatchObject({ balance: "9500.00", purchases_total: "10000.00", payments_total: "500.00" })
+  expect((await suppliers({ search: "90 123" })).total).toBe(0)
+  expect((await suppliers({ search: "eski" })).items.map((s) => s.name)).toEqual(["Eski bozor"])
+  expect(await failure(call(api.DELETE("/app/suppliers/{id}", { params: { path: { id: supplier.id } } })))).toMatchObject({ status: 409, code: "supplier_in_use", message: "Bu ta'minotchida 1 ta xarid bor" })
+  expect(await call(api.PATCH("/app/suppliers/{id}", { params: { path: { id: supplier.id } }, body: { is_active: false } }))).toMatchObject({ is_active: false })
+  expect((await suppliers({ status: "inactive" })).total).toBe(1)
+  expect((await suppliers()).total).toBe(0)
+  expect(await failure(getSupplier(999))).toMatchObject({ status: 404, code: "not_found", message: "Ta'minotchi topilmadi" })
+
+  // Whoever may see the suppliers alone sees no balance.
+  holdRole(VALI, 1, "Kuzatuvchi", ["suppliers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const row = (await suppliers({ status: "inactive" })).items[0]
+  expect(row).toMatchObject({ name: "Eski bozor", balance: null, purchases_total: null, payments_total: null })
+})
+
+test("a purchase lands in the stock of its location, is numbered, edited by the difference and deleted with its payment", async () => {
+  await signIn(ALI)
+  await chooseCompany(1)
+  const { olma, nok, yetkazish, eski } = seedCatalog()
+  const asosiy = asosiyOf(1).id
+  const chilonzor = addLocation(1, "Chilonzor").id
+  const supplier = await addSupplier({ name: "Bozor" })
+  const body = (items: components["schemas"]["PurchaseItemInput"][], extra: Partial<components["schemas"]["PurchaseCreate"]> = {}): components["schemas"]["PurchaseCreate"] => ({
+    location_id: asosiy,
+    supplier_id: supplier.id,
+    purchased_on: "2026-10-07",
+    items,
+    ...extra,
+  })
+
+  for (const [input, message] of [
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { location_id: 0 }), "Lokatsiyani tanlang"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { supplier_id: 0 }), "Ta'minotchini tanlang"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { purchased_on: "" }), "Sanani kiriting"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { purchased_on: "7.10.2026" }), "Sana noto'g'ri"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { note: "x".repeat(501) }), "Izoh 500 belgidan oshmasin"],
+    [body([]), "Kamida bitta mahsulot qo'shing"],
+    [body([{ product_id: 999, quantity: "1", price: "1" }]), "Mahsulotni tanlang"],
+    [body([{ product_id: yetkazish.id, quantity: "1", price: "1" }]), "Xizmat xaridga kiritilmaydi"],
+    [body([{ product_id: eski.id, quantity: "1", price: "1" }]), "Mahsulot nofaol"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }, { product_id: olma.id, quantity: "2", price: "1" }]), "«Olma» ikki marta kiritilgan"],
+    [body([{ product_id: olma.id, quantity: "0", price: "1" }]), "«Olma» miqdori noto'g'ri"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1,5" }]), "«Olma» narxi noto'g'ri"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { paid: "-1" }), "To'langan summa noto'g'ri"],
+  ] as [components["schemas"]["PurchaseCreate"], string][]) {
+    expect(await failure(addPurchase(input)), message).toMatchObject({ status: 400, code: "validation_error", message })
+  }
+  expect(await failure(addPurchase(body([{ product_id: olma.id, quantity: "1", price: "1" }], { location_id: 999 })))).toMatchObject({ status: 403, code: "forbidden" })
+  expect((await purchases()).total).toBe(0)
+
+  const first = await addPurchase(body([{ product_id: olma.id, quantity: "12.5", price: "1000" }, { product_id: nok.id, quantity: "3", price: "2500.5" }], { paid: "5000", note: " Ertalab " }))
+  expect(first).toMatchObject({ number: 1, location_id: asosiy, location_name: "Asosiy", supplier: { id: supplier.id, name: "Bozor" }, purchased_on: "2026-10-07", total: "20001.50", paid: "5000.00", note: "Ertalab", items_count: 2, created_by_name: "Ali Valiyev" })
+  expect(first.items).toEqual([
+    { product_id: olma.id, name: "Olma", unit: "kg", quantity: "12.500", price: "1000.00", amount: "12500.00" },
+    { product_id: nok.id, name: "Nok", unit: "dona", quantity: "3.000", price: "2500.50", amount: "7501.50" },
+  ])
+  const product = await getProduct(olma.id)
+  expect(product).toMatchObject({ quantity: "12.500", last_price: "1000.00" })
+  expect(product.stock).toEqual([
+    { location_id: asosiy, location_name: "Asosiy", quantity: "12.500" },
+    { location_id: chilonzor, location_name: "Chilonzor", quantity: "0.000" },
+  ])
+  expect((await products({ location_id: String(chilonzor) })).items.find((p) => p.id === olma.id)?.quantity).toBe("0.000")
+  expect((await products({ location_id: String(asosiy) })).items.find((p) => p.id === olma.id)?.quantity).toBe("12.500")
+  expect((await products({ kind: "service" })).items.find((p) => p.id === yetkazish.id)?.quantity).toBeNull()
+  expect(await failure(products({ location_id: "abc" }))).toMatchObject({ status: 400, message: "Lokatsiya noto'g'ri" })
+  const paid = await payments(supplier.id)
+  expect(paid.items).toHaveLength(1)
+  expect(paid.items[0]).toMatchObject({ purchase_id: first.id, purchase_number: 1, amount: "5000.00", paid_on: "2026-10-07", note: null })
+  expect(await failure(call(api.PUT("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: supplier.id, paymentId: paid.items[0].id } }, body: { amount: "1", paid_on: "2026-10-07" } })))).toMatchObject({ status: 409, code: "payment_linked" })
+  expect(await failure(call(api.DELETE("/app/products/{id}", { params: { path: { id: olma.id } } })))).toMatchObject({ status: 409, code: "product_in_use", message: "Bu mahsulot 1 ta xaridda bor" })
+  const list = await purchases()
+  expect(list.items).toHaveLength(1)
+  expect(list.items[0]).not.toHaveProperty("items")
+  expect(await getPurchase(first.id)).toEqual(first)
+
+  // An edit: Olma down to 4, Nok out; nothing paid now.
+  const saved = await call(api.PUT("/app/purchases/{id}", { params: { path: { id: first.id } }, body: { supplier_id: supplier.id, purchased_on: "2026-10-09", items: [{ product_id: olma.id, quantity: "4", price: "1100" }] } }))
+  expect(saved).toMatchObject({ number: 1, purchased_on: "2026-10-09", total: "4400.00", paid: "0.00", items_count: 1, note: null })
+  expect((await getProduct(olma.id)).quantity).toBe("4.000")
+  expect((await getProduct(nok.id)).quantity).toBe("0.000")
+  expect((await payments(supplier.id)).total).toBe(0)
+  const lines = await call(api.GET("/app/products/{id}/purchases", { params: { path: { id: olma.id } } }))
+  expect(lines.items).toEqual([{ purchase_id: first.id, number: 1, purchased_on: "2026-10-09", supplier: { id: supplier.id, name: "Bozor" }, location_id: asosiy, location_name: "Asosiy", quantity: "4.000", price: "1100.00", amount: "4400.00" }])
+  expect(await failure(call(api.PUT("/app/purchases/{id}", { params: { path: { id: 999 } }, body: { supplier_id: supplier.id, purchased_on: "2026-10-09", items: [] } })))).toMatchObject({ status: 404, message: "Xarid topilmadi" })
+
+  // A deletion: the stock comes back, the number is never given again.
+  await call(api.DELETE("/app/purchases/{id}", { params: { path: { id: first.id } } }))
+  expect((await getProduct(olma.id)).quantity).toBe("0.000")
+  expect((await purchases()).total).toBe(0)
+  expect((await addPurchase(body([{ product_id: olma.id, quantity: "1", price: "1" }]))).number).toBe(2)
+  expect(await failure(getPurchase(first.id))).toMatchObject({ status: 404, code: "not_found", message: "Xarid topilmadi" })
+
+  // A supplier's own payment: entered, edited, deleted; the balance follows.
+  const own = await call(api.POST("/app/suppliers/{id}/payments", { params: { path: { id: supplier.id } }, body: { amount: "1200.5", paid_on: "2026-10-08", note: " Naqd " } }))
+  expect(own).toMatchObject({ supplier_id: supplier.id, purchase_id: null, purchase_number: null, amount: "1200.50", paid_on: "2026-10-08", note: "Naqd", created_by_name: "Ali Valiyev" })
+  for (const [input, message] of [
+    [{ paid_on: "2026-10-08" }, "Summani kiriting"],
+    [{ amount: "0", paid_on: "2026-10-08" }, "Summa noto'g'ri"],
+    [{ amount: "1" }, "Sanani kiriting"],
+    [{ amount: "1", paid_on: "8.10.2026" }, "Sana noto'g'ri"],
+  ] as [components["schemas"]["PaymentInput"], string][]) {
+    expect(await failure(call(api.POST("/app/suppliers/{id}/payments", { params: { path: { id: supplier.id } }, body: input }))), message).toMatchObject({ status: 400, message })
+  }
+  expect(await getSupplier(supplier.id)).toMatchObject({ purchases_total: "1.00", payments_total: "1200.50", balance: "-1199.50" })
+  expect(await call(api.PUT("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: supplier.id, paymentId: own.id } }, body: { amount: "1500", paid_on: "2026-10-09" } }))).toMatchObject({ amount: "1500.00", note: null })
+  await call(api.DELETE("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: supplier.id, paymentId: own.id } } }))
+  expect(await failure(call(api.DELETE("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: supplier.id, paymentId: own.id } } })))).toMatchObject({ status: 404, message: "To'lov topilmadi" })
+  expect((await getSupplier(supplier.id)).balance).toBe("1.00")
+})
+
+test("a restricted employee sees the purchases of their locations alone, and the whole balance", async () => {
+  await signIn(ALI)
+  await chooseCompany(1)
+  const { olma } = seedCatalog()
+  const asosiy = asosiyOf(1).id
+  const chilonzor = addLocation(1, "Chilonzor").id
+  const supplier = await addSupplier({ name: "Bozor" })
+  const theirs = await addPurchase({ location_id: asosiy, supplier_id: supplier.id, purchased_on: "2026-10-07", items: [{ product_id: olma.id, quantity: "1", price: "1000" }] })
+  restrictTo(VALI, 1, [chilonzor])
+  await signIn(VALI)
+  await chooseCompany(1)
+
+  expect((await purchases()).total).toBe(0)
+  expect(await failure(purchases({ location_id: String(asosiy) }))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(getPurchase(theirs.id))).toMatchObject({ status: 404, message: "Xarid topilmadi" })
+  expect(await failure(addPurchase({ location_id: asosiy, supplier_id: supplier.id, purchased_on: "2026-10-07", items: [{ product_id: olma.id, quantity: "1", price: "1" }] }))).toMatchObject({ status: 403, code: "forbidden" })
+  const mine = await addPurchase({ location_id: chilonzor, supplier_id: supplier.id, purchased_on: "2026-10-07", items: [{ product_id: olma.id, quantity: "2", price: "900" }] })
+  expect(mine.number).toBe(2)
+  expect((await purchases()).items.map((p) => p.number)).toEqual([2])
+  expect(await getSupplier(supplier.id)).toMatchObject({ balance: "2800.00" })
+  expect(await getProduct(olma.id)).toMatchObject({ quantity: "2.000", stock: [{ location_id: chilonzor, location_name: "Chilonzor", quantity: "2.000" }] })
+  expect((await call(api.GET("/app/products/{id}/purchases", { params: { path: { id: olma.id } } }))).total).toBe(1)
 })

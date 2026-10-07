@@ -8,6 +8,7 @@ import { customersHandlers } from "./customers"
 import { rolesHandlers } from "./roles"
 import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
+import { warehouseHandlers } from "./warehouse"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, permittedSession, read, type Session } from "./gate"
 import { navKeys } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
@@ -284,4 +285,5 @@ export const handlers = [
   ...taskSettingsHandlers,
   ...tasksHandlers,
   ...catalogHandlers,
+  ...warehouseHandlers,
 ]
