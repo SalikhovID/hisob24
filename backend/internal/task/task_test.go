@@ -88,6 +88,7 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma := addCompany(t, pool, "Olma")
+	asosiy := addLocation(t, pool, olma, "Asosiy")
 	yangi := mustStage(t, s, olma, "Yangi", "blue")
 	bajarildi := mustStage(t, s, olma, "Bajarildi", "green")
 	spare := mustStage(t, s, olma, "Ortiqcha", "slate")
@@ -101,7 +102,7 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	ali, err := s.customers.Create(ctx, olma, owner, jismoniy.ID, customer.Input{Phone: "998901234567"})
 	require.NoError(t, err)
 	in := Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: yangi.ID, Values: answers(t, map[int64]any{izoh.ID: "Ertalab"})}
-	entered, err := s.Create(ctx, olma, owner, buyurtma.ID, in, CustomerInput{ID: &ali.ID})
+	entered, err := s.Create(ctx, olma, owner, buyurtma.ID, asosiy, in, CustomerInput{ID: &ali.ID})
 	require.NoError(t, err)
 
 	for _, w := range []struct {
@@ -132,7 +133,7 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 		{"DeleteField", func() error { return s.DeleteField(ctx, olma, buyurtma.ID, summa.ID) }},
 		{"DeleteType", func() error { return s.DeleteType(ctx, olma, shikoyat.ID) }},
 		{"Create", func() error {
-			_, err := s.Create(ctx, olma, owner, buyurtma.ID, in, CustomerInput{ID: &ali.ID})
+			_, err := s.Create(ctx, olma, owner, buyurtma.ID, asosiy, in, CustomerInput{ID: &ali.ID})
 			return err
 		}},
 		{"Update", func() error {
@@ -144,4 +145,13 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	} {
 		t.Run(w.name, func(t *testing.T) { waits(t, pool, olma, w.write) })
 	}
+}
+
+// addLocation inserts a location of the company and returns its id.
+func addLocation(t *testing.T, pool *pgxpool.Pool, companyID int64, name string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id))
+	return id
 }

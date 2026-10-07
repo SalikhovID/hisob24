@@ -498,3 +498,12 @@ func TestSwitchCompanyToNoneLeadsBackToTheList(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code, "out of the expired company")
 	assert.Len(t, decode(t, rec)["companies"], 2)
 }
+
+// addLocation makes a location of the company and returns its id.
+func (api testAPI) addLocation(t *testing.T, companyID int64, name string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, api.pool.QueryRow(t.Context(),
+		"INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id))
+	return id
+}

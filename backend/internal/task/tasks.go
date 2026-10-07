@@ -20,6 +20,7 @@ var (
 	errTaskNotFound = apperr.New(apperr.NotFound, "not_found", "Vazifa topilmadi")
 	errNoType       = invalid("Vazifa turini tanlang")
 	errNoStage      = invalid("Bosqichni tanlang")
+	errNoLocation   = invalid("Lokatsiyani tanlang")
 	errNoCustomer   = invalid("Mijozni tanlang")
 	errNotMember    = invalid("Mas'ul kompaniya a'zosi emas")
 )
@@ -44,14 +45,17 @@ type Member struct {
 // Task is a task of a company: what every task has, its customer, its
 // assignee if any, and its answers to the fields of its type.
 type Task struct {
-	ID       int64
-	TypeID   int64
-	StageID  int64
-	Title    string
-	Deadline time.Time
-	Customer Customer
-	Assignee *Member
-	Values   fields.Values
+	ID      int64
+	TypeID  int64
+	StageID int64
+	// LocationID is the location the task stands in (logic/locations.md):
+	// the one it was entered in, for good.
+	LocationID int64
+	Title      string
+	Deadline   time.Time
+	Customer   Customer
+	Assignee   *Member
+	Values     fields.Values
 	// CreatedByName is the name the member who entered the task goes by in
 	// the company; nil when they go by none.
 	CreatedByName *string
@@ -85,12 +89,13 @@ type CustomerInput struct {
 	New *NewCustomer
 }
 
-// Create enters a task of the company's type for a customer, with the
-// answers to the type's fields; a new customer is entered with it, in the
-// same transaction. by is the phone of the member who enters it. What is
-// wrong is told in this order: the title, the deadline, the type, the stage,
-// the assignee, the answers, the customer.
-func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID int64, in Input, cust CustomerInput) (Task, error) {
+// Create enters a task of the company's type for a customer, in a location
+// of the company, with the answers to the type's fields; a new customer is
+// entered with it, in the same transaction. by is the phone of the member
+// who enters it. What is wrong is told in this order: the title, the
+// deadline, the location, the type, the stage, the assignee, the answers,
+// the customer.
+func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID, locationID int64, in Input, cust CustomerInput) (Task, error) {
 	title, err := taskTitle(in.Title)
 	if err != nil {
 		return Task{}, err
@@ -101,6 +106,9 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 	}
 	var t Task
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		if err := locationOf(ctx, q, companyID, locationID); err != nil {
+			return err
+		}
 		_, err := q.GetTaskType(ctx, gen.GetTaskTypeParams{ID: typeID, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errNoType
@@ -132,7 +140,7 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 			return err
 		}
 		row, err := q.CreateTask(ctx, gen.CreateTaskParams{
-			CompanyID: companyID, TypeID: typeID, StageID: in.StageID, CustomerID: customerID, Title: title, Deadline: deadline,
+			CompanyID: companyID, TypeID: typeID, StageID: in.StageID, CustomerID: customerID, LocationID: locationID, Title: title, Deadline: deadline,
 			AssigneePhone: who.phone, AssigneeName: who.name, CreatedBy: by, CreatedByName: name,
 		})
 		if err != nil {
@@ -198,6 +206,16 @@ func nameOf(name *string) string {
 		return ""
 	}
 	return *name
+}
+
+// locationOf checks that the location is the company's own and not deleted:
+// a task stands in such a one.
+func locationOf(ctx context.Context, q *gen.Queries, companyID, id int64) error {
+	_, err := q.GetLocation(ctx, gen.GetLocationParams{ID: id, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errNoLocation
+	}
+	return err
 }
 
 // stageOf is the company's stage, or the refusal to take one that is not.
@@ -356,7 +374,7 @@ func taskOf(ctx context.Context, q *gen.Queries, companyID, id int64) (Task, err
 // toTask is a task as the queries read it, with its answers.
 func toTask(row gen.GetTaskRow, values fields.Values) Task {
 	t := Task{
-		ID: row.ID, TypeID: row.TypeID, StageID: row.StageID, Title: row.Title, Deadline: row.Deadline,
+		ID: row.ID, TypeID: row.TypeID, StageID: row.StageID, LocationID: row.LocationID, Title: row.Title, Deadline: row.Deadline,
 		Customer:      Customer{ID: row.CustomerID, Phone: row.CustomerPhone, Name: row.CustomerName},
 		Values:        values,
 		CreatedByName: row.CreatedByName, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,

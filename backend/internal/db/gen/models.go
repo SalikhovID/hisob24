@@ -126,6 +126,20 @@ type CustomerValue struct {
 	IntValue   *int64
 }
 
+type Location struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	CreatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type MemberLocation struct {
+	UserPhone  string
+	CompanyID  int64
+	LocationID int64
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserPhone string
@@ -168,6 +182,7 @@ type Task struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
+	LocationID    int64
 }
 
 type TaskField struct {
@@ -237,10 +252,11 @@ type User struct {
 }
 
 type UserCompany struct {
-	UserPhone string
-	CompanyID int64
-	Role      string
-	CreatedAt time.Time
-	FullName  *string
-	RoleID    *int64
+	UserPhone    string
+	CompanyID    int64
+	Role         string
+	CreatedAt    time.Time
+	FullName     *string
+	RoleID       *int64
+	AllLocations bool
 }

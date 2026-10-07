@@ -11,11 +11,12 @@ import (
 )
 
 // taskShop is what a company is set up with for tasks, beside its
-// customers: the stages Yangi, Jarayonda and Bajarildi (done), and the type
-// Buyurtma with a required text Izoh, a number Summa and a checkbox Kanal
-// over the customers' dropdown Manba.
+// customers: its location Asosiy, the stages Yangi, Jarayonda and Bajarildi
+// (done), and the type Buyurtma with a required text Izoh, a number Summa
+// and a checkbox Kanal over the customers' dropdown Manba.
 type taskShop struct {
 	customerShop
+	asosiy                      int64
 	yangi, jarayonda, bajarildi int64
 	buyurtma                    int64
 	izoh, summa, kanal          int64
@@ -24,6 +25,7 @@ type taskShop struct {
 func (api testAPI) taskShop(t *testing.T, companyID int64) taskShop {
 	t.Helper()
 	sh := taskShop{customerShop: api.customerShop(t, companyID)}
+	sh.asosiy = api.addLocation(t, companyID, "Asosiy")
 	sh.yangi = api.addStage(t, companyID, "Yangi", "blue", false, 1)
 	sh.jarayonda = api.addStage(t, companyID, "Jarayonda", "amber", false, 2)
 	sh.bajarildi = api.addStage(t, companyID, "Bajarildi", "green", true, 3)
@@ -38,12 +40,13 @@ func (api testAPI) taskShop(t *testing.T, companyID int64) taskShop {
 	return sh
 }
 
-// taskBody is a body for POST /app/tasks: a task of the type Buyurtma with
-// the title, due on the day, in the stage, for the customer that is there,
-// with the answers (JSON) and whatever else the caller adds (",key":value).
+// taskBody is a body for POST /app/tasks: a task of the type Buyurtma in
+// Asosiy with the title, due on the day, in the stage, for the customer that
+// is there, with the answers (JSON) and whatever else the caller adds
+// (",key":value).
 func taskBody(sh taskShop, title, deadline string, stageID int64, customerID any, values, extra string) string {
-	return fmt.Sprintf(`{"type_id":%d,"title":%q,"deadline":%q,"stage_id":%d,"values":%s,"customer":{"id":%v}%s}`,
-		sh.buyurtma, title, deadline, stageID, values, customerID, extra)
+	return fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":%q,"deadline":%q,"stage_id":%d,"values":%s,"customer":{"id":%v}%s}`,
+		sh.buyurtma, sh.asosiy, title, deadline, stageID, values, customerID, extra)
 }
 
 // enterTask enters a task through the API, as the member the token is of,
@@ -77,6 +80,7 @@ func TestCreateTask(t *testing.T) {
 	assert.NotEmpty(t, task["id"])
 	assert.EqualValues(t, sh.buyurtma, task["type_id"])
 	assert.EqualValues(t, sh.yangi, task["stage_id"])
+	assert.EqualValues(t, sh.asosiy, task["location_id"], "the location the task stands in")
 	assert.Equal(t, "Qo'ng'iroq qilish", task["title"], "an employee enters a task; the title without the spaces around it")
 	assert.Equal(t, "2026-10-10", task["deadline"], "a day, as it was sent")
 	assert.Equal(t, map[string]any{"id": ali["id"], "phone": "998901112233", "name": "Ali Valiyev"}, task["customer"], "the customer by its name")
@@ -89,9 +93,9 @@ func TestCreateTask(t *testing.T) {
 	assert.Equal(t, task["created_at"], task["updated_at"])
 
 	rec = api.do(t, http.MethodPost, "/app/tasks", fmt.Sprintf(
-		`{"type_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"Yangi mijoz bilan"},`+
+		`{"type_id":%d,"location_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"Yangi mijoz bilan"},`+
 			`"customer":{"type_id":%d,"phone":"+998 90 111 22 44","values":{"%d":" Vali Aliyev "}}}`,
-		sh.buyurtma, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
+		sh.buyurtma, sh.asosiy, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
 	require.Equal(t, http.StatusCreated, rec.Code, "with a new customer: %s", rec.Body.String())
 	task = decode(t, rec)
 	vali, _ := task["customer"].(map[string]any)
@@ -103,9 +107,9 @@ func TestCreateTask(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code, "and is there to read: %s", rec.Body.String())
 
 	rec = api.do(t, http.MethodPost, "/app/tasks", fmt.Sprintf(
-		`{"type_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"X"},`+
+		`{"type_id":%d,"location_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"X"},`+
 			`"customer":{"type_id":%d,"phone":"998901112233","values":{"%d":"Ali"}}}`,
-		sh.buyurtma, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
+		sh.buyurtma, sh.asosiy, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code)
 	assert.JSONEq(t, fmt.Sprintf(`{"error":"phone_taken","message":"Bu raqamli mijoz allaqachon bor","customer_id":%v}`, ali["id"]),
 		rec.Body.String(), "the refusal names the customer who has the phone")
@@ -115,15 +119,16 @@ func TestCreateTask(t *testing.T) {
 		{"no title", taskBody(sh, " ", "2026-10-10", sh.yangi, ali["id"], ok, ""), "Vazifa nomini kiriting"},
 		{"no deadline", taskBody(sh, "X", "", sh.yangi, ali["id"], ok, ""), "Muddatni kiriting"},
 		{"a deadline that is no day", taskBody(sh, "X", "10.10.2026", sh.yangi, ali["id"], ok, ""), "Muddat noto'g'ri"},
-		{"no type", fmt.Sprintf(`{"title":"X","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`, sh.yangi, ali["id"]), "Vazifa turini tanlang"},
+		{"no location", fmt.Sprintf(`{"type_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`, sh.buyurtma, sh.yangi, ok, ali["id"]), "Lokatsiyani tanlang"},
+		{"no type", fmt.Sprintf(`{"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`, sh.asosiy, sh.yangi, ali["id"]), "Vazifa turini tanlang"},
 		{"no stage", taskBody(sh, "X", "2026-10-10", 0, ali["id"], ok, ""), "Bosqichni tanlang"},
 		{"an assignee who is no member", taskBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], ok, `,"assignee_phone":"998907777777"`), "Mas'ul kompaniya a'zosi emas"},
 		{"a required field left empty", taskBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], `{}`, ""), "«Izoh» maydonini to'ldiring"},
-		{"no customer", fmt.Sprintf(`{"type_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.buyurtma, sh.yangi, ok), "Mijozni tanlang"},
-		{"an empty customer", fmt.Sprintf(`{"type_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{}}`, sh.buyurtma, sh.yangi, ok), "Mijozni tanlang"},
+		{"no customer", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.buyurtma, sh.asosiy, sh.yangi, ok), "Mijozni tanlang"},
+		{"an empty customer", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{}}`, sh.buyurtma, sh.asosiy, sh.yangi, ok), "Mijozni tanlang"},
 		{"a customer that is not there", taskBody(sh, "X", "2026-10-10", sh.yangi, 999999, ok, ""), "Mijozni tanlang"},
-		{"a new customer with no name", fmt.Sprintf(`{"type_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,`+
-			`"customer":{"type_id":%d,"phone":"998901112266"}}`, sh.buyurtma, sh.yangi, ok, sh.jismoniy), "«F.I.Sh.» maydonini to'ldiring"},
+		{"a new customer with no name", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,`+
+			`"customer":{"type_id":%d,"phone":"998901112266"}}`, sh.buyurtma, sh.asosiy, sh.yangi, ok, sh.jismoniy), "«F.I.Sh.» maydonini to'ldiring"},
 	} {
 		rec := api.do(t, http.MethodPost, "/app/tasks", tt.body, bearer(owner))
 		assert.Equal(t, http.StatusBadRequest, rec.Code, tt.name)
@@ -187,8 +192,8 @@ func TestListTasks(t *testing.T) {
 		fmt.Sprintf(`{"%d":"Ertalab yozish","%d":45000}`, sh.izoh, sh.summa), ""))
 	sooner := api.enterTask(t, employee, taskBody(sh, "Qo'ng'iroq qilish", "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":"X"}`, sh.izoh), fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)))
-	other := api.enterTask(t, owner, fmt.Sprintf(`{"type_id":%d,"title":"Shikoyatni ko'rish","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`,
-		shikoyat, sh.bajarildi, zarina["id"]))
+	other := api.enterTask(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Shikoyatni ko'rish","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`,
+		shikoyat, sh.asosiy, sh.bajarildi, zarina["id"]))
 	begona := api.taskShop(t, nok)
 	strangers := api.enter(t, stranger, begona.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Begona"}`, begona.fish))
 	api.enterTask(t, stranger, taskBody(begona, "Begona", "2026-10-01", begona.yangi, strangers["id"], fmt.Sprintf(`{"%d":"X"}`, begona.izoh), ""))

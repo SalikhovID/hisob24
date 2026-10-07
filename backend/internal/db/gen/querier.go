@@ -97,8 +97,9 @@ type Querier interface {
 	// A company role: the permissions are "section.action" keys, checked by
 	// internal/access before they get here.
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
-	// Enters a task. assignee_name and created_by_name are the names the members
-	// go by in the company now: they stay when the members leave the company.
+	// Enters a task, in a location of the company. assignee_name and
+	// created_by_name are the names the members go by in the company now: they
+	// stay when the members leave the company.
 	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
 	// A new stage goes last among the company's.
 	CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (TaskStage, error)
@@ -197,6 +198,9 @@ type Querier interface {
 	GetCustomerField(ctx context.Context, arg GetCustomerFieldParams) (CustomerField, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerType(ctx context.Context, arg GetCustomerTypeParams) (CustomerType, error)
+	// The company's location; pgx.ErrNoRows when the company has no such
+	// location, or deleted it.
+	GetLocation(ctx context.Context, arg GetLocationParams) (Location, error)
 	// The name a user goes by in a company, NULL when they go by none there:
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
@@ -204,11 +208,11 @@ type Querier interface {
 	// The company's role with how many members hold it; pgx.ErrNoRows when the
 	// company has none such.
 	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
-	// The company's task with its customer's phone and name (the customer's
-	// answer to its type's first text field); pgx.ErrNoRows when the company has
-	// no such task, or deleted it. assignee_name and created_by_name are the
-	// names the members go by in the company now; once they have left it (or go
-	// by no name), the names of then.
+	// The company's task with its location, its customer's phone and name (the
+	// customer's answer to its type's first text field); pgx.ErrNoRows when the
+	// company has no such task, or deleted it. assignee_name and
+	// created_by_name are the names the members go by in the company now; once
+	// they have left it (or go by no name), the names of then.
 	GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, error)
 	// A field of the company's type; pgx.ErrNoRows when the type has none such,
 	// or it is deleted.

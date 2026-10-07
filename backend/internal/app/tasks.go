@@ -24,10 +24,12 @@ type taskAssigneeJSON struct {
 }
 
 type taskJSON struct {
-	ID      int64  `json:"id"`
-	TypeID  int64  `json:"type_id"`
-	StageID int64  `json:"stage_id"`
-	Title   string `json:"title"`
+	ID      int64 `json:"id"`
+	TypeID  int64 `json:"type_id"`
+	StageID int64 `json:"stage_id"`
+	// LocationID is the location the task stands in, for good.
+	LocationID int64  `json:"location_id"`
+	Title      string `json:"title"`
 	// Deadline is a day, YYYY-MM-DD.
 	Deadline string            `json:"deadline"`
 	Customer taskCustomerJSON  `json:"customer"`
@@ -41,7 +43,7 @@ type taskJSON struct {
 
 func toTaskJSON(t task.Task) taskJSON {
 	body := taskJSON{
-		ID: t.ID, TypeID: t.TypeID, StageID: t.StageID, Title: t.Title, Deadline: t.Deadline.Format(time.DateOnly),
+		ID: t.ID, TypeID: t.TypeID, StageID: t.StageID, LocationID: t.LocationID, Title: t.Title, Deadline: t.Deadline.Format(time.DateOnly),
 		Customer: taskCustomerJSON{ID: t.Customer.ID, Phone: t.Customer.Phone, Name: t.Customer.Name},
 		Values:   t.Values, CreatedByName: t.CreatedByName, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
 	}
@@ -93,8 +95,9 @@ func (in *taskCustomerInputJSON) input() task.CustomerInput {
 func (h *Handler) createTask(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		taskInputJSON
-		TypeID   int64                  `json:"type_id"`
-		Customer *taskCustomerInputJSON `json:"customer"`
+		TypeID     int64                  `json:"type_id"`
+		LocationID int64                  `json:"location_id"`
+		Customer   *taskCustomerInputJSON `json:"customer"`
 	}
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
@@ -106,7 +109,7 @@ func (h *Handler) createTask(w http.ResponseWriter, r *http.Request) {
 		forbidden(w)
 		return
 	}
-	t, err := h.tasks.Create(r.Context(), sessionCompany(r), currentUser(r.Context()).Phone, body.TypeID, body.input(), customer)
+	t, err := h.tasks.Create(r.Context(), sessionCompany(r), currentUser(r.Context()).Phone, body.TypeID, body.LocationID, body.input(), customer)
 	if err != nil {
 		// A new customer's phone or answer may be another customer's.
 		writeCustomerError(w, r, err)

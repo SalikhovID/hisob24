@@ -1,18 +1,19 @@
 -- name: CreateTask :one
--- Enters a task. assignee_name and created_by_name are the names the members
--- go by in the company now: they stay when the members leave the company.
-INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
-VALUES (sqlc.arg('company_id'), sqlc.arg('type_id'), sqlc.arg('stage_id'), sqlc.arg('customer_id'), sqlc.arg('title'), sqlc.arg('deadline'),
+-- Enters a task, in a location of the company. assignee_name and
+-- created_by_name are the names the members go by in the company now: they
+-- stay when the members leave the company.
+INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
+VALUES (sqlc.arg('company_id'), sqlc.arg('type_id'), sqlc.arg('stage_id'), sqlc.arg('customer_id'), sqlc.arg('location_id'), sqlc.arg('title'), sqlc.arg('deadline'),
         sqlc.narg('assignee_phone'), sqlc.narg('assignee_name'), sqlc.arg('created_by'), sqlc.narg('created_by_name'))
 RETURNING *;
 
 -- name: GetTask :one
--- The company's task with its customer's phone and name (the customer's
--- answer to its type's first text field); pgx.ErrNoRows when the company has
--- no such task, or deleted it. assignee_name and created_by_name are the
--- names the members go by in the company now; once they have left it (or go
--- by no name), the names of then.
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.title, t.deadline, t.assignee_phone,
+-- The company's task with its location, its customer's phone and name (the
+-- customer's answer to its type's first text field); pgx.ErrNoRows when the
+-- company has no such task, or deleted it. assignee_name and
+-- created_by_name are the names the members go by in the company now; once
+-- they have left it (or go by no name), the names of then.
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -35,7 +36,7 @@ WHERE t.id = $1 AND t.company_id = $2 AND t.deleted_at IS NULL;
 -- digits, the digits of a search that is a number, in the customer's phone
 -- and in the task's and the customer's whole number answers. A NULL argument
 -- leaves its filter out.
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,

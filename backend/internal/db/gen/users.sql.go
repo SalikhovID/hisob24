@@ -14,7 +14,7 @@ const addCompanyUser = `-- name: AddCompanyUser :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_phone, company_id) DO NOTHING
-RETURNING user_phone, company_id, role, created_at, full_name, role_id
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
 `
 
 type AddCompanyUserParams struct {
@@ -41,6 +41,7 @@ func (q *Queries) AddCompanyUser(ctx context.Context, arg AddCompanyUserParams) 
 		&i.CreatedAt,
 		&i.FullName,
 		&i.RoleID,
+		&i.AllLocations,
 	)
 	return i, err
 }
@@ -332,7 +333,7 @@ func (q *Queries) RemoveCompanyUser(ctx context.Context, arg RemoveCompanyUserPa
 const renameCompanyUser = `-- name: RenameCompanyUser :one
 UPDATE user_companies SET full_name = $3
 WHERE user_phone = $1 AND company_id = $2 AND role = 'user'
-RETURNING user_phone, company_id, role, created_at, full_name, role_id
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
 `
 
 type RenameCompanyUserParams struct {
@@ -353,6 +354,7 @@ func (q *Queries) RenameCompanyUser(ctx context.Context, arg RenameCompanyUserPa
 		&i.CreatedAt,
 		&i.FullName,
 		&i.RoleID,
+		&i.AllLocations,
 	)
 	return i, err
 }
@@ -361,7 +363,7 @@ const setCompanyOwner = `-- name: SetCompanyOwner :one
 INSERT INTO user_companies (user_phone, company_id, role, full_name)
 VALUES ($1, $2, 'owner', $3)
 ON CONFLICT (user_phone, company_id) DO UPDATE SET role = 'owner', role_id = NULL, full_name = EXCLUDED.full_name
-RETURNING user_phone, company_id, role, created_at, full_name, role_id
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
 `
 
 type SetCompanyOwnerParams struct {
@@ -383,6 +385,7 @@ func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams
 		&i.CreatedAt,
 		&i.FullName,
 		&i.RoleID,
+		&i.AllLocations,
 	)
 	return i, err
 }
@@ -390,7 +393,7 @@ func (q *Queries) SetCompanyOwner(ctx context.Context, arg SetCompanyOwnerParams
 const setCompanyUserRole = `-- name: SetCompanyUserRole :one
 UPDATE user_companies SET role_id = $1
 WHERE user_phone = $2 AND company_id = $3 AND role = 'user'
-RETURNING user_phone, company_id, role, created_at, full_name, role_id
+RETURNING user_phone, company_id, role, created_at, full_name, role_id, all_locations
 `
 
 type SetCompanyUserRoleParams struct {
@@ -413,6 +416,7 @@ func (q *Queries) SetCompanyUserRole(ctx context.Context, arg SetCompanyUserRole
 		&i.CreatedAt,
 		&i.FullName,
 		&i.RoleID,
+		&i.AllLocations,
 	)
 	return i, err
 }

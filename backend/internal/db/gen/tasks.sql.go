@@ -164,10 +164,10 @@ func (q *Queries) CountTypeTasks(ctx context.Context, typeID int64) (int64, erro
 }
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
-VALUES ($1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10)
-RETURNING id, company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name, created_at, updated_at, deleted_at
+INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11)
+RETURNING id, company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name, created_at, updated_at, deleted_at, location_id
 `
 
 type CreateTaskParams struct {
@@ -175,6 +175,7 @@ type CreateTaskParams struct {
 	TypeID        int64
 	StageID       int64
 	CustomerID    int64
+	LocationID    int64
 	Title         string
 	Deadline      time.Time
 	AssigneePhone *string
@@ -183,14 +184,16 @@ type CreateTaskParams struct {
 	CreatedByName *string
 }
 
-// Enters a task. assignee_name and created_by_name are the names the members
-// go by in the company now: they stay when the members leave the company.
+// Enters a task, in a location of the company. assignee_name and
+// created_by_name are the names the members go by in the company now: they
+// stay when the members leave the company.
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
 	row := q.db.QueryRow(ctx, createTask,
 		arg.CompanyID,
 		arg.TypeID,
 		arg.StageID,
 		arg.CustomerID,
+		arg.LocationID,
 		arg.Title,
 		arg.Deadline,
 		arg.AssigneePhone,
@@ -214,6 +217,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -250,7 +254,7 @@ func (q *Queries) DeleteTaskValues(ctx context.Context, taskID int64) error {
 }
 
 const getTask = `-- name: GetTask :one
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -276,6 +280,7 @@ type GetTaskRow struct {
 	TypeID        int64
 	StageID       int64
 	CustomerID    int64
+	LocationID    int64
 	Title         string
 	Deadline      time.Time
 	AssigneePhone *string
@@ -287,11 +292,11 @@ type GetTaskRow struct {
 	CustomerName  *string
 }
 
-// The company's task with its customer's phone and name (the customer's
-// answer to its type's first text field); pgx.ErrNoRows when the company has
-// no such task, or deleted it. assignee_name and created_by_name are the
-// names the members go by in the company now; once they have left it (or go
-// by no name), the names of then.
+// The company's task with its location, its customer's phone and name (the
+// customer's answer to its type's first text field); pgx.ErrNoRows when the
+// company has no such task, or deleted it. assignee_name and
+// created_by_name are the names the members go by in the company now; once
+// they have left it (or go by no name), the names of then.
 func (q *Queries) GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, error) {
 	row := q.db.QueryRow(ctx, getTask, arg.ID, arg.CompanyID)
 	var i GetTaskRow
@@ -300,6 +305,7 @@ func (q *Queries) GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, e
 		&i.TypeID,
 		&i.StageID,
 		&i.CustomerID,
+		&i.LocationID,
 		&i.Title,
 		&i.Deadline,
 		&i.AssigneePhone,
@@ -408,7 +414,7 @@ func (q *Queries) ListTaskValues(ctx context.Context, taskIds []int64) ([]ListTa
 }
 
 const listTasks = `-- name: ListTasks :many
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -458,6 +464,7 @@ type ListTasksRow struct {
 	TypeID        int64
 	StageID       int64
 	CustomerID    int64
+	LocationID    int64
 	Title         string
 	Deadline      time.Time
 	AssigneePhone *string
@@ -500,6 +507,7 @@ func (q *Queries) ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTas
 			&i.TypeID,
 			&i.StageID,
 			&i.CustomerID,
+			&i.LocationID,
 			&i.Title,
 			&i.Deadline,
 			&i.AssigneePhone,

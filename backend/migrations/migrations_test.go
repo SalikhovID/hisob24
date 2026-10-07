@@ -3,6 +3,7 @@ package migrations_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -635,12 +636,13 @@ func TestTasks(t *testing.T) {
 	begona := addCustomer(t, pool, nok, addCustomerType(t, pool, nok, "Jismoniy"), "998901234567")
 	stage, typ := addTaskSettings(t, pool, olma)
 	nokStage, nokType := addTaskSettings(t, pool, nok)
-	// addTask adds a task the user 998901111111 enters.
+	asosiy := addLocation(t, pool, olma, "Asosiy")
+	// addTask adds a task the user 998901111111 enters, in Olma's location.
 	addTask := func(typeID, stageID, customerID int64, deadline *string, assignee *string) (int64, error) {
 		var id int64
-		err := pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, created_by)
-			VALUES ($1, $2, $3, $4, 'Qo''ng''iroq qilish', $5::date, $6, '998901111111') RETURNING id`,
-			olma, typeID, stageID, customerID, deadline, assignee).Scan(&id)
+		err := pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, created_by)
+			VALUES ($1, $2, $3, $4, $7, 'Qo''ng''iroq qilish', $5::date, $6, '998901111111') RETURNING id`,
+			olma, typeID, stageID, customerID, deadline, assignee, asosiy).Scan(&id)
 		return id, err
 	}
 	day, staff, stranger := "2026-10-10", "998902222222", "998909999999"
@@ -659,8 +661,8 @@ func TestTasks(t *testing.T) {
 	assert.Equal(t, "23503", sqlState(err), "another company's customer")
 	_, err = addTask(typ, stage, ali, &day, &stranger)
 	assert.Equal(t, "23503", sqlState(err), "assigned to someone who is no user")
-	_, err = pool.Exec(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, 'X', '2026-10-10', '998909999999')`, olma, typ, stage, ali)
+	_, err = pool.Exec(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, 'X', '2026-10-10', '998909999999')`, olma, typ, stage, ali, asosiy)
 	assert.Equal(t, "23503", sqlState(err), "entered by someone who is no user")
 
 	_, err = pool.Exec(ctx, "UPDATE tasks SET deleted_at = now() WHERE id = $1", first)
@@ -695,8 +697,9 @@ func TestTaskValues(t *testing.T) {
 	}
 	izoh, summa, manzil, kanal := addField("Izoh", "string", nil), addField("Summa", "int", nil),
 		addField("Manzil", "string", nil), addField("Kanal", "checkbox", &manba)
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`, olma, typ, stage, ali).Scan(&task))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`,
+		olma, typ, stage, ali, addLocation(t, pool, olma, "Asosiy")).Scan(&task))
 	// answer writes one row of the task's answers.
 	answer := func(fieldID int64, optionID *int64, text *string, number *int64) error {
 		_, err := pool.Exec(ctx, `INSERT INTO task_values (task_id, field_id, option_id, text_value, int_value)
@@ -729,8 +732,9 @@ func TestTaskHistory(t *testing.T) {
 	ali := addCustomer(t, pool, olma, addCustomerType(t, pool, olma, "Jismoniy"), "998901234567")
 	stage, typ := addTaskSettings(t, pool, olma)
 	var task int64
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`, olma, typ, stage, ali).Scan(&task))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`,
+		olma, typ, stage, ali, addLocation(t, pool, olma, "Asosiy")).Scan(&task))
 	// record writes down what the user did to the task.
 	record := func(taskID int64, action, actor string) error {
 		_, err := pool.Exec(ctx, "INSERT INTO task_history (task_id, action, actor_phone) VALUES ($1, $2, $3)", taskID, action, actor)
@@ -783,4 +787,142 @@ func TestRolesAreACompanysAndItsUsersOnly(t *testing.T) {
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, "DELETE FROM roles WHERE id = $1", role)
 	assert.NoError(t, err, "a role nobody holds")
+}
+
+// addLocation inserts a location of the company and returns its id.
+func addLocation(t *testing.T, pool *pgxpool.Pool, companyID int64, name string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id))
+	return id
+}
+
+// locationsOf is the company's live locations by name, in the order they
+// were added.
+func locationsOf(t *testing.T, pool *pgxpool.Pool, companyID int64) []string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), "SELECT name FROM locations WHERE company_id = $1 AND deleted_at IS NULL ORDER BY id", companyID)
+	require.NoError(t, err)
+	names, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return names
+}
+
+func TestTheLocationsMigrationGivesEveryCompanyAReadyLocationAndMovesItsTasksThere(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 9)
+	require.NoError(t, err)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err = pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	ali := addCustomer(t, pool, olma, addCustomerType(t, pool, olma, "Jismoniy"), "998901234567")
+	stage, typ := addTaskSettings(t, pool, olma)
+	var task int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`, olma, typ, stage, ali).Scan(&task))
+
+	_, err = provider.UpTo(ctx, 10)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"Asosiy"}, locationsOf(t, pool, olma), "the ready location")
+	assert.Equal(t, []string{"Asosiy"}, locationsOf(t, pool, nok), "every company gets its own")
+	var location, olmasAsosiy, noksAsosiy int64
+	require.NoError(t, pool.QueryRow(ctx, "SELECT location_id FROM tasks WHERE id = $1", task).Scan(&location))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT id FROM locations WHERE company_id = $1", olma).Scan(&olmasAsosiy))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT id FROM locations WHERE company_id = $1", nok).Scan(&noksAsosiy))
+	assert.Equal(t, olmasAsosiy, location, "the tasks there were stand in their company's ready location")
+	assert.NotEqual(t, olmasAsosiy, noksAsosiy)
+}
+
+func TestLocations(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	ali := addCustomer(t, pool, olma, addCustomerType(t, pool, olma, "Jismoniy"), "998901234567")
+	stage, typ := addTaskSettings(t, pool, olma)
+	asosiy := addLocation(t, pool, olma, "Asosiy")
+
+	_, err = pool.Exec(ctx, "INSERT INTO locations (company_id, name) VALUES ($1, 'asosiy')", olma)
+	assert.Equal(t, "23505", sqlState(err), "a name is one location's in a company, whatever the case") // unique_violation
+	noksAsosiy := addLocation(t, pool, nok, "Asosiy")
+	var created time.Time
+	require.NoError(t, pool.QueryRow(ctx, "SELECT created_at FROM locations WHERE id = $1", noksAsosiy).Scan(&created))
+	assert.False(t, created.IsZero(), "another company may use the name")
+
+	// addTask adds a task of Olma's in the location, entered by the user.
+	addTask := func(locationID *int64) error {
+		_, err := pool.Exec(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+			VALUES ($1, $2, $3, $4, $5, 'Qo''ng''iroq', '2026-10-10', '998901111111')`, olma, typ, stage, ali, locationID)
+		return err
+	}
+	assert.NoError(t, addTask(&asosiy), "a task stands in a location of its company")
+	assert.Equal(t, "23502", sqlState(addTask(nil)), "a task stands in a location")               // not_null_violation
+	assert.Equal(t, "23503", sqlState(addTask(&noksAsosiy)), "not in another company's location") // foreign_key_violation
+
+	_, err = pool.Exec(ctx, "UPDATE locations SET deleted_at = now() WHERE id = $1", asosiy)
+	require.NoError(t, err, "a location is hidden, never removed")
+	_, err = pool.Exec(ctx, "INSERT INTO locations (company_id, name) VALUES ($1, 'Asosiy')", olma)
+	assert.NoError(t, err, "a deleted location's name is free again")
+	assert.NoError(t, addTask(&asosiy), "the tasks of a deleted location keep standing in it")
+}
+
+func TestAMemberHasEveryLocationUnlessRestricted(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role) VALUES
+		('998901111111', $1, 'owner'), ('998902222222', $1, 'user')`, olma)
+	require.NoError(t, err)
+	asosiy, noksAsosiy := addLocation(t, pool, olma, "Asosiy"), addLocation(t, pool, nok, "Asosiy")
+
+	var all bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT all_locations FROM user_companies WHERE user_phone = '998902222222'").Scan(&all))
+	assert.True(t, all, "a member may work in every location unless restricted")
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET all_locations = false WHERE user_phone = '998901111111'")
+	assert.Equal(t, "23514", sqlState(err), "the owner is never restricted") // check_violation
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET all_locations = false WHERE user_phone = '998902222222'")
+	assert.NoError(t, err, "a user may be")
+
+	// restrict adds a location to the user's restriction.
+	restrict := func(locationID int64) error {
+		_, err := pool.Exec(ctx, "INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ('998902222222', $1, $2)", olma, locationID)
+		return err
+	}
+	assert.NoError(t, restrict(asosiy))
+	assert.Equal(t, "23505", sqlState(restrict(asosiy)), "a location is in the restriction once") // unique_violation
+	assert.Equal(t, "23503", sqlState(restrict(noksAsosiy)), "not another company's location")    // foreign_key_violation
+	_, err = pool.Exec(ctx, "INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ('998909999999', $1, $2)", olma, asosiy)
+	assert.Equal(t, "23503", sqlState(err), "the restriction is a member's")
+
+	_, err = pool.Exec(ctx, "DELETE FROM user_companies WHERE user_phone = '998902222222'")
+	require.NoError(t, err)
+	var rows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM member_locations").Scan(&rows))
+	assert.Zero(t, rows, "the restriction goes with the membership")
+}
+
+func TestTheLocationsMigrationDownRemovesTheLocations(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	addLocation(t, pool, olma, "Asosiy")
+
+	_, err := newProvider(t, pool).DownTo(ctx, 9)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "SELECT id FROM locations")
+	assert.Equal(t, "42P01", sqlState(err), "the locations are gone") // undefined_table
+	_, err = pool.Exec(ctx, "SELECT user_phone FROM member_locations")
+	assert.Equal(t, "42P01", sqlState(err), "and so are the restrictions")
+	_, err = pool.Exec(ctx, "SELECT location_id FROM tasks")
+	assert.Equal(t, "42703", sqlState(err), "a task stands in no location") // undefined_column
+	_, err = pool.Exec(ctx, "SELECT all_locations FROM user_companies")
+	assert.Equal(t, "42703", sqlState(err), "a member is not restricted")
 }

@@ -122,10 +122,10 @@ func TestAFieldWithRepeatedAnswersCannotBeToldNotToRepeat(t *testing.T) {
 	assert.True(t, ism.Unique)
 }
 
-// taskSetup is what a task of the company needs: a stage, a type, and a
-// checkbox field Kanal of the type over the dropdown Manba.
+// taskSetup is what a task of the company needs: a location, a stage, a
+// type, and a checkbox field Kanal of the type over the dropdown Manba.
 type taskSetup struct {
-	companyID, stageID, typeID, fieldID int64
+	companyID, locationID, stageID, typeID, fieldID int64
 }
 
 // setupTasks makes the company ready for tasks.
@@ -133,6 +133,8 @@ func setupTasks(t *testing.T, pool *pgxpool.Pool, sh shop) taskSetup {
 	t.Helper()
 	ctx := t.Context()
 	ts := taskSetup{companyID: sh.id}
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO locations (company_id, name) VALUES ($1, 'Asosiy') RETURNING id", sh.id).Scan(&ts.locationID))
 	require.NoError(t, pool.QueryRow(ctx,
 		"INSERT INTO task_stages (company_id, name, color, position) VALUES ($1, 'Yangi', 'blue', 1) RETURNING id", sh.id).Scan(&ts.stageID))
 	require.NoError(t, pool.QueryRow(ctx,
@@ -149,8 +151,8 @@ func addTask(t *testing.T, pool *pgxpool.Pool, ts taskSetup, customerID int64, c
 	t.Helper()
 	ctx := t.Context()
 	var taskID int64
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, 'Qo''ng''iroq', CURRENT_DATE, $5) RETURNING id`, ts.companyID, ts.typeID, ts.stageID, customerID, owner).Scan(&taskID))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $6, 'Qo''ng''iroq', CURRENT_DATE, $5) RETURNING id`, ts.companyID, ts.typeID, ts.stageID, customerID, owner, ts.locationID).Scan(&taskID))
 	for _, optionID := range chosen {
 		_, err := pool.Exec(ctx, "INSERT INTO task_values (task_id, field_id, option_id) VALUES ($1, $2, $3)", taskID, ts.fieldID, optionID)
 		require.NoError(t, err)

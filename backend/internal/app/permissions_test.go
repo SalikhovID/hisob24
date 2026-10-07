@@ -102,8 +102,8 @@ func TestATaskWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	api.giveRole(t, valisPhone, olma, &operator)
 	customer := api.enter(t, owner, sh.jismoniy, "998911112233", fmt.Sprintf(`{"%s":"Dilshod"}`, key(sh.fish)))
 	newCustomer := fmt.Sprintf(`{"type_id":%d,"phone":"998911112244","values":{"%s":"Malika"}}`, sh.jismoniy, key(sh.fish))
-	withNew := fmt.Sprintf(`{"type_id":%d,"title":"Yangi mijozga","deadline":"2026-10-20","stage_id":%d,"values":{"%s":"Izoh"},"customer":%s}`,
-		sh.buyurtma, sh.yangi, key(sh.izoh), newCustomer)
+	withNew := fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Yangi mijozga","deadline":"2026-10-20","stage_id":%d,"values":{"%s":"Izoh"},"customer":%s}`,
+		sh.buyurtma, sh.asosiy, sh.yangi, key(sh.izoh), newCustomer)
 
 	rec := api.do(t, http.MethodPost, "/app/tasks", withNew, bearer(employee))
 

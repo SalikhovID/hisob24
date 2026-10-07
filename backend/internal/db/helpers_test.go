@@ -62,3 +62,12 @@ func addRole(t *testing.T, pool *pgxpool.Pool, companyID int64, name string, per
 		companyID, name, append([]string{}, permissions...)).Scan(&id))
 	return id
 }
+
+// addLocation makes a location of the company and returns its id.
+func addLocation(t *testing.T, pool *pgxpool.Pool, companyID int64, name string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(context.Background(),
+		"INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id))
+	return id
+}

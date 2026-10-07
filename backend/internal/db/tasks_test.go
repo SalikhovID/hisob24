@@ -26,11 +26,12 @@ func day(s string) time.Time {
 }
 
 // taskShop is a company set up for tasks: enteredBy (its owner, "Ali
-// Valiyev") and assignedTo (a user, "Vali Aliyev"); a customer type with a
-// name field and the customer Ali; two stages; a task type with a text
-// field, a whole number and a choice over Manba.
+// Valiyev") and assignedTo (a user, "Vali Aliyev"); its location Asosiy; a
+// customer type with a name field and the customer Ali; two stages; a task
+// type with a text field, a whole number and a choice over Manba.
 type taskShop struct {
 	company             gen.Company
+	asosiy              int64
 	jismoniy            gen.CustomerType
 	fish                gen.CustomerField
 	ali                 gen.Customer
@@ -48,6 +49,7 @@ func newTaskShop(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, name string) 
 	mustExec(t, pool, "INSERT INTO users (phone) VALUES ($1), ($2) ON CONFLICT (phone) DO NOTHING", enteredBy, assignedTo)
 	mustExec(t, pool, `INSERT INTO user_companies (user_phone, company_id, role, full_name)
 		VALUES ($1, $3, 'owner', 'Ali Valiyev'), ($2, $3, 'user', 'Vali Aliyev')`, enteredBy, assignedTo, s.company.ID)
+	s.asosiy = addLocation(t, pool, s.company.ID, "Asosiy")
 	s.jismoniy = createType(t, q, s.company.ID, "Jismoniy")
 	s.fish = addField(t, q, s.company.ID, s.jismoniy.ID, "F.I.Sh.", "string", nil)
 	s.ali = createCustomer(t, q, s.company.ID, s.jismoniy.ID, "998901234567")
@@ -64,8 +66,8 @@ func newTaskShop(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, name string) 
 	return s
 }
 
-// task enters a task of the shop's type for Ali, in the first stage, as
-// enteredBy; assignee is the member it is assigned to, if any.
+// task enters a task of the shop's type for Ali, in the first stage and in
+// Asosiy, as enteredBy; assignee is the member it is assigned to, if any.
 func (s taskShop) task(t *testing.T, q *gen.Queries, title, deadline string, assignee *string) gen.Task {
 	t.Helper()
 	var assigneeName *string
@@ -73,7 +75,7 @@ func (s taskShop) task(t *testing.T, q *gen.Queries, title, deadline string, ass
 		assigneeName = ptr("Vali Aliyev")
 	}
 	task, err := q.CreateTask(t.Context(), gen.CreateTaskParams{
-		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: s.ali.ID,
+		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: s.ali.ID, LocationID: s.asosiy,
 		Title: title, Deadline: day(deadline), AssigneePhone: assignee, AssigneeName: assigneeName,
 		CreatedBy: enteredBy, CreatedByName: ptr("Ali Valiyev"),
 	})
@@ -86,7 +88,7 @@ func TestCreateTask(t *testing.T) {
 	s := newTaskShop(t, q, pool, "Olma")
 
 	task, err := q.CreateTask(t.Context(), gen.CreateTaskParams{
-		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: s.ali.ID,
+		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: s.ali.ID, LocationID: s.asosiy,
 		Title: "Qo'ng'iroq qilish", Deadline: day("2026-10-10"), AssigneePhone: ptr(assignedTo), AssigneeName: ptr("Vali aka"),
 		CreatedBy: enteredBy, CreatedByName: ptr("Ali aka"),
 	})
@@ -97,6 +99,7 @@ func TestCreateTask(t *testing.T) {
 	assert.Equal(t, s.buyurtma.ID, task.TypeID)
 	assert.Equal(t, s.yangi.ID, task.StageID)
 	assert.Equal(t, s.ali.ID, task.CustomerID)
+	assert.Equal(t, s.asosiy, task.LocationID, "the location the task stands in")
 	assert.Equal(t, "Qo'ng'iroq qilish", task.Title)
 	assert.True(t, task.Deadline.Equal(day("2026-10-10")), "deadline %s", task.Deadline)
 	assert.Equal(t, ptr(assignedTo), task.AssigneePhone)
@@ -120,6 +123,7 @@ func TestGetTask(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "Qo'ng'iroq", got.Title)
+	assert.Equal(t, s.asosiy, got.LocationID, "the location the task stands in")
 	assert.Equal(t, "998901234567", got.CustomerPhone)
 	assert.Equal(t, ptr("Ali Valiyev"), got.CustomerName, "the customer's answer to its type's first text field")
 	assert.Equal(t, ptr("Vali Aliyev"), got.AssigneeName, "the name the assignee goes by in the company now")
@@ -136,7 +140,7 @@ func TestGetTask(t *testing.T) {
 
 	nameless := createCustomer(t, q, s.company.ID, s.jismoniy.ID, "998907654321")
 	other, err := q.CreateTask(ctx, gen.CreateTaskParams{
-		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: nameless.ID,
+		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: nameless.ID, LocationID: s.asosiy,
 		Title: "X", Deadline: day("2026-10-10"), CreatedBy: enteredBy,
 	})
 	require.NoError(t, err)
@@ -176,7 +180,7 @@ func seedTasks(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s taskShop) (la
 	done := createStage(t, q, s.company.ID, "Yopiq", "slate")
 	var err error
 	other, err = q.CreateTask(t.Context(), gen.CreateTaskParams{
-		CompanyID: s.company.ID, TypeID: shikoyat.ID, StageID: done.ID, CustomerID: vali.ID,
+		CompanyID: s.company.ID, TypeID: shikoyat.ID, StageID: done.ID, CustomerID: vali.ID, LocationID: s.asosiy,
 		Title: "Shikoyatni ko'rish", Deadline: day("2026-10-10"), CreatedBy: enteredBy,
 	})
 	require.NoError(t, err)

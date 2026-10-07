@@ -25,12 +25,13 @@ const (
 	outsider = "998903333333"
 )
 
-// shop is a company set up for tasks: its owner and a user of it; a customer
-// type Jismoniy with a name field and the customer Ali; three stages; a task
-// type Buyurtma with a required text, a whole number and a choice over
-// Manba (YouTube is turned off).
+// shop is a company set up for tasks: its owner and a user of it; its
+// location Asosiy; a customer type Jismoniy with a name field and the
+// customer Ali; three stages; a task type Buyurtma with a required text, a
+// whole number and a choice over Manba (YouTube is turned off).
 type shop struct {
 	id        int64
+	asosiy    int64
 	customers *customer.Service
 
 	jismoniy   customer.Type
@@ -60,6 +61,7 @@ func newShop(t *testing.T, s *Service, pool *pgxpool.Pool, name string) shop {
 	t.Helper()
 	ctx := t.Context()
 	sh := shop{id: addCompany(t, pool, name), customers: s.customers}
+	sh.asosiy = addLocation(t, pool, sh.id, "Asosiy")
 	addMember(t, pool, sh.id, owner, "Egamberdi Egasi", "owner")
 	addMember(t, pool, sh.id, staff, "Xurshid Xodim", "user")
 	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ($1) ON CONFLICT DO NOTHING", outsider)
@@ -124,7 +126,7 @@ func (sh shop) input(t *testing.T, title, day string, of map[int64]any) Input {
 // mustTask enters a task for Ali, as the owner.
 func mustTask(t *testing.T, s *Service, sh shop, title, day string, of map[int64]any) Task {
 	t.Helper()
-	task, err := s.Create(t.Context(), sh.id, owner, sh.buyurtma.ID, sh.input(t, title, day, of), sh.existing())
+	task, err := s.Create(t.Context(), sh.id, owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, title, day, of), sh.existing())
 	require.NoError(t, err)
 	return task
 }
@@ -156,12 +158,12 @@ func TestCreate(t *testing.T) {
 	in := sh.input(t, " Qo'ng'iroq qilish ", "2026-10-10", map[int64]any{sh.izoh.ID: " Ertalab ", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.linkedin.ID, sh.instagram.ID}})
 	in.AssigneePhone = ptr("+998 90 222 22 22")
 
-	task, err := s.Create(ctx, sh.id, staff, sh.buyurtma.ID, in, sh.existing())
+	task, err := s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 
 	require.NoError(t, err)
 	assert.NotZero(t, task.ID)
 	assert.Equal(t, Task{
-		ID: task.ID, TypeID: sh.buyurtma.ID, StageID: sh.yangi.ID, Title: "Qo'ng'iroq qilish", Deadline: day("2026-10-10"),
+		ID: task.ID, TypeID: sh.buyurtma.ID, StageID: sh.yangi.ID, LocationID: sh.asosiy, Title: "Qo'ng'iroq qilish", Deadline: day("2026-10-10"),
 		Customer:      Customer{ID: sh.ali.ID, Phone: "998901234567", Name: ptr("Ali Valiyev")},
 		Assignee:      &Member{Phone: staff, Name: ptr("Xurshid Xodim")},
 		Values:        fields.Values{sh.izoh.ID: "Ertalab", sh.summa.ID: int64(45000), sh.kanal.ID: []int64{sh.instagram.ID, sh.linkedin.ID}},
@@ -185,7 +187,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 	in := sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "Yangi mijoz bilan"})
 	fresh := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "+998 90 555 55 55", Values: answers(t, map[int64]any{sh.fish.ID: " Vali Aliyev "})}}
 
-	task, err := s.Create(ctx, sh.id, staff, sh.buyurtma.ID, in, fresh)
+	task, err := s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, fresh)
 
 	require.NoError(t, err)
 	assert.Equal(t, Customer{ID: task.Customer.ID, Phone: "998905555555", Name: ptr("Vali Aliyev")}, task.Customer, "the customer is entered with the task")
@@ -200,7 +202,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 
 	// Ali's phone: the customer is there already, and nothing is entered.
 	taken := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998901234567", Values: answers(t, map[int64]any{sh.fish.ID: "Ali"})}}
-	_, err = s.Create(ctx, sh.id, staff, sh.buyurtma.ID, in, taken)
+	_, err = s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, taken)
 	refused(t, err, apperr.Conflict, "phone_taken", "Bu raqamli mijoz allaqachon bor")
 	var e *customer.TakenError
 	if assert.ErrorAs(t, err, &e) {
@@ -208,7 +210,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 	}
 	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM tasks"), "no task without its customer")
 	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM customers"))
-	_, err = s.Create(ctx, sh.id, staff, sh.buyurtma.ID, in, CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998906666666"}})
+	_, err = s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998906666666"}})
 	refused(t, err, apperr.Invalid, "validation_error", "«F.I.Sh.» maydonini to'ldiring", "the new customer's rules hold")
 }
 
@@ -225,10 +227,21 @@ func TestCreateRefusals(t *testing.T) {
 	sabab := mustField(t, s, sh.id, shikoyat.ID, FieldInput{Label: "Sabab", Kind: "string"})
 	deletedStage := mustStage(t, s, sh.id, "Eski", "slate")
 	require.NoError(t, s.DeleteStage(ctx, sh.id, deletedStage.ID))
+	deletedLocation := addLocation(t, pool, sh.id, "Yopilgan")
+	_, err := pool.Exec(ctx, "UPDATE locations SET deleted_at = now() WHERE id = $1", deletedLocation)
+	require.NoError(t, err)
+	// locationOf is the location a case names, Asosiy unless it names one.
+	locationOf := func(id *int64) int64 {
+		if id == nil {
+			return sh.asosiy
+		}
+		return *id
+	}
 	hidden, err := sh.customers.Create(ctx, sh.id, owner, sh.jismoniy.ID, customer.Input{Phone: "998907777777", Values: answers(t, map[int64]any{sh.fish.ID: "Yo'q"})})
 	require.NoError(t, err)
 	require.NoError(t, sh.customers.Delete(ctx, sh.id, hidden.ID, owner))
 	ok := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	noLocation := ptr(int64(0))
 	with := func(change func(in *Input)) Input {
 		in := ok
 		change(&in)
@@ -236,17 +249,21 @@ func TestCreateRefusals(t *testing.T) {
 	}
 
 	for _, tt := range []struct {
-		name    string
-		typeID  int64
-		in      Input
-		cust    CustomerInput
-		kind    apperr.Kind
-		code    string
-		message string
+		name     string
+		typeID   int64
+		location *int64
+		in       Input
+		cust     CustomerInput
+		kind     apperr.Kind
+		code     string
+		message  string
 	}{
 		{name: "no title", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Title = " " }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa nomini kiriting"},
 		{name: "no deadline", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Deadline = "" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Muddatni kiriting"},
 		{name: "a deadline that is no day", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Deadline = "10.10.2026" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Muddat noto'g'ri"},
+		{name: "no location", typeID: sh.buyurtma.ID, location: noLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
+		{name: "a deleted location", typeID: sh.buyurtma.ID, location: &deletedLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
+		{name: "another company's location", typeID: sh.buyurtma.ID, location: &nok.asosiy, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
 		{name: "no type", in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa turini tanlang"},
 		{name: "a deleted type", typeID: gone.ID, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa turini tanlang"},
 		{name: "another company's type", typeID: nok.buyurtma.ID, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa turini tanlang"},
@@ -263,10 +280,11 @@ func TestCreateRefusals(t *testing.T) {
 		{name: "another company's customer", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: &nok.ali.ID}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
 		{name: "a deleted customer", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: &hidden.ID}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
 		{name: "the title is told before the type", in: with(func(in *Input) { in.Title = "" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa nomini kiriting"},
+		{name: "the location is told before the type", location: noLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
 		{name: "the stage is told before the answers", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.StageID = 0; in.Values = nil }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Bosqichni tanlang"},
 		{name: "the answers are told before the customer", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Values = nil }), cust: CustomerInput{}, kind: apperr.Invalid, code: "validation_error", message: "«Izoh» maydonini to'ldiring"},
 	} {
-		_, err := s.Create(ctx, sh.id, owner, tt.typeID, tt.in, tt.cust)
+		_, err := s.Create(ctx, sh.id, owner, tt.typeID, locationOf(tt.location), tt.in, tt.cust)
 		refused(t, err, tt.kind, tt.code, tt.message, tt.name)
 	}
 	assert.Zero(t, count(t, pool, "SELECT count(*) FROM tasks"), "nothing is entered")
@@ -279,7 +297,7 @@ func TestCreateEntersATaskWhollyOrNotAtAll(t *testing.T) {
 	pgtest.FailInserts(t, pool, "tasks")
 	fresh := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Vali"})}}
 
-	_, err := s.Create(t.Context(), sh.id, staff, sh.buyurtma.ID, sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "X"}), fresh)
+	_, err := s.Create(t.Context(), sh.id, staff, sh.buyurtma.ID, sh.asosiy, sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "X"}), fresh)
 
 	require.Error(t, err)
 	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM customers"), "no new customer without its task")
@@ -293,7 +311,7 @@ func TestGet(t *testing.T) {
 	nok := newShop(t, s, pool, "Nok")
 	in := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	in.AssigneePhone = ptr(staff)
-	task, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, in, sh.existing())
+	task, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
 
 	_, err = pool.Exec(ctx, "DELETE FROM user_companies WHERE user_phone = $1 AND company_id = $2", staff, sh.id)
@@ -331,11 +349,11 @@ func TestList(t *testing.T) {
 	later := mustTask(t, s, sh, "Hisob yozish", "2026-10-12", map[int64]any{sh.izoh.ID: "Ertalab yozish", sh.summa.ID: 45000})
 	in := sh.input(t, "Qo'ng'iroq qilish", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
 	in.AssigneePhone = ptr(staff)
-	sooner, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, in, sh.existing())
+	sooner, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
 	soonest := mustTask(t, s, sh, "Shartnoma", "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
 	shikoyat := mustType(t, s, sh.id, "Shikoyat")
-	other, err := s.Create(ctx, sh.id, owner, shikoyat.ID, Input{Title: "Shikoyatni ko'rish", Deadline: "2026-10-10", StageID: sh.bajarildi.ID},
+	other, err := s.Create(ctx, sh.id, owner, shikoyat.ID, sh.asosiy, Input{Title: "Shikoyatni ko'rish", Deadline: "2026-10-10", StageID: sh.bajarildi.ID},
 		CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Zarina Karimova", sh.yosh.ID: 37})}})
 	require.NoError(t, err)
 	gone := mustTask(t, s, sh, "O'chirilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
@@ -442,7 +460,7 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	// The owner turns YouTube back on for a moment to enter the task with it.
 	_, err := sh.customers.UpdateOption(ctx, sh.id, sh.manba.ID, sh.youtube.ID, customer.OptionPatch{Active: ptr(true)})
 	require.NoError(t, err)
-	task, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, in, sh.existing())
+	task, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
 	_, err = sh.customers.UpdateOption(ctx, sh.id, sh.manba.ID, sh.youtube.ID, customer.OptionPatch{Active: ptr(false)})
 	require.NoError(t, err)
