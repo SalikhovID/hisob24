@@ -73,3 +73,15 @@ SELECT count(*) FROM locations WHERE company_id = $1 AND deleted_at IS NULL;
 -- How many tasks stand in the location: one in use is not deleted. Deleted
 -- tasks do not count.
 SELECT count(*) FROM tasks WHERE location_id = $1 AND deleted_at IS NULL;
+
+-- name: MemberInLocation :one
+-- Whether the member may work in the location (logic/locations.md, section
+-- 5): the owner and a member without a restriction in every one of the
+-- company's, a restricted member in the restriction's. False for someone
+-- who is not a member, and for another company's location.
+SELECT EXISTS (
+    SELECT 1 FROM user_companies uc
+    JOIN locations l ON l.company_id = uc.company_id AND l.id = sqlc.arg('location_id')
+    WHERE uc.user_phone = sqlc.arg('user_phone') AND uc.company_id = sqlc.arg('company_id')
+      AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
+           WHERE ml.user_phone = uc.user_phone AND ml.company_id = uc.company_id AND ml.location_id = l.id)));

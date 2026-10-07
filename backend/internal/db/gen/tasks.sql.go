@@ -108,25 +108,27 @@ const countTasks = `-- name: CountTasks :one
 SELECT count(*) FROM tasks t
 JOIN customers c ON c.id = t.customer_id
 WHERE t.company_id = $1 AND t.deleted_at IS NULL
-  AND ($2::bigint IS NULL OR t.type_id = $2::bigint)
-  AND ($3::bigint IS NULL OR t.stage_id = $3::bigint)
-  AND ($4::text IS NULL OR t.assignee_phone = $4::text)
-  AND ($5::bigint IS NULL OR t.customer_id = $5::bigint)
-  AND ($6::text IS NULL
-       OR t.title ILIKE '%' || $6::text || '%'
-       OR c.phone LIKE '%' || $7::text || '%'
+  AND t.location_id = ANY($2::bigint[])
+  AND ($3::bigint IS NULL OR t.type_id = $3::bigint)
+  AND ($4::bigint IS NULL OR t.stage_id = $4::bigint)
+  AND ($5::text IS NULL OR t.assignee_phone = $5::text)
+  AND ($6::bigint IS NULL OR t.customer_id = $6::bigint)
+  AND ($7::text IS NULL
+       OR t.title ILIKE '%' || $7::text || '%'
+       OR c.phone LIKE '%' || $8::text || '%'
        OR EXISTS (SELECT 1 FROM task_values v
                   WHERE v.task_id = t.id AND v.option_id IS NULL
-                    AND (v.text_value ILIKE '%' || $6::text || '%'
-                         OR v.int_value::text LIKE '%' || $7::text || '%'))
+                    AND (v.text_value ILIKE '%' || $7::text || '%'
+                         OR v.int_value::text LIKE '%' || $8::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
                   WHERE v.customer_id = c.id AND v.option_id IS NULL
-                    AND (v.text_value ILIKE '%' || $6::text || '%'
-                         OR v.int_value::text LIKE '%' || $7::text || '%')))
+                    AND (v.text_value ILIKE '%' || $7::text || '%'
+                         OR v.int_value::text LIKE '%' || $8::text || '%')))
 `
 
 type CountTasksParams struct {
 	CompanyID     int64
+	LocationIds   []int64
 	TypeID        *int64
 	StageID       *int64
 	AssigneePhone *string
@@ -139,6 +141,7 @@ type CountTasksParams struct {
 func (q *Queries) CountTasks(ctx context.Context, arg CountTasksParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countTasks,
 		arg.CompanyID,
+		arg.LocationIds,
 		arg.TypeID,
 		arg.StageID,
 		arg.AssigneePhone,
@@ -225,18 +228,20 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 const deleteTask = `-- name: DeleteTask :one
 UPDATE tasks SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+  AND location_id = ANY($3::bigint[])
 RETURNING id
 `
 
 type DeleteTaskParams struct {
-	ID        int64
-	CompanyID int64
+	ID          int64
+	CompanyID   int64
+	LocationIds []int64
 }
 
 // Hides the task: nothing is removed. pgx.ErrNoRows when the company has no
 // such task, or deleted it already.
 func (q *Queries) DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error) {
-	row := q.db.QueryRow(ctx, deleteTask, arg.ID, arg.CompanyID)
+	row := q.db.QueryRow(ctx, deleteTask, arg.ID, arg.CompanyID, arg.LocationIds)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -268,11 +273,13 @@ JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
 WHERE t.id = $1 AND t.company_id = $2 AND t.deleted_at IS NULL
+  AND t.location_id = ANY($3::bigint[])
 `
 
 type GetTaskParams struct {
-	ID        int64
-	CompanyID int64
+	ID          int64
+	CompanyID   int64
+	LocationIds []int64
 }
 
 type GetTaskRow struct {
@@ -298,7 +305,7 @@ type GetTaskRow struct {
 // created_by_name are the names the members go by in the company now; once
 // they have left it (or go by no name), the names of then.
 func (q *Queries) GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, error) {
-	row := q.db.QueryRow(ctx, getTask, arg.ID, arg.CompanyID)
+	row := q.db.QueryRow(ctx, getTask, arg.ID, arg.CompanyID, arg.LocationIds)
 	var i GetTaskRow
 	err := row.Scan(
 		&i.ID,
@@ -428,27 +435,29 @@ JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
 WHERE t.company_id = $1 AND t.deleted_at IS NULL
-  AND ($2::bigint IS NULL OR t.type_id = $2::bigint)
-  AND ($3::bigint IS NULL OR t.stage_id = $3::bigint)
-  AND ($4::text IS NULL OR t.assignee_phone = $4::text)
-  AND ($5::bigint IS NULL OR t.customer_id = $5::bigint)
-  AND ($6::text IS NULL
-       OR t.title ILIKE '%' || $6::text || '%'
-       OR c.phone LIKE '%' || $7::text || '%'
+  AND t.location_id = ANY($2::bigint[])
+  AND ($3::bigint IS NULL OR t.type_id = $3::bigint)
+  AND ($4::bigint IS NULL OR t.stage_id = $4::bigint)
+  AND ($5::text IS NULL OR t.assignee_phone = $5::text)
+  AND ($6::bigint IS NULL OR t.customer_id = $6::bigint)
+  AND ($7::text IS NULL
+       OR t.title ILIKE '%' || $7::text || '%'
+       OR c.phone LIKE '%' || $8::text || '%'
        OR EXISTS (SELECT 1 FROM task_values v
                   WHERE v.task_id = t.id AND v.option_id IS NULL
-                    AND (v.text_value ILIKE '%' || $6::text || '%'
-                         OR v.int_value::text LIKE '%' || $7::text || '%'))
+                    AND (v.text_value ILIKE '%' || $7::text || '%'
+                         OR v.int_value::text LIKE '%' || $8::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
                   WHERE v.customer_id = c.id AND v.option_id IS NULL
-                    AND (v.text_value ILIKE '%' || $6::text || '%'
-                         OR v.int_value::text LIKE '%' || $7::text || '%')))
+                    AND (v.text_value ILIKE '%' || $7::text || '%'
+                         OR v.int_value::text LIKE '%' || $8::text || '%')))
 ORDER BY t.deadline, t.id
-LIMIT $9 OFFSET $8
+LIMIT $10 OFFSET $9
 `
 
 type ListTasksParams struct {
 	CompanyID     int64
+	LocationIds   []int64
 	TypeID        *int64
 	StageID       *int64
 	AssigneePhone *string
@@ -486,6 +495,7 @@ type ListTasksRow struct {
 func (q *Queries) ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTasksRow, error) {
 	rows, err := q.db.Query(ctx, listTasks,
 		arg.CompanyID,
+		arg.LocationIds,
 		arg.TypeID,
 		arg.StageID,
 		arg.AssigneePhone,
@@ -531,19 +541,26 @@ func (q *Queries) ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTas
 const moveTask = `-- name: MoveTask :one
 UPDATE tasks SET stage_id = $1, updated_at = now()
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
+  AND location_id = ANY($4::bigint[])
 RETURNING updated_at
 `
 
 type MoveTaskParams struct {
-	StageID   int64
-	ID        int64
-	CompanyID int64
+	StageID     int64
+	ID          int64
+	CompanyID   int64
+	LocationIds []int64
 }
 
 // Puts the task in another stage. pgx.ErrNoRows when the company has no such
 // task, or deleted it.
 func (q *Queries) MoveTask(ctx context.Context, arg MoveTaskParams) (time.Time, error) {
-	row := q.db.QueryRow(ctx, moveTask, arg.StageID, arg.ID, arg.CompanyID)
+	row := q.db.QueryRow(ctx, moveTask,
+		arg.StageID,
+		arg.ID,
+		arg.CompanyID,
+		arg.LocationIds,
+	)
 	var updated_at time.Time
 	err := row.Scan(&updated_at)
 	return updated_at, err
@@ -554,6 +571,7 @@ UPDATE tasks
 SET title = $1, deadline = $2, stage_id = $3,
     assignee_phone = $4, assignee_name = $5, updated_at = now()
 WHERE id = $6 AND company_id = $7 AND deleted_at IS NULL
+  AND location_id = ANY($8::bigint[])
 RETURNING updated_at
 `
 
@@ -565,6 +583,7 @@ type UpdateTaskParams struct {
 	AssigneeName  *string
 	ID            int64
 	CompanyID     int64
+	LocationIds   []int64
 }
 
 // An edit: the task's title, deadline, stage and assignee as they are now,
@@ -579,6 +598,7 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (time.Ti
 		arg.AssigneeName,
 		arg.ID,
 		arg.CompanyID,
+		arg.LocationIds,
 	)
 	var updated_at time.Time
 	err := row.Scan(&updated_at)

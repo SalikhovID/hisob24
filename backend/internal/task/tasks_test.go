@@ -116,6 +116,10 @@ func answers(t *testing.T, of map[int64]any) map[string]json.RawMessage {
 // existing names the shop's customer Ali as a task's customer.
 func (sh shop) existing() CustomerInput { return CustomerInput{ID: &sh.ali.ID} }
 
+// scope is where the shop's members work: the company and its location
+// Asosiy.
+func (sh shop) scope() Scope { return Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy}} }
+
 // input is a task of the shop's type: the title, due on the day, in the
 // first stage, with the answers given.
 func (sh shop) input(t *testing.T, title, day string, of map[int64]any) Input {
@@ -126,7 +130,7 @@ func (sh shop) input(t *testing.T, title, day string, of map[int64]any) Input {
 // mustTask enters a task for Ali, as the owner.
 func mustTask(t *testing.T, s *Service, sh shop, title, day string, of map[int64]any) Task {
 	t.Helper()
-	task, err := s.Create(t.Context(), sh.id, owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, title, day, of), sh.existing())
+	task, err := s.Create(t.Context(), sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, title, day, of), sh.existing())
 	require.NoError(t, err)
 	return task
 }
@@ -158,7 +162,7 @@ func TestCreate(t *testing.T) {
 	in := sh.input(t, " Qo'ng'iroq qilish ", "2026-10-10", map[int64]any{sh.izoh.ID: " Ertalab ", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.linkedin.ID, sh.instagram.ID}})
 	in.AssigneePhone = ptr("+998 90 222 22 22")
 
-	task, err := s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
+	task, err := s.Create(ctx, sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 
 	require.NoError(t, err)
 	assert.NotZero(t, task.ID)
@@ -170,7 +174,7 @@ func TestCreate(t *testing.T) {
 		CreatedByName: ptr("Xurshid Xodim"), CreatedAt: task.CreatedAt, UpdatedAt: task.UpdatedAt,
 	}, task, "the task as it was entered: the title trimmed, the assignee's phone as kept, the options in their order")
 	assert.Equal(t, task.CreatedAt, task.UpdatedAt)
-	got, err := s.Get(ctx, sh.id, task.ID)
+	got, err := s.Get(ctx, sh.scope(), task.ID)
 	require.NoError(t, err)
 	assert.Equal(t, task, got)
 	assert.Equal(t, []string{"created by 998902222222 (Xurshid Xodim): []"}, storedHistory(t, pool, task.ID))
@@ -187,7 +191,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 	in := sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "Yangi mijoz bilan"})
 	fresh := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "+998 90 555 55 55", Values: answers(t, map[int64]any{sh.fish.ID: " Vali Aliyev "})}}
 
-	task, err := s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, fresh)
+	task, err := s.Create(ctx, sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, in, fresh)
 
 	require.NoError(t, err)
 	assert.Equal(t, Customer{ID: task.Customer.ID, Phone: "998905555555", Name: ptr("Vali Aliyev")}, task.Customer, "the customer is entered with the task")
@@ -202,7 +206,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 
 	// Ali's phone: the customer is there already, and nothing is entered.
 	taken := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998901234567", Values: answers(t, map[int64]any{sh.fish.ID: "Ali"})}}
-	_, err = s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, taken)
+	_, err = s.Create(ctx, sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, in, taken)
 	refused(t, err, apperr.Conflict, "phone_taken", "Bu raqamli mijoz allaqachon bor")
 	var e *customer.TakenError
 	if assert.ErrorAs(t, err, &e) {
@@ -210,7 +214,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 	}
 	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM tasks"), "no task without its customer")
 	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM customers"))
-	_, err = s.Create(ctx, sh.id, staff, sh.buyurtma.ID, sh.asosiy, in, CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998906666666"}})
+	_, err = s.Create(ctx, sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, in, CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998906666666"}})
 	refused(t, err, apperr.Invalid, "validation_error", "«F.I.Sh.» maydonini to'ldiring", "the new customer's rules hold")
 }
 
@@ -284,7 +288,7 @@ func TestCreateRefusals(t *testing.T) {
 		{name: "the stage is told before the answers", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.StageID = 0; in.Values = nil }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Bosqichni tanlang"},
 		{name: "the answers are told before the customer", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Values = nil }), cust: CustomerInput{}, kind: apperr.Invalid, code: "validation_error", message: "«Izoh» maydonini to'ldiring"},
 	} {
-		_, err := s.Create(ctx, sh.id, owner, tt.typeID, locationOf(tt.location), tt.in, tt.cust)
+		_, err := s.Create(ctx, sh.scope(), owner, tt.typeID, locationOf(tt.location), tt.in, tt.cust)
 		refused(t, err, tt.kind, tt.code, tt.message, tt.name)
 	}
 	assert.Zero(t, count(t, pool, "SELECT count(*) FROM tasks"), "nothing is entered")
@@ -297,7 +301,7 @@ func TestCreateEntersATaskWhollyOrNotAtAll(t *testing.T) {
 	pgtest.FailInserts(t, pool, "tasks")
 	fresh := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Vali"})}}
 
-	_, err := s.Create(t.Context(), sh.id, staff, sh.buyurtma.ID, sh.asosiy, sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "X"}), fresh)
+	_, err := s.Create(t.Context(), sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "X"}), fresh)
 
 	require.Error(t, err)
 	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM customers"), "no new customer without its task")
@@ -311,23 +315,23 @@ func TestGet(t *testing.T) {
 	nok := newShop(t, s, pool, "Nok")
 	in := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	in.AssigneePhone = ptr(staff)
-	task, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
+	task, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
 
 	_, err = pool.Exec(ctx, "DELETE FROM user_companies WHERE user_phone = $1 AND company_id = $2", staff, sh.id)
 	require.NoError(t, err)
-	got, err := s.Get(ctx, sh.id, task.ID)
+	got, err := s.Get(ctx, sh.scope(), task.ID)
 	require.NoError(t, err)
 	assert.Equal(t, &Member{Phone: staff, Name: ptr("Xurshid Xodim")}, got.Assignee, "an assignee who left the company keeps the name of then")
 	assert.Equal(t, ptr("Egamberdi Egasi"), got.CreatedByName)
 
 	const notFound = "Vazifa topilmadi"
-	_, err = s.Get(ctx, nok.id, task.ID)
+	_, err = s.Get(ctx, nok.scope(), task.ID)
 	refused(t, err, apperr.NotFound, "not_found", notFound, "another company's task")
-	_, err = s.Get(ctx, sh.id, task.ID+1000)
+	_, err = s.Get(ctx, sh.scope(), task.ID+1000)
 	refused(t, err, apperr.NotFound, "not_found", notFound, "no such task")
-	require.NoError(t, s.Delete(ctx, sh.id, task.ID, owner))
-	_, err = s.Get(ctx, sh.id, task.ID)
+	require.NoError(t, s.Delete(ctx, sh.scope(), task.ID, owner))
+	_, err = s.Get(ctx, sh.scope(), task.ID)
 	refused(t, err, apperr.NotFound, "not_found", notFound, "a deleted task")
 }
 
@@ -349,17 +353,17 @@ func TestList(t *testing.T) {
 	later := mustTask(t, s, sh, "Hisob yozish", "2026-10-12", map[int64]any{sh.izoh.ID: "Ertalab yozish", sh.summa.ID: 45000})
 	in := sh.input(t, "Qo'ng'iroq qilish", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
 	in.AssigneePhone = ptr(staff)
-	sooner, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
+	sooner, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
 	soonest := mustTask(t, s, sh, "Shartnoma", "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
 	shikoyat := mustType(t, s, sh.id, "Shikoyat")
-	other, err := s.Create(ctx, sh.id, owner, shikoyat.ID, sh.asosiy, Input{Title: "Shikoyatni ko'rish", Deadline: "2026-10-10", StageID: sh.bajarildi.ID},
+	other, err := s.Create(ctx, sh.scope(), owner, shikoyat.ID, sh.asosiy, Input{Title: "Shikoyatni ko'rish", Deadline: "2026-10-10", StageID: sh.bajarildi.ID},
 		CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Zarina Karimova", sh.yosh.ID: 37})}})
 	require.NoError(t, err)
 	gone := mustTask(t, s, sh, "O'chirilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
-	require.NoError(t, s.Delete(ctx, sh.id, gone.ID, owner))
+	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 
-	page, err := s.List(ctx, sh.id, ListInput{Page: 1})
+	page, err := s.List(ctx, sh.scope(), ListInput{Page: 1})
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Shartnoma", "Qo'ng'iroq qilish", "Shikoyatni ko'rish", "Hisob yozish"}, titlesOf(page.Items),
@@ -387,15 +391,15 @@ func TestList(t *testing.T) {
 		"a stage and a search together":             {ListInput{StageID: sh.yangi.ID, Search: "karim", Page: 1}, []string{}},
 		"a page past the last":                      {ListInput{Page: 2}, []string{}},
 	} {
-		page, err := s.List(ctx, sh.id, tc.in)
+		page, err := s.List(ctx, sh.scope(), tc.in)
 		require.NoError(t, err, about)
 		assert.Equal(t, tc.want, titlesOf(page.Items), about)
 	}
 	for _, page := range []int{0, -1, 1_000_001} {
-		_, err = s.List(ctx, sh.id, ListInput{Page: page})
+		_, err = s.List(ctx, sh.scope(), ListInput{Page: page})
 		refused(t, err, apperr.Invalid, "validation_error", "Sahifa raqami noto'g'ri", page)
 	}
-	_, err = s.List(ctx, sh.id, ListInput{Assignee: "vali", Page: 1})
+	_, err = s.List(ctx, sh.scope(), ListInput{Assignee: "vali", Page: 1})
 	refused(t, err, apperr.Invalid, "validation_error", "Mas'ul noto'g'ri")
 }
 
@@ -407,12 +411,12 @@ func TestListPages(t *testing.T) {
 		mustTask(t, s, sh, fmt.Sprintf("Vazifa %02d", i), fmt.Sprintf("2026-11-%02d", i+1), map[int64]any{sh.izoh.ID: "X"})
 	}
 
-	first, err := s.List(ctx, sh.id, ListInput{Page: 1})
+	first, err := s.List(ctx, sh.scope(), ListInput{Page: 1})
 	require.NoError(t, err)
 	require.Len(t, first.Items, 20, "a page holds twenty")
 	assert.Equal(t, "Vazifa 00", first.Items[0].Title)
 	assert.EqualValues(t, 21, first.Total)
-	second, err := s.List(ctx, sh.id, ListInput{Page: 2})
+	second, err := s.List(ctx, sh.scope(), ListInput{Page: 2})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Vazifa 20"}, titlesOf(second.Items), "the one due last is on the last page")
 	assert.Equal(t, 2, second.Page)
@@ -426,7 +430,7 @@ func TestUpdate(t *testing.T) {
 	_, err := pool.Exec(ctx, "UPDATE tasks SET updated_at = created_at - interval '1 hour' WHERE id = $1", task.ID)
 	require.NoError(t, err)
 
-	edited, err := s.Update(ctx, sh.id, task.ID, staff, Input{
+	edited, err := s.Update(ctx, sh.scope(), task.ID, staff, Input{
 		Title: " Qayta qo'ng'iroq ", Deadline: "2026-10-12", StageID: sh.jarayonda.ID, AssigneePhone: ptr(staff),
 		Values: answers(t, map[int64]any{sh.izoh.ID: "Kechqurun", sh.kanal.ID: []int64{sh.linkedin.ID, sh.instagram.ID}}),
 	})
@@ -439,7 +443,7 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, fields.Values{sh.izoh.ID: "Kechqurun", sh.kanal.ID: []int64{sh.instagram.ID, sh.linkedin.ID}}, edited.Values, "an answer left out is taken away")
 	assert.Equal(t, task.Customer, edited.Customer, "the customer stays")
 	assert.True(t, edited.UpdatedAt.After(task.CreatedAt), "the moment of the edit")
-	got, err := s.Get(ctx, sh.id, task.ID)
+	got, err := s.Get(ctx, sh.scope(), task.ID)
 	require.NoError(t, err)
 	assert.Equal(t, edited, got)
 	assert.Equal(t, []string{
@@ -460,7 +464,7 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	// The owner turns YouTube back on for a moment to enter the task with it.
 	_, err := sh.customers.UpdateOption(ctx, sh.id, sh.manba.ID, sh.youtube.ID, customer.OptionPatch{Active: ptr(true)})
 	require.NoError(t, err)
-	task, err := s.Create(ctx, sh.id, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
+	task, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
 	_, err = sh.customers.UpdateOption(ctx, sh.id, sh.manba.ID, sh.youtube.ID, customer.OptionPatch{Active: ptr(false)})
 	require.NoError(t, err)
@@ -468,7 +472,7 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	_, err = pool.Exec(ctx, "DELETE FROM user_companies WHERE user_phone = $1 AND company_id = $2", staff, sh.id)
 	require.NoError(t, err)
 
-	same, err := s.Update(ctx, sh.id, task.ID, owner, Input{
+	same, err := s.Update(ctx, sh.scope(), task.ID, owner, Input{
 		Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, AssigneePhone: ptr(staff),
 		Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab", sh.kanal.ID: []int64{sh.instagram.ID, sh.youtube.ID}}),
 	})
@@ -477,7 +481,7 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	assert.Equal(t, task, same, "the task as it was: the option turned off stays, the assignee who left stays")
 	assert.Len(t, storedHistory(t, pool, task.ID), 1, "nothing to write down")
 
-	_, err = s.Update(ctx, sh.id, task.ID, owner, Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, AssigneePhone: ptr(outsider),
+	_, err = s.Update(ctx, sh.scope(), task.ID, owner, Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, AssigneePhone: ptr(outsider),
 		Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab"})})
 	refused(t, err, apperr.Invalid, "validation_error", "Mas'ul kompaniya a'zosi emas", "another assignee has to be a member")
 }
@@ -490,9 +494,9 @@ func TestUpdateRefusals(t *testing.T) {
 	task := mustTask(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	ok := Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab"})}
 
-	_, err := s.Update(ctx, nok.id, task.ID, owner, ok)
+	_, err := s.Update(ctx, nok.scope(), task.ID, owner, ok)
 	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "another company's task")
-	_, err = s.Update(ctx, sh.id, task.ID+1000, owner, Input{})
+	_, err = s.Update(ctx, sh.scope(), task.ID+1000, owner, Input{})
 	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "no such task: told before what is wrong with the input")
 	for _, tt := range []struct {
 		name    string
@@ -506,10 +510,10 @@ func TestUpdateRefusals(t *testing.T) {
 	} {
 		in := ok
 		tt.change(&in)
-		_, err := s.Update(ctx, sh.id, task.ID, owner, in)
+		_, err := s.Update(ctx, sh.scope(), task.ID, owner, in)
 		refused(t, err, apperr.Invalid, "validation_error", tt.message, tt.name)
 	}
-	got, err := s.Get(ctx, sh.id, task.ID)
+	got, err := s.Get(ctx, sh.scope(), task.ID)
 	require.NoError(t, err)
 	assert.Equal(t, task, got, "a refusal changes nothing")
 }
@@ -521,7 +525,7 @@ func TestMove(t *testing.T) {
 	nok := newShop(t, s, pool, "Nok")
 	task := mustTask(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 
-	moved, err := s.Move(ctx, sh.id, task.ID, staff, sh.bajarildi.ID)
+	moved, err := s.Move(ctx, sh.scope(), task.ID, staff, sh.bajarildi.ID)
 
 	require.NoError(t, err)
 	assert.Equal(t, sh.bajarildi.ID, moved.StageID)
@@ -532,14 +536,14 @@ func TestMove(t *testing.T) {
 		`updated by 998902222222 (Xurshid Xodim): [{"new": "Bajarildi", "old": "Yangi", "label": "Bosqich"}]`,
 	}, storedHistory(t, pool, task.ID))
 
-	again, err := s.Move(ctx, sh.id, task.ID, staff, sh.bajarildi.ID)
+	again, err := s.Move(ctx, sh.scope(), task.ID, staff, sh.bajarildi.ID)
 	require.NoError(t, err)
 	assert.Equal(t, moved, again, "the same stage changes nothing")
 	assert.Len(t, storedHistory(t, pool, task.ID), 2, "and writes nothing")
 
-	_, err = s.Move(ctx, sh.id, task.ID, staff, nok.yangi.ID)
+	_, err = s.Move(ctx, sh.scope(), task.ID, staff, nok.yangi.ID)
 	refused(t, err, apperr.Invalid, "validation_error", "Bosqichni tanlang", "another company's stage")
-	_, err = s.Move(ctx, nok.id, task.ID, staff, nok.yangi.ID)
+	_, err = s.Move(ctx, nok.scope(), task.ID, staff, nok.yangi.ID)
 	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "another company's task")
 }
 
@@ -550,9 +554,9 @@ func TestDelete(t *testing.T) {
 	nok := newShop(t, s, pool, "Nok")
 	task := mustTask(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 
-	require.NoError(t, s.Delete(ctx, sh.id, task.ID, staff))
+	require.NoError(t, s.Delete(ctx, sh.scope(), task.ID, staff))
 
-	page, err := s.List(ctx, sh.id, ListInput{Page: 1})
+	page, err := s.List(ctx, sh.scope(), ListInput{Page: 1})
 	require.NoError(t, err)
 	assert.Empty(t, page.Items, "the task is gone from the list")
 	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM tasks"), "nothing leaves the database")
@@ -563,8 +567,8 @@ func TestDelete(t *testing.T) {
 	}, storedHistory(t, pool, task.ID))
 
 	const notFound = "Vazifa topilmadi"
-	refused(t, s.Delete(ctx, sh.id, task.ID, staff), apperr.NotFound, "not_found", notFound, "deleted already")
-	refused(t, s.Delete(ctx, nok.id, task.ID, staff), apperr.NotFound, "not_found", notFound, "another company's task")
+	refused(t, s.Delete(ctx, sh.scope(), task.ID, staff), apperr.NotFound, "not_found", notFound, "deleted already")
+	refused(t, s.Delete(ctx, nok.scope(), task.ID, staff), apperr.NotFound, "not_found", notFound, "another company's task")
 }
 
 func TestHistory(t *testing.T) {
@@ -572,10 +576,10 @@ func TestHistory(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	task := mustTask(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
-	_, err := s.Move(ctx, sh.id, task.ID, staff, sh.jarayonda.ID)
+	_, err := s.Move(ctx, sh.scope(), task.ID, staff, sh.jarayonda.ID)
 	require.NoError(t, err)
 
-	history, err := s.History(ctx, sh.id, task.ID)
+	history, err := s.History(ctx, sh.scope(), task.ID)
 
 	require.NoError(t, err)
 	require.Len(t, history, 2)
@@ -586,7 +590,108 @@ func TestHistory(t *testing.T) {
 	assert.Equal(t, []fields.Change{}, history[1].Changes, "an empty list, not nil")
 	assert.False(t, history[0].CreatedAt.Before(history[1].CreatedAt))
 
-	require.NoError(t, s.Delete(ctx, sh.id, task.ID, owner))
-	_, err = s.History(ctx, sh.id, task.ID)
+	require.NoError(t, s.Delete(ctx, sh.scope(), task.ID, owner))
+	_, err = s.History(ctx, sh.scope(), task.ID)
 	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "a deleted task's history is kept, not shown")
+}
+
+// The tasks a member works with are those of the locations in their scope
+// (logic/locations.md, section 6): one standing elsewhere is not there to
+// them, and a task is entered into a location of the scope alone.
+func TestTasksAreTheScopesLocations(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, s, pool, "Olma")
+	chilonzor := addLocation(t, pool, sh.id, "Chilonzor")
+	both := Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy, chilonzor}}
+	onlyChilonzor := Scope{CompanyID: sh.id, LocationIDs: []int64{chilonzor}}
+	of := map[int64]any{sh.izoh.ID: "X"}
+	inAsosiy := mustTask(t, s, sh, "Asosiyda", "2026-10-10", of)
+	inChilonzor, err := s.Create(ctx, both, owner, sh.buyurtma.ID, chilonzor, sh.input(t, "Chilonzorda", "2026-10-09", of), sh.existing())
+	require.NoError(t, err)
+	assert.Equal(t, chilonzor, inChilonzor.LocationID, "entered into the location named")
+	titlesOf := func(page Page) []string {
+		titles := make([]string, 0, len(page.Items))
+		for _, task := range page.Items {
+			titles = append(titles, task.Title)
+		}
+		return titles
+	}
+
+	page, err := s.List(ctx, both, ListInput{Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Chilonzorda", "Asosiyda"}, titlesOf(page), "every location of the scope")
+	assert.EqualValues(t, 2, page.Total)
+	page, err = s.List(ctx, onlyChilonzor, ListInput{Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Chilonzorda"}, titlesOf(page), "a narrower scope")
+	page, err = s.List(ctx, both, ListInput{Page: 1, LocationID: sh.asosiy})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Asosiyda"}, titlesOf(page), "one location of the scope")
+	assert.EqualValues(t, 1, page.Total)
+	page, err = s.List(ctx, onlyChilonzor, ListInput{Page: 1, LocationID: sh.asosiy})
+	require.NoError(t, err)
+	assert.Empty(t, page.Items, "a location outside the scope: nothing")
+	assert.Zero(t, page.Total)
+	page, err = s.List(ctx, Scope{CompanyID: sh.id}, ListInput{Page: 1})
+	require.NoError(t, err)
+	assert.Empty(t, page.Items, "a member with no location: nothing")
+
+	_, err = s.Get(ctx, onlyChilonzor, inAsosiy.ID)
+	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "a task standing elsewhere is not read")
+	_, err = s.Update(ctx, onlyChilonzor, inAsosiy.ID, owner, sh.input(t, "X", "2026-10-10", of))
+	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor edited")
+	_, err = s.Move(ctx, onlyChilonzor, inAsosiy.ID, owner, sh.bajarildi.ID)
+	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor moved")
+	err = s.Delete(ctx, onlyChilonzor, inAsosiy.ID, owner)
+	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor deleted")
+	_, err = s.History(ctx, onlyChilonzor, inAsosiy.ID)
+	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor is its history")
+	got, err := s.Get(ctx, both, inAsosiy.ID)
+	require.NoError(t, err, "within the scope")
+	assert.Equal(t, sh.asosiy, got.LocationID)
+
+	_, err = s.Create(ctx, onlyChilonzor, owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, "X", "2026-10-10", of), sh.existing())
+	refused(t, err, apperr.Invalid, "validation_error", "Lokatsiyani tanlang", "a location outside the scope")
+	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM tasks"))
+}
+
+// A task's assignee works in the task's location (logic/locations.md,
+// section 6): the owner and an unrestricted member everywhere, a restricted
+// member in the restriction's locations.
+func TestTheAssigneeWorksInTheTasksLocation(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, s, pool, "Olma")
+	chilonzor := addLocation(t, pool, sh.id, "Chilonzor")
+	both := Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy, chilonzor}}
+	restrictTo(t, pool, staff, sh.id, chilonzor)
+	in := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
+	in.AssigneePhone = ptr(staff)
+
+	_, err := s.Create(ctx, both, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
+	refused(t, err, apperr.Invalid, "validation_error", "Mas'ul bu lokatsiyada ishlamaydi", "in Asosiy, to a member who works in Chilonzor alone")
+	task, err := s.Create(ctx, both, owner, sh.buyurtma.ID, chilonzor, in, sh.existing())
+	require.NoError(t, err, "in Chilonzor")
+	in.AssigneePhone = ptr(owner)
+	_, err = s.Create(ctx, both, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
+	require.NoError(t, err, "the owner works in every location")
+
+	// Restricted elsewhere after being assigned: the task stays theirs as
+	// long as the edit keeps them (as with a member who left the company).
+	restrictTo(t, pool, staff, sh.id, sh.asosiy)
+	edit := sh.input(t, "Qayta qo'ng'iroq", "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
+	edit.AssigneePhone = ptr(staff)
+	got, err := s.Update(ctx, both, task.ID, owner, edit)
+	require.NoError(t, err, "the assignee is not checked again while unchanged")
+	assert.Equal(t, staff, got.Assignee.Phone)
+	addMember(t, pool, sh.id, "998904444444", "Yana Xodim", "user")
+	restrictTo(t, pool, "998904444444", sh.id, sh.asosiy)
+	edit.AssigneePhone = ptr("998904444444")
+	_, err = s.Update(ctx, both, task.ID, owner, edit)
+	refused(t, err, apperr.Invalid, "validation_error", "Mas'ul bu lokatsiyada ishlamaydi", "another assignee has to work in the task's location")
+	edit.AssigneePhone = ptr(owner)
+	got, err = s.Update(ctx, both, task.ID, owner, edit)
+	require.NoError(t, err)
+	assert.Equal(t, owner, got.Assignee.Phone)
 }

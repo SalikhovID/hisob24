@@ -243,6 +243,32 @@ func (q *Queries) ListMemberLocations(ctx context.Context, arg ListMemberLocatio
 	return items, nil
 }
 
+const memberInLocation = `-- name: MemberInLocation :one
+SELECT EXISTS (
+    SELECT 1 FROM user_companies uc
+    JOIN locations l ON l.company_id = uc.company_id AND l.id = $1
+    WHERE uc.user_phone = $2 AND uc.company_id = $3
+      AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
+           WHERE ml.user_phone = uc.user_phone AND ml.company_id = uc.company_id AND ml.location_id = l.id)))
+`
+
+type MemberInLocationParams struct {
+	LocationID int64
+	UserPhone  string
+	CompanyID  int64
+}
+
+// Whether the member may work in the location (logic/locations.md, section
+// 5): the owner and a member without a restriction in every one of the
+// company's, a restricted member in the restriction's. False for someone
+// who is not a member, and for another company's location.
+func (q *Queries) MemberInLocation(ctx context.Context, arg MemberInLocationParams) (bool, error) {
+	row := q.db.QueryRow(ctx, memberInLocation, arg.LocationID, arg.UserPhone, arg.CompanyID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const renameLocation = `-- name: RenameLocation :one
 UPDATE locations SET name = $1
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL

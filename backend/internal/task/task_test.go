@@ -89,6 +89,7 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	ctx := t.Context()
 	olma := addCompany(t, pool, "Olma")
 	asosiy := addLocation(t, pool, olma, "Asosiy")
+	scope := Scope{CompanyID: olma, LocationIDs: []int64{asosiy}}
 	yangi := mustStage(t, s, olma, "Yangi", "blue")
 	bajarildi := mustStage(t, s, olma, "Bajarildi", "green")
 	spare := mustStage(t, s, olma, "Ortiqcha", "slate")
@@ -102,7 +103,7 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	ali, err := s.customers.Create(ctx, olma, owner, jismoniy.ID, customer.Input{Phone: "998901234567"})
 	require.NoError(t, err)
 	in := Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: yangi.ID, Values: answers(t, map[int64]any{izoh.ID: "Ertalab"})}
-	entered, err := s.Create(ctx, olma, owner, buyurtma.ID, asosiy, in, CustomerInput{ID: &ali.ID})
+	entered, err := s.Create(ctx, scope, owner, buyurtma.ID, asosiy, in, CustomerInput{ID: &ali.ID})
 	require.NoError(t, err)
 
 	for _, w := range []struct {
@@ -133,15 +134,15 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 		{"DeleteField", func() error { return s.DeleteField(ctx, olma, buyurtma.ID, summa.ID) }},
 		{"DeleteType", func() error { return s.DeleteType(ctx, olma, shikoyat.ID) }},
 		{"Create", func() error {
-			_, err := s.Create(ctx, olma, owner, buyurtma.ID, asosiy, in, CustomerInput{ID: &ali.ID})
+			_, err := s.Create(ctx, scope, owner, buyurtma.ID, asosiy, in, CustomerInput{ID: &ali.ID})
 			return err
 		}},
 		{"Update", func() error {
-			_, err := s.Update(ctx, olma, entered.ID, owner, Input{Title: "Qayta qo'ng'iroq", Deadline: "2026-10-11", StageID: yangi.ID, Values: in.Values})
+			_, err := s.Update(ctx, scope, entered.ID, owner, Input{Title: "Qayta qo'ng'iroq", Deadline: "2026-10-11", StageID: yangi.ID, Values: in.Values})
 			return err
 		}},
-		{"Move", func() error { _, err := s.Move(ctx, olma, entered.ID, owner, bajarildi.ID); return err }},
-		{"Delete", func() error { return s.Delete(ctx, olma, entered.ID, owner) }},
+		{"Move", func() error { _, err := s.Move(ctx, scope, entered.ID, owner, bajarildi.ID); return err }},
+		{"Delete", func() error { return s.Delete(ctx, scope, entered.ID, owner) }},
 	} {
 		t.Run(w.name, func(t *testing.T) { waits(t, pool, olma, w.write) })
 	}
@@ -154,4 +155,18 @@ func addLocation(t *testing.T, pool *pgxpool.Pool, companyID int64, name string)
 	require.NoError(t, pool.QueryRow(t.Context(),
 		"INSERT INTO locations (company_id, name) VALUES ($1, $2) RETURNING id", companyID, name).Scan(&id))
 	return id
+}
+
+// restrictTo restricts the member to the locations: they may work in these
+// alone (logic/locations.md, section 5).
+func restrictTo(t *testing.T, pool *pgxpool.Pool, phone string, companyID int64, locationIDs ...int64) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(), "UPDATE user_companies SET all_locations = false WHERE user_phone = $1 AND company_id = $2", phone, companyID)
+	require.NoError(t, err)
+	_, err = pool.Exec(t.Context(), "DELETE FROM member_locations WHERE user_phone = $1 AND company_id = $2", phone, companyID)
+	require.NoError(t, err)
+	for _, id := range locationIDs {
+		_, err := pool.Exec(t.Context(), "INSERT INTO member_locations (user_phone, company_id, location_id) VALUES ($1, $2, $3)", phone, companyID, id)
+		require.NoError(t, err)
+	}
 }

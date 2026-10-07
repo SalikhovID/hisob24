@@ -415,3 +415,74 @@ func TestTaskHistory(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, api.do(t, http.MethodDelete, fmt.Sprintf("/app/tasks/%v", task["id"]), "", bearer(owner)).Code)
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, path, "", bearer(owner)).Code, "a deleted task's history is kept, not shown")
 }
+
+// The tasks a member works with are those of the locations they may work in
+// (logic/locations.md, section 6): the list is of them (of the one named
+// alone), a task standing elsewhere is not there, a task is entered into
+// one of them, and the assignee works in the task's location.
+func TestTasksAreTheLocationsTheMemberMayWorkIn(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	sh := api.taskShop(t, olma)
+	chilonzor := api.addLocation(t, olma, "Chilonzor")
+	api.restrictTo(t, valisPhone, olma, chilonzor)
+	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
+	ok := fmt.Sprintf(`{"%d":"X"}`, sh.izoh)
+	inAsosiy := api.enterTask(t, owner, taskBody(sh, "Asosiyda", "2026-10-10", sh.yangi, ali["id"], ok, ""))
+	inChilonzor := api.enterTask(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Chilonzorda","deadline":"2026-10-09","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
+		sh.buyurtma, chilonzor, sh.yangi, ok, ali["id"]))
+	titles := func(token string, query string) []any {
+		rec := api.do(t, http.MethodGet, "/app/tasks"+query, "", bearer(token))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		items, _ := decode(t, rec)["items"].([]any)
+		list := make([]any, 0, len(items))
+		for _, item := range items {
+			task, _ := item.(map[string]any)
+			list = append(list, task["title"])
+		}
+		return list
+	}
+
+	assert.Equal(t, []any{"Chilonzorda", "Asosiyda"}, titles(owner, ""), "the owner: every location")
+	assert.Equal(t, []any{"Asosiyda"}, titles(owner, fmt.Sprintf("?location_id=%d", sh.asosiy)), "one location")
+	assert.Equal(t, []any{"Chilonzorda"}, titles(employee, ""), "a restricted employee: the restriction's locations")
+	assert.Equal(t, []any{"Chilonzorda"}, titles(employee, fmt.Sprintf("?location_id=%d", chilonzor)))
+	rec := api.do(t, http.MethodGet, fmt.Sprintf("/app/tasks?location_id=%d", sh.asosiy), "", bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "a location the employee may not work in")
+	assert.JSONEq(t, noPermission, rec.Body.String())
+	rec = api.do(t, http.MethodGet, "/app/tasks?location_id=999999", "", bearer(owner))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "a location that is not there: the same")
+	rec = api.do(t, http.MethodGet, "/app/tasks?location_id=abc", "", bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Lokatsiya noto'g'ri"}`, rec.Body.String())
+
+	id := fmt.Sprintf("%.0f", inAsosiy["id"])
+	for _, r := range []struct{ method, path, body string }{
+		{http.MethodGet, "/app/tasks/" + id, ""},
+		{http.MethodPut, "/app/tasks/" + id, fmt.Sprintf(`{"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.yangi, ok)},
+		{http.MethodPatch, "/app/tasks/" + id + "/stage", fmt.Sprintf(`{"stage_id":%d}`, sh.bajarildi)},
+		{http.MethodDelete, "/app/tasks/" + id, ""},
+	} {
+		rec := api.do(t, r.method, r.path, r.body, bearer(employee))
+		assert.Equal(t, http.StatusNotFound, rec.Code, "%s %s: a task standing where the employee may not work", r.method, r.path)
+		assert.JSONEq(t, taskNotFound, rec.Body.String(), r.method)
+	}
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, fmt.Sprintf("/app/tasks/%.0f", inChilonzor["id"]), "", bearer(employee)).Code, "one in the restriction's location")
+
+	rec = api.do(t, http.MethodPost, "/app/tasks", taskBody(sh, "Yangi", "2026-10-10", sh.yangi, ali["id"], ok, ""), bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "entered into a location the employee may not work in")
+	assert.JSONEq(t, noPermission, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/tasks", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Yangi","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
+		sh.buyurtma, chilonzor, sh.yangi, ok, ali["id"]), bearer(employee))
+	assert.Equal(t, http.StatusCreated, rec.Code, "into one of theirs: %s", rec.Body.String())
+
+	rec = api.do(t, http.MethodPost, "/app/tasks", taskBody(sh, "Valiga", "2026-10-10", sh.yangi, ali["id"], ok, fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)), bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code, "assigned, in Asosiy, to an employee who works in Chilonzor alone")
+	assert.JSONEq(t, `{"error":"validation_error","message":"Mas'ul bu lokatsiyada ishlamaydi"}`, rec.Body.String())
+
+	// The restriction is read afresh on every request.
+	api.exec(t, "UPDATE user_companies SET all_locations = true WHERE user_phone = $1", valisPhone)
+	assert.Equal(t, []any{"Chilonzorda", "Asosiyda", "Yangi"}, titles(employee, ""), "lifted: every location at once")
+}

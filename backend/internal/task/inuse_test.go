@@ -19,7 +19,7 @@ func TestAStageWithTasksIsNotDeleted(t *testing.T) {
 	first := mustTask(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
 	second := mustTask(t, s, sh, "Hisob", "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
 	gone := mustTask(t, s, sh, "O'chirilgan", "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
-	require.NoError(t, s.Delete(ctx, sh.id, gone.ID, owner))
+	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 
 	err := s.DeleteStage(ctx, sh.id, sh.yangi.ID)
 
@@ -29,11 +29,11 @@ func TestAStageWithTasksIsNotDeleted(t *testing.T) {
 	assert.Len(t, stages, 3, "the stage stays")
 
 	assert.NoError(t, s.DeleteStage(ctx, sh.id, sh.bajarildi.ID), "a stage with no tasks")
-	_, err = s.Move(ctx, sh.id, first.ID, owner, sh.jarayonda.ID)
+	_, err = s.Move(ctx, sh.scope(), first.ID, owner, sh.jarayonda.ID)
 	require.NoError(t, err)
 	refused(t, s.DeleteStage(ctx, sh.id, sh.yangi.ID), apperr.Conflict, "stage_in_use", "Bu bosqichda 1 ta vazifa bor",
 		"a task moved away does not hold the stage")
-	require.NoError(t, s.Delete(ctx, sh.id, second.ID, owner))
+	require.NoError(t, s.Delete(ctx, sh.scope(), second.ID, owner))
 	assert.NoError(t, s.DeleteStage(ctx, sh.id, sh.yangi.ID), "the deleted tasks do not hold the stage")
 }
 
@@ -54,9 +54,9 @@ func TestATypeWithTasksIsNotDeleted(t *testing.T) {
 	assert.Len(t, types[0].Fields, 3, "with its fields")
 
 	assert.NoError(t, s.DeleteType(ctx, sh.id, shikoyat.ID), "a type with no tasks")
-	require.NoError(t, s.Delete(ctx, sh.id, first.ID, owner))
+	require.NoError(t, s.Delete(ctx, sh.scope(), first.ID, owner))
 	refused(t, s.DeleteType(ctx, sh.id, sh.buyurtma.ID), apperr.Conflict, "type_in_use", "Bu turda 1 ta vazifa bor")
-	require.NoError(t, s.Delete(ctx, sh.id, second.ID, owner))
+	require.NoError(t, s.Delete(ctx, sh.scope(), second.ID, owner))
 	assert.NoError(t, s.DeleteType(ctx, sh.id, sh.buyurtma.ID), "the deleted tasks do not hold the type")
 }
 
@@ -70,7 +70,7 @@ func TestAFieldTasksFilledInIsNotDeleted(t *testing.T) {
 	})
 	mustTask(t, s, sh, "Hisob", "2026-10-11", map[int64]any{sh.izoh.ID: "X", sh.kanal.ID: []int64{sh.linkedin.ID}})
 	gone := mustTask(t, s, sh, "O'chirilgan", "2026-10-12", map[int64]any{sh.izoh.ID: "X", sh.summa.ID: 1})
-	require.NoError(t, s.Delete(ctx, sh.id, gone.ID, owner))
+	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 
 	refused(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, sh.izoh.ID), apperr.Conflict, "field_in_use", "Bu maydon 2 ta vazifada to'ldirilgan")
 	refused(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, sh.kanal.ID), apperr.Conflict, "field_in_use",
@@ -83,7 +83,7 @@ func TestAFieldTasksFilledInIsNotDeleted(t *testing.T) {
 
 	assert.NoError(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, manzil.ID), "a field nobody filled in")
 	// An edit that empties the field frees it.
-	_, err = s.Update(ctx, sh.id, first.ID, owner, Input{
+	_, err = s.Update(ctx, sh.scope(), first.ID, owner, Input{
 		Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID,
 		Values: answers(t, map[int64]any{sh.izoh.ID: "X", sh.kanal.ID: []int64{sh.instagram.ID}}),
 	})

@@ -26,7 +26,8 @@ FROM tasks t
 JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
-WHERE t.id = $1 AND t.company_id = $2 AND t.deleted_at IS NULL;
+WHERE t.id = sqlc.arg('id') AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
+  AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
 
 -- name: ListTasks :many
 -- A page of the company's tasks, the one due soonest first (then the older
@@ -50,6 +51,7 @@ JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
 WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
+  AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
   AND (sqlc.narg('type_id')::bigint IS NULL OR t.type_id = sqlc.narg('type_id')::bigint)
   AND (sqlc.narg('stage_id')::bigint IS NULL OR t.stage_id = sqlc.narg('stage_id')::bigint)
   AND (sqlc.narg('assignee_phone')::text IS NULL OR t.assignee_phone = sqlc.narg('assignee_phone')::text)
@@ -73,6 +75,7 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 SELECT count(*) FROM tasks t
 JOIN customers c ON c.id = t.customer_id
 WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
+  AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
   AND (sqlc.narg('type_id')::bigint IS NULL OR t.type_id = sqlc.narg('type_id')::bigint)
   AND (sqlc.narg('stage_id')::bigint IS NULL OR t.stage_id = sqlc.narg('stage_id')::bigint)
   AND (sqlc.narg('assignee_phone')::text IS NULL OR t.assignee_phone = sqlc.narg('assignee_phone')::text)
@@ -97,6 +100,7 @@ UPDATE tasks
 SET title = sqlc.arg('title'), deadline = sqlc.arg('deadline'), stage_id = sqlc.arg('stage_id'),
     assignee_phone = sqlc.narg('assignee_phone'), assignee_name = sqlc.narg('assignee_name'), updated_at = now()
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
+  AND location_id = ANY(sqlc.arg('location_ids')::bigint[])
 RETURNING updated_at;
 
 -- name: MoveTask :one
@@ -104,13 +108,15 @@ RETURNING updated_at;
 -- task, or deleted it.
 UPDATE tasks SET stage_id = sqlc.arg('stage_id'), updated_at = now()
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
+  AND location_id = ANY(sqlc.arg('location_ids')::bigint[])
 RETURNING updated_at;
 
 -- name: DeleteTask :one
 -- Hides the task: nothing is removed. pgx.ErrNoRows when the company has no
 -- such task, or deleted it already.
 UPDATE tasks SET deleted_at = now()
-WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
+  AND location_id = ANY(sqlc.arg('location_ids')::bigint[])
 RETURNING id;
 
 -- name: AddTaskValue :exec

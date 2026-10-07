@@ -246,3 +246,30 @@ func TestCountLocationTasks(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, n, "the tasks standing in the location, the deleted not counted")
 }
+
+func TestMemberInLocation(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	d := today(t, pool)
+	olma, nok := createCompany(t, q, "Olma", d), createCompany(t, q, "Nok", d)
+	asosiy := addLocation(t, pool, olma.ID, "Asosiy")
+	chilonzor := addLocation(t, pool, olma.ID, "Chilonzor")
+	noksAsosiy := addLocation(t, pool, nok.ID, "Asosiy")
+	addMember(t, q, olma.ID, "998901111111", "Egasi", "owner")
+	addMember(t, q, olma.ID, "998902222222", "Xodim", "user")
+	addMember(t, q, olma.ID, "998903333333", "Cheklangan", "user")
+	addMember(t, q, nok.ID, "998905555555", "Begona", "owner")
+	restrictTo(t, pool, "998903333333", olma.ID, chilonzor)
+	in := func(phone string, locationID int64) bool {
+		ok, err := q.MemberInLocation(ctx, gen.MemberInLocationParams{UserPhone: phone, CompanyID: olma.ID, LocationID: locationID})
+		require.NoError(t, err)
+		return ok
+	}
+
+	assert.True(t, in("998901111111", asosiy), "the owner works in every location")
+	assert.True(t, in("998902222222", chilonzor), "a member without a restriction too")
+	assert.True(t, in("998903333333", chilonzor), "a restricted member in the restriction's location")
+	assert.False(t, in("998903333333", asosiy), "not outside it")
+	assert.False(t, in("998905555555", asosiy), "not a member of the company")
+	assert.False(t, in("998901111111", noksAsosiy), "the owner works in the company's own locations alone")
+}

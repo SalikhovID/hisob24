@@ -345,6 +345,11 @@ type Querier interface {
 	// Locks the company for a billing transaction. today is the database's
 	// CURRENT_DATE, so the new end_date follows the same clock as the checks.
 	LockCompanyEndDate(ctx context.Context, id int64) (LockCompanyEndDateRow, error)
+	// Whether the member may work in the location (logic/locations.md, section
+	// 5): the owner and a member without a restriction in every one of the
+	// company's, a restricted member in the restriction's. False for someone
+	// who is not a member, and for another company's location.
+	MemberInLocation(ctx context.Context, arg MemberInLocationParams) (bool, error)
 	// Puts the task in another stage. pgx.ErrNoRows when the company has no such
 	// task, or deleted it.
 	MoveTask(ctx context.Context, arg MoveTaskParams) (time.Time, error)

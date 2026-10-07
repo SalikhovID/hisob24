@@ -10,6 +10,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
+	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
@@ -173,6 +174,24 @@ func currentAccess(ctx context.Context) user.Access {
 // everything, an employee what their role, or the default, allows.
 func currentPermissions(ctx context.Context) access.Set {
 	return currentAccess(ctx).Permissions
+}
+
+// taskScope is where the request's member works, for the tasks: the
+// session's company and the locations of it the member may work in, as
+// requireAccess read them (logic/locations.md).
+func taskScope(r *http.Request) task.Scope {
+	return task.Scope{CompanyID: sessionCompany(r), LocationIDs: currentAccess(r.Context()).LocationIDs}
+}
+
+// allowedLocation tells whether the request's member may work in the
+// location: whether it is one of their scope's.
+func allowedLocation(r *http.Request, locationID int64) bool {
+	for _, id := range currentAccess(r.Context()).LocationIDs {
+		if id == locationID {
+			return true
+		}
+	}
+	return false
 }
 
 // forbidden answers a request for something the member may not do.

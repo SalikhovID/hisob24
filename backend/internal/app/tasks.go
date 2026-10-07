@@ -109,7 +109,15 @@ func (h *Handler) createTask(w http.ResponseWriter, r *http.Request) {
 		forbidden(w)
 		return
 	}
-	t, err := h.tasks.Create(r.Context(), sessionCompany(r), currentUser(r.Context()).Phone, body.TypeID, body.LocationID, body.input(), customer)
+	// The task is entered into a location the member works in; a location
+	// they may not work in (another company's, a deleted one, one outside
+	// their restriction) is refused the way a missing permission is. None
+	// named is the service's to refuse (400).
+	if body.LocationID != 0 && !allowedLocation(r, body.LocationID) {
+		forbidden(w)
+		return
+	}
+	t, err := h.tasks.Create(r.Context(), taskScope(r), currentUser(r.Context()).Phone, body.TypeID, body.LocationID, body.input(), customer)
 	if err != nil {
 		// A new customer's phone or answer may be another customer's.
 		writeCustomerError(w, r, err)
@@ -120,7 +128,7 @@ func (h *Handler) createTask(w http.ResponseWriter, r *http.Request) {
 
 // getTask is a task of the company the session works in.
 func (h *Handler) getTask(w http.ResponseWriter, r *http.Request) {
-	t, err := h.tasks.Get(r.Context(), sessionCompany(r), pathID(r, "id"))
+	t, err := h.tasks.Get(r.Context(), taskScope(r), pathID(r, "id"))
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -135,14 +143,27 @@ type taskPageJSON struct {
 	PageSize int        `json:"page_size"`
 }
 
-// listTasks is a page of the tasks of the company the session works in,
-// the one due soonest first: ?search= looks in the titles, the text answers
-// and the customers' names (as digits, in the customers' phones and the
-// number answers too); ?type_id=, ?stage_id=, ?customer_id= and ?assignee=
-// (a phone) each keep one; ?page= starts at 1.
+// listTasks is a page of the tasks of the locations the member works in
+// (of the one ?location_id= names alone; one they may not work in is
+// refused), the one due soonest first: ?search= looks in the titles, the
+// text answers and the customers' names (as digits, in the customers'
+// phones and the number answers too); ?type_id=, ?stage_id=, ?customer_id=
+// and ?assignee= (a phone) each keep one; ?page= starts at 1.
 func (h *Handler) listTasks(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	in := task.ListInput{Search: query.Get("search"), Assignee: query.Get("assignee"), Page: 1}
+	if raw := query.Get("location_id"); raw != "" {
+		id, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || id <= 0 {
+			httpx.Error(w, http.StatusBadRequest, "validation_error", "Lokatsiya noto'g'ri")
+			return
+		}
+		if !allowedLocation(r, id) {
+			forbidden(w)
+			return
+		}
+		in.LocationID = id
+	}
 	if p := query.Get("page"); p != "" {
 		n, err := strconv.Atoi(p)
 		if err != nil {
@@ -170,7 +191,7 @@ func (h *Handler) listTasks(w http.ResponseWriter, r *http.Request) {
 		}
 		*f.into = id
 	}
-	page, err := h.tasks.List(r.Context(), sessionCompany(r), in)
+	page, err := h.tasks.List(r.Context(), taskScope(r), in)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -190,7 +211,7 @@ func (h *Handler) updateTask(w http.ResponseWriter, r *http.Request) {
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	t, err := h.tasks.Update(r.Context(), sessionCompany(r), pathID(r, "id"), currentUser(r.Context()).Phone, body.input())
+	t, err := h.tasks.Update(r.Context(), taskScope(r), pathID(r, "id"), currentUser(r.Context()).Phone, body.input())
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -207,7 +228,7 @@ func (h *Handler) moveTask(w http.ResponseWriter, r *http.Request) {
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	t, err := h.tasks.Move(r.Context(), sessionCompany(r), pathID(r, "id"), currentUser(r.Context()).Phone, body.StageID)
+	t, err := h.tasks.Move(r.Context(), taskScope(r), pathID(r, "id"), currentUser(r.Context()).Phone, body.StageID)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -218,7 +239,7 @@ func (h *Handler) moveTask(w http.ResponseWriter, r *http.Request) {
 // deleteTask hides a task of the company the session works in, as the
 // member the session is of.
 func (h *Handler) deleteTask(w http.ResponseWriter, r *http.Request) {
-	err := h.tasks.Delete(r.Context(), sessionCompany(r), pathID(r, "id"), currentUser(r.Context()).Phone)
+	err := h.tasks.Delete(r.Context(), taskScope(r), pathID(r, "id"), currentUser(r.Context()).Phone)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
@@ -229,7 +250,7 @@ func (h *Handler) deleteTask(w http.ResponseWriter, r *http.Request) {
 // taskHistory is what happened to a task of the owner's company, the
 // latest first.
 func (h *Handler) taskHistory(w http.ResponseWriter, r *http.Request) {
-	history, err := h.tasks.History(r.Context(), sessionCompany(r), pathID(r, "id"))
+	history, err := h.tasks.History(r.Context(), taskScope(r), pathID(r, "id"))
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
