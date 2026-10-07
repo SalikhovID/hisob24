@@ -130,7 +130,7 @@ func TestListSuppliers(t *testing.T) {
 	assert.Equal(t, []string{"bozor", "Dehqon"}, names(active), "the live active ones, by name whatever the case")
 	assert.Equal(t, []string{"Anhor"}, names(gen.ListSuppliersParams{CompanyID: olma.ID, IsActive: false, Limit: 20}), "the inactive")
 	assert.Equal(t, []string{"bozor"}, names(gen.ListSuppliersParams{CompanyID: olma.ID, IsActive: true, Search: ptr("ZOR"), Limit: 20}), "searched by name, whatever the case")
-	assert.Equal(t, []string{"Dehqon"}, names(gen.ListSuppliersParams{CompanyID: olma.ID, IsActive: true, Digits: ptr("99988"), Limit: 20}), "searched by the digits of the phone")
+	assert.Equal(t, []string{"Dehqon"}, names(gen.ListSuppliersParams{CompanyID: olma.ID, IsActive: true, Search: ptr("99 988"), Digits: ptr("99988"), Limit: 20}), "a search that is a number looks in the phone too")
 	assert.Equal(t, []string{"Dehqon"}, names(gen.ListSuppliersParams{CompanyID: olma.ID, IsActive: true, Limit: 1, Offset: 1}), "paged")
 	count, err := q.CountSuppliers(ctx, gen.CountSuppliersParams{CompanyID: olma.ID, IsActive: true})
 	require.NoError(t, err)

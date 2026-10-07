@@ -39,8 +39,9 @@ func (q *Queries) CountSupplierPurchases(ctx context.Context, supplierID int64) 
 const countSuppliers = `-- name: CountSuppliers :one
 SELECT count(*) FROM suppliers s
 WHERE s.company_id = $1 AND s.deleted_at IS NULL AND s.is_active = $2
-  AND ($3::text IS NULL OR s.name ILIKE '%' || $3::text || '%')
-  AND ($4::text IS NULL OR s.phone LIKE '%' || $4::text || '%')
+  AND ($3::text IS NULL
+       OR s.name ILIKE '%' || $3::text || '%'
+       OR ($4::text IS NOT NULL AND s.phone LIKE '%' || $4::text || '%'))
 `
 
 type CountSuppliersParams struct {
@@ -193,8 +194,9 @@ CROSS JOIN LATERAL (
            COALESCE((SELECT sum(sp.amount) FROM supplier_payments sp WHERE sp.supplier_id = s.id AND sp.deleted_at IS NULL), 0)::numeric(14,2) AS payments_total
 ) t
 WHERE s.company_id = $1 AND s.deleted_at IS NULL AND s.is_active = $2
-  AND ($3::text IS NULL OR s.name ILIKE '%' || $3::text || '%')
-  AND ($4::text IS NULL OR s.phone LIKE '%' || $4::text || '%')
+  AND ($3::text IS NULL
+       OR s.name ILIKE '%' || $3::text || '%'
+       OR ($4::text IS NOT NULL AND s.phone LIKE '%' || $4::text || '%'))
 ORDER BY lower(s.name), s.id
 LIMIT $6 OFFSET $5
 `
@@ -224,8 +226,9 @@ type ListSuppliersRow struct {
 
 // A page of the company's suppliers, the active or the inactive ones, by
 // name whatever the case, without the deleted, each with its balance.
-// search, escaped for ILIKE, is looked for in the name; digits in the
-// phone. A NULL argument leaves its filter out.
+// search, escaped for ILIKE, is looked for in the name; digits, the digits
+// of a search that is a number (always with search), in the phone too. A
+// NULL search leaves the filter out.
 func (q *Queries) ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]ListSuppliersRow, error) {
 	rows, err := q.db.Query(ctx, listSuppliers,
 		arg.CompanyID,

@@ -25,8 +25,9 @@ WHERE s.id = $1 AND s.company_id = $2 AND s.deleted_at IS NULL;
 -- name: ListSuppliers :many
 -- A page of the company's suppliers, the active or the inactive ones, by
 -- name whatever the case, without the deleted, each with its balance.
--- search, escaped for ILIKE, is looked for in the name; digits in the
--- phone. A NULL argument leaves its filter out.
+-- search, escaped for ILIKE, is looked for in the name; digits, the digits
+-- of a search that is a number (always with search), in the phone too. A
+-- NULL search leaves the filter out.
 SELECT s.id, s.name, s.phone, s.note, s.is_active, s.created_at, s.updated_at,
        COALESCE(m.full_name, s.created_by_name) AS created_by_name,
        t.purchases_total, t.payments_total, (t.purchases_total - t.payments_total)::numeric(14,2) AS balance
@@ -37,8 +38,9 @@ CROSS JOIN LATERAL (
            COALESCE((SELECT sum(sp.amount) FROM supplier_payments sp WHERE sp.supplier_id = s.id AND sp.deleted_at IS NULL), 0)::numeric(14,2) AS payments_total
 ) t
 WHERE s.company_id = sqlc.arg('company_id') AND s.deleted_at IS NULL AND s.is_active = sqlc.arg('is_active')
-  AND (sqlc.narg('search')::text IS NULL OR s.name ILIKE '%' || sqlc.narg('search')::text || '%')
-  AND (sqlc.narg('digits')::text IS NULL OR s.phone LIKE '%' || sqlc.narg('digits')::text || '%')
+  AND (sqlc.narg('search')::text IS NULL
+       OR s.name ILIKE '%' || sqlc.narg('search')::text || '%'
+       OR (sqlc.narg('digits')::text IS NOT NULL AND s.phone LIKE '%' || sqlc.narg('digits')::text || '%'))
 ORDER BY lower(s.name), s.id
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
@@ -46,8 +48,9 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 -- How many rows ListSuppliers finds under the same filter, on all of its pages.
 SELECT count(*) FROM suppliers s
 WHERE s.company_id = sqlc.arg('company_id') AND s.deleted_at IS NULL AND s.is_active = sqlc.arg('is_active')
-  AND (sqlc.narg('search')::text IS NULL OR s.name ILIKE '%' || sqlc.narg('search')::text || '%')
-  AND (sqlc.narg('digits')::text IS NULL OR s.phone LIKE '%' || sqlc.narg('digits')::text || '%');
+  AND (sqlc.narg('search')::text IS NULL
+       OR s.name ILIKE '%' || sqlc.narg('search')::text || '%'
+       OR (sqlc.narg('digits')::text IS NOT NULL AND s.phone LIKE '%' || sqlc.narg('digits')::text || '%'));
 
 -- name: UpdateSupplier :one
 -- An edit: every field as it is now (NULL clears an optional one), and the
