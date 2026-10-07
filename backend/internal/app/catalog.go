@@ -18,9 +18,15 @@ type productJSON struct {
 	SKU  *string `json:"sku"`
 	// Price is the sale price of a product, the price of a service, as text
 	// with two decimals ("150000.50"); null when there is none.
-	Price         *string   `json:"price"`
-	Note          *string   `json:"note"`
-	IsActive      bool      `json:"is_active"`
+	Price    *string `json:"price"`
+	Note     *string `json:"note"`
+	IsActive bool    `json:"is_active"`
+	// Quantity is the product's stock in the member's locations, or in the
+	// one asked for, as text with three decimals ("12.500"); null for a
+	// service. LastPrice is the price of its newest live purchase line,
+	// whatever the location; null when it was never bought.
+	Quantity      *string   `json:"quantity"`
+	LastPrice     *string   `json:"last_price"`
 	CreatedByName *string   `json:"created_by_name"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -29,8 +35,34 @@ type productJSON struct {
 func toProductJSON(p catalog.Product) productJSON {
 	return productJSON{
 		ID: p.ID, Kind: p.Kind, Name: p.Name, Unit: p.Unit, SKU: p.SKU, Price: p.Price, Note: p.Note, IsActive: p.Active,
+		Quantity: p.Quantity, LastPrice: p.LastPrice,
 		CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
+}
+
+type stockLineJSON struct {
+	LocationID   int64  `json:"location_id"`
+	LocationName string `json:"location_name"`
+	Quantity     string `json:"quantity"`
+}
+
+// productDetailJSON is a product on its own page: with its stock in each of
+// the member's locations (a service has none).
+type productDetailJSON struct {
+	productJSON
+	Stock []stockLineJSON `json:"stock"`
+}
+
+type productPurchaseJSON struct {
+	PurchaseID   int64   `json:"purchase_id"`
+	Number       int32   `json:"number"`
+	PurchasedOn  string  `json:"purchased_on"`
+	Supplier     refJSON `json:"supplier"`
+	LocationID   int64   `json:"location_id"`
+	LocationName string  `json:"location_name"`
+	Quantity     string  `json:"quantity"`
+	Price        string  `json:"price"`
+	Amount       string  `json:"amount"`
 }
 
 type productPageJSON struct {
@@ -58,10 +90,15 @@ func (in productInputJSON) input() catalog.Input {
 // listProducts is a page of the products (?kind=product, the default) or
 // the services (?kind=service) of the company the session works in, the
 // active ones unless ?status=inactive, by name: ?search= looks in the
-// names and the SKUs, ?page= starts at 1.
+// names and the SKUs, ?page= starts at 1. The stock shown is the member's
+// locations', or that of ?location_id= (one they may not work in: 403).
 func (h *Handler) listProducts(w http.ResponseWriter, r *http.Request) {
+	locationID, ok := locationParam(w, r)
+	if !ok {
+		return
+	}
 	query := r.URL.Query()
-	in := catalog.ListInput{Kind: query.Get("kind"), Status: query.Get("status"), Search: query.Get("search"), Page: 1}
+	in := catalog.ListInput{Kind: query.Get("kind"), Status: query.Get("status"), Search: query.Get("search"), Page: 1, LocationID: locationID}
 	if p := query.Get("page"); p != "" {
 		n, err := strconv.Atoi(p)
 		if err != nil {
@@ -97,14 +134,42 @@ func (h *Handler) createProduct(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusCreated, toProductJSON(p))
 }
 
-// getProduct is a product or a service of the company the session works in.
+// getProduct is a product or a service of the company the session works
+// in, with its stock in each of the member's locations.
 func (h *Handler) getProduct(w http.ResponseWriter, r *http.Request) {
-	p, err := h.catalog.Get(r.Context(), catalogScope(r), pathID(r, "id"))
+	d, err := h.catalog.Detail(r.Context(), catalogScope(r), pathID(r, "id"))
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return
 	}
-	httpx.JSON(w, http.StatusOK, toProductJSON(p))
+	stock := make([]stockLineJSON, 0, len(d.Stock))
+	for _, line := range d.Stock {
+		stock = append(stock, stockLineJSON{LocationID: line.LocationID, LocationName: line.LocationName, Quantity: line.Quantity})
+	}
+	httpx.JSON(w, http.StatusOK, productDetailJSON{productJSON: toProductJSON(d.Product), Stock: stock})
+}
+
+// listProductPurchases is a page of the live purchase lines of a product of
+// the company the session works in, in the member's locations, the newest
+// purchase first; ?page= starts at 1.
+func (h *Handler) listProductPurchases(w http.ResponseWriter, r *http.Request) {
+	page, ok := pageParam(w, r)
+	if !ok {
+		return
+	}
+	result, err := h.catalog.Purchases(r.Context(), catalogScope(r), pathID(r, "id"), page)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	items := make([]productPurchaseJSON, 0, len(result.Items))
+	for _, l := range result.Items {
+		items = append(items, productPurchaseJSON{
+			PurchaseID: l.PurchaseID, Number: l.Number, PurchasedOn: l.PurchasedOn.Format(time.DateOnly), Supplier: refJSON{ID: l.SupplierID, Name: l.SupplierName},
+			LocationID: l.LocationID, LocationName: l.LocationName, Quantity: l.Quantity, Price: l.Price, Amount: l.Amount,
+		})
+	}
+	httpx.JSON(w, http.StatusOK, pageJSON[productPurchaseJSON]{Items: items, Total: result.Total, Page: result.Page, PageSize: result.PageSize})
 }
 
 // updateProduct saves a product or a service of the company the session

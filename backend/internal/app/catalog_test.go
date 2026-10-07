@@ -142,7 +142,9 @@ func TestProductByID(t *testing.T) {
 
 	rec := api.do(t, http.MethodGet, path, "", bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, p, decode(t, rec), "the product as it was entered")
+	// The page adds the stock in each of the member's locations (none here).
+	p["stock"] = []any{}
+	assert.Equal(t, p, decode(t, rec), "the product as it was entered, with its stock")
 	rec = api.do(t, http.MethodGet, path, "", bearer(other))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's product")
 	assert.JSONEq(t, notFound, rec.Body.String())
@@ -181,4 +183,71 @@ func TestProductByID(t *testing.T) {
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
 	api.enterProduct(t, owner, `{"kind":"product","name":"Olma","unit":"kg","sku":"A-1"}`)
+}
+
+func TestAProductTellsItsStockAndLastPriceAndListsItsPurchases(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	asosiy := api.addLocation(t, olma, "Asosiy")
+	chilonzor := api.addLocation(t, olma, "Chilonzor")
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
+	api.restrictTo(t, valisPhone, olma, chilonzor)
+	p := api.enterProduct(t, owner, `{"kind":"product","name":"Olma","unit":"kg"}`)
+	assert.Equal(t, "0.000", p["quantity"], "nothing in stock")
+	assert.Nil(t, p["last_price"], "never bought")
+	supplier := api.enterSupplier(t, owner, `{"name":"Bozor"}`)
+	api.enterPurchase(t, owner, fmt.Sprintf(`{"location_id":%d,"supplier_id":%v,"purchased_on":"2026-10-01","items":[{"product_id":%v,"quantity":"10","price":"1000"}]}`, asosiy, supplier["id"], p["id"]))
+	api.enterPurchase(t, owner, fmt.Sprintf(`{"location_id":%d,"supplier_id":%v,"purchased_on":"2026-10-05","items":[{"product_id":%v,"quantity":"2.5","price":"1200.5"}]}`, chilonzor, supplier["id"], p["id"]))
+	path := fmt.Sprintf("/app/products/%v", p["id"])
+
+	rec := api.do(t, http.MethodGet, path, "", bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code)
+	got := decode(t, rec)
+	assert.Equal(t, "12.500", got["quantity"], "every location of the owner")
+	assert.Equal(t, "1200.50", got["last_price"])
+	assert.Equal(t, []any{
+		map[string]any{"location_id": float64(asosiy), "location_name": "Asosiy", "quantity": "10.000"},
+		map[string]any{"location_id": float64(chilonzor), "location_name": "Chilonzor", "quantity": "2.500"},
+	}, got["stock"])
+	rec = api.do(t, http.MethodGet, path, "", bearer(employee))
+	require.Equal(t, http.StatusOK, rec.Code)
+	got = decode(t, rec)
+	assert.Equal(t, "2.500", got["quantity"], "the restricted employee's location alone")
+	assert.Len(t, got["stock"], 1)
+
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/products?location_id=%d", asosiy), "", bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "10.000", decode(t, rec)["items"].([]any)[0].(map[string]any)["quantity"], "the location asked for")
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/products?location_id=%d", asosiy), "", bearer(employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.JSONEq(t, noPermission, rec.Body.String(), "a location outside the employee's")
+	rec = api.do(t, http.MethodGet, "/app/products?location_id=abc", "", bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Lokatsiya noto'g'ri"}`, rec.Body.String())
+
+	rec = api.do(t, http.MethodGet, path+"/purchases", "", bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	page := decode(t, rec)
+	assert.EqualValues(t, 2, page["total"])
+	first := page["items"].([]any)[0].(map[string]any)
+	assert.EqualValues(t, 2, first["number"], "the newest first")
+	assert.Equal(t, "2026-10-05", first["purchased_on"])
+	assert.Equal(t, map[string]any{"id": supplier["id"], "name": "Bozor"}, first["supplier"])
+	assert.EqualValues(t, chilonzor, first["location_id"])
+	assert.Equal(t, "Chilonzor", first["location_name"])
+	assert.Equal(t, "2.500", first["quantity"])
+	assert.Equal(t, "1200.50", first["price"])
+	assert.Equal(t, "3001.25", first["amount"])
+	rec = api.do(t, http.MethodGet, path+"/purchases", "", bearer(employee))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.EqualValues(t, 1, decode(t, rec)["total"], "the employee's locations alone")
+	rec = api.do(t, http.MethodGet, path+"/purchases?page=x", "", bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	rec = api.do(t, http.MethodGet, "/app/products/999999/purchases", "", bearer(owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+
+	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"product_in_use","message":"Bu mahsulot 2 ta xaridda bor"}`, rec.Body.String())
 }

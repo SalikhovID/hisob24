@@ -2609,6 +2609,15 @@ paths:
       security:
         - appBearer: []
       parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: >
+            Qoldiq (quantity) shu lokatsiyaniki (joriy lokatsiya); berilmasa
+            a'zoga ruxsatli hamma lokatsiya yig'indisi. A'zo ishlay olmaydigan
+            lokatsiya: 403 forbidden. Son emas: 400 "Lokatsiya noto'g'ri".
         - name: kind
           in: query
           schema:
@@ -2686,7 +2695,11 @@ paths:
           format: int64
     get:
       operationId: getProduct
-      summary: Mahsulot yoki xizmat (products.view ruxsati)
+      summary: Mahsulot yoki xizmat, qoldig'i bilan (products.view ruxsati)
+      description: >
+        Mahsulotda stock: a'zoga ruxsatli har lokatsiyadagi qoldiq (0 ham),
+        lokatsiyalar qo'shilgan tartibda; xizmatda bo'sh ro'yxat
+        (logic/products.md, 6-bo'lim).
       security:
         - appBearer: []
       responses:
@@ -2695,7 +2708,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Product"
+                $ref: "#/components/schemas/ProductDetail"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "402":
@@ -2790,6 +2803,539 @@ paths:
           $ref: "#/components/responses/ProductNotFound"
         "409":
           $ref: "#/components/responses/ProductConflict"
+  /app/products/{id}/purchases:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listProductPurchases
+      summary: Mahsulotning xaridlari (purchases.view ruxsati)
+      description: >
+        Shu mahsulot kirgan jonli xarid qatorlari, a'zoga ruxsatli
+        lokatsiyalardagi, yangi xarid birinchi, sahifada 20 ta
+        (logic/products.md, 6-bo'lim). Mahsulot topilmasa 404.
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductPurchasePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/ProductNotFound"
+  /app/suppliers:
+    get:
+      operationId: listSuppliers
+      summary: Ta'minotchilar ro'yxati (suppliers.view ruxsati)
+      description: >
+        Access token'dagi kompaniyaning ta'minotchilari, faol (status=active,
+        standart) yoki nofaol (status=inactive) lari, nom bo'yicha
+        (katta-kichik harf farqsiz), sahifada 20 ta. search nomda qidiradi;
+        raqamdan iborat bo'lsa telefonda ham. balance faqat purchases.view
+        bo'lganga (logic/warehouse.md, 3.3).
+      security:
+        - appBearer: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupplierPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createSupplier
+      summary: Ta'minotchi qo'shish (suppliers.create ruxsati)
+      description: >
+        Nom 1–120 belgi, kompaniyada takrorlanmaydi (409 name_taken);
+        telefon ixtiyoriy, faqat O'zbekiston raqami; izoh 500 belgigacha
+        (logic/warehouse.md, 3.1).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierInput"
+      responses:
+        "201":
+          description: Qo'shilgan ta'minotchi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/SupplierConflict"
+  /app/suppliers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getSupplier
+      summary: Ta'minotchi, balansi bilan (suppliers.view ruxsati)
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Ta'minotchi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+    put:
+      operationId: updateSupplier
+      summary: Ta'minotchini tahrirlash (suppliers.edit ruxsati)
+      description: >
+        Maydonlar yuborilganiga almashadi, yuborilmagan ixtiyoriy maydon
+        bo'shaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierInput"
+      responses:
+        "200":
+          description: Saqlangan ta'minotchi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+        "409":
+          $ref: "#/components/responses/SupplierConflict"
+    patch:
+      operationId: setSupplierActive
+      summary: Nofaol qilish yoki faollashtirish (suppliers.edit ruxsati)
+      description: >
+        Nofaol ta'minotchi xarid takliflarida chiqmaydi; xaridlari, balansi
+        qoladi va unga to'lov kiritiladi (logic/warehouse.md, 3.2).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActiveInput"
+      responses:
+        "200":
+          description: Ta'minotchi yangi holatida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+    delete:
+      operationId: deleteSupplier
+      summary: Ta'minotchini o'chirish (suppliers.delete ruxsati)
+      description: >
+        Yashiriladi, nomi bo'shaydi. Jonli xaridi yoki to'lovi bor
+        ta'minotchi o'chirilmaydi: 409 supplier_in_use.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+        "409":
+          $ref: "#/components/responses/SupplierConflict"
+  /app/suppliers/{id}/payments:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listPayments
+      summary: Ta'minotchiga to'lovlar (purchases.view ruxsati)
+      description: >
+        Jonli to'lovlar, yangi birinchi, sahifada 20 ta; xarid bilan
+        kiritilganida purchase_id va purchase_number (logic/warehouse.md,
+        6-bo'lim). Ta'minotchi topilmasa 404.
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+    post:
+      operationId: addPayment
+      summary: To'lov qo'shish (purchases.create ruxsati)
+      description: >
+        Summa > 0 ("Summani kiriting" / "Summa noto'g'ri"), sana
+        YYYY-MM-DD ("Sanani kiriting" / "Sana noto'g'ri"), izoh 500
+        belgigacha. Nofaol ta'minotchiga ham kiritiladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Qo'shilgan to'lov
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+  /app/suppliers/{id}/payments/{paymentId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: paymentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: updatePayment
+      summary: To'lovni tahrirlash (purchases.edit ruxsati)
+      description: >
+        Faqat o'zi kiritilgan to'lov; xarid bilan kiritilgani 409
+        payment_linked (xaridni tahrirlang).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "200":
+          description: Saqlangan to'lov
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PaymentNotFound"
+        "409":
+          $ref: "#/components/responses/PaymentConflict"
+    delete:
+      operationId: deletePayment
+      summary: To'lovni o'chirish (purchases.delete ruxsati)
+      description: >
+        Yashiriladi. Xarid bilan kiritilgani 409 payment_linked.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PaymentNotFound"
+        "409":
+          $ref: "#/components/responses/PaymentConflict"
+  /app/purchases:
+    get:
+      operationId: listPurchases
+      summary: Xaridlar ro'yxati (purchases.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyalardagi xaridlar, yoki location_id
+        berilgan bittasidagi (a'zo ishlay olmaydigan lokatsiya: 403
+        forbidden; son emas: 400 "Lokatsiya noto'g'ri"); supplier_id bitta
+        ta'minotchiniki (son emas: 400 "Ta'minotchi noto'g'ri"). Sana
+        bo'yicha yangi birinchi, sahifada 20 ta; qatorlar ro'yxatda yo'q
+        (logic/warehouse.md, 4.5).
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: supplier_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchasePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createPurchase
+      summary: Xarid qo'shish (purchases.create ruxsati)
+      description: >
+        Bitta tranzaksiyada: kompaniyadagi navbatdagi raqam, xarid,
+        qatorlar, jami, har qator mahsulotining shu lokatsiyadagi qoldig'i
+        oshadi, to'langan > 0 bo'lsa xaridga bog'langan to'lov. Tekshiruv
+        tartibi: lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga
+        ruxsatsiz: 403), ta'minotchi, sana, izoh, qatorlar (kamida bitta;
+        har birida mahsulot, xizmat emas, faol, bir marta, miqdor > 0,
+        narx), to'langan (logic/warehouse.md, 4.2).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseCreate"
+      responses:
+        "201":
+          description: Qo'shilgan xarid, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/purchases/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getPurchase
+      summary: Xarid, qatorlari bilan (purchases.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyadagi xarid; boshqasi 404 "Xarid topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Xarid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PurchaseNotFound"
+    put:
+      operationId: updatePurchase
+      summary: Xaridni tahrirlash (purchases.edit ruxsati)
+      description: >
+        Lokatsiya va raqam o'zgarmaydi. Qatorlar yuborilganiga butunlay
+        almashadi, qoldiq har mahsulot uchun farq bilan yangilanadi
+        (manfiy bo'lsa 409 stock_insufficient); jami qayta hisoblanadi;
+        to'langan bog'langan to'lovni o'zgartiradi (0: yashirinadi).
+        Xaridda avvaldan bor ta'minotchi va mahsulotlar nofaol bo'lsa ham
+        qoladi (logic/warehouse.md, 4.3).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseInput"
+      responses:
+        "200":
+          description: Saqlangan xarid, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PurchaseNotFound"
+        "409":
+          $ref: "#/components/responses/PurchaseConflict"
+    delete:
+      operationId: deletePurchase
+      summary: Xaridni o'chirish (purchases.delete ruxsati)
+      description: >
+        Yashiriladi, qatorlari miqdori qoldiqdan olinadi (yetmasa 409
+        stock_insufficient), bog'langan to'lov yashirinadi; raqam
+        bo'shamaydi (logic/warehouse.md, 4.4).
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PurchaseNotFound"
+        "409":
+          $ref: "#/components/responses/PurchaseConflict"
 components:
   securitySchemes:
     adminSession:
@@ -3043,6 +3589,44 @@ components:
         Nom band (name_taken: "Bu nomli mahsulot allaqachon bor" / "Bu nomli
         xizmat allaqachon bor"), artikul band (sku_taken), mahsulot jonli
         xaridda bor (product_in_use)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SupplierNotFound:
+      description: Ta'minotchi topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SupplierConflict:
+      description: >
+        Nom band (name_taken: "Bu nomli ta'minotchi allaqachon bor") yoki
+        ta'minotchida jonli xarid / to'lov bor (supplier_in_use)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PaymentNotFound:
+      description: To'lov topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PaymentConflict:
+      description: To'lov xarid bilan kiritilgan (payment_linked)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PurchaseNotFound:
+      description: Xarid topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PurchaseConflict:
+      description: Omborda yetarli qoldiq yo'q (stock_insufficient)
       content:
         application/json:
           schema:
@@ -3522,6 +4106,337 @@ components:
             tartib yoki kompaniya tanlanmagan.
           items:
             $ref: "#/components/schemas/NavSection"
+    Ref:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    StockLine:
+      type: object
+      required: [location_id, location_name, quantity]
+      properties:
+        location_id:
+          type: integer
+          format: int64
+        location_name:
+          type: string
+        quantity:
+          type: string
+          description: Shu lokatsiyadagi qoldiq, uch kasr xonasi bilan ("12.500"); 0 ham ko'rsatiladi
+    ProductDetail:
+      allOf:
+        - $ref: "#/components/schemas/Product"
+        - type: object
+          required: [stock]
+          properties:
+            stock:
+              type: array
+              description: A'zoga ruxsatli har lokatsiyadagi qoldiq, lokatsiyalar qo'shilgan tartibda; xizmatda bo'sh
+              items:
+                $ref: "#/components/schemas/StockLine"
+    ProductPurchase:
+      type: object
+      required: [purchase_id, number, purchased_on, supplier, location_id, location_name, quantity, price, amount]
+      properties:
+        purchase_id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          description: Xaridning kompaniyadagi tartib raqami
+        purchased_on:
+          type: string
+          format: date
+        supplier:
+          $ref: "#/components/schemas/Ref"
+        location_id:
+          type: integer
+          format: int64
+        location_name:
+          type: string
+        quantity:
+          type: string
+          description: Qatordagi miqdor, uch kasr xonasi bilan
+        price:
+          type: string
+          description: Qatordagi narx, ikki kasr xonasi bilan
+        amount:
+          type: string
+          description: Qator summasi (miqdor × narx), ikki kasr xonasi bilan
+    ProductPurchasePage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductPurchase"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    Supplier:
+      type: object
+      required: [id, name, phone, note, is_active, balance, purchases_total, payments_total, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        phone:
+          type: [string, "null"]
+          description: Saqlangan ko'rinishda (998901234567)
+        note:
+          type: [string, "null"]
+        is_active:
+          type: boolean
+          description: Nofaol (false) bo'lsa xarid takliflarida chiqmaydi
+        balance:
+          type: [string, "null"]
+          description: >
+            Qarz: jonli xaridlar jami − jonli to'lovlar jami, ikki kasr
+            xonasi bilan; musbat qarz, manfiy avans. Faqat purchases.view
+            bo'lganga, aks holda null
+        purchases_total:
+          type: [string, "null"]
+          description: Jonli xaridlar jami; faqat purchases.view bo'lganga
+        payments_total:
+          type: [string, "null"]
+          description: Jonli to'lovlar jami; faqat purchases.view bo'lganga
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SupplierInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        phone:
+          type: [string, "null"]
+          description: Ixtiyoriy; +998 va 9 raqam, bo'shliq, "-", qavs qabul qilinadi
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    SupplierPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Supplier"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    Payment:
+      type: object
+      required: [id, supplier_id, purchase_id, purchase_number, amount, paid_on, note, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        supplier_id:
+          type: integer
+          format: int64
+        purchase_id:
+          type: [integer, "null"]
+          format: int64
+          description: Xarid bilan kiritilgan to'lovda xarid; o'zi kiritilganida null
+        purchase_number:
+          type: [integer, "null"]
+          description: O'sha xaridning raqami
+        amount:
+          type: string
+          description: Summa, ikki kasr xonasi bilan ("1200.50")
+        paid_on:
+          type: string
+          format: date
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PaymentInput:
+      type: object
+      required: [amount, paid_on]
+      properties:
+        amount:
+          type: string
+          description: Summa > 0, 12 xonagacha butun va 2 kasr ("1200.50")
+        paid_on:
+          type: string
+          format: date
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    PaymentPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    PurchaseItem:
+      type: object
+      required: [product_id, name, unit, quantity, price, amount]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          description: Mahsulotning hozirgi nomi
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
+        quantity:
+          type: string
+          description: Uch kasr xonasi bilan ("12.500")
+        price:
+          type: string
+          description: Ikki kasr xonasi bilan
+        amount:
+          type: string
+          description: Miqdor × narx, ikki kasr xonasi bilan
+    Purchase:
+      type: object
+      required: [id, number, location_id, location_name, supplier, purchased_on, note, total, paid, items_count, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          description: Kompaniya ichida 1 dan tartib raqami ("№ 12"); o'chirilganniki bo'shamaydi
+        location_id:
+          type: integer
+          format: int64
+          description: Xarid tushgan lokatsiya (ombor); o'zgarmaydi
+        location_name:
+          type: string
+        supplier:
+          $ref: "#/components/schemas/Ref"
+        purchased_on:
+          type: string
+          format: date
+        note:
+          type: [string, "null"]
+        total:
+          type: string
+          description: Qatorlar jami, ikki kasr xonasi bilan
+        paid:
+          type: string
+          description: Xarid bilan kiritilgan to'lov summasi, 0.00 bo'lmasa
+        items_count:
+          type: integer
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PurchaseDetail:
+      allOf:
+        - $ref: "#/components/schemas/Purchase"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              description: Qatorlar kiritilgan tartibda
+              items:
+                $ref: "#/components/schemas/PurchaseItem"
+    PurchaseItemInput:
+      type: object
+      required: [product_id, quantity, price]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        quantity:
+          type: string
+          description: "> 0, 9 xonagacha butun va 3 kasr (\"12.5\")"
+        price:
+          type: string
+          description: ">= 0, 12 xonagacha butun va 2 kasr"
+    PurchaseInput:
+      type: object
+      required: [supplier_id, purchased_on, items]
+      properties:
+        supplier_id:
+          type: integer
+          format: int64
+        purchased_on:
+          type: string
+          format: date
+        note:
+          type: [string, "null"]
+          maxLength: 500
+        paid:
+          type: [string, "null"]
+          description: To'langan summa (>= 0); berilmasa yoki 0 bo'lsa to'lov yozilmaydi
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PurchaseItemInput"
+    PurchaseCreate:
+      allOf:
+        - $ref: "#/components/schemas/PurchaseInput"
+        - type: object
+          required: [location_id]
+          properties:
+            location_id:
+              type: integer
+              format: int64
+              description: Xarid tushadigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+    PurchasePage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Purchase"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
     NavSection:
       type: string
       description: Bo'lim kaliti, standart tartibida
@@ -4097,7 +5012,7 @@ components:
       enum: [dona, kg, g, l, ml, m, m2, quti, juft, komplekt]
     Product:
       type: object
-      required: [id, kind, name, unit, sku, price, note, is_active, created_by_name, created_at, updated_at]
+      required: [id, kind, name, unit, sku, price, note, is_active, quantity, last_price, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -4122,6 +5037,17 @@ components:
         is_active:
           type: boolean
           description: Nofaol (false) bo'lsa xarid takliflarida chiqmaydi
+        quantity:
+          type: [string, "null"]
+          description: >
+            Mahsulotning so'ralgan lokatsiya (location_id) yoki a'zoga
+            ruxsatli lokatsiyalardagi qoldig'i, uch kasr xonasi bilan
+            ("12.500"); xizmatda null
+        last_price:
+          type: [string, "null"]
+          description: >
+            Oxirgi jonli xarid qatoridagi narx, qaysi lokatsiyada bo'lmasin
+            ("1200.50"); hech qachon olinmagan bo'lsa null
         created_by_name:
           type: [string, "null"]
           description: Qo'shgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi

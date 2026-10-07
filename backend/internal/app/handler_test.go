@@ -25,6 +25,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
+	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
 
 const (
@@ -96,6 +97,7 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 			Customers: customer.NewService(pool),
 			Tasks:     task.NewService(pool, customer.NewService(pool)),
 			Catalog:   catalog.NewService(pool),
+			Warehouse: warehouse.NewService(pool),
 		},
 		cookieSecure,
 		httpx.NewRateLimiter(5, time.Minute),

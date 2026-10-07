@@ -13,6 +13,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
+	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
 
 // refreshCookie carries the refresh token; the access token travels in the
@@ -188,6 +189,12 @@ func taskScope(r *http.Request) task.Scope {
 // catalog: the stock they see is their locations'.
 func catalogScope(r *http.Request) catalog.Scope {
 	return catalog.Scope{CompanyID: sessionCompany(r), LocationIDs: currentAccess(r.Context()).LocationIDs}
+}
+
+// warehouseScope is the request's member's reach in the company for the
+// warehouse: the purchases they see and enter are their locations'.
+func warehouseScope(r *http.Request) warehouse.Scope {
+	return warehouse.Scope{CompanyID: sessionCompany(r), LocationIDs: currentAccess(r.Context()).LocationIDs}
 }
 
 // allowedLocation tells whether the request's member may work in the

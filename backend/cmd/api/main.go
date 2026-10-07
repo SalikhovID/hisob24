@@ -30,6 +30,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/sms"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
+	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
 
 func main() {
@@ -77,6 +78,7 @@ func run() error {
 		Customers: customers,
 		Tasks:     task.NewService(pool, customers),
 		Catalog:   catalog.NewService(pool),
+		Warehouse: warehouse.NewService(pool),
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 

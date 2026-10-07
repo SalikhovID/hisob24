@@ -17,6 +17,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
+	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
 
 // Services is what the /app API runs on.
@@ -27,6 +28,7 @@ type Services struct {
 	Customers *customer.Service
 	Tasks     *task.Service
 	Catalog   *catalog.Service
+	Warehouse *warehouse.Service
 }
 
 // Handler serves /app.
@@ -37,6 +39,7 @@ type Handler struct {
 	customers     *customer.Service
 	tasks         *task.Service
 	catalog       *catalog.Service
+	warehouse     *warehouse.Service
 	cookieSecure  bool
 	sendLimiter   *httpx.RateLimiter
 	verifyLimiter *httpx.RateLimiter
@@ -46,7 +49,7 @@ type Handler struct {
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
 	return &Handler{
-		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog,
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog, warehouse: s.Warehouse,
 		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
 	}
 }
@@ -158,6 +161,24 @@ func (h *Handler) Routes(r chi.Router) {
 				allowed(access.ProductsEdit).Put("/products/{id}", h.updateProduct)
 				allowed(access.ProductsEdit).Patch("/products/{id}", h.setProductActive)
 				allowed(access.ProductsDelete).Delete("/products/{id}", h.deleteProduct)
+				// The warehouse (logic/warehouse.md): a product's purchases, the
+				// suppliers and the payments to them, the purchases into the stock.
+				allowed(access.PurchasesView).Get("/products/{id}/purchases", h.listProductPurchases)
+				allowed(access.SuppliersView).Get("/suppliers", h.listSuppliers)
+				allowed(access.SuppliersCreate).Post("/suppliers", h.createSupplier)
+				allowed(access.SuppliersView).Get("/suppliers/{id}", h.getSupplier)
+				allowed(access.SuppliersEdit).Put("/suppliers/{id}", h.updateSupplier)
+				allowed(access.SuppliersEdit).Patch("/suppliers/{id}", h.setSupplierActive)
+				allowed(access.SuppliersDelete).Delete("/suppliers/{id}", h.deleteSupplier)
+				allowed(access.PurchasesView).Get("/suppliers/{id}/payments", h.listPayments)
+				allowed(access.PurchasesCreate).Post("/suppliers/{id}/payments", h.addPayment)
+				allowed(access.PurchasesEdit).Put("/suppliers/{id}/payments/{paymentId}", h.updatePayment)
+				allowed(access.PurchasesDelete).Delete("/suppliers/{id}/payments/{paymentId}", h.deletePayment)
+				allowed(access.PurchasesView).Get("/purchases", h.listPurchases)
+				allowed(access.PurchasesCreate).Post("/purchases", h.createPurchase)
+				allowed(access.PurchasesView).Get("/purchases/{id}", h.getPurchase)
+				allowed(access.PurchasesEdit).Put("/purchases/{id}", h.updatePurchase)
+				allowed(access.PurchasesDelete).Delete("/purchases/{id}", h.deletePurchase)
 			})
 		})
 	})

@@ -54,6 +54,12 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 		"adding a type":          {http.MethodPost, "/app/customer-types", `{"name":"Yuridik"}`},
 		"the products":           {http.MethodGet, "/app/products", ""},
 		"adding a product":       {http.MethodPost, "/app/products", `{"kind":"product","name":"Nok","unit":"dona"}`},
+		"a product's purchases":  {http.MethodGet, "/app/products/1/purchases", ""},
+		"the suppliers":          {http.MethodGet, "/app/suppliers", ""},
+		"adding a supplier":      {http.MethodPost, "/app/suppliers", `{"name":"Bozor"}`},
+		"a supplier's payments":  {http.MethodGet, "/app/suppliers/1/payments", ""},
+		"the purchases":          {http.MethodGet, "/app/purchases", ""},
+		"adding a purchase":      {http.MethodPost, "/app/purchases", `{"location_id":1}`},
 		"deleting a type":        {http.MethodDelete, fmt.Sprintf("/app/customer-types/%d", sh.jismoniy), ""},
 	} {
 		rec := api.do(t, req.method, req.path, req.body, bearer(employee))
@@ -77,6 +83,10 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 	rec = api.do(t, http.MethodPost, "/app/products", `{"kind":"product","name":"Nok","unit":"dona"}`, bearer(employee))
 	assert.Equal(t, http.StatusCreated, rec.Code, "the default holds the warehouse sections too: %s", rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/suppliers", `{"name":"Bozor"}`, bearer(employee))
+	assert.Equal(t, http.StatusCreated, rec.Code, "the suppliers too: %s", rec.Body.String())
+	rec = api.do(t, http.MethodGet, "/app/purchases", "", bearer(employee))
+	assert.Equal(t, http.StatusOK, rec.Code, "and the purchases: %s", rec.Body.String())
 
 	// The owner may do everything.
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/employees", "", bearer(owner)).Code)
