@@ -2565,6 +2565,200 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/TaskNotFound"
+  /app/products:
+    get:
+      operationId: listProducts
+      summary: Mahsulotlar yoki xizmatlar ro'yxati (products.view ruxsati)
+      description: >
+        Access token'dagi kompaniyaning mahsulotlari (kind=product, standart)
+        yoki xizmatlari (kind=service), faol (status=active, standart) yoki
+        nofaol (status=inactive) lari, nom bo'yicha (katta-kichik harf
+        farqsiz), sahifada 20 ta. search nomda (mahsulotda artikulda ham)
+        qidiradi, harfma-harf (logic/products.md, 5-bo'lim).
+      security:
+        - appBearer: []
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            $ref: "#/components/schemas/ProductKind"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createProduct
+      summary: Mahsulot yoki xizmat qo'shish (products.create ruxsati)
+      description: >
+        Tur (kind) keyin o'zgarmaydi. Mahsulotda birlik majburiy, xizmatda
+        birlik va artikul bo'lmaydi. Nom 1–120 belgi, mahsulotlar ichida va
+        xizmatlar ichida alohida takrorlanmaydi; artikul 60 belgigacha,
+        kompaniyada takrorlanmaydi; narx ixtiyoriy; izoh 500 belgigacha
+        (logic/products.md, 3 va 4-bo'limlar).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Qo'shilgan mahsulot yoki xizmat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/ProductConflict"
+  /app/products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getProduct
+      summary: Mahsulot yoki xizmat (products.view ruxsati)
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Mahsulot yoki xizmat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/ProductNotFound"
+    put:
+      operationId: updateProduct
+      summary: Mahsulot yoki xizmatni tahrirlash (products.edit ruxsati)
+      description: >
+        Maydonlar yuborilganiga almashadi, yuborilmagan ixtiyoriy maydon
+        bo'shaydi; tur o'zgarmaydi va maydonlar o'sha tur qoidalari bilan
+        tekshiriladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: Saqlangan mahsulot yoki xizmat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/ProductNotFound"
+        "409":
+          $ref: "#/components/responses/ProductConflict"
+    patch:
+      operationId: setProductActive
+      summary: Nofaol qilish yoki faollashtirish (products.edit ruxsati)
+      description: >
+        Nofaol mahsulot xarid takliflarida chiqmaydi; nomi va artikuli band
+        qoladi (logic/products.md, 3.3).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActiveInput"
+      responses:
+        "200":
+          description: Mahsulot yoki xizmat yangi holatida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/ProductNotFound"
+    delete:
+      operationId: deleteProduct
+      summary: Mahsulot yoki xizmatni o'chirish (products.delete ruxsati)
+      description: >
+        Yashiriladi (deleted_at), nomi va artikuli bo'shaydi. Jonli xaridda
+        bor mahsulot o'chirilmaydi (409 product_in_use, 4-bosqichdan).
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/ProductNotFound"
+        "409":
+          $ref: "#/components/responses/ProductConflict"
 components:
   securitySchemes:
     adminSession:
@@ -2803,6 +2997,21 @@ components:
             $ref: "#/components/schemas/Error"
     TaskNotFound:
       description: Vazifa topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ProductNotFound:
+      description: Mahsulot yoki xizmat topilmadi (not_found, "Mahsulot topilmadi")
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ProductConflict:
+      description: >
+        Nom band (name_taken: "Bu nomli mahsulot allaqachon bor" / "Bu nomli
+        xizmat allaqachon bor"), artikul band (sku_taken), mahsulot jonli
+        xaridda bor (product_in_use)
       content:
         application/json:
           schema:
@@ -3825,3 +4034,110 @@ components:
             o'chirishda bo'sh
           items:
             $ref: "#/components/schemas/CustomerChange"
+    ProductKind:
+      type: string
+      description: Mahsulot (omborda turadi, birligi bor) yoki xizmat
+      enum: [product, service]
+    Unit:
+      type: string
+      description: O'lchov birligi, tayyor ro'yxatdan; m2 interfeysda m²
+      enum: [dona, kg, g, l, ml, m, m2, quti, juft, komplekt]
+    Product:
+      type: object
+      required: [id, kind, name, unit, sku, price, note, is_active, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          $ref: "#/components/schemas/ProductKind"
+        name:
+          type: string
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
+          description: Mahsulotda bor, xizmatda null
+        sku:
+          type: [string, "null"]
+          description: Artikul yoki shtrix-kod; xizmatda null
+        price:
+          type: [string, "null"]
+          description: Mahsulotda sotuv narxi, xizmatda narx; bazadagidek ikki kasr xonasi bilan ("150000.50")
+        note:
+          type: [string, "null"]
+        is_active:
+          type: boolean
+          description: Nofaol (false) bo'lsa xarid takliflarida chiqmaydi
+        created_by_name:
+          type: [string, "null"]
+          description: Qo'shgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProductInput:
+      type: object
+      required: [kind, name]
+      properties:
+        kind:
+          $ref: "#/components/schemas/ProductKind"
+        name:
+          type: string
+          maxLength: 120
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
+        sku:
+          type: [string, "null"]
+          maxLength: 60
+        price:
+          type: [string, "null"]
+          pattern: "^[0-9]{1,12}([.][0-9]{1,2})?$"
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    ProductUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
+        sku:
+          type: [string, "null"]
+          maxLength: 60
+        price:
+          type: [string, "null"]
+          pattern: "^[0-9]{1,12}([.][0-9]{1,2})?$"
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    ActiveInput:
+      type: object
+      required: [is_active]
+      properties:
+        is_active:
+          type: boolean
+    ProductPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        page_size:
+          type: integer

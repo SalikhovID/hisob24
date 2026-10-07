@@ -1265,6 +1265,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mahsulotlar yoki xizmatlar ro'yxati (products.view ruxsati)
+         * @description Access token'dagi kompaniyaning mahsulotlari (kind=product, standart) yoki xizmatlari (kind=service), faol (status=active, standart) yoki nofaol (status=inactive) lari, nom bo'yicha (katta-kichik harf farqsiz), sahifada 20 ta. search nomda (mahsulotda artikulda ham) qidiradi, harfma-harf (logic/products.md, 5-bo'lim).
+         */
+        get: operations["listProducts"];
+        put?: never;
+        /**
+         * Mahsulot yoki xizmat qo'shish (products.create ruxsati)
+         * @description Tur (kind) keyin o'zgarmaydi. Mahsulotda birlik majburiy, xizmatda birlik va artikul bo'lmaydi. Nom 1–120 belgi, mahsulotlar ichida va xizmatlar ichida alohida takrorlanmaydi; artikul 60 belgigacha, kompaniyada takrorlanmaydi; narx ixtiyoriy; izoh 500 belgigacha (logic/products.md, 3 va 4-bo'limlar).
+         */
+        post: operations["createProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** Mahsulot yoki xizmat (products.view ruxsati) */
+        get: operations["getProduct"];
+        /**
+         * Mahsulot yoki xizmatni tahrirlash (products.edit ruxsati)
+         * @description Maydonlar yuborilganiga almashadi, yuborilmagan ixtiyoriy maydon bo'shaydi; tur o'zgarmaydi va maydonlar o'sha tur qoidalari bilan tekshiriladi.
+         */
+        put: operations["updateProduct"];
+        post?: never;
+        /**
+         * Mahsulot yoki xizmatni o'chirish (products.delete ruxsati)
+         * @description Yashiriladi (deleted_at), nomi va artikuli bo'shaydi. Jonli xaridda bor mahsulot o'chirilmaydi (409 product_in_use, 4-bosqichdan).
+         */
+        delete: operations["deleteProduct"];
+        options?: never;
+        head?: never;
+        /**
+         * Nofaol qilish yoki faollashtirish (products.edit ruxsati)
+         * @description Nofaol mahsulot xarid takliflarida chiqmaydi; nomi va artikuli band qoladi (logic/products.md, 3.3).
+         */
+        patch: operations["setProductActive"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1823,6 +1878,62 @@ export interface components {
             /** @description Tahrirda yoki ko'chirishda o'zgargan maydonlar; qo'shish va o'chirishda bo'sh */
             changes: components["schemas"]["CustomerChange"][];
         };
+        /**
+         * @description Mahsulot (omborda turadi, birligi bor) yoki xizmat
+         * @enum {string}
+         */
+        ProductKind: "product" | "service";
+        /**
+         * @description O'lchov birligi, tayyor ro'yxatdan; m2 interfeysda m²
+         * @enum {string}
+         */
+        Unit: "dona" | "kg" | "g" | "l" | "ml" | "m" | "m2" | "quti" | "juft" | "komplekt";
+        Product: {
+            /** Format: int64 */
+            id: number;
+            kind: components["schemas"]["ProductKind"];
+            name: string;
+            /** @description Mahsulotda bor, xizmatda null */
+            unit: components["schemas"]["Unit"] | null;
+            /** @description Artikul yoki shtrix-kod; xizmatda null */
+            sku: string | null;
+            /** @description Mahsulotda sotuv narxi, xizmatda narx; bazadagidek ikki kasr xonasi bilan ("150000.50") */
+            price: string | null;
+            note: string | null;
+            /** @description Nofaol (false) bo'lsa xarid takliflarida chiqmaydi */
+            is_active: boolean;
+            /** @description Qo'shgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi */
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ProductInput: {
+            kind: components["schemas"]["ProductKind"];
+            name: string;
+            unit?: components["schemas"]["Unit"] | null;
+            sku?: string | null;
+            price?: string | null;
+            note?: string | null;
+        };
+        ProductUpdate: {
+            name: string;
+            unit?: components["schemas"]["Unit"] | null;
+            sku?: string | null;
+            price?: string | null;
+            note?: string | null;
+        };
+        ActiveInput: {
+            is_active: boolean;
+        };
+        ProductPage: {
+            items: components["schemas"]["Product"][];
+            /** Format: int64 */
+            total: number;
+            page: number;
+            page_size: number;
+        };
     };
     responses: {
         /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
@@ -2071,6 +2182,24 @@ export interface components {
         };
         /** @description Vazifa topilmadi (not_found) */
         TaskNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Mahsulot yoki xizmat topilmadi (not_found, "Mahsulot topilmadi") */
+        ProductNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Nom band (name_taken: "Bu nomli mahsulot allaqachon bor" / "Bu nomli xizmat allaqachon bor"), artikul band (sku_taken), mahsulot jonli xaridda bor (product_in_use) */
+        ProductConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -4396,6 +4525,178 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["TaskNotFound"];
+        };
+    };
+    listProducts: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["ProductKind"];
+                status?: "active" | "inactive";
+                search?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan mahsulot yoki xizmat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["ProductConflict"];
+        };
+    };
+    getProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mahsulot yoki xizmat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ProductNotFound"];
+        };
+    };
+    updateProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan mahsulot yoki xizmat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ProductNotFound"];
+            409: components["responses"]["ProductConflict"];
+        };
+    };
+    deleteProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ProductNotFound"];
+            409: components["responses"]["ProductConflict"];
+        };
+    };
+    setProductActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActiveInput"];
+            };
+        };
+        responses: {
+            /** @description Mahsulot yoki xizmat yangi holatida */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ProductNotFound"];
         };
     };
 }
