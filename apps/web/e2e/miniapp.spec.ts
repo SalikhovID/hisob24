@@ -77,7 +77,9 @@ test.describe("a linked user", () => {
     // On a phone the sections are a tab bar along the bottom, in the chat's colors.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
-      await expect(bar.getByRole("link", { name: "Xodimlar" })).toBeVisible()
+      await expect(bar.getByRole("link", { name: "Mijozlar" })).toBeVisible()
+      // The owner's seven sections: four and «Yana».
+      await expect(bar.getByRole("button", { name: "Yana" })).toBeVisible()
       await expect(bar).toHaveCSS("background-color", "rgb(35, 46, 60)")
       await expect(page.getByRole("button", { name: "Menyu", exact: true })).toHaveCount(0)
     }

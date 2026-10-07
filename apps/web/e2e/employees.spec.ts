@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { addDays, ALI, db, join, LOGIN_CODE, TODAY, VALI } from "../mocks/data"
 import { expect, test } from "./fixtures"
+import { openSection } from "./helpers"
 
 // signIn goes through the login page: the number without +998, then the code.
 async function signIn(page: Page, number: string) {
@@ -33,7 +34,7 @@ const members = (page: Page) =>
 async function openEmployees(page: Page) {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await (await sections(page)).getByRole("link", { name: "Xodimlar" }).click()
+  await openSection(page, "Xodimlar")
   await expect(page).toHaveURL(/\/employees$/)
   await expect(page.getByRole("heading", { name: "Xodimlar" })).toBeVisible()
 }

@@ -19,9 +19,18 @@ export async function sections(page: Page): Promise<Locator> {
   return page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
 }
 
-// openSection goes to a section through the sidebar or the tab bar.
+// openSection goes to a section through the sidebar or the tab bar. On a
+// phone the sections past the fourth are under «Yana» (logic/roles.md,
+// section 8): the way there goes through it.
 export async function openSection(page: Page, name: string) {
-  await (await sections(page)).getByRole("link", { name }).click()
+  const bar = await sections(page)
+  const link = bar.getByRole("link", { name })
+  if ((await link.count()) > 0) {
+    await link.click()
+    return
+  }
+  await bar.getByRole("button", { name: "Yana" }).click()
+  await page.getByRole("dialog", { name: "Yana" }).getByRole("link", { name }).click()
 }
 
 // noSideScroll tells whether the page fits its width: nothing to scroll

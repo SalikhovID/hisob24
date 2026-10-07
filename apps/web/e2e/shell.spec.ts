@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test"
 import { LOGIN_CODE } from "../mocks/data"
 import { expect, test } from "./fixtures"
+import { sections } from "./helpers"
 
 // signIn goes through the login page: the number without +998, then the code.
 async function signIn(page: Page, number: string) {
@@ -29,7 +30,8 @@ test("the sections are a folding sidebar on a wide screen and a tab bar along th
     await expect(sidebar).toBeHidden()
     await expect(page.getByRole("button", { name: "Menyu", exact: true })).toHaveCount(0)
     const bar = tabBar(page)
-    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Xodimlar", "Sozlamalar"])
+    // Seven sections: four in the bar, the rest under «Yana».
+    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
     // The bar stands along the bottom, under the page, and the page fits its width.
     const box = (await bar.boundingBox())!
@@ -37,9 +39,13 @@ test("the sections are a folding sidebar on a wide screen and a tab bar along th
     expect(box.y + box.height).toBeGreaterThanOrEqual(viewport.height - 1)
     expect(box.width).toBe(viewport.width)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
-    await bar.getByRole("link", { name: "Xodimlar" }).click()
+    await bar.getByRole("button", { name: "Yana" }).click()
+    const more = page.getByRole("dialog", { name: "Yana" })
+    await expect(more.getByRole("link")).toHaveText(["Ombor", "Xodimlar", "Sozlamalar"])
+    await more.getByRole("link", { name: "Xodimlar" }).click()
     await expect(page).toHaveURL(/\/employees$/)
-    await expect(bar.getByRole("link", { name: "Xodimlar" })).toHaveAttribute("aria-current", "page")
+    await expect(more).toBeHidden()
+    await expect(bar.getByRole("button", { name: "Yana" })).toHaveAttribute("aria-current", "page")
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current", "page")
     return
   }
@@ -121,4 +127,34 @@ test("the shell is headed by Hisob24's logo, the company's name under it, and by
   await sidebar.getByRole("button", { name: "Menyuni yig'ish" }).click()
   await expect(sidebar.getByRole("img", logo)).toHaveCount(0)
   await expect(sidebar.getByRole("button", { name: "Menyuni yoyish" }).locator('[data-slot="logo-mark"]')).toBeVisible()
+})
+
+test("the member puts the sections in their own order, which the menu keeps after a reload", async ({ page }) => {
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+
+  // The dialog opens from «Yana» on a phone and from the profile menu on a
+  // wide screen.
+  if (onPhone(page)) {
+    await tabBar(page).getByRole("button", { name: "Yana" }).click()
+    await page.getByRole("dialog", { name: "Yana" }).getByRole("button", { name: "Menyuni sozlash" }).click()
+  } else {
+    await page.getByRole("button", { name: "Profil" }).click()
+    await page.getByRole("menuitem", { name: "Menyuni sozlash" }).click()
+  }
+  const dialog = page.getByRole("dialog", { name: "Menyuni sozlash" })
+  const list = dialog.getByRole("list", { name: "Bo'limlar tartibi" })
+  await expect(list.getByRole("listitem")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Ombor", "Xodimlar", "Sozlamalar"])
+  await list.getByRole("button", { name: "Sozlamalar: tartibini o'zgartirish" }).focus()
+  await page.keyboard.press("Home")
+  await expect(list.getByRole("listitem").first()).toHaveText("Sozlamalar")
+  await dialog.getByRole("button", { name: "Saqlash" }).click()
+  await expect(page.getByText("Menyu tartibi saqlandi")).toBeVisible()
+  await expect(dialog).toBeHidden()
+
+  const first = async () => (await sections(page)).getByRole("link").first()
+  await expect(await first()).toHaveText("Sozlamalar")
+  await page.reload()
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await expect(await first()).toHaveText("Sozlamalar")
 })
