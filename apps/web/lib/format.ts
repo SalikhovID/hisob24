@@ -43,3 +43,20 @@ export function formatQuantity(quantity: string, unit: string | null): string {
   const number = trimmed ? `${grouped},${trimmed}` : grouped
   return unit ? `${number} ${unitLabel(unit)}` : number
 }
+
+// formatMoney writes an amount with its currency for people to read: the
+// number as formatAmount writes it, then the currency's symbol ("1 200 000
+// so'm", "150 $").
+export function formatMoney(amount: string, currency: { symbol: string }): string {
+  return `${formatAmount(amount)} ${currency.symbol}`
+}
+
+// formatRate writes a stored rate ("12800.0000") for people to read:
+// thousands apart, the decimals after a comma without the trailing zeros
+// ("12 800", "12 800,5").
+export function formatRate(rate: string): string {
+  const [whole, decimals = ""] = rate.split(".")
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0")
+  const trimmed = decimals.replace(/0+$/, "")
+  return trimmed ? `${grouped},${trimmed}` : grouped
+}

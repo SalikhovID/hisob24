@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { formatAmount, formatDate, formatDateTime, formatQuantity, unitLabel } from "./format"
+import { formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, unitLabel } from "./format"
 
 test("formatDate writes a date as dd.mm.yyyy", () => {
   expect(formatDate("2026-10-07")).toBe("07.10.2026")
@@ -37,4 +37,15 @@ test("formatQuantity writes a quantity with its unit, the decimals without the t
   expect(formatQuantity("1200.000", "m2")).toBe("1 200 m²")
   expect(formatQuantity("0.000", "kg")).toBe("0 kg")
   expect(formatQuantity("3.000", null)).toBe("3")
+})
+
+test("formatMoney writes an amount with its currency's symbol after it", () => {
+  expect(formatMoney("1200000.00", { symbol: "so'm" })).toBe("1 200 000 so'm")
+  expect(formatMoney("150.50", { symbol: "$" })).toBe("150,50 $")
+})
+
+test("formatRate writes a rate without its trailing zeros", () => {
+  expect(formatRate("12800.0000")).toBe("12 800")
+  expect(formatRate("12800.5000")).toBe("12 800,5")
+  expect(formatRate("0.1234")).toBe("0,1234")
 })

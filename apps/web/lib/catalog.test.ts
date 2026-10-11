@@ -9,6 +9,7 @@ const olma: Product = {
   unit: "kg",
   sku: null,
   price: "12000.50",
+  currency_id: 1,
   note: "Qizil",
   is_active: true,
   quantity: "0.000",

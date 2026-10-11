@@ -570,3 +570,18 @@ export function useLogout() {
     onError: (error) => toast.error(error.message),
   })
 }
+
+// ratesKey names the history of a company's currency rates in the cache.
+export const ratesKey = (companyId: number | null) => ["currency-rates", companyId] as const
+
+// useRates is one page of the company's rate rows, the newest first
+// (logic/currencies.md, section 4); the previous page stays while the next
+// loads.
+export function useRates(companyId: number | null, page: number) {
+  return useQuery({
+    queryKey: [...ratesKey(companyId), page] as const,
+    queryFn: () => call(api.GET("/app/currency-rates", { params: { query: { page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}

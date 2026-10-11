@@ -3,6 +3,7 @@
 import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type {
   AppCompany,
+  CompanyCurrency,
   CompanyRole,
   CustomerDropdown,
   CustomerFieldKind,
@@ -228,6 +229,8 @@ export interface ProductRow {
   unit: Unit | null
   sku: string | null
   price: string | null
+  // currencyId is the currency the price is in (logic/currencies.md).
+  currencyId: number
   note: string | null
   active: boolean
   by: string
@@ -316,6 +319,26 @@ export interface TaskHistoryRow {
   changes: { label: string; old: string; new: string }[]
 }
 
+// A standard rate row of a company (logic/currencies.md, section 4): so'm
+// per unit of each currency, four decimals, who set it and when.
+export interface RateRow {
+  id: number
+  companyId: number
+  usd: string
+  eur: string
+  rub: string
+  setBy: string
+  setAt: string
+}
+
+// CATALOG is every currency there is, the so'm first.
+export const CATALOG: Omit<CompanyCurrency, "rate">[] = [
+  { id: 1, code: "UZS", name: "O'zbek so'mi", symbol: "so'm" },
+  { id: 2, code: "USD", name: "AQSH dollari", symbol: "$" },
+  { id: 3, code: "EUR", name: "Yevro", symbol: "€" },
+  { id: 4, code: "RUB", name: "Rossiya rubli", symbol: "₽" },
+]
+
 interface Db {
   users: Record<string, string | null>
   companies: Company[]
@@ -335,6 +358,10 @@ interface Db {
   purchases: PurchaseRow[]
   payments: PaymentRow[]
   stock: StockRow[]
+  // currencies: the ids of the currencies each company has turned on (the
+  // so'm always); rates: the companies' standard rate rows.
+  currencies: Record<number, number[]>
+  rates: RateRow[]
   // lastId: the id the last settings or customer row took.
   lastId: number
   // minutes: how far the clock of the customers' timestamps has moved.
@@ -424,6 +451,10 @@ function seed(): Db {
     purchases: [],
     payments: [],
     stock: [],
+    // Every company has the so'm; Nok Market works in dollars too, at a
+    // rate Vali set: where the currency fields are tested.
+    currencies: { 1: [1], 2: [1, 2], 3: [1], 4: [1] },
+    rates: [{ id: 9001, companyId: 2, usd: "12800.0000", eur: "0.0000", rub: "0.0000", setBy: VALI, setAt: "2026-10-01T05:00:00Z" }],
     minutes: 0,
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],
@@ -820,6 +851,7 @@ export function seedCatalog() {
     const product: ProductRow = {
       id: nextId(),
       companyId: 1,
+      currencyId: 1,
       active: true,
       by: ALI,
       byName: "Ali Valiyev",
@@ -879,4 +911,23 @@ export function seedWarehouse(products?: { olma: ProductRow; nok: ProductRow }) 
     db.payments.push({ id: nextId(), companyId: 1, supplierId: bozor.id, purchaseId: purchase.id, amount: 5000, paidOn: "2026-10-01", note: null, by: ALI, byName: "Ali Valiyev", createdAt: at, updatedAt: at })
   }
   return { bozor, dehqon, purchase }
+}
+
+// currentRateOf is the company's rate row in force now: the newest.
+export function currentRateOf(companyId: number): RateRow | undefined {
+  return db.rates
+    .filter((r) => r.companyId === companyId)
+    .sort((a, b) => b.setAt.localeCompare(a.setAt) || b.id - a.id)[0]
+}
+
+// currenciesOf is the currencies the company has turned on, as /app/me
+// lists them: each with the rate in force now ("1.0000" for the so'm, null
+// while none was set).
+export function currenciesOf(companyId: number): CompanyCurrency[] {
+  const on = db.currencies[companyId] ?? [1]
+  const rate = currentRateOf(companyId)
+  return CATALOG.filter((c) => on.includes(c.id)).map((c) => {
+    const column = rate ? { 1: "1.0000", 2: rate.usd, 3: rate.eur, 4: rate.rub }[c.id] : undefined
+    return { ...c, rate: c.id === 1 ? "1.0000" : column === undefined || /^0(\.0+)?$/.test(column) ? null : column }
+  })
 }

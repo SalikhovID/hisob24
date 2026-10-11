@@ -1851,3 +1851,65 @@ test("a restricted employee sees the purchases of their locations alone, and the
   expect(await getProduct(olma.id)).toMatchObject({ quantity: "2.000", stock: [{ location_id: chilonzor, location_name: "Chilonzor", quantity: "2.000" }] })
   expect((await call(api.GET("/app/products/{id}/purchases", { params: { path: { id: olma.id } } }))).total).toBe(1)
 })
+
+test("/app/me tells the company's currencies with the rates in force", async () => {
+  await signIn(ALI)
+  await chooseCompany(1)
+  expect((await call(api.GET("/app/me"))).currencies).toEqual([
+    { id: 1, code: "UZS", name: "O'zbek so'mi", symbol: "so'm", rate: "1.0000" },
+  ])
+
+  await signIn(VALI)
+  await chooseCompany(2)
+  expect((await call(api.GET("/app/me"))).currencies).toEqual([
+    { id: 1, code: "UZS", name: "O'zbek so'mi", symbol: "so'm", rate: "1.0000" },
+    { id: 2, code: "USD", name: "AQSH dollari", symbol: "$", rate: "12800.0000" },
+  ])
+  await chooseCompany(null)
+  expect((await call(api.GET("/app/me"))).currencies).toEqual([])
+})
+
+test("the rates are read with the settings and set with settings.edit, as the Go API does", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const history = await call(api.GET("/app/currency-rates", { params: { query: { page: 1 } } }))
+  expect(history.total).toBe(1)
+  expect(history.items[0]).toMatchObject({ usd: "12800.0000", eur: "0.0000", rub: "0.0000", set_by_name: "Vali Aliyev" })
+
+  expect(await failure(call(api.POST("/app/currency-rates", { body: {} })))).toMatchObject({ status: 400, message: "Kursni kiriting" })
+  expect(await failure(call(api.POST("/app/currency-rates", { body: { eur: "13900" } })))).toMatchObject({ status: 400, code: "currency_not_allowed" })
+  expect(await failure(call(api.POST("/app/currency-rates", { body: { usd: "abc" } })))).toMatchObject({ status: 400, message: "Kurs noto'g'ri" })
+  const set = await call(api.POST("/app/currency-rates", { body: { usd: "12900.5" } }))
+  expect(set).toMatchObject({ usd: "12900.5000", eur: "0.0000", set_by_name: "Vali Aliyev" })
+  expect((await call(api.GET("/app/me"))).currencies[1].rate).toBe("12900.5000")
+  expect((await call(api.GET("/app/currency-rates", { params: { query: { page: 1 } } }))).items.map((r) => r.usd)).toEqual(["12900.5000", "12800.0000"])
+
+  // An employee without the settings sees nothing of the rates; one with
+  // settings.view alone cannot set them.
+  await signIn(SARDOR)
+  await chooseCompany(1)
+  expect(await failure(call(api.GET("/app/currency-rates", { params: { query: { page: 1 } } })))).toMatchObject({ status: 403, code: "forbidden" })
+  holdRole(SARDOR, 1, "Kuzatuvchi", ["settings.view"])
+  expect((await call(api.GET("/app/currency-rates", { params: { query: { page: 1 } } }))).total).toBe(0)
+  expect(await failure(call(api.POST("/app/currency-rates", { body: { usd: "12800" } })))).toMatchObject({ status: 403, code: "forbidden" })
+})
+
+test("a price is in the so'm unless said otherwise, and only in a currency the company has on", async () => {
+  await signIn(ALI)
+  await chooseCompany(1)
+  const olma = await call(api.POST("/app/products", { body: { kind: "product", name: "Olma", unit: "kg", price: "12000" } }))
+  expect(olma.currency_id).toBe(1)
+  expect(await failure(call(api.POST("/app/products", { body: { kind: "product", name: "Nok", unit: "kg", price: "1", currency_id: 2 } })))).toMatchObject({
+    status: 400,
+    code: "currency_not_allowed",
+    message: "Bu valyuta kompaniyada yoqilmagan",
+  })
+  expect(await failure(call(api.POST("/app/products", { body: { kind: "product", name: "Nok", unit: "kg", currency_id: 9 } })))).toMatchObject({ status: 400, message: "Valyuta noto'g'ri" })
+
+  await signIn(VALI)
+  await chooseCompany(2)
+  const nok = await call(api.POST("/app/products", { body: { kind: "product", name: "Nok", unit: "kg", price: "1.5", currency_id: 2 } }))
+  expect(nok.currency_id).toBe(2)
+  const edited = await call(api.PUT("/app/products/{id}", { params: { path: { id: nok.id } }, body: { name: "Nok", unit: "kg", price: "2" } }))
+  expect(edited.currency_id).toBe(1)
+})

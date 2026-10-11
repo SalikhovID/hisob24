@@ -3,6 +3,7 @@
 // readable strings: "access:<phone>:<company|none>:<n>", "refresh:…".
 import { http, HttpResponse } from "msw"
 import { catalogHandlers } from "./catalog"
+import { currenciesHandlers } from "./currencies"
 import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
 import { rolesHandlers } from "./roles"
@@ -12,7 +13,7 @@ import { warehouseHandlers } from "./warehouse"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, permittedSession, read, type Session } from "./gate"
 import { navKeys } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, db, join, liveLocations, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
+import { companiesOf, currenciesOf, db, join, liveLocations, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
 
 function token(kind: "access" | "refresh", session: Session): string {
   db.issued += 1
@@ -61,6 +62,8 @@ function meOf(user: Session) {
     locations: user.companyId === null ? [] : locationsOf(user.phone, user.companyId),
     // And the order of the menu they set there, null for the default.
     nav_order: membership?.navOrder ?? null,
+    // And the currencies the company has on, with the rates in force.
+    currencies: user.companyId === null ? [] : currenciesOf(user.companyId),
   }
 }
 
@@ -286,4 +289,5 @@ export const handlers = [
   ...tasksHandlers,
   ...catalogHandlers,
   ...warehouseHandlers,
+  ...currenciesHandlers,
 ]

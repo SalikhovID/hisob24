@@ -3,7 +3,8 @@
 import { http, HttpResponse } from "msw"
 import type { Product, ProductKind, Unit } from "@/lib/types"
 import { nameOf } from "./customers"
-import { db, nameIn, nextId, now, type ProductRow } from "./data"
+import { CATALOG, db, nameIn, nextId, now, type ProductRow } from "./data"
+import { notAllowed } from "./currencies"
 import { api, fail, permittedSession } from "./gate"
 import { asAmount, asQuantity, lastPriceOf, liveLocationsIn, locationParam, memberLocationIds, purchasesHolding, stockOf } from "./warehouse"
 
@@ -30,11 +31,12 @@ function trimmed(raw: unknown): string | null {
   return text === "" ? null : text
 }
 
-type Checked = Pick<ProductRow, "name" | "unit" | "sku" | "price" | "note">
+type Checked = Pick<ProductRow, "name" | "unit" | "sku" | "price" | "currencyId" | "note">
 
 // check reads a body as the Go API does, in its order: the kind, the name,
-// the unit, the SKU, the price, the note.
-function check(kind: unknown, body: Record<string, unknown>): Checked | Response {
+// the unit, the SKU, the price, the note; then the price's currency, which
+// has to be one of the catalog the company has turned on.
+function check(kind: unknown, companyId: number, body: Record<string, unknown>): Checked | Response {
   if (kind !== "product" && kind !== "service") return invalid("Turni tanlang")
   const name = trimmed(body.name)
   if (!name) return invalid("Nomni kiriting")
@@ -49,7 +51,10 @@ function check(kind: unknown, body: Record<string, unknown>): Checked | Response
   if (price !== null && !money.test(price)) return invalid("Narx noto'g'ri")
   const note = trimmed(body.note)
   if (note !== null && [...note].length > 500) return invalid("Izoh 500 belgidan oshmasin")
-  return { name, unit: unit as Unit | null, sku, price: price === null ? null : asMoney(price), note }
+  const currencyId = body.currency_id === undefined || body.currency_id === null ? 1 : Number(body.currency_id)
+  if (!CATALOG.some((c) => c.id === currencyId)) return invalid("Valyuta noto'g'ri")
+  if (!(db.currencies[companyId] ?? [1]).includes(currencyId)) return notAllowed()
+  return { name, unit: unit as Unit | null, sku, price: price === null ? null : asMoney(price), currencyId, note }
 }
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -75,6 +80,7 @@ export const toProduct = (p: ProductRow, locationIds: number[] = []): Product =>
   unit: p.unit,
   sku: p.sku,
   price: p.price,
+  currency_id: p.currencyId,
   note: p.note,
   is_active: p.active,
   quantity: p.kind === "product" ? asQuantity(stockOf(p.id, locationIds)) : null,
@@ -120,7 +126,7 @@ export const catalogHandlers = [
     const member = permittedSession(request, "products.create")
     if (member instanceof Response) return member
     const body = (await request.json()) as Record<string, unknown>
-    const c = check(body.kind, body)
+    const c = check(body.kind, member.companyId, body)
     if (c instanceof Response) return c
     const kind = body.kind as ProductKind
     const refusal = taken(member.companyId, kind, c)
@@ -192,7 +198,7 @@ export const catalogHandlers = [
     const p = liveProduct(member.companyId, params.id)
     if (!p) return productNotFound()
     const body = (await request.json()) as Record<string, unknown>
-    const c = check(p.kind, body)
+    const c = check(p.kind, member.companyId, body)
     if (c instanceof Response) return c
     const refusal = taken(member.companyId, p.kind, c, p.id)
     if (refusal) return refusal
