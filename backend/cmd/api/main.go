@@ -85,13 +85,14 @@ func run() error {
 	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, cfg.UserBotToken, sms.New(cfg, slog.Default()), codes)
 	customers := customer.NewService(pool)
 	appAPI := app.NewHandler(app.Services{
-		Auth:      userAuth,
-		Profiles:  user.NewProfiles(pool),
-		Companies: companies,
-		Customers: customers,
-		Tasks:     task.NewService(pool, customers),
-		Catalog:   catalog.NewService(pool),
-		Warehouse: warehouse.NewService(pool),
+		Auth:       userAuth,
+		Profiles:   user.NewProfiles(pool),
+		Companies:  companies,
+		Customers:  customers,
+		Tasks:      task.NewService(pool, customers),
+		Catalog:    catalog.NewService(pool),
+		Warehouse:  warehouse.NewService(pool),
+		Currencies: currencies,
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 

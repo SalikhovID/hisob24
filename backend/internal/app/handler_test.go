@@ -20,6 +20,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
@@ -115,13 +116,14 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 	tg := &tgBox{last: map[int64]string{}}
 	h := NewHandler(
 		Services{
-			Auth:      auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box, tg),
-			Profiles:  user.NewProfiles(pool),
-			Companies: company.NewService(pool),
-			Customers: customer.NewService(pool),
-			Tasks:     task.NewService(pool, customer.NewService(pool)),
-			Catalog:   catalog.NewService(pool),
-			Warehouse: warehouse.NewService(pool),
+			Auth:       auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box, tg),
+			Profiles:   user.NewProfiles(pool),
+			Companies:  company.NewService(pool),
+			Customers:  customer.NewService(pool),
+			Tasks:      task.NewService(pool, customer.NewService(pool)),
+			Catalog:    catalog.NewService(pool),
+			Warehouse:  warehouse.NewService(pool),
+			Currencies: currency.NewService(pool),
 		},
 		cookieSecure,
 		httpx.NewRateLimiter(5, time.Minute),
@@ -226,12 +228,21 @@ func TestSendCodeIsLimitedPerIP(t *testing.T) {
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "a sixth phone from the same IP within a minute")
 }
 
+// addCompany makes a company with the so'm on, as every company starts
+// (logic/currencies.md), and returns its id.
 func (api testAPI) addCompany(t *testing.T, name string, daysLeft int) int64 {
 	t.Helper()
 	var id int64
 	require.NoError(t, api.pool.QueryRow(t.Context(),
 		"INSERT INTO companies (name, end_date) VALUES ($1, CURRENT_DATE + $2::int) RETURNING id", name, daysLeft).Scan(&id))
+	api.exec(t, "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, 1)", id)
 	return id
+}
+
+// turnOn turns a currency on for the company, as the admin does.
+func (api testAPI) turnOn(t *testing.T, companyID, currencyID int64) {
+	t.Helper()
+	api.exec(t, "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, $2)", companyID, currencyID)
 }
 
 func (api testAPI) addMember(t *testing.T, phone string, companyID int64, role string) {
@@ -386,6 +397,7 @@ func TestMe(t *testing.T) {
 	assert.Equal(t, []any{location(asosiy, "Asosiy")}, body["locations"], "the locations the member may work in")
 	assert.Contains(t, body, "nav_order")
 	assert.Nil(t, body["nav_order"], "the default order of the menu")
+	assert.Equal(t, []any{uzs()}, body["currencies"], "the company's currencies with the rates in force")
 }
 
 // /app/me tells the locations the member may work in (logic/locations.md,

@@ -61,6 +61,8 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 		"the purchases":          {http.MethodGet, "/app/purchases", ""},
 		"adding a purchase":      {http.MethodPost, "/app/purchases", `{"location_id":1}`},
 		"deleting a type":        {http.MethodDelete, fmt.Sprintf("/app/customer-types/%d", sh.jismoniy), ""},
+		"the rates":              {http.MethodGet, "/app/currency-rates", ""},
+		"setting the rates":      {http.MethodPost, "/app/currency-rates", `{"usd":"12800"}`},
 	} {
 		rec := api.do(t, req.method, req.path, req.body, bearer(employee))
 		assert.Equal(t, http.StatusForbidden, rec.Code, name)
