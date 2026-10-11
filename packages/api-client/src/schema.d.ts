@@ -281,6 +281,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/companies/{id}/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kompaniyaga akkaunt (kassa, hisob raqam) qo'shish
+         * @description Kompaniyaning puli turadigan joy (logic/finance.md, 3-bo'lim): nom 1–60 belgi, kompaniyaning jonli akkauntlari ichida takrorlanmaydi (harf farqsiz); valyuta kompaniyada yoqilgan bo'lishi shart.
+         */
+        post: operations["addBankAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/companies/{id}/accounts/{accountId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+                accountId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Akkauntni o'chirish
+         * @description Yashiriladi, nomi bo'shaydi. Oxirgi faol akkaunt (409 last_account) va jonli hujjati bor akkaunt (409 account_in_use) o'chirilmaydi: nofaol qilish mumkin.
+         */
+        delete: operations["deleteBankAccount"];
+        options?: never;
+        head?: never;
+        /**
+         * Akkauntni o'zgartirish
+         * @description Nomi, valyutasi (hujjati bo'lmasa) va faol holati; berilmagan maydon o'zgarmaydi. Oxirgi faol akkaunt nofaol qilinmaydi (409 last_account).
+         */
+        patch: operations["patchBankAccount"];
+        trace?: never;
+    };
     "/admin/admins": {
         parameters: {
             query?: never;
@@ -1638,6 +1687,31 @@ export interface components {
             locations: components["schemas"]["AdminLocation"][];
             /** @description Kompaniyada yoqilgan valyutalar, katalog tartibida; so'm doim bor (logic/currencies.md) */
             currencies: components["schemas"]["Currency"][];
+            /** @description Kompaniyaning jonli akkauntlari, qo'shilish tartibida (logic/finance.md, 3-bo'lim) */
+            accounts: components["schemas"]["BankAccount"][];
+        };
+        /** @description Kompaniyaning puli turadigan akkaunt (kassa, hisob raqam, karta), bitta valyutada */
+        BankAccount: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** Format: int64 */
+            currency_id: number;
+            /** @description Nofaol (false) akkaunt formalarda taklif qilinmaydi; qoldig'i ko'rinadi */
+            is_active: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        BankAccountInput: {
+            name: string;
+            /** Format: int64 */
+            currency_id: number;
+        };
+        BankAccountPatch: {
+            name?: string;
+            /** Format: int64 */
+            currency_id?: number;
+            is_active?: boolean;
         };
         /** @description Katalogdagi valyuta (logic/currencies.md, 1-bo'lim) */
         Currency: {
@@ -2545,6 +2619,15 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description Bu nomli akkaunt bor (name_taken, "Bu nomli akkaunt allaqachon bor"); oxirgi faol akkaunt (last_account, "Kompaniyada kamida bitta faol akkaunt qolsin"); jonli hujjati bor akkaunt (account_in_use, "Bu akkauntda N ta hujjat bor") */
+        AccountConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi (cannot_change_owner); buni admin panel qiladi */
         CannotChangeOwner: {
             headers: {
@@ -3292,6 +3375,91 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["CurrencyConflict"];
+        };
+    };
+    addBankAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAccountInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan akkaunt */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccount"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["AccountConflict"];
+        };
+    };
+    deleteBankAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+                accountId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["AccountConflict"];
+        };
+    };
+    patchBankAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+                accountId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAccountPatch"];
+            };
+        };
+        responses: {
+            /** @description Akkaunt endi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccount"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["AccountConflict"];
         };
     };
     listAdmins: {

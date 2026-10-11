@@ -209,3 +209,22 @@ test("an admin turns the dollar on for a company", async ({ page, context, baseU
   await expect(dialog).toBeHidden()
   await expect(currencies.getByText("USD — AQSH dollari")).toBeVisible()
 })
+
+test("an admin adds a card account and turns it off", async ({ page, context, baseURL }) => {
+  await signIn(context, baseURL)
+  await page.goto("/companies/1")
+  await expect(page.getByRole("heading", { name: "Olma Savdo" })).toBeVisible()
+  const accounts = page.getByRole("table", { name: "Akkauntlar" }).or(page.getByRole("list", { name: "Akkauntlar" }))
+  await expect(accounts.getByText("Naqd")).toBeVisible()
+
+  await page.getByRole("button", { name: "Akkaunt qo'shish" }).click()
+  const dialog = page.getByRole("dialog", { name: "Akkaunt qo'shish" })
+  await dialog.getByLabel("Nomi").fill("Karta")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(accounts.getByText("Karta")).toBeVisible()
+
+  await page.getByRole("button", { name: "Nofaol qilish: Karta" }).click()
+  await expect(page.getByText("Akkaunt nofaol qilindi")).toBeVisible()
+  await expect(accounts.getByText("Nofaol")).toBeVisible()
+})

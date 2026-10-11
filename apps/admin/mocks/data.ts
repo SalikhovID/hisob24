@@ -1,6 +1,6 @@
 // An in-memory copy of the admin API's data for MSW: Vitest and Playwright
 // work against the same records and rules as the Go API.
-import type { AdminAccount, AdminLocation, Billing, Company, Currency, Member } from "@/lib/types"
+import type { AdminAccount, AdminLocation, BankAccount, Billing, Company, Currency, Member } from "@/lib/types"
 
 export type { AdminAccount, AdminLocation, Billing, Company, Member }
 
@@ -52,7 +52,15 @@ interface Db {
   // a currency (what keeps it from being turned off), by currency id.
   currencies: Record<number, number[]>
   currencyUse: Record<number, Record<number, number>>
+  // accounts: each company's live accounts, in the order they were added
+  // (logic/finance.md); every company starts with cash in so'm.
+  accounts: Record<number, BankAccount[]>
   nextId: number
+}
+
+// cash is the account every company starts with.
+export function cash(id: number): BankAccount {
+  return { id, name: "Naqd", currency_id: 1, is_active: true, created_at: "2026-09-20T05:00:00Z" }
 }
 
 // CATALOG is every currency there is, the so'm first (logic/currencies.md).
@@ -86,6 +94,7 @@ function seed(): Db {
     // Every company starts with the so'm alone.
     currencies: { 1: [1], 2: [1], 3: [1] },
     currencyUse: {},
+    accounts: { 1: [cash(201)], 2: [cash(202)], 3: [cash(203)] },
     nextId: 4,
   }
 }

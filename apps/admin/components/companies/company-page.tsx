@@ -14,8 +14,9 @@ import { buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { formatDate, formatPhone } from "@/lib/format"
 import { useCompany } from "@/lib/queries"
-import type { AdminLocation, Member } from "@/lib/types"
+import type { AdminLocation, BankAccount, CompanyDetail, Member } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { AddAccountDialog, DeleteAccountButton, EditAccountDialog, ToggleAccountButton } from "./account-dialogs"
 import { AddBillingDialog } from "./add-billing-dialog"
 import { BillingHistory } from "./billing-history"
 import { CompanyActions } from "./company-actions"
@@ -63,8 +64,35 @@ function locationColumns(companyId: number): Column<AdminLocation>[] {
   ]
 }
 
+// accountColumns is the company's accounts: the name, the currency, whether
+// it is on, when it was added, and what the admin may do with it.
+function accountColumns(company: CompanyDetail): Column<BankAccount>[] {
+  const codeOf = (id: number) => company.currencies.find((c) => c.id === id)?.code ?? "—"
+  return [
+    { header: "Akkaunt", primary: true, cell: (a) => a.name },
+    { header: "Valyuta", card: "tag", cell: (a) => <Badge variant="secondary">{codeOf(a.currency_id)}</Badge> },
+    {
+      header: "Holat",
+      card: "tag",
+      cell: (a) => (a.is_active ? <Badge variant="outline">Faol</Badge> : <Badge variant="secondary">Nofaol</Badge>),
+    },
+    { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (a) => formatDate(a.created_at) },
+    {
+      header: "Amallar",
+      actions: true,
+      cell: (a) => (
+        <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
+          <EditAccountDialog company={company} account={a} />
+          <ToggleAccountButton companyId={company.id} account={a} />
+          <DeleteAccountButton companyId={company.id} account={a} />
+        </span>
+      ),
+    },
+  ]
+}
+
 // CompanyPage shows one company: how its subscription stands, its
-// locations, its currencies, who is in it and what has been paid. Each part is a section
+// locations, its currencies, its accounts, who is in it and what has been paid. Each part is a section
 // under its own heading, with at most one action beside it; the page's one
 // solid button adds a payment.
 export function CompanyPage({ id }: { id: number }) {
@@ -72,6 +100,7 @@ export function CompanyPage({ id }: { id: number }) {
   const infoId = useId()
   const locationsId = useId()
   const currenciesId = useId()
+  const accountsId = useId()
   const usersId = useId()
   const billingId = useId()
 
@@ -143,6 +172,14 @@ export function CompanyPage({ id }: { id: number }) {
             </li>
           ))}
         </ul>
+      </section>
+      <section aria-labelledby={accountsId}>
+        <SectionHeading id={accountsId} action={<AddAccountDialog company={c} />}>
+          Kassa
+        </SectionHeading>
+        <div className="mt-3">
+          <DataList label="Akkauntlar" items={c.accounts} columns={accountColumns(c)} getKey={(a) => a.id} footer={`Jami: ${c.accounts.length}`} />
+        </div>
       </section>
       <section aria-labelledby={usersId}>
         <SectionHeading id={usersId} action={<ReplaceOwnerDialog companyId={c.id} />}>

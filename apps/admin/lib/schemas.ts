@@ -69,3 +69,11 @@ export const adminSchema = z.object({
 export const locationSchema = z.object({
   name: required("Nomni kiriting").max(60, "Nom 60 belgidan oshmasin"),
 })
+
+// accountSchema is the add-account and edit-account dialogs: a name trimmed
+// to 1–60 characters, as the API's CleanName takes it, and the currency the
+// account is in (a select holds its id as text).
+export const accountSchema = z.object({
+  name: required("Nomni kiriting").max(60, "Nom 60 belgidan oshmasin"),
+  currency_id: z.string().min(1, "Valyutani tanlang").transform(Number),
+})

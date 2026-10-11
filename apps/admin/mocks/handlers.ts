@@ -1,10 +1,12 @@
 // MSW handlers for the admin API, answering like the Go API: same paths,
 // status codes, error codes and Uzbek messages.
 import { http, HttpResponse } from "msw"
+import type { BankAccount } from "@/lib/types"
 import {
   addDays,
   type AdminLocation,
   type Billing,
+  cash,
   CATALOG,
   company,
   daysBetween,
@@ -56,6 +58,19 @@ function findCompany(id: unknown) {
 function currenciesOf(companyId: number) {
   const on = db.currencies[companyId] ?? [1]
   return CATALOG.filter((c) => on.includes(c.id))
+}
+
+const accountNotFound = () => fail(404, "not_found", "Akkaunt topilmadi")
+const lastAccount = () => fail(409, "last_account", "Kompaniyada kamida bitta faol akkaunt qolsin")
+
+// accountCurrency is the API's rule for an account's currency: one of the
+// catalog the company has turned on.
+function accountCurrency(companyId: number, raw: unknown): number | Response {
+  const id = Number(raw)
+  if (!raw) return fail(400, "validation_error", "Valyutani tanlang")
+  if (!CATALOG.some((c) => c.id === id)) return fail(400, "validation_error", "Valyuta noto'g'ri")
+  if (!(db.currencies[companyId] ?? [1]).includes(id)) return fail(400, "currency_not_allowed", "Bu valyuta kompaniyada yoqilmagan")
+  return id
 }
 
 function owner() {
@@ -134,13 +149,68 @@ export const handlers = [
     db.locations[created.id] = [{ id: db.nextId++, name: "Asosiy", tasks_count: 0, created_at: new Date().toISOString() }]
     db.billings[created.id] = []
     db.currencies[created.id] = [1]
+    db.accounts[created.id] = [cash(db.nextId++)]
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.get(api("/admin/companies/:id"), ({ params }) => {
     const c = findCompany(params.id)
     if (!c) return notFound()
-    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []), locations: db.locations[c.id] ?? [], currencies: currenciesOf(c.id) })
+    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []), locations: db.locations[c.id] ?? [], currencies: currenciesOf(c.id), accounts: db.accounts[c.id] ?? [] })
+  }),
+
+  // The company's accounts (logic/finance.md, section 3): added, changed
+  // and deleted by the admin, under the Go API's rules
+  // (backend/internal/finance/accounts.go).
+  http.post(api("/admin/companies/:id/accounts"), async ({ params, request }) => {
+    const body = (await request.json()) as { name?: unknown; currency_id?: unknown }
+    const name = locationName(body.name)
+    if (name instanceof Response) return name
+    const c = findCompany(params.id)
+    if (!c) return notFound()
+    const currency = accountCurrency(c.id, body.currency_id)
+    if (currency instanceof Response) return currency
+    const accounts = (db.accounts[c.id] ??= [])
+    if (accounts.some((a) => sameName(a.name, name))) return fail(409, "name_taken", "Bu nomli akkaunt allaqachon bor")
+    const account: BankAccount = { id: db.nextId++, name, currency_id: currency, is_active: true, created_at: new Date().toISOString() }
+    accounts.push(account)
+    return HttpResponse.json(account, { status: 201 })
+  }),
+
+  http.patch(api("/admin/companies/:id/accounts/:accountId"), async ({ params, request }) => {
+    const c = findCompany(params.id)
+    if (!c) return notFound()
+    const accounts = db.accounts[c.id] ?? []
+    const account = accounts.find((a) => a.id === Number(params.accountId))
+    if (!account) return accountNotFound()
+    const body = (await request.json()) as { name?: unknown; currency_id?: unknown; is_active?: unknown }
+    let name = account.name
+    if (body.name !== undefined) {
+      const cleaned = locationName(body.name)
+      if (cleaned instanceof Response) return cleaned
+      name = cleaned
+    }
+    let currency = account.currency_id
+    if (body.currency_id !== undefined) {
+      const checked = accountCurrency(c.id, body.currency_id)
+      if (checked instanceof Response) return checked
+      currency = checked
+    }
+    if (body.is_active === false && account.is_active && accounts.filter((a) => a.is_active).length <= 1) return lastAccount()
+    if (accounts.some((a) => a.id !== account.id && sameName(a.name, name))) return fail(409, "name_taken", "Bu nomli akkaunt allaqachon bor")
+    Object.assign(account, { name, currency_id: currency, is_active: typeof body.is_active === "boolean" ? body.is_active : account.is_active })
+    return HttpResponse.json(account)
+  }),
+
+  http.delete(api("/admin/companies/:id/accounts/:accountId"), ({ params }) => {
+    const c = findCompany(params.id)
+    if (!c) return notFound()
+    const accounts = db.accounts[c.id] ?? []
+    const account = accounts.find((a) => a.id === Number(params.accountId))
+    if (!account) return accountNotFound()
+    if (account.is_active && accounts.filter((a) => a.is_active).length <= 1) return lastAccount()
+    db.accounts[c.id] = accounts.filter((a) => a.id !== account.id)
+    return new HttpResponse(null, { status: 204 })
   }),
 
   // The currencies (logic/currencies.md, section 3): the catalog, and what
