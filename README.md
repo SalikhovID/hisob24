@@ -384,6 +384,15 @@ docker compose -f docker-compose.prod.yml logs -f api    # SMS va webhook xatola
   - log: `journalctl -t hisob24-backup`;
   - tiklash: `gunzip -c <fayl> | docker compose -f docker-compose.prod.yml exec -T postgres psql -U hisob24 -d hisob24`.
 
+## Test server: test-*.hisob24.uz
+
+Server `test` (84.247.143.87, boshqa loyihalar bilan umumiy). Stack `/var/www/hisob24-dev` da, [`docker-compose.test.yml`](docker-compose.test.yml) bilan (project `hisob24-dev`): `test-app.hisob24.uz` → `127.0.0.1:8192`, `test-admin.hisob24.uz` → `8191`, `test-api.hisob24.uz` → `8190`. TLS host nginx'ida, sertifikat uchala domen uchun bitta. `.env` da `SMS_DRIVER=log` (kodlar `docker compose -f docker-compose.test.yml logs api` da), test botlar.
+
+```bash
+git checkout dev
+HISOB24_COMPOSE=docker-compose.test.yml deploy/ship.sh test /var/www/hisob24-dev
+```
+
 ## Loyiha tuzilmasi
 
 ```
