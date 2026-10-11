@@ -1,4 +1,4 @@
-// Command api runs the Hisob24 HTTP API together with the admin Telegram bot.
+// Command api runs the Hisob24 HTTP API together with the two Telegram bots.
 package main
 
 import (
@@ -69,7 +69,17 @@ func run() error {
 	if cfg.SMSDriver == "log" {
 		slog.Warn("SMS_DRIVER=log: login codes go to this log, no SMS is sent")
 	}
-	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, cfg.UserBotToken, sms.New(cfg, slog.Default()), nil)
+	// The user bot is made before the sign-in service, which messages the
+	// login codes through it; it starts once the routes are known.
+	userBot, err := newUserBot(cfg, user.NewContacts(pool))
+	if err != nil {
+		return err
+	}
+	var codes auth.TelegramCodes
+	if userBot != nil {
+		codes = userbot.NewCodes(userBot)
+	}
+	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, cfg.UserBotToken, sms.New(cfg, slog.Default()), codes)
 	customers := customer.NewService(pool)
 	appAPI := app.NewHandler(app.Services{
 		Auth:      userAuth,
@@ -91,7 +101,7 @@ func run() error {
 			r.With(httpx.TelegramSecret(cfg.TelegramWebhookSecret)).Post(adminbot.WebhookPath, adminWebhook)
 		})
 	}
-	userWebhook, err := startUserBot(ctx, cfg, user.NewContacts(pool))
+	userWebhook, err := runUserBot(ctx, cfg, userBot)
 	if err != nil {
 		return err
 	}
@@ -167,12 +177,12 @@ func startAdminBot(ctx context.Context, cfg config.Config, a *auth.AdminAuth) (h
 	return nil, nil
 }
 
-// startUserBot runs the user bot when USER_BOT_TOKEN is set: polling in a
-// goroutine, or, in webhook mode, returns the handler Telegram's calls must
-// reach.
-func startUserBot(ctx context.Context, cfg config.Config, contacts *user.Contacts) (http.HandlerFunc, error) {
+// newUserBot makes the user bot, its answers wired, when USER_BOT_TOKEN is
+// set; nil when it is empty: the bot is off and every login code is an SMS.
+// runUserBot starts it.
+func newUserBot(cfg config.Config, contacts *user.Contacts) (*bot.Bot, error) {
 	if cfg.UserBotToken == "" {
-		slog.Warn("USER_BOT_TOKEN is empty: the user bot is off")
+		slog.Warn("USER_BOT_TOKEN is empty: the user bot is off, every login code is an SMS")
 		return nil, nil
 	}
 	var handler *userbot.Handler
@@ -184,6 +194,16 @@ func startUserBot(ctx context.Context, cfg config.Config, contacts *user.Contact
 		return nil, fmt.Errorf("user bot: %w", err)
 	}
 	handler = userbot.NewHandler(b, contacts)
+	return b, nil
+}
+
+// runUserBot runs the user bot newUserBot made (nil: nothing to run):
+// polling in a goroutine, or, in webhook mode, returns the handler
+// Telegram's calls must reach.
+func runUserBot(ctx context.Context, cfg config.Config, b *bot.Bot) (http.HandlerFunc, error) {
+	if b == nil {
+		return nil, nil
+	}
 	if err := userbot.SetMenuButton(ctx, b, cfg.WebAppURL); err != nil {
 		// Telegram accepts only https Mini App URLs; the bot works without the button.
 		slog.Warn("user bot: menu button not set", "err", err)

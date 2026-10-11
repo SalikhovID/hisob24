@@ -293,8 +293,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * SMS bilan kirish kodini yuborish
-         * @description Kod 6 xonali, 2 daqiqa amal qiladi. Tizimga faqat kamida bitta kompaniyaga a'zo user kiradi: boshqa raqamga SMS ketmaydi, lekin javob bir xil (kim borligi bilinmaydi). Bitta raqamga 60 soniyada bitta kod; IP'dan daqiqasiga 5 ta so'rov.
+         * Kirish kodini yuborish (SMS yoki Telegram)
+         * @description Kod 6 xonali, 2 daqiqa amal qiladi. Raqam user botga ulangan bo'lsa (telefonini botga yuborgan), kod o'sha Telegram chatga ketadi va SMS yuborilmaydi; raqam ulanmagan yoki Telegram yetkaza olmagan bo'lsa, SMS. Tizimga faqat kamida bitta kompaniyaga a'zo user kiradi: boshqa raqamga hech narsa ketmaydi, lekin javob bir xil (kim borligi va kod qayerga ketgani bilinmaydi). Bitta raqamga 60 soniyada bitta kod; IP'dan daqiqasiga 5 ta so'rov.
          */
         post: operations["sendLoginCode"];
         delete?: never;
