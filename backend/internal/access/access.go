@@ -14,8 +14,11 @@ import (
 // Permission is one thing a member may do, as "section.action".
 type Permission string
 
-// The sections and their actions. Every section has view, create, edit and
-// delete; the customers and the tasks have a history too.
+// The sections and their actions (logic/roles.md, 4.1). Every section has
+// view, create, edit and delete; the customers and the tasks have a history
+// too. The sales are the sales and the customers' money; the stock is the
+// stock documents (transfers, inventories, opening stock); the finance is
+// the accounts and the money documents.
 const (
 	CustomersView    Permission = "customers.view"
 	CustomersCreate  Permission = "customers.create"
@@ -39,6 +42,18 @@ const (
 	PurchasesCreate  Permission = "purchases.create"
 	PurchasesEdit    Permission = "purchases.edit"
 	PurchasesDelete  Permission = "purchases.delete"
+	SalesView        Permission = "sales.view"
+	SalesCreate      Permission = "sales.create"
+	SalesEdit        Permission = "sales.edit"
+	SalesDelete      Permission = "sales.delete"
+	StockView        Permission = "stock.view"
+	StockCreate      Permission = "stock.create"
+	StockEdit        Permission = "stock.edit"
+	StockDelete      Permission = "stock.delete"
+	FinanceView      Permission = "finance.view"
+	FinanceCreate    Permission = "finance.create"
+	FinanceEdit      Permission = "finance.edit"
+	FinanceDelete    Permission = "finance.delete"
 	EmployeesView    Permission = "employees.view"
 	EmployeesCreate  Permission = "employees.create"
 	EmployeesEdit    Permission = "employees.edit"
@@ -56,20 +71,27 @@ var All = []Permission{
 	ProductsView, ProductsCreate, ProductsEdit, ProductsDelete,
 	SuppliersView, SuppliersCreate, SuppliersEdit, SuppliersDelete,
 	PurchasesView, PurchasesCreate, PurchasesEdit, PurchasesDelete,
+	SalesView, SalesCreate, SalesEdit, SalesDelete,
+	StockView, StockCreate, StockEdit, StockDelete,
+	FinanceView, FinanceCreate, FinanceEdit, FinanceDelete,
 	EmployeesView, EmployeesCreate, EmployeesEdit, EmployeesDelete,
 	SettingsView, SettingsCreate, SettingsEdit, SettingsDelete,
 }
 
 // Default is what a user with no role has: the customers and the tasks,
 // without their history (the rule from before roles existed), and the
-// warehouse sections, the products, the suppliers and the purchases
-// (logic/roles.md, 4.2).
+// products, the suppliers, the purchases, the sales, the stock documents
+// and the finance (logic/roles.md, 4.2); not the employees nor the
+// settings.
 var Default = []Permission{
 	CustomersView, CustomersCreate, CustomersEdit, CustomersDelete,
 	TasksView, TasksCreate, TasksEdit, TasksDelete,
 	ProductsView, ProductsCreate, ProductsEdit, ProductsDelete,
 	SuppliersView, SuppliersCreate, SuppliersEdit, SuppliersDelete,
 	PurchasesView, PurchasesCreate, PurchasesEdit, PurchasesDelete,
+	SalesView, SalesCreate, SalesEdit, SalesDelete,
+	StockView, StockCreate, StockEdit, StockDelete,
+	FinanceView, FinanceCreate, FinanceEdit, FinanceDelete,
 }
 
 // sectionNames are the sections' names in the app, for the messages.
@@ -79,6 +101,9 @@ var sectionNames = map[string]string{
 	"products":  "Mahsulotlar",
 	"suppliers": "Ta'minotchilar",
 	"purchases": "Xaridlar",
+	"sales":     "Sotuv",
+	"stock":     "Ombor hujjatlari",
+	"finance":   "Moliya",
 	"employees": "Xodimlar",
 	"settings":  "Sozlamalar",
 }

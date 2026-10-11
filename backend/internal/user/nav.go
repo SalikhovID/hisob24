@@ -5,7 +5,7 @@ import "github.com/SalikhovID/hisob24/backend/internal/apperr"
 // NavSections are the app's sections by key, in the default order of the
 // menu (logic/roles.md, section 8): a member may put them in their own
 // order, which their membership keeps.
-var NavSections = []string{"home", "customers", "tasks", "products", "warehouse", "employees", "settings"}
+var NavSections = []string{"home", "customers", "tasks", "products", "sales", "warehouse", "finance", "employees", "settings"}
 
 // ParseNavOrder reads an order of the sections as a client sends it: each
 // key one of NavSections, a repeated one counts once. Nothing is an order

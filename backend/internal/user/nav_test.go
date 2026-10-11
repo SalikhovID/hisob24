@@ -11,7 +11,7 @@ import (
 
 func TestNavSections(t *testing.T) {
 	t.Parallel()
-	assert.Equal(t, []string{"home", "customers", "tasks", "products", "warehouse", "employees", "settings"}, NavSections)
+	assert.Equal(t, []string{"home", "customers", "tasks", "products", "sales", "warehouse", "finance", "employees", "settings"}, NavSections)
 }
 
 func TestParseNavOrder(t *testing.T) {
