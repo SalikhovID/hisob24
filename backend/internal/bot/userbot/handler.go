@@ -1,5 +1,5 @@
-// Package userbot is the user Telegram bot: it asks for the user's phone
-// and links the chat to it.
+// Package userbot is the user Telegram bot: it asks for the user's phone,
+// links the chat to it and messages the chat its login codes.
 package userbot
 
 import (
@@ -26,8 +26,8 @@ type Contacts interface {
 const (
 	askText     = "Assalomu alaykum! Hisob24 akkauntingizni ulash uchun telefon raqamingizni yuboring."
 	shareButton = "📱 Raqamni yuborish"
-	linkedText  = "✅ Akkauntingiz ulandi"
-	savedText   = "Raqamingiz saqlandi"
+	linkedText  = "✅ Akkauntingiz ulandi. Kirish kodlari endi shu yerga keladi."
+	savedText   = "Raqamingiz saqlandi. Hisob24'ga qo'shilganingizda kirish kodlari shu yerga keladi."
 	notYours    = "Iltimos, o'z raqamingizni yuboring"
 	failText    = "Xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring."
 )

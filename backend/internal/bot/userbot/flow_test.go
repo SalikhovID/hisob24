@@ -25,7 +25,7 @@ func TestSharedContactIsKept(t *testing.T) {
 	NewHandler(api, user.NewContacts(pool)).Handle(t.Context(), contact(aliID, "+998901234567"))
 
 	require.Len(t, api.sent, 1)
-	assert.Equal(t, "✅ Akkauntingiz ulandi", api.sent[0].Text)
+	assert.Equal(t, "✅ Akkauntingiz ulandi. Kirish kodlari endi shu yerga keladi.", api.sent[0].Text)
 	var phone string
 	require.NoError(t, pool.QueryRow(t.Context(), "SELECT phone FROM telegram_contacts WHERE chat_id = $1", aliID).Scan(&phone))
 	assert.Equal(t, "998901234567", phone)

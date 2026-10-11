@@ -87,8 +87,8 @@ func TestOwnContactIsSavedAndAnswered(t *testing.T) {
 		isUser bool
 		answer string
 	}{
-		"a user":         {true, "✅ Akkauntingiz ulandi"},
-		"not yet a user": {false, "Raqamingiz saqlandi"},
+		"a user":         {true, "✅ Akkauntingiz ulandi. Kirish kodlari endi shu yerga keladi."},
+		"not yet a user": {false, "Raqamingiz saqlandi. Hisob24'ga qo'shilganingizda kirish kodlari shu yerga keladi."},
 	} {
 		api := &fakeAPI{}
 		contacts := &fakeContacts{isUser: tc.isUser}
