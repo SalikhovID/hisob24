@@ -34,6 +34,18 @@ type AdminSession struct {
 	CreatedAt time.Time
 }
 
+type BankAccount struct {
+	ID         int64
+	CompanyID  int64
+	Name       string
+	CurrencyID int64
+	IsActive   bool
+	CreatedBy  *int64
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time
+}
+
 type Billing struct {
 	ID          int64
 	CompanyID   int64
@@ -152,6 +164,18 @@ type CustomerValue struct {
 	OptionID   *int64
 	TextValue  *string
 	IntValue   *int64
+}
+
+type FinanceCategory struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	Kind      string
+	Position  int32
+	IsActive  bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
 
 type Location struct {

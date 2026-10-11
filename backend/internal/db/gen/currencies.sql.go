@@ -47,6 +47,24 @@ func (q *Queries) CompanyHasCurrency(ctx context.Context, arg CompanyHasCurrency
 	return exists, err
 }
 
+const countCurrencyBankAccounts = `-- name: CountCurrencyBankAccounts :one
+SELECT count(*) FROM bank_accounts WHERE company_id = $1 AND currency_id = $2 AND deleted_at IS NULL
+`
+
+type CountCurrencyBankAccountsParams struct {
+	CompanyID  int64
+	CurrencyID int64
+}
+
+// How many live accounts of the company are in the currency: what keeps
+// it from being turned off too.
+func (q *Queries) CountCurrencyBankAccounts(ctx context.Context, arg CountCurrencyBankAccountsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCurrencyBankAccounts, arg.CompanyID, arg.CurrencyID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countCurrencyProducts = `-- name: CountCurrencyProducts :one
 SELECT count(*) FROM products WHERE company_id = $1 AND currency_id = $2 AND deleted_at IS NULL
 `

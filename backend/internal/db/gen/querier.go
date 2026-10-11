@@ -53,8 +53,13 @@ type Querier interface {
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.
 	ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error)
+	// How many live, active accounts the company has: one has to stay.
+	CountActiveBankAccounts(ctx context.Context, companyID int64) (int64, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
+	// How many live accounts of the company are in the currency: what keeps
+	// it from being turned off too.
+	CountCurrencyBankAccounts(ctx context.Context, arg CountCurrencyBankAccountsParams) (int64, error)
 	// How many live products or services of the company carry their price in
 	// the currency: what keeps it from being turned off.
 	CountCurrencyProducts(ctx context.Context, arg CountCurrencyProductsParams) (int64, error)
@@ -121,6 +126,9 @@ type Querier interface {
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)
 	CreateAdminSession(ctx context.Context, arg CreateAdminSessionParams) (AdminSession, error)
+	// Adds an account of the company in the currency; 23505 when the name is
+	// another live account's (whatever the case).
+	CreateBankAccount(ctx context.Context, arg CreateBankAccountParams) (BankAccount, error)
 	CreateBilling(ctx context.Context, arg CreateBillingParams) (Billing, error)
 	CreateCompany(ctx context.Context, arg CreateCompanyParams) (Company, error)
 	// Enters a customer. created_by_name is the name the member who enters it
@@ -129,6 +137,9 @@ type Querier interface {
 	CreateCustomerDropdown(ctx context.Context, arg CreateCustomerDropdownParams) (CustomerDropdown, error)
 	// A new type goes last among the company's.
 	CreateCustomerType(ctx context.Context, arg CreateCustomerTypeParams) (CustomerType, error)
+	// A new category goes last among the company's of the kind; 23505 when
+	// the name is another live category's of the kind (whatever the case).
+	CreateFinanceCategory(ctx context.Context, arg CreateFinanceCategoryParams) (FinanceCategory, error)
 	// Adds a location to the company. The name is one location's in a company
 	// (23505, whatever the case, among the live ones).
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
@@ -183,6 +194,9 @@ type Querier interface {
 	DeleteAdminSession(ctx context.Context, id uuid.UUID) error
 	// Logs a deactivated admin out everywhere.
 	DeleteAdminSessionsByAdmin(ctx context.Context, adminID int64) error
+	// Hides the account: nothing is removed, its name is free again.
+	// pgx.ErrNoRows when the company has no such account, or deleted it already.
+	DeleteBankAccount(ctx context.Context, arg DeleteBankAccountParams) (int64, error)
 	// Hides the customer: nothing is removed, and its number is free again.
 	// pgx.ErrNoRows when the company has no such customer, or deleted it already.
 	DeleteCustomer(ctx context.Context, arg DeleteCustomerParams) (int64, error)
@@ -203,6 +217,9 @@ type Querier interface {
 	// Clears a customer's answers: an edit writes them anew. What they were
 	// stays in the customer's history.
 	DeleteCustomerValues(ctx context.Context, customerID int64) error
+	// Hides the category: nothing is removed, its name is free again.
+	// pgx.ErrNoRows when the company has no such category, or deleted it already.
+	DeleteFinanceCategory(ctx context.Context, arg DeleteFinanceCategoryParams) (int64, error)
 	// Hides the location: nothing is removed, and its name is free again.
 	// pgx.ErrNoRows when the company has no such location, or deleted it
 	// already.
@@ -267,6 +284,9 @@ type Querier interface {
 	// The admin behind a live session; an expired session or a deactivated
 	// admin gives pgx.ErrNoRows.
 	GetAdminBySession(ctx context.Context, id uuid.UUID) (Admin, error)
+	// The company's live account; pgx.ErrNoRows when it has none such, or
+	// deleted it.
+	GetBankAccount(ctx context.Context, arg GetBankAccountParams) (BankAccount, error)
 	GetCompany(ctx context.Context, id int64) (Company, error)
 	// A user's standing in a company, read on every request: the role there,
 	// the company role they hold with its permissions (NULL for the owner and
@@ -297,6 +317,9 @@ type Querier interface {
 	GetCustomerField(ctx context.Context, arg GetCustomerFieldParams) (CustomerField, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerType(ctx context.Context, arg GetCustomerTypeParams) (CustomerType, error)
+	// The company's live category; pgx.ErrNoRows when it has none such, or
+	// deleted it.
+	GetFinanceCategory(ctx context.Context, arg GetFinanceCategoryParams) (FinanceCategory, error)
 	// The company's earliest standard rate row: what a moment before any rate
 	// falls back to. pgx.ErrNoRows when the company has none.
 	GetFirstRate(ctx context.Context, companyID int64) (CurrencyRate, error)
@@ -368,6 +391,8 @@ type Querier interface {
 	// Counts a wrong code; the caller deletes the code after the fifth.
 	IncrementSMSCodeAttempts(ctx context.Context, phone string) (int32, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
+	// The company's live accounts, in the order they were added.
+	ListBankAccounts(ctx context.Context, companyID int64) ([]BankAccount, error)
 	ListBillings(ctx context.Context, companyID int64) ([]Billing, error)
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
@@ -413,6 +438,9 @@ type Querier interface {
 	// in the phone and in the whole number answers. The names of the options are
 	// not searched. A NULL argument leaves its filter out.
 	ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error)
+	// The company's live categories of the kind (every kind with NULL, the
+	// expenses first), each kind in its order.
+	ListFinanceCategories(ctx context.Context, arg ListFinanceCategoriesParams) ([]FinanceCategory, error)
 	// The company's live locations for the admin, in the order they were
 	// added, each with how many tasks stand in it (the deleted not counted).
 	ListLocations(ctx context.Context, companyID int64) ([]ListLocationsRow, error)
@@ -527,6 +555,10 @@ type Querier interface {
 	// Puts the company's types in the order of ids: the first gets position 1.
 	// An id that is not a live type of the company is passed over.
 	OrderCustomerTypes(ctx context.Context, arg OrderCustomerTypesParams) error
+	// Puts the company's categories of the kind in the order of ids: the first
+	// gets position 1. An id that is not a live category of the kind is passed
+	// over.
+	OrderFinanceCategories(ctx context.Context, arg OrderFinanceCategoriesParams) error
 	// Puts the type's fields in the order of ids: the first gets position 1. An
 	// id that is not a live field of the type is passed over.
 	OrderTaskFields(ctx context.Context, arg OrderTaskFieldsParams) error
@@ -605,6 +637,10 @@ type Querier interface {
 	// Whether the company's live supplier is active; pgx.ErrNoRows when the
 	// company has none such, or deleted it (a purchase may not name it).
 	SupplierStanding(ctx context.Context, arg SupplierStandingParams) (bool, error)
+	// Changes the name, the currency and the active flag; a NULL argument
+	// leaves its column as it is. pgx.ErrNoRows when the company has no such
+	// account, or deleted it; 23505 when the name is another's.
+	UpdateBankAccount(ctx context.Context, arg UpdateBankAccountParams) (BankAccount, error)
 	// PATCH: a NULL argument leaves its column as it is.
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	// An edit: the customer's number as it is now, and the moment of the edit.
@@ -618,6 +654,10 @@ type Querier interface {
 	// is. The kind and the dropdown are never changed. pgx.ErrNoRows when the
 	// type has no such field, or it is deleted.
 	UpdateCustomerField(ctx context.Context, arg UpdateCustomerFieldParams) (CustomerField, error)
+	// Changes the name and the active flag; a NULL argument leaves its column
+	// as it is. The kind never changes. pgx.ErrNoRows when the company has no
+	// such category, or deleted it; 23505 when the name is another's.
+	UpdateFinanceCategory(ctx context.Context, arg UpdateFinanceCategoryParams) (FinanceCategory, error)
 	// An edit of a payment entered on its own: the amount, the day and the note
 	// (NULL clears it). pgx.ErrNoRows when the company has none such, or
 	// deleted it. (A linked one is refused by the service before this.)

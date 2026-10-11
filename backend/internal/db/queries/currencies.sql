@@ -67,3 +67,8 @@ LIMIT $2 OFFSET $3;
 -- name: CountRates :one
 -- How many standard rate rows the company has, on all the pages.
 SELECT count(*) FROM currency_rates WHERE company_id = $1 AND status = 1;
+
+-- name: CountCurrencyBankAccounts :one
+-- How many live accounts of the company are in the currency: what keeps
+-- it from being turned off too.
+SELECT count(*) FROM bank_accounts WHERE company_id = $1 AND currency_id = $2 AND deleted_at IS NULL;
