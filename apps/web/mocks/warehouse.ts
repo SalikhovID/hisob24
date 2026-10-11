@@ -1,46 +1,53 @@
 // The warehouse of the mock API: the suppliers, the purchases into the
-// stock of the locations, the payments and what is owed, under the Go API's
-// rules (logic/warehouse.md; backend/internal/warehouse).
+// stock journal of the locations, the payments through the accounts and
+// what is owed, under the Go API's rules (logic/warehouse.md;
+// backend/internal/warehouse).
 import { http, HttpResponse } from "msw"
 import type { Payment, Purchase, PurchaseDetail, PurchaseItem, Supplier } from "@/lib/types"
 import { nameOf } from "./customers"
-import { db, locationsOf, nameIn, nextId, now, permissionsOf, type PaymentRow, type ProductRow, type PurchaseItemRow, type PurchaseRow, type SupplierRow } from "./data"
+import { db, locationsOf, nameIn, nextId, now, permissionsOf, type ProductRow, type SupplierRow, type TransactionRow } from "./data"
 import { api, fail, forbidden, normalizePhone, permittedSession } from "./gate"
+import {
+  asAmount,
+  asQuantity,
+  asRate,
+  atOf,
+  balanceOf,
+  checkStock,
+  convertAmount,
+  itemsOf,
+  linkedPaymentsOf,
+  liveDocuments,
+  money,
+  movesOf,
+  nextNumber,
+  paidOf,
+  priceIn,
+  type Pricing,
+  quantityPattern,
+  rateColumn,
+  rateOf,
+  round,
+  statementOf,
+  takeMoves,
+  writeLinkedPayments,
+} from "./ledger"
+
+export { asAmount, asQuantity, documentsHolding, lastPriceOf, stockOf } from "./ledger"
 
 const PAGE_SIZE = 20
-const money = /^\d{1,12}(\.\d{1,2})?$/
-const quantityPattern = /^\d{1,9}(\.\d{1,3})?$/
 
 const invalid = (message: string) => fail(400, "validation_error", message)
 const supplierNotFound = () => fail(404, "not_found", "Ta'minotchi topilmadi")
 const purchaseNotFound = () => fail(404, "not_found", "Xarid topilmadi")
 const paymentNotFound = () => fail(404, "not_found", "To'lov topilmadi")
 const paymentLinked = () => fail(409, "payment_linked", "Bu to'lov xarid bilan kiritilgan: xaridni tahrirlang")
-const stockInsufficient = () => fail(409, "stock_insufficient", "Omborda yetarli qoldiq yo'q")
-
-// round keeps a number to the column's decimals (the database rounds the
-// same way).
-const round = (x: number, decimals: number) => Math.round(x * 10 ** decimals) / 10 ** decimals
-
-// asAmount writes an amount as the API does: two decimals. asQuantity a
-// quantity: three.
-export const asAmount = (x: number) => round(x, 2).toFixed(2)
-export const asQuantity = (x: number) => round(x, 3).toFixed(3)
 
 // trimmed is an optional text without the spaces around it, null when
 // nothing is left.
 function trimmed(raw: unknown): string | null {
   const text = typeof raw === "string" ? raw.trim() : ""
   return text === "" ? null : text
-}
-
-// aDay reads a day the client sent, YYYY-MM-DD; a Response when it is
-// missing or not a date.
-function aDay(raw: unknown): string | Response {
-  const text = typeof raw === "string" ? raw.trim() : ""
-  if (text === "") return invalid("Sanani kiriting")
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || new Date(`${text}T00:00:00Z`).toISOString().slice(0, 10) !== text) return invalid("Sana noto'g'ri")
-  return text
 }
 
 const page = (query: URLSearchParams): number | Response => {
@@ -68,62 +75,23 @@ export function locationParam(query: URLSearchParams, allowed: number[]): number
 export const liveLocationsIn = (companyId: number, ids: number[]) => db.locations.filter((l) => l.companyId === companyId && !l.deleted && ids.includes(l.id))
 
 export const liveSuppliers = (companyId: number) => db.suppliers.filter((s) => s.companyId === companyId && !s.deleted)
-export const livePurchases = (companyId: number) => db.purchases.filter((p) => p.companyId === companyId && !p.deleted)
-const livePayments = (companyId: number) => db.payments.filter((p) => p.companyId === companyId && !p.deleted)
+export const livePurchases = (companyId: number) => liveDocuments(companyId).filter((t) => t.kind === "purchase")
+const livePayments = (companyId: number) => liveDocuments(companyId).filter((t) => t.kind === "supplier_payment")
 
-// stockOf is the product's stock summed over the locations.
-export function stockOf(productId: number, locationIds: number[]): number {
-  return db.stock.filter((s) => s.productId === productId && locationIds.includes(s.locationId)).reduce((sum, s) => sum + s.quantity, 0)
-}
-
-// lastPriceOf is the price of the product's newest live purchase line,
-// whatever the location; null when it was never bought.
-export function lastPriceOf(productId: number): string | null {
-  const line = [...db.purchases]
-    .filter((p) => !p.deleted && p.items.some((i) => i.productId === productId))
-    .sort((a, b) => b.purchasedOn.localeCompare(a.purchasedOn) || b.id - a.id)[0]
-  const item = line?.items.find((i) => i.productId === productId)
-  return item ? asAmount(item.price) : null
-}
-
-// purchasesHolding is how many live purchases hold the product.
-export const purchasesHolding = (productId: number) => db.purchases.filter((p) => !p.deleted && p.items.some((i) => i.productId === productId)).length
-
-// moveStock moves the product's stock in the location by delta; below zero
-// is refused (the caller gives nothing back when it is).
-function moveStock(companyId: number, locationId: number, productId: number, delta: number): Response | null {
-  let row = db.stock.find((s) => s.locationId === locationId && s.productId === productId)
-  if (!row) {
-    row = { companyId, locationId, productId, quantity: 0 }
-    db.stock.push(row)
-  }
-  const next = round(row.quantity + delta, 3)
-  if (next < 0) return stockInsufficient()
-  row.quantity = next
-  return null
-}
-
-const totalOf = (items: PurchaseItemRow[]) => round(items.reduce((sum, i) => sum + round(i.quantity * i.price, 2), 0), 2)
-
-// balanceOf is what is owed the supplier: the live purchases' totals less
-// the live payments.
-function totals(supplier: SupplierRow) {
-  const purchases = round(livePurchases(supplier.companyId).filter((p) => p.supplierId === supplier.id).reduce((sum, p) => sum + totalOf(p.items), 0), 2)
-  const payments = round(livePayments(supplier.companyId).filter((p) => p.supplierId === supplier.id).reduce((sum, p) => sum + p.amount, 0), 2)
-  return { purchases, payments, balance: round(purchases - payments, 2) }
-}
-
-export function toSupplier(s: SupplierRow, withBalance: boolean): Supplier {
-  const t = totals(s)
+// toSupplier is a supplier as the API shows it: with its balance for
+// whoever may see the purchases, by currency on its own page alone.
+export function toSupplier(s: SupplierRow, withBalance: boolean, detail = false): Supplier {
+  const b = balanceOf(s.id)
   return {
     id: s.id,
     name: s.name,
     phone: s.phone,
     note: s.note,
     is_active: s.active,
-    balance: withBalance ? asAmount(t.balance) : null,
-    purchases_total: withBalance ? asAmount(t.purchases) : null,
-    payments_total: withBalance ? asAmount(t.payments) : null,
+    balance: withBalance ? asAmount(b.balance) : null,
+    purchases_total: withBalance ? asAmount(b.purchases) : null,
+    payments_total: withBalance ? asAmount(b.payments) : null,
+    balance_by_currency: withBalance && detail ? b.byCurrency : null,
     created_by_name: nameOf(s.by, s.companyId, s.byName),
     created_at: s.createdAt,
     updated_at: s.updatedAt,
@@ -157,15 +125,24 @@ function liveSupplier(companyId: number, id: unknown): SupplierRow | undefined {
   return liveSuppliers(companyId).find((s) => s.id === Number(id))
 }
 
-export function toPayment(p: PaymentRow): Payment {
-  const purchase = p.purchaseId === null ? undefined : db.purchases.find((x) => x.id === p.purchaseId)
+// accountOf is the company's live account with the id.
+const accountOf = (companyId: number, id: number) => (db.accounts[companyId] ?? []).find((a) => a.id === id)
+
+export function toPayment(p: TransactionRow): Payment {
+  const purchase = p.linkedId === null ? undefined : db.transactions.find((x) => x.id === p.linkedId)
+  const rate = rateOf(p.rateId)
   return {
     id: p.id,
-    supplier_id: p.supplierId,
-    purchase_id: p.purchaseId,
+    supplier_id: p.supplierId!,
+    purchase_id: p.linkedId,
     purchase_number: purchase?.number ?? null,
-    amount: asAmount(p.amount),
-    paid_on: p.paidOn,
+    bank_account_id: p.bankAccountId!,
+    account_name: accountOf(p.companyId, p.bankAccountId!)?.name ?? "",
+    amount: asAmount(p.total),
+    currency_id: p.currencyId,
+    rate: asRate(rateColumn(rate, p.currencyId)),
+    amount_uzs: asAmount(convertAmount(p.total, p.currencyId, 1, rate)),
+    at: p.at,
     note: p.note,
     created_by_name: nameOf(p.by, p.companyId, p.byName),
     created_at: p.createdAt,
@@ -173,67 +150,88 @@ export function toPayment(p: PaymentRow): Payment {
   }
 }
 
-type CheckedPayment = { amount: number; paidOn: string; note: string | null }
+type CheckedPayment = { accountId: number; amount: number; at: string; pricing: Pricing; note: string | null }
 
-// checkPayment reads a body in the Go API's order: the amount, the day, the
-// note.
-function checkPayment(body: Record<string, unknown>): CheckedPayment | Response {
+// checkPayment reads a body in the Go API's order: the account (active
+// unless it is the one kept), the amount, the moment, the rate, the note.
+function checkPayment(companyId: number, body: Record<string, unknown>, by: string, keep: number, current?: Pricing): CheckedPayment | Response {
+  const accountId = Number(body.bank_account_id ?? 0)
+  const account = accountId ? accountOf(companyId, accountId) : undefined
+  if (!account) return invalid("Akkauntni tanlang")
+  if (!account.is_active && account.id !== keep) return invalid("Akkaunt nofaol")
   const raw = body.amount
   if (raw === undefined || raw === null || raw === "") return invalid("Summani kiriting")
   if (typeof raw !== "string" || !money.test(raw) || Number(raw) === 0) return invalid("Summa noto'g'ri")
-  const paidOn = aDay(body.paid_on)
-  if (paidOn instanceof Response) return paidOn
+  const at = atOf(body.at)
+  if (at instanceof Response) return at
+  const pricing = priceIn(companyId, { currency_id: account.currency_id, rate: body.rate }, at, by, current)
+  if (pricing instanceof Response) return pricing
   const note = trimmed(body.note)
   if (note !== null && [...note].length > 500) return invalid("Izoh 500 belgidan oshmasin")
-  return { amount: Number(raw), paidOn, note }
+  return { accountId: account.id, amount: Number(raw), at, pricing, note }
 }
 
-function toItem(i: PurchaseItemRow): PurchaseItem {
+// pricingOf is the document's pricing now.
+const pricingOf = (t: TransactionRow): Pricing => ({ currencyId: t.currencyId, rateId: t.rateId, rate: rateColumn(rateOf(t.rateId), t.currencyId) })
+
+function toItem(i: { productId: number; quantity: number; price: number | null }): PurchaseItem {
   const product = db.products.find((p) => p.id === i.productId)
-  return { product_id: i.productId, name: product?.name ?? "", unit: product?.unit ?? null, quantity: asQuantity(i.quantity), price: asAmount(i.price), amount: asAmount(round(i.quantity * i.price, 2)) }
+  const price = i.price ?? 0
+  return { product_id: i.productId, name: product?.name ?? "", unit: product?.unit ?? null, quantity: asQuantity(i.quantity), price: asAmount(price), amount: asAmount(round(i.quantity * price, 2)) }
 }
 
-export function toPurchase(p: PurchaseRow): Purchase {
+export function toPurchase(p: TransactionRow): Purchase {
   const supplier = db.suppliers.find((s) => s.id === p.supplierId)
   const location = db.locations.find((l) => l.id === p.locationId)
-  const paid = livePayments(p.companyId).find((x) => x.purchaseId === p.id)
+  const rate = rateOf(p.rateId)
   return {
     id: p.id,
     number: p.number,
-    location_id: p.locationId,
+    location_id: p.locationId!,
     location_name: location?.name ?? "",
-    supplier: { id: p.supplierId, name: supplier?.name ?? "" },
-    purchased_on: p.purchasedOn,
+    supplier: { id: p.supplierId!, name: supplier?.name ?? "" },
+    at: p.at,
+    currency_id: p.currencyId,
+    rate: asRate(rateColumn(rate, p.currencyId)),
     note: p.note,
-    total: asAmount(totalOf(p.items)),
-    paid: asAmount(paid?.amount ?? 0),
-    items_count: p.items.length,
+    total: asAmount(p.total),
+    total_uzs: asAmount(convertAmount(p.total, p.currencyId, 1, rate)),
+    paid: asAmount(paidOf(p)),
+    items_count: itemsOf(p.id).length,
     created_by_name: nameOf(p.by, p.companyId, p.byName),
     created_at: p.createdAt,
     updated_at: p.updatedAt,
   }
 }
 
-const toPurchaseDetail = (p: PurchaseRow): PurchaseDetail => ({ ...toPurchase(p), items: p.items.map(toItem) })
+const toPurchaseDetail = (p: TransactionRow): PurchaseDetail => ({
+  ...toPurchase(p),
+  items: itemsOf(p.id).map(toItem),
+  payments: linkedPaymentsOf(p.id).map((l) => ({ id: l.id, bank_account_id: l.bankAccountId!, account_name: accountOf(l.companyId, l.bankAccountId!)?.name ?? "", amount: asAmount(l.total), currency_id: l.currencyId })),
+})
 
-type CheckedPurchase = { supplierId: number; purchasedOn: string; note: string | null; items: PurchaseItemRow[]; paid: number }
+type CheckedLine = { productId: number; quantity: number; price: number }
+type CheckedPurchase = { supplierId: number; at: string; pricing: Pricing; note: string | null; items: CheckedLine[] }
 
 // checkPurchase reads a body in the Go API's order (logic/warehouse.md,
-// 4.2): the supplier (active unless it is the one kept), the day, the note,
-// the lines (each product one of the company's, a product, active unless
-// held already, once; its quantity; its price), what was paid.
-function checkPurchase(companyId: number, body: Record<string, unknown>, keep: number, held: number[]): CheckedPurchase | Response {
+// 4.2): the supplier (active unless it is the one kept), the moment, the
+// currency and rate, the note, the lines (each product one of the
+// company's, a product, active unless held already, once; its quantity;
+// its price). The payments are read as they are written.
+function checkPurchase(companyId: number, body: Record<string, unknown>, by: string, keep: number, held: number[], current?: Pricing): CheckedPurchase | Response {
   const supplierId = Number(body.supplier_id ?? 0)
   const supplier = supplierId ? liveSupplier(companyId, supplierId) : undefined
   if (!supplier) return invalid("Ta'minotchini tanlang")
   if (!supplier.active && supplier.id !== keep) return invalid("Ta'minotchi nofaol")
-  const purchasedOn = aDay(body.purchased_on)
-  if (purchasedOn instanceof Response) return purchasedOn
+  const at = atOf(body.at)
+  if (at instanceof Response) return at
+  const pricing = priceIn(companyId, body, at, by, current)
+  if (pricing instanceof Response) return pricing
   const note = trimmed(body.note)
   if (note !== null && [...note].length > 500) return invalid("Izoh 500 belgidan oshmasin")
   const lines = Array.isArray(body.items) ? (body.items as Record<string, unknown>[]) : []
   if (lines.length === 0) return invalid("Kamida bitta mahsulot qo'shing")
-  const items: PurchaseItemRow[] = []
+  const items: CheckedLine[] = []
   const seen = new Set<number>()
   for (const line of lines) {
     const productId = Number(line.product_id ?? 0)
@@ -249,64 +247,34 @@ function checkPurchase(companyId: number, body: Record<string, unknown>, keep: n
     if (typeof price !== "string" || !money.test(price)) return invalid(`«${product.name}» narxi noto'g'ri`)
     items.push({ productId: product.id, quantity: Number(quantity), price: Number(price) })
   }
-  const rawPaid = body.paid
-  const paid = rawPaid === undefined || rawPaid === null || rawPaid === "" ? 0 : typeof rawPaid === "string" && money.test(rawPaid) ? Number(rawPaid) : NaN
-  if (Number.isNaN(paid)) return invalid("To'langan summa noto'g'ri")
-  return { supplierId, purchasedOn, note, items, paid }
+  return { supplierId, at, pricing, note, items }
 }
 
-// settle keeps the payment entered with the purchase as what was paid says.
-function settle(purchase: PurchaseRow, c: CheckedPurchase, by: string) {
-  const linked = livePayments(purchase.companyId).find((x) => x.purchaseId === purchase.id)
-  if (c.paid === 0) {
-    if (linked) linked.deleted = true
-    return
+// writeLines replaces the purchase's lines, its total and its moves; below
+// zero puts everything back and returns the refusal.
+function writeLines(purchase: TransactionRow, items: CheckedLine[]): Response | null {
+  const wasItems = itemsOf(purchase.id)
+  const wasMoves = takeMoves(purchase.id)
+  const wasTotal = purchase.total
+  db.items = db.items.filter((i) => i.transactionId !== purchase.id)
+  items.forEach((it, index) => db.items.push({ transactionId: purchase.id, productId: it.productId, quantity: it.quantity, expected: null, price: it.price, position: index + 1 }))
+  purchase.total = round(items.reduce((sum, i) => sum + round(i.quantity * i.price, 2), 0), 2)
+  db.moves.push(...movesOf("purchase", purchase.companyId, purchase.id, purchase.locationId!, null, items.map((i) => ({ productId: i.productId, quantity: i.quantity }))))
+  const refusal = checkStock([purchase.locationId!], [...new Set([...wasItems.map((i) => i.productId), ...items.map((i) => i.productId)])])
+  if (refusal) {
+    takeMoves(purchase.id)
+    db.moves.push(...wasMoves)
+    db.items = db.items.filter((i) => i.transactionId !== purchase.id)
+    db.items.push(...wasItems)
+    purchase.total = wasTotal
+    return refusal
   }
-  if (linked) {
-    Object.assign(linked, { supplierId: c.supplierId, amount: c.paid, paidOn: c.purchasedOn, updatedAt: now() })
-    return
-  }
-  const at = now()
-  db.payments.push({
-    id: nextId(),
-    companyId: purchase.companyId,
-    supplierId: c.supplierId,
-    purchaseId: purchase.id,
-    amount: c.paid,
-    paidOn: c.purchasedOn,
-    note: null,
-    by,
-    byName: nameIn(by, purchase.companyId),
-    createdAt: at,
-    updatedAt: at,
-  })
-}
-
-// writeLines replaces the purchase's lines and moves the stock by the
-// difference, product by product; below zero undoes nothing (the caller
-// returns the refusal; the mock has no transaction, so the lines written so
-// far are rolled back by hand).
-function writeLines(purchase: PurchaseRow, items: PurchaseItemRow[]): Response | null {
-  const before = new Map(purchase.items.map((i) => [i.productId, i.quantity]))
-  const after = new Map(items.map((i) => [i.productId, i.quantity]))
-  const moved: [number, number][] = []
-  for (const productId of new Set([...before.keys(), ...after.keys()])) {
-    const delta = round((after.get(productId) ?? 0) - (before.get(productId) ?? 0), 3)
-    const refusal = moveStock(purchase.companyId, purchase.locationId, productId, delta)
-    if (refusal) {
-      for (const [id, d] of moved) moveStock(purchase.companyId, purchase.locationId, id, -d)
-      return refusal
-    }
-    moved.push([productId, delta])
-  }
-  purchase.items = items
   return null
 }
 
-function purchaseIn(companyId: number, id: unknown, locationIds: number[]): PurchaseRow | undefined {
-  return livePurchases(companyId).find((p) => p.id === Number(id) && locationIds.includes(p.locationId))
+function purchaseIn(companyId: number, id: unknown, locationIds: number[]): TransactionRow | undefined {
+  return livePurchases(companyId).find((p) => p.id === Number(id) && locationIds.includes(p.locationId!))
 }
-
 
 export const warehouseHandlers = [
   http.get(api("/app/suppliers"), ({ request }) => {
@@ -338,14 +306,14 @@ export const warehouseHandlers = [
     const at = now()
     const row: SupplierRow = { id: nextId(), companyId: member.companyId, ...c, active: true, by: member.phone, byName: nameIn(member.phone, member.companyId), createdAt: at, updatedAt: at }
     db.suppliers.push(row)
-    return HttpResponse.json(toSupplier(row, seesBalance(member.phone, member.companyId)), { status: 201 })
+    return HttpResponse.json(toSupplier(row, seesBalance(member.phone, member.companyId), true), { status: 201 })
   }),
 
   http.get(api("/app/suppliers/:id"), ({ params, request }) => {
     const member = permittedSession(request, "suppliers.view")
     if (member instanceof Response) return member
     const s = liveSupplier(member.companyId, params.id)
-    return s ? HttpResponse.json(toSupplier(s, seesBalance(member.phone, member.companyId))) : supplierNotFound()
+    return s ? HttpResponse.json(toSupplier(s, seesBalance(member.phone, member.companyId), true)) : supplierNotFound()
   }),
 
   http.put(api("/app/suppliers/:id"), async ({ params, request }) => {
@@ -357,7 +325,7 @@ export const warehouseHandlers = [
     if (c instanceof Response) return c
     if (liveSuppliers(member.companyId).some((x) => x.id !== s.id && same(x.name, c.name))) return fail(409, "name_taken", "Bu nomli ta'minotchi allaqachon bor")
     Object.assign(s, c, { updatedAt: now() })
-    return HttpResponse.json(toSupplier(s, seesBalance(member.phone, member.companyId)))
+    return HttpResponse.json(toSupplier(s, seesBalance(member.phone, member.companyId), true))
   }),
 
   http.patch(api("/app/suppliers/:id"), async ({ params, request }) => {
@@ -369,7 +337,7 @@ export const warehouseHandlers = [
     if (!s) return supplierNotFound()
     s.active = body.is_active
     s.updatedAt = now()
-    return HttpResponse.json(toSupplier(s, seesBalance(member.phone, member.companyId)))
+    return HttpResponse.json(toSupplier(s, seesBalance(member.phone, member.companyId), true))
   }),
 
   http.delete(api("/app/suppliers/:id"), ({ params, request }) => {
@@ -377,10 +345,8 @@ export const warehouseHandlers = [
     if (member instanceof Response) return member
     const s = liveSupplier(member.companyId, params.id)
     if (!s) return supplierNotFound()
-    const purchases = livePurchases(member.companyId).filter((p) => p.supplierId === s.id).length
-    if (purchases > 0) return fail(409, "supplier_in_use", `Bu ta'minotchida ${purchases} ta xarid bor`)
-    const payments = livePayments(member.companyId).filter((p) => p.supplierId === s.id).length
-    if (payments > 0) return fail(409, "supplier_in_use", `Bu ta'minotchida ${payments} ta to'lov bor`)
+    const documents = liveDocuments(member.companyId).filter((t) => t.supplierId === s.id).length
+    if (documents > 0) return fail(409, "supplier_in_use", `Bu ta'minotchida ${documents} ta hujjat bor`)
     s.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
@@ -394,9 +360,19 @@ export const warehouseHandlers = [
     if (!s) return supplierNotFound()
     const all = livePayments(member.companyId)
       .filter((p) => p.supplierId === s.id)
-      .sort((a, b) => b.paidOn.localeCompare(a.paidOn) || b.id - a.id)
+      .sort((a, b) => b.at.localeCompare(a.at) || b.id - a.id)
     const result = paged(all, n)
     return HttpResponse.json({ ...result, items: result.items.map(toPayment) })
+  }),
+
+  http.get(api("/app/suppliers/:id/statement"), ({ params, request }) => {
+    const member = permittedSession(request, "purchases.view")
+    if (member instanceof Response) return member
+    const n = page(new URL(request.url).searchParams)
+    if (n instanceof Response) return n
+    const s = liveSupplier(member.companyId, params.id)
+    if (!s) return supplierNotFound()
+    return HttpResponse.json(paged(statementOf(s.id), n))
   }),
 
   http.post(api("/app/suppliers/:id/payments"), async ({ params, request }) => {
@@ -404,11 +380,34 @@ export const warehouseHandlers = [
     if (member instanceof Response) return member
     const s = liveSupplier(member.companyId, params.id)
     if (!s) return supplierNotFound()
-    const c = checkPayment((await request.json()) as Record<string, unknown>)
+    const c = checkPayment(member.companyId, (await request.json()) as Record<string, unknown>, member.phone, 0)
     if (c instanceof Response) return c
     const at = now()
-    const row: PaymentRow = { id: nextId(), companyId: member.companyId, supplierId: s.id, purchaseId: null, ...c, by: member.phone, byName: nameIn(member.phone, member.companyId), createdAt: at, updatedAt: at }
-    db.payments.push(row)
+    const row: TransactionRow = {
+      id: nextId(),
+      companyId: member.companyId,
+      kind: "supplier_payment",
+      number: nextNumber(member.companyId, "supplier_payment"),
+      at: c.at,
+      locationId: null,
+      toLocationId: null,
+      supplierId: s.id,
+      customerId: null,
+      bankAccountId: c.accountId,
+      toBankAccountId: null,
+      categoryId: null,
+      linkedId: null,
+      currencyId: c.pricing.currencyId,
+      rateId: c.pricing.rateId,
+      total: c.amount,
+      toTotal: null,
+      note: c.note,
+      by: member.phone,
+      byName: nameIn(member.phone, member.companyId),
+      createdAt: at,
+      updatedAt: at,
+    }
+    db.transactions.push(row)
     return HttpResponse.json(toPayment(row), { status: 201 })
   }),
 
@@ -417,10 +416,10 @@ export const warehouseHandlers = [
     if (member instanceof Response) return member
     const p = livePayments(member.companyId).find((x) => x.id === Number(params.paymentId) && x.supplierId === Number(params.id))
     if (!p) return paymentNotFound()
-    if (p.purchaseId !== null) return paymentLinked()
-    const c = checkPayment((await request.json()) as Record<string, unknown>)
+    if (p.linkedId !== null) return paymentLinked()
+    const c = checkPayment(member.companyId, (await request.json()) as Record<string, unknown>, member.phone, p.bankAccountId!, pricingOf(p))
     if (c instanceof Response) return c
-    Object.assign(p, c, { updatedAt: now() })
+    Object.assign(p, { bankAccountId: c.accountId, total: c.amount, at: c.at, currencyId: c.pricing.currencyId, rateId: c.pricing.rateId, note: c.note, updatedAt: now() })
     return HttpResponse.json(toPayment(p))
   }),
 
@@ -429,7 +428,7 @@ export const warehouseHandlers = [
     if (member instanceof Response) return member
     const p = livePayments(member.companyId).find((x) => x.id === Number(params.paymentId) && x.supplierId === Number(params.id))
     if (!p) return paymentNotFound()
-    if (p.purchaseId !== null) return paymentLinked()
+    if (p.linkedId !== null) return paymentLinked()
     p.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
@@ -450,8 +449,8 @@ export const warehouseHandlers = [
     if (n instanceof Response) return n
     const locations = location ? [location] : mine
     const all = livePurchases(member.companyId)
-      .filter((p) => locations.includes(p.locationId) && (!supplierId || p.supplierId === supplierId))
-      .sort((a, b) => b.purchasedOn.localeCompare(a.purchasedOn) || b.id - a.id)
+      .filter((p) => locations.includes(p.locationId!) && (!supplierId || p.supplierId === supplierId))
+      .sort((a, b) => b.at.localeCompare(a.at) || b.id - a.id)
     const result = paged(all, n)
     return HttpResponse.json({ ...result, items: result.items.map(toPurchase) })
   }),
@@ -463,28 +462,41 @@ export const warehouseHandlers = [
     const locationId = Number(body.location_id ?? 0)
     if (!locationId) return invalid("Lokatsiyani tanlang")
     if (!memberLocationIds(member.phone, member.companyId).includes(locationId)) return forbidden()
-    const c = checkPurchase(member.companyId, body, 0, [])
+    const c = checkPurchase(member.companyId, body, member.phone, 0, [])
     if (c instanceof Response) return c
-    const number = Math.max(0, ...db.purchases.filter((p) => p.companyId === member.companyId).map((p) => p.number)) + 1
     const at = now()
-    const row: PurchaseRow = {
+    const row: TransactionRow = {
       id: nextId(),
       companyId: member.companyId,
-      number,
+      kind: "purchase",
+      number: nextNumber(member.companyId, "purchase"),
+      at: c.at,
       locationId,
+      toLocationId: null,
       supplierId: c.supplierId,
-      purchasedOn: c.purchasedOn,
+      customerId: null,
+      bankAccountId: null,
+      toBankAccountId: null,
+      categoryId: null,
+      linkedId: null,
+      currencyId: c.pricing.currencyId,
+      rateId: c.pricing.rateId,
+      total: 0,
+      toTotal: null,
       note: c.note,
-      items: [],
       by: member.phone,
       byName: nameIn(member.phone, member.companyId),
       createdAt: at,
       updatedAt: at,
     }
-    const refusal = writeLines(row, c.items)
-    if (refusal) return refusal
-    db.purchases.push(row)
-    settle(row, c, member.phone)
+    db.transactions.push(row)
+    const refusal = writeLines(row, c.items) ?? writeLinkedPayments(row, body.payments, member.phone)
+    if (refusal) {
+      takeMoves(row.id)
+      db.items = db.items.filter((i) => i.transactionId !== row.id)
+      db.transactions = db.transactions.filter((t) => t.id !== row.id)
+      return refusal
+    }
     return HttpResponse.json(toPurchaseDetail(row), { status: 201 })
   }),
 
@@ -500,12 +512,16 @@ export const warehouseHandlers = [
     if (member instanceof Response) return member
     const p = purchaseIn(member.companyId, params.id, memberLocationIds(member.phone, member.companyId))
     if (!p) return purchaseNotFound()
-    const c = checkPurchase(member.companyId, (await request.json()) as Record<string, unknown>, p.supplierId, p.items.map((i) => i.productId))
+    const body = (await request.json()) as Record<string, unknown>
+    const c = checkPurchase(member.companyId, body, member.phone, p.supplierId!, itemsOf(p.id).map((i) => i.productId), pricingOf(p))
     if (c instanceof Response) return c
-    const refusal = writeLines(p, c.items)
-    if (refusal) return refusal
-    Object.assign(p, { supplierId: c.supplierId, purchasedOn: c.purchasedOn, note: c.note, updatedAt: now() })
-    settle(p, c, member.phone)
+    const was = { supplierId: p.supplierId, at: p.at, currencyId: p.currencyId, rateId: p.rateId, note: p.note, updatedAt: p.updatedAt }
+    Object.assign(p, { supplierId: c.supplierId, at: c.at, currencyId: c.pricing.currencyId, rateId: c.pricing.rateId, note: c.note, updatedAt: now() })
+    const refusal = writeLines(p, c.items) ?? writeLinkedPayments(p, body.payments, member.phone)
+    if (refusal) {
+      Object.assign(p, was)
+      return refusal
+    }
     return HttpResponse.json(toPurchaseDetail(p))
   }),
 
@@ -514,11 +530,14 @@ export const warehouseHandlers = [
     if (member instanceof Response) return member
     const p = purchaseIn(member.companyId, params.id, memberLocationIds(member.phone, member.companyId))
     if (!p) return purchaseNotFound()
-    const refusal = writeLines(p, [])
-    if (refusal) return refusal
+    const wasMoves = takeMoves(p.id)
+    const refusal = checkStock([p.locationId!], itemsOf(p.id).map((i) => i.productId))
+    if (refusal) {
+      db.moves.push(...wasMoves)
+      return refusal
+    }
     p.deleted = true
-    const linked = livePayments(member.companyId).find((x) => x.purchaseId === p.id)
-    if (linked) linked.deleted = true
+    for (const linked of linkedPaymentsOf(p.id)) linked.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
 ]

@@ -6,7 +6,8 @@ import { nameOf } from "./customers"
 import { CATALOG, db, nameIn, nextId, now, type ProductRow } from "./data"
 import { notAllowed } from "./currencies"
 import { api, fail, permittedSession } from "./gate"
-import { asAmount, asQuantity, lastPriceOf, liveLocationsIn, locationParam, memberLocationIds, purchasesHolding, stockOf } from "./warehouse"
+import { asAmount, asQuantity, documentsHolding, lastPriceOf, liveLocationsIn, livePurchases, locationParam, memberLocationIds, stockOf } from "./warehouse"
+import { itemsOf } from "./ledger"
 
 const PAGE_SIZE = 20
 export const units: Unit[] = ["dona", "kg", "g", "l", "ml", "m", "m2", "quti", "juft", "komplekt"]
@@ -170,23 +171,25 @@ export const catalogHandlers = [
     const p = liveProduct(member.companyId, params.id)
     if (!p) return productNotFound()
     const mine = memberLocationIds(member.phone, member.companyId)
-    const all = db.purchases
-      .filter((x) => !x.deleted && mine.includes(x.locationId) && x.items.some((i) => i.productId === p.id))
-      .sort((a, b) => b.purchasedOn.localeCompare(a.purchasedOn) || b.id - a.id)
+    const all = livePurchases(member.companyId)
+      .filter((x) => mine.includes(x.locationId!) && itemsOf(x.id).some((i) => i.productId === p.id))
+      .sort((a, b) => b.at.localeCompare(a.at) || b.id - a.id)
       .map((x) => {
-        const item = x.items.find((i) => i.productId === p.id)!
+        const item = itemsOf(x.id).find((i) => i.productId === p.id)!
         const supplier = db.suppliers.find((s) => s.id === x.supplierId)
         const location = db.locations.find((l) => l.id === x.locationId)
+        const price = item.price ?? 0
         return {
           purchase_id: x.id,
           number: x.number,
-          purchased_on: x.purchasedOn,
-          supplier: { id: x.supplierId, name: supplier?.name ?? "" },
-          location_id: x.locationId,
+          at: x.at,
+          supplier: { id: x.supplierId!, name: supplier?.name ?? "" },
+          location_id: x.locationId!,
           location_name: location?.name ?? "",
+          currency_id: x.currencyId,
           quantity: asQuantity(item.quantity),
-          price: asAmount(item.price),
-          amount: asAmount(Math.round(item.quantity * item.price * 100) / 100),
+          price: asAmount(price),
+          amount: asAmount(Math.round(item.quantity * price * 100) / 100),
         }
       })
     return HttpResponse.json({ items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), total: all.length, page, page_size: PAGE_SIZE })
@@ -223,8 +226,8 @@ export const catalogHandlers = [
     if (member instanceof Response) return member
     const p = liveProduct(member.companyId, params.id)
     if (!p) return productNotFound()
-    const held = purchasesHolding(p.id)
-    if (held > 0) return fail(409, "product_in_use", `Bu mahsulot ${held} ta xaridda bor`)
+    const held = documentsHolding(p.id)
+    if (held > 0) return fail(409, "product_in_use", `Bu mahsulot ${held} ta hujjatda bor`)
     p.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

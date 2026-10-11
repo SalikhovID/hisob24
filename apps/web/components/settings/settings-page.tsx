@@ -3,7 +3,6 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { PencilIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
-import { useId } from "react"
 import { PageHeader } from "@/components/page-header"
 import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"

@@ -59,7 +59,7 @@ test("the product picker offers the active products by name or SKU, each with it
   const box = screen.getByRole("combobox", { name: "Mahsulot" })
   await user.type(box, "ol")
   let list = await screen.findByRole("listbox", { name: "Mahsulot takliflari" })
-  expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["Olmakg · 1\u00a0000"])
+  expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["Olmakg · 1\u00a0000 so'm"])
   // "e" is in Eski (inactive) and Yetkazish (a service) alone: nothing is offered.
   await user.clear(box)
   await user.type(box, "e")
@@ -68,7 +68,7 @@ test("the product picker offers the active products by name or SKU, each with it
   await user.clear(box)
   await user.type(box, "n")
   list = await screen.findByRole("listbox", { name: "Mahsulot takliflari" })
-  expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["Nokdona · 2\u00a0500,50"])
+  expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["Nokdona · 2\u00a0500,50 so'm"])
   await user.click(within(list).getByRole("option", { name: /Nok/ }))
-  expect(onChange).toHaveBeenCalledWith({ id: catalog.nok.id, name: "Nok", meta: "dona · 2\u00a0500,50", unit: "dona", last_price: "2500.50" })
+  expect(onChange).toHaveBeenCalledWith({ id: catalog.nok.id, name: "Nok", meta: "dona · 2\u00a0500,50 so'm", unit: "dona", last_price: { amount: "2500.50", currency_id: 1 } })
 })

@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, db, now, nextId, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
+import { ALI, seedCatalog, seedPayment, seedWarehouse, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -10,15 +10,9 @@ import { SupplierPage } from "./supplier-page"
 // facts reads the "Ma'lumot" list: each name with its value.
 const facts = () => Object.fromEntries(screen.getAllByRole("term").map((dt) => [dt.textContent, dt.nextElementSibling?.textContent]))
 
-// ownPayment enters a payment to the supplier on its own (not with a purchase).
-function ownPayment(supplierId: number, amount: number) {
-  const at = now()
-  db.payments.push({ id: nextId(), companyId: 1, supplierId, purchaseId: null, amount, paidOn: "2026-10-03", note: "Naqd", by: ALI, byName: "Ali Valiyev", createdAt: at, updatedAt: at })
-}
-
-test("the supplier page: its facts, what is owed, its purchases and its payments, and the actions", async () => {
+test("the supplier page: its facts, what is owed, its statement, and the actions", async () => {
   const { bozor, purchase } = seedWarehouse(seedCatalog())
-  ownPayment(bozor.id, 1200.5)
+  seedPayment(bozor.id, 1200.5, "2026-10-03T04:00:00Z", "Naqd")
   await signIn(ALI)
   renderWithProviders(<SupplierPage id={bozor.id} />)
 
@@ -37,28 +31,33 @@ test("the supplier page: its facts, what is owed, its purchases and its payments
   expect(within(balance).getByText("20 001,50 so'm")).toBeInTheDocument()
   expect(within(balance).getByText("6 200,50 so'm")).toBeInTheDocument()
 
-  const purchases = await screen.findByRole("table", { name: "Xaridlar" })
-  expect(within(purchases).getByRole("link", { name: "№ 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
-  const row = within(purchases).getByRole("link", { name: "№ 1" }).closest("tr")!
-  expect(within(row).getByText("01.10.2026")).toBeInTheDocument()
-  expect(within(row).getByText("20 001,50")).toBeInTheDocument()
-  expect(within(row).getByText("5 000")).toBeInTheDocument()
-
-  const payments = await screen.findByRole("table", { name: "To'lovlar" })
-  const rows = within(payments).getAllByRole("row").slice(1)
-  expect(rows).toHaveLength(2)
-  expect(within(rows[0]).getByText("03.10.2026")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("1 200,50")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("Naqd")).toBeInTheDocument()
+  // The statement: the documents in time, the newest first, each with how
+  // it changed what is owed and what was owed after it.
+  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
+  expect(within(statement).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Hujjat", "Vaqt", "Summa", "Qarz, so'm", "Balans, so'm", "Qo'shgan", "Amallar"])
+  const rows = within(statement).getAllByRole("row").slice(1)
+  expect(rows).toHaveLength(3)
+  expect(within(rows[0]).getByText("To'lov")).toBeInTheDocument()
+  expect(within(rows[0]).getAllByText("Naqd")).toHaveLength(1)
+  expect(within(rows[0]).getByText("03.10.2026 09:00")).toBeInTheDocument()
+  expect(within(rows[0]).getByText("1 200,50 so'm")).toBeInTheDocument()
+  expect(within(rows[0]).getByText("−1 200,50")).toBeInTheDocument()
+  expect(within(rows[0]).getByText("13 801")).toBeInTheDocument()
   expect(within(rows[0]).getByRole("button", { name: "Tahrirlash: 1\u00a0200,50" })).toBeInTheDocument()
   expect(within(rows[0]).getByRole("button", { name: "O'chirish: 1\u00a0200,50" })).toBeInTheDocument()
-  expect(within(rows[1]).getByText("5 000")).toBeInTheDocument()
   expect(within(rows[1]).getByRole("link", { name: "Xarid № 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
+  expect(within(rows[1]).getByText("5 000 so'm")).toBeInTheDocument()
+  expect(within(rows[1]).getByText("−5 000")).toBeInTheDocument()
+  expect(within(rows[1]).getByText("15 001,50")).toBeInTheDocument()
   expect(within(rows[1]).queryAllByRole("button")).toHaveLength(0)
+  expect(within(rows[2]).getByRole("link", { name: "Xarid № 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
+  expect(within(rows[2]).getByText("20 001,50 so'm")).toBeInTheDocument()
+  expect(within(rows[2]).getByText("+20 001,50")).toBeInTheDocument()
+  expect(within(rows[2]).getByText("20 001,50")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "To'lov qo'shish" })).toBeInTheDocument()
 })
 
-test("whoever may see the suppliers alone sees the facts: no balance, no purchases, no payments, no action", async () => {
+test("whoever may see the suppliers alone sees the facts: no balance, no statement, no action", async () => {
   const { bozor } = seedWarehouse(seedCatalog())
   giveRole(VALI, 1, "Kuzatuvchi", ["suppliers.view"])
   await signIn(VALI)
@@ -68,8 +67,7 @@ test("whoever may see the suppliers alone sees the facts: no balance, no purchas
   expect(await screen.findByRole("heading", { level: 1, name: "Bozor" })).toBeInTheDocument()
   expect(facts()).toMatchObject({ Telefon: "+998 90 123 45 67" })
   expect(screen.queryByRole("region", { name: "Balans" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("heading", { name: "Xaridlar" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("heading", { name: "To'lovlar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Hisob harakati" })).not.toBeInTheDocument()
   expect(screen.queryAllByRole("button")).toHaveLength(0)
 })
 
@@ -83,8 +81,7 @@ test("an inactive supplier says so and offers to turn it on; what it lacks is a 
   expect(screen.getByRole("button", { name: "Faollashtirish" })).toBeInTheDocument()
   expect(facts()).toMatchObject({ Telefon: "—", Izoh: "—" })
   expect(within(screen.getByRole("region", { name: "Balans" })).getByText("Qarz yo'q")).toBeInTheDocument()
-  expect(await screen.findByText("Bu ta'minotchida xarid yo'q")).toBeInTheDocument()
-  expect(await screen.findByText("Bu ta'minotchida to'lov yo'q")).toBeInTheDocument()
+  expect(await screen.findByText("Bu ta'minotchida hujjat yo'q")).toBeInTheDocument()
 })
 
 test("deleting the supplier leads back to the list", async () => {

@@ -259,52 +259,71 @@ export interface SupplierRow {
   deleted?: boolean
 }
 
-// A line of a purchase: a product, its quantity and price as numbers (the
-// Go API keeps them as numeric; the mock rounds to the columns' decimals).
-export interface PurchaseItemRow {
+// A document of the journal (logic/warehouse.md, section 1; the Go API's
+// transactions): of a kind, numbered within its kind in the company, at a
+// moment (ISO, UTC), with whichever references its kind names, in a
+// currency by a rate row, with its amount (a goods document's is the sum of
+// its lines) as a number (the Go API keeps it as numeric; the mock rounds
+// to two decimals). deleted hides it; its number is never given again.
+export type DocumentKind =
+  | "purchase"
+  | "sale"
+  | "transfer"
+  | "inventory"
+  | "opening_stock"
+  | "supplier_payment"
+  | "supplier_debt"
+  | "supplier_prepay"
+  | "customer_payment"
+  | "customer_debt"
+  | "customer_prepay"
+  | "cash_opening"
+  | "expense"
+  | "income"
+  | "money_transfer"
+  | "conversion"
+
+export interface TransactionRow {
+  id: number
+  companyId: number
+  kind: DocumentKind
+  number: number
+  at: string
+  locationId: number | null
+  toLocationId: number | null
+  supplierId: number | null
+  customerId: number | null
+  bankAccountId: number | null
+  toBankAccountId: number | null
+  categoryId: number | null
+  linkedId: number | null
+  currencyId: number
+  rateId: number
+  total: number
+  toTotal: number | null
+  note: string | null
+  by: string
+  byName: string | null
+  createdAt: string
+  updatedAt: string
+  deleted?: boolean
+}
+
+// A line of a goods document: a product, its quantity (counted, in an
+// inventory, with the stock expected) and its price where the kind has one.
+export interface ItemRow {
+  transactionId: number
   productId: number
   quantity: number
-  price: number
+  expected: number | null
+  price: number | null
+  position: number
 }
 
-// A purchase (logic/warehouse.md, section 4): numbered in the company, in
-// one location, from one supplier, with its lines. deleted hides it; its
-// number is never given again.
-export interface PurchaseRow {
-  id: number
-  companyId: number
-  number: number
-  locationId: number
-  supplierId: number
-  purchasedOn: string
-  note: string | null
-  items: PurchaseItemRow[]
-  by: string
-  byName: string | null
-  createdAt: string
-  updatedAt: string
-  deleted?: boolean
-}
-
-// A payment to a supplier (logic/warehouse.md, section 6); purchaseId links
-// the one entered with a purchase.
-export interface PaymentRow {
-  id: number
-  companyId: number
-  supplierId: number
-  purchaseId: number | null
-  amount: number
-  paidOn: string
-  note: string | null
-  by: string
-  byName: string | null
-  createdAt: string
-  updatedAt: string
-  deleted?: boolean
-}
-
-// The stock of a product in a location, moved by the purchases alone.
-export interface StockRow {
+// A move of the stock journal: what a document moved in a location, in
+// (above zero) or out (below). The stock is the sum of the moves.
+export interface MoveRow {
+  transactionId: number
   companyId: number
   locationId: number
   productId: number
@@ -321,14 +340,18 @@ export interface TaskHistoryRow {
   changes: { label: string; old: string; new: string }[]
 }
 
-// A standard rate row of a company (logic/currencies.md, section 4): so'm
-// per unit of each currency, four decimals, who set it and when.
+// A rate row of a company (logic/currencies.md, section 4): so'm per unit
+// of each currency, four decimals, who set it and when. A standard row
+// (status 1) comes from the settings; a document's own row (status 2) is
+// kept out of the history (the company's zero row, or a rate typed in a
+// form).
 export interface RateRow {
   id: number
   companyId: number
   usd: string
   eur: string
   rub: string
+  status: 1 | 2
   setBy: string
   setAt: string
 }
@@ -372,9 +395,10 @@ interface Db {
   taskHistory: TaskHistoryRow[]
   products: ProductRow[]
   suppliers: SupplierRow[]
-  purchases: PurchaseRow[]
-  payments: PaymentRow[]
-  stock: StockRow[]
+  // transactions: the journal; items its lines; moves its stock moves.
+  transactions: TransactionRow[]
+  items: ItemRow[]
+  moves: MoveRow[]
   // currencies: the ids of the currencies each company has turned on (the
   // so'm always); rates: the companies' standard rate rows.
   currencies: Record<number, number[]>
@@ -471,13 +495,13 @@ function seed(): Db {
     taskHistory: [],
     products: [],
     suppliers: [],
-    purchases: [],
-    payments: [],
-    stock: [],
+    transactions: [],
+    items: [],
+    moves: [],
     // Every company has the so'm; Nok Market works in dollars too, at a
     // rate Vali set: where the currency fields are tested.
     currencies: { 1: [1], 2: [1, 2], 3: [1], 4: [1] },
-    rates: [{ id: 9001, companyId: 2, usd: "12800.0000", eur: "0.0000", rub: "0.0000", setBy: VALI, setAt: "2026-10-01T05:00:00Z" }],
+    rates: [{ id: 9001, companyId: 2, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: VALI, setAt: "2026-10-01T05:00:00Z" }],
     // Nok Market has a dollar card besides its cash.
     accounts: {
       1: [cashOf(9101)],
@@ -900,11 +924,23 @@ export function seedCatalog() {
   return { olma, nok, eski, yetkazish }
 }
 
+// zeroRateOf is the company's zero rate row (status 2, nothing in it), made
+// on the first ask: what a document in so'm refers to while the company
+// has set no rates.
+export function zeroRateOf(companyId: number, by: string): RateRow {
+  let row = db.rates.find((r) => r.companyId === companyId && r.status === 2 && /^0(\.0+)?$/.test(r.usd) && /^0(\.0+)?$/.test(r.eur) && /^0(\.0+)?$/.test(r.rub))
+  if (!row) {
+    row = { id: nextId(), companyId, usd: "0.0000", eur: "0.0000", rub: "0.0000", status: 2, setBy: by, setAt: now() }
+    db.rates.push(row)
+  }
+  return row
+}
+
 // seedWarehouse enters what the warehouse pages are tested with into Olma
 // Savdo: the suppliers Bozor (with a phone and a note) and Dehqon
 // (inactive), and, given the catalog's products, purchase № 1 in Asosiy by
-// Ali on 2026-10-01 (12.5 kg of Olma at 1000, 3 Nok at 2500.5, 5000 paid
-// with it) with its stock and its payment.
+// Ali at 9:00 on 2026-10-01 (12.5 kg of Olma at 1000, 3 Nok at 2500.5,
+// 5 000 paid with it out of the cash) with its moves and its payment.
 export function seedWarehouse(products?: { olma: ProductRow; nok: ProductRow }) {
   const at = now()
   const supplier = (fields: Pick<SupplierRow, "name"> & Partial<SupplierRow>): SupplierRow => {
@@ -914,40 +950,85 @@ export function seedWarehouse(products?: { olma: ProductRow; nok: ProductRow }) 
   }
   const bozor = supplier({ name: "Bozor", phone: "998901234567", note: "Chorsu" })
   const dehqon = supplier({ name: "Dehqon", active: false })
-  let purchase: PurchaseRow | undefined
+  let purchase: TransactionRow | undefined
   if (products) {
     const asosiy = db.locations.find((l) => l.companyId === 1 && !l.deleted)!
-    purchase = {
+    const rate = zeroRateOf(1, ALI)
+    const head = (fields: Partial<TransactionRow> & Pick<TransactionRow, "kind" | "number" | "total">): TransactionRow => ({
       id: nextId(),
       companyId: 1,
-      number: 1,
-      locationId: asosiy.id,
+      at: "2026-10-01T04:00:00Z",
+      locationId: null,
+      toLocationId: null,
       supplierId: bozor.id,
-      purchasedOn: "2026-10-01",
-      note: "Ertalab",
-      items: [
-        { productId: products.olma.id, quantity: 12.5, price: 1000 },
-        { productId: products.nok.id, quantity: 3, price: 2500.5 },
-      ],
+      customerId: null,
+      bankAccountId: null,
+      toBankAccountId: null,
+      categoryId: null,
+      linkedId: null,
+      currencyId: 1,
+      rateId: rate.id,
+      toTotal: null,
+      note: null,
       by: ALI,
       byName: "Ali Valiyev",
       createdAt: at,
       updatedAt: at,
-    }
-    db.purchases.push(purchase)
-    db.stock.push(
-      { companyId: 1, locationId: asosiy.id, productId: products.olma.id, quantity: 12.5 },
-      { companyId: 1, locationId: asosiy.id, productId: products.nok.id, quantity: 3 },
+      ...fields,
+    })
+    purchase = head({ kind: "purchase", number: 1, locationId: asosiy.id, total: 20001.5, note: "Ertalab" })
+    db.transactions.push(purchase)
+    db.items.push(
+      { transactionId: purchase.id, productId: products.olma.id, quantity: 12.5, expected: null, price: 1000, position: 1 },
+      { transactionId: purchase.id, productId: products.nok.id, quantity: 3, expected: null, price: 2500.5, position: 2 },
     )
-    db.payments.push({ id: nextId(), companyId: 1, supplierId: bozor.id, purchaseId: purchase.id, amount: 5000, paidOn: "2026-10-01", note: null, by: ALI, byName: "Ali Valiyev", createdAt: at, updatedAt: at })
+    db.moves.push(
+      { transactionId: purchase.id, companyId: 1, locationId: asosiy.id, productId: products.olma.id, quantity: 12.5 },
+      { transactionId: purchase.id, companyId: 1, locationId: asosiy.id, productId: products.nok.id, quantity: 3 },
+    )
+    db.transactions.push(head({ kind: "supplier_payment", number: 1, bankAccountId: db.accounts[1][0].id, linkedId: purchase.id, total: 5000 }))
   }
   return { bozor, dehqon, purchase }
 }
 
-// currentRateOf is the company's rate row in force now: the newest.
+// seedPayment enters a payment to the supplier out of the company's cash,
+// on its own, at the moment (ISO), by Ali: what the supplier's statement is
+// tested with.
+export function seedPayment(supplierId: number, amount: number, atISO: string, note: string | null = null): TransactionRow {
+  const supplier = db.suppliers.find((s) => s.id === supplierId)!
+  const at = now()
+  const row: TransactionRow = {
+    id: nextId(),
+    companyId: supplier.companyId,
+    kind: "supplier_payment",
+    number: Math.max(0, ...db.transactions.filter((t) => t.companyId === supplier.companyId && t.kind === "supplier_payment").map((t) => t.number)) + 1,
+    at: atISO,
+    locationId: null,
+    toLocationId: null,
+    supplierId,
+    customerId: null,
+    bankAccountId: db.accounts[supplier.companyId][0].id,
+    toBankAccountId: null,
+    categoryId: null,
+    linkedId: null,
+    currencyId: 1,
+    rateId: zeroRateOf(supplier.companyId, ALI).id,
+    total: amount,
+    toTotal: null,
+    note,
+    by: ALI,
+    byName: "Ali Valiyev",
+    createdAt: at,
+    updatedAt: at,
+  }
+  db.transactions.push(row)
+  return row
+}
+
+// currentRateOf is the company's standard rate row in force now: the newest.
 export function currentRateOf(companyId: number): RateRow | undefined {
   return db.rates
-    .filter((r) => r.companyId === companyId)
+    .filter((r) => r.companyId === companyId && r.status === 1)
     .sort((a, b) => b.setAt.localeCompare(a.setAt) || b.id - a.id)[0]
 }
 

@@ -1,16 +1,18 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { today } from "@/lib/warehouse"
+import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
+import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { NewPurchasePage } from "./new-purchase-page"
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
+const paymentLine = (n: number) => screen.getByRole("group", { name: `${n}-to'lov` })
 
-test("a purchase is entered into the current location: the supplier and the products found by name, the last price offered, the lines summed, what was paid", async () => {
+test("a purchase is entered into the current location: the supplier and the products found by name, the last price offered, the lines summed, a payment out of the cash", async () => {
   const catalog = seedCatalog()
   const { bozor } = seedWarehouse(catalog)
   await signIn(ALI)
@@ -20,7 +22,8 @@ test("a purchase is entered into the current location: the supplier and the prod
   expect(await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xaridlar" })).toHaveAttribute("href", "/purchases")
-  expect(screen.getByLabelText("Sana")).toHaveValue(today())
+  expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(screen.queryByRole("combobox", { name: "Valyuta" })).not.toBeInTheDocument()
 
   await user.type(screen.getByRole("combobox", { name: "Ta'minotchi" }), "bo")
   await user.click(within(await screen.findByRole("listbox", { name: "Ta'minotchi takliflari" })).getByRole("option", { name: /Bozor/ }))
@@ -43,26 +46,57 @@ test("a purchase is entered into the current location: the supplier and the prod
   expect(within(second).getByText("7 501,5")).toBeInTheDocument()
   expect(screen.getByText("9 501,5 so'm")).toBeInTheDocument()
 
-  await user.click(screen.getByRole("button", { name: "To'liq" }))
-  expect(screen.getByLabelText("To'langan")).toHaveValue("9501.5")
-  await user.clear(screen.getByLabelText("To'langan"))
-  await user.type(screen.getByLabelText("To'langan"), "5 000")
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  const payment = paymentLine(1)
+  expect(within(payment).getByRole("combobox", { name: "Akkaunt" })).toHaveTextContent("Naqd (so'm)")
+  await user.click(within(payment).getByRole("button", { name: "To'liq" }))
+  expect(within(payment).getByLabelText("Summa")).toHaveValue("9501.5")
+  expect(screen.getByText("0 so'm")).toBeInTheDocument()
+  await user.clear(within(payment).getByLabelText("Summa"))
+  await user.type(within(payment).getByLabelText("Summa"), "5 000")
+  expect(screen.getByText("4 501,5 so'm")).toBeInTheDocument()
   await user.type(screen.getByLabelText("Izoh"), " Ertalab ")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
-  await waitFor(() => expect(db.purchases.find((p) => p.number === 2)).toBeTruthy())
-  const saved = db.purchases.find((p) => p.number === 2)!
-  expect(saved).toMatchObject({ supplierId: bozor.id, purchasedOn: today(), note: "Ertalab" })
-  expect(saved.items).toEqual([
-    { productId: catalog.olma.id, quantity: 2, price: 1000 },
-    { productId: catalog.nok.id, quantity: 3, price: 2500.5 },
+  await waitFor(() => expect(db.transactions.find((t) => t.kind === "purchase" && t.number === 2)).toBeTruthy())
+  const saved = db.transactions.find((t) => t.kind === "purchase" && t.number === 2)!
+  expect(saved).toMatchObject({ supplierId: bozor.id, currencyId: 1, note: "Ertalab", total: 9501.5 })
+  expect(saved.at.slice(0, 13)).toBe(new Date(`${nowLocal().slice(0, 13)}:00`).toISOString().slice(0, 13))
+  expect(db.items.filter((i) => i.transactionId === saved.id).map((i) => [i.productId, i.quantity, i.price])).toEqual([
+    [catalog.olma.id, 2, 1000],
+    [catalog.nok.id, 3, 2500.5],
   ])
-  expect(db.payments.find((p) => p.purchaseId === saved.id)).toMatchObject({ amount: 5000 })
+  expect(db.transactions.find((t) => t.linkedId === saved.id)).toMatchObject({ kind: "supplier_payment", total: 5000, bankAccountId: db.accounts[1][0].id })
   expect(await screen.findByText("Xarid qo'shildi")).toBeInTheDocument()
   await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/purchases/${saved.id}`))
 })
 
-test("the form refuses in the API's words before asking: a supplier, a product and its numbers, at least one line, a product once", async () => {
+test("with more than the so'm the currency and the rate are asked, and a last price in another currency is turned", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const asosiy = db.locations.find((l) => l.companyId === 2 && l.name === "Asosiy")!
+  const at = "2026-10-02T05:00:00Z"
+  db.suppliers.push({ id: 801, companyId: 2, name: "Bozor", phone: null, note: null, active: true, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
+  db.products.push({ id: 802, companyId: 2, kind: "product", name: "Olma", unit: "kg", sku: null, price: null, currencyId: 1, note: null, active: true, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
+  // Bought once in dollars: the last price is 1 USD.
+  db.transactions.push({ id: 803, companyId: 2, kind: "purchase", number: 1, at, locationId: asosiy.id, toLocationId: null, supplierId: 801, customerId: null, bankAccountId: null, toBankAccountId: null, categoryId: null, linkedId: null, currencyId: 2, rateId: 9001, total: 1, toTotal: null, note: null, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
+  db.items.push({ transactionId: 803, productId: 802, quantity: 1, expected: null, price: 1, position: 1 })
+  setLocation("/purchases/new")
+  const { user } = renderWithProviders(<NewPurchasePage />)
+  await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
+
+  expect(screen.getByRole("combobox", { name: "Valyuta" })).toHaveTextContent("UZS — O'zbek so'mi")
+  expect(screen.queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
+  await user.type(within(line(1)).getByRole("combobox", { name: "Mahsulot" }), "ol")
+  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12800")
+  await choose(user, screen.getByRole("combobox", { name: "Valyuta" }), "USD — AQSH dollari")
+  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
+  expect(screen.getByText("25 600 $")).toBeInTheDocument()
+})
+
+test("the form refuses in the API's words before asking: a supplier, a product and its numbers, at least one line, a product once, a payment's account and amount", async () => {
   const catalog = seedCatalog()
   seedWarehouse(catalog)
   await signIn(ALI)
@@ -70,12 +104,16 @@ test("the form refuses in the API's words before asking: a supplier, a product a
   const { user } = renderWithProviders(<NewPurchasePage />)
   await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
 
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
   expect(await screen.findByText("Ta'minotchini tanlang")).toBeInTheDocument()
   expect(within(line(1)).getByText("Mahsulotni tanlang")).toBeInTheDocument()
   expect(within(line(1)).getByText("Miqdor noto'g'ri")).toBeInTheDocument()
   expect(within(line(1)).getByText("Narx noto'g'ri")).toBeInTheDocument()
-  expect(db.purchases).toHaveLength(1)
+  expect(within(paymentLine(1)).getByText("Summa noto'g'ri")).toBeInTheDocument()
+  expect(db.transactions.filter((t) => t.kind === "purchase")).toHaveLength(1)
+  await user.click(screen.getByRole("button", { name: "1-to'lovni olib tashlash" }))
+  expect(screen.queryByRole("group", { name: "1-to'lov" })).not.toBeInTheDocument()
 
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
   for (const n of [1, 2]) {

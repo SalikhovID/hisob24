@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { Picker, type PickerItem } from "@/components/picker"
-import { formatAmount, unitLabel } from "@/lib/format"
+import { currencyOf, useCurrencies } from "@/lib/currencies"
+import { formatMoney, unitLabel } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { useProductSuggestions, useSupplierSuggestions } from "@/lib/queries"
-import type { Unit } from "@/lib/types"
+import type { LastPrice, Unit } from "@/lib/types"
 
 // useDebounced is the value once it has stood still for ms.
 function useDebounced(value: string, ms = 300): string {
@@ -57,10 +58,11 @@ export function SupplierPicker({
 }
 
 // ProductPick is a product as the purchase form takes it: with its unit
-// (for the quantity) and its last purchase price (for the price field).
+// (for the quantity) and its last purchase price, in its currency (for the
+// price field).
 export interface ProductPick extends PickerItem {
   unit: Unit | null
-  last_price: string | null
+  last_price: LastPrice | null
 }
 
 // ProductPicker finds an active product of the company by its name or SKU,
@@ -82,13 +84,14 @@ export function ProductPicker({
   const [typed, setTyped] = useState("")
   const settled = useDebounced(typed)
   const suggestions = useProductSuggestions(companyId, settled)
+  const currencies = useCurrencies()
   const picks: ProductPick[] =
     settled.trim() === ""
       ? []
       : (suggestions.data?.items ?? []).map((p) => ({
           id: p.id,
           name: p.name,
-          meta: [p.unit && unitLabel(p.unit), p.last_price && formatAmount(p.last_price)].filter(Boolean).join(" · "),
+          meta: [p.unit && unitLabel(p.unit), p.last_price && formatMoney(p.last_price.amount, currencyOf(currencies, p.last_price.currency_id))].filter(Boolean).join(" · "),
           unit: p.unit,
           last_price: p.last_price,
         }))

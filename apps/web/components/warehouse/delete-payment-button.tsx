@@ -19,20 +19,29 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
-import { formatAmount, formatDate } from "@/lib/format"
-import { paymentsKey, supplierKey, suppliersKey } from "@/lib/queries"
+import { currencyOf, useCurrencies } from "@/lib/currencies"
+import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
+import { paymentsKey, statementKey, supplierKey, suppliersKey } from "@/lib/queries"
 import type { Payment } from "@/lib/types"
 
 // DeletePaymentButton deletes a payment entered on its own after asking,
 // from its row. What is owed grows back by it.
-export function DeletePaymentButton({ companyId, payment }: { companyId: number; payment: Payment }) {
+export function DeletePaymentButton({
+  companyId,
+  payment,
+}: {
+  companyId: number
+  payment: Pick<Payment, "id" | "supplier_id" | "amount" | "currency_id" | "at">
+}) {
   const [confirming, setConfirming] = useState(false)
   const queryClient = useQueryClient()
+  const currencies = useCurrencies()
   const amount = formatAmount(payment.amount)
   const remove = useMutation({
     mutationFn: () => call(api.DELETE("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: payment.supplier_id, paymentId: payment.id } } })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentsKey(companyId, payment.supplier_id) })
+      queryClient.invalidateQueries({ queryKey: statementKey(companyId, payment.supplier_id) })
       queryClient.invalidateQueries({ queryKey: supplierKey(companyId, payment.supplier_id) })
       queryClient.invalidateQueries({ queryKey: suppliersKey(companyId) })
       toast.success("To'lov o'chirildi")
@@ -55,7 +64,7 @@ export function DeletePaymentButton({ companyId, payment }: { companyId: number;
         <AlertDialogHeader>
           <AlertDialogTitle>To&apos;lovni o&apos;chirasizmi?</AlertDialogTitle>
           <AlertDialogDescription>
-            {formatDate(payment.paid_on)} kungi {amount} so&apos;m to&apos;lov o&apos;chiriladi. Qayta tiklab bo&apos;lmaydi.
+            {formatDateTime(payment.at)} dagi {formatMoney(payment.amount, currencyOf(currencies, payment.currency_id))} to&apos;lov o&apos;chiriladi. Qayta tiklab bo&apos;lmaydi.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

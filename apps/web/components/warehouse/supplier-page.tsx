@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header"
 import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { ApiError } from "@/lib/api"
-import { formatAmount, formatDate } from "@/lib/format"
+import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
+import { formatAmount, formatDate, formatMoney } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import { useSupplier } from "@/lib/queries"
@@ -16,22 +17,22 @@ import { balanceText } from "@/lib/warehouse"
 import { cn } from "@/lib/utils"
 import { DeleteSupplierButton } from "./delete-supplier-button"
 import { SupplierActiveButton } from "./supplier-active-button"
+import { StatementList } from "./statement-list"
 import { SupplierDialog } from "./supplier-dialog"
-import { SupplierPayments } from "./supplier-payments"
-import { SupplierPurchases } from "./supplier-purchases"
 
 const back = { href: "/suppliers", label: "Ta'minotchilar" }
 
 // SupplierPage is one supplier of the company (logic/warehouse.md, 3.3), for
 // whoever may see the suppliers (changing, turning off and deleting each
 // take their permission): its phone and note, who entered it and when;
-// and, for whoever may see the purchases, what it is owed, its purchases
-// and the payments to it.
+// and, for whoever may see the purchases, what it is owed (in so'm, and in
+// each currency apart) and its statement.
 export function SupplierPage({ id }: { id: number }) {
   const gate = usePermission("suppliers.view")
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const supplier = useSupplier(companyId, id)
+  const currencies = useCurrencies()
   const router = useRouter()
 
   // Until the session is known to be let in there is nothing to show; a
@@ -54,6 +55,10 @@ export function SupplierPage({ id }: { id: number }) {
   const phone = s.phone ? formatPhone(s.phone) : null
   const seesBalance = allowed("purchases.view") && s.balance !== null
   const balance = s.balance === null ? null : balanceText(s.balance)
+  // What is owed in each currency, said apart when any of it is not in so'm.
+  const byCurrency = (s.balance_by_currency ?? []).some((l) => l.currency_id !== UZS)
+    ? (s.balance_by_currency ?? []).map((l) => formatMoney(l.amount, currencyOf(currencies, l.currency_id))).join(", ")
+    : null
 
   return (
     <div className="space-y-5">
@@ -87,15 +92,18 @@ export function SupplierPage({ id }: { id: number }) {
         // What is owed: the live purchases less the live payments, the
         // whole company's (logic/warehouse.md, section 6).
         <section aria-label="Balans" className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-6">
-          <p
-            className={cn(
-              "text-lg font-semibold tabular-nums",
-              balance.kind === "debt" && "text-destructive",
-              balance.kind === "advance" && "text-emerald-700 dark:text-emerald-400",
-            )}
-          >
-            {balance.text}
-          </p>
+          <div>
+            <p
+              className={cn(
+                "text-lg font-semibold tabular-nums",
+                balance.kind === "debt" && "text-destructive",
+                balance.kind === "advance" && "text-emerald-700 dark:text-emerald-400",
+              )}
+            >
+              {balance.text}
+            </p>
+            {byCurrency && <p className="text-sm text-muted-foreground tabular-nums">shu jumladan {byCurrency}</p>}
+          </div>
           <p className="text-sm">
             <span className="block text-[0.8125rem] leading-5 text-muted-foreground">Jami xaridlar</span>
             <span className="tabular-nums">{formatAmount(s.purchases_total ?? "0")} so&apos;m</span>
@@ -118,16 +126,13 @@ export function SupplierPage({ id }: { id: number }) {
         </dl>
       </section>
       {companyId !== null && allowed("purchases.view") && (
-        <>
-          <SupplierPurchases companyId={companyId} supplierId={s.id} />
-          <SupplierPayments
-            companyId={companyId}
-            supplierId={s.id}
-            canAdd={allowed("purchases.create")}
-            canEdit={allowed("purchases.edit")}
-            canDelete={allowed("purchases.delete")}
-          />
-        </>
+        <StatementList
+          companyId={companyId}
+          supplierId={s.id}
+          canAdd={allowed("purchases.create")}
+          canEdit={allowed("purchases.edit")}
+          canDelete={allowed("purchases.delete")}
+        />
       )}
     </div>
   )

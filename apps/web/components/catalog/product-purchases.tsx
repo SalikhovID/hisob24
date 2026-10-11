@@ -5,29 +5,31 @@ import { type Column, DataList } from "@/components/data-list"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { formatAmount, formatDate, formatQuantity } from "@/lib/format"
+import { currencyOf, useCurrencies } from "@/lib/currencies"
+import { formatDateTime, formatMoney, formatQuantity } from "@/lib/format"
 import { useProductPurchases } from "@/lib/queries"
 import type { ProductPurchase } from "@/lib/types"
 import { useLocation } from "@/lib/use-location"
 
 // ProductPurchases is the live purchases a product is in, on its page, in
 // the member's locations: each by its number and supplier (the way into the
-// purchase), its day, its location (with two or more to work in), the
-// quantity bought, the price and what the line came to; the newest first,
-// twenty at a time.
+// purchase), its moment, its location (with two or more to work in), the
+// quantity bought, the price and what the line came to in the purchase's
+// currency; the newest first, twenty at a time.
 export function ProductPurchases({ companyId, productId, unit }: { companyId: number; productId: number; unit: string | null }) {
   const [page, setPage] = useState(1)
   const purchases = useProductPurchases(companyId, productId, page)
   const { locations } = useLocation()
+  const currencies = useCurrencies()
   const columns: Column<ProductPurchase>[] = [
     { header: "Xarid", primary: true, cell: (line) => `№ ${line.number} · ${line.supplier.name}` },
-    { header: "Sana", card: "inline", cell: (line) => formatDate(line.purchased_on) },
+    { header: "Vaqt", card: "inline", className: "whitespace-nowrap", cell: (line) => formatDateTime(line.at) },
     ...(locations.length >= 2
       ? [{ header: "Lokatsiya", card: "tag", cell: (line) => <Badge variant="outline">{line.location_name}</Badge> } satisfies Column<ProductPurchase>]
       : []),
     { header: "Miqdor", card: "inline", className: "tabular-nums", cell: (line) => formatQuantity(line.quantity, unit) },
-    { header: "Narx, so'm", align: "end", card: "inline", cell: (line) => formatAmount(line.price) },
-    { header: "Summa, so'm", align: "end", card: "aside", cell: (line) => formatAmount(line.amount) },
+    { header: "Narx", align: "end", card: "inline", cell: (line) => formatMoney(line.price, currencyOf(currencies, line.currency_id)) },
+    { header: "Summa", align: "end", card: "aside", cell: (line) => formatMoney(line.amount, currencyOf(currencies, line.currency_id)) },
   ]
   return (
     <section aria-labelledby="product-purchases" className="space-y-3">

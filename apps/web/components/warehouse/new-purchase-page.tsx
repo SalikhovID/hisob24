@@ -11,7 +11,7 @@ import { productsKey, purchasesKey, suppliersKey } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
-import { type PurchaseOutput, purchaseDefaults, today } from "@/lib/warehouse"
+import { type PurchaseOutput, nowLocal, purchaseDefaults } from "@/lib/warehouse"
 import { PurchaseForm } from "./purchase-form"
 
 const back = { href: "/purchases", label: "Xaridlar" }
@@ -27,6 +27,7 @@ export function forgetWarehouse(queryClient: ReturnType<typeof useQueryClient>, 
   queryClient.invalidateQueries({ queryKey: suppliersKey(companyId) })
   queryClient.invalidateQueries({ queryKey: ["supplier", companyId] })
   queryClient.invalidateQueries({ queryKey: ["payments", companyId] })
+  queryClient.invalidateQueries({ queryKey: ["statement", companyId] })
 }
 
 // NewPurchasePage enters a purchase into the current location, for whoever
@@ -42,7 +43,7 @@ export function NewPurchasePage() {
   const locationId = location.current?.id ?? null
   const router = useRouter()
   const queryClient = useQueryClient()
-  const defaults = useMemo(() => purchaseDefaults(null, today()), [])
+  const defaults = useMemo(() => purchaseDefaults(null, nowLocal()), [])
   const create = useMutation({
     mutationFn: (purchase: PurchaseOutput) => call(api.POST("/app/purchases", { body: { ...purchase, location_id: locationId ?? 0 } })),
     onSuccess: (saved) => {

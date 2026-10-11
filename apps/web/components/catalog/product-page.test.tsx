@@ -50,14 +50,14 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(screen.queryByText("Nofaol")).not.toBeInTheDocument()
   expect(stock()).toEqual({ Asosiy: "12,5 kg", Chilonzor: "0 kg" })
   const purchases = await screen.findByRole("table", { name: "Xaridlar" })
-  expect(within(purchases).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Xarid", "Sana", "Lokatsiya", "Miqdor", "Narx, so'm", "Summa, so'm"])
+  expect(within(purchases).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Xarid", "Vaqt", "Lokatsiya", "Miqdor", "Narx", "Summa"])
   expect(within(purchases).getByRole("link", { name: "№ 1 · Bozor" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
   const row = within(purchases).getByRole("link", { name: "№ 1 · Bozor" }).closest("tr")!
-  expect(within(row).getByText("01.10.2026")).toBeInTheDocument()
+  expect(within(row).getByText("01.10.2026 09:00")).toBeInTheDocument()
   expect(within(row).getByText("Asosiy")).toBeInTheDocument()
   expect(within(row).getByText("12,5 kg")).toBeInTheDocument()
-  expect(within(row).getByText("1 000")).toBeInTheDocument()
-  expect(within(row).getByText("12 500")).toBeInTheDocument()
+  expect(within(row).getByText("1 000 so'm")).toBeInTheDocument()
+  expect(within(row).getByText("12 500 so'm")).toBeInTheDocument()
 })
 
 test("a product in a purchase is kept: the API's refusal is told", async () => {
@@ -69,7 +69,7 @@ test("a product in a purchase is kept: the API's refusal is told", async () => {
   await user.click(await screen.findByRole("button", { name: "O'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Mahsulotni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
-  expect(await screen.findByText("Bu mahsulot 1 ta xaridda bor")).toBeInTheDocument()
+  expect(await screen.findByText("Bu mahsulot 1 ta hujjatda bor")).toBeInTheDocument()
   expect(db.products.find((p) => p.id === catalog.olma.id)?.deleted).toBeUndefined()
   expect(router.replace).not.toHaveBeenCalled()
 })

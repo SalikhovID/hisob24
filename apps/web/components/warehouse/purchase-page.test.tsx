@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
+import { stockOf } from "@/mocks/ledger"
 import { addLocation, restrictTo } from "@/test/locations"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
@@ -25,13 +26,13 @@ test("the purchase page: its facts, its lines summed, and the actions for whoeve
   renderWithProviders(<PurchasePage id={purchase!.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Xarid № 1" })).toBeInTheDocument()
-  expect(screen.getByText("Bozor · 01.10.2026")).toBeInTheDocument()
+  expect(screen.getByText("Bozor · 01.10.2026 09:00")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xaridlar" })).toHaveAttribute("href", "/purchases")
   expect(screen.getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/purchases/${purchase!.id}/edit`)
   expect(screen.getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
   expect(facts()).toEqual({
     "Ta'minotchi": "Bozor",
-    Sana: "01.10.2026",
+    Vaqt: "01.10.2026 09:00",
     Lokatsiya: "Asosiy",
     Jami: "20 001,50 so'm",
     "To'langan": "5 000 so'm",
@@ -53,6 +54,10 @@ test("the purchase page: its facts, its lines summed, and the actions for whoeve
   expect(within(nok).getByText("2 500,50")).toBeInTheDocument()
   expect(within(nok).getByText("7 501,50")).toBeInTheDocument()
   expect(screen.getByText("Jami: 20 001,50")).toBeInTheDocument()
+  const payments = screen.getByRole("table", { name: "To'lovlar" })
+  const paymentRow = within(payments).getAllByRole("row")[1]
+  expect(within(paymentRow).getByText("Naqd")).toBeInTheDocument()
+  expect(within(paymentRow).getByText("5 000 so'm")).toBeInTheDocument()
 })
 
 test("with one location the location is not said; whoever may see alone has no action", async () => {
@@ -79,8 +84,8 @@ test("deleting the purchase gives the stock back and leads to the list", async (
   expect(within(dialog).getByText("№ 1 xaridi o'chiriladi, qoldiq qaytariladi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "O'chirish" }))
 
-  await waitFor(() => expect(db.purchases.find((p) => p.id === purchase!.id)?.deleted).toBe(true))
-  expect(db.stock.find((s) => s.productId === catalog.olma.id)?.quantity).toBe(0)
+  await waitFor(() => expect(db.transactions.find((t) => t.id === purchase!.id)?.deleted).toBe(true))
+  expect(stockOf(catalog.olma.id, [db.locations.find((l) => l.companyId === 1)!.id])).toBe(0)
   expect(await screen.findByText("Xarid o'chirildi")).toBeInTheDocument()
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/purchases"))
 })

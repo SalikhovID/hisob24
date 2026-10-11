@@ -16,7 +16,7 @@ test("a supplier with a purchase is kept: the API's refusal is told", async () =
   expect(within(dialog).getByText("Bozor ro'yxatdan olib tashlanadi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "O'chirish" }))
 
-  expect(await screen.findByText("Bu ta'minotchida 1 ta xarid bor")).toBeInTheDocument()
+  expect(await screen.findByText("Bu ta'minotchida 2 ta hujjat bor")).toBeInTheDocument()
   expect(db.suppliers.find((s) => s.id === bozor.id)?.deleted).toBeUndefined()
 })
 

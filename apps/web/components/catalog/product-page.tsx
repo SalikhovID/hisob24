@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header"
 import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { ApiError } from "@/lib/api"
-import { currencyOf, som, useCurrencies } from "@/lib/currencies"
+import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatDate, formatMoney, unitLabel } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { useProduct } from "@/lib/queries"
@@ -102,7 +102,7 @@ export function ProductPage({ id }: { id: number }) {
           {isProduct && <Fact name="Birlik" value={p.unit && unitLabel(p.unit)} />}
           <Fact name="Narx" value={p.price && formatMoney(p.price, currencyOf(currencies, p.currency_id))} />
           {/* The purchases are in so'm until the ledger carries their currency. */}
-          {isProduct && <Fact name="Oxirgi xarid narxi" value={p.last_price && formatMoney(p.last_price, som)} />}
+          {isProduct && <Fact name="Oxirgi xarid narxi" value={p.last_price && formatMoney(p.last_price.amount, currencyOf(currencies, p.last_price.currency_id))} />}
           {isProduct && <Fact name="Artikul" value={p.sku} />}
           <Fact name="Izoh" value={p.note} />
           <Fact name="Qo'shgan" value={p.created_by_name} />

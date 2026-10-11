@@ -35,8 +35,9 @@ export const currenciesHandlers = [
     const query = new URL(request.url).searchParams
     const page = query.has("page") ? Number(query.get("page")) : 1
     if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
+    // The standard rows alone: a document's own row is kept out of the history.
     const all = db.rates
-      .filter((r) => r.companyId === member.companyId)
+      .filter((r) => r.companyId === member.companyId && r.status === 1)
       .sort((a, b) => b.setAt.localeCompare(a.setAt) || b.id - a.id)
     return HttpResponse.json({ items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(toRates), total: all.length, page, page_size: PAGE_SIZE })
   }),
@@ -64,7 +65,7 @@ export const currenciesHandlers = [
         rates[id] = "0.0000"
       }
     }
-    const row: RateRow = { id: nextId(), companyId: member.companyId, usd: rates[2], eur: rates[3], rub: rates[4], setBy: member.phone, setAt: now() }
+    const row: RateRow = { id: nextId(), companyId: member.companyId, usd: rates[2], eur: rates[3], rub: rates[4], status: 1, setBy: member.phone, setAt: now() }
     db.rates.push(row)
     return HttpResponse.json(toRates(row), { status: 201 })
   }),

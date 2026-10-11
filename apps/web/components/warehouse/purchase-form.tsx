@@ -2,21 +2,27 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, XIcon } from "lucide-react"
+import { useEffect } from "react"
 import { Controller, useFieldArray, useForm } from "react-hook-form"
+import { CurrencyField } from "@/components/currency-field"
 import { PendingButton } from "@/components/pending-button"
 import { Refusal } from "@/components/refusal"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { FieldError, FieldGroup } from "@/components/ui/field"
-import { formatAmount, unitLabel } from "@/lib/format"
+import { convert, currencyOf, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
+import { formatAmount, formatMoney, unitLabel } from "@/lib/format"
 import { emptyLine, lineAmount, type PurchaseForm as PurchaseFormValues, type PurchaseOutput, purchaseSchema, purchaseTotal } from "@/lib/warehouse"
+import { PaymentsField } from "./payments-field"
 import { ProductPicker, SupplierPicker } from "./pickers"
 
 // PurchaseForm is a purchase as it is entered or edited (logic/warehouse.md,
-// 4.1–4.3): the supplier found by name, the day, the lines (a product found
-// by name or SKU, its quantity in its unit, its price, offered as the last
-// one paid, and what the line comes to), what the lines come to, what was
-// paid («To'liq» pays it all) and a note. The location is the page's.
+// 4.1–4.3): the supplier found by name, the moment, the currency and rate
+// (with more than the so'm), the lines (a product found by name or SKU, its
+// quantity in its unit, its price, offered as the last one paid turned into
+// the document's currency, and what the line comes to), what the lines
+// come to, the payments out of the accounts and a note. The location is the
+// page's.
 export function PurchaseForm({
   companyId,
   defaults,
@@ -32,12 +38,32 @@ export function PurchaseForm({
   pending: boolean
   refusal?: string
 }) {
+  const currencies = useCurrencies()
+  const accounts = useAccounts()
   const form = useForm<PurchaseFormValues, unknown, PurchaseOutput>({ resolver: zodResolver(purchaseSchema), defaultValues: defaults })
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" })
   const items = form.watch("items")
+  const currencyId = Number(form.watch("currency_id")) || UZS
+  const currency = currencyOf(currencies, currencyId)
   const total = purchaseTotal(items)
   const itemsError = form.formState.errors.items
   const linesMessage = itemsError?.root?.message ?? (itemsError as { message?: string } | undefined)?.message
+
+  // Another currency: its standard rate is offered while none is typed.
+  useEffect(() => {
+    if (currencyId === UZS || form.getValues("rate") !== "") return
+    const rate = currencyOf(currencies, currencyId).rate
+    if (rate !== null) form.setValue("rate", trimRate(rate))
+  }, [currencyId, currencies, form])
+
+  // offered is a product's last price in the document's currency: as is
+  // when the currencies match, turned by the rates in force otherwise.
+  const offered = (price: { amount: string; currency_id: number } | null): string | null => {
+    if (!price) return null
+    if (price.currency_id === currencyId) return price.amount
+    const turned = convert(Number(price.amount), price.currency_id, currencyId, currencies)
+    return turned === null ? null : String(turned)
+  }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-6">
@@ -58,7 +84,8 @@ export function PurchaseForm({
             />
           )}
         />
-        <TextField control={form.control} name="purchased_on" label="Sana" type="date" />
+        <TextField control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        {isMulti(currencies) && <CurrencyField control={form.control} currencyName="currency_id" rateName="rate" currencies={currencies} />}
       </FieldGroup>
 
       <section aria-labelledby="purchase-lines" className="space-y-3">
@@ -97,7 +124,8 @@ export function PurchaseForm({
                       form.setValue(`items.${index}.product_name`, pick?.name ?? "")
                       form.setValue(`items.${index}.unit`, pick?.unit ?? null)
                       // The price it was last bought at is offered; one typed stays.
-                      if (pick?.last_price && !form.getValues(`items.${index}.price`)) form.setValue(`items.${index}.price`, pick.last_price)
+                      const price = offered(pick?.last_price ?? null)
+                      if (price !== null && !form.getValues(`items.${index}.price`)) form.setValue(`items.${index}.price`, price)
                     }}
                     error={fieldState.error?.message}
                     disabled={pending}
@@ -131,19 +159,13 @@ export function PurchaseForm({
         {linesMessage && <FieldError errors={[{ message: linesMessage }]} />}
         <p className="flex items-baseline justify-end gap-2 text-sm">
           <span className="text-muted-foreground">Jami</span>
-          <span className="text-base font-semibold tabular-nums">{formatAmount(total)} so&apos;m</span>
+          <span className="text-base font-semibold tabular-nums">{formatMoney(total, currency)}</span>
         </p>
       </section>
 
+      <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={currencyId} total={Number(total)} pending={pending} />
+
       <FieldGroup>
-        <div className="flex items-end gap-2">
-          <div className="min-w-0 flex-1">
-            <TextField control={form.control} name="paid" label="To'langan" inputMode="decimal" autoComplete="off" />
-          </div>
-          <Button type="button" variant="outline" className="h-9" onClick={() => form.setValue("paid", total)}>
-            To&apos;liq
-          </Button>
-        </div>
         <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
       </FieldGroup>
       {refusal && <Refusal>{refusal}</Refusal>}

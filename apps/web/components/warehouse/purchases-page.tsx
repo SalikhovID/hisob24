@@ -9,7 +9,8 @@ import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
-import { formatAmount, formatDate } from "@/lib/format"
+import { currencyOf, useCurrencies } from "@/lib/currencies"
+import { formatDateTime, formatMoney } from "@/lib/format"
 import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { usePurchases } from "@/lib/queries"
@@ -24,7 +25,8 @@ const warehouseSection = navItems.find((item) => item.key === "warehouse")!
 // 4.5; logic/locations.md, section 7), for whoever may see them
 // (purchases.view; adding takes purchases.create and a way to the suppliers
 // and the products): the newest first, each by its number and supplier,
-// its day and how many products, what it came to and what was paid with it.
+// its moment and how many products, what it came to and what was paid with
+// it, in its currency.
 export function PurchasesPage() {
   const gate = usePermission("purchases.view")
   const companyId = gate?.company.id ?? null
@@ -32,6 +34,7 @@ export function PurchasesPage() {
   const location = useLocation()
   const locationId = location.current?.id ?? null
   const [filter, update] = usePurchaseFilter()
+  const currencies = useCurrencies()
   // The list is of the current location: nothing is asked until there is one.
   const purchases = usePurchases(locationId !== null ? companyId : null, { locationId, supplierId: null, page: filter.page })
 
@@ -54,13 +57,13 @@ export function PurchasesPage() {
             № {p.number} · {p.supplier.name}
           </span>
           <span className="text-[0.8125rem] leading-5 font-normal whitespace-nowrap text-muted-foreground">
-            {formatDate(p.purchased_on)} · {p.items_count} ta mahsulot
+            {formatDateTime(p.at)} · {p.items_count} ta mahsulot
           </span>
         </span>
       ),
     },
-    { header: "Jami, so'm", align: "end", card: "aside", cell: (p) => formatAmount(p.total) },
-    { header: "To'langan, so'm", align: "end", card: "inline", cell: (p) => formatAmount(p.paid) },
+    { header: "Jami", align: "end", card: "aside", cell: (p) => formatMoney(p.total, currencyOf(currencies, p.currency_id)) },
+    { header: "To'langan", align: "end", card: "inline", cell: (p) => formatMoney(p.paid, currencyOf(currencies, p.currency_id)) },
     { header: "Qo'shgan", className: "text-muted-foreground", cell: (p) => p.created_by_name },
   ]
 

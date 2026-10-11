@@ -487,6 +487,18 @@ export function usePayments(companyId: number | null, supplierId: number, page: 
   })
 }
 
+export const statementKey = (companyId: number | null, supplierId: number) => ["statement", companyId, supplierId] as const
+
+// useStatement is a page of a supplier's statement: its documents in time
+// with the running balance, the newest first.
+export function useStatement(companyId: number | null, supplierId: number, page: number) {
+  return useQuery({
+    queryKey: [...statementKey(companyId, supplierId), page],
+    queryFn: () => call(api.GET("/app/suppliers/{id}/statement", { params: { path: { id: supplierId }, query: { page } } })),
+    enabled: companyId !== null,
+  })
+}
+
 export const purchasesKey = (companyId: number | null) => ["purchases", companyId] as const
 
 // PurchaseFilter narrows the purchases: one location (the current one) or

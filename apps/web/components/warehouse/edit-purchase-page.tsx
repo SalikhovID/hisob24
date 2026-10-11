@@ -11,7 +11,7 @@ import { can } from "@/lib/permissions"
 import { usePurchase } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
-import { type PurchaseOutput, purchaseDefaults, today } from "@/lib/warehouse"
+import { type PurchaseOutput, nowLocal, purchaseDefaults } from "@/lib/warehouse"
 import { forgetWarehouse } from "./new-purchase-page"
 import { PurchaseForm } from "./purchase-form"
 
@@ -60,7 +60,7 @@ export function EditPurchasePage({ id }: { id: number }) {
       <PurchaseForm
         key={p.updated_at}
         companyId={companyId}
-        defaults={purchaseDefaults(p, today())}
+        defaults={purchaseDefaults(p, nowLocal())}
         onSubmit={(fields) => save.mutate(fields)}
         submitLabel="Saqlash"
         pending={save.isPending || save.isSuccess}
