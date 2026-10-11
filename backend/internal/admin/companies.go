@@ -90,7 +90,12 @@ func (h *Handler) getCompany(w http.ResponseWriter, r *http.Request) {
 	for _, l := range d.Locations {
 		locations = append(locations, toAdminLocationJSON(l))
 	}
-	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users, Locations: locations})
+	currencies, err := h.currencies.OfCompany(r.Context(), id)
+	if err != nil {
+		httpx.InternalError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users, Locations: locations, Currencies: toCompanyCurrenciesJSON(currencies)})
 }
 
 // locationID reads {locationId}; anything but a positive number is a

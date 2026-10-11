@@ -25,6 +25,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/config"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/sms"
@@ -61,10 +62,12 @@ func run() error {
 
 	adminAuth := auth.NewAdminAuth(pool, cfg.OTPHMACSecret, cfg.AdminBotToken)
 	companies := company.NewService(pool)
+	currencies := currency.NewService(pool)
 	adminAPI := admin.NewHandler(admin.Services{
-		Auth:      adminAuth,
-		Companies: companies,
-		Billing:   billing.NewService(pool),
+		Auth:       adminAuth,
+		Companies:  companies,
+		Billing:    billing.NewService(pool),
+		Currencies: currencies,
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute))
 	if cfg.SMSDriver == "log" {
 		slog.Warn("SMS_DRIVER=log: login codes go to this log, no SMS is sent")

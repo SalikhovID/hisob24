@@ -412,6 +412,62 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/currencies:
+    get:
+      operationId: listCurrencies
+      summary: Valyutalar katalogi
+      description: >
+        Kompaniyada yoqish mumkin bo'lgan valyutalar, so'm birinchi
+        (logic/currencies.md, 1-bo'lim). Katalog kengaytirilmaydi.
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: Katalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Currency"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/companies/{id}/currencies:
+    parameters:
+      - $ref: "#/components/parameters/CompanyID"
+    put:
+      operationId: setCompanyCurrencies
+      summary: Kompaniya valyutalarini belgilash
+      description: >
+        Ro'yxatdagi valyutalar yoqiladi, qolganlari o'chiriladi; so'm doim
+        yoqilgan, nomlanmasa ham (logic/currencies.md, 3-bo'lim). Jonli
+        mahsulot narxi (keyin hujjat yoki akkaunt) shu valyutada bo'lsa
+        o'chirilmaydi: 409 currency_in_use.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrencyIdsInput"
+      responses:
+        "200":
+          description: Kompaniyaning valyutalari endi, katalog tartibida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Currency"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/CurrencyConflict"
   /admin/admins:
     get:
       operationId: listAdmins
@@ -3420,6 +3476,15 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    CurrencyConflict:
+      description: >
+        Valyuta ishlatilmoqda (currency_in_use, "Bu valyutada N ta mahsulot
+        bor", keyin "… N ta hujjat bor", "… N ta akkaunt bor"): avval
+        narxlar, hujjatlar va akkauntlar boshqa valyutaga o'tkaziladi
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     CannotChangeOwner:
       description: >
         Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi
@@ -3698,7 +3763,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/Company"
         - type: object
-          required: [users, locations]
+          required: [users, locations, currencies]
           properties:
             users:
               type: array
@@ -3709,6 +3774,38 @@ components:
               description: Kompaniyaning jonli lokatsiyalari, qo'shilish tartibida (logic/locations.md)
               items:
                 $ref: "#/components/schemas/AdminLocation"
+            currencies:
+              type: array
+              description: Kompaniyada yoqilgan valyutalar, katalog tartibida; so'm doim bor (logic/currencies.md)
+              items:
+                $ref: "#/components/schemas/Currency"
+    Currency:
+      type: object
+      description: Katalogdagi valyuta (logic/currencies.md, 1-bo'lim)
+      required: [id, code, name, symbol]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 1 UZS, 2 USD, 3 EUR, 4 RUB
+        code:
+          type: string
+          description: ISO 4217 kodi
+        name:
+          type: string
+        symbol:
+          type: string
+          description: "Ko'rsatish uchun: so'm, $, €, ₽"
+    CurrencyIdsInput:
+      type: object
+      required: [currency_ids]
+      properties:
+        currency_ids:
+          type: array
+          description: Yoqilgan bo'lishi kerak bo'lgan valyutalar; so'm (1) nomlanmasa ham qoladi
+          items:
+            type: integer
+            format: int64
     CompanyPage:
       type: object
       required: [items, total, page, page_size]

@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/company"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
@@ -82,8 +83,39 @@ func toAdminLocationJSON(l company.AdminLocation) adminLocationJSON {
 
 type detailJSON struct {
 	companyJSON
-	Users     []memberJSON        `json:"users"`
-	Locations []adminLocationJSON `json:"locations"`
+	Users      []memberJSON        `json:"users"`
+	Locations  []adminLocationJSON `json:"locations"`
+	Currencies []currencyJSON      `json:"currencies"`
+}
+
+// currencyJSON is a currency of the catalog.
+type currencyJSON struct {
+	ID     int64  `json:"id"`
+	Code   string `json:"code"`
+	Name   string `json:"name"`
+	Symbol string `json:"symbol"`
+}
+
+func toCurrencyJSON(c currency.Currency) currencyJSON {
+	return currencyJSON{ID: c.ID, Code: c.Code, Name: c.Name, Symbol: c.Symbol}
+}
+
+func toCurrenciesJSON(list []currency.Currency) []currencyJSON {
+	out := make([]currencyJSON, 0, len(list))
+	for _, c := range list {
+		out = append(out, toCurrencyJSON(c))
+	}
+	return out
+}
+
+// toCompanyCurrenciesJSON lists what a company has turned on; the rates
+// are the user app's business, not the admin panel's.
+func toCompanyCurrenciesJSON(list []currency.CompanyCurrency) []currencyJSON {
+	out := make([]currencyJSON, 0, len(list))
+	for _, c := range list {
+		out = append(out, toCurrencyJSON(c.Currency))
+	}
+	return out
 }
 
 type billingJSON struct {

@@ -15,6 +15,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/billing"
 	"github.com/SalikhovID/hisob24/backend/internal/company"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/telegramtest"
@@ -37,7 +38,7 @@ func newTestAPI(t *testing.T, cookieSecure bool) testAPI {
 	t.Parallel()
 	pool := pgtest.New(t)
 	a := auth.NewAdminAuth(pool, testOTPSecret, testBotToken)
-	h := NewHandler(Services{Auth: a, Companies: company.NewService(pool), Billing: billing.NewService(pool)},
+	h := NewHandler(Services{Auth: a, Companies: company.NewService(pool), Billing: billing.NewService(pool), Currencies: currency.NewService(pool)},
 		cookieSecure, httpx.NewRateLimiter(5, time.Minute))
 	return testAPI{router: httpx.NewRouter(h.Routes), auth: a, pool: pool}
 }
