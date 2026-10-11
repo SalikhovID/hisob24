@@ -495,9 +495,10 @@ type Querier interface {
 	ListSupplierBalanceByCurrency(ctx context.Context, supplierID int64) ([]ListSupplierBalanceByCurrencyRow, error)
 	// A page of the supplier's statement: its live documents, the newest first
 	// (then the later entered), each with its amount in so'm by its own rate
-	// row, how it changed what is owed (a purchase or an opening debt adds, a
-	// payment or an opening advance takes away) and what was owed after it; a
-	// payment entered with a purchase names the purchase's number.
+	// row and its rate, how it changed what is owed (a purchase or an opening
+	// debt adds, a payment or an opening advance takes away) and what was owed
+	// after it; a payment names its account, one entered with a purchase names
+	// the purchase's number too.
 	ListSupplierStatement(ctx context.Context, arg ListSupplierStatementParams) ([]ListSupplierStatementRow, error)
 	// A page of the company's suppliers, the active or the inactive ones, by
 	// name whatever the case, without the deleted, each with its balance.

@@ -5027,7 +5027,7 @@ components:
         6-bo'lim): hujjat, summasi valyutasida va so'mda (o'z kursi bilan),
         qarz o'zgarishi (xarid va boshlang'ich qarz +, to'lov va boshlang'ich
         avans −) va shu hujjatdan keyingi qarz, so'mda.
-      required: [id, kind, number, at, amount, currency_id, amount_uzs, delta_uzs, balance_uzs, linked_id, linked_number, note, created_by_name]
+      required: [id, kind, number, at, amount, currency_id, rate, amount_uzs, delta_uzs, balance_uzs, linked_id, linked_number, bank_account_id, account_name, note, created_by_name]
       properties:
         id:
           type: integer
@@ -5045,6 +5045,9 @@ components:
         currency_id:
           type: integer
           format: int64
+        rate:
+          type: string
+          description: Hujjat kursi, to'rt kasr
         amount_uzs:
           type: string
         delta_uzs:
@@ -5058,6 +5061,12 @@ components:
         linked_number:
           type: [integer, "null"]
           description: O'sha xaridning raqami
+        bank_account_id:
+          type: [integer, "null"]
+          format: int64
+          description: To'lovning akkaunti; boshqa hujjatda null
+        account_name:
+          type: [string, "null"]
         note:
           type: [string, "null"]
         created_by_name:

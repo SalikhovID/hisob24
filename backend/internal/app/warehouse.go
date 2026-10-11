@@ -136,11 +136,14 @@ type statementRowJSON struct {
 	At            time.Time `json:"at"`
 	Amount        string    `json:"amount"`
 	CurrencyID    int64     `json:"currency_id"`
+	Rate          string    `json:"rate"`
 	AmountUZS     string    `json:"amount_uzs"`
 	DeltaUZS      string    `json:"delta_uzs"`
 	BalanceUZS    string    `json:"balance_uzs"`
 	LinkedID      *int64    `json:"linked_id"`
 	LinkedNumber  *int32    `json:"linked_number"`
+	BankAccountID *int64    `json:"bank_account_id"`
+	AccountName   *string   `json:"account_name"`
 	Note          *string   `json:"note"`
 	CreatedByName *string   `json:"created_by_name"`
 }
@@ -415,9 +418,9 @@ func (h *Handler) getSupplierStatement(w http.ResponseWriter, r *http.Request) {
 	items := make([]statementRowJSON, 0, len(result.Items))
 	for _, row := range result.Items {
 		items = append(items, statementRowJSON{
-			ID: row.ID, Kind: row.Kind, Number: row.Number, At: row.At, Amount: row.Amount, CurrencyID: row.CurrencyID,
+			ID: row.ID, Kind: row.Kind, Number: row.Number, At: row.At, Amount: row.Amount, CurrencyID: row.CurrencyID, Rate: row.Rate,
 			AmountUZS: row.AmountUZS, DeltaUZS: row.DeltaUZS, BalanceUZS: row.BalanceUZS, LinkedID: row.LinkedID, LinkedNumber: row.LinkedNumber,
-			Note: row.Note, CreatedByName: row.CreatedByName,
+			BankAccountID: row.BankAccountID, AccountName: row.AccountName, Note: row.Note, CreatedByName: row.CreatedByName,
 		})
 	}
 	httpx.JSON(w, http.StatusOK, pageJSON[statementRowJSON]{Items: items, Total: result.Total, Page: result.Page, PageSize: result.PageSize})

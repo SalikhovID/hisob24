@@ -4,13 +4,15 @@ import (
 	"context"
 	"time"
 
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
 // StatementRow is one document of a supplier's statement
 // (logic/warehouse.md, section 6): the document, its amount in its
-// currency and in so'm, how it changed what is owed and what was owed
-// after it; a payment entered with a purchase names the purchase.
+// currency (with its rate) and in so'm, how it changed what is owed and
+// what was owed after it; a payment names its account, one entered with a
+// purchase names the purchase too.
 type StatementRow struct {
 	ID            int64
 	Kind          string
@@ -18,11 +20,14 @@ type StatementRow struct {
 	At            time.Time
 	Amount        string
 	CurrencyID    int64
+	Rate          string
 	AmountUZS     string
 	DeltaUZS      string
 	BalanceUZS    string
 	LinkedID      *int64
 	LinkedNumber  *int32
+	BankAccountID *int64
+	AccountName   *string
 	Note          *string
 	CreatedByName *string
 }
@@ -55,9 +60,9 @@ func (s *Service) Statement(ctx context.Context, companyID, supplierID int64, pa
 	items := make([]StatementRow, 0, len(rows))
 	for _, r := range rows {
 		items = append(items, StatementRow{
-			ID: r.ID, Kind: r.Kind, Number: r.Number, At: r.DocAt.UTC(), Amount: amount(r.Amount), CurrencyID: r.CurrencyID,
+			ID: r.ID, Kind: r.Kind, Number: r.Number, At: r.DocAt.UTC(), Amount: amount(r.Amount), CurrencyID: r.CurrencyID, Rate: currency.RateText(r.Rate),
 			AmountUZS: amount(r.AmountUzs), DeltaUZS: amount(r.DeltaUzs), BalanceUZS: amount(r.BalanceUzs),
-			LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber, Note: r.Note, CreatedByName: r.CreatedByName,
+			LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber, BankAccountID: r.BankAccountID, AccountName: r.AccountName, Note: r.Note, CreatedByName: r.CreatedByName,
 		})
 	}
 	return StatementPage{Items: items, Total: total, Page: page, PageSize: PageSize}, nil

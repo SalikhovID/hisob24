@@ -2239,6 +2239,8 @@ export interface components {
             amount: string;
             /** Format: int64 */
             currency_id: number;
+            /** @description Hujjat kursi, to'rt kasr */
+            rate: string;
             amount_uzs: string;
             delta_uzs: string;
             balance_uzs: string;
@@ -2249,6 +2251,12 @@ export interface components {
             linked_id: number | null;
             /** @description O'sha xaridning raqami */
             linked_number: number | null;
+            /**
+             * Format: int64
+             * @description To'lovning akkaunti; boshqa hujjatda null
+             */
+            bank_account_id: number | null;
+            account_name: string | null;
             note: string | null;
             created_by_name: string | null;
         };

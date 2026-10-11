@@ -38,9 +38,9 @@ func TestSupplierStatement(t *testing.T) {
 	assert.Equal(t, PageSize, page.PageSize)
 	require.Len(t, page.Items, 4)
 	assert.Equal(t, StatementRow{
-		ID: own.ID, Kind: "supplier_payment", Number: 3, At: time.Date(2026, 10, 5, 5, 0, 0, 0, time.UTC), Amount: "50.00", CurrencyID: 2,
-		AmountUZS: "650000.00", DeltaUZS: "-650000.00", BalanceUZS: "2000.00", Note: ptr("Qolgani"),
-	}, page.Items[0], "the newest first: 1 280 000 − 128 000 − 500 000 − 650 000")
+		ID: own.ID, Kind: "supplier_payment", Number: 3, At: time.Date(2026, 10, 5, 5, 0, 0, 0, time.UTC), Amount: "50.00", CurrencyID: 2, Rate: "13000.0000",
+		AmountUZS: "650000.00", DeltaUZS: "-650000.00", BalanceUZS: "2000.00", BankAccountID: &card, AccountName: ptr("Karta"), Note: ptr("Qolgani"),
+	}, page.Items[0], "the newest first: 1 280 000 − 128 000 − 500 000 − 650 000; the payment names its account and rate")
 	assert.Equal(t, som.ID, page.Items[1].ID)
 	assert.Equal(t, "-500000.00", page.Items[1].DeltaUZS)
 	assert.Equal(t, "652000.00", page.Items[1].BalanceUZS)
@@ -50,9 +50,9 @@ func TestSupplierStatement(t *testing.T) {
 	assert.Equal(t, "-128000.00", page.Items[2].DeltaUZS)
 	assert.Equal(t, "1152000.00", page.Items[2].BalanceUZS)
 	assert.Equal(t, StatementRow{
-		ID: purchase.ID, Kind: "purchase", Number: 1, At: time.Date(2026, 10, 1, 5, 0, 0, 0, time.UTC), Amount: "100.00", CurrencyID: 2,
+		ID: purchase.ID, Kind: "purchase", Number: 1, At: time.Date(2026, 10, 1, 5, 0, 0, 0, time.UTC), Amount: "100.00", CurrencyID: 2, Rate: "12800.0000",
 		AmountUZS: "1280000.00", DeltaUZS: "1280000.00", BalanceUZS: "1280000.00", CreatedByName: ptr("Ali aka"),
-	}, page.Items[3])
+	}, page.Items[3], "a purchase names no account")
 	sup, err := s.GetSupplier(ctx, m.company, m.bozor)
 	require.NoError(t, err)
 	assert.Equal(t, "2000.00", sup.Balance, "what the statement ends on")
