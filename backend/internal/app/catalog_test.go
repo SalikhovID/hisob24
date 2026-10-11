@@ -40,6 +40,7 @@ func TestCreateProduct(t *testing.T) {
 	assert.Equal(t, "A-1", p["sku"])
 	assert.Equal(t, "12000.50", p["price"], "two decimals, as text")
 	assert.Equal(t, "Qizil", p["note"])
+	assert.EqualValues(t, 1, p["currency_id"], "a price is in so'm unless said otherwise")
 	assert.Equal(t, true, p["is_active"])
 	assert.Equal(t, "Vali Aliyev", p["created_by_name"])
 	assert.NotEmpty(t, p["created_at"])
@@ -69,6 +70,16 @@ func TestCreateProduct(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code, name)
 		assert.JSONEq(t, fmt.Sprintf(`{"error":"validation_error","message":"%s"}`, tc.message), rec.Body.String(), name)
 	}
+
+	rec = api.do(t, http.MethodPost, "/app/products", `{"kind":"product","name":"Behi","unit":"kg","price":"10","currency_id":2}`, bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"currency_not_allowed","message":"Bu valyuta kompaniyada yoqilmagan"}`, rec.Body.String(), "the dollar is off in the company")
+	api.turnOn(t, olma, 2)
+	behi := api.enterProduct(t, owner, `{"kind":"product","name":"Behi","unit":"kg","price":"10","currency_id":2}`)
+	assert.EqualValues(t, 2, behi["currency_id"], "a price in dollars")
+	rec = api.do(t, http.MethodPost, "/app/products", `{"kind":"product","name":"Anor","unit":"kg","currency_id":9}`, bearer(owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Valyuta noto'g'ri"}`, rec.Body.String(), "not of the catalog")
 
 	rec = api.do(t, http.MethodPost, "/app/products", `{"kind":"product","name":"OLMA","unit":"dona"}`, bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code)

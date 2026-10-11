@@ -21,10 +21,11 @@ func TestCheck(t *testing.T) {
 	}{
 		"a product, trimmed, with its optional fields": {
 			KindProduct, Input{Name: " Olma ", Unit: ptr("kg"), SKU: ptr(" A-1 "), Price: ptr("12000.5"), Note: ptr(" Qizil ")},
-			checked{Name: "Olma", Unit: ptr("kg"), SKU: ptr("A-1"), Note: ptr("Qizil")}, ""},
-		"a product with nothing optional": {KindProduct, Input{Name: "Olma", Unit: ptr("dona"), SKU: ptr(" "), Price: ptr(""), Note: nil}, checked{Name: "Olma", Unit: ptr("dona")}, ""},
-		"a service":                       {KindService, Input{Name: "Yetkazish", Price: ptr("50000")}, checked{Name: "Yetkazish"}, ""},
-		"a service with an empty unit":    {KindService, Input{Name: "Yetkazish", Unit: ptr("")}, checked{Name: "Yetkazish"}, ""},
+			checked{Name: "Olma", Unit: ptr("kg"), SKU: ptr("A-1"), Note: ptr("Qizil"), CurrencyID: 1}, ""},
+		"a product with nothing optional": {KindProduct, Input{Name: "Olma", Unit: ptr("dona"), SKU: ptr(" "), Price: ptr(""), Note: nil}, checked{Name: "Olma", Unit: ptr("dona"), CurrencyID: 1}, ""},
+		"a service":                       {KindService, Input{Name: "Yetkazish", Price: ptr("50000")}, checked{Name: "Yetkazish", CurrencyID: 1}, ""},
+		"a service with an empty unit":    {KindService, Input{Name: "Yetkazish", Unit: ptr("")}, checked{Name: "Yetkazish", CurrencyID: 1}, ""},
+		"a price in dollars":              {KindProduct, Input{Name: "Olma", Unit: ptr("kg"), Price: ptr("10"), CurrencyID: ptr(int64(2))}, checked{Name: "Olma", Unit: ptr("kg"), CurrencyID: 2}, ""},
 		"no kind":                         {"", Input{Name: "Olma"}, checked{}, "Turni tanlang"},
 		"a kind not of the two":           {"thing", Input{Name: "Olma"}, checked{}, "Turni tanlang"},
 		"no name":                         {KindProduct, Input{Name: "  ", Unit: ptr("kg")}, checked{}, "Nomni kiriting"},
@@ -51,6 +52,7 @@ func TestCheck(t *testing.T) {
 		assert.Equal(t, tc.want.Unit, got.Unit, name)
 		assert.Equal(t, tc.want.SKU, got.SKU, name)
 		assert.Equal(t, tc.want.Note, got.Note, name)
+		assert.Equal(t, tc.want.CurrencyID, got.CurrencyID, name)
 		assert.Equal(t, tc.in.Price != nil && *tc.in.Price != "", got.Price.Valid, name)
 	}
 }

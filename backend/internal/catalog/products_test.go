@@ -38,7 +38,17 @@ func addCompany(t *testing.T, pool *pgxpool.Pool, name string) int64 {
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role, full_name) VALUES ($1, $2, 'owner', 'Ali aka'), ($3, $2, 'user', NULL)", ali, id, vali)
 	require.NoError(t, err)
+	// Every company starts with the so'm (logic/currencies.md).
+	_, err = pool.Exec(ctx, "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, 1)", id)
+	require.NoError(t, err)
 	return id
+}
+
+// turnOn turns a currency on for the company, as the admin does.
+func turnOn(t *testing.T, pool *pgxpool.Pool, companyID, currencyID int64) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(), "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, $2)", companyID, currencyID)
+	require.NoError(t, err)
 }
 
 // shop is a company (addCompany) with its locations Asosiy and Chilonzor;
@@ -117,9 +127,19 @@ func TestCreate(t *testing.T) {
 	assert.Equal(t, ptr("A-1"), p.SKU)
 	assert.Equal(t, ptr("12000.50"), p.Price, "two decimals, as the database writes it")
 	assert.Equal(t, ptr("Qizil"), p.Note)
+	assert.EqualValues(t, 1, p.CurrencyID, "a price is in so'm unless said otherwise")
 	assert.True(t, p.Active)
 	assert.Equal(t, ptr("Ali aka"), p.CreatedByName, "the name the member goes by in the company")
 	assert.Equal(t, p.CreatedAt, p.UpdatedAt)
+
+	_, err = s.Create(ctx, olma.scope(), ali, Input{Kind: KindProduct, Name: "Behi", Unit: ptr("kg"), Price: ptr("10"), CurrencyID: ptr(int64(2))})
+	refused(t, err, apperr.Invalid, "currency_not_allowed", "Bu valyuta kompaniyada yoqilmagan", "the dollar is off in the company")
+	turnOn(t, pool, olma.company, 2)
+	behi, err := s.Create(ctx, olma.scope(), ali, Input{Kind: KindProduct, Name: "Behi", Unit: ptr("kg"), Price: ptr("10"), CurrencyID: ptr(int64(2))})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, behi.CurrencyID, "a price in dollars")
+	_, err = s.Create(ctx, olma.scope(), ali, Input{Kind: KindProduct, Name: "Anor", Unit: ptr("kg"), CurrencyID: ptr(int64(9))})
+	refused(t, err, apperr.Invalid, "validation_error", "Valyuta noto'g'ri", "not of the catalog")
 
 	service, err := s.Create(ctx, olma.scope(), vali, Input{Kind: KindService, Name: "Yetkazish", Price: ptr("50000")})
 	require.NoError(t, err)
@@ -236,7 +256,15 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, ptr("A-2"), updated.SKU)
 	assert.Equal(t, ptr("150.50"), updated.Price)
 	assert.Equal(t, ptr("Yangi"), updated.Note)
+	assert.EqualValues(t, 1, updated.CurrencyID)
 	assert.Equal(t, p.CreatedByName, updated.CreatedByName)
+
+	_, err = s.Update(ctx, olma.scope(), p.ID, Input{Kind: KindProduct, Name: "Olma", Unit: ptr("kg"), Price: ptr("10"), CurrencyID: ptr(int64(3))})
+	refused(t, err, apperr.Invalid, "currency_not_allowed", "Bu valyuta kompaniyada yoqilmagan", "the euro is off")
+	turnOn(t, pool, olma.company, 3)
+	inEuros, err := s.Update(ctx, olma.scope(), p.ID, Input{Kind: KindProduct, Name: "Olma", Unit: ptr("kg"), Price: ptr("10"), CurrencyID: ptr(int64(3))})
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, inEuros.CurrencyID, "the price's currency moves with the price")
 
 	cleared, err := s.Update(ctx, olma.scope(), p.ID, product("Olma", "kg"))
 	require.NoError(t, err)

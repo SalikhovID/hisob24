@@ -727,6 +727,68 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "402":
           $ref: "#/components/responses/SubscriptionExpired"
+  /app/currency-rates:
+    get:
+      operationId: listCurrencyRates
+      summary: Valyuta kurslari tarixi (settings.view ruxsati)
+      description: >
+        Kompaniyaning standart kurs qatorlari, yangi birinchi, 20 tadan
+        (logic/currencies.md, 4-bo'lim). Joriy kurs eng birinchi qator;
+        formalar uchun /app/me ham aytadi.
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        "200":
+          description: Kurslar tarixi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatesPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: setCurrencyRates
+      summary: Kurslarni kiritish (settings.edit ruxsati)
+      description: >
+        Yangi standart kurs qatori: yoqilgan har valyutaning kursi, berilmagani
+        oldingi qatordan; so'm doim 1. Keyingi hujjatlar sanasiga qarab shu
+        qatorni oladi; avvalgi hujjatlar o'z qatorida qoladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatesInput"
+      responses:
+        "201":
+          description: Kiritilgan qator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rates"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /app/me/nav:
     put:
       operationId: setNavOrder
@@ -4071,6 +4133,69 @@ components:
           type: [integer, "null"]
           format: int64
           description: Tanlanmagan bo'lsa null (frontend /select-company'ga o'tadi)
+    CompanyCurrency:
+      allOf:
+        - $ref: "#/components/schemas/Currency"
+        - type: object
+          required: [rate]
+          properties:
+            rate:
+              type: [string, "null"]
+              description: >
+                Hozir amaldagi standart kurs, so'mda, to'rt kasr bilan
+                ("12800.0000"); so'mda "1.0000"; kurs kiritilmagan bo'lsa null
+    Rates:
+      type: object
+      description: Kurslar qatori (logic/currencies.md, 4-bo'lim), so'mda, to'rt kasr bilan
+      required: [id, usd, eur, rub, set_by_name, set_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        usd:
+          type: string
+          description: '1 USD necha so''m ("12800.0000"); yoqilmagan valyutada "0.0000"'
+        eur:
+          type: string
+        rub:
+          type: string
+        set_by_name:
+          type: [string, "null"]
+          description: Kiritgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi
+        set_at:
+          type: string
+          format: date-time
+    RatesInput:
+      type: object
+      description: >
+        Yangi kurslar qatori: yoqilgan har valyutaning kursi; berilmagani
+        oldingi qatordan olinadi. Hech biri berilmasa 400 "Kursni kiriting";
+        yoqilmagan valyuta kursi 400 currency_not_allowed.
+      properties:
+        usd:
+          type: string
+          pattern: "^[0-9]{1,10}([.][0-9]{1,4})?$"
+        eur:
+          type: string
+          pattern: "^[0-9]{1,10}([.][0-9]{1,4})?$"
+        rub:
+          type: string
+          pattern: "^[0-9]{1,10}([.][0-9]{1,4})?$"
+    RatesPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rates"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        page_size:
+          type: integer
     AppUser:
       type: object
       required: [phone, full_name]
@@ -4165,7 +4290,7 @@ components:
           type: boolean
     Me:
       type: object
-      required: [user, company, companies, permissions, locations, nav_order]
+      required: [user, company, companies, permissions, locations, nav_order, currencies]
       properties:
         user:
           $ref: "#/components/schemas/AppUser"
@@ -4204,6 +4329,16 @@ components:
             bilan (logic/roles.md, 8-bo'lim): sidebar va tab-bar shu tartibda,
             tartibda yo'q bo'limlar standart tartibda oxirida. null standart
             tartib yoki kompaniya tanlanmagan.
+        currencies:
+          type: array
+          description: >
+            Tanlangan kompaniyada yoqilgan valyutalar, katalog tartibida, har
+            birida hozir amaldagi kurs (logic/currencies.md): so'm doim,
+            kursi "1.0000"; kurs kiritilmagan valyutada null. Kompaniya
+            tanlanmagan bo'lsa bo'sh. Formalar valyuta tanlovi va kursni
+            shundan oladi; 2+ valyutada ko'rinadi.
+          items:
+            $ref: "#/components/schemas/CompanyCurrency"
           items:
             $ref: "#/components/schemas/NavSection"
     Ref:
@@ -5112,7 +5247,7 @@ components:
       enum: [dona, kg, g, l, ml, m, m2, quti, juft, komplekt]
     Product:
       type: object
-      required: [id, kind, name, unit, sku, price, note, is_active, quantity, last_price, created_by_name, created_at, updated_at]
+      required: [id, kind, name, unit, sku, price, currency_id, note, is_active, quantity, last_price, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -5132,6 +5267,10 @@ components:
         price:
           type: [string, "null"]
           description: Mahsulotda sotuv narxi, xizmatda narx; bazadagidek ikki kasr xonasi bilan ("150000.50")
+        currency_id:
+          type: integer
+          format: int64
+          description: Narxning valyutasi (logic/currencies.md); 1 so'm, kiritilmasa shu
         note:
           type: [string, "null"]
         is_active:
@@ -5176,6 +5315,10 @@ components:
         price:
           type: [string, "null"]
           pattern: "^[0-9]{1,12}([.][0-9]{1,2})?$"
+        currency_id:
+          type: integer
+          format: int64
+          description: Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
         note:
           type: [string, "null"]
           maxLength: 500
@@ -5196,6 +5339,10 @@ components:
         price:
           type: [string, "null"]
           pattern: "^[0-9]{1,12}([.][0-9]{1,2})?$"
+        currency_id:
+          type: integer
+          format: int64
+          description: Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
         note:
           type: [string, "null"]
           maxLength: 500

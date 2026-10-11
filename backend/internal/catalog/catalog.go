@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
@@ -98,7 +99,10 @@ type Product struct {
 	Unit  *string
 	SKU   *string
 	Price *string
-	Note  *string
+	// CurrencyID is the currency the price is in (logic/currencies.md):
+	// the so'm unless said otherwise.
+	CurrencyID int64
+	Note       *string
 	// Active says whether it is still offered (logic/products.md, 3.3).
 	Active bool
 	// Quantity is the product's stock in the scope's locations (or the one
@@ -122,18 +126,21 @@ type Input struct {
 	Unit  *string
 	SKU   *string
 	Price *string
-	Note  *string
+	// CurrencyID is the currency of the price; nil is the so'm.
+	CurrencyID *int64
+	Note       *string
 }
 
 // checked is an input as it is kept: the name clean, the unit of a product
 // one of the Units (a service has none, and no SKU), the price an amount or
 // none, the SKU and the note trimmed or none.
 type checked struct {
-	Name  string
-	Unit  *string
-	SKU   *string
-	Price pgtype.Numeric
-	Note  *string
+	Name       string
+	Unit       *string
+	SKU        *string
+	Price      pgtype.Numeric
+	CurrencyID int64
+	Note       *string
 }
 
 // check reads an input of the kind. What is wrong is told in this order:
@@ -164,10 +171,36 @@ func check(kind string, in Input) (checked, error) {
 	if c.Price, err = Money(in.Price, "Narx noto'g'ri"); err != nil {
 		return checked{}, err
 	}
+	// The currency is the so'm unless said otherwise; whether the company
+	// has it on is the database's to say (currencyAllowed).
+	c.CurrencyID = currency.UZS
+	if in.CurrencyID != nil {
+		c.CurrencyID = *in.CurrencyID
+	}
 	if c.Note, err = cleanOptional(in.Note, MaxNote, "Izoh 500 belgidan oshmasin"); err != nil {
 		return checked{}, err
 	}
 	return c, nil
+}
+
+// currencyAllowed says whether a price may be in the currency: one of the
+// catalog (400 otherwise) that the company has turned on (400
+// currency_not_allowed otherwise).
+func currencyAllowed(ctx context.Context, q *gen.Queries, companyID, currencyID int64) error {
+	if _, err := q.GetCurrency(ctx, currencyID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return invalid("Valyuta noto'g'ri")
+		}
+		return err
+	}
+	has, err := q.CompanyHasCurrency(ctx, gen.CompanyHasCurrencyParams{CompanyID: companyID, CurrencyID: currencyID})
+	if err != nil {
+		return err
+	}
+	if !has {
+		return currency.ErrNotAllowed
+	}
+	return nil
 }
 
 // cleanName is a name as it is kept: without the spaces around it, not
@@ -237,7 +270,7 @@ func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone stri
 
 func toProduct(r gen.GetProductRow) Product {
 	return Product{
-		ID: r.ID, Kind: r.Kind, Name: r.Name, Unit: r.Unit, SKU: r.Sku, Price: Amount(r.Price), Note: r.Note, Active: r.IsActive,
+		ID: r.ID, Kind: r.Kind, Name: r.Name, Unit: r.Unit, SKU: r.Sku, Price: Amount(r.Price), CurrencyID: r.CurrencyID, Note: r.Note, Active: r.IsActive,
 		Quantity: QuantityText(r.Quantity), LastPrice: Amount(r.LastPrice),
 		CreatedByName: r.CreatedByName, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}

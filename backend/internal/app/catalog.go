@@ -18,9 +18,11 @@ type productJSON struct {
 	SKU  *string `json:"sku"`
 	// Price is the sale price of a product, the price of a service, as text
 	// with two decimals ("150000.50"); null when there is none.
-	Price    *string `json:"price"`
-	Note     *string `json:"note"`
-	IsActive bool    `json:"is_active"`
+	Price *string `json:"price"`
+	// CurrencyID is the currency the price is in: 1 (so'm) unless set.
+	CurrencyID int64   `json:"currency_id"`
+	Note       *string `json:"note"`
+	IsActive   bool    `json:"is_active"`
 	// Quantity is the product's stock in the member's locations, or in the
 	// one asked for, as text with three decimals ("12.500"); null for a
 	// service. LastPrice is the price of its newest live purchase line,
@@ -34,7 +36,7 @@ type productJSON struct {
 
 func toProductJSON(p catalog.Product) productJSON {
 	return productJSON{
-		ID: p.ID, Kind: p.Kind, Name: p.Name, Unit: p.Unit, SKU: p.SKU, Price: p.Price, Note: p.Note, IsActive: p.Active,
+		ID: p.ID, Kind: p.Kind, Name: p.Name, Unit: p.Unit, SKU: p.SKU, Price: p.Price, CurrencyID: p.CurrencyID, Note: p.Note, IsActive: p.Active,
 		Quantity: p.Quantity, LastPrice: p.LastPrice,
 		CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
@@ -75,16 +77,17 @@ type productPageJSON struct {
 // productInputJSON is a product or a service as the client sends it; the
 // kind is read on entry alone.
 type productInputJSON struct {
-	Kind  string  `json:"kind"`
-	Name  string  `json:"name"`
-	Unit  *string `json:"unit"`
-	SKU   *string `json:"sku"`
-	Price *string `json:"price"`
-	Note  *string `json:"note"`
+	Kind       string  `json:"kind"`
+	Name       string  `json:"name"`
+	Unit       *string `json:"unit"`
+	SKU        *string `json:"sku"`
+	Price      *string `json:"price"`
+	CurrencyID *int64  `json:"currency_id"`
+	Note       *string `json:"note"`
 }
 
 func (in productInputJSON) input() catalog.Input {
-	return catalog.Input{Kind: in.Kind, Name: in.Name, Unit: in.Unit, SKU: in.SKU, Price: in.Price, Note: in.Note}
+	return catalog.Input{Kind: in.Kind, Name: in.Name, Unit: in.Unit, SKU: in.SKU, Price: in.Price, CurrencyID: in.CurrencyID, Note: in.Note}
 }
 
 // listProducts is a page of the products (?kind=product, the default) or
