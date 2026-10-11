@@ -1731,6 +1731,263 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/suppliers/{id}/openings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Ta'minotchining boshlang'ich qarz va avanslari (purchases.view ruxsati)
+         * @description Ta'minotchining jonli boshlang'ich qarz / avans hujjatlari, vaqt bo'yicha yangi birinchi, sahifada 20 ta (logic/warehouse.md, 6-bo'lim). Ta'minotchi topilmasa 404.
+         */
+        get: operations["listOpenings"];
+        put?: never;
+        /**
+         * Boshlang'ich qarz yoki avans qo'shish (purchases.create ruxsati)
+         * @description Kompaniya hisobni shu yerda yurita boshlagan paytdagi ta'minotchiga qarz (debt) yoki unga oldindan to'langan avans (prepay) kiritiladi, nofaol ta'minotchiga ham; tur bo'yicha raqamlanadi. Tekshiruv tartibi: ta'minotchi (404), tur ("Turni tanlang" / "Tur noto'g'ri"), summa ("Summani kiriting" / "Summa noto'g'ri"), vaqt, valyuta va kurs, izoh (logic/warehouse.md, 6-bo'lim).
+         */
+        post: operations["addOpening"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/suppliers/{id}/openings/{openingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                openingId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Boshlang'ich qarz / avansni tahrirlash (purchases.edit ruxsati)
+         * @description Summa, vaqt, valyuta, kurs va izoh o'zgaradi; tur o'zgarmaydi (boshqa tur yuborilsa 400 "Tur o'zgartirilmaydi"). Hujjat topilmasa 404 "Hujjat topilmadi".
+         */
+        put: operations["updateOpening"];
+        post?: never;
+        /**
+         * Boshlang'ich qarz / avansni o'chirish (purchases.delete ruxsati)
+         * @description Yashiriladi; raqam bo'shamaydi.
+         */
+        delete: operations["deleteOpening"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lokatsiyadagi qoldiq lahza bo'yicha (stock.view ruxsati)
+         * @description location_id lokatsiyasida (yo'q: 400 "Lokatsiyani tanlang"; a'zo ishlay olmaydigan: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri") at lahzasigacha (berilmasa hozir; noto'g'ri: 400 "Vaqt noto'g'ri") qoldig'i 0 dan farqli mahsulotlar, nom bo'yicha, sahifasiz: inventarizatsiya shundan boshlanadi (logic/warehouse.md, 5.2).
+         */
+        get: operations["getStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/products/{id}/moves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Mahsulot harakatlari (stock.view ruxsati)
+         * @description Mahsulotning ombor jurnalidagi harakatlari a'zoga ruxsatli lokatsiyalarda, yoki location_id berilgan bittasida (a'zo ishlay olmaydigan: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"), hujjat vaqti bo'yicha yangi birinchi, sahifada 20 ta (logic/products.md, 6-bo'lim). Mahsulot topilmasa 404.
+         */
+        get: operations["listProductMoves"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ko'chirishlar ro'yxati (stock.view ruxsati)
+         * @description Manbasi yoki maqsadi a'zoga ruxsatli lokatsiyalardan bo'lgan ko'chirishlar, yoki location_id berilgan bittasiniki (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"). Vaqt bo'yicha yangi birinchi, sahifada 20 ta; qatorlar ro'yxatda yo'q (logic/warehouse.md, 5.1).
+         */
+        get: operations["listTransfers"];
+        put?: never;
+        /**
+         * Ko'chirish qo'shish (stock.create ruxsati)
+         * @description Bitta tranzaksiyada: ko'chirishlar ichida navbatdagi raqam, hujjat, qatorlar, har qator uchun manbadan (−) va maqsadga (+) harakat; manbada qoldiq yetmasa 409 stock_insufficient. Tekshiruv tartibi: manba lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), maqsad lokatsiya (kompaniyaning jonli lokatsiyasi: "Maqsad lokatsiyani tanlang"; manbadan farqli: "Maqsad lokatsiya boshqa bo'lsin"), vaqt, izoh, qatorlar (kamida bitta; har birida mahsulot, xizmat emas ("Xizmat ombor hujjatiga kiritilmaydi"), faol, bir marta, miqdor > 0).
+         */
+        post: operations["createTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/transfers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Ko'chirish, qatorlari bilan (stock.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyadan chiqqan yoki unga kirgan ko'chirish; boshqasi 404 "Ko'chirish topilmadi".
+         */
+        get: operations["getTransfer"];
+        /**
+         * Ko'chirishni tahrirlash (stock.edit ruxsati)
+         * @description Manba va raqam o'zgarmaydi; manba a'zoga ruxsatsiz bo'lsa (ko'chirish faqat maqsad tomonidan ko'rinsa) 403 forbidden. Maqsad, vaqt, qatorlar va izoh yuborilganiga almashadi, harakatlar qayta yoziladi (manbada yoki eski / yangi maqsadda qoldiq yetmasa 409 stock_insufficient). Ko'chirishda avvaldan bor mahsulotlar nofaol bo'lsa ham qoladi.
+         */
+        put: operations["updateTransfer"];
+        post?: never;
+        /**
+         * Ko'chirishni o'chirish (stock.delete ruxsati)
+         * @description Yashiriladi, harakatlari o'chiriladi (maqsadda qoldiq yetmasa 409 stock_insufficient); manba a'zoga ruxsatsiz bo'lsa 403; raqam bo'shamaydi.
+         */
+        delete: operations["deleteTransfer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/inventories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inventarizatsiyalar ro'yxati (stock.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyalardagi inventarizatsiyalar, yoki location_id berilgan bittasidagi (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"). Vaqt bo'yicha yangi birinchi, sahifada 20 ta; qatorlar ro'yxatda yo'q (logic/warehouse.md, 5.2).
+         */
+        get: operations["listInventories"];
+        put?: never;
+        /**
+         * Inventarizatsiya qo'shish (stock.create ruxsati)
+         * @description Bitta tranzaksiyada: inventarizatsiyalar ichida navbatdagi raqam, hujjat, qatorlar (har qatorda hujjat lahzasigacha jurnal kutgan qoldiq expected va sanalgan counted), farqi 0 bo'lmagan har qator uchun harakat (counted − expected); lokatsiyada qoldiq manfiy bo'lsa 409 stock_insufficient. Tekshiruv tartibi: lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), vaqt, izoh, qatorlar (kamida bitta; har birida mahsulot, xizmat emas, faol, bir marta, sanalgan >= 0).
+         */
+        post: operations["createInventory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/inventories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Inventarizatsiya, qatorlari bilan (stock.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyadagi inventarizatsiya; boshqasi 404 "Inventarizatsiya topilmadi".
+         */
+        get: operations["getInventory"];
+        /**
+         * Inventarizatsiyani tahrirlash (stock.edit ruxsati)
+         * @description Lokatsiya va raqam o'zgarmaydi. Vaqt, qatorlar va izoh yuborilganiga almashadi; kutilgan qoldiq hujjat lahzasi bo'yicha (shu hujjatsiz) qayta hisoblanadi, harakatlar qayta yoziladi (qoldiq manfiy bo'lsa 409 stock_insufficient). Avvaldan bor mahsulotlar nofaol bo'lsa ham qoladi.
+         */
+        put: operations["updateInventory"];
+        post?: never;
+        /**
+         * Inventarizatsiyani o'chirish (stock.delete ruxsati)
+         * @description Yashiriladi, harakatlari o'chiriladi (qoldiq yetmasa 409 stock_insufficient); raqam bo'shamaydi.
+         */
+        delete: operations["deleteInventory"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/opening-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Boshlang'ich qoldiqlar ro'yxati (stock.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyalardagi boshlang'ich qoldiq hujjatlari, yoki location_id berilgan bittasidagi (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"). Vaqt bo'yicha yangi birinchi, sahifada 20 ta; qatorlar ro'yxatda yo'q (logic/warehouse.md, 5.3).
+         */
+        get: operations["listOpeningStock"];
+        put?: never;
+        /**
+         * Boshlang'ich qoldiq qo'shish (stock.create ruxsati)
+         * @description Xarid kabi, ta'minotchi va to'lovsiz, bitta tranzaksiyada: boshlang'ich qoldiqlar ichida navbatdagi raqam, hujjat, qatorlar, jami, har qator uchun lokatsiyaga harakat (+). Tekshiruv tartibi: lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), vaqt, valyuta va kurs, izoh, qatorlar (kamida bitta; har birida mahsulot, xizmat emas, faol, bir marta, miqdor > 0, narx) (logic/warehouse.md, 5.3).
+         */
+        post: operations["createOpeningStock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/opening-stock/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Boshlang'ich qoldiq, qatorlari bilan (stock.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyadagi hujjat; boshqasi 404 "Hujjat topilmadi".
+         */
+        get: operations["getOpeningStock"];
+        /**
+         * Boshlang'ich qoldiqni tahrirlash (stock.edit ruxsati)
+         * @description Lokatsiya va raqam o'zgarmaydi. Vaqt, valyuta, kurs, qatorlar va izoh yuborilganiga almashadi, harakatlar qayta yoziladi (qoldiq manfiy bo'lsa 409 stock_insufficient); jami qayta hisoblanadi. Avvaldan bor mahsulotlar nofaol bo'lsa ham qoladi.
+         */
+        put: operations["updateOpeningStock"];
+        post?: never;
+        /**
+         * Boshlang'ich qoldiqni o'chirish (stock.delete ruxsati)
+         * @description Yashiriladi, harakatlari o'chiriladi (qoldiq yetmasa 409 stock_insufficient); raqam bo'shamaydi.
+         */
+        delete: operations["deleteOpeningStock"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2381,6 +2638,323 @@ export interface components {
         };
         PurchasePage: {
             items: components["schemas"]["Purchase"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /**
+         * @description debt — kompaniya ta'minotchiga qarz; prepay — ta'minotchiga oldindan to'langan (avans)
+         * @enum {string}
+         */
+        OpeningKind: "debt" | "prepay";
+        /** @description Ta'minotchining boshlang'ich qarzi yoki avansi (logic/warehouse.md, 6-bo'lim) */
+        Opening: {
+            /** Format: int64 */
+            id: number;
+            kind: components["schemas"]["OpeningKind"];
+            /** Format: int64 */
+            supplier_id: number;
+            /** @description Summa hujjat valyutasida, ikki kasr xonasi bilan */
+            amount: string;
+            /** Format: int64 */
+            currency_id: number;
+            /** @description Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000") */
+            rate: string;
+            /** @description Summa so'mda, hujjat kursi bilan */
+            amount_uzs: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da)
+             */
+            at: string;
+            note: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        OpeningInput: {
+            kind: components["schemas"]["OpeningKind"];
+            /** @description > 0, hujjat valyutasida, 12 xonagacha butun va 2 kasr ("Summani kiriting" / "Summa noto'g'ri") */
+            amount: string;
+            /**
+             * Format: int64
+             * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+             */
+            currency_id?: number | null;
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            rate?: string | null;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+             */
+            at: string;
+            note?: string | null;
+        };
+        OpeningPage: {
+            items: components["schemas"]["Opening"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description Lokatsiyada qoldig'i bor mahsulot */
+        StockRow: {
+            /** Format: int64 */
+            product_id: number;
+            name: string;
+            unit: components["schemas"]["Unit"] | null;
+            /** @description Lahzadagi qoldiq, uch kasr xonasi bilan; qoldig'i 0 bo'lganlar ro'yxatda yo'q */
+            quantity: string;
+        };
+        /**
+         * @description Tovar harakati yozadigan hujjat turi
+         * @enum {string}
+         */
+        GoodsKind: "purchase" | "sale" | "transfer" | "inventory" | "opening_stock";
+        /** @description Mahsulotning ombor jurnalidagi bitta harakati (logic/products.md, 6-bo'lim) */
+        ProductMove: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description Harakat kelgan hujjat
+             */
+            transaction_id: number;
+            kind: components["schemas"]["GoodsKind"];
+            /** @description Hujjatning o'z turi ichidagi raqami */
+            number: number;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da)
+             */
+            at: string;
+            /** Format: int64 */
+            location_id: number;
+            location_name: string;
+            /** @description Kirim musbat, chiqim manfiy, uch kasr xonasi bilan */
+            quantity: string;
+            /** @description Xaridda ta'minotchi nomi, ko'chirishda ikkinchi lokatsiya nomi; boshqasida null */
+            counterpart: string | null;
+        };
+        ProductMovePage: {
+            items: components["schemas"]["ProductMove"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        TransferItem: {
+            /** Format: int64 */
+            product_id: number;
+            /** @description Mahsulotning hozirgi nomi */
+            name: string;
+            unit: components["schemas"]["Unit"] | null;
+            /** @description Uch kasr xonasi bilan ("12.500") */
+            quantity: string;
+        };
+        MoveInput: {
+            /** Format: int64 */
+            product_id: number;
+            /** @description > 0, 9 xonagacha butun va 3 kasr ("12.5") */
+            quantity: string;
+        };
+        /** @description Ikki lokatsiya orasidagi ko'chirish (logic/warehouse.md, 5.1) */
+        Transfer: {
+            /** Format: int64 */
+            id: number;
+            /** @description Kompaniyadagi ko'chirishlar ichida 1 dan tartib raqami; o'chirilganniki bo'shamaydi */
+            number: number;
+            /**
+             * Format: int64
+             * @description Manba lokatsiya (tovar chiqadigan); o'zgarmaydi
+             */
+            location_id: number;
+            location_name: string;
+            /**
+             * Format: int64
+             * @description Maqsad lokatsiya (tovar kiradigan)
+             */
+            to_location_id: number;
+            to_location_name: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da)
+             */
+            at: string;
+            note: string | null;
+            items_count: number;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        TransferDetail: components["schemas"]["Transfer"] & {
+            /** @description Qatorlar kiritilgan tartibda */
+            items: components["schemas"]["TransferItem"][];
+        };
+        TransferInput: {
+            /**
+             * Format: int64
+             * @description Kompaniyaning jonli lokatsiyasi, manbadan farqli
+             */
+            to_location_id: number;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+             */
+            at: string;
+            note?: string | null;
+            items: components["schemas"]["MoveInput"][];
+        };
+        TransferCreate: components["schemas"]["TransferInput"] & {
+            /**
+             * Format: int64
+             * @description Manba lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+             */
+            location_id: number;
+        };
+        TransferPage: {
+            items: components["schemas"]["Transfer"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        InventoryItem: {
+            /** Format: int64 */
+            product_id: number;
+            /** @description Mahsulotning hozirgi nomi */
+            name: string;
+            unit: components["schemas"]["Unit"] | null;
+            /** @description Hujjat lahzasigacha jurnal kutgan qoldiq (shu hujjatsiz), uch kasr xonasi bilan */
+            expected: string;
+            /** @description Sanalgan miqdor, uch kasr xonasi bilan */
+            counted: string;
+            /** @description counted − expected; shu miqdorda harakat yoziladi (0 bo'lsa harakat yo'q) */
+            difference: string;
+        };
+        CountInput: {
+            /** Format: int64 */
+            product_id: number;
+            /** @description >= 0, 9 xonagacha butun va 3 kasr */
+            counted: string;
+        };
+        /** @description Lokatsiya qoldig'ini sanash (logic/warehouse.md, 5.2) */
+        Inventory: {
+            /** Format: int64 */
+            id: number;
+            /** @description Kompaniyadagi inventarizatsiyalar ichida 1 dan tartib raqami; o'chirilganniki bo'shamaydi */
+            number: number;
+            /**
+             * Format: int64
+             * @description Sanalgan lokatsiya; o'zgarmaydi
+             */
+            location_id: number;
+            location_name: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da); kutilgan qoldiq shu lahzagacha hisoblanadi
+             */
+            at: string;
+            note: string | null;
+            items_count: number;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        InventoryDetail: components["schemas"]["Inventory"] & {
+            /** @description Qatorlar kiritilgan tartibda */
+            items: components["schemas"]["InventoryItem"][];
+        };
+        InventoryInput: {
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+             */
+            at: string;
+            note?: string | null;
+            items: components["schemas"]["CountInput"][];
+        };
+        InventoryCreate: components["schemas"]["InventoryInput"] & {
+            /**
+             * Format: int64
+             * @description Sanaladigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+             */
+            location_id: number;
+        };
+        InventoryPage: {
+            items: components["schemas"]["Inventory"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description Lokatsiyaning boshlang'ich qoldig'i (logic/warehouse.md, 5.3) */
+        OpeningStock: {
+            /** Format: int64 */
+            id: number;
+            /** @description Kompaniyadagi boshlang'ich qoldiqlar ichida 1 dan tartib raqami; o'chirilganniki bo'shamaydi */
+            number: number;
+            /**
+             * Format: int64
+             * @description Qoldiq tushgan lokatsiya; o'zgarmaydi
+             */
+            location_id: number;
+            location_name: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da)
+             */
+            at: string;
+            /**
+             * Format: int64
+             * @description Hujjat valyutasi; qatorlar va jami shu valyutada
+             */
+            currency_id: number;
+            /** @description Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000") */
+            rate: string;
+            note: string | null;
+            /** @description Qatorlar jami, hujjat valyutasida, ikki kasr xonasi bilan */
+            total: string;
+            /** @description Jami so'mda, hujjat kursi bilan */
+            total_uzs: string;
+            items_count: number;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        OpeningStockDetail: components["schemas"]["OpeningStock"] & {
+            /** @description Qatorlar kiritilgan tartibda */
+            items: components["schemas"]["PurchaseItem"][];
+        };
+        OpeningStockInput: {
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+             */
+            at: string;
+            /**
+             * Format: int64
+             * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+             */
+            currency_id?: number | null;
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            rate?: string | null;
+            note?: string | null;
+            items: components["schemas"]["PurchaseItemInput"][];
+        };
+        OpeningStockCreate: components["schemas"]["OpeningStockInput"] & {
+            /**
+             * Format: int64
+             * @description Qoldiq tushadigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+             */
+            location_id: number;
+        };
+        OpeningStockPage: {
+            items: components["schemas"]["OpeningStock"][];
             total: number;
             page: number;
             page_size: number;
@@ -3146,6 +3720,42 @@ export interface components {
         };
         /** @description Omborda yetarli qoldiq yo'q (stock_insufficient) */
         PurchaseConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Ko'chirish topilmadi (not_found) */
+        TransferNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Inventarizatsiya topilmadi (not_found) */
+        InventoryNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Hujjat topilmadi (not_found) */
+        DocumentNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Omborda yetarli qoldiq yo'q (stock_insufficient) */
+        StockConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -6489,6 +7099,596 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["PurchaseNotFound"];
             409: components["responses"]["PurchaseConflict"];
+        };
+    };
+    listOpenings: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+        };
+    };
+    addOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan hujjat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Opening"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
+        };
+    };
+    updateOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                openingId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Opening"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    deleteOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                openingId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    getStock: {
+        parameters: {
+            query: {
+                location_id: number;
+                at?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Qoldiqlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockRow"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listProductMoves: {
+        parameters: {
+            query?: {
+                location_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductMovePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["ProductNotFound"];
+        };
+    };
+    listTransfers: {
+        parameters: {
+            query?: {
+                location_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferCreate"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan ko'chirish, qatorlari bilan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    getTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ko'chirish */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["TransferNotFound"];
+        };
+    };
+    updateTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan ko'chirish, qatorlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["TransferNotFound"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    deleteTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["TransferNotFound"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    listInventories: {
+        parameters: {
+            query?: {
+                location_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createInventory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan inventarizatsiya, qatorlari bilan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    getInventory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Inventarizatsiya */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["InventoryNotFound"];
+        };
+    };
+    updateInventory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan inventarizatsiya, qatorlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["InventoryNotFound"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    deleteInventory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["InventoryNotFound"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    listOpeningStock: {
+        parameters: {
+            query?: {
+                location_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningStockPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createOpeningStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningStockCreate"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan hujjat, qatorlari bilan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningStockDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getOpeningStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningStockDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    updateOpeningStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningStockInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan hujjat, qatorlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningStockDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    deleteOpeningStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+            409: components["responses"]["StockConflict"];
         };
     };
 }

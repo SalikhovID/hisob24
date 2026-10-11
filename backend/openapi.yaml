@@ -3737,6 +3737,721 @@ paths:
           $ref: "#/components/responses/PurchaseNotFound"
         "409":
           $ref: "#/components/responses/PurchaseConflict"
+  /app/suppliers/{id}/openings:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listOpenings
+      summary: Ta'minotchining boshlang'ich qarz va avanslari (purchases.view ruxsati)
+      description: >
+        Ta'minotchining jonli boshlang'ich qarz / avans hujjatlari, vaqt
+        bo'yicha yangi birinchi, sahifada 20 ta (logic/warehouse.md,
+        6-bo'lim). Ta'minotchi topilmasa 404.
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpeningPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+    post:
+      operationId: addOpening
+      summary: Boshlang'ich qarz yoki avans qo'shish (purchases.create ruxsati)
+      description: >
+        Kompaniya hisobni shu yerda yurita boshlagan paytdagi ta'minotchiga
+        qarz (debt) yoki unga oldindan to'langan avans (prepay)
+        kiritiladi, nofaol ta'minotchiga ham; tur bo'yicha raqamlanadi.
+        Tekshiruv tartibi: ta'minotchi (404), tur ("Turni tanlang" / "Tur
+        noto'g'ri"), summa ("Summani kiriting" / "Summa noto'g'ri"), vaqt,
+        valyuta va kurs, izoh (logic/warehouse.md, 6-bo'lim).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpeningInput"
+      responses:
+        "201":
+          description: Qo'shilgan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opening"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SupplierNotFound"
+  /app/suppliers/{id}/openings/{openingId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: openingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: updateOpening
+      summary: Boshlang'ich qarz / avansni tahrirlash (purchases.edit ruxsati)
+      description: >
+        Summa, vaqt, valyuta, kurs va izoh o'zgaradi; tur o'zgarmaydi
+        (boshqa tur yuborilsa 400 "Tur o'zgartirilmaydi"). Hujjat
+        topilmasa 404 "Hujjat topilmadi".
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpeningInput"
+      responses:
+        "200":
+          description: Saqlangan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opening"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    delete:
+      operationId: deleteOpening
+      summary: Boshlang'ich qarz / avansni o'chirish (purchases.delete ruxsati)
+      description: Yashiriladi; raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+  /app/stock:
+    get:
+      operationId: getStock
+      summary: Lokatsiyadagi qoldiq lahza bo'yicha (stock.view ruxsati)
+      description: >
+        location_id lokatsiyasida (yo'q: 400 "Lokatsiyani tanlang"; a'zo
+        ishlay olmaydigan: 403 forbidden; son emas: 400 "Lokatsiya
+        noto'g'ri") at lahzasigacha (berilmasa hozir; noto'g'ri: 400 "Vaqt
+        noto'g'ri") qoldig'i 0 dan farqli mahsulotlar, nom bo'yicha,
+        sahifasiz: inventarizatsiya shundan boshlanadi (logic/warehouse.md,
+        5.2).
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: at
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Qoldiqlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockRow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/products/{id}/moves:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listProductMoves
+      summary: Mahsulot harakatlari (stock.view ruxsati)
+      description: >
+        Mahsulotning ombor jurnalidagi harakatlari a'zoga ruxsatli
+        lokatsiyalarda, yoki location_id berilgan bittasida (a'zo ishlay
+        olmaydigan: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"),
+        hujjat vaqti bo'yicha yangi birinchi, sahifada 20 ta
+        (logic/products.md, 6-bo'lim). Mahsulot topilmasa 404.
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductMovePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/ProductNotFound"
+  /app/transfers:
+    get:
+      operationId: listTransfers
+      summary: Ko'chirishlar ro'yxati (stock.view ruxsati)
+      description: >
+        Manbasi yoki maqsadi a'zoga ruxsatli lokatsiyalardan bo'lgan
+        ko'chirishlar, yoki location_id berilgan bittasiniki (a'zo ishlay
+        olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya
+        noto'g'ri"). Vaqt bo'yicha yangi birinchi, sahifada 20 ta;
+        qatorlar ro'yxatda yo'q (logic/warehouse.md, 5.1).
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createTransfer
+      summary: Ko'chirish qo'shish (stock.create ruxsati)
+      description: >
+        Bitta tranzaksiyada: ko'chirishlar ichida navbatdagi raqam, hujjat,
+        qatorlar, har qator uchun manbadan (−) va maqsadga (+) harakat;
+        manbada qoldiq yetmasa 409 stock_insufficient. Tekshiruv tartibi:
+        manba lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga
+        ruxsatsiz: 403), maqsad lokatsiya (kompaniyaning jonli
+        lokatsiyasi: "Maqsad lokatsiyani tanlang"; manbadan farqli:
+        "Maqsad lokatsiya boshqa bo'lsin"), vaqt, izoh, qatorlar (kamida
+        bitta; har birida mahsulot, xizmat emas ("Xizmat ombor hujjatiga
+        kiritilmaydi"), faol, bir marta, miqdor > 0).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferCreate"
+      responses:
+        "201":
+          description: Qo'shilgan ko'chirish, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+  /app/transfers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getTransfer
+      summary: Ko'chirish, qatorlari bilan (stock.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyadan chiqqan yoki unga kirgan ko'chirish;
+        boshqasi 404 "Ko'chirish topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Ko'chirish
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TransferNotFound"
+    put:
+      operationId: updateTransfer
+      summary: Ko'chirishni tahrirlash (stock.edit ruxsati)
+      description: >
+        Manba va raqam o'zgarmaydi; manba a'zoga ruxsatsiz bo'lsa
+        (ko'chirish faqat maqsad tomonidan ko'rinsa) 403 forbidden.
+        Maqsad, vaqt, qatorlar va izoh yuborilganiga almashadi, harakatlar
+        qayta yoziladi (manbada yoki eski / yangi maqsadda qoldiq yetmasa
+        409 stock_insufficient). Ko'chirishda avvaldan bor mahsulotlar
+        nofaol bo'lsa ham qoladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferInput"
+      responses:
+        "200":
+          description: Saqlangan ko'chirish, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TransferNotFound"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+    delete:
+      operationId: deleteTransfer
+      summary: Ko'chirishni o'chirish (stock.delete ruxsati)
+      description: >
+        Yashiriladi, harakatlari o'chiriladi (maqsadda qoldiq yetmasa 409
+        stock_insufficient); manba a'zoga ruxsatsiz bo'lsa 403; raqam
+        bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TransferNotFound"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+  /app/inventories:
+    get:
+      operationId: listInventories
+      summary: Inventarizatsiyalar ro'yxati (stock.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyalardagi inventarizatsiyalar, yoki
+        location_id berilgan bittasidagi (a'zo ishlay olmaydigan
+        lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri").
+        Vaqt bo'yicha yangi birinchi, sahifada 20 ta; qatorlar ro'yxatda
+        yo'q (logic/warehouse.md, 5.2).
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createInventory
+      summary: Inventarizatsiya qo'shish (stock.create ruxsati)
+      description: >
+        Bitta tranzaksiyada: inventarizatsiyalar ichida navbatdagi raqam,
+        hujjat, qatorlar (har qatorda hujjat lahzasigacha jurnal kutgan
+        qoldiq expected va sanalgan counted), farqi 0 bo'lmagan har qator
+        uchun harakat (counted − expected); lokatsiyada qoldiq manfiy
+        bo'lsa 409 stock_insufficient. Tekshiruv tartibi: lokatsiya (yo'q:
+        400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), vaqt, izoh,
+        qatorlar (kamida bitta; har birida mahsulot, xizmat emas, faol, bir
+        marta, sanalgan >= 0).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryCreate"
+      responses:
+        "201":
+          description: Qo'shilgan inventarizatsiya, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+  /app/inventories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getInventory
+      summary: Inventarizatsiya, qatorlari bilan (stock.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyadagi inventarizatsiya; boshqasi 404
+        "Inventarizatsiya topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Inventarizatsiya
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InventoryNotFound"
+    put:
+      operationId: updateInventory
+      summary: Inventarizatsiyani tahrirlash (stock.edit ruxsati)
+      description: >
+        Lokatsiya va raqam o'zgarmaydi. Vaqt, qatorlar va izoh
+        yuborilganiga almashadi; kutilgan qoldiq hujjat lahzasi bo'yicha
+        (shu hujjatsiz) qayta hisoblanadi, harakatlar qayta yoziladi
+        (qoldiq manfiy bo'lsa 409 stock_insufficient). Avvaldan bor
+        mahsulotlar nofaol bo'lsa ham qoladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryInput"
+      responses:
+        "200":
+          description: Saqlangan inventarizatsiya, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InventoryNotFound"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+    delete:
+      operationId: deleteInventory
+      summary: Inventarizatsiyani o'chirish (stock.delete ruxsati)
+      description: >
+        Yashiriladi, harakatlari o'chiriladi (qoldiq yetmasa 409
+        stock_insufficient); raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InventoryNotFound"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+  /app/opening-stock:
+    get:
+      operationId: listOpeningStock
+      summary: Boshlang'ich qoldiqlar ro'yxati (stock.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyalardagi boshlang'ich qoldiq hujjatlari,
+        yoki location_id berilgan bittasidagi (a'zo ishlay olmaydigan
+        lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri").
+        Vaqt bo'yicha yangi birinchi, sahifada 20 ta; qatorlar ro'yxatda
+        yo'q (logic/warehouse.md, 5.3).
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpeningStockPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createOpeningStock
+      summary: Boshlang'ich qoldiq qo'shish (stock.create ruxsati)
+      description: >
+        Xarid kabi, ta'minotchi va to'lovsiz, bitta tranzaksiyada:
+        boshlang'ich qoldiqlar ichida navbatdagi raqam, hujjat, qatorlar,
+        jami, har qator uchun lokatsiyaga harakat (+). Tekshiruv tartibi:
+        lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz:
+        403), vaqt, valyuta va kurs, izoh, qatorlar (kamida bitta; har
+        birida mahsulot, xizmat emas, faol, bir marta, miqdor > 0, narx)
+        (logic/warehouse.md, 5.3).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpeningStockCreate"
+      responses:
+        "201":
+          description: Qo'shilgan hujjat, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpeningStockDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/opening-stock/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getOpeningStock
+      summary: Boshlang'ich qoldiq, qatorlari bilan (stock.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyadagi hujjat; boshqasi 404 "Hujjat
+        topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpeningStockDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    put:
+      operationId: updateOpeningStock
+      summary: Boshlang'ich qoldiqni tahrirlash (stock.edit ruxsati)
+      description: >
+        Lokatsiya va raqam o'zgarmaydi. Vaqt, valyuta, kurs, qatorlar va
+        izoh yuborilganiga almashadi, harakatlar qayta yoziladi (qoldiq
+        manfiy bo'lsa 409 stock_insufficient); jami qayta hisoblanadi.
+        Avvaldan bor mahsulotlar nofaol bo'lsa ham qoladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpeningStockInput"
+      responses:
+        "200":
+          description: Saqlangan hujjat, qatorlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpeningStockDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+    delete:
+      operationId: deleteOpeningStock
+      summary: Boshlang'ich qoldiqni o'chirish (stock.delete ruxsati)
+      description: >
+        Yashiriladi, harakatlari o'chiriladi (qoldiq yetmasa 409
+        stock_insufficient); raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+        "409":
+          $ref: "#/components/responses/StockConflict"
 components:
   securitySchemes:
     adminSession:
@@ -4057,6 +4772,30 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     PurchaseConflict:
+      description: Omborda yetarli qoldiq yo'q (stock_insufficient)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TransferNotFound:
+      description: Ko'chirish topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InventoryNotFound:
+      description: Inventarizatsiya topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    DocumentNotFound:
+      description: Hujjat topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    StockConflict:
       description: Omborda yetarli qoldiq yo'q (stock_insufficient)
       content:
         application/json:
@@ -5292,6 +6031,503 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Purchase"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    OpeningKind:
+      type: string
+      enum: [debt, prepay]
+      description: >
+        debt — kompaniya ta'minotchiga qarz; prepay — ta'minotchiga oldindan
+        to'langan (avans)
+    Opening:
+      type: object
+      description: Ta'minotchining boshlang'ich qarzi yoki avansi (logic/warehouse.md, 6-bo'lim)
+      required: [id, kind, supplier_id, amount, currency_id, rate, amount_uzs, at, note, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          $ref: "#/components/schemas/OpeningKind"
+        supplier_id:
+          type: integer
+          format: int64
+        amount:
+          type: string
+          description: Summa hujjat valyutasida, ikki kasr xonasi bilan
+        currency_id:
+          type: integer
+          format: int64
+        rate:
+          type: string
+          description: Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000")
+        amount_uzs:
+          type: string
+          description: Summa so'mda, hujjat kursi bilan
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti (UTC'da)
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OpeningInput:
+      type: object
+      required: [kind, amount, at]
+      properties:
+        kind:
+          $ref: "#/components/schemas/OpeningKind"
+        amount:
+          type: string
+          description: "> 0, hujjat valyutasida, 12 xonagacha butun va 2 kasr (\"Summani kiriting\" / \"Summa noto'g'ri\")"
+        currency_id:
+          type: [integer, "null"]
+          format: int64
+          description: Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+        rate:
+          type: [string, "null"]
+          description: >
+            Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart
+            kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    OpeningPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Opening"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    StockRow:
+      type: object
+      description: Lokatsiyada qoldig'i bor mahsulot
+      required: [product_id, name, unit, quantity]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
+        quantity:
+          type: string
+          description: Lahzadagi qoldiq, uch kasr xonasi bilan; qoldig'i 0 bo'lganlar ro'yxatda yo'q
+    GoodsKind:
+      type: string
+      enum: [purchase, sale, transfer, inventory, opening_stock]
+      description: Tovar harakati yozadigan hujjat turi
+    ProductMove:
+      type: object
+      description: Mahsulotning ombor jurnalidagi bitta harakati (logic/products.md, 6-bo'lim)
+      required: [id, transaction_id, kind, number, at, location_id, location_name, quantity, counterpart]
+      properties:
+        id:
+          type: integer
+          format: int64
+        transaction_id:
+          type: integer
+          format: int64
+          description: Harakat kelgan hujjat
+        kind:
+          $ref: "#/components/schemas/GoodsKind"
+        number:
+          type: integer
+          description: Hujjatning o'z turi ichidagi raqami
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti (UTC'da)
+        location_id:
+          type: integer
+          format: int64
+        location_name:
+          type: string
+        quantity:
+          type: string
+          description: Kirim musbat, chiqim manfiy, uch kasr xonasi bilan
+        counterpart:
+          type: [string, "null"]
+          description: Xaridda ta'minotchi nomi, ko'chirishda ikkinchi lokatsiya nomi; boshqasida null
+    ProductMovePage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductMove"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    TransferItem:
+      type: object
+      required: [product_id, name, unit, quantity]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          description: Mahsulotning hozirgi nomi
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
+        quantity:
+          type: string
+          description: Uch kasr xonasi bilan ("12.500")
+    MoveInput:
+      type: object
+      required: [product_id, quantity]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        quantity:
+          type: string
+          description: "> 0, 9 xonagacha butun va 3 kasr (\"12.5\")"
+    Transfer:
+      type: object
+      description: Ikki lokatsiya orasidagi ko'chirish (logic/warehouse.md, 5.1)
+      required: [id, number, location_id, location_name, to_location_id, to_location_name, at, note, items_count, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          description: Kompaniyadagi ko'chirishlar ichida 1 dan tartib raqami; o'chirilganniki bo'shamaydi
+        location_id:
+          type: integer
+          format: int64
+          description: Manba lokatsiya (tovar chiqadigan); o'zgarmaydi
+        location_name:
+          type: string
+        to_location_id:
+          type: integer
+          format: int64
+          description: Maqsad lokatsiya (tovar kiradigan)
+        to_location_name:
+          type: string
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti (UTC'da)
+        note:
+          type: [string, "null"]
+        items_count:
+          type: integer
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TransferDetail:
+      allOf:
+        - $ref: "#/components/schemas/Transfer"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              description: Qatorlar kiritilgan tartibda
+              items:
+                $ref: "#/components/schemas/TransferItem"
+    TransferInput:
+      type: object
+      required: [to_location_id, at, items]
+      properties:
+        to_location_id:
+          type: integer
+          format: int64
+          description: Kompaniyaning jonli lokatsiyasi, manbadan farqli
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+        note:
+          type: [string, "null"]
+          maxLength: 500
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/MoveInput"
+    TransferCreate:
+      allOf:
+        - $ref: "#/components/schemas/TransferInput"
+        - type: object
+          required: [location_id]
+          properties:
+            location_id:
+              type: integer
+              format: int64
+              description: Manba lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+    TransferPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transfer"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    InventoryItem:
+      type: object
+      required: [product_id, name, unit, expected, counted, difference]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          description: Mahsulotning hozirgi nomi
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
+        expected:
+          type: string
+          description: Hujjat lahzasigacha jurnal kutgan qoldiq (shu hujjatsiz), uch kasr xonasi bilan
+        counted:
+          type: string
+          description: Sanalgan miqdor, uch kasr xonasi bilan
+        difference:
+          type: string
+          description: counted − expected; shu miqdorda harakat yoziladi (0 bo'lsa harakat yo'q)
+    CountInput:
+      type: object
+      required: [product_id, counted]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        counted:
+          type: string
+          description: ">= 0, 9 xonagacha butun va 3 kasr"
+    Inventory:
+      type: object
+      description: Lokatsiya qoldig'ini sanash (logic/warehouse.md, 5.2)
+      required: [id, number, location_id, location_name, at, note, items_count, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          description: Kompaniyadagi inventarizatsiyalar ichida 1 dan tartib raqami; o'chirilganniki bo'shamaydi
+        location_id:
+          type: integer
+          format: int64
+          description: Sanalgan lokatsiya; o'zgarmaydi
+        location_name:
+          type: string
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti (UTC'da); kutilgan qoldiq shu lahzagacha hisoblanadi
+        note:
+          type: [string, "null"]
+        items_count:
+          type: integer
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    InventoryDetail:
+      allOf:
+        - $ref: "#/components/schemas/Inventory"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              description: Qatorlar kiritilgan tartibda
+              items:
+                $ref: "#/components/schemas/InventoryItem"
+    InventoryInput:
+      type: object
+      required: [at, items]
+      properties:
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+        note:
+          type: [string, "null"]
+          maxLength: 500
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CountInput"
+    InventoryCreate:
+      allOf:
+        - $ref: "#/components/schemas/InventoryInput"
+        - type: object
+          required: [location_id]
+          properties:
+            location_id:
+              type: integer
+              format: int64
+              description: Sanaladigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+    InventoryPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Inventory"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    OpeningStock:
+      type: object
+      description: Lokatsiyaning boshlang'ich qoldig'i (logic/warehouse.md, 5.3)
+      required: [id, number, location_id, location_name, at, currency_id, rate, note, total, total_uzs, items_count, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          description: Kompaniyadagi boshlang'ich qoldiqlar ichida 1 dan tartib raqami; o'chirilganniki bo'shamaydi
+        location_id:
+          type: integer
+          format: int64
+          description: Qoldiq tushgan lokatsiya; o'zgarmaydi
+        location_name:
+          type: string
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti (UTC'da)
+        currency_id:
+          type: integer
+          format: int64
+          description: Hujjat valyutasi; qatorlar va jami shu valyutada
+        rate:
+          type: string
+          description: Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000")
+        note:
+          type: [string, "null"]
+        total:
+          type: string
+          description: Qatorlar jami, hujjat valyutasida, ikki kasr xonasi bilan
+        total_uzs:
+          type: string
+          description: Jami so'mda, hujjat kursi bilan
+        items_count:
+          type: integer
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OpeningStockDetail:
+      allOf:
+        - $ref: "#/components/schemas/OpeningStock"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              description: Qatorlar kiritilgan tartibda
+              items:
+                $ref: "#/components/schemas/PurchaseItem"
+    OpeningStockInput:
+      type: object
+      required: [at, items]
+      properties:
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+        currency_id:
+          type: [integer, "null"]
+          format: int64
+          description: Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+        rate:
+          type: [string, "null"]
+          description: >
+            Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart
+            kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+        note:
+          type: [string, "null"]
+          maxLength: 500
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PurchaseItemInput"
+    OpeningStockCreate:
+      allOf:
+        - $ref: "#/components/schemas/OpeningStockInput"
+        - type: object
+          required: [location_id]
+          properties:
+            location_id:
+              type: integer
+              format: int64
+              description: Qoldiq tushadigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+    OpeningStockPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpeningStock"
         total:
           type: integer
         page:
