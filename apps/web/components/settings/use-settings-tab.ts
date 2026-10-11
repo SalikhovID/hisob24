@@ -5,10 +5,11 @@ import { useCallback } from "react"
 
 // SettingsTab is one of the settings' tabs: what the company's customers
 // are asked, what its tasks are asked, the dropdowns both take their
-// options from, the currency rates, and the roles (the owner's alone).
-export type SettingsTab = "customers" | "tasks" | "dropdowns" | "currencies" | "roles"
+// options from, the currency rates, the finance categories, and the roles
+// (the owner's alone).
+export type SettingsTab = "customers" | "tasks" | "dropdowns" | "currencies" | "finance" | "roles"
 
-const tabs: SettingsTab[] = ["customers", "tasks", "dropdowns", "currencies", "roles"]
+const tabs: SettingsTab[] = ["customers", "tasks", "dropdowns", "currencies", "finance", "roles"]
 
 // asTab reads a tab's name; anything else is the customers' tab.
 export function asTab(value: unknown): SettingsTab {

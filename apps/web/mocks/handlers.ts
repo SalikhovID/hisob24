@@ -6,6 +6,7 @@ import { catalogHandlers } from "./catalog"
 import { currenciesHandlers } from "./currencies"
 import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
+import { financeHandlers } from "./finance"
 import { rolesHandlers } from "./roles"
 import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
@@ -13,7 +14,7 @@ import { warehouseHandlers } from "./warehouse"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, permittedSession, read, type Session } from "./gate"
 import { navKeys } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
-import { companiesOf, currenciesOf, db, join, liveLocations, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
+import { accountsOf, companiesOf, currenciesOf, db, join, liveLocations, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
 
 function token(kind: "access" | "refresh", session: Session): string {
   db.issued += 1
@@ -64,6 +65,8 @@ function meOf(user: Session) {
     nav_order: membership?.navOrder ?? null,
     // And the currencies the company has on, with the rates in force.
     currencies: user.companyId === null ? [] : currenciesOf(user.companyId),
+    // And the accounts its money sits in.
+    accounts: user.companyId === null ? [] : accountsOf(user.companyId),
   }
 }
 
@@ -290,4 +293,5 @@ export const handlers = [
   ...catalogHandlers,
   ...warehouseHandlers,
   ...currenciesHandlers,
+  ...financeHandlers,
 ]

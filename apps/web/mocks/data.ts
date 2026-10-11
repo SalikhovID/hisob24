@@ -2,12 +2,14 @@
 // Playwright work against the same people, companies and rules as the Go API.
 import { allPermissions, defaultPermissions } from "@/lib/permissions"
 import type {
+  AppAccount,
   AppCompany,
   CompanyCurrency,
   CompanyRole,
   CustomerDropdown,
   CustomerFieldKind,
   CustomerType,
+  FinanceKind,
   Location,
   Member,
   Permission,
@@ -331,6 +333,21 @@ export interface RateRow {
   setAt: string
 }
 
+// A category of the company's expenses or its other income
+// (logic/finance.md, section 6).
+export interface FinanceCategoryRow {
+  id: number
+  companyId: number
+  name: string
+  kind: FinanceKind
+  position: number
+  active: boolean
+  deleted?: boolean
+}
+
+// cashOf is the account every company starts with.
+export const cashOf = (id: number): AppAccount => ({ id, name: "Naqd", currency_id: 1, is_active: true })
+
 // CATALOG is every currency there is, the so'm first.
 export const CATALOG: Omit<CompanyCurrency, "rate">[] = [
   { id: 1, code: "UZS", name: "O'zbek so'mi", symbol: "so'm" },
@@ -362,6 +379,12 @@ interface Db {
   // so'm always); rates: the companies' standard rate rows.
   currencies: Record<number, number[]>
   rates: RateRow[]
+  // accounts: each company's live accounts (logic/finance.md), in the
+  // order the admin added them; every company starts with cash in so'm.
+  // financeCategories: the expense and income categories; a row is never
+  // removed: deleted hides it.
+  accounts: Record<number, AppAccount[]>
+  financeCategories: FinanceCategoryRow[]
   // lastId: the id the last settings or customer row took.
   lastId: number
   // minutes: how far the clock of the customers' timestamps has moved.
@@ -455,6 +478,14 @@ function seed(): Db {
     // rate Vali set: where the currency fields are tested.
     currencies: { 1: [1], 2: [1, 2], 3: [1], 4: [1] },
     rates: [{ id: 9001, companyId: 2, usd: "12800.0000", eur: "0.0000", rub: "0.0000", setBy: VALI, setAt: "2026-10-01T05:00:00Z" }],
+    // Nok Market has a dollar card besides its cash.
+    accounts: {
+      1: [cashOf(9101)],
+      2: [cashOf(9102), { id: 9112, name: "Karta", currency_id: 2, is_active: true }],
+      3: [cashOf(9103)],
+      4: [cashOf(9104)],
+    },
+    financeCategories: [],
     minutes: 0,
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],
@@ -930,4 +961,9 @@ export function currenciesOf(companyId: number): CompanyCurrency[] {
     const column = rate ? { 1: "1.0000", 2: rate.usd, 3: rate.eur, 4: rate.rub }[c.id] : undefined
     return { ...c, rate: c.id === 1 ? "1.0000" : column === undefined || /^0(\.0+)?$/.test(column) ? null : column }
   })
+}
+
+// accountsOf is the company's live accounts as /app/me lists them.
+export function accountsOf(companyId: number): AppAccount[] {
+  return db.accounts[companyId] ?? []
 }

@@ -1913,3 +1913,40 @@ test("a price is in the so'm unless said otherwise, and only in a currency the c
   const edited = await call(api.PUT("/app/products/{id}", { params: { path: { id: nok.id } }, body: { name: "Nok", unit: "kg", price: "2" } }))
   expect(edited.currency_id).toBe(1)
 })
+
+test("/app/me tells the company's accounts; the finance categories are read by every member and kept with the settings", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  expect((await call(api.GET("/app/me"))).accounts).toEqual([
+    { id: 9102, name: "Naqd", currency_id: 1, is_active: true },
+    { id: 9112, name: "Karta", currency_id: 2, is_active: true },
+  ])
+  await chooseCompany(null)
+  expect((await call(api.GET("/app/me"))).accounts).toEqual([])
+
+  await signIn(ALI)
+  await chooseCompany(1)
+  const ijara = await call(api.POST("/app/finance-categories", { body: { name: " Ijara ", kind: "expense" } }))
+  expect(ijara).toMatchObject({ name: "Ijara", kind: "expense", is_active: true })
+  const kommunal = await call(api.POST("/app/finance-categories", { body: { name: "Kommunal", kind: "expense" } }))
+  await call(api.POST("/app/finance-categories", { body: { name: "Ijara", kind: "income" } }))
+  expect(await failure(call(api.POST("/app/finance-categories", { body: { name: "ijara", kind: "expense" } })))).toMatchObject({ status: 409, code: "name_taken" })
+  expect(await failure(call(api.POST("/app/finance-categories", { body: { name: "Soliq", kind: "transfer" as "expense" } })))).toMatchObject({ status: 400, message: "Turni tanlang" })
+  expect((await call(api.GET("/app/finance-categories"))).map((c) => [c.name, c.kind])).toEqual([
+    ["Ijara", "expense"],
+    ["Kommunal", "expense"],
+    ["Ijara", "income"],
+  ])
+  await call(api.PUT("/app/finance-categories/order", { body: { kind: "expense", ids: [kommunal.id, ijara.id] } }))
+  expect((await call(api.GET("/app/finance-categories", { params: { query: { kind: "expense" } } }))).map((c) => c.name)).toEqual(["Kommunal", "Ijara"])
+  expect(await failure(call(api.PUT("/app/finance-categories/order", { body: { kind: "expense", ids: [kommunal.id] } })))).toMatchObject({ status: 409, code: "order_changed" })
+  expect(await call(api.PATCH("/app/finance-categories/{id}", { params: { path: { id: ijara.id } }, body: { name: "Ofis ijarasi", is_active: false } }))).toMatchObject({ name: "Ofis ijarasi", is_active: false })
+  await call(api.DELETE("/app/finance-categories/{id}", { params: { path: { id: ijara.id } } }))
+  expect((await call(api.GET("/app/finance-categories", { params: { query: { kind: "expense" } } }))).map((c) => c.name)).toEqual(["Kommunal"])
+
+  // An employee reads them, but may not change them.
+  await signIn(SARDOR)
+  await chooseCompany(1)
+  expect((await call(api.GET("/app/finance-categories"))).length).toBe(2)
+  expect(await failure(call(api.POST("/app/finance-categories", { body: { name: "Soliq", kind: "expense" } })))).toMatchObject({ status: 403, code: "forbidden" })
+})

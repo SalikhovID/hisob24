@@ -39,6 +39,7 @@ test.each([
   ["tasks", "/settings?tab=tasks"],
   ["dropdowns", "/settings?tab=dropdowns"],
   ["currencies", "/settings?tab=currencies"],
+  ["finance", "/settings?tab=finance"],
 ] as const)("settingsHref(%s) is the tab's address", (tab, href) => {
   expect(settingsHref(tab)).toBe(href)
 })

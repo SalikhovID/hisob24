@@ -26,9 +26,9 @@ test("the owner opens on the customers tab and sees the customer types with thei
 
   expect(await screen.findByRole("heading", { level: 1, name: "Sozlamalar" })).toBeInTheDocument()
   expect(screen.getAllByLabelText("Yuklanmoqda").length).toBeGreaterThan(0)
-  // The settings are five tabs for the owner; the customers' is the one open by default.
+  // The settings are six tabs for the owner; the customers' is the one open by default.
   const tabs = screen.getByRole("tablist", { name: "Sozlamalar bo'limlari" })
-  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar", "Valyuta kurslari", "Rollar"])
+  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar", "Valyuta kurslari", "Moliya kategoriyalari", "Rollar"])
   expect(within(tabs).getByRole("tab", { name: "Mijozlar" })).toHaveAttribute("aria-selected", "true")
 
   const types = await typeList()
@@ -309,7 +309,7 @@ test("the owner sees the task types and the stages, each stage with its color an
   setLocation("/settings?tab=tasks")
   renderWithProviders(<SettingsPage />)
 
-  expect(await screen.findByText("Mijozlar, vazifalar va valyutalar sozlamalari")).toBeInTheDocument()
+  expect(await screen.findByText("Mijozlar, vazifalar, valyutalar va moliya sozlamalari")).toBeInTheDocument()
   // The address opened the tasks' tab.
   expect(screen.getByRole("tab", { name: "Vazifalar" })).toHaveAttribute("aria-selected", "true")
   const types = await taskTypeList()
@@ -538,7 +538,7 @@ test("an employee who may open the settings has no roles tab: the address of one
   renderWithProviders(<SettingsPage />)
 
   const tabs = await screen.findByRole("tablist", { name: "Sozlamalar bo'limlari" })
-  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar", "Valyuta kurslari"])
+  expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Mijozlar", "Vazifalar", "Dropdownlar", "Valyuta kurslari", "Moliya kategoriyalari"])
   expect(within(tabs).getByRole("tab", { name: "Mijozlar" })).toHaveAttribute("aria-selected", "true")
   expect(await typeList()).toBeInTheDocument()
 })

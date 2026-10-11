@@ -237,3 +237,29 @@ test("the owner of a company in dollars enters the rate, which the history keeps
   await expect(history.getByText("12 950")).toBeVisible()
   await expect(history.getByText("12 800")).toBeVisible()
 })
+
+test("the owner keeps the finance categories: an expense category added, turned off, and an income one", async ({ page }) => {
+  await openSettings(page)
+  await openTab(page, "Moliya kategoriyalari")
+  await expect(page).toHaveURL(/\/settings\?tab=finance$/)
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  const [addExpense, addIncome] = await page.getByRole("button", { name: "Kategoriya qo'shish" }).all()
+  await addExpense.click()
+  let dialog = page.getByRole("dialog", { name: "Kategoriya qo'shish" })
+  await dialog.getByLabel("Nomi").fill("Ijara")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  const expenses = page.getByRole("list", { name: "Xarajat kategoriyalari" })
+  await expect(expenses.getByText("Ijara")).toBeVisible()
+
+  await addIncome.click()
+  dialog = page.getByRole("dialog", { name: "Kategoriya qo'shish" })
+  await dialog.getByLabel("Nomi").fill("Boshqa kirim")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.getByRole("list", { name: "Kirim kategoriyalari" }).getByText("Boshqa kirim")).toBeVisible()
+
+  await expenses.getByRole("button", { name: "Nofaol qilish: Ijara" }).click()
+  await expect(expenses.getByText("Nofaol")).toBeVisible()
+})

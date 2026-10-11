@@ -13,7 +13,7 @@ import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
 import { clearSession, setAccessToken } from "./session"
 import type { NavKey } from "./nav"
-import type { Location, ProductKind, Task, TaskPage } from "./types"
+import type { FinanceKind, Location, ProductKind, Task, TaskPage } from "./types"
 
 export const meKey = ["me"] as const
 
@@ -583,5 +583,19 @@ export function useRates(companyId: number | null, page: number) {
     queryFn: () => call(api.GET("/app/currency-rates", { params: { query: { page } } })),
     enabled: companyId !== null,
     placeholderData: keepPreviousData,
+  })
+}
+
+// financeCategoriesKey names the company's expense or income categories in
+// the cache, per kind: each kind is put in order on its own.
+export const financeCategoriesKey = (companyId: number | null, kind: FinanceKind) => ["finance-categories", companyId, kind] as const
+
+// useFinanceCategories is the company's categories of the kind, in their
+// order (logic/finance.md, section 6); every member may ask.
+export function useFinanceCategories(companyId: number | null, kind: FinanceKind) {
+  return useQuery({
+    queryKey: financeCategoriesKey(companyId, kind),
+    queryFn: () => call(api.GET("/app/finance-categories", { params: { query: { kind } } })),
+    enabled: companyId !== null,
   })
 }

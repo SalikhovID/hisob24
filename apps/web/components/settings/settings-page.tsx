@@ -31,6 +31,7 @@ import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
 import { CurrencyRates } from "./currency-rates-page"
 import { DeleteButton } from "./delete-button"
+import { FinanceCategories } from "./finance-categories-page"
 import { NameDialog } from "./name-dialog"
 import { Section } from "./section"
 import { iconAction, SettingRow, settingList } from "./setting-row"
@@ -63,7 +64,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Sozlamalar" description="Mijozlar, vazifalar va valyutalar sozlamalari" />
+      <PageHeader title="Sozlamalar" description="Mijozlar, vazifalar, valyutalar va moliya sozlamalari" />
       <Tabs value={shown} onValueChange={(value) => select(asTab(value))} className="gap-5">
         {/* The strip of tabs scrolls sideways on a narrow screen rather than squeezing. */}
         <div className="-mx-1 min-w-0 overflow-x-auto px-1 py-0.5 scrollbar-hide">
@@ -79,6 +80,9 @@ export function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="currencies" className={tab}>
               Valyuta kurslari
+            </TabsTrigger>
+            <TabsTrigger value="finance" className={tab}>
+              Moliya kategoriyalari
             </TabsTrigger>
             {isOwner && (
               <TabsTrigger value="roles" className={tab}>
@@ -100,6 +104,9 @@ export function SettingsPage() {
         </TabsContent>
         <TabsContent value="currencies" className="space-y-8 text-base">
           <CurrencyRates companyId={companyId} permissions={permissions} />
+        </TabsContent>
+        <TabsContent value="finance" className="space-y-8 text-base">
+          <FinanceCategories companyId={companyId} permissions={permissions} />
         </TabsContent>
         {isOwner && (
           <TabsContent value="roles" className="space-y-8 text-base">
