@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
@@ -61,6 +62,11 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 		}
 		// And the location its tasks stand in (logic/locations.md).
 		if _, err := q.SeedLocation(ctx, c.ID); err != nil {
+			return err
+		}
+		// And the so'm, its currency until the admin turns on more
+		// (logic/currencies.md).
+		if err := q.AddCompanyCurrency(ctx, gen.AddCompanyCurrencyParams{CompanyID: c.ID, CurrencyID: currency.UZS, AddedBy: &adminID}); err != nil {
 			return err
 		}
 		today, err := q.CurrentDate(ctx)

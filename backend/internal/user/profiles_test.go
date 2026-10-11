@@ -91,10 +91,10 @@ func TestAccess(t *testing.T) {
 		id   int64
 		want Access
 	}{
-		"the owner, paid up": {company("CURRENT_DATE + 30", true, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), LocationIDs: none, Active: true}},
-		"a user, ends today": {company("CURRENT_DATE", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), LocationIDs: none, Active: true}},
-		"expired":            {company("CURRENT_DATE - 1", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), LocationIDs: none}},
-		"blocked":            {company("CURRENT_DATE + 30", false, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), LocationIDs: none}},
+		"the owner, paid up": {company("CURRENT_DATE + 30", true, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), LocationIDs: none, Active: true, Timezone: "Asia/Tashkent"}},
+		"a user, ends today": {company("CURRENT_DATE", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), LocationIDs: none, Active: true, Timezone: "Asia/Tashkent"}},
+		"expired":            {company("CURRENT_DATE - 1", true, "user"), Access{Role: "user", Permissions: access.NewSet(access.Default), LocationIDs: none, Timezone: "Asia/Tashkent"}},
+		"blocked":            {company("CURRENT_DATE + 30", false, "owner"), Access{Role: "owner", Permissions: access.NewSet(access.All), LocationIDs: none, Timezone: "Asia/Tashkent"}},
 	} {
 		got, err := profiles.Access(ctx, "998901234567", tc.id)
 		require.NoError(t, err, name)
@@ -107,7 +107,7 @@ func TestAccess(t *testing.T) {
 	require.NoError(t, err)
 	got, err := profiles.Access(ctx, "998901234567", withRole)
 	require.NoError(t, err)
-	assert.Equal(t, Access{Role: "user", Permissions: access.NewSet([]access.Permission{access.CustomersView, access.TasksView}), LocationIDs: none, Active: true}, got,
+	assert.Equal(t, Access{Role: "user", Permissions: access.NewSet([]access.Permission{access.CustomersView, access.TasksView}), LocationIDs: none, Active: true, Timezone: "Asia/Tashkent"}, got,
 		"a user with a role has what the role holds, nothing of the default")
 
 	// The locations a member may work in (logic/locations.md, section 5):

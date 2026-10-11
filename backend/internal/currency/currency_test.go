@@ -142,4 +142,3 @@ func TestSetOfCompany(t *testing.T) {
 	_, err = s.SetOfCompany(ctx, olma+1000, []int64{2}, adminID)
 	refused(t, err, apperr.NotFound, "not_found", "Kompaniya topilmadi")
 }
-

@@ -57,6 +57,12 @@ func TestCreate(t *testing.T) {
 	assert.Equal(t, "owner", role)
 	assert.Equal(t, "Ali Valiyev", name)
 	assert.Equal(t, "Ali Valiyev", memberName, "the owner's name in the company")
+	var currencies []int64
+	rows, err := pool.Query(ctx, "SELECT currency_id FROM company_currencies WHERE company_id = $1", c.ID)
+	require.NoError(t, err)
+	currencies, err = pgx.CollectRows(rows, pgx.RowTo[int64])
+	require.NoError(t, err)
+	assert.Equal(t, []int64{1}, currencies, "every company starts with the so'm (logic/currencies.md)")
 
 	second, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: end, OwnerPhone: "998901234567", OwnerFullName: "Boshqa Ism"}, ownerID)
 	require.NoError(t, err)

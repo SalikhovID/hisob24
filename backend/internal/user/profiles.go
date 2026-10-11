@@ -79,6 +79,9 @@ type Access struct {
 	// section key (logic/roles.md, section 8); nil for the default.
 	NavOrder []string
 	Active   bool
+	// Timezone is the user's time zone (an IANA name, Asia/Tashkent unless
+	// set otherwise): what the documents' moments are shown in.
+	Timezone string
 }
 
 // ErrNotMember: the user is not a member of the company, or no longer.
@@ -101,7 +104,7 @@ func (p *Profiles) Access(ctx context.Context, phone string, companyID int64) (A
 	if locations == nil {
 		locations = []int64{}
 	}
-	return Access{Role: row.Role, Permissions: access.Effective(row.Role, row.RoleID != nil, row.Permissions), LocationIDs: locations, NavOrder: row.NavOrder, Active: row.Active}, nil
+	return Access{Role: row.Role, Permissions: access.Effective(row.Role, row.RoleID != nil, row.Permissions), LocationIDs: locations, NavOrder: row.NavOrder, Active: row.Active, Timezone: row.Timezone}, nil
 }
 
 // SetNavOrder keeps the member's own order of the menu in the company, or
