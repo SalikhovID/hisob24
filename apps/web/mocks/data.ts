@@ -323,6 +323,7 @@ export interface ItemRow {
 // A move of the stock journal: what a document moved in a location, in
 // (above zero) or out (below). The stock is the sum of the moves.
 export interface MoveRow {
+  id: number
   transactionId: number
   companyId: number
   locationId: number
@@ -983,8 +984,8 @@ export function seedWarehouse(products?: { olma: ProductRow; nok: ProductRow }) 
       { transactionId: purchase.id, productId: products.nok.id, quantity: 3, expected: null, price: 2500.5, position: 2 },
     )
     db.moves.push(
-      { transactionId: purchase.id, companyId: 1, locationId: asosiy.id, productId: products.olma.id, quantity: 12.5 },
-      { transactionId: purchase.id, companyId: 1, locationId: asosiy.id, productId: products.nok.id, quantity: 3 },
+      { id: nextId(), transactionId: purchase.id, companyId: 1, locationId: asosiy.id, productId: products.olma.id, quantity: 12.5 },
+      { id: nextId(), transactionId: purchase.id, companyId: 1, locationId: asosiy.id, productId: products.nok.id, quantity: 3 },
     )
     db.transactions.push(head({ kind: "supplier_payment", number: 1, bankAccountId: db.accounts[1][0].id, linkedId: purchase.id, total: 5000 }))
   }

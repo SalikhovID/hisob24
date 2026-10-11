@@ -125,7 +125,7 @@ export interface Line {
 export function movesOf(kind: DocumentKind, companyId: number, transactionId: number, locationId: number, toLocationId: number | null, lines: Line[]): MoveRow[] {
   const moves: MoveRow[] = []
   const add = (location: number, productId: number, quantity: number) => {
-    if (round(quantity, 3) !== 0) moves.push({ transactionId, companyId, locationId: location, productId, quantity: round(quantity, 3) })
+    if (round(quantity, 3) !== 0) moves.push({ id: nextId(), transactionId, companyId, locationId: location, productId, quantity: round(quantity, 3) })
   }
   for (const l of lines) {
     switch (kind) {

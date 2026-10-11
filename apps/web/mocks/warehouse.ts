@@ -45,17 +45,17 @@ const paymentLinked = () => fail(409, "payment_linked", "Bu to'lov xarid bilan k
 
 // trimmed is an optional text without the spaces around it, null when
 // nothing is left.
-function trimmed(raw: unknown): string | null {
+export function trimmed(raw: unknown): string | null {
   const text = typeof raw === "string" ? raw.trim() : ""
   return text === "" ? null : text
 }
 
-const page = (query: URLSearchParams): number | Response => {
+export const page = (query: URLSearchParams): number | Response => {
   const n = query.has("page") ? Number(query.get("page")) : 1
   return Number.isInteger(n) && n >= 1 ? n : invalid("Sahifa raqami noto'g'ri")
 }
 
-const paged = <T>(all: T[], n: number) => ({ items: all.slice((n - 1) * PAGE_SIZE, n * PAGE_SIZE), total: all.length, page: n, page_size: PAGE_SIZE })
+export const paged = <T>(all: T[], n: number) => ({ items: all.slice((n - 1) * PAGE_SIZE, n * PAGE_SIZE), total: all.length, page: n, page_size: PAGE_SIZE })
 
 // memberLocationIds are the locations the member works in.
 export const memberLocationIds = (phone: string, companyId: number) => locationsOf(phone, companyId).map((l) => l.id)
@@ -121,7 +121,7 @@ function checkSupplier(body: Record<string, unknown>): CheckedSupplier | Respons
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
-function liveSupplier(companyId: number, id: unknown): SupplierRow | undefined {
+export function liveSupplier(companyId: number, id: unknown): SupplierRow | undefined {
   return liveSuppliers(companyId).find((s) => s.id === Number(id))
 }
 
@@ -172,9 +172,9 @@ function checkPayment(companyId: number, body: Record<string, unknown>, by: stri
 }
 
 // pricingOf is the document's pricing now.
-const pricingOf = (t: TransactionRow): Pricing => ({ currencyId: t.currencyId, rateId: t.rateId, rate: rateColumn(rateOf(t.rateId), t.currencyId) })
+export const pricingOf = (t: TransactionRow): Pricing => ({ currencyId: t.currencyId, rateId: t.rateId, rate: rateColumn(rateOf(t.rateId), t.currencyId) })
 
-function toItem(i: { productId: number; quantity: number; price: number | null }): PurchaseItem {
+export function toItem(i: { productId: number; quantity: number; price: number | null }): PurchaseItem {
   const product = db.products.find((p) => p.id === i.productId)
   const price = i.price ?? 0
   return { product_id: i.productId, name: product?.name ?? "", unit: product?.unit ?? null, quantity: asQuantity(i.quantity), price: asAmount(price), amount: asAmount(round(i.quantity * price, 2)) }
