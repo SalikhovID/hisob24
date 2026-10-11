@@ -6,9 +6,9 @@ Multi-tenant SaaS. Platforma adminlari company yaratadi, obunasini uzaytiradi va
 |---|---|---|
 | Go API (`backend/`) | http://localhost:8080 | HTTP API va ikkala Telegram bot, bitta jarayonda |
 | Admin panel (`apps/admin`) | http://localhost:3001 | Company'lar, billing va adminlar. Admin botda Mini App sifatida ham ochiladi |
-| User app (`apps/web`) | http://localhost:3000 | SMS kod bilan kirish, company tanlash, mijozlar; xodimlar va sozlamalar (company egasi uchun) |
+| User app (`apps/web`) | http://localhost:3000 | Kod bilan kirish (SMS yoki, raqam botga ulangan bo'lsa, Telegram), company tanlash, mijozlar; xodimlar va sozlamalar (company egasi uchun) |
 | Admin bot | Telegram | `/login` → panelga kirish kodi |
-| User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi; menu tugmasi user app'ni Mini App sifatida ochadi (login'siz) |
+| User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi; ulangan raqamning kirish kodlari SMS o'rniga shu chatga keladi; menu tugmasi user app'ni Mini App sifatida ochadi (login'siz) |
 
 So'rov yo'li: brauzer yoki Telegram WebView → Next.js (`/api/*` rewrite, bitta origin) → Go API → PostgreSQL.
 
@@ -51,7 +51,7 @@ Tekshirish:
 - `curl localhost:8080/healthz` → `{"status":"ok"}`;
 - http://localhost:3001 (admin) va http://localhost:3000 (user app) `/login` ga olib boradi.
 
-Bot tokeni bo'sh bo'lsa, o'sha bot ishga tushmaydi (logda ogohlantirish chiqadi), qolgani ishlayveradi. `SMS_DRIVER=log` rejimida SMS yuborilmaydi, kodlar API logiga yoziladi.
+Bot tokeni bo'sh bo'lsa, o'sha bot ishga tushmaydi (logda ogohlantirish chiqadi), qolgani ishlayveradi. `SMS_DRIVER=log` rejimida SMS yuborilmaydi, kodlar API logiga yoziladi. Raqam user botga ulangan bo'lsa (va bot yoqilgan bo'lsa), kod log'ga emas, haqiqiy Telegram chatga ketadi.
 
 ### Botsiz kirish
 
@@ -120,7 +120,7 @@ pnpm --filter @hisob24/web dev
 - Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi rolsiz xodim bo'lib qoladi; yangi egasining roli olib tashlanadi.
 - Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar, tor ekranda (telefon brauzeri va Telegram Mini App) pastdagi tab-bar. Bosh sahifa hammaga. Tab-bar'da 5 tagacha bo'lim sig'adi; ko'proq bo'lsa birinchi 4 tasi va **Yana** (qolganlari pastdan chiqadigan ro'yxatda). Har a'zo **Menyuni sozlash** (profil menyusida va «Yana» pastida) orqali bo'limlarni sudrab o'z tartibiga qo'yadi; tartib serverda, har company'da alohida saqlanadi va sidebar bilan tab-bar'ga birdek tegadi.
 - Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
-- Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga SMS kod ham ketmaydi.
+- Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga kod ham ketmaydi (SMS ham, Telegram ham).
 - Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.
 
 To'liq qoidalar va chekka holatlar: [`logic/user.md`](logic/user.md) (userlar, multi-user, ism, kirish huquqi) va [`logic/roles.md`](logic/roles.md) (rollar va ruxsatlar).
@@ -280,6 +280,7 @@ BotFather menyusidagi nomlar Telegram yangilanishlari bilan biroz o'zgarishi mum
    - Raqam hech bir kompaniyaga a'zo bo'lmasa, "Kirish huquqi yo'q" va raqam ko'rsatiladi.
    - Raqam hali yuborilmagan bo'lsa, "Raqamni yuborish" tugmasi chiqadi. Telegram `requestContact` raqamni botga yuboradi va kirish qayta uriniladi.
    - Bot `/start` ga hozirgidek raqam so'raydi.
+   - Raqam ulangach brauzerdagi kirish kodlari SMS o'rniga shu chatga keladi (`Hisob24'ga kirish kodi: 123456`, 2 daqiqa). Bot kodni yetkaza olmasa (masalan, bloklangan), kod SMS bilan ketadi. Raqam botga user bo'lmasidan oldin ulangan bo'lsa ham shunday: qidiruv kod yuborilayotganda telefon bo'yicha. Qoidalar: `logic/user.md`, dizayn: `docs/superpowers/specs/2026-10-11-telegram-login-code-design.md`.
    - Telefonda (iOS, Android; Bot API 8.0+) Mini App **to'liq ekranda** ochiladi: Telegram sarlavhasi yo'q, status bar va Telegram'ning suzuvchi tugmalari ostidan app o'zi joy qoldiradi (`--safe-top`). Desktop va web Telegram'da, eski client'larda hozirgidek sarlavha ostida.
 6. **Mini App'ni lokal sinash.** Telegram faqat https manzilni ochadi.
    - Admin panelni https tunnel orqali chiqaring (masalan `cloudflared tunnel --url http://localhost:3001`).

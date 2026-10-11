@@ -2,7 +2,7 @@
 
 Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tushadi, bir nechta kompaniyada qanday ishlaydi, ismi va kirish huquqi qanday boshqariladi. Rollar va ruxsatlar: [roles.md](roles.md). Lokatsiyalar va xodimning lokatsiya cheklovi: [locations.md](locations.md).
 
-> Holat: amalga oshirilgan (2026-10-03). 2026-10-06 da kompaniya rollari bilan yangilangan qoidalar (kim xodim qo'shadi, ismini o'zgartiradi va o'chiradi; tekshiruv tartibidagi `company_required` va `forbidden`) amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`. A'zolikdagi menyu tartibi (1 va 6-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-inventory-design.md` bilan amalga oshirilmoqda.
+> Holat: amalga oshirilgan (2026-10-03). 2026-10-06 da kompaniya rollari bilan yangilangan qoidalar (kim xodim qo'shadi, ismini o'zgartiradi va o'chiradi; tekshiruv tartibidagi `company_required` va `forbidden`) amalga oshirilgan: `docs/superpowers/specs/2026-10-06-roles-bottom-nav-design.md`. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`. A'zolikdagi menyu tartibi (1 va 6-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-inventory-design.md` bilan amalga oshirilmoqda. 2026-10-11 dan kirish kodi raqam botga ulangan bo'lsa SMS o'rniga Telegram'ga ketadi (3, 6, 7 va 8-bo'limlar): `docs/superpowers/specs/2026-10-11-telegram-login-code-design.md`.
 
 ## 1. Tushunchalar
 
@@ -51,7 +51,7 @@ Tafsilotlar:
 
 - Qo'shilgan har doim rolsiz `user` bo'ladi. User app'dan owner qo'shib bo'lmaydi. Kompaniya rolini keyin egasi **Xodimlar** da biriktiradi ([roles.md](roles.md), 5-bo'lim). Qo'shilgan xodim hamma lokatsiyada ishlaydi; egasi keyin **Xodimlar** da cheklashi mumkin ([locations.md](locations.md), 5-bo'lim).
 - Javob raqam tizimda oldin bo'lgan-bo'lmaganiga bog'liq emas: ikkala holatda ham 201 va owner kiritgan ism qaytadi. Shuning uchun owner begona kompaniyadagi ismni ko'rmaydi va raqam Hisob24'da bor-yo'qligini bila olmaydi.
-- Qo'shilgan odamga SMS yoki bot xabari yuborilmaydi, undan rozilik so'ralmaydi. Owner unga o'zi aytadi: `app.hisob24.uz` ga o'z raqami bilan kiradi (SMS kod) yoki botdagi Mini App'ni ochadi.
+- Qo'shilgan odamga SMS yoki bot xabari yuborilmaydi, undan rozilik so'ralmaydi. Owner unga o'zi aytadi: `app.hisob24.uz` ga o'z raqami bilan kiradi (kod SMS bilan yoki, raqami botga ulangan bo'lsa, Telegram chatiga keladi) yoki botdagi Mini App'ni ochadi.
 - Xodimlar soniga limit yo'q.
 
 ## 4. Multi-user
@@ -110,7 +110,7 @@ O'chirilgan xodim uchun oqibat:
 | shu kompaniyada ochiq sessiyasi bor | keyingi so'rovdayoq kirish yopiladi, access token muddati kutilmaydi |
 | boshqa kompaniyasi bor | `/select-company` ga tushadi va qolgan kompaniyalarida ishlayveradi |
 | boshqa kompaniyasi yo'q | sessiya tugaydi, `/login` ga tushadi |
-| qayta kirmoqchi bo'lsa (kompaniyasi yo'q) | SMS kod kelmaydi, Mini App "Hisob24'ga kirish huquqingiz yo'q" deydi |
+| qayta kirmoqchi bo'lsa (kompaniyasi yo'q) | kod kelmaydi (SMS ham, Telegram ham), Mini App "Hisob24'ga kirish huquqingiz yo'q" deydi |
 
 Owner'ni (o'zini ham) o'chirib bo'lmaydi: 409 `cannot_change_owner`. Ruxsatli xodim o'zini o'chirsa, o'chadi va yuqoridagi oqibatlar unga ham tegishli.
 
@@ -122,10 +122,10 @@ Tizimga **kamida bitta kompaniyaga a'zo** user kira oladi.
 
 | Joy | A'zoligi bor | A'zoligi yo'q |
 |---|---|---|
-| SMS kod so'rash | kod yuboriladi | javob bir xil (200), SMS ketmaydi |
+| Kod so'rash | kod yuboriladi: raqam botga ulangan bo'lsa Telegram chatiga, aks holda SMS | javob bir xil (200), hech narsa ketmaydi |
 | Kodni tasdiqlash | token beriladi | 401 `invalid_code` |
 | Mini App | avtomatik kiradi | 403 `no_access` (raqami ko'rsatiladi) |
-| User bot (raqam yuborilganda) | "✅ Akkauntingiz ulandi" | "Raqamingiz saqlandi" |
+| User bot (raqam yuborilganda) | "✅ Akkauntingiz ulandi. Kirish kodlari endi shu yerga keladi." | "Raqamingiz saqlandi. Hisob24'ga qo'shilganingizda kirish kodlari shu yerga keladi." |
 | Refresh | yangi token | sessiya tugaydi (401 `invalid_refresh_token`) |
 
 Kompaniya ichidagi har bir so'rovda quyidagilar shu tartibda tekshiriladi, a'zolik va rol bazadan o'qiladi:
@@ -151,7 +151,10 @@ Kompaniya hali tanlanmagan token (multi-user login'dan keyin) 2 va 3-qadamdan o'
 | Kompaniyasi tanlanmagan token bilan Xodimlar API | 403 `company_required` |
 | Xodim ruxsati yo'q amalni yuboradi (masalan, rolsiz xodim Xodimlar API'ni) | 403 `forbidden` ([roles.md](roles.md)) |
 | Obunasi tugagan kompaniyada Xodimlar API | 402 `subscription_expired`; user app `/expired` sahifasiga o'tadi |
-| Raqam botga ulangan, lekin hech qayerda a'zo emas | Mini App `no_access` deydi; biror kompaniyaga qo'shilgach avtomatik kiradi |
+| Raqam botga ulangan, lekin hech qayerda a'zo emas | Mini App `no_access` deydi; kod so'ralsa Telegram'ga ham hech narsa ketmaydi; biror kompaniyaga qo'shilgach avtomatik kiradi |
+| Raqam botga ulangan, a'zo, brauzerdan kod so'raydi | kod Telegram chatiga, SMS ketmaydi; Telegram yetkaza olmasa (bot bloklangan) SMS |
+| Raqam botga user bo'lmasidan oldin ulangan, keyin qo'shilgan | kod shu Telegram'ga keladi: qidiruv kod yuborilayotganda telefon bo'yicha |
+| Bir raqamni ikki Telegram akkaunt ulagan | kod oxirgi ulaganiga: Telegram'da raqam bir vaqtda bitta akkauntda |
 
 ## 9. Xato kodlari
 
