@@ -11,10 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// fakeAPI records what the bot sends; err fails every SendMessage.
 type fakeAPI struct {
 	sent    []*bot.SendMessageParams
 	menu    *bot.SetChatMenuButtonParams
 	webhook *bot.SetWebhookParams
+	err     error
 }
 
 func (f *fakeAPI) SetChatMenuButton(_ context.Context, p *bot.SetChatMenuButtonParams) (bool, error) {
@@ -24,7 +26,7 @@ func (f *fakeAPI) SetChatMenuButton(_ context.Context, p *bot.SetChatMenuButtonP
 
 func (f *fakeAPI) SendMessage(_ context.Context, p *bot.SendMessageParams) (*models.Message, error) {
 	f.sent = append(f.sent, p)
-	return &models.Message{}, nil
+	return &models.Message{}, f.err
 }
 
 func (f *fakeAPI) SetWebhook(_ context.Context, p *bot.SetWebhookParams) (bool, error) {
