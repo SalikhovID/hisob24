@@ -5,6 +5,7 @@ import {
   addDays,
   type AdminLocation,
   type Billing,
+  CATALOG,
   company,
   daysBetween,
   db,
@@ -49,6 +50,12 @@ function normalizePhone(raw: string): string | null {
 
 function findCompany(id: unknown) {
   return db.companies.find((c) => c.id === Number(id))
+}
+
+// currenciesOf is what a company has turned on, in the catalog's order.
+function currenciesOf(companyId: number) {
+  const on = db.currencies[companyId] ?? [1]
+  return CATALOG.filter((c) => on.includes(c.id))
 }
 
 function owner() {
@@ -126,13 +133,35 @@ export const handlers = [
     // A new company starts with the ready location.
     db.locations[created.id] = [{ id: db.nextId++, name: "Asosiy", tasks_count: 0, created_at: new Date().toISOString() }]
     db.billings[created.id] = []
+    db.currencies[created.id] = [1]
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.get(api("/admin/companies/:id"), ({ params }) => {
     const c = findCompany(params.id)
     if (!c) return notFound()
-    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []), locations: db.locations[c.id] ?? [] })
+    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []), locations: db.locations[c.id] ?? [], currencies: currenciesOf(c.id) })
+  }),
+
+  // The currencies (logic/currencies.md, section 3): the catalog, and what
+  // a company has turned on, set by the admin under the Go API's rules
+  // (backend/internal/currency): the so'm stays, a currency a live price is
+  // in cannot go.
+  http.get(api("/admin/currencies"), () => HttpResponse.json(CATALOG)),
+
+  http.put(api("/admin/companies/:id/currencies"), async ({ params, request }) => {
+    const c = findCompany(params.id)
+    if (!c) return notFound()
+    const body = (await request.json()) as { currency_ids?: unknown }
+    const ids = Array.isArray(body.currency_ids) ? body.currency_ids.map(Number) : []
+    if (ids.some((id) => !CATALOG.some((cur) => cur.id === id))) return fail(400, "validation_error", "Valyuta noto'g'ri")
+    const wanted = new Set([1, ...ids])
+    for (const id of db.currencies[c.id] ?? [1]) {
+      const used = db.currencyUse[c.id]?.[id] ?? 0
+      if (!wanted.has(id) && used > 0) return fail(409, "currency_in_use", `Bu valyutada ${used} ta mahsulot bor`)
+    }
+    db.currencies[c.id] = CATALOG.filter((cur) => wanted.has(cur.id)).map((cur) => cur.id)
+    return HttpResponse.json(currenciesOf(c.id))
   }),
 
   // The company's locations (logic/locations.md, section 3): added, renamed

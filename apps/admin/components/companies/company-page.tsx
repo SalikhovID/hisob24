@@ -9,6 +9,7 @@ import { Identity } from "@/components/identity"
 import { PageHeader } from "@/components/page-header"
 import { RoleBadge } from "@/components/role-badge"
 import { Failed, Loading } from "@/components/states"
+import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { formatDate, formatPhone } from "@/lib/format"
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { AddBillingDialog } from "./add-billing-dialog"
 import { BillingHistory } from "./billing-history"
 import { CompanyActions } from "./company-actions"
+import { CurrenciesDialog } from "./currencies-dialog"
 import { AddLocationDialog, DeleteLocationButton, RenameLocationDialog } from "./location-dialogs"
 import { RenameDialog } from "./rename-dialog"
 import { ReplaceOwnerDialog } from "./replace-owner-dialog"
@@ -62,13 +64,14 @@ function locationColumns(companyId: number): Column<AdminLocation>[] {
 }
 
 // CompanyPage shows one company: how its subscription stands, its
-// locations, who is in it and what has been paid. Each part is a section
+// locations, its currencies, who is in it and what has been paid. Each part is a section
 // under its own heading, with at most one action beside it; the page's one
 // solid button adds a payment.
 export function CompanyPage({ id }: { id: number }) {
   const company = useCompany(id)
   const infoId = useId()
   const locationsId = useId()
+  const currenciesId = useId()
   const usersId = useId()
   const billingId = useId()
 
@@ -125,6 +128,21 @@ export function CompanyPage({ id }: { id: number }) {
             footer={`Jami: ${c.locations.length}`}
           />
         </div>
+      </section>
+      <section aria-labelledby={currenciesId}>
+        <SectionHeading id={currenciesId} action={<CurrenciesDialog company={c} />}>
+          Valyutalar
+        </SectionHeading>
+        {/* The currencies the company works in: the so'm always, the rest as the admin turned them on. */}
+        <ul aria-label="Valyutalar" className="mt-3 flex flex-wrap gap-2">
+          {c.currencies.map((currency) => (
+            <li key={currency.id}>
+              <Badge variant="secondary" className="px-2.5 py-1 text-sm">
+                {currency.code} — {currency.name}
+              </Badge>
+            </li>
+          ))}
+        </ul>
       </section>
       <section aria-labelledby={usersId}>
         <SectionHeading id={usersId} action={<ReplaceOwnerDialog companyId={c.id} />}>

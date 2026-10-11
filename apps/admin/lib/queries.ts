@@ -15,6 +15,7 @@ export const keys = {
   company: (id: number) => ["company", id] as const,
   billings: (companyId: number) => ["billings", companyId] as const,
   admins: ["admins"] as const,
+  currencies: ["currencies"] as const,
 }
 
 // useMe is the signed-in admin.
@@ -56,4 +57,10 @@ export function useBillings(companyId: number) {
 // useAdmins is every admin, active or not.
 export function useAdmins() {
   return useQuery({ queryKey: keys.admins, queryFn: () => call(api.GET("/admin/admins")) })
+}
+
+// useCurrencies is the catalog of currencies a company may turn on
+// (logic/currencies.md): fixed, the so'm first.
+export function useCurrencies() {
+  return useQuery({ queryKey: keys.currencies, queryFn: () => call(api.GET("/admin/currencies")), staleTime: Infinity })
 }

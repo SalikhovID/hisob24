@@ -1,6 +1,6 @@
 // An in-memory copy of the admin API's data for MSW: Vitest and Playwright
 // work against the same records and rules as the Go API.
-import type { AdminAccount, AdminLocation, Billing, Company, Member } from "@/lib/types"
+import type { AdminAccount, AdminLocation, Billing, Company, Currency, Member } from "@/lib/types"
 
 export type { AdminAccount, AdminLocation, Billing, Company, Member }
 
@@ -47,8 +47,21 @@ interface Db {
   locations: Record<number, AdminLocation[]>
   billings: Record<number, Billing[]>
   admins: AdminAccount[]
+  // currencies: the ids of the currencies each company has turned on (the
+  // so'm always); currencyUse: how many live prices each company keeps in
+  // a currency (what keeps it from being turned off), by currency id.
+  currencies: Record<number, number[]>
+  currencyUse: Record<number, Record<number, number>>
   nextId: number
 }
+
+// CATALOG is every currency there is, the so'm first (logic/currencies.md).
+export const CATALOG: Currency[] = [
+  { id: 1, code: "UZS", name: "O'zbek so'mi", symbol: "so'm" },
+  { id: 2, code: "USD", name: "AQSH dollari", symbol: "$" },
+  { id: 3, code: "EUR", name: "Yevro", symbol: "€" },
+  { id: 4, code: "RUB", name: "Rossiya rubli", symbol: "₽" },
+]
 
 function seed(): Db {
   return {
@@ -70,6 +83,9 @@ function seed(): Db {
     },
     billings: { 1: [], 2: [], 3: [] },
     admins: [{ telegram_id: OWNER_ID, full_name: "Owner", is_active: true, created_at: "2026-10-01T04:00:00Z" }],
+    // Every company starts with the so'm alone.
+    currencies: { 1: [1], 2: [1], 3: [1] },
+    currencyUse: {},
     nextId: 4,
   }
 }

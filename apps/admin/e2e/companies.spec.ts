@@ -191,3 +191,20 @@ test("the admin adds a location, renames it, cannot delete the only one and dele
   await expect(page.getByText("Kompaniyaning yagona lokatsiyasi o'chirilmaydi")).toBeVisible()
   await expect(locations.getByText("Jami: 1")).toBeVisible()
 })
+
+test("an admin turns the dollar on for a company", async ({ page, context, baseURL }) => {
+  await signIn(context, baseURL)
+  await page.goto("/companies/1")
+  await expect(page.getByRole("heading", { name: "Olma Savdo" })).toBeVisible()
+  const currencies = page.getByRole("list", { name: "Valyutalar" })
+  await expect(currencies.getByText("UZS — O'zbek so'mi")).toBeVisible()
+  await expect(currencies.getByText("USD — AQSH dollari")).toHaveCount(0)
+
+  await page.getByRole("button", { name: "O'zgartirish" }).click()
+  const dialog = page.getByRole("dialog", { name: "Valyutalar" })
+  await expect(dialog.getByRole("checkbox", { name: /UZS/ })).toBeDisabled()
+  await dialog.getByRole("checkbox", { name: "USD — AQSH dollari" }).click()
+  await dialog.getByRole("button", { name: "Saqlash" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(currencies.getByText("USD — AQSH dollari")).toBeVisible()
+})
