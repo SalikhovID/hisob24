@@ -1255,3 +1255,59 @@ func TestProductsAndUsersGetTheirCurrencyColumns(t *testing.T) {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+func TestTheFinanceMigrationGivesEveryCompanyACashAccount(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 14)
+	require.NoError(t, err)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+
+	_, err = provider.UpTo(ctx, 15)
+	require.NoError(t, err)
+
+	rows, err := pool.Query(ctx, "SELECT company_id, name, currency_id, is_active FROM bank_accounts ORDER BY company_id")
+	require.NoError(t, err)
+	type row struct {
+		CompanyID  int64
+		Name       string
+		CurrencyID int64
+		Active     bool
+	}
+	got, err := pgx.CollectRows(rows, pgx.RowToStructByPos[row])
+	require.NoError(t, err)
+	assert.Equal(t, []row{{olma, "Naqd", 1, true}, {nok, "Naqd", 1, true}}, got, "cash in so'm, active")
+}
+
+func TestBankAccountsKeepTheirRules(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	var id int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Karta', 2) RETURNING id", c).Scan(&id))
+
+	_, err := pool.Exec(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'karta', 1)", c)
+	assert.Equal(t, "23505", sqlState(err), "a name is one account's in the company, whatever the case")
+	_, err = pool.Exec(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Bank', 9)", c)
+	assert.Equal(t, "23503", sqlState(err), "a currency of the catalog")
+	_, err = pool.Exec(ctx, "UPDATE bank_accounts SET deleted_at = now() WHERE id = $1", id)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Karta', 1)", c)
+	assert.NoError(t, err, "a deleted account's name is free again")
+}
+
+func TestFinanceCategoriesKeepTheirRules(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO finance_categories (company_id, name, kind, position) VALUES ($1, 'Ijara', 'expense', 1)", c)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "INSERT INTO finance_categories (company_id, name, kind, position) VALUES ($1, 'ijara', 'expense', 2)", c)
+	assert.Equal(t, "23505", sqlState(err), "a name is one category's among the kind, whatever the case")
+	_, err = pool.Exec(ctx, "INSERT INTO finance_categories (company_id, name, kind, position) VALUES ($1, 'Ijara', 'income', 1)", c)
+	assert.NoError(t, err, "the other kind may have the name")
+	_, err = pool.Exec(ctx, "INSERT INTO finance_categories (company_id, name, kind, position) VALUES ($1, 'Boshqa', 'transfer', 1)", c)
+	assert.Equal(t, "23514", sqlState(err), "a kind is expense or income")
+}
