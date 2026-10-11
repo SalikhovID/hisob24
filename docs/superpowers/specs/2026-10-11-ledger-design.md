@@ -263,3 +263,15 @@ Qatlam handler → service → sqlc; hamma yozuv tranzaksiyada, kompaniya qulfi 
 - Admin «Valyutalar» bo'limi chiplar va dialog (`Checkbox`, UZS doim belgilangan va `aria-disabled`); admin ilovasiga `components/ui/checkbox.tsx` qo'shildi.
 - Testlarda `addCompany` fixture'lari (app, catalog, currency) kompaniyaga so'mni ham yozadi: haqiqiy kompaniya kabi.
 - Mock: Nok Market (2) USD bilan va Vali kiritgan 12 800 kursi bilan boshlanadi (valyuta maydonlari shu yerda sinaladi); Olma Savdo faqat so'mda.
+
+## 2-bosqich qarorlari (2026-10-11)
+
+- `Me.accounts`: tanlangan kompaniyaning jonli akkauntlari `/app/me` da (`currencies` kabi), qo'shilish tartibida, nofaollari ham: to'lov formalari faqat faollarini taklif qiladi, ro'yxat va hujjatlar nofaolining nomini ham ko'rsatadi. Kompaniya tanlanmagan bo'lsa bo'sh.
+- Akkaunt nomi kompaniya ichida (jonlilar orasida, harf farqsiz) takrorlanmaydi: 409 `name_taken` «Bu nomli akkaunt allaqachon bor». Kompaniyada kamida bitta faol akkaunt qoladi: oxirgisini nofaol qilish yoki o'chirish 409 `last_account` «Kompaniyada kamida bitta faol akkaunt qolsin».
+- Akkaunt valyutasini o'zgartirish hozircha erkin; hujjati bor akkauntning valyutasi va o'chirilishi (`account_in_use`) 3-bosqichda jurnal bilan keladi. Kategoriyaning `category_in_use` tekshiruvi ham xarajatlar (9-bosqich) bilan.
+- Valyutani kompaniyadan olib tashlash endi shu valyutadagi akkauntga ham to'xtaydi: 409 `currency_in_use` «Bu valyutada N ta akkaunt bor» (mahsulotlardan keyin tekshiriladi).
+- Moliya kategoriyasi: nom 60 belgigacha, tur ichida takrorlanmaydi (harf farqsiz, 409 `name_taken` «Bu nomli kategoriya allaqachon bor»); turi keyin o'zgarmaydi. `?kind=` noto'g'ri bo'lsa 400 «Tur noto'g'ri», yaratishda tur yo'q bo'lsa 400 «Turni tanlang». Tartib har tur ichida alohida (`PUT /app/finance-categories/order {kind, ids}`), vazifa turlaridagi `order_changed` qoidasi bilan.
+- Sozlamalar tabi `finance` («Moliya kategoriyalari») Valyuta kurslari va Rollar orasida: ikki bo'lim (Xarajat, Kirim), vazifa turlari bo'laklari bilan (`NameDialog`, `SortableList`, `SettingRow`); kesh kaliti tur bo'yicha (`financeCategoriesKey(companyId, kind)`).
+- Admin «Kassa» bo'limi `DataList` (Akkaunt, Valyuta, Holat, Qo'shilgan, Amallar) va dialoglar (qo'shish, tahrirlash), nofaol/faol tugmasi, o'chirish; `SelectField` va `test/select.ts` yordamchisi user app'dan ko'chirildi.
+- `company.Create` «Naqd» UZS akkauntini `created_by` = yaratgan admin bilan yozadi; `finance.Service` admin va app handler'lariga ulangan.
+- Mock: Nok Market (2) naqddan tashqari «Karta» USD akkaunti bilan boshlanadi; kategoriyalar bo'sh boshlanadi (testlar o'zi qo'shadi).
