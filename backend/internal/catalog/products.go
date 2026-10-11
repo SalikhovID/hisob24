@@ -201,12 +201,12 @@ func (s *Service) Delete(ctx context.Context, scope Scope, id int64) error {
 		if _, err := get(ctx, q, scope, id); err != nil {
 			return err
 		}
-		held, err := q.CountProductPurchases(ctx, id)
+		held, err := q.CountProductDocuments(ctx, id)
 		if err != nil {
 			return err
 		}
 		if held > 0 {
-			return apperr.New(apperr.Conflict, "product_in_use", fmt.Sprintf("Bu mahsulot %d ta xaridda bor", held))
+			return apperr.New(apperr.Conflict, "product_in_use", fmt.Sprintf("Bu mahsulot %d ta hujjatda bor", held))
 		}
 		_, err = q.DeleteProduct(ctx, gen.DeleteProductParams{ID: id, CompanyID: companyID})
 		return err

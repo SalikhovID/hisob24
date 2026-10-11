@@ -21,16 +21,18 @@ type Detail struct {
 	Stock []StockLine
 }
 
-// ProductPurchase is one live purchase line of a product: the purchase, its
-// supplier and location, the quantity, the price and what the line came to.
+// ProductPurchase is one live purchase line of a product: the purchase
+// (its number, moment, supplier, location and currency), the quantity, the
+// price and what the line came to, in the purchase's currency.
 type ProductPurchase struct {
 	PurchaseID   int64
 	Number       int32
-	PurchasedOn  time.Time
+	At           time.Time
 	SupplierID   int64
 	SupplierName string
 	LocationID   int64
 	LocationName string
+	CurrencyID   int64
 	Quantity     string
 	Price        string
 	Amount       string
@@ -89,8 +91,8 @@ func (s *Service) Purchases(ctx context.Context, scope Scope, id int64, page int
 	items := make([]ProductPurchase, 0, len(rows))
 	for _, r := range rows {
 		items = append(items, ProductPurchase{
-			PurchaseID: r.PurchaseID, Number: r.Number, PurchasedOn: r.PurchasedOn, SupplierID: r.SupplierID, SupplierName: r.SupplierName,
-			LocationID: r.LocationID, LocationName: r.LocationName,
+			PurchaseID: r.PurchaseID, Number: r.Number, At: r.DocAt, SupplierID: r.SupplierID, SupplierName: r.SupplierName,
+			LocationID: r.LocationID, LocationName: r.LocationName, CurrencyID: r.CurrencyID,
 			Quantity: *QuantityText(r.Quantity), Price: *Amount(r.Price), Amount: *Amount(r.Amount),
 		})
 	}
