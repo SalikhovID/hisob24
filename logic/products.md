@@ -2,19 +2,21 @@
 
 Bu hujjat mahsulotlar bo'limi qoidalarini belgilaydi: mahsulot va xizmat nima, qaysi maydonlari bor, kim nima qila oladi, ro'yxat va sahifa nimani ko'rsatadi, nima qachon o'chadi. Ombor (ta'minotchilar, xaridlar, qoldiq, to'lovlar): [warehouse.md](warehouse.md). Rollar: [roles.md](roles.md). Lokatsiyalar (har lokatsiya bitta ombor): [locations.md](locations.md).
 
-> Holat: kelishilgan (2026-10-07), amalga oshirilmoqda. Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-07-inventory-design.md`.
+> Holat: 2026-10-07 dagi qoidalar amalga oshirilgan (`docs/superpowers/specs/2026-10-07-inventory-design.md`); 2026-10-11 da narx valyutasi, jurnaldan qoldiq, harakatlar va sotuv bilan yangilangan, amalga oshirilmoqda (`docs/superpowers/specs/2026-10-11-ledger-design.md`). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
 
 ## 1. Tushunchalar
 
 | Tushuncha | Ma'nosi | Bazada |
 |---|---|---|
 | **Mahsulot** | Kompaniya ta'minotchidan oladigan va omborda saqlaydigan tovar: nomi, o'lchov birligi, ixtiyoriy sotuv narxi, artikuli va izohi. | `products` (`kind = 'product'`) |
-| **Xizmat** | Kompaniya ko'rsatadigan xizmat: nomi, ixtiyoriy narxi va izohi. Omborda turmaydi, xaridga kirmaydi. | `products` (`kind = 'service'`) |
+| **Xizmat** | Kompaniya ko'rsatadigan xizmat: nomi, ixtiyoriy narxi va izohi. Omborda turmaydi, xaridga kirmaydi, sotuvga kiradi ([sales.md](sales.md)). | `products` (`kind = 'service'`) |
 | **Birlik** | Mahsulot o'lchanadigan birlik, tayyor ro'yxatdan (3.2). | `products.unit` |
 | **Artikul** | Mahsulotning kodi yoki shtrix-kodi: ixtiyoriy, kompaniyada takrorlanmas. | `products.sku` |
 | **Nofaol** | Endi ishlatilmaydigan mahsulot yoki xizmat: xarid takliflarida chiqmaydi, o'zi va ma'lumotlari qoladi. | `products.is_active` |
-| **Qoldiq** | Mahsulotning lokatsiyadagi (ombordagi) miqdori ([warehouse.md](warehouse.md), 5-bo'lim). | `stock` |
-| **Oxirgi xarid narxi** | Mahsulotning oxirgi jonli xarid qatoridagi narxi. | hisoblanadi |
+| **Qoldiq** | Mahsulotning lokatsiyadagi (ombordagi) miqdori: ombor jurnalidagi harakatlar yig'indisi ([warehouse.md](warehouse.md), 5-bo'lim). | hisoblanadi (`stock_moves`) |
+| **Harakat** | Mahsulotning jurnaldagi bitta kirim yoki chiqimi (xarid, sotuv, ko'chirish, inventarizatsiya, boshlang'ich qoldiq). | `stock_moves` |
+| **Oxirgi xarid narxi** | Mahsulotning eng yangi jonli xarid yoki boshlang'ich qoldiq qatoridagi narxi, valyutasi bilan. | hisoblanadi |
+| **Narx valyutasi** | Mahsulot yoki xizmat narxining valyutasi, standart UZS ([currencies.md](currencies.md)). | `products.currency_id` |
 
 Hamma narsa kompaniyaga tegishli: bir kompaniya boshqasining mahsulotlarini ko'rmaydi. Kompaniya so'rovdan emas, access token'dan olinadi. Mahsulotlar va xizmatlar lokatsiyaga bog'liq emas (kompaniya bo'yicha umumiy); lokatsiyaga bog'liq narsa faqat qoldiq.
 
@@ -38,7 +40,7 @@ Rolsiz xodim standart to'plam bilan ishlaydi ([roles.md](roles.md), 4.2): mahsul
 |---|---|---|---|
 | **Nomi** | majburiy | majburiy | matn, chetidagi bo'shliqlar olib tashlanadi, 1–120 belgi; mahsulotlar ichida va xizmatlar ichida alohida takrorlanmaydi (katta-kichik harf farqsiz): 409 `name_taken` |
 | **Birlik** | majburiy | yo'q | tayyor ro'yxatdan (3.2); xizmatga berilsa 400 |
-| **Narx** | ixtiyoriy | ixtiyoriy | so'm: 12 xonagacha butun va 2 kasr xonasi (`"150000.50"`), manfiy emas. Mahsulotda sotuv narxi, xizmatda xizmat narxi. Xarid narxi bu yerda emas, xaridning o'zida ([warehouse.md](warehouse.md), 4-bo'lim) |
+| **Narx** | ixtiyoriy | ixtiyoriy | 12 xonagacha butun va 2 kasr xonasi (`"150000.50"`), manfiy emas, valyutasi bilan (`currency_id`, standart UZS; kompaniyada yoqilgan bo'lishi shart: 400 `currency_not_allowed`; tanlov faqat 2+ valyutada ko'rinadi). Mahsulotda sotuv narxi, xizmatda xizmat narxi: sotuv formasida narx taklifi ([sales.md](sales.md), 3.1). Xarid narxi bu yerda emas, xaridning o'zida ([warehouse.md](warehouse.md), 4-bo'lim) |
 | **Artikul** | ixtiyoriy | yo'q | matn, 60 belgigacha, kompaniyaning jonli mahsulotlari ichida takrorlanmaydi (harf farqsiz): 409 `sku_taken`; xizmatga berilsa 400 |
 | **Izoh** | ixtiyoriy | ixtiyoriy | matn, 500 belgigacha |
 
@@ -59,10 +61,10 @@ Tayyor ro'yxat, sozlanmaydi: `dona`, `kg`, `g`, `l`, `ml`, `m`, `m2` (interfeysd
 
 - **Qo'shish.** `POST /app/products {kind, name, unit?, sku?, price?, note?}`. Kim qo'shgani saqlanadi.
 - **Tahrirlash.** `PUT /app/products/{id} {name, unit?, sku?, price?, note?}`: maydonlar yuborilganiga almashadi, yuborilmagan ixtiyoriy maydon bo'shaydi. Tur o'zgarmaydi. Birlik o'zgarsa eski xaridlardagi miqdorlar o'zgarmaydi (raqam o'sha, birlik yangisi). Ikki kishi bir vaqtda tahrirlasa, oxirgi saqlagan qoladi.
-- **O'chirish.** Yashiriladi (`deleted_at`), bazadan o'chmaydi; nomi va artikuli bo'shaydi; sahifasi 404. Tiklash yo'q. Jonli xarid qatorida bor mahsulot o'chirilmaydi: 409 `product_in_use` «Bu mahsulot N ta xaridda bor» (o'chirilgan xaridlar sanalmaydi); uni nofaol qilish mumkin. Xizmat erkin o'chiriladi.
+- **O'chirish.** Yashiriladi (`deleted_at`), bazadan o'chmaydi; nomi va artikuli bo'shaydi; sahifasi 404. Tiklash yo'q. Jonli hujjat qatorida (xarid, sotuv, ko'chirish, inventarizatsiya, boshlang'ich qoldiq) bor mahsulot yoki xizmat o'chirilmaydi: 409 `product_in_use` «Bu mahsulot N ta hujjatda bor» (o'chirilgan hujjatlar sanalmaydi); uni nofaol qilish mumkin.
 - **Qo'shgan.** Mijozlardagi kabi: a'zoning shu kompaniyadagi hozirgi ismi, chiqarilgan bo'lsa qo'shgan paytdagi ismi.
 
-Tekshiruv tartibi (400 `validation_error`, birinchi xato qaytadi): tur («Turni tanlang»), nom («Nomni kiriting», «Nom 120 belgidan oshmasin»), birlik (mahsulotda «Birlikni tanlang»; xizmatda berilsa «Xizmatga birlik berilmaydi»), artikul («Artikul 60 belgidan oshmasin»; xizmatda berilsa «Xizmatga artikul berilmaydi»), narx («Narx noto'g'ri»), izoh («Izoh 500 belgidan oshmasin»). Keyin takrorlar: nom (409 `name_taken`), artikul (409 `sku_taken`). Tahrirda eng avval yozuvning o'zi (404 «Mahsulot topilmadi»).
+Tekshiruv tartibi (400 `validation_error`, birinchi xato qaytadi): tur («Turni tanlang»), nom («Nomni kiriting», «Nom 120 belgidan oshmasin»), birlik (mahsulotda «Birlikni tanlang»; xizmatda berilsa «Xizmatga birlik berilmaydi»), artikul («Artikul 60 belgidan oshmasin»; xizmatda berilsa «Xizmatga artikul berilmaydi»), narx («Narx noto'g'ri»), narx valyutasi («Valyuta noto'g'ri», `currency_not_allowed`), izoh («Izoh 500 belgidan oshmasin»). Keyin takrorlar: nom (409 `name_taken`), artikul (409 `sku_taken`). Tahrirda eng avval yozuvning o'zi (404 «Mahsulot topilmadi»).
 
 ## 5. Ro'yxat
 
@@ -75,7 +77,7 @@ Tekshiruv tartibi (400 `validation_error`, birinchi xato qaytadi): tur («Turni 
 
 ## 6. Mahsulot sahifasi
 
-`GET /app/products/{id}`; `/products/[id]`. Sarlavhada nom (nofaol bo'lsa «Nofaol» belgisi), ostida «birlik · artikul». «Ma'lumot»: birlik, narx, oxirgi xarid narxi, artikul, izoh, qo'shgan, qo'shilgan (bo'shi «—»). «Qoldiq»: a'zoga ruxsatli har lokatsiya nomi va miqdori (0 ham). «Xaridlar» (`purchases.view` bo'lganga, `GET /app/products/{id}/purchases?page=`): shu mahsulot kirgan jonli xaridlar, a'zoga ruxsatli lokatsiyalardagi, yangi birinchi, 20 tadan: raqam, sana, ta'minotchi, miqdor, narx, summa, 2+ ruxsatli lokatsiyada lokatsiya. Amallar: «Tahrirlash», «Nofaol qilish» / «Faollashtirish», «O'chirish» (rad javobi toast'da). Xizmatning sahifasi yo'q: uning amallari ro'yxat qatorida.
+`GET /app/products/{id}`; `/products/[id]`. Sarlavhada nom (nofaol bo'lsa «Nofaol» belgisi), ostida «birlik · artikul». «Ma'lumot»: birlik, narx (valyutasi bilan), oxirgi xarid narxi (valyutasi bilan), artikul, izoh, qo'shgan, qo'shilgan (bo'shi «—»). «Qoldiq»: a'zoga ruxsatli har lokatsiya nomi va miqdori (0 ham). «Xaridlar» (`purchases.view` bo'lganga, `GET /app/products/{id}/purchases?page=`): shu mahsulot kirgan jonli xaridlar, a'zoga ruxsatli lokatsiyalardagi, yangi birinchi, 20 tadan: raqam, vaqt, ta'minotchi, miqdor, narx, summa, 2+ ruxsatli lokatsiyada lokatsiya. «Harakatlar» (`stock.view` bo'lganga, `GET /app/products/{id}/moves?location_id=&page=`): mahsulotning ombor jurnalidagi harakatlari, a'zoga ruxsatli lokatsiyalardagi (yoki `location_id` lokatsiyaniki), yangi birinchi, 20 tadan: vaqt, hujjat (tur va raqami, havola), lokatsiya, kontragent yoki boshqa lokatsiya, ± miqdor ([warehouse.md](warehouse.md), 5-bo'lim). Amallar: «Tahrirlash», «Nofaol qilish» / «Faollashtirish», «O'chirish» (rad javobi toast'da). Xizmatning sahifasi yo'q: uning amallari ro'yxat qatorida.
 
 ## 7. Chekka holatlar
 

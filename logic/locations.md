@@ -2,7 +2,7 @@
 
 Bu hujjat lokatsiyalar qoidalarini belgilaydi: lokatsiya nima, kim qo'shadi, a'zo qaysi lokatsiyada ishlaydi, xodim qanday cheklanadi va bu vazifalarga qanday ta'sir qiladi. Vazifalar: [tasks.md](tasks.md). Rollar: [roles.md](roles.md). Userlar va xodimlar: [user.md](user.md). Ombor (xarid va qoldiq lokatsiyaniki): [warehouse.md](warehouse.md).
 
-> Holat: amalga oshirilgan (2026-10-07). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-07-locations-design.md`. Ombor bilan bog'liq qoidalar (1, 3, 4, 7–9-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-inventory-design.md` bilan amalga oshirilmoqda.
+> Holat: amalga oshirilgan (2026-10-07). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi. Dizayn, bosqichlar va amalga oshirishdagi qarorlar: `docs/superpowers/specs/2026-10-07-locations-design.md`. Ombor bilan bog'liq qoidalar (1, 3, 4, 7–9-bo'limlar; 2026-10-07) `docs/superpowers/specs/2026-10-07-inventory-design.md` bilan amalga oshirilgan; jurnal, sotuv va ko'chirish bilan yangilangan qoidalar (1, 3, 7-bo'limlar; 2026-10-11) `docs/superpowers/specs/2026-10-11-ledger-design.md` bilan amalga oshirilmoqda.
 
 ## 1. Tushunchalar
 
@@ -10,11 +10,11 @@ Bu hujjat lokatsiyalar qoidalarini belgilaydi: lokatsiya nima, kim qo'shadi, a'z
 |---|---|---|
 | **Lokatsiya** | Kompaniyaning filiali: nomi bor. Vazifa aynan bitta lokatsiyada turadi. | `locations` |
 | **Tayyor lokatsiya** | Har kompaniya boshlaydigan "Asosiy" lokatsiya. | migratsiya 00010 (mavjud kompaniyalar), `company.Create` (yangisi) |
-| **Joriy lokatsiya** | A'zo hozir ishlayotgan lokatsiya: vazifalar ro'yxati, kanban va yangi vazifa shuniki; xaridlar ro'yxati, yangi xarid va mahsulotlar ro'yxatidagi qoldiq ham. Brauzerda eslanadi, serverga har vazifa va xarid so'rovida `location_id` bilan aytiladi. | brauzer (`location:<kompaniya>:<telefon>`) |
+| **Joriy lokatsiya** | A'zo hozir ishlayotgan lokatsiya: vazifalar ro'yxati, kanban va yangi vazifa shuniki; ombor hujjatlari (xarid, sotuv, ko'chirish manbasi, inventarizatsiya, boshlang'ich qoldiq) ro'yxatlari va yangi hujjat, mahsulotlar ro'yxatidagi qoldiq ham. Brauzerda eslanadi, serverga har vazifa va hujjat so'rovida `location_id` bilan aytiladi. | brauzer (`location:<kompaniya>:<telefon>`) |
 | **Cheklov** | Xodim ishlay oladigan lokatsiyalar to'plami. Standart: hammasi. | `user_companies.all_locations`, `member_locations` |
 | **Ruxsatli lokatsiyalar** | A'zoning jonli (o'chirilmagan) lokatsiyalari: egasi va cheklanmagan xodimda kompaniyaning hammasi, cheklanganda belgilanganlari. | har so'rovda `GetCompanyAccess`; `/app/me` da `locations` |
 
-Lokatsiya vazifalarga va omborga tegadi: vazifa va xarid bitta lokatsiyada turadi, qoldiq lokatsiyaniki ([warehouse.md](warehouse.md); 7-bo'lim). Mijozlar, xodimlar, rollar, sozlamalar (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar), mahsulotlar va ta'minotchilar kompaniya bo'yicha umumiy.
+Lokatsiya vazifalarga va omborga tegadi: vazifa, xarid, sotuv, inventarizatsiya va boshlang'ich qoldiq bitta lokatsiyada turadi, ko'chirish ikkitasiga tegadi, qoldiq lokatsiyaniki ([warehouse.md](warehouse.md); 7-bo'lim). Mijozlar, xodimlar, rollar, sozlamalar (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, moliya kategoriyalari), mahsulotlar, ta'minotchilar, akkauntlar (kassa) va pul hujjatlari kompaniya bo'yicha umumiy.
 
 ## 2. Kim nima qila oladi
 
@@ -34,7 +34,7 @@ Lokatsiya vazifalarga va omborga tegadi: vazifa va xarid bitta lokatsiyada turad
 - Har kompaniya **"Asosiy"** lokatsiya bilan boshlaydi: mavjud kompaniyalarga migratsiya 00010 yozadi (ularning hamma vazifalari unga tushadi), yangisiga kompaniya yaratilganda.
 - Admin kompaniya sahifasida **Lokatsiyalar** bo'limida qo'shadi (`POST /admin/companies/{id}/locations {name}`), nomini o'zgartiradi (`PATCH …/{locationId} {name}`) va o'chiradi (`DELETE …/{locationId}`). Nom 1–60 belgi, chetidagi bo'shliqlar olib tashlanadi, kompaniyada takrorlanmaydi (katta-kichik harf farqsiz): 409 `name_taken`.
 - Ro'yxat ID tartibida (qo'shilish tartibi), har lokatsiyada faol vazifalar soni.
-- **O'chirish** yashirish (`deleted_at`), bazadan o'chmaydi; nomi bo'shaydi. O'chirilmaydi: kompaniyaning yagona lokatsiyasi (409 `last_location`), faol vazifasi bor lokatsiya (409 `location_in_use` "Bu lokatsiyada N ta vazifa bor"; o'chirilgan vazifalar sanalmaydi), jonli xaridi bor lokatsiya (409 `location_in_use` "Bu lokatsiyada N ta xarid bor"; o'chirilgan xaridlar sanalmaydi). Shu tartibda tekshiriladi. Xodim cheklovlari to'sqinlik qilmaydi (5-bo'lim).
+- **O'chirish** yashirish (`deleted_at`), bazadan o'chmaydi; nomi bo'shaydi. O'chirilmaydi: kompaniyaning yagona lokatsiyasi (409 `last_location`), faol vazifasi bor lokatsiya (409 `location_in_use` "Bu lokatsiyada N ta vazifa bor"; o'chirilgan vazifalar sanalmaydi), jonli hujjati bor lokatsiya (xarid, sotuv, inventarizatsiya, boshlang'ich qoldiq, manbasi yoki maqsadi shu bo'lgan ko'chirish; 409 `location_in_use` "Bu lokatsiyada N ta hujjat bor"; o'chirilgan hujjatlar sanalmaydi). Shu tartibda tekshiriladi. Xodim cheklovlari to'sqinlik qilmaydi (5-bo'lim).
 - Egasi user app'dan lokatsiya qo'sha olmaydi.
 
 ## 4. Joriy lokatsiya va tanlovchi
@@ -65,16 +65,16 @@ Lokatsiya vazifalarga va omborga tegadi: vazifa va xarid bitta lokatsiyada turad
 - Lokatsiyasiz a'zo (5-bo'lim): ro'yxat bo'sh, har vazifa 404, qo'shish 400.
 - Lokatsiya tarixga yozilmaydi: o'zgarmaydi.
 
-## 7. Xaridlar va lokatsiya
+## 7. Ombor hujjatlari, sotuv va lokatsiya
 
-Har lokatsiya bitta ombor ([warehouse.md](warehouse.md)):
+Har lokatsiya bitta ombor ([warehouse.md](warehouse.md), [sales.md](sales.md)):
 
-- **Xarid** joriy lokatsiyaga tushadi (`POST /app/purchases` da `location_id`), keyin o'zgarmaydi (vazifa kabi). `location_id` berilmasa 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz (begona, o'chirilgan, cheklov bilan yopilgan) bo'lsa 403 `forbidden`.
-- **Qoldiq** lokatsiyaniki: xarid shu lokatsiyaning qoldig'ini oshiradi. Mahsulotlar ro'yxatidagi "Qoldiq" ustuni joriy lokatsiyaniki (`GET /app/products?location_id=`; ruxsatsiz 403, son bo'lmasa 400 "Lokatsiya noto'g'ri"; berilmasa ruxsatli lokatsiyalar yig'indisi), mahsulot sahifasida ruxsatli har lokatsiya bo'yicha.
-- **Xaridlar ro'yxati** joriy lokatsiyaniki (`GET /app/purchases?location_id=`; ruxsatsiz 403, son bo'lmasa 400); `location_id` berilmasa ruxsatli hamma lokatsiya: ta'minotchi va mahsulot sahifalaridagi xaridlar (2+ ruxsatli lokatsiyada "Lokatsiya" belgisi). Ruxsatsiz lokatsiyadagi xarid ID bo'yicha 404 "Xarid topilmadi". Xarid sahifasi ruxsatli har lokatsiyadagi xaridni ochadi (havola orqali ham), 2+ ruxsatli lokatsiyada "Lokatsiya" fakti bilan, joriy lokatsiyani o'zgartirmaydi.
-- **Ta'minotchi balansi** kompaniya bo'yicha (hamma lokatsiya): cheklangan xodim ham to'liq ko'radi; qarz lokatsiyaniki emas.
-- **Lokatsiyasiz a'zo** (5-bo'lim): xaridlar ro'yxati bo'sh, qo'shish 400, har xarid 404, qoldiq ustuni 0; "Xaridlar" sahifasi "Sizga lokatsiya biriktirilmagan" deydi.
-- Lokatsiya o'chirilsa qoldiq qatorlari qoladi (0 bilan); jonli xaridi bor lokatsiya o'chirilmaydi (3-bo'lim).
+- **Xarid, sotuv, inventarizatsiya, boshlang'ich qoldiq** joriy lokatsiyaga tushadi, **ko'chirish** joriy lokatsiyadan chiqadi (`POST` da `location_id`); keyin o'zgarmaydi (vazifa kabi). `location_id` berilmasa 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz (begona, o'chirilgan, cheklov bilan yopilgan) bo'lsa 403 `forbidden`. Ko'chirishning maqsadi (`to_location_id`) kompaniyaning istalgan jonli lokatsiyasi, a'zoga ruxsatli bo'lishi shart emas.
+- **Qoldiq** lokatsiyaniki: ombor jurnalidagi shu lokatsiya harakatlarining yig'indisi. Mahsulotlar ro'yxatidagi "Qoldiq" ustuni joriy lokatsiyaniki (`GET /app/products?location_id=`; ruxsatsiz 403, son bo'lmasa 400 "Lokatsiya noto'g'ri"; berilmasa ruxsatli lokatsiyalar yig'indisi), mahsulot sahifasida ruxsatli har lokatsiya bo'yicha.
+- **Ro'yxatlar** joriy lokatsiyaniki (`GET /app/purchases`, `/app/sales`, `/app/transfers`, `/app/inventories`, `/app/opening-stock` da `?location_id=`; ruxsatsiz 403, son bo'lmasa 400); ko'chirishlar ro'yxatida manbasi **yoki** maqsadi shu lokatsiya bo'lganlar. `location_id` berilmasa ruxsatli hamma lokatsiya: ta'minotchi, mijoz va mahsulot sahifalaridagi hujjatlar (2+ ruxsatli lokatsiyada "Lokatsiya" belgisi). Ruxsatsiz lokatsiyadagi hujjat ID bo'yicha 404 (ko'chirishda manba ham, maqsad ham ruxsatsiz bo'lsa). Hujjat sahifasi ruxsatli har lokatsiyadagi hujjatni ochadi (havola orqali ham), 2+ ruxsatli lokatsiyada "Lokatsiya" fakti bilan, joriy lokatsiyani o'zgartirmaydi. Maqsadi ruxsatli, manbasi ruxsatsiz ko'chirish ko'rinadi, tahrirlanmaydi va o'chirilmaydi (403).
+- **Ta'minotchi va mijoz balansi, kassa** kompaniya bo'yicha (hamma lokatsiya): cheklangan xodim ham to'liq ko'radi; qarz va akkaunt lokatsiyaniki emas.
+- **Lokatsiyasiz a'zo** (5-bo'lim): hujjat ro'yxatlari bo'sh, qo'shish 400, har hujjat 404, qoldiq ustuni 0; sahifalar "Sizga lokatsiya biriktirilmagan" deydi.
+- Jonli hujjati bor lokatsiya o'chirilmaydi (3-bo'lim); hujjatlari o'chirilgan lokatsiya o'chiriladi (uning harakatlari ham o'chirilgan bo'ladi).
 
 ## 8. Chekka holatlar
 

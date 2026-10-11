@@ -30,6 +30,7 @@ Hamma narsa kompaniyaga tegishli: bir kompaniya boshqasining mijozlarini, turlar
 Jadvaldagi `user` rolsiz xodim. Kompaniya roli biriktirilgan xodim ([roles.md](roles.md), 4-bo'lim) har amalni rolning ruxsati bilan qiladi: `customers.view` (ro'yxat, mijoz sahifasi, telefon takliflari), `customers.create`, `customers.edit`, `customers.delete`, `customers.history`; sozlash `settings.create`, `settings.edit` (nom, belgilar, tartib, nofaol variant), `settings.delete`.
 
 - "Mijozlar" bo'limi `customers.view` bo'lganga (egasi va rolsiz xodimga ham), "Sozlamalar" bo'limi egasiga va `settings.view` ruxsatli xodimga ko'rinadi.
+- Mijozning balansi (qarz / avans), sotuvlari, to'lovlari, boshlang'ich qarz / avansi va hisob harakati — [sales.md](sales.md) (`sales.*`): mijoz sahifasida va ro'yxatdagi «Qarz» ustunida `sales.view` bo'lganga ko'rinadi.
 - Ruxsati yo'q xodim amalni yuborsa: 403 `forbidden`. Kompaniya tanlanmagan sessiya: 403 `company_required`.
 
 ## 3. Sozlamalar
@@ -121,7 +122,7 @@ Hamma narsa yashiriladi, bazadan o'chmaydi. Faol mijozda ishlatilayotgan narsa o
 | maydon | faol mijozda to'ldirilgan | `field_in_use`: "Bu maydon N ta mijozda to'ldirilgan" |
 | variant | faol mijozda tanlangan; keyin faol vazifada tanlangan | `option_in_use`: "Bu variant N ta mijozda tanlangan", "Bu variant N ta vazifada tanlangan" |
 | dropdown | o'chirilmagan mijoz yoki vazifa maydoniga ulangan | `dropdown_in_use`: "Bu dropdown N ta maydonda ishlatilgan" (ikkala tur birga sanaladi) |
-| mijoz | faol vazifasi bor (har qanday bosqichda) | `customer_in_use`: "Bu mijozda N ta vazifa bor" |
+| mijoz | faol vazifasi bor (har qanday bosqichda); keyin jonli sotuvi, to'lovi yoki boshlang'ich qarz / avansi bor ([sales.md](sales.md), 7-bo'lim) | `customer_in_use`: "Bu mijozda N ta vazifa bor", "Bu mijozda N ta hujjat bor" |
 
 - O'chirilgan mijozlar va vazifalar hisobga olinmaydi.
 - Tur o'chirilsa, uning maydonlari ham o'chirilgan hisoblanadi.
