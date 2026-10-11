@@ -37,6 +37,7 @@ var (
 	errSupplierNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli ta'minotchi allaqachon bor")
 	errPaymentLinked     = apperr.New(apperr.Conflict, "payment_linked", "Bu to'lov xarid bilan kiritilgan: xaridni tahrirlang")
 	errNoLocation        = invalid("Lokatsiyani tanlang")
+	errForbidden         = apperr.New(apperr.Forbidden, "forbidden", "Bu amal uchun ruxsatingiz yo'q")
 )
 
 // Scope is a member's reach in a company: the company and the locations of

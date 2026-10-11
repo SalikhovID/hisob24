@@ -12,6 +12,9 @@ const (
 	NotFound
 	// Conflict clashes with the current state (409).
 	Conflict
+	// Forbidden is an action the member's permissions do not reach (403):
+	// what a service refuses when the handler could not tell beforehand.
+	Forbidden
 )
 
 // Error is a refusal the client should see.

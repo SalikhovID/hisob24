@@ -3,13 +3,11 @@ package warehouse
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/ledger"
@@ -101,10 +99,13 @@ type PurchasePage struct {
 	PageSize int
 }
 
-// checkedItem is a line as it is kept.
+// checkedItem is a line as it is kept: the product, the quantity (counted,
+// in an inventory, with the stock expected then) and the price where the
+// kind has one.
 type checkedItem struct {
 	ProductID int64
 	Quantity  pgtype.Numeric
+	Expected  pgtype.Numeric
 	Price     pgtype.Numeric
 }
 
@@ -149,44 +150,8 @@ func checkPurchase(ctx context.Context, q *gen.Queries, companyID int64, by stri
 	if c.Note, err = cleanOptional(in.Note, MaxNote, "Izoh 500 belgidan oshmasin"); err != nil {
 		return c, err
 	}
-	if len(in.Items) == 0 {
-		return c, invalid("Kamida bitta mahsulot qo'shing")
-	}
-	seen := make(map[int64]bool, len(in.Items))
-	for _, it := range in.Items {
-		if it.ProductID == 0 {
-			return c, invalid("Mahsulotni tanlang")
-		}
-		p, err := q.ProductStanding(ctx, gen.ProductStandingParams{ID: it.ProductID, CompanyID: companyID})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return c, invalid("Mahsulotni tanlang")
-		}
-		if err != nil {
-			return c, err
-		}
-		if p.Kind != catalog.KindProduct {
-			return c, invalid("Xizmat xaridga kiritilmaydi")
-		}
-		if !p.IsActive && !held[it.ProductID] {
-			return c, invalid("Mahsulot nofaol")
-		}
-		if seen[it.ProductID] {
-			return c, invalid(fmt.Sprintf("«%s» ikki marta kiritilgan", p.Name))
-		}
-		seen[it.ProductID] = true
-		quantity, err := catalog.Quantity(it.Quantity, fmt.Sprintf("«%s» miqdori noto'g'ri", p.Name))
-		if err != nil {
-			return c, err
-		}
-		badPrice := fmt.Sprintf("«%s» narxi noto'g'ri", p.Name)
-		price, err := catalog.Money(it.Price, badPrice)
-		if err != nil {
-			return c, err
-		}
-		if !price.Valid {
-			return c, invalid(badPrice)
-		}
-		c.Items = append(c.Items, checkedItem{ProductID: it.ProductID, Quantity: quantity, Price: price})
+	if c.Items, err = checkLines(ctx, q, companyID, in.Items, held, lineRule{WithPrice: true, ServiceRefused: "Xizmat xaridga kiritilmaydi"}); err != nil {
+		return c, err
 	}
 	return c, nil
 }
@@ -411,25 +376,16 @@ func (s *Service) DeletePurchase(ctx context.Context, scope Scope, id int64) err
 // total, and writes its moves anew: each line into the location's stock,
 // which has to stay above zero (what was sold since a line shrank).
 func writeLines(ctx context.Context, q *gen.Queries, companyID, purchaseID, locationID int64, items []checkedItem) error {
-	if err := q.DeleteTransactionItems(ctx, purchaseID); err != nil {
+	if err := writeGoodsLines(ctx, q, purchaseID, items); err != nil {
 		return err
-	}
-	lines := make([]ledger.Line, 0, len(items))
-	products := make([]int64, 0, len(items))
-	for i, it := range items {
-		if err := q.AddTransactionItem(ctx, gen.AddTransactionItemParams{TransactionID: purchaseID, ProductID: it.ProductID, Quantity: it.Quantity, Price: it.Price, Position: int32(i + 1)}); err != nil {
-			return err
-		}
-		lines = append(lines, ledger.Line{ProductID: it.ProductID, Quantity: it.Quantity})
-		products = append(products, it.ProductID)
 	}
 	if _, err := q.SetTransactionTotal(ctx, purchaseID); err != nil {
 		return err
 	}
-	if err := ledger.WriteMoves(ctx, q, companyID, purchaseID, ledger.MovesOf(ledger.Purchase, locationID, 0, lines)); err != nil {
+	if err := ledger.WriteMoves(ctx, q, companyID, purchaseID, ledger.MovesOf(ledger.Purchase, locationID, 0, linesOf(items))); err != nil {
 		return err
 	}
-	return ledger.CheckStock(ctx, q, []int64{locationID}, products)
+	return ledger.CheckStock(ctx, q, []int64{locationID}, productsOf(items))
 }
 
 // pricingOf is the document's pricing now: its currency and rate row, with

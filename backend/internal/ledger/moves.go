@@ -96,6 +96,12 @@ func StockInsufficient(name string) error {
 	return apperr.New(apperr.Conflict, "stock_insufficient", fmt.Sprintf("«%s» uchun omborda yetarli qoldiq yo'q", name))
 }
 
+// Sub is a − b as a quantity (three decimals): what an inventory's line
+// differs by.
+func Sub(a, b pgtype.Numeric) pgtype.Numeric {
+	return numeric(new(big.Rat).Sub(rat(a), rat(b)))
+}
+
 // rat is the numeric as a rational, 0 when there is none.
 func rat(n pgtype.Numeric) *big.Rat {
 	if !n.Valid || n.Int == nil {

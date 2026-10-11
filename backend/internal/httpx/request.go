@@ -34,9 +34,10 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 		return
 	}
 	status := map[apperr.Kind]int{
-		apperr.Invalid:  http.StatusBadRequest,
-		apperr.NotFound: http.StatusNotFound,
-		apperr.Conflict: http.StatusConflict,
+		apperr.Invalid:   http.StatusBadRequest,
+		apperr.NotFound:  http.StatusNotFound,
+		apperr.Conflict:  http.StatusConflict,
+		apperr.Forbidden: http.StatusForbidden,
 	}[e.Kind]
 	if status == 0 {
 		InternalError(w, r, err)

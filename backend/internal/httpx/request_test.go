@@ -48,6 +48,7 @@ func TestWriteError(t *testing.T) {
 		"invalid":   {apperr.New(apperr.Invalid, "validation_error", "Nomi kiritilmagan"), 400, `{"error":"validation_error","message":"Nomi kiritilmagan"}`},
 		"not found": {apperr.New(apperr.NotFound, "not_found", "Topilmadi"), 404, `{"error":"not_found","message":"Topilmadi"}`},
 		"conflict":  {fmt.Errorf("deactivate: %w", apperr.New(apperr.Conflict, "last_admin", "Kamida bitta")), 409, `{"error":"last_admin","message":"Kamida bitta"}`},
+		"forbidden": {apperr.New(apperr.Forbidden, "forbidden", "Bu amal uchun ruxsatingiz yo'q"), 403, `{"error":"forbidden","message":"Bu amal uchun ruxsatingiz yo'q"}`},
 		"other":     {errors.New("db down"), 500, `{"error":"internal_error","message":"Ichki xatolik. Birozdan keyin qayta urinib ko'ring"}`},
 	} {
 		rec := httptest.NewRecorder()
