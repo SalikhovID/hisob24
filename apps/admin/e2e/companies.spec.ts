@@ -200,7 +200,8 @@ test("an admin turns the dollar on for a company", async ({ page, context, baseU
   await expect(currencies.getByText("UZS — O'zbek so'mi")).toBeVisible()
   await expect(currencies.getByText("USD — AQSH dollari")).toHaveCount(0)
 
-  await page.getByRole("button", { name: "O'zgartirish" }).click()
+  // The page has other buttons that change a name; this one is the section's.
+  await page.getByRole("region", { name: "Valyutalar" }).getByRole("button", { name: "O'zgartirish" }).click()
   const dialog = page.getByRole("dialog", { name: "Valyutalar" })
   await expect(dialog.getByRole("checkbox", { name: /UZS/ })).toBeDisabled()
   await dialog.getByRole("checkbox", { name: "USD — AQSH dollari" }).click()

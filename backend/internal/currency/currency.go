@@ -144,6 +144,13 @@ func (s *Service) SetOfCompany(ctx context.Context, companyID int64, ids []int64
 			if used > 0 {
 				return apperr.New(apperr.Conflict, "currency_in_use", fmt.Sprintf("Bu valyutada %d ta mahsulot bor", used))
 			}
+			accounts, err := q.CountCurrencyBankAccounts(ctx, gen.CountCurrencyBankAccountsParams{CompanyID: companyID, CurrencyID: c.ID})
+			if err != nil {
+				return err
+			}
+			if accounts > 0 {
+				return apperr.New(apperr.Conflict, "currency_in_use", fmt.Sprintf("Bu valyutada %d ta akkaunt bor", accounts))
+			}
 			if err := q.RemoveCompanyCurrency(ctx, gen.RemoveCompanyCurrencyParams{CompanyID: companyID, CurrencyID: c.ID}); err != nil {
 				return err
 			}

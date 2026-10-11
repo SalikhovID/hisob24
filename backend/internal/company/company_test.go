@@ -63,6 +63,13 @@ func TestCreate(t *testing.T) {
 	currencies, err = pgx.CollectRows(rows, pgx.RowTo[int64])
 	require.NoError(t, err)
 	assert.Equal(t, []int64{1}, currencies, "every company starts with the so'm (logic/currencies.md)")
+	var cashName string
+	var cashCurrency int64
+	var cashBy *int64
+	require.NoError(t, pool.QueryRow(ctx, "SELECT name, currency_id, created_by FROM bank_accounts WHERE company_id = $1 AND is_active", c.ID).Scan(&cashName, &cashCurrency, &cashBy))
+	assert.Equal(t, "Naqd", cashName, "and with cash in so'm (logic/finance.md)")
+	assert.EqualValues(t, 1, cashCurrency)
+	assert.Equal(t, ptr(ownerID), cashBy, "added by the admin who made the company")
 
 	second, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: end, OwnerPhone: "998901234567", OwnerFullName: "Boshqa Ism"}, ownerID)
 	require.NoError(t, err)
@@ -458,3 +465,5 @@ func TestCreateGivesTheReadyTaskSettings(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Vazifa: 0"}, types, "one type with no fields")
 }
+
+func ptr[T any](v T) *T { return &v }

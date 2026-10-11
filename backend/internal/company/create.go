@@ -69,6 +69,11 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 		if err := q.AddCompanyCurrency(ctx, gen.AddCompanyCurrencyParams{CompanyID: c.ID, CurrencyID: currency.UZS, AddedBy: &adminID}); err != nil {
 			return err
 		}
+		// And cash in so'm, where its money sits until the admin adds more
+		// accounts (logic/finance.md).
+		if _, err := q.CreateBankAccount(ctx, gen.CreateBankAccountParams{CompanyID: c.ID, Name: "Naqd", CurrencyID: currency.UZS, CreatedBy: &adminID}); err != nil {
+			return err
+		}
 		today, err := q.CurrentDate(ctx)
 		if err != nil {
 			return err

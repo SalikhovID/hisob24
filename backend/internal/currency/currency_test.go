@@ -66,13 +66,13 @@ func codesOf(rows []CompanyCurrency) []string {
 }
 
 // refused checks that err is the API error of kind with the code and the message.
-func refused(t *testing.T, err error, kind apperr.Kind, code, message string) {
+func refused(t *testing.T, err error, kind apperr.Kind, code, message string, about ...any) {
 	t.Helper()
 	var e *apperr.Error
-	require.ErrorAs(t, err, &e)
-	assert.Equal(t, kind, e.Kind)
-	assert.Equal(t, code, e.Code)
-	assert.Equal(t, message, e.Message)
+	require.ErrorAs(t, err, &e, about...)
+	assert.Equal(t, kind, e.Kind, about...)
+	assert.Equal(t, code, e.Code, about...)
+	assert.Equal(t, message, e.Message, about...)
 }
 
 func TestCatalog(t *testing.T) {
@@ -138,6 +138,12 @@ func TestSetOfCompany(t *testing.T) {
 	addProduct(t, pool, olma, "Nok", 2)
 	_, err = s.SetOfCompany(ctx, olma, nil, adminID)
 	refused(t, err, apperr.Conflict, "currency_in_use", "Bu valyutada 2 ta mahsulot bor")
+	_, err = pool.Exec(ctx, "UPDATE products SET deleted_at = now()")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Karta', 2)", olma)
+	require.NoError(t, err)
+	_, err = s.SetOfCompany(ctx, olma, nil, adminID)
+	refused(t, err, apperr.Conflict, "currency_in_use", "Bu valyutada 1 ta akkaunt bor", "an account in the currency keeps it on too")
 
 	_, err = s.SetOfCompany(ctx, olma+1000, []int64{2}, adminID)
 	refused(t, err, apperr.NotFound, "not_found", "Kompaniya topilmadi")
