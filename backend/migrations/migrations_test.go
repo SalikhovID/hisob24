@@ -1049,92 +1049,116 @@ func TestSuppliersAreACompanysWithTheirOwnNames(t *testing.T) {
 	assert.True(t, active, "a supplier starts active")
 }
 
-func TestPurchasesAreNumberedInTheCompanyAndStandInItsLocations(t *testing.T) {
+// ledgerFixture is a warehouse fixture with what a document needs besides:
+// an owner, a currency rate row, a cash account and a second product.
+type ledgerFixture struct {
+	warehouseFixture
+	rate, cash, nok int64
+}
+
+func addLedgerFixture(t *testing.T, pool *pgxpool.Pool, company string) ledgerFixture {
+	t.Helper()
+	ctx := t.Context()
+	f := ledgerFixture{warehouseFixture: addWarehouseFixture(t, pool, company)}
+	_, err := pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998901111111', $1, 'owner')", f.company)
+	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO currency_rates (company_id, set_by) VALUES ($1, '998901111111') RETURNING id", f.company).Scan(&f.rate))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Naqd', 1) RETURNING id", f.company).Scan(&f.cash))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO products (company_id, kind, name, unit, created_by) VALUES ($1, 'product', 'Nok', 'dona', '998901111111') RETURNING id", f.company).Scan(&f.nok))
+	return f
+}
+
+// document is a row of transactions as a test enters it: the kind, the
+// number and whichever of the references the kind needs.
+type document struct {
+	kind                                 string
+	number                               int
+	location, toLocation, supplier, cash *int64
+	// total is the amount, "" for none (a goods document starts with 0).
+	total string
+}
+
+func addDocument(t *testing.T, pool *pgxpool.Pool, f ledgerFixture, d document) (int64, error) {
+	t.Helper()
+	var id int64
+	err := pool.QueryRow(t.Context(), `INSERT INTO transactions (company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, bank_account_id, currency_rate_id, total, created_by)
+		VALUES ($1, $2, $3, '2026-10-07 09:00+05', $4, $5, $6, $7, $8, COALESCE(NULLIF($9, ''), '0')::numeric, '998901111111') RETURNING id`,
+		f.company, d.kind, d.number, d.location, d.toLocation, d.supplier, d.cash, f.rate, d.total).Scan(&id)
+	return id, err
+}
+
+func TestTransactionsKeepTheirRules(t *testing.T) {
 	pool := pgtest.New(t)
 	ctx := t.Context()
-	olma := addWarehouseFixture(t, pool, "Olma")
-	nok := addWarehouseFixture(t, pool, "Nok")
-	insert := func(f warehouseFixture, number int, locationID, supplierID int64) (int64, error) {
-		var id int64
-		err := pool.QueryRow(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, created_by)
-			VALUES ($1, $2, $3, $4, '2026-10-07', '998901111111') RETURNING id`, f.company, number, locationID, supplierID).Scan(&id)
-		return id, err
+	olma := addLedgerFixture(t, pool, "Olma")
+	nok := addLedgerFixture(t, pool, "Nok")
+	purchase := func(f ledgerFixture, number int, locationID, supplierID int64) (int64, error) {
+		return addDocument(t, pool, f, document{kind: "purchase", number: number, location: &locationID, supplier: &supplierID})
 	}
 
-	first, err := insert(olma, 1, olma.location, olma.supplier)
+	first, err := purchase(olma, 1, olma.location, olma.supplier)
 	require.NoError(t, err)
-	_, err = insert(olma, 1, olma.location, olma.supplier)
-	assert.Equal(t, "23505", sqlState(err), "a number is one purchase's in the company")
-	_, err = insert(nok, 1, nok.location, nok.supplier)
+	_, err = purchase(olma, 1, olma.location, olma.supplier)
+	assert.Equal(t, "23505", sqlState(err), "a number is one document's in the company and the kind")
+	_, err = addDocument(t, pool, olma, document{kind: "supplier_payment", number: 1, supplier: &olma.supplier, cash: &olma.cash, total: "1"})
+	require.NoError(t, err, "another kind counts its own numbers")
+	_, err = purchase(nok, 1, nok.location, nok.supplier)
 	require.NoError(t, err, "another company counts its own")
-	_, err = insert(olma, 2, nok.location, olma.supplier)
+	_, err = purchase(olma, 2, nok.location, olma.supplier)
 	assert.Equal(t, "23503", sqlState(err), "the location is the company's")
-	_, err = insert(olma, 2, olma.location, nok.supplier)
+	_, err = purchase(olma, 2, olma.location, nok.supplier)
 	assert.Equal(t, "23503", sqlState(err), "the supplier is the company's")
-	var total string
-	require.NoError(t, pool.QueryRow(ctx, "SELECT total::text FROM purchases WHERE id = $1", first).Scan(&total))
-	assert.Equal(t, "0.00", total, "a purchase starts with no total")
+	_, err = addDocument(t, pool, olma, document{kind: "refund", number: 1, location: &olma.location})
+	assert.Equal(t, "23514", sqlState(err), "a kind of the catalog")
+	_, err = addDocument(t, pool, olma, document{kind: "purchase", number: 2, location: &olma.location})
+	assert.Equal(t, "23514", sqlState(err), "a purchase names its supplier")
+	_, err = addDocument(t, pool, olma, document{kind: "transfer", number: 1, location: &olma.location, toLocation: &olma.location})
+	assert.Equal(t, "23514", sqlState(err), "a transfer goes to another location")
+	_, err = addDocument(t, pool, olma, document{kind: "supplier_payment", number: 2, supplier: &olma.supplier, total: "1"})
+	assert.Equal(t, "23514", sqlState(err), "a payment comes out of an account")
+	_, err = addDocument(t, pool, olma, document{kind: "supplier_payment", number: 2, supplier: &olma.supplier, cash: &olma.cash})
+	assert.Equal(t, "23514", sqlState(err), "a payment is of something")
+	_, err = addDocument(t, pool, olma, document{kind: "supplier_payment", number: 2, supplier: &olma.supplier, cash: &nok.cash, total: "1"})
+	assert.Equal(t, "23503", sqlState(err), "the account is the company's")
+	var total, currency string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT total::text, currency_id::text FROM transactions WHERE id = $1", first).Scan(&total, &currency))
+	assert.Equal(t, "0.00", total, "a document starts with no total")
+	assert.Equal(t, "1", currency, "in so'm unless told")
 
-	item := func(purchaseID, productID int64, quantity, price string) error {
-		_, err := pool.Exec(ctx, "INSERT INTO purchase_items (purchase_id, product_id, quantity, price, position) VALUES ($1, $2, $3::numeric, $4::numeric, 1)", purchaseID, productID, quantity, price)
+	item := func(txID, productID int64, quantity, price string) error {
+		_, err := pool.Exec(ctx, "INSERT INTO transaction_items (transaction_id, product_id, quantity, price, position) VALUES ($1, $2, $3::numeric, $4::numeric, 1)", txID, productID, quantity, price)
 		return err
 	}
 	require.NoError(t, item(first, olma.product, "12.5", "1000"))
-	assert.Equal(t, "23505", sqlState(item(first, olma.product, "1", "1000")), "a product once in a purchase")
-	assert.Equal(t, "23514", sqlState(item(first, nok.product, "0", "1000")), "a quantity above zero")
-	assert.Equal(t, "23514", sqlState(item(first, nok.product, "1", "-1")), "a price not below zero")
+	assert.Equal(t, "23505", sqlState(item(first, olma.product, "1", "1000")), "a product once in a document")
+	assert.Equal(t, "23514", sqlState(item(first, olma.nok, "-1", "1000")), "a quantity not below zero (an inventory may count none)")
+	assert.Equal(t, "23514", sqlState(item(first, olma.nok, "1", "-1")), "a price not below zero")
 	var quantity string
-	require.NoError(t, pool.QueryRow(ctx, "SELECT quantity::text FROM purchase_items WHERE purchase_id = $1", first).Scan(&quantity))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT quantity::text FROM transaction_items WHERE transaction_id = $1", first).Scan(&quantity))
 	assert.Equal(t, "12.500", quantity, "three decimals, as the column keeps it")
 }
 
-func TestStockIsALocationsAndNeverBelowZero(t *testing.T) {
+func TestStockMovesAreAJournal(t *testing.T) {
 	pool := pgtest.New(t)
 	ctx := t.Context()
-	olma := addWarehouseFixture(t, pool, "Olma")
-	nok := addWarehouseFixture(t, pool, "Nok")
-	insert := func(companyID, locationID, productID int64, quantity string) error {
-		_, err := pool.Exec(ctx, "INSERT INTO stock (company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4::numeric)", companyID, locationID, productID, quantity)
+	olma := addLedgerFixture(t, pool, "Olma")
+	nok := addLedgerFixture(t, pool, "Nok")
+	tx, err := addDocument(t, pool, olma, document{kind: "purchase", number: 1, location: &olma.location, supplier: &olma.supplier})
+	require.NoError(t, err)
+	move := func(txID, companyID, locationID, productID int64, quantity string) error {
+		_, err := pool.Exec(ctx, "INSERT INTO stock_moves (transaction_id, company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4, $5::numeric)", txID, companyID, locationID, productID, quantity)
 		return err
 	}
 
-	require.NoError(t, insert(olma.company, olma.location, olma.product, "0"))
-	assert.Equal(t, "23505", sqlState(insert(olma.company, olma.location, olma.product, "1")), "one row per location and product")
-	assert.Equal(t, "23514", sqlState(insert(nok.company, nok.location, nok.product, "-1")), "stock is never below zero")
-	assert.Equal(t, "23503", sqlState(insert(olma.company, nok.location, olma.product, "1")), "the location is the company's")
-	assert.Equal(t, "23503", sqlState(insert(olma.company, olma.location, nok.product, "1")), "the product is the company's")
-	var pgErr *pgconn.PgError
-	require.ErrorAs(t, insert(nok.company, nok.location, nok.product, "-1"), &pgErr)
-	assert.Equal(t, "stock_quantity_check", pgErr.ConstraintName, "the service tells the refusal by this name")
-}
-
-func TestAPaymentIsASuppliersAndAPurchaseHoldsOne(t *testing.T) {
-	pool := pgtest.New(t)
-	ctx := t.Context()
-	olma := addWarehouseFixture(t, pool, "Olma")
-	nok := addWarehouseFixture(t, pool, "Nok")
-	var purchase int64
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, created_by)
-		VALUES ($1, 1, $2, $3, '2026-10-07', '998901111111') RETURNING id`, olma.company, olma.location, olma.supplier).Scan(&purchase))
-	insert := func(companyID, supplierID int64, purchaseID *int64, amount string) (int64, error) {
-		var id int64
-		err := pool.QueryRow(ctx, `INSERT INTO supplier_payments (company_id, supplier_id, purchase_id, amount, paid_on, created_by)
-			VALUES ($1, $2, $3, $4::numeric, '2026-10-07', '998901111111') RETURNING id`, companyID, supplierID, purchaseID, amount).Scan(&id)
-		return id, err
-	}
-
-	linked, err := insert(olma.company, olma.supplier, &purchase, "5000")
-	require.NoError(t, err)
-	_, err = insert(olma.company, olma.supplier, &purchase, "1")
-	assert.Equal(t, "23505", sqlState(err), "a purchase holds one live payment")
-	_, err = pool.Exec(ctx, "UPDATE supplier_payments SET deleted_at = now() WHERE id = $1", linked)
-	require.NoError(t, err)
-	_, err = insert(olma.company, olma.supplier, &purchase, "1")
-	require.NoError(t, err, "a deleted one does not count")
-	_, err = insert(olma.company, olma.supplier, nil, "0")
-	assert.Equal(t, "23514", sqlState(err), "an amount above zero")
-	_, err = insert(olma.company, nok.supplier, nil, "1")
-	assert.Equal(t, "23503", sqlState(err), "the supplier is the company's")
+	require.NoError(t, move(tx, olma.company, olma.location, olma.product, "12.5"))
+	require.NoError(t, move(tx, olma.company, olma.location, olma.product, "-2.5"), "a document may move a product more than once")
+	assert.Equal(t, "23514", sqlState(move(tx, olma.company, olma.location, olma.product, "0")), "a move of nothing is not written")
+	assert.Equal(t, "23503", sqlState(move(tx, olma.company, nok.location, olma.product, "1")), "the location is the company's")
+	assert.Equal(t, "23503", sqlState(move(tx, olma.company, olma.location, nok.product, "1")), "the product is the company's")
+	assert.Equal(t, "23503", sqlState(move(999999, olma.company, olma.location, olma.product, "1")), "a move is a document's")
+	var stock string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT sum(quantity)::text FROM stock_moves WHERE location_id = $1 AND product_id = $2", olma.location, olma.product).Scan(&stock))
+	assert.Equal(t, "10.000", stock, "the stock is the sum of the moves")
 }
 
 func TestTheWarehouseMigrationDownRemovesItsTables(t *testing.T) {
@@ -1310,4 +1334,158 @@ func TestFinanceCategoriesKeepTheirRules(t *testing.T) {
 	assert.NoError(t, err, "the other kind may have the name")
 	_, err = pool.Exec(ctx, "INSERT INTO finance_categories (company_id, name, kind, position) VALUES ($1, 'Boshqa', 'transfer', 1)", c)
 	assert.Equal(t, "23514", sqlState(err), "a kind is expense or income")
+}
+
+// The ledger migration carries the purchases, their lines, the stock and
+// the payments into the journal and drops the old tables.
+func TestTheLedgerMigrationMovesThePurchasesAndPaymentsIntoTheJournal(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 15)
+	require.NoError(t, err)
+	olma := addWarehouseFixture(t, pool, "Olma")
+	var nok, cash int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO products (company_id, kind, name, unit, created_by) VALUES ($1, 'product', 'Nok', 'dona', '998901111111') RETURNING id", olma.company).Scan(&nok))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Naqd', 1) RETURNING id", olma.company).Scan(&cash))
+	purchase := func(f warehouseFixture, number int, day string, deleted bool) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, note, created_by, created_by_name, deleted_at)
+			VALUES ($1, $2, $3, $4, $5, 'Izoh', '998901111111', 'Ali aka', CASE WHEN $6 THEN now() END) RETURNING id`, f.company, number, f.location, f.supplier, day, deleted).Scan(&id))
+		return id
+	}
+	item := func(purchaseID, productID int64, quantity, price string, position int) {
+		_, err := pool.Exec(ctx, "INSERT INTO purchase_items (purchase_id, product_id, quantity, price, position) VALUES ($1, $2, $3::numeric, $4::numeric, $5)", purchaseID, productID, quantity, price, position)
+		require.NoError(t, err)
+	}
+	payment := func(f warehouseFixture, purchaseID *int64, amount, day string, deleted bool) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, `INSERT INTO supplier_payments (company_id, supplier_id, purchase_id, amount, paid_on, created_by, deleted_at)
+			VALUES ($1, $2, $3, $4::numeric, $5, '998901111111', CASE WHEN $6 THEN now() END) RETURNING id`, f.company, f.supplier, purchaseID, amount, day, deleted).Scan(&id))
+		return id
+	}
+	first := purchase(olma, 1, "2026-10-07", false)
+	item(first, olma.product, "12.5", "1000", 1)
+	item(first, nok, "3", "2500.5", 2)
+	gone := purchase(olma, 2, "2026-10-08", true)
+	item(gone, olma.product, "5", "900", 1)
+	third := purchase(olma, 3, "2026-10-09", false)
+	item(third, olma.product, "1", "950", 1)
+	_, err = pool.Exec(ctx, "UPDATE purchases SET total = (SELECT sum(quantity * price) FROM purchase_items WHERE purchase_id = purchases.id)")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO stock (company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, 13.5), ($1, $2, $4, 3)", olma.company, olma.location, olma.product, nok)
+	require.NoError(t, err)
+	linked := payment(olma, &first, "5000", "2026-10-07", false)
+	own := payment(olma, nil, "1000", "2026-10-05", false)
+	hidden := payment(olma, nil, "7", "2026-10-06", true)
+	// Nok has set its rates already: its purchase takes that standard row.
+	theirs := addWarehouseFixture(t, pool, "Nok")
+	var standard int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO currency_rates (company_id, usd, set_by) VALUES ($1, 12800, '998901111111') RETURNING id", theirs.company).Scan(&standard))
+	theirPurchase := purchase(theirs, 1, "2026-10-01", false)
+	item(theirPurchase, theirs.product, "2", "100", 1)
+
+	_, err = provider.UpTo(ctx, 16)
+	require.NoError(t, err)
+
+	type head struct {
+		ID         int64
+		Kind       string
+		Number     int32
+		DocAt      string
+		Location   *int64
+		Supplier   int64
+		Account    *int64
+		Linked     *int64
+		Currency   int64
+		Total      string
+		Note       *string
+		ByName     *string
+		Deleted    bool
+		RateStatus int16
+		RateUSD    string
+	}
+	rows, err := pool.Query(ctx, `SELECT t.id, t.kind, t.number, to_char(t.doc_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI'), t.location_id, t.supplier_id, t.bank_account_id, t.linked_id,
+			t.currency_id, t.total::text, t.note, t.created_by_name, t.deleted_at IS NOT NULL, r.status, r.usd::text
+		FROM transactions t JOIN currency_rates r ON r.id = t.currency_rate_id WHERE t.company_id = $1 ORDER BY t.kind DESC, t.number`, olma.company)
+	require.NoError(t, err)
+	got, err := pgx.CollectRows(rows, pgx.RowToStructByPos[head])
+	require.NoError(t, err)
+	require.Len(t, got, 6)
+	izoh, ali := "Izoh", "Ali aka"
+	assert.Equal(t, head{first, "purchase", 1, "2026-10-06 19:00", &olma.location, olma.supplier, nil, nil, 1, "20001.50", &izoh, &ali, false, 2, "0.0000"}, got[3], "the purchase keeps its id, number, day (midnight in Tashkent), total, note and author; its rate row is the company's zero row")
+	assert.Equal(t, head{gone, "purchase", 2, "2026-10-07 19:00", &olma.location, olma.supplier, nil, nil, 1, "4500.00", &izoh, &ali, true, 2, "0.0000"}, got[4], "a deleted purchase stays deleted")
+	assert.Equal(t, third, got[5].ID)
+	payments := got[:3]
+	assert.Equal(t, []int32{1, 2, 3}, []int32{payments[0].Number, payments[1].Number, payments[2].Number}, "the payments are numbered by day, the hidden one too")
+	assert.Equal(t, "2026-10-04 19:00", payments[0].DocAt)
+	assert.Equal(t, "1000.00", payments[0].Total)
+	assert.Equal(t, &cash, payments[0].Account, "paid out of the company's cash")
+	assert.Nil(t, payments[0].Linked)
+	assert.True(t, payments[1].Deleted, "the hidden payment stays hidden")
+	assert.Equal(t, "7.00", payments[1].Total)
+	assert.Equal(t, &first, payments[2].Linked, "the payment entered with the purchase is linked to it")
+	assert.Equal(t, "5000.00", payments[2].Total)
+	for _, p := range payments {
+		assert.Greater(t, p.ID, third, "a payment takes a new id past the purchases'")
+		assert.Equal(t, "supplier_payment", p.Kind)
+	}
+	_ = linked
+	_ = own
+	_ = hidden
+
+	var zeroRows int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM currency_rates WHERE company_id = $1", olma.company).Scan(&zeroRows))
+	assert.Equal(t, 1, zeroRows, "one zero row for the company, hidden from the history (status 2)")
+	var theirRate int64
+	require.NoError(t, pool.QueryRow(ctx, "SELECT currency_rate_id FROM transactions WHERE id = $1", theirPurchase).Scan(&theirRate))
+	assert.Equal(t, standard, theirRate, "a company with rates uses its first standard row")
+
+	type line struct {
+		Transaction, Product int64
+		Quantity, Price      string
+		Position             int32
+	}
+	rows, err = pool.Query(ctx, "SELECT transaction_id, product_id, quantity::text, price::text, position FROM transaction_items WHERE transaction_id IN ($1, $2, $3) ORDER BY transaction_id, position", first, gone, third)
+	require.NoError(t, err)
+	lines, err := pgx.CollectRows(rows, pgx.RowToStructByPos[line])
+	require.NoError(t, err)
+	assert.Equal(t, []line{{first, olma.product, "12.500", "1000.00", 1}, {first, nok, "3.000", "2500.50", 2}, {gone, olma.product, "5.000", "900.00", 1}, {third, olma.product, "1.000", "950.00", 1}}, lines, "every line, the deleted purchase's too")
+
+	type stock struct {
+		Product  int64
+		Quantity string
+		Moves    int64
+	}
+	rows, err = pool.Query(ctx, "SELECT product_id, sum(quantity)::text, count(*) FROM stock_moves WHERE location_id = $1 GROUP BY product_id ORDER BY product_id", olma.location)
+	require.NoError(t, err)
+	stocks, err := pgx.CollectRows(rows, pgx.RowToStructByPos[stock])
+	require.NoError(t, err)
+	assert.Equal(t, []stock{{olma.product, "13.500", 2}, {nok, "3.000", 1}}, stocks, "the live purchases' lines are the moves; the stock is as it was")
+
+	var next int64
+	require.NoError(t, pool.QueryRow(ctx, "SELECT nextval('transactions_id_seq')").Scan(&next))
+	assert.Greater(t, next, payments[2].ID, "the sequence is past every id")
+	for _, table := range []string{"supplier_payments", "stock", "purchase_items", "purchases"} {
+		_, err = pool.Exec(ctx, "SELECT 1 FROM "+table)
+		assert.Equal(t, "42P01", sqlState(err), table+" is gone")
+	}
+}
+
+func TestTheLedgerMigrationDownBringsTheOldTablesBack(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+
+	_, err := newProvider(t, pool).DownTo(ctx, 15)
+	require.NoError(t, err)
+
+	for _, table := range []string{"stock_moves", "transaction_items", "transactions"} {
+		_, err = pool.Exec(ctx, "SELECT 1 FROM "+table)
+		assert.Equal(t, "42P01", sqlState(err), table)
+	}
+	for _, table := range []string{"purchases", "purchase_items", "stock", "supplier_payments"} {
+		var count int
+		require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM "+table).Scan(&count), table+" is back")
+		assert.Zero(t, count, table+" is empty")
+	}
 }
