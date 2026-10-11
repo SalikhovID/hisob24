@@ -12,6 +12,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/finance"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 )
 
@@ -21,6 +22,7 @@ type Handler struct {
 	companies    *company.Service
 	billing      *billing.Service
 	currencies   *currency.Service
+	finance      *finance.Service
 	cookieSecure bool
 	otpLimiter   *httpx.RateLimiter
 }
@@ -31,6 +33,7 @@ type Services struct {
 	Companies  *company.Service
 	Billing    *billing.Service
 	Currencies *currency.Service
+	Finance    *finance.Service
 }
 
 // NewHandler wires the /admin API. otpLimiter caps code attempts per IP.
@@ -40,6 +43,7 @@ func NewHandler(s Services, cookieSecure bool, otpLimiter *httpx.RateLimiter) *H
 		companies:    s.Companies,
 		billing:      s.Billing,
 		currencies:   s.Currencies,
+		finance:      s.Finance,
 		cookieSecure: cookieSecure,
 		otpLimiter:   otpLimiter,
 	}
@@ -69,6 +73,11 @@ func (h *Handler) Routes(r chi.Router) {
 			// on (logic/currencies.md, section 3).
 			r.Get("/currencies", h.listCurrencies)
 			r.Put("/companies/{id}/currencies", h.setCompanyCurrencies)
+			// The company's accounts, where its money sits (logic/finance.md,
+			// section 3).
+			r.Post("/companies/{id}/accounts", h.addAccount)
+			r.Patch("/companies/{id}/accounts/{accountId}", h.patchAccount)
+			r.Delete("/companies/{id}/accounts/{accountId}", h.deleteAccount)
 			r.Get("/admins", h.listAdmins)
 			r.Post("/admins", h.addAdmin)
 			r.Delete("/admins/{telegram_id}", h.deleteAdmin)

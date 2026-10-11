@@ -37,7 +37,7 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
   await expect(products().getByRole("link", { name: "Anor" })).toBeVisible()
-  await expect(products().getByText(/^8\s000$/)).toBeVisible()
+  await expect(products().getByText(/^8\s000 so'm$/)).toBeVisible()
   await page.getByRole("button", { name: "Mahsulot qo'shish" }).click()
   await dialog.getByLabel("Nomi").fill("olma")
   await choose(dialog.getByRole("combobox", { name: "Birlik" }), "dona")
@@ -51,7 +51,7 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await expect(page).toHaveURL(new RegExp(`/products/${olma.id}$`))
   await expect(page.getByRole("heading", { level: 1, name: "Olma" })).toBeVisible()
   await expect(page.getByText("kg · OL-1")).toBeVisible()
-  await expect(page.getByRole("main").getByText(/^12\s000$/)).toBeVisible()
+  await expect(page.getByRole("main").getByText(/^12\s000 so'm$/)).toBeVisible()
   // Nothing bought yet: the stock of the location is 0, the last price none.
   await expect(page.getByRole("region", { name: "Qoldiq" }).getByText("0 kg")).toBeVisible()
   await expect(page.getByText("Bu mahsulot hali xarid qilinmagan")).toBeVisible()
@@ -85,7 +85,7 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await expect(page.getByRole("heading", { level: 1, name: "Xizmatlar" })).toBeVisible()
   const services = () => list(page, "Xizmatlar")
   await expect(services().getByText("Yetkazish")).toBeVisible()
-  await expect(services().getByText(/^50\s000$/)).toBeVisible()
+  await expect(services().getByText(/^50\s000 so'm$/)).toBeVisible()
   // On a phone the toasts of the last steps stand over the page's header
   // until they go, and they wait while the pointer rests on them (where the
   // last dialog's button was): the pointer moves off, the toasts go, and the
@@ -104,7 +104,7 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await editService.getByLabel("Narx").fill("55000")
   await editService.getByRole("button", { name: "Saqlash" }).click()
   await expect(editService).toBeHidden()
-  await expect(services().getByText(/^55\s000$/)).toBeVisible()
+  await expect(services().getByText(/^55\s000 so'm$/)).toBeVisible()
   await services().getByRole("button", { name: "O'chirish: Ta'mirlash" }).click()
   await page.getByRole("alertdialog", { name: "Xizmatni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(services().getByText("Ta'mirlash")).toHaveCount(0)

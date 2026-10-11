@@ -8,6 +8,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/finance"
 )
 
 type companyJSON struct {
@@ -86,6 +87,20 @@ type detailJSON struct {
 	Users      []memberJSON        `json:"users"`
 	Locations  []adminLocationJSON `json:"locations"`
 	Currencies []currencyJSON      `json:"currencies"`
+	Accounts   []bankAccountJSON   `json:"accounts"`
+}
+
+// bankAccountJSON is an account of the company as the admin panel lists it.
+type bankAccountJSON struct {
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	CurrencyID int64     `json:"currency_id"`
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func toBankAccountJSON(a finance.Account) bankAccountJSON {
+	return bankAccountJSON{ID: a.ID, Name: a.Name, CurrencyID: a.CurrencyID, IsActive: a.Active, CreatedAt: a.CreatedAt}
 }
 
 // currencyJSON is a currency of the catalog.
