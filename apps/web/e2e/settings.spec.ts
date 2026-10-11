@@ -214,3 +214,26 @@ test("the owner makes a task type and gives it a choice field; the dropdown it u
   await expect(page.getByText("Bu dropdown 2 ta maydonda ishlatilgan")).toBeVisible()
   await expect(dropdowns.getByRole("link", { name: "Manba" })).toBeVisible()
 })
+
+test("the owner of a company in dollars enters the rate, which the history keeps", async ({ page }) => {
+  await signIn(page, "902223344")
+  await page.getByRole("button", { name: /Nok Market/ }).click()
+  await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
+  await openSection(page, "Sozlamalar")
+  await openTab(page, "Valyuta kurslari")
+  await expect(page).toHaveURL(/\/settings\?tab=currencies$/)
+  const current = page.getByRole("list", { name: "Joriy kurslar" })
+  await expect(current.getByText("1 USD = 12 800 so'm")).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  await page.getByRole("button", { name: "Kurslarni yangilash" }).click()
+  const dialog = page.getByRole("dialog", { name: "Kurslarni yangilash" })
+  await dialog.getByLabel("1 USD = ? so'm").fill("12 950")
+  await dialog.getByRole("button", { name: "Saqlash" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(current.getByText("1 USD = 12 950 so'm")).toBeVisible()
+  // The history: the new row on top of the one Vali set before.
+  const history = page.getByRole("table", { name: "Kurslar tarixi" }).or(page.getByRole("list", { name: "Kurslar tarixi" }))
+  await expect(history.getByText("12 950")).toBeVisible()
+  await expect(history.getByText("12 800")).toBeVisible()
+})

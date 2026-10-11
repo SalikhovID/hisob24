@@ -37,7 +37,7 @@ test("the owner's products: by name, with the SKU, the unit, the price and the s
   const olmaRow = within(list).getByRole("link", { name: "Olma" }).closest("tr")!
   expect(within(olmaRow).getByText("OL-1")).toBeInTheDocument()
   expect(within(olmaRow).getByText("kg")).toBeInTheDocument()
-  expect(within(olmaRow).getByText("12 000")).toBeInTheDocument()
+  expect(within(olmaRow).getByText("12 000 so'm")).toBeInTheDocument()
   expect(within(olmaRow).getByText("12,5 kg")).toBeInTheDocument()
   expect(within(olmaRow).getByText("Ali Valiyev")).toBeInTheDocument()
   const nokRow = within(list).getByRole("link", { name: "Nok" }).closest("tr")!
@@ -90,7 +90,7 @@ test("the services: their own columns, and the actions in the row for whoever ma
   expect(within(screen.getByRole("navigation", { name: "Mahsulotlar bo'limi" })).getByRole("link", { name: "Xizmatlar" })).toHaveAttribute("aria-current", "page")
   expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Xizmat", "Narx", "Qo'shgan", "Qo'shilgan", "Amallar"])
   expect(within(list).getByText("Yetkazish")).toBeInTheDocument()
-  expect(within(list).getByText("50 000")).toBeInTheDocument()
+  expect(within(list).getByText("50 000 so'm")).toBeInTheDocument()
   expect(within(list).getByRole("button", { name: "Tahrirlash: Yetkazish" })).toBeInTheDocument()
   expect(within(list).getByRole("button", { name: "Nofaol qilish: Yetkazish" })).toBeInTheDocument()
   expect(within(list).getByRole("button", { name: "O'chirish: Yetkazish" })).toBeInTheDocument()

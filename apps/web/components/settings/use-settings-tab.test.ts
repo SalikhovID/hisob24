@@ -14,6 +14,9 @@ test("the address names the tab; without one, or with an unknown one, it is the 
   act(() => setLocation("/settings?tab=dropdowns"))
   expect(result.current[0]).toBe("dropdowns")
 
+  act(() => setLocation("/settings?tab=currencies"))
+  expect(result.current[0]).toBe("currencies")
+
   act(() => setLocation("/settings?tab=x"))
   expect(result.current[0]).toBe("customers")
 })
@@ -35,6 +38,7 @@ test.each([
   ["customers", "/settings"],
   ["tasks", "/settings?tab=tasks"],
   ["dropdowns", "/settings?tab=dropdowns"],
+  ["currencies", "/settings?tab=currencies"],
 ] as const)("settingsHref(%s) is the tab's address", (tab, href) => {
   expect(settingsHref(tab)).toBe(href)
 })

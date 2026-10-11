@@ -29,6 +29,10 @@ const price = z.string().transform((value, context) => {
   return text
 })
 
+// currencyId is the currency of the price, as a select holds it (the id as
+// text), turned into the id the API takes.
+const currencyId = z.string().min(1, "Valyutani tanlang").transform(Number)
+
 // productSchema checks the product dialog in the API's words and turns it
 // into what the API takes (without the kind, which the dialog knows).
 export const productSchema = z.object({
@@ -36,33 +40,35 @@ export const productSchema = z.object({
   unit: z.string().pipe(z.enum(unitCodes, { message: "Birlikni tanlang" })),
   sku: optional(60, "Artikul 60 belgidan oshmasin"),
   price,
+  currency_id: currencyId,
   note: optional(500, "Izoh 500 belgidan oshmasin"),
 })
 
 // serviceSchema checks the service dialog: a service has no unit and no SKU.
-export const serviceSchema = z.object({ name, price, note: optional(500, "Izoh 500 belgidan oshmasin") })
+export const serviceSchema = z.object({ name, price, currency_id: currencyId, note: optional(500, "Izoh 500 belgidan oshmasin") })
 
 // ProductForm is what the product dialog holds; ProductOutput is the form
 // as the API takes it. The same for a service.
-export type ProductForm = { name: string; unit: string; sku: string; price: string; note: string }
+export type ProductForm = { name: string; unit: string; sku: string; price: string; currency_id: string; note: string }
 export type ProductOutput = z.output<typeof productSchema>
-export type ServiceForm = { name: string; price: string; note: string }
+export type ServiceForm = { name: string; price: string; currency_id: string; note: string }
 export type ServiceOutput = z.output<typeof serviceSchema>
 
 // productDefaults is the product dialog as it opens: empty for a new
-// product, with the fields of one being edited (its price as the API
-// writes it, "12000.50").
+// product (its price in the so'm), with the fields of one being edited (its
+// price as the API writes it, "12000.50").
 export function productDefaults(product?: Product): ProductForm {
   return {
     name: product?.name ?? "",
     unit: product?.unit ?? "",
     sku: product?.sku ?? "",
     price: product?.price ?? "",
+    currency_id: String(product?.currency_id ?? 1),
     note: product?.note ?? "",
   }
 }
 
 // serviceDefaults is the service dialog as it opens.
 export function serviceDefaults(service?: Product): ServiceForm {
-  return { name: service?.name ?? "", price: service?.price ?? "", note: service?.note ?? "" }
+  return { name: service?.name ?? "", price: service?.price ?? "", currency_id: String(service?.currency_id ?? 1), note: service?.note ?? "" }
 }

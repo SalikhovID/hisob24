@@ -24,6 +24,7 @@ import {
 import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { type ProductForm, type ProductOutput, productDefaults, productSchema, units } from "@/lib/catalog"
+import { currencyOptions, isMulti, useCurrencies } from "@/lib/currencies"
 import { productKey, productsKey } from "@/lib/queries"
 import type { Product } from "@/lib/types"
 import { iconAction } from "./icon-action"
@@ -34,6 +35,8 @@ import { iconAction } from "./icon-action"
 export function ProductDialog({ companyId, product, iconOnly = false }: { companyId: number; product?: Product; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
+  // The price's currency is asked when the company works in more than the so'm.
+  const currencies = useCurrencies()
   const form = useForm<ProductForm, unknown, ProductOutput>({
     resolver: zodResolver(productSchema),
     defaultValues: productDefaults(product),
@@ -86,6 +89,9 @@ export function ProductDialog({ companyId, product, iconOnly = false }: { compan
             <TextField control={form.control} name="name" label="Nomi" autoComplete="off" />
             <SelectField control={form.control} name="unit" label="Birlik" placeholder="Tanlang" options={units} />
             <TextField control={form.control} name="price" label="Sotuv narxi" inputMode="decimal" autoComplete="off" />
+            {isMulti(currencies) && (
+              <SelectField control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />
+            )}
             <TextField control={form.control} name="sku" label="Artikul" autoComplete="off" />
             <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
           </FieldGroup>

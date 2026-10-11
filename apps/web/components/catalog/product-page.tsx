@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header"
 import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { ApiError } from "@/lib/api"
-import { formatAmount, formatDate, unitLabel } from "@/lib/format"
+import { currencyOf, som, useCurrencies } from "@/lib/currencies"
+import { formatDate, formatMoney, unitLabel } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { useProduct } from "@/lib/queries"
 import type { Permission, ProductKind } from "@/lib/types"
@@ -33,6 +34,7 @@ export function ProductPage({ id }: { id: number }) {
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const product = useProduct(companyId, id)
   const router = useRouter()
+  const currencies = useCurrencies()
 
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
@@ -98,8 +100,9 @@ export function ProductPage({ id }: { id: number }) {
         </h2>
         <dl className="divide-y rounded-xl border bg-card tabular-nums">
           {isProduct && <Fact name="Birlik" value={p.unit && unitLabel(p.unit)} />}
-          <Fact name="Narx" value={p.price && formatAmount(p.price)} />
-          {isProduct && <Fact name="Oxirgi xarid narxi" value={p.last_price && `${formatAmount(p.last_price)} so'm`} />}
+          <Fact name="Narx" value={p.price && formatMoney(p.price, currencyOf(currencies, p.currency_id))} />
+          {/* The purchases are in so'm until the ledger carries their currency. */}
+          {isProduct && <Fact name="Oxirgi xarid narxi" value={p.last_price && formatMoney(p.last_price, som)} />}
           {isProduct && <Fact name="Artikul" value={p.sku} />}
           <Fact name="Izoh" value={p.note} />
           <Fact name="Qo'shgan" value={p.created_by_name} />

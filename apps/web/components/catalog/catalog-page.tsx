@@ -8,7 +8,8 @@ import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatAmount, formatDate, formatQuantity, unitLabel } from "@/lib/format"
+import { currencyOf, useCurrencies } from "@/lib/currencies"
+import { formatDate, formatMoney, formatQuantity, unitLabel } from "@/lib/format"
 import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { useProducts } from "@/lib/queries"
@@ -41,6 +42,8 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   // The stock shown is the current location's (logic/products.md, section 5).
   const location = useLocation()
   const products = useProducts(companyId, { kind, ...filter, locationId: location.current?.id ?? null })
+  // A price is shown with its currency (logic/currencies.md, section 6).
+  const currencies = useCurrencies()
   const isProduct = kind === "product"
   const noun = isProduct ? "Mahsulot" : "Xizmat"
   const plural = isProduct ? "Mahsulotlar" : "Xizmatlar"
@@ -58,7 +61,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
           } satisfies Column<Product>,
         ]
       : []),
-    { header: "Narx", align: "end", card: "aside", cell: (p) => p.price && formatAmount(p.price) },
+    { header: "Narx", align: "end", card: "aside", cell: (p) => p.price && formatMoney(p.price, currencyOf(currencies, p.currency_id)) },
     ...(isProduct
       ? [{ header: "Qoldiq", card: "inline", className: "tabular-nums", cell: (p) => p.quantity !== null && formatQuantity(p.quantity, p.unit) } satisfies Column<Product>]
       : []),

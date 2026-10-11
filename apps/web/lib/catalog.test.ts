@@ -29,42 +29,43 @@ test("the units are the ten of the API, in its order, m2 shown as m²", () => {
 })
 
 test("productSchema trims the form, turns the price into the API's amount and empties into null", () => {
-  expect(productSchema.safeParse({ name: " Olma ", unit: "kg", sku: " A-1 ", price: "12 000,5", note: " Qizil " })).toMatchObject({
+  expect(productSchema.safeParse({ name: " Olma ", unit: "kg", sku: " A-1 ", price: "12 000,5", currency_id: "2", note: " Qizil " })).toMatchObject({
     success: true,
-    data: { name: "Olma", unit: "kg", sku: "A-1", price: "12000.5", note: "Qizil" },
+    data: { name: "Olma", unit: "kg", sku: "A-1", price: "12000.5", currency_id: 2, note: "Qizil" },
   })
-  expect(productSchema.safeParse({ name: "Olma", unit: "dona", sku: "", price: "", note: "" })).toMatchObject({
+  expect(productSchema.safeParse({ name: "Olma", unit: "dona", sku: "", price: "", currency_id: "1", note: "" })).toMatchObject({
     success: true,
-    data: { name: "Olma", unit: "dona", sku: null, price: null, note: null },
+    data: { name: "Olma", unit: "dona", sku: null, price: null, currency_id: 1, note: null },
   })
 })
 
 test("productSchema refuses in the API's words, every field at once", () => {
-  expect(messages(productSchema, { name: " ", unit: "", sku: "", price: "", note: "" })).toEqual({
+  expect(messages(productSchema, { name: " ", unit: "", sku: "", price: "", currency_id: "", note: "" })).toEqual({
     name: "Nomni kiriting",
     unit: "Birlikni tanlang",
+    currency_id: "Valyutani tanlang",
   })
-  expect(messages(productSchema, { name: "a".repeat(121), unit: "kg", sku: "1".repeat(61), price: "abc", note: "x".repeat(501) })).toEqual({
+  expect(messages(productSchema, { name: "a".repeat(121), unit: "kg", sku: "1".repeat(61), price: "abc", currency_id: "1", note: "x".repeat(501) })).toEqual({
     name: "Nom 120 belgidan oshmasin",
     sku: "Artikul 60 belgidan oshmasin",
     price: "Narx noto'g'ri",
     note: "Izoh 500 belgidan oshmasin",
   })
-  expect(messages(productSchema, { name: "Olma", unit: "kg", sku: "", price: "1.005", note: "" })).toEqual({ price: "Narx noto'g'ri" })
-  expect(messages(productSchema, { name: "Olma", unit: "tonna", sku: "", price: "", note: "" })).toEqual({ unit: "Birlikni tanlang" })
+  expect(messages(productSchema, { name: "Olma", unit: "kg", sku: "", price: "1.005", currency_id: "1", note: "" })).toEqual({ price: "Narx noto'g'ri" })
+  expect(messages(productSchema, { name: "Olma", unit: "tonna", sku: "", price: "", currency_id: "1", note: "" })).toEqual({ unit: "Birlikni tanlang" })
 })
 
-test("serviceSchema is the name, the price and the note", () => {
-  expect(serviceSchema.safeParse({ name: "Yetkazish", price: "50000", note: "" })).toMatchObject({
+test("serviceSchema is the name, the price with its currency and the note", () => {
+  expect(serviceSchema.safeParse({ name: "Yetkazish", price: "50000", currency_id: "1", note: "" })).toMatchObject({
     success: true,
-    data: { name: "Yetkazish", price: "50000", note: null },
+    data: { name: "Yetkazish", price: "50000", currency_id: 1, note: null },
   })
-  expect(messages(serviceSchema, { name: "", price: "1,5,5", note: "" })).toEqual({ name: "Nomni kiriting", price: "Narx noto'g'ri" })
+  expect(messages(serviceSchema, { name: "", price: "1,5,5", currency_id: "1", note: "" })).toEqual({ name: "Nomni kiriting", price: "Narx noto'g'ri" })
 })
 
 test("the defaults are an empty form, or the record being edited", () => {
-  expect(productDefaults()).toEqual({ name: "", unit: "", sku: "", price: "", note: "" })
-  expect(productDefaults(olma)).toEqual({ name: "Olma", unit: "kg", sku: "", price: "12000.50", note: "Qizil" })
-  expect(serviceDefaults()).toEqual({ name: "", price: "", note: "" })
-  expect(serviceDefaults({ ...olma, kind: "service", unit: null, note: null })).toEqual({ name: "Olma", price: "12000.50", note: "" })
+  expect(productDefaults()).toEqual({ name: "", unit: "", sku: "", price: "", currency_id: "1", note: "" })
+  expect(productDefaults({ ...olma, currency_id: 2 })).toEqual({ name: "Olma", unit: "kg", sku: "", price: "12000.50", currency_id: "2", note: "Qizil" })
+  expect(serviceDefaults()).toEqual({ name: "", price: "", currency_id: "1", note: "" })
+  expect(serviceDefaults({ ...olma, kind: "service", unit: null, note: null })).toEqual({ name: "Olma", price: "12000.50", currency_id: "1", note: "" })
 })

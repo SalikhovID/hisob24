@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { PencilIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
-import { type ReactNode, useId } from "react"
+import { useId } from "react"
 import { PageHeader } from "@/components/page-header"
 import { SortableList } from "@/components/sortable-list"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
@@ -29,8 +29,10 @@ import type { CustomerType, Permission, TaskStage, TaskType } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
+import { CurrencyRates } from "./currency-rates-page"
 import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
+import { Section } from "./section"
 import { iconAction, SettingRow, settingList } from "./setting-row"
 import { StageDialog } from "./stage-dialog"
 import { asTab, useSettingsTab } from "./use-settings-tab"
@@ -44,7 +46,7 @@ const tab = "px-3 text-muted-foreground data-active:bg-card"
 // SettingsPage is where what the company's customers and its tasks are
 // asked is set up, by the owner or an employee whose role holds
 // settings.view (adding, changing and deleting each take their own
-// permission), in three tabs: the customer types with their fields;
+// permission), in its tabs: the customer types with their fields;
 // the task types with theirs and the stages the tasks go through; and the
 // dropdowns the choice fields of both take their options from. The open tab
 // is in the address. A type and a dropdown open on a page of their own.
@@ -61,7 +63,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Sozlamalar" description="Mijozlar va vazifalar sozlamalari" />
+      <PageHeader title="Sozlamalar" description="Mijozlar, vazifalar va valyutalar sozlamalari" />
       <Tabs value={shown} onValueChange={(value) => select(asTab(value))} className="gap-5">
         {/* The strip of tabs scrolls sideways on a narrow screen rather than squeezing. */}
         <div className="-mx-1 min-w-0 overflow-x-auto px-1 py-0.5 scrollbar-hide">
@@ -74,6 +76,9 @@ export function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="dropdowns" className={tab}>
               Dropdownlar
+            </TabsTrigger>
+            <TabsTrigger value="currencies" className={tab}>
+              Valyuta kurslari
             </TabsTrigger>
             {isOwner && (
               <TabsTrigger value="roles" className={tab}>
@@ -92,6 +97,9 @@ export function SettingsPage() {
         </TabsContent>
         <TabsContent value="dropdowns" className="space-y-8 text-base">
           <Dropdowns companyId={companyId} permissions={permissions} />
+        </TabsContent>
+        <TabsContent value="currencies" className="space-y-8 text-base">
+          <CurrencyRates companyId={companyId} permissions={permissions} />
         </TabsContent>
         {isOwner && (
           <TabsContent value="roles" className="space-y-8 text-base">
@@ -582,35 +590,5 @@ function Roles({ companyId }: { companyId: number }) {
         </ul>
       )}
     </Section>
-  )
-}
-
-// Section is a part of the page with a heading of its own: what it holds,
-// a line on what that is for and, beside them, what can be added to it.
-function Section({
-  title,
-  description,
-  action,
-  children,
-}: {
-  title: string
-  description: string
-  action?: ReactNode
-  children: ReactNode
-}) {
-  const id = useId()
-  return (
-    <section aria-labelledby={id} className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0">
-          <h2 id={id} className="text-base font-semibold">
-            {title}
-          </h2>
-          <p className="text-sm text-pretty text-muted-foreground">{description}</p>
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
   )
 }

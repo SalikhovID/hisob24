@@ -37,7 +37,7 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(screen.getByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("href", "/products")
   expect(facts()).toEqual({
     Birlik: "kg",
-    Narx: "12 000",
+    Narx: "12 000 so'm",
     "Oxirgi xarid narxi": "1 000 so'm",
     Artikul: "OL-1",
     Izoh: "Qizil",
@@ -127,7 +127,7 @@ test("a service opened by its id leads back to the services", async () => {
 
   expect(await screen.findByRole("heading", { level: 1, name: "Yetkazish" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xizmatlar" })).toHaveAttribute("href", "/services")
-  expect(facts()).toEqual({ Narx: "50 000", Izoh: "—", "Qo'shgan": "Ali Valiyev", "Qo'shilgan": "02.10.2026" })
+  expect(facts()).toEqual({ Narx: "50 000 so'm", Izoh: "—", "Qo'shgan": "Ali Valiyev", "Qo'shilgan": "02.10.2026" })
   expect(screen.queryByRole("region", { name: "Qoldiq" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Xaridlar" })).not.toBeInTheDocument()
 })

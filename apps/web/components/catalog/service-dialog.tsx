@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { ActionTooltip } from "@/components/action-tooltip"
 import { PendingButton } from "@/components/pending-button"
 import { Refusal } from "@/components/refusal"
+import { SelectField } from "@/components/select-field"
 import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +24,7 @@ import {
 import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { type ServiceForm, type ServiceOutput, serviceDefaults, serviceSchema } from "@/lib/catalog"
+import { currencyOptions, isMulti, useCurrencies } from "@/lib/currencies"
 import { productKey, productsKey } from "@/lib/queries"
 import type { Product } from "@/lib/types"
 import { iconAction } from "./icon-action"
@@ -33,6 +35,8 @@ import { iconAction } from "./icon-action"
 export function ServiceDialog({ companyId, service, iconOnly = false }: { companyId: number; service?: Product; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
+  // The price's currency is asked when the company works in more than the so'm.
+  const currencies = useCurrencies()
   const form = useForm<ServiceForm, unknown, ServiceOutput>({
     resolver: zodResolver(serviceSchema),
     defaultValues: serviceDefaults(service),
@@ -82,6 +86,9 @@ export function ServiceDialog({ companyId, service, iconOnly = false }: { compan
           <FieldGroup>
             <TextField control={form.control} name="name" label="Nomi" autoComplete="off" />
             <TextField control={form.control} name="price" label="Narx" inputMode="decimal" autoComplete="off" />
+            {isMulti(currencies) && (
+              <SelectField control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />
+            )}
             <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
           </FieldGroup>
           {save.isError && <Refusal>{save.error.message}</Refusal>}
