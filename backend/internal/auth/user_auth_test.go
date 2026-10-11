@@ -43,14 +43,54 @@ func (f *fakeSender) messages() []sentSMS {
 	return append([]sentSMS(nil), f.sent...)
 }
 
+type sentCode struct {
+	chatID int64
+	code   string
+}
+
+// fakeTelegram records the codes the user bot is asked to message and fails
+// with err.
+type fakeTelegram struct {
+	mu   sync.Mutex
+	sent []sentCode
+	err  error
+}
+
+func (f *fakeTelegram) SendLoginCode(_ context.Context, chatID int64, code string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sent = append(f.sent, sentCode{chatID, code})
+	return f.err
+}
+
+func (f *fakeTelegram) codes() []sentCode {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]sentCode(nil), f.sent...)
+}
+
+// newUserAuth is a UserAuth with the user bot off: every code is an SMS.
 func newUserAuth(t *testing.T) (*UserAuth, *pgxpool.Pool, *fakeSender) {
+	t.Helper()
+	return newUserAuthWith(t, nil)
+}
+
+// newUserAuthWith is a UserAuth that messages codes through telegram (nil:
+// the bot is off) and texts them with the fake sender returned.
+func newUserAuthWith(t *testing.T, telegram TelegramCodes) (*UserAuth, *pgxpool.Pool, *fakeSender) {
 	t.Helper()
 	t.Parallel()
 	pool := pgtest.New(t)
 	sender := &fakeSender{}
-	a := NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, sender)
+	a := NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, sender, telegram)
 	a.newCode = codes("123456", "654321", "111111", "222222")
 	return a, pool, sender
+}
+
+// linkChat is a Telegram account that shared phone with the user bot.
+func linkChat(t *testing.T, pool *pgxpool.Pool, chatID int64, phone string) {
+	t.Helper()
+	mustExec(t, pool, "INSERT INTO telegram_contacts (chat_id, phone) VALUES ($1, $2)", chatID, phone)
 }
 
 func addUser(t *testing.T, pool *pgxpool.Pool, phone string) {
@@ -80,6 +120,63 @@ func TestSendCodeTextsAUserTheirCode(t *testing.T) {
 		Scan(&hash, &expiresAt))
 	assert.Equal(t, HashCode([]byte(testOTPSecret), "123456"), hash, "only the code's HMAC is stored")
 	assert.WithinDuration(t, time.Now().Add(2*time.Minute), expiresAt, 5*time.Second)
+}
+
+// A phone that shared itself with the user bot gets its code in that chat,
+// and no SMS; any other way, or when Telegram cannot reach the chat, the SMS
+// goes as before.
+func TestSendCodeGoesToTelegramWhenThePhoneIsLinked(t *testing.T) {
+	const smsText = "Hisob24 dasturiga kirish uchun tasdiqlash kodi: 123456 Uni hech kimga bermang."
+	for name, tc := range map[string]struct {
+		linked   bool
+		botOff   bool
+		tgErr    error
+		telegram []sentCode
+		sms      []sentSMS
+	}{
+		"a linked user":                       {linked: true, telegram: []sentCode{{7001, "123456"}}},
+		"a linked user while the bot is off":  {linked: true, botOff: true, sms: []sentSMS{{"998901234567", smsText}}},
+		"a linked user Telegram cannot reach": {linked: true, tgErr: errors.New("Forbidden: bot was blocked by the user"), telegram: []sentCode{{7001, "123456"}}, sms: []sentSMS{{"998901234567", smsText}}},
+		"an unlinked user":                    {sms: []sentSMS{{"998901234567", smsText}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			tg := &fakeTelegram{err: tc.tgErr}
+			var telegram TelegramCodes = tg
+			if tc.botOff {
+				telegram = nil
+			}
+			a, pool, sender := newUserAuthWith(t, telegram)
+			addOwner(t, pool, "998901234567")
+			if tc.linked {
+				linkChat(t, pool, 7001, "998901234567")
+			}
+
+			require.NoError(t, a.SendCode(t.Context(), "998901234567"))
+
+			assert.Equal(t, tc.telegram, tg.codes(), "what Telegram was asked to send")
+			assert.Equal(t, tc.sms, sender.messages(), "what went by SMS")
+			var hash string
+			require.NoError(t, pool.QueryRow(t.Context(), "SELECT code_hash FROM sms_codes WHERE phone = '998901234567'").Scan(&hash))
+			assert.Equal(t, HashCode([]byte(testOTPSecret), "123456"), hash, "the code is kept either way")
+		})
+	}
+}
+
+// A linked phone that is in no company gets nothing in Telegram either: the
+// chat lookup comes after the membership check, so the bot tells nothing
+// about who signs up. (A guard: it passes before the Telegram branch too.)
+func TestSendCodeToALinkedStrangerSendsNothingAnywhere(t *testing.T) {
+	tg := &fakeTelegram{}
+	a, pool, sender := newUserAuthWith(t, tg)
+	linkChat(t, pool, 7001, "998909999999")
+
+	require.NoError(t, a.SendCode(t.Context(), "998909999999"))
+
+	assert.Empty(t, tg.codes(), "no message to the chat of a phone that is in no company")
+	assert.Empty(t, sender.messages())
+	var codes int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM sms_codes WHERE phone = '998909999999'").Scan(&codes))
+	assert.Equal(t, 1, codes, "a code is kept all the same")
 }
 
 func TestSendCodeToAStrangerSendsNothingButKeepsACode(t *testing.T) {
@@ -409,7 +506,7 @@ func TestAuthenticateAcceptsTheAccessTokensItIssued(t *testing.T) {
 	assert.Equal(t, AccessClaims{Phone: "998901234567", CompanyID: &companyID, Role: "owner"}, claims)
 	_, err = a.Authenticate("abc.def.ghi")
 	assert.ErrorIs(t, err, ErrInvalidAccessToken)
-	_, err = NewUserAuth(pool, testOTPSecret, "another-secret", testUserBotToken, &fakeSender{}).Authenticate(tokens.AccessToken)
+	_, err = NewUserAuth(pool, testOTPSecret, "another-secret", testUserBotToken, &fakeSender{}, nil).Authenticate(tokens.AccessToken)
 	assert.ErrorIs(t, err, ErrInvalidAccessToken, "signed with JWT_SECRET only")
 }
 
@@ -510,7 +607,7 @@ func TestLoginWithTelegramTrustsOnlyTheUserBotsFreshSignature(t *testing.T) {
 		_, err := a.LoginWithTelegram(t.Context(), initData)
 		assert.ErrorIs(t, err, ErrInvalidInitData, name)
 	}
-	_, err := NewUserAuth(pool, testOTPSecret, testJWTSecret, "", &fakeSender{}).
+	_, err := NewUserAuth(pool, testOTPSecret, testJWTSecret, "", &fakeSender{}, nil).
 		LoginWithTelegram(t.Context(), telegramtest.SignInitData("", 1001, time.Now()))
 	assert.ErrorIs(t, err, ErrInvalidInitData, "no user bot: no Mini App sign-in, even signed with an empty token")
 }

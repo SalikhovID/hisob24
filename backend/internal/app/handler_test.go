@@ -91,7 +91,7 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 	box := &smsBox{last: map[string]string{}}
 	h := NewHandler(
 		Services{
-			Auth:      auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box),
+			Auth:      auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box, nil),
 			Profiles:  user.NewProfiles(pool),
 			Companies: company.NewService(pool),
 			Customers: customer.NewService(pool),

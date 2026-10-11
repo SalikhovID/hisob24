@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -49,8 +50,15 @@ var ErrNotMember = errors.New("not a member of the company")
 
 var errBadPhone = apperr.New(apperr.Invalid, "validation_error", "Telefon raqami noto'g'ri")
 
-// UserAuth signs users in to the user app: a code by SMS, then an access
-// token and a refresh token that renews it.
+// TelegramCodes messages a login code to a Telegram chat: the user bot, for
+// the phones that shared themselves with it. nil when the bot is off
+// (USER_BOT_TOKEN empty): then every code is an SMS.
+type TelegramCodes interface {
+	SendLoginCode(ctx context.Context, chatID int64, code string) error
+}
+
+// UserAuth signs users in to the user app: a code by Telegram or SMS, then
+// an access token and a refresh token that renews it.
 type UserAuth struct {
 	pool            *pgxpool.Pool
 	q               *gen.Queries
@@ -58,6 +66,7 @@ type UserAuth struct {
 	jwtSecret       []byte
 	userBotToken    string // signs the user Mini App's initData
 	sender          sms.Sender
+	telegram        TelegramCodes // nil: the user bot is off
 	now             func() time.Time
 	newCode         func() (string, error)
 	newRefreshToken func() (string, error)
@@ -65,8 +74,10 @@ type UserAuth struct {
 
 // NewUserAuth wires the user app's sign-in. Codes are stored as HMACs with
 // otpSecret; access tokens are signed with jwtSecret; the Mini App's initData
-// is signed with userBotToken (empty: no Mini App sign-in).
-func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret, userBotToken string, sender sms.Sender) *UserAuth {
+// is signed with userBotToken (empty: no Mini App sign-in). A code goes
+// through telegram to a phone the user bot knows, by sender to any other
+// (and to every phone when telegram is nil).
+func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret, userBotToken string, sender sms.Sender, telegram TelegramCodes) *UserAuth {
 	return &UserAuth{
 		pool:         pool,
 		q:            gen.New(pool),
@@ -74,6 +85,7 @@ func NewUserAuth(pool *pgxpool.Pool, otpSecret, jwtSecret, userBotToken string, 
 		jwtSecret:    []byte(jwtSecret),
 		userBotToken: userBotToken,
 		sender:       sender,
+		telegram:     telegram,
 		now:          time.Now,
 		newCode:      func() (string, error) { return NewCode(rand.Reader) },
 		newRefreshToken: func() (string, error) {
@@ -92,8 +104,9 @@ func hashToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// SendCode texts a login code to phone, valid for two minutes; only its
-// HMAC is stored.
+// SendCode sends phone a login code, valid for two minutes, through the
+// user bot when the phone is linked to it and by SMS otherwise; only the
+// code's HMAC is stored.
 func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 	phone, err := user.NormalizePhone(rawPhone)
 	if err != nil {
@@ -124,6 +137,21 @@ func (a *UserAuth) SendCode(ctx context.Context, rawPhone string) error {
 	}
 	if !member {
 		return nil
+	}
+	// A phone that shared itself with the user bot gets the code in that
+	// chat, and no SMS. When Telegram cannot reach the chat (the bot blocked,
+	// the chat gone), the SMS goes as to anyone else.
+	if a.telegram != nil {
+		chatID, err := a.q.GetTelegramContactChat(ctx, phone)
+		switch {
+		case err == nil:
+			if err := a.telegram.SendLoginCode(ctx, chatID, code); err == nil {
+				return nil
+			}
+			slog.WarnContext(ctx, "login code: telegram did not deliver, sending an sms", "chat", chatID, "err", err)
+		case !errors.Is(err, pgx.ErrNoRows):
+			return err
+		}
 	}
 	if err := a.sender.Send(ctx, phone, sms.Text(code)); err != nil {
 		// The SMS never left: no minute to wait before asking again.
