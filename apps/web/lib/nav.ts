@@ -12,8 +12,9 @@ import { can } from "./permissions"
 import type { Permission } from "./types"
 
 // NavKey names a section, as the API keeps a member's own order of the menu
-// (logic/roles.md, section 8).
-export type NavKey = "home" | "customers" | "tasks" | "products" | "warehouse" | "employees" | "settings"
+// (logic/roles.md, section 8). The sales and the finance are keys the API
+// knows already; their sections come with their pages.
+export type NavKey = "home" | "customers" | "tasks" | "products" | "sales" | "warehouse" | "finance" | "employees" | "settings"
 
 // NavTab is a page of a section that holds several: its own address and the
 // permission that opens it.

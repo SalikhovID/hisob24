@@ -28,6 +28,18 @@ export const allPermissions: Permission[] = [
   "purchases.create",
   "purchases.edit",
   "purchases.delete",
+  "sales.view",
+  "sales.create",
+  "sales.edit",
+  "sales.delete",
+  "stock.view",
+  "stock.create",
+  "stock.edit",
+  "stock.delete",
+  "finance.view",
+  "finance.create",
+  "finance.edit",
+  "finance.delete",
   "employees.view",
   "employees.create",
   "employees.edit",
@@ -39,9 +51,10 @@ export const allPermissions: Permission[] = [
 ]
 
 // defaultPermissions is what an employee without a role has: the customers
-// and the tasks, without their history (the rule from before roles), and the
-// warehouse sections: the products, the suppliers and the purchases
-// (logic/roles.md, 4.2).
+// and the tasks, without their history (the rule from before roles), the
+// products, the suppliers, the purchases, the sales, the stock documents
+// and the finance (logic/roles.md, 4.2); not the employees nor the
+// settings.
 export const defaultPermissions: Permission[] = [
   "customers.view",
   "customers.create",
@@ -63,18 +76,33 @@ export const defaultPermissions: Permission[] = [
   "purchases.create",
   "purchases.edit",
   "purchases.delete",
+  "sales.view",
+  "sales.create",
+  "sales.edit",
+  "sales.delete",
+  "stock.view",
+  "stock.create",
+  "stock.edit",
+  "stock.delete",
+  "finance.view",
+  "finance.create",
+  "finance.edit",
+  "finance.delete",
 ]
 
 // Section is the part of a permission before the dot.
-export type Section = "customers" | "tasks" | "products" | "suppliers" | "purchases" | "employees" | "settings"
+export type Section = "customers" | "tasks" | "products" | "suppliers" | "purchases" | "sales" | "stock" | "finance" | "employees" | "settings"
 
-// sectionLabels are the sections' names in the app.
+// sectionLabels are the sections' names in the app (logic/roles.md, 4.1).
 export const sectionLabels: Record<Section, string> = {
   customers: "Mijozlar",
   tasks: "Vazifalar",
   products: "Mahsulotlar",
   suppliers: "Ta'minotchilar",
   purchases: "Xaridlar",
+  sales: "Sotuv",
+  stock: "Ombor hujjatlari",
+  finance: "Moliya",
   employees: "Xodimlar",
   settings: "Sozlamalar",
 }
@@ -91,7 +119,7 @@ export function can(permissions: readonly Permission[] | undefined, permission: 
 }
 
 // sections are the sections in the catalog's order.
-export const sections: Section[] = ["customers", "tasks", "products", "suppliers", "purchases", "employees", "settings"]
+export const sections: Section[] = ["customers", "tasks", "products", "suppliers", "purchases", "sales", "stock", "finance", "employees", "settings"]
 
 // summaryOf names the sections permissions reach into, in the catalog's
 // order: what a role is about, in a line. "Ruxsat yo'q" for none.
