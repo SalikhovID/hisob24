@@ -216,3 +216,85 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 -- How many rows ListProductPurchases finds, on all of its pages.
 SELECT count(*) FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
 WHERE i.product_id = sqlc.arg('product_id') AND t.kind = 'purchase' AND t.deleted_at IS NULL AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
+
+-- name: GetGoodsDocument :one
+-- A goods document of the kind (a transfer, an inventory or an opening
+-- stock) of the company, standing in one of the locations given (the
+-- member's; a transfer counts by either end): its locations' names, its
+-- currency and rate, what it comes to (an opening stock) in its currency
+-- and in so'm, how many lines it has. pgx.ErrNoRows when the company has
+-- none such there, or deleted it.
+SELECT t.id, t.kind, t.number, l.id AS location_id, l.name AS location_name, t.to_location_id, tl.name AS to_location_name, t.doc_at, t.note,
+       t.currency_id, (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       (SELECT count(*) FROM transaction_items i WHERE i.transaction_id = t.id) AS items_count,
+       COALESCE(m.full_name, t.created_by_name) AS created_by_name, t.created_at, t.updated_at
+FROM transactions t
+JOIN locations l ON l.id = t.location_id
+LEFT JOIN locations tl ON tl.id = t.to_location_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.id = sqlc.arg('id') AND t.company_id = sqlc.arg('company_id') AND t.kind = sqlc.arg('kind') AND t.deleted_at IS NULL
+  AND (t.location_id = ANY(sqlc.arg('location_ids')::bigint[]) OR t.to_location_id = ANY(sqlc.arg('location_ids')::bigint[]));
+
+-- name: ListGoodsDocuments :many
+-- A page of the company's goods documents of the kind standing in the
+-- locations given (a transfer: either end), the newest first (then the
+-- later entered), without the deleted. The columns are GetGoodsDocument's.
+SELECT t.id, t.kind, t.number, l.id AS location_id, l.name AS location_name, t.to_location_id, tl.name AS to_location_name, t.doc_at, t.note,
+       t.currency_id, (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       (SELECT count(*) FROM transaction_items i WHERE i.transaction_id = t.id) AS items_count,
+       COALESCE(m.full_name, t.created_by_name) AS created_by_name, t.created_at, t.updated_at
+FROM transactions t
+JOIN locations l ON l.id = t.location_id
+LEFT JOIN locations tl ON tl.id = t.to_location_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.company_id = sqlc.arg('company_id') AND t.kind = sqlc.arg('kind') AND t.deleted_at IS NULL
+  AND (t.location_id = ANY(sqlc.arg('location_ids')::bigint[]) OR t.to_location_id = ANY(sqlc.arg('location_ids')::bigint[]))
+ORDER BY t.doc_at DESC, t.id DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: CountGoodsDocuments :one
+-- How many rows ListGoodsDocuments finds under the same filter, on all of its pages.
+SELECT count(*) FROM transactions t
+WHERE t.company_id = sqlc.arg('company_id') AND t.kind = sqlc.arg('kind') AND t.deleted_at IS NULL
+  AND (t.location_id = ANY(sqlc.arg('location_ids')::bigint[]) OR t.to_location_id = ANY(sqlc.arg('location_ids')::bigint[]));
+
+-- name: GetOpening :one
+-- An opening balance of the supplier (a debt or an advance): its amount in
+-- its currency, its rate, and the amount in so'm. pgx.ErrNoRows when there
+-- is none such, or it is deleted.
+SELECT t.id, t.kind, s.id AS supplier_id, t.total AS amount, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       t.doc_at, t.note, t.created_at, t.updated_at, COALESCE(m.full_name, t.created_by_name) AS created_by_name
+FROM transactions t
+JOIN suppliers s ON s.id = t.supplier_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.id = sqlc.arg('id') AND t.supplier_id = sqlc.arg('supplier_id')::bigint AND t.company_id = sqlc.arg('company_id')
+  AND t.kind IN ('supplier_debt', 'supplier_prepay') AND t.deleted_at IS NULL;
+
+-- name: ListOpenings :many
+-- A page of the supplier's live opening balances, the newest first (then
+-- the later entered). The columns are GetOpening's.
+SELECT t.id, t.kind, s.id AS supplier_id, t.total AS amount, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       t.doc_at, t.note, t.created_at, t.updated_at, COALESCE(m.full_name, t.created_by_name) AS created_by_name
+FROM transactions t
+JOIN suppliers s ON s.id = t.supplier_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.supplier_id = sqlc.arg('supplier_id')::bigint AND t.company_id = sqlc.arg('company_id')
+  AND t.kind IN ('supplier_debt', 'supplier_prepay') AND t.deleted_at IS NULL
+ORDER BY t.doc_at DESC, t.id DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: CountOpenings :one
+-- How many rows ListOpenings finds, on all of its pages.
+SELECT count(*) FROM transactions t
+WHERE t.supplier_id = sqlc.arg('supplier_id')::bigint AND t.company_id = sqlc.arg('company_id')
+  AND t.kind IN ('supplier_debt', 'supplier_prepay') AND t.deleted_at IS NULL;

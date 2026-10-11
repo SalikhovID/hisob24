@@ -7,6 +7,7 @@ package gen
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -37,6 +38,24 @@ func (q *Queries) AddStockMove(ctx context.Context, arg AddStockMoveParams) erro
 	return err
 }
 
+const countProductMoves = `-- name: CountProductMoves :one
+SELECT count(*) FROM stock_moves sm JOIN transactions t ON t.id = sm.transaction_id
+WHERE sm.product_id = $1 AND sm.location_id = ANY($2::bigint[]) AND t.deleted_at IS NULL
+`
+
+type CountProductMovesParams struct {
+	ProductID   int64
+	LocationIds []int64
+}
+
+// How many rows ListProductMoves finds, on all of its pages.
+func (q *Queries) CountProductMoves(ctx context.Context, arg CountProductMovesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductMoves, arg.ProductID, arg.LocationIds)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteStockMoves = `-- name: DeleteStockMoves :exec
 DELETE FROM stock_moves WHERE transaction_id = $1
 `
@@ -46,6 +65,130 @@ DELETE FROM stock_moves WHERE transaction_id = $1
 func (q *Queries) DeleteStockMoves(ctx context.Context, transactionID int64) error {
 	_, err := q.db.Exec(ctx, deleteStockMoves, transactionID)
 	return err
+}
+
+const listLocationStock = `-- name: ListLocationStock :many
+SELECT p.id AS product_id, p.name, p.unit, sum(sm.quantity)::numeric(14,3) AS quantity
+FROM stock_moves sm
+JOIN transactions t ON t.id = sm.transaction_id
+JOIN products p ON p.id = sm.product_id
+WHERE sm.location_id = $1 AND t.doc_at <= $2
+GROUP BY p.id, p.name, p.unit
+HAVING sum(sm.quantity) <> 0
+ORDER BY lower(p.name), p.id
+`
+
+type ListLocationStockParams struct {
+	LocationID int64
+	At         time.Time
+}
+
+type ListLocationStockRow struct {
+	ProductID int64
+	Name      string
+	Unit      *string
+	Quantity  pgtype.Numeric
+}
+
+// The products in stock in the location at the moment (their stock then is
+// not 0), by name, each with its unit and stock (logic/warehouse.md,
+// section 5).
+func (q *Queries) ListLocationStock(ctx context.Context, arg ListLocationStockParams) ([]ListLocationStockRow, error) {
+	rows, err := q.db.Query(ctx, listLocationStock, arg.LocationID, arg.At)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLocationStockRow{}
+	for rows.Next() {
+		var i ListLocationStockRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.Name,
+			&i.Unit,
+			&i.Quantity,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProductMoves = `-- name: ListProductMoves :many
+SELECT sm.id, t.id AS transaction_id, t.kind, t.number, t.doc_at, l.id AS location_id, l.name AS location_name, sm.quantity,
+       COALESCE(s.name, CASE WHEN t.kind = 'transfer' AND sm.location_id = t.location_id THEN tl.name WHEN t.kind = 'transfer' THEN fl.name END, '')::text AS counterpart
+FROM stock_moves sm
+JOIN transactions t ON t.id = sm.transaction_id
+JOIN locations l ON l.id = sm.location_id
+LEFT JOIN suppliers s ON s.id = t.supplier_id
+LEFT JOIN locations tl ON tl.id = t.to_location_id
+LEFT JOIN locations fl ON fl.id = t.location_id
+WHERE sm.product_id = $1 AND sm.location_id = ANY($2::bigint[]) AND t.deleted_at IS NULL
+ORDER BY t.doc_at DESC, t.id DESC, sm.id DESC
+LIMIT $4 OFFSET $3
+`
+
+type ListProductMovesParams struct {
+	ProductID   int64
+	LocationIds []int64
+	Offset      int32
+	Limit       int32
+}
+
+type ListProductMovesRow struct {
+	ID            int64
+	TransactionID int64
+	Kind          string
+	Number        int32
+	DocAt         time.Time
+	LocationID    int64
+	LocationName  string
+	Quantity      pgtype.Numeric
+	Counterpart   string
+}
+
+// A page of the product's moves in the locations given, the newest
+// document first (then the later entered): the document (kind, number,
+// moment), the location, the quantity moved (in above zero, out below) and
+// the counterpart (the supplier's name, or a transfer's other location; ""
+// for none).
+func (q *Queries) ListProductMoves(ctx context.Context, arg ListProductMovesParams) ([]ListProductMovesRow, error) {
+	rows, err := q.db.Query(ctx, listProductMoves,
+		arg.ProductID,
+		arg.LocationIds,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProductMovesRow{}
+	for rows.Next() {
+		var i ListProductMovesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TransactionID,
+			&i.Kind,
+			&i.Number,
+			&i.DocAt,
+			&i.LocationID,
+			&i.LocationName,
+			&i.Quantity,
+			&i.Counterpart,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listProductStock = `-- name: ListProductStock :many
@@ -81,6 +224,49 @@ func (q *Queries) ListProductStock(ctx context.Context, arg ListProductStockPara
 	for rows.Next() {
 		var i ListProductStockRow
 		if err := rows.Scan(&i.LocationID, &i.LocationName, &i.Quantity); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStockAt = `-- name: ListStockAt :many
+SELECT sm.product_id, sum(sm.quantity)::numeric(14,3) AS quantity
+FROM stock_moves sm
+JOIN transactions t ON t.id = sm.transaction_id
+WHERE sm.location_id = $1 AND t.doc_at <= $2 AND t.id <> $3
+GROUP BY sm.product_id
+`
+
+type ListStockAtParams struct {
+	LocationID int64
+	At         time.Time
+	ExcludeID  int64
+}
+
+type ListStockAtRow struct {
+	ProductID int64
+	Quantity  pgtype.Numeric
+}
+
+// The stock of each product in the location at the moment: the moves of
+// the documents at or before it, leaving out the document given (an
+// inventory's own, when it is written anew; 0 for none). A product nothing
+// moved is not listed.
+func (q *Queries) ListStockAt(ctx context.Context, arg ListStockAtParams) ([]ListStockAtRow, error) {
+	rows, err := q.db.Query(ctx, listStockAt, arg.LocationID, arg.At, arg.ExcludeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListStockAtRow{}
+	for rows.Next() {
+		var i ListStockAtRow
+		if err := rows.Scan(&i.ProductID, &i.Quantity); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

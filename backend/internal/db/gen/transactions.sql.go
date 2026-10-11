@@ -41,6 +41,26 @@ func (q *Queries) AddTransactionItem(ctx context.Context, arg AddTransactionItem
 	return err
 }
 
+const countGoodsDocuments = `-- name: CountGoodsDocuments :one
+SELECT count(*) FROM transactions t
+WHERE t.company_id = $1 AND t.kind = $2 AND t.deleted_at IS NULL
+  AND (t.location_id = ANY($3::bigint[]) OR t.to_location_id = ANY($3::bigint[]))
+`
+
+type CountGoodsDocumentsParams struct {
+	CompanyID   int64
+	Kind        string
+	LocationIds []int64
+}
+
+// How many rows ListGoodsDocuments finds under the same filter, on all of its pages.
+func (q *Queries) CountGoodsDocuments(ctx context.Context, arg CountGoodsDocumentsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countGoodsDocuments, arg.CompanyID, arg.Kind, arg.LocationIds)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countLocationDocuments = `-- name: CountLocationDocuments :one
 SELECT count(*) FROM transactions
 WHERE (location_id = $1::bigint OR to_location_id = $1::bigint) AND deleted_at IS NULL
@@ -50,6 +70,25 @@ WHERE (location_id = $1::bigint OR to_location_id = $1::bigint) AND deleted_at I
 // counted too: one with any is not deleted (logic/locations.md, section 7).
 func (q *Queries) CountLocationDocuments(ctx context.Context, locationID int64) (int64, error) {
 	row := q.db.QueryRow(ctx, countLocationDocuments, locationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countOpenings = `-- name: CountOpenings :one
+SELECT count(*) FROM transactions t
+WHERE t.supplier_id = $1::bigint AND t.company_id = $2
+  AND t.kind IN ('supplier_debt', 'supplier_prepay') AND t.deleted_at IS NULL
+`
+
+type CountOpeningsParams struct {
+	SupplierID int64
+	CompanyID  int64
+}
+
+// How many rows ListOpenings finds, on all of its pages.
+func (q *Queries) CountOpenings(ctx context.Context, arg CountOpeningsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countOpenings, arg.SupplierID, arg.CompanyID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -255,6 +294,141 @@ func (q *Queries) DeleteTransactionItems(ctx context.Context, transactionID int6
 	return err
 }
 
+const getGoodsDocument = `-- name: GetGoodsDocument :one
+SELECT t.id, t.kind, t.number, l.id AS location_id, l.name AS location_name, t.to_location_id, tl.name AS to_location_name, t.doc_at, t.note,
+       t.currency_id, (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       (SELECT count(*) FROM transaction_items i WHERE i.transaction_id = t.id) AS items_count,
+       COALESCE(m.full_name, t.created_by_name) AS created_by_name, t.created_at, t.updated_at
+FROM transactions t
+JOIN locations l ON l.id = t.location_id
+LEFT JOIN locations tl ON tl.id = t.to_location_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.id = $1 AND t.company_id = $2 AND t.kind = $3 AND t.deleted_at IS NULL
+  AND (t.location_id = ANY($4::bigint[]) OR t.to_location_id = ANY($4::bigint[]))
+`
+
+type GetGoodsDocumentParams struct {
+	ID          int64
+	CompanyID   int64
+	Kind        string
+	LocationIds []int64
+}
+
+type GetGoodsDocumentRow struct {
+	ID             int64
+	Kind           string
+	Number         int32
+	LocationID     int64
+	LocationName   string
+	ToLocationID   *int64
+	ToLocationName *string
+	DocAt          time.Time
+	Note           *string
+	CurrencyID     int64
+	Rate           pgtype.Numeric
+	Total          pgtype.Numeric
+	TotalUzs       pgtype.Numeric
+	ItemsCount     int64
+	CreatedByName  *string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+// A goods document of the kind (a transfer, an inventory or an opening
+// stock) of the company, standing in one of the locations given (the
+// member's; a transfer counts by either end): its locations' names, its
+// currency and rate, what it comes to (an opening stock) in its currency
+// and in so'm, how many lines it has. pgx.ErrNoRows when the company has
+// none such there, or deleted it.
+func (q *Queries) GetGoodsDocument(ctx context.Context, arg GetGoodsDocumentParams) (GetGoodsDocumentRow, error) {
+	row := q.db.QueryRow(ctx, getGoodsDocument,
+		arg.ID,
+		arg.CompanyID,
+		arg.Kind,
+		arg.LocationIds,
+	)
+	var i GetGoodsDocumentRow
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.Number,
+		&i.LocationID,
+		&i.LocationName,
+		&i.ToLocationID,
+		&i.ToLocationName,
+		&i.DocAt,
+		&i.Note,
+		&i.CurrencyID,
+		&i.Rate,
+		&i.Total,
+		&i.TotalUzs,
+		&i.ItemsCount,
+		&i.CreatedByName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getOpening = `-- name: GetOpening :one
+SELECT t.id, t.kind, s.id AS supplier_id, t.total AS amount, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       t.doc_at, t.note, t.created_at, t.updated_at, COALESCE(m.full_name, t.created_by_name) AS created_by_name
+FROM transactions t
+JOIN suppliers s ON s.id = t.supplier_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.id = $1 AND t.supplier_id = $2::bigint AND t.company_id = $3
+  AND t.kind IN ('supplier_debt', 'supplier_prepay') AND t.deleted_at IS NULL
+`
+
+type GetOpeningParams struct {
+	ID         int64
+	SupplierID int64
+	CompanyID  int64
+}
+
+type GetOpeningRow struct {
+	ID            int64
+	Kind          string
+	SupplierID    int64
+	Amount        pgtype.Numeric
+	CurrencyID    int64
+	Rate          pgtype.Numeric
+	AmountUzs     pgtype.Numeric
+	DocAt         time.Time
+	Note          *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CreatedByName *string
+}
+
+// An opening balance of the supplier (a debt or an advance): its amount in
+// its currency, its rate, and the amount in so'm. pgx.ErrNoRows when there
+// is none such, or it is deleted.
+func (q *Queries) GetOpening(ctx context.Context, arg GetOpeningParams) (GetOpeningRow, error) {
+	row := q.db.QueryRow(ctx, getOpening, arg.ID, arg.SupplierID, arg.CompanyID)
+	var i GetOpeningRow
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.SupplierID,
+		&i.Amount,
+		&i.CurrencyID,
+		&i.Rate,
+		&i.AmountUzs,
+		&i.DocAt,
+		&i.Note,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedByName,
+	)
+	return i, err
+}
+
 const getPayment = `-- name: GetPayment :one
 SELECT p.id, s.id AS supplier_id, p.linked_id AS purchase_id, l.number AS purchase_number, b.id AS bank_account_id, b.name AS account_name,
        p.total AS amount, p.currency_id,
@@ -449,6 +623,98 @@ func (q *Queries) HideLinkedPayments(ctx context.Context, linkedID int64) error 
 	return err
 }
 
+const listGoodsDocuments = `-- name: ListGoodsDocuments :many
+SELECT t.id, t.kind, t.number, l.id AS location_id, l.name AS location_name, t.to_location_id, tl.name AS to_location_name, t.doc_at, t.note,
+       t.currency_id, (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       (SELECT count(*) FROM transaction_items i WHERE i.transaction_id = t.id) AS items_count,
+       COALESCE(m.full_name, t.created_by_name) AS created_by_name, t.created_at, t.updated_at
+FROM transactions t
+JOIN locations l ON l.id = t.location_id
+LEFT JOIN locations tl ON tl.id = t.to_location_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.company_id = $1 AND t.kind = $2 AND t.deleted_at IS NULL
+  AND (t.location_id = ANY($3::bigint[]) OR t.to_location_id = ANY($3::bigint[]))
+ORDER BY t.doc_at DESC, t.id DESC
+LIMIT $5 OFFSET $4
+`
+
+type ListGoodsDocumentsParams struct {
+	CompanyID   int64
+	Kind        string
+	LocationIds []int64
+	Offset      int32
+	Limit       int32
+}
+
+type ListGoodsDocumentsRow struct {
+	ID             int64
+	Kind           string
+	Number         int32
+	LocationID     int64
+	LocationName   string
+	ToLocationID   *int64
+	ToLocationName *string
+	DocAt          time.Time
+	Note           *string
+	CurrencyID     int64
+	Rate           pgtype.Numeric
+	Total          pgtype.Numeric
+	TotalUzs       pgtype.Numeric
+	ItemsCount     int64
+	CreatedByName  *string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+// A page of the company's goods documents of the kind standing in the
+// locations given (a transfer: either end), the newest first (then the
+// later entered), without the deleted. The columns are GetGoodsDocument's.
+func (q *Queries) ListGoodsDocuments(ctx context.Context, arg ListGoodsDocumentsParams) ([]ListGoodsDocumentsRow, error) {
+	rows, err := q.db.Query(ctx, listGoodsDocuments,
+		arg.CompanyID,
+		arg.Kind,
+		arg.LocationIds,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListGoodsDocumentsRow{}
+	for rows.Next() {
+		var i ListGoodsDocumentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.Number,
+			&i.LocationID,
+			&i.LocationName,
+			&i.ToLocationID,
+			&i.ToLocationName,
+			&i.DocAt,
+			&i.Note,
+			&i.CurrencyID,
+			&i.Rate,
+			&i.Total,
+			&i.TotalUzs,
+			&i.ItemsCount,
+			&i.CreatedByName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLinkedPayments = `-- name: ListLinkedPayments :many
 SELECT p.id, b.id AS bank_account_id, b.name AS account_name, b.is_active AS account_active, p.total AS amount, p.currency_id
 FROM transactions p
@@ -484,6 +750,83 @@ func (q *Queries) ListLinkedPayments(ctx context.Context, linkedID int64) ([]Lis
 			&i.AccountActive,
 			&i.Amount,
 			&i.CurrencyID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOpenings = `-- name: ListOpenings :many
+SELECT t.id, t.kind, s.id AS supplier_id, t.total AS amount, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       t.doc_at, t.note, t.created_at, t.updated_at, COALESCE(m.full_name, t.created_by_name) AS created_by_name
+FROM transactions t
+JOIN suppliers s ON s.id = t.supplier_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.supplier_id = $1::bigint AND t.company_id = $2
+  AND t.kind IN ('supplier_debt', 'supplier_prepay') AND t.deleted_at IS NULL
+ORDER BY t.doc_at DESC, t.id DESC
+LIMIT $4 OFFSET $3
+`
+
+type ListOpeningsParams struct {
+	SupplierID int64
+	CompanyID  int64
+	Offset     int32
+	Limit      int32
+}
+
+type ListOpeningsRow struct {
+	ID            int64
+	Kind          string
+	SupplierID    int64
+	Amount        pgtype.Numeric
+	CurrencyID    int64
+	Rate          pgtype.Numeric
+	AmountUzs     pgtype.Numeric
+	DocAt         time.Time
+	Note          *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CreatedByName *string
+}
+
+// A page of the supplier's live opening balances, the newest first (then
+// the later entered). The columns are GetOpening's.
+func (q *Queries) ListOpenings(ctx context.Context, arg ListOpeningsParams) ([]ListOpeningsRow, error) {
+	rows, err := q.db.Query(ctx, listOpenings,
+		arg.SupplierID,
+		arg.CompanyID,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListOpeningsRow{}
+	for rows.Next() {
+		var i ListOpeningsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.SupplierID,
+			&i.Amount,
+			&i.CurrencyID,
+			&i.Rate,
+			&i.AmountUzs,
+			&i.DocAt,
+			&i.Note,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedByName,
 		); err != nil {
 			return nil, err
 		}

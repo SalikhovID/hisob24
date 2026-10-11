@@ -80,6 +80,8 @@ type Querier interface {
 	// How many customers filled the field in: one in use is not deleted.
 	// Deleted customers do not count.
 	CountFieldCustomers(ctx context.Context, fieldID int64) (int64, error)
+	// How many rows ListGoodsDocuments finds under the same filter, on all of its pages.
+	CountGoodsDocuments(ctx context.Context, arg CountGoodsDocumentsParams) (int64, error)
 	// How many live documents stand in the location, a transfer's other end
 	// counted too: one with any is not deleted (logic/locations.md, section 7).
 	CountLocationDocuments(ctx context.Context, locationID int64) (int64, error)
@@ -88,6 +90,8 @@ type Querier interface {
 	CountLocationTasks(ctx context.Context, locationID int64) (int64, error)
 	// How many live locations the company has: the last one is not deleted.
 	CountLocations(ctx context.Context, companyID int64) (int64, error)
+	// How many rows ListOpenings finds, on all of its pages.
+	CountOpenings(ctx context.Context, arg CountOpeningsParams) (int64, error)
 	// How many customers chose the option, in any field: one in use is not
 	// deleted. Deleted customers do not count.
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
@@ -98,6 +102,8 @@ type Querier interface {
 	// How many live documents hold the product, in any location: one held is
 	// not deleted (logic/products.md, section 4).
 	CountProductDocuments(ctx context.Context, productID int64) (int64, error)
+	// How many rows ListProductMoves finds, on all of its pages.
+	CountProductMoves(ctx context.Context, arg CountProductMovesParams) (int64, error)
 	// How many rows ListProductPurchases finds, on all of its pages.
 	CountProductPurchaseLines(ctx context.Context, arg CountProductPurchaseLinesParams) (int64, error)
 	// How many rows ListProducts finds under the same filter, on all of its pages.
@@ -322,6 +328,13 @@ type Querier interface {
 	// The company's earliest standard rate row: what a moment before any rate
 	// falls back to. pgx.ErrNoRows when the company has none.
 	GetFirstRate(ctx context.Context, companyID int64) (CurrencyRate, error)
+	// A goods document of the kind (a transfer, an inventory or an opening
+	// stock) of the company, standing in one of the locations given (the
+	// member's; a transfer counts by either end): its locations' names, its
+	// currency and rate, what it comes to (an opening stock) in its currency
+	// and in so'm, how many lines it has. pgx.ErrNoRows when the company has
+	// none such there, or deleted it.
+	GetGoodsDocument(ctx context.Context, arg GetGoodsDocumentParams) (GetGoodsDocumentRow, error)
 	// The company's location; pgx.ErrNoRows when the company has no such
 	// location, or deleted it.
 	GetLocation(ctx context.Context, arg GetLocationParams) (Location, error)
@@ -329,6 +342,10 @@ type Querier interface {
 	// what is kept beside what they do to its customers. pgx.ErrNoRows when the
 	// user is not its member.
 	GetMemberName(ctx context.Context, arg GetMemberNameParams) (*string, error)
+	// An opening balance of the supplier (a debt or an advance): its amount in
+	// its currency, its rate, and the amount in so'm. pgx.ErrNoRows when there
+	// is none such, or it is deleted.
+	GetOpening(ctx context.Context, arg GetOpeningParams) (GetOpeningRow, error)
 	// The supplier's payment in the company: its account, the number of the
 	// purchase it was entered with (NULL for one entered on its own), its rate
 	// (of its currency) and what it comes to in so'm. pgx.ErrNoRows when there
@@ -450,9 +467,17 @@ type Querier interface {
 	// The company's live categories of the kind (every kind with NULL, the
 	// expenses first), each kind in its order.
 	ListFinanceCategories(ctx context.Context, arg ListFinanceCategoriesParams) ([]FinanceCategory, error)
+	// A page of the company's goods documents of the kind standing in the
+	// locations given (a transfer: either end), the newest first (then the
+	// later entered), without the deleted. The columns are GetGoodsDocument's.
+	ListGoodsDocuments(ctx context.Context, arg ListGoodsDocumentsParams) ([]ListGoodsDocumentsRow, error)
 	// The live payments entered with the document, in the order entered: each
 	// with its account's name, its amount in the account's currency.
 	ListLinkedPayments(ctx context.Context, linkedID int64) ([]ListLinkedPaymentsRow, error)
+	// The products in stock in the location at the moment (their stock then is
+	// not 0), by name, each with its unit and stock (logic/warehouse.md,
+	// section 5).
+	ListLocationStock(ctx context.Context, arg ListLocationStockParams) ([]ListLocationStockRow, error)
 	// The company's live locations for the admin, in the order they were
 	// added, each with how many tasks stand in it (the deleted not counted).
 	ListLocations(ctx context.Context, companyID int64) ([]ListLocationsRow, error)
@@ -461,9 +486,18 @@ type Querier interface {
 	// restriction, the live ones among the restriction's otherwise; in the
 	// order they were added. Nothing for someone who is not a member.
 	ListMemberLocations(ctx context.Context, arg ListMemberLocationsParams) ([]ListMemberLocationsRow, error)
+	// A page of the supplier's live opening balances, the newest first (then
+	// the later entered). The columns are GetOpening's.
+	ListOpenings(ctx context.Context, arg ListOpeningsParams) ([]ListOpeningsRow, error)
 	// A page of the supplier's live payments, the newest first (then the later
 	// entered). The columns are GetPayment's.
 	ListPayments(ctx context.Context, arg ListPaymentsParams) ([]ListPaymentsRow, error)
+	// A page of the product's moves in the locations given, the newest
+	// document first (then the later entered): the document (kind, number,
+	// moment), the location, the quantity moved (in above zero, out below) and
+	// the counterpart (the supplier's name, or a transfer's other location; ""
+	// for none).
+	ListProductMoves(ctx context.Context, arg ListProductMovesParams) ([]ListProductMovesRow, error)
 	// A page of the live purchase lines of the product in the locations given,
 	// the newest purchase first: the purchase, its supplier, location and
 	// currency, the line's quantity, price and what it comes to.
@@ -488,6 +522,11 @@ type Querier interface {
 	// The company's roles by name (whatever the case), each with how many
 	// members hold it.
 	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
+	// The stock of each product in the location at the moment: the moves of
+	// the documents at or before it, leaving out the document given (an
+	// inventory's own, when it is written anew; 0 for none). A product nothing
+	// moved is not listed.
+	ListStockAt(ctx context.Context, arg ListStockAtParams) ([]ListStockAtRow, error)
 	// What is owed the supplier in each currency its live documents are in,
 	// without turning anything into so'm: the purchases and the opening debts
 	// less the payments and the opening advances; a currency that comes to 0
