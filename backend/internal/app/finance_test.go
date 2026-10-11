@@ -34,11 +34,10 @@ func TestMeTellsTheCompanysAccounts(t *testing.T) {
 	nok := api.addCompany(t, "Nok", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
-	cash := api.addAccount(t, olma, "Naqd", 1, true)
+	cash := api.cashOf(t, olma)
 	card := api.addAccount(t, olma, "Karta", 2, false)
 	gone := api.addAccount(t, olma, "Eski", 1, true)
 	api.exec(t, "UPDATE bank_accounts SET deleted_at = now() WHERE id = $1", gone)
-	api.addAccount(t, nok, "Naqd", 1, true)
 
 	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())

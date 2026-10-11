@@ -108,9 +108,10 @@ type Product struct {
 	// Quantity is the product's stock in the scope's locations (or the one
 	// asked for), three decimals; nil for a service.
 	Quantity *string
-	// LastPrice is the price of the product's newest live purchase line,
-	// whatever the location; nil when it was never bought.
-	LastPrice *string
+	// LastPrice is the price of the product's newest live purchase or
+	// opening stock line, whatever the location, with that document's
+	// currency; nil when it was never bought.
+	LastPrice *LastPrice
 	// CreatedByName is the name the member who entered it goes by in the
 	// company; nil when they go by none.
 	CreatedByName *string
@@ -257,6 +258,22 @@ func takenError(err error, kind string) error {
 	return nameTaken(kind)
 }
 
+// LastPrice is a price a product was last bought at, in the currency of
+// that document (logic/products.md, section 6).
+type LastPrice struct {
+	Amount     string
+	CurrencyID int64
+}
+
+// lastPriceOf reads a product row's last price, nil when there is none.
+func lastPriceOf(price pgtype.Numeric, currencyID int64) *LastPrice {
+	amount := Amount(price)
+	if amount == nil {
+		return nil
+	}
+	return &LastPrice{Amount: *amount, CurrencyID: currencyID}
+}
+
 // memberName is the name the member goes by in the company, nil when they
 // go by none or are not its member (they may have been taken out while the
 // request ran).
@@ -271,7 +288,7 @@ func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone stri
 func toProduct(r gen.GetProductRow) Product {
 	return Product{
 		ID: r.ID, Kind: r.Kind, Name: r.Name, Unit: r.Unit, SKU: r.Sku, Price: Amount(r.Price), CurrencyID: r.CurrencyID, Note: r.Note, Active: r.IsActive,
-		Quantity: QuantityText(r.Quantity), LastPrice: Amount(r.LastPrice),
+		Quantity: QuantityText(r.Quantity), LastPrice: lastPriceOf(r.LastPrice, r.LastPriceCurrencyID),
 		CreatedByName: r.CreatedByName, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}
 }

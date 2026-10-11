@@ -141,10 +141,11 @@ func (s *Service) RenameLocation(ctx context.Context, companyID, id int64, name 
 	return AdminLocation{Location: Location{ID: l.ID, Name: l.Name}, TasksCount: count, CreatedAt: l.CreatedAt}, nil
 }
 
-// DeleteLocation hides the company's location: neither its last one nor one
-// a task stands in (the deleted tasks do not count). It holds the company
-// the way a write of its tasks does, so the count cannot change under it.
-// A member's restriction keeps naming the location; its name is free again.
+// DeleteLocation hides the company's location: neither its last one, nor
+// one a task stands in, nor one a document stands in (a transfer's other
+// end too); the deleted do not count. It holds the company the way a write
+// of its tasks does, so the counts cannot change under it. A member's
+// restriction keeps naming the location; its name is free again.
 func (s *Service) DeleteLocation(ctx context.Context, companyID, id int64) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
@@ -174,12 +175,12 @@ func (s *Service) DeleteLocation(ctx context.Context, companyID, id int64) error
 		if tasks > 0 {
 			return apperr.New(apperr.Conflict, "location_in_use", fmt.Sprintf("Bu lokatsiyada %d ta vazifa bor", tasks))
 		}
-		purchases, err := q.CountLocationPurchases(ctx, id)
+		documents, err := q.CountLocationDocuments(ctx, id)
 		if err != nil {
 			return err
 		}
-		if purchases > 0 {
-			return apperr.New(apperr.Conflict, "location_in_use", fmt.Sprintf("Bu lokatsiyada %d ta xarid bor", purchases))
+		if documents > 0 {
+			return apperr.New(apperr.Conflict, "location_in_use", fmt.Sprintf("Bu lokatsiyada %d ta hujjat bor", documents))
 		}
 		_, err = q.DeleteLocation(ctx, gen.DeleteLocationParams{ID: id, CompanyID: companyID})
 		return err

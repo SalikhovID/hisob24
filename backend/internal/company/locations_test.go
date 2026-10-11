@@ -162,16 +162,33 @@ func addTask(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, dele
 }
 
 // addPurchaseIn enters a purchase standing in the location, from a supplier
-// made for it; deleted hides it.
+// made for it, into the journal; deleted hides it.
 func addPurchaseIn(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, deleted bool) {
 	t.Helper()
 	ctx := context.Background()
 	var supplier int64
 	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO suppliers (company_id, name, created_by) VALUES ($1, 'Bozor ' || gen_random_uuid()::text, '998900000001') RETURNING id", companyID).Scan(&supplier))
+	var rate int64
+	err := pool.QueryRow(ctx, "SELECT id FROM currency_rates WHERE company_id = $1 ORDER BY id LIMIT 1", companyID).Scan(&rate)
+	if err != nil {
+		require.NoError(t, pool.QueryRow(ctx, "INSERT INTO currency_rates (company_id, status, set_by) VALUES ($1, 2, '998900000001') RETURNING id", companyID).Scan(&rate))
+	}
 	var number int
-	require.NoError(t, pool.QueryRow(ctx, "SELECT COALESCE(max(number), 0) + 1 FROM purchases WHERE company_id = $1", companyID).Scan(&number))
-	_, err := pool.Exec(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, created_by, deleted_at)
-		VALUES ($1, $2, $3, $4, CURRENT_DATE, '998900000001', CASE WHEN $5 THEN now() END)`, companyID, number, locationID, supplier, deleted)
+	require.NoError(t, pool.QueryRow(ctx, "SELECT COALESCE(max(number), 0) + 1 FROM transactions WHERE company_id = $1 AND kind = 'purchase'", companyID).Scan(&number))
+	_, err = pool.Exec(ctx, `INSERT INTO transactions (company_id, kind, number, location_id, supplier_id, doc_at, currency_rate_id, created_by, deleted_at)
+		VALUES ($1, 'purchase', $2, $3, $4, now(), $5, '998900000001', CASE WHEN $6 THEN now() END)`, companyID, number, locationID, supplier, rate, deleted)
+	require.NoError(t, err)
+}
+
+// addTransferInto enters a transfer from another location of the company
+// into the location: a document standing in it too.
+func addTransferInto(t *testing.T, pool *pgxpool.Pool, companyID, fromID, locationID int64) {
+	t.Helper()
+	ctx := context.Background()
+	var rate int64
+	require.NoError(t, pool.QueryRow(ctx, "SELECT id FROM currency_rates WHERE company_id = $1 ORDER BY id LIMIT 1", companyID).Scan(&rate))
+	_, err := pool.Exec(ctx, `INSERT INTO transactions (company_id, kind, number, location_id, to_location_id, doc_at, currency_rate_id, created_by)
+		VALUES ($1, 'transfer', 1, $2, $3, now(), $4, '998900000001')`, companyID, fromID, locationID, rate)
 	require.NoError(t, err)
 }
 
@@ -322,7 +339,11 @@ func TestDeleteLocation(t *testing.T) {
 	require.ErrorAs(t, err, &e)
 	assert.Equal(t, apperr.Conflict, e.Kind)
 	assert.Equal(t, "location_in_use", e.Code, "a location with a purchase standing in it")
-	assert.Equal(t, "Bu lokatsiyada 1 ta xarid bor", e.Message, "the deleted purchase not counted")
+	assert.Equal(t, "Bu lokatsiyada 1 ta hujjat bor", e.Message, "the deleted purchase not counted")
+	addTransferInto(t, pool, c.ID, chilonzor, qoyliq)
+	err = s.DeleteLocation(ctx, c.ID, qoyliq)
+	require.ErrorAs(t, err, &e)
+	assert.Equal(t, "Bu lokatsiyada 2 ta hujjat bor", e.Message, "a transfer into it counts too")
 	addTask(t, pool, c.ID, qoyliq, false)
 	err = s.DeleteLocation(ctx, c.ID, qoyliq)
 	require.ErrorAs(t, err, &e)

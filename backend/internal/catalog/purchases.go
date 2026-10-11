@@ -91,7 +91,7 @@ func (s *Service) Purchases(ctx context.Context, scope Scope, id int64, page int
 	items := make([]ProductPurchase, 0, len(rows))
 	for _, r := range rows {
 		items = append(items, ProductPurchase{
-			PurchaseID: r.PurchaseID, Number: r.Number, At: r.DocAt, SupplierID: r.SupplierID, SupplierName: r.SupplierName,
+			PurchaseID: r.PurchaseID, Number: r.Number, At: r.DocAt.UTC(), SupplierID: r.SupplierID, SupplierName: r.SupplierName,
 			LocationID: r.LocationID, LocationName: r.LocationName, CurrencyID: r.CurrencyID,
 			Quantity: *QuantityText(r.Quantity), Price: *Amount(r.Price), Amount: *Amount(r.Amount),
 		})

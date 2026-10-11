@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -73,24 +74,43 @@ func newShop(t *testing.T, pool *pgxpool.Pool, name string) shop {
 	return s
 }
 
-// buy enters a purchase of the product in the location, quantity at price
-// on the day, from a supplier made for it, and moves the stock, as fixture
-// SQL (the warehouse service is another package); deleted hides it (and
-// moves no stock).
-func buy(t *testing.T, pool *pgxpool.Pool, s shop, locationID, productID int64, number int, day, quantity, price string, deleted bool) int64 {
+// rateOf is the company's zero rate row, made on the first ask: what a
+// document in so'm refers to.
+func rateOf(t *testing.T, pool *pgxpool.Pool, companyID int64) int64 {
 	t.Helper()
 	ctx := t.Context()
+	var id int64
+	err := pool.QueryRow(ctx, "SELECT id FROM currency_rates WHERE company_id = $1 ORDER BY id LIMIT 1", companyID).Scan(&id)
+	if err == nil {
+		return id
+	}
+	require.ErrorIs(t, err, pgx.ErrNoRows)
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO currency_rates (company_id, status, set_by) VALUES ($1, 2, $2) RETURNING id", companyID, ali).Scan(&id))
+	return id
+}
+
+// buy enters a purchase of the product in the location, quantity at price
+// at the moment (a day, 9:00 in Tashkent), from a supplier made for it,
+// into the journal as fixture SQL (the warehouse service is another
+// package): its line, and its move unless deleted (a deleted purchase moves
+// no stock). currency is the purchase's, the so'm unless given.
+func buy(t *testing.T, pool *pgxpool.Pool, s shop, locationID, productID int64, number int, day, quantity, price string, deleted bool, currency ...int64) int64 {
+	t.Helper()
+	ctx := t.Context()
+	currencyID := int64(1)
+	if len(currency) > 0 {
+		currencyID = currency[0]
+	}
 	var supplier int64
 	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO suppliers (company_id, name, created_by) VALUES ($1, $2, $3) RETURNING id", s.company, fmt.Sprintf("Bozor %d", number), ali).Scan(&supplier))
 	var id int64
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, total, created_by, deleted_at)
-		VALUES ($1, $2, $3, $4, $5::date, $6::numeric * $7::numeric, $8, CASE WHEN $9 THEN now() END) RETURNING id`,
-		s.company, number, locationID, supplier, day, quantity, price, ali, deleted).Scan(&id))
-	_, err := pool.Exec(ctx, "INSERT INTO purchase_items (purchase_id, product_id, quantity, price, position) VALUES ($1, $2, $3::numeric, $4::numeric, 1)", id, productID, quantity, price)
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO transactions (company_id, kind, number, location_id, supplier_id, doc_at, currency_id, currency_rate_id, total, created_by, deleted_at)
+		VALUES ($1, 'purchase', $2, $3, $4, ($5::date::timestamp AT TIME ZONE 'Asia/Tashkent') + interval '9 hours', $6, $7, $8::numeric * $9::numeric, $10, CASE WHEN $11 THEN now() END) RETURNING id`,
+		s.company, number, locationID, supplier, day, currencyID, rateOf(t, pool, s.company), quantity, price, ali, deleted).Scan(&id))
+	_, err := pool.Exec(ctx, "INSERT INTO transaction_items (transaction_id, product_id, quantity, price, position) VALUES ($1, $2, $3::numeric, $4::numeric, 1)", id, productID, quantity, price)
 	require.NoError(t, err)
 	if !deleted {
-		_, err = pool.Exec(ctx, `INSERT INTO stock (company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4::numeric)
-			ON CONFLICT (location_id, product_id) DO UPDATE SET quantity = stock.quantity + EXCLUDED.quantity`, s.company, locationID, productID, quantity)
+		_, err = pool.Exec(ctx, "INSERT INTO stock_moves (transaction_id, company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4, $5::numeric)", id, s.company, locationID, productID, quantity)
 		require.NoError(t, err)
 	}
 	return id
@@ -394,7 +414,7 @@ func TestAProductCarriesItsStockAndLastPrice(t *testing.T) {
 	got, err := s.Get(ctx, olma.scope(), p.ID)
 	require.NoError(t, err)
 	assert.Equal(t, ptr("12.500"), got.Quantity, "every location of the scope")
-	assert.Equal(t, ptr("1200.50"), got.LastPrice, "the newest live purchase")
+	assert.Equal(t, &LastPrice{Amount: "1200.50", CurrencyID: 1}, got.LastPrice, "the newest live purchase, with its currency")
 	got, err = s.Get(ctx, olma.scope(olma.chilonzor), p.ID)
 	require.NoError(t, err)
 	assert.Equal(t, ptr("2.500"), got.Quantity, "a restricted member's location alone")
@@ -453,10 +473,10 @@ func TestAProductsPurchasesAreThoseOfTheScope(t *testing.T) {
 	assert.Equal(t, PageSize, page.PageSize)
 	require.Len(t, page.Items, 2)
 	first := page.Items[0]
-	assert.Equal(t, "2026-10-05", first.PurchasedOn.Format(time.DateOnly), "the newest first")
-	first.PurchasedOn = time.Time{}
+	assert.Equal(t, time.Date(2026, 10, 5, 4, 0, 0, 0, time.UTC), first.At, "the newest first, its moment in UTC")
+	first.At = time.Time{}
 	assert.Equal(t, ProductPurchase{PurchaseID: two, Number: 2, SupplierID: first.SupplierID, SupplierName: "Bozor 2",
-		LocationID: olma.chilonzor, LocationName: "Chilonzor", Quantity: "2.500", Price: "1200.50", Amount: "3001.25"}, first)
+		LocationID: olma.chilonzor, LocationName: "Chilonzor", CurrencyID: 1, Quantity: "2.500", Price: "1200.50", Amount: "3001.25"}, first)
 	assert.Equal(t, one, page.Items[1].PurchaseID)
 	page, err = s.Purchases(ctx, olma.scope(olma.asosiy), p.ID, 1)
 	require.NoError(t, err)
@@ -478,13 +498,13 @@ func TestAProductInAPurchaseIsNotDeleted(t *testing.T) {
 	buy(t, pool, olma, olma.asosiy, p.ID, 3, "2026-10-06", "1", "9999", true)
 
 	err = s.Delete(ctx, olma.scope(olma.asosiy), p.ID)
-	refused(t, err, apperr.Conflict, "product_in_use", "Bu mahsulot 2 ta xaridda bor", "every live purchase counts, whatever the location")
+	refused(t, err, apperr.Conflict, "product_in_use", "Bu mahsulot 2 ta hujjatda bor", "every live document counts, whatever the location")
 	_, err = s.Get(ctx, olma.scope(), p.ID)
 	assert.NoError(t, err, "it stays")
 	_, err = s.SetActive(ctx, olma.scope(), p.ID, false)
 	assert.NoError(t, err, "it may be turned off instead")
 
-	_, err = pool.Exec(ctx, "UPDATE purchases SET deleted_at = now() WHERE company_id = $1", olma.company)
+	_, err = pool.Exec(ctx, "UPDATE transactions SET deleted_at = now() WHERE company_id = $1", olma.company)
 	require.NoError(t, err)
-	assert.NoError(t, s.Delete(ctx, olma.scope(), p.ID), "once its purchases are gone")
+	assert.NoError(t, s.Delete(ctx, olma.scope(), p.ID), "once its documents are gone")
 }

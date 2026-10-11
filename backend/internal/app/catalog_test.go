@@ -208,15 +208,15 @@ func TestAProductTellsItsStockAndLastPriceAndListsItsPurchases(t *testing.T) {
 	assert.Equal(t, "0.000", p["quantity"], "nothing in stock")
 	assert.Nil(t, p["last_price"], "never bought")
 	supplier := api.enterSupplier(t, owner, `{"name":"Bozor"}`)
-	api.enterPurchase(t, owner, fmt.Sprintf(`{"location_id":%d,"supplier_id":%v,"purchased_on":"2026-10-01","items":[{"product_id":%v,"quantity":"10","price":"1000"}]}`, asosiy, supplier["id"], p["id"]))
-	api.enterPurchase(t, owner, fmt.Sprintf(`{"location_id":%d,"supplier_id":%v,"purchased_on":"2026-10-05","items":[{"product_id":%v,"quantity":"2.5","price":"1200.5"}]}`, chilonzor, supplier["id"], p["id"]))
+	api.enterPurchase(t, owner, fmt.Sprintf(`{"location_id":%d,"supplier_id":%v,"at":"2026-10-01T09:00:00+05:00","items":[{"product_id":%v,"quantity":"10","price":"1000"}]}`, asosiy, supplier["id"], p["id"]))
+	api.enterPurchase(t, owner, fmt.Sprintf(`{"location_id":%d,"supplier_id":%v,"at":"2026-10-05T09:00:00+05:00","items":[{"product_id":%v,"quantity":"2.5","price":"1200.5"}]}`, chilonzor, supplier["id"], p["id"]))
 	path := fmt.Sprintf("/app/products/%v", p["id"])
 
 	rec := api.do(t, http.MethodGet, path, "", bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code)
 	got := decode(t, rec)
 	assert.Equal(t, "12.500", got["quantity"], "every location of the owner")
-	assert.Equal(t, "1200.50", got["last_price"])
+	assert.Equal(t, map[string]any{"amount": "1200.50", "currency_id": 1.0}, got["last_price"], "the newest purchase's price, with its currency")
 	assert.Equal(t, []any{
 		map[string]any{"location_id": float64(asosiy), "location_name": "Asosiy", "quantity": "10.000"},
 		map[string]any{"location_id": float64(chilonzor), "location_name": "Chilonzor", "quantity": "2.500"},
@@ -243,7 +243,8 @@ func TestAProductTellsItsStockAndLastPriceAndListsItsPurchases(t *testing.T) {
 	assert.EqualValues(t, 2, page["total"])
 	first := page["items"].([]any)[0].(map[string]any)
 	assert.EqualValues(t, 2, first["number"], "the newest first")
-	assert.Equal(t, "2026-10-05", first["purchased_on"])
+	assert.Equal(t, "2026-10-05T04:00:00Z", first["at"])
+	assert.EqualValues(t, 1, first["currency_id"])
 	assert.Equal(t, map[string]any{"id": supplier["id"], "name": "Bozor"}, first["supplier"])
 	assert.EqualValues(t, chilonzor, first["location_id"])
 	assert.Equal(t, "Chilonzor", first["location_name"])
@@ -260,5 +261,5 @@ func TestAProductTellsItsStockAndLastPriceAndListsItsPurchases(t *testing.T) {
 
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code)
-	assert.JSONEq(t, `{"error":"product_in_use","message":"Bu mahsulot 2 ta xaridda bor"}`, rec.Body.String())
+	assert.JSONEq(t, `{"error":"product_in_use","message":"Bu mahsulot 2 ta hujjatda bor"}`, rec.Body.String())
 }

@@ -25,21 +25,30 @@ type productJSON struct {
 	IsActive   bool    `json:"is_active"`
 	// Quantity is the product's stock in the member's locations, or in the
 	// one asked for, as text with three decimals ("12.500"); null for a
-	// service. LastPrice is the price of its newest live purchase line,
-	// whatever the location; null when it was never bought.
-	Quantity      *string   `json:"quantity"`
-	LastPrice     *string   `json:"last_price"`
-	CreatedByName *string   `json:"created_by_name"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	// service. LastPrice is the price of its newest live purchase or
+	// opening stock line, whatever the location, with that document's
+	// currency; null when it was never bought.
+	Quantity      *string        `json:"quantity"`
+	LastPrice     *lastPriceJSON `json:"last_price"`
+	CreatedByName *string        `json:"created_by_name"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+}
+
+type lastPriceJSON struct {
+	Amount     string `json:"amount"`
+	CurrencyID int64  `json:"currency_id"`
 }
 
 func toProductJSON(p catalog.Product) productJSON {
-	return productJSON{
+	out := productJSON{
 		ID: p.ID, Kind: p.Kind, Name: p.Name, Unit: p.Unit, SKU: p.SKU, Price: p.Price, CurrencyID: p.CurrencyID, Note: p.Note, IsActive: p.Active,
-		Quantity: p.Quantity, LastPrice: p.LastPrice,
-		CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
+		Quantity: p.Quantity, CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
+	if p.LastPrice != nil {
+		out.LastPrice = &lastPriceJSON{Amount: p.LastPrice.Amount, CurrencyID: p.LastPrice.CurrencyID}
+	}
+	return out
 }
 
 type stockLineJSON struct {
@@ -56,15 +65,16 @@ type productDetailJSON struct {
 }
 
 type productPurchaseJSON struct {
-	PurchaseID   int64   `json:"purchase_id"`
-	Number       int32   `json:"number"`
-	PurchasedOn  string  `json:"purchased_on"`
-	Supplier     refJSON `json:"supplier"`
-	LocationID   int64   `json:"location_id"`
-	LocationName string  `json:"location_name"`
-	Quantity     string  `json:"quantity"`
-	Price        string  `json:"price"`
-	Amount       string  `json:"amount"`
+	PurchaseID   int64     `json:"purchase_id"`
+	Number       int32     `json:"number"`
+	At           time.Time `json:"at"`
+	Supplier     refJSON   `json:"supplier"`
+	LocationID   int64     `json:"location_id"`
+	LocationName string    `json:"location_name"`
+	CurrencyID   int64     `json:"currency_id"`
+	Quantity     string    `json:"quantity"`
+	Price        string    `json:"price"`
+	Amount       string    `json:"amount"`
 }
 
 type productPageJSON struct {
@@ -168,8 +178,8 @@ func (h *Handler) listProductPurchases(w http.ResponseWriter, r *http.Request) {
 	items := make([]productPurchaseJSON, 0, len(result.Items))
 	for _, l := range result.Items {
 		items = append(items, productPurchaseJSON{
-			PurchaseID: l.PurchaseID, Number: l.Number, PurchasedOn: l.PurchasedOn.Format(time.DateOnly), Supplier: refJSON{ID: l.SupplierID, Name: l.SupplierName},
-			LocationID: l.LocationID, LocationName: l.LocationName, Quantity: l.Quantity, Price: l.Price, Amount: l.Amount,
+			PurchaseID: l.PurchaseID, Number: l.Number, At: l.At, Supplier: refJSON{ID: l.SupplierID, Name: l.SupplierName},
+			LocationID: l.LocationID, LocationName: l.LocationName, CurrencyID: l.CurrencyID, Quantity: l.Quantity, Price: l.Price, Amount: l.Amount,
 		})
 	}
 	httpx.JSON(w, http.StatusOK, pageJSON[productPurchaseJSON]{Items: items, Total: result.Total, Page: result.Page, PageSize: result.PageSize})

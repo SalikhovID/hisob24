@@ -7,6 +7,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
+	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
 
@@ -23,15 +24,23 @@ type supplierJSON struct {
 	Note     *string `json:"note"`
 	IsActive bool    `json:"is_active"`
 	// Balance is what is owed the supplier (above zero) or paid in advance
-	// (below), PurchasesTotal and PaymentsTotal what the live purchases and
-	// payments come to: shown to whoever may see the purchases, null
-	// otherwise. Amounts are text with two decimals.
-	Balance        *string   `json:"balance"`
-	PurchasesTotal *string   `json:"purchases_total"`
-	PaymentsTotal  *string   `json:"payments_total"`
-	CreatedByName  *string   `json:"created_by_name"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	// (below), in so'm by each document's own rate; PurchasesTotal and
+	// PaymentsTotal what the live purchases and payments come to, in so'm;
+	// BalanceByCurrency what is owed in each currency apart (on the
+	// supplier's own page). All shown to whoever may see the purchases,
+	// null otherwise. Amounts are text with two decimals.
+	Balance           *string           `json:"balance"`
+	PurchasesTotal    *string           `json:"purchases_total"`
+	PaymentsTotal     *string           `json:"payments_total"`
+	BalanceByCurrency []balanceLineJSON `json:"balance_by_currency"`
+	CreatedByName     *string           `json:"created_by_name"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
+}
+
+type balanceLineJSON struct {
+	CurrencyID int64  `json:"currency_id"`
+	Amount     string `json:"amount"`
 }
 
 func toSupplierJSON(s warehouse.Supplier, withBalance bool) supplierJSON {
@@ -41,6 +50,12 @@ func toSupplierJSON(s warehouse.Supplier, withBalance bool) supplierJSON {
 	}
 	if withBalance {
 		out.Balance, out.PurchasesTotal, out.PaymentsTotal = &s.Balance, &s.PurchasesTotal, &s.PaymentsTotal
+		if s.BalanceByCurrency != nil {
+			out.BalanceByCurrency = make([]balanceLineJSON, 0, len(s.BalanceByCurrency))
+			for _, l := range s.BalanceByCurrency {
+				out.BalanceByCurrency = append(out.BalanceByCurrency, balanceLineJSON{CurrencyID: l.CurrencyID, Amount: l.Amount})
+			}
+		}
 	}
 	return out
 }
@@ -66,8 +81,13 @@ type paymentJSON struct {
 	SupplierID     int64     `json:"supplier_id"`
 	PurchaseID     *int64    `json:"purchase_id"`
 	PurchaseNumber *int32    `json:"purchase_number"`
+	BankAccountID  int64     `json:"bank_account_id"`
+	AccountName    string    `json:"account_name"`
 	Amount         string    `json:"amount"`
-	PaidOn         string    `json:"paid_on"`
+	CurrencyID     int64     `json:"currency_id"`
+	Rate           string    `json:"rate"`
+	AmountUZS      string    `json:"amount_uzs"`
+	At             time.Time `json:"at"`
 	Note           *string   `json:"note"`
 	CreatedByName  *string   `json:"created_by_name"`
 	CreatedAt      time.Time `json:"created_at"`
@@ -76,20 +96,53 @@ type paymentJSON struct {
 
 func toPaymentJSON(p warehouse.Payment) paymentJSON {
 	return paymentJSON{
-		ID: p.ID, SupplierID: p.SupplierID, PurchaseID: p.PurchaseID, PurchaseNumber: p.PurchaseNumber,
-		Amount: p.Amount, PaidOn: p.PaidOn.Format(time.DateOnly), Note: p.Note,
+		ID: p.ID, SupplierID: p.SupplierID, PurchaseID: p.PurchaseID, PurchaseNumber: p.PurchaseNumber, BankAccountID: p.BankAccountID, AccountName: p.AccountName,
+		Amount: p.Amount, CurrencyID: p.CurrencyID, Rate: p.Rate, AmountUZS: p.AmountUZS, At: p.At, Note: p.Note,
 		CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
 }
 
 type paymentInputJSON struct {
-	Amount *string `json:"amount"`
-	PaidOn string  `json:"paid_on"`
-	Note   *string `json:"note"`
+	BankAccountID int64   `json:"bank_account_id"`
+	Amount        *string `json:"amount"`
+	At            string  `json:"at"`
+	Rate          *string `json:"rate"`
+	Note          *string `json:"note"`
 }
 
 func (in paymentInputJSON) input() warehouse.PaymentInput {
-	return warehouse.PaymentInput{Amount: in.Amount, PaidOn: in.PaidOn, Note: in.Note}
+	return warehouse.PaymentInput{BankAccountID: in.BankAccountID, Amount: in.Amount, At: in.At, Rate: in.Rate, Note: in.Note}
+}
+
+// paymentLineJSON is a payment entered with a purchase: out of an account,
+// an amount in the account's currency.
+type paymentLineJSON struct {
+	BankAccountID int64   `json:"bank_account_id"`
+	Amount        *string `json:"amount"`
+}
+
+type linkedPaymentJSON struct {
+	ID            int64  `json:"id"`
+	BankAccountID int64  `json:"bank_account_id"`
+	AccountName   string `json:"account_name"`
+	Amount        string `json:"amount"`
+	CurrencyID    int64  `json:"currency_id"`
+}
+
+type statementRowJSON struct {
+	ID            int64     `json:"id"`
+	Kind          string    `json:"kind"`
+	Number        int32     `json:"number"`
+	At            time.Time `json:"at"`
+	Amount        string    `json:"amount"`
+	CurrencyID    int64     `json:"currency_id"`
+	AmountUZS     string    `json:"amount_uzs"`
+	DeltaUZS      string    `json:"delta_uzs"`
+	BalanceUZS    string    `json:"balance_uzs"`
+	LinkedID      *int64    `json:"linked_id"`
+	LinkedNumber  *int32    `json:"linked_number"`
+	Note          *string   `json:"note"`
+	CreatedByName *string   `json:"created_by_name"`
 }
 
 type itemJSON struct {
@@ -107,27 +160,38 @@ type purchaseJSON struct {
 	LocationID    int64     `json:"location_id"`
 	LocationName  string    `json:"location_name"`
 	Supplier      refJSON   `json:"supplier"`
-	PurchasedOn   string    `json:"purchased_on"`
+	At            time.Time `json:"at"`
+	CurrencyID    int64     `json:"currency_id"`
+	Rate          string    `json:"rate"`
 	Note          *string   `json:"note"`
 	Total         string    `json:"total"`
+	TotalUZS      string    `json:"total_uzs"`
 	Paid          string    `json:"paid"`
 	ItemsCount    int64     `json:"items_count"`
 	CreatedByName *string   `json:"created_by_name"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
-	// Items are the lines, on the purchase's own page; a list carries none.
-	Items []itemJSON `json:"items,omitempty"`
+	// Items are the lines and Payments the payments entered with it, on the
+	// purchase's own page; a list carries neither (null).
+	Items    []itemJSON          `json:"items,omitempty"`
+	Payments []linkedPaymentJSON `json:"payments"`
 }
 
 func toPurchaseJSON(p warehouse.Purchase) purchaseJSON {
 	out := purchaseJSON{
 		ID: p.ID, Number: p.Number, LocationID: p.LocationID, LocationName: p.LocationName,
-		Supplier: refJSON{ID: p.SupplierID, Name: p.SupplierName}, PurchasedOn: p.PurchasedOn.Format(time.DateOnly), Note: p.Note,
-		Total: p.Total, Paid: p.Paid, ItemsCount: p.ItemsCount,
+		Supplier: refJSON{ID: p.SupplierID, Name: p.SupplierName}, At: p.At, CurrencyID: p.CurrencyID, Rate: p.Rate, Note: p.Note,
+		Total: p.Total, TotalUZS: p.TotalUZS, Paid: p.Paid, ItemsCount: p.ItemsCount,
 		CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
 	for _, it := range p.Items {
 		out.Items = append(out.Items, itemJSON{ProductID: it.ProductID, Name: it.Name, Unit: it.Unit, Quantity: it.Quantity, Price: it.Price, Amount: it.Amount})
+	}
+	if p.Payments != nil {
+		out.Payments = make([]linkedPaymentJSON, 0, len(p.Payments))
+		for _, l := range p.Payments {
+			out.Payments = append(out.Payments, linkedPaymentJSON{ID: l.ID, BankAccountID: l.BankAccountID, AccountName: l.AccountName, Amount: l.Amount, CurrencyID: l.CurrencyID})
+		}
 	}
 	return out
 }
@@ -139,11 +203,13 @@ type itemInputJSON struct {
 }
 
 type purchaseInputJSON struct {
-	SupplierID  int64           `json:"supplier_id"`
-	PurchasedOn string          `json:"purchased_on"`
-	Note        *string         `json:"note"`
-	Items       []itemInputJSON `json:"items"`
-	Paid        *string         `json:"paid"`
+	SupplierID int64             `json:"supplier_id"`
+	At         string            `json:"at"`
+	CurrencyID *int64            `json:"currency_id"`
+	Rate       *string           `json:"rate"`
+	Note       *string           `json:"note"`
+	Items      []itemInputJSON   `json:"items"`
+	Payments   []paymentLineJSON `json:"payments"`
 }
 
 func (in purchaseInputJSON) input() warehouse.PurchaseInput {
@@ -151,7 +217,11 @@ func (in purchaseInputJSON) input() warehouse.PurchaseInput {
 	for _, it := range in.Items {
 		items = append(items, warehouse.ItemInput{ProductID: it.ProductID, Quantity: it.Quantity, Price: it.Price})
 	}
-	return warehouse.PurchaseInput{SupplierID: in.SupplierID, PurchasedOn: in.PurchasedOn, Note: in.Note, Items: items, Paid: in.Paid}
+	payments := make([]ledger.PaymentLine, 0, len(in.Payments))
+	for _, l := range in.Payments {
+		payments = append(payments, ledger.PaymentLine{BankAccountID: l.BankAccountID, Amount: l.Amount})
+	}
+	return warehouse.PurchaseInput{SupplierID: in.SupplierID, At: in.At, CurrencyID: in.CurrencyID, Rate: in.Rate, Note: in.Note, Items: items, Payments: payments}
 }
 
 // purchaseCreateJSON is a purchase as it is entered: with the location it
@@ -330,13 +400,36 @@ func (h *Handler) addPayment(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusCreated, toPaymentJSON(p))
 }
 
+// getSupplierStatement is a page of a supplier's statement: its documents
+// in time with the running balance; ?page= starts at 1.
+func (h *Handler) getSupplierStatement(w http.ResponseWriter, r *http.Request) {
+	page, ok := pageParam(w, r)
+	if !ok {
+		return
+	}
+	result, err := h.warehouse.Statement(r.Context(), sessionCompany(r), pathID(r, "id"), page)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	items := make([]statementRowJSON, 0, len(result.Items))
+	for _, row := range result.Items {
+		items = append(items, statementRowJSON{
+			ID: row.ID, Kind: row.Kind, Number: row.Number, At: row.At, Amount: row.Amount, CurrencyID: row.CurrencyID,
+			AmountUZS: row.AmountUZS, DeltaUZS: row.DeltaUZS, BalanceUZS: row.BalanceUZS, LinkedID: row.LinkedID, LinkedNumber: row.LinkedNumber,
+			Note: row.Note, CreatedByName: row.CreatedByName,
+		})
+	}
+	httpx.JSON(w, http.StatusOK, pageJSON[statementRowJSON]{Items: items, Total: result.Total, Page: result.Page, PageSize: result.PageSize})
+}
+
 // updatePayment saves a payment entered on its own with other fields.
 func (h *Handler) updatePayment(w http.ResponseWriter, r *http.Request) {
 	var body paymentInputJSON
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	p, err := h.warehouse.UpdatePayment(r.Context(), sessionCompany(r), pathID(r, "id"), pathID(r, "paymentId"), body.input())
+	p, err := h.warehouse.UpdatePayment(r.Context(), sessionCompany(r), currentUser(r.Context()).Phone, pathID(r, "id"), pathID(r, "paymentId"), body.input())
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return

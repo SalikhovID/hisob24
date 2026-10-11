@@ -238,6 +238,15 @@ func (api testAPI) addCompany(t *testing.T, name string, daysLeft int) int64 {
 	require.NoError(t, api.pool.QueryRow(t.Context(),
 		"INSERT INTO companies (name, end_date) VALUES ($1, CURRENT_DATE + $2::int) RETURNING id", name, daysLeft).Scan(&id))
 	api.exec(t, "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, 1)", id)
+	api.exec(t, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Naqd', 1)", id)
+	return id
+}
+
+// cashOf is the company's cash account, the one every company starts with.
+func (api testAPI) cashOf(t *testing.T, companyID int64) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT id FROM bank_accounts WHERE company_id = $1 AND lower(name) = 'naqd' AND deleted_at IS NULL", companyID).Scan(&id))
 	return id
 }
 

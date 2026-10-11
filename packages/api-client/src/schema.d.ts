@@ -1619,7 +1619,7 @@ export interface paths {
         put?: never;
         /**
          * To'lov qo'shish (purchases.create ruxsati)
-         * @description Summa > 0 ("Summani kiriting" / "Summa noto'g'ri"), sana YYYY-MM-DD ("Sanani kiriting" / "Sana noto'g'ri"), izoh 500 belgigacha. Nofaol ta'minotchiga ham kiritiladi.
+         * @description Akkauntdan, akkaunt valyutasida (logic/warehouse.md, 6-bo'lim). Tekshiruv tartibi: akkaunt, summa, vaqt, kurs, izoh. Nofaol ta'minotchiga ham kiritiladi.
          */
         post: operations["addPayment"];
         delete?: never;
@@ -1655,6 +1655,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/suppliers/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Ta'minotchi hisob harakati (purchases.view ruxsati)
+         * @description Ta'minotchining jonli hujjatlari vaqt bo'yicha, yangi birinchi, sahifada 20 ta; har qatorda summa valyutasida va so'mda, qarz o'zgarishi va shu hujjatdan keyingi qarz (logic/warehouse.md, 6-bo'lim). Ta'minotchi topilmasa 404.
+         */
+        get: operations["getSupplierStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/purchases": {
         parameters: {
             query?: never;
@@ -1670,7 +1692,7 @@ export interface paths {
         put?: never;
         /**
          * Xarid qo'shish (purchases.create ruxsati)
-         * @description Bitta tranzaksiyada: kompaniyadagi navbatdagi raqam, xarid, qatorlar, jami, har qator mahsulotining shu lokatsiyadagi qoldig'i oshadi, to'langan > 0 bo'lsa xaridga bog'langan to'lov. Tekshiruv tartibi: lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), ta'minotchi, sana, izoh, qatorlar (kamida bitta; har birida mahsulot, xizmat emas, faol, bir marta, miqdor > 0, narx), to'langan (logic/warehouse.md, 4.2).
+         * @description Bitta tranzaksiyada: xaridlar ichida navbatdagi raqam, xarid, qatorlar, jami, har qator mahsulotining shu lokatsiyadagi harakati (+), har to'lov qatori uchun xaridga bog'langan to'lov. Tekshiruv tartibi: lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), ta'minotchi, vaqt, valyuta va kurs, izoh, qatorlar (kamida bitta; har birida mahsulot, xizmat emas, faol, bir marta, miqdor > 0, narx), to'lov qatorlari (akkaunt, summa) (logic/warehouse.md, 4.2).
          */
         post: operations["createPurchase"];
         delete?: never;
@@ -1695,13 +1717,13 @@ export interface paths {
         get: operations["getPurchase"];
         /**
          * Xaridni tahrirlash (purchases.edit ruxsati)
-         * @description Lokatsiya va raqam o'zgarmaydi. Qatorlar yuborilganiga butunlay almashadi, qoldiq har mahsulot uchun farq bilan yangilanadi (manfiy bo'lsa 409 stock_insufficient); jami qayta hisoblanadi; to'langan bog'langan to'lovni o'zgartiradi (0: yashirinadi). Xaridda avvaldan bor ta'minotchi va mahsulotlar nofaol bo'lsa ham qoladi (logic/warehouse.md, 4.3).
+         * @description Lokatsiya va raqam o'zgarmaydi. Qatorlar yuborilganiga butunlay almashadi, harakatlar qayta yoziladi (qoldiq manfiy bo'lsa 409 stock_insufficient); jami qayta hisoblanadi; to'lovlar yuborilganiga butunlay almashadi (eskilari yashiriladi). Xaridda avvaldan bor ta'minotchi, mahsulotlar va akkauntlar nofaol bo'lsa ham qoladi (logic/warehouse.md, 4.3).
          */
         put: operations["updatePurchase"];
         post?: never;
         /**
          * Xaridni o'chirish (purchases.delete ruxsati)
-         * @description Yashiriladi, qatorlari miqdori qoldiqdan olinadi (yetmasa 409 stock_insufficient), bog'langan to'lov yashirinadi; raqam bo'shamaydi (logic/warehouse.md, 4.4).
+         * @description Yashiriladi, harakatlari o'chiriladi (qoldiq yetmasa 409 stock_insufficient), bog'langan to'lovlari yashirinadi; raqam bo'shamaydi (logic/warehouse.md, 4.4).
          */
         delete: operations["deletePurchase"];
         options?: never;
@@ -2068,17 +2090,31 @@ export interface components {
             /** @description A'zoga ruxsatli har lokatsiyadagi qoldiq, lokatsiyalar qo'shilgan tartibda; xizmatda bo'sh */
             stock: components["schemas"]["StockLine"][];
         };
+        LastPrice: {
+            /** @description Ikki kasr xonasi bilan ("1200.50") */
+            amount: string;
+            /** Format: int64 */
+            currency_id: number;
+        };
         ProductPurchase: {
             /** Format: int64 */
             purchase_id: number;
             /** @description Xaridning kompaniyadagi tartib raqami */
             number: number;
-            /** Format: date */
-            purchased_on: string;
+            /**
+             * Format: date-time
+             * @description Xarid vaqti (UTC'da)
+             */
+            at: string;
             supplier: components["schemas"]["Ref"];
             /** Format: int64 */
             location_id: number;
             location_name: string;
+            /**
+             * Format: int64
+             * @description Xarid valyutasi; narx va summa shu valyutada
+             */
+            currency_id: number;
             /** @description Qatordagi miqdor, uch kasr xonasi bilan */
             quantity: string;
             /** @description Qatordagi narx, ikki kasr xonasi bilan */
@@ -2101,17 +2137,25 @@ export interface components {
             note: string | null;
             /** @description Nofaol (false) bo'lsa xarid takliflarida chiqmaydi */
             is_active: boolean;
-            /** @description Qarz: jonli xaridlar jami − jonli to'lovlar jami, ikki kasr xonasi bilan; musbat qarz, manfiy avans. Faqat purchases.view bo'lganga, aks holda null */
+            /** @description Qarz, so'mda: jonli xaridlar + boshlang'ich qarz − to'lovlar − boshlang'ich avans, har hujjat o'z kurs qatori bilan, ikki kasr xonasi bilan; musbat qarz, manfiy avans (logic/warehouse.md, 6-bo'lim). Faqat purchases.view bo'lganga, aks holda null */
             balance: string | null;
-            /** @description Jonli xaridlar jami; faqat purchases.view bo'lganga */
+            /** @description Jonli xaridlar jami, so'mda; faqat purchases.view bo'lganga */
             purchases_total: string | null;
-            /** @description Jonli to'lovlar jami; faqat purchases.view bo'lganga */
+            /** @description Jonli to'lovlar jami, so'mda; faqat purchases.view bo'lganga */
             payments_total: string | null;
+            /** @description Qarz har valyutada alohida, aylantirmasdan (0 ga teng valyuta yo'q); faqat ta'minotchi sahifasida va purchases.view bo'lganga, ro'yxatda va ruxsatsiz null */
+            balance_by_currency: components["schemas"]["BalanceLine"][] | null;
             created_by_name: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        BalanceLine: {
+            /** Format: int64 */
+            currency_id: number;
+            /** @description Shu valyutada, ikki kasr xonasi bilan; musbat qarz, manfiy avans */
+            amount: string;
         };
         SupplierInput: {
             name: string;
@@ -2125,22 +2169,34 @@ export interface components {
             page: number;
             page_size: number;
         };
+        /** @description Ta'minotchiga to'lov: akkauntdan, akkaunt valyutasida, hujjat kursi bilan (logic/warehouse.md, 6-bo'lim). Xarid bilan kiritilgani purchase_id va purchase_number bilan, faqat xarid orqali o'zgaradi. */
         Payment: {
             /** Format: int64 */
             id: number;
             /** Format: int64 */
             supplier_id: number;
+            /** Format: int64 */
+            purchase_id: number | null;
+            purchase_number: number | null;
+            /** Format: int64 */
+            bank_account_id: number;
+            account_name: string;
+            /** @description Akkaunt valyutasida, ikki kasr xonasi bilan */
+            amount: string;
             /**
              * Format: int64
-             * @description Xarid bilan kiritilgan to'lovda xarid; o'zi kiritilganida null
+             * @description Akkaunt valyutasi
              */
-            purchase_id: number | null;
-            /** @description O'sha xaridning raqami */
-            purchase_number: number | null;
-            /** @description Summa, ikki kasr xonasi bilan ("1200.50") */
-            amount: string;
-            /** Format: date */
-            paid_on: string;
+            currency_id: number;
+            /** @description Hujjat kursi, shu valyutaning so'mdagi narxi, to'rt kasr ("12800.0000"; so'mda "1.0000") */
+            rate: string;
+            /** @description Summa so'mda, hujjat kursi bilan */
+            amount_uzs: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da)
+             */
+            at: string;
             note: string | null;
             created_by_name: string | null;
             /** Format: date-time */
@@ -2149,14 +2205,55 @@ export interface components {
             updated_at: string;
         };
         PaymentInput: {
-            /** @description Summa > 0, 12 xonagacha butun va 2 kasr ("1200.50") */
+            /**
+             * Format: int64
+             * @description Kompaniyaning faol akkaunti ("Akkauntni tanlang", nofaol "Akkaunt nofaol"); to'lov tahririda avvaldan bor nofaol akkaunt qoladi
+             */
+            bank_account_id: number;
+            /** @description > 0, akkaunt valyutasida, 12 xonagacha butun va 2 kasr ("Summani kiriting" / "Summa noto'g'ri") */
             amount: string;
-            /** Format: date */
-            paid_on: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+             */
+            at: string;
+            /** @description Akkaunt valyutasining kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            rate?: string | null;
             note?: string | null;
         };
         PaymentPage: {
             items: components["schemas"]["Payment"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description Ta'minotchi hisob harakatining bitta qatori (logic/warehouse.md, 6-bo'lim): hujjat, summasi valyutasida va so'mda (o'z kursi bilan), qarz o'zgarishi (xarid va boshlang'ich qarz +, to'lov va boshlang'ich avans −) va shu hujjatdan keyingi qarz, so'mda. */
+        StatementRow: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "purchase" | "supplier_payment" | "supplier_debt" | "supplier_prepay";
+            number: number;
+            /** Format: date-time */
+            at: string;
+            amount: string;
+            /** Format: int64 */
+            currency_id: number;
+            amount_uzs: string;
+            delta_uzs: string;
+            balance_uzs: string;
+            /**
+             * Format: int64
+             * @description Xarid bilan kiritilgan to'lovda xaridning id'si
+             */
+            linked_id: number | null;
+            /** @description O'sha xaridning raqami */
+            linked_number: number | null;
+            note: string | null;
+            created_by_name: string | null;
+        };
+        StatementPage: {
+            items: components["schemas"]["StatementRow"][];
             total: number;
             page: number;
             page_size: number;
@@ -2177,7 +2274,7 @@ export interface components {
         Purchase: {
             /** Format: int64 */
             id: number;
-            /** @description Kompaniya ichida 1 dan tartib raqami ("№ 12"); o'chirilganniki bo'shamaydi */
+            /** @description Kompaniyadagi xaridlar ichida 1 dan tartib raqami ("№ 12"); o'chirilganniki bo'shamaydi */
             number: number;
             /**
              * Format: int64
@@ -2186,12 +2283,24 @@ export interface components {
             location_id: number;
             location_name: string;
             supplier: components["schemas"]["Ref"];
-            /** Format: date */
-            purchased_on: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da)
+             */
+            at: string;
+            /**
+             * Format: int64
+             * @description Hujjat valyutasi; qatorlar va jami shu valyutada
+             */
+            currency_id: number;
+            /** @description Hujjat kursi, valyutaning so'mdagi narxi, to'rt kasr ("12800.0000"; so'mda "1.0000") */
+            rate: string;
             note: string | null;
-            /** @description Qatorlar jami, ikki kasr xonasi bilan */
+            /** @description Qatorlar jami, hujjat valyutasida, ikki kasr xonasi bilan */
             total: string;
-            /** @description Xarid bilan kiritilgan to'lov summasi, 0.00 bo'lmasa */
+            /** @description Jami so'mda, hujjat kursi bilan */
+            total_uzs: string;
+            /** @description Xarid bilan kiritilgan jonli to'lovlar yig'indisi hujjat valyutasida (har to'lov o'z kursi bilan aylantirilgan), 0.00 bo'lmasa */
             paid: string;
             items_count: number;
             created_by_name: string | null;
@@ -2203,24 +2312,57 @@ export interface components {
         PurchaseDetail: components["schemas"]["Purchase"] & {
             /** @description Qatorlar kiritilgan tartibda */
             items: components["schemas"]["PurchaseItem"][];
+            /** @description Xarid bilan kiritilgan jonli to'lovlar, kiritilgan tartibda */
+            payments: components["schemas"]["LinkedPayment"][];
+        };
+        LinkedPayment: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            bank_account_id: number;
+            account_name: string;
+            /** @description Akkaunt valyutasida, ikki kasr xonasi bilan */
+            amount: string;
+            /** Format: int64 */
+            currency_id: number;
+        };
+        /** @description Xarid bilan kiritiladigan to'lov qatori */
+        PaymentLine: {
+            /**
+             * Format: int64
+             * @description Kompaniyaning faol akkaunti ("Akkauntni tanlang" / "Akkaunt nofaol"); xaridda avvaldan bor akkaunt nofaol bo'lsa ham qoladi
+             */
+            bank_account_id: number;
+            /** @description > 0, akkaunt valyutasida, 12 xonagacha butun va 2 kasr ("To'lov summasi noto'g'ri") */
+            amount: string;
         };
         PurchaseItemInput: {
             /** Format: int64 */
             product_id: number;
             /** @description > 0, 9 xonagacha butun va 3 kasr ("12.5") */
             quantity: string;
-            /** @description >= 0, 12 xonagacha butun va 2 kasr */
+            /** @description >= 0, hujjat valyutasida, 12 xonagacha butun va 2 kasr */
             price: string;
         };
         PurchaseInput: {
             /** Format: int64 */
             supplier_id: number;
-            /** Format: date */
-            purchased_on: string;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+             */
+            at: string;
+            /**
+             * Format: int64
+             * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+             */
+            currency_id?: number | null;
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            rate?: string | null;
             note?: string | null;
-            /** @description To'langan summa (>= 0); berilmasa yoki 0 bo'lsa to'lov yozilmaydi */
-            paid?: string | null;
             items: components["schemas"]["PurchaseItemInput"][];
+            /** @description Xarid bilan kiritilgan to'lovlar; tahrirda yuborilganiga butunlay almashadi (eskilari yashiriladi, yangilari yoziladi) */
+            payments?: components["schemas"]["PaymentLine"][] | null;
         };
         PurchaseCreate: components["schemas"]["PurchaseInput"] & {
             /**
@@ -2605,8 +2747,8 @@ export interface components {
             is_active: boolean;
             /** @description Mahsulotning so'ralgan lokatsiya (location_id) yoki a'zoga ruxsatli lokatsiyalardagi qoldig'i, uch kasr xonasi bilan ("12.500"); xizmatda null */
             quantity: string | null;
-            /** @description Oxirgi jonli xarid qatoridagi narx, qaysi lokatsiyada bo'lmasin ("1200.50"); hech qachon olinmagan bo'lsa null */
-            last_price: string | null;
+            /** @description Oxirgi jonli xarid yoki boshlang'ich qoldiq qatoridagi narx, o'sha hujjat valyutasi bilan, qaysi lokatsiyada bo'lmasin; hech qachon olinmagan bo'lsa null (logic/products.md, 6-bo'lim) */
+            last_price: components["schemas"]["LastPrice"] | null;
             /** @description Qo'shgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi */
             created_by_name: string | null;
             /** Format: date-time */
@@ -6171,6 +6313,35 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["PaymentNotFound"];
             409: components["responses"]["PaymentConflict"];
+        };
+    };
+    getSupplierStatement: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SupplierNotFound"];
         };
     };
     listPurchases: {

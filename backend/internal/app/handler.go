@@ -186,6 +186,7 @@ func (h *Handler) Routes(r chi.Router) {
 				allowed(access.SuppliersEdit).Patch("/suppliers/{id}", h.setSupplierActive)
 				allowed(access.SuppliersDelete).Delete("/suppliers/{id}", h.deleteSupplier)
 				allowed(access.PurchasesView).Get("/suppliers/{id}/payments", h.listPayments)
+				allowed(access.PurchasesView).Get("/suppliers/{id}/statement", h.getSupplierStatement)
 				allowed(access.PurchasesCreate).Post("/suppliers/{id}/payments", h.addPayment)
 				allowed(access.PurchasesEdit).Put("/suppliers/{id}/payments/{paymentId}", h.updatePayment)
 				allowed(access.PurchasesDelete).Delete("/suppliers/{id}/payments/{paymentId}", h.deletePayment)

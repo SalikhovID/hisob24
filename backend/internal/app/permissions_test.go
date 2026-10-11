@@ -59,6 +59,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 		"the suppliers":          {http.MethodGet, "/app/suppliers", ""},
 		"adding a supplier":      {http.MethodPost, "/app/suppliers", `{"name":"Bozor"}`},
 		"a supplier's payments":  {http.MethodGet, "/app/suppliers/1/payments", ""},
+		"a supplier's statement": {http.MethodGet, "/app/suppliers/1/statement", ""},
 		"the purchases":          {http.MethodGet, "/app/purchases", ""},
 		"adding a purchase":      {http.MethodPost, "/app/purchases", `{"location_id":1}`},
 		"deleting a type":        {http.MethodDelete, fmt.Sprintf("/app/customer-types/%d", sh.jismoniy), ""},
