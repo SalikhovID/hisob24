@@ -12,30 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countSupplierPayments = `-- name: CountSupplierPayments :one
-SELECT count(*) FROM supplier_payments WHERE supplier_id = $1 AND deleted_at IS NULL
-`
-
-// How many live payments the supplier has: one with any is not deleted.
-func (q *Queries) CountSupplierPayments(ctx context.Context, supplierID int64) (int64, error) {
-	row := q.db.QueryRow(ctx, countSupplierPayments, supplierID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countSupplierPurchases = `-- name: CountSupplierPurchases :one
-SELECT count(*) FROM purchases WHERE supplier_id = $1 AND deleted_at IS NULL
-`
-
-// How many live purchases the supplier has: one with any is not deleted.
-func (q *Queries) CountSupplierPurchases(ctx context.Context, supplierID int64) (int64, error) {
-	row := q.db.QueryRow(ctx, countSupplierPurchases, supplierID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countSuppliers = `-- name: CountSuppliers :one
 SELECT count(*) FROM suppliers s
 WHERE s.company_id = $1 AND s.deleted_at IS NULL AND s.is_active = $2
@@ -131,12 +107,17 @@ func (q *Queries) DeleteSupplier(ctx context.Context, arg DeleteSupplierParams) 
 const getSupplier = `-- name: GetSupplier :one
 SELECT s.id, s.name, s.phone, s.note, s.is_active, s.created_at, s.updated_at,
        COALESCE(m.full_name, s.created_by_name) AS created_by_name,
-       t.purchases_total, t.payments_total, (t.purchases_total - t.payments_total)::numeric(14,2) AS balance
+       t.purchases_total, t.payments_total, t.balance
 FROM suppliers s
 LEFT JOIN user_companies m ON m.user_phone = s.created_by AND m.company_id = s.company_id
 CROSS JOIN LATERAL (
-    SELECT COALESCE((SELECT sum(p.total) FROM purchases p WHERE p.supplier_id = s.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS purchases_total,
-           COALESCE((SELECT sum(sp.amount) FROM supplier_payments sp WHERE sp.supplier_id = s.id AND sp.deleted_at IS NULL), 0)::numeric(14,2) AS payments_total
+    SELECT COALESCE(sum(CASE WHEN d.kind = 'purchase' THEN convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS purchases_total,
+           COALESCE(sum(CASE WHEN d.kind = 'supplier_payment' THEN convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS payments_total,
+           COALESCE(sum(CASE WHEN d.kind IN ('purchase', 'supplier_debt') THEN convert_amount(d.total, d.currency_id, 1, cr)
+                             ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS balance
+    FROM transactions d
+    JOIN currency_rates cr ON cr.id = d.currency_rate_id
+    WHERE d.supplier_id = s.id AND d.deleted_at IS NULL
 ) t
 WHERE s.id = $1 AND s.company_id = $2 AND s.deleted_at IS NULL
 `
@@ -160,9 +141,11 @@ type GetSupplierRow struct {
 	Balance        pgtype.Numeric
 }
 
-// The company's supplier with its balance: what its live purchases come to,
-// what its live payments come to, and the difference (owed when above zero,
-// an advance when below). pgx.ErrNoRows when the company has none such, or
+// The company's supplier with its balance, in so'm by each document's own
+// rate row (logic/warehouse.md, section 6): what its live purchases come
+// to, what its live payments come to, and what is owed (the purchases and
+// the opening debts less the payments and the opening advances; an advance
+// when below zero). pgx.ErrNoRows when the company has none such, or
 // deleted it.
 func (q *Queries) GetSupplier(ctx context.Context, arg GetSupplierParams) (GetSupplierRow, error) {
 	row := q.db.QueryRow(ctx, getSupplier, arg.ID, arg.CompanyID)
@@ -186,12 +169,17 @@ func (q *Queries) GetSupplier(ctx context.Context, arg GetSupplierParams) (GetSu
 const listSuppliers = `-- name: ListSuppliers :many
 SELECT s.id, s.name, s.phone, s.note, s.is_active, s.created_at, s.updated_at,
        COALESCE(m.full_name, s.created_by_name) AS created_by_name,
-       t.purchases_total, t.payments_total, (t.purchases_total - t.payments_total)::numeric(14,2) AS balance
+       t.purchases_total, t.payments_total, t.balance
 FROM suppliers s
 LEFT JOIN user_companies m ON m.user_phone = s.created_by AND m.company_id = s.company_id
 CROSS JOIN LATERAL (
-    SELECT COALESCE((SELECT sum(p.total) FROM purchases p WHERE p.supplier_id = s.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS purchases_total,
-           COALESCE((SELECT sum(sp.amount) FROM supplier_payments sp WHERE sp.supplier_id = s.id AND sp.deleted_at IS NULL), 0)::numeric(14,2) AS payments_total
+    SELECT COALESCE(sum(CASE WHEN d.kind = 'purchase' THEN convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS purchases_total,
+           COALESCE(sum(CASE WHEN d.kind = 'supplier_payment' THEN convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS payments_total,
+           COALESCE(sum(CASE WHEN d.kind IN ('purchase', 'supplier_debt') THEN convert_amount(d.total, d.currency_id, 1, cr)
+                             ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS balance
+    FROM transactions d
+    JOIN currency_rates cr ON cr.id = d.currency_rate_id
+    WHERE d.supplier_id = s.id AND d.deleted_at IS NULL
 ) t
 WHERE s.company_id = $1 AND s.deleted_at IS NULL AND s.is_active = $2
   AND ($3::text IS NULL

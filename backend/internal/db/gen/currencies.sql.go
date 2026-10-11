@@ -158,6 +158,31 @@ func (q *Queries) GetCurrency(ctx context.Context, id int64) (Currency, error) {
 	return i, err
 }
 
+const getFallbackRate = `-- name: GetFallbackRate :one
+SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates WHERE company_id = $1 AND status = 2 AND usd = 0 AND eur = 0 AND rub = 0 ORDER BY id LIMIT 1
+`
+
+// The company's zero row: a document's own rate row (status 2, out of the
+// history) with no rate in it, what a document in so'm refers to while the
+// company has set no rates. pgx.ErrNoRows when there is none yet.
+func (q *Queries) GetFallbackRate(ctx context.Context, companyID int64) (CurrencyRate, error) {
+	row := q.db.QueryRow(ctx, getFallbackRate, companyID)
+	var i CurrencyRate
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Uzs,
+		&i.Usd,
+		&i.Eur,
+		&i.Rub,
+		&i.Status,
+		&i.SetBy,
+		&i.SetByName,
+		&i.SetAt,
+	)
+	return i, err
+}
+
 const getFirstRate = `-- name: GetFirstRate :one
 SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates WHERE company_id = $1 AND status = 1 ORDER BY set_at, id LIMIT 1
 `

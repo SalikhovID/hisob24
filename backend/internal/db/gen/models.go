@@ -210,30 +210,6 @@ type Product struct {
 	CurrencyID    int64
 }
 
-type Purchase struct {
-	ID            int64
-	CompanyID     int64
-	Number        int32
-	LocationID    int64
-	SupplierID    int64
-	PurchasedOn   time.Time
-	Note          *string
-	Total         pgtype.Numeric
-	CreatedBy     string
-	CreatedByName *string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	DeletedAt     *time.Time
-}
-
-type PurchaseItem struct {
-	PurchaseID int64
-	ProductID  int64
-	Quantity   pgtype.Numeric
-	Price      pgtype.Numeric
-	Position   int32
-}
-
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserPhone string
@@ -261,11 +237,13 @@ type SmsCode struct {
 	SentAt    time.Time
 }
 
-type Stock struct {
-	CompanyID  int64
-	LocationID int64
-	ProductID  int64
-	Quantity   pgtype.Numeric
+type StockMove struct {
+	ID            int64
+	TransactionID int64
+	CompanyID     int64
+	LocationID    int64
+	ProductID     int64
+	Quantity      pgtype.Numeric
 }
 
 type Supplier struct {
@@ -275,21 +253,6 @@ type Supplier struct {
 	Phone         *string
 	Note          *string
 	IsActive      bool
-	CreatedBy     string
-	CreatedByName *string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	DeletedAt     *time.Time
-}
-
-type SupplierPayment struct {
-	ID            int64
-	CompanyID     int64
-	SupplierID    int64
-	PurchaseID    *int64
-	Amount        pgtype.Numeric
-	PaidOn        time.Time
-	Note          *string
 	CreatedBy     string
 	CreatedByName *string
 	CreatedAt     time.Time
@@ -373,6 +336,41 @@ type TelegramContact struct {
 	FirstName *string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type Transaction struct {
+	ID              int64
+	CompanyID       int64
+	Kind            string
+	Number          int32
+	DocAt           time.Time
+	LocationID      *int64
+	ToLocationID    *int64
+	SupplierID      *int64
+	CustomerID      *int64
+	BankAccountID   *int64
+	ToBankAccountID *int64
+	CategoryID      *int64
+	LinkedID        *int64
+	CurrencyID      int64
+	CurrencyRateID  int64
+	Total           pgtype.Numeric
+	ToTotal         pgtype.Numeric
+	Note            *string
+	CreatedBy       string
+	CreatedByName   *string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time
+}
+
+type TransactionItem struct {
+	TransactionID int64
+	ProductID     int64
+	Quantity      pgtype.Numeric
+	Expected      pgtype.Numeric
+	Price         pgtype.Numeric
+	Position      int32
 }
 
 type User struct {

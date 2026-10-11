@@ -45,6 +45,12 @@ LIMIT 1;
 -- falls back to. pgx.ErrNoRows when the company has none.
 SELECT * FROM currency_rates WHERE company_id = $1 AND status = 1 ORDER BY set_at, id LIMIT 1;
 
+-- name: GetFallbackRate :one
+-- The company's zero row: a document's own rate row (status 2, out of the
+-- history) with no rate in it, what a document in so'm refers to while the
+-- company has set no rates. pgx.ErrNoRows when there is none yet.
+SELECT * FROM currency_rates WHERE company_id = $1 AND status = 2 AND usd = 0 AND eur = 0 AND rub = 0 ORDER BY id LIMIT 1;
+
 -- name: CreateRate :one
 -- Enters a rate row: a standard one (status 1) from the settings, or a
 -- document's own (2). set_by_name is the name the member goes by in the

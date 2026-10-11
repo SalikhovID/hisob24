@@ -1,11 +1,9 @@
 package db_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,29 +16,6 @@ func createSupplier(t *testing.T, q *gen.Queries, companyID int64, name string) 
 	s, err := q.CreateSupplier(t.Context(), gen.CreateSupplierParams{CompanyID: companyID, Name: name, CreatedBy: enteredBy})
 	require.NoError(t, err)
 	return s
-}
-
-// addPurchase enters a purchase of the supplier in the location with one
-// line (quantity × price) and returns its id; deleted hides it.
-func addPurchase(t *testing.T, pool *pgxpool.Pool, companyID, locationID, supplierID, productID int64, number int32, quantity, price string, deleted bool) int64 {
-	t.Helper()
-	var id int64
-	require.NoError(t, pool.QueryRow(context.Background(), `INSERT INTO purchases (company_id, number, location_id, supplier_id, purchased_on, total, created_by, deleted_at)
-		VALUES ($1, $2, $3, $4, '2026-10-07', ($5::numeric * $6::numeric), $7, CASE WHEN $8 THEN now() END) RETURNING id`,
-		companyID, number, locationID, supplierID, quantity, price, enteredBy, deleted).Scan(&id))
-	mustExec(t, pool, "INSERT INTO purchase_items (purchase_id, product_id, quantity, price, position) VALUES ($1, $2, $3::numeric, $4::numeric, 1)", id, productID, quantity, price)
-	return id
-}
-
-// addPayment enters a payment to the supplier, linked to purchaseID when
-// one is given; deleted hides it.
-func addPayment(t *testing.T, pool *pgxpool.Pool, companyID, supplierID int64, purchaseID *int64, amount string, deleted bool) int64 {
-	t.Helper()
-	var id int64
-	require.NoError(t, pool.QueryRow(context.Background(), `INSERT INTO supplier_payments (company_id, supplier_id, purchase_id, amount, paid_on, created_by, deleted_at)
-		VALUES ($1, $2, $3, $4::numeric, '2026-10-07', $5, CASE WHEN $6 THEN now() END) RETURNING id`,
-		companyID, supplierID, purchaseID, amount, enteredBy, deleted).Scan(&id))
-	return id
 }
 
 func TestCreateSupplier(t *testing.T) {
@@ -93,6 +68,13 @@ func TestGetSupplierTellsItsBalance(t *testing.T) {
 	s, err = q.GetSupplier(ctx, gen.GetSupplierParams{ID: bozor.ID, CompanyID: olma.ID})
 	require.NoError(t, err)
 	assert.Equal(t, "-2500.50", numericText(t, s.Balance), "an advance")
+	addDocument(t, pool, olma.ID, doc{kind: "supplier_debt", number: 1, supplier: &bozor.ID, total: "3000"})
+	addDocument(t, pool, olma.ID, doc{kind: "supplier_prepay", number: 1, supplier: &bozor.ID, total: "100.50"})
+	s, err = q.GetSupplier(ctx, gen.GetSupplierParams{ID: bozor.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, "399.00", numericText(t, s.Balance), "an opening debt adds, an opening advance takes away")
+	assert.Equal(t, "10000.00", numericText(t, s.PurchasesTotal), "the purchases alone")
+	assert.Equal(t, "12500.50", numericText(t, s.PaymentsTotal), "the payments alone")
 
 	nok := createCompany(t, q, "Nok", today(t, pool))
 	_, err = q.GetSupplier(ctx, gen.GetSupplierParams{ID: bozor.ID, CompanyID: nok.ID})
@@ -185,12 +167,9 @@ func TestASupplierInUseIsCounted(t *testing.T) {
 	addPayment(t, pool, olma.ID, bozor.ID, nil, "1", false)
 	addPayment(t, pool, olma.ID, bozor.ID, nil, "1", true)
 
-	purchases, err := q.CountSupplierPurchases(ctx, bozor.ID)
+	documents, err := q.CountSupplierDocuments(ctx, bozor.ID)
 	require.NoError(t, err)
-	assert.EqualValues(t, 1, purchases, "the deleted purchase not counted")
-	payments, err := q.CountSupplierPayments(ctx, bozor.ID)
-	require.NoError(t, err)
-	assert.EqualValues(t, 2, payments, "the deleted payment not counted")
+	assert.EqualValues(t, 3, documents, "the live purchase and payments; the deleted not counted")
 
 	standing, err := q.SupplierStanding(ctx, gen.SupplierStandingParams{ID: bozor.ID, CompanyID: olma.ID})
 	require.NoError(t, err)

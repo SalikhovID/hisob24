@@ -14,19 +14,21 @@ RETURNING *;
 -- in the company now; once they have left it (or go by no name), the name
 -- of then. quantity is the product's stock in the locations given (the
 -- member's, or the one asked for), NULL for a service; last_price is the
--- price of its newest live purchase line, whatever the location, NULL when
--- it was never bought.
+-- price of its newest live purchase or opening stock line, whatever the
+-- location, with that document's currency (last_price_currency_id, 0 with
+-- no price), NULL when it was never bought.
 SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
-            THEN COALESCE((SELECT sum(s.quantity) FROM stock s
-                           WHERE s.product_id = p.id AND s.location_id = ANY(sqlc.arg('location_ids')::bigint[])), 0)
+            THEN COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
+                           WHERE sm.product_id = p.id AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[])), 0)
        END::numeric(14,3) AS quantity,
-       (SELECT i.price FROM purchase_items i JOIN purchases pu ON pu.id = i.purchase_id
-         WHERE i.product_id = p.id AND pu.deleted_at IS NULL
-         ORDER BY pu.purchased_on DESC, pu.id DESC LIMIT 1) AS last_price
+       lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
 FROM products p
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
+                   WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
+                   ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
 WHERE p.id = sqlc.arg('id') AND p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL;
 
 -- name: ListProducts :many
@@ -34,18 +36,19 @@ WHERE p.id = sqlc.arg('id') AND p.company_id = sqlc.arg('company_id') AND p.dele
 -- inactive ones (is_active), by name whatever the case, without the deleted.
 -- search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
 -- leaves it out. The columns are GetProduct's (quantity in the locations
--- given, last_price).
+-- given, last_price with its currency).
 SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
-            THEN COALESCE((SELECT sum(s.quantity) FROM stock s
-                           WHERE s.product_id = p.id AND s.location_id = ANY(sqlc.arg('location_ids')::bigint[])), 0)
+            THEN COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
+                           WHERE sm.product_id = p.id AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[])), 0)
        END::numeric(14,3) AS quantity,
-       (SELECT i.price FROM purchase_items i JOIN purchases pu ON pu.id = i.purchase_id
-         WHERE i.product_id = p.id AND pu.deleted_at IS NULL
-         ORDER BY pu.purchased_on DESC, pu.id DESC LIMIT 1) AS last_price
+       lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
 FROM products p
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
+                   WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
+                   ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
 WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL
   AND p.kind = sqlc.arg('kind') AND p.is_active = sqlc.arg('is_active')
   AND (sqlc.narg('search')::text IS NULL
@@ -93,37 +96,3 @@ RETURNING id;
 -- active (what a purchase line may name). pgx.ErrNoRows when the company
 -- has none such, or deleted it.
 SELECT kind, name, is_active FROM products WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL;
-
--- name: ListProductStock :many
--- The product's stock in each of the locations given (the member's), in
--- the order the locations were added; a location with none is listed with 0.
-SELECT l.id AS location_id, l.name AS location_name, COALESCE(s.quantity, 0)::numeric(14,3) AS quantity
-FROM locations l
-LEFT JOIN stock s ON s.location_id = l.id AND s.product_id = sqlc.arg('product_id')
-WHERE l.company_id = sqlc.arg('company_id') AND l.deleted_at IS NULL AND l.id = ANY(sqlc.arg('location_ids')::bigint[])
-ORDER BY l.created_at, l.id;
-
--- name: CountProductPurchases :one
--- How many live purchases hold the product, in any location: one held is
--- not deleted (logic/products.md, section 4).
-SELECT count(*) FROM purchase_items i JOIN purchases p ON p.id = i.purchase_id
-WHERE i.product_id = $1 AND p.deleted_at IS NULL;
-
--- name: ListProductPurchases :many
--- A page of the live purchase lines of the product in the locations given,
--- the newest purchase first: the purchase, its supplier and location, the
--- line's quantity, price and what it comes to.
-SELECT p.id AS purchase_id, p.number, p.purchased_on, p.supplier_id, s.name AS supplier_name, p.location_id, l.name AS location_name,
-       i.quantity, i.price, (i.quantity * i.price)::numeric(14,2) AS amount
-FROM purchase_items i
-JOIN purchases p ON p.id = i.purchase_id
-JOIN suppliers s ON s.id = p.supplier_id
-JOIN locations l ON l.id = p.location_id
-WHERE i.product_id = sqlc.arg('product_id') AND p.deleted_at IS NULL AND p.location_id = ANY(sqlc.arg('location_ids')::bigint[])
-ORDER BY p.purchased_on DESC, p.id DESC
-LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
-
--- name: CountProductPurchaseLines :one
--- How many rows ListProductPurchases finds, on all of its pages.
-SELECT count(*) FROM purchase_items i JOIN purchases p ON p.id = i.purchase_id
-WHERE i.product_id = sqlc.arg('product_id') AND p.deleted_at IS NULL AND p.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
