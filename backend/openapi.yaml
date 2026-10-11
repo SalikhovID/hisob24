@@ -4329,6 +4329,8 @@ components:
             bilan (logic/roles.md, 8-bo'lim): sidebar va tab-bar shu tartibda,
             tartibda yo'q bo'limlar standart tartibda oxirida. null standart
             tartib yoki kompaniya tanlanmagan.
+          items:
+            $ref: "#/components/schemas/NavSection"
         currencies:
           type: array
           description: >
@@ -4339,8 +4341,6 @@ components:
             shundan oladi; 2+ valyutada ko'rinadi.
           items:
             $ref: "#/components/schemas/CompanyCurrency"
-          items:
-            $ref: "#/components/schemas/NavSection"
     Ref:
       type: object
       required: [id, name]

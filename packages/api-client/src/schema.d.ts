@@ -239,6 +239,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/currencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Valyutalar katalogi
+         * @description Kompaniyada yoqish mumkin bo'lgan valyutalar, so'm birinchi (logic/currencies.md, 1-bo'lim). Katalog kengaytirilmaydi.
+         */
+        get: operations["listCurrencies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/companies/{id}/currencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Kompaniya valyutalarini belgilash
+         * @description Ro'yxatdagi valyutalar yoqiladi, qolganlari o'chiriladi; so'm doim yoqilgan, nomlanmasa ham (logic/currencies.md, 3-bo'lim). Jonli mahsulot narxi (keyin hujjat yoki akkaunt) shu valyutada bo'lsa o'chirilmaydi: 409 currency_in_use.
+         */
+        put: operations["setCompanyCurrencies"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/admins": {
         parameters: {
             query?: never;
@@ -414,6 +456,30 @@ export interface paths {
         get: operations["getAppMe"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/currency-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Valyuta kurslari tarixi (settings.view ruxsati)
+         * @description Kompaniyaning standart kurs qatorlari, yangi birinchi, 20 tadan (logic/currencies.md, 4-bo'lim). Joriy kurs eng birinchi qator; formalar uchun /app/me ham aytadi.
+         */
+        get: operations["listCurrencyRates"];
+        put?: never;
+        /**
+         * Kurslarni kiritish (settings.edit ruxsati)
+         * @description Yangi standart kurs qatori: yoqilgan har valyutaning kursi, berilmagani oldingi qatordan; so'm doim 1. Keyingi hujjatlar sanasiga qarab shu qatorni oladi; avvalgi hujjatlar o'z qatorida qoladi.
+         */
+        post: operations["setCurrencyRates"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1570,6 +1636,25 @@ export interface components {
             users: components["schemas"]["Member"][];
             /** @description Kompaniyaning jonli lokatsiyalari, qo'shilish tartibida (logic/locations.md) */
             locations: components["schemas"]["AdminLocation"][];
+            /** @description Kompaniyada yoqilgan valyutalar, katalog tartibida; so'm doim bor (logic/currencies.md) */
+            currencies: components["schemas"]["Currency"][];
+        };
+        /** @description Katalogdagi valyuta (logic/currencies.md, 1-bo'lim) */
+        Currency: {
+            /**
+             * Format: int64
+             * @description 1 UZS, 2 USD, 3 EUR, 4 RUB
+             */
+            id: number;
+            /** @description ISO 4217 kodi */
+            code: string;
+            name: string;
+            /** @description Ko'rsatish uchun: so'm, $, €, ₽ */
+            symbol: string;
+        };
+        CurrencyIdsInput: {
+            /** @description Yoqilgan bo'lishi kerak bo'lgan valyutalar; so'm (1) nomlanmasa ham qoladi */
+            currency_ids: number[];
         };
         CompanyPage: {
             items: components["schemas"]["Company"][];
@@ -1700,6 +1785,36 @@ export interface components {
              */
             company_id: number | null;
         };
+        CompanyCurrency: components["schemas"]["Currency"] & {
+            /** @description Hozir amaldagi standart kurs, so'mda, to'rt kasr bilan ("12800.0000"); so'mda "1.0000"; kurs kiritilmagan bo'lsa null */
+            rate: string | null;
+        };
+        /** @description Kurslar qatori (logic/currencies.md, 4-bo'lim), so'mda, to'rt kasr bilan */
+        Rates: {
+            /** Format: int64 */
+            id: number;
+            /** @description 1 USD necha so'm ("12800.0000"); yoqilmagan valyutada "0.0000" */
+            usd: string;
+            eur: string;
+            rub: string;
+            /** @description Kiritgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi */
+            set_by_name: string | null;
+            /** Format: date-time */
+            set_at: string;
+        };
+        /** @description Yangi kurslar qatori: yoqilgan har valyutaning kursi; berilmagani oldingi qatordan olinadi. Hech biri berilmasa 400 "Kursni kiriting"; yoqilmagan valyuta kursi 400 currency_not_allowed. */
+        RatesInput: {
+            usd?: string;
+            eur?: string;
+            rub?: string;
+        };
+        RatesPage: {
+            items: components["schemas"]["Rates"][];
+            /** Format: int64 */
+            total: number;
+            page: number;
+            page_size: number;
+        };
         AppUser: {
             phone: string;
             /** @description Tanlangan kompaniyadagi ismi. Kompaniya tanlanmagan yoki a'zolikda ism bo'lmasa, userning o'z ismi. */
@@ -1756,6 +1871,8 @@ export interface components {
             locations: components["schemas"]["Location"][];
             /** @description A'zoning tanlangan kompaniyadagi menyu tartibi, bo'lim kalitlari bilan (logic/roles.md, 8-bo'lim): sidebar va tab-bar shu tartibda, tartibda yo'q bo'limlar standart tartibda oxirida. null standart tartib yoki kompaniya tanlanmagan. */
             nav_order: components["schemas"]["NavSection"][] | null;
+            /** @description Tanlangan kompaniyada yoqilgan valyutalar, katalog tartibida, har birida hozir amaldagi kurs (logic/currencies.md): so'm doim, kursi "1.0000"; kurs kiritilmagan valyutada null. Kompaniya tanlanmagan bo'lsa bo'sh. Formalar valyuta tanlovi va kursni shundan oladi; 2+ valyutada ko'rinadi. */
+            currencies: components["schemas"]["CompanyCurrency"][];
         };
         Ref: {
             /** Format: int64 */
@@ -2300,6 +2417,11 @@ export interface components {
             sku: string | null;
             /** @description Mahsulotda sotuv narxi, xizmatda narx; bazadagidek ikki kasr xonasi bilan ("150000.50") */
             price: string | null;
+            /**
+             * Format: int64
+             * @description Narxning valyutasi (logic/currencies.md); 1 so'm, kiritilmasa shu
+             */
+            currency_id: number;
             note: string | null;
             /** @description Nofaol (false) bo'lsa xarid takliflarida chiqmaydi */
             is_active: boolean;
@@ -2320,6 +2442,11 @@ export interface components {
             unit?: components["schemas"]["Unit"] | null;
             sku?: string | null;
             price?: string | null;
+            /**
+             * Format: int64
+             * @description Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+             */
+            currency_id?: number;
             note?: string | null;
         };
         ProductUpdate: {
@@ -2327,6 +2454,11 @@ export interface components {
             unit?: components["schemas"]["Unit"] | null;
             sku?: string | null;
             price?: string | null;
+            /**
+             * Format: int64
+             * @description Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+             */
+            currency_id?: number;
             note?: string | null;
         };
         ActiveInput: {
@@ -2397,6 +2529,15 @@ export interface components {
         };
         /** @description Bu nomli lokatsiya bor (name_taken, "Bu nomli lokatsiya allaqachon bor"); kompaniyaning yagona lokatsiyasi (last_location, "Kompaniyaning yagona lokatsiyasi o'chirilmaydi"); faol vazifasi bor lokatsiya (location_in_use, "Bu lokatsiyada N ta vazifa bor") */
         LocationConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Valyuta ishlatilmoqda (currency_in_use, "Bu valyutada N ta mahsulot bor", keyin "… N ta hujjat bor", "… N ta akkaunt bor"): avval narxlar, hujjatlar va akkauntlar boshqa valyutaga o'tkaziladi */
+        CurrencyConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3102,6 +3243,57 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listCurrencies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Katalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Currency"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    setCompanyCurrencies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CurrencyIdsInput"];
+            };
+        };
+        responses: {
+            /** @description Kompaniyaning valyutalari endi, katalog tartibida */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Currency"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["CurrencyConflict"];
+        };
+    };
     listAdmins: {
         parameters: {
             query?: never;
@@ -3370,6 +3562,60 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
+        };
+    };
+    listCurrencyRates: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kurslar tarixi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatesPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    setCurrencyRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatesInput"];
+            };
+        };
+        responses: {
+            /** @description Kiritilgan qator */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rates"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
         };
     };
     setNavOrder: {
