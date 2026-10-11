@@ -350,6 +350,8 @@ type Querier interface {
 	// row; 0 when none), how many lines it has. pgx.ErrNoRows when the company
 	// has none such in those locations, or deleted it.
 	GetPurchase(ctx context.Context, arg GetPurchaseParams) (GetPurchaseRow, error)
+	// A rate row by id: what a document refers to.
+	GetRate(ctx context.Context, id int64) (CurrencyRate, error)
 	// The standard rate row in force at the moment: the newest set at or before
 	// it. pgx.ErrNoRows before the company's first rate.
 	GetRateAt(ctx context.Context, arg GetRateAtParams) (CurrencyRate, error)

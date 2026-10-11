@@ -1,6 +1,7 @@
 // Package warehouse runs a company's warehouse (logic/warehouse.md): the
-// suppliers it buys from, its purchases into the stock of its locations,
-// the stock itself, and the payments to the suppliers and what is owed them.
+// suppliers it buys from, its purchases into the stock of its locations
+// (documents of the journal, internal/ledger), the payments to the
+// suppliers through its accounts, and what is owed them.
 package warehouse
 
 import (
@@ -35,7 +36,6 @@ var (
 	errPaymentNotFound   = apperr.New(apperr.NotFound, "not_found", "To'lov topilmadi")
 	errSupplierNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli ta'minotchi allaqachon bor")
 	errPaymentLinked     = apperr.New(apperr.Conflict, "payment_linked", "Bu to'lov xarid bilan kiritilgan: xaridni tahrirlang")
-	errStockInsufficient = apperr.New(apperr.Conflict, "stock_insufficient", "Omborda yetarli qoldiq yo'q")
 	errNoLocation        = invalid("Lokatsiyani tanlang")
 )
 

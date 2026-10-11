@@ -2,31 +2,39 @@ package warehouse
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
-// stockOf is the product's stock in the location, "0.000" when there is
-// no row.
+// stockOf is the product's stock in the location: the sum of its moves,
+// "0.000" with none.
 func stockOf(t *testing.T, pool *pgxpool.Pool, locationID, productID int64) string {
 	t.Helper()
 	var s string
-	err := pool.QueryRow(t.Context(), "SELECT quantity::text FROM stock WHERE location_id = $1 AND product_id = $2", locationID, productID).Scan(&s)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "0.000"
-	}
-	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT COALESCE(sum(quantity), 0)::numeric(14,3)::text FROM stock_moves WHERE location_id = $1 AND product_id = $2", locationID, productID).Scan(&s))
 	return s
+}
+
+// sold takes the product's quantity out of the location, as a sale would.
+func sold(t *testing.T, pool *pgxpool.Pool, s shop, productID int64, quantity string) {
+	t.Helper()
+	ctx := t.Context()
+	var rate int64
+	require.NoError(t, pool.QueryRow(ctx, "SELECT id FROM currency_rates WHERE company_id = $1 ORDER BY id LIMIT 1", s.company).Scan(&rate))
+	var id int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, location_id, currency_rate_id, created_by)
+		VALUES ($1, 'sale', (SELECT COALESCE(max(number), 0) + 1 FROM transactions WHERE company_id = $1 AND kind = 'sale'), now(), $2, $3, $4) RETURNING id`, s.company, s.asosiy, rate, ali).Scan(&id))
+	_, err := pool.Exec(ctx, "INSERT INTO stock_moves (transaction_id, company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4, -$5::numeric)", id, s.company, s.asosiy, productID, quantity)
+	require.NoError(t, err)
 }
 
 // market is a shop with a supplier and two products, Olma (kg) and Nok (dona).
@@ -55,13 +63,19 @@ func line(productID int64, quantity, price string) ItemInput {
 	return ItemInput{ProductID: productID, Quantity: ptr(quantity), Price: ptr(price)}
 }
 
+// purchaseOf is a purchase input of the supplier at the usual moment with
+// the lines.
+func purchaseOf(supplierID int64, items ...ItemInput) PurchaseInput {
+	return PurchaseInput{SupplierID: supplierID, At: on, Items: items}
+}
+
 func TestCreatePurchase(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newMarket(t, s, pool)
 
 	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{
-		SupplierID: m.bozor, PurchasedOn: "2026-10-07", Note: ptr(" Ertalab "), Paid: ptr("5000"),
+		SupplierID: m.bozor, At: on, Note: ptr(" Ertalab "), Payments: []ledger.PaymentLine{pay(m.cash, "5000")},
 		Items: []ItemInput{line(m.olma, "12.5", "1000"), line(m.nok, "3", "2500.5")},
 	})
 	require.NoError(t, err)
@@ -71,9 +85,12 @@ func TestCreatePurchase(t *testing.T) {
 	assert.Equal(t, "Asosiy", p.LocationName)
 	assert.Equal(t, m.bozor, p.SupplierID)
 	assert.Equal(t, "Bozor", p.SupplierName)
-	assert.Equal(t, "2026-10-07", p.PurchasedOn.Format(time.DateOnly))
+	assert.Equal(t, time.Date(2026, 10, 7, 4, 0, 0, 0, time.UTC), p.At, "9:00 in Tashkent, kept in UTC")
+	assert.EqualValues(t, 1, p.CurrencyID, "so'm unless told")
+	assert.Equal(t, "1.0000", p.Rate)
 	assert.Equal(t, ptr("Ertalab"), p.Note, "trimmed")
 	assert.Equal(t, "20001.50", p.Total, "the lines, summed in the database")
+	assert.Equal(t, "20001.50", p.TotalUZS)
 	assert.Equal(t, "5000.00", p.Paid)
 	assert.EqualValues(t, 2, p.ItemsCount)
 	assert.Equal(t, ptr("Ali aka"), p.CreatedByName)
@@ -82,6 +99,8 @@ func TestCreatePurchase(t *testing.T) {
 		{ProductID: m.olma, Name: "Olma", Unit: ptr("kg"), Quantity: "12.500", Price: "1000.00", Amount: "12500.00"},
 		{ProductID: m.nok, Name: "Nok", Unit: ptr("dona"), Quantity: "3.000", Price: "2500.50", Amount: "7501.50"},
 	}, p.Items, "in the order entered")
+	require.Len(t, p.Payments, 1)
+	assert.Equal(t, LinkedPayment{ID: p.Payments[0].ID, BankAccountID: m.cash, AccountName: "Naqd", Amount: "5000.00", CurrencyID: 1}, p.Payments[0])
 	assert.Equal(t, "12.500", stockOf(t, pool, m.asosiy, m.olma), "into the stock at once")
 	assert.Equal(t, "3.000", stockOf(t, pool, m.asosiy, m.nok))
 	assert.Equal(t, "0.000", stockOf(t, pool, m.chilonzor, m.olma), "the other location untouched")
@@ -90,26 +109,81 @@ func TestCreatePurchase(t *testing.T) {
 	assert.Equal(t, "20001.50", sup.PurchasesTotal)
 	assert.Equal(t, "5000.00", sup.PaymentsTotal, "what was paid with it")
 	assert.Equal(t, "15001.50", sup.Balance, "owed")
+	assert.Equal(t, []BalanceLine{{CurrencyID: 1, Amount: "15001.50"}}, sup.BalanceByCurrency)
 	payments, err := s.ListPayments(ctx, m.company, m.bozor, 1)
 	require.NoError(t, err)
 	require.Len(t, payments.Items, 1)
 	assert.Equal(t, &p.ID, payments.Items[0].PurchaseID, "linked to the purchase")
 	assert.Equal(t, ptr(int32(1)), payments.Items[0].PurchaseNumber)
+	assert.Equal(t, m.cash, payments.Items[0].BankAccountID)
 	assert.Equal(t, "5000.00", payments.Items[0].Amount)
-	assert.Equal(t, "2026-10-07", payments.Items[0].PaidOn.Format(time.DateOnly), "on the purchase's day")
+	assert.Equal(t, p.At, payments.Items[0].At, "at the purchase's moment")
 	assert.Equal(t, ptr("Ali aka"), payments.Items[0].CreatedByName)
 
-	second, err := s.CreatePurchase(ctx, m.scope(), vali, m.chilonzor, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-08", Items: []ItemInput{line(m.olma, "1", "900")}})
+	second, err := s.CreatePurchase(ctx, m.scope(), vali, m.chilonzor, PurchaseInput{SupplierID: m.bozor, At: "2026-10-08T10:30:00+05:00", Items: []ItemInput{line(m.olma, "1", "900")}})
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, second.Number, "the next number")
 	assert.Equal(t, "0.00", second.Paid, "nothing paid: no payment")
+	assert.Empty(t, second.Payments)
 	assert.Nil(t, second.Note)
 	assert.Nil(t, second.CreatedByName, "Vali goes by no name")
 	payments, err = s.ListPayments(ctx, m.company, m.bozor, 1)
 	require.NoError(t, err)
-	assert.Len(t, payments.Items, 1, "no payment of 0")
+	assert.Len(t, payments.Items, 1, "no payment of nothing")
 	assert.Equal(t, "1.000", stockOf(t, pool, m.chilonzor, m.olma))
 	assert.Equal(t, "12.500", stockOf(t, pool, m.asosiy, m.olma), "each location its own")
+}
+
+func TestCreatePurchaseInDollars(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	m := newMarket(t, s, pool)
+	standardRate(t, pool, m.company, "12800", "2026-10-01 00:00+05")
+	card := addAccount(t, pool, m.company, "Karta", 2, true)
+	usd := ptr(int64(2))
+
+	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{
+		SupplierID: m.bozor, At: on, CurrencyID: usd, Items: []ItemInput{line(m.olma, "2", "50")},
+		Payments: []ledger.PaymentLine{pay(m.cash, "640000"), pay(card, "10")},
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, p.CurrencyID)
+	assert.Equal(t, "12800.0000", p.Rate, "the standard rate at the moment")
+	assert.Equal(t, "100.00", p.Total, "in dollars")
+	assert.Equal(t, "1280000.00", p.TotalUZS)
+	assert.Equal(t, "60.00", p.Paid, "640 000 so'm at 12 800 and 10 dollars, in the purchase's currency")
+	assert.Equal(t, []LinkedPayment{
+		{ID: p.Payments[0].ID, BankAccountID: m.cash, AccountName: "Naqd", Amount: "640000.00", CurrencyID: 1},
+		{ID: p.Payments[1].ID, BankAccountID: card, AccountName: "Karta", Amount: "10.00", CurrencyID: 2},
+	}, p.Payments, "each payment in its account's currency")
+	sup, err := s.GetSupplier(ctx, m.company, m.bozor)
+	require.NoError(t, err)
+	assert.Equal(t, "512000.00", sup.Balance, "1 280 000 − 640 000 − 128 000, in so'm")
+	assert.Equal(t, []BalanceLine{{CurrencyID: 1, Amount: "-640000.00"}, {CurrencyID: 2, Amount: "90.00"}}, sup.BalanceByCurrency, "and by currency, as is")
+
+	own, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, CurrencyID: usd, Rate: ptr("13000"), Items: []ItemInput{line(m.olma, "2", "50")}})
+	require.NoError(t, err)
+	assert.Equal(t, "13000.0000", own.Rate, "the document's own rate")
+	assert.Equal(t, "1300000.00", own.TotalUZS)
+
+	for name, tc := range map[string]struct {
+		in      PurchaseInput
+		code    string
+		message string
+	}{
+		"a bad rate":          {PurchaseInput{SupplierID: m.bozor, At: on, CurrencyID: usd, Rate: ptr("12 800"), Items: []ItemInput{line(m.olma, "1", "1")}}, "validation_error", "Kurs noto'g'ri"},
+		"a currency off":      {PurchaseInput{SupplierID: m.bozor, At: on, CurrencyID: ptr(int64(3)), Items: []ItemInput{line(m.olma, "1", "1")}}, "currency_not_allowed", "Bu valyuta kompaniyada yoqilmagan"},
+		"a rate for the so'm": {PurchaseInput{SupplierID: m.bozor, At: on, Rate: ptr("2"), Items: []ItemInput{line(m.olma, "1", "1")}}, "validation_error", "Kurs noto'g'ri"},
+	} {
+		_, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, tc.in)
+		refused(t, err, apperr.Invalid, tc.code, tc.message, name)
+	}
+	turnOn(t, pool, m.company, 3)
+	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, CurrencyID: ptr(int64(3)), Items: []ItemInput{line(m.olma, "1", "1")}})
+	refused(t, err, apperr.Invalid, "validation_error", "Kursni kiriting", "the euro is on, its rate is not set")
+	euro := addAccount(t, pool, m.company, "Yevro", 3, true)
+	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "1", "1")}, Payments: []ledger.PaymentLine{pay(euro, "1")}})
+	refused(t, err, apperr.Invalid, "validation_error", "Kursni kiriting", "a payment out of an account whose currency has no rate")
 }
 
 func TestCreatePurchaseRefusals(t *testing.T) {
@@ -126,45 +200,49 @@ func TestCreatePurchaseRefusals(t *testing.T) {
 	service := addProduct(t, pool, m.company, "Yetkazish", nil, true)
 	eski := addProduct(t, pool, m.company, "Eski", ptr("dona"), false)
 	theirs := addProduct(t, pool, nok.company, "Begona", ptr("kg"), true)
+	closed := addAccount(t, pool, m.company, "Yopiq", 1, false)
 	ok := []ItemInput{line(m.olma, "1", "1000")}
-	on := "2026-10-07"
 
 	for name, tc := range map[string]struct {
 		location int64
 		in       PurchaseInput
 		message  string
 	}{
-		"no location":           {0, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: ok}, "Lokatsiyani tanlang"},
-		"a location outside":    {nok.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: ok}, "Lokatsiyani tanlang"},
-		"no supplier":           {m.asosiy, PurchaseInput{PurchasedOn: on, Items: ok}, "Ta'minotchini tanlang"},
-		"another's supplier":    {m.asosiy, PurchaseInput{SupplierID: foreign.ID, PurchasedOn: on, Items: ok}, "Ta'minotchini tanlang"},
-		"an inactive supplier":  {m.asosiy, PurchaseInput{SupplierID: off.ID, PurchasedOn: on, Items: ok}, "Ta'minotchi nofaol"},
-		"no day":                {m.asosiy, PurchaseInput{SupplierID: m.bozor, Items: ok}, "Sanani kiriting"},
-		"a bad day":             {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "7.10.2026", Items: ok}, "Sana noto'g'ri"},
-		"a long note":           {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Note: ptr(strings.Repeat("x", 501)), Items: ok}, "Izoh 500 belgidan oshmasin"},
-		"no lines":              {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on}, "Kamida bitta mahsulot qo'shing"},
-		"no product":            {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{{Quantity: ptr("1"), Price: ptr("1")}}}, "Mahsulotni tanlang"},
-		"another's product":     {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{line(theirs, "1", "1")}}, "Mahsulotni tanlang"},
-		"a service":             {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{line(service, "1", "1")}}, "Xizmat xaridga kiritilmaydi"},
-		"an inactive product":   {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{line(eski, "1", "1")}}, "Mahsulot nofaol"},
-		"a product twice":       {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{line(m.olma, "1", "1"), line(m.olma, "2", "1")}}, "«Olma» ikki marta kiritilgan"},
-		"no quantity":           {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{{ProductID: m.olma, Price: ptr("1")}}}, "«Olma» miqdori noto'g'ri"},
-		"a zero quantity":       {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{line(m.olma, "0", "1")}}, "«Olma» miqdori noto'g'ri"},
-		"no price":              {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{{ProductID: m.nok, Quantity: ptr("1")}}}, "«Nok» narxi noto'g'ri"},
-		"a bad price":           {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: []ItemInput{line(m.nok, "1", "1,5")}}, "«Nok» narxi noto'g'ri"},
-		"a bad paid amount":     {m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: ok, Paid: ptr("-1")}, "To'langan summa noto'g'ri"},
-		"the first wrong thing": {m.asosiy, PurchaseInput{SupplierID: off.ID, PurchasedOn: "x", Items: nil}, "Ta'minotchi nofaol"},
+		"no location":           {0, purchaseOf(m.bozor, ok...), "Lokatsiyani tanlang"},
+		"a location outside":    {nok.asosiy, purchaseOf(m.bozor, ok...), "Lokatsiyani tanlang"},
+		"no supplier":           {m.asosiy, purchaseOf(0, ok...), "Ta'minotchini tanlang"},
+		"another's supplier":    {m.asosiy, purchaseOf(foreign.ID, ok...), "Ta'minotchini tanlang"},
+		"an inactive supplier":  {m.asosiy, purchaseOf(off.ID, ok...), "Ta'minotchi nofaol"},
+		"no time":               {m.asosiy, PurchaseInput{SupplierID: m.bozor, Items: ok}, "Vaqtni kiriting"},
+		"a bad time":            {m.asosiy, PurchaseInput{SupplierID: m.bozor, At: "7.10.2026", Items: ok}, "Vaqt noto'g'ri"},
+		"a long note":           {m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Note: ptr(strings.Repeat("x", 501)), Items: ok}, "Izoh 500 belgidan oshmasin"},
+		"no lines":              {m.asosiy, purchaseOf(m.bozor), "Kamida bitta mahsulot qo'shing"},
+		"no product":            {m.asosiy, purchaseOf(m.bozor, ItemInput{Quantity: ptr("1"), Price: ptr("1")}), "Mahsulotni tanlang"},
+		"another's product":     {m.asosiy, purchaseOf(m.bozor, line(theirs, "1", "1")), "Mahsulotni tanlang"},
+		"a service":             {m.asosiy, purchaseOf(m.bozor, line(service, "1", "1")), "Xizmat xaridga kiritilmaydi"},
+		"an inactive product":   {m.asosiy, purchaseOf(m.bozor, line(eski, "1", "1")), "Mahsulot nofaol"},
+		"a product twice":       {m.asosiy, purchaseOf(m.bozor, line(m.olma, "1", "1"), line(m.olma, "2", "1")), "«Olma» ikki marta kiritilgan"},
+		"no quantity":           {m.asosiy, purchaseOf(m.bozor, ItemInput{ProductID: m.olma, Price: ptr("1")}), "«Olma» miqdori noto'g'ri"},
+		"a zero quantity":       {m.asosiy, purchaseOf(m.bozor, line(m.olma, "0", "1")), "«Olma» miqdori noto'g'ri"},
+		"no price":              {m.asosiy, purchaseOf(m.bozor, ItemInput{ProductID: m.nok, Quantity: ptr("1")}), "«Nok» narxi noto'g'ri"},
+		"a bad price":           {m.asosiy, purchaseOf(m.bozor, line(m.nok, "1", "1,5")), "«Nok» narxi noto'g'ri"},
+		"no account":            {m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: ok, Payments: []ledger.PaymentLine{pay(0, "1")}}, "Akkauntni tanlang"},
+		"another's account":     {m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: ok, Payments: []ledger.PaymentLine{pay(nok.cash, "1")}}, "Akkauntni tanlang"},
+		"an inactive account":   {m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: ok, Payments: []ledger.PaymentLine{pay(closed, "1")}}, "Akkaunt nofaol"},
+		"a bad payment":         {m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: ok, Payments: []ledger.PaymentLine{pay(m.cash, "-1")}}, "To'lov summasi noto'g'ri"},
+		"a payment of nothing":  {m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: ok, Payments: []ledger.PaymentLine{pay(m.cash, "0")}}, "To'lov summasi noto'g'ri"},
+		"the first wrong thing": {m.asosiy, PurchaseInput{SupplierID: off.ID, At: "x", Items: nil}, "Ta'minotchi nofaol"},
 	} {
 		_, err := s.CreatePurchase(ctx, m.scope(), ali, tc.location, tc.in)
 		refused(t, err, apperr.Invalid, "validation_error", tc.message, name)
 	}
 	assert.Equal(t, "0.000", stockOf(t, pool, m.asosiy, m.olma), "nothing was written")
-	n, err := s.q.NextPurchaseNumber(ctx, m.company)
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "no number was taken")
-	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: ok, Paid: ptr("99999")})
+	var count int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM transactions WHERE company_id = $1", m.company).Scan(&count))
+	assert.Zero(t, count, "no document, no payment")
+	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: ok, Payments: []ledger.PaymentLine{pay(m.cash, "99999")}})
 	assert.NoError(t, err, "paying more than the total is an advance")
-	_, err = s.CreatePurchase(ctx, m.scope(m.chilonzor), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: on, Items: ok})
+	_, err = s.CreatePurchase(ctx, m.scope(m.chilonzor), ali, m.asosiy, purchaseOf(m.bozor, ok...))
 	refused(t, err, apperr.Invalid, "validation_error", "Lokatsiyani tanlang", "a restricted member's other location (the handler answers 403 before)")
 }
 
@@ -172,17 +250,31 @@ func TestAPurchaseIsWrittenWholeOrNotAtAll(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newMarket(t, s, pool)
-	pgtest.FailInserts(t, pool, "purchase_items")
+	pgtest.FailInserts(t, pool, "stock_moves")
 
-	_, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Items: []ItemInput{line(m.olma, "1", "1")}, Paid: ptr("1")})
+	_, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "1", "1")}, Payments: []ledger.PaymentLine{pay(m.cash, "1")}})
 
 	require.Error(t, err)
 	var count int
-	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM purchases WHERE company_id = $1", m.company).Scan(&count))
-	assert.Zero(t, count, "the head is not kept without its lines")
-	assert.Equal(t, "0.000", stockOf(t, pool, m.asosiy, m.olma))
-	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM supplier_payments WHERE company_id = $1", m.company).Scan(&count))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM transactions WHERE company_id = $1", m.company).Scan(&count))
+	assert.Zero(t, count, "the head is not kept without its moves")
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM transaction_items").Scan(&count))
 	assert.Zero(t, count)
+}
+
+func TestAPurchaseWhosePaymentCannotBeWrittenIsNotWritten(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	m := newMarket(t, s, pool)
+	closed := addAccount(t, pool, m.company, "Yopiq", 1, false)
+
+	_, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "1", "1")}, Payments: []ledger.PaymentLine{pay(m.cash, "1"), pay(closed, "1")}})
+
+	refused(t, err, apperr.Invalid, "validation_error", "Akkaunt nofaol")
+	var count int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM transactions WHERE company_id = $1", m.company).Scan(&count))
+	assert.Zero(t, count, "neither the purchase nor the first payment")
+	assert.Equal(t, "0.000", stockOf(t, pool, m.asosiy, m.olma))
 }
 
 func TestGetAndListPurchases(t *testing.T) {
@@ -191,11 +283,11 @@ func TestGetAndListPurchases(t *testing.T) {
 	m := newMarket(t, s, pool)
 	dehqon, err := s.CreateSupplier(ctx, m.company, ali, SupplierInput{Name: "Dehqon"})
 	require.NoError(t, err)
-	first, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-01", Items: []ItemInput{line(m.olma, "1", "1")}})
+	first, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: "2026-10-01T09:00:00+05:00", Items: []ItemInput{line(m.olma, "1", "1")}, Payments: []ledger.PaymentLine{pay(m.cash, "1")}})
 	require.NoError(t, err)
-	second, err := s.CreatePurchase(ctx, m.scope(), ali, m.chilonzor, PurchaseInput{SupplierID: dehqon.ID, PurchasedOn: "2026-10-05", Items: []ItemInput{line(m.olma, "1", "1")}})
+	second, err := s.CreatePurchase(ctx, m.scope(), ali, m.chilonzor, PurchaseInput{SupplierID: dehqon.ID, At: "2026-10-05T09:00:00+05:00", Items: []ItemInput{line(m.olma, "1", "1")}})
 	require.NoError(t, err)
-	third, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-05", Items: []ItemInput{line(m.olma, "1", "1")}})
+	third, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: "2026-10-05T09:00:00+05:00", Items: []ItemInput{line(m.olma, "1", "1")}})
 	require.NoError(t, err)
 	numbers := func(scope Scope, in PurchaseListInput) []int32 {
 		page, err := s.ListPurchases(ctx, scope, in)
@@ -214,6 +306,8 @@ func TestGetAndListPurchases(t *testing.T) {
 	refused(t, err, apperr.NotFound, "not_found", "Xarid topilmadi", "outside the member's locations")
 	_, err = s.GetPurchase(ctx, m.scope(), 999999)
 	refused(t, err, apperr.NotFound, "not_found", "Xarid topilmadi")
+	_, err = s.GetPurchase(ctx, m.scope(), first.Payments[0].ID)
+	refused(t, err, apperr.NotFound, "not_found", "Xarid topilmadi", "a payment is no purchase")
 
 	assert.Equal(t, []int32{3, 2, 1}, numbers(m.scope(), PurchaseListInput{Page: 1}), "the newest first, then the later entered")
 	assert.Equal(t, []int32{3, 1}, numbers(m.scope(), PurchaseListInput{LocationID: m.asosiy, Page: 1}), "one location")
@@ -230,8 +324,10 @@ func TestGetAndListPurchases(t *testing.T) {
 	assert.Equal(t, PageSize, page.PageSize)
 	assert.Equal(t, third.ID, page.Items[0].ID)
 	assert.Equal(t, second.ID, page.Items[1].ID)
-	assert.Empty(t, page.Items[0].Items, "the list carries no lines")
-	assert.EqualValues(t, 1, page.Items[0].ItemsCount, "but says how many there are")
+	assert.Empty(t, page.Items[2].Items, "the list carries no lines")
+	assert.Empty(t, page.Items[2].Payments, "nor payments")
+	assert.Equal(t, "1.00", page.Items[2].Paid, "but what was paid")
+	assert.EqualValues(t, 1, page.Items[0].ItemsCount, "and how many lines there are")
 }
 
 func TestUpdatePurchase(t *testing.T) {
@@ -242,17 +338,18 @@ func TestUpdatePurchase(t *testing.T) {
 	require.NoError(t, err)
 	anor := addProduct(t, pool, m.company, "Anor", ptr("kg"), true)
 	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{
-		SupplierID: m.bozor, PurchasedOn: "2026-10-07", Paid: ptr("5000"),
+		SupplierID: m.bozor, At: on, Payments: []ledger.PaymentLine{pay(m.cash, "5000")},
 		Items: []ItemInput{line(m.olma, "10", "1000"), line(m.nok, "3", "2000")},
 	})
 	require.NoError(t, err)
-	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Items: []ItemInput{line(m.olma, "5", "1000")}})
+	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "5", "1000")}})
 	require.NoError(t, err)
 
 	// Olma down to 4 (−6), Nok out (−3), Anor in (+2); another supplier,
-	// another day, more paid.
+	// another moment, more paid.
+	later := "2026-10-09T18:00:00+05:00"
 	saved, err := s.UpdatePurchase(ctx, m.scope(), vali, p.ID, PurchaseInput{
-		SupplierID: dehqon.ID, PurchasedOn: "2026-10-09", Note: ptr("Qayta"), Paid: ptr("7000"),
+		SupplierID: dehqon.ID, At: later, Note: ptr("Qayta"), Payments: []ledger.PaymentLine{pay(m.cash, "7000")},
 		Items: []ItemInput{line(anor, "2", "3000"), line(m.olma, "4", "1100")},
 	})
 	require.NoError(t, err)
@@ -260,7 +357,7 @@ func TestUpdatePurchase(t *testing.T) {
 	assert.Equal(t, m.asosiy, saved.LocationID, "the location stays")
 	assert.Equal(t, dehqon.ID, saved.SupplierID)
 	assert.Equal(t, "Dehqon", saved.SupplierName)
-	assert.Equal(t, "2026-10-09", saved.PurchasedOn.Format(time.DateOnly))
+	assert.Equal(t, time.Date(2026, 10, 9, 13, 0, 0, 0, time.UTC), saved.At)
 	assert.Equal(t, ptr("Qayta"), saved.Note)
 	assert.Equal(t, "10400.00", saved.Total, "2 × 3000 + 4 × 1100")
 	assert.Equal(t, "7000.00", saved.Paid)
@@ -268,7 +365,7 @@ func TestUpdatePurchase(t *testing.T) {
 	assert.Equal(t, []int64{anor, m.olma}, []int64{saved.Items[0].ProductID, saved.Items[1].ProductID}, "the new order")
 	assert.Equal(t, ptr("Ali aka"), saved.CreatedByName, "who entered it stays")
 	assert.True(t, saved.UpdatedAt.After(p.UpdatedAt))
-	assert.Equal(t, "9.000", stockOf(t, pool, m.asosiy, m.olma), "15 − 6: by the difference")
+	assert.Equal(t, "9.000", stockOf(t, pool, m.asosiy, m.olma), "15 − 6: written anew")
 	assert.Equal(t, "0.000", stockOf(t, pool, m.asosiy, m.nok), "taken back")
 	assert.Equal(t, "2.000", stockOf(t, pool, m.asosiy, anor), "added")
 	bozor, err := s.GetSupplier(ctx, m.company, m.bozor)
@@ -282,49 +379,53 @@ func TestUpdatePurchase(t *testing.T) {
 	payments, err := s.ListPayments(ctx, m.company, dehqon.ID, 1)
 	require.NoError(t, err)
 	require.Len(t, payments.Items, 1)
-	assert.Equal(t, "2026-10-09", payments.Items[0].PaidOn.Format(time.DateOnly), "on the purchase's new day")
-	assert.Equal(t, ptr("Ali aka"), payments.Items[0].CreatedByName, "the payment is the one entered with the purchase, changed")
+	assert.Equal(t, saved.At, payments.Items[0].At, "at the purchase's new moment")
+	assert.Nil(t, payments.Items[0].CreatedByName, "the payments are written anew by whoever saves (Vali)")
+	assert.NotEqual(t, p.Payments[0].ID, payments.Items[0].ID)
+	old, err := s.ListPayments(ctx, m.company, m.bozor, 1)
+	require.NoError(t, err)
+	assert.Empty(t, old.Items, "the old payment is hidden")
 
-	// Paid down to nothing: the linked payment goes; then back: a new one,
-	// entered by whoever saves.
-	saved, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: dehqon.ID, PurchasedOn: "2026-10-09", Items: []ItemInput{line(anor, "2", "3000"), line(m.olma, "4", "1100")}})
+	// Paid nothing: the linked payments go; then back: new ones.
+	saved, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: dehqon.ID, At: later, Items: []ItemInput{line(anor, "2", "3000"), line(m.olma, "4", "1100")}})
 	require.NoError(t, err)
 	assert.Equal(t, "0.00", saved.Paid)
+	assert.Empty(t, saved.Payments)
 	payments, err = s.ListPayments(ctx, m.company, dehqon.ID, 1)
 	require.NoError(t, err)
 	assert.Empty(t, payments.Items)
-	saved, err = s.UpdatePurchase(ctx, m.scope(), vali, p.ID, PurchaseInput{SupplierID: dehqon.ID, PurchasedOn: "2026-10-09", Paid: ptr("100"), Items: []ItemInput{line(anor, "2", "3000"), line(m.olma, "4", "1100")}})
+	saved, err = s.UpdatePurchase(ctx, m.scope(), vali, p.ID, PurchaseInput{SupplierID: dehqon.ID, At: later, Payments: []ledger.PaymentLine{pay(m.cash, "100")}, Items: []ItemInput{line(anor, "2", "3000"), line(m.olma, "4", "1100")}})
 	require.NoError(t, err)
 	assert.Equal(t, "100.00", saved.Paid)
-	payments, err = s.ListPayments(ctx, m.company, dehqon.ID, 1)
-	require.NoError(t, err)
-	require.Len(t, payments.Items, 1)
-	assert.Nil(t, payments.Items[0].CreatedByName, "Vali entered the new one")
 	assert.Equal(t, "9.000", stockOf(t, pool, m.asosiy, m.olma), "the same lines: the stock is as it was")
 
-	// An inactive supplier or product already in the purchase stays; a new
-	// one has to be active.
+	// An inactive supplier, product or account already in the purchase
+	// stays; a new one has to be active.
 	_, err = s.SetSupplierActive(ctx, m.company, dehqon.ID, false)
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, "UPDATE products SET is_active = false WHERE id = $1", anor)
 	require.NoError(t, err)
-	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: dehqon.ID, PurchasedOn: "2026-10-09", Items: []ItemInput{line(anor, "3", "3000")}})
-	assert.NoError(t, err, "what the purchase already names is kept, changed quantity and all")
+	_, err = pool.Exec(ctx, "UPDATE bank_accounts SET is_active = false WHERE id = $1", m.cash)
+	require.NoError(t, err)
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: dehqon.ID, At: later, Payments: []ledger.PaymentLine{pay(m.cash, "200")}, Items: []ItemInput{line(anor, "3", "3000")}})
+	assert.NoError(t, err, "what the purchase already names is kept, changed quantity and amount and all")
 	assert.Equal(t, "3.000", stockOf(t, pool, m.asosiy, anor))
 	assert.Equal(t, "5.000", stockOf(t, pool, m.asosiy, m.olma), "Olma out of this purchase")
-	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-09", Items: []ItemInput{line(anor, "3", "3000"), line(m.nok, "1", "1")}})
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: later, Items: []ItemInput{line(anor, "3", "3000"), line(m.nok, "1", "1")}})
 	assert.NoError(t, err, "Nok is active, Bozor too")
 	eski := addProduct(t, pool, m.company, "Eski", ptr("dona"), false)
-	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-09", Items: []ItemInput{line(eski, "1", "1")}})
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: later, Items: []ItemInput{line(eski, "1", "1")}})
 	refused(t, err, apperr.Invalid, "validation_error", "Mahsulot nofaol", "a product new to the purchase")
-	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: dehqon.ID, PurchasedOn: "2026-10-09", Items: []ItemInput{line(anor, "3", "3000")}})
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: dehqon.ID, At: later, Items: []ItemInput{line(anor, "3", "3000")}})
 	refused(t, err, apperr.Invalid, "validation_error", "Ta'minotchi nofaol", "a supplier new to the purchase")
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: later, Payments: []ledger.PaymentLine{pay(m.cash, "1")}, Items: []ItemInput{line(anor, "3", "3000")}})
+	refused(t, err, apperr.Invalid, "validation_error", "Akkaunt nofaol", "an account the purchase no longer pays from")
 
-	_, err = s.UpdatePurchase(ctx, m.scope(m.chilonzor), ali, p.ID, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-09", Items: []ItemInput{line(anor, "3", "3000")}})
+	_, err = s.UpdatePurchase(ctx, m.scope(m.chilonzor), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: later, Items: []ItemInput{line(anor, "3", "3000")}})
 	refused(t, err, apperr.NotFound, "not_found", "Xarid topilmadi", "outside the member's locations")
 	_, err = s.UpdatePurchase(ctx, m.scope(), ali, 999999, PurchaseInput{})
 	refused(t, err, apperr.NotFound, "not_found", "Xarid topilmadi", "the record before its fields")
-	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-09"})
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: later})
 	refused(t, err, apperr.Invalid, "validation_error", "Kamida bitta mahsulot qo'shing")
 	assert.Equal(t, "3.000", stockOf(t, pool, m.asosiy, anor), "a refused edit changes nothing")
 }
@@ -333,23 +434,24 @@ func TestAnEditThatWouldTakeMoreThanTheStockHasIsRefused(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newMarket(t, s, pool)
-	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Items: []ItemInput{line(m.olma, "10", "1000")}})
+	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "10", "1000")}})
 	require.NoError(t, err)
 	// Something else took 8 of the 10 (a sale, one day).
-	_, err = pool.Exec(ctx, "UPDATE stock SET quantity = 2 WHERE location_id = $1 AND product_id = $2", m.asosiy, m.olma)
-	require.NoError(t, err)
+	sold(t, pool, m.shop, m.olma, "8")
 
-	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Items: []ItemInput{line(m.olma, "1", "1000")}})
-	refused(t, err, apperr.Conflict, "stock_insufficient", "Omborda yetarli qoldiq yo'q", "2 − 9 would be below zero")
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "1", "1000")}})
+	refused(t, err, apperr.Conflict, "stock_insufficient", "«Olma» uchun omborda yetarli qoldiq yo'q", "1 − 8 would be below zero")
 	got, err := s.GetPurchase(ctx, m.scope(), p.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "10.000", got.Items[0].Quantity, "nothing changed")
 	assert.Equal(t, "2.000", stockOf(t, pool, m.asosiy, m.olma))
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.nok, "1", "1000")}})
+	refused(t, err, apperr.Conflict, "stock_insufficient", "«Olma» uchun omborda yetarli qoldiq yo'q", "Olma out of the purchase altogether")
 	err = s.DeletePurchase(ctx, m.scope(), p.ID)
-	refused(t, err, apperr.Conflict, "stock_insufficient", "Omborda yetarli qoldiq yo'q")
+	refused(t, err, apperr.Conflict, "stock_insufficient", "«Olma» uchun omborda yetarli qoldiq yo'q")
 	_, err = s.GetPurchase(ctx, m.scope(), p.ID)
 	assert.NoError(t, err, "the purchase stays")
-	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Items: []ItemInput{line(m.olma, "12", "1000")}})
+	_, err = s.UpdatePurchase(ctx, m.scope(), ali, p.ID, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "12", "1000")}})
 	assert.NoError(t, err, "+2 is fine")
 	assert.Equal(t, "4.000", stockOf(t, pool, m.asosiy, m.olma))
 }
@@ -358,9 +460,9 @@ func TestDeletePurchase(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newMarket(t, s, pool)
-	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Paid: ptr("500"), Items: []ItemInput{line(m.olma, "10", "1000"), line(m.nok, "3", "2000")}})
+	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Payments: []ledger.PaymentLine{pay(m.cash, "500")}, Items: []ItemInput{line(m.olma, "10", "1000"), line(m.nok, "3", "2000")}})
 	require.NoError(t, err)
-	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Items: []ItemInput{line(m.olma, "5", "1000")}})
+	_, err = s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "5", "1000")}})
 	require.NoError(t, err)
 
 	err = s.DeletePurchase(ctx, m.scope(m.chilonzor), p.ID)
@@ -377,7 +479,10 @@ func TestDeletePurchase(t *testing.T) {
 	assert.Equal(t, "5000.00", sup.PurchasesTotal)
 	assert.Equal(t, "0.00", sup.PaymentsTotal, "its payment went with it")
 	assert.Equal(t, "5000.00", sup.Balance)
-	next, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-08", Items: []ItemInput{line(m.olma, "1", "1")}})
+	payments, err := s.ListPayments(ctx, m.company, m.bozor, 1)
+	require.NoError(t, err)
+	assert.Empty(t, payments.Items)
+	next, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "1", "1")}})
 	require.NoError(t, err)
 	assert.EqualValues(t, 3, next.Number, "a deleted purchase keeps its number")
 }
@@ -386,13 +491,11 @@ func TestAPurchasesPaymentIsChangedThroughThePurchaseAlone(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newMarket(t, s, pool)
-	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Paid: ptr("500"), Items: []ItemInput{line(m.olma, "1", "1000")}})
+	p, err := s.CreatePurchase(ctx, m.scope(), ali, m.asosiy, PurchaseInput{SupplierID: m.bozor, At: on, Payments: []ledger.PaymentLine{pay(m.cash, "500")}, Items: []ItemInput{line(m.olma, "1", "1000")}})
 	require.NoError(t, err)
-	payments, err := s.ListPayments(ctx, m.company, m.bozor, 1)
-	require.NoError(t, err)
-	linked := payments.Items[0].ID
+	linked := p.Payments[0].ID
 
-	_, err = s.UpdatePayment(ctx, m.company, m.bozor, linked, PaymentInput{Amount: ptr("1"), PaidOn: "2026-10-07"})
+	_, err = s.UpdatePayment(ctx, m.company, ali, m.bozor, linked, PaymentInput{BankAccountID: m.cash, Amount: ptr("1"), At: on})
 	refused(t, err, apperr.Conflict, "payment_linked", "Bu to'lov xarid bilan kiritilgan: xaridni tahrirlang")
 	err = s.DeletePayment(ctx, m.company, m.bozor, linked)
 	refused(t, err, apperr.Conflict, "payment_linked", "Bu to'lov xarid bilan kiritilgan: xaridni tahrirlang")
@@ -411,7 +514,7 @@ func TestTwoPurchasesEnteredAtOnceTakeTwoNumbers(t *testing.T) {
 	t.Cleanup(func() { _ = other.Rollback(context.Background()) })
 	_, err = other.Exec(ctx, "SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE", m.company)
 	require.NoError(t, err)
-	in := PurchaseInput{SupplierID: m.bozor, PurchasedOn: "2026-10-07", Items: []ItemInput{line(m.olma, "1", "1")}}
+	in := PurchaseInput{SupplierID: m.bozor, At: on, Items: []ItemInput{line(m.olma, "1", "1")}}
 
 	done := make(chan error, 2)
 	for range 2 {

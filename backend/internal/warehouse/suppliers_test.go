@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -18,9 +19,9 @@ const (
 )
 
 // shop is a company with Ali (owner, "Ali aka") and Vali (user, no name),
-// and two locations.
+// two locations and its cash in so'm.
 type shop struct {
-	company, asosiy, chilonzor int64
+	company, asosiy, chilonzor, cash int64
 }
 
 // scope is a member's reach in the shop: every location unless some are
@@ -50,7 +51,44 @@ func newShop(t *testing.T, pool *pgxpool.Pool, name string) shop {
 	require.NoError(t, err)
 	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO locations (company_id, name) VALUES ($1, 'Asosiy') RETURNING id", s.company).Scan(&s.asosiy))
 	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO locations (company_id, name) VALUES ($1, 'Chilonzor') RETURNING id", s.company).Scan(&s.chilonzor))
+	_, err = pool.Exec(ctx, "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, 1)", s.company)
+	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Naqd', 1) RETURNING id", s.company).Scan(&s.cash))
 	return s
+}
+
+// turnOn turns a currency on for the company.
+func turnOn(t *testing.T, pool *pgxpool.Pool, companyID, currencyID int64) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(), "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", companyID, currencyID)
+	require.NoError(t, err)
+}
+
+// standardRate enters a standard rate row (1 USD = usd so'm) set at the
+// moment, and turns the dollar on.
+func standardRate(t *testing.T, pool *pgxpool.Pool, companyID int64, usd, setAt string) int64 {
+	t.Helper()
+	turnOn(t, pool, companyID, 2)
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(), "INSERT INTO currency_rates (company_id, usd, set_by, set_at) VALUES ($1, $2::numeric, $3, $4::timestamptz) RETURNING id", companyID, usd, ali, setAt).Scan(&id))
+	return id
+}
+
+// addAccount enters an account of the company in the currency, active or not.
+func addAccount(t *testing.T, pool *pgxpool.Pool, companyID int64, name string, currencyID int64, active bool) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(), "INSERT INTO bank_accounts (company_id, name, currency_id, is_active) VALUES ($1, $2, $3, $4) RETURNING id", companyID, name, currencyID, active).Scan(&id))
+	return id
+}
+
+// on is the usual moment of a document in the tests: 9:00 on 2026-10-07 in
+// Tashkent.
+const on = "2026-10-07T09:00:00+05:00"
+
+// pay is a payment line out of the account.
+func pay(accountID int64, amount string) ledger.PaymentLine {
+	return ledger.PaymentLine{BankAccountID: accountID, Amount: ptr(amount)}
 }
 
 // addProduct enters a product with the unit or, with no unit, a service,
@@ -95,6 +133,7 @@ func TestCreateSupplier(t *testing.T) {
 	assert.Equal(t, "0.00", sup.Balance, "nothing owed")
 	assert.Equal(t, "0.00", sup.PurchasesTotal)
 	assert.Equal(t, "0.00", sup.PaymentsTotal)
+	assert.Empty(t, sup.BalanceByCurrency)
 	assert.Equal(t, ptr("Ali aka"), sup.CreatedByName)
 	assert.Equal(t, sup.CreatedAt, sup.UpdatedAt)
 
@@ -228,20 +267,20 @@ func TestDeleteSupplier(t *testing.T) {
 	refused(t, err, apperr.NotFound, "not_found", "Ta'minotchi topilmadi", "another company's")
 
 	// In a live purchase: kept.
-	one, err := s.CreatePurchase(ctx, olma.scope(), ali, olma.asosiy, PurchaseInput{SupplierID: bozor.ID, PurchasedOn: "2026-10-07", Items: []ItemInput{line(olmaID, "1", "1000")}})
+	one, err := s.CreatePurchase(ctx, olma.scope(), ali, olma.asosiy, PurchaseInput{SupplierID: bozor.ID, At: on, Items: []ItemInput{line(olmaID, "1", "1000")}, Payments: []ledger.PaymentLine{pay(olma.cash, "100")}})
 	require.NoError(t, err)
 	err = s.DeleteSupplier(ctx, olma.company, bozor.ID)
-	refused(t, err, apperr.Conflict, "supplier_in_use", "Bu ta'minotchida 1 ta xarid bor")
+	refused(t, err, apperr.Conflict, "supplier_in_use", "Bu ta'minotchida 2 ta hujjat bor", "the purchase and the payment entered with it")
 	require.NoError(t, s.DeletePurchase(ctx, olma.scope(), one.ID))
 
 	// With live payments: kept.
-	_, err = s.AddPayment(ctx, olma.company, ali, bozor.ID, PaymentInput{Amount: ptr("500"), PaidOn: "2026-10-07"})
+	_, err = s.AddPayment(ctx, olma.company, ali, bozor.ID, PaymentInput{BankAccountID: olma.cash, Amount: ptr("500"), At: on})
 	require.NoError(t, err)
-	_, err = s.AddPayment(ctx, olma.company, ali, bozor.ID, PaymentInput{Amount: ptr("500"), PaidOn: "2026-10-07"})
+	_, err = s.AddPayment(ctx, olma.company, ali, bozor.ID, PaymentInput{BankAccountID: olma.cash, Amount: ptr("500"), At: on})
 	require.NoError(t, err)
 	err = s.DeleteSupplier(ctx, olma.company, bozor.ID)
-	refused(t, err, apperr.Conflict, "supplier_in_use", "Bu ta'minotchida 2 ta to'lov bor", "no purchase, but payments")
-	_, err = pool.Exec(ctx, "UPDATE supplier_payments SET deleted_at = now() WHERE supplier_id = $1", bozor.ID)
+	refused(t, err, apperr.Conflict, "supplier_in_use", "Bu ta'minotchida 2 ta hujjat bor", "no purchase, but payments")
+	_, err = pool.Exec(ctx, "UPDATE transactions SET deleted_at = now() WHERE supplier_id = $1 AND deleted_at IS NULL", bozor.ID)
 	require.NoError(t, err)
 
 	require.NoError(t, s.DeleteSupplier(ctx, olma.company, bozor.ID))

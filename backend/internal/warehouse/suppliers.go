@@ -21,20 +21,30 @@ import (
 var uzbekPhone = regexp.MustCompile(`^998\d{9}$`)
 
 // Supplier is a supplier of a company, as the API shows it, with its
-// balance: what its live purchases come to, what its live payments come to,
-// and the difference (owed above zero, an advance below).
+// balance in so'm (logic/warehouse.md, section 6): what its live purchases
+// come to, what its live payments come to, and what is owed (above zero;
+// an advance below), each document by its own rate; and, on its own page,
+// what is owed in each currency apart (BalanceByCurrency, nil in a list).
 type Supplier struct {
-	ID             int64
-	Name           string
-	Phone          *string
-	Note           *string
-	Active         bool
-	PurchasesTotal string
-	PaymentsTotal  string
-	Balance        string
-	CreatedByName  *string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID                int64
+	Name              string
+	Phone             *string
+	Note              *string
+	Active            bool
+	PurchasesTotal    string
+	PaymentsTotal     string
+	Balance           string
+	BalanceByCurrency []BalanceLine
+	CreatedByName     *string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+// BalanceLine is what is owed in one currency, without turning it into
+// so'm; a currency that comes to 0 is left out.
+type BalanceLine struct {
+	CurrencyID int64
+	Amount     string
 }
 
 // SupplierInput is what a supplier is saved with, as the client sent it.
@@ -125,7 +135,16 @@ func getSupplier(ctx context.Context, q *gen.Queries, companyID, id int64) (Supp
 	if err != nil {
 		return Supplier{}, err
 	}
-	return toSupplier(r), nil
+	sup := toSupplier(r)
+	lines, err := q.ListSupplierBalanceByCurrency(ctx, id)
+	if err != nil {
+		return Supplier{}, err
+	}
+	sup.BalanceByCurrency = make([]BalanceLine, 0, len(lines))
+	for _, l := range lines {
+		sup.BalanceByCurrency = append(sup.BalanceByCurrency, BalanceLine{CurrencyID: l.CurrencyID, Amount: amount(l.Amount)})
+	}
+	return sup, nil
 }
 
 // ListSuppliers is a page of the company's suppliers, by name, each with
@@ -237,26 +256,19 @@ func (s *Service) SetSupplierActive(ctx context.Context, companyID, id int64, ac
 }
 
 // DeleteSupplier hides the company's supplier; its name is free again. One
-// with live purchases, or with live payments, is refused (409): it may be
-// turned off instead (logic/warehouse.md, 3.2).
+// with live documents (purchases, payments, opening balances) is refused
+// (409): it may be turned off instead (logic/warehouse.md, 3.2).
 func (s *Service) DeleteSupplier(ctx context.Context, companyID, id int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
 		if _, err := getSupplier(ctx, q, companyID, id); err != nil {
 			return err
 		}
-		purchases, err := q.CountSupplierPurchases(ctx, id)
+		documents, err := q.CountSupplierDocuments(ctx, id)
 		if err != nil {
 			return err
 		}
-		if purchases > 0 {
-			return apperr.New(apperr.Conflict, "supplier_in_use", fmt.Sprintf("Bu ta'minotchida %d ta xarid bor", purchases))
-		}
-		payments, err := q.CountSupplierPayments(ctx, id)
-		if err != nil {
-			return err
-		}
-		if payments > 0 {
-			return apperr.New(apperr.Conflict, "supplier_in_use", fmt.Sprintf("Bu ta'minotchida %d ta to'lov bor", payments))
+		if documents > 0 {
+			return apperr.New(apperr.Conflict, "supplier_in_use", fmt.Sprintf("Bu ta'minotchida %d ta hujjat bor", documents))
 		}
 		_, err = q.DeleteSupplier(ctx, gen.DeleteSupplierParams{ID: id, CompanyID: companyID})
 		return err

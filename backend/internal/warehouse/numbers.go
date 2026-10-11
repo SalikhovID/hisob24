@@ -1,16 +1,15 @@
 package warehouse
 
 import (
-	"strings"
-	"time"
+	"math/big"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 )
 
-// paymentAmount reads the amount of a payment: one is needed ("Summani
-// kiriting"), an amount above zero ("Summa noto'g'ri").
+// paymentAmount reads the amount of a payment entered on its own: one is
+// needed ("Summani kiriting"), an amount above zero ("Summa noto'g'ri").
 func paymentAmount(raw *string) (pgtype.Numeric, error) {
 	if raw == nil || *raw == "" {
 		return pgtype.Numeric{}, invalid("Summani kiriting")
@@ -23,18 +22,6 @@ func paymentAmount(raw *string) (pgtype.Numeric, error) {
 		return pgtype.Numeric{}, invalid("Summa noto'g'ri")
 	}
 	return n, nil
-}
-
-// day reads a day the client sent, YYYY-MM-DD: one is needed.
-func day(raw string) (time.Time, error) {
-	if strings.TrimSpace(raw) == "" {
-		return time.Time{}, invalid("Sanani kiriting")
-	}
-	d, err := time.Parse(time.DateOnly, raw)
-	if err != nil {
-		return time.Time{}, invalid("Sana noto'g'ri")
-	}
-	return d, nil
 }
 
 // amount is a stored amount as the API shows it (two decimals); "" when
@@ -52,4 +39,9 @@ func quantity(n pgtype.Numeric) string {
 		return *s
 	}
 	return ""
+}
+
+// zero is an amount of nothing: what a goods document starts with.
+func zero() pgtype.Numeric {
+	return pgtype.Numeric{Int: big.NewInt(0), Valid: true}
 }

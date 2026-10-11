@@ -10,32 +10,42 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 )
 
-// Purchase is a purchase as the API shows it: its head, what it comes to,
-// what was paid with it, and (on its own page) its lines.
+// Purchase is a purchase as the API shows it: its head, its currency and
+// rate, what it comes to (in its currency and in so'm), what was paid with
+// it, and (on its own page) its lines and the payments entered with it.
 type Purchase struct {
-	ID            int64
-	Number        int32
-	LocationID    int64
-	LocationName  string
-	SupplierID    int64
-	SupplierName  string
-	PurchasedOn   time.Time
+	ID           int64
+	Number       int32
+	LocationID   int64
+	LocationName string
+	SupplierID   int64
+	SupplierName string
+	At           time.Time
+	CurrencyID   int64
+	// Rate is the document's rate of its currency in so'm, four decimals
+	// ("12800.0000"; "1.0000" for the so'm).
+	Rate          string
 	Note          *string
 	Total         string
+	TotalUZS      string
 	Paid          string
 	ItemsCount    int64
 	CreatedByName *string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
-	// Items are the lines, in the order entered; a list carries none.
-	Items []Item
+	// Items are the lines, in the order entered; Payments the live payments
+	// entered with the purchase. A list carries neither.
+	Items    []Item
+	Payments []LinkedPayment
 }
 
 // Item is a line of a purchase: a product, a quantity, a price and what the
-// line comes to.
+// line comes to, in the purchase's currency.
 type Item struct {
 	ProductID int64
 	Name      string
@@ -43,6 +53,16 @@ type Item struct {
 	Quantity  string
 	Price     string
 	Amount    string
+}
+
+// LinkedPayment is a payment entered with the purchase: out of an account,
+// an amount in the account's currency.
+type LinkedPayment struct {
+	ID            int64
+	BankAccountID int64
+	AccountName   string
+	Amount        string
+	CurrencyID    int64
 }
 
 // ItemInput is a line as the client sent it.
@@ -55,11 +75,13 @@ type ItemInput struct {
 // PurchaseInput is what a purchase is saved with, as the client sent it.
 // The location is given apart, on entry alone.
 type PurchaseInput struct {
-	SupplierID  int64
-	PurchasedOn string
-	Note        *string
-	Items       []ItemInput
-	Paid        *string
+	SupplierID int64
+	At         string
+	CurrencyID *int64
+	Rate       *string
+	Note       *string
+	Items      []ItemInput
+	Payments   []ledger.PaymentLine
 }
 
 // PurchaseListInput narrows the list: LocationID keeps one of the scope's
@@ -88,20 +110,22 @@ type checkedItem struct {
 
 // checkedPurchase is an input as it is kept.
 type checkedPurchase struct {
-	SupplierID  int64
-	PurchasedOn time.Time
-	Note        *string
-	Items       []checkedItem
-	Paid        pgtype.Numeric
+	SupplierID int64
+	At         time.Time
+	Pricing    ledger.Pricing
+	Note       *string
+	Items      []checkedItem
 }
 
-// checkPurchase reads an input against the company, inside the write. What
-// is wrong is told in this order (logic/warehouse.md, 4.2): the supplier
-// (one of the company's; active unless it is the one the purchase already
-// names, keep), the day, the note, the lines (at least one; each product one
-// of the company's, a product not a service, active unless the purchase
-// already holds it (held), once; its quantity; its price), what was paid.
-func checkPurchase(ctx context.Context, q *gen.Queries, companyID int64, in PurchaseInput, keep int64, held map[int64]bool) (checkedPurchase, error) {
+// checkPurchase reads an input against the company, inside the write, as
+// the member with phone by. What is wrong is told in this order
+// (logic/warehouse.md, 4.2): the supplier (one of the company's; active
+// unless it is the one the purchase already names, keep), the moment, the
+// currency and the rate (current: the purchase's pricing now), the note,
+// the lines (at least one; each product one of the company's, a product
+// not a service, active unless the purchase already holds it (held), once;
+// its quantity; its price). The payments are read as they are written.
+func checkPurchase(ctx context.Context, q *gen.Queries, companyID int64, by string, in PurchaseInput, keep int64, held map[int64]bool, current *ledger.Pricing) (checkedPurchase, error) {
 	c := checkedPurchase{SupplierID: in.SupplierID}
 	if in.SupplierID == 0 {
 		return c, invalid("Ta'minotchini tanlang")
@@ -116,7 +140,10 @@ func checkPurchase(ctx context.Context, q *gen.Queries, companyID int64, in Purc
 	if !active && in.SupplierID != keep {
 		return c, invalid("Ta'minotchi nofaol")
 	}
-	if c.PurchasedOn, err = day(in.PurchasedOn); err != nil {
+	if c.At, err = ledger.At(in.At); err != nil {
+		return c, err
+	}
+	if c.Pricing, err = ledger.PriceIn(ctx, q, companyID, ledger.PriceInput{CurrencyID: in.CurrencyID, Rate: in.Rate}, c.At, by, current); err != nil {
 		return c, err
 	}
 	if c.Note, err = cleanOptional(in.Note, MaxNote, "Izoh 500 belgidan oshmasin"); err != nil {
@@ -161,21 +188,18 @@ func checkPurchase(ctx context.Context, q *gen.Queries, companyID int64, in Purc
 		}
 		c.Items = append(c.Items, checkedItem{ProductID: it.ProductID, Quantity: quantity, Price: price})
 	}
-	if c.Paid, err = catalog.Money(in.Paid, "To'langan summa noto'g'ri"); err != nil {
-		return c, err
-	}
 	return c, nil
 }
 
-func toPurchase(r gen.GetPurchaseRow, items []Item) Purchase {
+func toPurchase(r gen.GetPurchaseRow, items []Item, payments []LinkedPayment) Purchase {
 	return Purchase{
 		ID: r.ID, Number: r.Number, LocationID: r.LocationID, LocationName: r.LocationName, SupplierID: r.SupplierID, SupplierName: r.SupplierName,
-		PurchasedOn: r.PurchasedOn, Note: r.Note, Total: amount(r.Total), Paid: amount(r.Paid), ItemsCount: r.ItemsCount,
-		CreatedByName: r.CreatedByName, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, Items: items,
+		At: r.DocAt.UTC(), CurrencyID: r.CurrencyID, Rate: currency.RateText(r.Rate), Note: r.Note, Total: amount(r.Total), TotalUZS: amount(r.TotalUzs), Paid: amount(r.Paid),
+		ItemsCount: r.ItemsCount, CreatedByName: r.CreatedByName, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, Items: items, Payments: payments,
 	}
 }
 
-func toItems(rows []gen.ListPurchaseItemsRow) []Item {
+func toItems(rows []gen.ListTransactionItemsRow) []Item {
 	items := make([]Item, 0, len(rows))
 	for _, r := range rows {
 		items = append(items, Item{ProductID: r.ProductID, Name: r.Name, Unit: r.Unit, Quantity: quantity(r.Quantity), Price: amount(r.Price), Amount: amount(r.Amount)})
@@ -183,8 +207,16 @@ func toItems(rows []gen.ListPurchaseItemsRow) []Item {
 	return items
 }
 
-// getPurchase is the purchase with its lines, in the scope's locations; one
-// outside them is not found.
+func toLinkedPayments(rows []gen.ListLinkedPaymentsRow) []LinkedPayment {
+	payments := make([]LinkedPayment, 0, len(rows))
+	for _, r := range rows {
+		payments = append(payments, LinkedPayment{ID: r.ID, BankAccountID: r.BankAccountID, AccountName: r.AccountName, Amount: amount(r.Amount), CurrencyID: r.CurrencyID})
+	}
+	return payments
+}
+
+// getPurchase is the purchase with its lines and payments, in the scope's
+// locations; one outside them is not found.
 func getPurchase(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Purchase, error) {
 	r, err := q.GetPurchase(ctx, gen.GetPurchaseParams{ID: id, CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -193,11 +225,15 @@ func getPurchase(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Pu
 	if err != nil {
 		return Purchase{}, err
 	}
-	rows, err := q.ListPurchaseItems(ctx, id)
+	rows, err := q.ListTransactionItems(ctx, id)
 	if err != nil {
 		return Purchase{}, err
 	}
-	return toPurchase(r, toItems(rows)), nil
+	payments, err := q.ListLinkedPayments(ctx, id)
+	if err != nil {
+		return Purchase{}, err
+	}
+	return toPurchase(r, toItems(rows), toLinkedPayments(payments)), nil
 }
 
 // ListPurchases is a page of the purchases in the scope's locations, or in
@@ -231,20 +267,21 @@ func (s *Service) ListPurchases(ctx context.Context, scope Scope, in PurchaseLis
 	}
 	items := make([]Purchase, 0, len(rows))
 	for _, r := range rows {
-		items = append(items, toPurchase(gen.GetPurchaseRow(r), nil))
+		items = append(items, toPurchase(gen.GetPurchaseRow(r), nil, nil))
 	}
 	return PurchasePage{Items: items, Total: total, Page: in.Page, PageSize: PageSize}, nil
 }
 
-// GetPurchase is a purchase in the scope's locations, with its lines.
+// GetPurchase is a purchase in the scope's locations, with its lines and
+// the payments entered with it.
 func (s *Service) GetPurchase(ctx context.Context, scope Scope, id int64) (Purchase, error) {
 	return getPurchase(ctx, s.q, scope, id)
 }
 
 // CreatePurchase enters a purchase into the location (one of the scope's),
-// as the member with phone by: numbered next in the company, its lines into
-// the location's stock at once, and what was paid as a payment linked to it.
-// All of it is written, or none.
+// as the member with phone by: numbered next in the company, its lines
+// into the location's stock at once, and what was paid as payments linked
+// to it. All of it is written, or none.
 func (s *Service) CreatePurchase(ctx context.Context, scope Scope, by string, locationID int64, in PurchaseInput) (Purchase, error) {
 	// The location is one the member works in (the handler has refused
 	// another with 403 already; here it is no location at all).
@@ -253,7 +290,7 @@ func (s *Service) CreatePurchase(ctx context.Context, scope Scope, by string, lo
 	}
 	var p Purchase
 	err := s.write(ctx, scope.CompanyID, func(q *gen.Queries) error {
-		c, err := checkPurchase(ctx, q, scope.CompanyID, in, 0, nil)
+		c, err := checkPurchase(ctx, q, scope.CompanyID, by, in, 0, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -261,21 +298,22 @@ func (s *Service) CreatePurchase(ctx context.Context, scope Scope, by string, lo
 		if err != nil {
 			return err
 		}
-		number, err := q.NextPurchaseNumber(ctx, scope.CompanyID)
+		number, err := ledger.NextNumber(ctx, q, scope.CompanyID, ledger.Purchase)
 		if err != nil {
 			return err
 		}
-		row, err := q.CreatePurchase(ctx, gen.CreatePurchaseParams{
-			CompanyID: scope.CompanyID, Number: number, LocationID: locationID, SupplierID: c.SupplierID, PurchasedOn: c.PurchasedOn, Note: c.Note,
-			CreatedBy: by, CreatedByName: name,
+		row, err := q.CreateTransaction(ctx, gen.CreateTransactionParams{
+			CompanyID: scope.CompanyID, Kind: string(ledger.Purchase), Number: number, DocAt: c.At, LocationID: &locationID, SupplierID: &c.SupplierID,
+			CurrencyID: c.Pricing.CurrencyID, CurrencyRateID: c.Pricing.RateID, Total: zero(), Note: c.Note, CreatedBy: by, CreatedByName: name,
 		})
 		if err != nil {
 			return err
 		}
-		if err := writeLines(ctx, q, scope.CompanyID, row.ID, locationID, nil, c.Items); err != nil {
+		if err := writeLines(ctx, q, scope.CompanyID, row.ID, locationID, c.Items); err != nil {
 			return err
 		}
-		if err := settle(ctx, q, scope.CompanyID, by, name, row.ID, c); err != nil {
+		head := ledger.Head{ID: row.ID, Kind: ledger.Purchase, CompanyID: scope.CompanyID, SupplierID: &c.SupplierID, At: c.At}
+		if err := ledger.WriteLinkedPayments(ctx, q, head, in.Payments, by, name); err != nil {
 			return err
 		}
 		p, err = getPurchase(ctx, q, scope, row.ID)
@@ -284,11 +322,12 @@ func (s *Service) CreatePurchase(ctx context.Context, scope Scope, by string, lo
 	return p, err
 }
 
-// UpdatePurchase saves the purchase with other fields and lines, as the
-// member with phone by (who enters a payment that appears). The number and
-// the location stay; the lines are written anew and the stock moves by the
-// difference; the supplier and the products the purchase already names are
-// kept even when inactive. The record itself comes first.
+// UpdatePurchase saves the purchase with other fields, lines and payments,
+// as the member with phone by. The number and the location stay; the lines
+// and the moves are written anew; the payments entered with it are
+// replaced by the ones sent; the supplier, the products and the accounts
+// the purchase already names are kept even when inactive. The record
+// itself comes first.
 func (s *Service) UpdatePurchase(ctx context.Context, scope Scope, by string, id int64, in PurchaseInput) (Purchase, error) {
 	var p Purchase
 	err := s.write(ctx, scope.CompanyID, func(q *gen.Queries) error {
@@ -296,29 +335,44 @@ func (s *Service) UpdatePurchase(ctx context.Context, scope Scope, by string, id
 		if err != nil {
 			return err
 		}
+		head, err := q.GetTransaction(ctx, gen.GetTransactionParams{ID: id, CompanyID: scope.CompanyID})
+		if err != nil {
+			return err
+		}
 		held := make(map[int64]bool, len(was.Items))
 		for _, it := range was.Items {
 			held[it.ProductID] = true
 		}
-		c, err := checkPurchase(ctx, q, scope.CompanyID, in, was.SupplierID, held)
+		current, err := pricingOf(ctx, q, head)
 		if err != nil {
 			return err
 		}
-		if _, err := q.UpdatePurchase(ctx, gen.UpdatePurchaseParams{ID: id, CompanyID: scope.CompanyID, SupplierID: c.SupplierID, PurchasedOn: c.PurchasedOn, Note: c.Note}); err != nil {
-			return err
-		}
-		old, err := q.ListPurchaseItems(ctx, id)
+		c, err := checkPurchase(ctx, q, scope.CompanyID, by, in, was.SupplierID, held, &current)
 		if err != nil {
 			return err
 		}
-		if err := writeLines(ctx, q, scope.CompanyID, id, was.LocationID, old, c.Items); err != nil {
+		if _, err := q.UpdateTransaction(ctx, gen.UpdateTransactionParams{
+			ID: id, CompanyID: scope.CompanyID, DocAt: c.At, SupplierID: &c.SupplierID, CurrencyID: c.Pricing.CurrencyID, CurrencyRateID: c.Pricing.RateID, Note: c.Note,
+		}); err != nil {
+			return err
+		}
+		if err := writeLines(ctx, q, scope.CompanyID, id, was.LocationID, c.Items); err != nil {
 			return err
 		}
 		name, err := memberName(ctx, q, scope.CompanyID, by)
 		if err != nil {
 			return err
 		}
-		if err := settle(ctx, q, scope.CompanyID, by, name, id, c); err != nil {
+		doc := ledger.Head{ID: id, Kind: ledger.Purchase, CompanyID: scope.CompanyID, SupplierID: &c.SupplierID, At: c.At}
+		if err := ledger.WriteLinkedPayments(ctx, q, doc, in.Payments, by, name); err != nil {
+			return err
+		}
+		// The products out of the purchase now have to stay above zero too.
+		products := make([]int64, 0, len(was.Items))
+		for _, it := range was.Items {
+			products = append(products, it.ProductID)
+		}
+		if err := ledger.CheckStock(ctx, q, []int64{was.LocationID}, products); err != nil {
 			return err
 		}
 		p, err = getPurchase(ctx, q, scope, id)
@@ -327,96 +381,63 @@ func (s *Service) UpdatePurchase(ctx context.Context, scope Scope, by string, id
 	return p, err
 }
 
-// DeletePurchase hides the purchase, takes its lines out of the location's
-// stock and hides the payment entered with it. Its number is never given
-// again.
+// DeletePurchase hides the purchase, takes its moves out of the location's
+// stock (what was sold since has to stay above zero) and hides the payments
+// entered with it. Its number is never given again.
 func (s *Service) DeletePurchase(ctx context.Context, scope Scope, id int64) error {
 	return s.write(ctx, scope.CompanyID, func(q *gen.Queries) error {
 		was, err := getPurchase(ctx, q, scope, id)
 		if err != nil {
 			return err
 		}
-		old, err := q.ListPurchaseItems(ctx, id)
-		if err != nil {
+		if _, err := q.DeleteTransaction(ctx, gen.DeleteTransactionParams{ID: id, CompanyID: scope.CompanyID}); err != nil {
 			return err
 		}
-		if _, err := q.DeletePurchase(ctx, gen.DeletePurchaseParams{ID: id, CompanyID: scope.CompanyID}); err != nil {
+		if err := ledger.WriteMoves(ctx, q, scope.CompanyID, id, nil); err != nil {
 			return err
 		}
-		for _, it := range old {
-			if err := moveStock(ctx, q, scope.CompanyID, was.LocationID, it.ProductID, zero, it.Quantity); err != nil {
-				return err
-			}
+		products := make([]int64, 0, len(was.Items))
+		for _, it := range was.Items {
+			products = append(products, it.ProductID)
 		}
-		return q.DeletePurchasePayment(ctx, id)
+		if err := ledger.CheckStock(ctx, q, []int64{was.LocationID}, products); err != nil {
+			return err
+		}
+		return q.HideLinkedPayments(ctx, id)
 	})
 }
 
 // writeLines replaces the purchase's lines with the lines given, writes its
-// total, and moves the location's stock by the difference, product by
-// product: what was there is removed, what is given is added.
-func writeLines(ctx context.Context, q *gen.Queries, companyID, purchaseID, locationID int64, was []gen.ListPurchaseItemsRow, items []checkedItem) error {
-	if err := q.DeletePurchaseItems(ctx, purchaseID); err != nil {
+// total, and writes its moves anew: each line into the location's stock,
+// which has to stay above zero (what was sold since a line shrank).
+func writeLines(ctx context.Context, q *gen.Queries, companyID, purchaseID, locationID int64, items []checkedItem) error {
+	if err := q.DeleteTransactionItems(ctx, purchaseID); err != nil {
 		return err
 	}
+	lines := make([]ledger.Line, 0, len(items))
+	products := make([]int64, 0, len(items))
 	for i, it := range items {
-		if err := q.AddPurchaseItem(ctx, gen.AddPurchaseItemParams{PurchaseID: purchaseID, ProductID: it.ProductID, Quantity: it.Quantity, Price: it.Price, Position: int32(i + 1)}); err != nil {
+		if err := q.AddTransactionItem(ctx, gen.AddTransactionItemParams{TransactionID: purchaseID, ProductID: it.ProductID, Quantity: it.Quantity, Price: it.Price, Position: int32(i + 1)}); err != nil {
 			return err
 		}
+		lines = append(lines, ledger.Line{ProductID: it.ProductID, Quantity: it.Quantity})
+		products = append(products, it.ProductID)
 	}
-	if _, err := q.SetPurchaseTotal(ctx, purchaseID); err != nil {
+	if _, err := q.SetTransactionTotal(ctx, purchaseID); err != nil {
 		return err
 	}
-	removed := make(map[int64]pgtype.Numeric, len(was))
-	order := make([]int64, 0, len(was)+len(items))
-	for _, w := range was {
-		removed[w.ProductID] = w.Quantity
-		order = append(order, w.ProductID)
+	if err := ledger.WriteMoves(ctx, q, companyID, purchaseID, ledger.MovesOf(ledger.Purchase, locationID, 0, lines)); err != nil {
+		return err
 	}
-	added := make(map[int64]pgtype.Numeric, len(items))
-	for _, it := range items {
-		added[it.ProductID] = it.Quantity
-		if _, ok := removed[it.ProductID]; !ok {
-			order = append(order, it.ProductID)
-		}
-	}
-	for _, productID := range order {
-		add, ok := added[productID]
-		if !ok {
-			add = zero
-		}
-		remove, ok := removed[productID]
-		if !ok {
-			remove = zero
-		}
-		if err := moveStock(ctx, q, companyID, locationID, productID, add, remove); err != nil {
-			return err
-		}
-	}
-	return nil
+	return ledger.CheckStock(ctx, q, []int64{locationID}, products)
 }
 
-// settle keeps the payment entered with the purchase as what was paid says:
-// made (by the member saving) when something is paid and none is there,
-// moved to the purchase's supplier, amount and day when one is there, hidden
-// when nothing is paid now.
-func settle(ctx context.Context, q *gen.Queries, companyID int64, by string, byName *string, purchaseID int64, c checkedPurchase) error {
-	_, err := q.GetPurchasePayment(ctx, purchaseID)
-	switch {
-	case errors.Is(err, pgx.ErrNoRows):
-		if catalog.Zero(c.Paid) {
-			return nil
-		}
-		_, err = q.CreatePayment(ctx, gen.CreatePaymentParams{
-			CompanyID: companyID, SupplierID: c.SupplierID, PurchaseID: &purchaseID, Amount: c.Paid, PaidOn: c.PurchasedOn,
-			CreatedBy: by, CreatedByName: byName,
-		})
-		return err
-	case err != nil:
-		return err
-	case catalog.Zero(c.Paid):
-		return q.DeletePurchasePayment(ctx, purchaseID)
-	default:
-		return q.UpdatePurchasePayment(ctx, gen.UpdatePurchasePaymentParams{PurchaseID: purchaseID, SupplierID: c.SupplierID, Amount: c.Paid, PaidOn: c.PurchasedOn})
+// pricingOf is the document's pricing now: its currency and rate row, with
+// the rate of that currency in it.
+func pricingOf(ctx context.Context, q *gen.Queries, head gen.Transaction) (ledger.Pricing, error) {
+	row, err := q.GetRate(ctx, head.CurrencyRateID)
+	if err != nil {
+		return ledger.Pricing{}, err
 	}
+	return ledger.Pricing{CurrencyID: head.CurrencyID, RateID: head.CurrencyRateID, Rate: currency.ColumnOf(row, head.CurrencyID)}, nil
 }

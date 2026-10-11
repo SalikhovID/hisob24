@@ -207,6 +207,29 @@ func (q *Queries) GetFirstRate(ctx context.Context, companyID int64) (CurrencyRa
 	return i, err
 }
 
+const getRate = `-- name: GetRate :one
+SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates WHERE id = $1
+`
+
+// A rate row by id: what a document refers to.
+func (q *Queries) GetRate(ctx context.Context, id int64) (CurrencyRate, error) {
+	row := q.db.QueryRow(ctx, getRate, id)
+	var i CurrencyRate
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Uzs,
+		&i.Usd,
+		&i.Eur,
+		&i.Rub,
+		&i.Status,
+		&i.SetBy,
+		&i.SetByName,
+		&i.SetAt,
+	)
+	return i, err
+}
+
 const getRateAt = `-- name: GetRateAt :one
 SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates
 WHERE company_id = $1 AND status = 1 AND set_at <= $2
