@@ -878,6 +878,155 @@ paths:
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /app/finance-categories:
+    get:
+      operationId: listFinanceCategories
+      summary: Moliya kategoriyalari
+      description: >
+        Kompaniyaning xarajat va kirim kategoriyalari o'z tartibida
+        (logic/finance.md, 6-bo'lim): ?kind= bilan bitta tur, bo'lmasa
+        hammasi (xarajatlar oldin). Har a'zo o'qiydi: xarajat va kirim
+        formalari shundan quriladi.
+      security:
+        - appBearer: []
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            $ref: "#/components/schemas/FinanceKind"
+      responses:
+        "200":
+          description: Kategoriyalar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinanceCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+    post:
+      operationId: createFinanceCategory
+      summary: Kategoriya qo'shish (settings.create ruxsati)
+      description: >
+        Yangi kategoriya shu tur oxiriga. Nomi tur ichida takrorlanmaydi
+        (harf farqsiz), 60 belgigacha; tur keyin o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinanceCategoryInput"
+      responses:
+        "201":
+          description: Qo'shilgan kategoriya
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/FinanceCategoryConflict"
+  /app/finance-categories/order:
+    put:
+      operationId: orderFinanceCategories
+      summary: Bir tur kategoriyalarini tartiblash (settings.edit ruxsati)
+      description: >
+        ids shu turning jonli kategoriyalarining hammasini bir martadan
+        nomlashi shart; ro'yxat boshqa joyda o'zgargan bo'lsa 409 order_changed.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinanceCategoryOrder"
+      responses:
+        "204":
+          description: Tartiblandi
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/FinanceCategoryConflict"
+  /app/finance-categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: updateFinanceCategory
+      summary: Kategoriya nomini o'zgartirish, nofaol qilish yoki faollashtirish (settings.edit ruxsati)
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinanceCategoryPatch"
+      responses:
+        "200":
+          description: Kategoriya endi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/FinanceCategoryConflict"
+    delete:
+      operationId: deleteFinanceCategory
+      summary: Kategoriyani o'chirish (settings.delete ruxsati)
+      description: Yashiriladi, nomi bo'shaydi. Jonli hujjati bor kategoriya o'chirilmaydi (409 category_in_use).
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/FinanceCategoryConflict"
   /app/me/nav:
     put:
       operationId: setNavOrder
@@ -3646,6 +3795,16 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    FinanceCategoryConflict:
+      description: >
+        Bu nomli kategoriya bor (name_taken, "Bu nomli kategoriya allaqachon
+        bor"); ro'yxat boshqa joyda o'zgargan (order_changed, "Ro'yxat
+        o'zgargan. Sahifani yangilang"); hujjati bor kategoriya
+        (category_in_use, "Bu kategoriyada N ta hujjat bor")
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     CannotChangeOwner:
       description: >
         Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi
@@ -4340,6 +4499,68 @@ components:
           type: integer
         page_size:
           type: integer
+    AppAccount:
+      type: object
+      description: Kompaniya akkaunti, user app ko'radigan ko'rinishda
+      required: [id, name, currency_id, is_active]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        currency_id:
+          type: integer
+          format: int64
+        is_active:
+          type: boolean
+    FinanceKind:
+      type: string
+      description: "Kategoriya turi: xarajat yoki kirim (logic/finance.md, 6-bo'lim)"
+      enum: [expense, income]
+    FinanceCategory:
+      type: object
+      required: [id, name, kind, is_active]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/FinanceKind"
+        is_active:
+          type: boolean
+          description: Nofaol (false) kategoriya formada taklif qilinmaydi; hujjatlarida qoladi
+    FinanceCategoryInput:
+      type: object
+      required: [name, kind]
+      properties:
+        name:
+          type: string
+          maxLength: 60
+        kind:
+          $ref: "#/components/schemas/FinanceKind"
+    FinanceCategoryPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 60
+        is_active:
+          type: boolean
+    FinanceCategoryOrder:
+      type: object
+      required: [kind, ids]
+      properties:
+        kind:
+          $ref: "#/components/schemas/FinanceKind"
+        ids:
+          type: array
+          description: Shu turning jonli kategoriyalari, yangi tartibda, har biri bir marta
+          items:
+            type: integer
+            format: int64
     AppUser:
       type: object
       required: [phone, full_name]
@@ -4434,7 +4655,7 @@ components:
           type: boolean
     Me:
       type: object
-      required: [user, company, companies, permissions, locations, nav_order, currencies]
+      required: [user, company, companies, permissions, locations, nav_order, currencies, accounts]
       properties:
         user:
           $ref: "#/components/schemas/AppUser"
@@ -4485,6 +4706,15 @@ components:
             shundan oladi; 2+ valyutada ko'rinadi.
           items:
             $ref: "#/components/schemas/CompanyCurrency"
+        accounts:
+          type: array
+          description: >
+            Tanlangan kompaniyaning jonli akkauntlari (kassa, hisob raqam,
+            karta), qo'shilish tartibida, nofaollari ham (logic/finance.md,
+            3-bo'lim): to'lov formalari akkauntni shundan tanlaydi (faqat
+            faollarini taklif qiladi). Kompaniya tanlanmagan bo'lsa bo'sh.
+          items:
+            $ref: "#/components/schemas/AppAccount"
     Ref:
       type: object
       required: [id, name]

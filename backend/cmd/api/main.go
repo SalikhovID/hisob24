@@ -96,6 +96,7 @@ func run() error {
 		Catalog:    catalog.NewService(pool),
 		Warehouse:  warehouse.NewService(pool),
 		Currencies: currencies,
+		Finance:    money,
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 

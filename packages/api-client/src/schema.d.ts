@@ -535,6 +535,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/finance-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Moliya kategoriyalari
+         * @description Kompaniyaning xarajat va kirim kategoriyalari o'z tartibida (logic/finance.md, 6-bo'lim): ?kind= bilan bitta tur, bo'lmasa hammasi (xarajatlar oldin). Har a'zo o'qiydi: xarajat va kirim formalari shundan quriladi.
+         */
+        get: operations["listFinanceCategories"];
+        put?: never;
+        /**
+         * Kategoriya qo'shish (settings.create ruxsati)
+         * @description Yangi kategoriya shu tur oxiriga. Nomi tur ichida takrorlanmaydi (harf farqsiz), 60 belgigacha; tur keyin o'zgarmaydi.
+         */
+        post: operations["createFinanceCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/finance-categories/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Bir tur kategoriyalarini tartiblash (settings.edit ruxsati)
+         * @description ids shu turning jonli kategoriyalarining hammasini bir martadan nomlashi shart; ro'yxat boshqa joyda o'zgargan bo'lsa 409 order_changed.
+         */
+        put: operations["orderFinanceCategories"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/finance-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Kategoriyani o'chirish (settings.delete ruxsati)
+         * @description Yashiriladi, nomi bo'shaydi. Jonli hujjati bor kategoriya o'chirilmaydi (409 category_in_use).
+         */
+        delete: operations["deleteFinanceCategory"];
+        options?: never;
+        head?: never;
+        /** Kategoriya nomini o'zgartirish, nofaol qilish yoki faollashtirish (settings.edit ruxsati) */
+        patch: operations["updateFinanceCategory"];
+        trace?: never;
+    };
     "/app/me/nav": {
         parameters: {
             query?: never;
@@ -1889,6 +1956,41 @@ export interface components {
             page: number;
             page_size: number;
         };
+        /** @description Kompaniya akkaunti, user app ko'radigan ko'rinishda */
+        AppAccount: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** Format: int64 */
+            currency_id: number;
+            is_active: boolean;
+        };
+        /**
+         * @description Kategoriya turi: xarajat yoki kirim (logic/finance.md, 6-bo'lim)
+         * @enum {string}
+         */
+        FinanceKind: "expense" | "income";
+        FinanceCategory: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            kind: components["schemas"]["FinanceKind"];
+            /** @description Nofaol (false) kategoriya formada taklif qilinmaydi; hujjatlarida qoladi */
+            is_active: boolean;
+        };
+        FinanceCategoryInput: {
+            name: string;
+            kind: components["schemas"]["FinanceKind"];
+        };
+        FinanceCategoryPatch: {
+            name?: string;
+            is_active?: boolean;
+        };
+        FinanceCategoryOrder: {
+            kind: components["schemas"]["FinanceKind"];
+            /** @description Shu turning jonli kategoriyalari, yangi tartibda, har biri bir marta */
+            ids: number[];
+        };
         AppUser: {
             phone: string;
             /** @description Tanlangan kompaniyadagi ismi. Kompaniya tanlanmagan yoki a'zolikda ism bo'lmasa, userning o'z ismi. */
@@ -1947,6 +2049,8 @@ export interface components {
             nav_order: components["schemas"]["NavSection"][] | null;
             /** @description Tanlangan kompaniyada yoqilgan valyutalar, katalog tartibida, har birida hozir amaldagi kurs (logic/currencies.md): so'm doim, kursi "1.0000"; kurs kiritilmagan valyutada null. Kompaniya tanlanmagan bo'lsa bo'sh. Formalar valyuta tanlovi va kursni shundan oladi; 2+ valyutada ko'rinadi. */
             currencies: components["schemas"]["CompanyCurrency"][];
+            /** @description Tanlangan kompaniyaning jonli akkauntlari (kassa, hisob raqam, karta), qo'shilish tartibida, nofaollari ham (logic/finance.md, 3-bo'lim): to'lov formalari akkauntni shundan tanlaydi (faqat faollarini taklif qiladi). Kompaniya tanlanmagan bo'lsa bo'sh. */
+            accounts: components["schemas"]["AppAccount"][];
         };
         Ref: {
             /** Format: int64 */
@@ -2621,6 +2725,15 @@ export interface components {
         };
         /** @description Bu nomli akkaunt bor (name_taken, "Bu nomli akkaunt allaqachon bor"); oxirgi faol akkaunt (last_account, "Kompaniyada kamida bitta faol akkaunt qolsin"); jonli hujjati bor akkaunt (account_in_use, "Bu akkauntda N ta hujjat bor") */
         AccountConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Bu nomli kategoriya bor (name_taken, "Bu nomli kategoriya allaqachon bor"); ro'yxat boshqa joyda o'zgargan (order_changed, "Ro'yxat o'zgargan. Sahifani yangilang"); hujjati bor kategoriya (category_in_use, "Bu kategoriyada N ta hujjat bor") */
+        FinanceCategoryConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3784,6 +3897,145 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listFinanceCategories: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["FinanceKind"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kategoriyalar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceCategory"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createFinanceCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinanceCategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan kategoriya */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceCategory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["FinanceCategoryConflict"];
+        };
+    };
+    orderFinanceCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinanceCategoryOrder"];
+            };
+        };
+        responses: {
+            /** @description Tartiblandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["FinanceCategoryConflict"];
+        };
+    };
+    deleteFinanceCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["FinanceCategoryConflict"];
+        };
+    };
+    updateFinanceCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinanceCategoryPatch"];
+            };
+        };
+        responses: {
+            /** @description Kategoriya endi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinanceCategory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["FinanceCategoryConflict"];
         };
     };
     setNavOrder: {

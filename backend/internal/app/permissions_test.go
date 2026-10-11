@@ -43,6 +43,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	// What every member has.
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/customer-types", "", bearer(employee)).Code, "the types are every member's")
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/members", "", bearer(employee)).Code, "the members are every member's")
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/finance-categories", "", bearer(employee)).Code, "the finance categories are every member's")
 	// What the role lacks.
 	for name, req := range map[string]struct{ method, path, body string }{
 		"adding a customer":      {http.MethodPost, "/app/customers", newCustomer},
@@ -63,6 +64,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 		"deleting a type":        {http.MethodDelete, fmt.Sprintf("/app/customer-types/%d", sh.jismoniy), ""},
 		"the rates":              {http.MethodGet, "/app/currency-rates", ""},
 		"setting the rates":      {http.MethodPost, "/app/currency-rates", `{"usd":"12800"}`},
+		"adding a category":      {http.MethodPost, "/app/finance-categories", `{"name":"Ijara","kind":"expense"}`},
 	} {
 		rec := api.do(t, req.method, req.path, req.body, bearer(employee))
 		assert.Equal(t, http.StatusForbidden, rec.Code, name)

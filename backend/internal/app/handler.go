@@ -15,6 +15,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
+	"github.com/SalikhovID/hisob24/backend/internal/finance"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
@@ -31,6 +32,7 @@ type Services struct {
 	Catalog    *catalog.Service
 	Warehouse  *warehouse.Service
 	Currencies *currency.Service
+	Finance    *finance.Service
 }
 
 // Handler serves /app.
@@ -43,6 +45,7 @@ type Handler struct {
 	catalog       *catalog.Service
 	warehouse     *warehouse.Service
 	currencies    *currency.Service
+	finance       *finance.Service
 	cookieSecure  bool
 	sendLimiter   *httpx.RateLimiter
 	verifyLimiter *httpx.RateLimiter
@@ -52,7 +55,7 @@ type Handler struct {
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
 	return &Handler{
-		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog, warehouse: s.Warehouse, currencies: s.Currencies,
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog, warehouse: s.Warehouse, currencies: s.Currencies, finance: s.Finance,
 		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
 	}
 }
@@ -94,6 +97,7 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Get("/customer-types", h.listCustomerTypes)
 				r.Get("/task-stages", h.listTaskStages)
 				r.Get("/task-types", h.listTaskTypes)
+				r.Get("/finance-categories", h.listFinanceCategories)
 
 				allowed := func(p access.Permission) chi.Router { return r.With(h.requirePermission(p)) }
 				// The rates of the company's currencies (logic/currencies.md,
@@ -117,6 +121,7 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Post("/task-stages", h.createTaskStage)
 					r.Post("/task-types", h.createTaskType)
 					r.Post("/task-types/{id}/fields", h.addTaskField)
+					r.Post("/finance-categories", h.createFinanceCategory)
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(h.requirePermission(access.SettingsEdit))
@@ -133,6 +138,8 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Patch("/task-types/{id}", h.renameTaskType)
 					r.Patch("/task-types/{id}/fields/{fieldId}", h.updateTaskField)
 					r.Put("/task-types/{id}/fields/order", h.orderTaskFields)
+					r.Put("/finance-categories/order", h.orderFinanceCategories)
+					r.Patch("/finance-categories/{id}", h.updateFinanceCategory)
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(h.requirePermission(access.SettingsDelete))
@@ -143,6 +150,7 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Delete("/task-stages/{id}", h.deleteTaskStage)
 					r.Delete("/task-types/{id}", h.deleteTaskType)
 					r.Delete("/task-types/{id}/fields/{fieldId}", h.deleteTaskField)
+					r.Delete("/finance-categories/{id}", h.deleteFinanceCategory)
 				})
 
 				allowed(access.CustomersView).Get("/customers", h.listCustomers)
@@ -321,6 +329,9 @@ type meJSON struct {
 	// Currencies is the currencies the company has turned on, each with
 	// the rate in force now (logic/currencies.md); empty before a choice.
 	Currencies []companyCurrencyJSON `json:"currencies"`
+	// Accounts is the company's live accounts, where a payment may go
+	// (logic/finance.md); empty before a choice.
+	Accounts []accountJSON `json:"accounts"`
 }
 
 // me is the signed-in user, the company they work in now, what they may do
@@ -346,7 +357,7 @@ func (h *Handler) meBody(ctx context.Context, claims auth.AccessClaims, standing
 	if err != nil {
 		return meJSON{}, err
 	}
-	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}, Permissions: []string{}, Locations: []locationJSON{}, Currencies: []companyCurrencyJSON{}}
+	body := meJSON{User: userJSON{Phone: profile.Phone, FullName: profile.FullName}, Companies: []companyJSON{}, Permissions: []string{}, Locations: []locationJSON{}, Currencies: []companyCurrencyJSON{}, Accounts: []accountJSON{}}
 	for _, p := range standing.Permissions.List() {
 		body.Permissions = append(body.Permissions, string(p))
 	}
@@ -361,6 +372,11 @@ func (h *Handler) meBody(ctx context.Context, claims auth.AccessClaims, standing
 			return meJSON{}, err
 		}
 		body.Currencies = toCompanyCurrenciesJSON(currencies)
+		accounts, err := h.finance.Accounts(ctx, *claims.CompanyID)
+		if err != nil {
+			return meJSON{}, err
+		}
+		body.Accounts = toAccountsJSON(accounts)
 		if standing.NavOrder != nil {
 			order := standing.NavOrder
 			body.NavOrder = &order
