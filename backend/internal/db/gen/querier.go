@@ -331,6 +331,10 @@ type Querier interface {
 	GetTaskStage(ctx context.Context, arg GetTaskStageParams) (TaskStage, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
 	GetTaskType(ctx context.Context, arg GetTaskTypeParams) (TaskType, error)
+	// The chat that shared the phone last, where a login code goes instead of an
+	// SMS; pgx.ErrNoRows when no Telegram account shared it. A phone lives in
+	// one Telegram account at a time, so the latest contact is its owner.
+	GetTelegramContactChat(ctx context.Context, phone string) (int64, error)
 	// The phone a Telegram account shared with the user bot; pgx.ErrNoRows when
 	// it never did (the user Mini App's sign-in).
 	GetTelegramContactPhone(ctx context.Context, chatID int64) (string, error)

@@ -9,6 +9,20 @@ import (
 	"context"
 )
 
+const getTelegramContactChat = `-- name: GetTelegramContactChat :one
+SELECT chat_id FROM telegram_contacts WHERE phone = $1 ORDER BY updated_at DESC LIMIT 1
+`
+
+// The chat that shared the phone last, where a login code goes instead of an
+// SMS; pgx.ErrNoRows when no Telegram account shared it. A phone lives in
+// one Telegram account at a time, so the latest contact is its owner.
+func (q *Queries) GetTelegramContactChat(ctx context.Context, phone string) (int64, error) {
+	row := q.db.QueryRow(ctx, getTelegramContactChat, phone)
+	var chat_id int64
+	err := row.Scan(&chat_id)
+	return chat_id, err
+}
+
 const getTelegramContactPhone = `-- name: GetTelegramContactPhone :one
 SELECT phone FROM telegram_contacts WHERE chat_id = $1
 `

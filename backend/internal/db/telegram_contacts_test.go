@@ -3,6 +3,7 @@ package db_test
 import (
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,4 +25,22 @@ func TestUpsertTelegramContact(t *testing.T) {
 	assert.Equal(t, "998909999999", phone, "the chat's latest contact wins")
 	assert.Nil(t, username)
 	assert.True(t, newer, "updated_at moves on every upsert")
+}
+
+// The chat a login code goes to is the one that shared the phone last: a
+// phone lives in one Telegram account at a time, so the latest is its owner.
+func TestGetTelegramContactChatIsThePhonesLatestChat(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	require.NoError(t, q.UpsertTelegramContact(ctx, gen.UpsertTelegramContactParams{ChatID: 777, Phone: "998901234567"}))
+	mustExec(t, pool, "UPDATE telegram_contacts SET updated_at = now() - interval '1 hour' WHERE chat_id = 777")
+	require.NoError(t, q.UpsertTelegramContact(ctx, gen.UpsertTelegramContactParams{ChatID: 888, Phone: "998901234567"}))
+
+	chatID, err := q.GetTelegramContactChat(ctx, "998901234567")
+
+	require.NoError(t, err)
+	assert.EqualValues(t, 888, chatID, "the chat that shared the phone last")
+
+	_, err = q.GetTelegramContactChat(ctx, "998909999999")
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "a phone nobody shared")
 }
