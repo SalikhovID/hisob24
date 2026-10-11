@@ -1149,3 +1149,109 @@ func TestTheWarehouseMigrationDownRemovesItsTables(t *testing.T) {
 		assert.Equal(t, "42P01", sqlState(err), table)
 	}
 }
+
+func TestCurrenciesAreSeeded(t *testing.T) {
+	pool := pgtest.New(t)
+	rows, err := pool.Query(t.Context(), "SELECT id, code, name, symbol FROM currencies ORDER BY position, id")
+	require.NoError(t, err)
+	type currency struct {
+		ID                 int64
+		Code, Name, Symbol string
+	}
+	got, err := pgx.CollectRows(rows, pgx.RowToStructByPos[currency])
+	require.NoError(t, err)
+	assert.Equal(t, []currency{
+		{1, "UZS", "O'zbek so'mi", "so'm"}, {2, "USD", "AQSH dollari", "$"}, {3, "EUR", "Yevro", "€"}, {4, "RUB", "Rossiya rubli", "₽"},
+	}, got)
+	var next int64
+	require.NoError(t, pool.QueryRow(t.Context(), "INSERT INTO currencies (code, name, symbol, position) VALUES ('KZT', 'Tenge', 'T', 5) RETURNING id").Scan(&next))
+	assert.EqualValues(t, 5, next, "the sequence continues after the seed")
+}
+
+func TestTheCurrenciesMigrationGivesEveryCompanyUZS(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 13)
+	require.NoError(t, err)
+	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
+
+	_, err = provider.UpTo(ctx, 14)
+	require.NoError(t, err)
+
+	rows, err := pool.Query(ctx, "SELECT company_id, currency_id FROM company_currencies ORDER BY company_id")
+	require.NoError(t, err)
+	type row struct{ CompanyID, CurrencyID int64 }
+	got, err := pgx.CollectRows(rows, pgx.RowToStructByPos[row])
+	require.NoError(t, err)
+	assert.Equal(t, []row{{olma, 1}, {nok, 1}}, got)
+}
+
+func TestCurrencyRatesKeepTheirRules(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+
+	var id int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO currency_rates (company_id, usd, set_by) VALUES ($1, 12800, '998901111111') RETURNING id", c).Scan(&id))
+	var uzs, eur string
+	var status int16
+	require.NoError(t, pool.QueryRow(ctx, "SELECT uzs::text, eur::text, status FROM currency_rates WHERE id = $1", id).Scan(&uzs, &eur, &status))
+	assert.Equal(t, "1.0000", uzs, "the so'm is the base")
+	assert.Equal(t, "0.0000", eur, "a currency not set is 0")
+	assert.EqualValues(t, 1, status, "standard by default")
+
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, uzs, set_by) VALUES ($1, 2, '998901111111')", c)
+	assert.Equal(t, "23514", sqlState(err), "the so'm rate is always 1")
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd, set_by) VALUES ($1, -1, '998901111111')", c)
+	assert.Equal(t, "23514", sqlState(err), "no negative rate")
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, status, set_by) VALUES ($1, 3, '998901111111')", c)
+	assert.Equal(t, "23514", sqlState(err), "a status is 1 or 2")
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, set_by) VALUES ($1, '998909999999')", c)
+	assert.Equal(t, "23503", sqlState(err), "set by a user")
+}
+
+func TestConvertAmount(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd, eur, set_by) VALUES ($1, 12800.5, 13900, '998901111111')", c)
+	require.NoError(t, err)
+	for name, tc := range map[string]struct {
+		amount   string
+		from, to int64
+		want     *string
+	}{
+		"usd to uzs":                 {"100", 2, 1, ptr("1280050.00")},
+		"uzs to usd":                 {"1280050", 1, 2, ptr("100.00")},
+		"uzs to uzs":                 {"15.5", 1, 1, ptr("15.50")},
+		"eur to usd":                 {"100", 3, 2, ptr("108.59")},
+		"to a currency with no rate": {"100", 1, 4, nil},
+	} {
+		var got *string
+		require.NoError(t, pool.QueryRow(ctx, "SELECT convert_amount($1::numeric, $2, $3, r)::text FROM currency_rates r WHERE r.company_id = $4", tc.amount, tc.from, tc.to, c).Scan(&got), name)
+		assert.Equal(t, tc.want, got, name)
+	}
+}
+
+func TestProductsAndUsersGetTheirCurrencyColumns(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	var currency int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO products (company_id, kind, name, unit, created_by) VALUES ($1, 'product', 'Olma', 'kg', '998901111111') RETURNING currency_id", c).Scan(&currency))
+	assert.EqualValues(t, 1, currency, "a price is in so'm unless said otherwise")
+	_, err = pool.Exec(ctx, "INSERT INTO products (company_id, kind, name, unit, currency_id, created_by) VALUES ($1, 'product', 'Nok', 'kg', 9, '998901111111')", c)
+	assert.Equal(t, "23503", sqlState(err), "a currency of the catalog")
+	var timezone string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT timezone FROM users WHERE phone = '998901111111'").Scan(&timezone))
+	assert.Equal(t, "Asia/Tashkent", timezone)
+}
+
+func ptr[T any](v T) *T { return &v }
