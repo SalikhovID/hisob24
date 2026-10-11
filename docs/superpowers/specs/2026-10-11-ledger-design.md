@@ -291,3 +291,8 @@ Qatlam handler → service → sqlc; hamma yozuv tranzaksiyada, kompaniya qulfi 
 - **Mock**: `mocks/ledger.ts` (raqam, kurs qatori, `convert_amount`, harakatlar, manfiy tekshiruv, bog'langan to'lovlar, balans, hisob harakati), `db.transactions` / `db.items` / `db.moves` eski `purchases` / `payments` / `stock` o'rniga, `RateRow.status`, `seedPayment`; Olma Savdo'da xarid № 1 nol qator bilan.
 - **sqlc**: nullable ustun bilan solishtirilgan param `*int64` bo'lib chiqadi — `sqlc.arg(...)::bigint` cast bilan `int64`; JOIN qilingan `l.id` / `s.id` / `b.id` ustunlari `int64` (nullable `t.location_id` emas).
 - **Commit tarixi**: 3-bosqichning oraliq commit'lari (00016, so'rovlar, ledger) orasida backend to'liq kompilyatsiya bo'lmaydi (eski so'rovlar o'chgan, servislar keyin keldi); bosqich oxirida hammasi yashil.
+
+## 4-bosqich qarorlari (2026-10-12)
+
+- Katalog 42 ta ruxsat: `sales.*`, `stock.*`, `finance.*` xaridlardan keyin, xodimlardan oldin (`internal/access`, `lib/permissions.ts`, `Permission` enum); rolsiz xodimning standart to'plami 32 ta (tarix, xodimlar va sozlamalardan tashqari hammasi). Rol matritsasi (`PermissionMatrix`) yangi bo'limlarni o'zi chizadi: «Sotuv», «Ombor hujjatlari», «Moliya».
+- Menyu kalitlari (`NavSections`, `NavKey`, `NavSection` enum): `home, customers, tasks, products, sales, warehouse, finance, employees, settings`. API va mock yangi kalitlarni qabul qiladi; **menyuda «Sotuv» va «Moliya» bo'limlari va Ombor'ning yangi tablari sahifalari bilan birga keladi** (6, 8, 10-bosqichlar): sahifasiz bo'limga havola qo'yilmaydi (reja 4-bosqichda nav'ni ham ko'zda tutgan edi; o'lik havolalar o'rniga kechiktirildi). `SectionTabs` o'zgarmaydi: tabni ruxsat bo'yicha chizadi.
