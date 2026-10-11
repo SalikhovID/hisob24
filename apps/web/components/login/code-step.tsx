@@ -22,8 +22,9 @@ function useCountdown(from: number) {
   return [left, setLeft] as const
 }
 
-// CodeStep is the second login step: the code from the SMS sent to phone
-// (998901234567). There is no submit button: the sixth digit sends the code.
+// CodeStep is the second login step: the code sent to phone (998901234567)
+// by SMS or in Telegram. There is no submit button: the sixth digit sends
+// the code.
 export function CodeStep({
   phone,
   retryAfter,

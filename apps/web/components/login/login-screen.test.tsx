@@ -17,7 +17,7 @@ async function sendCodeTo(digits: string) {
 test("once the code is sent the code step names the number", async () => {
   await sendCodeTo("901234567")
 
-  expect(screen.getByText("Kod +998 90 123 45 67 raqamiga yuborildi")).toBeInTheDocument()
+  expect(screen.getByText("Kod +998 90 123 45 67 raqamiga yuborildi. SMS yoki Telegram botni tekshiring")).toBeInTheDocument()
   expect(screen.queryByRole("textbox", { name: "Telefon raqami" })).not.toBeInTheDocument()
 })
 
@@ -68,7 +68,7 @@ test("the phone step is titled and says what comes next", () => {
   renderWithProviders(<LoginScreen />)
 
   expect(screen.getByRole("heading", { level: 2, name: "Kirish" })).toBeInTheDocument()
-  expect(screen.getByText("Telefon raqamingizni kiriting, kod SMS orqali keladi")).toBeInTheDocument()
+  expect(screen.getByText("Telefon raqamingizni kiriting, kod SMS yoki Telegram botga keladi")).toBeInTheDocument()
 })
 
 test("the code step is titled", async () => {

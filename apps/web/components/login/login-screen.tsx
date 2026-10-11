@@ -14,8 +14,10 @@ import { TelegramLogin } from "./telegram-login"
 type Step = { kind: "phone"; phone?: string } | { kind: "code"; phone: string; retryAfter: number }
 
 // LoginScreen signs a user in: inside Telegram by itself (the Mini App), in
-// a browser with an SMS code (the phone number, then the code), in the
-// login's frame. notice says why a Mini App sign-in fell back to the code.
+// a browser with a code (the phone number, then the code, which the API
+// sends by SMS or, to a phone linked to the user bot, in Telegram; the
+// screen does not say which), in the login's frame. notice says why a Mini
+// App sign-in fell back to the code.
 export function LoginScreen() {
   const [step, setStep] = useState<Step>({ kind: "phone" })
   const [miniApp, setMiniApp] = useState<TelegramWebApp | null>(null)
@@ -68,8 +70,8 @@ export function LoginScreen() {
           </h2>
           <p className="text-sm text-muted-foreground">
             {step.kind === "phone"
-              ? "Telefon raqamingizni kiriting, kod SMS orqali keladi"
-              : `Kod ${formatPhone(step.phone)} raqamiga yuborildi`}
+              ? "Telefon raqamingizni kiriting, kod SMS yoki Telegram botga keladi"
+              : `Kod ${formatPhone(step.phone)} raqamiga yuborildi. SMS yoki Telegram botni tekshiring`}
           </p>
         </div>
         {step.kind === "phone" ? (

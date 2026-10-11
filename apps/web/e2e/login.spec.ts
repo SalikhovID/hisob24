@@ -26,7 +26,8 @@ test("someone in one company signs in with an SMS code and lands on the dashboar
   await phone.pressSequentially("901234567")
   await expect(phone).toHaveValue("90 123 45 67")
   await page.getByRole("button", { name: "Kodni olish" }).click()
-  await expect(page.getByText("Kod +998 90 123 45 67 raqamiga yuborildi")).toBeVisible()
+  // Where the code went (SMS, or Telegram for a phone linked to the user bot) is not said.
+  await expect(page.getByText("Kod +998 90 123 45 67 raqamiga yuborildi. SMS yoki Telegram botni tekshiring")).toBeVisible()
   await page.getByRole("textbox", { name: "Kod" }).fill(LOGIN_CODE)
 
   await expect(page).toHaveURL(/\/$/)
