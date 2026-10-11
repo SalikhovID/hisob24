@@ -81,7 +81,7 @@ CREATE FUNCTION convert_amount(p_amount NUMERIC, p_from BIGINT, p_to BIGINT, r c
                        / NULLIF(CASE p_to WHEN 1 THEN r.uzs WHEN 2 THEN r.usd WHEN 3 THEN r.eur WHEN 4 THEN r.rub END, 0), 2) $$ LANGUAGE SQL IMMUTABLE;
 ALTER TABLE products ADD currency_id BIGINT NOT NULL DEFAULT 1 REFERENCES currencies(id);
 ALTER TABLE users ADD timezone TEXT NOT NULL DEFAULT 'Asia/Tashkent';   -- +5, hozircha o'zgarmaydi
-ALTER TABLE customers ADD UNIQUE (company_id, id);
+-- customers (company_id, id) kaliti 00008 dan beri bor
 ```
 
 Joriy kurs = `RateAt(company, now())`. Sozlamalar formasi bitta qator yozadi (hamma yoqilgan valyuta kurslari birga; yoqilmaganlari 0). Valyutani kompaniyadan olib tashlash: jonli hujjat, mahsulot narxi yoki akkaunt shu valyutada bo'lsa 409 `currency_in_use`; UZS olib tashlanmaydi (400).
@@ -252,3 +252,14 @@ Qatlam handler → service → sqlc; hamma yozuv tranzaksiyada, kompaniya qulfi 
 - Migratsiya testlari: eski xarid / to'lov / qoldiq → jurnal; yig'indilar va balanslar teng; raqamlar saqlangan; «Naqd» va UZS har kompaniyada; `DownTo(0)` toza.
 - Haqiqiy stack (11-bosqich): admin USD yoqadi va «Karta» USD akkaunt qo'shadi → egasi kurs kiritadi → mahsulot narxi USD → boshlang'ich qoldiq → xarid USD, to'lov qatorlari naqd so'm + karta USD (balans so'mda + «shu jumladan N USD», akkaunt qoldiqlari) → ko'chirish (ikki lokatsiya qoldig'i) → inventarizatsiya orqa vaqt bilan (farq, «Hammasini qo'shish») → sotuv mijozga (qarz), mijoz to'lovi, chakana sotuv (to'liq), xizmat qatori, qoldiq yetmasa 409 → ta'minotchi / mijoz boshlang'ich qarz / avans, hisob harakati qoldiq balansi → kassa boshlang'ich qoldig'i, xarajat kategoriya bilan, o'tkazma (bir xil valyuta), konvertatsiya (ikki summa), akkaunt hisob harakati → admin USD'ni olib tashlash 409, akkauntni o'chirish 409 → xaridi bor lokatsiya o'chmaydi. Sinov ma'lumoti o'chiriladi.
 - Brauzerda (Chrome) 375px: Ombor va Moliya tablari, Sotuv bo'limi, formalarda valyuta maydoni faqat 2+ valyutada, vaqt maydoni standart hozir.
+
+## 1-bosqich qarorlari (2026-10-11)
+
+- `Me.currencies`: yoqilgan valyutalar va joriy kurslar `/app/me` da tanlangan kompaniyaniki sifatida (`locations` kabi), `AppCompany` ichida emas: `companies[]` har kompaniya uchun alohida so'rov talab qilardi.
+- Narx valyutasi tekshiruvi bazada, izohdan keyin va takrorlardan (nom, artikul) oldin: katalogda yo'q id 400 «Valyuta noto'g'ri», yoqilmagan 400 `currency_not_allowed` (`logic/products.md`, 4-bo'lim).
+- `customers (company_id, id)` kaliti 00008 dan beri bor: 00014 uni qo'shmaydi.
+- Kurs JSON'da bazadagidek to'rt kasr bilan (`"12800.0000"`); UZS `"1.0000"`; kiritilmagan `null`. Formada `formatRate` kasrsiz ko'rsatadi («12 800»), kurs maydoni vergul va bo'shliqlarni qabul qiladi.
+- Sozlamalar tabi `currencies` («Valyuta kurslari») Dropdownlar va Rollar orasida; `Section` komponenti `components/settings/section.tsx` ga ajratildi.
+- Admin «Valyutalar» bo'limi chiplar va dialog (`Checkbox`, UZS doim belgilangan va `aria-disabled`); admin ilovasiga `components/ui/checkbox.tsx` qo'shildi.
+- Testlarda `addCompany` fixture'lari (app, catalog, currency) kompaniyaga so'mni ham yozadi: haqiqiy kompaniya kabi.
+- Mock: Nok Market (2) USD bilan va Vali kiritgan 12 800 kursi bilan boshlanadi (valyuta maydonlari shu yerda sinaladi); Olma Savdo faqat so'mda.
