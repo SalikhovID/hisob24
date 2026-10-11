@@ -59,7 +59,7 @@ func (q *Queries) DemoteCompanyOwner(ctx context.Context, companyID int64) error
 }
 
 const getCompanyAccess = `-- name: GetCompanyAccess :one
-SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order,
+SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order, u.timezone,
        (SELECT COALESCE(array_agg(l.id ORDER BY l.id), '{}') FROM locations l
          WHERE l.company_id = uc.company_id AND l.deleted_at IS NULL
            AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
@@ -67,6 +67,7 @@ SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order,
        (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
+JOIN users u ON u.phone = uc.user_phone
 LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.user_phone = $1 AND uc.company_id = $2
 `
@@ -82,6 +83,7 @@ type GetCompanyAccessRow struct {
 	Permissions  []string
 	AllLocations bool
 	NavOrder     []string
+	Timezone     string
 	LocationIds  []int64
 	Active       bool
 }
@@ -103,6 +105,7 @@ func (q *Queries) GetCompanyAccess(ctx context.Context, arg GetCompanyAccessPara
 		&i.Permissions,
 		&i.AllLocations,
 		&i.NavOrder,
+		&i.Timezone,
 		&i.LocationIds,
 		&i.Active,
 	)
@@ -170,13 +173,18 @@ func (q *Queries) GetMemberName(ctx context.Context, arg GetMemberNameParams) (*
 }
 
 const getUser = `-- name: GetUser :one
-SELECT phone, full_name, created_at FROM users WHERE phone = $1
+SELECT phone, full_name, created_at, timezone FROM users WHERE phone = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, phone string) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, phone)
 	var i User
-	err := row.Scan(&i.Phone, &i.FullName, &i.CreatedAt)
+	err := row.Scan(
+		&i.Phone,
+		&i.FullName,
+		&i.CreatedAt,
+		&i.Timezone,
+	)
 	return i, err
 }
 

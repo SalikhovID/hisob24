@@ -96,6 +96,7 @@ func TestGetCompanyAccess(t *testing.T) {
 	got, err := access("998901234567", olma.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "owner", got.Role)
+	assert.Equal(t, "Asia/Tashkent", got.Timezone, "the user's time zone, the same in every company")
 	assert.True(t, got.Active, "the last paid day counts")
 	assert.Nil(t, got.RoleID, "the owner has no role")
 	assert.Nil(t, got.Permissions)

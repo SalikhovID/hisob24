@@ -13,6 +13,8 @@ import (
 )
 
 type Querier interface {
+	// Turns a currency on for the company; one already on stays as it was.
+	AddCompanyCurrency(ctx context.Context, arg AddCompanyCurrencyParams) error
 	// Adds a member with a role and the name they go by in the company. No row
 	// (pgx.ErrNoRows) when the user is a member already: nothing changes.
 	AddCompanyUser(ctx context.Context, arg AddCompanyUserParams) (UserCompany, error)
@@ -45,12 +47,17 @@ type Querier interface {
 	AddTaskHistory(ctx context.Context, arg AddTaskHistoryParams) error
 	// One row of a task's answers: a text, a whole number, or an option chosen.
 	AddTaskValue(ctx context.Context, arg AddTaskValueParams) error
+	// Whether the company has the currency turned on.
+	CompanyHasCurrency(ctx context.Context, arg CompanyHasCurrencyParams) (bool, error)
 	// Spends a live code in one statement, so a code opens one session only.
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.
 	ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
+	// How many live products or services of the company carry their price in
+	// the currency: what keeps it from being turned off.
+	CountCurrencyProducts(ctx context.Context, arg CountCurrencyProductsParams) (int64, error)
 	// How many tasks the customer has: one with any is not deleted. Deleted
 	// tasks do not count.
 	CountCustomerTasks(ctx context.Context, customerID int64) (int64, error)
@@ -88,6 +95,8 @@ type Querier interface {
 	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
 	// How many rows ListPurchases finds under the same filter, on all of its pages.
 	CountPurchases(ctx context.Context, arg CountPurchasesParams) (int64, error)
+	// How many standard rate rows the company has, on all the pages.
+	CountRates(ctx context.Context, companyID int64) (int64, error)
 	// How many members hold the role: one that is held is not deleted.
 	CountRoleMembers(ctx context.Context, roleID *int64) (int64, error)
 	// How many tasks stand in the stage: one in use is not deleted. Deleted
@@ -139,6 +148,10 @@ type Querier interface {
 	// with no lines yet (total 0). created_by_name is the name the member goes
 	// by in the company now: it stays when they leave.
 	CreatePurchase(ctx context.Context, arg CreatePurchaseParams) (Purchase, error)
+	// Enters a rate row: a standard one (status 1) from the settings, or a
+	// document's own (2). set_by_name is the name the member goes by in the
+	// company now: it stays when they leave.
+	CreateRate(ctx context.Context, arg CreateRateParams) (CurrencyRate, error)
 	// company_id is the company the access tokens it refreshes are for; source
 	// is where the session began ('sms' or 'telegram').
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (uuid.UUID, error)
@@ -268,6 +281,8 @@ type Querier interface {
 	// they hold and whether they may work in every location; pgx.ErrNoRows when
 	// the user is not its member.
 	GetCompanyMember(ctx context.Context, arg GetCompanyMemberParams) (GetCompanyMemberRow, error)
+	// A currency of the catalog; pgx.ErrNoRows for an id that is not one.
+	GetCurrency(ctx context.Context, id int64) (Currency, error)
 	// The company's customer; pgx.ErrNoRows when it has none such, or deleted
 	// it. created_by_name is the name the member who entered it goes by in the
 	// company now; once they have left it (or go by no name), the name of then.
@@ -282,6 +297,9 @@ type Querier interface {
 	GetCustomerField(ctx context.Context, arg GetCustomerFieldParams) (CustomerField, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerType(ctx context.Context, arg GetCustomerTypeParams) (CustomerType, error)
+	// The company's earliest standard rate row: what a moment before any rate
+	// falls back to. pgx.ErrNoRows when the company has none.
+	GetFirstRate(ctx context.Context, companyID int64) (CurrencyRate, error)
 	// The company's location; pgx.ErrNoRows when the company has no such
 	// location, or deleted it.
 	GetLocation(ctx context.Context, arg GetLocationParams) (Location, error)
@@ -310,6 +328,9 @@ type Querier interface {
 	// The live payment entered with the purchase; pgx.ErrNoRows when there is
 	// none.
 	GetPurchasePayment(ctx context.Context, purchaseID int64) (SupplierPayment, error)
+	// The standard rate row in force at the moment: the newest set at or before
+	// it. pgx.ErrNoRows before the company's first rate.
+	GetRateAt(ctx context.Context, arg GetRateAtParams) (CurrencyRate, error)
 	// The company's role with how many members hold it; pgx.ErrNoRows when the
 	// company has none such.
 	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
@@ -351,6 +372,8 @@ type Querier interface {
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
 	ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error)
+	// The currencies the company has turned on, in the catalog's order.
+	ListCompanyCurrencies(ctx context.Context, companyID int64) ([]Currency, error)
 	// The restrictions of the company's members: each restricted member's live
 	// locations, by member and in the order the locations were added. A member
 	// without a restriction has no rows.
@@ -360,6 +383,8 @@ type Querier interface {
 	// they may work in every location: the owner first, then the users in the
 	// order they joined.
 	ListCompanyUsers(ctx context.Context, companyID int64) ([]ListCompanyUsersRow, error)
+	// The catalog, the so'm first.
+	ListCurrencies(ctx context.Context) ([]Currency, error)
 	// The dropdown's options in their order: what a new order has to name, all
 	// of them and nothing else.
 	ListCustomerDropdownOptionIDs(ctx context.Context, dropdownID int64) ([]int64, error)
@@ -419,6 +444,10 @@ type Querier interface {
 	// first (then the later entered), without the deleted; supplier_id keeps
 	// one supplier's, NULL leaves the filter out. The columns are GetPurchase's.
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
+	// A page of the company's standard rate rows, the newest first, each with
+	// the name the member who set it goes by now (the name of then once they
+	// have left).
+	ListRates(ctx context.Context, arg ListRatesParams) ([]ListRatesRow, error)
 	// The company's roles by name (whatever the case), each with how many
 	// members hold it.
 	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
@@ -511,6 +540,8 @@ type Querier interface {
 	// active (what a purchase line may name). pgx.ErrNoRows when the company
 	// has none such, or deleted it.
 	ProductStanding(ctx context.Context, arg ProductStandingParams) (ProductStandingRow, error)
+	// Turns a currency off for the company.
+	RemoveCompanyCurrency(ctx context.Context, arg RemoveCompanyCurrencyParams) error
 	// Takes a user out of the company; the user and their other companies stay.
 	// No row (pgx.ErrNoRows) for the owner, whom the app never touches, and for
 	// someone who is not a member.

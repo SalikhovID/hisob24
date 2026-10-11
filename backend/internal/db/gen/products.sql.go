@@ -74,10 +74,10 @@ func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (i
 }
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO products (company_id, kind, name, unit, sku, price, note, created_by, created_by_name)
+INSERT INTO products (company_id, kind, name, unit, sku, price, currency_id, note, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5,
-        $6, $7, $8, $9)
-RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at
+        $6, $7, $8, $9, $10)
+RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id
 `
 
 type CreateProductParams struct {
@@ -87,6 +87,7 @@ type CreateProductParams struct {
 	Unit          *string
 	Sku           *string
 	Price         pgtype.Numeric
+	CurrencyID    int64
 	Note          *string
 	CreatedBy     string
 	CreatedByName *string
@@ -104,6 +105,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		arg.Unit,
 		arg.Sku,
 		arg.Price,
+		arg.CurrencyID,
 		arg.Note,
 		arg.CreatedBy,
 		arg.CreatedByName,
@@ -124,6 +126,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.CurrencyID,
 	)
 	return i, err
 }
@@ -150,7 +153,7 @@ func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) (i
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.note, p.is_active, p.created_at, p.updated_at,
+SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
             THEN COALESCE((SELECT sum(s.quantity) FROM stock s
@@ -177,6 +180,7 @@ type GetProductRow struct {
 	Unit          *string
 	Sku           *string
 	Price         pgtype.Numeric
+	CurrencyID    int64
 	Note          *string
 	IsActive      bool
 	CreatedAt     time.Time
@@ -203,6 +207,7 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.Unit,
 		&i.Sku,
 		&i.Price,
+		&i.CurrencyID,
 		&i.Note,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -328,7 +333,7 @@ func (q *Queries) ListProductStock(ctx context.Context, arg ListProductStockPara
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.note, p.is_active, p.created_at, p.updated_at,
+SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
             THEN COALESCE((SELECT sum(s.quantity) FROM stock s
@@ -365,6 +370,7 @@ type ListProductsRow struct {
 	Unit          *string
 	Sku           *string
 	Price         pgtype.Numeric
+	CurrencyID    int64
 	Note          *string
 	IsActive      bool
 	CreatedAt     time.Time
@@ -403,6 +409,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 			&i.Unit,
 			&i.Sku,
 			&i.Price,
+			&i.CurrencyID,
 			&i.Note,
 			&i.IsActive,
 			&i.CreatedAt,
@@ -449,7 +456,7 @@ func (q *Queries) ProductStanding(ctx context.Context, arg ProductStandingParams
 const setProductActive = `-- name: SetProductActive :one
 UPDATE products SET is_active = $1, updated_at = now()
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
-RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at
+RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id
 `
 
 type SetProductActiveParams struct {
@@ -478,6 +485,7 @@ func (q *Queries) SetProductActive(ctx context.Context, arg SetProductActivePara
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.CurrencyID,
 	)
 	return i, err
 }
@@ -485,19 +493,20 @@ func (q *Queries) SetProductActive(ctx context.Context, arg SetProductActivePara
 const updateProduct = `-- name: UpdateProduct :one
 UPDATE products
 SET name = $1, unit = $2, sku = $3, price = $4,
-    note = $5, updated_at = now()
-WHERE id = $6 AND company_id = $7 AND deleted_at IS NULL
-RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at
+    currency_id = $5, note = $6, updated_at = now()
+WHERE id = $7 AND company_id = $8 AND deleted_at IS NULL
+RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id
 `
 
 type UpdateProductParams struct {
-	Name      string
-	Unit      *string
-	Sku       *string
-	Price     pgtype.Numeric
-	Note      *string
-	ID        int64
-	CompanyID int64
+	Name       string
+	Unit       *string
+	Sku        *string
+	Price      pgtype.Numeric
+	CurrencyID int64
+	Note       *string
+	ID         int64
+	CompanyID  int64
 }
 
 // An edit: every field as it is now (NULL clears an optional one), and the
@@ -509,6 +518,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		arg.Unit,
 		arg.Sku,
 		arg.Price,
+		arg.CurrencyID,
 		arg.Note,
 		arg.ID,
 		arg.CompanyID,
@@ -529,6 +539,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.CurrencyID,
 	)
 	return i, err
 }

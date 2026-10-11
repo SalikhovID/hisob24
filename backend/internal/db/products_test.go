@@ -36,7 +36,7 @@ func numericText(t *testing.T, n pgtype.Numeric) string {
 // company, as enteredBy, who has to be a user.
 func createProduct(t *testing.T, q *gen.Queries, companyID int64, kind, name string, unit *string) gen.Product {
 	t.Helper()
-	p, err := q.CreateProduct(t.Context(), gen.CreateProductParams{CompanyID: companyID, Kind: kind, Name: name, Unit: unit, CreatedBy: enteredBy})
+	p, err := q.CreateProduct(t.Context(), gen.CreateProductParams{CompanyID: companyID, Kind: kind, Name: name, Unit: unit, CurrencyID: 1, CreatedBy: enteredBy})
 	require.NoError(t, err)
 	return p
 }
@@ -48,12 +48,13 @@ func TestCreateProduct(t *testing.T) {
 	createUser(t, q, enteredBy, "Ali Valiyev")
 
 	p, err := q.CreateProduct(ctx, gen.CreateProductParams{
-		CompanyID: olma.ID, Kind: "product", Name: "Olma", Unit: ptr("kg"), Sku: ptr("A-1"), Price: numeric(t, "1200.5"), Note: ptr("Qizil"),
+		CompanyID: olma.ID, Kind: "product", Name: "Olma", Unit: ptr("kg"), Sku: ptr("A-1"), Price: numeric(t, "1200.5"), CurrencyID: 2, Note: ptr("Qizil"),
 		CreatedBy: enteredBy, CreatedByName: ptr("Ali aka"),
 	})
 
 	require.NoError(t, err)
 	assert.Positive(t, p.ID)
+	assert.EqualValues(t, 2, p.CurrencyID, "the price's currency")
 	assert.Equal(t, olma.ID, p.CompanyID)
 	assert.Equal(t, "product", p.Kind)
 	assert.Equal(t, "Olma", p.Name)
@@ -69,9 +70,9 @@ func TestCreateProduct(t *testing.T) {
 	service := createProduct(t, q, olma.ID, "service", "Yetkazish", nil)
 	assert.Nil(t, service.Unit)
 	assert.False(t, service.Price.Valid, "no price")
-	_, err = q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: "olma", Unit: ptr("dona"), CreatedBy: enteredBy})
+	_, err = q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: "olma", Unit: ptr("dona"), CurrencyID: 1, CreatedBy: enteredBy})
 	assert.Equal(t, "23505", sqlState(err), "the name is taken among the products") // unique_violation
-	_, err = q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: "Nok", Unit: ptr("dona"), Sku: ptr("a-1"), CreatedBy: enteredBy})
+	_, err = q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: "Nok", Unit: ptr("dona"), Sku: ptr("a-1"), CurrencyID: 1, CreatedBy: enteredBy})
 	assert.Equal(t, "23505", sqlState(err), "the SKU is taken")
 }
 
@@ -82,7 +83,7 @@ func TestGetProduct(t *testing.T) {
 	nok := createCompany(t, q, "Nok", today(t, pool))
 	createUser(t, q, enteredBy, "Ali Valiyev")
 	addMember(t, q, olma.ID, enteredBy, "Ali aka", "owner")
-	p, err := q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: "Olma", Unit: ptr("kg"), CreatedBy: enteredBy, CreatedByName: ptr("Ali")})
+	p, err := q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: "Olma", Unit: ptr("kg"), CurrencyID: 1, CreatedBy: enteredBy, CreatedByName: ptr("Ali")})
 	require.NoError(t, err)
 	gone := createProduct(t, q, olma.ID, "service", "Eski", nil)
 	mustExec(t, pool, "UPDATE products SET deleted_at = now() WHERE id = $1", gone.ID)
@@ -157,24 +158,25 @@ func TestUpdateProduct(t *testing.T) {
 	p := createProduct(t, q, olma.ID, "product", "Olma", ptr("kg"))
 	createProduct(t, q, olma.ID, "product", "Nok", ptr("dona"))
 
-	updated, err := q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: olma.ID, Name: "Qizil olma", Unit: ptr("dona"), Sku: ptr("A-2"), Price: numeric(t, "100"), Note: ptr("Yangi")})
+	updated, err := q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: olma.ID, Name: "Qizil olma", Unit: ptr("dona"), Sku: ptr("A-2"), Price: numeric(t, "100"), CurrencyID: 2, Note: ptr("Yangi")})
 	require.NoError(t, err)
 	assert.Equal(t, "Qizil olma", updated.Name)
 	assert.Equal(t, ptr("dona"), updated.Unit)
 	assert.Equal(t, ptr("A-2"), updated.Sku)
 	assert.Equal(t, "100.00", numericText(t, updated.Price))
+	assert.EqualValues(t, 2, updated.CurrencyID, "the price's currency moves with the price")
 	assert.Equal(t, ptr("Yangi"), updated.Note)
 	assert.False(t, updated.UpdatedAt.Before(p.UpdatedAt), "the moment of the edit")
 
-	cleared, err := q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: olma.ID, Name: "Olma", Unit: ptr("kg")})
+	cleared, err := q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: olma.ID, Name: "Olma", Unit: ptr("kg"), CurrencyID: 1})
 	require.NoError(t, err)
 	assert.Nil(t, cleared.Sku, "what is not sent is cleared")
 	assert.False(t, cleared.Price.Valid)
 	assert.Nil(t, cleared.Note)
 
-	_, err = q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: olma.ID, Name: "nok", Unit: ptr("kg")})
+	_, err = q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: olma.ID, Name: "nok", Unit: ptr("kg"), CurrencyID: 1})
 	assert.Equal(t, "23505", sqlState(err), "the name is another product's")
-	_, err = q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: nok.ID, Name: "Olma", Unit: ptr("kg")})
+	_, err = q.UpdateProduct(ctx, gen.UpdateProductParams{ID: p.ID, CompanyID: nok.ID, Name: "Olma", Unit: ptr("kg"), CurrencyID: 1})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's product")
 }
 

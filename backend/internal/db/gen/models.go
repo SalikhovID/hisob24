@@ -55,6 +55,34 @@ type Company struct {
 	CreatedAt time.Time
 }
 
+type CompanyCurrency struct {
+	CompanyID  int64
+	CurrencyID int64
+	AddedBy    *int64
+	AddedAt    time.Time
+}
+
+type Currency struct {
+	ID       int64
+	Code     string
+	Name     string
+	Symbol   string
+	Position int32
+}
+
+type CurrencyRate struct {
+	ID        int64
+	CompanyID int64
+	Uzs       pgtype.Numeric
+	Usd       pgtype.Numeric
+	Eur       pgtype.Numeric
+	Rub       pgtype.Numeric
+	Status    int16
+	SetBy     string
+	SetByName *string
+	SetAt     time.Time
+}
+
 type Customer struct {
 	ID            int64
 	CompanyID     int64
@@ -155,6 +183,7 @@ type Product struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
+	CurrencyID    int64
 }
 
 type Purchase struct {
@@ -326,6 +355,7 @@ type User struct {
 	Phone     string
 	FullName  *string
 	CreatedAt time.Time
+	Timezone  string
 }
 
 type UserCompany struct {

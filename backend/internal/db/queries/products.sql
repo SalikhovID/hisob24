@@ -3,9 +3,9 @@
 -- the name the member who enters it goes by in the company now: it stays
 -- when they leave. The name is one row's among the company's rows of the
 -- kind, the SKU one product's in the company (23505, whatever the case).
-INSERT INTO products (company_id, kind, name, unit, sku, price, note, created_by, created_by_name)
+INSERT INTO products (company_id, kind, name, unit, sku, price, currency_id, note, created_by, created_by_name)
 VALUES (sqlc.arg('company_id'), sqlc.arg('kind'), sqlc.arg('name'), sqlc.narg('unit'), sqlc.narg('sku'),
-        sqlc.narg('price'), sqlc.narg('note'), sqlc.arg('created_by'), sqlc.narg('created_by_name'))
+        sqlc.narg('price'), sqlc.arg('currency_id'), sqlc.narg('note'), sqlc.arg('created_by'), sqlc.narg('created_by_name'))
 RETURNING *;
 
 -- name: GetProduct :one
@@ -16,7 +16,7 @@ RETURNING *;
 -- member's, or the one asked for), NULL for a service; last_price is the
 -- price of its newest live purchase line, whatever the location, NULL when
 -- it was never bought.
-SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.note, p.is_active, p.created_at, p.updated_at,
+SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
             THEN COALESCE((SELECT sum(s.quantity) FROM stock s
@@ -35,7 +35,7 @@ WHERE p.id = sqlc.arg('id') AND p.company_id = sqlc.arg('company_id') AND p.dele
 -- search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
 -- leaves it out. The columns are GetProduct's (quantity in the locations
 -- given, last_price).
-SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.note, p.is_active, p.created_at, p.updated_at,
+SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
             THEN COALESCE((SELECT sum(s.quantity) FROM stock s
@@ -69,7 +69,7 @@ WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL
 -- such row, or deleted it; 23505 when the name or the SKU is another's.
 UPDATE products
 SET name = sqlc.arg('name'), unit = sqlc.narg('unit'), sku = sqlc.narg('sku'), price = sqlc.narg('price'),
-    note = sqlc.narg('note'), updated_at = now()
+    currency_id = sqlc.arg('currency_id'), note = sqlc.narg('note'), updated_at = now()
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
 RETURNING *;
 

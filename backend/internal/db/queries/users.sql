@@ -84,7 +84,7 @@ SELECT EXISTS (SELECT 1 FROM user_companies WHERE user_phone = $1);
 -- added; logic/locations.md) and whether the subscription lets the company
 -- be used (the end date has not passed and it is not blocked). pgx.ErrNoRows
 -- when the user is not its member.
-SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order,
+SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order, u.timezone,
        (SELECT COALESCE(array_agg(l.id ORDER BY l.id), '{}') FROM locations l
          WHERE l.company_id = uc.company_id AND l.deleted_at IS NULL
            AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
@@ -92,6 +92,7 @@ SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order,
        (c.end_date >= CURRENT_DATE AND c.is_active)::boolean AS active
 FROM user_companies uc
 JOIN companies c ON c.id = uc.company_id
+JOIN users u ON u.phone = uc.user_phone
 LEFT JOIN roles r ON r.id = uc.role_id
 WHERE uc.user_phone = $1 AND uc.company_id = $2;
 
