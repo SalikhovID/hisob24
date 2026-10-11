@@ -72,10 +72,33 @@ func (b *smsBox) code(t *testing.T, phone string) string {
 	return code
 }
 
+// tgBox is the user bot: it keeps the last code each chat was messaged.
+type tgBox struct {
+	mu   sync.Mutex
+	last map[int64]string
+}
+
+func (b *tgBox) SendLoginCode(_ context.Context, chatID int64, code string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.last[chatID] = code
+	return nil
+}
+
+// code is the login code the chat was messaged last.
+func (b *tgBox) code(t *testing.T, chatID int64) string {
+	t.Helper()
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	require.NotEmpty(t, b.last[chatID], "no code was messaged to chat %d", chatID)
+	return b.last[chatID]
+}
+
 type testAPI struct {
 	router http.Handler
 	pool   *pgxpool.Pool
 	sms    *smsBox
+	tg     *tgBox
 }
 
 func newTestAPI(t *testing.T) testAPI {
@@ -89,9 +112,10 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 	t.Parallel()
 	pool := pgtest.New(t)
 	box := &smsBox{last: map[string]string{}}
+	tg := &tgBox{last: map[int64]string{}}
 	h := NewHandler(
 		Services{
-			Auth:      auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box, nil),
+			Auth:      auth.NewUserAuth(pool, testOTPSecret, testJWTSecret, testUserBotToken, box, tg),
 			Profiles:  user.NewProfiles(pool),
 			Companies: company.NewService(pool),
 			Customers: customer.NewService(pool),
@@ -103,7 +127,7 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 		httpx.NewRateLimiter(5, time.Minute),
 		httpx.NewRateLimiter(5, time.Minute),
 	)
-	return testAPI{router: httpx.NewRouter(h.Routes), pool: pool, sms: box}
+	return testAPI{router: httpx.NewRouter(h.Routes), pool: pool, sms: box, tg: tg}
 }
 
 type option func(*http.Request)
@@ -171,6 +195,23 @@ func TestSendCode(t *testing.T) {
 	rec = api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"12ab"}`)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Telefon raqami noto'g'ri"}`, rec.Body.String())
+}
+
+// A phone that shared itself with the user bot gets its code in that chat
+// and no SMS, with the same answer as anyone, and signs in with it.
+func TestSendCodeGoesToTelegramWhenThePhoneIsLinked(t *testing.T) {
+	api := newTestAPI(t)
+	api.addOwner(t, alisPhone)
+	api.exec(t, "INSERT INTO telegram_contacts (chat_id, phone) VALUES (7001, $1)", alisPhone)
+
+	rec := api.do(t, http.MethodPost, "/app/auth/sms/send", `{"phone":"+998 90 123 45 67"}`)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, `{"retry_after":60}`, rec.Body.String(), "the answer tells nothing of the way the code went")
+	assert.Empty(t, api.sms.text(alisPhone), "no SMS")
+
+	rec = api.do(t, http.MethodPost, "/app/auth/sms/verify", `{"phone":"`+alisPhone+`","code":"`+api.tg.code(t, 7001)+`"}`)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.NotEmpty(t, decode(t, rec)["access_token"])
 }
 
 func TestSendCodeIsLimitedPerIP(t *testing.T) {
