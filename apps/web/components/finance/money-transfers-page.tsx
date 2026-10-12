@@ -97,6 +97,8 @@ export function MoneyTransfersPage() {
       <PageHeader
         title="O'tkazmalar"
         description="Akkauntlar aro o'tkazmalar va valyuta konvertatsiyalari"
+        // Two buttons do not fit beside the title on a phone: they go under it.
+        stack
         actions={
           companyId !== null &&
           allowed("finance.create") && (
