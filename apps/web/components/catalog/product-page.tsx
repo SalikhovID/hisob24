@@ -15,6 +15,7 @@ import { usePermission } from "@/lib/use-gate"
 import { ActiveButton } from "./active-button"
 import { DeleteProductButton } from "./delete-product-button"
 import { ProductDialog } from "./product-dialog"
+import { ProductMoves } from "./product-moves"
 import { ProductPurchases } from "./product-purchases"
 import { ProductStock } from "./product-stock"
 import { ServiceDialog } from "./service-dialog"
@@ -27,7 +28,8 @@ const backTo = (kind: ProductKind) =>
 // ProductPage is one product of the company (logic/products.md, section 6),
 // for whoever may see the products (changing, turning off and deleting each
 // take their permission): its unit and SKU, its price, its note, who
-// entered it and when. The stock and the purchases come with the warehouse.
+// entered it and when. The stock and the purchases come with the warehouse,
+// the moves with the stock documents' permission.
 export function ProductPage({ id }: { id: number }) {
   const gate = usePermission("products.view")
   const companyId = gate?.company.id ?? null
@@ -112,6 +114,7 @@ export function ProductPage({ id }: { id: number }) {
       {/* The stock in every location of the member, and the purchases the product is in (for whoever may see the purchases). */}
       {isProduct && <ProductStock stock={p.stock} unit={p.unit} />}
       {isProduct && companyId !== null && allowed("purchases.view") && <ProductPurchases companyId={companyId} productId={p.id} unit={p.unit} />}
+      {isProduct && companyId !== null && allowed("stock.view") && <ProductMoves companyId={companyId} productId={p.id} unit={p.unit} />}
     </div>
   )
 }

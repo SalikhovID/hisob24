@@ -58,6 +58,20 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(within(row).getByText("12,5 kg")).toBeInTheDocument()
   expect(within(row).getByText("1 000 so'm")).toBeInTheDocument()
   expect(within(row).getByText("12 500 so'm")).toBeInTheDocument()
+  // The moves come with the stock documents' permission.
+  expect(await screen.findByRole("table", { name: "Harakatlar" })).toBeInTheDocument()
+})
+
+test("without the stock documents' permission the moves are not shown", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  giveRole(VALI, 1, "Sotuvchi", ["products.view", "purchases.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<ProductPage id={catalog.olma.id} />)
+
+  expect(await screen.findByRole("table", { name: "Xaridlar" })).toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Harakatlar" })).not.toBeInTheDocument()
 })
 
 test("a product in a purchase is kept: the API's refusal is told", async () => {
