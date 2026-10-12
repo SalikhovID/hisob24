@@ -57,8 +57,19 @@ type Querier interface {
 	ConsumeAdminLoginCode(ctx context.Context, codeHash string) (int64, error)
 	// Deletes a matching live code: a code logs in once.
 	ConsumeSMSCode(ctx context.Context, arg ConsumeSMSCodeParams) (string, error)
+	// How many live documents name the account, as the source or the target
+	// (logic/finance.md, section 3: such an account is neither deleted nor
+	// put in another currency).
+	CountAccountDocuments(ctx context.Context, accountID int64) (int64, error)
+	// How many rows ListAccountStatement finds, on all of its pages.
+	CountAccountStatement(ctx context.Context, arg CountAccountStatementParams) (int64, error)
 	// How many live, active accounts the company has: one has to stay.
 	CountActiveBankAccounts(ctx context.Context, companyID int64) (int64, error)
+	// How many rows ListCashDocuments finds, on all of its pages.
+	CountCashDocuments(ctx context.Context, arg CountCashDocumentsParams) (int64, error)
+	// How many live documents are filed under the category (logic/finance.md,
+	// section 6: such a category is not deleted).
+	CountCategoryDocuments(ctx context.Context, categoryID int64) (int64, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
 	// How many live accounts of the company are in the currency: what keeps
@@ -290,6 +301,9 @@ type Querier interface {
 	// one being edited, 0 for none) and the deleted do not count. pgx.ErrNoRows
 	// when the value is free.
 	FindCustomerByValue(ctx context.Context, arg FindCustomerByValueParams) (int64, error)
+	// One live account of the company with what it holds, as
+	// ListAccountBalances tells it. pgx.ErrNoRows when there is none such.
+	GetAccountBalance(ctx context.Context, arg GetAccountBalanceParams) (GetAccountBalanceRow, error)
 	GetActiveAdmin(ctx context.Context, telegramID int64) (Admin, error)
 	// The admin behind a live session; an expired session or a deactivated
 	// admin gives pgx.ErrNoRows.
@@ -297,6 +311,10 @@ type Querier interface {
 	// The company's live account; pgx.ErrNoRows when it has none such, or
 	// deleted it.
 	GetBankAccount(ctx context.Context, arg GetBankAccountParams) (BankAccount, error)
+	// The company's live cash document of one of the kinds: its account, the
+	// account it goes to (a transfer, a conversion), its category (an expense,
+	// an income), its amount and the amount that arrives (a conversion).
+	GetCashDocument(ctx context.Context, arg GetCashDocumentParams) (GetCashDocumentRow, error)
 	GetCompany(ctx context.Context, id int64) (Company, error)
 	// A user's standing in a company, read on every request: the role there,
 	// the company role they hold with its permissions (NULL for the owner and
@@ -446,10 +464,35 @@ type Querier interface {
 	HideLinkedPayments(ctx context.Context, linkedID int64) error
 	// Counts a wrong code; the caller deletes the code after the fifth.
 	IncrementSMSCodeAttempts(ctx context.Context, phone string) (int32, error)
+	// The finance documents (logic/finance.md, sections 4 and 5): what the
+	// accounts hold, their statements, and the cash documents (an opening
+	// balance of the cash, an expense or other income, a transfer between
+	// accounts, a conversion) read as one shape.
+	// The company's live accounts, the active first and then in the order
+	// added, each with what it holds in its own currency: what arrived (an
+	// opening balance of the cash, other income, a customer's payment, a
+	// transfer or a conversion into it) less what left (an expense, a
+	// supplier's payment, a transfer or a conversion out of it). Nothing is
+	// turned into another currency: a conversion leaves with its amount and
+	// arrives with the amount that arrives (logic/finance.md, section 4).
+	ListAccountBalances(ctx context.Context, companyID int64) ([]ListAccountBalancesRow, error)
+	// A page of the account's statement: every live document that names it,
+	// as the source or the target, the newest first (then the later entered),
+	// each with how it changed what the account holds (in the account's
+	// currency, by the rule of ListAccountBalances) and what the account held
+	// after it; the other side of each (the supplier, the customer by the
+	// first text answer of their type and their phone, the category, the
+	// other account: one of them is there); the document a payment was
+	// entered with.
+	ListAccountStatement(ctx context.Context, arg ListAccountStatementParams) ([]ListAccountStatementRow, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
 	// The company's live accounts, in the order they were added.
 	ListBankAccounts(ctx context.Context, companyID int64) ([]BankAccount, error)
 	ListBillings(ctx context.Context, companyID int64) ([]Billing, error)
+	// A page of the company's live cash documents of the kinds, the newest
+	// first; narrowed to an account (as the source or the target), a category
+	// and a span of moments when asked. The columns are GetCashDocument's.
+	ListCashDocuments(ctx context.Context, arg ListCashDocumentsParams) ([]ListCashDocumentsRow, error)
 	// status: "active" = end_date not passed and not blocked, "expired" = past
 	// end_date or blocked, NULL = everything. search matches the name in any case.
 	ListCompanies(ctx context.Context, arg ListCompaniesParams) ([]Company, error)
