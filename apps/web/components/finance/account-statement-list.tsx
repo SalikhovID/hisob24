@@ -101,16 +101,19 @@ export function AccountStatementList({
     {
       header: "Amallar",
       actions: true,
-      // An opening balance of the cash is its own document; a payment goes
-      // with the document it was entered with.
-      cell: (row) =>
-        row.kind === "cash_opening" &&
-        (canEdit || canDelete) && (
+      // A cash document is deleted here; an opening balance of the cash is
+      // edited here too, the others on their own pages. A payment goes with
+      // the document it was entered with.
+      cell: (row) => {
+        const kind = row.kind as FinanceDocumentKind
+        if (kind === "supplier_payment" || kind === "customer_payment" || !(canEdit || canDelete)) return null
+        return (
           <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-            {canEdit && <CashOpeningDialog companyId={companyId} opening={openingOfRow(row, account)} iconOnly />}
-            {canDelete && <DeleteCashDocumentButton companyId={companyId} document={{ id: row.id, kind: "cash_opening", amount: row.delta.replace(/^-/, ""), currency_id: account.currency_id, at: row.at }} />}
+            {canEdit && kind === "cash_opening" && <CashOpeningDialog companyId={companyId} opening={openingOfRow(row, account)} iconOnly />}
+            {canDelete && <DeleteCashDocumentButton companyId={companyId} document={{ id: row.id, kind, amount: row.delta.replace(/^-/, ""), currency_id: account.currency_id, at: row.at }} />}
           </span>
-        ),
+        )
+      },
     },
   ]
 

@@ -69,7 +69,14 @@ test("the account page: what it holds, its statement with each document's other 
   expect(within(rows[3]).getByRole("button", { name: "Tahrirlash: 1\u00a0000\u00a0000" })).toBeInTheDocument()
   expect(within(rows[3]).getByRole("button", { name: "O'chirish: 1\u00a0000\u00a0000" })).toBeInTheDocument()
   expect(within(rows[4]).queryAllByRole("button")).toHaveLength(0)
-  expect(screen.getByRole("button", { name: "Boshlang'ich qoldiq" })).toBeInTheDocument()
+  // The other cash documents are deleted in their rows and edited on their pages.
+  expect(within(rows[0]).getByRole("button", { name: "O'chirish: 128\u00a0000" })).toBeInTheDocument()
+  expect(within(rows[0]).queryByRole("button", { name: /Tahrirlash/ })).not.toBeInTheDocument()
+  expect(within(rows[2]).getByRole("button", { name: "O'chirish: 150\u00a0000" })).toBeInTheDocument()
+  // The header enters every kind into this account.
+  for (const name of ["Boshlang'ich qoldiq", "Xarajat qo'shish", "Kirim qo'shish", "O'tkazma qo'shish", "Konvertatsiya qo'shish"]) {
+    expect(screen.getByRole("button", { name })).toBeInTheDocument()
+  }
 
   // The card holds the dollars that arrived; the second cash what was moved in.
   expect(kassa2.id).toBeGreaterThan(0)

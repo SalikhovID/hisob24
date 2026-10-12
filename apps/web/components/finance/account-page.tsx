@@ -11,12 +11,16 @@ import { cn } from "@/lib/utils"
 import { signedMoney } from "./accounts-page"
 import { AccountStatementList } from "./account-statement-list"
 import { CashOpeningDialog } from "./cash-opening-dialog"
+import { ConversionDialog } from "./conversion-dialog"
+import { ExpenseDialog } from "./expense-dialog"
+import { MoneyTransferDialog } from "./money-transfer-dialog"
 
 const back = { href: "/accounts", label: "Kassa" }
 
 // AccountPage is one account of the company (logic/finance.md, section 4),
 // for whoever may see the finance: what it holds, its statement, and the
-// cash documents that go into or out of it (for whoever may add them).
+// dialogs that enter a cash document into or out of it (for whoever may
+// add them). The page's header is the only one with every kind.
 export function AccountPage({ id }: { id: number }) {
   const gate = usePermission("finance.view")
   const companyId = gate?.company.id ?? null
@@ -45,7 +49,17 @@ export function AccountPage({ id }: { id: number }) {
         description={`${currency.code} · ${account.is_active ? "Faol" : "Nofaol"}`}
         back={back}
         stack
-        actions={allowed("finance.create") && <CashOpeningDialog companyId={companyId} accountId={account.id} />}
+        actions={
+          allowed("finance.create") && (
+            <>
+              <CashOpeningDialog companyId={companyId} accountId={account.id} />
+              <ExpenseDialog companyId={companyId} kind="expense" accountId={account.id} settingsAllowed={allowed("settings.view")} />
+              <ExpenseDialog companyId={companyId} kind="income" accountId={account.id} settingsAllowed={allowed("settings.view")} />
+              <MoneyTransferDialog companyId={companyId} accountId={account.id} />
+              <ConversionDialog companyId={companyId} accountId={account.id} />
+            </>
+          )
+        }
       />
       <section aria-label="Qoldiq" className="rounded-xl border bg-card p-4">
         <p className="text-[0.8125rem] leading-5 text-muted-foreground">Akkauntdagi pul, o&apos;z valyutasida</p>
