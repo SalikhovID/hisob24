@@ -61,6 +61,8 @@ func TestWriteMovesAndCheckStock(t *testing.T) {
 
 	require.NoError(t, WriteMoves(ctx, q, s.company, sale.ID, MovesOf(Sale, s.asosiy, 0, []Line{{ProductID: s.olma, Quantity: n(t, "4")}})))
 	assert.NoError(t, CheckStock(ctx, q, []int64{s.asosiy}, []int64{s.olma, s.nok}), "nothing below zero: 4 − 4")
+	require.NoError(t, WriteMoves(ctx, q, s.company, sale.ID, MovesOf(Sale, s.asosiy, 0, []Line{{ProductID: s.olma, Quantity: n(t, "5")}})))
+	refused(t, CheckStock(ctx, q, []int64{s.asosiy}, []int64{s.olma, s.nok}), apperr.Conflict, "stock_insufficient", "«Olma» uchun omborda yetarli qoldiq yo'q", "one product below zero is enough")
 	require.NoError(t, WriteMoves(ctx, q, s.company, sale.ID, MovesOf(Sale, s.asosiy, 0, []Line{{ProductID: s.olma, Quantity: n(t, "5")}, {ProductID: s.nok, Quantity: n(t, "1")}})))
 	err := CheckStock(ctx, q, []int64{s.asosiy}, []int64{s.olma, s.nok})
 	refused(t, err, apperr.Conflict, "stock_insufficient", "«Nok» uchun omborda yetarli qoldiq yo'q", "the first product below zero, by name")
