@@ -1,13 +1,16 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, nextId, seedCustomers, typesOf, VALI } from "@/mocks/data"
+import { api, call } from "@/lib/api"
+import { ALI, db, nextId, seedCatalog, seedCustomers, seedWarehouse, typesOf, VALI } from "@/mocks/data"
 import { identityOf } from "@/test/identity"
+import { asosiyOf } from "@/test/locations"
 import { currentUrl, router, setLocation, slowNavigation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
+import { enterSale } from "@/test/stock"
 import { CustomersPage } from "./customers-page"
 
 // rowsOf are the customers in the table (the page shows them as cards too,
@@ -32,11 +35,13 @@ test("the customers page lists the company's customers, the newest first, with t
   const list = await table()
   // The answers of every type, a column for each field name; the field a
   // customer goes by is no column of its own.
+  // The owner sees the sales: what each owes is a column too.
   expect(within(list).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
     "Mijoz",
     "Turi",
     "Manba",
     "INN",
+    "Qarz",
     "Qo'shgan",
     "Qo'shilgan",
   ])
@@ -47,9 +52,9 @@ test("the customers page lists the company's customers, the newest first, with t
     ["Dilshod Karimov", "+998 91 111 22 33"],
   ])
   expect(rows.map(cellsOf)).toEqual([
-    ["Jismoniy", "YouTube", "—", "Sardor Karimov", "02.10.2026"],
-    ["Yuridik", "—", "301234567", "Ali Valiyev", "02.10.2026"],
-    ["Jismoniy", "Instagram", "—", "Vali Aliyev", "02.10.2026"],
+    ["Jismoniy", "YouTube", "—", "—", "Sardor Karimov", "02.10.2026"],
+    ["Yuridik", "—", "301234567", "—", "Ali Valiyev", "02.10.2026"],
+    ["Jismoniy", "Instagram", "—", "—", "Vali Aliyev", "02.10.2026"],
   ])
   // The name is the way into the customer, and the only link of its row.
   expect(within(rows[2]).getAllByRole("link")).toHaveLength(1)
@@ -148,14 +153,14 @@ test("a tab keeps the customers of one type, under that type's own fields, and s
   expect(currentUrl()).toBe(`/customers?type=${yuridik.id}`)
   // Every customer here is a Yuridik: the type is not said in each row, and
   // the other types' fields are not asked about.
-  expect(headers()).toEqual(["Mijoz", "INN", "Qo'shgan", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "INN", "Qarz", "Qo'shgan", "Qo'shilgan"])
   // One matches the tab; the company still has three. The count is not shown as the company's.
   expect(screen.getByText("Kompaniyangiz mijozlari")).toBeInTheDocument()
 
   await user.click(screen.getByRole("tab", { name: "Jismoniy" }))
   await waitFor(() => expect(names()).toEqual(["Malika Yusupova", "Dilshod Karimov"]))
   expect(currentUrl()).toBe(`/customers?type=${jismoniy.id}`)
-  expect(headers()).toEqual(["Mijoz", "Manba", "Qo'shgan", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "Manba", "Qarz", "Qo'shgan", "Qo'shilgan"])
 
   await user.click(screen.getByRole("tab", { name: "Barchasi" }))
   await waitFor(() => expect(names()).toHaveLength(3))
@@ -338,6 +343,7 @@ test("the Ustunlar menu hides and shows the columns; the choice is kept for the 
     ["Turi", true],
     ["Manba", true],
     ["INN", true],
+    ["Qarz", true],
     ["Qo'shgan", true],
     ["Qo'shilgan", true],
   ])
@@ -345,12 +351,13 @@ test("the Ustunlar menu hides and shows the columns; the choice is kept for the 
   await user.click(within(menu).getByRole("menuitemcheckbox", { name: "INN" }))
   await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Qo'shgan" }))
 
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "Qarz", "Qo'shilgan"])
   // The menu stays open, so several can be changed in one go.
   expect(ticks(menu)).toEqual([
     ["Turi", true],
     ["Manba", true],
     ["INN", false],
+    ["Qarz", true],
     ["Qo'shgan", false],
     ["Qo'shilgan", true],
   ])
@@ -359,12 +366,12 @@ test("the Ustunlar menu hides and shows the columns; the choice is kept for the 
   expect(within(card).queryByText("Sardor Karimov")).not.toBeInTheDocument()
 
   await user.click(within(menu).getByRole("menuitemcheckbox", { name: "INN" }))
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qarz", "Qo'shilgan"])
 
   unmount()
   renderWithProviders(<CustomersPage />)
   await table()
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qarz", "Qo'shilgan"])
 })
 
 test("under a tab the menu offers that type's columns; a column hidden there is hidden everywhere", async () => {
@@ -377,14 +384,14 @@ test("under a tab the menu offers that type's columns; a column hidden there is 
 
   await user.click(screen.getByRole("button", { name: "Ustunlar" }))
   const menu = await screen.findByRole("menu")
-  expect(ticks(menu).map(([name]) => name)).toEqual(["Manba", "Qo'shgan", "Qo'shilgan"])
+  expect(ticks(menu).map(([name]) => name)).toEqual(["Manba", "Qarz", "Qo'shgan", "Qo'shilgan"])
   await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Manba" }))
-  expect(headers()).toEqual(["Mijoz", "Qo'shgan", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "Qarz", "Qo'shgan", "Qo'shilgan"])
   await user.keyboard("{Escape}")
 
   await user.click(screen.getByRole("tab", { name: "Barchasi" }))
   await waitFor(() => expect(names()).toHaveLength(3))
-  expect(headers()).toEqual(["Mijoz", "Turi", "INN", "Qo'shgan", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "Turi", "INN", "Qarz", "Qo'shgan", "Qo'shilgan"])
 })
 
 test("the columns one user hides stay shown for another", async () => {
@@ -397,7 +404,7 @@ test("the columns one user hides stay shown for another", async () => {
   renderWithProviders(<CustomersPage />)
 
   await table()
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shgan", "Qo'shilgan"])
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qarz", "Qo'shgan", "Qo'shilgan"])
 })
 
 // noTypes deletes every customer type of Olma Savdo, as its owner may.
@@ -470,4 +477,29 @@ test("an employee whose role holds no customers.view is sent home", async () => 
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
   expect(screen.queryByRole("heading", { level: 1, name: "Mijozlar" })).not.toBeInTheDocument()
+})
+
+test("the list says what each customer owes, for whoever may see the sales; one who may not sees no such column", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const { dilshod, malika } = seedCustomers()
+  await signIn(ALI)
+  const cash = db.accounts[1][0].id
+  // Dilshod bought 12 000 worth and paid 5 000; Malika paid 50 000 ahead.
+  await enterSale({ location_id: asosiyOf(1).id, customer_id: dilshod.id, at: "2026-10-05T09:00:00+05:00", items: [{ product_id: catalog.olma.id, quantity: "4", price: "3000" }], payments: [{ bank_account_id: cash, amount: "5000" }] })
+  await call(api.POST("/app/customers/{id}/openings", { params: { path: { id: malika.id } }, body: { kind: "prepay", amount: "50000", at: "2026-10-01T09:00:00+05:00" } }))
+  setLocation("/customers")
+  const { unmount } = renderWithProviders(<CustomersPage />)
+
+  const rows = rowsOf(await table())
+  expect(rows.map((row) => cellsOf(row)[3])).toEqual(["Avans: 50\u00a0000 so'm", "—", "Qarz: 7\u00a0000 so'm"])
+  unmount()
+
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
+  db.cooldown = false
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<CustomersPage />)
+  await table()
+  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shgan", "Qo'shilgan"])
 })

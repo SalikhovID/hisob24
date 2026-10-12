@@ -4,7 +4,7 @@ import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import { keep } from "@/lib/use-kept"
-import { addDays, ALI, db, localToday, seedCustomers, seedSixKinds, seedTasks, typesOf, VALI } from "@/mocks/data"
+import { addDays, ALI, db, localToday, seedCatalog, seedCustomers, seedSixKinds, seedTasks, seedWarehouse, typesOf, VALI } from "@/mocks/data"
 import { addLocation, asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
@@ -12,6 +12,7 @@ import { giveRole } from "@/test/roles"
 import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
+import { enterSale } from "@/test/stock"
 import { CustomerPage } from "./customer-page"
 
 // open puts the test on a customer's page.
@@ -424,7 +425,56 @@ test("an employee whose role holds customers.view alone sees the customer withou
   expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Vazifalar" })).not.toBeInTheDocument()
+  // What the customer owes is the sales' business (logic/sales.md, section 5).
+  expect(screen.queryByRole("region", { name: "Balans" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Hisob harakati" })).not.toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
+})
+
+// sold enters Dilshod's sale of 4 Olma at 3 000, 5 000 paid with it: 7 000 owed.
+async function sold(dilshod: { id: number }, catalog: ReturnType<typeof seedCatalog>) {
+  const cash = db.accounts[1][0].id
+  return enterSale({ location_id: asosiyOf(1).id, customer_id: dilshod.id, at: "2026-10-05T09:00:00+05:00", items: [{ product_id: catalog.olma.id, quantity: "4", price: "3000" }], payments: [{ bank_account_id: cash, amount: "5000" }] })
+}
+
+test("the owner sees what the customer owes and their statement, with the sale and its payment, and may add a payment or an opening balance", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const { dilshod } = seedCustomers()
+  await signIn(ALI)
+  const sale = await sold(dilshod, catalog)
+  open(dilshod.id)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
+  const balance = await screen.findByRole("region", { name: "Balans" })
+  expect(within(balance).getByText("Qarz: 7 000 so'm")).toBeInTheDocument()
+  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
+  // The sale, and the payment entered with it, each lead to the sale.
+  const links = within(statement).getAllByRole("link", { name: "Sotuv № 1" })
+  expect(links).toHaveLength(2)
+  expect(links[0]).toHaveAttribute("href", `/sales/${sale.id}`)
+  expect(screen.getByRole("button", { name: "To'lov qo'shish" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" })).toBeInTheDocument()
+})
+
+test("whoever may see the sales alone sees the balance and the statement, with no way to add to them", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const { dilshod } = seedCustomers()
+  // The owner enters the sale; the watcher looks at it.
+  await signIn(ALI)
+  await sold(dilshod, catalog)
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view", "sales.view"])
+  db.cooldown = false
+  await signIn(VALI)
+  await chooseCompany(1)
+  open(dilshod.id)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
+  expect(within(await screen.findByRole("region", { name: "Balans" })).getByText("Qarz: 7 000 so'm")).toBeInTheDocument()
+  expect(await screen.findByRole("table", { name: "Hisob harakati" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Boshlang'ich qarz / avans" })).not.toBeInTheDocument()
 })
 
 test("the customer's actions follow the role: editing, the history and the tasks here; not deleting", async () => {

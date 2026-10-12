@@ -20,6 +20,7 @@ import type { Customer, Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useHiddenColumns } from "@/lib/use-hidden-columns"
 import { cn } from "@/lib/utils"
+import { balanceText } from "@/lib/warehouse"
 import { AddCustomerDialog } from "./add-customer-dialog"
 import { ColumnsMenu } from "./columns-menu"
 import { SearchInput } from "./search-input"
@@ -96,6 +97,23 @@ export function CustomersPage() {
         },
       }),
     ),
+    // What each owes, for whoever may see the sales (logic/sales.md, section
+    // 5): a debt, an advance, or a dash for nothing.
+    ...(allowed("sales.view")
+      ? [
+          {
+            key: "balance",
+            header: "Qarz",
+            card: "inline",
+            className: "tabular-nums whitespace-nowrap",
+            cell: (c) => {
+              if (c.balance === null) return null
+              const balance = balanceText(c.balance)
+              return balance.kind === "none" ? null : balance.text
+            },
+          } satisfies Column<Customer>,
+        ]
+      : []),
     { key: "created_by", header: "Qo'shgan", className: "text-muted-foreground", cell: (c) => c.created_by_name },
     {
       key: "created_at",

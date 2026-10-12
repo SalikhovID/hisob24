@@ -6,17 +6,15 @@ import { PageHeader } from "@/components/page-header"
 import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { ApiError } from "@/lib/api"
-import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
-import { formatAmount, formatDate, formatMoney } from "@/lib/format"
+import { formatAmount, formatDate } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import { useSupplier } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
-import { balanceText } from "@/lib/warehouse"
-import { cn } from "@/lib/utils"
 import { DeleteSupplierButton } from "./delete-supplier-button"
 import { SupplierActiveButton } from "./supplier-active-button"
+import { BalanceCard } from "./balance-card"
 import { StatementList } from "./statement-list"
 import { SupplierDialog } from "./supplier-dialog"
 
@@ -32,7 +30,6 @@ export function SupplierPage({ id }: { id: number }) {
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const supplier = useSupplier(companyId, id)
-  const currencies = useCurrencies()
   const router = useRouter()
 
   // Until the session is known to be let in there is nothing to show; a
@@ -54,11 +51,6 @@ export function SupplierPage({ id }: { id: number }) {
   const s = supplier.data
   const phone = s.phone ? formatPhone(s.phone) : null
   const seesBalance = allowed("purchases.view") && s.balance !== null
-  const balance = s.balance === null ? null : balanceText(s.balance)
-  // What is owed in each currency, said apart when any of it is not in so'm.
-  const byCurrency = (s.balance_by_currency ?? []).some((l) => l.currency_id !== UZS)
-    ? (s.balance_by_currency ?? []).map((l) => formatMoney(l.amount, currencyOf(currencies, l.currency_id))).join(", ")
-    : null
 
   return (
     <div className="space-y-5">
@@ -88,22 +80,10 @@ export function SupplierPage({ id }: { id: number }) {
           )
         }
       />
-      {seesBalance && balance && (
+      {seesBalance && (
         // What is owed: the live purchases less the live payments, the
         // whole company's (logic/warehouse.md, section 6).
-        <section aria-label="Balans" className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-6">
-          <div>
-            <p
-              className={cn(
-                "text-lg font-semibold tabular-nums",
-                balance.kind === "debt" && "text-destructive",
-                balance.kind === "advance" && "text-emerald-700 dark:text-emerald-400",
-              )}
-            >
-              {balance.text}
-            </p>
-            {byCurrency && <p className="text-sm text-muted-foreground tabular-nums">shu jumladan {byCurrency}</p>}
-          </div>
+        <BalanceCard balance={s.balance!} byCurrency={s.balance_by_currency ?? null}>
           <p className="text-sm">
             <span className="block text-[0.8125rem] leading-5 text-muted-foreground">Jami xaridlar</span>
             <span className="tabular-nums">{formatAmount(s.purchases_total ?? "0")} so&apos;m</span>
@@ -112,7 +92,7 @@ export function SupplierPage({ id }: { id: number }) {
             <span className="block text-[0.8125rem] leading-5 text-muted-foreground">Jami to&apos;lovlar</span>
             <span className="tabular-nums">{formatAmount(s.payments_total ?? "0")} so&apos;m</span>
           </p>
-        </section>
+        </BalanceCard>
       )}
       <section aria-labelledby="supplier-info" className="space-y-3">
         <h2 id="supplier-info" className="text-base font-semibold">

@@ -13,6 +13,8 @@ import { can } from "@/lib/permissions"
 import { useCustomer, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
+import { BalanceCard } from "@/components/warehouse/balance-card"
+import { StatementList } from "@/components/warehouse/statement-list"
 import { CustomerHistory } from "./customer-history"
 import { CustomerTasks } from "./customer-tasks"
 import { DeleteCustomerButton } from "./delete-customer-button"
@@ -23,7 +25,8 @@ const back = { href: "/customers", label: "Mijozlar" }
 // CustomerPage is one customer of the company, for whoever may see the
 // customers (changing, deleting, the history and the tasks each take their
 // permission): who it is, its answer to every field of its type, in the type's order, and who
-// entered it and when.
+// entered it and when; for whoever may see the sales, what they owe and
+// their statement (logic/sales.md, section 5).
 export function CustomerPage({ id }: { id: number }) {
   const gate = usePermission("customers.view")
   const companyId = gate?.company.id ?? null
@@ -84,6 +87,7 @@ export function CustomerPage({ id }: { id: number }) {
           )
         }
       />
+      {allowed("sales.view") && customer.data.balance !== null && <BalanceCard balance={customer.data.balance} byCurrency={customer.data.balance_by_currency ?? null} />}
       <section aria-labelledby="customer-info" className="space-y-3">
         <h2 id="customer-info" className="text-base font-semibold">
           Ma&apos;lumot
@@ -97,6 +101,17 @@ export function CustomerPage({ id }: { id: number }) {
           <Fact name="Qo'shilgan" value={formatDate(customer.data.created_at)} />
         </dl>
       </section>
+      {/* Every document that names the customer, and the dialogs that add one (logic/sales.md, section 5). */}
+      {companyId !== null && allowed("sales.view") && (
+        <StatementList
+          party="customer"
+          companyId={companyId}
+          partyId={customer.data.id}
+          canAdd={allowed("sales.create")}
+          canEdit={allowed("sales.edit")}
+          canDelete={allowed("sales.delete")}
+        />
+      )}
       {/* The tasks the customer has (for whoever may see the tasks): a customer with one is not deleted. */}
       {companyId !== null && allowed("tasks.view") && <CustomerTasks companyId={companyId} customerId={customer.data.id} />}
       {/* Who did what to the customer takes its permission. */}
