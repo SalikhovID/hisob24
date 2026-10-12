@@ -10,7 +10,7 @@ test("an opening balance is deleted from its row after asking", async () => {
   const { bozor } = seedWarehouse()
   await signIn(ALI)
   const opening = await enterOpening(bozor.id, { kind: "prepay", amount: "250000", at: "2026-10-03T09:00:00+05:00" })
-  const { user } = renderWithProviders(<DeleteOpeningButton companyId={1} opening={opening} />)
+  const { user } = renderWithProviders(<DeleteOpeningButton companyId={1} partyId={bozor.id} opening={opening} />)
 
   await user.click(screen.getByRole("button", { name: "O'chirish: 250 000" }))
   const dialog = await screen.findByRole("alertdialog", { name: "Hujjatni o'chirasizmi?" })

@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { FieldError } from "@/components/ui/field"
 import { convert, currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatMoney, unitLabel } from "@/lib/format"
-import type { LastPrice } from "@/lib/types"
+import type { LastPrice, ProductKind } from "@/lib/types"
 import { emptyLine, type LineForm, lineAmount, purchaseTotal } from "@/lib/warehouse"
-import { ProductPicker } from "./pickers"
+import { type Offer, ProductPicker } from "./pickers"
 
 // WithLines is a form that holds the lines of a goods document.
 type WithLines = { items: LineForm[] }
@@ -27,6 +27,8 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
   currencyId,
   pending,
   heading = "Mahsulotlar",
+  kinds,
+  offer = "last_price",
 }: {
   form: UseFormReturn<TForm, unknown, TOut>
   companyId: number
@@ -34,6 +36,10 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
   currencyId: number
   pending: boolean
   heading?: string
+  // kinds are what the picker offers (the products alone unless told);
+  // offer is the price it offers for a line: the last bought or the sale price.
+  kinds?: readonly ProductKind[]
+  offer?: Offer
 }) {
   // The names of the lines' fields: the form holds them as items.
   const path = (name: string) => name as FieldPath<TForm>
@@ -85,18 +91,21 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
               render={({ field, fieldState }) => (
                 <ProductPicker
                   companyId={companyId}
+                  kinds={kinds}
+                  offer={offer}
                   value={
                     field.value
                       ? // The unit stands at the quantity, not in the chip.
-                        { id: Number(field.value), name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null }
+                        { id: Number(field.value), name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null, price: null }
                       : null
                   }
                   onChange={(pick) => {
                     field.onChange(pick?.id ?? 0)
                     set(`items.${index}.product_name`, pick?.name ?? "")
                     set(`items.${index}.unit`, pick?.unit ?? null)
-                    // The price it was last bought at is offered; one typed stays.
-                    const price = withPrice ? offered(pick?.last_price ?? null) : null
+                    // The price offered (the last bought, or the sale price) is
+                    // put in; one typed stays.
+                    const price = withPrice ? offered((offer === "price" ? pick?.price : pick?.last_price) ?? null) : null
                     if (price !== null && !form.getValues(path(`items.${index}.price`))) set(`items.${index}.price`, price)
                   }}
                   error={fieldState.error?.message}

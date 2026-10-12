@@ -192,10 +192,11 @@ describe("the opening balance dialog", () => {
       note: null,
       created_by_name: null,
     } satisfies StatementRow
-    const opening = openingOfRow(row, 3)
-    expect(opening).toEqual({ id: 9, kind: "prepay", supplier_id: 3, amount: "10.00", currency_id: 2, rate: "12800.0000", at: "2026-10-07T04:00:00Z", note: null })
+    const opening = openingOfRow(row)
+    expect(opening).toEqual({ id: 9, kind: "prepay", amount: "10.00", currency_id: 2, rate: "12800.0000", at: "2026-10-07T04:00:00Z", note: null })
     expect(openingDefaults(opening, "2026-10-08T09:00")).toEqual({ kind: "prepay", amount: "10.00", currency_id: "2", rate: "12800", at: "2026-10-07T09:00", note: "" })
-    expect(openingOfRow({ ...row, kind: "supplier_debt" }, 3).kind).toBe("debt")
+    expect(openingOfRow({ ...row, kind: "supplier_debt" }).kind).toBe("debt")
+    expect(openingOfRow({ ...row, kind: "customer_prepay" }).kind).toBe("prepay")
   })
 })
 

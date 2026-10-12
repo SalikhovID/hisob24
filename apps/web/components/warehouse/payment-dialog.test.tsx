@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
-import { ALI, db, seedPayment, seedWarehouse } from "@/mocks/data"
+import { ALI, db, seedCustomers, seedPayment, seedWarehouse } from "@/mocks/data"
 import { toPayment } from "@/mocks/warehouse"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
@@ -10,7 +10,7 @@ import { PaymentDialog } from "./payment-dialog"
 test("a payment is entered: out of the cash, the amount typed the Uzbek way, now unless another moment is chosen, a note", async () => {
   const { bozor } = seedWarehouse()
   await signIn(ALI)
-  const { user } = renderWithProviders(<PaymentDialog companyId={1} supplierId={bozor.id} />)
+  const { user } = renderWithProviders(<PaymentDialog companyId={1} partyId={bozor.id} />)
 
   await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
@@ -29,7 +29,7 @@ test("a payment is entered: out of the cash, the amount typed the Uzbek way, now
 test("the form refuses in the API's words before asking", async () => {
   const { bozor } = seedWarehouse()
   await signIn(ALI)
-  const { user } = renderWithProviders(<PaymentDialog companyId={1} supplierId={bozor.id} />)
+  const { user } = renderWithProviders(<PaymentDialog companyId={1} partyId={bozor.id} />)
 
   await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
@@ -45,7 +45,7 @@ test("a payment entered on its own is edited from the row, by its icon", async (
   const { bozor } = seedWarehouse()
   const row = seedPayment(bozor.id, 1200.5, "2026-10-03T04:00:00Z", "Naqd")
   await signIn(ALI)
-  const { user } = renderWithProviders(<PaymentDialog companyId={1} supplierId={bozor.id} payment={toPayment(row)} iconOnly />)
+  const { user } = renderWithProviders(<PaymentDialog companyId={1} partyId={bozor.id} payment={toPayment(row)} iconOnly />)
 
   await user.click(screen.getByRole("button", { name: "Tahrirlash: 1 200,50" }))
   const dialog = await screen.findByRole("dialog", { name: "To'lovni tahrirlash" })
@@ -57,4 +57,19 @@ test("a payment entered on its own is edited from the row, by its icon", async (
 
   await waitFor(() => expect(db.transactions.find((t) => t.id === row.id)).toMatchObject({ total: 1500, note: "Naqd" }))
   expect(await screen.findByText("To'lov saqlandi")).toBeInTheDocument()
+})
+
+test("a customer's payment goes to the customer", async () => {
+  const { dilshod } = seedCustomers()
+  await signIn(ALI)
+  const { user } = renderWithProviders(<PaymentDialog party="customer" companyId={1} partyId={dilshod.id} />)
+
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
+  await user.type(within(dialog).getByLabelText("Summa, so'm"), "700")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(db.transactions.find((t) => t.kind === "customer_payment" && t.customerId === dilshod.id)).toMatchObject({ total: 700, linkedId: null }))
+  // The toast of an earlier test in this file may still stand beside it.
+  expect((await screen.findAllByText("To'lov qo'shildi")).length).toBeGreaterThan(0)
 })

@@ -7,7 +7,8 @@ import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
-import { useStatement } from "@/lib/queries"
+import type { Party } from "@/lib/party"
+import { useCustomerStatement, useStatement } from "@/lib/queries"
 import type { StatementRow } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { openingOfRow } from "@/lib/stock"
@@ -17,8 +18,9 @@ import { DeletePaymentButton } from "./delete-payment-button"
 import { OpeningDialog } from "./opening-dialog"
 import { PaymentDialog } from "./payment-dialog"
 
-// titleOf says what a row is: a purchase by its number (the way into it),
-// a payment (with the purchase it was entered with), an opening balance.
+// titleOf says what a row is: a purchase or a sale by its number (the way
+// into it), a payment (with the document it was entered with), an opening
+// balance.
 function titleOf(row: StatementRow) {
   switch (row.kind) {
     case "purchase":
@@ -27,46 +29,60 @@ function titleOf(row: StatementRow) {
           Xarid № {row.number}
         </Link>
       )
+    case "sale":
+      return (
+        <Link href={`/sales/${row.id}`} className="font-medium underline-offset-4 hover:underline">
+          Sotuv № {row.number}
+        </Link>
+      )
     case "supplier_payment":
-      return row.linked_id === null ? (
-        "To'lov"
-      ) : (
+    case "customer_payment": {
+      if (row.linked_id === null) return "To'lov"
+      const [href, name] = row.kind === "supplier_payment" ? [`/purchases/${row.linked_id}`, "Xarid"] : [`/sales/${row.linked_id}`, "Sotuv"]
+      return (
         <>
           To&apos;lov ·{" "}
-          <Link href={`/purchases/${row.linked_id}`} className="font-medium underline-offset-4 hover:underline">
-            Xarid № {row.linked_number}
+          <Link href={href} className="font-medium underline-offset-4 hover:underline">
+            {name} № {row.linked_number}
           </Link>
         </>
       )
+    }
     case "supplier_debt":
+    case "customer_debt":
       return "Boshlang'ich qarz"
     case "supplier_prepay":
+    case "customer_prepay":
       return "Boshlang'ich avans"
   }
 }
 
-// StatementList is a supplier's statement, on its page (logic/warehouse.md,
-// section 6): every live document in time, the newest first, each with its
-// amount in its currency, how it changed what is owed (in so'm) and what
-// was owed after it; a payment entered on its own is edited and deleted in
-// its row, one entered with a purchase goes with the purchase; an opening
-// debt or advance is entered from the header and edited and deleted in its
-// row too.
+// StatementList is a party's statement, on its page: a supplier's
+// (logic/warehouse.md, section 6) or a customer's (logic/sales.md, section
+// 5): every live document in time, the newest first, each with its amount
+// in its currency, how it changed what is owed (in so'm) and what was owed
+// after it; a payment or an opening balance entered on its own is edited
+// and deleted in its row, a payment entered with a document goes with the
+// document; the header adds a payment or an opening balance.
 export function StatementList({
+  party,
   companyId,
-  supplierId,
+  partyId,
   canAdd,
   canEdit,
   canDelete,
 }: {
+  party: Party
   companyId: number
-  supplierId: number
+  partyId: number
   canAdd: boolean
   canEdit: boolean
   canDelete: boolean
 }) {
   const [page, setPage] = useState(1)
-  const statement = useStatement(companyId, supplierId, page)
+  const suppliers = useStatement(party === "supplier" ? companyId : null, partyId, page)
+  const customers = useCustomerStatement(party === "customer" ? companyId : null, partyId, page)
+  const statement = party === "supplier" ? suppliers : customers
   const currencies = useCurrencies()
   const columns: Column<StatementRow>[] = [
     {
@@ -102,23 +118,23 @@ export function StatementList({
           {
             header: "Amallar",
             actions: true,
-            // A payment entered with a purchase goes with the purchase; an
+            // A payment entered with a document goes with the document; an
             // opening balance is its own document.
             cell: (row) => {
-              if (row.kind === "supplier_debt" || row.kind === "supplier_prepay") {
+              if (row.kind === "supplier_debt" || row.kind === "supplier_prepay" || row.kind === "customer_debt" || row.kind === "customer_prepay") {
                 return (
                   <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-                    {canEdit && <OpeningDialog companyId={companyId} supplierId={supplierId} opening={openingOfRow(row, supplierId)} iconOnly />}
-                    {canDelete && <DeleteOpeningButton companyId={companyId} opening={openingOfRow(row, supplierId)} />}
+                    {canEdit && <OpeningDialog party={party} companyId={companyId} partyId={partyId} opening={openingOfRow(row)} iconOnly />}
+                    {canDelete && <DeleteOpeningButton party={party} companyId={companyId} partyId={partyId} opening={openingOfRow(row)} />}
                   </span>
                 )
               }
               return (
-                row.kind === "supplier_payment" &&
+                (row.kind === "supplier_payment" || row.kind === "customer_payment") &&
                 row.linked_id === null && (
                   <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-                    {canEdit && <PaymentDialog companyId={companyId} supplierId={supplierId} payment={paymentOfRow(row, supplierId)} iconOnly />}
-                    {canDelete && <DeletePaymentButton companyId={companyId} payment={paymentOfRow(row, supplierId)} />}
+                    {canEdit && <PaymentDialog party={party} companyId={companyId} partyId={partyId} payment={paymentOfRow(row)} iconOnly />}
+                    {canDelete && <DeletePaymentButton party={party} companyId={companyId} partyId={partyId} payment={paymentOfRow(row)} />}
                   </span>
                 )
               )
@@ -128,21 +144,21 @@ export function StatementList({
       : []),
   ]
   return (
-    <section aria-labelledby="supplier-statement" className="space-y-3">
+    <section aria-labelledby="party-statement" className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="supplier-statement" className="text-base font-semibold">
+        <h2 id="party-statement" className="text-base font-semibold">
           Hisob harakati
         </h2>
         {canAdd && (
           <div className="flex flex-wrap justify-end gap-2">
-            <OpeningDialog companyId={companyId} supplierId={supplierId} />
-            <PaymentDialog companyId={companyId} supplierId={supplierId} />
+            <OpeningDialog party={party} companyId={companyId} partyId={partyId} />
+            <PaymentDialog party={party} companyId={companyId} partyId={partyId} />
           </div>
         )}
       </div>
       {statement.isPending && <ListLoading rows={2} mark="none" />}
       {statement.isError && <Failed error={statement.error} onRetry={() => statement.refetch()} />}
-      {statement.data?.total === 0 && <EmptyState title="Bu ta'minotchida hujjat yo'q" />}
+      {statement.data?.total === 0 && <EmptyState title={party === "supplier" ? "Bu ta'minotchida hujjat yo'q" : "Bu mijozda hujjat yo'q"} />}
       {statement.data && statement.data.total > 0 && (
         <DataList
           label="Hisob harakati"

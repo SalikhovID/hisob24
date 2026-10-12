@@ -253,8 +253,15 @@ export function paymentDefaults(payment: Pick<Payment, "bank_account_id" | "amou
 
 // paymentOfRow is a statement row of a payment entered on its own as the
 // payment dialog and the delete button take it.
-export function paymentOfRow(row: StatementRow, supplierId: number): Pick<Payment, "id" | "supplier_id" | "bank_account_id" | "amount" | "currency_id" | "at" | "rate" | "note"> {
-  return { id: row.id, supplier_id: supplierId, bank_account_id: row.bank_account_id ?? 0, amount: row.amount, currency_id: row.currency_id, at: row.at, rate: row.rate, note: row.note }
+// PaymentFields is what the dialog and the row buttons need of a payment
+// entered on its own; whose it is (the supplier's or the customer's) is
+// told apart.
+export type PaymentFields = Pick<Payment, "id" | "bank_account_id" | "amount" | "currency_id" | "at" | "rate" | "note">
+
+// paymentOfRow is a payment as its row in a statement tells it, for the
+// dialog that edits it and the button that deletes it.
+export function paymentOfRow(row: StatementRow): PaymentFields {
+  return { id: row.id, bank_account_id: row.bank_account_id ?? 0, amount: row.amount, currency_id: row.currency_id, at: row.at, rate: row.rate, note: row.note }
 }
 
 // emptyLine is a line not yet filled.

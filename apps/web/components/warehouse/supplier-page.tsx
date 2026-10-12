@@ -127,8 +127,9 @@ export function SupplierPage({ id }: { id: number }) {
       </section>
       {companyId !== null && allowed("purchases.view") && (
         <StatementList
+          party="supplier"
           companyId={companyId}
-          supplierId={s.id}
+          partyId={s.id}
           canAdd={allowed("purchases.create")}
           canEdit={allowed("purchases.edit")}
           canDelete={allowed("purchases.delete")}

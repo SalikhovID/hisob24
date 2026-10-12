@@ -21,29 +21,24 @@ import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
-import { paymentsKey, statementKey, supplierKey, suppliersKey } from "@/lib/queries"
-import type { Payment } from "@/lib/types"
+import { forgetParty, type Party } from "@/lib/party"
+import type { PaymentFields } from "@/lib/warehouse"
 
 // DeletePaymentButton deletes a payment entered on its own after asking,
-// from its row. What is owed grows back by it.
-export function DeletePaymentButton({
-  companyId,
-  payment,
-}: {
-  companyId: number
-  payment: Pick<Payment, "id" | "supplier_id" | "amount" | "currency_id" | "at">
-}) {
+// from its row in the supplier's or the customer's statement. What is owed
+// changes back by it.
+export function DeletePaymentButton({ party = "supplier", companyId, partyId, payment }: { party?: Party; companyId: number; partyId: number; payment: PaymentFields }) {
   const [confirming, setConfirming] = useState(false)
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const amount = formatAmount(payment.amount)
   const remove = useMutation({
-    mutationFn: () => call(api.DELETE("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: payment.supplier_id, paymentId: payment.id } } })),
+    mutationFn: () =>
+      party === "customer"
+        ? call(api.DELETE("/app/customers/{id}/payments/{paymentId}", { params: { path: { id: partyId, paymentId: payment.id } } }))
+        : call(api.DELETE("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: partyId, paymentId: payment.id } } })),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentsKey(companyId, payment.supplier_id) })
-      queryClient.invalidateQueries({ queryKey: statementKey(companyId, payment.supplier_id) })
-      queryClient.invalidateQueries({ queryKey: supplierKey(companyId, payment.supplier_id) })
-      queryClient.invalidateQueries({ queryKey: suppliersKey(companyId) })
+      forgetParty(queryClient, party, companyId, partyId)
       toast.success("To'lov o'chirildi")
       setConfirming(false)
     },

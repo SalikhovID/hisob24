@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { useState } from "react"
 import { expect, test, vi } from "vitest"
 import type { PickerItem } from "@/components/picker"
@@ -70,5 +70,42 @@ test("the product picker offers the active products by name or SKU, each with it
   list = await screen.findByRole("listbox", { name: "Mahsulot takliflari" })
   expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["Nokdona · 2\u00a0500,50 so'm"])
   await user.click(within(list).getByRole("option", { name: /Nok/ }))
-  expect(onChange).toHaveBeenCalledWith({ id: catalog.nok.id, name: "Nok", meta: "dona · 2\u00a0500,50 so'm", unit: "dona", last_price: { amount: "2500.50", currency_id: 1 } })
+  expect(onChange).toHaveBeenCalledWith({ id: catalog.nok.id, name: "Nok", meta: "dona · 2\u00a0500,50 so'm", unit: "dona", last_price: { amount: "2500.50", currency_id: 1 }, price: null })
+})
+
+test("asked for services too and the sale price, the picker offers both kinds with the price each is sold at", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  await signIn(ALI)
+  const onChange = vi.fn()
+  function Harness() {
+    const [value, setValue] = useState<ProductPick | null>(null)
+    return (
+      <ProductPicker
+        companyId={1}
+        kinds={["product", "service"]}
+        offer="price"
+        value={value}
+        onChange={(pick) => {
+          setValue(pick)
+          onChange(pick)
+        }}
+      />
+    )
+  }
+  const { user } = renderWithProviders(<Harness />)
+
+  const box = screen.getByRole("combobox", { name: "Mahsulot" })
+  await user.type(box, "e")
+  const list = await screen.findByRole("listbox", { name: "Mahsulot takliflari" })
+  expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["Yetkazish50\u00a0000 so'm"])
+  await user.click(within(list).getByRole("option", { name: /Yetkazish/ }))
+  expect(onChange).toHaveBeenCalledWith({ id: catalog.yetkazish.id, name: "Yetkazish", meta: "50\u00a0000 so'm", unit: null, last_price: null, price: { amount: "50000.00", currency_id: 1 } })
+  await user.click(screen.getByRole("button", { name: "Mahsulot: bekor qilish" }))
+  // The chip gave way to a fresh input: find it again. The list shows the
+  // last answer until the new one lands.
+  await user.type(screen.getByRole("combobox", { name: "Mahsulot" }), "ol")
+  await waitFor(() =>
+    expect(within(screen.getByRole("listbox", { name: "Mahsulot takliflari" })).getAllByRole("option").map((o) => o.textContent)).toEqual(["Olmakg · 12\u00a0000 so'm"]),
+  )
 })

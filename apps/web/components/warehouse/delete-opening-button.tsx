@@ -21,22 +21,24 @@ import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
-import { statementKey, supplierKey, suppliersKey } from "@/lib/queries"
+import { forgetParty, type Party } from "@/lib/party"
 import type { OpeningFields } from "@/lib/stock"
 
 // DeleteOpeningButton deletes an opening debt or advance after asking, from
-// its row in the statement. What is owed changes back by it.
-export function DeleteOpeningButton({ companyId, opening }: { companyId: number; opening: OpeningFields }) {
+// its row in the supplier's or the customer's statement. What is owed
+// changes back by it.
+export function DeleteOpeningButton({ party = "supplier", companyId, partyId, opening }: { party?: Party; companyId: number; partyId: number; opening: OpeningFields }) {
   const [confirming, setConfirming] = useState(false)
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const amount = formatAmount(opening.amount)
   const remove = useMutation({
-    mutationFn: () => call(api.DELETE("/app/suppliers/{id}/openings/{openingId}", { params: { path: { id: opening.supplier_id, openingId: opening.id } } })),
+    mutationFn: () =>
+      party === "customer"
+        ? call(api.DELETE("/app/customers/{id}/openings/{openingId}", { params: { path: { id: partyId, openingId: opening.id } } }))
+        : call(api.DELETE("/app/suppliers/{id}/openings/{openingId}", { params: { path: { id: partyId, openingId: opening.id } } })),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: statementKey(companyId, opening.supplier_id) })
-      queryClient.invalidateQueries({ queryKey: supplierKey(companyId, opening.supplier_id) })
-      queryClient.invalidateQueries({ queryKey: suppliersKey(companyId) })
+      forgetParty(queryClient, party, companyId, partyId)
       toast.success("Hujjat o'chirildi")
       setConfirming(false)
     },

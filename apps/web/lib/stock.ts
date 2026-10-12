@@ -126,8 +126,9 @@ export type OpeningStockOutput = z.output<typeof openingStockSchema>
 export type OpeningForm = { kind: string; amount: string; currency_id: string; rate: string; at: string; note: string }
 export type OpeningOutput = z.output<typeof openingSchema>
 
-// OpeningFields is what the dialog needs of an opening balance being edited.
-export type OpeningFields = Pick<Opening, "id" | "kind" | "supplier_id" | "amount" | "currency_id" | "rate" | "at" | "note">
+// OpeningFields is what the dialog and the row button need of an opening
+// balance; whose it is (the supplier's or the customer's) is told apart.
+export type OpeningFields = Pick<Opening, "id" | "kind" | "amount" | "currency_id" | "rate" | "at" | "note">
 
 export const emptyCount = (): CountLineForm => ({ product_id: 0, product_name: "", unit: null, expected: "", counted: "" })
 
@@ -182,13 +183,12 @@ export function openingDefaults(opening: OpeningFields | undefined, local: strin
   }
 }
 
-// openingOfRow is an opening balance as its row in the supplier's
-// statement tells it, for the dialog that edits it.
-export function openingOfRow(row: StatementRow, supplierId: number): OpeningFields {
+// openingOfRow is an opening balance as its row in a statement tells it,
+// for the dialog that edits it and the button that deletes it.
+export function openingOfRow(row: StatementRow): OpeningFields {
   return {
     id: row.id,
-    kind: row.kind === "supplier_prepay" ? "prepay" : "debt",
-    supplier_id: supplierId,
+    kind: row.kind === "supplier_prepay" || row.kind === "customer_prepay" ? "prepay" : "debt",
     amount: row.amount,
     currency_id: row.currency_id,
     rate: row.rate,

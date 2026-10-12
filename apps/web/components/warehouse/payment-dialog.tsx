@@ -26,24 +26,25 @@ import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { accountCurrency, accountOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { formatAmount } from "@/lib/format"
-import { paymentsKey, statementKey, supplierKey, suppliersKey } from "@/lib/queries"
-import type { Payment } from "@/lib/types"
-import { nowLocal, type PaymentForm, type PaymentOutput, paymentDefaults, paymentSchema } from "@/lib/warehouse"
+import { forgetParty, type Party } from "@/lib/party"
+import { nowLocal, type PaymentFields, type PaymentForm, type PaymentOutput, paymentDefaults, paymentSchema } from "@/lib/warehouse"
 
 // PaymentDialog enters a payment to the supplier (logic/warehouse.md,
-// section 6): out of an account, an amount in its currency, a moment (now
-// unless another is chosen), the rate (with another currency than the
-// so'm) and a note; or saves the one given, entered on its own, with other
-// fields.
+// section 6) or from the customer (logic/sales.md, section 5): out of or
+// into an account, an amount in its currency, a moment (now unless another
+// is chosen), the rate (with another currency than the so'm) and a note;
+// or saves the one given, entered on its own, with other fields.
 export function PaymentDialog({
+  party = "supplier",
   companyId,
-  supplierId,
+  partyId,
   payment,
   iconOnly = false,
 }: {
+  party?: Party
   companyId: number
-  supplierId: number
-  payment?: Pick<Payment, "id" | "supplier_id" | "bank_account_id" | "amount" | "currency_id" | "at" | "rate" | "note">
+  partyId: number
+  payment?: PaymentFields
   iconOnly?: boolean
 }) {
   const [open, setOpen] = useState(false)
@@ -58,16 +59,22 @@ export function PaymentDialog({
   const accountId = Number(form.watch("bank_account_id"))
   const currency = accountCurrency(accounts, currencies, accountId)
   const save = useMutation({
-    mutationFn: (fields: PaymentOutput) =>
-      payment
-        ? call(api.PUT("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: supplierId, paymentId: payment.id } }, body: fields }))
-        : call(api.POST("/app/suppliers/{id}/payments", { params: { path: { id: supplierId } }, body: fields })),
+    // Either party's answer is its own shape; the dialog needs none of it.
+    mutationFn: async (fields: PaymentOutput): Promise<void> => {
+      const path = { id: partyId }
+      if (party === "customer") {
+        await (payment
+          ? call(api.PUT("/app/customers/{id}/payments/{paymentId}", { params: { path: { ...path, paymentId: payment.id } }, body: fields }))
+          : call(api.POST("/app/customers/{id}/payments", { params: { path }, body: fields })))
+        return
+      }
+      await (payment
+        ? call(api.PUT("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { ...path, paymentId: payment.id } }, body: fields }))
+        : call(api.POST("/app/suppliers/{id}/payments", { params: { path }, body: fields })))
+    },
     onSuccess: () => {
       // What is owed changes with every payment.
-      queryClient.invalidateQueries({ queryKey: paymentsKey(companyId, supplierId) })
-      queryClient.invalidateQueries({ queryKey: statementKey(companyId, supplierId) })
-      queryClient.invalidateQueries({ queryKey: supplierKey(companyId, supplierId) })
-      queryClient.invalidateQueries({ queryKey: suppliersKey(companyId) })
+      forgetParty(queryClient, party, companyId, partyId)
       toast.success(payment ? "To'lov saqlandi" : "To'lov qo'shildi")
       setOpen(false)
     },

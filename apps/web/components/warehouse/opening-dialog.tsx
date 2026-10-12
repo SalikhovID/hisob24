@@ -18,24 +18,25 @@ import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { currencyOf, currencyOptions, isMulti, trimRate, useCurrencies, UZS } from "@/lib/currencies"
 import { formatAmount } from "@/lib/format"
-import { statementKey, supplierKey, suppliersKey } from "@/lib/queries"
+import { forgetParty, type Party } from "@/lib/party"
 import { type OpeningFields, type OpeningForm, type OpeningOutput, openingDefaults, openingSchema } from "@/lib/stock"
 import { nowLocal } from "@/lib/warehouse"
 
-// kindOptions are the two kinds of an opening balance: what the company
-// owed the supplier when it started keeping its books here, or had paid
-// in advance (logic/warehouse.md, section 6).
+// kindOptions are the two kinds of an opening balance: a debt or an
+// advance when the company started keeping its books here: the supplier's
+// (what it was owed) or the customer's (what they owed) (logic/warehouse.md,
+// section 6; logic/sales.md, section 5).
 const kindOptions = [
   { value: "debt", label: "Qarz" },
   { value: "prepay", label: "Avans" },
 ]
 
-// OpeningDialog enters an opening debt or advance of the supplier: the kind,
+// OpeningDialog enters an opening debt or advance of the party: the kind,
 // an amount in a currency of the company's (the so'm unless another is
 // chosen), a moment (now unless another is chosen), the rate (with another
 // currency than the so'm) and a note; or saves the one given with other
 // fields, its kind staying.
-export function OpeningDialog({ companyId, supplierId, opening, iconOnly = false }: { companyId: number; supplierId: number; opening?: OpeningFields; iconOnly?: boolean }) {
+export function OpeningDialog({ party = "supplier", companyId, partyId, opening, iconOnly = false }: { party?: Party; companyId: number; partyId: number; opening?: OpeningFields; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
@@ -43,15 +44,22 @@ export function OpeningDialog({ companyId, supplierId, opening, iconOnly = false
   const currencyId = Number(useWatch({ control: form.control, name: "currency_id" })) || UZS
   const currency = currencyOf(currencies, currencyId)
   const save = useMutation({
-    mutationFn: (fields: OpeningOutput) =>
-      opening
-        ? call(api.PUT("/app/suppliers/{id}/openings/{openingId}", { params: { path: { id: supplierId, openingId: opening.id } }, body: fields }))
-        : call(api.POST("/app/suppliers/{id}/openings", { params: { path: { id: supplierId } }, body: fields })),
+    // Either party's answer is its own shape; the dialog needs none of it.
+    mutationFn: async (fields: OpeningOutput): Promise<void> => {
+      const path = { id: partyId }
+      if (party === "customer") {
+        await (opening
+          ? call(api.PUT("/app/customers/{id}/openings/{openingId}", { params: { path: { ...path, openingId: opening.id } }, body: fields }))
+          : call(api.POST("/app/customers/{id}/openings", { params: { path }, body: fields })))
+        return
+      }
+      await (opening
+        ? call(api.PUT("/app/suppliers/{id}/openings/{openingId}", { params: { path: { ...path, openingId: opening.id } }, body: fields }))
+        : call(api.POST("/app/suppliers/{id}/openings", { params: { path }, body: fields })))
+    },
     onSuccess: () => {
       // What is owed changes with every opening balance.
-      queryClient.invalidateQueries({ queryKey: statementKey(companyId, supplierId) })
-      queryClient.invalidateQueries({ queryKey: supplierKey(companyId, supplierId) })
-      queryClient.invalidateQueries({ queryKey: suppliersKey(companyId) })
+      forgetParty(queryClient, party, companyId, partyId)
       toast.success(opening ? "Hujjat saqlandi" : "Hujjat qo'shildi")
       setOpen(false)
     },
@@ -90,7 +98,10 @@ export function OpeningDialog({ companyId, supplierId, opening, iconOnly = false
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{opening ? "Hujjatni tahrirlash" : "Boshlang'ich qarz yoki avans"}</DialogTitle>
-          <DialogDescription>Qarz — ta&apos;minotchiga qarzimiz, avans — unga oldindan to&apos;langan. Tur, summa va vaqt majburiy; izoh ixtiyoriy.</DialogDescription>
+          <DialogDescription>
+            {party === "customer" ? "Qarz — mijoz bizga qarzdor, avans — u oldindan to'lagan." : "Qarz — ta'minotchiga qarzimiz, avans — unga oldindan to'langan."} Tur, summa va vaqt majburiy; izoh
+            ixtiyoriy.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit((fields) => save.mutate(fields))} noValidate className="space-y-4">
           <FieldGroup>

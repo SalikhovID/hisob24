@@ -109,7 +109,7 @@ export function InventoryForm({
                 render={({ field, fieldState }) => (
                   <ProductPicker
                     companyId={companyId}
-                    value={field.value ? { id: field.value, name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null } : null}
+                    value={field.value ? { id: field.value, name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null, price: null } : null}
                     onChange={(pick) => {
                       field.onChange(pick?.id ?? 0)
                       form.setValue(`items.${index}.product_name`, pick?.name ?? "")

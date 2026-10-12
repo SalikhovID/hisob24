@@ -549,13 +549,17 @@ export function useProductPurchases(companyId: number | null, id: number, page: 
   })
 }
 
-// useProductSuggestions is the active products whose names or SKUs hold the
-// text typed, for the picker of the purchase form.
-export function useProductSuggestions(companyId: number | null, text: string) {
+// useProductSuggestions is the active products (and services, when asked)
+// whose names or SKUs hold the text typed, for the picker of a document's
+// lines: the products first, then the services.
+export function useProductSuggestions(companyId: number | null, text: string, kinds: readonly ProductKind[] = ["product"]) {
   const search = text.trim()
   return useQuery({
-    queryKey: [...productsKey(companyId), "suggest", search],
-    queryFn: () => call(api.GET("/app/products", { params: { query: { kind: "product", status: "active", search, page: 1 } } })),
+    queryKey: [...productsKey(companyId), "suggest", search, kinds],
+    queryFn: async () => {
+      const pages = await Promise.all(kinds.map((kind) => call(api.GET("/app/products", { params: { query: { kind, status: "active", search, page: 1 } } }))))
+      return { items: pages.flatMap((page) => page.items) }
+    },
     enabled: companyId !== null && search.length > 0,
     placeholderData: keepPreviousData,
   })

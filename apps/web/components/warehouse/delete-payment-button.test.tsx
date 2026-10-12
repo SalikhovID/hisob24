@@ -10,7 +10,7 @@ test("a payment entered on its own is deleted from the row after asking", async 
   const { bozor } = seedWarehouse()
   const row = seedPayment(bozor.id, 1200.5, "2026-10-03T04:00:00Z")
   await signIn(ALI)
-  const { user } = renderWithProviders(<DeletePaymentButton companyId={1} payment={toPayment(row)} />)
+  const { user } = renderWithProviders(<DeletePaymentButton companyId={1} partyId={bozor.id} payment={toPayment(row)} />)
 
   await user.click(screen.getByRole("button", { name: "O'chirish: 1 200,50" }))
   const dialog = await screen.findByRole("alertdialog", { name: "To'lovni o'chirasizmi?" })
