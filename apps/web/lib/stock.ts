@@ -33,7 +33,7 @@ const moveLineSchema = z
       }
       return text
     }),
-    price: z.string().optional(),
+    price: z.string(),
   })
   .transform(({ product_id, quantity }) => ({ product_id, quantity }))
 

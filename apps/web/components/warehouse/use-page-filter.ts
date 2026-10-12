@@ -3,10 +3,10 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useMemo } from "react"
 
-// usePurchaseFilter keeps the purchases page's page number in the address,
-// so a reload or the back button finds the same list. The location is the
+// usePageFilter keeps a document list's page number in the address, so a
+// reload or the back button finds the same list. The location is the
 // current one (the topbar's), not the address's.
-export function usePurchaseFilter() {
+export function usePageFilter() {
   const params = useSearchParams()
   const pathname = usePathname()
   const router = useRouter()

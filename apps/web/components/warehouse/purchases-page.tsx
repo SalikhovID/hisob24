@@ -17,7 +17,7 @@ import { usePurchases } from "@/lib/queries"
 import type { Permission, Purchase } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
-import { usePurchaseFilter } from "./use-purchase-filter"
+import { usePageFilter } from "./use-page-filter"
 
 const warehouseSection = navItems.find((item) => item.key === "warehouse")!
 
@@ -33,7 +33,7 @@ export function PurchasesPage() {
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const location = useLocation()
   const locationId = location.current?.id ?? null
-  const [filter, update] = usePurchaseFilter()
+  const [filter, update] = usePageFilter()
   const currencies = useCurrencies()
   // The list is of the current location: nothing is asked until there is one.
   const purchases = usePurchases(locationId !== null ? companyId : null, { locationId, supplierId: null, page: filter.page })
