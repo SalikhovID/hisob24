@@ -13,6 +13,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
+	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
@@ -101,12 +102,7 @@ func checkSupplier(in SupplierInput) (checkedSupplier, error) {
 }
 
 // pageOf reads a page number: from 1, inside int32 offsets.
-func pageOf(page int) error {
-	if page < 1 || page > maxPage {
-		return invalid("Sahifa raqami noto'g'ri")
-	}
-	return nil
-}
+func pageOf(page int) error { return ledger.PageOf(page) }
 
 // activeOf reads a status: active (the default) or inactive.
 func activeOf(status string) (bool, error) {

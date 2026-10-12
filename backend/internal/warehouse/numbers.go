@@ -6,23 +6,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
+	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 )
 
-// paymentAmount reads the amount of a payment entered on its own: one is
-// needed ("Summani kiriting"), an amount above zero ("Summa noto'g'ri").
-func paymentAmount(raw *string) (pgtype.Numeric, error) {
-	if raw == nil || *raw == "" {
-		return pgtype.Numeric{}, invalid("Summani kiriting")
-	}
-	n, err := catalog.Money(raw, "Summa noto'g'ri")
-	if err != nil {
-		return pgtype.Numeric{}, err
-	}
-	if catalog.Zero(n) {
-		return pgtype.Numeric{}, invalid("Summa noto'g'ri")
-	}
-	return n, nil
-}
+// paymentAmount reads an amount of money: one is needed, above zero, two
+// decimals at most (the ledger's wording).
+func paymentAmount(raw *string) (pgtype.Numeric, error) { return ledger.Amount(raw) }
 
 // amount is a stored amount as the API shows it (two decimals); "" when
 // there is none (the columns here are NOT NULL).

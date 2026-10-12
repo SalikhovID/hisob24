@@ -71,18 +71,9 @@ type checkedPayment struct {
 // note.
 func checkPayment(ctx context.Context, q *gen.Queries, companyID int64, by string, in PaymentInput, keep int64, current *ledger.Pricing) (checkedPayment, error) {
 	var c checkedPayment
-	if in.BankAccountID == 0 {
-		return c, invalid("Akkauntni tanlang")
-	}
-	account, err := q.GetBankAccount(ctx, gen.GetBankAccountParams{ID: in.BankAccountID, CompanyID: companyID})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return c, invalid("Akkauntni tanlang")
-	}
+	account, err := ledger.AccountFor(ctx, q, companyID, in.BankAccountID, keep)
 	if err != nil {
 		return c, err
-	}
-	if !account.IsActive && account.ID != keep {
-		return c, invalid("Akkaunt nofaol")
 	}
 	c.Account = account
 	if c.Amount, err = paymentAmount(in.Amount); err != nil {
