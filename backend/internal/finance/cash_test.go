@@ -382,11 +382,11 @@ func TestMoneyTransfers(t *testing.T) {
 	require.NoError(t, s.DeleteDocument(ctx, olma, d.ID, ledger.MoneyTransfer, ledger.Conversion))
 	_, err = s.GetDocument(ctx, olma, d.ID, ledger.MoneyTransfer, ledger.Conversion)
 	refused(t, err, apperr.NotFound, "not_found", "Hujjat topilmadi", "deleted")
-	next, err := s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("1"), At: at})
+	_, err = s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("1"), At: at})
 	refused(t, err, apperr.Invalid, "validation_error", "Maqsad akkaunt nofaol", "a new transfer into the account turned off")
 	_, err = s.UpdateAccount(ctx, olma, kassa2.ID, AccountPatch{Active: ptr(true)})
 	require.NoError(t, err)
-	next, err = s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("1"), At: at})
+	next, err := s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("1"), At: at})
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, next.Number, "the number of the deleted one is never given again")
 }

@@ -21,9 +21,6 @@ import (
 // PageSize is how many rows a page of a list holds.
 const PageSize = 20
 
-// maxPage keeps the offset inside int32.
-const maxPage = 1_000_000
-
 // How long a name and a note may be, in characters.
 const (
 	MaxName = 120
