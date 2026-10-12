@@ -280,3 +280,350 @@ func TestExpenses(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, next.Number, "the number of the deleted one is never given again")
 }
+
+// targetOf is the account a document goes to, as the journal keeps it.
+func targetOf(t *testing.T, pool *pgxpool.Pool, id int64) (int64, string) {
+	t.Helper()
+	var target *int64
+	var toTotal *string
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT to_bank_account_id, to_total::text FROM transactions WHERE id = $1", id).Scan(&target, &toTotal))
+	var text string
+	if toTotal != nil {
+		text = *toTotal
+	}
+	if target == nil {
+		return 0, text
+	}
+	return *target, text
+}
+
+func TestMoneyTransfers(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	nok := addCompany(t, pool, "Nok")
+	cash := cashOf(t, pool, olma)
+	turnOn(t, pool, olma, 2)
+	card, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Karta", CurrencyID: 2})
+	require.NoError(t, err)
+	kassa2, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Kassa 2", CurrencyID: 1})
+	require.NoError(t, err)
+	old, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Eski", CurrencyID: 1})
+	require.NoError(t, err)
+	_, err = s.UpdateAccount(ctx, olma, old.ID, AccountPatch{Active: ptr(false)})
+	require.NoError(t, err)
+	at := "2026-10-05T10:00:00+05:00"
+
+	d, err := s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("100000"), At: at, Note: ptr("Kassaga")})
+	require.NoError(t, err)
+	assert.Equal(t, ledger.MoneyTransfer, d.Kind)
+	assert.EqualValues(t, 1, d.Number)
+	assert.Equal(t, cash, d.BankAccountID)
+	assert.Equal(t, "Naqd", d.AccountName)
+	assert.EqualValues(t, 1, d.CurrencyID)
+	assert.Equal(t, "100000.00", d.Amount)
+	assert.Equal(t, &kassa2.ID, d.ToBankAccountID)
+	assert.Equal(t, ptr("Kassa 2"), d.ToAccountName)
+	assert.Equal(t, ptr(int64(1)), d.ToCurrencyID)
+	assert.Nil(t, d.ToAmount, "the same amount arrives")
+	assert.Nil(t, d.Rate)
+	assert.Nil(t, d.CategoryName)
+	assert.Equal(t, ptr("Kassaga"), d.Note)
+	assert.Equal(t, stored{kind: "money_transfer", number: 1, account: cash, total: "100000.00", currency: "1", createdBy: ali}, storedOf(t, pool, d.ID))
+	target, toTotal := targetOf(t, pool, d.ID)
+	assert.Equal(t, kassa2.ID, target)
+	assert.Empty(t, toTotal)
+
+	for name, tc := range map[string]struct {
+		in      MoneyTransferInput
+		message string
+	}{
+		"no account":                    {MoneyTransferInput{ToAccountID: kassa2.ID, Amount: ptr("5"), At: at}, "Akkauntni tanlang"},
+		"an account turned off":         {MoneyTransferInput{FromAccountID: old.ID, ToAccountID: kassa2.ID, Amount: ptr("5"), At: at}, "Akkaunt nofaol"},
+		"the account before the target": {MoneyTransferInput{FromAccountID: old.ID, Amount: ptr("5"), At: at}, "Akkaunt nofaol"},
+		"no target":                     {MoneyTransferInput{FromAccountID: cash, Amount: ptr("5"), At: at}, "Maqsad akkauntni tanlang"},
+		"an unknown target":             {MoneyTransferInput{FromAccountID: cash, ToAccountID: 999_999, Amount: ptr("5"), At: at}, "Maqsad akkauntni tanlang"},
+		"another company's target":      {MoneyTransferInput{FromAccountID: cash, ToAccountID: cashOf(t, pool, nok), Amount: ptr("5"), At: at}, "Maqsad akkauntni tanlang"},
+		"a target turned off":           {MoneyTransferInput{FromAccountID: cash, ToAccountID: old.ID, Amount: ptr("5"), At: at}, "Maqsad akkaunt nofaol"},
+		"the same account":              {MoneyTransferInput{FromAccountID: cash, ToAccountID: cash, Amount: ptr("5"), At: at}, "Maqsad akkaunt boshqa bo'lsin"},
+		"another currency":              {MoneyTransferInput{FromAccountID: cash, ToAccountID: card.ID, Amount: ptr("5"), At: at}, "Valyutalar farq qilsa konvertatsiya kiriting"},
+		"the target before the moment":  {MoneyTransferInput{FromAccountID: cash, ToAccountID: card.ID, Amount: ptr("5")}, "Valyutalar farq qilsa konvertatsiya kiriting"},
+		"no moment":                     {MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("5")}, "Vaqtni kiriting"},
+		"no amount":                     {MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, At: at}, "Summani kiriting"},
+		"a long note":                   {MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("5"), At: at, Note: ptr(strings.Repeat("a", 501))}, "Izoh 500 belgidan oshmasin"},
+	} {
+		_, err := s.AddMoneyTransfer(ctx, olma, ali, tc.in)
+		refused(t, err, apperr.Invalid, "validation_error", tc.message, name)
+	}
+
+	// An edit turns it around; the number stays. The accounts it already
+	// names stay, turned off or not.
+	saved, err := s.UpdateMoneyTransfer(ctx, olma, ali, d.ID, MoneyTransferInput{FromAccountID: kassa2.ID, ToAccountID: cash, Amount: ptr("60000"), At: "2026-10-06T10:00:00+05:00"})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, saved.Number)
+	assert.Equal(t, kassa2.ID, saved.BankAccountID)
+	assert.Equal(t, &cash, saved.ToBankAccountID)
+	assert.Equal(t, "60000.00", saved.Amount)
+	assert.Nil(t, saved.Note)
+	_, err = s.UpdateAccount(ctx, olma, kassa2.ID, AccountPatch{Active: ptr(false)})
+	require.NoError(t, err)
+	_, err = s.UpdateMoneyTransfer(ctx, olma, ali, d.ID, MoneyTransferInput{FromAccountID: kassa2.ID, ToAccountID: cash, Amount: ptr("70000"), At: "2026-10-06T10:00:00+05:00"})
+	require.NoError(t, err, "the source it already names, turned off since")
+	_, err = s.UpdateMoneyTransfer(ctx, olma, ali, d.ID, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("70000"), At: "2026-10-06T10:00:00+05:00"})
+	require.NoError(t, err, "the target it already names, turned off since")
+	_, err = s.UpdateMoneyTransfer(ctx, olma, ali, d.ID, MoneyTransferInput{FromAccountID: cash, ToAccountID: old.ID, Amount: ptr("70000"), At: "2026-10-06T10:00:00+05:00"})
+	refused(t, err, apperr.Invalid, "validation_error", "Maqsad akkaunt nofaol", "another target turned off")
+	_, err = s.UpdateMoneyTransfer(ctx, olma, ali, 999_999, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("5"), At: at})
+	refused(t, err, apperr.NotFound, "not_found", "Hujjat topilmadi", "unknown")
+
+	got, err := s.GetDocument(ctx, olma, d.ID, ledger.MoneyTransfer, ledger.Conversion)
+	require.NoError(t, err)
+	assert.Equal(t, "70000.00", got.Amount)
+	require.NoError(t, s.DeleteDocument(ctx, olma, d.ID, ledger.MoneyTransfer, ledger.Conversion))
+	_, err = s.GetDocument(ctx, olma, d.ID, ledger.MoneyTransfer, ledger.Conversion)
+	refused(t, err, apperr.NotFound, "not_found", "Hujjat topilmadi", "deleted")
+	next, err := s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("1"), At: at})
+	refused(t, err, apperr.Invalid, "validation_error", "Maqsad akkaunt nofaol", "a new transfer into the account turned off")
+	_, err = s.UpdateAccount(ctx, olma, kassa2.ID, AccountPatch{Active: ptr(true)})
+	require.NoError(t, err)
+	next, err = s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("1"), At: at})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, next.Number, "the number of the deleted one is never given again")
+}
+
+func TestConversions(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	cash := cashOf(t, pool, olma)
+	turnOn(t, pool, olma, 2)
+	card, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Karta", CurrencyID: 2})
+	require.NoError(t, err)
+	kassa2, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Kassa 2", CurrencyID: 1})
+	require.NoError(t, err)
+	at := "2026-10-06T10:00:00+05:00"
+
+	c, err := s.AddConversion(ctx, olma, ali, ConversionInput{FromAccountID: cash, Amount: ptr("128000"), ToAccountID: card.ID, ToAmount: ptr("10"), At: at, Note: ptr("Dollar oldik")})
+	require.NoError(t, err)
+	assert.Equal(t, ledger.Conversion, c.Kind)
+	assert.EqualValues(t, 1, c.Number)
+	assert.Equal(t, cash, c.BankAccountID)
+	assert.EqualValues(t, 1, c.CurrencyID)
+	assert.Equal(t, "128000.00", c.Amount)
+	assert.Equal(t, &card.ID, c.ToBankAccountID)
+	assert.Equal(t, ptr("Karta"), c.ToAccountName)
+	assert.Equal(t, ptr(int64(2)), c.ToCurrencyID)
+	assert.Equal(t, ptr("10.00"), c.ToAmount)
+	assert.Equal(t, ptr("12800.0000"), c.Rate, "so'm per dollar: what left over what arrived, the so'm leaving")
+	assert.Equal(t, ptr("Dollar oldik"), c.Note)
+	assert.Equal(t, stored{kind: "conversion", number: 1, account: cash, total: "128000.00", currency: "1", createdBy: ali}, storedOf(t, pool, c.ID))
+	target, toTotal := targetOf(t, pool, c.ID)
+	assert.Equal(t, card.ID, target)
+	assert.Equal(t, "10.00", toTotal)
+	back, err := s.AddConversion(ctx, olma, ali, ConversionInput{FromAccountID: card.ID, Amount: ptr("10"), ToAccountID: cash, ToAmount: ptr("127000"), At: at})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, back.Number)
+	assert.Equal(t, ptr("12700.0000"), back.Rate, "so'm per dollar: what arrived over what left, the so'm arriving")
+
+	for name, tc := range map[string]struct {
+		in      ConversionInput
+		message string
+	}{
+		"no account":                  {ConversionInput{Amount: ptr("5"), ToAccountID: card.ID, ToAmount: ptr("1"), At: at}, "Akkauntni tanlang"},
+		"no target":                   {ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAmount: ptr("1"), At: at}, "Maqsad akkauntni tanlang"},
+		"the same account":            {ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAccountID: cash, ToAmount: ptr("1"), At: at}, "Maqsad akkaunt boshqa bo'lsin"},
+		"the same currency":           {ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAccountID: kassa2.ID, ToAmount: ptr("5"), At: at}, "Bir xil valyutada o'tkazma kiriting"},
+		"no moment":                   {ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAccountID: card.ID, ToAmount: ptr("1")}, "Vaqtni kiriting"},
+		"no amount":                   {ConversionInput{FromAccountID: cash, ToAccountID: card.ID, ToAmount: ptr("1"), At: at}, "Summani kiriting"},
+		"the amount before the other": {ConversionInput{FromAccountID: cash, ToAccountID: card.ID, At: at}, "Summani kiriting"},
+		"no amount arriving":          {ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAccountID: card.ID, At: at}, "Maqsad summani kiriting"},
+		"nothing arriving":            {ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAccountID: card.ID, ToAmount: ptr("0"), At: at}, "Maqsad summa noto'g'ri"},
+		"a long note":                 {ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAccountID: card.ID, ToAmount: ptr("1"), At: at, Note: ptr(strings.Repeat("a", 501))}, "Izoh 500 belgidan oshmasin"},
+	} {
+		_, err := s.AddConversion(ctx, olma, ali, tc.in)
+		refused(t, err, apperr.Invalid, "validation_error", tc.message, name)
+	}
+
+	saved, err := s.UpdateConversion(ctx, olma, ali, c.ID, ConversionInput{FromAccountID: cash, Amount: ptr("130000"), ToAccountID: card.ID, ToAmount: ptr("10"), At: at})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, saved.Number)
+	assert.Equal(t, "130000.00", saved.Amount)
+	assert.Equal(t, ptr("10.00"), saved.ToAmount)
+	assert.Equal(t, ptr("13000.0000"), saved.Rate, "the rate follows the amounts")
+	_, toTotal = targetOf(t, pool, c.ID)
+	assert.Equal(t, "10.00", toTotal)
+	_, err = s.UpdateConversion(ctx, olma, ali, c.ID, ConversionInput{FromAccountID: cash, Amount: ptr("130000"), ToAccountID: kassa2.ID, ToAmount: ptr("10"), At: at})
+	refused(t, err, apperr.Invalid, "validation_error", "Bir xil valyutada o'tkazma kiriting", "turned into a transfer")
+	_, err = s.UpdateConversion(ctx, olma, ali, 999_999, ConversionInput{FromAccountID: cash, Amount: ptr("5"), ToAccountID: card.ID, ToAmount: ptr("1"), At: at})
+	refused(t, err, apperr.NotFound, "not_found", "Hujjat topilmadi", "unknown")
+
+	page, err := s.ListDocuments(ctx, olma, ListInput{Kinds: []ledger.Kind{ledger.MoneyTransfer, ledger.Conversion}, Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []int64{back.ID, c.ID}, idsOfDocuments(page.Items), "the newest first")
+	require.NoError(t, s.DeleteDocument(ctx, olma, c.ID, ledger.Conversion))
+	_, err = s.GetDocument(ctx, olma, c.ID, ledger.Conversion)
+	refused(t, err, apperr.NotFound, "not_found", "Hujjat topilmadi", "deleted")
+}
+
+// addSupplierPayment enters a supplier and a payment to them out of the
+// account, straight into the journal.
+func addSupplierPayment(t *testing.T, pool *pgxpool.Pool, companyID, accountID int64, name, amount, at string) int64 {
+	t.Helper()
+	ctx := t.Context()
+	var supplier, rate, id int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO suppliers (company_id, name, created_by) VALUES ($1, $2, $3) RETURNING id", companyID, name, ali).Scan(&supplier))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT id FROM currency_rates WHERE company_id = $1 ORDER BY id LIMIT 1", companyID).Scan(&rate))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, supplier_id, bank_account_id, currency_id, currency_rate_id, total, created_by)
+		VALUES ($1, 'supplier_payment', 1, $2::timestamptz, $3, $4, 1, $5, $6::numeric, $7) RETURNING id`, companyID, at, supplier, accountID, rate, amount, ali).Scan(&id))
+	return id
+}
+
+func TestAccountBalancesAndStatement(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	nok := addCompany(t, pool, "Nok")
+	cash := cashOf(t, pool, olma)
+	turnOn(t, pool, olma, 2)
+	card, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Karta", CurrencyID: 2})
+	require.NoError(t, err)
+	kassa2, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Kassa 2", CurrencyID: 1})
+	require.NoError(t, err)
+	ijara, err := s.CreateCategory(ctx, olma, CategoryInput{Name: "Ijara", Kind: KindExpense})
+	require.NoError(t, err)
+	boshqa, err := s.CreateCategory(ctx, olma, CategoryInput{Name: "Boshqa kirim", Kind: KindIncome})
+	require.NoError(t, err)
+	opening, err := s.AddCashOpening(ctx, olma, ali, CashOpeningInput{BankAccountID: cash, Amount: ptr("1000000"), At: "2026-10-01T10:00:00+05:00"})
+	require.NoError(t, err)
+	income, err := s.AddExpense(ctx, olma, ali, ExpenseInput{Kind: KindIncome, BankAccountID: cash, CategoryID: boshqa.ID, Amount: ptr("200000"), At: "2026-10-02T10:00:00+05:00"})
+	require.NoError(t, err)
+	rent, err := s.AddExpense(ctx, olma, ali, ExpenseInput{Kind: KindExpense, BankAccountID: cash, CategoryID: ijara.ID, Amount: ptr("150000"), At: "2026-10-03T10:00:00+05:00", Note: ptr("Oktabr")})
+	require.NoError(t, err)
+	paid := addSupplierPayment(t, pool, olma, cash, "Bozor", "50000", "2026-10-04 10:00+05")
+	moved, err := s.AddMoneyTransfer(ctx, olma, ali, MoneyTransferInput{FromAccountID: cash, ToAccountID: kassa2.ID, Amount: ptr("100000"), At: "2026-10-05T10:00:00+05:00"})
+	require.NoError(t, err)
+	converted, err := s.AddConversion(ctx, olma, ali, ConversionInput{FromAccountID: cash, Amount: ptr("128000"), ToAccountID: card.ID, ToAmount: ptr("10"), At: "2026-10-06T10:00:00+05:00"})
+	require.NoError(t, err)
+	gone, err := s.AddExpense(ctx, olma, ali, ExpenseInput{Kind: KindExpense, BankAccountID: cash, CategoryID: ijara.ID, Amount: ptr("999"), At: "2026-10-06T12:00:00+05:00"})
+	require.NoError(t, err)
+	require.NoError(t, s.DeleteDocument(ctx, olma, gone.ID, ledger.Expense))
+
+	balances, err := s.AccountBalances(ctx, olma)
+	require.NoError(t, err)
+	require.Len(t, balances, 3)
+	assert.Equal(t, "Naqd", balances[0].Name)
+	assert.Equal(t, "772000.00", balances[0].Balance, "1 000 000 + 200 000 − 150 000 − 50 000 − 100 000 − 128 000")
+	assert.Equal(t, "Karta", balances[1].Name)
+	assert.Equal(t, "10.00", balances[1].Balance)
+	assert.EqualValues(t, 2, balances[1].CurrencyID)
+	assert.True(t, balances[1].Active)
+	assert.Equal(t, "Kassa 2", balances[2].Name)
+	assert.Equal(t, "100000.00", balances[2].Balance)
+
+	page, err := s.AccountStatement(ctx, olma, cash, 1)
+	require.NoError(t, err)
+	require.Len(t, page.Items, 6)
+	assert.EqualValues(t, 6, page.Total)
+	assert.Equal(t, 1, page.Page)
+	assert.Equal(t, ledger.PageSize, page.PageSize)
+	rows := page.Items
+	assert.Equal(t, converted.ID, rows[0].ID)
+	assert.Equal(t, ledger.Conversion, rows[0].Kind)
+	assert.EqualValues(t, 1, rows[0].Number)
+	assert.Equal(t, "-128000.00", rows[0].Delta)
+	assert.Equal(t, "772000.00", rows[0].Balance)
+	assert.Equal(t, ptr("Karta"), rows[0].PartyName, "the account it went to")
+	assert.Equal(t, moved.ID, rows[1].ID)
+	assert.Equal(t, "-100000.00", rows[1].Delta)
+	assert.Equal(t, "900000.00", rows[1].Balance)
+	assert.Equal(t, ptr("Kassa 2"), rows[1].PartyName)
+	assert.Equal(t, paid, rows[2].ID)
+	assert.Equal(t, ledger.SupplierPayment, rows[2].Kind)
+	assert.Equal(t, "-50000.00", rows[2].Delta)
+	assert.Equal(t, "1000000.00", rows[2].Balance)
+	assert.Equal(t, ptr("Bozor"), rows[2].PartyName, "the supplier")
+	assert.Equal(t, rent.ID, rows[3].ID)
+	assert.Equal(t, "-150000.00", rows[3].Delta)
+	assert.Equal(t, ptr("Ijara"), rows[3].PartyName, "the category")
+	assert.Equal(t, ptr("Oktabr"), rows[3].Note)
+	assert.Equal(t, income.ID, rows[4].ID)
+	assert.Equal(t, "200000.00", rows[4].Delta)
+	assert.Equal(t, ptr("Boshqa kirim"), rows[4].PartyName)
+	assert.Equal(t, opening.ID, rows[5].ID)
+	assert.Equal(t, "1000000.00", rows[5].Delta)
+	assert.Equal(t, "1000000.00", rows[5].Balance)
+	assert.Nil(t, rows[5].PartyName, "an opening balance has no other side")
+	assert.Equal(t, ptr("Ali aka"), rows[5].CreatedByName)
+	assert.Equal(t, "2026-10-01T05:00:00Z", rows[5].At.UTC().Format(time.RFC3339))
+
+	page, err = s.AccountStatement(ctx, olma, card.ID, 1)
+	require.NoError(t, err)
+	require.Len(t, page.Items, 1, "the card: the conversion alone, as its target")
+	assert.Equal(t, "10.00", page.Items[0].Delta)
+	assert.Equal(t, "10.00", page.Items[0].Balance)
+	assert.Equal(t, ptr("Naqd"), page.Items[0].PartyName, "the account it came from")
+	_, err = s.AccountStatement(ctx, olma, cash, 0)
+	refused(t, err, apperr.Invalid, "validation_error", "Sahifa raqami noto'g'ri", "page 0")
+	_, err = s.AccountStatement(ctx, olma, 999_999, 1)
+	refused(t, err, apperr.NotFound, "not_found", "Akkaunt topilmadi", "unknown")
+	_, err = s.AccountStatement(ctx, nok, cash, 1)
+	refused(t, err, apperr.NotFound, "not_found", "Akkaunt topilmadi", "another company's")
+}
+
+// An account that live documents name is neither deleted nor put in
+// another currency (logic/finance.md, section 3); it may be renamed and
+// turned off. Once its documents are gone, it may.
+func TestAccountInUse(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	cash := cashOf(t, pool, olma)
+	turnOn(t, pool, olma, 2)
+	turnOn(t, pool, olma, 3)
+	card, err := s.AddAccount(ctx, olma, adminID, AccountInput{Name: "Karta", CurrencyID: 2})
+	require.NoError(t, err)
+	c, err := s.AddConversion(ctx, olma, ali, ConversionInput{FromAccountID: cash, Amount: ptr("128000"), ToAccountID: card.ID, ToAmount: ptr("10"), At: "2026-10-06T10:00:00+05:00"})
+	require.NoError(t, err)
+
+	_, err = s.UpdateAccount(ctx, olma, card.ID, AccountPatch{CurrencyID: ptr(int64(3))})
+	refused(t, err, apperr.Conflict, "account_in_use", "Bu akkauntda 1 ta hujjat bor", "a target of a document")
+	_, err = s.UpdateAccount(ctx, olma, cash, AccountPatch{CurrencyID: ptr(int64(2))})
+	refused(t, err, apperr.Conflict, "account_in_use", "Bu akkauntda 1 ta hujjat bor", "a source of a document")
+	renamed, err := s.UpdateAccount(ctx, olma, card.ID, AccountPatch{Name: ptr("Humo"), CurrencyID: ptr(int64(2))})
+	require.NoError(t, err, "the same currency is no change")
+	assert.Equal(t, "Humo", renamed.Name)
+	off, err := s.UpdateAccount(ctx, olma, card.ID, AccountPatch{Active: ptr(false)})
+	require.NoError(t, err, "turned off instead")
+	assert.False(t, off.Active)
+	err = s.DeleteAccount(ctx, olma, card.ID)
+	refused(t, err, apperr.Conflict, "account_in_use", "Bu akkauntda 1 ta hujjat bor", "not deleted")
+
+	require.NoError(t, s.DeleteDocument(ctx, olma, c.ID, ledger.Conversion))
+	_, err = s.UpdateAccount(ctx, olma, card.ID, AccountPatch{CurrencyID: ptr(int64(3))})
+	require.NoError(t, err, "a deleted document does not count")
+	require.NoError(t, s.DeleteAccount(ctx, olma, card.ID))
+}
+
+// A category that live documents are filed under is not deleted
+// (logic/finance.md, section 6); it may be turned off.
+func TestCategoryInUse(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	cash := cashOf(t, pool, olma)
+	ijara, err := s.CreateCategory(ctx, olma, CategoryInput{Name: "Ijara", Kind: KindExpense})
+	require.NoError(t, err)
+	rent, err := s.AddExpense(ctx, olma, ali, ExpenseInput{Kind: KindExpense, BankAccountID: cash, CategoryID: ijara.ID, Amount: ptr("150000"), At: "2026-10-03T10:00:00+05:00"})
+	require.NoError(t, err)
+	_, err = s.AddExpense(ctx, olma, ali, ExpenseInput{Kind: KindExpense, BankAccountID: cash, CategoryID: ijara.ID, Amount: ptr("5"), At: "2026-10-03T11:00:00+05:00"})
+	require.NoError(t, err)
+
+	err = s.DeleteCategory(ctx, olma, ijara.ID)
+	refused(t, err, apperr.Conflict, "category_in_use", "Bu kategoriyada 2 ta hujjat bor", "filed under")
+	off, err := s.UpdateCategory(ctx, olma, ijara.ID, CategoryPatch{Active: ptr(false)})
+	require.NoError(t, err, "turned off instead")
+	assert.False(t, off.Active)
+	require.NoError(t, s.DeleteDocument(ctx, olma, rent.ID, ledger.Expense))
+	err = s.DeleteCategory(ctx, olma, ijara.ID)
+	refused(t, err, apperr.Conflict, "category_in_use", "Bu kategoriyada 1 ta hujjat bor", "one left")
+}

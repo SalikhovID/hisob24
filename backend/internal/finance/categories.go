@@ -3,6 +3,7 @@ package finance
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 
@@ -130,10 +131,25 @@ func (s *Service) UpdateCategory(ctx context.Context, companyID, id int64, patch
 	return updated, err
 }
 
-// DeleteCategory hides the company's category; its name is free again.
+// DeleteCategory hides the company's category; its name is free again. One
+// that live documents are filed under stays (409 category_in_use, with
+// how many): it may be turned off instead.
 func (s *Service) DeleteCategory(ctx context.Context, companyID, id int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteFinanceCategory(ctx, gen.DeleteFinanceCategoryParams{ID: id, CompanyID: companyID})
+		if _, err := q.GetFinanceCategory(ctx, gen.GetFinanceCategoryParams{ID: id, CompanyID: companyID}); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errCategoryNotFound
+			}
+			return err
+		}
+		n, err := q.CountCategoryDocuments(ctx, id)
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			return apperr.New(apperr.Conflict, "category_in_use", fmt.Sprintf("Bu kategoriyada %d ta hujjat bor", n))
+		}
+		_, err = q.DeleteFinanceCategory(ctx, gen.DeleteFinanceCategoryParams{ID: id, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errCategoryNotFound
 		}

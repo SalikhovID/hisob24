@@ -27,3 +27,18 @@ func TestNumbersAreWrittenWithTheirDecimals(t *testing.T) {
 	assert.True(t, Zero(scanned(t, "0.00")))
 	assert.False(t, Zero(scanned(t, "0.01")))
 }
+
+func TestRatioHasFourDecimals(t *testing.T) {
+	t.Parallel()
+	for name, tc := range map[string]struct{ a, b, want string }{
+		"so'm per dollar":    {"128000.00", "10.00", "12800.0000"},
+		"a fraction":         {"9.00", "10.00", "0.9000"},
+		"rounded half up":    {"1.00", "3.00", "0.3333"},
+		"rounded up":         {"2.00", "3.00", "0.6667"},
+		"a whole number":     {"100", "4", "25.0000"},
+		"divided by nothing": {"5.00", "0", "0.0000"},
+	} {
+		assert.Equal(t, tc.want, Ratio(scanned(t, tc.a), scanned(t, tc.b)), name)
+	}
+	assert.Equal(t, "0.0000", Ratio(pgtype.Numeric{}, scanned(t, "1")), "none over something")
+}

@@ -62,22 +62,22 @@ func categoryFor(ctx context.Context, q *gen.Queries, companyID, id int64, kind 
 }
 
 // checkExpense reads an expense or an income: the kind, then the head with
-// the category between the account and the moment. keep is what the
-// document already names (the account, the category) on an edit.
-func checkExpense(ctx context.Context, q *gen.Queries, companyID int64, by string, in ExpenseInput, keepAccount, keepCategory int64) (ledger.Kind, head, int64, error) {
+// the category between the account and the moment. kept and keep are what
+// the document already names (the account, the category) on an edit.
+func checkExpense(ctx context.Context, q *gen.Queries, companyID int64, by string, in ExpenseInput, keptAccount []int64, keepCategory int64) (ledger.Kind, head, int64, error) {
 	kind, err := kindOfExpense(in.Kind)
 	if err != nil {
 		return "", head{}, 0, err
 	}
 	var categoryID int64
-	h, err := checkHead(ctx, q, companyID, by, in.BankAccountID, keepAccount, in.At, in.Amount, in.Note, func(gen.BankAccount) error {
+	h, err := checkHead(ctx, q, companyID, by, in.BankAccountID, keptAccount, in.At, in.Amount, in.Note, func(gen.BankAccount) error {
 		c, err := categoryFor(ctx, q, companyID, in.CategoryID, in.Kind, keepCategory)
 		if err != nil {
 			return err
 		}
 		categoryID = c.ID
 		return nil
-	})
+	}, nil)
 	if err != nil {
 		return "", head{}, 0, err
 	}
@@ -90,7 +90,7 @@ func checkExpense(ctx context.Context, q *gen.Queries, companyID int64, by strin
 func (s *Service) AddExpense(ctx context.Context, companyID int64, by string, in ExpenseInput) (Document, error) {
 	var d Document
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
-		kind, h, categoryID, err := checkExpense(ctx, q, companyID, by, in, 0, 0)
+		kind, h, categoryID, err := checkExpense(ctx, q, companyID, by, in, nil, 0)
 		if err != nil {
 			return err
 		}
@@ -122,7 +122,7 @@ func (s *Service) UpdateExpense(ctx context.Context, companyID int64, by string,
 		if was.CategoryID != nil {
 			keepCategory = *was.CategoryID
 		}
-		_, h, categoryID, err := checkExpense(ctx, q, companyID, by, in, was.BankAccountID, keepCategory)
+		_, h, categoryID, err := checkExpense(ctx, q, companyID, by, in, []int64{was.BankAccountID}, keepCategory)
 		if err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@
 package numtext
 
 import (
+	"math/big"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -52,4 +53,34 @@ func Padded(n pgtype.Numeric, scale int) *string {
 	}
 	out := whole + "." + decimals
 	return &out
+}
+
+// Ratio is a divided by b, with four decimals, rounded half up
+// ("12800.0000"); "0.0000" when either is none or b is 0.
+func Ratio(a, b pgtype.Numeric) string {
+	ra, rb := ratOf(a), ratOf(b)
+	if ra == nil || rb == nil || rb.Sign() == 0 {
+		return "0.0000"
+	}
+	return new(big.Rat).Quo(ra, rb).FloatString(4)
+}
+
+// ratOf is the number as a rational, nil when it is none or not finite.
+func ratOf(n pgtype.Numeric) *big.Rat {
+	if !n.Valid || n.NaN || n.InfinityModifier != pgtype.Finite || n.Int == nil {
+		return nil
+	}
+	r := new(big.Rat).SetInt(n.Int)
+	scale := new(big.Rat).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(absExp(n.Exp))), nil))
+	if n.Exp > 0 {
+		return r.Mul(r, scale)
+	}
+	return r.Quo(r, scale)
+}
+
+func absExp(e int32) int32 {
+	if e < 0 {
+		return -e
+	}
+	return e
 }

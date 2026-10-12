@@ -25,7 +25,7 @@ type CashOpeningInput struct {
 func (s *Service) AddCashOpening(ctx context.Context, companyID int64, by string, in CashOpeningInput) (Document, error) {
 	var d Document
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
-		h, err := checkHead(ctx, q, companyID, by, in.BankAccountID, 0, in.At, in.Amount, in.Note, nil)
+		h, err := checkHead(ctx, q, companyID, by, in.BankAccountID, nil, in.At, in.Amount, in.Note, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -45,7 +45,7 @@ func (s *Service) UpdateCashOpening(ctx context.Context, companyID int64, by str
 		if err != nil {
 			return err
 		}
-		h, err := checkHead(ctx, q, companyID, by, in.BankAccountID, was.BankAccountID, in.At, in.Amount, in.Note, nil)
+		h, err := checkHead(ctx, q, companyID, by, in.BankAccountID, []int64{was.BankAccountID}, in.At, in.Amount, in.Note, nil, nil)
 		if err != nil {
 			return err
 		}

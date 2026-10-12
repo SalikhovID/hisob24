@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 	"github.com/SalikhovID/hisob24/backend/internal/numtext"
@@ -92,6 +93,17 @@ func toDocument(r gen.GetCashDocumentRow) Document {
 	if r.BankAccountID != nil {
 		d.BankAccountID = *r.BankAccountID
 	}
+	// A conversion's rate is told as so'm per unit of the other currency:
+	// what left over what arrived when the so'm left, the other way round
+	// when it arrived; between two other currencies, what arrived per unit
+	// of what left.
+	if d.Kind == ledger.Conversion && r.ToTotal.Valid {
+		rate := numtext.Ratio(r.ToTotal, r.Total)
+		if r.CurrencyID == currency.UZS {
+			rate = numtext.Ratio(r.Total, r.ToTotal)
+		}
+		d.Rate = &rate
+	}
 	return d
 }
 
@@ -160,13 +172,15 @@ type head struct {
 }
 
 // checkHead reads the fields every cash document shares, in the order of
-// logic/finance.md, section 5: the account (keep: the one the document
+// logic/finance.md, section 5: the account (kept: those the document
 // already names, off or not), the moment, the amount, the note. between
 // runs after the account, for what a kind checks between the account and
-// the moment (a category, the account a transfer goes to).
-func checkHead(ctx context.Context, q *gen.Queries, companyID int64, by string, accountID int64, keep int64, at string, amount, note *string, between func(account gen.BankAccount) error) (head, error) {
+// the moment (a category, the account a transfer goes to); afterAmount
+// runs after the amount, before the note (the amount a conversion
+// arrives with). Either may be nil.
+func checkHead(ctx context.Context, q *gen.Queries, companyID int64, by string, accountID int64, kept []int64, at string, amount, note *string, between func(account gen.BankAccount) error, afterAmount func() error) (head, error) {
 	var h head
-	account, err := ledger.AccountFor(ctx, q, companyID, accountID, keep)
+	account, err := ledger.AccountFor(ctx, q, companyID, accountID, kept...)
 	if err != nil {
 		return h, err
 	}
@@ -184,6 +198,11 @@ func checkHead(ctx context.Context, q *gen.Queries, companyID int64, by string, 
 	}
 	if h.amount, err = ledger.Amount(amount); err != nil {
 		return h, err
+	}
+	if afterAmount != nil {
+		if err := afterAmount(); err != nil {
+			return h, err
+		}
 	}
 	if h.note, err = ledger.Note(note); err != nil {
 		return h, err

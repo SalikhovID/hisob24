@@ -3,6 +3,7 @@ package finance
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -113,6 +114,13 @@ func (s *Service) UpdateAccount(ctx context.Context, companyID, id int64, patch 
 			if err := currencyAllowed(ctx, q, companyID, *patch.CurrencyID); err != nil {
 				return err
 			}
+			// Money that documents already count in one currency is not
+			// recounted in another (logic/finance.md, section 3).
+			if *patch.CurrencyID != was.CurrencyID {
+				if err := accountFree(ctx, q, id); err != nil {
+					return err
+				}
+			}
 		}
 		if patch.Active != nil && !*patch.Active && was.IsActive {
 			if err := anotherActive(ctx, q, companyID); err != nil {
@@ -143,6 +151,9 @@ func (s *Service) DeleteAccount(ctx context.Context, companyID, id int64) error 
 		if err != nil {
 			return err
 		}
+		if err := accountFree(ctx, q, id); err != nil {
+			return err
+		}
 		if was.IsActive {
 			if err := anotherActive(ctx, q, companyID); err != nil {
 				return err
@@ -151,6 +162,19 @@ func (s *Service) DeleteAccount(ctx context.Context, companyID, id int64) error 
 		_, err = q.DeleteBankAccount(ctx, gen.DeleteBankAccountParams{ID: id, CompanyID: companyID})
 		return err
 	})
+}
+
+// accountFree refuses to delete an account, or put it in another currency,
+// while live documents name it (409 account_in_use, with how many).
+func accountFree(ctx context.Context, q *gen.Queries, id int64) error {
+	n, err := q.CountAccountDocuments(ctx, id)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return apperr.New(apperr.Conflict, "account_in_use", fmt.Sprintf("Bu akkauntda %d ta hujjat bor", n))
+	}
+	return nil
 }
 
 // anotherActive refuses to lose an active account when it is the last one.

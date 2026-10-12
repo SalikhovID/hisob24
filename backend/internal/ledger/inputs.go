@@ -70,9 +70,9 @@ func Amount(raw *string) (pgtype.Numeric, error) {
 }
 
 // AccountFor reads the account a document names: one of the company's
-// («Akkauntni tanlang» otherwise), active unless it is the one the document
-// already names, keep («Akkaunt nofaol»).
-func AccountFor(ctx context.Context, q *gen.Queries, companyID, id, keep int64) (gen.BankAccount, error) {
+// («Akkauntni tanlang» otherwise), active unless it is one the document
+// already names, kept («Akkaunt nofaol»).
+func AccountFor(ctx context.Context, q *gen.Queries, companyID, id int64, kept ...int64) (gen.BankAccount, error) {
 	if id == 0 {
 		return gen.BankAccount{}, fields.Invalid("Akkauntni tanlang")
 	}
@@ -83,10 +83,20 @@ func AccountFor(ctx context.Context, q *gen.Queries, companyID, id, keep int64) 
 	if err != nil {
 		return gen.BankAccount{}, err
 	}
-	if !account.IsActive && account.ID != keep {
+	if !account.IsActive && !Kept(account.ID, kept) {
 		return gen.BankAccount{}, fields.Invalid("Akkaunt nofaol")
 	}
 	return account, nil
+}
+
+// Kept tells whether the id is among those a document already names.
+func Kept(id int64, kept []int64) bool {
+	for _, k := range kept {
+		if k == id {
+			return true
+		}
+	}
+	return false
 }
 
 // DayRange reads a span of days (from and to as YYYY-MM-DD, either
