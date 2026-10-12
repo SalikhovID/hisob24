@@ -196,7 +196,10 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   await expect(list(page, "Qatorlar").getByText("−0,5 kg")).toBeVisible()
   await settle(page)
 
-  // The stock Chilonzor started with: 10 Nok at 2 000.
+  // The stock Chilonzor started with: 10 Nok at 2 000. The tabs are on the
+  // lists: back to the counts first.
+  await page.getByRole("main").getByRole("link", { name: "Inventarizatsiya", exact: true }).click()
+  await expect(page).toHaveURL(/\/inventories$/)
   await choose(page.getByRole("combobox", { name: "Lokatsiya" }), "Chilonzor")
   await sectionTabs(page).getByRole("link", { name: "Boshlang'ich qoldiq" }).click()
   await page.getByRole("link", { name: "Boshlang'ich qoldiq qo'shish" }).click()
