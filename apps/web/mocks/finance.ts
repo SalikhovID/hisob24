@@ -98,6 +98,9 @@ export const financeHandlers = [
     if (member instanceof Response) return member
     const row = liveCategories(member.companyId).find((c) => c.id === Number(params.id))
     if (!row) return notFound()
+    // A category that live documents are filed under stays; it may be turned off.
+    const filed = db.transactions.filter((t) => !t.deleted && t.categoryId === row.id).length
+    if (filed > 0) return fail(409, "category_in_use", `Bu kategoriyada ${filed} ta hujjat bor`)
     row.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

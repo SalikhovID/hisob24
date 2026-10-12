@@ -343,3 +343,34 @@ export function statementOf(party: Party, id: number): StatementRow[] {
   })
   return rows.reverse()
 }
+
+// What an account holds (logic/finance.md, section 4): accountDeltaOf is
+// how a document changed it, in the account's own currency: an opening
+// balance of the cash, other income and a customer's payment arrive; an
+// expense and a supplier's payment leave; a transfer leaves one account
+// and arrives in another; a conversion leaves with its amount and arrives
+// with the amount that arrives.
+export function accountDeltaOf(t: TransactionRow, accountId: number): number {
+  switch (t.kind) {
+    case "cash_opening":
+    case "income":
+    case "customer_payment":
+      return t.total
+    case "expense":
+    case "supplier_payment":
+      return -t.total
+    case "money_transfer":
+      return t.bankAccountId === accountId ? -t.total : t.total
+    case "conversion":
+      return t.bankAccountId === accountId ? -t.total : (t.toTotal ?? 0)
+  }
+  return 0
+}
+
+// accountDocumentsOf is the live documents that name the account, as the
+// source or the target, in time.
+export const accountDocumentsOf = (accountId: number) =>
+  db.transactions.filter((t) => !t.deleted && (t.bankAccountId === accountId || t.toBankAccountId === accountId)).sort((a, b) => a.at.localeCompare(b.at) || a.id - b.id)
+
+// accountBalanceOf is what the account holds now.
+export const accountBalanceOf = (accountId: number) => round(accountDocumentsOf(accountId).reduce((sum, t) => sum + accountDeltaOf(t, accountId), 0), 2)

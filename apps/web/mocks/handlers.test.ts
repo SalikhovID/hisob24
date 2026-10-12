@@ -10,7 +10,7 @@ import { setAccessToken } from "@/lib/session"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { giveRole as holdRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
-import { ALI, db, nameIn, SARDOR, seedCatalog, seedWarehouse, VALI, ZARINA } from "./data"
+import { ALI, db, nameIn, nextId, SARDOR, seedCatalog, seedWarehouse, VALI, ZARINA } from "./data"
 
 const list = () => call(api.GET("/app/employees"))
 const add = (phone: string, fullName: string) =>
@@ -2421,4 +2421,133 @@ test("a customer's payments, opening balances and statement; what they owe is on
   expect(await getCustomer(dilshod.id)).toMatchObject({ balance: null, balance_by_currency: null })
   expect((await listCustomers()).items.find((c) => c.id === dilshod.id)?.balance).toBeNull()
   expect(await failure(customerStatement(dilshod.id))).toMatchObject({ status: 403, code: "forbidden" })
+})
+
+// The finance (logic/finance.md; backend/internal/app/finance_test.go): what
+// the accounts hold and their statements, and the cash documents.
+const accounts = () => call(api.GET("/app/accounts"))
+const accountStatement = (id: number, query: Record<string, string> = {}) => call(api.GET("/app/accounts/{id}/statement", { params: { path: { id }, query } }))
+const cashOpenings = (query: Record<string, string> = {}) => call(api.GET("/app/cash-openings", { params: { query } }))
+const addCashOpening = (body: components["schemas"]["CashOpeningInput"]) => call(api.POST("/app/cash-openings", { body }))
+const expenses = (query: Record<string, string> = {}) => call(api.GET("/app/expenses", { params: { query } }))
+const addExpense = (body: components["schemas"]["ExpenseInput"]) => call(api.POST("/app/expenses", { body }))
+const moneyTransfers = (query: Record<string, string> = {}) => call(api.GET("/app/money-transfers", { params: { query } }))
+const addMoneyTransfer = (body: components["schemas"]["MoneyTransferInput"]) => call(api.POST("/app/money-transfers", { body }))
+const addConversion = (body: components["schemas"]["ConversionInput"]) => call(api.POST("/app/conversions", { body }))
+
+test("the cash documents go in and out of the accounts as the Go API keeps them: an opening balance, an expense and an income under their categories, a transfer in one currency, a conversion between two; each listed, edited and deleted; what each account holds and its statement", async () => {
+  // Nok Market: Vali its owner, its cash in so'm, a card in dollars, the dollar at 12 800.
+  await signIn(VALI)
+  await chooseCompany(2)
+  const cash = 9102
+  const card = 9112
+  const kassa2 = { id: nextId(), name: "Kassa 2", currency_id: 1, is_active: true }
+  const eski = { id: nextId(), name: "Eski", currency_id: 1, is_active: false }
+  db.accounts[2].push(kassa2, eski)
+  const ijara = await call(api.POST("/app/finance-categories", { body: { name: "Ijara", kind: "expense" } }))
+  const boshqa = await call(api.POST("/app/finance-categories", { body: { name: "Boshqa kirim", kind: "income" } }))
+
+  // An opening balance of the cash: the refusals in the Go API's order, then two.
+  for (const [input, message] of [
+    [{ bank_account_id: 0, amount: "5", at: AT }, "Akkauntni tanlang"],
+    [{ bank_account_id: 9101, amount: "5", at: AT }, "Akkauntni tanlang"],
+    [{ bank_account_id: eski.id, amount: "5", at: AT }, "Akkaunt nofaol"],
+    [{ bank_account_id: cash, amount: "5", at: "" }, "Vaqtni kiriting"],
+    [{ bank_account_id: cash, amount: "", at: AT }, "Summani kiriting"],
+    [{ bank_account_id: cash, amount: "0", at: AT }, "Summa noto'g'ri"],
+    [{ bank_account_id: cash, amount: "5", at: AT, note: "a".repeat(501) }, "Izoh 500 belgidan oshmasin"],
+  ] as [components["schemas"]["CashOpeningInput"], string][]) {
+    expect(await failure(addCashOpening(input)), message).toMatchObject({ status: 400, code: "validation_error", message })
+  }
+  const opening = await addCashOpening({ bank_account_id: cash, amount: "1000000", at: "2026-10-01T09:00:00+05:00", note: " Boshlanish " })
+  expect(opening).toMatchObject({ number: 1, bank_account_id: cash, account_name: "Naqd", currency_id: 1, amount: "1000000.00", at: "2026-10-01T04:00:00Z", note: "Boshlanish", created_by_name: "Vali Aliyev" })
+  const usd = await addCashOpening({ bank_account_id: card, amount: "250.5", at: "2026-10-01T10:00:00+05:00" })
+  expect(usd).toMatchObject({ number: 2, currency_id: 2, amount: "250.50", note: null })
+  expect((await cashOpenings()).items.map((d) => d.id)).toEqual([usd.id, opening.id])
+  expect((await cashOpenings({ account_id: String(card) })).total).toBe(1)
+  expect(await failure(cashOpenings({ account_id: "x" }))).toMatchObject({ status: 400, message: "Akkaunt noto'g'ri" })
+  expect(await failure(cashOpenings({ page: "x" }))).toMatchObject({ status: 400, message: "Sahifa raqami noto'g'ri" })
+
+  // An expense and an income, each under a category of its kind.
+  for (const [input, message] of [
+    [{ kind: "" as "expense", bank_account_id: cash, category_id: ijara.id, amount: "5", at: AT }, "Turni tanlang"],
+    [{ kind: "expense", bank_account_id: eski.id, category_id: 0, amount: "5", at: AT }, "Akkaunt nofaol"],
+    [{ kind: "expense", bank_account_id: cash, category_id: 0, amount: "5", at: AT }, "Kategoriyani tanlang"],
+    [{ kind: "expense", bank_account_id: cash, category_id: boshqa.id, amount: "5", at: AT }, "Kategoriya turi mos emas"],
+    [{ kind: "expense", bank_account_id: cash, category_id: ijara.id, amount: "", at: AT }, "Summani kiriting"],
+  ] as [components["schemas"]["ExpenseInput"], string][]) {
+    expect(await failure(addExpense(input)), message).toMatchObject({ status: 400, message })
+  }
+  const rent = await addExpense({ kind: "expense", bank_account_id: cash, category_id: ijara.id, amount: "150000", at: "2026-10-03T09:00:00+05:00", note: "Oktabr" })
+  expect(rent).toMatchObject({ kind: "expense", number: 1, bank_account_id: cash, category_id: ijara.id, category_name: "Ijara", amount: "150000.00", note: "Oktabr" })
+  const income = await addExpense({ kind: "income", bank_account_id: cash, category_id: boshqa.id, amount: "200000", at: "2026-10-02T09:00:00+05:00" })
+  expect(income).toMatchObject({ kind: "income", number: 1, category_name: "Boshqa kirim" })
+  expect((await expenses()).items.map((d) => d.id), "the expenses unless another kind is asked").toEqual([rent.id])
+  expect((await expenses({ kind: "income" })).items.map((d) => d.id)).toEqual([income.id])
+  expect((await expenses({ from: "2026-10-03", to: "2026-10-03" })).total, "the day, in Tashkent").toBe(1)
+  expect((await expenses({ from: "2026-10-04" })).total).toBe(0)
+  expect((await expenses({ kind: "income", to: "2026-10-02" })).total).toBe(1)
+  expect((await expenses({ category_id: String(boshqa.id) })).total).toBe(0)
+  expect(await failure(expenses({ kind: "gift" }))).toMatchObject({ status: 400, message: "Tur noto'g'ri" })
+  expect(await failure(expenses({ category_id: "x" }))).toMatchObject({ status: 400, message: "Kategoriya noto'g'ri" })
+  expect(await failure(expenses({ from: "yesterday" }))).toMatchObject({ status: 400, message: "Sana noto'g'ri" })
+  expect(await failure(expenses({ from: "2026-10-04", to: "2026-10-03" }))).toMatchObject({ status: 400, message: "Sana noto'g'ri" })
+  expect(await failure(call(api.PUT("/app/expenses/{id}", { params: { path: { id: rent.id } }, body: { kind: "income", bank_account_id: cash, category_id: boshqa.id, amount: "5", at: AT } })))).toMatchObject({ status: 400, message: "Tur o'zgartirilmaydi" })
+  expect(await call(api.PUT("/app/expenses/{id}", { params: { path: { id: rent.id } }, body: { kind: "expense", bank_account_id: cash, category_id: ijara.id, amount: "160000", at: "2026-10-03T09:00:00+05:00" } }))).toMatchObject({ number: 1, amount: "160000.00", note: null })
+  expect(await call(api.GET("/app/expenses/{id}", { params: { path: { id: rent.id } } }))).toMatchObject({ amount: "160000.00" })
+  expect(await failure(call(api.GET("/app/cash-openings/{id}", { params: { path: { id: rent.id } } })))).toMatchObject({ status: 404, message: "Hujjat topilmadi" })
+  expect(await failure(call(api.DELETE("/app/finance-categories/{id}", { params: { path: { id: ijara.id } } })))).toMatchObject({ status: 409, code: "category_in_use", message: "Bu kategoriyada 1 ta hujjat bor" })
+
+  // A transfer in one currency; a conversion between two, with its rate.
+  for (const [input, message] of [
+    [{ from_account_id: cash, to_account_id: 0, amount: "5", at: AT }, "Maqsad akkauntni tanlang"],
+    [{ from_account_id: cash, to_account_id: eski.id, amount: "5", at: AT }, "Maqsad akkaunt nofaol"],
+    [{ from_account_id: cash, to_account_id: cash, amount: "5", at: AT }, "Maqsad akkaunt boshqa bo'lsin"],
+    [{ from_account_id: cash, to_account_id: card, amount: "5", at: AT }, "Valyutalar farq qilsa konvertatsiya kiriting"],
+  ] as [components["schemas"]["MoneyTransferInput"], string][]) {
+    expect(await failure(addMoneyTransfer(input)), message).toMatchObject({ status: 400, message })
+  }
+  const moved = await addMoneyTransfer({ from_account_id: cash, to_account_id: kassa2.id, amount: "100000", at: "2026-10-05T09:00:00+05:00" })
+  expect(moved).toMatchObject({ kind: "money_transfer", number: 1, from_account_id: cash, from_account_name: "Naqd", currency_id: 1, amount: "100000.00", to_account_id: kassa2.id, to_account_name: "Kassa 2", to_currency_id: 1, to_amount: null, rate: null })
+  for (const [input, message] of [
+    [{ from_account_id: cash, amount: "5", to_account_id: kassa2.id, to_amount: "5", at: AT }, "Bir xil valyutada o'tkazma kiriting"],
+    [{ from_account_id: cash, amount: "5", to_account_id: card, to_amount: "", at: AT }, "Maqsad summani kiriting"],
+    [{ from_account_id: cash, amount: "5", to_account_id: card, to_amount: "0", at: AT }, "Maqsad summa noto'g'ri"],
+  ] as [components["schemas"]["ConversionInput"], string][]) {
+    expect(await failure(addConversion(input)), message).toMatchObject({ status: 400, message })
+  }
+  const converted = await addConversion({ from_account_id: cash, amount: "128000", to_account_id: card, to_amount: "10", at: "2026-10-06T09:00:00+05:00" })
+  expect(converted).toMatchObject({ kind: "conversion", number: 1, amount: "128000.00", to_account_id: card, to_currency_id: 2, to_amount: "10.00", rate: "12800.0000" })
+  const back = await addConversion({ from_account_id: card, amount: "10", to_account_id: cash, to_amount: "127000", at: "2026-10-06T10:00:00+05:00" })
+  expect(back).toMatchObject({ number: 2, rate: "12700.0000" })
+  expect((await moneyTransfers()).items.map((d) => d.id), "the transfers and the conversions in one list").toEqual([back.id, converted.id, moved.id])
+  expect((await moneyTransfers({ account_id: String(kassa2.id) })).items.map((d) => d.id)).toEqual([moved.id])
+  expect((await call(api.GET("/app/conversions"))).items.map((d) => d.id)).toEqual([back.id, converted.id])
+  expect(await failure(call(api.GET("/app/money-transfers/{id}", { params: { path: { id: converted.id } } })))).toMatchObject({ status: 404, message: "Hujjat topilmadi" })
+  expect((await call(api.PUT("/app/conversions/{id}", { params: { path: { id: converted.id } }, body: { from_account_id: cash, amount: "130000", to_account_id: card, to_amount: "10", at: "2026-10-06T09:00:00+05:00" } }))).rate).toBe("13000.0000")
+  expect(await call(api.PUT("/app/money-transfers/{id}", { params: { path: { id: moved.id } }, body: { from_account_id: kassa2.id, to_account_id: cash, amount: "100000", at: "2026-10-05T09:00:00+05:00" } }))).toMatchObject({ from_account_id: kassa2.id, to_account_id: cash })
+  await call(api.DELETE("/app/conversions/{id}", { params: { path: { id: back.id } } }))
+
+  // What each account holds, the one turned off last; the cash's statement.
+  expect(await accounts()).toEqual([
+    { id: cash, name: "Naqd", currency_id: 1, is_active: true, balance: "1010000.00" },
+    { id: card, name: "Karta", currency_id: 2, is_active: true, balance: "260.50" },
+    { id: kassa2.id, name: "Kassa 2", currency_id: 1, is_active: true, balance: "-100000.00" },
+    { id: eski.id, name: "Eski", currency_id: 1, is_active: false, balance: "0.00" },
+  ])
+  const statement = await accountStatement(cash)
+  expect(statement).toMatchObject({ total: 5, page: 1, page_size: 20 })
+  expect(statement.items.map((r) => [r.kind, r.delta, r.balance, r.party_name])).toEqual([
+    ["conversion", "-130000.00", "1010000.00", "Karta"],
+    ["money_transfer", "100000.00", "1140000.00", "Kassa 2"],
+    ["expense", "-160000.00", "1040000.00", "Ijara"],
+    ["income", "200000.00", "1200000.00", "Boshqa kirim"],
+    ["cash_opening", "1000000.00", "1000000.00", null],
+  ])
+  expect(statement.items[2]).toMatchObject({ id: rent.id, number: 1, at: "2026-10-03T04:00:00Z", note: null, linked_id: null, linked_number: null, created_by_name: "Vali Aliyev" })
+  expect(await failure(accountStatement(9101))).toMatchObject({ status: 404, message: "Akkaunt topilmadi" })
+
+  await call(api.DELETE("/app/cash-openings/{id}", { params: { path: { id: opening.id } } }))
+  expect(await failure(call(api.GET("/app/cash-openings/{id}", { params: { path: { id: opening.id } } })))).toMatchObject({ status: 404, message: "Hujjat topilmadi" })
+  expect((await addCashOpening({ bank_account_id: cash, amount: "1", at: AT })).number, "the number of the deleted one is never given again").toBe(3)
 })
