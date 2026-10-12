@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
-import { productsKey, purchasesKey, suppliersKey } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
@@ -16,18 +15,31 @@ import { PurchaseForm } from "./purchase-form"
 
 const back = { href: "/purchases", label: "Xaridlar" }
 
-// forgetWarehouse drops what a purchase changes: the purchases, the
-// products' stock and last prices, the suppliers' balances and payments.
+// forgetWarehouse drops what a stock document changes: the documents of
+// every kind, the products' stock, last prices and moves, the stock at a
+// moment, the suppliers' balances and payments.
 export function forgetWarehouse(queryClient: ReturnType<typeof useQueryClient>, companyId: number) {
-  queryClient.invalidateQueries({ queryKey: purchasesKey(companyId) })
-  queryClient.invalidateQueries({ queryKey: ["purchase", companyId] })
-  queryClient.invalidateQueries({ queryKey: productsKey(companyId) })
-  queryClient.invalidateQueries({ queryKey: ["product", companyId] })
-  queryClient.invalidateQueries({ queryKey: ["product-purchases", companyId] })
-  queryClient.invalidateQueries({ queryKey: suppliersKey(companyId) })
-  queryClient.invalidateQueries({ queryKey: ["supplier", companyId] })
-  queryClient.invalidateQueries({ queryKey: ["payments", companyId] })
-  queryClient.invalidateQueries({ queryKey: ["statement", companyId] })
+  for (const key of [
+    "purchases",
+    "purchase",
+    "transfers",
+    "transfer",
+    "inventories",
+    "inventory",
+    "opening-stock",
+    "opening-stock-item",
+    "stock-at",
+    "products",
+    "product",
+    "product-purchases",
+    "product-moves",
+    "suppliers",
+    "supplier",
+    "payments",
+    "statement",
+  ]) {
+    queryClient.invalidateQueries({ queryKey: [key, companyId] })
+  }
 }
 
 // NewPurchasePage enters a purchase into the current location, for whoever

@@ -276,3 +276,6 @@ export function purchaseDefaults(purchase: PurchaseDetail | null, local: string)
     payments: purchase.payments.map((p) => ({ bank_account_id: String(p.bank_account_id), amount: p.amount })),
   }
 }
+
+// The pieces the stock documents' schemas (lib/stock.ts) are made of.
+export { at as atSchema, note as noteSchema, id as idSchema, rate as rateSchema, lineSchema, digits, moneyPattern, quantityPattern }

@@ -26,8 +26,21 @@ test("a section with tabs opens at the first tab the member may see", () => {
   expect(href(allPermissions, "Mahsulotlar")).toBe("/products")
   expect(href(allPermissions, "Ombor")).toBe("/purchases")
   expect(href(["suppliers.view"], "Ombor")).toBe("/suppliers")
+  expect(href(["stock.view"], "Ombor")).toBe("/transfers")
+  expect(href(["stock.view", "suppliers.view"], "Ombor")).toBe("/transfers")
   expect(href(defaultPermissions, "Mijozlar")).toBe("/customers")
   expect(href(defaultPermissions, "Vazifalar")).toBe("/tasks")
+})
+
+test("the warehouse holds the purchases, the stock documents by kind and the suppliers, in that order", () => {
+  const warehouse = navItems.find((item) => item.key === "warehouse")!
+  expect(warehouse.tabs?.map((tab) => [tab.label, tab.href, tab.permission])).toEqual([
+    ["Xaridlar", "/purchases", "purchases.view"],
+    ["Ko'chirishlar", "/transfers", "stock.view"],
+    ["Inventarizatsiya", "/inventories", "stock.view"],
+    ["Boshlang'ich qoldiq", "/opening-stock", "stock.view"],
+    ["Ta'minotchilar", "/suppliers", "suppliers.view"],
+  ])
 })
 
 test("the member's own order comes first; what it does not name follows in the default order, what they may not see is left out", () => {
@@ -76,6 +89,9 @@ test.each([
   ["products", "/purchases", false],
   ["warehouse", "/purchases/new", true],
   ["warehouse", "/suppliers/2", true],
+  ["warehouse", "/transfers/3/edit", true],
+  ["warehouse", "/inventories", true],
+  ["warehouse", "/opening-stock/new", true],
   ["warehouse", "/products", false],
 ])("the section %s holds the page %s: %s", (key, pathname, current) => {
   expect(isCurrentItem(navItems.find((item) => item.key === key)!, pathname)).toBe(current)

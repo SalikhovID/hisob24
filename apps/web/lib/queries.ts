@@ -611,3 +611,107 @@ export function useFinanceCategories(companyId: number | null, kind: FinanceKind
     enabled: companyId !== null,
   })
 }
+
+// The stock documents besides the purchases (logic/warehouse.md, section 5):
+// the transfers, the inventories and the opening stock the member may see,
+// each list a page at a time, the newest first; one document with its
+// lines; the stock of a location at a moment; a product's moves.
+
+export const transfersKey = (companyId: number | null) => ["transfers", companyId] as const
+
+// DocumentFilter narrows a list of stock documents: one location (the
+// current one) or every one of the member's, and the page.
+export interface DocumentFilter {
+  locationId: number | null
+  page: number
+}
+
+export function useTransfers(companyId: number | null, filter: DocumentFilter) {
+  return useQuery({
+    queryKey: [...transfersKey(companyId), filter],
+    queryFn: () => call(api.GET("/app/transfers", { params: { query: { location_id: filter.locationId ?? undefined, page: filter.page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const transferKey = (companyId: number | null, id: number) => ["transfer", companyId, id] as const
+
+export function useTransfer(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: transferKey(companyId, id),
+    queryFn: () => call(api.GET("/app/transfers/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null && Number.isInteger(id) && id > 0,
+  })
+}
+
+export const inventoriesKey = (companyId: number | null) => ["inventories", companyId] as const
+
+export function useInventories(companyId: number | null, filter: DocumentFilter) {
+  return useQuery({
+    queryKey: [...inventoriesKey(companyId), filter],
+    queryFn: () => call(api.GET("/app/inventories", { params: { query: { location_id: filter.locationId ?? undefined, page: filter.page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const inventoryKey = (companyId: number | null, id: number) => ["inventory", companyId, id] as const
+
+export function useInventory(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: inventoryKey(companyId, id),
+    queryFn: () => call(api.GET("/app/inventories/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null && Number.isInteger(id) && id > 0,
+  })
+}
+
+export const openingStockKey = (companyId: number | null) => ["opening-stock", companyId] as const
+
+export function useOpeningStockList(companyId: number | null, filter: DocumentFilter) {
+  return useQuery({
+    queryKey: [...openingStockKey(companyId), filter],
+    queryFn: () => call(api.GET("/app/opening-stock", { params: { query: { location_id: filter.locationId ?? undefined, page: filter.page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const openingStockItemKey = (companyId: number | null, id: number) => ["opening-stock-item", companyId, id] as const
+
+export function useOpeningStock(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: openingStockItemKey(companyId, id),
+    queryFn: () => call(api.GET("/app/opening-stock/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null && Number.isInteger(id) && id > 0,
+  })
+}
+
+export const stockAtKey = (companyId: number | null) => ["stock-at", companyId] as const
+
+// useStockAt is the products in stock in the location at the moment (an
+// ISO moment; null asks for now), the moves of the document excludeId left
+// out (0: none): what an inventory starts from. Nothing is asked without a
+// location.
+export function useStockAt(companyId: number | null, locationId: number | null, at: string | null, excludeId = 0) {
+  return useQuery({
+    queryKey: [...stockAtKey(companyId), locationId, at, excludeId],
+    queryFn: () =>
+      call(api.GET("/app/stock", { params: { query: { location_id: locationId ?? 0, at: at ?? undefined, exclude_id: excludeId || undefined } } })),
+    enabled: companyId !== null && locationId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const productMovesKey = (companyId: number | null, id: number) => ["product-moves", companyId, id] as const
+
+// useProductMoves is a page of a product's moves in the member's
+// locations, the newest document first.
+export function useProductMoves(companyId: number | null, id: number, page: number) {
+  return useQuery({
+    queryKey: [...productMovesKey(companyId, id), page],
+    queryFn: () => call(api.GET("/app/products/{id}/moves", { params: { path: { id }, query: { page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}

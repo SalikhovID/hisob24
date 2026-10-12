@@ -60,6 +60,9 @@ export const navItems: NavItem[] = [
     icon: WarehouseIcon,
     tabs: [
       { label: "Xaridlar", href: "/purchases", permission: "purchases.view" },
+      { label: "Ko'chirishlar", href: "/transfers", permission: "stock.view" },
+      { label: "Inventarizatsiya", href: "/inventories", permission: "stock.view" },
+      { label: "Boshlang'ich qoldiq", href: "/opening-stock", permission: "stock.view" },
       { label: "Ta'minotchilar", href: "/suppliers", permission: "suppliers.view" },
     ],
   },
