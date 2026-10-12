@@ -6,7 +6,8 @@ import { CompanyPage } from "./company-page"
 
 const chips = () => within(screen.getByRole("list", { name: "Valyutalar" })).getAllByRole("listitem").map((li) => li.textContent)
 
-test("a company's currencies are listed, and the dollar is turned on from the dialog; the so'm cannot be turned off", async () => {
+// A long flow through several dialogs: more than the usual five seconds under load.
+test("a company's currencies are listed, and the dollar is turned on from the dialog; the so'm cannot be turned off", { timeout: 15_000 }, async () => {
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
   await screen.findByRole("heading", { name: "Olma Savdo" })

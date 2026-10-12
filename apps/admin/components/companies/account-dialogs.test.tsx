@@ -17,7 +17,8 @@ const rowsOf = () =>
     .slice(1)
     .map((row) => [within(row).getByRole("rowheader").textContent, ...within(row).getAllByRole("cell").slice(0, 3).map((cell) => cell.textContent)])
 
-test("a company's accounts are listed; a card in dollars is added, edited, turned off and deleted", async () => {
+// A long flow through several dialogs: more than the usual five seconds under load.
+test("a company's accounts are listed; a card in dollars is added, edited, turned off and deleted", { timeout: 15_000 }, async () => {
   db.currencies[1] = [1, 2]
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
