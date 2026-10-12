@@ -123,6 +123,7 @@ export function SelectField<T extends FieldValues, TOut extends FieldValues = T>
   options,
   empty,
   placeholder,
+  disabled,
 }: {
   control: Control<T, unknown, TOut>
   name: FieldPath<T>
@@ -130,6 +131,9 @@ export function SelectField<T extends FieldValues, TOut extends FieldValues = T>
   options: SelectOption[]
   empty?: string
   placeholder?: string
+  // disabled keeps the choice as it is (a kind that is not changed once
+  // chosen); the value is still sent (a field the form disables is not).
+  disabled?: boolean
 }) {
   const id = useId()
   return (
@@ -147,7 +151,7 @@ export function SelectField<T extends FieldValues, TOut extends FieldValues = T>
             options={options}
             empty={empty}
             placeholder={placeholder}
-            disabled={field.disabled}
+            disabled={disabled || field.disabled}
             aria-invalid={fieldState.invalid}
           />
           <FieldError errors={[fieldState.error]} />

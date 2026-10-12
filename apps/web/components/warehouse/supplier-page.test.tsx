@@ -5,6 +5,7 @@ import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
+import { enterOpening } from "@/test/stock"
 import { SupplierPage } from "./supplier-page"
 
 // facts reads the "Ma'lumot" list: each name with its value.
@@ -102,4 +103,18 @@ test("a supplier that is gone, or another company's, is not found", async () => 
 
   expect(await screen.findByRole("heading", { level: 1, name: "Ta'minotchi topilmadi" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ta'minotchilar" })).toHaveAttribute("href", "/suppliers")
+})
+
+test("the opening balances stand in the statement with their own actions, and the statement's header adds one", async () => {
+  const { bozor } = seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  const opening = await enterOpening(bozor.id, { kind: "debt", amount: "1000000", at: "2026-09-30T09:00:00+05:00" })
+  renderWithProviders(<SupplierPage id={bozor.id} />)
+
+  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
+  const row = within(statement).getByText("Boshlang'ich qarz").closest("tr")!
+  expect(within(row).getByRole("button", { name: "Tahrirlash: 1 000 000" })).toBeInTheDocument()
+  expect(within(row).getByRole("button", { name: "O'chirish: 1 000 000" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" })).toBeInTheDocument()
+  expect(opening.kind).toBe("debt")
 })

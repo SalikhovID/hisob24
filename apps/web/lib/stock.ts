@@ -95,7 +95,7 @@ export const openingStockSchema = z
 // than the so'm) and a note.
 export const openingSchema = z
   .object({
-    kind: z.enum(["debt", "prepay"], { message: "Turni tanlang" }),
+    kind: z.string().min(1, "Turni tanlang").pipe(z.enum(["debt", "prepay"], { message: "Tur noto'g'ri" })),
     amount: z.string().transform((value, context) => {
       const text = digits(value)
       if (text === "") {
@@ -122,7 +122,7 @@ export type InventoryForm = { at: string; note: string; items: CountLineForm[] }
 export type InventoryOutput = z.output<typeof inventorySchema>
 export type OpeningStockForm = { at: string; currency_id: string; rate: string; note: string; items: LineForm[] }
 export type OpeningStockOutput = z.output<typeof openingStockSchema>
-export type OpeningForm = { kind: "" | "debt" | "prepay"; amount: string; currency_id: string; rate: string; at: string; note: string }
+export type OpeningForm = { kind: string; amount: string; currency_id: string; rate: string; at: string; note: string }
 export type OpeningOutput = z.output<typeof openingSchema>
 
 // OpeningFields is what the dialog needs of an opening balance being edited.

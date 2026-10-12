@@ -10,8 +10,11 @@ import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
 import { useStatement } from "@/lib/queries"
 import type { StatementRow } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { openingOfRow } from "@/lib/stock"
 import { paymentOfRow } from "@/lib/warehouse"
+import { DeleteOpeningButton } from "./delete-opening-button"
 import { DeletePaymentButton } from "./delete-payment-button"
+import { OpeningDialog } from "./opening-dialog"
 import { PaymentDialog } from "./payment-dialog"
 
 // titleOf says what a row is: a purchase by its number (the way into it),
@@ -46,7 +49,9 @@ function titleOf(row: StatementRow) {
 // section 6): every live document in time, the newest first, each with its
 // amount in its currency, how it changed what is owed (in so'm) and what
 // was owed after it; a payment entered on its own is edited and deleted in
-// its row, one entered with a purchase goes with the purchase.
+// its row, one entered with a purchase goes with the purchase; an opening
+// debt or advance is entered from the header and edited and deleted in its
+// row too.
 export function StatementList({
   companyId,
   supplierId,
@@ -97,15 +102,27 @@ export function StatementList({
           {
             header: "Amallar",
             actions: true,
-            // A payment entered with a purchase goes with the purchase.
-            cell: (row) =>
-              row.kind === "supplier_payment" &&
-              row.linked_id === null && (
-                <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-                  {canEdit && <PaymentDialog companyId={companyId} supplierId={supplierId} payment={paymentOfRow(row, supplierId)} iconOnly />}
-                  {canDelete && <DeletePaymentButton companyId={companyId} payment={paymentOfRow(row, supplierId)} />}
-                </span>
-              ),
+            // A payment entered with a purchase goes with the purchase; an
+            // opening balance is its own document.
+            cell: (row) => {
+              if (row.kind === "supplier_debt" || row.kind === "supplier_prepay") {
+                return (
+                  <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
+                    {canEdit && <OpeningDialog companyId={companyId} supplierId={supplierId} opening={openingOfRow(row, supplierId)} iconOnly />}
+                    {canDelete && <DeleteOpeningButton companyId={companyId} opening={openingOfRow(row, supplierId)} />}
+                  </span>
+                )
+              }
+              return (
+                row.kind === "supplier_payment" &&
+                row.linked_id === null && (
+                  <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
+                    {canEdit && <PaymentDialog companyId={companyId} supplierId={supplierId} payment={paymentOfRow(row, supplierId)} iconOnly />}
+                    {canDelete && <DeletePaymentButton companyId={companyId} payment={paymentOfRow(row, supplierId)} />}
+                  </span>
+                )
+              )
+            },
           } satisfies Column<StatementRow>,
         ]
       : []),
@@ -116,7 +133,12 @@ export function StatementList({
         <h2 id="supplier-statement" className="text-base font-semibold">
           Hisob harakati
         </h2>
-        {canAdd && <PaymentDialog companyId={companyId} supplierId={supplierId} />}
+        {canAdd && (
+          <div className="flex flex-wrap justify-end gap-2">
+            <OpeningDialog companyId={companyId} supplierId={supplierId} />
+            <PaymentDialog companyId={companyId} supplierId={supplierId} />
+          </div>
+        )}
       </div>
       {statement.isPending && <ListLoading rows={2} mark="none" />}
       {statement.isError && <Failed error={statement.error} onRetry={() => statement.refetch()} />}
