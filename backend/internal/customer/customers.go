@@ -14,21 +14,33 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
+	"github.com/SalikhovID/hisob24/backend/internal/numtext"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
 // Customer is a customer of a company: its type, its phone and its answers
-// to the fields of the type.
+// to the fields of the type; and what they owe (logic/sales.md, section 5).
 type Customer struct {
 	ID     int64
 	TypeID int64
 	Phone  string
 	Values Values
+	// Balance is what the customer owes, in so'm by each document's own
+	// rate (an advance below zero); BalanceByCurrency the same in each
+	// currency apart, on the customer's own page alone (nil in a list).
+	Balance           string
+	BalanceByCurrency []BalanceLine
 	// CreatedByName is the name the member who entered the customer goes by
 	// in the company; nil when they go by none.
 	CreatedByName *string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+// BalanceLine is what is owed in one currency.
+type BalanceLine struct {
+	CurrencyID int64
+	Amount     string
 }
 
 // Input is what a customer is saved with, as the client sent it: the phone
@@ -116,8 +128,9 @@ func (s *Service) CreateIn(ctx context.Context, q *gen.Queries, companyID int64,
 	if err != nil {
 		return Customer{}, err
 	}
+	// A new customer owes nothing yet.
 	return Customer{
-		ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: values,
+		ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: values, Balance: "0.00",
 		CreatedByName: name, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}, nil
 }
@@ -207,6 +220,14 @@ func (s *Service) Delete(ctx context.Context, companyID, id int64, by string) er
 		if used > 0 {
 			return apperr.New(apperr.Conflict, "customer_in_use", fmt.Sprintf("Bu mijozda %d ta vazifa bor", used))
 		}
+		// Then the documents of the sales section (logic/sales.md, section 7).
+		documents, err := q.CountCustomerDocuments(ctx, id)
+		if err != nil {
+			return err
+		}
+		if documents > 0 {
+			return apperr.New(apperr.Conflict, "customer_in_use", fmt.Sprintf("Bu mijozda %d ta hujjat bor", documents))
+		}
 		name, err := memberName(ctx, q, companyID, by)
 		if err != nil {
 			return err
@@ -235,15 +256,45 @@ func customerOf(ctx context.Context, q *gen.Queries, companyID, id int64) (Custo
 	if err != nil {
 		return Customer{}, err
 	}
-	return toCustomer(row, answers[id]), nil
+	c := toCustomer(row, answers[id])
+	if c.BalanceByCurrency, err = balanceByCurrency(ctx, q, id); err != nil {
+		return Customer{}, err
+	}
+	return c, nil
 }
 
-// toCustomer is a customer as the queries read it, with its answers.
+// toCustomer is a customer as the queries read it, with its answers and
+// what they owe in so'm.
 func toCustomer(row gen.GetCustomerRow, values Values) Customer {
-	return Customer{
+	c := Customer{
 		ID: row.ID, TypeID: row.TypeID, Phone: row.Phone, Values: values,
 		CreatedByName: row.CreatedByName, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
+	if balance := numtext.Amount(row.Balance); balance != nil {
+		c.Balance = *balance
+	}
+	return c
+}
+
+// balanceByCurrency is what the customer owes in each currency apart; nil
+// when nothing is owed in any (as a customer just entered, or listed).
+func balanceByCurrency(ctx context.Context, q *gen.Queries, customerID int64) ([]BalanceLine, error) {
+	rows, err := q.ListPartyBalanceByCurrency(ctx, gen.ListPartyBalanceByCurrencyParams{Party: "customer", PartyID: customerID})
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	lines := make([]BalanceLine, 0, len(rows))
+	for _, r := range rows {
+		amount := numtext.Amount(r.Amount)
+		if amount == nil {
+			continue
+		}
+		lines = append(lines, BalanceLine{CurrencyID: r.CurrencyID, Amount: *amount})
+	}
+	return lines, nil
 }
 
 // answersOf reads the answers of the customers named; a customer with none

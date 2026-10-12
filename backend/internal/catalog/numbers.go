@@ -2,9 +2,10 @@ package catalog
 
 import (
 	"regexp"
-	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
+
+	"github.com/SalikhovID/hisob24/backend/internal/numtext"
 )
 
 // moneyPattern is an amount as the client writes it: so'm, up to twelve
@@ -27,20 +28,7 @@ func Money(raw *string, message string) (pgtype.Numeric, error) {
 
 // Text is a stored amount as the database writes it ("150000.50"), nil when
 // there is none.
-func Text(n pgtype.Numeric) *string {
-	if !n.Valid {
-		return nil
-	}
-	v, err := n.Value()
-	if err != nil {
-		return nil
-	}
-	s, ok := v.(string)
-	if !ok {
-		return nil
-	}
-	return &s
-}
+func Text(n pgtype.Numeric) *string { return numtext.Text(n) }
 
 // quantityPattern is a quantity as the client writes it: up to nine digits
 // and three decimals ("12.500"), in any unit.
@@ -57,30 +45,12 @@ func Quantity(raw *string, message string) (pgtype.Numeric, error) {
 }
 
 // Zero tells whether the amount is nothing: no amount, or 0 however written.
-func Zero(n pgtype.Numeric) bool {
-	return !n.Valid || n.Int == nil || n.Int.Sign() == 0
-}
+func Zero(n pgtype.Numeric) bool { return numtext.Zero(n) }
 
 // Amount is a stored amount as the API shows it: with two decimals
 // ("150000.50"), nil when there is none.
-func Amount(n pgtype.Numeric) *string { return padded(n, 2) }
+func Amount(n pgtype.Numeric) *string { return numtext.Amount(n) }
 
 // QuantityText is a stored quantity as the API shows it: with three
 // decimals ("12.500"), nil when there is none.
-func QuantityText(n pgtype.Numeric) *string { return padded(n, 3) }
-
-// padded is the amount as the database writes it, padded to scale decimals:
-// pgx decodes a zero numeric without its scale ("0"), and the columns here
-// keep theirs.
-func padded(n pgtype.Numeric, scale int) *string {
-	s := Text(n)
-	if s == nil {
-		return nil
-	}
-	whole, decimals, _ := strings.Cut(*s, ".")
-	if len(decimals) < scale {
-		decimals += strings.Repeat("0", scale-len(decimals))
-	}
-	out := whole + "." + decimals
-	return &out
-}
+func QuantityText(n pgtype.Numeric) *string { return numtext.Quantity(n) }
