@@ -23,17 +23,28 @@ func TestStockAtAMoment(t *testing.T) {
 		return &v
 	}
 
-	rows, err := s.StockAt(ctx, m.scope(), m.asosiy, nil)
+	rows, err := s.StockAt(ctx, m.scope(), m.asosiy, nil, 0)
 	require.NoError(t, err)
 	assert.Equal(t, []StockRow{{ProductID: m.nok, Name: "Nok", Unit: ptr("dona"), Quantity: "5.000"}}, rows, "now: Olma is all in Chilonzor")
-	rows, err = s.StockAt(ctx, m.scope(), m.asosiy, at("2026-10-03T00:00:00+05:00"))
+	rows, err = s.StockAt(ctx, m.scope(), m.asosiy, at("2026-10-03T00:00:00+05:00"), 0)
 	require.NoError(t, err)
 	assert.Equal(t, []StockRow{{ProductID: m.nok, Name: "Nok", Unit: ptr("dona"), Quantity: "5.000"}, {ProductID: m.olma, Name: "Olma", Unit: ptr("kg"), Quantity: "10.000"}}, rows, "before the transfer, by name")
-	rows, err = s.StockAt(ctx, m.scope(), m.chilonzor, at("2026-10-03T00:00:00+05:00"))
+	rows, err = s.StockAt(ctx, m.scope(), m.chilonzor, at("2026-10-03T00:00:00+05:00"), 0)
 	require.NoError(t, err)
 	assert.Empty(t, rows)
-	_, err = s.StockAt(ctx, m.scope(m.chilonzor), m.asosiy, nil)
+	_, err = s.StockAt(ctx, m.scope(m.chilonzor), m.asosiy, nil, 0)
 	refused(t, err, apperr.Invalid, "validation_error", "Lokatsiyani tanlang", "outside the scope (the handler answers 403 before)")
+
+	// An inventory counted 3 Nok: what the form shows while it is edited is
+	// the stock without the inventory's own moves.
+	inv, err := s.CreateInventory(ctx, m.scope(), ali, m.asosiy, InventoryInput{At: "2026-10-06T09:00:00+05:00", Items: []ItemInput{move(m.nok, "3")}})
+	require.NoError(t, err)
+	rows, err = s.StockAt(ctx, m.scope(), m.asosiy, nil, 0)
+	require.NoError(t, err)
+	assert.Equal(t, "3.000", rows[0].Quantity, "with the count")
+	rows, err = s.StockAt(ctx, m.scope(), m.asosiy, nil, inv.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "5.000", rows[0].Quantity, "without it")
 }
 
 func TestAProductsMovesInTheJournal(t *testing.T) {

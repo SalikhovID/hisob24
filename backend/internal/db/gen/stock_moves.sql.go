@@ -72,7 +72,7 @@ SELECT p.id AS product_id, p.name, p.unit, sum(sm.quantity)::numeric(14,3) AS qu
 FROM stock_moves sm
 JOIN transactions t ON t.id = sm.transaction_id
 JOIN products p ON p.id = sm.product_id
-WHERE sm.location_id = $1 AND t.doc_at <= $2
+WHERE sm.location_id = $1 AND t.doc_at <= $2 AND t.id <> $3
 GROUP BY p.id, p.name, p.unit
 HAVING sum(sm.quantity) <> 0
 ORDER BY lower(p.name), p.id
@@ -81,6 +81,7 @@ ORDER BY lower(p.name), p.id
 type ListLocationStockParams struct {
 	LocationID int64
 	At         time.Time
+	ExcludeID  int64
 }
 
 type ListLocationStockRow struct {
@@ -91,10 +92,11 @@ type ListLocationStockRow struct {
 }
 
 // The products in stock in the location at the moment (their stock then is
-// not 0), by name, each with its unit and stock (logic/warehouse.md,
-// section 5).
+// not 0), by name, each with its unit and stock, the moves of the document
+// given left out (an inventory's own, while it is edited; 0 for none)
+// (logic/warehouse.md, section 5).
 func (q *Queries) ListLocationStock(ctx context.Context, arg ListLocationStockParams) ([]ListLocationStockRow, error) {
-	rows, err := q.db.Query(ctx, listLocationStock, arg.LocationID, arg.At)
+	rows, err := q.db.Query(ctx, listLocationStock, arg.LocationID, arg.At, arg.ExcludeID)
 	if err != nil {
 		return nil, err
 	}

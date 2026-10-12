@@ -151,6 +151,20 @@ func TestInventoriesAPI(t *testing.T) {
 	assert.JSONEq(t, `{"error":"validation_error","message":"Lokatsiyani tanlang"}`, rec.Body.String())
 	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/stock?location_id=%d", s.asosiy), "", bearer(s.employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code)
+
+	// The stock without one document's own moves: what an inventory's edit
+	// form starts from.
+	rec = api.do(t, http.MethodPost, "/app/inventories", fmt.Sprintf(`{"location_id":%d,"at":"%s","items":[%s]}`, s.asosiy, at, count("7")), bearer(s.owner))
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	counted := decode(t, rec)
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/stock?location_id=%d", s.asosiy), "", bearer(s.owner))
+	assert.Equal(t, "7.000", decodeList(t, rec)[0].(map[string]any)["quantity"])
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/stock?location_id=%d&exclude_id=%v", s.asosiy, counted["id"]), "", bearer(s.owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "10.000", decodeList(t, rec)[0].(map[string]any)["quantity"])
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/stock?location_id=%d&exclude_id=x", s.asosiy), "", bearer(s.owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Hujjat noto'g'ri"}`, rec.Body.String())
 }
 
 func TestOpeningStockAndProductMovesAPI(t *testing.T) {

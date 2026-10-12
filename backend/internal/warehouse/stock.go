@@ -22,9 +22,11 @@ type StockRow struct {
 }
 
 // StockAt is the products in stock in the location (one of the scope's)
-// at the moment (now when none is given): what an inventory starts from
-// (logic/warehouse.md, section 5).
-func (s *Service) StockAt(ctx context.Context, scope Scope, locationID int64, at *time.Time) ([]StockRow, error) {
+// at the moment (now when none is given), the moves of the document
+// excludeID left out (0: none): what an inventory starts from, and what
+// one being edited shows without its own count (logic/warehouse.md,
+// section 5).
+func (s *Service) StockAt(ctx context.Context, scope Scope, locationID int64, at *time.Time, excludeID int64) ([]StockRow, error) {
 	if locationID == 0 || !scope.has(locationID) {
 		return nil, errNoLocation
 	}
@@ -32,7 +34,7 @@ func (s *Service) StockAt(ctx context.Context, scope Scope, locationID int64, at
 	if at != nil {
 		moment = *at
 	}
-	rows, err := s.q.ListLocationStock(ctx, gen.ListLocationStockParams{LocationID: locationID, At: moment})
+	rows, err := s.q.ListLocationStock(ctx, gen.ListLocationStockParams{LocationID: locationID, At: moment, ExcludeID: excludeID})
 	if err != nil {
 		return nil, err
 	}

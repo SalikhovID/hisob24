@@ -475,8 +475,9 @@ type Querier interface {
 	// with its account's name, its amount in the account's currency.
 	ListLinkedPayments(ctx context.Context, linkedID int64) ([]ListLinkedPaymentsRow, error)
 	// The products in stock in the location at the moment (their stock then is
-	// not 0), by name, each with its unit and stock (logic/warehouse.md,
-	// section 5).
+	// not 0), by name, each with its unit and stock, the moves of the document
+	// given left out (an inventory's own, while it is edited; 0 for none)
+	// (logic/warehouse.md, section 5).
 	ListLocationStock(ctx context.Context, arg ListLocationStockParams) ([]ListLocationStockRow, error)
 	// The company's live locations for the admin, in the order they were
 	// added, each with how many tasks stand in it (the deleted not counted).

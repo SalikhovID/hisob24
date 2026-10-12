@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
@@ -489,7 +490,8 @@ func (h *Handler) deleteOpeningStock(w http.ResponseWriter, r *http.Request) {
 
 // getStock is the products in stock in the location ?location_id= names
 // (none: 400; one the member may not work in: 403) at the moment ?at=
-// (now unless given), by name: what an inventory starts from.
+// (now unless given), the moves of the document ?exclude_id= left out, by
+// name: what an inventory starts from, or shows while it is edited.
 func (h *Handler) getStock(w http.ResponseWriter, r *http.Request) {
 	locationID, ok := locationParam(w, r)
 	if !ok {
@@ -508,7 +510,16 @@ func (h *Handler) getStock(w http.ResponseWriter, r *http.Request) {
 		}
 		at = &moment
 	}
-	rows, err := h.warehouse.StockAt(r.Context(), warehouseScope(r), locationID, at)
+	var excludeID int64
+	if raw := r.URL.Query().Get("exclude_id"); raw != "" {
+		id, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || id <= 0 {
+			httpx.Error(w, http.StatusBadRequest, "validation_error", "Hujjat noto'g'ri")
+			return
+		}
+		excludeID = id
+	}
+	rows, err := h.warehouse.StockAt(r.Context(), warehouseScope(r), locationID, at, excludeID)
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return

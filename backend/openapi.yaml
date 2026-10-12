@@ -3885,7 +3885,9 @@ paths:
         noto'g'ri") at lahzasigacha (berilmasa hozir; noto'g'ri: 400 "Vaqt
         noto'g'ri") qoldig'i 0 dan farqli mahsulotlar, nom bo'yicha,
         sahifasiz: inventarizatsiya shundan boshlanadi (logic/warehouse.md,
-        5.2).
+        5.2). exclude_id berilsa shu hujjatning harakatlari hisobga
+        olinmaydi (tahrirlanayotgan inventarizatsiyaning o'zi; son emas:
+        400 "Hujjat noto'g'ri").
       security:
         - appBearer: []
       parameters:
@@ -3900,6 +3902,11 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: exclude_id
+          in: query
+          schema:
+            type: integer
+            format: int64
       responses:
         "200":
           description: Qoldiqlar
