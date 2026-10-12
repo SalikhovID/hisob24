@@ -307,3 +307,14 @@ Qatlam handler → service → sqlc; hamma yozuv tranzaksiyada, kompaniya qulfi 
 - `GET /app/stock?location_id=&at=`: `location_id` majburiy (yo'q: 400 «Lokatsiyani tanlang»), `at` berilmasa hozir; qoldig'i 0 mahsulotlar ro'yxatda yo'q; `stock.view`. `GET /app/products/{id}/moves`: `stock.view`, harakat tartibi hujjat vaqti, hujjat id, harakat id bo'yicha teskari (ko'chirishning kirim harakati chiqimidan oldin); `counterpart` ta'minotchi nomi yoki ko'chirishning ikkinchi lokatsiyasi, boshqasida `null`.
 - Boshlang'ich qarz / avans `kind: debt | prepay` (jurnalda `supplier_debt` / `supplier_prepay`), tahrirda tur o'zgarmaydi (400 «Tur o'zgartirilmaydi»); nofaol ta'minotchiga ham kiritiladi; hujjat «Hujjat topilmadi» 404. Ta'minotchi o'chirilishida hujjat sifatida sanaladi.
 - Mock: `mocks/stock.ts` (ko'chirish, inventarizatsiya, boshlang'ich qoldiq, `/app/stock`, harakatlar, boshlang'ich qarz / avans), `MoveRow.id` harakat tartibi uchun; umumiy yordamchilar `mocks/warehouse.ts`dan eksport qilinadi.
+
+## 6-bosqich qarorlari (2026-10-12)
+
+- Ombor tablari: Xaridlar · Ko'chirishlar · Inventarizatsiya · Boshlang'ich qoldiq · Ta'minotchilar (`lib/nav.ts`); `stock.view` bilan bo'lim `/transfers` da ochiladi.
+- `GET /app/stock?exclude_id=`: tahrirlanayotgan inventarizatsiyaning formasi tizim qoldig'ini hujjatning o'z harakatlarisiz ko'rsatadi (Go `StockAt(..., excludeID)`, mock, client).
+- Ko'chirish maqsadi formada a'zoning o'z lokatsiyalari (`/app/me.locations`) orasidan, manbadan tashqari; bitta lokatsiyali a'zoga «Ko'chirish qo'shish» yo'q, bo'sh holat «Ko'chirish uchun kamida ikkita lokatsiya kerak». Ro'yxat joriy lokatsiyaniki: manba yoki maqsad joriy; qatorda «Chiqim» / «Kirim» belgisi. Sahifada «Tahrirlash» / «O'chirish» faqat manba a'zoning lokatsiyalari ichida bo'lsa.
+- Tovar hujjatlarining qatorlari bitta `LinesField` (`withPrice` bilan narx va summa; xarid formasi ham shunga o'tdi). Inventarizatsiya formasi o'z qatorlari bilan: «Tizim» (`useStockAt`, vaqtga ergashadi), «Sanalgan», «Farq»; «Hammasini qo'shish» qoldig'i bor mahsulotlarni sanalgan = tizim bilan qo'shadi (bo'sh qatorlar tashlanadi).
+- Kam chiqqan farq va chiqim harakati haqiqiy minus bilan yoziladi («−1,5 kg», `signedQuantity`); kirim harakati «+» bilan.
+- Boshlang'ich qarz / avans ta'minotchi sahifasida hisob harakati sarlavhasidan kiritiladi (`OpeningDialog`: tur, valyuta 2+ bo'lsa, summa, vaqt, kurs, izoh), qatorida tahrirlanadi (tur o'zgarmaydi: select `disabled`, qiymati yuboriladi) va o'chiriladi. `SelectField` `disabled` prop oldi.
+- Mahsulot sahifasida «Harakatlar» (`stock.view`): hujjat nomi va raqami havola bilan (sotuv sahifasi 8-bosqichda, ungacha matn), vaqt, lokatsiya (2+), kontragent, ± miqdor.
+- Mock testlarda `getByText` NBSP'ni oddiy bo'shliqqa keltiradi, `textContent` esa yo'q: ikkala yo'l bilan tekshirilgan joylar izohlangan.

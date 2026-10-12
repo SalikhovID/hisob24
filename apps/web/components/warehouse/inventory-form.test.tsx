@@ -42,7 +42,7 @@ test("a count of the current location: every product in stock added at once with
   expect(figure(olma, "Tizim")).toBe(formatQuantity("12.500", "kg"))
   await user.clear(within(olma).getByLabelText("Sanalgan"))
   await user.type(within(olma).getByLabelText("Sanalgan"), "11")
-  expect(figure(olma, "Farq")).toBe(formatQuantity("-1.5", "kg"))
+  expect(figure(olma, "Farq")).toBe(`−${formatQuantity("1.5", "kg")}`)
   await user.type(screen.getByLabelText("Izoh"), " Oylik ")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
@@ -104,7 +104,7 @@ test("editing: the count comes filled in with what the journal expects without i
   expect(within(line(1)).getByLabelText("Sanalgan")).toHaveValue("10.000")
   await user.clear(within(line(1)).getByLabelText("Sanalgan"))
   await user.type(within(line(1)).getByLabelText("Sanalgan"), "9")
-  expect(figure(line(1), "Farq")).toBe(formatQuantity("-3.5", "kg"))
+  expect(figure(line(1), "Farq")).toBe(`−${formatQuantity("3.5", "kg")}`)
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() => expect(db.items.find((i) => i.transactionId === inventory.id)?.quantity).toBe(9))

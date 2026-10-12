@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { FieldError, FieldGroup } from "@/components/ui/field"
 import { formatQuantity, unitLabel } from "@/lib/format"
 import { useStockAt } from "@/lib/queries"
-import { type CountLineForm, differenceOf, emptyCount, type InventoryForm as InventoryFormValues, type InventoryOutput, inventorySchema } from "@/lib/stock"
+import { type CountLineForm, differenceOf, emptyCount, type InventoryForm as InventoryFormValues, type InventoryOutput, inventorySchema, signedQuantity } from "@/lib/stock"
 import type { StockRow } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { toISO } from "@/lib/warehouse"
@@ -136,7 +136,7 @@ export function InventoryForm({
               <div className="flex flex-col gap-2 text-sm">
                 <span className="text-[0.8125rem] leading-5 font-medium">Farq</span>
                 <span className={cn("inline-flex h-9 items-center tabular-nums", difference?.startsWith("-") && "text-destructive", difference && Number(difference) > 0 && "text-emerald-700 dark:text-emerald-400")}>
-                  {difference === null ? <span className="text-muted-foreground">—</span> : formatQuantity(difference, current?.unit ?? null)}
+                  {difference === null ? <span className="text-muted-foreground">—</span> : signedQuantity(difference, current?.unit ?? null)}
                 </span>
               </div>
               <Button

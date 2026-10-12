@@ -12,6 +12,7 @@ import {
   openingSchema,
   openingStockDefaults,
   openingStockSchema,
+  signedQuantity,
   transferDefaults,
   transferSchema,
 } from "./stock"
@@ -205,4 +206,11 @@ test("a document's kind has a name and, with a page of its own, an address", () 
   expect(documentHref("inventory", 3)).toBe("/inventories/3")
   expect(documentHref("opening_stock", 3)).toBe("/opening-stock/3")
   expect(documentHref("sale", 3)).toBeNull()
+})
+
+test("a signed quantity reads with a real minus, and with a plus when asked", () => {
+  expect(signedQuantity("-1.500", "kg")).toBe("−1,5\u00a0kg")
+  expect(signedQuantity("2.000", "kg")).toBe("2\u00a0kg")
+  expect(signedQuantity("2.000", "kg", true)).toBe("+2\u00a0kg")
+  expect(signedQuantity("0.000", null, true)).toBe("0")
 })

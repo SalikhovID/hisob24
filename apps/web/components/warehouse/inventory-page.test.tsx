@@ -50,7 +50,7 @@ test("the inventory page: its facts and its lines with what was expected, counte
   // getByText folds the no-break space before the unit into a plain one.
   expect(within(row).getByText("12,5 kg")).toBeInTheDocument()
   expect(within(row).getByText("10 kg")).toBeInTheDocument()
-  expect(within(row).getByText("-2,5 kg")).toBeInTheDocument()
+  expect(within(row).getByText("−2,5 kg")).toBeInTheDocument()
 })
 
 test("deleting the inventory takes its differences out of the stock and leads to the list", async () => {

@@ -12,6 +12,7 @@ import { ApiError } from "@/lib/api"
 import { formatDate, formatDateTime, formatQuantity } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { useInventory } from "@/lib/queries"
+import { signedQuantity } from "@/lib/stock"
 import type { InventoryItem, Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
@@ -58,7 +59,7 @@ export function InventoryPage({ id }: { id: number }) {
       className: "tabular-nums",
       cell: (item) => (
         <span className={cn(item.difference.startsWith("-") && "text-destructive", Number(item.difference) > 0 && "text-emerald-700 dark:text-emerald-400")}>
-          {formatQuantity(item.difference, item.unit)}
+          {signedQuantity(item.difference, item.unit)}
         </span>
       ),
     },

@@ -5,6 +5,7 @@
 import { z } from "zod"
 import { unitCodes } from "./catalog"
 import { trimRate, UZS } from "./currencies"
+import { formatQuantity } from "./format"
 import type { GoodsKind, InventoryDetail, Opening, OpeningStockDetail, StatementRow, TransferDetail, Unit } from "./types"
 import { atSchema, digits, emptyLine, fromISO, idSchema, type LineForm, lineSchema, moneyPattern, noteSchema, quantityPattern, rateSchema } from "./warehouse"
 
@@ -228,4 +229,12 @@ export function documentHref(kind: GoodsKind, id: number): string | null {
     case "sale":
       return null
   }
+}
+
+// signedQuantity writes a signed quantity for people to read: a shortage or
+// an outgoing move with a real minus ("−1,5 kg"), the rest as it is; with
+// plus, an incoming move leads with "+".
+export function signedQuantity(quantity: string, unit: string | null, plus = false): string {
+  if (quantity.startsWith("-")) return `−${formatQuantity(quantity.slice(1), unit)}`
+  return `${plus && Number(quantity) > 0 ? "+" : ""}${formatQuantity(quantity, unit)}`
 }

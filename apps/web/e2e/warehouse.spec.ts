@@ -1,8 +1,9 @@
 import type { Locator, Page } from "@playwright/test"
-import { seedCatalog } from "../mocks/data"
+import { seedCatalog, seedWarehouse } from "../mocks/data"
+import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
+import { choose, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
 
 // The lists are tables on wide screens and cards on a phone: the one on
 // screen is the one a test reads.
@@ -142,6 +143,98 @@ test("the owner keeps the warehouse: a supplier, a purchase into the stock, the 
   await page.getByRole("alertdialog", { name: "Mahsulotni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page.getByText("Bu mahsulot 1 ta hujjatda bor")).toBeVisible()
   await expect(page.getByRole("heading", { level: 1, name: "Olma" })).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+})
+
+test("the owner keeps the stock documents: a transfer between the locations, a count, an opening stock, the product's moves, a supplier's opening debt", async ({ page }) => {
+  test.setTimeout(180_000)
+  const catalog = seedCatalog()
+  // Asosiy holds 12,5 kg Olma and 3 Nok, bought from Bozor; Chilonzor is empty.
+  seedWarehouse(catalog)
+  addLocation(1, "Chilonzor")
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await openSection(page, "Ombor")
+  await expect(sectionTabs(page).getByRole("link")).toHaveText(["Xaridlar", "Ko'chirishlar", "Inventarizatsiya", "Boshlang'ich qoldiq", "Ta'minotchilar"])
+
+  // A transfer of 4 kg Olma to Chilonzor: it leaves Asosiy and arrives there.
+  await sectionTabs(page).getByRole("link", { name: "Ko'chirishlar" }).click()
+  await expect(page).toHaveURL(/\/transfers$/)
+  await expect(page.getByText("Hali ko'chirish yo'q")).toBeVisible()
+  await page.getByRole("link", { name: "Ko'chirish qo'shish" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Yangi ko'chirish" })).toBeVisible()
+  await choose(page.getByRole("combobox", { name: "Qayerga" }), "Chilonzor")
+  const moved = page.getByRole("group", { name: "1-qator" })
+  await pick(page, moved, "Mahsulot", "ol", /Olma/)
+  await moved.getByLabel("Miqdor").fill("4")
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+  await page.getByRole("button", { name: "Saqlash" }).click()
+  await expect(page).toHaveURL(/\/transfers\/\d+$/)
+  await expect(page.getByRole("heading", { level: 1, name: "Ko'chirish № 1" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("Chilonzor")).toBeVisible()
+  await expect(list(page, "Qatorlar").getByText("4 kg")).toBeVisible()
+  await settle(page)
+  await page.getByRole("main").getByRole("link", { name: "Ko'chirishlar" }).click()
+  await expect(list(page, "Ko'chirishlar").getByText("Chiqim")).toBeVisible()
+  await choose(page.getByRole("combobox", { name: "Lokatsiya" }), "Chilonzor")
+  await expect(list(page, "Ko'chirishlar").getByText("Kirim")).toBeVisible()
+  await choose(page.getByRole("combobox", { name: "Lokatsiya" }), "Asosiy")
+  await expect(list(page, "Ko'chirishlar").getByText("Chiqim")).toBeVisible()
+
+  // A count of Asosiy: everything in stock at once, Olma half a kilo short.
+  await sectionTabs(page).getByRole("link", { name: "Inventarizatsiya" }).click()
+  await page.getByRole("link", { name: "Inventarizatsiya qo'shish" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Yangi inventarizatsiya" })).toBeVisible()
+  await page.getByRole("button", { name: "Hammasini qo'shish" }).click()
+  const olma = page.getByRole("group", { name: "2-qator" })
+  await expect(olma.getByText("Olma")).toBeVisible()
+  await expect(olma.getByLabel("Sanalgan")).toHaveValue("8.500")
+  await olma.getByLabel("Sanalgan").fill("8")
+  await expect(olma.getByText("−0,5 kg")).toBeVisible()
+  await page.getByRole("button", { name: "Saqlash" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Inventarizatsiya № 1" })).toBeVisible()
+  await expect(list(page, "Qatorlar").getByText("−0,5 kg")).toBeVisible()
+  await settle(page)
+
+  // The stock Chilonzor started with: 10 Nok at 2 000.
+  await choose(page.getByRole("combobox", { name: "Lokatsiya" }), "Chilonzor")
+  await sectionTabs(page).getByRole("link", { name: "Boshlang'ich qoldiq" }).click()
+  await page.getByRole("link", { name: "Boshlang'ich qoldiq qo'shish" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Yangi boshlang'ich qoldiq" })).toBeVisible()
+  const opening = page.getByRole("group", { name: "1-qator" })
+  await pick(page, opening, "Mahsulot", "n", /Nok/)
+  await opening.getByLabel("Miqdor").fill("10")
+  await opening.getByLabel("Narx").fill("2000")
+  await expect(page.getByText("20 000 so'm")).toBeVisible()
+  await page.getByRole("button", { name: "Saqlash" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Boshlang'ich qoldiq № 1" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("20 000 so'm")).toBeVisible()
+  await settle(page)
+
+  // The product's page tells its moves: the count, the transfer's two ends, the purchase.
+  await openSection(page, "Mahsulotlar")
+  await list(page, "Mahsulotlar").getByRole("link", { name: "Olma" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Olma" })).toBeVisible()
+  const moves = list(page, "Harakatlar")
+  await expect(moves.getByRole("link", { name: "Inventarizatsiya № 1" })).toBeVisible()
+  await expect(moves.getByText("−0,5 kg")).toBeVisible()
+  await expect(moves.getByRole("link", { name: "Ko'chirish № 1" })).toHaveCount(2)
+  await expect(moves.getByRole("link", { name: "Xarid № 1" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Qoldiq" }).getByText("8 kg")).toBeVisible()
+
+  // What the supplier was owed before the books began: in the balance and the statement.
+  await openSection(page, "Ombor")
+  await sectionTabs(page).getByRole("link", { name: "Ta'minotchilar" }).click()
+  await list(page, "Ta'minotchilar").getByRole("link", { name: /Bozor/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Bozor" })).toBeVisible()
+  await page.getByRole("button", { name: "Boshlang'ich qarz / avans" }).click()
+  const dialog = page.getByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
+  await choose(dialog.getByRole("combobox", { name: "Tur" }), "Qarz")
+  await dialog.getByLabel("Summa, so'm").fill("1000000")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.getByRole("region", { name: "Balans" }).getByText("Qarz: 1 015 001,50 so'm")).toBeVisible()
+  await expect(list(page, "Hisob harakati").getByText("Boshlang'ich qarz")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 })
 

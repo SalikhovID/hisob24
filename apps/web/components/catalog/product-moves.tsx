@@ -5,9 +5,9 @@ import { useState } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
-import { formatDateTime, formatQuantity } from "@/lib/format"
+import { formatDateTime } from "@/lib/format"
 import { useProductMoves } from "@/lib/queries"
-import { documentHref, kindTitle } from "@/lib/stock"
+import { documentHref, kindTitle, signedQuantity } from "@/lib/stock"
 import type { ProductMove } from "@/lib/types"
 import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
@@ -47,15 +47,11 @@ export function ProductMoves({ companyId, productId, unit }: { companyId: number
       header: "Miqdor",
       align: "end",
       card: "aside",
-      cell: (move) => {
-        const out = move.quantity.startsWith("-")
-        return (
-          <span className={cn("tabular-nums", out ? "text-destructive" : "text-emerald-700 dark:text-emerald-400")}>
-            {out ? "−" : "+"}
-            {formatQuantity(move.quantity.replace("-", ""), unit)}
-          </span>
-        )
-      },
+      cell: (move) => (
+        <span className={cn("tabular-nums", move.quantity.startsWith("-") ? "text-destructive" : "text-emerald-700 dark:text-emerald-400")}>
+          {signedQuantity(move.quantity, unit, true)}
+        </span>
+      ),
     },
   ]
   return (
