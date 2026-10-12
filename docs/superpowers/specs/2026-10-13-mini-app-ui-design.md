@@ -1,0 +1,199 @@
+# User app'ning Telegram Wallet (iOS guruhli ro'yxat) uslubidagi UI'si — dizayn va reja
+
+Sana: 2026-10-13. Holat: foydalanuvchi reja sifatida tasdiqlagan (reja savollari bilan); amalga oshirilmoqda. Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-13-mini-app-ui-stage<N>-*.md`.
+
+## Kontekst
+
+Foydalanuvchining so'zlari: "shu sahifani analiz qil va loyihani shunday UI ga o'tkazib ber" — sahifa: `https://claude.ai/artifact/6634ff38-6626-42c0-8dea-2bdd4b68122e`, «Hisob24 · Telegram Mini App prototipi» (bitta HTML, 2559 qator, sof CSS + JS; `docs/design/README.md` dagi 2026-10-08 holati asosida chizilgan).
+
+Prototip user app'ning Telegram Wallet uslubidagi qayta loyihasi:
+
+- iOS guruhli ro'yxatlar: `.group` 22px radius, `.row` 56px (media · nom + badge, ikkinchi qator · o'ngda qiymat va ikkinchi qator · chevron), 0.5px ichki ajratgich (68px ikonkali, 60px plitkali, 16px oddiy); `kv` nom — qiymat qatorlari; `.sh` bo'lim sarlavhasi (17px/600, o'ngda amal yoki `hint`); `.foot` izoh (13px).
+- Katta sarlavha `.ltitle` (30px/700 + izoh + o'ngda dumaloq `+` 44px); yozuv sahifasida `.dhead` (88px avatar, 26px nom, izoh, badgelar) va `.tiles` tezkor amallar.
+- Suzuvchi «liquid glass» tab-bar (64px, 32px radius, `backdrop-filter`, faol tugma ostida linza): Bosh sahifa + 4 bo'lim; qolganlari profil sahifasida. Ichki sahifada panel yashirinadi.
+- Pastdan chiqadigan varaq (`.sheet`, 36px radius, tutqich, chapda yopish, o'rtada sarlavha) ichida formalar: `.frow` (112px yorliq + maydon bir qatorda), `.opts` chip-variantlar, iOS `.sw` kalit, `.ferr` xato; asosiy tugma `.mainbar` ichida `.mainbtn` (52px, 14px radius).
+- Tanlovlar varaqda (`picker`: bitta / ko'p, qidiruv, «Tanlanmagan»), kalendar varag'i (`datePicker`), summa klaviaturasi (`keypad`), action sheet (`asheet`), shisha menyu (`.menu`), alert (`.alert`), toast (`.toast`), bo'sh holat (`.empty`), skeleton, splash.
+- Bosh sahifa: `me` tugmasi (avatar, kompaniya, ism · rol) va lokatsiya pill, hero summa (`.hero`, `.amount`), tezkor plitkalar, «Bosh ekranga qo'shish» banneri, «Umumiy holat» kartalari (bosqichlar ustunlari, sparkline), «Yaqin muddatlar», havolalar, obuna izohi.
+- Kanban: snap ustunlar (84%), karta uzun bosib sudraladi, `⋯` → action sheet, yakuniy ustun yig'ilgan (vertikal). Vazifa sahifasi: bosqich treki, muddat kartasi.
+- Ekran o'tishlari: push (o'ngdan 100% → 0, eski −28%), pop teskari; chapdan surib qaytish.
+- Mavzular: light (`#EDEEF2` fon, `#fff` yacheyka, `#117A68` urg'u), dark (`#000` / `#1C1C1E` / `#3CC5AE`), tg (Telegram ko'ki `#1C74BD`), tgnight. Shrift: SF Pro → Geist, 17px asos, 1.3 qator.
+
+Hozirgi `apps/web`: shadcn/ui + Tailwind v4, indigo tokenlar (`2026-10-04-crud-ui-refresh-design.md`), desktopda sidebar + jadval (`DataList`), telefonda topbar + pastki tab-bar («Yana» varag'i bilan, `2026-10-06-roles-bottom-nav-design.md`), dialoglar (Base UI), `PageHeader`, `SectionTabs`, to'liq ekranli Mini App (`2026-10-07-telegram-fullscreen-design.md`). Prototip chizilganidan keyin loyihaga Sotuv, Moliya, ombor hujjatlari (ko'chirish, inventarizatsiya, boshlang'ich qoldiq), valyuta kurslari va moliya kategoriyalari qo'shilgan (`2026-10-11-ledger-design.md`); ular prototipda yo'q.
+
+Bu `docs/SPEC.md` da yo'q ish, foydalanuvchi so'rovi bilan. SPEC 7-bo'limdagi «dizayn toza, shadcn standart uslubida» talabidan ataylab chetlaniladi: foydalanuvchi prototipni tanladi.
+
+## Foydalanuvchi qarorlari (2026-10-13)
+
+| # | Savol | Qaror |
+|---|---|---|
+| 1 | Desktop (768px dan keng) | **Desktopda ham shu UI, faqat sidebar bilan.** Jadval yo'q: guruhli ro'yxatlar, varaqlar, katta sarlavhalar hamma enda; navigatsiya sidebar'da (yig'iladigan), telefonda suzuvchi tab-bar. Mazmun to'liq enda (2026-10-04 qarori). |
+| 2 | Telegram'da orqaga | **To'liq ekran qoladi** (2026-10-07). Ichki sahifalarda ilovaning o'z «‹ Orqaga» tugmasi (iOS uslubi, urg'u rangida), Telegram ichida qo'shimcha `WebApp.BackButton` ham. 2026-10-07 hujjatining 6-qarori («BackButton ishlatilmaydi») bekor. |
+| 3 | Yangi funksiyalar | **Hammasi kiradi:** bosh sahifa dashboard'i (yangi `GET /app/dashboard`), «Bosh ekranga qo'shish» banneri (`addToHomeScreen`, Bot API 8.0+), «Qo'ng'iroq» tugmalari (`tel:`), sahifa o'tish animatsiyalari (React `ViewTransition`). |
+| 4 | Qamrov | **Faqat user app (`apps/web`).** Admin panel o'zgarmaydi. |
+
+## Reja bilan tasdiqlangan qarorlar
+
+1. **Prototipda yo'q bo'limlar** (Sotuv, Moliya, ombor hujjatlari, valyuta kurslari, moliya kategoriyalari) xuddi shu naqshlar bilan o'tkaziladi: ro'yxat → guruhli qatorlar, yozuv → `DetailHead` + plitkalar + `KeyValue`, kichik forma → varaq, ko'p qatorli hujjat → forma sahifasi.
+2. **Jadval ustunlarini yashirish** («Ustunlar» menyusi, `useHiddenColumns`) va `DataList` jadval modeli olib tashlanadi: qator nom · ikkinchi qator · o'ng qiymatni ko'rsatadi, maydon javoblari yozuv sahifasida (prototipdagidek). Ularning testlari funksiya bilan birga ketadi.
+3. **Ombor bo'limi** 5 ta sahifali, segmented control'ga sig'maydi: `/warehouse` hub sahifasi (plitka ikonkali qatorlar: Xaridlar, Ta'minotchilar, Ko'chirishlar, Inventarizatsiya, Boshlang'ich qoldiq; ruxsat bo'yicha). Mahsulotlar (2 ta) va Moliya (3 ta) segmented control bilan.
+4. **Tezkor plitkalar** bosh sahifada: [Vazifa, Mijoz, Sotuv, Xarid, To'lov] ichidan ruxsatli birinchi 4 tasi (prototipda Sotuv yo'q edi).
+5. **Matn o'lchamlari** hamma ekranda prototipniki (17 / 15 / 14 / 13px), desktopda ham.
+6. **Pager** qoladi (API sahifalab beradi), `Foot` ichida ixcham; bitta sahifada «Jami: N».
+7. **Imo-ishoralar:** prototipning chapdan surib qaytishi va tab-bar linzasini sudrash qilinmaydi: brauzer va Telegram'ning o'z orqaga imo-ishorasi, BackButton; linza faqat animatsiya bilan ko'chadi.
+8. **Sozlamalar** tablar o'rniga hub sahifa va ichki sahifalar (`/settings/customer-types`, `/settings/task-types`, `/settings/stages`, `/settings/dropdowns`, `/settings/currencies`, `/settings/finance-categories`, `/settings/roles`); `/settings?tab=x` `/settings/x` ga yo'naltiriladi, `settingsHref` yangi manzilni beradi.
+9. **Profil sahifasi** (`/profile`) profil menyusi o'rnida; menyu tartibi sahifa (`/profile/menu`) dialog o'rnida; «Yana» varag'i yo'q: panelga sig'magan bo'limlar profil sahifasida.
+10. **Dialog = varaq.** `components/ui/dialog.tsx` ning `DialogContent` i pastdan chiqadigan varaq bo'ladi (Base UI `Dialog`, `role="dialog"` saqlanadi), desktopda ham pastdan, 480px enda o'rtada. Yon `Sheet` (`ui/sheet.tsx`) o'chiriladi.
+
+### Rad etilgan variantlar
+
+- Desktopda jadval qoldirib faqat tokenlarni almashtirish: foydalanuvchi «desktopda ham shunday UI» dedi.
+- Desktopda telefon enidagi o'rta ustun (Telegram Web uslubi): to'liq en 2026-10-04 da tanlangan.
+- To'liq ekrandan voz kechib Telegram sarlavhasi va uning Back tugmasiga tayanish: to'liq ekran 2026-10-07 da tanlangan, o'z tugmasi brauzerda baribir kerak.
+- Dashboard'ni mavjud ro'yxat endpoint'laridan client'da yig'ish: oylik yig'indi va ta'minotchilar qarzi yig'indisi uchun endpoint yo'q, 5–6 ta so'rov o'rniga bitta.
+- Prototipning o'z SVG belgilari o'rniga faqat lucide: tab-bar to'ldirilgan ikonkalar talab qiladi, lucide konturli; tab-bar uchun prototip belgilari, qolgan joyda lucide.
+
+## Spec'dan chetlanishlar
+
+| # | Spec / avvalgi qaror | Yangi | Sabab |
+|---|---|---|---|
+| 1 | SPEC 7: «shadcn standart uslubida» | Telegram Wallet / iOS guruhli ro'yxat uslubi | foydalanuvchi prototipi |
+| 2 | 2026-10-04: jadval (md+) / kartochka (telefon), `DataList`, «Ustunlar» | hamma enda guruhli qatorlar | 1-qaror |
+| 3 | 2026-10-06: tab-bar 5 yoki 4 + «Yana», «Menyuni sozlash» dialogi, topbar | suzuvchi tab-bar home + 4, qolgani profil sahifasida; menyu tartibi sahifasi; topbar yo'q | prototip |
+| 4 | 2026-10-07, 6-qaror: BackButton ishlatilmaydi | ishlatiladi (ichki sahifalarda), o'z «Orqaga» tugmasi bilan birga | 2-qaror |
+| 5 | SPEC 6 / openapi: API ro'yxati | + `GET /app/dashboard` | 3-qaror |
+| 6 | 2026-10-06 selects: `SelectBox` / `MultiSelectBox` shadcn Select ustida, `/settings` tablari, `Pager` | tanlovlar varaqda (`PickerSheet`), sozlamalar hub, `Pager` `Foot` ichida | prototip |
+
+## Dizayn
+
+### Tokenlar (`apps/web/app/globals.css`)
+
+Prototip o'zgaruvchilari shadcn nomlariga ulanadi (mavjud `bg-card`, `text-muted-foreground`, `border` classlar ishlayveradi), yetishmaganlari yangi token.
+
+| shadcn / yangi | Light | Dark | Telegram (`html[data-telegram]`) |
+|---|---|---|---|
+| `--background` | `#EDEEF2` | `#000` | `--tg-theme-secondary-bg-color` |
+| `--card`, `--popover` | `#fff` | `#1C1C1E` | `--tg-theme-section-bg-color` (fallback bg) |
+| `--foreground` | `#000` | `#fff` | `--tg-theme-text-color` |
+| `--muted-foreground` (hint) | `#636368` | `#98989F` | `--tg-theme-hint-color` |
+| `--muted`, `--secondary`, `--accent` (fill) | `rgba(118,118,128,.12)` | `rgba(118,118,128,.24)` | hint'dan `color-mix` 12% |
+| `--border` (sep) | `rgba(60,60,67,.17)` | `rgba(84,84,88,.6)` | `--tg-theme-section-separator-color` |
+| `--primary` / `--primary-foreground` | `#117A68` / `#fff` | `#3CC5AE` / `#00261F` | `--tg-theme-button-color` / `--tg-theme-button-text-color` |
+| `--destructive` (red) | `#D92D20` | `#FF6961` | `--tg-theme-destructive-text-color` |
+| yangi `--press` | `#E2E3E8` | `#2C2C2E` | bg va text `color-mix` |
+| yangi `--heading` (sh) | `#3A3A3F` | `#D1D1D6` | text 85% |
+| yangi `--accent-soft`, `--red-soft`, `--green`, `--green-soft`, `--warn`, `--warn-soft` | prototip | prototip | primary / hint'dan `color-mix` |
+| yangi `--glass`, `--glass-edge`, `--menu`, `--sheet-bg`, `--sheet-cell`, `--scrim`, `--shadow`, `--skel`, `--mix` | prototip | prototip | bg'dan `color-mix` |
+| `--brand`, `--brand-panel` | o'zgarmaydi | o'zgarmaydi | o'zgarmaydi |
+
+- Radiuslar `@theme` da nomlangan: `--radius-group: 22px`, `--radius-tile: 18px`, `--radius-sheet: 36px`, `--radius-main: 14px`, `--radius-badge: 7px`; shadcn `--radius` 14px.
+- Shrift: `-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-geist), system-ui, "Segoe UI", sans-serif` (Geist `next/font` orqali qoladi); `body` 17px / 1.3, `-webkit-font-smoothing: antialiased`; raqamlar `tabular-nums`.
+- Harakat: `--ease: cubic-bezier(.23,1,.32,1)`, `--drawer: cubic-bezier(.32,.72,0,1)`, `--spring: cubic-bezier(.34,1.4,.52,1)`; `prefers-reduced-motion` hozirgi qoida.
+- `pb-safe`, `pt-safe`, `--safe-top`, Telegram qobiq balandligi, `scrollbar-hide` saqlanadi; yangi `pb-bar` (suzuvchi tab-bar uchun pastki joy: 128px + xavfsiz zona).
+
+### Komponent to'plami (`apps/web/components/kit/` yangi; `components/ui/*` qayta uslublanadi)
+
+Har biri Vitest bilan (RED → GREEN), `data-slot` belgilari bilan. Nimani almashtirishi qavsda.
+
+| Fayl | Nima |
+|---|---|
+| `kit/group.tsx` | `Group` (`inset: "icon" \| "tile" \| "none"`: ajratgich 68 / 60 / 16px dan), `Row` (media · body: title + badge, sub · end: val, sub2 · chevron; `Link` / `button` / `div`; `variant: link \| danger \| accent`; `compact`; bosilganda `--press`), `KeyValue`, `SectionHeading` (sarlavha + o'ngda amal yoki `hint`), `Foot` (`center`). (`DataList`, `Identity`, `Fact`, `settings/section.tsx`, `setting-row.tsx` o'rniga) |
+| `kit/page-title.tsx` | `PageTitle` (h1 30px + izoh + o'ngda dumaloq `+` yoki boshqa amal), `BackLink` («‹ Ota sahifa», urg'u rangida, 44px nishon, `transitionTypes={["nav-back"]}`). (`page-header.tsx` o'rniga) |
+| `kit/detail-head.tsx` | `DetailHead` (avatar 88px yoki `pic`, h1 26px, p, badgelar), `Tiles` + `Tile` (dumaloq ikonka + nom; button yoki `href`, `danger`) |
+| `kit/avatar.tsx` | gradientlar g0–g4 (seed hash), `square`, `size: md \| lg`, `letter` (mahsulot harfi) (`avatar.tsx` o'rniga) |
+| `kit/tile-icon.tsx` | `TileIcon` (32px kvadrat, rang + lucide ikonka), bo'lim ranglari `sectionColors` |
+| `ui/badge.tsx` | 22px, 7px radius, `variant: neutral \| red \| green \| accent \| warn`, `dot`; `tasks/stage-badge.tsx` `color-mix` bilan |
+| `kit/chips.tsx` | `Chips` (gorizontal scroll tasma) + `Chip` (36px, `on`, ixtiyoriy son va chevron) (filtr tablari o'rniga) |
+| `kit/segmented.tsx` | `Segmented` (`role="tablist"`, animatsiyali thumb) (`Tabs` tasmalari, ko'rinish radiolari, `section-tabs.tsx` o'rniga) |
+| `kit/search-box.tsx` | 44px pill, ikonka, tozalash (`customers/search-input.tsx` o'rniga; debounce mantig'i ko'chadi) |
+| `kit/main-button.tsx` | `MainButton` (52px, 14px radius; `variant: accent \| ghost \| red`; `pending` → spinner + `aria-busy`, fokus saqlanadi) va `MainBar` (pastki gradientli panel, `pb-safe`). (`PendingButton` shunga qaytadi; `ui/button.tsx` qoladi: `plus`, `mini`, `icon` variantlari) |
+| `ui/dialog.tsx` | `DialogContent` = varaq: tutqich, bosh (chapda yopish, o'rtada sarlavha + `small`, o'ngda slot), scroll body, `DialogFooter` = `MainBar`; `tall`; desktopda 480px o'rtada. `ui/sheet.tsx` o'chiriladi |
+| `ui/alert-dialog.tsx` | shisha, 32px radius, ikki tugma (`fill` / `red` yoki `acc`) |
+| `kit/action-sheet.tsx` | `ActionSheet` (sarlavha, elementlar: nuqta / belgi / `danger`, «Bekor qilish») |
+| `ui/dropdown-menu.tsx` | shisha menyu (blur, 24px radius), desktopda kerak joyda |
+| `ui/switch.tsx` (yangi, Base UI Switch) | iOS 51×31 kalit (`checkbox-field.tsx` o'rniga) |
+| `kit/form-row.tsx` | `FormRow` (112px yorliq + boshqaruv; `stack`; xato), `TextRow`, `PhoneRow` (+998 niqob), `AmountRow` (so'm, guruhlash), `PickRow` (qiymat + chevron, varaq ochadi), `OptionChips` (radio / checkbox), `SwitchRow`, `DateTimeRow` (kun → `DateSheet`, vaqt → `type=time`); react-hook-form `Controller` bilan (`text-field.tsx`, `phone-field.tsx`, `select-field.tsx`, `currency-field.tsx`, `ui/field.tsx` o'rniga) |
+| `kit/picker-sheet.tsx` | `PickerSheet` (bitta / ko'p, ixtiyoriy qidiruv, `none`, media, badge, `disabled`), `SearchPickerSheet` (serverdan: mijoz, mahsulot, ta'minotchi; mavjud hooklar qoladi) (`select-field.tsx`, `picker.tsx`, `warehouse/pickers.tsx`, `sales/customer-picker.tsx`, `tasks/customer-picker.tsx` o'rniga) |
+| `kit/date-sheet.tsx` | kalendar varag'i: chiplar (Bugun, Ertaga, 3 kun, 1 hafta), oy navigatsiyasi, 42px kunlar, «Tanlash» |
+| `kit/amount-sheet.tsx` | `AmountSheet` + `Keypad`: to'lov summasi, qarz / avans izohi, «To'liq» |
+| `states.tsx` | `EmptyState` (ikonka + h3 + p + ixtiyoriy `MainButton`), `NotFound`, `Failed`, `Loading`, `ListLoading` (guruh qatorlari), `Splash`, `StateScreen` (ikonka, h1 26px, p, `MainBar`) |
+| `ui/sonner.tsx` | shisha pill, yashil / qizil ikonka, tepada o'rtada, `--safe-top` |
+| `refusal.tsx` | qizil yumshoq karta, ikonka, amallar |
+| `history-list.tsx` | amal · kim · qachon, «eski → yangi» |
+| `kit/stat-card.tsx` | `StatCard` (192px), `Bars`, `Sparkline` (SVG) |
+| `kit/hero.tsx` | `Hero` + `Amount` (56 / 40 / 32px, enga sig'adi), badgelar |
+| `kit/banner.tsx` | `HomeBanner` («Bosh ekranga qo'shing», SVG art, yopish) |
+| `tasks/task-board.tsx`, `task-card.tsx` | prototip kanban: snap ustunlar (84vw telefonda, 288px desktopda), karta, bo'sh ustun, «Jami», yakuniy ustun vertikal; `⋯` → `ActionSheet`; dnd-kit qoladi (TouchSensor delay 330ms) |
+| `tasks/stage-track.tsx`, `tasks/deadline-card.tsx` | vazifa sahifasi: bosqich treki (radiogroup), muddat kartasi |
+| `kit/tab-icons.tsx` | to'ldirilgan tab ikonkalari (prototip `t-*`: home «24», mijozlar, vazifalar, mahsulotlar, ombor, xodimlar, sozlamalar; shu uslubda sotuv (sumka) va moliya (hamyon)) |
+| `sortable-list.tsx` | «Tartiblash» rejimi: tutqich faqat rejimda; dnd-kit sortable qoladi |
+
+### Qobiq va navigatsiya
+
+- `shell/app-shell.tsx`: telefonda topbar yo'q; `<main>` 16px yon, pastda `pb-bar`; desktopda chapda `Sidebar`, o'ngda `<main>` (24px). `Topbar`, `MoreSheet`, `NavOrderDialog`, `ThemeToggle` o'chiriladi.
+- `shell/tab-bar.tsx`: suzuvchi shisha panel (64px, 32px radius, `bottom: 22px + xavfsiz zona`), linza faol tugma ostida (`--spring`), 10.5px nomlar, to'ldirilgan ikonkalar. Bosh sahifa + a'zo tartibidagi birinchi 4 bo'lim (`lib/nav.ts` `barItems` → `{ shown, more }`); `more` profil sahifasida. Ichki sahifada panel yashirinadi.
+- `shell/sidebar.tsx`: `--background` fon, bo'limlar qator uslubida (joriyda `accent-soft` plashka), tepada logo + kompaniya, pastda profil qatori (avatar + ism · rol → `/profile`), lokatsiya pill, mavzu tugmasi (brauzerda). Yig'ilish saqlanadi.
+- `/profile` (`components/profile/profile-page.tsx`): `DetailHead` (ism, telefon); «Bosh ekranga» kartasi (Telegram); «Kompaniya» (nom + rol badge; «Lokatsiya» → `ActionSheet`; «Kompaniyani almashtirish»); «Bo'limlar» (panelga sig'maganlar); «Ilova» («Pastki menyu» → `/profile/menu`; «Mavzu» → action sheet: Tizim / Yorug' / Qorong'i, brauzerda); `Foot`; «Chiqish» (danger, brauzerda).
+- `/profile/menu` (`components/profile/menu-order-page.tsx`): qulflangan «Hisob24», sudraladigan bo'limlar, «Profil sahifasida» ajratgichi 4-dan keyin, «Menyuda» badge, «Standart holat», `MainBar` «Saqlash» (`useSetNavOrder`).
+- Bosh sahifa `topbar` (telefonda): `me` tugmasi → `/profile`; lokatsiya pill → `ActionSheet` (`shell/location-switcher.tsx`). Ichki ro'yxat sahifalari izohida lokatsiya nomi.
+- Orqaga: `BackLink` har ichki sahifada. Telegram'da `telegram-sync.tsx`: `BackButton.show()` / `hide()` yo'l ildiz emasligiga qarab, `onClick` → `router.back()`; `types/telegram.d.ts`: `BackButton`, `addToHomeScreen`, `checkHomeScreenStatus`.
+- Sahifa o'tishlari: React `ViewTransition` har `app/**/page.tsx` da (`enter` / `exit` `nav-forward` / `nav-back`, `default: "none"`), ichki havolalar `transitionTypes={["nav-forward"]}`, `BackLink` `nav-back`; CSS: yangi sahifa o'ngdan 100% → 0 (`--drawer`), eski −28% parallaks; `::view-transition { pointer-events: none }`; reduced motion → 0s. Hujjat: `node_modules/next/dist/docs/01-app/02-guides/view-transitions.md` (layout'da emas, `page.tsx` da).
+
+### Sahifa naqshlari
+
+- **Ro'yxat:** `PageTitle` (nom, «Kompaniyangiz mijozlari · N ta», `+` tugma `aria-label` to'liq matn, masalan «Mijoz qo'shish») → `Segmented` → `SearchBox` → `Chips` (tur; Faol / Nofaol sonlari bilan; «Mas'ul», «Bosqich» chip'i → `PickerSheet`) → `Group inset="icon"` qatorlari (avatar / `TileIcon`; nom + badge; ikkinchi qator; o'ngda summa / sana / holat) → `Foot` «Jami: N» yoki `Pager`. Hujjat ro'yxatlari kun bo'yicha (`SectionHeading` «Bugun», «Kecha», «8-oktabr, payshanba» + kun yig'indisi). Bo'sh: `EmptyState` ikonka bilan va `MainButton`; sozlama yo'q: egasiga «Sozlamalarni ochish»; lokatsiya yo'q: `EmptyState` pin.
+- **Yozuv:** `BackLink` → `DetailHead` (hujjatda `Hero` summa) → `Tiles` (Tahrirlash, Vazifa / Xarid / To'lov, Qo'ng'iroq `tel:`, Nofaol qilish, O'chirish) → `SectionHeading` + `Group` bo'limlari («Ma'lumot» `KeyValue`; bog'liq ro'yxatlar; `Segmented`) → «Tarix» → pastda danger qator (→ `AlertDialog`).
+- **Kichik forma (varaq):** izoh, `Refusal`, `Segmented` (tur), `Group` ichida `FormRow`lar, `Foot`, `MainBar` «Qo'shish» / «Saqlash»; fokus birinchi maydonga. Mavjud ~30 dialog faylining tarkibi o'zgaradi, `useForm` + `zodResolver` + mutation mantig'i qoladi.
+- **Hujjat formasi (sahifa):** `PageTitle`, `Group` (`PickRow` ta'minotchi / mijoz, `DateTimeRow`, valyuta + kurs), «Mahsulotlar» + `LineCard` (mahsulot `PickRow`, miqdor / narx grid, summa, olib tashlash) + «Qator qo'shish», jami, `Group` (to'lovlar, izoh), `Foot`, `MainBar` «Saqlash».
+- **Sozlamalar hub** (8-qaror): `/settings` plitka ikonkali qatorlar; ro'yxat sahifalari `SectionHeading` «N ta tur» + «Tartiblash» rejimi; variant / maydon qatorlari → `ActionSheet` yoki varaq.
+- **Ombor hub** (3-qaror): `/warehouse`; `lib/nav.ts` `warehouse.href = "/warehouse"`, `tabs` `isCurrentItem` uchun qoladi.
+- **Kirish va holatlar:** `LoginFrame` brend paneli qoladi, maydon va tugma yangi uslubda; `TelegramLogin` holatlari `Splash` / `StateScreen`; `/select-company` prototip `companies` ekrani; `/expired` `StateScreen`.
+
+### Bosh sahifa va `GET /app/dashboard`
+
+Ekran: `topbar` (me + lokatsiya) → `Hero` (`purchases.view` → «Ta'minotchilarga qarz» UZS qatori + boshqa valyutalar badge, «N ta ta'minotchi» / «Qarz yo'q», avans; aks holda `tasks.view` → «Faol vazifalar» + kechikkanlar; aks holda «Mijozlar» soni) → `Tiles` (4-qaror; «To'lov» → ta'minotchi `SearchPickerSheet` → `AmountSheet`) → `HomeBanner` (Telegram, `isVersionAtLeast("8.0")`, `checkHomeScreenStatus` ≠ `added` / `unsupported`, yopilgani `localStorage` da) → «Umumiy holat» kartalari: Vazifalar (faol, kechikkan, bosqichlar `Bars`), Xaridlar (oy yig'indisi, soni, kun bo'yicha `Sparkline`) yoki Mijozlar (soni, «+N oktabr», `Sparkline`), `sales.view` bo'lsa Sotuv → «Yaqin muddatlar» (5 ta faol vazifa qatori + «Barcha vazifalar») → havolalar `Group inset="tile"` (Ta'minotchilar soni; panelga sig'magan Xodimlar, Sozlamalar) → `Foot` «Obuna dd.mm.yyyy gacha faol» (`company.end_date`). Desktopda plitkalar va kartalar 4 ustun.
+
+API: `GET /app/dashboard?location_id=` (`requireCompany`; har blok o'z `*.view` ruxsati bilan, ruxsatsiz blok `null`; `location_id` a'zoga ruxsatli bo'lishi shart (aks holda 404), vazifalar / xaridlar / sotuv shu lokatsiyaniki, lokatsiyasiz a'zoda ular `null`). Javob `Dashboard`:
+
+```
+suppliers: { debt: BalanceLine[], debtors: int, advance: BalanceLine[] } | null   // purchases.view
+customers: { total: int, added_this_month: int, by_day: int[] } | null             // customers.view
+tasks: { active: int, late: int, by_stage: [{ stage_id, count }], upcoming: Task[] (5, muddat bo'yicha) } | null  // tasks.view
+purchases: { month_total: BalanceLine[], month_count: int, by_day: string[] } | null  // purchases.view
+sales: { month_total: BalanceLine[], month_count: int, by_day: string[] } | null      // sales.view
+```
+
+`by_day` oyning 1-kunidan bugungacha (baza sanasi, Toshkent) yig'ilgan (kumulyativ). Backend: `backend/internal/dashboard/` (servis), `internal/app/dashboard.go` (handler, marshrut), `internal/db/queries/dashboard.sql` (yig'ma so'rovlar; `ListPartyBalanceByCurrency`, `CountTasks` / `ListTasks`, `CountCustomers` naqshlari), `openapi.yaml` + `make api-client`, contract testi. Web: `mocks/dashboard.ts`, `lib/queries.ts` `useDashboard(companyId, locationId)`, `components/home/*`.
+
+### Testlar va talab o'zgarishlari
+
+- Yangi primitivlar: har biriga Vitest (RED → GREEN). Sahifa testlari: `getByRole("table")` → `getByRole("list")`; `role="dialog"` saqlanadi; `Segmented` `role="tablist"` / `tab`; select testlari (`test/select.ts` `choose`) → `test/pick.ts` (`PickerSheet` ichidan variant); `PageHeader` amallari → plitka tugmalari (nomlar o'sha: «Tahrirlash», «O'chirish»). O'chiriladigan testlar faqat olib tashlanadigan funksiyalar uchun (`data-list`, `columns-menu`, `use-hidden-columns`, `more-sheet`, `topbar`, `nav-order-dialog`, `section-tabs`, `theme-toggle`, `identity`, `page-header`, `select-field`, `picker`) — hisobotda sababi bilan; qolganlari talab o'zgargani uchun yangilanadi.
+- e2e (`apps/web/e2e/helpers.ts`): `sections()` tab-bar / sidebar; `openSection()` panelga sig'magan bo'lim profil sahifasi orqali; `list()` har doim `getByRole("list")`; `choose()` → picker varag'i; `shell.spec.ts` yangi qobiq; `miniapp.spec.ts` BackButton (soxta obyekt), `addToHomeScreen`; boshqa spec'lar sahifa o'zgarishlariga mos.
+- Backend: dashboard uchun db (`pgtest`), servis (table-driven), handler, contract testlari; mutatsiya: ruxsatsiz blok `null` bo'lmasa, begona lokatsiya rad etilmasa yiqilsin.
+- Har bosqich oxirida `make lint`, `make test`, `make e2e`; skrinshotlar vaqtinchalik Playwright spec bilan (375px @2x va 1280px, MSW), keyin o'chiriladi. Oxirida lokal haqiqiy stack smoke.
+
+## Bosqichlar
+
+Har bosqich: TDD (RED → GREEN → commit), oxirida `make lint && make test && make e2e` → `git push` → hisobot (har funksiya RED → GREEN) → tasdiq. Admin app'ga tegilmaydi: umumiy nusxa fayllar (`avatar`, `identity`, `page-header`, `states`, `pending-button`, `refusal`) faqat `apps/web` da o'zgaradi.
+
+0. **Hujjat:** shu spec, `CLAUDE.md` manbalar qatori, `docs/design/README.md` va 2026-10-07 hujjatiga izoh.
+1. **Poydevor:** tokenlar, shrift, `components/kit/*` va qayta uslublangan `ui/*` (jadval). Mavjud sahifalar eski komponentlar bilan ishlayveradi (yangi ranglarda).
+2. **Qobiq, profil, kirish ekranlari:** `AppShell`, suzuvchi `TabBar`, `Sidebar`, `/profile`, `/profile/menu`, `/warehouse` hub, lokatsiya action sheet, `BackLink` + BackButton, `HomeBanner` + `addToHomeScreen`, bosh sahifaning statik qismi, kirish va holat ekranlari.
+3. **Dashboard:** API (backend) va bosh sahifa vidjetlari.
+4. **Mijozlar va Vazifalar.**
+5. **Mahsulotlar va Ombor** (xaridlar, ta'minotchilar, to'lov klaviaturasi, ko'chirish, inventarizatsiya, boshlang'ich qoldiq).
+6. **Sotuv va Moliya.**
+7. **Xodimlar va Sozlamalar** (hub va ichki sahifalar, rol sahifasi kalitlar bilan).
+8. **O'tish animatsiyalari, yakuniy tekshiruv, hujjatlar** (README, `docs/design`, skrinshotlar, haqiqiy stack smoke, mutatsiya tekshiruvi).
+
+## Chegara
+
+- Admin panel; backend'ning dashboard'dan boshqa o'zgarishlari; yangi biznes qoidalar.
+- Foydalanish shartlari / Maxfiylik siyosati sahifalari (prototipda havola bor, loyihada hujjat yo'q).
+- Tab-bar linzasini sudrash, chapdan surib qaytish imo-ishorasi.
+- Production deploy alohida so'raladi.
+
+## Tekshiruv
+
+- `make lint`, `make test`, `make e2e` toza (admin e2e ham: admin'ga tegilmagan).
+- Vizual: 375px @2x va 1280px skrinshotlar: bosh sahifa (egasi, rolli xodim), mijozlar, vazifa kanban / ro'yxat / sahifa, mahsulot, xarid formasi, ta'minotchi, xodimlar, sozlamalar hub, profil, varaq, action sheet, alert, toast, bo'sh holat, dark, Mini App (soxta Telegram: to'liq ekran chetlari, BackButton); yon scroll yo'q 320 / 360 / 375 / 768 / 1280px.
+- Lokal haqiqiy stack: kirish, dashboard, mijoz / vazifa / xarid / to'lov / sotuv / xarajat oqimlari. Telegram'da haqiqiy qurilma tekshiruvi foydalanuvchiniki (lokal bot tokeni yo'q).

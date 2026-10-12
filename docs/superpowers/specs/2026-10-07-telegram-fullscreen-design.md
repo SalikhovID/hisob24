@@ -24,6 +24,11 @@ Hozir user app Mini App sifatida `expand()` bilan Telegram sarlavhasi ostida to'
 | 4 | Yuqori chetlar | Faqat CSS, JS tinglovchisiz: `--safe-top` = `max(env(safe-area-inset-top), --tg-safe-area-inset-top + --tg-content-safe-area-inset-top)`; `pt-safe` (faqat chet) va `pt-safe-*` (chet + spacing) utility'lari, `pb-safe` yonida |
 | 5 | Qayerga padding | App qobig'i (`AppShell`: topbar chet ostidan boshlanadi), `LoginFrame` paneli, `Centered` (Telegram login ekranlari), `SelectCompany`, `Expired` va toastlar (`Toaster` `offset`/`mobileOffset` ga `--safe-top` qo'shiladi) |
 | 6 | Telegram `BackButton` | Ishlatilmaydi: sahifalarda o'z "orqaga" havolalari bor, Telegram'ning "⋯" menyusida yopish va full ekrandan chiqish bor |
+
+> 6-qaror 2026-10-13 da bekor qilindi: ichki sahifalarda ilovaning o'z «‹ Orqaga» tugmasi bilan birga `WebApp.BackButton` ham ko'rsatiladi (`2026-10-13-mini-app-ui-design.md`, 2-qaror). To'liq ekran rejimi o'zgarmaydi.
+
+| # | Savol | Qaror |
+|---|---|---|
 | 7 | Qayta so'rash | Faqat ochilganda bir marta; foydalanuvchi "⋯" dan chiqsa, qayta so'ralmaydi, chetlar 0 ga tushadi va app sarlavha ostida ishlayveradi |
 | 8 | `fullscreenFailed` | Alohida ishlov yo'q: so'rov rad etilsa o'zgaruvchilar 0 ligicha qoladi, app hozirgidek |
 

@@ -2,6 +2,8 @@
 
 Dizayner uchun. Holat: 2026-10-08, commit `488eaee`.
 
+> **Eskirmoqda (2026-10-13).** Shu holat asosida chizilgan prototip (`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`) bo'yicha user app Telegram Wallet (iOS guruhli ro'yxat) uslubiga o'tkazilmoqda: suzuvchi tab-bar, profil sahifasi, guruhli ro'yxatlar hamma enda, varaq-dialoglar, dashboard. Bu hujjatdagi 3–7-bo'limlar va skrinshotlar o'sha ish tugaguncha eski ko'rinishni tasvirlaydi; 1, 2, 5, 8 va 9-bo'limlardagi qoidalar (bo'limlar, ruxsatlar, oqimlar, maydonlar, Telegram) amalda.
+
 Bu hujjat Hisob24 user app'i va Telegram botlari qanday ishlashini tasvirlaydi. User app brauzerda `app.hisob24.uz` da va Telegram ichida Mini App bo'lib ochiladi. Hujjatda kim foydalanishi, qanday ekranlar borligi, ular qanday bog'langani, har ekranda nima turgani va hozir qanday ko'rinishi bor. Admin panel (platforma adminlari uchun) bu hujjatga kirmaydi.
 
 **Skrinshotlar** [`screens/`](screens/) papkasida, jami 88 ta.
