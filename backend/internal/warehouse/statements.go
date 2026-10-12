@@ -49,11 +49,17 @@ func (s *Service) Statement(ctx context.Context, companyID, supplierID int64, pa
 	if _, err := getSupplier(ctx, s.q, companyID, supplierID); err != nil {
 		return StatementPage{}, err
 	}
-	total, err := s.q.CountPartyStatement(ctx, gen.CountPartyStatementParams{Party: "supplier", PartyID: supplierID, CompanyID: companyID})
+	return partyStatement(ctx, s.q, "supplier", companyID, supplierID, page)
+}
+
+// partyStatement is a page of a party's statement: party is "supplier" or
+// "customer", partyID the supplier's or the customer's id.
+func partyStatement(ctx context.Context, q *gen.Queries, party string, companyID, partyID int64, page int) (StatementPage, error) {
+	total, err := q.CountPartyStatement(ctx, gen.CountPartyStatementParams{Party: party, PartyID: partyID, CompanyID: companyID})
 	if err != nil {
 		return StatementPage{}, err
 	}
-	rows, err := s.q.ListPartyStatement(ctx, gen.ListPartyStatementParams{Party: "supplier", PartyID: supplierID, CompanyID: companyID, Limit: PageSize, Offset: int32((page - 1) * PageSize)})
+	rows, err := q.ListPartyStatement(ctx, gen.ListPartyStatementParams{Party: party, PartyID: partyID, CompanyID: companyID, Limit: PageSize, Offset: int32((page - 1) * PageSize)})
 	if err != nil {
 		return StatementPage{}, err
 	}
@@ -61,8 +67,8 @@ func (s *Service) Statement(ctx context.Context, companyID, supplierID int64, pa
 	for _, r := range rows {
 		items = append(items, StatementRow{
 			ID: r.ID, Kind: r.Kind, Number: r.Number, At: r.DocAt.UTC(), Amount: amount(r.Amount), CurrencyID: r.CurrencyID, Rate: currency.RateText(r.Rate),
-			AmountUZS: amount(r.AmountUzs), DeltaUZS: amount(r.DeltaUzs), BalanceUZS: amount(r.BalanceUzs),
-			LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber, BankAccountID: r.BankAccountID, AccountName: r.AccountName, Note: r.Note, CreatedByName: r.CreatedByName,
+			AmountUZS: amount(r.AmountUzs), DeltaUZS: amount(r.DeltaUzs), BalanceUZS: amount(r.BalanceUzs), LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber,
+			BankAccountID: r.BankAccountID, AccountName: r.AccountName, Note: r.Note, CreatedByName: r.CreatedByName,
 		})
 	}
 	return StatementPage{Items: items, Total: total, Page: page, PageSize: PageSize}, nil
