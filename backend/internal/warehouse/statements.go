@@ -49,11 +49,11 @@ func (s *Service) Statement(ctx context.Context, companyID, supplierID int64, pa
 	if _, err := getSupplier(ctx, s.q, companyID, supplierID); err != nil {
 		return StatementPage{}, err
 	}
-	total, err := s.q.CountSupplierStatement(ctx, gen.CountSupplierStatementParams{SupplierID: supplierID, CompanyID: companyID})
+	total, err := s.q.CountPartyStatement(ctx, gen.CountPartyStatementParams{Party: "supplier", PartyID: supplierID, CompanyID: companyID})
 	if err != nil {
 		return StatementPage{}, err
 	}
-	rows, err := s.q.ListSupplierStatement(ctx, gen.ListSupplierStatementParams{SupplierID: supplierID, CompanyID: companyID, Limit: PageSize, Offset: int32((page - 1) * PageSize)})
+	rows, err := s.q.ListPartyStatement(ctx, gen.ListPartyStatementParams{Party: "supplier", PartyID: supplierID, CompanyID: companyID, Limit: PageSize, Offset: int32((page - 1) * PageSize)})
 	if err != nil {
 		return StatementPage{}, err
 	}

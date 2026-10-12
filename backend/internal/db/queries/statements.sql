@@ -1,30 +1,37 @@
--- name: ListSupplierBalanceByCurrency :many
--- What is owed the supplier in each currency its live documents are in,
--- without turning anything into so'm: the purchases and the opening debts
--- less the payments and the opening advances; a currency that comes to 0
--- is left out.
-SELECT t.currency_id, sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt') THEN t.total ELSE -t.total END)::numeric(14,2) AS amount
+-- The statement of a party: a supplier (logic/warehouse.md, section 6) or
+-- a customer (logic/sales.md, section 5). party is 'supplier' or
+-- 'customer', party_id the supplier's or the customer's id. A purchase, a
+-- sale or an opening debt adds to what is owed; a payment or an opening
+-- advance takes away: the sign rule is the same for both.
+
+-- name: ListPartyBalanceByCurrency :many
+-- What is owed in each currency the party's live documents are in, without
+-- turning anything into so'm; a currency that comes to 0 is left out.
+SELECT t.currency_id, sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN t.total ELSE -t.total END)::numeric(14,2) AS amount
 FROM transactions t
-WHERE t.supplier_id = sqlc.arg('supplier_id')::bigint AND t.deleted_at IS NULL
+WHERE ((sqlc.arg('party')::text = 'supplier' AND t.supplier_id = sqlc.arg('party_id')::bigint)
+       OR (sqlc.arg('party')::text = 'customer' AND t.customer_id = sqlc.arg('party_id')::bigint))
+  AND t.deleted_at IS NULL
 GROUP BY t.currency_id
-HAVING sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt') THEN t.total ELSE -t.total END) <> 0
+HAVING sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN t.total ELSE -t.total END) <> 0
 ORDER BY t.currency_id;
 
--- name: ListSupplierStatement :many
--- A page of the supplier's statement: its live documents, the newest first
+-- name: ListPartyStatement :many
+-- A page of the party's statement: its live documents, the newest first
 -- (then the later entered), each with its amount in so'm by its own rate
--- row and its rate, how it changed what is owed (a purchase or an opening
--- debt adds, a payment or an opening advance takes away) and what was owed
--- after it; a payment names its account, one entered with a purchase names
--- the purchase's number too.
+-- row and its rate, how it changed what is owed and what was owed after
+-- it; a payment names its account, one entered with a document names that
+-- document's number too.
 WITH entries AS (
     SELECT t.id, t.kind, t.number, t.doc_at, t.total, t.currency_id, t.note, t.linked_id, t.bank_account_id, t.created_by, t.created_by_name, t.company_id,
            (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
            convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
-           (CASE WHEN t.kind IN ('purchase', 'supplier_debt') THEN 1 ELSE -1 END)::numeric AS sign
+           (CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN 1 ELSE -1 END)::numeric AS sign
     FROM transactions t
     JOIN currency_rates cr ON cr.id = t.currency_rate_id
-    WHERE t.supplier_id = sqlc.arg('supplier_id')::bigint AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
+    WHERE ((sqlc.arg('party')::text = 'supplier' AND t.supplier_id = sqlc.arg('party_id')::bigint)
+           OR (sqlc.arg('party')::text = 'customer' AND t.customer_id = sqlc.arg('party_id')::bigint))
+      AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
 ), running AS (
     SELECT e.id, e.kind, e.number, e.doc_at, e.total, e.currency_id, e.note, e.linked_id, e.bank_account_id, e.created_by, e.created_by_name, e.company_id, e.rate, e.amount_uzs,
            (e.sign * e.amount_uzs)::numeric(14,2) AS delta_uzs,
@@ -40,6 +47,9 @@ LEFT JOIN user_companies m ON m.user_phone = r.created_by AND m.company_id = r.c
 ORDER BY r.doc_at DESC, r.id DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
--- name: CountSupplierStatement :one
--- How many rows ListSupplierStatement finds, on all of its pages.
-SELECT count(*) FROM transactions t WHERE t.supplier_id = sqlc.arg('supplier_id')::bigint AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL;
+-- name: CountPartyStatement :one
+-- How many rows ListPartyStatement finds, on all of its pages.
+SELECT count(*) FROM transactions t
+WHERE ((sqlc.arg('party')::text = 'supplier' AND t.supplier_id = sqlc.arg('party_id')::bigint)
+       OR (sqlc.arg('party')::text = 'customer' AND t.customer_id = sqlc.arg('party_id')::bigint))
+  AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL;

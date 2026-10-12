@@ -136,7 +136,7 @@ func getSupplier(ctx context.Context, q *gen.Queries, companyID, id int64) (Supp
 		return Supplier{}, err
 	}
 	sup := toSupplier(r)
-	lines, err := q.ListSupplierBalanceByCurrency(ctx, id)
+	lines, err := q.ListPartyBalanceByCurrency(ctx, gen.ListPartyBalanceByCurrencyParams{Party: "supplier", PartyID: id})
 	if err != nil {
 		return Supplier{}, err
 	}

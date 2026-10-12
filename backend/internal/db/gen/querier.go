@@ -67,6 +67,13 @@ type Querier interface {
 	// How many live products or services of the company carry their price in
 	// the currency: what keeps it from being turned off.
 	CountCurrencyProducts(ctx context.Context, arg CountCurrencyProductsParams) (int64, error)
+	// How many live documents name the customer: one with any is not deleted
+	// (logic/sales.md, section 7). A retail sale's payment names none.
+	CountCustomerDocuments(ctx context.Context, customerID int64) (int64, error)
+	// How many rows ListCustomerOpenings finds, on all of its pages.
+	CountCustomerOpenings(ctx context.Context, arg CountCustomerOpeningsParams) (int64, error)
+	// How many rows ListCustomerPayments finds, on all of its pages.
+	CountCustomerPayments(ctx context.Context, arg CountCustomerPaymentsParams) (int64, error)
 	// How many tasks the customer has: one with any is not deleted. Deleted
 	// tasks do not count.
 	CountCustomerTasks(ctx context.Context, customerID int64) (int64, error)
@@ -97,6 +104,8 @@ type Querier interface {
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
 	// How many tasks chose the option, in any field: one in use is not deleted.
 	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
+	// How many rows ListPartyStatement finds, on all of its pages.
+	CountPartyStatement(ctx context.Context, arg CountPartyStatementParams) (int64, error)
 	// How many rows ListPayments finds, on all of its pages.
 	CountPayments(ctx context.Context, arg CountPaymentsParams) (int64, error)
 	// How many live documents hold the product, in any location: one held is
@@ -114,13 +123,13 @@ type Querier interface {
 	CountRates(ctx context.Context, companyID int64) (int64, error)
 	// How many members hold the role: one that is held is not deleted.
 	CountRoleMembers(ctx context.Context, roleID *int64) (int64, error)
+	// How many rows ListSales finds under the same filter, on all of its pages.
+	CountSales(ctx context.Context, arg CountSalesParams) (int64, error)
 	// How many tasks stand in the stage: one in use is not deleted. Deleted
 	// tasks do not count.
 	CountStageTasks(ctx context.Context, stageID int64) (int64, error)
 	// How many live documents name the supplier: one with any is not deleted.
 	CountSupplierDocuments(ctx context.Context, supplierID int64) (int64, error)
-	// How many rows ListSupplierStatement finds, on all of its pages.
-	CountSupplierStatement(ctx context.Context, arg CountSupplierStatementParams) (int64, error)
 	// How many rows ListSuppliers finds under the same filter, on all of its pages.
 	CountSuppliers(ctx context.Context, arg CountSuppliersParams) (int64, error)
 	// How many tasks filled the field in: one in use is not deleted.
@@ -307,6 +316,9 @@ type Querier interface {
 	// The company's customer; pgx.ErrNoRows when it has none such, or deleted
 	// it. created_by_name is the name the member who entered it goes by in the
 	// company now; once they have left it (or go by no name), the name of then.
+	// balance is what the customer owes, in so'm by each document's own rate
+	// row (logic/sales.md, section 5): its live sales and opening debts less
+	// its payments and opening advances; an advance when below zero.
 	GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error)
 	// The company's customer with the number: a number is one customer's.
 	// pgx.ErrNoRows when it is free, as a deleted customer's is.
@@ -316,6 +328,15 @@ type Querier interface {
 	// A field of the company's type; pgx.ErrNoRows when the type has none such,
 	// or it is deleted.
 	GetCustomerField(ctx context.Context, arg GetCustomerFieldParams) (CustomerField, error)
+	// An opening balance of the customer (a debt or an advance): its amount in
+	// its currency, its rate, and the amount in so'm. pgx.ErrNoRows when there
+	// is none such, or it is deleted.
+	GetCustomerOpening(ctx context.Context, arg GetCustomerOpeningParams) (GetCustomerOpeningRow, error)
+	// The customer's payment in the company: its account, the number of the
+	// sale it was entered with (NULL for one entered on its own), its rate (of
+	// its currency) and what it comes to in so'm. pgx.ErrNoRows when there is
+	// none such, or it is deleted (logic/sales.md, section 5).
+	GetCustomerPayment(ctx context.Context, arg GetCustomerPaymentParams) (GetCustomerPaymentRow, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
 	GetCustomerType(ctx context.Context, arg GetCustomerTypeParams) (CustomerType, error)
 	// The company's zero row: a document's own rate row (status 2, out of the
@@ -375,6 +396,15 @@ type Querier interface {
 	// The company's role with how many members hold it; pgx.ErrNoRows when the
 	// company has none such.
 	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
+	// The company's sale, in one of the locations given (the member's): with
+	// its location's name, its customer (none for a retail sale) by the first
+	// text answer of the customer's type (the name) and the phone, its rate (of
+	// its currency, in so'm), what it comes to in so'm, what was paid with it
+	// (the live payments linked to it, each turned into the sale's currency by
+	// its own rate row; 0 when none), how many lines it has. pgx.ErrNoRows when
+	// the company has none such in those locations, or deleted it
+	// (logic/sales.md, section 3).
+	GetSale(ctx context.Context, arg GetSaleParams) (GetSaleRow, error)
 	// The company's supplier with its balance, in so'm by each document's own
 	// rate row (logic/warehouse.md, section 6): what its live purchases come
 	// to, what its live payments come to, and what is owed (the purchases and
@@ -451,13 +481,20 @@ type Querier interface {
 	// the member who did it goes by in the company now; once they have left it
 	// (or go by no name), the name of then.
 	ListCustomerHistory(ctx context.Context, customerID int64) ([]ListCustomerHistoryRow, error)
+	// A page of the customer's live opening balances, the newest first (then
+	// the later entered). The columns are GetCustomerOpening's.
+	ListCustomerOpenings(ctx context.Context, arg ListCustomerOpeningsParams) ([]ListCustomerOpeningsRow, error)
+	// A page of the customer's live payments, the newest first (then the later
+	// entered). The columns are GetCustomerPayment's.
+	ListCustomerPayments(ctx context.Context, arg ListCustomerPaymentsParams) ([]ListCustomerPaymentsRow, error)
 	// The company's types in their order, without the deleted.
 	ListCustomerTypes(ctx context.Context, companyID int64) ([]CustomerType, error)
 	// The answers of the customers named: each customer's in the order of its
 	// type's fields, the options of one field in the order of their dropdown.
 	// kind tells how a field's rows are read.
 	ListCustomerValues(ctx context.Context, customerIds []int64) ([]ListCustomerValuesRow, error)
-	// A page of the company's customers, the newest first, without the deleted.
+	// A page of the company's customers, the newest first, without the deleted,
+	// each with its balance (GetCustomer's).
 	// type_id keeps one type; phone, digits after 998, keeps the customers whose
 	// number begins with them. search, escaped for ILIKE, is looked for in the
 	// text answers, in any case; digits, the digits of a search that is a number,
@@ -490,6 +527,20 @@ type Querier interface {
 	// A page of the supplier's live opening balances, the newest first (then
 	// the later entered). The columns are GetOpening's.
 	ListOpenings(ctx context.Context, arg ListOpeningsParams) ([]ListOpeningsRow, error)
+	// The statement of a party: a supplier (logic/warehouse.md, section 6) or
+	// a customer (logic/sales.md, section 5). party is 'supplier' or
+	// 'customer', party_id the supplier's or the customer's id. A purchase, a
+	// sale or an opening debt adds to what is owed; a payment or an opening
+	// advance takes away: the sign rule is the same for both.
+	// What is owed in each currency the party's live documents are in, without
+	// turning anything into so'm; a currency that comes to 0 is left out.
+	ListPartyBalanceByCurrency(ctx context.Context, arg ListPartyBalanceByCurrencyParams) ([]ListPartyBalanceByCurrencyRow, error)
+	// A page of the party's statement: its live documents, the newest first
+	// (then the later entered), each with its amount in so'm by its own rate
+	// row and its rate, how it changed what is owed and what was owed after
+	// it; a payment names its account, one entered with a document names that
+	// document's number too.
+	ListPartyStatement(ctx context.Context, arg ListPartyStatementParams) ([]ListPartyStatementRow, error)
 	// A page of the supplier's live payments, the newest first (then the later
 	// entered). The columns are GetPayment's.
 	ListPayments(ctx context.Context, arg ListPaymentsParams) ([]ListPaymentsRow, error)
@@ -523,23 +574,15 @@ type Querier interface {
 	// The company's roles by name (whatever the case), each with how many
 	// members hold it.
 	ListRoles(ctx context.Context, companyID int64) ([]ListRolesRow, error)
+	// A page of the company's sales in the locations given, the newest first
+	// (then the later entered), without the deleted; customer_id keeps one
+	// customer's, NULL leaves the filter out. The columns are GetSale's.
+	ListSales(ctx context.Context, arg ListSalesParams) ([]ListSalesRow, error)
 	// The stock of each product in the location at the moment: the moves of
 	// the documents at or before it, leaving out the document given (an
 	// inventory's own, when it is written anew; 0 for none). A product nothing
 	// moved is not listed.
 	ListStockAt(ctx context.Context, arg ListStockAtParams) ([]ListStockAtRow, error)
-	// What is owed the supplier in each currency its live documents are in,
-	// without turning anything into so'm: the purchases and the opening debts
-	// less the payments and the opening advances; a currency that comes to 0
-	// is left out.
-	ListSupplierBalanceByCurrency(ctx context.Context, supplierID int64) ([]ListSupplierBalanceByCurrencyRow, error)
-	// A page of the supplier's statement: its live documents, the newest first
-	// (then the later entered), each with its amount in so'm by its own rate
-	// row and its rate, how it changed what is owed (a purchase or an opening
-	// debt adds, a payment or an opening advance takes away) and what was owed
-	// after it; a payment names its account, one entered with a purchase names
-	// the purchase's number too.
-	ListSupplierStatement(ctx context.Context, arg ListSupplierStatementParams) ([]ListSupplierStatementRow, error)
 	// A page of the company's suppliers, the active or the inactive ones, by
 	// name whatever the case, without the deleted, each with its balance.
 	// search, escaped for ILIKE, is looked for in the name; digits, the digits

@@ -8,6 +8,8 @@ package gen
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addCustomerHistory = `-- name: AddCustomerHistory :exec
@@ -280,9 +282,16 @@ func (q *Queries) FindCustomerByValue(ctx context.Context, arg FindCustomerByVal
 
 const getCustomer = `-- name: GetCustomer :one
 SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
-       COALESCE(m.full_name, c.created_by_name) AS created_by_name
+       COALESCE(m.full_name, c.created_by_name) AS created_by_name, t.balance
 FROM customers c
 LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
+CROSS JOIN LATERAL (
+    SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt') THEN convert_amount(d.total, d.currency_id, 1, cr)
+                             ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS balance
+    FROM transactions d
+    JOIN currency_rates cr ON cr.id = d.currency_rate_id
+    WHERE d.customer_id = c.id AND d.deleted_at IS NULL
+) t
 WHERE c.id = $1 AND c.company_id = $2 AND c.deleted_at IS NULL
 `
 
@@ -298,11 +307,15 @@ type GetCustomerRow struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	CreatedByName *string
+	Balance       pgtype.Numeric
 }
 
 // The company's customer; pgx.ErrNoRows when it has none such, or deleted
 // it. created_by_name is the name the member who entered it goes by in the
 // company now; once they have left it (or go by no name), the name of then.
+// balance is what the customer owes, in so'm by each document's own rate
+// row (logic/sales.md, section 5): its live sales and opening debts less
+// its payments and opening advances; an advance when below zero.
 func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error) {
 	row := q.db.QueryRow(ctx, getCustomer, arg.ID, arg.CompanyID)
 	var i GetCustomerRow
@@ -313,6 +326,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedByName,
+		&i.Balance,
 	)
 	return i, err
 }
@@ -432,9 +446,16 @@ func (q *Queries) ListCustomerValues(ctx context.Context, customerIds []int64) (
 
 const listCustomers = `-- name: ListCustomers :many
 SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
-       COALESCE(m.full_name, c.created_by_name) AS created_by_name
+       COALESCE(m.full_name, c.created_by_name) AS created_by_name, t.balance
 FROM customers c
 LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
+CROSS JOIN LATERAL (
+    SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt') THEN convert_amount(d.total, d.currency_id, 1, cr)
+                             ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS balance
+    FROM transactions d
+    JOIN currency_rates cr ON cr.id = d.currency_rate_id
+    WHERE d.customer_id = c.id AND d.deleted_at IS NULL
+) t
 WHERE c.company_id = $1 AND c.deleted_at IS NULL
   AND ($2::bigint IS NULL OR c.type_id = $2::bigint)
   AND ($3::text IS NULL OR c.phone LIKE '998' || $3::text || '%')
@@ -465,9 +486,11 @@ type ListCustomersRow struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	CreatedByName *string
+	Balance       pgtype.Numeric
 }
 
-// A page of the company's customers, the newest first, without the deleted.
+// A page of the company's customers, the newest first, without the deleted,
+// each with its balance (GetCustomer's).
 // type_id keeps one type; phone, digits after 998, keeps the customers whose
 // number begins with them. search, escaped for ILIKE, is looked for in the
 // text answers, in any case; digits, the digits of a search that is a number,
@@ -497,6 +520,7 @@ func (q *Queries) ListCustomers(ctx context.Context, arg ListCustomersParams) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CreatedByName,
+			&i.Balance,
 		); err != nil {
 			return nil, err
 		}

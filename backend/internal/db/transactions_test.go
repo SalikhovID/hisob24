@@ -91,6 +91,7 @@ type doc struct {
 	location   *int64
 	toLocation *int64
 	supplier   *int64
+	customer   *int64
 	account    *int64
 	linked     *int64
 	currency   int64
@@ -114,10 +115,10 @@ func addDocument(t *testing.T, pool *pgxpool.Pool, companyID int64, d doc) int64
 		d.total = "0"
 	}
 	var id int64
-	require.NoError(t, pool.QueryRow(context.Background(), `INSERT INTO transactions (company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, bank_account_id, linked_id,
+	require.NoError(t, pool.QueryRow(context.Background(), `INSERT INTO transactions (company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, linked_id,
 			currency_id, currency_rate_id, total, created_by, deleted_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::numeric, $13, CASE WHEN $14 THEN now() END) RETURNING id`,
-		companyID, d.kind, d.number, at(t, d.at), d.location, d.toLocation, d.supplier, d.account, d.linked, d.currency, d.rate, d.total, enteredBy, d.deleted).Scan(&id))
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::numeric, $14, CASE WHEN $15 THEN now() END) RETURNING id`,
+		companyID, d.kind, d.number, at(t, d.at), d.location, d.toLocation, d.supplier, d.customer, d.account, d.linked, d.currency, d.rate, d.total, enteredBy, d.deleted).Scan(&id))
 	return id
 }
 

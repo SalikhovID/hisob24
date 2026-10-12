@@ -298,3 +298,150 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 SELECT count(*) FROM transactions t
 WHERE t.supplier_id = sqlc.arg('supplier_id')::bigint AND t.company_id = sqlc.arg('company_id')
   AND t.kind IN ('supplier_debt', 'supplier_prepay') AND t.deleted_at IS NULL;
+
+-- name: GetSale :one
+-- The company's sale, in one of the locations given (the member's): with
+-- its location's name, its customer (none for a retail sale) by the first
+-- text answer of the customer's type (the name) and the phone, its rate (of
+-- its currency, in so'm), what it comes to in so'm, what was paid with it
+-- (the live payments linked to it, each turned into the sale's currency by
+-- its own rate row; 0 when none), how many lines it has. pgx.ErrNoRows when
+-- the company has none such in those locations, or deleted it
+-- (logic/sales.md, section 3).
+SELECT t.id, t.number, l.id AS location_id, l.name AS location_name, t.customer_id, c.phone AS customer_phone,
+       (SELECT v.text_value FROM customer_fields f
+          LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
+        WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
+        ORDER BY f.position, f.id LIMIT 1) AS customer_name,
+       t.doc_at, t.note, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       COALESCE((SELECT sum(convert_amount(p.total, p.currency_id, t.currency_id, pr)) FROM transactions p JOIN currency_rates pr ON pr.id = p.currency_rate_id
+                 WHERE p.linked_id = t.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS paid,
+       (SELECT count(*) FROM transaction_items i WHERE i.transaction_id = t.id) AS items_count,
+       COALESCE(m.full_name, t.created_by_name) AS created_by_name, t.created_at, t.updated_at
+FROM transactions t
+JOIN locations l ON l.id = t.location_id
+LEFT JOIN customers c ON c.id = t.customer_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.id = sqlc.arg('id') AND t.company_id = sqlc.arg('company_id') AND t.kind = 'sale' AND t.deleted_at IS NULL
+  AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
+
+-- name: ListSales :many
+-- A page of the company's sales in the locations given, the newest first
+-- (then the later entered), without the deleted; customer_id keeps one
+-- customer's, NULL leaves the filter out. The columns are GetSale's.
+SELECT t.id, t.number, l.id AS location_id, l.name AS location_name, t.customer_id, c.phone AS customer_phone,
+       (SELECT v.text_value FROM customer_fields f
+          LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
+        WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
+        ORDER BY f.position, f.id LIMIT 1) AS customer_name,
+       t.doc_at, t.note, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       COALESCE((SELECT sum(convert_amount(p.total, p.currency_id, t.currency_id, pr)) FROM transactions p JOIN currency_rates pr ON pr.id = p.currency_rate_id
+                 WHERE p.linked_id = t.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS paid,
+       (SELECT count(*) FROM transaction_items i WHERE i.transaction_id = t.id) AS items_count,
+       COALESCE(m.full_name, t.created_by_name) AS created_by_name, t.created_at, t.updated_at
+FROM transactions t
+JOIN locations l ON l.id = t.location_id
+LEFT JOIN customers c ON c.id = t.customer_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.company_id = sqlc.arg('company_id') AND t.kind = 'sale' AND t.deleted_at IS NULL
+  AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
+  AND (sqlc.narg('customer_id')::bigint IS NULL OR t.customer_id = sqlc.narg('customer_id')::bigint)
+ORDER BY t.doc_at DESC, t.id DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: CountSales :one
+-- How many rows ListSales finds under the same filter, on all of its pages.
+SELECT count(*) FROM transactions t
+WHERE t.company_id = sqlc.arg('company_id') AND t.kind = 'sale' AND t.deleted_at IS NULL
+  AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
+  AND (sqlc.narg('customer_id')::bigint IS NULL OR t.customer_id = sqlc.narg('customer_id')::bigint);
+
+-- name: GetCustomerPayment :one
+-- The customer's payment in the company: its account, the number of the
+-- sale it was entered with (NULL for one entered on its own), its rate (of
+-- its currency) and what it comes to in so'm. pgx.ErrNoRows when there is
+-- none such, or it is deleted (logic/sales.md, section 5).
+SELECT p.id, c.id AS customer_id, p.linked_id AS sale_id, l.number AS sale_number, b.id AS bank_account_id, b.name AS account_name,
+       p.total AS amount, p.currency_id,
+       (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       p.doc_at, p.note, p.created_at, p.updated_at, COALESCE(m.full_name, p.created_by_name) AS created_by_name
+FROM transactions p
+JOIN customers c ON c.id = p.customer_id
+JOIN bank_accounts b ON b.id = p.bank_account_id
+JOIN currency_rates cr ON cr.id = p.currency_rate_id
+LEFT JOIN transactions l ON l.id = p.linked_id
+LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+WHERE p.id = sqlc.arg('id') AND p.customer_id = sqlc.arg('customer_id')::bigint AND p.company_id = sqlc.arg('company_id')
+  AND p.kind = 'customer_payment' AND p.deleted_at IS NULL;
+
+-- name: ListCustomerPayments :many
+-- A page of the customer's live payments, the newest first (then the later
+-- entered). The columns are GetCustomerPayment's.
+SELECT p.id, c.id AS customer_id, p.linked_id AS sale_id, l.number AS sale_number, b.id AS bank_account_id, b.name AS account_name,
+       p.total AS amount, p.currency_id,
+       (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       p.doc_at, p.note, p.created_at, p.updated_at, COALESCE(m.full_name, p.created_by_name) AS created_by_name
+FROM transactions p
+JOIN customers c ON c.id = p.customer_id
+JOIN bank_accounts b ON b.id = p.bank_account_id
+JOIN currency_rates cr ON cr.id = p.currency_rate_id
+LEFT JOIN transactions l ON l.id = p.linked_id
+LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+WHERE p.customer_id = sqlc.arg('customer_id')::bigint AND p.company_id = sqlc.arg('company_id') AND p.kind = 'customer_payment' AND p.deleted_at IS NULL
+ORDER BY p.doc_at DESC, p.id DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: CountCustomerPayments :one
+-- How many rows ListCustomerPayments finds, on all of its pages.
+SELECT count(*) FROM transactions p
+WHERE p.customer_id = sqlc.arg('customer_id')::bigint AND p.company_id = sqlc.arg('company_id') AND p.kind = 'customer_payment' AND p.deleted_at IS NULL;
+
+-- name: GetCustomerOpening :one
+-- An opening balance of the customer (a debt or an advance): its amount in
+-- its currency, its rate, and the amount in so'm. pgx.ErrNoRows when there
+-- is none such, or it is deleted.
+SELECT t.id, t.kind, c.id AS customer_id, t.total AS amount, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       t.doc_at, t.note, t.created_at, t.updated_at, COALESCE(m.full_name, t.created_by_name) AS created_by_name
+FROM transactions t
+JOIN customers c ON c.id = t.customer_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.id = sqlc.arg('id') AND t.customer_id = sqlc.arg('customer_id')::bigint AND t.company_id = sqlc.arg('company_id')
+  AND t.kind IN ('customer_debt', 'customer_prepay') AND t.deleted_at IS NULL;
+
+-- name: ListCustomerOpenings :many
+-- A page of the customer's live opening balances, the newest first (then
+-- the later entered). The columns are GetCustomerOpening's.
+SELECT t.id, t.kind, c.id AS customer_id, t.total AS amount, t.currency_id,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       t.doc_at, t.note, t.created_at, t.updated_at, COALESCE(m.full_name, t.created_by_name) AS created_by_name
+FROM transactions t
+JOIN customers c ON c.id = t.customer_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+WHERE t.customer_id = sqlc.arg('customer_id')::bigint AND t.company_id = sqlc.arg('company_id')
+  AND t.kind IN ('customer_debt', 'customer_prepay') AND t.deleted_at IS NULL
+ORDER BY t.doc_at DESC, t.id DESC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: CountCustomerOpenings :one
+-- How many rows ListCustomerOpenings finds, on all of its pages.
+SELECT count(*) FROM transactions t
+WHERE t.customer_id = sqlc.arg('customer_id')::bigint AND t.company_id = sqlc.arg('company_id')
+  AND t.kind IN ('customer_debt', 'customer_prepay') AND t.deleted_at IS NULL;
+
+-- name: CountCustomerDocuments :one
+-- How many live documents name the customer: one with any is not deleted
+-- (logic/sales.md, section 7). A retail sale's payment names none.
+SELECT count(*) FROM transactions WHERE customer_id = sqlc.arg('customer_id')::bigint AND deleted_at IS NULL;

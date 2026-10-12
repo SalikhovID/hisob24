@@ -12,50 +12,65 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countSupplierStatement = `-- name: CountSupplierStatement :one
-SELECT count(*) FROM transactions t WHERE t.supplier_id = $1::bigint AND t.company_id = $2 AND t.deleted_at IS NULL
+const countPartyStatement = `-- name: CountPartyStatement :one
+SELECT count(*) FROM transactions t
+WHERE (($1::text = 'supplier' AND t.supplier_id = $2::bigint)
+       OR ($1::text = 'customer' AND t.customer_id = $2::bigint))
+  AND t.company_id = $3 AND t.deleted_at IS NULL
 `
 
-type CountSupplierStatementParams struct {
-	SupplierID int64
-	CompanyID  int64
+type CountPartyStatementParams struct {
+	Party     string
+	PartyID   int64
+	CompanyID int64
 }
 
-// How many rows ListSupplierStatement finds, on all of its pages.
-func (q *Queries) CountSupplierStatement(ctx context.Context, arg CountSupplierStatementParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countSupplierStatement, arg.SupplierID, arg.CompanyID)
+// How many rows ListPartyStatement finds, on all of its pages.
+func (q *Queries) CountPartyStatement(ctx context.Context, arg CountPartyStatementParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countPartyStatement, arg.Party, arg.PartyID, arg.CompanyID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const listSupplierBalanceByCurrency = `-- name: ListSupplierBalanceByCurrency :many
-SELECT t.currency_id, sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt') THEN t.total ELSE -t.total END)::numeric(14,2) AS amount
+const listPartyBalanceByCurrency = `-- name: ListPartyBalanceByCurrency :many
+
+SELECT t.currency_id, sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN t.total ELSE -t.total END)::numeric(14,2) AS amount
 FROM transactions t
-WHERE t.supplier_id = $1::bigint AND t.deleted_at IS NULL
+WHERE (($1::text = 'supplier' AND t.supplier_id = $2::bigint)
+       OR ($1::text = 'customer' AND t.customer_id = $2::bigint))
+  AND t.deleted_at IS NULL
 GROUP BY t.currency_id
-HAVING sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt') THEN t.total ELSE -t.total END) <> 0
+HAVING sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN t.total ELSE -t.total END) <> 0
 ORDER BY t.currency_id
 `
 
-type ListSupplierBalanceByCurrencyRow struct {
+type ListPartyBalanceByCurrencyParams struct {
+	Party   string
+	PartyID int64
+}
+
+type ListPartyBalanceByCurrencyRow struct {
 	CurrencyID int64
 	Amount     pgtype.Numeric
 }
 
-// What is owed the supplier in each currency its live documents are in,
-// without turning anything into so'm: the purchases and the opening debts
-// less the payments and the opening advances; a currency that comes to 0
-// is left out.
-func (q *Queries) ListSupplierBalanceByCurrency(ctx context.Context, supplierID int64) ([]ListSupplierBalanceByCurrencyRow, error) {
-	rows, err := q.db.Query(ctx, listSupplierBalanceByCurrency, supplierID)
+// The statement of a party: a supplier (logic/warehouse.md, section 6) or
+// a customer (logic/sales.md, section 5). party is 'supplier' or
+// 'customer', party_id the supplier's or the customer's id. A purchase, a
+// sale or an opening debt adds to what is owed; a payment or an opening
+// advance takes away: the sign rule is the same for both.
+// What is owed in each currency the party's live documents are in, without
+// turning anything into so'm; a currency that comes to 0 is left out.
+func (q *Queries) ListPartyBalanceByCurrency(ctx context.Context, arg ListPartyBalanceByCurrencyParams) ([]ListPartyBalanceByCurrencyRow, error) {
+	rows, err := q.db.Query(ctx, listPartyBalanceByCurrency, arg.Party, arg.PartyID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListSupplierBalanceByCurrencyRow{}
+	items := []ListPartyBalanceByCurrencyRow{}
 	for rows.Next() {
-		var i ListSupplierBalanceByCurrencyRow
+		var i ListPartyBalanceByCurrencyRow
 		if err := rows.Scan(&i.CurrencyID, &i.Amount); err != nil {
 			return nil, err
 		}
@@ -67,15 +82,17 @@ func (q *Queries) ListSupplierBalanceByCurrency(ctx context.Context, supplierID 
 	return items, nil
 }
 
-const listSupplierStatement = `-- name: ListSupplierStatement :many
+const listPartyStatement = `-- name: ListPartyStatement :many
 WITH entries AS (
     SELECT t.id, t.kind, t.number, t.doc_at, t.total, t.currency_id, t.note, t.linked_id, t.bank_account_id, t.created_by, t.created_by_name, t.company_id,
            (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
            convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
-           (CASE WHEN t.kind IN ('purchase', 'supplier_debt') THEN 1 ELSE -1 END)::numeric AS sign
+           (CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN 1 ELSE -1 END)::numeric AS sign
     FROM transactions t
     JOIN currency_rates cr ON cr.id = t.currency_rate_id
-    WHERE t.supplier_id = $3::bigint AND t.company_id = $4 AND t.deleted_at IS NULL
+    WHERE (($3::text = 'supplier' AND t.supplier_id = $4::bigint)
+           OR ($3::text = 'customer' AND t.customer_id = $4::bigint))
+      AND t.company_id = $5 AND t.deleted_at IS NULL
 ), running AS (
     SELECT e.id, e.kind, e.number, e.doc_at, e.total, e.currency_id, e.note, e.linked_id, e.bank_account_id, e.created_by, e.created_by_name, e.company_id, e.rate, e.amount_uzs,
            (e.sign * e.amount_uzs)::numeric(14,2) AS delta_uzs,
@@ -92,14 +109,15 @@ ORDER BY r.doc_at DESC, r.id DESC
 LIMIT $2 OFFSET $1
 `
 
-type ListSupplierStatementParams struct {
-	Offset     int32
-	Limit      int32
-	SupplierID int64
-	CompanyID  int64
+type ListPartyStatementParams struct {
+	Offset    int32
+	Limit     int32
+	Party     string
+	PartyID   int64
+	CompanyID int64
 }
 
-type ListSupplierStatementRow struct {
+type ListPartyStatementRow struct {
 	ID            int64
 	Kind          string
 	Number        int32
@@ -118,26 +136,26 @@ type ListSupplierStatementRow struct {
 	CreatedByName *string
 }
 
-// A page of the supplier's statement: its live documents, the newest first
+// A page of the party's statement: its live documents, the newest first
 // (then the later entered), each with its amount in so'm by its own rate
-// row and its rate, how it changed what is owed (a purchase or an opening
-// debt adds, a payment or an opening advance takes away) and what was owed
-// after it; a payment names its account, one entered with a purchase names
-// the purchase's number too.
-func (q *Queries) ListSupplierStatement(ctx context.Context, arg ListSupplierStatementParams) ([]ListSupplierStatementRow, error) {
-	rows, err := q.db.Query(ctx, listSupplierStatement,
+// row and its rate, how it changed what is owed and what was owed after
+// it; a payment names its account, one entered with a document names that
+// document's number too.
+func (q *Queries) ListPartyStatement(ctx context.Context, arg ListPartyStatementParams) ([]ListPartyStatementRow, error) {
+	rows, err := q.db.Query(ctx, listPartyStatement,
 		arg.Offset,
 		arg.Limit,
-		arg.SupplierID,
+		arg.Party,
+		arg.PartyID,
 		arg.CompanyID,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListSupplierStatementRow{}
+	items := []ListPartyStatementRow{}
 	for rows.Next() {
-		var i ListSupplierStatementRow
+		var i ListPartyStatementRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Kind,

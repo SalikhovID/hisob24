@@ -36,13 +36,13 @@ func TestSupplierBalanceByCurrencyAndStatement(t *testing.T) {
 	dehqon := createSupplier(t, q, w.company, "Dehqon").ID
 	addPayment(t, pool, w.company, dehqon, nil, "5", false)
 
-	by, err := q.ListSupplierBalanceByCurrency(ctx, w.bozor)
+	by, err := q.ListPartyBalanceByCurrency(ctx, gen.ListPartyBalanceByCurrencyParams{Party: "supplier", PartyID: w.bozor})
 	require.NoError(t, err)
 	require.Len(t, by, 1, "the dollars come to 0 and are left out")
 	assert.EqualValues(t, 1, by[0].CurrencyID)
 	assert.Equal(t, "500000.00", numericText(t, by[0].Amount), "1 000 000 owed less 500 000 paid")
 
-	rows, err := q.ListSupplierStatement(ctx, gen.ListSupplierStatementParams{SupplierID: w.bozor, CompanyID: w.company, Limit: 20})
+	rows, err := q.ListPartyStatement(ctx, gen.ListPartyStatementParams{Party: "supplier", PartyID: w.bozor, CompanyID: w.company, Limit: 20})
 	require.NoError(t, err)
 	require.Len(t, rows, 4, "the live documents of the supplier alone")
 	assert.Equal(t, []int64{usd, som, debt, purchase}, []int64{rows[0].ID, rows[1].ID, rows[2].ID, rows[3].ID}, "the newest first")
@@ -66,10 +66,10 @@ func TestSupplierBalanceByCurrencyAndStatement(t *testing.T) {
 	assert.Equal(t, "1280000.00", numericText(t, rows[3].BalanceUzs), "what was owed after the first document")
 	assert.Nil(t, rows[3].LinkedID)
 	assert.Equal(t, ptr("Ali aka"), rows[3].CreatedByName)
-	count, err := q.CountSupplierStatement(ctx, gen.CountSupplierStatementParams{SupplierID: w.bozor, CompanyID: w.company})
+	count, err := q.CountPartyStatement(ctx, gen.CountPartyStatementParams{Party: "supplier", PartyID: w.bozor, CompanyID: w.company})
 	require.NoError(t, err)
 	assert.EqualValues(t, 4, count)
-	rows, err = q.ListSupplierStatement(ctx, gen.ListSupplierStatementParams{SupplierID: w.bozor, CompanyID: w.company, Limit: 2, Offset: 2})
+	rows, err = q.ListPartyStatement(ctx, gen.ListPartyStatementParams{Party: "supplier", PartyID: w.bozor, CompanyID: w.company, Limit: 2, Offset: 2})
 	require.NoError(t, err)
 	require.Len(t, rows, 2, "paged")
 	assert.Equal(t, debt, rows[0].ID)
