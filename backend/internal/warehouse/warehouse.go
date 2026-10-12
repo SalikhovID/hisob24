@@ -6,7 +6,6 @@ package warehouse
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"unicode/utf8"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
+	"github.com/SalikhovID/hisob24/backend/internal/ledger"
 )
 
 // PageSize is how many rows a page of a list holds.
@@ -129,9 +129,5 @@ func cleanOptional(raw *string, max int, tooLong string) (*string, error) {
 // go by none or are not its member (they may have been taken out while the
 // request ran).
 func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone string) (*string, error) {
-	name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: phone, CompanyID: companyID})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return name, err
+	return ledger.MemberName(ctx, q, companyID, phone)
 }

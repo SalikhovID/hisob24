@@ -136,3 +136,22 @@ func isZero(n pgtype.Numeric) bool {
 func zeroRate() pgtype.Numeric {
 	return pgtype.Numeric{Int: big.NewInt(0), Valid: true}
 }
+
+// RateRowAt is the rate row a document with no rate of its own refers to
+// (a cash document, logic/finance.md, section 5): the standard row in
+// force at the moment (the first standard row before any), or the
+// company's zero row while it has set no rates.
+func RateRowAt(ctx context.Context, q *gen.Queries, companyID int64, at time.Time, by string) (int64, error) {
+	standard, err := currency.RateAt(ctx, q, companyID, at)
+	if err != nil {
+		return 0, err
+	}
+	if standard != nil {
+		return standard.ID, nil
+	}
+	row, err := fallbackRate(ctx, q, companyID, by)
+	if err != nil {
+		return 0, err
+	}
+	return row.ID, nil
+}

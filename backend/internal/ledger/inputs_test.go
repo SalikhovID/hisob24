@@ -142,3 +142,36 @@ func TestAccountFor(t *testing.T) {
 		refused(t, err, apperr.Invalid, "validation_error", tc.message, name)
 	}
 }
+
+func TestRateRowAt(t *testing.T) {
+	q, pool := newQueries(t)
+	ctx := t.Context()
+	s := newShop(t, pool, "Olma")
+	moment := func(raw string) time.Time {
+		at, err := time.Parse(time.RFC3339, raw)
+		require.NoError(t, err)
+		return at
+	}
+
+	// No rates set yet: the company's zero row, made on the first ask and
+	// given again on the next.
+	first, err := RateRowAt(ctx, q, s.company, moment("2026-10-02T10:00:00+05:00"), ali)
+	require.NoError(t, err)
+	assert.Positive(t, first)
+	again, err := RateRowAt(ctx, q, s.company, moment("2026-10-02T10:00:00+05:00"), ali)
+	require.NoError(t, err)
+	assert.Equal(t, first, again, "the zero row is made once")
+
+	turnOn(t, pool, s.company, 2)
+	early := standardRate(t, pool, s.company, "12800", "0", "2026-10-01 00:00+05")
+	late := standardRate(t, pool, s.company, "13000", "0", "2026-10-04 00:00+05")
+	row, err := RateRowAt(ctx, q, s.company, moment("2026-10-02T10:00:00+05:00"), ali)
+	require.NoError(t, err)
+	assert.Equal(t, early, row, "the standard row in force at the moment")
+	row, err = RateRowAt(ctx, q, s.company, moment("2026-10-05T10:00:00+05:00"), ali)
+	require.NoError(t, err)
+	assert.Equal(t, late, row, "the later row once it is in force")
+	row, err = RateRowAt(ctx, q, s.company, moment("2026-09-30T10:00:00+05:00"), ali)
+	require.NoError(t, err)
+	assert.Equal(t, early, row, "before any row: the first standard one")
+}

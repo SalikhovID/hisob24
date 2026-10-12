@@ -121,3 +121,14 @@ func DayRange(from, to, tz string) (start, end *time.Time, err error) {
 	}
 	return start, end, nil
 }
+
+// MemberName is the name the member goes by in the company, nil when they
+// go by none or are not its member (they may have been taken out while
+// the request ran): what a document keeps as created_by_name.
+func MemberName(ctx context.Context, q *gen.Queries, companyID int64, phone string) (*string, error) {
+	name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: phone, CompanyID: companyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return name, err
+}
