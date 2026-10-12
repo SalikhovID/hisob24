@@ -104,6 +104,7 @@ type PurchasePage struct {
 // kind has one.
 type checkedItem struct {
 	ProductID int64
+	Kind      string
 	Quantity  pgtype.Numeric
 	Expected  pgtype.Numeric
 	Price     pgtype.Numeric

@@ -45,10 +45,12 @@ func locationsOf(scope Scope, locationID int64) []int64 {
 }
 
 // lineRule says what a kind's lines need: a quantity of nothing allowed (an
-// inventory counts none), a price, and what a service line is refused with.
+// inventory counts none), a price, and whether a service may be a line (a
+// sale) or what it is refused with.
 type lineRule struct {
 	AllowZero      bool
 	WithPrice      bool
+	AllowService   bool
 	ServiceRefused string
 }
 
@@ -77,7 +79,7 @@ func checkLines(ctx context.Context, q *gen.Queries, companyID int64, lines []It
 		if err != nil {
 			return nil, err
 		}
-		if p.Kind != catalog.KindProduct {
+		if p.Kind != catalog.KindProduct && !rule.AllowService {
 			return nil, invalid(rule.ServiceRefused)
 		}
 		if !p.IsActive && !held[it.ProductID] {
@@ -96,7 +98,7 @@ func checkLines(ctx context.Context, q *gen.Queries, companyID int64, lines []It
 		} else if quantity, err = catalog.Quantity(it.Quantity, badQuantity); err != nil {
 			return nil, err
 		}
-		item := checkedItem{ProductID: it.ProductID, Quantity: quantity}
+		item := checkedItem{ProductID: it.ProductID, Kind: p.Kind, Quantity: quantity}
 		if rule.WithPrice {
 			badPrice := fmt.Sprintf("«%s» narxi noto'g'ri", p.Name)
 			price, err := catalog.Money(it.Price, badPrice)
@@ -126,10 +128,14 @@ func writeGoodsLines(ctx context.Context, q *gen.Queries, transactionID int64, i
 	return nil
 }
 
-// linesOf is the lines as the moves are made from them.
+// linesOf is the lines as the moves are made from them: a service moves
+// nothing, so it is left out.
 func linesOf(items []checkedItem) []ledger.Line {
 	lines := make([]ledger.Line, 0, len(items))
 	for _, it := range items {
+		if it.Kind == catalog.KindService {
+			continue
+		}
 		lines = append(lines, ledger.Line{ProductID: it.ProductID, Quantity: it.Quantity, Expected: it.Expected})
 	}
 	return lines
