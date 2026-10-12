@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 )
@@ -17,17 +18,44 @@ type customerJSON struct {
 	Phone  string `json:"phone"`
 	// Values are the answers by the id of the field: a text, a whole
 	// number, the id of an option, or the ids of several.
-	Values        customer.Values `json:"values"`
-	CreatedByName *string         `json:"created_by_name"`
-	CreatedAt     time.Time       `json:"created_at"`
-	UpdatedAt     time.Time       `json:"updated_at"`
+	Values customer.Values `json:"values"`
+	// Balance is what the customer owes (above zero) or paid in advance
+	// (below), in so'm by each document's own rate; BalanceByCurrency the
+	// same in each currency apart, on the customer's own page. Both shown
+	// to whoever may see the sales, null otherwise (logic/sales.md,
+	// section 5). Amounts are text with two decimals.
+	Balance           *string           `json:"balance"`
+	BalanceByCurrency []balanceLineJSON `json:"balance_by_currency"`
+	CreatedByName     *string           `json:"created_by_name"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
 }
 
-func toCustomerJSON(c customer.Customer) customerJSON {
-	return customerJSON{
+// toCustomerJSON is a customer as the API shows it: with its balance for
+// whoever may see the sales (withBalance), by currency on its own page
+// alone (detail).
+func toCustomerJSON(c customer.Customer, withBalance, detail bool) customerJSON {
+	out := customerJSON{
 		ID: c.ID, TypeID: c.TypeID, Phone: c.Phone, Values: c.Values,
 		CreatedByName: c.CreatedByName, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt,
 	}
+	if withBalance {
+		balance := c.Balance
+		out.Balance = &balance
+		if detail {
+			out.BalanceByCurrency = make([]balanceLineJSON, 0, len(c.BalanceByCurrency))
+			for _, l := range c.BalanceByCurrency {
+				out.BalanceByCurrency = append(out.BalanceByCurrency, balanceLineJSON{CurrencyID: l.CurrencyID, Amount: l.Amount})
+			}
+		}
+	}
+	return out
+}
+
+// seesSales tells whether the request's member may see what the customers
+// owe: whoever may see the sales.
+func seesSales(r *http.Request) bool {
+	return currentPermissions(r.Context()).Has(access.SalesView)
 }
 
 // takenJSON is the API error format with the customer who has the phone or
@@ -68,7 +96,7 @@ func (h *Handler) createCustomer(w http.ResponseWriter, r *http.Request) {
 		writeCustomerError(w, r, err)
 		return
 	}
-	httpx.JSON(w, http.StatusCreated, toCustomerJSON(c))
+	httpx.JSON(w, http.StatusCreated, toCustomerJSON(c, seesSales(r), true))
 }
 
 // getCustomer is a customer of the company the session works in.
@@ -78,7 +106,7 @@ func (h *Handler) getCustomer(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, r, err)
 		return
 	}
-	httpx.JSON(w, http.StatusOK, toCustomerJSON(c))
+	httpx.JSON(w, http.StatusOK, toCustomerJSON(c, seesSales(r), true))
 }
 
 type customerPageJSON struct {
@@ -119,7 +147,7 @@ func (h *Handler) listCustomers(w http.ResponseWriter, r *http.Request) {
 	}
 	items := make([]customerJSON, 0, len(page.Items))
 	for _, c := range page.Items {
-		items = append(items, toCustomerJSON(c))
+		items = append(items, toCustomerJSON(c, seesSales(r), false))
 	}
 	httpx.JSON(w, http.StatusOK, customerPageJSON{Items: items, Total: page.Total, Page: page.Page, PageSize: page.PageSize})
 }
@@ -140,7 +168,7 @@ func (h *Handler) updateCustomer(w http.ResponseWriter, r *http.Request) {
 		writeCustomerError(w, r, err)
 		return
 	}
-	httpx.JSON(w, http.StatusOK, toCustomerJSON(c))
+	httpx.JSON(w, http.StatusOK, toCustomerJSON(c, seesSales(r), true))
 }
 
 // deleteCustomer hides a customer of the company the session works in, as

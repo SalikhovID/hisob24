@@ -165,6 +165,11 @@ func TestListCustomers(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 		return decode(t, rec)
 	}
+	// A list leaves the balance by currency out (logic/sales.md, section 5):
+	// the rows are the customers as entered, without it.
+	for _, c := range []map[string]any{ali, vali, firma} {
+		c["balance_by_currency"] = nil
+	}
 
 	page := get(nil)
 

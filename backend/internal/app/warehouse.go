@@ -415,14 +415,7 @@ func (h *Handler) getSupplierStatement(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, r, err)
 		return
 	}
-	items := make([]statementRowJSON, 0, len(result.Items))
-	for _, row := range result.Items {
-		items = append(items, statementRowJSON{
-			ID: row.ID, Kind: row.Kind, Number: row.Number, At: row.At, Amount: row.Amount, CurrencyID: row.CurrencyID, Rate: row.Rate,
-			AmountUZS: row.AmountUZS, DeltaUZS: row.DeltaUZS, BalanceUZS: row.BalanceUZS, LinkedID: row.LinkedID, LinkedNumber: row.LinkedNumber,
-			BankAccountID: row.BankAccountID, AccountName: row.AccountName, Note: row.Note, CreatedByName: row.CreatedByName,
-		})
-	}
+	items := toStatementRowsJSON(result.Items)
 	httpx.JSON(w, http.StatusOK, pageJSON[statementRowJSON]{Items: items, Total: result.Total, Page: result.Page, PageSize: result.PageSize})
 }
 
@@ -538,4 +531,17 @@ func (h *Handler) deletePurchase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// toStatementRowsJSON is a statement's rows as the API shows them.
+func toStatementRowsJSON(rows []warehouse.StatementRow) []statementRowJSON {
+	items := make([]statementRowJSON, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, statementRowJSON{
+			ID: row.ID, Kind: row.Kind, Number: row.Number, At: row.At, Amount: row.Amount, CurrencyID: row.CurrencyID, Rate: row.Rate, AmountUZS: row.AmountUZS,
+			DeltaUZS: row.DeltaUZS, BalanceUZS: row.BalanceUZS, LinkedID: row.LinkedID, LinkedNumber: row.LinkedNumber, BankAccountID: row.BankAccountID,
+			AccountName: row.AccountName, Note: row.Note, CreatedByName: row.CreatedByName,
+		})
+	}
+	return items
 }

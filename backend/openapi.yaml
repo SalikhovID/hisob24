@@ -1953,6 +1953,500 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/CustomerNotFound"
+  /app/customers/{id}/payments:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listCustomerPayments
+      summary: Mijozning to'lovlari (sales.view ruxsati)
+      description: >
+        Mijozning jonli to'lovlari (o'zi kiritilganlari va sotuv bilan
+        kiritilganlari), vaqt bo'yicha yangi birinchi, sahifada 20 ta
+        (logic/sales.md, 5-bo'lim). Mijoz topilmasa 404.
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerPaymentPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+    post:
+      operationId: addCustomerPayment
+      summary: Mijoz to'lovini qo'shish (sales.create ruxsati)
+      description: >
+        Mijozdan akkauntga kelgan pul, akkaunt valyutasida; kursi hujjat
+        vaqtidagi standart yoki yuborilgani. Tekshiruv tartibi: mijoz
+        (404), akkaunt ("Akkauntni tanlang" / "Akkaunt nofaol"), summa
+        ("Summani kiriting" / "Summa noto'g'ri"), vaqt, kurs, izoh.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Qo'shilgan to'lov
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerPayment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+  /app/customers/{id}/payments/{paymentId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: paymentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: updateCustomerPayment
+      summary: Mijoz to'lovini tahrirlash (sales.edit ruxsati)
+      description: >
+        Faqat o'zi kiritilgan to'lov; sotuv bilan kiritilgani 409
+        payment_linked "Bu to'lov sotuv bilan kiritilgan: sotuvni
+        tahrirlang". To'lovda avvaldan bor akkaunt nofaol bo'lsa ham
+        qoladi. To'lov topilmasa 404 "To'lov topilmadi".
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "200":
+          description: Saqlangan to'lov
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerPayment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PaymentNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerPaymentConflict"
+    delete:
+      operationId: deleteCustomerPayment
+      summary: Mijoz to'lovini o'chirish (sales.delete ruxsati)
+      description: >
+        Faqat o'zi kiritilgan to'lov yashiriladi; sotuv bilan kiritilgani
+        409 payment_linked.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PaymentNotFound"
+        "409":
+          $ref: "#/components/responses/CustomerPaymentConflict"
+  /app/customers/{id}/openings:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: listCustomerOpenings
+      summary: Mijozning boshlang'ich qarz va avanslari (sales.view ruxsati)
+      description: >
+        Mijozning jonli boshlang'ich qarz / avans hujjatlari, vaqt bo'yicha
+        yangi birinchi, sahifada 20 ta (logic/sales.md, 5-bo'lim). Mijoz
+        topilmasa 404.
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerOpeningPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+    post:
+      operationId: addCustomerOpening
+      summary: Mijozning boshlang'ich qarzi yoki avansini qo'shish (sales.create ruxsati)
+      description: >
+        Kompaniya hisobni shu yerda yurita boshlagan paytdagi mijozning
+        qarzi (debt: bizga qarzdor) yoki avansi (prepay: oldindan
+        to'lagan); tur bo'yicha raqamlanadi. Tekshiruv tartibi: mijoz
+        (404), tur ("Turni tanlang" / "Tur noto'g'ri"), summa, vaqt,
+        valyuta va kurs, izoh.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpeningInput"
+      responses:
+        "201":
+          description: Qo'shilgan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerOpening"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+  /app/customers/{id}/openings/{openingId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: openingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: updateCustomerOpening
+      summary: Mijozning boshlang'ich qarzi / avansini tahrirlash (sales.edit ruxsati)
+      description: >
+        Summa, vaqt, valyuta, kurs va izoh o'zgaradi; tur o'zgarmaydi
+        (boshqa tur yuborilsa 400 "Tur o'zgartirilmaydi"). Hujjat
+        topilmasa 404 "Hujjat topilmadi".
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpeningInput"
+      responses:
+        "200":
+          description: Saqlangan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerOpening"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    delete:
+      operationId: deleteCustomerOpening
+      summary: Mijozning boshlang'ich qarzi / avansini o'chirish (sales.delete ruxsati)
+      description: Yashiriladi; raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+  /app/customers/{id}/statement:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getCustomerStatement
+      summary: Mijoz hisob harakati (sales.view ruxsati)
+      description: >
+        Mijozning jonli hujjatlari (sotuvlar, to'lovlar, boshlang'ich qarz
+        / avans) vaqt bo'yicha, yangi birinchi, sahifada 20 ta; har qatorda
+        summa valyutasida va so'mda, qarz o'zgarishi (sotuv va qarz
+        qo'shadi, to'lov va avans ayiradi) va shu hujjatdan keyingi qarz
+        (logic/sales.md, 5-bo'lim). Chakana sotuv hech kimning hisob
+        harakatida emas. Mijoz topilmasa 404.
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatementPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+  /app/sales:
+    get:
+      operationId: listSales
+      summary: Sotuvlar ro'yxati (sales.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyalardagi sotuvlar, yoki location_id
+        berilgan bittasidagi (a'zo ishlay olmaydigan lokatsiya: 403
+        forbidden; son emas: 400 "Lokatsiya noto'g'ri"); customer_id bitta
+        mijozniki (son emas: 400 "Mijoz noto'g'ri"). Vaqt bo'yicha yangi
+        birinchi, sahifada 20 ta; qatorlar va to'lovlar ro'yxatda yo'q
+        (logic/sales.md, 3.4).
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createSale
+      summary: Sotuv qo'shish (sales.create ruxsati)
+      description: >
+        Bitta tranzaksiyada: sotuvlar ichida navbatdagi raqam, sotuv,
+        qatorlar, jami, har mahsulot qatorining lokatsiyadan chiqimi (−;
+        xizmat harakat yozmaydi), har to'lov qatori uchun sotuvga
+        bog'langan mijoz to'lovi. Tekshiruv tartibi: lokatsiya (yo'q: 400
+        "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), mijoz (yo'q /
+        o'chirilgan / begona: "Mijozni tanlang"; berilmasa chakana), vaqt,
+        valyuta va kurs, izoh, qatorlar (kamida bitta; mahsulot yoki
+        xizmat, faol, bir marta, miqdor > 0, narx), to'lov qatorlari
+        (akkaunt, summa); mijozsiz sotuvda to'lovlar yig'indisi (hujjat
+        valyutasiga aylantirilgan) jamiga teng bo'lsin ("Mijozsiz sotuv
+        to'liq to'langan bo'lsin"). Qoldiq yetmasa 409 stock_insufficient
+        (logic/sales.md, 3.2).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleCreate"
+      responses:
+        "201":
+          description: Qo'shilgan sotuv, qatorlari va to'lovlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+  /app/sales/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getSale
+      summary: Sotuv, qatorlari va to'lovlari bilan (sales.view ruxsati)
+      description: >
+        A'zoga ruxsatli lokatsiyadagi sotuv; boshqasi 404 "Sotuv topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Sotuv
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SaleNotFound"
+    put:
+      operationId: updateSale
+      summary: Sotuvni tahrirlash (sales.edit ruxsati)
+      description: >
+        Lokatsiya va raqam o'zgarmaydi. Mijoz, vaqt, valyuta, kurs, izoh,
+        qatorlar va to'lovlar yuborilganiga almashadi: harakatlar qayta
+        yoziladi (qoldiq yetmasa 409 stock_insufficient), bog'langan
+        to'lovlar qayta yoziladi (mijoz almashsa yangi mijozga; mijoz olib
+        tashlansa to'liq to'langan bo'lsin). Avvaldan bor nofaol mahsulot
+        va akkaunt qoladi (logic/sales.md, 3.3).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleInput"
+      responses:
+        "200":
+          description: Saqlangan sotuv, qatorlari va to'lovlari bilan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SaleNotFound"
+        "409":
+          $ref: "#/components/responses/StockConflict"
+    delete:
+      operationId: deleteSale
+      summary: Sotuvni o'chirish (sales.delete ruxsati)
+      description: >
+        Yashiriladi, harakatlari o'chiriladi (qoldiq qaytadi), bog'langan
+        to'lovlari yashirinadi; raqam bo'shamaydi (logic/sales.md, 3.3).
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SaleNotFound"
   /app/employees/{phone}/role:
     parameters:
       - name: phone
@@ -4720,7 +5214,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     CustomerInUse:
-      description: Mijozda faol vazifa bor (customer_in_use)
+      description: Mijozda faol vazifa yoki jonli hujjat bor (customer_in_use)
       content:
         application/json:
           schema:
@@ -4804,6 +5298,18 @@ components:
             $ref: "#/components/schemas/Error"
     StockConflict:
       description: Omborda yetarli qoldiq yo'q (stock_insufficient)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SaleNotFound:
+      description: Sotuv topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    CustomerPaymentConflict:
+      description: To'lov sotuv bilan kiritilgan (payment_linked)
       content:
         application/json:
           schema:
@@ -5798,7 +6304,7 @@ components:
           format: int64
         kind:
           type: string
-          enum: [purchase, supplier_payment, supplier_debt, supplier_prepay]
+          enum: [purchase, supplier_payment, supplier_debt, supplier_prepay, sale, customer_payment, customer_debt, customer_prepay]
         number:
           type: integer
         at:
@@ -6541,6 +7047,245 @@ components:
           type: integer
         page_size:
           type: integer
+    Sale:
+      type: object
+      description: Sotuv (logic/sales.md, 3-bo'lim)
+      required: [id, number, location_id, location_name, customer, at, currency_id, rate, note, total, total_uzs, paid, items_count, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          description: Kompaniyadagi sotuvlar ichida 1 dan tartib raqami ("№ 3"); o'chirilganniki bo'shamaydi
+        location_id:
+          type: integer
+          format: int64
+          description: Sotuv chiqqan lokatsiya; o'zgarmaydi
+        location_name:
+          type: string
+        customer:
+          oneOf:
+            - $ref: "#/components/schemas/Ref"
+            - type: "null"
+          description: Mijoz (nomi turining birinchi matn maydoni, bo'lmasa telefon); chakana sotuvda null
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti (UTC'da)
+        currency_id:
+          type: integer
+          format: int64
+        rate:
+          type: string
+          description: Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000")
+        note:
+          type: [string, "null"]
+        total:
+          type: string
+          description: Qatorlar jami, hujjat valyutasida, ikki kasr xonasi bilan
+        total_uzs:
+          type: string
+          description: Jami so'mda, hujjat kursi bilan
+        paid:
+          type: string
+          description: Sotuv bilan kiritilgan jonli to'lovlar yig'indisi hujjat valyutasida (har to'lov o'z kursi bilan aylantirilgan)
+        items_count:
+          type: integer
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SaleDetail:
+      allOf:
+        - $ref: "#/components/schemas/Sale"
+        - type: object
+          required: [items, payments]
+          properties:
+            items:
+              type: array
+              description: Qatorlar kiritilgan tartibda (mahsulot yoki xizmat)
+              items:
+                $ref: "#/components/schemas/PurchaseItem"
+            payments:
+              type: array
+              description: Sotuv bilan kiritilgan jonli to'lovlar, kiritilgan tartibda
+              items:
+                $ref: "#/components/schemas/LinkedPayment"
+    SaleInput:
+      type: object
+      required: [at, items]
+      properties:
+        customer_id:
+          type: [integer, "null"]
+          format: int64
+          description: Kompaniyaning jonli mijozi ("Mijozni tanlang"); berilmasa chakana sotuv
+        at:
+          type: string
+          format: date-time
+          description: Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+        currency_id:
+          type: [integer, "null"]
+          format: int64
+          description: Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+        rate:
+          type: [string, "null"]
+          description: >
+            Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart
+            kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+        note:
+          type: [string, "null"]
+          maxLength: 500
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PurchaseItemInput"
+        payments:
+          type: [array, "null"]
+          description: >
+            Sotuv bilan kiritilgan to'lovlar; tahrirda yuborilganiga butunlay
+            almashadi. Mijozsiz sotuvda yig'indisi jamiga teng bo'lsin.
+          items:
+            $ref: "#/components/schemas/PaymentLine"
+    SaleCreate:
+      allOf:
+        - $ref: "#/components/schemas/SaleInput"
+        - type: object
+          required: [location_id]
+          properties:
+            location_id:
+              type: integer
+              format: int64
+              description: Sotuv chiqadigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+    SalePage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sale"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    CustomerPayment:
+      type: object
+      description: Mijozdan akkauntga kelgan to'lov (logic/sales.md, 5-bo'lim)
+      required: [id, customer_id, sale_id, sale_number, bank_account_id, account_name, amount, currency_id, rate, amount_uzs, at, note, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        customer_id:
+          type: integer
+          format: int64
+        sale_id:
+          type: [integer, "null"]
+          format: int64
+          description: Sotuv bilan kiritilgan bo'lsa shu sotuv; o'zi kiritilgani null
+        sale_number:
+          type: [integer, "null"]
+        bank_account_id:
+          type: integer
+          format: int64
+        account_name:
+          type: string
+        amount:
+          type: string
+          description: Akkaunt valyutasida, ikki kasr xonasi bilan
+        currency_id:
+          type: integer
+          format: int64
+        rate:
+          type: string
+        amount_uzs:
+          type: string
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CustomerPaymentPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerPayment"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    CustomerOpening:
+      type: object
+      description: Mijozning boshlang'ich qarzi (bizga qarzdor) yoki avansi (oldindan to'lagan)
+      required: [id, kind, customer_id, amount, currency_id, rate, amount_uzs, at, note, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          $ref: "#/components/schemas/OpeningKind"
+        customer_id:
+          type: integer
+          format: int64
+        amount:
+          type: string
+          description: Summa hujjat valyutasida, ikki kasr xonasi bilan
+        currency_id:
+          type: integer
+          format: int64
+        rate:
+          type: string
+        amount_uzs:
+          type: string
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CustomerOpeningPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerOpening"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
     NavSection:
       type: string
       description: Bo'lim kaliti, standart tartibida
@@ -6710,7 +7455,7 @@ components:
           format: int64
     Customer:
       type: object
-      required: [id, type_id, phone, values, created_by_name, created_at, updated_at]
+      required: [id, type_id, phone, values, balance, balance_by_currency, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -6724,6 +7469,17 @@ components:
           description: Faqat raqamlar, masalan 998901234567
         values:
           $ref: "#/components/schemas/CustomerValues"
+        balance:
+          type: [string, "null"]
+          description: >
+            Mijozning qarzi (> 0) yoki avansi (< 0) so'mda, har hujjat o'z
+            kursi bilan, ikki kasr (logic/sales.md, 5-bo'lim); sales.view
+            bo'lmaganga null
+        balance_by_currency:
+          type: [array, "null"]
+          description: Qarz valyuta bo'yicha, faqat mijoz sahifasida (ro'yxatda va sales.view bo'lmaganga null)
+          items:
+            $ref: "#/components/schemas/BalanceLine"
         created_by_name:
           type: [string, "null"]
           description: >

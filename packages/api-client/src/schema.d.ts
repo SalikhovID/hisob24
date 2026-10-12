@@ -1005,6 +1005,188 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/customers/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Mijozning to'lovlari (sales.view ruxsati)
+         * @description Mijozning jonli to'lovlari (o'zi kiritilganlari va sotuv bilan kiritilganlari), vaqt bo'yicha yangi birinchi, sahifada 20 ta (logic/sales.md, 5-bo'lim). Mijoz topilmasa 404.
+         */
+        get: operations["listCustomerPayments"];
+        put?: never;
+        /**
+         * Mijoz to'lovini qo'shish (sales.create ruxsati)
+         * @description Mijozdan akkauntga kelgan pul, akkaunt valyutasida; kursi hujjat vaqtidagi standart yoki yuborilgani. Tekshiruv tartibi: mijoz (404), akkaunt ("Akkauntni tanlang" / "Akkaunt nofaol"), summa ("Summani kiriting" / "Summa noto'g'ri"), vaqt, kurs, izoh.
+         */
+        post: operations["addCustomerPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customers/{id}/payments/{paymentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mijoz to'lovini tahrirlash (sales.edit ruxsati)
+         * @description Faqat o'zi kiritilgan to'lov; sotuv bilan kiritilgani 409 payment_linked "Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang". To'lovda avvaldan bor akkaunt nofaol bo'lsa ham qoladi. To'lov topilmasa 404 "To'lov topilmadi".
+         */
+        put: operations["updateCustomerPayment"];
+        post?: never;
+        /**
+         * Mijoz to'lovini o'chirish (sales.delete ruxsati)
+         * @description Faqat o'zi kiritilgan to'lov yashiriladi; sotuv bilan kiritilgani 409 payment_linked.
+         */
+        delete: operations["deleteCustomerPayment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customers/{id}/openings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Mijozning boshlang'ich qarz va avanslari (sales.view ruxsati)
+         * @description Mijozning jonli boshlang'ich qarz / avans hujjatlari, vaqt bo'yicha yangi birinchi, sahifada 20 ta (logic/sales.md, 5-bo'lim). Mijoz topilmasa 404.
+         */
+        get: operations["listCustomerOpenings"];
+        put?: never;
+        /**
+         * Mijozning boshlang'ich qarzi yoki avansini qo'shish (sales.create ruxsati)
+         * @description Kompaniya hisobni shu yerda yurita boshlagan paytdagi mijozning qarzi (debt: bizga qarzdor) yoki avansi (prepay: oldindan to'lagan); tur bo'yicha raqamlanadi. Tekshiruv tartibi: mijoz (404), tur ("Turni tanlang" / "Tur noto'g'ri"), summa, vaqt, valyuta va kurs, izoh.
+         */
+        post: operations["addCustomerOpening"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customers/{id}/openings/{openingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                openingId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mijozning boshlang'ich qarzi / avansini tahrirlash (sales.edit ruxsati)
+         * @description Summa, vaqt, valyuta, kurs va izoh o'zgaradi; tur o'zgarmaydi (boshqa tur yuborilsa 400 "Tur o'zgartirilmaydi"). Hujjat topilmasa 404 "Hujjat topilmadi".
+         */
+        put: operations["updateCustomerOpening"];
+        post?: never;
+        /**
+         * Mijozning boshlang'ich qarzi / avansini o'chirish (sales.delete ruxsati)
+         * @description Yashiriladi; raqam bo'shamaydi.
+         */
+        delete: operations["deleteCustomerOpening"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/customers/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Mijoz hisob harakati (sales.view ruxsati)
+         * @description Mijozning jonli hujjatlari (sotuvlar, to'lovlar, boshlang'ich qarz / avans) vaqt bo'yicha, yangi birinchi, sahifada 20 ta; har qatorda summa valyutasida va so'mda, qarz o'zgarishi (sotuv va qarz qo'shadi, to'lov va avans ayiradi) va shu hujjatdan keyingi qarz (logic/sales.md, 5-bo'lim). Chakana sotuv hech kimning hisob harakatida emas. Mijoz topilmasa 404.
+         */
+        get: operations["getCustomerStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sotuvlar ro'yxati (sales.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyalardagi sotuvlar, yoki location_id berilgan bittasidagi (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"); customer_id bitta mijozniki (son emas: 400 "Mijoz noto'g'ri"). Vaqt bo'yicha yangi birinchi, sahifada 20 ta; qatorlar va to'lovlar ro'yxatda yo'q (logic/sales.md, 3.4).
+         */
+        get: operations["listSales"];
+        put?: never;
+        /**
+         * Sotuv qo'shish (sales.create ruxsati)
+         * @description Bitta tranzaksiyada: sotuvlar ichida navbatdagi raqam, sotuv, qatorlar, jami, har mahsulot qatorining lokatsiyadan chiqimi (−; xizmat harakat yozmaydi), har to'lov qatori uchun sotuvga bog'langan mijoz to'lovi. Tekshiruv tartibi: lokatsiya (yo'q: 400 "Lokatsiyani tanlang"; a'zoga ruxsatsiz: 403), mijoz (yo'q / o'chirilgan / begona: "Mijozni tanlang"; berilmasa chakana), vaqt, valyuta va kurs, izoh, qatorlar (kamida bitta; mahsulot yoki xizmat, faol, bir marta, miqdor > 0, narx), to'lov qatorlari (akkaunt, summa); mijozsiz sotuvda to'lovlar yig'indisi (hujjat valyutasiga aylantirilgan) jamiga teng bo'lsin ("Mijozsiz sotuv to'liq to'langan bo'lsin"). Qoldiq yetmasa 409 stock_insufficient (logic/sales.md, 3.2).
+         */
+        post: operations["createSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/sales/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Sotuv, qatorlari va to'lovlari bilan (sales.view ruxsati)
+         * @description A'zoga ruxsatli lokatsiyadagi sotuv; boshqasi 404 "Sotuv topilmadi".
+         */
+        get: operations["getSale"];
+        /**
+         * Sotuvni tahrirlash (sales.edit ruxsati)
+         * @description Lokatsiya va raqam o'zgarmaydi. Mijoz, vaqt, valyuta, kurs, izoh, qatorlar va to'lovlar yuborilganiga almashadi: harakatlar qayta yoziladi (qoldiq yetmasa 409 stock_insufficient), bog'langan to'lovlar qayta yoziladi (mijoz almashsa yangi mijozga; mijoz olib tashlansa to'liq to'langan bo'lsin). Avvaldan bor nofaol mahsulot va akkaunt qoladi (logic/sales.md, 3.3).
+         */
+        put: operations["updateSale"];
+        post?: never;
+        /**
+         * Sotuvni o'chirish (sales.delete ruxsati)
+         * @description Yashiriladi, harakatlari o'chiriladi (qoldiq qaytadi), bog'langan to'lovlari yashirinadi; raqam bo'shamaydi (logic/sales.md, 3.3).
+         */
+        delete: operations["deleteSale"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/employees/{phone}/role": {
         parameters: {
             query?: never;
@@ -2489,7 +2671,7 @@ export interface components {
             /** Format: int64 */
             id: number;
             /** @enum {string} */
-            kind: "purchase" | "supplier_payment" | "supplier_debt" | "supplier_prepay";
+            kind: "purchase" | "supplier_payment" | "supplier_debt" | "supplier_prepay" | "sale" | "customer_payment" | "customer_debt" | "customer_prepay";
             number: number;
             /** Format: date-time */
             at: string;
@@ -2959,6 +3141,149 @@ export interface components {
             page: number;
             page_size: number;
         };
+        /** @description Sotuv (logic/sales.md, 3-bo'lim) */
+        Sale: {
+            /** Format: int64 */
+            id: number;
+            /** @description Kompaniyadagi sotuvlar ichida 1 dan tartib raqami ("№ 3"); o'chirilganniki bo'shamaydi */
+            number: number;
+            /**
+             * Format: int64
+             * @description Sotuv chiqqan lokatsiya; o'zgarmaydi
+             */
+            location_id: number;
+            location_name: string;
+            /** @description Mijoz (nomi turining birinchi matn maydoni, bo'lmasa telefon); chakana sotuvda null */
+            customer: components["schemas"]["Ref"] | null;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti (UTC'da)
+             */
+            at: string;
+            /** Format: int64 */
+            currency_id: number;
+            /** @description Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000") */
+            rate: string;
+            note: string | null;
+            /** @description Qatorlar jami, hujjat valyutasida, ikki kasr xonasi bilan */
+            total: string;
+            /** @description Jami so'mda, hujjat kursi bilan */
+            total_uzs: string;
+            /** @description Sotuv bilan kiritilgan jonli to'lovlar yig'indisi hujjat valyutasida (har to'lov o'z kursi bilan aylantirilgan) */
+            paid: string;
+            items_count: number;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SaleDetail: components["schemas"]["Sale"] & {
+            /** @description Qatorlar kiritilgan tartibda (mahsulot yoki xizmat) */
+            items: components["schemas"]["PurchaseItem"][];
+            /** @description Sotuv bilan kiritilgan jonli to'lovlar, kiritilgan tartibda */
+            payments: components["schemas"]["LinkedPayment"][];
+        };
+        SaleInput: {
+            /**
+             * Format: int64
+             * @description Kompaniyaning jonli mijozi ("Mijozni tanlang"); berilmasa chakana sotuv
+             */
+            customer_id?: number | null;
+            /**
+             * Format: date-time
+             * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
+             */
+            at: string;
+            /**
+             * Format: int64
+             * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+             */
+            currency_id?: number | null;
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            rate?: string | null;
+            note?: string | null;
+            items: components["schemas"]["PurchaseItemInput"][];
+            /** @description Sotuv bilan kiritilgan to'lovlar; tahrirda yuborilganiga butunlay almashadi. Mijozsiz sotuvda yig'indisi jamiga teng bo'lsin. */
+            payments?: components["schemas"]["PaymentLine"][] | null;
+        };
+        SaleCreate: components["schemas"]["SaleInput"] & {
+            /**
+             * Format: int64
+             * @description Sotuv chiqadigan lokatsiya (joriy lokatsiya); a'zoga ruxsatli bo'lishi shart
+             */
+            location_id: number;
+        };
+        SalePage: {
+            items: components["schemas"]["Sale"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description Mijozdan akkauntga kelgan to'lov (logic/sales.md, 5-bo'lim) */
+        CustomerPayment: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            customer_id: number;
+            /**
+             * Format: int64
+             * @description Sotuv bilan kiritilgan bo'lsa shu sotuv; o'zi kiritilgani null
+             */
+            sale_id: number | null;
+            sale_number: number | null;
+            /** Format: int64 */
+            bank_account_id: number;
+            account_name: string;
+            /** @description Akkaunt valyutasida, ikki kasr xonasi bilan */
+            amount: string;
+            /** Format: int64 */
+            currency_id: number;
+            rate: string;
+            amount_uzs: string;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CustomerPaymentPage: {
+            items: components["schemas"]["CustomerPayment"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description Mijozning boshlang'ich qarzi (bizga qarzdor) yoki avansi (oldindan to'lagan) */
+        CustomerOpening: {
+            /** Format: int64 */
+            id: number;
+            kind: components["schemas"]["OpeningKind"];
+            /** Format: int64 */
+            customer_id: number;
+            /** @description Summa hujjat valyutasida, ikki kasr xonasi bilan */
+            amount: string;
+            /** Format: int64 */
+            currency_id: number;
+            rate: string;
+            amount_uzs: string;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CustomerOpeningPage: {
+            items: components["schemas"]["CustomerOpening"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
         /**
          * @description Bo'lim kaliti, standart tartibida
          * @enum {string}
@@ -3059,6 +3384,10 @@ export interface components {
             /** @description Faqat raqamlar, masalan 998901234567 */
             phone: string;
             values: components["schemas"]["CustomerValues"];
+            /** @description Mijozning qarzi (> 0) yoki avansi (< 0) so'mda, har hujjat o'z kursi bilan, ikki kasr (logic/sales.md, 5-bo'lim); sales.view bo'lmaganga null */
+            balance: string | null;
+            /** @description Qarz valyuta bo'yicha, faqat mijoz sahifasida (ro'yxatda va sales.view bo'lmaganga null) */
+            balance_by_currency: components["schemas"]["BalanceLine"][] | null;
             /** @description Mijozni qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, qo'shgan paytdagi ismi */
             created_by_name: string | null;
             /** Format: date-time */
@@ -3637,7 +3966,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Mijozda faol vazifa bor (customer_in_use) */
+        /** @description Mijozda faol vazifa yoki jonli hujjat bor (customer_in_use) */
         CustomerInUse: {
             headers: {
                 [name: string]: unknown;
@@ -3756,6 +4085,24 @@ export interface components {
         };
         /** @description Omborda yetarli qoldiq yo'q (stock_insufficient) */
         StockConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Sotuv topilmadi (not_found) */
+        SaleNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description To'lov sotuv bilan kiritilgan (payment_linked) */
+        CustomerPaymentConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -5592,6 +5939,410 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    listCustomerPayments: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPaymentPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    addCustomerPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan to'lov */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPayment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    updateCustomerPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan to'lov */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPayment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PaymentNotFound"];
+            409: components["responses"]["CustomerPaymentConflict"];
+        };
+    };
+    deleteCustomerPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PaymentNotFound"];
+            409: components["responses"]["CustomerPaymentConflict"];
+        };
+    };
+    listCustomerOpenings: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOpeningPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    addCustomerOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan hujjat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOpening"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    updateCustomerOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                openingId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOpening"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    deleteCustomerOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                openingId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    getCustomerStatement: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["CustomerNotFound"];
+        };
+    };
+    listSales: {
+        parameters: {
+            query?: {
+                location_id?: number;
+                customer_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaleCreate"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan sotuv, qatorlari va to'lovlari bilan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    getSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sotuv */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SaleNotFound"];
+        };
+    };
+    updateSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaleInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan sotuv, qatorlari va to'lovlari bilan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SaleNotFound"];
+            409: components["responses"]["StockConflict"];
+        };
+    };
+    deleteSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["SaleNotFound"];
         };
     };
     setEmployeeRole: {
