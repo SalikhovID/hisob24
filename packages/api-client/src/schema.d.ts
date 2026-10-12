@@ -2170,6 +2170,264 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Akkauntlar va qoldiqlari (finance.view ruxsati)
+         * @description Kompaniyaning jonli akkauntlari, faollari avval, so'ng qo'shilgan tartibida, har biri o'z valyutasidagi qoldig'i bilan: kirgan hujjatlar (kassa boshlang'ich qoldig'i, kirim, mijoz to'lovi, o'tkazma va konvertatsiya maqsadi) − chiqqan hujjatlar (xarajat, ta'minotchiga to'lov, o'tkazma va konvertatsiya manbai); aylantirilmaydi, manfiy bo'lishi mumkin (logic/finance.md, 4-bo'lim).
+         */
+        get: operations["listAccountBalances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/accounts/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Akkaunt hisob harakati (finance.view ruxsati)
+         * @description Akkauntga tegadigan hamma jonli hujjat vaqt bo'yicha, yangi birinchi, sahifada 20 ta: har qatorda ± summa (akkaunt valyutasida) va shu hujjatdan keyingi qoldiq; qarshi tomon (ta'minotchi yoki mijoz nomi, kategoriya, boshqa akkaunt); to'lov qaysi hujjat bilan kiritilgani. Begona yoki o'chirilgan akkaunt 404 "Akkaunt topilmadi" (logic/finance.md, 4-bo'lim).
+         */
+        get: operations["getAccountStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/cash-openings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Kassa boshlang'ich qoldiqlari ro'yxati (finance.view ruxsati)
+         * @description Kassa boshlang'ich qoldiqlari, vaqt bo'yicha yangi birinchi, sahifada 20 ta; account_id bitta akkauntniki (son emas: 400 "Akkaunt noto'g'ri").
+         */
+        get: operations["listCashOpenings"];
+        put?: never;
+        /**
+         * Kassa boshlang'ich qoldig'ini qo'shish (finance.create ruxsati)
+         * @description Tizimni boshlaganda akkauntda bor pul: akkauntga +. Tekshiruv tartibi (400): akkaunt (yo'q / begona: "Akkauntni tanlang"; nofaol: "Akkaunt nofaol"), vaqt ("Vaqtni kiriting", "Vaqt noto'g'ri"), summa ("Summani kiriting", "Summa noto'g'ri"), izoh (500 belgigacha). Valyuta akkauntniki, kurs maydoni yo'q (hujjat sanasidagi standart qator); raqam turda alohida (logic/finance.md, 5-bo'lim).
+         */
+        post: operations["createCashOpening"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/cash-openings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Kassa boshlang'ich qoldig'i (finance.view ruxsati)
+         * @description Boshqa turdagi, begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+         */
+        get: operations["getCashOpening"];
+        /**
+         * Kassa boshlang'ich qoldig'ini tahrirlash (finance.edit ruxsati)
+         * @description Hamma maydon almashadi (akkaunt ham; avvaldan bor nofaol akkaunt qoladi); raqam o'zgarmaydi.
+         */
+        put: operations["updateCashOpening"];
+        post?: never;
+        /**
+         * Kassa boshlang'ich qoldig'ini o'chirish (finance.delete ruxsati)
+         * @description Yashiriladi; raqam bo'shamaydi.
+         */
+        delete: operations["deleteCashOpening"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Xarajatlar va kirimlar ro'yxati (finance.view ruxsati)
+         * @description kind xarajat (standart) yoki kirim (boshqasi: 400 "Tur noto'g'ri"); account_id ("Akkaunt noto'g'ri"), category_id ("Kategoriya noto'g'ri"), from va to kunlar (YYYY-MM-DD, a'zoning timezone'ida; noto'g'ri yoki teskari: "Sana noto'g'ri"); vaqt bo'yicha yangi birinchi, sahifada 20 ta.
+         */
+        get: operations["listExpenses"];
+        put?: never;
+        /**
+         * Xarajat yoki kirim qo'shish (finance.create ruxsati)
+         * @description Xarajat akkauntdan −, kirim akkauntga +. Tekshiruv tartibi (400): tur ("Turni tanlang", "Tur noto'g'ri"), akkaunt, kategoriya ("Kategoriyani tanlang"; turi mos emas: "Kategoriya turi mos emas"; nofaol: "Kategoriya nofaol"), vaqt, summa, izoh. Valyuta akkauntniki; raqam har turda alohida (logic/finance.md, 5-bo'lim).
+         */
+        post: operations["createExpense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/expenses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Xarajat yoki kirim (finance.view ruxsati)
+         * @description Xarajat yoki kirim; boshqa turdagi, begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+         */
+        get: operations["getExpense"];
+        /**
+         * Xarajat yoki kirimni tahrirlash (finance.edit ruxsati)
+         * @description Tur o'zgarmaydi (boshqasi yuborilsa 400 "Tur o'zgartirilmaydi"); akkaunt, kategoriya (avvaldan bor nofaol kategoriya qoladi), vaqt, summa, izoh almashadi; raqam o'zgarmaydi.
+         */
+        put: operations["updateExpense"];
+        post?: never;
+        /**
+         * Xarajat yoki kirimni o'chirish (finance.delete ruxsati)
+         * @description Yashiriladi; raqam bo'shamaydi.
+         */
+        delete: operations["deleteExpense"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/money-transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * O'tkazmalar ro'yxati (finance.view ruxsati)
+         * @description O'tkazmalar va konvertatsiyalar bitta ro'yxatda (kind bilan farqlanadi), vaqt bo'yicha yangi birinchi, sahifada 20 ta; account_id manba yoki maqsad bo'lgan akkauntniki (son emas: 400 "Akkaunt noto'g'ri").
+         */
+        get: operations["listMoneyTransfers"];
+        put?: never;
+        /**
+         * O'tkazma qo'shish (finance.create ruxsati)
+         * @description Bir akkauntdan boshqasiga shu valyutada: manbadan −, maqsadga +. Tekshiruv tartibi (400): akkaunt, maqsad akkaunt ("Maqsad akkauntni tanlang", "Maqsad akkaunt nofaol", o'zi: "Maqsad akkaunt boshqa bo'lsin", boshqa valyuta: "Valyutalar farq qilsa konvertatsiya kiriting"), vaqt, summa, izoh (logic/finance.md, 5-bo'lim).
+         */
+        post: operations["createMoneyTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/money-transfers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * O'tkazma (finance.view ruxsati)
+         * @description O'tkazma (konvertatsiya emas); begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+         */
+        get: operations["getMoneyTransfer"];
+        /**
+         * O'tkazmani tahrirlash (finance.edit ruxsati)
+         * @description Ikkala akkaunt, vaqt, summa va izoh almashadi (avvaldan hujjatdagi nofaol akkaunt qoladi); raqam o'zgarmaydi.
+         */
+        put: operations["updateMoneyTransfer"];
+        post?: never;
+        /**
+         * O'tkazmani o'chirish (finance.delete ruxsati)
+         * @description Yashiriladi; raqam bo'shamaydi.
+         */
+        delete: operations["deleteMoneyTransfer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/conversions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Konvertatsiyalar ro'yxati (finance.view ruxsati)
+         * @description Konvertatsiyalar, vaqt bo'yicha yangi birinchi, sahifada 20 ta; account_id manba yoki maqsad bo'lgan akkauntniki (son emas: 400 "Akkaunt noto'g'ri").
+         */
+        get: operations["listConversions"];
+        put?: never;
+        /**
+         * Konvertatsiya qo'shish (finance.create ruxsati)
+         * @description Bir akkauntdan boshqa valyutali akkauntga: manbadan chiqqan summa (manba valyutasida) va maqsadga kirgan summa (maqsad valyutasida) alohida; kurs ma'lumot uchun hisoblanadi (so'm chiqsa chiqqan / kirgan, so'm kirsa kirgan / chiqqan, ikkalasi boshqa valyutada bo'lsa kirgan / chiqqan; 4 kasr). Tekshiruv tartibi (400): akkaunt, maqsad akkaunt (o'zi: "Maqsad akkaunt boshqa bo'lsin"; bir xil valyuta: "Bir xil valyutada o'tkazma kiriting"), vaqt, summa, maqsad summa ("Maqsad summani kiriting", "Maqsad summa noto'g'ri"), izoh (logic/finance.md, 5-bo'lim).
+         */
+        post: operations["createConversion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/conversions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Konvertatsiya (finance.view ruxsati)
+         * @description Konvertatsiya (o'tkazma emas); begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+         */
+        get: operations["getConversion"];
+        /**
+         * Konvertatsiyani tahrirlash (finance.edit ruxsati)
+         * @description Ikkala akkaunt, ikkala summa, vaqt va izoh almashadi (avvaldan hujjatdagi nofaol akkaunt qoladi); raqam o'zgarmaydi.
+         */
+        put: operations["updateConversion"];
+        post?: never;
+        /**
+         * Konvertatsiyani o'chirish (finance.delete ruxsati)
+         * @description Yashiriladi; raqam bo'shamaydi.
+         */
+        delete: operations["deleteConversion"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3702,6 +3960,205 @@ export interface components {
             page: number;
             page_size: number;
         };
+        /** @description Kompaniya akkaunti, o'z valyutasidagi qoldig'i bilan (logic/finance.md, 4-bo'lim) */
+        AccountBalance: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** Format: int64 */
+            currency_id: number;
+            is_active: boolean;
+            /** @description Ikki kasr; manfiy bo'lishi mumkin */
+            balance: string;
+        };
+        /** @description Akkaunt hisob harakatining bitta qatori: hujjat, uning akkaunt qoldig'ini qanday o'zgartirgani (akkaunt valyutasida, ishorasi bilan) va shu hujjatdan keyingi qoldiq; qarshi tomon; to'lov kiritilgan hujjat. */
+        AccountStatementRow: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "cash_opening" | "expense" | "income" | "money_transfer" | "conversion" | "supplier_payment" | "customer_payment";
+            number: number;
+            /** Format: date-time */
+            at: string;
+            /** @description ± summa, akkaunt valyutasida, ikki kasr */
+            delta: string;
+            /** @description Shu hujjatdan keyingi qoldiq */
+            balance: string;
+            /**
+             * Format: int64
+             * @description Xarid yoki sotuv bilan kiritilgan to'lovda o'sha hujjatning id'si
+             */
+            linked_id: number | null;
+            /** @description O'sha hujjatning raqami */
+            linked_number: number | null;
+            /** @description Ta'minotchi yoki mijoz (nomi, bo'lmasa telefoni), kategoriya, boshqa akkaunt; kassa boshlang'ich qoldig'ida null */
+            party_name: string | null;
+            note: string | null;
+            created_by_name: string | null;
+        };
+        AccountStatementPage: {
+            items: components["schemas"]["AccountStatementRow"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description Kassa boshlang'ich qoldig'i (logic/finance.md, 5-bo'lim) */
+        CashOpening: {
+            /** Format: int64 */
+            id: number;
+            number: number;
+            /** Format: int64 */
+            bank_account_id: number;
+            account_name: string;
+            /**
+             * Format: int64
+             * @description Akkauntning valyutasi
+             */
+            currency_id: number;
+            /** @description Ikki kasr, akkaunt valyutasida */
+            amount: string;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CashOpeningInput: {
+            /** Format: int64 */
+            bank_account_id: number;
+            /** @description Akkaunt valyutasida, ikki kasrgacha */
+            amount: string;
+            /** Format: date-time */
+            at: string;
+            note?: string | null;
+        };
+        CashOpeningPage: {
+            items: components["schemas"]["CashOpening"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description Xarajat (akkauntdan −) yoki kirim (akkauntga +), kategoriyasi bilan (logic/finance.md, 5-bo'lim) */
+        Expense: {
+            kind: components["schemas"]["FinanceKind"];
+            /** Format: int64 */
+            category_id: number;
+            category_name: string;
+            /** Format: int64 */
+            id: number;
+            number: number;
+            /** Format: int64 */
+            bank_account_id: number;
+            account_name: string;
+            /**
+             * Format: int64
+             * @description Akkauntning valyutasi
+             */
+            currency_id: number;
+            /** @description Ikki kasr, akkaunt valyutasida */
+            amount: string;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ExpenseInput: {
+            kind: components["schemas"]["FinanceKind"];
+            /** Format: int64 */
+            bank_account_id: number;
+            /**
+             * Format: int64
+             * @description Turi hujjat turiga mos, faol kategoriya
+             */
+            category_id: number;
+            amount: string;
+            /** Format: date-time */
+            at: string;
+            note?: string | null;
+        };
+        ExpensePage: {
+            items: components["schemas"]["Expense"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        /** @description O'tkazma (bir valyutada, kirgan summa chiqqaniga teng) yoki konvertatsiya (chiqqan va kirgan summa alohida, kurs ma'lumot uchun) (logic/finance.md, 5-bo'lim) */
+        MoneyTransfer: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "money_transfer" | "conversion";
+            number: number;
+            /** Format: int64 */
+            from_account_id: number;
+            from_account_name: string;
+            /**
+             * Format: int64
+             * @description Manba akkauntning valyutasi
+             */
+            currency_id: number;
+            /** @description Chiqqan summa, manba valyutasida */
+            amount: string;
+            /** Format: int64 */
+            to_account_id: number;
+            to_account_name: string;
+            /** Format: int64 */
+            to_currency_id: number;
+            /** @description Konvertatsiyada kirgan summa, maqsad valyutasida; o'tkazmada null */
+            to_amount: string | null;
+            /** @description Konvertatsiya kursi, to'rt kasr; o'tkazmada null */
+            rate: string | null;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+            created_by_name: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        MoneyTransferInput: {
+            /** Format: int64 */
+            from_account_id: number;
+            /**
+             * Format: int64
+             * @description Boshqa akkaunt, shu valyutada
+             */
+            to_account_id: number;
+            amount: string;
+            /** Format: date-time */
+            at: string;
+            note?: string | null;
+        };
+        ConversionInput: {
+            /** Format: int64 */
+            from_account_id: number;
+            /** @description Chiqqan summa, manba valyutasida */
+            amount: string;
+            /**
+             * Format: int64
+             * @description Boshqa valyutali akkaunt
+             */
+            to_account_id: number;
+            /** @description Kirgan summa, maqsad valyutasida */
+            to_amount: string;
+            /** Format: date-time */
+            at: string;
+            note?: string | null;
+        };
+        MoneyTransferPage: {
+            items: components["schemas"]["MoneyTransfer"][];
+            total: number;
+            page: number;
+            page_size: number;
+        };
     };
     responses: {
         /** @description So'rov noto'g'ri (bad_request) yoki maydon xato (validation_error, message aniq sababni aytadi) */
@@ -4067,6 +4524,15 @@ export interface components {
         };
         /** @description Inventarizatsiya topilmadi (not_found) */
         InventoryNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Akkaunt topilmadi (not_found) */
+        AccountNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -8441,6 +8907,606 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["DocumentNotFound"];
             409: components["responses"]["StockConflict"];
+        };
+    };
+    listAccountBalances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Akkauntlar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountBalance"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getAccountStatement: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatementPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["AccountNotFound"];
+        };
+    };
+    listCashOpenings: {
+        parameters: {
+            query?: {
+                account_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashOpeningPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createCashOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashOpeningInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan hujjat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashOpening"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getCashOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashOpening"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    updateCashOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashOpeningInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashOpening"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    deleteCashOpening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    listExpenses: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["FinanceKind"];
+                account_id?: number;
+                category_id?: number;
+                from?: string;
+                to?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpensePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan hujjat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    updateExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    deleteExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    listMoneyTransfers: {
+        parameters: {
+            query?: {
+                account_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransferPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createMoneyTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoneyTransferInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan hujjat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransfer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getMoneyTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransfer"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    updateMoneyTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoneyTransferInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransfer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    deleteMoneyTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    listConversions: {
+        parameters: {
+            query?: {
+                account_id?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransferPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createConversion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversionInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan hujjat */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransfer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getConversion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransfer"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    updateConversion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversionInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan hujjat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoneyTransfer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    deleteConversion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["DocumentNotFound"];
         };
     };
 }

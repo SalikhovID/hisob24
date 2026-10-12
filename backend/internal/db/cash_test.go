@@ -29,11 +29,11 @@ func addAccountRow(t *testing.T, pool *pgxpool.Pool, companyID int64, name strin
 // to the second cash on the 5th, 128 000 turned into 10 dollars on the
 // card on the 6th; a deleted expense and another company's opening beside.
 type books struct {
-	w                                                             warehouse
-	cash, card, kassa2, eski, ijara, boshqa                       int64
+	w                                                            warehouse
+	cash, card, kassa2, eski, ijara, boshqa                      int64
 	opening, old, income, rent, paid, received, moved, converted int64
-	gone, purchase                                                int64
-	customerPhone                                                 string
+	gone, purchase                                               int64
+	customerPhone                                                string
 }
 
 func newBooks(t *testing.T, q *gen.Queries, pool *pgxpool.Pool) books {
@@ -171,7 +171,9 @@ func TestCashDocuments(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	b := newBooks(t, q, pool)
-	ids := func(rows []gen.ListCashDocumentsRow) []int64 { return idsOf(rows, func(r gen.ListCashDocumentsRow) int64 { return r.ID }) }
+	ids := func(rows []gen.ListCashDocumentsRow) []int64 {
+		return idsOf(rows, func(r gen.ListCashDocumentsRow) int64 { return r.ID })
+	}
 
 	one, err := q.GetCashDocument(ctx, gen.GetCashDocumentParams{ID: b.converted, CompanyID: b.w.company, Kinds: []string{"conversion"}})
 	require.NoError(t, err)

@@ -93,3 +93,33 @@ func TestCompanyAccounts(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPost, path, `{"name":"Bank","currency_id":1}`).Code, "needs a session")
 }
+
+// An account that live documents name is neither deleted nor put in
+// another currency (409 account_in_use); it may be turned off.
+func TestAccountInUse(t *testing.T) {
+	api := newTestAPI(t, true)
+	cookie := api.login(t)
+	id := api.createCompany(t, cookie, "Olma", dbToday(t, api.pool))
+	require.Equal(t, http.StatusOK, api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[2,3]}`, cookie).Code)
+	rec := api.do(t, http.MethodPost, "/admin/companies/"+id+"/accounts", `{"name":"Karta","currency_id":2}`, cookie)
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	card := decode(t, rec)
+	cardPath := fmt.Sprintf("/admin/companies/%s/accounts/%v", id, card["id"])
+	ctx := t.Context()
+	_, err := api.pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111') ON CONFLICT DO NOTHING")
+	require.NoError(t, err)
+	var rate int64
+	require.NoError(t, api.pool.QueryRow(ctx, "INSERT INTO currency_rates (company_id, set_by) VALUES ($1, '998901111111') RETURNING id", id).Scan(&rate))
+	_, err = api.pool.Exec(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, bank_account_id, currency_id, currency_rate_id, total, created_by)
+		VALUES ($1, 'cash_opening', 1, now(), $2, 2, $3, 100, '998901111111')`, id, card["id"], rate)
+	require.NoError(t, err)
+
+	rec = api.do(t, http.MethodPatch, cardPath, `{"currency_id":3}`, cookie)
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"account_in_use","message":"Bu akkauntda 1 ta hujjat bor"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPatch, cardPath, `{"name":"Humo","is_active":false}`, cookie)
+	assert.Equal(t, http.StatusOK, rec.Code, "renamed and turned off instead: %s", rec.Body.String())
+	rec = api.do(t, http.MethodDelete, cardPath, "", cookie)
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"account_in_use","message":"Bu akkauntda 1 ta hujjat bor"}`, rec.Body.String())
+}

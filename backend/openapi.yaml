@@ -4953,6 +4953,657 @@ paths:
           $ref: "#/components/responses/DocumentNotFound"
         "409":
           $ref: "#/components/responses/StockConflict"
+  /app/accounts:
+    get:
+      operationId: listAccountBalances
+      summary: Akkauntlar va qoldiqlari (finance.view ruxsati)
+      description: >
+        Kompaniyaning jonli akkauntlari, faollari avval, so'ng qo'shilgan
+        tartibida, har biri o'z valyutasidagi qoldig'i bilan: kirgan
+        hujjatlar (kassa boshlang'ich qoldig'i, kirim, mijoz to'lovi,
+        o'tkazma va konvertatsiya maqsadi) − chiqqan hujjatlar (xarajat,
+        ta'minotchiga to'lov, o'tkazma va konvertatsiya manbai);
+        aylantirilmaydi, manfiy bo'lishi mumkin (logic/finance.md,
+        4-bo'lim).
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Akkauntlar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountBalance"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/accounts/{id}/statement:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getAccountStatement
+      summary: Akkaunt hisob harakati (finance.view ruxsati)
+      description: >
+        Akkauntga tegadigan hamma jonli hujjat vaqt bo'yicha, yangi
+        birinchi, sahifada 20 ta: har qatorda ± summa (akkaunt
+        valyutasida) va shu hujjatdan keyingi qoldiq; qarshi tomon
+        (ta'minotchi yoki mijoz nomi, kategoriya, boshqa akkaunt); to'lov
+        qaysi hujjat bilan kiritilgani. Begona yoki o'chirilgan akkaunt
+        404 "Akkaunt topilmadi" (logic/finance.md, 4-bo'lim).
+      security:
+        - appBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountStatementPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/AccountNotFound"
+  /app/cash-openings:
+    get:
+      operationId: listCashOpenings
+      summary: Kassa boshlang'ich qoldiqlari ro'yxati (finance.view ruxsati)
+      description: >
+        Kassa boshlang'ich qoldiqlari, vaqt bo'yicha yangi birinchi, sahifada 20 ta; account_id bitta akkauntniki (son emas: 400 "Akkaunt noto'g'ri").
+      security:
+        - appBearer: []
+      parameters:
+        - name: account_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashOpeningPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createCashOpening
+      summary: Kassa boshlang'ich qoldig'ini qo'shish (finance.create ruxsati)
+      description: >
+        Tizimni boshlaganda akkauntda bor pul: akkauntga +. Tekshiruv tartibi (400): akkaunt (yo'q / begona: "Akkauntni tanlang"; nofaol: "Akkaunt nofaol"), vaqt ("Vaqtni kiriting", "Vaqt noto'g'ri"), summa ("Summani kiriting", "Summa noto'g'ri"), izoh (500 belgigacha). Valyuta akkauntniki, kurs maydoni yo'q (hujjat sanasidagi standart qator); raqam turda alohida (logic/finance.md, 5-bo'lim).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashOpeningInput"
+      responses:
+        "201":
+          description: Qo'shilgan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashOpening"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/cash-openings/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getCashOpening
+      summary: Kassa boshlang'ich qoldig'i (finance.view ruxsati)
+      description: >
+        Boshqa turdagi, begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashOpening"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    put:
+      operationId: updateCashOpening
+      summary: Kassa boshlang'ich qoldig'ini tahrirlash (finance.edit ruxsati)
+      description: >
+        Hamma maydon almashadi (akkaunt ham; avvaldan bor nofaol akkaunt qoladi); raqam o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashOpeningInput"
+      responses:
+        "200":
+          description: Saqlangan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashOpening"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    delete:
+      operationId: deleteCashOpening
+      summary: Kassa boshlang'ich qoldig'ini o'chirish (finance.delete ruxsati)
+      description: >
+        Yashiriladi; raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+  /app/expenses:
+    get:
+      operationId: listExpenses
+      summary: Xarajatlar va kirimlar ro'yxati (finance.view ruxsati)
+      description: >
+        kind xarajat (standart) yoki kirim (boshqasi: 400 "Tur noto'g'ri"); account_id ("Akkaunt noto'g'ri"), category_id ("Kategoriya noto'g'ri"), from va to kunlar (YYYY-MM-DD, a'zoning timezone'ida; noto'g'ri yoki teskari: "Sana noto'g'ri"); vaqt bo'yicha yangi birinchi, sahifada 20 ta.
+      security:
+        - appBearer: []
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            $ref: "#/components/schemas/FinanceKind"
+        - name: account_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createExpense
+      summary: Xarajat yoki kirim qo'shish (finance.create ruxsati)
+      description: >
+        Xarajat akkauntdan −, kirim akkauntga +. Tekshiruv tartibi (400): tur ("Turni tanlang", "Tur noto'g'ri"), akkaunt, kategoriya ("Kategoriyani tanlang"; turi mos emas: "Kategoriya turi mos emas"; nofaol: "Kategoriya nofaol"), vaqt, summa, izoh. Valyuta akkauntniki; raqam har turda alohida (logic/finance.md, 5-bo'lim).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "201":
+          description: Qo'shilgan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/expenses/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getExpense
+      summary: Xarajat yoki kirim (finance.view ruxsati)
+      description: >
+        Xarajat yoki kirim; boshqa turdagi, begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    put:
+      operationId: updateExpense
+      summary: Xarajat yoki kirimni tahrirlash (finance.edit ruxsati)
+      description: >
+        Tur o'zgarmaydi (boshqasi yuborilsa 400 "Tur o'zgartirilmaydi"); akkaunt, kategoriya (avvaldan bor nofaol kategoriya qoladi), vaqt, summa, izoh almashadi; raqam o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "200":
+          description: Saqlangan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    delete:
+      operationId: deleteExpense
+      summary: Xarajat yoki kirimni o'chirish (finance.delete ruxsati)
+      description: >
+        Yashiriladi; raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+  /app/money-transfers:
+    get:
+      operationId: listMoneyTransfers
+      summary: O'tkazmalar ro'yxati (finance.view ruxsati)
+      description: >
+        O'tkazmalar va konvertatsiyalar bitta ro'yxatda (kind bilan farqlanadi), vaqt bo'yicha yangi birinchi, sahifada 20 ta; account_id manba yoki maqsad bo'lgan akkauntniki (son emas: 400 "Akkaunt noto'g'ri").
+      security:
+        - appBearer: []
+      parameters:
+        - name: account_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransferPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createMoneyTransfer
+      summary: O'tkazma qo'shish (finance.create ruxsati)
+      description: >
+        Bir akkauntdan boshqasiga shu valyutada: manbadan −, maqsadga +. Tekshiruv tartibi (400): akkaunt, maqsad akkaunt ("Maqsad akkauntni tanlang", "Maqsad akkaunt nofaol", o'zi: "Maqsad akkaunt boshqa bo'lsin", boshqa valyuta: "Valyutalar farq qilsa konvertatsiya kiriting"), vaqt, summa, izoh (logic/finance.md, 5-bo'lim).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoneyTransferInput"
+      responses:
+        "201":
+          description: Qo'shilgan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/money-transfers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getMoneyTransfer
+      summary: O'tkazma (finance.view ruxsati)
+      description: >
+        O'tkazma (konvertatsiya emas); begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransfer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    put:
+      operationId: updateMoneyTransfer
+      summary: O'tkazmani tahrirlash (finance.edit ruxsati)
+      description: >
+        Ikkala akkaunt, vaqt, summa va izoh almashadi (avvaldan hujjatdagi nofaol akkaunt qoladi); raqam o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoneyTransferInput"
+      responses:
+        "200":
+          description: Saqlangan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    delete:
+      operationId: deleteMoneyTransfer
+      summary: O'tkazmani o'chirish (finance.delete ruxsati)
+      description: >
+        Yashiriladi; raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+  /app/conversions:
+    get:
+      operationId: listConversions
+      summary: Konvertatsiyalar ro'yxati (finance.view ruxsati)
+      description: >
+        Konvertatsiyalar, vaqt bo'yicha yangi birinchi, sahifada 20 ta; account_id manba yoki maqsad bo'lgan akkauntniki (son emas: 400 "Akkaunt noto'g'ri").
+      security:
+        - appBearer: []
+      parameters:
+        - name: account_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransferPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createConversion
+      summary: Konvertatsiya qo'shish (finance.create ruxsati)
+      description: >
+        Bir akkauntdan boshqa valyutali akkauntga: manbadan chiqqan summa (manba valyutasida) va maqsadga kirgan summa (maqsad valyutasida) alohida; kurs ma'lumot uchun hisoblanadi (so'm chiqsa chiqqan / kirgan, so'm kirsa kirgan / chiqqan, ikkalasi boshqa valyutada bo'lsa kirgan / chiqqan; 4 kasr). Tekshiruv tartibi (400): akkaunt, maqsad akkaunt (o'zi: "Maqsad akkaunt boshqa bo'lsin"; bir xil valyuta: "Bir xil valyutada o'tkazma kiriting"), vaqt, summa, maqsad summa ("Maqsad summani kiriting", "Maqsad summa noto'g'ri"), izoh (logic/finance.md, 5-bo'lim).
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversionInput"
+      responses:
+        "201":
+          description: Qo'shilgan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /app/conversions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getConversion
+      summary: Konvertatsiya (finance.view ruxsati)
+      description: >
+        Konvertatsiya (o'tkazma emas); begona yoki o'chirilgan hujjat 404 "Hujjat topilmadi".
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransfer"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    put:
+      operationId: updateConversion
+      summary: Konvertatsiyani tahrirlash (finance.edit ruxsati)
+      description: >
+        Ikkala akkaunt, ikkala summa, vaqt va izoh almashadi (avvaldan hujjatdagi nofaol akkaunt qoladi); raqam o'zgarmaydi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversionInput"
+      responses:
+        "200":
+          description: Saqlangan hujjat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoneyTransfer"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
+    delete:
+      operationId: deleteConversion
+      summary: Konvertatsiyani o'chirish (finance.delete ruxsati)
+      description: >
+        Yashiriladi; raqam bo'shamaydi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/DocumentNotFound"
 components:
   securitySchemes:
     adminSession:
@@ -5286,6 +5937,12 @@ components:
             $ref: "#/components/schemas/Error"
     InventoryNotFound:
       description: Inventarizatsiya topilmadi (not_found)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    AccountNotFound:
+      description: Akkaunt topilmadi (not_found)
       content:
         application/json:
           schema:
@@ -7991,6 +8648,331 @@ components:
         total:
           type: integer
           format: int64
+        page:
+          type: integer
+        page_size:
+          type: integer
+    AccountBalance:
+      type: object
+      description: Kompaniya akkaunti, o'z valyutasidagi qoldig'i bilan (logic/finance.md, 4-bo'lim)
+      required: [id, name, currency_id, is_active, balance]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        currency_id:
+          type: integer
+          format: int64
+        is_active:
+          type: boolean
+        balance:
+          type: string
+          description: Ikki kasr; manfiy bo'lishi mumkin
+    AccountStatementRow:
+      type: object
+      description: >
+        Akkaunt hisob harakatining bitta qatori: hujjat, uning akkaunt
+        qoldig'ini qanday o'zgartirgani (akkaunt valyutasida, ishorasi
+        bilan) va shu hujjatdan keyingi qoldiq; qarshi tomon; to'lov
+        kiritilgan hujjat.
+      required: [id, kind, number, at, delta, balance, linked_id, linked_number, party_name, note, created_by_name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+          enum: [cash_opening, expense, income, money_transfer, conversion, supplier_payment, customer_payment]
+        number:
+          type: integer
+        at:
+          type: string
+          format: date-time
+        delta:
+          type: string
+          description: ± summa, akkaunt valyutasida, ikki kasr
+        balance:
+          type: string
+          description: Shu hujjatdan keyingi qoldiq
+        linked_id:
+          type: [integer, "null"]
+          format: int64
+          description: Xarid yoki sotuv bilan kiritilgan to'lovda o'sha hujjatning id'si
+        linked_number:
+          type: [integer, "null"]
+          description: O'sha hujjatning raqami
+        party_name:
+          type: [string, "null"]
+          description: Ta'minotchi yoki mijoz (nomi, bo'lmasa telefoni), kategoriya, boshqa akkaunt; kassa boshlang'ich qoldig'ida null
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+    AccountStatementPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountStatementRow"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    CashOpening:
+      type: object
+      description: Kassa boshlang'ich qoldig'i (logic/finance.md, 5-bo'lim)
+      required: [id, number, bank_account_id, account_name, currency_id, amount, at, note, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+        bank_account_id:
+          type: integer
+          format: int64
+        account_name:
+          type: string
+        currency_id:
+          type: integer
+          format: int64
+          description: Akkauntning valyutasi
+        amount:
+          type: string
+          description: Ikki kasr, akkaunt valyutasida
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CashOpeningInput:
+      type: object
+      required: [bank_account_id, amount, at]
+      properties:
+        bank_account_id:
+          type: integer
+          format: int64
+        amount:
+          type: string
+          description: Akkaunt valyutasida, ikki kasrgacha
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    CashOpeningPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CashOpening"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    Expense:
+      type: object
+      description: Xarajat (akkauntdan −) yoki kirim (akkauntga +), kategoriyasi bilan (logic/finance.md, 5-bo'lim)
+      required: [id, kind, number, bank_account_id, account_name, currency_id, amount, category_id, category_name, at, note, created_by_name, created_at, updated_at]
+      properties:
+        kind:
+          $ref: "#/components/schemas/FinanceKind"
+        category_id:
+          type: integer
+          format: int64
+        category_name:
+          type: string
+        id:
+          type: integer
+          format: int64
+        number:
+          type: integer
+        bank_account_id:
+          type: integer
+          format: int64
+        account_name:
+          type: string
+        currency_id:
+          type: integer
+          format: int64
+          description: Akkauntning valyutasi
+        amount:
+          type: string
+          description: Ikki kasr, akkaunt valyutasida
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ExpenseInput:
+      type: object
+      required: [kind, bank_account_id, category_id, amount, at]
+      properties:
+        kind:
+          $ref: "#/components/schemas/FinanceKind"
+        bank_account_id:
+          type: integer
+          format: int64
+        category_id:
+          type: integer
+          format: int64
+          description: Turi hujjat turiga mos, faol kategoriya
+        amount:
+          type: string
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    ExpensePage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Expense"
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+    MoneyTransfer:
+      type: object
+      description: >
+        O'tkazma (bir valyutada, kirgan summa chiqqaniga teng) yoki
+        konvertatsiya (chiqqan va kirgan summa alohida, kurs ma'lumot
+        uchun) (logic/finance.md, 5-bo'lim)
+      required: [id, kind, number, from_account_id, from_account_name, currency_id, amount, to_account_id, to_account_name, to_currency_id, to_amount, rate, at, note, created_by_name, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+          enum: [money_transfer, conversion]
+        number:
+          type: integer
+        from_account_id:
+          type: integer
+          format: int64
+        from_account_name:
+          type: string
+        currency_id:
+          type: integer
+          format: int64
+          description: Manba akkauntning valyutasi
+        amount:
+          type: string
+          description: Chiqqan summa, manba valyutasida
+        to_account_id:
+          type: integer
+          format: int64
+        to_account_name:
+          type: string
+        to_currency_id:
+          type: integer
+          format: int64
+        to_amount:
+          type: [string, "null"]
+          description: Konvertatsiyada kirgan summa, maqsad valyutasida; o'tkazmada null
+        rate:
+          type: [string, "null"]
+          description: Konvertatsiya kursi, to'rt kasr; o'tkazmada null
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    MoneyTransferInput:
+      type: object
+      required: [from_account_id, to_account_id, amount, at]
+      properties:
+        from_account_id:
+          type: integer
+          format: int64
+        to_account_id:
+          type: integer
+          format: int64
+          description: Boshqa akkaunt, shu valyutada
+        amount:
+          type: string
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    ConversionInput:
+      type: object
+      required: [from_account_id, amount, to_account_id, to_amount, at]
+      properties:
+        from_account_id:
+          type: integer
+          format: int64
+        amount:
+          type: string
+          description: Chiqqan summa, manba valyutasida
+        to_account_id:
+          type: integer
+          format: int64
+          description: Boshqa valyutali akkaunt
+        to_amount:
+          type: string
+          description: Kirgan summa, maqsad valyutasida
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+          maxLength: 500
+    MoneyTransferPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTransfer"
+        total:
+          type: integer
         page:
           type: integer
         page_size:
