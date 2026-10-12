@@ -10,7 +10,7 @@ import { setAccessToken } from "@/lib/session"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { giveRole as holdRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
-import { ALI, db, nameIn, SARDOR, seedCatalog, VALI, ZARINA } from "./data"
+import { ALI, db, nameIn, SARDOR, seedCatalog, seedWarehouse, VALI, ZARINA } from "./data"
 
 const list = () => call(api.GET("/app/employees"))
 const add = (phone: string, fullName: string) =>
@@ -599,7 +599,9 @@ test("the list: the newest first, twenty to a page, one type, a search in the ph
   const vali = await createCustomer(jismoniy.id, "998905555555", { [fish.id]: "Vali Aliyev" })
   const firma = await createCustomer(yuridik.id, "998907777777", { [nomi.id]: "Olma 100% MChJ", [inn.id]: 301234567 })
 
-  expect(await listCustomers()).toEqual({ items: [firma, vali, ali], total: 3, page: 1, page_size: 20 })
+  // A list leaves the balance by currency out (logic/sales.md, section 5).
+  const listed = (c: typeof ali) => ({ ...c, balance_by_currency: null })
+  expect(await listCustomers()).toEqual({ items: [listed(firma), listed(vali), listed(ali)], total: 3, page: 1, page_size: 20 })
 
   const found = async (query: ListQuery) => (await listCustomers(query)).items.map((c) => c.id)
   expect(await found({ type_id: yuridik.id })).toEqual([firma.id])
@@ -2280,4 +2282,143 @@ test("a supplier's opening debt or advance goes into its balance and statement; 
   await signIn(SARDOR)
   await chooseCompany(1)
   expect(await failure(openings(supplier.id))).toMatchObject({ status: 403, code: "forbidden" })
+})
+
+// The sales (logic/sales.md; backend/internal/app/sales_test.go).
+const sales = (query: Record<string, string> = {}) => call(api.GET("/app/sales", { params: { query } }))
+const addSale = (body: components["schemas"]["SaleCreate"]) => call(api.POST("/app/sales", { body }))
+const getSale = (id: number) => call(api.GET("/app/sales/{id}", { params: { path: { id } } }))
+const customerPayments = (id: number) => call(api.GET("/app/customers/{id}/payments", { params: { path: { id } } }))
+const customerStatement = (id: number) => call(api.GET("/app/customers/{id}/statement", { params: { path: { id } } }))
+const addCustomerPayment = (id: number, body: components["schemas"]["PaymentInput"]) => call(api.POST("/app/customers/{id}/payments", { params: { path: { id } }, body }))
+const addCustomerOpening = (id: number, body: components["schemas"]["OpeningInput"]) => call(api.POST("/app/customers/{id}/openings", { params: { path: { id } }, body }))
+
+// soldTo is Olma Savdo with 12,5 Olma and 3 Nok in Asosiy, Ali signed in,
+// and Dilshod entered as a customer.
+async function soldTo() {
+  await signIn(ALI)
+  const catalog = seedCatalog()
+  const { bozor } = seedWarehouse(catalog)
+  const { jismoniy, fish } = await setup()
+  const dilshod = await createCustomer(jismoniy.id, "998911112233", { [fish.id]: "Dilshod" })
+  return { ...catalog, bozor, asosiy: asosiyOf(1).id, cash: cashOfCompany(1), dilshod }
+}
+
+test("a sale goes out of the stock to a customer or to nobody, with services among its lines and payments with it; it is listed, edited and deleted", async () => {
+  db.cooldown = false
+  const { olma, nok, yetkazish, eski, bozor, asosiy, cash, dilshod } = await soldTo()
+  const chilonzor = addLocation(1, "Chilonzor").id
+  const body = (items: components["schemas"]["PurchaseItemInput"][], extra: Partial<components["schemas"]["SaleCreate"]> = {}): components["schemas"]["SaleCreate"] => ({
+    location_id: asosiy,
+    customer_id: dilshod.id,
+    at: AT,
+    items,
+    ...extra,
+  })
+
+  for (const [input, message] of [
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { location_id: 0 }), "Lokatsiyani tanlang"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { customer_id: 999 }), "Mijozni tanlang"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { at: "" }), "Vaqtni kiriting"],
+    [body([]), "Kamida bitta mahsulot qo'shing"],
+    [body([{ product_id: eski.id, quantity: "1", price: "1" }]), "Mahsulot nofaol"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }, { product_id: olma.id, quantity: "2", price: "1" }]), "«Olma» ikki marta kiritilgan"],
+    [body([{ product_id: olma.id, quantity: "0", price: "1" }]), "«Olma» miqdori noto'g'ri"],
+    [body([{ product_id: olma.id, quantity: "1", price: "x" }]), "«Olma» narxi noto'g'ri"],
+    [body([{ product_id: olma.id, quantity: "1", price: "1" }], { payments: [{ bank_account_id: 0, amount: "1" }] }), "Akkauntni tanlang"],
+    [body([{ product_id: olma.id, quantity: "1", price: "3000" }], { customer_id: null }), "Mijozsiz sotuv to'liq to'langan bo'lsin"],
+    [body([{ product_id: olma.id, quantity: "1", price: "3000" }], { customer_id: null, payments: [{ bank_account_id: cash, amount: "2000" }] }), "Mijozsiz sotuv to'liq to'langan bo'lsin"],
+  ] as [components["schemas"]["SaleCreate"], string][]) {
+    expect(await failure(addSale(input)), message).toMatchObject({ status: 400, code: "validation_error", message })
+  }
+  expect(await failure(addSale(body([{ product_id: olma.id, quantity: "1", price: "1" }], { location_id: 999 })))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(addSale(body([{ product_id: olma.id, quantity: "13", price: "1" }])))).toMatchObject({ status: 409, code: "stock_insufficient", message: "«Olma» uchun omborda yetarli qoldiq yo'q" })
+  expect(db.transactions.filter((t) => t.kind === "sale" || t.kind === "customer_payment")).toHaveLength(0)
+
+  const first = await addSale(body([{ product_id: olma.id, quantity: "4", price: "3000" }, { product_id: yetkazish.id, quantity: "1", price: "10000" }], { payments: [{ bank_account_id: cash, amount: "5000" }], note: " Kechqurun " }))
+  expect(first).toMatchObject({ number: 1, location_id: asosiy, location_name: "Asosiy", customer: { id: dilshod.id, name: "Dilshod" }, at: AT_UTC, currency_id: 1, rate: "1.0000", total: "22000.00", total_uzs: "22000.00", paid: "5000.00", note: "Kechqurun", items_count: 2, created_by_name: "Ali Valiyev" })
+  expect(first.items).toEqual([
+    { product_id: olma.id, name: "Olma", unit: "kg", quantity: "4.000", price: "3000.00", amount: "12000.00" },
+    { product_id: yetkazish.id, name: "Yetkazish", unit: null, quantity: "1.000", price: "10000.00", amount: "10000.00" },
+  ])
+  expect(first.payments).toEqual([{ id: expect.any(Number), bank_account_id: cash, account_name: "Naqd", amount: "5000.00", currency_id: 1 }])
+  expect((await getProduct(olma.id)).quantity).toBe("8.500")
+  expect(db.moves.filter((m) => m.transactionId === first.id)).toHaveLength(1)
+  const retail = await addSale(body([{ product_id: nok.id, quantity: "1", price: "2000" }], { customer_id: null, payments: [{ bank_account_id: cash, amount: "2000" }] }))
+  expect(retail).toMatchObject({ number: 2, customer: null, paid: "2000.00" })
+  expect(db.transactions.find((t) => t.linkedId === retail.id)).toMatchObject({ kind: "customer_payment", customerId: null })
+  expect((await addPurchase({ location_id: asosiy, supplier_id: bozor.id, at: AT, items: [{ product_id: olma.id, quantity: "1", price: "1" }] })).number, "the purchases count on their own").toBe(2)
+
+  const list = await sales()
+  expect(list.total).toBe(2)
+  expect(list.items.map((s) => s.number)).toEqual([2, 1])
+  expect(list.items[0]).not.toHaveProperty("items")
+  expect((await sales({ customer_id: String(dilshod.id) })).total).toBe(1)
+  expect(await failure(sales({ customer_id: "x" }))).toMatchObject({ status: 400, message: "Mijoz noto'g'ri" })
+  expect(await getSale(first.id)).toEqual(first)
+
+  restrictTo(SARDOR, 1, [chilonzor])
+  await signIn(SARDOR)
+  await chooseCompany(1)
+  expect((await sales()).total).toBe(0)
+  expect(await failure(getSale(first.id))).toMatchObject({ status: 404, message: "Sotuv topilmadi" })
+  expect(await failure(sales({ location_id: String(asosiy) }))).toMatchObject({ status: 403, code: "forbidden" })
+
+  await signIn(ALI)
+  const saved = await call(api.PUT("/app/sales/{id}", { params: { path: { id: first.id } }, body: { customer_id: dilshod.id, at: AT, items: [{ product_id: olma.id, quantity: "2", price: "3000" }], payments: [] } }))
+  expect(saved).toMatchObject({ number: 1, total: "6000.00", paid: "0.00", items_count: 1 })
+  expect((await getProduct(olma.id)).quantity).toBe("11.500")
+  expect(await failure(call(api.PUT("/app/sales/{id}", { params: { path: { id: first.id } }, body: { customer_id: null, at: AT, items: [{ product_id: olma.id, quantity: "2", price: "3000" }] } })))).toMatchObject({ status: 400, message: "Mijozsiz sotuv to'liq to'langan bo'lsin" })
+  await call(api.DELETE("/app/sales/{id}", { params: { path: { id: first.id } } }))
+  expect(await failure(getSale(first.id))).toMatchObject({ status: 404, message: "Sotuv topilmadi" })
+  expect((await getProduct(olma.id)).quantity).toBe("13.500")
+  expect((await addSale(body([{ product_id: olma.id, quantity: "1", price: "1" }]))).number).toBe(3)
+})
+
+test("a customer's payments, opening balances and statement; what they owe is on the customer, for whoever may see the sales", async () => {
+  const { olma, asosiy, cash, dilshod } = await soldTo()
+  const sale = await addSale({ location_id: asosiy, customer_id: dilshod.id, at: AT, items: [{ product_id: olma.id, quantity: "4", price: "3000" }], payments: [{ bank_account_id: cash, amount: "5000" }] })
+
+  const payment = await addCustomerPayment(dilshod.id, { bank_account_id: cash, amount: "1000", at: AT, note: " Naqd " })
+  expect(payment).toMatchObject({ customer_id: dilshod.id, sale_id: null, sale_number: null, bank_account_id: cash, account_name: "Naqd", amount: "1000.00", currency_id: 1, rate: "1.0000", amount_uzs: "1000.00", at: AT_UTC, note: "Naqd", created_by_name: "Ali Valiyev" })
+  expect(await failure(addCustomerPayment(dilshod.id, { bank_account_id: cash, amount: "", at: AT }))).toMatchObject({ status: 400, message: "Summani kiriting" })
+  expect(await failure(addCustomerPayment(999, { bank_account_id: cash, amount: "1", at: AT }))).toMatchObject({ status: 404, message: "Mijoz topilmadi" })
+  const payments = await customerPayments(dilshod.id)
+  expect(payments.total).toBe(2)
+  expect(payments.items[1]).toMatchObject({ sale_id: sale.id, sale_number: 1, amount: "5000.00" })
+  const own = { params: { path: { id: dilshod.id, paymentId: payment.id } } }
+  expect((await call(api.PUT("/app/customers/{id}/payments/{paymentId}", { ...own, body: { bank_account_id: cash, amount: "1500", at: AT } }))).amount).toBe("1500.00")
+  expect(await failure(call(api.DELETE("/app/customers/{id}/payments/{paymentId}", { params: { path: { id: dilshod.id, paymentId: payments.items[1].id } } })))).toMatchObject({ status: 409, code: "payment_linked", message: "Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang" })
+  await call(api.DELETE("/app/customers/{id}/payments/{paymentId}", own))
+  expect(await failure(call(api.DELETE("/app/customers/{id}/payments/{paymentId}", own)))).toMatchObject({ status: 404, message: "To'lov topilmadi" })
+
+  const debt = await addCustomerOpening(dilshod.id, { kind: "debt", amount: "300000", at: "2026-10-01T09:00:00+05:00" })
+  expect(debt).toMatchObject({ kind: "debt", customer_id: dilshod.id, amount: "300000.00", amount_uzs: "300000.00" })
+  expect(await failure(addCustomerOpening(dilshod.id, { kind: "loan" as "debt", amount: "1", at: AT }))).toMatchObject({ status: 400, message: "Tur noto'g'ri" })
+  expect((await call(api.GET("/app/customers/{id}/openings", { params: { path: { id: dilshod.id } } }))).total).toBe(1)
+  const opening = { params: { path: { id: dilshod.id, openingId: debt.id } } }
+  expect(await failure(call(api.PUT("/app/customers/{id}/openings/{openingId}", { ...opening, body: { kind: "prepay", amount: "1", at: AT } })))).toMatchObject({ status: 400, message: "Tur o'zgartirilmaydi" })
+  expect((await call(api.PUT("/app/customers/{id}/openings/{openingId}", { ...opening, body: { kind: "debt", amount: "200000", at: "2026-10-01T09:00:00+05:00" } }))).amount).toBe("200000.00")
+
+  // 12 000 sold, 5 000 paid with it, 200 000 owed before: 207 000.
+  expect(await getCustomer(dilshod.id)).toMatchObject({ balance: "207000.00", balance_by_currency: [{ currency_id: 1, amount: "207000.00" }] })
+  const listed = (await listCustomers()).items.find((c) => c.id === dilshod.id)
+  expect(listed).toMatchObject({ balance: "207000.00", balance_by_currency: null })
+  const statement = await customerStatement(dilshod.id)
+  expect(statement.total).toBe(3)
+  expect(statement.items.map((r) => [r.kind, r.delta_uzs, r.balance_uzs])).toEqual([
+    ["customer_payment", "-5000.00", "207000.00"],
+    ["sale", "12000.00", "212000.00"],
+    ["customer_debt", "200000.00", "200000.00"],
+  ])
+  expect(statement.items[0]).toMatchObject({ linked_id: sale.id, linked_number: 1, account_name: "Naqd" })
+  expect(await failure(customerStatement(999))).toMatchObject({ status: 404, message: "Mijoz topilmadi" })
+  expect(await failure(deleteCustomer(dilshod.id))).toMatchObject({ status: 409, code: "customer_in_use", message: "Bu mijozda 3 ta hujjat bor" })
+
+  holdRole(SARDOR, 1, "Kuzatuvchi", ["customers.view"])
+  await signIn(SARDOR)
+  await chooseCompany(1)
+  expect(await getCustomer(dilshod.id)).toMatchObject({ balance: null, balance_by_currency: null })
+  expect((await listCustomers()).items.find((c) => c.id === dilshod.id)?.balance).toBeNull()
+  expect(await failure(customerStatement(dilshod.id))).toMatchObject({ status: 403, code: "forbidden" })
 })

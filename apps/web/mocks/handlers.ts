@@ -10,6 +10,7 @@ import { financeHandlers } from "./finance"
 import { rolesHandlers } from "./roles"
 import { taskSettingsHandlers } from "./task-settings"
 import { tasksHandlers } from "./tasks"
+import { salesHandlers } from "./sales"
 import { stockHandlers } from "./stock"
 import { warehouseHandlers } from "./warehouse"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, permittedSession, read, type Session } from "./gate"
@@ -294,6 +295,7 @@ export const handlers = [
   ...catalogHandlers,
   ...warehouseHandlers,
   ...stockHandlers,
+  ...salesHandlers,
   ...currenciesHandlers,
   ...financeHandlers,
 ]

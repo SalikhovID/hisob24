@@ -80,6 +80,8 @@ const ali: Customer = {
   id: 7,
   type_id: 1,
   phone: "998901234567",
+  balance: null,
+  balance_by_currency: null,
   values: { 101: 30, 102: "Ali Valiyev", 104: 12, 105: [11, 13] },
   created_by_name: "Vali Aliyev",
   created_at: "2026-10-02T06:01:00.000Z",

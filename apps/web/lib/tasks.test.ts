@@ -148,7 +148,7 @@ test("the form opens empty for a new task, in the stage it was opened for, and f
     values: { f71: "Ertalab", f72: "", f73: ["32"] },
     customer: { type_id: "5", phone: "", values: { f51: "", f52: "" } },
   })
-  const unassigned: Customer = { id: 42, type_id: 5, phone: "998901112233", values: {}, created_by_name: null, created_at: "", updated_at: "" }
+  const unassigned: Customer = { id: 42, type_id: 5, phone: "998901112233", values: {}, balance: null, balance_by_currency: null, created_by_name: null, created_at: "", updated_at: "" }
   expect(unassigned.id).toBe(42)
   expect(taskDefaults(buyurtma, jismoniy, 12, { ...task, assignee: null }).assignee_phone).toBe("")
 })

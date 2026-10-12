@@ -4,7 +4,7 @@
 // supplier, under the Go API's rules (logic/warehouse.md, sections 5 and
 // 6; backend/internal/warehouse).
 import { http, HttpResponse } from "msw"
-import type { Inventory, InventoryDetail, InventoryItem, Opening, OpeningStock, OpeningStockDetail, ProductMove, StockRow, Transfer, TransferDetail, TransferItem } from "@/lib/types"
+import type { Inventory, InventoryDetail, InventoryItem, Opening, OpeningStock, OpeningStockDetail, ProductMove, SaleDetail, StockRow, Transfer, TransferDetail, TransferItem } from "@/lib/types"
 import { nameOf } from "./customers"
 import { db, type DocumentKind, type ItemRow, nameIn, nextId, now, type ProductRow, type TransactionRow } from "./data"
 import { api, fail, forbidden, permittedSession } from "./gate"
@@ -38,16 +38,16 @@ const documentNotFound = () => fail(404, "not_found", "Hujjat topilmadi")
 const supplierNotFound = () => fail(404, "not_found", "Ta'minotchi topilmadi")
 
 // scopeOf is the locations a list is of: the member's, or the one asked for.
-const scopeOf = (allowed: number[], locationId: number) => (locationId === 0 ? allowed : [locationId])
+export const scopeOf = (allowed: number[], locationId: number) => (locationId === 0 ? allowed : [locationId])
 
-const newestFirst = (a: TransactionRow, b: TransactionRow) => Date.parse(b.at) - Date.parse(a.at) || b.id - a.id
+export const newestFirst = (a: TransactionRow, b: TransactionRow) => Date.parse(b.at) - Date.parse(a.at) || b.id - a.id
 
-const locationNamed = (id: number | null) => db.locations.find((l) => l.id === id)?.name ?? ""
+export const locationNamed = (id: number | null) => db.locations.find((l) => l.id === id)?.name ?? ""
 const productOf = (id: number) => db.products.find((p) => p.id === id)
 
 // newDocument is a journal row of the kind, numbered next among its kind,
 // as the member with phone by enters it.
-function newDocument(kind: DocumentKind, companyId: number, by: string, fields: Partial<TransactionRow>): TransactionRow {
+export function newDocument(kind: DocumentKind, companyId: number, by: string, fields: Partial<TransactionRow>): TransactionRow {
   const at = now()
   return {
     id: nextId(),
@@ -78,26 +78,26 @@ function newDocument(kind: DocumentKind, companyId: number, by: string, fields: 
 
 // enter keeps the new document when its lines are written, and drops it
 // with everything written when they are refused.
-function enter(doc: TransactionRow, write: () => Response | null, shown: () => TransferDetail | InventoryDetail | OpeningStockDetail): Response {
+export function enter(doc: TransactionRow, write: () => Response | null, shown: () => TransferDetail | InventoryDetail | OpeningStockDetail | SaleDetail): Response {
   db.transactions.push(doc)
   const refusal = write()
   if (refusal) {
     takeMoves(doc.id)
     db.items = db.items.filter((i) => i.transactionId !== doc.id)
-    db.transactions = db.transactions.filter((t) => t.id !== doc.id)
+    db.transactions = db.transactions.filter((t) => t.id !== doc.id && t.linkedId !== doc.id)
     return refusal
   }
   return HttpResponse.json(shown(), { status: 201 })
 }
 
-type LineRule = { allowZero?: boolean; withPrice?: boolean }
-type CheckedLine = { productId: number; quantity: number; price: number | null }
+export type LineRule = { allowZero?: boolean; withPrice?: boolean; allowService?: boolean }
+export type CheckedLine = { productId: number; quantity: number; price: number | null }
 
 // checkLines reads the lines of a goods document as the Go API does: at
 // least one; each product one of the company's, a product not a service,
 // active unless held already, once; its quantity (counted, in an
 // inventory, 0 allowed); its price where the kind has one.
-function checkLines(companyId: number, raw: unknown, held: number[], rule: LineRule): CheckedLine[] | Response {
+export function checkLines(companyId: number, raw: unknown, held: number[], rule: LineRule): CheckedLine[] | Response {
   const lines = Array.isArray(raw) ? (raw as Record<string, unknown>[]) : []
   if (lines.length === 0) return invalid("Kamida bitta mahsulot qo'shing")
   const items: CheckedLine[] = []
@@ -106,7 +106,7 @@ function checkLines(companyId: number, raw: unknown, held: number[], rule: LineR
     const productId = Number(line.product_id ?? 0)
     const product: ProductRow | undefined = productId ? db.products.find((p) => p.id === productId && p.companyId === companyId && !p.deleted) : undefined
     if (!product) return invalid("Mahsulotni tanlang")
-    if (product.kind !== "product") return invalid("Xizmat ombor hujjatiga kiritilmaydi")
+    if (product.kind !== "product" && !rule.allowService) return invalid("Xizmat ombor hujjatiga kiritilmaydi")
     if (!product.active && !held.includes(product.id)) return invalid("Mahsulot nofaol")
     if (seen.has(product.id)) return invalid(`«${product.name}» ikki marta kiritilgan`)
     seen.add(product.id)
@@ -122,7 +122,7 @@ function checkLines(companyId: number, raw: unknown, held: number[], rule: LineR
   return items
 }
 
-const checkNote = (raw: unknown): string | null | Response => {
+export const checkNote = (raw: unknown): string | null | Response => {
   const note = trimmed(raw)
   return note !== null && [...note].length > 500 ? invalid("Izoh 500 belgidan oshmasin") : note
 }
@@ -144,7 +144,7 @@ function stockAt(locationId: number, at: string, excludeId = 0): Map<number, num
 // journal expected at its moment), its total where the kind has one, and
 // its moves, and checks the stock of the locations for the products of
 // the old lines and the new; a refusal puts everything back.
-function writeGoods(doc: TransactionRow, items: CheckedLine[], locations: number[]): Response | null {
+export function writeGoods(doc: TransactionRow, items: CheckedLine[], locations: number[]): Response | null {
   const wasItems = itemsOf(doc.id)
   const wasMoves = takeMoves(doc.id)
   const wasTotal = doc.total
@@ -156,8 +156,10 @@ function writeGoods(doc: TransactionRow, items: CheckedLine[], locations: number
     db.items.push({ transactionId: doc.id, productId: it.productId, quantity: it.quantity, expected: e, price: it.price, position: index + 1 })
     lines.push({ productId: it.productId, quantity: it.quantity, expected: e ?? undefined })
   })
-  if (doc.kind === "opening_stock") doc.total = round(items.reduce((sum, i) => sum + round(i.quantity * (i.price ?? 0), 2), 0), 2)
-  db.moves.push(...movesOf(doc.kind, doc.companyId, doc.id, doc.locationId!, doc.toLocationId, lines))
+  if (doc.kind === "opening_stock" || doc.kind === "sale") doc.total = round(items.reduce((sum, i) => sum + round(i.quantity * (i.price ?? 0), 2), 0), 2)
+  // A service moves nothing.
+  const moving = lines.filter((l) => db.products.find((p) => p.id === l.productId)?.kind === "product")
+  db.moves.push(...movesOf(doc.kind, doc.companyId, doc.id, doc.locationId!, doc.toLocationId, moving))
   const refusal = checkStock([...new Set(locations)], [...new Set([...wasItems.map((i) => i.productId), ...items.map((i) => i.productId)])])
   if (refusal) {
     takeMoves(doc.id)
@@ -172,7 +174,7 @@ function writeGoods(doc: TransactionRow, items: CheckedLine[], locations: number
 
 // deleteGoods hides the document and takes its moves back; the locations
 // have to stay above zero.
-function deleteGoods(doc: TransactionRow, locations: number[]): Response | null {
+export function deleteGoods(doc: TransactionRow, locations: number[]): Response | null {
   const wasMoves = takeMoves(doc.id)
   const refusal = checkStock([...new Set(locations)], itemsOf(doc.id).map((i) => i.productId))
   if (refusal) {
@@ -184,7 +186,7 @@ function deleteGoods(doc: TransactionRow, locations: number[]): Response | null 
 }
 
 // A session with the permission, with the locations the member works in.
-function scoped(request: Request, permission: Parameters<typeof permittedSession>[1]) {
+export function scoped(request: Request, permission: Parameters<typeof permittedSession>[1]) {
   const member = permittedSession(request, permission)
   if (member instanceof Response) return member
   return { ...member, allowed: memberLocationIds(member.phone, member.companyId) }
@@ -192,7 +194,7 @@ function scoped(request: Request, permission: Parameters<typeof permittedSession
 
 // entryLocation reads the location a document is entered into: none is
 // refused, one the member may not work in too.
-function entryLocation(body: Record<string, unknown>, allowed: number[]): number | Response {
+export function entryLocation(body: Record<string, unknown>, allowed: number[]): number | Response {
   const locationId = Number(body.location_id ?? 0)
   if (!locationId) return invalid("Lokatsiyani tanlang")
   if (!allowed.includes(locationId)) return forbidden()
@@ -289,7 +291,7 @@ function checkOpeningStock(companyId: number, body: Record<string, unknown>, by:
 }
 
 // documentIn is the live document of the kind in one of the locations.
-const documentIn = (companyId: number, kind: DocumentKind, id: unknown, ids: number[]) =>
+export const documentIn = (companyId: number, kind: DocumentKind, id: unknown, ids: number[]) =>
   liveDocuments(companyId).find((t) => t.kind === kind && t.id === Number(id) && ids.includes(t.locationId!))
 
 // The opening balances of a supplier (logic/warehouse.md, section 6).
@@ -316,7 +318,7 @@ type CheckedOpening = { kind: DocumentKind; amount: number; at: string; pricing:
 
 // checkOpening reads a body in the Go API's order: the kind, the amount,
 // the moment, the currency and rate, the note.
-function checkOpening(companyId: number, body: Record<string, unknown>, by: string, current?: Pricing): CheckedOpening | Response {
+export function checkOpening(companyId: number, body: Record<string, unknown>, by: string, current?: Pricing): CheckedOpening | Response {
   const kind = body.kind
   if (kind === undefined || kind === null || kind === "") return invalid("Turni tanlang")
   if (kind !== "debt" && kind !== "prepay") return invalid("Tur noto'g'ri")

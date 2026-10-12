@@ -263,11 +263,36 @@ export function paidOf(doc: TransactionRow): number {
   )
 }
 
-// signOf says how a document changes what is owed the supplier: a purchase
-// or an opening debt adds, a payment or an opening advance takes away.
-const signOf = (kind: DocumentKind) => (kind === "purchase" || kind === "supplier_debt" ? 1 : -1)
+// signOf says how a document changes what is owed: a purchase, a sale or
+// an opening debt adds, a payment or an opening advance takes away. The
+// rule is the same for a supplier and a customer.
+const signOf = (kind: DocumentKind) => (kind === "purchase" || kind === "supplier_debt" || kind === "sale" || kind === "customer_debt" ? 1 : -1)
+
+// Party is whose statement is read: a supplier's or a customer's.
+export type Party = "supplier" | "customer"
 
 const supplierDocuments = (supplierId: number) => db.transactions.filter((t) => t.supplierId === supplierId && !t.deleted)
+
+// partyDocuments is the party's live documents; a retail sale and its
+// payment name no customer and are nobody's.
+const partyDocuments = (party: Party, id: number) =>
+  db.transactions.filter((t) => (party === "supplier" ? t.supplierId === id : t.customerId === id) && !t.deleted)
+
+// customerBalanceOf is what the customer owes in so'm by each document's
+// own rate, and in each currency apart (null for none, as a list shows it).
+export function customerBalanceOf(customerId: number): { balance: number; byCurrency: BalanceLine[] } {
+  const docs = partyDocuments("customer", customerId)
+  const inSom = (t: TransactionRow) => convertAmount(t.total, t.currencyId, 1, rateOf(t.rateId))
+  const balance = round(docs.reduce((sum, t) => sum + signOf(t.kind) * inSom(t), 0), 2)
+  const byCurrency = [1, 2, 3, 4]
+    .map((currencyId) => ({ currency_id: currencyId, amount: round(docs.filter((t) => t.currencyId === currencyId).reduce((sum, t) => sum + signOf(t.kind) * t.total, 0), 2) }))
+    .filter((l) => l.amount !== 0)
+    .map((l) => ({ currency_id: l.currency_id, amount: asAmount(l.amount) }))
+  return { balance, byCurrency }
+}
+
+// customerDocumentsOf is how many live documents name the customer.
+export const customerDocumentsOf = (customerId: number) => partyDocuments("customer", customerId).length
 
 // balanceOf is what is owed the supplier in so'm by each document's own
 // rate (the purchases, the payments, the balance with the opening
@@ -285,10 +310,10 @@ export function balanceOf(supplierId: number): { purchases: number; payments: nu
   return { purchases, payments, balance, byCurrency }
 }
 
-// statementOf is the supplier's statement: its live documents in time,
-// each with what was owed after it, the newest first.
-export function statementOf(supplierId: number): StatementRow[] {
-  const docs = supplierDocuments(supplierId).sort((a, b) => a.at.localeCompare(b.at) || a.id - b.id)
+// statementOf is the party's statement: its live documents in time, each
+// with what was owed after it, the newest first.
+export function statementOf(party: Party, id: number): StatementRow[] {
+  const docs = partyDocuments(party, id).sort((a, b) => a.at.localeCompare(b.at) || a.id - b.id)
   let balance = 0
   const rows = docs.map((t): StatementRow => {
     const rate = rateOf(t.rateId)

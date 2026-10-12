@@ -13,9 +13,11 @@ import {
   nextId,
   now,
   type OptionRow,
+  permissionsOf,
   type TypeRow,
 } from "./data"
 import { api, fail, isMember, normalizePhone, permittedSession } from "./gate"
+import { asAmount, customerBalanceOf, customerDocumentsOf } from "./ledger"
 
 const invalid = (message: string) => fail(400, "validation_error", message)
 const customerNotFound = () => fail(404, "not_found", "Mijoz topilmadi")
@@ -129,15 +131,33 @@ function free(companyId: number, fields: FieldRow[], phone: string, values: Reco
 export const nameOf = (phone: string, companyId: number, then: string | null) =>
   isMember(phone, companyId) ? (nameIn(phone, companyId) ?? then) : then
 
-const toCustomer = (c: CustomerRow): Customer => ({
-  id: c.id,
-  type_id: c.typeId,
-  phone: c.phone,
-  values: { ...c.values },
-  created_by_name: nameOf(c.by, c.companyId, c.byName),
-  created_at: c.createdAt,
-  updated_at: c.updatedAt,
-})
+// toCustomer is a customer as the API shows it: with what they owe for
+// whoever may see the sales (withBalance), by currency on the customer's
+// own page alone (detail) (logic/sales.md, section 5).
+export function toCustomer(c: CustomerRow, withBalance = true, detail = true): Customer {
+  const b = withBalance ? customerBalanceOf(c.id) : null
+  return {
+    id: c.id,
+    type_id: c.typeId,
+    phone: c.phone,
+    values: { ...c.values },
+    balance: b ? asAmount(b.balance) : null,
+    balance_by_currency: b && detail ? b.byCurrency : null,
+    created_by_name: nameOf(c.by, c.companyId, c.byName),
+    created_at: c.createdAt,
+    updated_at: c.updatedAt,
+  }
+}
+
+// customerNameOf is the customer's name as the sales show it: the first
+// text answer of the type, or the phone while there is none.
+export function customerNameOf(c: CustomerRow): string {
+  const field = db.types.find((t) => t.id === c.typeId)?.fields.find((f) => f.kind === "string" && !f.deleted)
+  const name = field ? c.values[field.id] : undefined
+  return typeof name === "string" && name !== "" ? name : c.phone
+}
+
+const seesSales = (phone: string, companyId: number) => permissionsOf(phone, companyId).includes("sales.view")
 
 // asText writes an answer for people to read, as the history keeps it: a
 // number in its digits, the options by their names; "" for no answer.
@@ -247,7 +267,7 @@ export const customersHandlers = [
       // The newest first.
       .sort((a, b) => b.id - a.id)
     return HttpResponse.json({
-      items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(toCustomer),
+      items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((c) => toCustomer(c, seesSales(member.phone, member.companyId), false)),
       total: all.length,
       page,
       page_size: PAGE_SIZE,
@@ -260,14 +280,14 @@ export const customersHandlers = [
     const body = (await request.json()) as { type_id?: unknown; phone?: unknown; values?: unknown }
     const customer = enterCustomer(member, body)
     if (customer instanceof Response) return customer
-    return HttpResponse.json(toCustomer(customer), { status: 201 })
+    return HttpResponse.json(toCustomer(customer, seesSales(member.phone, member.companyId)), { status: 201 })
   }),
 
   http.get(api("/app/customers/:id"), ({ params, request }) => {
     const member = permittedSession(request, "customers.view")
     if (member instanceof Response) return member
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
-    return customer ? HttpResponse.json(toCustomer(customer)) : customerNotFound()
+    return customer ? HttpResponse.json(toCustomer(customer, seesSales(member.phone, member.companyId))) : customerNotFound()
   }),
 
   http.put(api("/app/customers/:id"), async ({ params, request }) => {
@@ -301,7 +321,7 @@ export const customersHandlers = [
         changes,
       })
     }
-    return HttpResponse.json(toCustomer(customer))
+    return HttpResponse.json(toCustomer(customer, seesSales(member.phone, member.companyId)))
   }),
 
   http.delete(api("/app/customers/:id"), ({ params, request }) => {
@@ -309,9 +329,11 @@ export const customersHandlers = [
     if (member instanceof Response) return member
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
     if (!customer) return customerNotFound()
-    // A customer with a live task stays.
+    // A customer with a live task stays; then one with a live document.
     const used = db.tasks.filter((t) => t.customerId === customer.id && !t.deleted).length
     if (used > 0) return fail(409, "customer_in_use", `Bu mijozda ${used} ta vazifa bor`)
+    const documents = customerDocumentsOf(customer.id)
+    if (documents > 0) return fail(409, "customer_in_use", `Bu mijozda ${documents} ta hujjat bor`)
     // Hidden, not removed: its answers and its history stay.
     customer.deleted = true
     db.history.push({

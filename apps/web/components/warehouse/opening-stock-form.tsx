@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { CurrencyField } from "@/components/currency-field"
 import { PendingButton } from "@/components/pending-button"
 import { Refusal } from "@/components/refusal"
@@ -33,7 +33,7 @@ export function OpeningStockForm({
 }) {
   const currencies = useCurrencies()
   const form = useForm<OpeningStockFormValues, unknown, OpeningStockOutput>({ resolver: zodResolver(openingStockSchema), defaultValues: defaults })
-  const currencyId = Number(form.watch("currency_id")) || UZS
+  const currencyId = Number(useWatch({ control: form.control, name: "currency_id" })) || UZS
 
   // Another currency: its standard rate is offered while none is typed.
   useEffect(() => {

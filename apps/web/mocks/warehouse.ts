@@ -150,11 +150,11 @@ export function toPayment(p: TransactionRow): Payment {
   }
 }
 
-type CheckedPayment = { accountId: number; amount: number; at: string; pricing: Pricing; note: string | null }
+export type CheckedPayment = { accountId: number; amount: number; at: string; pricing: Pricing; note: string | null }
 
 // checkPayment reads a body in the Go API's order: the account (active
 // unless it is the one kept), the amount, the moment, the rate, the note.
-function checkPayment(companyId: number, body: Record<string, unknown>, by: string, keep: number, current?: Pricing): CheckedPayment | Response {
+export function checkPayment(companyId: number, body: Record<string, unknown>, by: string, keep: number, current?: Pricing): CheckedPayment | Response {
   const accountId = Number(body.bank_account_id ?? 0)
   const account = accountId ? accountOf(companyId, accountId) : undefined
   if (!account) return invalid("Akkauntni tanlang")
@@ -372,7 +372,7 @@ export const warehouseHandlers = [
     if (n instanceof Response) return n
     const s = liveSupplier(member.companyId, params.id)
     if (!s) return supplierNotFound()
-    return HttpResponse.json(paged(statementOf(s.id), n))
+    return HttpResponse.json(paged(statementOf("supplier", s.id), n))
   }),
 
   http.post(api("/app/suppliers/:id/payments"), async ({ params, request }) => {
