@@ -2018,7 +2018,8 @@ const addTransfer = (body: components["schemas"]["TransferCreate"]) => call(api.
 const getTransfer = (id: number) => call(api.GET("/app/transfers/{id}", { params: { path: { id } } }))
 const inventories = (query: Record<string, string> = {}) => call(api.GET("/app/inventories", { params: { query } }))
 const addInventory = (body: components["schemas"]["InventoryCreate"]) => call(api.POST("/app/inventories", { body }))
-const stockAt = (query: Partial<{ location_id: number; at: string }>) => call(api.GET("/app/stock", { params: { query: query as { location_id: number; at?: string } } }))
+const stockAt = (query: Partial<{ location_id: number; at: string; exclude_id: number }>) =>
+  call(api.GET("/app/stock", { params: { query: query as { location_id: number; at?: string; exclude_id?: number } } }))
 const openingStock = (query: Record<string, string> = {}) => call(api.GET("/app/opening-stock", { params: { query } }))
 const addOpeningStock = (body: components["schemas"]["OpeningStockCreate"]) => call(api.POST("/app/opening-stock", { body }))
 const moves = (id: number, query: Record<string, string> = {}) => call(api.GET("/app/products/{id}/moves", { params: { path: { id }, query } }))
@@ -2148,6 +2149,14 @@ test("an inventory counts a location at a moment: what the journal expected then
   expect(list.total).toBe(1)
   expect(list.items[0]).not.toHaveProperty("items")
   expect(await call(api.GET("/app/inventories/{id}", { params: { path: { id: inventory.id } } }))).toEqual(inventory)
+
+  // The stock without the inventory's own count: what its edit form shows.
+  expect(await stockAt({ location_id: asosiy, at: "2026-10-08T00:00:00Z" })).toEqual([
+    { product_id: nok.id, name: "Nok", unit: "dona", quantity: "5.000" },
+    { product_id: olma.id, name: "Olma", unit: "kg", quantity: "9.000" },
+  ])
+  expect((await stockAt({ location_id: asosiy, at: "2026-10-08T00:00:00Z", exclude_id: inventory.id })).find((r) => r.product_id === olma.id)?.quantity).toBe("10.000")
+  expect(await failure(stockAt({ location_id: asosiy, exclude_id: "x" as never }))).toMatchObject({ status: 400, message: "Hujjat noto'g'ri" })
 
   // A purchase dated before the count arrives late: saved again, the count
   // expects it.

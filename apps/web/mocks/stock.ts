@@ -534,8 +534,9 @@ export const stockHandlers = [
     return deleteGoods(t, [t.locationId!]) ?? new HttpResponse(null, { status: 204 })
   }),
 
-  // The products in stock in a location at a moment (now unless given), by
-  // name: what an inventory starts from.
+  // The products in stock in a location at a moment (now unless given), the
+  // moves of the document ?exclude_id= left out, by name: what an
+  // inventory starts from, or shows while it is edited.
   http.get(api("/app/stock"), ({ request }) => {
     const member = scoped(request, "stock.view")
     if (member instanceof Response) return member
@@ -549,7 +550,12 @@ export const stockHandlers = [
       if (parsed instanceof Response) return parsed
       at = parsed
     }
-    const rows: StockRow[] = [...stockAt(locationId, at).entries()]
+    let excludeId = 0
+    if (query.get("exclude_id")) {
+      excludeId = Number(query.get("exclude_id"))
+      if (!Number.isInteger(excludeId) || excludeId <= 0) return invalid("Hujjat noto'g'ri")
+    }
+    const rows: StockRow[] = [...stockAt(locationId, at, excludeId).entries()]
       .filter(([, quantity]) => quantity !== 0)
       .map(([productId, quantity]) => ({ product_id: productId, name: productOf(productId)?.name ?? "", unit: productOf(productId)?.unit ?? null, quantity: asQuantity(quantity) }))
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.product_id - b.product_id)

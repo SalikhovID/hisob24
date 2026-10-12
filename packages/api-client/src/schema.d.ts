@@ -1793,7 +1793,7 @@ export interface paths {
         };
         /**
          * Lokatsiyadagi qoldiq lahza bo'yicha (stock.view ruxsati)
-         * @description location_id lokatsiyasida (yo'q: 400 "Lokatsiyani tanlang"; a'zo ishlay olmaydigan: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri") at lahzasigacha (berilmasa hozir; noto'g'ri: 400 "Vaqt noto'g'ri") qoldig'i 0 dan farqli mahsulotlar, nom bo'yicha, sahifasiz: inventarizatsiya shundan boshlanadi (logic/warehouse.md, 5.2).
+         * @description location_id lokatsiyasida (yo'q: 400 "Lokatsiyani tanlang"; a'zo ishlay olmaydigan: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri") at lahzasigacha (berilmasa hozir; noto'g'ri: 400 "Vaqt noto'g'ri") qoldig'i 0 dan farqli mahsulotlar, nom bo'yicha, sahifasiz: inventarizatsiya shundan boshlanadi (logic/warehouse.md, 5.2). exclude_id berilsa shu hujjatning harakatlari hisobga olinmaydi (tahrirlanayotgan inventarizatsiyaning o'zi; son emas: 400 "Hujjat noto'g'ri").
          */
         get: operations["getStock"];
         put?: never;
@@ -7223,6 +7223,7 @@ export interface operations {
             query: {
                 location_id: number;
                 at?: string;
+                exclude_id?: number;
             };
             header?: never;
             path?: never;
