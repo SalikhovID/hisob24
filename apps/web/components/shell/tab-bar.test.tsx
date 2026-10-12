@@ -29,6 +29,7 @@ test("the owner's bar is the first four sections and «Yana», which holds the r
   expect(within(sheet).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
     ["Sotuv", "/sales"],
     ["Ombor", "/purchases"],
+    ["Moliya", "/accounts"],
     ["Xodimlar", "/employees"],
     ["Sozlamalar", "/settings"],
   ])

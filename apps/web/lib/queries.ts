@@ -778,3 +778,88 @@ export function useCustomerSearch(companyId: number | null, text: string) {
     placeholderData: keepPreviousData,
   })
 }
+
+// The finance (logic/finance.md, section 4): what the accounts hold, an
+// account's statement, the cash documents.
+export const accountsKey = (companyId: number | null) => ["accounts", companyId] as const
+
+// useAccountBalances is the company's accounts with what each holds, the
+// active first.
+export function useAccountBalances(companyId: number | null) {
+  return useQuery({
+    queryKey: accountsKey(companyId),
+    queryFn: () => call(api.GET("/app/accounts")),
+    enabled: companyId !== null,
+  })
+}
+
+export const accountStatementsKey = (companyId: number | null) => ["account-statement", companyId] as const
+export const accountStatementKey = (companyId: number | null, accountId: number) => [...accountStatementsKey(companyId), accountId] as const
+
+// useAccountStatement is a page of the account's statement, the newest row first.
+export function useAccountStatement(companyId: number | null, accountId: number, page: number) {
+  return useQuery({
+    queryKey: [...accountStatementKey(companyId, accountId), page],
+    queryFn: () => call(api.GET("/app/accounts/{id}/statement", { params: { path: { id: accountId }, query: { page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+// ExpenseFilter is what the expenses page is narrowed to: the kind, an
+// account, a category, a span of days (YYYY-MM-DD), the page.
+export interface ExpenseFilter {
+  kind: FinanceKind
+  accountId: number | null
+  categoryId: number | null
+  from: string
+  to: string
+  page: number
+}
+
+export const expensesKey = (companyId: number | null) => ["expenses", companyId] as const
+
+// useExpenses is a page of the expenses (or the incomes), the newest first,
+// narrowed as the filter says.
+export function useExpenses(companyId: number | null, filter: ExpenseFilter) {
+  return useQuery({
+    queryKey: [...expensesKey(companyId), filter],
+    queryFn: () =>
+      call(
+        api.GET("/app/expenses", {
+          params: {
+            query: {
+              kind: filter.kind,
+              account_id: filter.accountId ?? undefined,
+              category_id: filter.categoryId ?? undefined,
+              from: filter.from || undefined,
+              to: filter.to || undefined,
+              page: filter.page,
+            },
+          },
+        }),
+      ),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+// MoneyTransferFilter is what the transfers page is narrowed to: an account
+// (as the source or the target) and the page.
+export interface MoneyTransferFilter {
+  accountId: number | null
+  page: number
+}
+
+export const moneyTransfersKey = (companyId: number | null) => ["money-transfers", companyId] as const
+
+// useMoneyTransfers is a page of the transfers and the conversions in one
+// list, the newest first.
+export function useMoneyTransfers(companyId: number | null, filter: MoneyTransferFilter) {
+  return useQuery({
+    queryKey: [...moneyTransfersKey(companyId), filter],
+    queryFn: () => call(api.GET("/app/money-transfers", { params: { query: { account_id: filter.accountId ?? undefined, page: filter.page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}

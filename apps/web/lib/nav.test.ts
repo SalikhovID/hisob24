@@ -6,11 +6,11 @@ import type { Permission } from "./types"
 const labels = (permissions?: Permission[], order?: string[] | null) => navFor(permissions, order).map((item) => item.label)
 
 test("the owner may open every section, in the default order", () => {
-  expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Xodimlar", "Sozlamalar"])
+  expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
 })
 
 test("an employee without a role sees the customers, the tasks, the products, the sales and the warehouse", () => {
-  expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor"])
+  expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
 })
 
 test("an employee with a role sees the sections the role lets them view; before the session is known, the home alone", () => {
@@ -18,6 +18,7 @@ test("an employee with a role sees the sections the role lets them view; before 
   expect(labels(["employees.view"])).toEqual(["Bosh sahifa", "Xodimlar"])
   expect(labels(["suppliers.view"])).toEqual(["Bosh sahifa", "Ombor"])
   expect(labels(["sales.view"])).toEqual(["Bosh sahifa", "Sotuv"])
+  expect(labels(["finance.view"])).toEqual(["Bosh sahifa", "Moliya"])
   expect(labels([])).toEqual(["Bosh sahifa"])
   expect(labels(undefined)).toEqual(["Bosh sahifa"])
 })
@@ -30,6 +31,8 @@ test("a section with tabs opens at the first tab the member may see", () => {
   expect(href(["stock.view"], "Ombor")).toBe("/transfers")
   expect(href(["stock.view", "suppliers.view"], "Ombor")).toBe("/transfers")
   expect(href(allPermissions, "Sotuv")).toBe("/sales")
+  expect(href(allPermissions, "Moliya")).toBe("/accounts")
+  expect(href(["finance.view"], "Moliya")).toBe("/accounts")
   expect(href(defaultPermissions, "Mijozlar")).toBe("/customers")
   expect(href(defaultPermissions, "Vazifalar")).toBe("/tasks")
 })
@@ -54,17 +57,18 @@ test("the member's own order comes first; what it does not name follows in the d
     "Mahsulotlar",
     "Sotuv",
     "Ombor",
+    "Moliya",
     "Xodimlar",
   ])
-  expect(labels(defaultPermissions, ["settings", "warehouse", "home"])).toEqual(["Ombor", "Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv"])
+  expect(labels(defaultPermissions, ["settings", "warehouse", "home"])).toEqual(["Ombor", "Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Moliya"])
   expect(labels(allPermissions, null)).toEqual(labels(allPermissions))
   expect(labels(allPermissions, ["bogus"])).toEqual(labels(allPermissions))
 })
 
 test("the bar shows up to five sections; past that, four and the rest apart", () => {
-  const eight = navFor(allPermissions)
-  expect(barItems(eight).shown.map((item) => item.label)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
-  expect(barItems(eight).more.map((item) => item.label)).toEqual(["Sotuv", "Ombor", "Xodimlar", "Sozlamalar"])
+  const nine = navFor(allPermissions)
+  expect(barItems(nine).shown.map((item) => item.label)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+  expect(barItems(nine).more.map((item) => item.label)).toEqual(["Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
   const five = navFor(["customers.view", "tasks.view", "products.view", "sales.view"])
   expect(barItems(five).shown).toHaveLength(5)
   expect(barItems(five).more).toEqual([])
@@ -100,4 +104,14 @@ test.each([
   ["warehouse", "/products", false],
 ])("the section %s holds the page %s: %s", (key, pathname, current) => {
   expect(isCurrentItem(navItems.find((item) => item.key === key)!, pathname)).toBe(current)
+})
+
+test("the finance holds the cash, the expenses and the transfers, in that order, each for whoever may see the finance", () => {
+  const finance = navItems.find((item) => item.key === "finance")!
+  expect(finance.label).toBe("Moliya")
+  expect(finance.tabs?.map((tab) => [tab.label, tab.href, tab.permission])).toEqual([
+    ["Kassa", "/accounts", "finance.view"],
+    ["Xarajatlar", "/expenses", "finance.view"],
+    ["O'tkazmalar", "/money-transfers", "finance.view"],
+  ])
 })

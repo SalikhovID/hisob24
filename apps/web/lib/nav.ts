@@ -7,6 +7,7 @@ import {
   SettingsIcon,
   ShoppingCartIcon,
   UsersIcon,
+  WalletIcon,
   WarehouseIcon,
 } from "lucide-react"
 import { can } from "./permissions"
@@ -66,6 +67,17 @@ export const navItems: NavItem[] = [
       { label: "Inventarizatsiya", href: "/inventories", permission: "stock.view" },
       { label: "Boshlang'ich qoldiq", href: "/opening-stock", permission: "stock.view" },
       { label: "Ta'minotchilar", href: "/suppliers", permission: "suppliers.view" },
+    ],
+  },
+  {
+    key: "finance",
+    label: "Moliya",
+    href: "/accounts",
+    icon: WalletIcon,
+    tabs: [
+      { label: "Kassa", href: "/accounts", permission: "finance.view" },
+      { label: "Xarajatlar", href: "/expenses", permission: "finance.view" },
+      { label: "O'tkazmalar", href: "/money-transfers", permission: "finance.view" },
     ],
   },
   { key: "employees", label: "Xodimlar", href: "/employees", icon: UsersIcon, permission: "employees.view" },

@@ -11,6 +11,7 @@ import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { type PurchaseOutput, nowLocal, purchaseDefaults } from "@/lib/warehouse"
+import { forgetFinance } from "@/lib/finance"
 import { PurchaseForm } from "./purchase-form"
 
 const back = { href: "/purchases", label: "Xaridlar" }
@@ -19,6 +20,8 @@ const back = { href: "/purchases", label: "Xaridlar" }
 // every kind, the products' stock, last prices and moves, the stock at a
 // moment, the suppliers' and the customers' balances, payments and statements.
 export function forgetWarehouse(queryClient: ReturnType<typeof useQueryClient>, companyId: number) {
+  // The payments entered with a document move money in the accounts too.
+  forgetFinance(queryClient, companyId)
   for (const key of [
     "purchases",
     "purchase",
