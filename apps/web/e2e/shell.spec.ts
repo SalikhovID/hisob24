@@ -30,7 +30,7 @@ test("the sections are a folding sidebar on a wide screen and a tab bar along th
     await expect(sidebar).toBeHidden()
     await expect(page.getByRole("button", { name: "Menyu", exact: true })).toHaveCount(0)
     const bar = tabBar(page)
-    // Seven sections: four in the bar, the rest under «Yana».
+    // Eight sections: four in the bar, the rest under «Yana».
     await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
     // The bar stands along the bottom, under the page, and the page fits its width.
@@ -41,7 +41,7 @@ test("the sections are a folding sidebar on a wide screen and a tab bar along th
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
     await bar.getByRole("button", { name: "Yana" }).click()
     const more = page.getByRole("dialog", { name: "Yana" })
-    await expect(more.getByRole("link")).toHaveText(["Ombor", "Xodimlar", "Sozlamalar"])
+    await expect(more.getByRole("link")).toHaveText(["Sotuv", "Ombor", "Xodimlar", "Sozlamalar"])
     await more.getByRole("link", { name: "Xodimlar" }).click()
     await expect(page).toHaveURL(/\/employees$/)
     await expect(more).toBeHidden()
@@ -144,7 +144,7 @@ test("the member puts the sections in their own order, which the menu keeps afte
   }
   const dialog = page.getByRole("dialog", { name: "Menyuni sozlash" })
   const list = dialog.getByRole("list", { name: "Bo'limlar tartibi" })
-  await expect(list.getByRole("listitem")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Ombor", "Xodimlar", "Sozlamalar"])
+  await expect(list.getByRole("listitem")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Xodimlar", "Sozlamalar"])
   await list.getByRole("button", { name: "Sozlamalar: tartibini o'zgartirish" }).focus()
   await page.keyboard.press("Home")
   await expect(list.getByRole("listitem").first()).toHaveText("Sozlamalar")

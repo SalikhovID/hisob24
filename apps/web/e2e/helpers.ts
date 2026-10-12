@@ -1,4 +1,4 @@
-import type { Locator, Page } from "@playwright/test"
+import { expect, type Locator, type Page } from "@playwright/test"
 import { LOGIN_CODE } from "../mocks/data"
 
 // signIn goes through the login page: the number without +998, then the code.
@@ -46,4 +46,21 @@ export const sideScroll = (page: Page) => page.evaluate(() => document.documentE
 export async function choose(box: Locator, name: string) {
   await box.click()
   await box.page().getByRole("option", { name, exact: true }).click()
+}
+
+// list is a named list as the screen shows it: a table on a wide screen,
+// cards on a phone.
+export const list = (page: Page, name: string) => (onPhone(page) ? page.getByRole("list", { name }) : page.getByRole("table", { name }))
+
+// pick finds an item in a picker by what is typed and takes the option.
+export async function pick(page: Page, scope: Page | Locator, label: string, typed: string, option: RegExp) {
+  await scope.getByRole("combobox", { name: label }).fill(typed)
+  await page.getByRole("listbox").getByRole("option", { name: option }).click()
+}
+
+// settle waits for the toasts of the last step to go: on a phone they stand
+// over the page's header, and they wait while the pointer rests on them.
+export async function settle(page: Page) {
+  await page.mouse.move(8, 300)
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 15_000 })
 }

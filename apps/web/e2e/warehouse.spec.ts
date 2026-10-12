@@ -1,27 +1,11 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 import { seedCatalog, seedWarehouse } from "../mocks/data"
 import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { choose, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
+import { choose, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
 
-// The lists are tables on wide screens and cards on a phone: the one on
-// screen is the one a test reads.
-const list = (page: Page, name: string) => (onPhone(page) ? page.getByRole("list", { name }) : page.getByRole("table", { name }))
 const sectionTabs = (page: Page) => page.getByRole("navigation", { name: "Ombor bo'limi" })
-
-// pick finds an item in a picker by what is typed and takes the option.
-async function pick(page: Page, scope: Page | Locator, label: string, typed: string, option: RegExp) {
-  await scope.getByRole("combobox", { name: label }).fill(typed)
-  await page.getByRole("listbox").getByRole("option", { name: option }).click()
-}
-
-// settle waits for the toasts of the last step to go: on a phone they stand
-// over the page's header, and they wait while the pointer rests on them.
-async function settle(page: Page) {
-  await page.mouse.move(8, 300)
-  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 15_000 })
-}
 
 test("the owner keeps the warehouse: a supplier, a purchase into the stock, the balance and a payment, an edit and a deletion", async ({ page }) => {
   test.setTimeout(150_000)
