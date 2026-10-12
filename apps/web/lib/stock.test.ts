@@ -199,13 +199,13 @@ describe("the opening balance dialog", () => {
   })
 })
 
-test("a document's kind has a name and, with a page of its own, an address", () => {
+test("a document's kind has a name and an address", () => {
   expect(kindTitle).toEqual({ purchase: "Xarid", sale: "Sotuv", transfer: "Ko'chirish", inventory: "Inventarizatsiya", opening_stock: "Boshlang'ich qoldiq" })
   expect(documentHref("purchase", 3)).toBe("/purchases/3")
   expect(documentHref("transfer", 3)).toBe("/transfers/3")
   expect(documentHref("inventory", 3)).toBe("/inventories/3")
   expect(documentHref("opening_stock", 3)).toBe("/opening-stock/3")
-  expect(documentHref("sale", 3)).toBeNull()
+  expect(documentHref("sale", 3)).toBe("/sales/3")
 })
 
 test("a signed quantity reads with a real minus, and with a plus when asked", () => {

@@ -10,7 +10,7 @@ import type { GoodsKind, InventoryDetail, Opening, OpeningStockDetail, Statement
 import { atSchema, digits, emptyLine, fromISO, idSchema, type LineForm, lineSchema, moneyPattern, noteSchema, quantityPattern, rateSchema } from "./warehouse"
 
 // onceEach refuses the second line of a product.
-const onceEach = (items: { product_id: number }[], context: z.RefinementCtx) => {
+export const onceEach = (items: { product_id: number }[], context: z.RefinementCtx) => {
   const seen = new Set<number>()
   items.forEach((item, index) => {
     if (seen.has(item.product_id)) context.addIssue({ code: "custom", message: "Bu mahsulot allaqachon kiritilgan", path: [index, "product_id"] })
@@ -214,20 +214,19 @@ export const kindTitle: Record<GoodsKind, string> = {
   opening_stock: "Boshlang'ich qoldiq",
 }
 
-// documentHref is the address of a document's own page; null for a kind
-// without one yet (the sales come with their section).
-export function documentHref(kind: GoodsKind, id: number): string | null {
+// documentHref is the address of a document's own page.
+export function documentHref(kind: GoodsKind, id: number): string {
   switch (kind) {
     case "purchase":
       return `/purchases/${id}`
+    case "sale":
+      return `/sales/${id}`
     case "transfer":
       return `/transfers/${id}`
     case "inventory":
       return `/inventories/${id}`
     case "opening_stock":
       return `/opening-stock/${id}`
-    case "sale":
-      return null
   }
 }
 

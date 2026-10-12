@@ -278,4 +278,4 @@ export function purchaseDefaults(purchase: PurchaseDetail | null, local: string)
 }
 
 // The pieces the stock documents' schemas (lib/stock.ts) are made of.
-export { at as atSchema, note as noteSchema, id as idSchema, rate as rateSchema, lineSchema, digits, moneyPattern, quantityPattern }
+export { at as atSchema, note as noteSchema, id as idSchema, rate as rateSchema, lineSchema, paymentLineSchema, digits, moneyPattern, quantityPattern }

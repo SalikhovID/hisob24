@@ -5,6 +5,7 @@ import {
   type LucideIcon,
   PackageIcon,
   SettingsIcon,
+  ShoppingCartIcon,
   UsersIcon,
   WarehouseIcon,
 } from "lucide-react"
@@ -12,8 +13,8 @@ import { can } from "./permissions"
 import type { Permission } from "./types"
 
 // NavKey names a section, as the API keeps a member's own order of the menu
-// (logic/roles.md, section 8). The sales and the finance are keys the API
-// knows already; their sections come with their pages.
+// (logic/roles.md, section 8). The finance is a key the API knows already;
+// its section comes with its pages.
 export type NavKey = "home" | "customers" | "tasks" | "products" | "sales" | "warehouse" | "finance" | "employees" | "settings"
 
 // NavTab is a page of a section that holds several: its own address and the
@@ -53,6 +54,7 @@ export const navItems: NavItem[] = [
       { label: "Xizmatlar", href: "/services", permission: "products.view" },
     ],
   },
+  { key: "sales", label: "Sotuv", href: "/sales", icon: ShoppingCartIcon, permission: "sales.view" },
   {
     key: "warehouse",
     label: "Ombor",

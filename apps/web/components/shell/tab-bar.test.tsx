@@ -27,6 +27,7 @@ test("the owner's bar is the first four sections and «Yana», which holds the r
   await user.click(within(bar()).getByRole("button", { name: "Yana" }))
   const sheet = await screen.findByRole("dialog", { name: "Yana" })
   expect(within(sheet).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+    ["Sotuv", "/sales"],
     ["Ombor", "/purchases"],
     ["Xodimlar", "/employees"],
     ["Sozlamalar", "/settings"],
@@ -47,7 +48,8 @@ test("«Menyuni sozlash» in «Yana» opens the dialog that sets the order", asy
   expect(screen.queryByRole("dialog", { name: "Yana" })).not.toBeInTheDocument()
 })
 
-test("an employee without a role has five sections: all in the bar, no «Yana»", async () => {
+test("an employee whose role gives five sections has them all in the bar, no «Yana»", async () => {
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view", "tasks.view", "products.view", "purchases.view"])
   await signIn(VALI)
   await chooseCompany(1)
   renderWithProviders(<TabBar />)

@@ -17,7 +17,7 @@ const back = { href: "/purchases", label: "Xaridlar" }
 
 // forgetWarehouse drops what a stock document changes: the documents of
 // every kind, the products' stock, last prices and moves, the stock at a
-// moment, the suppliers' balances and payments.
+// moment, the suppliers' and the customers' balances, payments and statements.
 export function forgetWarehouse(queryClient: ReturnType<typeof useQueryClient>, companyId: number) {
   for (const key of [
     "purchases",
@@ -37,6 +37,11 @@ export function forgetWarehouse(queryClient: ReturnType<typeof useQueryClient>, 
     "supplier",
     "payments",
     "statement",
+    "sales",
+    "sale",
+    "customers",
+    "customer",
+    "customer-statement",
   ]) {
     queryClient.invalidateQueries({ queryKey: [key, companyId] })
   }

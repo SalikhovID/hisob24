@@ -6,17 +6,18 @@ import type { Permission } from "./types"
 const labels = (permissions?: Permission[], order?: string[] | null) => navFor(permissions, order).map((item) => item.label)
 
 test("the owner may open every section, in the default order", () => {
-  expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Ombor", "Xodimlar", "Sozlamalar"])
+  expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Xodimlar", "Sozlamalar"])
 })
 
-test("an employee without a role sees the customers, the tasks, the products and the warehouse", () => {
-  expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Ombor"])
+test("an employee without a role sees the customers, the tasks, the products, the sales and the warehouse", () => {
+  expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor"])
 })
 
 test("an employee with a role sees the sections the role lets them view; before the session is known, the home alone", () => {
   expect(labels(["tasks.view", "tasks.create", "settings.view"])).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
   expect(labels(["employees.view"])).toEqual(["Bosh sahifa", "Xodimlar"])
   expect(labels(["suppliers.view"])).toEqual(["Bosh sahifa", "Ombor"])
+  expect(labels(["sales.view"])).toEqual(["Bosh sahifa", "Sotuv"])
   expect(labels([])).toEqual(["Bosh sahifa"])
   expect(labels(undefined)).toEqual(["Bosh sahifa"])
 })
@@ -28,6 +29,7 @@ test("a section with tabs opens at the first tab the member may see", () => {
   expect(href(["suppliers.view"], "Ombor")).toBe("/suppliers")
   expect(href(["stock.view"], "Ombor")).toBe("/transfers")
   expect(href(["stock.view", "suppliers.view"], "Ombor")).toBe("/transfers")
+  expect(href(allPermissions, "Sotuv")).toBe("/sales")
   expect(href(defaultPermissions, "Mijozlar")).toBe("/customers")
   expect(href(defaultPermissions, "Vazifalar")).toBe("/tasks")
 })
@@ -50,19 +52,20 @@ test("the member's own order comes first; what it does not name follows in the d
     "Bosh sahifa",
     "Mijozlar",
     "Mahsulotlar",
+    "Sotuv",
     "Ombor",
     "Xodimlar",
   ])
-  expect(labels(defaultPermissions, ["settings", "warehouse", "home"])).toEqual(["Ombor", "Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+  expect(labels(defaultPermissions, ["settings", "warehouse", "home"])).toEqual(["Ombor", "Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv"])
   expect(labels(allPermissions, null)).toEqual(labels(allPermissions))
   expect(labels(allPermissions, ["bogus"])).toEqual(labels(allPermissions))
 })
 
 test("the bar shows up to five sections; past that, four and the rest apart", () => {
-  const seven = navFor(allPermissions)
-  expect(barItems(seven).shown.map((item) => item.label)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
-  expect(barItems(seven).more.map((item) => item.label)).toEqual(["Ombor", "Xodimlar", "Sozlamalar"])
-  const five = navFor(defaultPermissions)
+  const eight = navFor(allPermissions)
+  expect(barItems(eight).shown.map((item) => item.label)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+  expect(barItems(eight).more.map((item) => item.label)).toEqual(["Sotuv", "Ombor", "Xodimlar", "Sozlamalar"])
+  const five = navFor(["customers.view", "tasks.view", "products.view", "sales.view"])
   expect(barItems(five).shown).toHaveLength(5)
   expect(barItems(five).more).toEqual([])
 })
@@ -92,6 +95,8 @@ test.each([
   ["warehouse", "/transfers/3/edit", true],
   ["warehouse", "/inventories", true],
   ["warehouse", "/opening-stock/new", true],
+  ["sales", "/sales/3/edit", true],
+  ["sales", "/customers/3", false],
   ["warehouse", "/products", false],
 ])("the section %s holds the page %s: %s", (key, pathname, current) => {
   expect(isCurrentItem(navItems.find((item) => item.key === key)!, pathname)).toBe(current)

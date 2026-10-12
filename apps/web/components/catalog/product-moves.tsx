@@ -26,19 +26,12 @@ export function ProductMoves({ companyId, productId, unit }: { companyId: number
     {
       header: "Hujjat",
       primary: true,
-      // The document is the way in, from the table and the card alike; a
-      // kind without a page of its own yet (a sale) is named alone.
-      cell: (move) => {
-        const title = `${kindTitle[move.kind]} № ${move.number}`
-        const href = documentHref(move.kind, move.transaction_id)
-        return href ? (
-          <Link href={href} className="font-medium underline-offset-4 hover:underline">
-            {title}
-          </Link>
-        ) : (
-          title
-        )
-      },
+      // The document is the way in, from the table and the card alike.
+      cell: (move) => (
+        <Link href={documentHref(move.kind, move.transaction_id)} className="font-medium underline-offset-4 hover:underline">
+          {kindTitle[move.kind]} № {move.number}
+        </Link>
+      ),
     },
     { header: "Vaqt", card: "inline", className: "whitespace-nowrap", cell: (move) => formatDateTime(move.at) },
     ...(locations.length >= 2 ? [{ header: "Lokatsiya", card: "tag", cell: (move) => move.location_name } satisfies Column<ProductMove>] : []),

@@ -715,3 +715,50 @@ export function useProductMoves(companyId: number | null, id: number, page: numb
     placeholderData: keepPreviousData,
   })
 }
+
+// The sales (logic/sales.md): the sales the member may see, a page at a
+// time, the newest first; one sale with its lines and payments; a
+// customer's statement.
+
+export const salesKey = (companyId: number | null) => ["sales", companyId] as const
+
+// SaleFilter narrows the sales: one location (the current one) or every one
+// of the member's, one customer, the page.
+export interface SaleFilter {
+  locationId: number | null
+  customerId: number | null
+  page: number
+}
+
+export function useSales(companyId: number | null, filter: SaleFilter) {
+  return useQuery({
+    queryKey: [...salesKey(companyId), filter],
+    queryFn: () =>
+      call(api.GET("/app/sales", { params: { query: { location_id: filter.locationId ?? undefined, customer_id: filter.customerId ?? undefined, page: filter.page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const saleKey = (companyId: number | null, id: number) => ["sale", companyId, id] as const
+
+export function useSale(companyId: number | null, id: number) {
+  return useQuery({
+    queryKey: saleKey(companyId, id),
+    queryFn: () => call(api.GET("/app/sales/{id}", { params: { path: { id } } })),
+    enabled: companyId !== null && Number.isInteger(id) && id > 0,
+  })
+}
+
+export const customerStatementKey = (companyId: number | null, customerId: number) => ["customer-statement", companyId, customerId] as const
+
+// useCustomerStatement is a page of the customer's statement, the newest
+// document first.
+export function useCustomerStatement(companyId: number | null, customerId: number, page: number) {
+  return useQuery({
+    queryKey: [...customerStatementKey(companyId, customerId), page],
+    queryFn: () => call(api.GET("/app/customers/{id}/statement", { params: { path: { id: customerId }, query: { page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
