@@ -766,3 +766,15 @@ export function useCustomerStatement(companyId: number | null, customerId: numbe
     placeholderData: keepPreviousData,
   })
 }
+
+// useCustomerSearch is the customers whose names, phones or number answers
+// hold the text typed, for the picker of the sale form.
+export function useCustomerSearch(companyId: number | null, text: string) {
+  const search = text.trim()
+  return useQuery({
+    queryKey: [...customersKey(companyId), "search", search],
+    queryFn: () => call(api.GET("/app/customers", { params: { query: { search, page: 1 } } })),
+    enabled: companyId !== null && search.length > 0,
+    placeholderData: keepPreviousData,
+  })
+}
