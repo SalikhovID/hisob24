@@ -1,0 +1,128 @@
+import { db, nextId, seedCatalog } from "../mocks/data"
+import { giveRole } from "../test/roles"
+import { expect, test } from "./fixtures"
+import { choose, list, openSection, sections, settle, sideScroll, signIn } from "./helpers"
+
+const sectionTabs = (page: import("@playwright/test").Page) => page.getByRole("navigation", { name: "Moliya bo'limi" })
+
+test("the owner keeps the cash: an opening balance, an expense under its category, a transfer to the second cash, a conversion to the card; the lists, an edit and a deletion", async ({ page }) => {
+  test.setTimeout(180_000)
+  seedCatalog()
+  // Olma Savdo turns the dollar on and gets a card in dollars and a second cash; Ijara is an expense category.
+  db.currencies[1].push(2)
+  db.accounts[1].push({ id: nextId(), name: "Karta", currency_id: 2, is_active: true }, { id: nextId(), name: "Kassa 2", currency_id: 1, is_active: true })
+  db.financeCategories.push({ id: nextId(), companyId: 1, name: "Ijara", kind: "expense", position: 1, active: true })
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+
+  // The finance opens at the cash: the accounts hold nothing yet.
+  await openSection(page, "Moliya")
+  await expect(page).toHaveURL(/\/accounts$/)
+  await expect(page.getByRole("heading", { level: 1, name: "Kassa" })).toBeVisible()
+  await expect(sectionTabs(page).getByRole("link")).toHaveText(["Kassa", "Xarajatlar", "O'tkazmalar"])
+  const accounts = list(page, "Akkauntlar")
+  await expect(accounts.getByRole("link", { name: "Naqd" })).toBeVisible()
+  await expect(accounts.getByText("0 so'm").first()).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  // The cash's page: what it held when the books began.
+  await accounts.getByRole("link", { name: "Naqd" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Naqd" })).toBeVisible()
+  const balance = page.getByRole("region", { name: "Qoldiq" })
+  await page.getByRole("button", { name: "Boshlang'ich qoldiq" }).click()
+  let dialog = page.getByRole("dialog", { name: "Kassa boshlang'ich qoldig'i" })
+  await dialog.getByLabel("Summa, so'm").fill("1000000")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(balance.getByText("1 000 000 so'm")).toBeVisible()
+  await expect(list(page, "Hisob harakati").getByText("Kassa boshlang'ich qoldig'i")).toBeVisible()
+  await settle(page)
+
+  // The rent, under its category.
+  await page.getByRole("button", { name: "Xarajat qo'shish" }).click()
+  dialog = page.getByRole("dialog", { name: "Xarajat qo'shish" })
+  await choose(dialog.getByRole("combobox", { name: "Kategoriya" }), "Ijara")
+  await dialog.getByLabel("Summa, so'm").fill("150000")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(balance.getByText("850 000 so'm")).toBeVisible()
+  await expect(list(page, "Hisob harakati").getByText("Xarajat № 1")).toBeVisible()
+  await settle(page)
+
+  // 100 000 to the second cash; 128 000 turned into 10 dollars on the card.
+  await page.getByRole("button", { name: "O'tkazma qo'shish" }).click()
+  dialog = page.getByRole("dialog", { name: "O'tkazma qo'shish" })
+  await choose(dialog.getByRole("combobox", { name: "Qayerga" }), "Kassa 2 (so'm)")
+  await dialog.getByLabel("Summa, so'm").fill("100000")
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(balance.getByText("750 000 so'm")).toBeVisible()
+  await settle(page)
+  await page.getByRole("button", { name: "Konvertatsiya qo'shish" }).click()
+  dialog = page.getByRole("dialog", { name: "Konvertatsiya qo'shish" })
+  await choose(dialog.getByRole("combobox", { name: "Qayerga" }), "Karta ($)")
+  await dialog.getByLabel("Chiqqan summa, so'm").fill("128000")
+  await dialog.getByLabel("Kirgan summa, $").fill("10")
+  await expect(dialog.getByText("1 $ = 12 800 so'm")).toBeVisible()
+  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(balance.getByText("622 000 so'm")).toBeVisible()
+  await expect(list(page, "Hisob harakati").getByText("Konvertatsiya № 1")).toBeVisible()
+  await settle(page)
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  // The cash: every account with what it holds now.
+  await page.getByRole("main").getByRole("link", { name: "Kassa" }).click()
+  await expect(page).toHaveURL(/\/accounts$/)
+  await expect(list(page, "Akkauntlar").getByText("622 000 so'm")).toBeVisible()
+  await expect(list(page, "Akkauntlar").getByText("10 $")).toBeVisible()
+  await expect(list(page, "Akkauntlar").getByText("100 000 so'm")).toBeVisible()
+
+  // The expenses: the rent edited from its row.
+  await sectionTabs(page).getByRole("link", { name: "Xarajatlar" }).click()
+  await expect(page).toHaveURL(/\/expenses$/)
+  const expenses = list(page, "Xarajatlar")
+  await expect(expenses.getByText("№ 1 · Ijara")).toBeVisible()
+  await expenses.getByRole("button", { name: "Tahrirlash: 150 000" }).click()
+  dialog = page.getByRole("dialog", { name: "Xarajatni tahrirlash" })
+  await dialog.getByLabel("Summa, so'm").fill("160000")
+  await dialog.getByRole("button", { name: "Saqlash" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(expenses.getByText("160 000 so'm")).toBeVisible()
+  await settle(page)
+  await page.getByRole("tab", { name: "Kirim" }).click()
+  await expect(page).toHaveURL(/\/expenses\?kind=income$/)
+  await expect(page.getByText("Hali kirim yo'q")).toBeVisible()
+
+  // The transfers and the conversion in one list; the conversion deleted gives the so'm back.
+  await sectionTabs(page).getByRole("link", { name: "O'tkazmalar" }).click()
+  await expect(page).toHaveURL(/\/money-transfers$/)
+  const transfers = list(page, "O'tkazmalar")
+  await expect(transfers.getByText("Konvertatsiya № 1")).toBeVisible()
+  await expect(transfers.getByText("O'tkazma № 1")).toBeVisible()
+  await expect(transfers.getByText("1 $ = 12 800 so'm")).toBeVisible()
+  await transfers.getByRole("button", { name: "O'chirish: 128 000" }).click()
+  await page.getByRole("alertdialog", { name: "Hujjatni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
+  await expect(transfers.getByText("Konvertatsiya № 1")).toHaveCount(0)
+  await settle(page)
+  await sectionTabs(page).getByRole("link", { name: "Kassa" }).click()
+  await expect(list(page, "Akkauntlar").getByText("740 000 so'm")).toBeVisible()
+  await expect(list(page, "Akkauntlar").getByText("0 $")).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+})
+
+test("an employee whose role lacks the finance has no way to it, and the addresses lead home", async ({ page }) => {
+  seedCatalog()
+  giveRole("998902223344", 1, "Kuzatuvchi", ["customers.view"])
+  await signIn(page, "902223344")
+  await page.getByRole("button", { name: /Olma Savdo/ }).click()
+  await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
+
+  await expect((await sections(page)).getByRole("link", { name: "Moliya" })).toHaveCount(0)
+  await page.goto("/accounts")
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
+  await page.goto("/expenses")
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
+})

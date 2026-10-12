@@ -111,9 +111,9 @@ pnpm --filter @hisob24/web dev
 
 | Rol | Interfeysda | Qayerdan qo'shiladi | User app'da |
 |---|---|---|---|
-| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Vazifalar**, **Mahsulotlar** (mahsulotlar va xizmatlar), **Ombor** (xaridlar va ta'minotchilar), **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
-| `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**, **Vazifalar**, **Mahsulotlar** va **Ombor** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
-| `user`, rolli | rol nomi (masalan, Sotuvchi) | egasi **Xodimlar → Rolni o'zgartirish** da rol biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
+| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Vazifalar**, **Mahsulotlar** (mahsulotlar va xizmatlar), **Sotuv**, **Ombor** (xaridlar, ko'chirishlar, inventarizatsiya, boshlang'ich qoldiq, ta'minotchilar), **Moliya** (kassa, xarajatlar, o'tkazmalar), **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
+| `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**, **Vazifalar**, **Mahsulotlar**, **Sotuv**, **Ombor** va **Moliya** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
+| `user`, rolli | rol nomi (masalan, Sotuvchi) | egasi **Xodimlar → Rolni o'zgartirish** da rol biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Sotuv, Ombor hujjatlari, Moliya, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
 
 - **Kompaniya rollari** egasi **Sozlamalar → Rollar** da tuzadi: nom va ruxsat matritsasi. Amal bo'limning "Ko'rish" ruxsatisiz qabul qilinmaydi. Xodimlarga biriktirilgan rol o'chirilmaydi. Rollarni faqat egasi boshqaradi va biriktiradi.
 - Ruxsat har so'rovda bazadan o'qiladi: rol o'zgarsa, xodim keyingi so'rovdanoq yangi ruxsat bilan ishlaydi. Ruxsati yo'q amal API'da 403 `forbidden`; rollar API xodimga 403 `owner_only`.
@@ -211,6 +211,26 @@ Har lokatsiya bitta **ombor**: xarid joriy lokatsiyaga tushadi va shu lokatsiyad
 - **O'chirish:** xaridi yoki to'lovi bor ta'minotchi o'chirilmaydi (409 `supplier_in_use`); nofaol qilish mumkin. Hech narsa bazadan o'chmaydi.
 
 To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/warehouse.md`](logic/warehouse.md).
+
+## Sotuv
+
+**Sotuv** (`/sales`, `sales.*`): joriy lokatsiyadan mijozga yoki chakana (mijozsiz; to'liq to'langan bo'lishi shart) sotuv, qatorlarda mahsulot (qoldiqdan chiqadi) yoki xizmat (harakatsiz), narx taklifi mahsulotning sotuv narxi, to'lov qatorlari akkaunt bilan. Mijoz sahifasida balans kartasi (qarz / avans), «Hisob harakati» (sotuvlar, to'lovlar, boshlang'ich qarz / avans), to'lov va boshlang'ich qarz / avans dialoglari; mijozlar ro'yxatida «Qarz» ustuni (`sales.view`). Qoidalar: [`logic/sales.md`](logic/sales.md).
+
+## Moliya
+
+**Moliya** (`finance.*`): tablar **Kassa** (`/accounts`), **Xarajatlar** (`/expenses`), **O'tkazmalar** (`/money-transfers`). Akkauntlarni (kassa, hisob raqam, karta; bitta valyutada) admin panel qo'shadi (har kompaniyada «Naqd» UZS tayyor), xarajat va kirim kategoriyalarini egasi **Sozlamalar → Moliya kategoriyalari** da yaratadi.
+
+| Bo'lim | Nima qiladi |
+|---|---|
+| **Kassa** | akkauntlar va o'z valyutasidagi qoldiqlari (faollar avval, nofaollar oxirida); akkaunt sahifasi (`/accounts/[id]`): qoldiq, **hisob harakati** (akkauntga tegadigan hamma hujjat: kassa boshlang'ich qoldig'i, xarajat / kirim, o'tkazma va konvertatsiya, ta'minotchiga va mijozdan to'lovlar; ± summa va keyingi qoldiq), hujjat qo'shish dialoglari |
+| **Xarajatlar** | Xarajat / Kirim tablari; akkaunt, kategoriya va kun oralig'i filtri; qatorda tahrirlash va o'chirish |
+| **O'tkazmalar** | akkauntlar aro o'tkazma (bir valyutada) va konvertatsiya (ikki summa, kurs ma'lumot uchun) bitta ro'yxatda |
+
+- Qoldiq akkaunt valyutasida, aylantirilmaydi; manfiy bo'lishi mumkin (pul chiqishi tekshirilmaydi).
+- Kassa hujjatida kurs maydoni yo'q; raqam har turda alohida («Xarajat № 7», «Kirim № 2», «O'tkazma № 1», «Konvertatsiya № 1»).
+- Jonli hujjati bor akkaunt o'chirilmaydi va valyutasi o'zgartirilmaydi (409 `account_in_use`), jonli hujjati bor kategoriya o'chirilmaydi (409 `category_in_use`); nofaol qilish mumkin.
+
+Qoidalar: [`logic/finance.md`](logic/finance.md), valyutalar va kurslar: [`logic/currencies.md`](logic/currencies.md).
 
 ## Buyruqlar
 
