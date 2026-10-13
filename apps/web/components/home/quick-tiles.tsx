@@ -1,6 +1,7 @@
 "use client"
 
 import { BanknoteIcon, ClipboardPlusIcon, PackagePlusIcon, ShoppingBagIcon, UserPlusIcon } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog"
@@ -10,6 +11,7 @@ import { AddTaskDialog } from "@/components/tasks/task-dialog"
 import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { formatPhone } from "@/lib/phone"
 import {
+  dashboardKey,
   useCustomerDropdowns,
   useCustomerTypes,
   useMembers,
@@ -26,9 +28,12 @@ type Open = null | "task" | "customer" | "payment"
 // first four of Vazifa, Mijoz, Sotuv, Xarid and To'lov the member may use
 // (what goes into a location wants one). A task, a customer and a payment
 // are entered right on the home; a sale and a purchase are a page each.
-// To'lov picks the supplier among the active ones first.
+// To'lov picks the supplier among the active ones first. Whatever is
+// entered shows on the home at once: the dashboard is asked again as a
+// dialog closes.
 export function QuickTiles({ companyId, locationId, permissions }: { companyId: number; locationId: number | null; permissions: Permission[] }) {
   const can = (permission: Permission) => permissions.includes(permission)
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState<Open>(null)
   const [supplierId, setSupplierId] = useState<number | null>(null)
   const located = locationId !== null
@@ -43,7 +48,11 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
     .filter(Boolean)
     .slice(0, 4)
   if (tiles.length === 0) return null
-  const close = () => setOpen(null)
+  const refresh = () => queryClient.invalidateQueries({ queryKey: dashboardKey(companyId) })
+  const close = () => {
+    setOpen(null)
+    refresh()
+  }
 
   return (
     <>
@@ -59,12 +68,23 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
           companyId={companyId}
           onClose={close}
           onPick={(id) => {
-            close()
+            setOpen(null)
             setSupplierId(id)
           }}
         />
       )}
-      {supplierId !== null && <PaymentDialog companyId={companyId} partyId={supplierId} open onOpenChange={(next) => !next && setSupplierId(null)} />}
+      {supplierId !== null && (
+        <PaymentDialog
+          companyId={companyId}
+          partyId={supplierId}
+          open
+          onOpenChange={(next) => {
+            if (next) return
+            setSupplierId(null)
+            refresh()
+          }}
+        />
+      )}
     </>
   )
 }

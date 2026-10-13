@@ -6,19 +6,21 @@ import type { ReactElement } from "react"
 import { Toaster } from "@/components/ui/sonner"
 
 // renderWithProviders renders ui inside the providers the app gives every
-// page: theme, a query client without retries, and the toaster.
+// page: theme, a query client without retries, and the toaster. rerender
+// renders another ui inside the same providers (the same query client).
 export function renderWithProviders(ui: ReactElement, options: Parameters<typeof userEvent.setup>[0] = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } },
   })
   const user = userEvent.setup(options)
-  const result = render(
+  const wrap = (inner: ReactElement) => (
     <ThemeProvider attribute="class" defaultTheme="light">
       <QueryClientProvider client={queryClient}>
-        {ui}
+        {inner}
         <Toaster />
       </QueryClientProvider>
-    </ThemeProvider>,
+    </ThemeProvider>
   )
-  return { user, queryClient, ...result }
+  const result = render(wrap(ui))
+  return { user, queryClient, ...result, rerender: (next: ReactElement) => result.rerender(wrap(next)) }
 }

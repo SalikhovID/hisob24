@@ -1,5 +1,6 @@
 "use client"
 
+import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
@@ -19,7 +20,7 @@ import { useHomeScreenOffer } from "@/lib/home-screen"
 import { shortName } from "@/lib/initials"
 import { barItems, navFor } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
-import { useDashboard, useMe, useTaskStages } from "@/lib/queries"
+import { dashboardKey, useDashboard, useMe, useTaskStages } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import { todayISO } from "@/lib/tasks"
 import { useLocation } from "@/lib/use-location"
@@ -44,6 +45,7 @@ export function Dashboard() {
   const dashboard = useDashboard(companyId, locationId)
   const stages = useTaskStages(dashboard.data?.tasks ? companyId : null)
   const [addingTask, setAddingTask] = useState(false)
+  const queryClient = useQueryClient()
   if (!data || !company) return null
   const user = data.user
   const name = user.full_name ?? formatPhone(user.phone)
@@ -99,7 +101,10 @@ export function Dashboard() {
               companyId={company.id}
               locationId={locationId}
               canCreateCustomer={data.permissions.includes("customers.create")}
-              onClose={() => setAddingTask(false)}
+              onClose={() => {
+                setAddingTask(false)
+                queryClient.invalidateQueries({ queryKey: dashboardKey(company.id) })
+              }}
             />
           )}
         </>

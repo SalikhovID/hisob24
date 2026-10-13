@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { formatDate } from "@/lib/format"
 import { setMiniApp } from "@/lib/telegram"
-import { ALI, db, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
+import { ALI, db, seedCatalog, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
 import { addLocation } from "@/test/locations"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
@@ -158,4 +158,22 @@ test("with no task open the nearest deadlines offer to add one, right on the hom
   await user.click(screen.getByRole("button", { name: "Vazifa qo'shish" }))
 
   expect(await screen.findByRole("dialog", { name: "Vazifa qo'shish" })).toBeInTheDocument()
+})
+
+test("a payment entered from the home shows in what the suppliers are owed at once", async () => {
+  seedWarehouse(seedCatalog())
+  giveRole(VALI, 1, "Omborchi", ["purchases.view", "purchases.create", "suppliers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { user } = renderWithProviders(<Dashboard />)
+  const hero = await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })
+  expect(hero).toHaveTextContent("15 001,50 so'm")
+
+  await user.click(screen.getByRole("button", { name: "To'lov" }))
+  await user.click(await within(await screen.findByRole("dialog", { name: "Ta'minotchi" })).findByRole("option", { name: /Bozor/ }))
+  const payment = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
+  await user.type(within(payment).getByLabelText("Summa, so'm"), "1001.50")
+  await user.click(within(payment).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.getByRole("link", { name: /^Ta'minotchilarga qarz/ })).toHaveTextContent("14 000 so'm"))
 })
