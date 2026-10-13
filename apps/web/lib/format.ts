@@ -71,3 +71,27 @@ export function compactAmount(amount: string): string {
   }
   return formatAmount(amount.split(".")[0])
 }
+
+// MONTHS are the months' names, as a date is said ("8-oktabr").
+export const MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"]
+const WEEKDAYS = ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"]
+
+// dayTitle heads a day's group of documents (both days as YYYY-MM-DD):
+// «Bugun», «Kecha», else the day and month with the weekday
+// ("8-oktabr, payshanba").
+export function dayTitle(day: string, today: string): string {
+  const [year, month, date] = day.split("-").map(Number)
+  const at = Date.UTC(year, month - 1, date)
+  const [ty, tm, td] = today.split("-").map(Number)
+  const days = Math.round((Date.UTC(ty, tm - 1, td) - at) / 86_400_000)
+  if (days === 0) return "Bugun"
+  if (days === 1) return "Kecha"
+  return `${date}-${MONTHS[month - 1]}, ${WEEKDAYS[new Date(at).getUTCDay()]}`
+}
+
+// dayOf is the day a moment is in, in the browser's time zone, as
+// YYYY-MM-DD: what documents are grouped by.
+export function dayOf(value: string): string {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}

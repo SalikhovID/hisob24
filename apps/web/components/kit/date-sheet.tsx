@@ -4,13 +4,12 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { useId, useState } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { formatDate } from "@/lib/format"
+import { formatDate, MONTHS } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { Chip, Chips } from "./chips"
 import { PickRow } from "./form-row"
 import { MainButton } from "./main-button"
 
-export const MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"]
 const WEEKDAYS = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"]
 
 const pad = (n: number) => String(n).padStart(2, "0")

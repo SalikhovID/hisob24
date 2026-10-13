@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format"
 import { setMiniApp } from "@/lib/telegram"
 import { ALI, db, seedCatalog, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
 import { addLocation } from "@/test/locations"
+import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { giveRole } from "@/test/roles"
@@ -172,7 +173,7 @@ test("a payment entered from the home shows in what the suppliers are owed at on
   await user.click(screen.getByRole("button", { name: "To'lov" }))
   await user.click(await within(await screen.findByRole("dialog", { name: "Ta'minotchi" })).findByRole("option", { name: /Bozor/ }))
   const payment = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
-  await user.type(within(payment).getByLabelText("Summa, so'm"), "1001.50")
+  await press(user, payment, "1001,5")
   await user.click(within(payment).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.getByRole("link", { name: /^Ta'minotchilarga qarz/ })).toHaveTextContent("14 000 so'm"))

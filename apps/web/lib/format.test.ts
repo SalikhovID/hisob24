@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { compactAmount, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, unitLabel } from "./format"
+import { compactAmount, dayOf, dayTitle, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, unitLabel } from "./format"
 
 test("formatDate writes a date as dd.mm.yyyy", () => {
   expect(formatDate("2026-10-07")).toBe("07.10.2026")
@@ -57,4 +57,18 @@ test("a compact amount is millions to two decimals where they matter, a smaller 
   expect(compactAmount("12000000.00")).toBe("12\u00a0mln")
   expect(compactAmount("750000.50")).toBe(formatAmount("750000"))
   expect(compactAmount("0.00")).toBe("0")
+})
+
+test("a day is headed as people say it: today, yesterday, or the day and month with the weekday", () => {
+  expect(dayTitle("2026-10-08", "2026-10-08")).toBe("Bugun")
+  expect(dayTitle("2026-10-07", "2026-10-08")).toBe("Kecha")
+  expect(dayTitle("2026-10-01", "2026-10-08")).toBe("1-oktabr, payshanba")
+  expect(dayTitle("2026-09-28", "2026-10-08")).toBe("28-sentabr, dushanba")
+  // A day after today is said by its date too.
+  expect(dayTitle("2026-10-09", "2026-10-08")).toBe("9-oktabr, juma")
+})
+
+test("a moment's day is the day it is in the browser's time zone", () => {
+  const moment = new Date(2026, 9, 5, 23, 30)
+  expect(dayOf(moment.toISOString())).toBe("2026-10-05")
 })
