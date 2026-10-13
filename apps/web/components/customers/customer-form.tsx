@@ -3,9 +3,9 @@
 import Link from "next/link"
 import type { Control } from "react-hook-form"
 import { FieldAnswer } from "@/components/field-answer"
-import { PhoneField } from "@/components/phone-field"
+import { PhoneRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
 import { Refusal } from "@/components/refusal"
-import { FieldGroup } from "@/components/ui/field"
 import { ApiError } from "@/lib/api"
 import { type CustomerForm, type CustomerOutput } from "@/lib/customers"
 import { fieldKey } from "@/lib/fields"
@@ -13,9 +13,9 @@ import type { Customer, CustomerDropdown, CustomerField, CustomerType } from "@/
 
 type FormControl = Control<CustomerForm, unknown, CustomerOutput>
 
-// CustomerFields is the form of a type's customer: the phone, which every
-// customer has, then the type's fields in their order. customer is the one
-// being edited, if any.
+// CustomerFields is the form of a type's customer, as a group of the
+// prototype's rows: the phone, which every customer has, then the type's
+// fields in their order. customer is the one being edited, if any.
 export function CustomerFields({
   control,
   type,
@@ -33,8 +33,8 @@ export function CustomerFields({
     return Array.isArray(answer) ? answer.includes(optionId) : answer === optionId
   }
   return (
-    <FieldGroup>
-      <PhoneField control={control} name="phone" label="Telefon raqami" autoComplete="off" />
+    <Group>
+      <PhoneRow control={control} name="phone" label="Telefon raqami" />
       {type.fields.map((field) => (
         <FieldAnswer
           key={field.id}
@@ -49,7 +49,7 @@ export function CustomerFields({
           )}
         />
       ))}
-    </FieldGroup>
+    </Group>
   )
 }
 

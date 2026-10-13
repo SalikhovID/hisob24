@@ -1,14 +1,14 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Radio } from "@base-ui/react/radio"
-import { RadioGroup } from "@base-ui/react/radio-group"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { PlusIcon } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import { PendingButton } from "@/components/pending-button"
+import { ChoiceChips } from "@/components/kit/chips"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -97,39 +97,29 @@ export function AddCustomerDialog({
           Mijoz qo&apos;shish
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Mijoz qo&apos;shish</DialogTitle>
           <DialogDescription>Turni tanlang va shu turning maydonlarini to&apos;ldiring.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((customer) => add.mutate(customer))} noValidate className="space-y-4">
+        <SheetForm onSubmit={form.handleSubmit((customer) => add.mutate(customer))}>
           {/* With one type there is nothing to choose. */}
           {types.length > 1 && (
-            <RadioGroup
-              aria-label="Mijoz turi"
+            <ChoiceChips
+              label="Mijoz turi"
               value={String(type.id)}
-              onValueChange={(value) => changeType(Number(value))}
-              className="flex w-fit max-w-full flex-wrap gap-1 rounded-lg bg-muted p-[3px]"
-            >
-              {types.map((candidate) => (
-                <Radio.Root
-                  key={candidate.id}
-                  value={String(candidate.id)}
-                  className="inline-flex h-8 cursor-default items-center rounded-md px-3 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:bg-card data-checked:text-foreground data-checked:shadow-sm"
-                >
-                  {candidate.name}
-                </Radio.Root>
-              ))}
-            </RadioGroup>
+              onChange={(value) => changeType(Number(value))}
+              options={types.map((candidate) => ({ value: String(candidate.id), label: candidate.name }))}
+            />
           )}
           <CustomerFields control={form.control} type={type} dropdowns={dropdowns} />
           {add.isError && <CustomerRefusal error={add.error} />}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={add.isPending}>
+            <MainButton type="submit" pending={add.isPending}>
               Qo&apos;shish
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )

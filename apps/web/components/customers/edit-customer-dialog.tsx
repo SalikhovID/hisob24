@@ -6,7 +6,8 @@ import { PencilIcon } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import { PendingButton } from "@/components/pending-button"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -83,20 +84,20 @@ export function EditCustomerDialog({
           Tahrirlash
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Mijozni tahrirlash</DialogTitle>
           <DialogDescription>{type.name}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((edited) => save.mutate(edited))} noValidate className="space-y-4">
+        <SheetForm onSubmit={form.handleSubmit((edited) => save.mutate(edited))}>
           <CustomerFields control={form.control} type={type} dropdowns={dropdowns} customer={customer} />
           {save.isError && <CustomerRefusal error={save.error} />}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
+            <MainButton type="submit" pending={save.isPending}>
               Saqlash
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )
