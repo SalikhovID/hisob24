@@ -7,6 +7,8 @@ test("the digits are grouped by thousands with a no-break space, the decimals ke
   expect(splitAmount("1250000.50")).toEqual({ whole: "1 250 000", decimals: ",50" })
   expect(splitAmount("12000.00")).toEqual({ whole: "12 000", decimals: "" })
   expect(splitAmount("7")).toEqual({ whole: "7", decimals: "" })
+  // Below zero (an account that paid out more than it held) with a real minus sign.
+  expect(splitAmount("-5000.50")).toEqual({ whole: "\u22125\u00a0000", decimals: ",50" })
 })
 
 test("an amount reads as one number with its unit", () => {

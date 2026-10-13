@@ -8,10 +8,11 @@ export const groupDigits = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\
 
 // splitAmount takes an amount as the API writes it ("1250000.50") apart
 // into its grouped whole part and its decimals after a comma, which are
-// left out when they are all zero.
+// left out when they are all zero; below zero with a real minus sign.
 export function splitAmount(value: string): { whole: string; decimals: string } {
-  const [whole, decimals = ""] = value.split(".")
-  return { whole: groupDigits(whole), decimals: /^0*$/.test(decimals) ? "" : `,${decimals}` }
+  const negative = value.startsWith("-")
+  const [whole, decimals = ""] = (negative ? value.slice(1) : value).split(".")
+  return { whole: `${negative ? "−" : ""}${groupDigits(whole)}`, decimals: /^0*$/.test(decimals) ? "" : `,${decimals}` }
 }
 
 // Amount is the prototype's large figure: the whole part big, the decimals
