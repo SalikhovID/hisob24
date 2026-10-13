@@ -1,17 +1,11 @@
 import type { Locator, Page } from "@playwright/test"
 import { db } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
+import { choose, homeHead, onPhone, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
 
 // The whole way of a role (logic/roles.md): the owner makes one in the
 // settings, gives it to an employee in the employees, the employee works by
 // it alone, and the owner takes it away again.
-
-async function signOut(page: Page) {
-  await page.getByRole("button", { name: "Profil" }).click()
-  await page.getByRole("menuitem", { name: "Chiqish" }).click()
-  await expect(page).toHaveURL(/\/login$/)
-}
 
 // memberRow is an employee's row of the members: a table row on a wide
 // screen, a card on a phone.
@@ -69,7 +63,7 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
-  await expect(page.getByText("Sotuvchi")).toBeVisible()
+  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Vali A. · Sotuvchi")
   const shown = await sections(page)
   await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar"])
   await shown.getByRole("link", { name: "Mijozlar" }).click()

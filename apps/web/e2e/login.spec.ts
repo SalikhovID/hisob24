@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { db, LOGIN_CODE } from "../mocks/data"
 import { expect, test } from "./fixtures"
+import { homeHead, openProfile, signOut } from "./helpers"
 
 // signIn goes through the login page: the number without +998, then the code.
 async function signIn(page: Page, number: string) {
@@ -32,14 +33,12 @@ test("someone in one company signs in with an SMS code and lands on the dashboar
 
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expect(main(page).getByText("Olma Savdo")).toBeVisible()
-  await expect(main(page).getByText("Egasi", { exact: true })).toBeVisible()
-  await expect(page.getByRole("link", { name: "Kompaniyani almashtirish" })).toHaveCount(0)
+  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Ali V. · Egasi")
 
-  // The way out is in the profile menu.
-  await page.getByRole("button", { name: "Profil" }).click()
-  await page.getByRole("menuitem", { name: "Chiqish" }).click()
-  await expect(page).toHaveURL(/\/login$/)
+  // The profile has no other company to switch to; the way out is there.
+  await openProfile(page)
+  await expect(page.getByRole("link", { name: "Kompaniyani almashtirish" })).toHaveCount(0)
+  await signOut(page)
   await page.goto("/")
   await expect(page).toHaveURL(/\/login$/)
 })
@@ -50,18 +49,15 @@ test("someone in two companies chooses one and can switch to the other", async (
   await expect(page).toHaveURL(/\/select-company$/)
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expect(main(page).getByText("Olma Savdo")).toBeVisible()
-  await expect(main(page).getByText("Xodim", { exact: true })).toBeVisible()
+  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Vali A. · Xodim")
 
-  const switchLink = page.getByRole("link", { name: "Kompaniyani almashtirish" })
-  // It reads as an outlined button, not as bare text.
-  await expect(switchLink).not.toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)")
-  await switchLink.click()
+  // The other company is the profile's way.
+  await openProfile(page)
+  await page.getByRole("link", { name: "Kompaniyani almashtirish" }).click()
   await expect(page).toHaveURL(/\/select-company$/)
   await page.getByRole("button", { name: /Nok Market/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expect(main(page).getByText("Nok Market")).toBeVisible()
-  await expect(main(page).getByText("Egasi", { exact: true })).toBeVisible()
+  await expect(homeHead(page)).toHaveAccessibleName("Nok Market Vali A. · Egasi")
 })
 
 test("a company that expires while in use leads to /expired and on to another", async ({ page }) => {

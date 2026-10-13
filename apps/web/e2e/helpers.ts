@@ -9,32 +9,90 @@ export async function signIn(page: Page, number: string) {
   await page.getByRole("textbox", { name: "Kod" }).fill(LOGIN_CODE)
 }
 
-// The sidebar is a column from the md breakpoint up, a tab bar along the
-// bottom below it; lists are tables there and cards here.
+// The sidebar is a column from the md breakpoint up, a floating tab bar
+// below it; lists are tables there and cards here.
 export const onPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 768
 
 // sections is the list of sections as the screen shows it: the sidebar's on
-// a wide screen, the tab bar's on a phone.
+// a wide screen, the tab bar's on a phone. The tab bar stands on a
+// section's own pages only: on a record, a form or the profile it is hidden
+// (and out of the accessibility tree).
 export async function sections(page: Page): Promise<Locator> {
   return page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
 }
 
+// goHome goes to the home: through the sections where they are on screen,
+// by address from a page that hides the tab bar.
+export async function goHome(page: Page) {
+  const home = (await sections(page)).getByRole("link", { name: "Bosh sahifa", exact: true })
+  if ((await home.count()) > 0) await home.click()
+  else await page.goto("/")
+  await expect(page).toHaveURL(/\/$/)
+}
+
 // openSection goes to a section through the sidebar or the tab bar. On a
-// phone the sections past the fourth are under «Yana» (logic/roles.md,
-// section 8): the way there goes through it.
+// phone the bar holds the home and the member's first four sections; the
+// rest are a row each on the home and the profile (logic/roles.md,
+// section 8): the way there goes through the home.
 export async function openSection(page: Page, name: string) {
-  const bar = await sections(page)
-  const link = bar.getByRole("link", { name })
-  const more = bar.getByRole("button", { name: "Yana" })
-  // The sections come with the session: until then the bar has the home
-  // alone. Wait for the link, or for «Yana» where the bar is short.
-  await link.or(more).first().waitFor()
-  if ((await link.count()) > 0) {
-    await link.click()
+  let bar = await sections(page)
+  if (!onPhone(page)) {
+    await bar.getByRole("link", { name, exact: true }).click()
     return
   }
-  await more.click()
-  await page.getByRole("dialog", { name: "Yana" }).getByRole("link", { name }).click()
+  if ((await bar.count()) === 0) {
+    await goHome(page)
+    bar = await sections(page)
+  }
+  const inBar = bar.getByRole("link", { name, exact: true })
+  // The sections come with the session: until then the bar holds the home
+  // alone. A full bar (the home and four) means the section is past it.
+  await inBar.or(bar.getByRole("link").nth(4)).first().waitFor()
+  if ((await inBar.count()) > 0) {
+    await inBar.click()
+    return
+  }
+  await goHome(page)
+  await page.getByRole("main").getByRole("list", { name: "Bo'limlar" }).getByRole("link", { name, exact: true }).click()
+}
+
+// homeHead is the home's head: the company, the short name and the role,
+// the way to the profile.
+export const homeHead = (page: Page) => page.getByRole("main").locator('a[href="/profile"]')
+
+// openProfile goes to the profile page: the sidebar's foot on a wide screen,
+// the home's head on a phone.
+export async function openProfile(page: Page) {
+  if (onPhone(page)) {
+    await goHome(page)
+    await homeHead(page).click()
+  } else {
+    await page.getByRole("complementary", { name: "Menyu" }).locator('a[href="/profile"]').click()
+  }
+  await expect(page).toHaveURL(/\/profile$/)
+}
+
+// signOut leaves through the profile page.
+export async function signOut(page: Page) {
+  await openProfile(page)
+  await page.getByRole("button", { name: "Chiqish" }).click()
+  await expect(page).toHaveURL(/\/login$/)
+}
+
+// locationSwitch is the pill that says the current location and switches
+// it: the sidebar's on a wide screen, the home's head on a phone.
+export const locationSwitch = (page: Page) =>
+  (onPhone(page) ? page.getByRole("main") : page.getByRole("complementary", { name: "Menyu" })).getByRole("button", { name: /^Lokatsiya: / })
+
+// chooseLocation makes the location current (logic/locations.md, section
+// 4). On a phone the switch is the home's: the way goes home and back.
+export async function chooseLocation(page: Page, name: string) {
+  const away = onPhone(page) && new URL(page.url()).pathname !== "/"
+  if (away) await goHome(page)
+  await locationSwitch(page).click()
+  await page.getByRole("dialog", { name: "Lokatsiya" }).getByRole("menuitemradio", { name, exact: true }).click()
+  await expect(locationSwitch(page)).toHaveAccessibleName(`Lokatsiya: ${name}`)
+  if (away) await page.goBack()
 }
 
 // noSideScroll tells whether the page fits its width: nothing to scroll

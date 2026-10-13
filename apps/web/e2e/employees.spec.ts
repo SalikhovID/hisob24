@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { addDays, ALI, db, join, LOGIN_CODE, TODAY, VALI } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { openSection } from "./helpers"
+import { homeHead, openSection, signOut } from "./helpers"
 
 // signIn goes through the login page: the number without +998, then the code.
 async function signIn(page: Page, number: string) {
@@ -9,12 +9,6 @@ async function signIn(page: Page, number: string) {
   await page.getByRole("textbox", { name: "Telefon raqami" }).fill(number)
   await page.getByRole("button", { name: "Kodni olish" }).click()
   await page.getByRole("textbox", { name: "Kod" }).fill(LOGIN_CODE)
-}
-
-async function signOut(page: Page) {
-  await page.getByRole("button", { name: "Profil" }).click()
-  await page.getByRole("menuitem", { name: "Chiqish" }).click()
-  await expect(page).toHaveURL(/\/login$/)
 }
 
 // The sidebar is a column from the md breakpoint up, a tab bar along the
@@ -62,7 +56,7 @@ test("the owner adds an employee, who signs in and finds no way to the employees
   await signOut(page)
   await signIn(page, "907778899")
   await expect(page.getByRole("heading", { name: "Salom, Yangi Xodim" })).toBeVisible()
-  await expect(page.getByRole("main").getByText("Xodim", { exact: true })).toBeVisible()
+  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Yangi X. · Xodim")
   const nav = await sections(page)
   await expect(nav.getByRole("link", { name: "Bosh sahifa" })).toBeVisible()
   await expect(nav.getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
@@ -151,7 +145,7 @@ test("an owner replaced while signed in loses the employees at the next request"
 
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expect(page.getByRole("main").getByText("Xodim", { exact: true })).toBeVisible()
+  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Ali V. · Xodim")
   await expect((await sections(page)).getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
   expect(db.members["998907778899"]).toBeUndefined()
 })

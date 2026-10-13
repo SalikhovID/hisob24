@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { addDays, db, DILNOZA, join, localToday } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, onPhone, openSection, sideScroll, signIn } from "./helpers"
+import { choose, chooseLocation, goHome, locationSwitch, onPhone, openSection, sideScroll, signIn, signOut } from "./helpers"
 
 const today = localToday()
 
@@ -13,8 +13,6 @@ async function openNok(page: Page) {
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 }
 
-const switcher = (page: Page) => page.getByRole("combobox", { name: "Lokatsiya" })
-
 // The members are a table on a wide screen and cards on a phone.
 const members = (page: Page) =>
   onPhone(page) ? page.getByRole("list", { name: "Xodimlar" }) : page.getByRole("table", { name: "Xodimlar" })
@@ -23,12 +21,11 @@ test("the owner switches between the locations: the tasks are the current one's,
   page,
 }) => {
   await openNok(page)
-  await expect(switcher(page)).toContainText("Asosiy")
+  await expect(locationSwitch(page)).toHaveAccessibleName("Lokatsiya: Asosiy")
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   // A task entered in Chilonzor.
-  await choose(switcher(page), "Chilonzor")
-  await expect(switcher(page)).toContainText("Chilonzor")
+  await chooseLocation(page, "Chilonzor")
   await openSection(page, "Vazifalar")
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
   await page.getByRole("button", { name: "Vazifa qo'shish", exact: true }).click()
@@ -47,7 +44,7 @@ test("the owner switches between the locations: the tasks are the current one's,
   expect(db.tasks.at(-1)?.locationId).toBe(chilonzor.id)
 
   // In Asosiy the task is out of sight.
-  await choose(switcher(page), "Asosiy")
+  await chooseLocation(page, "Asosiy")
   await expect(yangi.getByText("Chilonzorda")).toHaveCount(0)
   await expect(yangi.getByText("Vazifa yo'q")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
@@ -60,27 +57,21 @@ test("the owner switches between the locations: the tasks are the current one's,
   await expect(tasks.getByText("Chilonzorda").filter({ visible: true })).toBeVisible()
   await expect(tasks.getByText("Chilonzor", { exact: true }).filter({ visible: true })).toBeVisible()
 
-  // The task's page says its location; the switch stays where it was.
+  // The task's page says its location; the current one stays where it was.
   await tasks.getByRole("link", { name: "Chilonzorda" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Chilonzorda" })).toBeVisible()
   const info = page.getByRole("region", { name: "Ma'lumot" })
   await expect(info.getByText("Lokatsiya", { exact: true })).toBeVisible()
   await expect(info.getByText("Chilonzor", { exact: true })).toBeVisible()
-  await expect(switcher(page)).toContainText("Asosiy")
+  await goHome(page)
+  await expect(locationSwitch(page)).toHaveAccessibleName("Lokatsiya: Asosiy")
 })
 
 test("with one location there is nothing to switch", async ({ page }) => {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expect(switcher(page)).toHaveCount(0)
+  await expect(locationSwitch(page)).toHaveCount(0)
 })
-
-// signOut leaves through the profile menu.
-async function signOut(page: Page) {
-  await page.getByRole("button", { name: "Profil" }).click()
-  await page.getByRole("menuitem", { name: "Chiqish" }).click()
-  await expect(page).toHaveURL(/\/login$/)
-}
 
 // enterTask enters a task with a new customer into the current location,
 // assigned to whoever is named.
@@ -138,7 +129,7 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   // Dilnoza: no switch, Chilonzor's tasks alone; she enters one there.
   await signIn(page, "906667788")
   await expect(page.getByRole("heading", { name: "Salom, Dilnoza Rahimova" })).toBeVisible()
-  await expect(switcher(page)).toHaveCount(0)
+  await expect(locationSwitch(page)).toHaveCount(0)
   await openSection(page, "Vazifalar")
   const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
   await expect(yangi.getByText("Vazifa yo'q")).toBeVisible()
@@ -160,9 +151,9 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   await expect(members(page).getByText("Barchasi").filter({ visible: true })).toHaveCount(2)
   await signOut(page)
   await signIn(page, "906667788")
-  await expect(switcher(page)).toContainText("Asosiy")
+  await expect(locationSwitch(page)).toHaveAccessibleName("Lokatsiya: Asosiy")
   await openSection(page, "Vazifalar")
   await expect(yangi.getByRole("listitem").filter({ hasText: "Asosiyda" })).toBeVisible()
-  await choose(switcher(page), "Chilonzor")
+  await chooseLocation(page, "Chilonzor")
   await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()
 })
