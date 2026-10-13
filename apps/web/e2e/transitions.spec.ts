@@ -34,6 +34,13 @@ test("a step into a record moves the page forward and its way back moves it back
   await page.getByRole("list", { name: "Mijozlar" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
   await expect.poll(() => lastMove(page)).toEqual(["nav-forward"])
+  // The page that moves is one opaque sheet filling the main area: what it
+  // covers does not show through it, as the prototype's screens.
+  const sheet = page.locator("main > [data-slot=page]")
+  await expect(sheet).toHaveCount(1)
+  expect(await sheet.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/)
+  const [sheetHeight, mainHeight] = await sheet.evaluate((element) => [element.getBoundingClientRect().height, element.parentElement!.clientHeight])
+  expect(sheetHeight).toBeGreaterThan(mainHeight * 0.6)
 
   await page.getByRole("main").getByRole("link", { name: "Mijozlar", exact: true }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
