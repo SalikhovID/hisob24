@@ -1,10 +1,12 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Fact } from "@/components/facts"
 import { PageHeader } from "@/components/page-header"
 import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatDate, formatMoney, unitLabel } from "@/lib/format"
@@ -37,6 +39,7 @@ export function ProductPage({ id }: { id: number }) {
   const product = useProduct(companyId, id)
   const router = useRouter()
   const currencies = useCurrencies()
+  const [editing, setEditing] = useState(false)
 
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
@@ -87,7 +90,13 @@ export function ProductPage({ id }: { id: number }) {
           (allowed("products.edit") || allowed("products.delete")) && (
             <>
               {allowed("products.edit") &&
-                (isProduct ? <ProductDialog companyId={companyId} product={p} /> : <ServiceDialog companyId={companyId} service={p} />)}
+                (isProduct ? (
+                  <Button size="lg" className="px-3.5" onClick={() => setEditing(true)}>
+                    Tahrirlash
+                  </Button>
+                ) : (
+                  <ServiceDialog companyId={companyId} service={p} />
+                ))}
               {allowed("products.edit") && <ActiveButton companyId={companyId} product={p} />}
               {allowed("products.delete") && (
                 <DeleteProductButton companyId={companyId} product={p} afterDelete={() => router.replace(back.href)} />
@@ -96,6 +105,9 @@ export function ProductPage({ id }: { id: number }) {
           )
         }
       />
+      {editing && companyId !== null && (
+        <ProductDialog companyId={companyId} product={p} open onOpenChange={(next) => !next && setEditing(false)} />
+      )}
       <section aria-labelledby="product-info" className="space-y-3">
         <h2 id="product-info" className="text-base font-semibold">
           Ma&apos;lumot

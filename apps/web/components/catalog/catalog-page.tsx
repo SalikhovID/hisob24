@@ -7,6 +7,7 @@ import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatDate, formatMoney, formatQuantity, unitLabel } from "@/lib/format"
@@ -39,6 +40,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const [filter, update] = useCatalogFilter()
+  const [adding, setAdding] = useState(false)
   // The stock shown is the current location's (logic/products.md, section 5).
   const location = useLocation()
   const products = useProducts(companyId, { kind, ...filter, locationId: location.current?.id ?? null })
@@ -110,9 +112,16 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
         actions={
           companyId !== null &&
           allowed("products.create") &&
-          (isProduct ? <ProductDialog companyId={companyId} /> : <ServiceDialog companyId={companyId} />)
+          (isProduct ? (
+            <Button size="lg" className="px-3.5" onClick={() => setAdding(true)}>
+              Mahsulot qo&apos;shish
+            </Button>
+          ) : (
+            <ServiceDialog companyId={companyId} />
+          ))
         }
       />
+      {adding && companyId !== null && <ProductDialog companyId={companyId} open onOpenChange={(next) => !next && setAdding(false)} />}
       <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Tabs value={filter.status} onValueChange={(value) => update({ status: value === "inactive" ? "inactive" : "active" })}>
