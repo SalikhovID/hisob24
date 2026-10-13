@@ -71,7 +71,9 @@ test.describe("a linked user", () => {
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
     await expect(page.locator("html")).toHaveAttribute("data-telegram", "")
-    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(23, 33, 43)")
+    // The page is the grouped list's background (the chat's secondary
+    // color), its groups the sections' (docs: 2026-10-13 Mini App UI).
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(35, 46, 60)")
     await expect(page.getByRole("button", { name: "Mavzuni almashtirish" })).toHaveCount(0)
     await fits(page)
     // On a phone the sections are a tab bar along the bottom, in the chat's colors.

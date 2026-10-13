@@ -1,17 +1,16 @@
-import { ArrowLeftIcon } from "lucide-react"
-import Link from "next/link"
 import type { ReactNode } from "react"
+import { BackLink } from "@/components/kit/page-title"
 import { cn } from "@/lib/utils"
 
-// PageHeader opens a page: its name, a line on what it holds (with how many,
-// when that is known) and, beside them, what can be done on it. A page under
-// another one leads back to it. A page about one record may show the
-// record's avatar beside the name: beside, not inside, so the heading stays
-// the name alone. On a phone the name and the action share the first line
-// and the description takes the whole of the second, so it never wraps
-// beside the button; in the source the order is always name, description,
-// action. A page with more to do than one button fits beside a name on a
-// phone stacks its actions: there they take a line of their own under it.
+// PageHeader opens a page as the prototype does: the way back (on a page
+// under another, iOS's chevron and the parent's name), the name large, a
+// line under it on what the page holds (with how many, when that is known)
+// and, beside them, what can be done on it. A page about one record may show
+// the record's avatar beside the name: beside, not inside, so the heading
+// stays the name alone. The name never gives way to the actions: it keeps
+// at least 10rem, and actions that do not fit beside it go under it. A page
+// with more to do than one button fits beside a name on a phone stacks its
+// actions there: they take a line of their own under it.
 export function PageHeader({
   title,
   description,
@@ -28,40 +27,17 @@ export function PageHeader({
   stack?: boolean
 }) {
   return (
-    <header className="space-y-2">
-      {back && (
-        <Link
-          href={back.href}
-          // The line is small; what answers a thumb around it is not.
-          className="relative inline-flex h-7 items-center gap-1 rounded-sm text-[0.8125rem] text-muted-foreground after:absolute after:-inset-2 hover:text-foreground"
-        >
-          <ArrowLeftIcon className="size-4" />
-          {back.label}
-        </Link>
-      )}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
-        {/* On the narrowest phones (under 352px) an action beside the name would break the name mid-word: there it goes under it. */}
-        <div className={cn("flex min-w-0 items-center gap-3 max-[22rem]:col-span-2", stack && "max-md:col-span-2")}>
-          {avatar}
-          <h1 className="min-w-0 text-xl font-semibold tracking-tight [overflow-wrap:anywhere] md:text-2xl">{title}</h1>
-        </div>
-        {description && (
-          <p className="col-span-2 row-start-2 text-sm text-muted-foreground md:col-span-1">{description}</p>
-        )}
-        {actions && (
-          <div
-            className={cn(
-              "col-start-2 row-start-1 flex flex-wrap items-center justify-end gap-2 max-[22rem]:col-span-2 max-[22rem]:col-start-1 max-[22rem]:row-start-3 max-[22rem]:mt-2 max-[22rem]:justify-start md:self-center",
-              // Beside a name and its description the actions span both lines;
-              // beside a name alone there is one line, and no second row to
-              // push them off the name's centre.
-              description && "md:row-span-2",
-              stack && "max-md:col-span-2 max-md:col-start-1 max-md:row-start-3 max-md:mt-2 max-md:justify-start",
-            )}
-          >
-            {actions}
+    <header data-slot="page-header">
+      {back && <BackLink href={back.href} label={back.label} />}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 px-0.5 pt-1.5">
+        <div className={cn("min-w-0 flex-[1_1_10rem]", stack && "max-md:basis-full")}>
+          <div className="flex min-w-0 items-center gap-3">
+            {avatar}
+            <h1 className="min-w-0 text-[30px] leading-[1.1] font-bold tracking-[-0.025em] [overflow-wrap:anywhere]">{title}</h1>
           </div>
-        )}
+          {description && <p className="mt-0.5 text-md text-muted-foreground">{description}</p>}
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
     </header>
   )

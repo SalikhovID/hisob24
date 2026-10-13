@@ -8,7 +8,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground active:opacity-90",
-        outline: "bg-card text-primary ring-[0.5px] ring-border ring-inset active:bg-press",
+        outline: "border-border bg-card text-primary active:bg-press",
         secondary: "bg-muted text-foreground active:bg-press",
         ghost: "text-primary active:bg-muted",
         destructive: "bg-destructive text-white active:opacity-90",
