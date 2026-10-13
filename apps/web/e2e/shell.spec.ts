@@ -27,6 +27,14 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
     expect(box.x).toBeGreaterThanOrEqual(0)
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
+    // A narrower phone (360px, 320px) still has the whole bar on screen.
+    for (const narrow of [360, 320]) {
+      await page.setViewportSize({ width: narrow, height: viewport.height })
+      const fitted = (await bar.boundingBox())!
+      expect(fitted.x, `${narrow}px`).toBeGreaterThanOrEqual(0)
+      expect(fitted.x + fitted.width, `${narrow}px`).toBeLessThanOrEqual(narrow)
+    }
+    await page.setViewportSize(viewport)
     const more = page.getByRole("main").getByRole("list", { name: "Bo'limlar" })
     await expect(more.getByRole("link")).toHaveText(["Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
     await more.getByRole("link", { name: "Xodimlar" }).click()
