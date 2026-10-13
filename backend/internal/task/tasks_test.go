@@ -695,3 +695,48 @@ func TestTheAssigneeWorksInTheTasksLocation(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, owner, got.Assignee.Phone)
 }
+
+func TestUpcoming(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	mustTask(t, s, nok, "Begona", "2026-10-01", map[int64]any{nok.izoh.ID: "X"})
+	later := mustTask(t, s, sh, "Hisob yozish", "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
+	sooner := mustTask(t, s, sh, "Qo'ng'iroq qilish", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
+	soonest := mustTask(t, s, sh, "Shartnoma", "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
+	done := sh.input(t, "Bajarilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
+	done.StageID = sh.bajarildi.ID
+	_, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, done, sh.existing())
+	require.NoError(t, err)
+	gone := mustTask(t, s, sh, "O'chirilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
+	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
+	chilonzor := addLocation(t, pool, sh.id, "Chilonzor")
+	both := Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy, chilonzor}}
+	there, err := s.Create(ctx, both, owner, sh.buyurtma.ID, chilonzor, sh.input(t, "Chilonzorda", "2026-10-02", map[int64]any{sh.izoh.ID: "X"}), sh.existing())
+	require.NoError(t, err)
+
+	got, err := s.Upcoming(ctx, sh.scope(), 0, 5)
+
+	require.NoError(t, err)
+	assert.Equal(t, []Task{soonest, sooner, later}, got,
+		"the scope's tasks not done yet, the one due soonest first, each as the list has it; the done, the deleted, another location's and another company's are out")
+
+	for about, tc := range map[string]struct {
+		scope    Scope
+		location int64
+		limit    int
+		want     []string
+	}{
+		"as many as asked":             {sh.scope(), 0, 2, []string{"Shartnoma", "Qo'ng'iroq qilish"}},
+		"every location of the scope":  {both, 0, 5, []string{"Chilonzorda", "Shartnoma", "Qo'ng'iroq qilish", "Hisob yozish"}},
+		"one location of the scope":    {both, chilonzor, 5, []string{"Chilonzorda"}},
+		"a location outside the scope": {sh.scope(), chilonzor, 5, []string{}},
+		"a member with no location":    {Scope{CompanyID: sh.id, LocationIDs: []int64{}}, 0, 5, []string{}},
+	} {
+		got, err := s.Upcoming(ctx, tc.scope, tc.location, tc.limit)
+		require.NoError(t, err, about)
+		assert.Equal(t, tc.want, titlesOf(got), about)
+	}
+	assert.Equal(t, chilonzor, there.LocationID)
+}

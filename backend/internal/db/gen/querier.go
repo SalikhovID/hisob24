@@ -485,6 +485,10 @@ type Querier interface {
 	// other account: one of them is there); the document a payment was
 	// entered with.
 	ListAccountStatement(ctx context.Context, arg ListAccountStatementParams) ([]ListAccountStatementRow, error)
+	// The company's tasks in the locations given whose stage is not a done
+	// one, the one due soonest first (then the older task), as many as limit:
+	// the home's nearest deadlines. The columns are ListTasks'.
+	ListActiveTasks(ctx context.Context, arg ListActiveTasksParams) ([]ListActiveTasksRow, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
 	// The company's live accounts, in the order they were added.
 	ListBankAccounts(ctx context.Context, companyID int64) ([]BankAccount, error)

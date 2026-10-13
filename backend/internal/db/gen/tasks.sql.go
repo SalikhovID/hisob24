@@ -326,6 +326,88 @@ func (q *Queries) GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, e
 	return i, err
 }
 
+const listActiveTasks = `-- name: ListActiveTasks :many
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
+       COALESCE(a.full_name, t.assignee_name) AS assignee_name,
+       COALESCE(m.full_name, t.created_by_name) AS created_by_name,
+       t.created_at, t.updated_at,
+       c.phone AS customer_phone,
+       (SELECT v.text_value FROM customer_fields f
+          LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
+        WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
+        ORDER BY f.position, f.id LIMIT 1) AS customer_name
+FROM tasks t
+JOIN task_stages s ON s.id = t.stage_id
+JOIN customers c ON c.id = t.customer_id
+LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
+LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
+WHERE t.company_id = $1 AND t.deleted_at IS NULL AND NOT s.is_done
+  AND t.location_id = ANY($2::bigint[])
+ORDER BY t.deadline, t.id
+LIMIT $3
+`
+
+type ListActiveTasksParams struct {
+	CompanyID   int64
+	LocationIds []int64
+	Limit       int32
+}
+
+type ListActiveTasksRow struct {
+	ID            int64
+	TypeID        int64
+	StageID       int64
+	CustomerID    int64
+	LocationID    int64
+	Title         string
+	Deadline      time.Time
+	AssigneePhone *string
+	AssigneeName  *string
+	CreatedByName *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CustomerPhone string
+	CustomerName  *string
+}
+
+// The company's tasks in the locations given whose stage is not a done
+// one, the one due soonest first (then the older task), as many as limit:
+// the home's nearest deadlines. The columns are ListTasks'.
+func (q *Queries) ListActiveTasks(ctx context.Context, arg ListActiveTasksParams) ([]ListActiveTasksRow, error) {
+	rows, err := q.db.Query(ctx, listActiveTasks, arg.CompanyID, arg.LocationIds, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListActiveTasksRow{}
+	for rows.Next() {
+		var i ListActiveTasksRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TypeID,
+			&i.StageID,
+			&i.CustomerID,
+			&i.LocationID,
+			&i.Title,
+			&i.Deadline,
+			&i.AssigneePhone,
+			&i.AssigneeName,
+			&i.CreatedByName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CustomerPhone,
+			&i.CustomerName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTaskHistory = `-- name: ListTaskHistory :many
 SELECT h.id, h.action, COALESCE(m.full_name, h.actor_name) AS actor_name, h.changes, h.created_at
 FROM task_history h

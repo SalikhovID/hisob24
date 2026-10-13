@@ -690,3 +690,34 @@ func (s *Service) History(ctx context.Context, scope Scope, id int64) ([]History
 	}
 	return history, nil
 }
+
+// Upcoming is the tasks of the scope's locations (of the one named alone,
+// when one is; one outside the scope has none) in a stage not done yet,
+// the one due soonest first, as many as limit: the home's «Yaqin
+// muddatlar».
+func (s *Service) Upcoming(ctx context.Context, scope Scope, locationID int64, limit int) ([]Task, error) {
+	locations := scope.LocationIDs
+	if locationID != 0 {
+		locations = []int64{}
+		if scope.has(locationID) {
+			locations = []int64{locationID}
+		}
+	}
+	rows, err := s.q.ListActiveTasks(ctx, gen.ListActiveTasksParams{CompanyID: scope.CompanyID, LocationIds: locations, Limit: int32(limit)})
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	answers, err := answersOf(ctx, s.q, ids)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]Task, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, toTask(gen.GetTaskRow(row), answers[row.ID]))
+	}
+	return items, nil
+}
