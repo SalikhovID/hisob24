@@ -28,6 +28,9 @@ const pairsOf = (region: HTMLElement) =>
 
 const info = () => screen.findByRole("region", { name: "Ma'lumot" })
 
+// figure is the balance as it reads: its label, then the amount.
+const figure = (balance: HTMLElement) => balance.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()
+
 test("a customer's page shows who it is, every field of its type in order, and who entered it", async () => {
   await signIn(ALI)
   const { dilshod } = seedCustomers()
@@ -447,7 +450,7 @@ test("the owner sees what the customer owes and their statement, with the sale a
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
   const balance = await screen.findByRole("region", { name: "Balans" })
-  expect(within(balance).getByText("Qarz: 7 000 so'm")).toBeInTheDocument()
+  expect(figure(balance)).toBe("Qarz 7 000 so'm")
   const statement = await screen.findByRole("table", { name: "Hisob harakati" })
   // The sale, and the payment entered with it, each lead to the sale.
   const links = within(statement).getAllByRole("link", { name: "Sotuv № 1" })
@@ -471,7 +474,7 @@ test("whoever may see the sales alone sees the balance and the statement, with n
   open(dilshod.id)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
-  expect(within(await screen.findByRole("region", { name: "Balans" })).getByText("Qarz: 7 000 so'm")).toBeInTheDocument()
+  expect(figure(await screen.findByRole("region", { name: "Balans" }))).toBe("Qarz 7 000 so'm")
   expect(await screen.findByRole("table", { name: "Hisob harakati" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Boshlang'ich qarz / avans" })).not.toBeInTheDocument()

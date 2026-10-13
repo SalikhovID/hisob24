@@ -28,7 +28,7 @@ test("the supplier page: its facts, what is owed, its statement, and the actions
   // What is owed: the purchases less the payments (the one entered with
   // the purchase and the one on its own).
   const balance = screen.getByRole("region", { name: "Balans" })
-  expect(within(balance).getByText("Qarz: 13 801 so'm")).toBeInTheDocument()
+  expect(balance.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Qarz 13 801 so'm")
   expect(within(balance).getByText("20 001,50 so'm")).toBeInTheDocument()
   expect(within(balance).getByText("6 200,50 so'm")).toBeInTheDocument()
 
