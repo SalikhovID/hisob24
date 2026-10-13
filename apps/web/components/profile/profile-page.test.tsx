@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react"
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import { accessToken } from "@/lib/session"
 import { setMiniApp } from "@/lib/telegram"
 import { ALI, VALI } from "@/mocks/data"
@@ -96,4 +96,22 @@ test("inside Telegram there is no sign-out or theme: closing the Mini App is the
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /^Mavzu/ })).not.toBeInTheDocument()
   expect(screen.getByText(/Telegram ichida chiqish uchun ilovani yoping/)).toBeInTheDocument()
+})
+
+test("inside a Telegram that can, the profile offers the home screen too; put away, it goes", async () => {
+  const webApp = fakeWebApp({
+    isVersionAtLeast: vi.fn(() => true),
+    addToHomeScreen: vi.fn(),
+    checkHomeScreenStatus: vi.fn((callback: (status: "unsupported" | "unknown" | "added" | "missed") => void) => callback("missed")),
+  })
+  setMiniApp(webApp)
+  await signIn(ALI)
+  const { user } = renderWithProviders(<ProfilePage />)
+
+  const card = await screen.findByRole("list", { name: "Bosh ekran" })
+  expect(within(card).getByText("Hisob24'ni bir bosishda oching")).toBeInTheDocument()
+  await user.click(within(card).getByRole("button", { name: "Qo'shish" }))
+  expect(webApp.addToHomeScreen).toHaveBeenCalledTimes(1)
+  await user.click(within(card).getByRole("button", { name: "Yashirish" }))
+  expect(screen.queryByRole("list", { name: "Bosh ekran" })).not.toBeInTheDocument()
 })

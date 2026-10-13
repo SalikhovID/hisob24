@@ -67,8 +67,9 @@ export interface RowProps {
   chevron?: boolean
   href?: string
   onClick?: () => void
-  // link and accent are centered accent text, danger centered red text:
-  // the rows that do one thing ("Barcha vazifalar", "Mijozni o'chirish").
+  // link is the title alone in the accent color, at the left ("Barcha
+  // vazifalar", "Qo'shish"); accent and danger are centered accent or red
+  // text: the rows that do one thing ("Standart holat", "Mijozni o'chirish").
   variant?: "default" | "link" | "accent" | "danger"
   compact?: boolean
   disabled?: boolean
@@ -78,7 +79,7 @@ export interface RowProps {
 
 const variants = {
   default: "",
-  link: "justify-center text-primary",
+  link: "text-primary",
   accent: "justify-center font-medium text-primary",
   danger: "justify-center font-medium text-destructive",
 }
@@ -105,11 +106,14 @@ export function Row({
   const inList = useContext(ListContext)
   const interactive = href !== undefined || onClick !== undefined
   const showChevron = chevron ?? (interactive && variant === "default")
-  const centered = variant !== "default"
-  const body = centered ? (
-    <span data-slot="row-title" className="truncate">
-      {title}
-    </span>
+  const plain = variant !== "default"
+  const body = plain ? (
+    <>
+      <span data-slot="row-title" className={cn("truncate", variant === "link" && "flex-1")}>
+        {title}
+      </span>
+      {showChevron && <ChevronRightIcon aria-hidden="true" strokeWidth={2.6} className="-mr-1 size-[18px] shrink-0 opacity-60" />}
+    </>
   ) : (
     <>
       {media}

@@ -13,6 +13,7 @@ import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
 import { RoleBadge } from "@/components/role-badge"
 import { unavailable } from "@/lib/companies"
 import { barItems, navFor } from "@/lib/nav"
+import { useHomeScreenOffer } from "@/lib/home-screen"
 import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
 import { useMiniApp } from "@/lib/telegram"
@@ -36,6 +37,7 @@ export function ProfilePage() {
   const logout = useLogout()
   const { theme, setTheme } = useTheme()
   const location = useLocation()
+  const offer = useHomeScreenOffer()
   const [sheet, setSheet] = useState<null | "location" | "theme">(null)
   const data = me.data
   if (!data) return null
@@ -54,6 +56,17 @@ export function ProfilePage() {
         title={name}
         description={user.full_name ? formatPhone(user.phone) : undefined}
       />
+
+      {offer.offered && (
+        <Group label="Bosh ekran">
+          <li data-slot="row-item" className="px-4 pt-3.5 pb-3">
+            <p className="text-base font-semibold">Hisob24&apos;ni bir bosishda oching</p>
+            <p className="mt-1 text-md leading-snug">Ilovani bir zumda ochish uchun Hisob24&apos;ni bosh ekranga qo&apos;shing.</p>
+          </li>
+          <Row variant="link" onClick={offer.add} title="Qo'shish" />
+          <Row variant="link" onClick={offer.dismiss} title="Yashirish" />
+        </Group>
+      )}
 
       {company && (
         <>
