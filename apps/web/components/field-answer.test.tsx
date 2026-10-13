@@ -44,12 +44,28 @@ test("an answer lands at the form path the field is given", async () => {
   expect(onSubmit).toHaveBeenCalledWith({ customer: { values: { f3: "12", f5: ["22"] } } }, expect.anything())
 })
 
-test("a field that may be left empty says so beside its name; a required one does not", () => {
-  render(<Harness onSubmit={() => {}} />)
+test("a field says whether it may be left empty, as the prototype's rows do", () => {
+  function Texts() {
+    const form = useForm({ defaultValues: { ismi: "", yoshi: "", f3: "", f5: [] as string[] } })
+    return (
+      <>
+        <FieldAnswer control={form.control} name="ismi" field={{ id: 1, label: "Ismi", kind: "string", required: true, dropdown_id: null }} options={[]} />
+        <FieldAnswer control={form.control} name="yoshi" field={{ id: 2, label: "Yoshi", kind: "int", required: false, dropdown_id: null }} options={[]} />
+        <FieldAnswer control={form.control} name="f3" field={manba} options={sources} />
+        <FieldAnswer control={form.control} name="f5" field={{ ...tillar, required: false }} options={languages} />
+      </>
+    )
+  }
+  render(<Texts />)
 
-  expect(screen.getByText("ixtiyoriy")).toBeInTheDocument()
-  expect(screen.getByLabelText("Manba")).toHaveAccessibleDescription("ixtiyoriy")
-  expect(screen.getByRole("group", { name: "Tillar" })).not.toHaveAccessibleDescription("ixtiyoriy")
+  // A line of text says it in its placeholder.
+  expect(screen.getByLabelText("Ismi")).toHaveAttribute("placeholder", "Majburiy")
+  expect(screen.getByLabelText("Yoshi")).toHaveAttribute("placeholder", "ixtiyoriy")
+  expect(screen.getByLabelText("Yoshi")).toHaveAttribute("inputmode", "numeric")
+  // A choice made in a sheet says «Tanlanmagan» while there is none.
+  expect(screen.getByLabelText("Manba")).toHaveTextContent("Tanlanmagan")
+  // Chips say it beside the name.
+  expect(screen.getByText("· ixtiyoriy")).toBeInTheDocument()
 })
 
 test("a choice with nothing to choose from says where the options come from", async () => {

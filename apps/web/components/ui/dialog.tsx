@@ -87,7 +87,7 @@ function DialogContent({
             {right}
           </span>
         )}
-        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 scrollbar-hide has-[>[data-slot=dialog-footer]]:pb-0 [&>*]:shrink-0">
+        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 scrollbar-hide has-[>[data-slot=dialog-footer]]:pb-0 has-[>[data-slot=sheet-form]>[data-slot=dialog-footer]]:pb-0 [&>*]:shrink-0">
           {children}
         </div>
       </DialogPrimitive.Popup>

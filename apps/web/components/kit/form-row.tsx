@@ -173,14 +173,19 @@ export function PickRow({
       <button
         type="button"
         id={id}
+        // Named by its label and its value: the label finds it, and the
+        // value is heard with it.
+        aria-labelledby={`${own}-label ${own}-value`}
         aria-haspopup="dialog"
         aria-describedby={error ? described : undefined}
         disabled={disabled}
         onClick={onClick}
         className="flex min-h-[52px] w-full items-center gap-3 px-4 py-1.5 text-left outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset disabled:opacity-60"
       >
-        <span className={labelClass}>{label}</span>{" "}
-        <span data-slot="pick-value" className={cn("min-w-0 flex-1 truncate text-right text-base", value ? "text-foreground" : "text-muted-foreground")}>
+        <span id={`${own}-label`} className={labelClass}>
+          {label}
+        </span>{" "}
+        <span id={`${own}-value`} data-slot="pick-value" className={cn("min-w-0 flex-1 truncate text-right text-base", value ? "text-foreground" : "text-muted-foreground")}>
           {value ?? placeholder}
         </span>
         <ChevronRightIcon aria-hidden="true" strokeWidth={2.6} className="-mr-1 size-[18px] shrink-0 text-muted-foreground opacity-60" />
@@ -233,7 +238,9 @@ export function OptionChips<T extends FieldValues, TOut extends FieldValues = T>
   options,
   multiple = false,
   optional = false,
-}: Bound<T, TOut> & { options: { value: string; label: string }[]; multiple?: boolean; optional?: boolean }) {
+  disabled = false,
+  empty = "Variant yo'q",
+}: Bound<T, TOut> & { options: { value: string; label: string }[]; multiple?: boolean; optional?: boolean; disabled?: boolean; empty?: string }) {
   const id = useId()
   return (
     <Controller
@@ -263,6 +270,7 @@ export function OptionChips<T extends FieldValues, TOut extends FieldValues = T>
               aria-describedby={fieldState.error ? `${id}-error` : undefined}
               className="flex flex-wrap gap-1.5"
             >
+              {options.length === 0 && <span className="text-md text-muted-foreground">{empty}</span>}
               {options.map((option) => {
                 const on = chosen.includes(option.value)
                 return (
@@ -273,7 +281,8 @@ export function OptionChips<T extends FieldValues, TOut extends FieldValues = T>
                     aria-checked={on}
                     data-slot="option-chip"
                     onClick={() => toggle(option.value)}
-                    className={cn(optClass, on && optOn)}
+                    disabled={disabled}
+                    className={cn(optClass, on && optOn, "disabled:opacity-60")}
                   >
                     {multiple && on && <CheckIcon aria-hidden="true" strokeWidth={3} className="size-[15px]" />}
                     {option.label}
