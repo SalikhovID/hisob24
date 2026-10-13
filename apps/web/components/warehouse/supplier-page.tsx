@@ -1,12 +1,14 @@
 "use client"
 
+import { BanknoteIcon, PackagePlusIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Fact } from "@/components/facts"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
+import { Avatar } from "@/components/kit/avatar"
+import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
+import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
+import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { Failed, ListLoading, NotFound } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { formatAmount, formatDate } from "@/lib/format"
 import { can } from "@/lib/permissions"
@@ -14,26 +16,32 @@ import { formatPhone } from "@/lib/phone"
 import { useSupplier } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
+import { useLocation } from "@/lib/use-location"
+import { BalanceCard, BalanceChip } from "./balance-card"
 import { DeleteSupplierButton } from "./delete-supplier-button"
-import { SupplierActiveButton } from "./supplier-active-button"
-import { BalanceCard } from "./balance-card"
+import { PaymentDialog } from "./payment-dialog"
 import { StatementList } from "./statement-list"
+import { SupplierActiveButton } from "./supplier-active-button"
 import { SupplierDialog } from "./supplier-dialog"
 
 const back = { href: "/suppliers", label: "Ta'minotchilar" }
 
 // SupplierPage is one supplier of the company (logic/warehouse.md, 3.3), for
 // whoever may see the suppliers (changing, turning off and deleting each
-// take their permission): its phone and note, who entered it and when;
-// and, for whoever may see the purchases, what it is owed (in so'm, and in
-// each currency apart) and its statement.
+// take their permission), as the prototype's page: its square avatar, name
+// and phone; for whoever may see the purchases what it is owed (in so'm,
+// in each currency apart, the totals beside it); the tiles (a payment, a
+// purchase from it, a call, an edit); its statement; its facts; and at the
+// foot the rows that turn it off and delete it.
 export function SupplierPage({ id }: { id: number }) {
   const gate = usePermission("suppliers.view")
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const supplier = useSupplier(companyId, id)
   const router = useRouter()
+  const location = useLocation()
   const [editing, setEditing] = useState(false)
+  const [paying, setPaying] = useState(false)
 
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
@@ -41,81 +49,53 @@ export function SupplierPage({ id }: { id: number }) {
   // A supplier that is gone, or is another company's, is not found: there
   // is nothing to try again.
   if (supplier.error instanceof ApiError && supplier.error.status === 404) {
-    return <PageHeader title="Ta'minotchi topilmadi" description="Bu ta'minotchi o'chirilgan yoki sizning kompaniyangizniki emas." back={back} />
-  }
-  if (!supplier.data) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Ta'minotchi" back={back} />
+      <>
+        <BackLink {...back} />
+        <NotFound title="Ta'minotchi topilmadi" description="Bu ta'minotchi o'chirilgan yoki sizning kompaniyangizniki emas." />
+      </>
+    )
+  }
+  if (!supplier.data || companyId === null) {
+    return (
+      <>
+        <PageTitle title="Ta'minotchi" back={back} />
         {supplier.isError ? <Failed error={supplier.error} onRetry={() => supplier.refetch()} /> : <ListLoading rows={4} mark="none" />}
-      </div>
+      </>
     )
   }
   const s = supplier.data
   const phone = s.phone ? formatPhone(s.phone) : null
   const seesBalance = allowed("purchases.view") && s.balance !== null
+  // A purchase from the supplier is entered into the current location, by
+  // whoever may add purchases and find the products; not from an inactive one.
+  const canBuy = s.is_active && allowed("purchases.create") && allowed("products.view") && location.current !== null
+  const tiles = [
+    allowed("purchases.create") && <Tile key="pay" icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />,
+    canBuy && <Tile key="buy" icon={PackagePlusIcon} label="Xarid" href={`/purchases/new?supplier=${s.id}`} />,
+    s.phone && <Tile key="call" icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${s.phone}`} />,
+    allowed("suppliers.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />,
+  ].filter(Boolean)
 
   return (
-    <div className="space-y-5">
-      <PageHeader
+    <>
+      <BackLink {...back} />
+      <DetailHead
+        media={<Avatar name={s.name} seed={s.id} square size="lg" />}
         title={s.name}
-        description={
-          <>
-            {phone}
-            {!s.is_active && (
-              <>
-                {phone && " "}
-                <Badge variant="outline">Nofaol</Badge>
-              </>
-            )}
-          </>
-        }
-        back={back}
-        stack
-        actions={
-          companyId !== null &&
-          (allowed("suppliers.edit") || allowed("suppliers.delete")) && (
-            <>
-              {allowed("suppliers.edit") && (
-                <Button size="lg" className="px-3.5" onClick={() => setEditing(true)}>
-                  Tahrirlash
-                </Button>
-              )}
-              {allowed("suppliers.edit") && <SupplierActiveButton companyId={companyId} supplier={s} />}
-              {allowed("suppliers.delete") && <DeleteSupplierButton companyId={companyId} supplier={s} afterDelete={() => router.replace("/suppliers")} />}
-            </>
-          )
-        }
+        description={phone ?? "Telefon yo'q"}
+        badges={!s.is_active && <Badge>Nofaol</Badge>}
       />
-      {editing && companyId !== null && (
-        <SupplierDialog companyId={companyId} supplier={s} open onOpenChange={(open) => !open && setEditing(false)} />
-      )}
       {seesBalance && (
         // What is owed: the live purchases less the live payments, the
         // whole company's (logic/warehouse.md, section 6).
         <BalanceCard balance={s.balance!} byCurrency={s.balance_by_currency ?? null}>
-          <p className="text-sm">
-            <span className="block text-[0.8125rem] leading-5 text-muted-foreground">Jami xaridlar</span>
-            <span className="tabular-nums">{formatAmount(s.purchases_total ?? "0")} so&apos;m</span>
-          </p>
-          <p className="text-sm">
-            <span className="block text-[0.8125rem] leading-5 text-muted-foreground">Jami to&apos;lovlar</span>
-            <span className="tabular-nums">{formatAmount(s.payments_total ?? "0")} so&apos;m</span>
-          </p>
+          <BalanceChip label="Jami xaridlar" value={`${formatAmount(s.purchases_total ?? "0")} so'm`} />
+          <BalanceChip label="Jami to'lovlar" value={`${formatAmount(s.payments_total ?? "0")} so'm`} />
         </BalanceCard>
       )}
-      <section aria-labelledby="supplier-info" className="space-y-3">
-        <h2 id="supplier-info" className="text-base font-semibold">
-          Ma&apos;lumot
-        </h2>
-        <dl className="divide-y rounded-xl border bg-card tabular-nums">
-          <Fact name="Telefon" value={phone} />
-          <Fact name="Izoh" value={s.note} />
-          <Fact name="Qo'shgan" value={s.created_by_name} />
-          <Fact name="Qo'shilgan" value={formatDate(s.created_at)} />
-        </dl>
-      </section>
-      {companyId !== null && allowed("purchases.view") && (
+      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
+      {allowed("purchases.view") && (
         <StatementList
           party="supplier"
           companyId={companyId}
@@ -125,6 +105,25 @@ export function SupplierPage({ id }: { id: number }) {
           canDelete={allowed("purchases.delete")}
         />
       )}
-    </div>
+      <section aria-label="Ma'lumot">
+        <SectionHeading>Ma&apos;lumot</SectionHeading>
+        <Group as="dl">
+          <KeyValue label="Telefon" value={phone} />
+          <KeyValue label="Izoh" value={s.note} />
+          <KeyValue label="Qo'shgan" value={s.created_by_name} />
+          <KeyValue label="Qo'shilgan" value={formatDate(s.created_at)} />
+        </Group>
+      </section>
+      {(allowed("suppliers.edit") || allowed("suppliers.delete")) && (
+        <Group>
+          {allowed("suppliers.edit") && <SupplierActiveButton companyId={companyId} supplier={s} />}
+          {allowed("suppliers.delete") && <DeleteSupplierButton companyId={companyId} supplier={s} afterDelete={() => router.replace("/suppliers")} />}
+        </Group>
+      )}
+      {editing && <SupplierDialog companyId={companyId} supplier={s} open onOpenChange={(open) => !open && setEditing(false)} />}
+      {paying && (
+        <PaymentDialog companyId={companyId} partyId={s.id} partyName={s.name} owed={s.balance} open onOpenChange={(open) => !open && setPaying(false)} />
+      )}
+    </>
   )
 }
