@@ -5,6 +5,7 @@ import { addLocation } from "@/test/locations"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
+import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { ProductPage } from "./product-page"
 
@@ -16,6 +17,12 @@ const facts = () =>
       .getAllByRole("term")
       .map((dt) => [dt.textContent, dt.nextElementSibling?.textContent]),
   )
+// parts are a row's title, line and end, the spaces as one plain space.
+const parts = (row: HTMLElement) => {
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ") ?? null
+  const { title, sub, end } = rowParts(row)
+  return { title: plain(title), sub: plain(sub), end: plain(end) }
+}
 // stock reads the "Qoldiq" cards: each location with its quantity (the
 // current one marked «Joriy» beside its name).
 const stock = () =>
@@ -55,15 +62,12 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(screen.getByRole("button", { name: "Mahsulotni o'chirish" })).toBeInTheDocument()
   expect(screen.queryByText("Nofaol")).not.toBeInTheDocument()
   expect(stock()).toEqual({ "Asosiy Joriy": "12,5 kg", Chilonzor: "0 kg" })
-  const purchases = await screen.findByRole("table", { name: "Xaridlar" })
-  expect(within(purchases).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Xarid", "Vaqt", "Lokatsiya", "Miqdor", "Narx", "Summa"])
-  expect(within(purchases).getByRole("link", { name: "№ 1 · Bozor" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
-  const row = within(purchases).getByRole("link", { name: "№ 1 · Bozor" }).closest("tr")!
-  expect(within(row).getByText("01.10.2026 09:00")).toBeInTheDocument()
-  expect(within(row).getByText("Asosiy")).toBeInTheDocument()
-  expect(within(row).getByText("12,5 kg")).toBeInTheDocument()
-  expect(within(row).getByText("1 000 so'm")).toBeInTheDocument()
-  expect(within(row).getByText("12 500 so'm")).toBeInTheDocument()
+  // The purchases it is in are rows: the way into each, the moment, the
+  // location (with two or more), how much at what price, and the sum.
+  const purchases = await screen.findByRole("list", { name: "Xaridlar" })
+  const [line] = within(purchases).getAllByRole("link")
+  expect(line).toHaveAttribute("href", `/purchases/${purchase!.id}`)
+  expect(parts(line)).toEqual({ title: "№ 1 · Bozor", sub: "01.10.2026 09:00 · Asosiy · 12,5 kg × 1 000 so'm", end: "12 500 so'm" })
   // The moves come with the stock documents' permission.
   expect(await screen.findByRole("table", { name: "Harakatlar" })).toBeInTheDocument()
 })
@@ -76,7 +80,7 @@ test("without the stock documents' permission the moves are not shown", async ()
   await chooseCompany(1)
   renderWithProviders(<ProductPage id={catalog.olma.id} />)
 
-  expect(await screen.findByRole("table", { name: "Xaridlar" })).toBeInTheDocument()
+  expect(await screen.findByRole("list", { name: "Xaridlar" })).toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Harakatlar" })).not.toBeInTheDocument()
 })
 
