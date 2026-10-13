@@ -47,6 +47,7 @@ export function DateSheet({
   value,
   onChange,
   presets = "future",
+  none,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -55,6 +56,8 @@ export function DateSheet({
   onChange: (value: string) => void
   // presets are the days offered above the calendar: ahead (a deadline) or past (a list's days).
   presets?: "future" | "past"
+  // none, when given, is the way to no day at all (a filter let go).
+  none?: string
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,7 +65,7 @@ export function DateSheet({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <Calendar value={value} onChange={onChange} onClose={() => onOpenChange(false)} past={presets === "past"} />
+        <Calendar value={value} onChange={onChange} onClose={() => onOpenChange(false)} past={presets === "past"} none={none} />
       </DialogContent>
     </Dialog>
   )
@@ -71,7 +74,19 @@ export function DateSheet({
 // Calendar is the open sheet's body: it mounts with every opening (the
 // closed sheet holds nothing), so it starts at the value's month, or
 // today's.
-function Calendar({ value, onChange, onClose, past }: { value: string; onChange: (value: string) => void; onClose: () => void; past: boolean }) {
+function Calendar({
+  value,
+  onChange,
+  onClose,
+  past,
+  none,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onClose: () => void
+  past: boolean
+  none?: string
+}) {
   const now = today()
   const [picked, setPicked] = useState(value || now)
   const [[year, month], setShown] = useState(() => {
@@ -172,6 +187,17 @@ function Calendar({ value, onChange, onClose, past }: { value: string; onChange:
         >
           Tanlash
         </MainButton>
+        {none !== undefined && (
+          <MainButton
+            variant="ghost"
+            onClick={() => {
+              onChange("")
+              onClose()
+            }}
+          >
+            {none}
+          </MainButton>
+        )}
       </DialogFooter>
     </>
   )

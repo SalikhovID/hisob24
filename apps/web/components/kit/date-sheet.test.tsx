@@ -49,6 +49,16 @@ test("a sheet for a span already past (a list's days) offers the past: today, ye
   expect(change).toHaveBeenCalledWith("2026-10-06")
 })
 
+test("a sheet with a way to no day hands an empty day over and closes (a filter let go)", async () => {
+  const change = vi.fn()
+  const open = vi.fn()
+  render(<DateSheet open onOpenChange={open} title="Sanadan" value="2026-10-03" onChange={change} presets="past" none="Hamma kunlar" />)
+  const dialog = await screen.findByRole("dialog", { name: "Sanadan" })
+  await userEvent.click(within(dialog).getByRole("button", { name: "Hamma kunlar" }))
+  expect(change).toHaveBeenCalledWith("")
+  expect(open).toHaveBeenCalledWith(false)
+})
+
 function Form({ onSubmit }: { onSubmit: (values: { deadline: string; at: string }) => void }) {
   const form = useForm<{ deadline: string; at: string }>({ defaultValues: { deadline: "2026-10-13", at: "2026-10-13T10:30" } })
   return (
