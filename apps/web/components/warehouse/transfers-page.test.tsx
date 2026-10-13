@@ -4,12 +4,20 @@ import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterTransfer } from "@/test/stock"
 import { TransfersPage } from "./transfers-page"
 
-const table = () => screen.findByRole("table", { name: "Ko'chirishlar" })
+// The transfers are rows grouped by their day, the newest first.
+const transfers = () => screen.findByRole("region", { name: "Ko'chirishlar" })
+// parts are a row's title, line and end, the spaces as one plain space.
+const parts = (row: HTMLElement) => {
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ") ?? null
+  const { title, sub, end } = rowParts(row)
+  return { title: plain(title), sub: plain(sub), end: plain(end) }
+}
 
 test("the owner's transfers out of or into the current location, the newest first, each by its number and ends, with its direction", async () => {
   const { olma } = seedCatalog()
@@ -21,18 +29,16 @@ test("the owner's transfers out of or into the current location, the newest firs
   setLocation("/transfers")
   renderWithProviders(<TransfersPage />)
 
-  const list = await table()
+  const list = await transfers()
   expect(screen.getByRole("heading", { level: 1, name: "Ko'chirishlar" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 1 ta")).toBeInTheDocument()
   // The page leads back to the warehouse's hub, which lists its pages.
   expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
   expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
-  expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Ko'chirish", "Yo'nalish", "Qo'shgan"])
-  expect(within(list).getByRole("link", { name: /№ 1 · Asosiy → Chilonzor/ })).toHaveAttribute("href", `/transfers/${transfer.id}`)
-  const row = within(list).getByRole("link", { name: /№ 1/ }).closest("tr")!
-  expect(within(row).getByText("05.10.2026 09:00 · 1 ta mahsulot")).toBeInTheDocument()
-  expect(within(row).getByText("Chiqim")).toBeInTheDocument()
-  expect(within(row).getByText("Ali Valiyev")).toBeInTheDocument()
+  const [row] = within(within(list).getByRole("list", { name: "5-oktabr, dushanba" })).getAllByRole("link")
+  expect(row).toHaveAttribute("href", `/transfers/${transfer.id}`)
+  expect(parts(row)).toEqual({ title: "№ 1 · Asosiy → Chilonzor", sub: "1 ta mahsulot · Ali V.", end: "Chiqim" })
+  expect(screen.getByText("Jami: 1")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ko'chirish qo'shish" })).toHaveAttribute("href", "/transfers/new")
 })
 
@@ -47,9 +53,9 @@ test("seen from the other end the same transfer is an arrival", async () => {
   setLocation("/transfers")
   renderWithProviders(<TransfersPage />)
 
-  const list = await table()
+  const list = await transfers()
   expect(screen.getByText("Chilonzor · 1 ta")).toBeInTheDocument()
-  expect(within(list).getByText("Kirim")).toBeInTheDocument()
+  expect(parts(within(list).getByRole("link")).end).toBe("Kirim")
 })
 
 test("with one location there is nothing to move to: no way to add, and the empty list says so", async () => {
@@ -72,7 +78,7 @@ test("a member with no location to work in is told so; one without the permissio
   setLocation("/transfers")
   const { unmount } = renderWithProviders(<TransfersPage />)
   expect(await screen.findByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
-  expect(screen.queryByRole("table")).not.toBeInTheDocument()
+  expect(screen.queryByRole("region", { name: "Ko'chirishlar" })).not.toBeInTheDocument()
   unmount()
 
   restrictTo(VALI, 1, null)
