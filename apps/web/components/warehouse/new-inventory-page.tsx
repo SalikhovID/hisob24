@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
+import { PageTitle } from "@/components/kit/page-title"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { inventoryDefaults, type InventoryOutput } from "@/lib/stock"
@@ -45,16 +45,16 @@ export function NewInventoryPage() {
   if (!gate || companyId === null || !withPickers) return null
   if (location.ready && locationId === null) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Yangi inventarizatsiya" back={back} />
+      <>
+        <PageTitle title="Yangi inventarizatsiya" back={back} />
         <NoLocation />
-      </div>
+      </>
     )
   }
   if (locationId === null) return null
   return (
-    <div className="space-y-5">
-      <PageHeader title="Yangi inventarizatsiya" description={location.current?.name} back={back} />
+    <>
+      <PageTitle title="Yangi inventarizatsiya" description={location.current?.name} back={back} />
       <InventoryForm
         companyId={companyId}
         locationId={locationId}
@@ -64,6 +64,6 @@ export function NewInventoryPage() {
         pending={create.isPending || create.isSuccess}
         refusal={create.error?.message}
       />
-    </div>
+    </>
   )
 }

@@ -1,26 +1,28 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ListPlusIcon, PlusIcon, XIcon } from "lucide-react"
+import { PlusIcon, XIcon } from "lucide-react"
 import { useEffect } from "react"
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form"
-import { PendingButton } from "@/components/pending-button"
+import { TextRow } from "@/components/kit/form-row"
+import { Group, Row, SectionHeading } from "@/components/kit/group"
+import { MainBar, MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
-import { Button } from "@/components/ui/button"
-import { FieldError, FieldGroup } from "@/components/ui/field"
 import { formatQuantity, unitLabel } from "@/lib/format"
 import { useStockAt } from "@/lib/queries"
 import { type CountLineForm, differenceOf, emptyCount, type InventoryForm as InventoryFormValues, type InventoryOutput, inventorySchema, signedQuantity } from "@/lib/stock"
 import type { StockRow } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { toISO } from "@/lib/warehouse"
+import { LineInput } from "./lines-field"
 import { ProductPicker } from "./pickers"
 
 // InventoryForm is a count of the current location as it is entered or
-// edited (logic/warehouse.md, 5.2): the moment, the lines (a product found
-// by name, or every product in stock at once; what the journal expected at
-// the moment, what was counted, the difference) and a note. The stock
+// edited (logic/warehouse.md, 5.2), as the prototype's document form: the
+// moment as a row; the lines as cards (a product picked in a sheet, or
+// every product in stock at once; what the journal expected at the moment,
+// what was counted, the difference); a note; the main button in the bar at
+// the bottom. The stock
 // expected follows the moment typed; an inventory being edited is counted
 // without its own moves (excludeId).
 export function InventoryForm({
@@ -72,97 +74,108 @@ export function InventoryForm({
     replace([...kept, ...added])
   }
 
+  const chosen = items.map((item) => item?.product_id ?? 0).filter((id) => id > 0)
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-6">
-      <FieldGroup>
-        <TextField control={form.control} name="at" label="Vaqt" type="datetime-local" />
-      </FieldGroup>
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-1 flex-col [&>*]:shrink-0">
+      {refusal && <Refusal className="mb-4">{refusal}</Refusal>}
+      <Group>
+        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+      </Group>
 
-      <section aria-labelledby="inventory-lines" className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="inventory-lines" className="text-base font-semibold">
-            Mahsulotlar
-          </h2>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={pending || !stock.data} onClick={() => stock.data && addAll(stock.data)}>
-              <ListPlusIcon />
+      <section aria-labelledby="inventory-lines">
+        <SectionHeading
+          action={
+            <button type="button" disabled={pending || !stock.data} onClick={() => stock.data && addAll(stock.data)}>
               Hammasini qo&apos;shish
-            </Button>
-            <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => append(emptyCount())}>
-              <PlusIcon />
-              Qator qo&apos;shish
-            </Button>
-          </div>
-        </div>
+            </button>
+          }
+        >
+          <span id="inventory-lines">Mahsulotlar</span>
+        </SectionHeading>
         {fields.map((line, index) => {
           const current = items[index]
           const difference = current?.product_id ? differenceOf(current.expected || "0", current.counted) : null
           return (
-            <fieldset
-              key={line.id}
-              aria-label={`${index + 1}-qator`}
-              className="grid gap-3 rounded-xl border bg-card p-3 md:grid-cols-[minmax(0,1fr)_minmax(6rem,auto)_8rem_minmax(6rem,auto)_2.5rem] md:items-start"
-            >
-              <Controller
-                control={form.control}
-                name={`items.${index}.product_id`}
-                render={({ field, fieldState }) => (
-                  <ProductPicker
-                    companyId={companyId}
-                    value={field.value ? { id: field.value, name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null, price: null } : null}
-                    onChange={(pick) => {
-                      field.onChange(pick?.id ?? 0)
-                      form.setValue(`items.${index}.product_name`, pick?.name ?? "")
-                      form.setValue(`items.${index}.unit`, pick?.unit ?? null)
-                      form.setValue(`items.${index}.expected`, pick ? expectedOf(pick.id) : "")
-                    }}
-                    error={fieldState.error?.message}
-                    disabled={pending}
+            <fieldset key={line.id} aria-label={`${index + 1}-qator`} data-slot="line-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[20px] bg-card">
+              <div className="flex items-center">
+                <div className="min-w-0 flex-1">
+                  <Controller
+                    control={form.control}
+                    name={`items.${index}.product_id`}
+                    render={({ field, fieldState }) => (
+                      <ProductPicker
+                        companyId={companyId}
+                        used={chosen}
+                        value={field.value ? { id: field.value, name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null, price: null } : null}
+                        onChange={(pick) => {
+                          field.onChange(pick?.id ?? 0)
+                          form.setValue(`items.${index}.product_name`, pick?.name ?? "")
+                          form.setValue(`items.${index}.unit`, pick?.unit ?? null)
+                          form.setValue(`items.${index}.expected`, pick ? expectedOf(pick.id) : "")
+                        }}
+                        error={fieldState.error?.message}
+                        disabled={pending}
+                      />
+                    )}
                   />
+                </div>
+                {fields.length > 1 && (
+                  <button
+                    type="button"
+                    aria-label={`${index + 1}-qatorni olib tashlash`}
+                    disabled={pending}
+                    onClick={() => remove(index)}
+                    className="mr-1.5 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <XIcon aria-hidden="true" strokeWidth={2.4} className="size-[18px]" />
+                  </button>
                 )}
-              />
-              <div className="flex flex-col gap-2 text-sm">
-                <span className="text-[0.8125rem] leading-5 font-medium">Tizim</span>
-                <span className="inline-flex h-9 items-center tabular-nums">
-                  {current?.product_id ? formatQuantity(current.expected || "0", current.unit) : <span className="text-muted-foreground">—</span>}
-                </span>
               </div>
-              <div className="relative">
-                <TextField control={form.control} name={`items.${index}.counted`} label="Sanalgan" inputMode="decimal" autoComplete="off" className={current?.unit ? "pr-14" : undefined} />
-                {current?.unit && (
-                  <span className="pointer-events-none absolute top-[calc(1.25rem+0.5rem)] right-3 inline-flex h-9 items-center text-sm text-muted-foreground">{unitLabel(current.unit)}</span>
-                )}
+              <div className="grid grid-cols-2 border-t-[0.5px] border-border">
+                <div className="min-w-0 px-4 py-2">
+                  <span className="block text-sm text-muted-foreground">Tizim</span>
+                  <span className="flex h-8 items-center text-base tabular-nums">
+                    {current?.product_id ? formatQuantity(current.expected || "0", current.unit) : <span className="text-muted-foreground">—</span>}
+                  </span>
+                </div>
+                <LineInput control={form.control} name={`items.${index}.counted`} label="Sanalgan" suffix={current?.unit ? unitLabel(current.unit) : undefined} disabled={pending} />
               </div>
-              <div className="flex flex-col gap-2 text-sm">
-                <span className="text-[0.8125rem] leading-5 font-medium">Farq</span>
-                <span className={cn("inline-flex h-9 items-center tabular-nums", difference?.startsWith("-") && "text-destructive", difference && Number(difference) > 0 && "text-emerald-700 dark:text-emerald-400")}>
-                  {difference === null ? <span className="text-muted-foreground">—</span> : signedQuantity(difference, current?.unit ?? null)}
-                </span>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive md:mt-7"
-                aria-label={`${index + 1}-qatorni olib tashlash`}
-                disabled={pending}
-                onClick={() => remove(index)}
-              >
-                <XIcon />
-              </Button>
+              <p className="flex justify-between border-t-[0.5px] border-border px-4 py-2.5 text-md text-muted-foreground">
+                <span>Farq</span>
+                <b className={cn("font-semibold text-foreground tabular-nums", difference?.startsWith("-") && "text-destructive", difference && Number(difference) > 0 && "text-positive")}>
+                  {difference === null ? "—" : signedQuantity(difference, current?.unit ?? null)}
+                </b>
+              </p>
             </fieldset>
           )
         })}
-        {linesMessage && <FieldError errors={[{ message: linesMessage }]} />}
+        <Group className="mb-3.5">
+          <Row
+            variant="link"
+            onClick={pending ? undefined : () => append(emptyCount())}
+            title={
+              <span className="flex items-center gap-2">
+                <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
+                Qator qo&apos;shish
+              </span>
+            }
+          />
+        </Group>
+        {linesMessage && (
+          <p role="alert" className="-mt-2 mb-3.5 px-4 text-sm text-destructive">
+            {linesMessage}
+          </p>
+        )}
       </section>
 
-      <FieldGroup>
-        <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
-      </FieldGroup>
-      {refusal && <Refusal>{refusal}</Refusal>}
-      <PendingButton type="submit" size="lg" className="px-3.5" pending={pending}>
-        {submitLabel}
-      </PendingButton>
+      <Group>
+        <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
+      </Group>
+      <MainBar>
+        <MainButton type="submit" pending={pending}>
+          {submitLabel}
+        </MainButton>
+      </MainBar>
     </form>
   )
 }

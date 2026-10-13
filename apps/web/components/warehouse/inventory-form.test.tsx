@@ -28,7 +28,8 @@ test("a count of the current location: every product in stock added at once with
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Inventarizatsiya" })).toHaveAttribute("href", "/inventories")
   expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
-  expect(line(1)).toBeInTheDocument()
+  expect(line(1)).toHaveAttribute("data-slot", "line-card")
+  expect(screen.getByRole("button", { name: "Saqlash" }).closest("[data-slot=main-bar]")).not.toBeNull()
 
   await user.click(screen.getByRole("button", { name: "Hammasini qo'shish" }))
   await waitFor(() => expect(screen.getByRole("group", { name: "2-qator" })).toBeInTheDocument())
@@ -59,7 +60,7 @@ test("a count of the current location: every product in stock added at once with
   await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/inventories/${saved.id}`))
 })
 
-test("a product picked by name shows the stock expected at the moment, which follows the moment typed; the form refuses in the API's words", async () => {
+test("a product picked by name shows the stock expected at the moment, which follows the moment typed; the form refuses in the API's words; a lone line is not taken away", async () => {
   const catalog = seedCatalog()
   seedWarehouse(catalog)
   await signIn(ALI)
@@ -79,9 +80,8 @@ test("a product picked by name shows the stock expected at the moment, which fol
   await user.type(at, "2026-09-30T09:00")
   await waitFor(() => expect(figure(line(1), "Tizim")).toBe(formatQuantity("0", "kg")))
 
-  await user.click(screen.getByRole("button", { name: "1-qatorni olib tashlash" }))
-  await user.click(screen.getByRole("button", { name: "Saqlash" }))
-  expect(await screen.findByText("Kamida bitta mahsulot qo'shing")).toBeInTheDocument()
+  // A lone line is not taken away.
+  expect(screen.queryByRole("button", { name: "1-qatorni olib tashlash" })).not.toBeInTheDocument()
   expect(db.transactions.filter((t) => t.kind === "inventory")).toHaveLength(0)
 })
 

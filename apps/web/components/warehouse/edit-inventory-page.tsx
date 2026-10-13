@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
+import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { Failed, ListLoading, NotFound } from "@/components/states"
 import { api, ApiError, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { useInventory } from "@/lib/queries"
@@ -43,20 +43,25 @@ export function EditInventoryPage({ id }: { id: number }) {
 
   if (!gate || companyId === null || !withPickers) return null
   if (inventory.error instanceof ApiError && inventory.error.status === 404) {
-    return <PageHeader title="Inventarizatsiya topilmadi" description="Bu inventarizatsiya o'chirilgan yoki siz ishlamaydigan lokatsiyada." back={back} />
+    return (
+      <>
+        <BackLink {...back} />
+        <NotFound title="Inventarizatsiya topilmadi" description="Bu inventarizatsiya o'chirilgan yoki siz ishlamaydigan lokatsiyada." />
+      </>
+    )
   }
   if (!inventory.data) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Inventarizatsiyani tahrirlash" back={back} />
+      <>
+        <PageTitle title="Inventarizatsiyani tahrirlash" back={back} />
         {inventory.isError ? <Failed error={inventory.error} onRetry={() => inventory.refetch()} /> : <ListLoading rows={4} mark="none" />}
-      </div>
+      </>
     )
   }
   const i = inventory.data
   return (
-    <div className="space-y-5">
-      <PageHeader
+    <>
+      <PageTitle
         title="Inventarizatsiyani tahrirlash"
         description={`№ ${i.number} · ${i.location_name}`}
         back={{ href: `/inventories/${i.id}`, label: `Inventarizatsiya № ${i.number}` }}
@@ -72,6 +77,6 @@ export function EditInventoryPage({ id }: { id: number }) {
         pending={save.isPending || save.isSuccess}
         refusal={save.error?.message}
       />
-    </div>
+    </>
   )
 }
