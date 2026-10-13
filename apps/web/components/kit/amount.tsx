@@ -46,7 +46,9 @@ export function Amount({
     if (!node || !parent) return
     const fit = () => {
       node.style.setProperty("--k", "1")
-      const room = parent.clientWidth - 8
+      // The room is the box's content width (its padding is not room), less a margin.
+      const style = getComputedStyle(parent)
+      const room = parent.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - 8
       const width = node.scrollWidth
       const next = room <= 0 || width === 0 ? 1 : Math.max(0.5, Math.min(1, room / width))
       // Set on the node too: React re-applies the style prop only when the

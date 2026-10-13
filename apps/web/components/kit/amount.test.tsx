@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { expect, test } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
 import { Amount, groupDigits, splitAmount } from "./amount"
 
 test("the digits are grouped by thousands with a no-break space, the decimals kept apart", () => {
@@ -18,4 +18,33 @@ test("an amount reads as one number with its unit", () => {
   expect(amount).toHaveTextContent("1 250 000,50 so'm")
   expect(amount.querySelector('[data-slot="amount-whole"]')).toHaveTextContent("1 250 000")
   expect(amount.querySelector('[data-slot="amount-decimals"]')).toHaveTextContent(",50")
+})
+
+// layout stands in for the browser's layout, which jsdom lacks: the box the
+// figure sits in is box wide (its padding inside), and the figure is
+// natural wide at full size, narrower in proportion to its scale.
+function layout(size: { box: number; natural: number }) {
+  const scale = (el: HTMLElement) => Number(el.style.getPropertyValue("--k") || "1")
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+    return this.dataset.slot === "amount" ? 0 : size.box
+  })
+  vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(function (this: HTMLElement) {
+    return this.dataset.slot === "amount" ? Math.round(size.natural * scale(this)) : size.box
+  })
+  return size
+}
+afterEach(() => vi.restoreAllMocks())
+
+const figure = () => document.querySelector<HTMLElement>("[data-slot=amount]")!
+const scaleOf = (el: HTMLElement) => Number(el.style.getPropertyValue("--k"))
+
+test("a figure too wide for its box is scaled down to the box's content width: the box's padding is not room", () => {
+  // A 343px box with 8px of padding on each side leaves 327px; the figure keeps 8px off that.
+  layout({ box: 343, natural: 352 })
+  render(
+    <div style={{ padding: "0 8px" }}>
+      <Amount value="1000000" unit="so'm" />
+    </div>,
+  )
+  expect(scaleOf(figure())).toBeCloseTo(319 / 352, 2)
 })
