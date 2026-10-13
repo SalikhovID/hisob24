@@ -13,20 +13,12 @@ import { formatAmount, formatMoney } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { usePurchases } from "@/lib/queries"
-import type { Permission, Purchase } from "@/lib/types"
+import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
+import { PaidStatus } from "./paid-status"
 import { usePageFilter } from "./use-page-filter"
-
-// paidText says what was paid with a purchase, at its row's end: all of it
-// (green), none (red), or how much.
-function paidText(purchase: Purchase) {
-  const paid = Number(purchase.paid)
-  if (paid >= Number(purchase.total)) return <span className="text-positive">To&apos;langan</span>
-  if (paid === 0) return <span className="text-destructive">To&apos;lanmagan</span>
-  return `${formatAmount(purchase.paid)} to'langan`
-}
 
 // PurchasesPage is the purchases of the current location (logic/warehouse.md,
 // 4.5; logic/locations.md, section 7), for whoever may see them
@@ -100,7 +92,7 @@ export function PurchasesPage() {
                 title={`№ ${purchase.number} · ${purchase.supplier.name}`}
                 sub={[`${purchase.items_count} ta mahsulot`, purchase.created_by_name && shortName(purchase.created_by_name)].filter(Boolean).join(" · ")}
                 end={formatMoney(purchase.total, currencyOf(currencies, purchase.currency_id))}
-                endSub={paidText(purchase)}
+                endSub={<PaidStatus total={purchase.total} paid={purchase.paid} />}
                 chevron={false}
               />
             )}

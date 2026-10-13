@@ -4,12 +4,18 @@ import { ALI, db, seedCatalog, seedCustomers, seedWarehouse, VALI } from "@/mock
 import { asosiyOf, restrictTo } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
 import { SalesPage } from "./sales-page"
 
-const table = () => screen.findByRole("table", { name: "Sotuvlar" })
+// parts are a row's title, line and end, the spaces as one plain space.
+const parts = (row: HTMLElement) => {
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ") ?? null
+  const { title, sub, end } = rowParts(row)
+  return { title: plain(title), sub: plain(sub), end: plain(end) }
+}
 
 test("the owner's sales of the current location, the newest first, each by its number and customer, with what it came to and what was paid", async () => {
   const catalog = seedCatalog()
@@ -23,17 +29,17 @@ test("the owner's sales of the current location, the newest first, each by its n
   setLocation("/sales")
   renderWithProviders(<SalesPage />)
 
-  const list = await table()
+  const list = await screen.findByRole("region", { name: "Sotuvlar" })
   expect(screen.getByRole("heading", { level: 1, name: "Sotuvlar" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 2 ta")).toBeInTheDocument()
-  expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Sotuv", "Jami", "To'langan", "Qo'shgan"])
-  const rows = within(list).getAllByRole("row").slice(1)
-  expect(within(rows[0]).getByRole("link", { name: /№ 2 · Chakana/ })).toHaveAttribute("href", `/sales/${retail.id}`)
-  expect(within(rows[0]).getByText("06.10.2026 09:00 · 1 ta mahsulot")).toBeInTheDocument()
-  expect(within(rows[1]).getByRole("link", { name: /№ 1 · Dilshod Karimov/ })).toHaveAttribute("href", `/sales/${sale.id}`)
-  expect(within(rows[1]).getByText("12 000 so'm")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("5 000 so'm")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("Ali Valiyev")).toBeInTheDocument()
+  // Each day heads its sales; a sale is a row by its number and customer (or retail).
+  const [retailRow] = within(within(list).getByRole("list", { name: "6-oktabr, seshanba" })).getAllByRole("link")
+  expect(retailRow).toHaveAttribute("href", `/sales/${retail.id}`)
+  expect(parts(retailRow)).toEqual({ title: "№ 2 · Chakana", sub: "1 ta mahsulot · Ali V.", end: "2 000 so'm To'langan" })
+  const [saleRow] = within(within(list).getByRole("list", { name: "5-oktabr, dushanba" })).getAllByRole("link")
+  expect(saleRow).toHaveAttribute("href", `/sales/${sale.id}`)
+  expect(parts(saleRow)).toEqual({ title: "№ 1 · Dilshod Karimov", sub: "1 ta mahsulot · Ali V.", end: "12 000 so'm 5 000 to'langan" })
+  expect(screen.getByText("Jami: 2")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sotuv qo'shish" })).toHaveAttribute("href", "/sales/new")
 })
 
