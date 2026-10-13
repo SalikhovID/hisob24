@@ -1,7 +1,7 @@
 import { seedCatalog, seedCustomers, seedWarehouse } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
+import { days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
 
 test("the owner sells: to a customer with a service and a part payment, the customer's debt and its settling, a retail sale paid in full, an edit, the product's moves and a deletion", async ({ page }) => {
   test.setTimeout(180_000)
@@ -47,8 +47,8 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   const info = page.getByRole("region", { name: "Ma'lumot" })
   await expect(info.getByText("74 000 so'm")).toBeVisible()
   await expect(info.getByText("50 000 so'm")).toBeVisible()
-  await expect(list(page, "Qatorlar").getByText("2 kg")).toBeVisible()
-  await expect(list(page, "Qatorlar").getByText("Yetkazish")).toBeVisible()
+  await expect(list(page, "Mahsulotlar").getByText("2 kg")).toBeVisible()
+  await expect(list(page, "Mahsulotlar").getByText("Yetkazish")).toBeVisible()
   await expect(list(page, "To'lovlar").getByText("Naqd")).toBeVisible()
   await settle(page)
 
@@ -76,7 +76,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   // A retail sale names nobody and is paid in full: «To'liq» puts the whole
   // total into the payment. Nok has no sale price: it is typed.
   await openSection(page, "Sotuv")
-  await expect(list(page, "Sotuvlar").getByRole("link", { name: /№ 1 · Dilshod Karimov/ })).toBeVisible()
+  await expect(days(page, "Sotuvlar").getByRole("link", { name: /№ 1 · Dilshod Karimov/ })).toBeVisible()
   await page.getByRole("link", { name: "Sotuv qo'shish" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Yangi sotuv" })).toBeVisible()
   const line = page.getByRole("group", { name: "1-qator" })
@@ -98,7 +98,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   // An edit: one kilo of Olma on the first sale; the total follows.
   await page.getByRole("main").getByRole("link", { name: "Sotuvlar" }).click()
   await expect(page).toHaveURL(/\/sales$/)
-  await list(page, "Sotuvlar").getByRole("link", { name: /№ 1 · Dilshod Karimov/ }).click()
+  await days(page, "Sotuvlar").getByRole("link", { name: /№ 1 · Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Sotuv № 1" })).toBeVisible()
   await page.getByRole("link", { name: "Tahrirlash" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Sotuvni tahrirlash" })).toBeVisible({ timeout: 15_000 })
@@ -106,7 +106,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await page.getByRole("button", { name: "Saqlash" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Sotuv № 1" })).toBeVisible()
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("62 000 so'm")).toBeVisible()
-  await expect(list(page, "Qatorlar").getByText("1 kg")).toBeVisible()
+  await expect(list(page, "Mahsulotlar").getByText("1 kg")).toBeVisible()
   await settle(page)
 
   // The product's page tells the sale among its moves and what is left.
@@ -124,8 +124,8 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await page.getByRole("button", { name: "O'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Sotuvni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page).toHaveURL(/\/sales$/)
-  await expect(list(page, "Sotuvlar").getByRole("link", { name: /№ 2 · Chakana/ })).toBeVisible()
-  await expect(list(page, "Sotuvlar").getByRole("link", { name: /№ 1 · / })).toHaveCount(0)
+  await expect(days(page, "Sotuvlar").getByRole("link", { name: /№ 2 · Chakana/ })).toBeVisible()
+  await expect(days(page, "Sotuvlar").getByRole("link", { name: /№ 1 · / })).toHaveCount(0)
   await settle(page)
   await openSection(page, "Mahsulotlar")
   await expect(list(page, "Mahsulotlar").getByText("12,5 kg")).toBeVisible()
