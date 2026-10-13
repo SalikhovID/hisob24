@@ -1,20 +1,31 @@
 "use client"
 
+import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useEffect } from "react"
-import { setMiniApp, waitForWebApp } from "@/lib/telegram"
+import { isRootPath, sectionRootOf } from "@/lib/nav"
+import { setMiniApp, useMiniApp, waitForWebApp } from "@/lib/telegram"
+
+// The pages outside the app's shell: there is nothing to go back to there.
+const SHELL_LESS = ["/login", "/select-company", "/expired"]
 
 // TelegramSync fits the app to Telegram when it runs as a Mini App: it
 // tells Telegram the app is ready, opens it to full height, keeps its
 // vertical swipes from folding the app, marks <html>
 // with data-telegram (globals.css then takes the colors from Telegram's
-// themeParams) and follows Telegram's light or dark scheme.
+// themeParams) and follows Telegram's light or dark scheme. Inside a
+// section (a record, a form, the profile) it shows Telegram's own back
+// button, beside the page's: back where the app came from, or to the
+// section's own page when there is nothing behind.
 // onPhone tells a phone's Telegram (iOS, Android, Android X) from the
 // desktop and web clients by the platform name telegram-web-app.js reports.
 const onPhone = (platform: string) => platform === "ios" || platform.startsWith("android")
 
 export function TelegramSync() {
   const { setTheme } = useTheme()
+  const webApp = useMiniApp()
+  const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
     let cancelled = false
@@ -45,6 +56,19 @@ export function TelegramSync() {
       unsubscribe()
     }
   }, [setTheme])
+
+  useEffect(() => {
+    const back = webApp?.BackButton
+    if (!back) return
+    if (isRootPath(pathname) || SHELL_LESS.includes(pathname)) {
+      back.hide()
+      return
+    }
+    const goBack = () => (window.history.length > 1 ? router.back() : router.push(sectionRootOf(pathname)))
+    back.onClick(goBack)
+    back.show()
+    return () => back.offClick(goBack)
+  }, [webApp, pathname, router])
 
   return null
 }

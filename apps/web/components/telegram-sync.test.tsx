@@ -2,6 +2,7 @@ import { act, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { useMiniApp } from "@/lib/telegram"
 import { renderWithProviders } from "@/test/render"
+import { router, setLocation } from "@/test/navigation"
 import { fakeWebApp } from "@/test/telegram"
 import { TelegramSync } from "./telegram-sync"
 
@@ -93,4 +94,56 @@ test("TelegramSync asks nothing of a client older than Bot API 8.0, which would 
   await waitFor(() => expect(document.documentElement).toHaveAttribute("data-telegram"))
   expect(webApp.isVersionAtLeast).toHaveBeenCalledWith("8.0")
   expect(webApp.requestFullscreen).not.toHaveBeenCalled()
+})
+
+// backButton stands in for Telegram's BackButton; press calls what the app
+// gave it.
+function backButton() {
+  let handler: (() => void) | undefined
+  return {
+    isVisible: false,
+    show: vi.fn(),
+    hide: vi.fn(),
+    onClick: vi.fn((next: () => void) => {
+      handler = next
+    }),
+    offClick: vi.fn(),
+    press: () => handler?.(),
+  }
+}
+
+test("inside a section the Mini App shows Telegram's back button; with nothing to go back to it leads to the section", async () => {
+  const back = backButton()
+  window.Telegram = { WebApp: fakeWebApp({ BackButton: back }) }
+  setLocation("/customers/7")
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(back.show).toHaveBeenCalled())
+  act(() => back.press())
+  expect(router.push).toHaveBeenCalledWith("/customers")
+})
+
+test("with a page to go back to, Telegram's back button goes back", async () => {
+  const back = backButton()
+  window.Telegram = { WebApp: fakeWebApp({ BackButton: back }) }
+  window.history.pushState({}, "", "/customers")
+  setLocation("/customers/7")
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(back.show).toHaveBeenCalled())
+  act(() => back.press())
+  expect(router.back).toHaveBeenCalled()
+})
+
+test.each(["/customers", "/", "/login", "/select-company"])("on %s Telegram's back button is hidden", async (path) => {
+  const back = backButton()
+  window.Telegram = { WebApp: fakeWebApp({ BackButton: back }) }
+  setLocation(path)
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(back.hide).toHaveBeenCalled())
+  expect(back.show).not.toHaveBeenCalled()
 })
