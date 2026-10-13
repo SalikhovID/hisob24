@@ -34,6 +34,7 @@ export function AddTaskDialog({
   members,
   typeId: preferred,
   stageId,
+  customer,
   onClose,
 }: {
   companyId: number
@@ -52,6 +53,9 @@ export function AddTaskDialog({
   // the dialog was opened for, if any.
   typeId: number | null
   stageId: number | null
+  // customer is the one the task is for, when it is known from the start
+  // (the customer's page): it opens linked.
+  customer?: Customer
   onClose: () => void
 }) {
   const [typeId, setTypeId] = useState((types.find((candidate) => candidate.id === preferred) ?? types[0]).id)
@@ -61,11 +65,22 @@ export function AddTaskDialog({
   // the form takes a customer that is there alone.
   const customerType = canCreateCustomer ? (customerTypes.find((candidate) => candidate.id === customerTypeId) ?? customerTypes[0] ?? null) : null
   // linked is the customer that is there, taken for the task.
-  const [linked, setLinked] = useState<Customer | null>(null)
+  const [linked, setLinked] = useState<Customer | null>(customer ?? null)
+  // The customer known from the start fills the form's customer part, as a
+  // customer taken from the suggestions does.
+  const linkedDefaults = () => {
+    const defaults = taskDefaults(type, customerType, stageId ?? stages[0]?.id ?? null)
+    if (!customer) return defaults
+    const linkedType = customerTypes.find((candidate) => candidate.id === customer.type_id)
+    return {
+      ...defaults,
+      customer: { type_id: String(customer.type_id), phone: formatPhoneInput(customer.phone), values: answersDefaults(linkedType?.fields ?? [], customer.values) },
+    }
+  }
   const queryClient = useQueryClient()
   const form = useForm<TaskForm, unknown, TaskOutput>({
     resolver: zodResolver(taskSchema(type, customerType, linked?.id ?? null)),
-    defaultValues: taskDefaults(type, customerType, stageId ?? stages[0]?.id ?? null),
+    defaultValues: linkedDefaults(),
   })
   const add = useMutation({
     mutationFn: (task: TaskOutput) => call(api.POST("/app/tasks", { body: { type_id: type.id, location_id: locationId, ...task } })),

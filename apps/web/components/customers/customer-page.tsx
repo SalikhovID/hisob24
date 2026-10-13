@@ -1,12 +1,13 @@
 "use client"
 
-import { PencilIcon, PhoneIcon } from "lucide-react"
+import { ClipboardPlusIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
 import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
 import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
+import { NewTask } from "@/components/tasks/new-task"
 import { ApiError } from "@/lib/api"
 import { customerName } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
@@ -16,6 +17,7 @@ import { can } from "@/lib/permissions"
 import { useCustomer, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
+import { useLocation } from "@/lib/use-location"
 import { BalanceCard } from "@/components/warehouse/balance-card"
 import { StatementList } from "@/components/warehouse/statement-list"
 import { CustomerHistory } from "./customer-history"
@@ -28,7 +30,8 @@ const back = { href: "/customers", label: "Mijozlar" }
 // CustomerPage is one customer of the company, for whoever may see the
 // customers (changing, deleting, the history and the tasks each take their
 // permission), as the prototype's page: who it is (its avatar, its name,
-// its type and phone), the tiles (editing, a call to its phone), its answer
+// its type and phone), the tiles (editing, a task for it, a call to its
+// phone), its answer
 // to every field of its type in the type's order with who entered it and
 // when; for whoever may see the sales, what they owe and their statement
 // (logic/sales.md, section 5); its tasks, its history, and at the foot the
@@ -41,6 +44,9 @@ export function CustomerPage({ id }: { id: number }) {
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const [editing, setEditing] = useState(false)
+  const [tasking, setTasking] = useState(false)
+  // A task for the customer goes into the current location.
+  const locationId = useLocation().current?.id ?? null
 
   // A customer that is gone, or is another company's, is not found: there
   // is nothing to try again.
@@ -83,6 +89,7 @@ export function CustomerPage({ id }: { id: number }) {
       />
       <Tiles>
         {type && allowed("customers.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
+        {allowed("tasks.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setTasking(true)} />}
         <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${customer.data.phone}`} />
       </Tiles>
       {allowed("sales.view") && customer.data.balance !== null && (
@@ -115,6 +122,15 @@ export function CustomerPage({ id }: { id: number }) {
       {/* Who did what to the customer takes its permission. */}
       {companyId !== null && allowed("customers.history") && <CustomerHistory companyId={companyId} id={customer.data.id} />}
       {companyId !== null && allowed("customers.delete") && <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />}
+      {tasking && companyId !== null && locationId !== null && (
+        <NewTask
+          companyId={companyId}
+          locationId={locationId}
+          canCreateCustomer={allowed("customers.create")}
+          customer={customer.data}
+          onClose={() => setTasking(false)}
+        />
+      )}
       {editing && companyId !== null && type && (
         <EditCustomerDialog
           companyId={companyId}

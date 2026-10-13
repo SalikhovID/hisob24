@@ -7,18 +7,15 @@ import { useEffect, useState } from "react"
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog"
 import { Tile, Tiles } from "@/components/kit/detail-head"
 import { SearchPickerSheet } from "@/components/kit/picker-sheet"
-import { AddTaskDialog } from "@/components/tasks/task-dialog"
+import { NewTask } from "@/components/tasks/new-task"
 import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { formatPhone } from "@/lib/phone"
 import {
   dashboardKey,
   useCustomerDropdowns,
   useCustomerTypes,
-  useMembers,
   useSupplierSuggestions,
   useSuppliers,
-  useTaskStages,
-  useTaskTypes,
 } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 
@@ -60,7 +57,7 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
         {tiles}
       </Tiles>
       {open === "task" && locationId !== null && (
-        <HomeAddTask companyId={companyId} locationId={locationId} canCreateCustomer={can("customers.create")} onClose={close} />
+        <NewTask companyId={companyId} locationId={locationId} canCreateCustomer={can("customers.create")} onClose={close} />
       )}
       {open === "customer" && <HomeAddCustomer companyId={companyId} onClose={close} />}
       {open === "payment" && (
@@ -86,39 +83,6 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
         />
       )}
     </>
-  )
-}
-
-// HomeAddTask opens the task dialog once what it asks is known; a company
-// with no task type or stage yet is taken to the tasks, which say what to
-// set up. The nearest deadlines open it too, when there are none.
-export function HomeAddTask({ companyId, locationId, canCreateCustomer, onClose }: { companyId: number; locationId: number; canCreateCustomer: boolean; onClose: () => void }) {
-  const router = useRouter()
-  const types = useTaskTypes(companyId)
-  const stages = useTaskStages(companyId)
-  const customerTypes = useCustomerTypes(companyId)
-  const dropdowns = useCustomerDropdowns(companyId)
-  const members = useMembers(companyId)
-  const ready = types.data && stages.data && customerTypes.data && dropdowns.data && members.data
-  const unset = ready && (types.data!.length === 0 || stages.data!.length === 0)
-  useEffect(() => {
-    if (unset) router.push("/tasks")
-  }, [unset, router])
-  if (!ready || unset) return null
-  return (
-    <AddTaskDialog
-      companyId={companyId}
-      locationId={locationId}
-      types={types.data!}
-      stages={stages.data!}
-      customerTypes={customerTypes.data!}
-      canCreateCustomer={canCreateCustomer}
-      dropdowns={dropdowns.data!}
-      members={members.data!}
-      typeId={null}
-      stageId={null}
-      onClose={onClose}
-    />
   )
 }
 

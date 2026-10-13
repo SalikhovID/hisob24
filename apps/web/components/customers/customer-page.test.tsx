@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
@@ -518,4 +518,34 @@ test("the customer's tiles: editing for whoever may, and the call to its phone",
   const tiles = within(await screen.findByRole("group", { name: "Amallar" }))
   expect(tiles.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
   expect(tiles.getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998911112233")
+})
+
+test("the customer's Vazifa tile enters a task for it: the sheet opens with the customer as its card", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedTasks()
+  const { user } = open(dilshod.id)
+
+  await user.click(within(await screen.findByRole("group", { name: "Amallar" })).getByRole("button", { name: "Vazifa" }))
+
+  const dialog = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
+  const linked = within(dialog).getByRole("region", { name: "Mavjud mijoz" })
+  expect(within(linked).getByText("Dilshod Karimov")).toBeInTheDocument()
+  const task = within(dialog).getByRole("group", { name: "Vazifa" })
+  await user.type(within(task).getByLabelText("Nomi"), "Mijoz sahifasidan")
+  fireEvent.change(within(task).getByLabelText("Muddat"), { target: { value: localToday() } })
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(db.tasks.at(-1)).toMatchObject({ title: "Mijoz sahifasidan", customerId: dilshod.id })
+  expect(await within(await tasksOf()).findByRole("link", { name: /^Mijoz sahifasidan/ })).toBeInTheDocument()
+})
+
+test("the tile to enter a task is there for whoever may add tasks, in a location", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view", "tasks.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { dilshod } = seedTasks()
+  open(dilshod.id)
+
+  expect(within(await screen.findByRole("group", { name: "Amallar" })).queryByRole("button", { name: "Vazifa" })).not.toBeInTheDocument()
 })

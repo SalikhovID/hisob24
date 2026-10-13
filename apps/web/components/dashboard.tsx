@@ -11,7 +11,8 @@ import { tabIcons } from "@/components/kit/tab-icons"
 import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
 import { HomeHero } from "@/components/home/home-hero"
 import { Overview } from "@/components/home/overview"
-import { HomeAddTask, QuickTiles } from "@/components/home/quick-tiles"
+import { QuickTiles } from "@/components/home/quick-tiles"
+import { NewTask } from "@/components/tasks/new-task"
 import { UpcomingTasks } from "@/components/home/upcoming-tasks"
 import { LocationSwitcher } from "@/components/shell/location-switcher"
 import { Failed, Loading } from "@/components/states"
@@ -97,7 +98,7 @@ export function Dashboard() {
             />
           )}
           {addingTask && locationId !== null && (
-            <HomeAddTask
+            <NewTask
               companyId={company.id}
               locationId={locationId}
               canCreateCustomer={data.permissions.includes("customers.create")}
