@@ -1,0 +1,77 @@
+import { screen, waitFor, within } from "@testing-library/react"
+import { expect, test } from "vitest"
+import { allPermissions } from "@/lib/permissions"
+import type { Permission } from "@/lib/types"
+import { ALI, db, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
+import { asosiyOf } from "@/test/locations"
+import { renderWithProviders } from "@/test/render"
+import { chooseCompany, signIn } from "@/test/session"
+import { QuickTiles } from "./quick-tiles"
+
+const tiles = () => within(screen.getByRole("group", { name: "Tezkor amallar" }))
+const names = () => Array.from(screen.getByRole("group", { name: "Tezkor amallar" }).querySelectorAll("a, button"), (tile) => tile.textContent)
+
+test("the tiles are the first four of Vazifa, Mijoz, Sotuv, Xarid, To'lov the member may use", async () => {
+  await signIn(ALI)
+  const { rerender } = renderWithProviders(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={allPermissions} />)
+
+  expect(names()).toEqual(["Vazifa", "Mijoz", "Sotuv", "Xarid"])
+
+  // With no location, nothing that goes into one.
+  rerender(<QuickTiles companyId={1} locationId={null} permissions={allPermissions} />)
+  expect(names()).toEqual(["Mijoz", "To'lov"])
+
+  const role: Permission[] = ["tasks.view", "tasks.create", "customers.view", "purchases.view", "purchases.create", "suppliers.view"]
+  rerender(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={role} />)
+  expect(names()).toEqual(["Vazifa", "Xarid", "To'lov"])
+
+  rerender(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={["tasks.view"]} />)
+  expect(screen.queryByRole("group", { name: "Tezkor amallar" })).not.toBeInTheDocument()
+})
+
+test("Sotuv and Xarid lead to their new documents", async () => {
+  await signIn(ALI)
+  renderWithProviders(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={allPermissions} />)
+
+  expect(tiles().getByRole("link", { name: "Sotuv" })).toHaveAttribute("href", "/sales/new")
+  expect(tiles().getByRole("link", { name: "Xarid" })).toHaveAttribute("href", "/purchases/new")
+})
+
+test("Vazifa enters a task right from the home", async () => {
+  seedTasks()
+  await signIn(ALI)
+  const { user } = renderWithProviders(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={allPermissions} />)
+
+  await user.click(tiles().getByRole("button", { name: "Vazifa" }))
+
+  expect(await screen.findByRole("dialog", { name: "Vazifa qo'shish" })).toBeInTheDocument()
+})
+
+test("Mijoz enters a customer right from the home", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={allPermissions} />)
+
+  await user.click(tiles().getByRole("button", { name: "Mijoz" }))
+
+  expect(await screen.findByRole("dialog", { name: "Mijoz qo'shish" })).toBeInTheDocument()
+})
+
+test("To'lov picks the supplier among the active ones, then takes the payment to it", async () => {
+  const { bozor } = seedWarehouse()
+  await signIn(VALI)
+  await chooseCompany(1)
+  const role: Permission[] = ["purchases.view", "purchases.create", "suppliers.view"]
+  const { user } = renderWithProviders(<QuickTiles companyId={1} locationId={null} permissions={role} />)
+
+  await user.click(tiles().getByRole("button", { name: "To'lov" }))
+  const picker = await screen.findByRole("dialog", { name: "Ta'minotchi" })
+  expect(await within(picker).findByRole("option", { name: /Bozor/ })).toBeInTheDocument()
+  expect(within(picker).queryByRole("option", { name: /Dehqon/ })).not.toBeInTheDocument()
+  await user.click(within(picker).getByRole("option", { name: /Bozor/ }))
+
+  const payment = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
+  await user.type(within(payment).getByLabelText("Summa, so'm"), "5000")
+  await user.click(within(payment).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(db.transactions.some((t) => t.kind === "supplier_payment" && t.supplierId === bozor.id && t.total === 5000)).toBe(true))
+})

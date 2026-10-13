@@ -40,14 +40,24 @@ export function PaymentDialog({
   partyId,
   payment,
   iconOnly = false,
+  open: openGiven,
+  onOpenChange,
 }: {
   party?: Party
   companyId: number
   partyId: number
   payment?: PaymentFields
   iconOnly?: boolean
+  // open, with onOpenChange, opens the dialog from outside (the home's
+  // «To'lov» tile, once the supplier is picked): it has no button then,
+  // and every mounting starts afresh.
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const accounts = useAccounts()
@@ -80,6 +90,13 @@ export function PaymentDialog({
     },
   })
 
+  // The accounts come with the session: a new payment opened before they
+  // are known takes the first one once they are.
+  useEffect(() => {
+    if (!open || payment || firstAccount === null || form.getValues("bank_account_id") !== "") return
+    form.setValue("bank_account_id", String(firstAccount))
+  }, [open, payment, firstAccount, form])
+
   // An account in another currency: its standard rate is offered while
   // none is typed.
   useEffect(() => {
@@ -99,7 +116,7 @@ export function PaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      {payment && iconOnly ? (
+      {controlled ? null : payment && iconOnly ? (
         <ActionTooltip label="Tahrirlash">
           <DialogTrigger render={<Button variant="ghost" size="icon" className={iconAction} aria-label={`Tahrirlash: ${formatAmount(payment.amount)}`} />}>
             <PencilIcon />

@@ -33,14 +33,23 @@ export function AddCustomerDialog({
   types,
   dropdowns,
   typeId: preferred,
+  open: openGiven,
+  onOpenChange,
 }: {
   companyId: number
   types: CustomerType[]
   dropdowns: CustomerDropdown[]
   // typeId is the type the list is narrowed to, if any.
   typeId: number | null
+  // open, with onOpenChange, opens the dialog from outside (the home's
+  // «Mijoz» tile): it has no button then, and every mounting starts afresh.
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const [typeId, setTypeId] = useState(types[0].id)
   const type = types.find((candidate) => candidate.id === typeId) ?? types[0]
   const queryClient = useQueryClient()
@@ -80,10 +89,12 @@ export function AddCustomerDialog({
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
-        <PlusIcon />
-        Mijoz qo&apos;shish
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
+          <PlusIcon />
+          Mijoz qo&apos;shish
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Mijoz qo&apos;shish</DialogTitle>
