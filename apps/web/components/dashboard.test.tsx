@@ -1,10 +1,12 @@
-import { act, screen, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { formatDate } from "@/lib/format"
 import { setMiniApp } from "@/lib/telegram"
-import { ALI, db, VALI } from "@/mocks/data"
+import { ALI, db, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
 import { addLocation } from "@/test/locations"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { fakeWebApp } from "@/test/telegram"
@@ -102,4 +104,58 @@ test("in a browser, or where the app is on the home screen already, there is no 
   renderWithProviders(<Dashboard />)
   await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })
   expect(screen.queryByRole("button", { name: /bosh ekranga qo'shing/ })).not.toBeInTheDocument()
+})
+
+test("the home shows what the owner may see: what the suppliers are owed, the tiles, the overview, the nearest deadlines", async () => {
+  seedTasks()
+  seedWarehouse()
+  await signIn(ALI)
+  renderWithProviders(<Dashboard />)
+
+  expect(await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })).toBeInTheDocument()
+  expect(screen.getByRole("group", { name: "Tezkor amallar" })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { level: 2, name: "Umumiy holat" })).toBeInTheDocument()
+  expect(await screen.findByRole("link", { name: /^Hisob-faktura/ })).toHaveAttribute("href", expect.stringMatching(/^\/tasks\/\d+$/))
+})
+
+test("an employee whose role sees the tasks alone is headed by the tasks of the current location, and switching it switches them", async () => {
+  seedTasks()
+  addLocation(1, "Chilonzor")
+  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { user } = renderWithProviders(<Dashboard />)
+
+  const hero = await screen.findByRole("link", { name: /^Faol vazifalar/ })
+  await waitFor(() => expect(hero).toHaveTextContent("3 ta"))
+  expect(hero).toHaveTextContent("Asosiy")
+  expect(screen.queryByRole("group", { name: "Tezkor amallar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("link", { name: /^Ta'minotchilarga qarz/ })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole("button", { name: "Lokatsiya: Asosiy" }))
+  await user.click(within(await screen.findByRole("dialog", { name: "Lokatsiya" })).getByRole("menuitemradio", { name: "Chilonzor" }))
+
+  await waitFor(() => expect(screen.getByRole("link", { name: /^Faol vazifalar/ })).toHaveTextContent("0 ta"))
+  expect(screen.getByRole("link", { name: /^Faol vazifalar/ })).toHaveTextContent("Chilonzor")
+})
+
+test("blocks that fail to load say why and can be asked for again; the head stays", async () => {
+  await signIn(ALI)
+  server.use(http.get("*/api/app/dashboard", () => HttpResponse.error(), { once: true }))
+  const { user } = renderWithProviders(<Dashboard />)
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Tarmoq xatosi")
+  expect(screen.getByRole("link", { name: "Olma Savdo Ali V. · Egasi" })).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
+  expect(await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })).toBeInTheDocument()
+})
+
+test("with no task open the nearest deadlines offer to add one, right on the home", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Dashboard />)
+
+  expect(await screen.findByText("Faol vazifa yo'q")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Vazifa qo'shish" }))
+
+  expect(await screen.findByRole("dialog", { name: "Vazifa qo'shish" })).toBeInTheDocument()
 })

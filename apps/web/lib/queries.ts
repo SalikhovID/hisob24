@@ -499,6 +499,20 @@ export function useStatement(companyId: number | null, supplierId: number, page:
   })
 }
 
+export const dashboardKey = (companyId: number | null) => ["dashboard", companyId] as const
+
+// useDashboard is the home's blocks of the location (null: every one of the
+// member's), each as the member may see it. It is asked afresh each time
+// the home opens (the queries go stale at once): what the sections changed
+// meanwhile is in it.
+export function useDashboard(companyId: number | null, locationId: number | null) {
+  return useQuery({
+    queryKey: [...dashboardKey(companyId), locationId],
+    queryFn: () => call(api.GET("/app/dashboard", { params: { query: { location_id: locationId ?? undefined } } })),
+    enabled: companyId !== null,
+  })
+}
+
 export const purchasesKey = (companyId: number | null) => ["purchases", companyId] as const
 
 // PurchaseFilter narrows the purchases: one location (the current one) or

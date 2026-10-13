@@ -71,8 +71,8 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
 
 // HomeAddTask opens the task dialog once what it asks is known; a company
 // with no task type or stage yet is taken to the tasks, which say what to
-// set up.
-function HomeAddTask({ companyId, locationId, canCreateCustomer, onClose }: { companyId: number; locationId: number; canCreateCustomer: boolean; onClose: () => void }) {
+// set up. The nearest deadlines open it too, when there are none.
+export function HomeAddTask({ companyId, locationId, canCreateCustomer, onClose }: { companyId: number; locationId: number; canCreateCustomer: boolean; onClose: () => void }) {
   const router = useRouter()
   const types = useTaskTypes(companyId)
   const stages = useTaskStages(companyId)

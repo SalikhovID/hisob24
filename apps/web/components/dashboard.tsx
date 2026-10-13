@@ -1,32 +1,49 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
+import { MONTHS } from "@/components/kit/date-sheet"
 import { HomeBanner } from "@/components/kit/banner"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { tabIcons } from "@/components/kit/tab-icons"
 import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
+import { HomeHero } from "@/components/home/home-hero"
+import { Overview } from "@/components/home/overview"
+import { HomeAddTask, QuickTiles } from "@/components/home/quick-tiles"
+import { UpcomingTasks } from "@/components/home/upcoming-tasks"
 import { LocationSwitcher } from "@/components/shell/location-switcher"
+import { Failed, Loading } from "@/components/states"
 import { formatDate } from "@/lib/format"
 import { useHomeScreenOffer } from "@/lib/home-screen"
 import { shortName } from "@/lib/initials"
 import { barItems, navFor } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
-import { useMe } from "@/lib/queries"
+import { useDashboard, useMe, useTaskStages } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
+import { todayISO } from "@/lib/tasks"
+import { useLocation } from "@/lib/use-location"
 
-// Dashboard is the app's home, headed as the prototype's: who is signed in
-// and where (the company, the short name and the role: the way to the
-// profile) and the location switch; inside Telegram, the offer to put the
-// app on the home screen; the sections the tab bar does not hold, a row
-// away each (on a phone: a wide screen has them in the sidebar); and the
-// subscription's end. The greeting is the page's heading for a screen
-// reader. The shell around it shows it only to a session with a company.
+// Dashboard is the app's home, as the prototype's: who is signed in and
+// where (the company, the short name and the role: the way to the profile)
+// and the location switch; the one figure that matters most (the hero),
+// the quick tiles; inside Telegram, the offer to put the app on the home
+// screen; the overview's cards and the nearest deadlines of the current
+// location; the sections the tab bar does not hold, a row away each (on a
+// phone: a wide screen has them in the sidebar); and the subscription's
+// end. The greeting is the page's heading for a screen reader. The shell
+// around it shows it only to a session with a company.
 export function Dashboard() {
   const me = useMe()
   const offer = useHomeScreenOffer()
+  const location = useLocation()
   const data = me.data
   const company = data?.company
+  const companyId = company?.id ?? null
+  const locationId = location.current?.id ?? null
+  const dashboard = useDashboard(companyId, locationId)
+  const stages = useTaskStages(dashboard.data?.tasks ? companyId : null)
+  const [addingTask, setAddingTask] = useState(false)
   if (!data || !company) return null
   const user = data.user
   const name = user.full_name ?? formatPhone(user.phone)
@@ -52,7 +69,41 @@ export function Dashboard() {
         <LocationSwitcher />
       </div>
 
+      {dashboard.isPending ? (
+        <Loading rows={3} />
+      ) : dashboard.isError ? (
+        <Failed error={dashboard.error} onRetry={() => dashboard.refetch()} />
+      ) : (
+        <>
+          <HomeHero dashboard={dashboard.data} locationName={location.current?.name ?? null} />
+          <QuickTiles companyId={company.id} locationId={locationId} permissions={data.permissions} />
+        </>
+      )}
+
       {offer.offered && <HomeBanner onAdd={offer.add} onDismiss={offer.dismiss} />}
+
+      {dashboard.data && (
+        <>
+          <Overview dashboard={dashboard.data} stages={stages.data ?? []} hasLocation={locationId !== null} month={MONTHS[Number(todayISO().slice(5, 7)) - 1]} />
+          {dashboard.data.tasks && (
+            <UpcomingTasks
+              tasks={dashboard.data.tasks}
+              stages={stages.data ?? []}
+              hasLocation={locationId !== null}
+              canAdd={data.permissions.includes("tasks.create") && data.permissions.includes("customers.view")}
+              onAdd={() => setAddingTask(true)}
+            />
+          )}
+          {addingTask && locationId !== null && (
+            <HomeAddTask
+              companyId={company.id}
+              locationId={locationId}
+              canCreateCustomer={data.permissions.includes("customers.create")}
+              onClose={() => setAddingTask(false)}
+            />
+          )}
+        </>
+      )}
 
       {more.length > 0 && (
         <Group label="Bo'limlar" inset="tile" className="md:hidden">
