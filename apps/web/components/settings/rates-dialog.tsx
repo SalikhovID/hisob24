@@ -2,15 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { PencilIcon } from "lucide-react"
-import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
-import { PendingButton } from "@/components/pending-button"
+import { AmountRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -18,9 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { formatRate } from "@/lib/format"
 import { meKey, ratesKey } from "@/lib/queries"
@@ -59,9 +56,20 @@ const typed = (c: CompanyCurrency) => (c.rate === null ? "" : formatRate(c.rate)
 
 // RatesDialog enters the rates of the currencies given (the company's, but
 // the so'm) as a new standard row: what the documents from now on are
-// converted by (logic/currencies.md, section 4).
-export function RatesDialog({ companyId, currencies }: { companyId: number; currencies: CompanyCurrency[] }) {
-  const [open, setOpen] = useState(false)
+// converted by (logic/currencies.md, section 4), as the prototype's sheet: a
+// row a currency, «1 USD» beside what it is worth in so'm. It is opened from
+// outside (the page's plus).
+export function RatesDialog({
+  companyId,
+  currencies,
+  open,
+  onOpenChange,
+}: {
+  companyId: number
+  currencies: CompanyCurrency[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const queryClient = useQueryClient()
   const defaults = (): RatesForm => Object.fromEntries(currencies.map((c) => [codeOf(c), typed(c)]))
   const form = useForm<RatesForm, unknown, RatesOutput>({ resolver: zodResolver(ratesSchema), defaultValues: defaults() })
@@ -72,43 +80,31 @@ export function RatesDialog({ companyId, currencies }: { companyId: number; curr
       queryClient.invalidateQueries({ queryKey: meKey })
       queryClient.invalidateQueries({ queryKey: ratesKey(companyId) })
       toast.success("Kurslar saqlandi")
-      setOpen(false)
+      onOpenChange(false)
     },
   })
 
-  // Every opening starts from the rates as they are now.
-  const changeOpen = (next: boolean) => {
-    setOpen(next)
-    if (next) {
-      form.reset(defaults())
-      save.reset()
-    }
-  }
 
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button variant="outline" size="lg" className="px-3.5" />}>
-        <PencilIcon />
-        Kurslarni yangilash
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Kurslarni yangilash</DialogTitle>
           <DialogDescription>Bir birlik necha so&apos;m. Avvalgi hujjatlar o&apos;z kursida qoladi.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((rates) => save.mutate(rates))} noValidate className="space-y-4">
-          <FieldGroup>
+        <SheetForm onSubmit={form.handleSubmit((rates) => save.mutate(rates))}>
+          {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
+          <Group>
             {currencies.map((c) => (
-              <TextField key={c.id} control={form.control} name={codeOf(c)} label={`1 ${c.code} = ? so'm`} inputMode="decimal" autoComplete="off" />
+              <AmountRow key={c.id} control={form.control} name={codeOf(c)} label={`1 ${c.code}`} />
             ))}
-          </FieldGroup>
-          {save.isError && <Refusal>{save.error.message}</Refusal>}
+          </Group>
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
+            <MainButton type="submit" pending={save.isPending}>
               Saqlash
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )

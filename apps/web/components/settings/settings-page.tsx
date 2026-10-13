@@ -28,7 +28,7 @@ import type { CustomerType, Permission, TaskStage, TaskType } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
-import { CurrencyRates } from "./currency-rates-page"
+import { CurrencyRatesPage } from "./currency-rates-page"
 import { DeleteButton } from "./delete-button"
 import { FinanceCategories } from "./finance-categories-page"
 import { NameDialog } from "./name-dialog"
@@ -102,7 +102,7 @@ export function SettingsPage() {
           <Dropdowns companyId={companyId} permissions={permissions} />
         </TabsContent>
         <TabsContent value="currencies" className="space-y-8 text-base">
-          <CurrencyRates companyId={companyId} permissions={permissions} />
+          <CurrencyRatesPage />
         </TabsContent>
         <TabsContent value="finance" className="space-y-8 text-base">
           <FinanceCategories companyId={companyId} permissions={permissions} />
