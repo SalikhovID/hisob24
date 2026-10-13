@@ -1,28 +1,40 @@
 "use client"
 
-import { PlusIcon } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useRef } from "react"
-import { type Column, DataList } from "@/components/data-list"
-import { PageHeader } from "@/components/page-header"
+import { MapPinIcon, ReceiptIcon } from "lucide-react"
+import { Fragment, useEffect, useRef } from "react"
+import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
+import { PageTitle, PlusButton } from "@/components/kit/page-title"
+import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
-import { buttonVariants } from "@/components/ui/button"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { formatDateTime, formatMoney } from "@/lib/format"
+import { dayOf, dayTitle, formatAmount, formatMoney } from "@/lib/format"
+import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { usePurchases } from "@/lib/queries"
+import { todayISO } from "@/lib/tasks"
 import type { Permission, Purchase } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
+import { cn } from "@/lib/utils"
 import { usePageFilter } from "./use-page-filter"
+
+// paidText says what was paid with a purchase, at its row's end: all of it
+// (green), none (red), or how much.
+function paidText(purchase: Purchase) {
+  const paid = Number(purchase.paid)
+  if (paid >= Number(purchase.total)) return <span className="text-positive">To&apos;langan</span>
+  if (paid === 0) return <span className="text-destructive">To&apos;lanmagan</span>
+  return `${formatAmount(purchase.paid)} to'langan`
+}
 
 // PurchasesPage is the purchases of the current location (logic/warehouse.md,
 // 4.5; logic/locations.md, section 7), for whoever may see them
 // (purchases.view; adding takes purchases.create and a way to the suppliers
-// and the products): the newest first, each by its number and supplier,
-// its moment and how many products, what it came to and what was paid with
-// it, in its currency.
+// and the products), as the prototype's list: the newest first, grouped by
+// their day (what the day's purchases came to in so'm beside it), each a row
+// by its number and supplier, how many products and who entered it, what it
+// came to in its currency and how much of it was paid.
 export function PurchasesPage() {
   const gate = usePermission("purchases.view")
   const companyId = gate?.company.id ?? null
@@ -43,26 +55,6 @@ export function PurchasesPage() {
     if (changed && filter.page > 1) update({ page: 1 })
   }, [locationId, filter.page, update])
 
-  const columns: Column<Purchase>[] = [
-    {
-      header: "Xarid",
-      primary: true,
-      cell: (p) => (
-        <span className="flex min-w-0 flex-col">
-          <span className="min-w-0 [overflow-wrap:anywhere]">
-            № {p.number} · {p.supplier.name}
-          </span>
-          <span className="text-[0.8125rem] leading-5 font-normal whitespace-nowrap text-muted-foreground">
-            {formatDateTime(p.at)} · {p.items_count} ta mahsulot
-          </span>
-        </span>
-      ),
-    },
-    { header: "Jami", align: "end", card: "aside", cell: (p) => formatMoney(p.total, currencyOf(currencies, p.currency_id)) },
-    { header: "To'langan", align: "end", card: "inline", cell: (p) => formatMoney(p.paid, currencyOf(currencies, p.currency_id)) },
-    { header: "Qo'shgan", className: "text-muted-foreground", cell: (p) => p.created_by_name },
-  ]
-
   // A purchase names a supplier and products: adding one takes a way to
   // both (logic/roles.md, 4.3), and a location to enter it into.
   const canAdd = allowed("purchases.create") && allowed("suppliers.view") && allowed("products.view") && locationId !== null
@@ -76,47 +68,64 @@ export function PurchasesPage() {
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
   if (!gate) return null
+  const page = purchases.data
+  // The page's purchases by their day, in the order they come (the newest first).
+  const days: { day: string; items: Purchase[] }[] = []
+  for (const purchase of page?.items ?? []) {
+    const day = dayOf(purchase.at)
+    const last = days.at(-1)
+    if (last?.day === day) last.items.push(purchase)
+    else days.push({ day, items: [purchase] })
+  }
+  const today = todayISO()
   return (
-    <div className="space-y-5">
-      <PageHeader
+    <>
+      <PageTitle
         back={{ href: "/warehouse", label: "Ombor" }}
         title="Xaridlar"
         description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya xaridlari"}
-        actions={
-          canAdd && (
-            <Link href="/purchases/new" className={buttonVariants({ size: "lg", className: "px-3.5" })}>
-              <PlusIcon />
-              Xarid qo&apos;shish
-            </Link>
-          )
-        }
+        action={canAdd && <PlusButton label="Xarid qo'shish" href="/purchases/new" />}
       />
-      {noLocation ? (
-        <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
-          <p className="font-medium">Sizga lokatsiya biriktirilmagan</p>
-          <p className="mt-1 text-pretty text-muted-foreground">Kompaniya egasi lokatsiya biriktirishi kerak.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {loading && <ListLoading rows={6} mark="none" />}
-          {purchases.isError && <Failed error={purchases.error} onRetry={() => purchases.refetch()} />}
-          {!loading && !purchases.isError && purchases.data?.total === 0 && (
-            <EmptyState title="Hali xarid yo'q" description={canAdd ? "Birinchi xaridni «Xarid qo'shish» tugmasi orqali kiriting." : undefined} />
-          )}
-          {!loading && !purchases.isError && purchases.data && purchases.data.total > 0 && (
-            <DataList
-              label="Xaridlar"
-              items={purchases.data.items}
-              columns={columns}
-              getKey={(p) => p.id}
-              href={(p) => `/purchases/${p.id}`}
-              footer={
-                <Pager page={purchases.data.page} pageSize={purchases.data.page_size} total={purchases.data.total} onPage={(page) => update({ page })} />
-              }
-            />
-          )}
-        </div>
+      {noLocation && <EmptyState icon={MapPinIcon} title="Sizga lokatsiya biriktirilmagan" description="Kompaniya egasi lokatsiya biriktirishi kerak." />}
+      {loading && <ListLoading rows={6} />}
+      {purchases.isError && <Failed error={purchases.error} onRetry={() => purchases.refetch()} />}
+      {!loading && !purchases.isError && page?.total === 0 && (
+        <EmptyState icon={ReceiptIcon} title="Hali xarid yo'q" description={canAdd ? "Birinchi xaridni «Xarid qo'shish» tugmasi orqali kiriting." : undefined} />
       )}
-    </div>
+      {!loading && !purchases.isError && page && page.total > 0 && (
+        <>
+          <section aria-label="Xaridlar" className={cn(purchases.isPlaceholderData && "opacity-60")}>
+            {days.map(({ day, items }) => {
+              const title = dayTitle(day, today)
+              const sum = items.reduce((all, purchase) => all + Number(purchase.total_uzs), 0)
+              return (
+                <Fragment key={day}>
+                  <SectionHeading hint={formatAmount(sum.toFixed(2))}>{title}</SectionHeading>
+                  <Group label={title} inset="icon">
+                    {items.map((purchase) => (
+                      <Row
+                        key={purchase.id}
+                        href={`/purchases/${purchase.id}`}
+                        media={<SoftIcon icon={ReceiptIcon} />}
+                        title={`№ ${purchase.number} · ${purchase.supplier.name}`}
+                        sub={[`${purchase.items_count} ta mahsulot`, purchase.created_by_name && shortName(purchase.created_by_name)].filter(Boolean).join(" · ")}
+                        end={formatMoney(purchase.total, currencyOf(currencies, purchase.currency_id))}
+                        endSub={paidText(purchase)}
+                        chevron={false}
+                      />
+                    ))}
+                  </Group>
+                </Fragment>
+              )
+            })}
+          </section>
+          {page.total > page.page_size ? (
+            <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
+          ) : (
+            <Foot>Jami: {page.total}</Foot>
+          )}
+        </>
+      )}
+    </>
   )
 }
