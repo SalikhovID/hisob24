@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { Tile } from "@/components/kit/detail-head"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -13,14 +14,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import type { OpeningStock } from "@/lib/types"
 import { forgetWarehouse } from "./new-purchase-page"
 
-// DeleteOpeningStockButton deletes an opening stock after asking: its lines
+// DeleteOpeningStockButton is the danger tile of an opening stock's page: it
+// deletes the document after asking: its lines
 // go out of the stock; its number is never given again (logic/warehouse.md,
 // 5.3). A refusal (the stock would go below zero) is told and the document
 // stays. afterDelete is what follows: the page leaves for the list.
@@ -42,11 +42,9 @@ export function DeleteOpeningStockButton({ companyId, opening, afterDelete }: { 
   })
 
   return (
+    <>
+    <Tile icon={Trash2Icon} label="O'chirish" danger onClick={() => setConfirming(true)} />
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      <AlertDialogTrigger render={<Button variant="outline" size="lg" className="px-3.5 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20" />}>
-        <Trash2Icon />
-        O&apos;chirish
-      </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Boshlang&apos;ich qoldiqni o&apos;chirasizmi?</AlertDialogTitle>
@@ -68,5 +66,6 @@ export function DeleteOpeningStockButton({ companyId, opening, afterDelete }: { 
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    </>
   )
 }

@@ -1,19 +1,19 @@
 "use client"
 
 import { PencilIcon } from "lucide-react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { type Column, DataList } from "@/components/data-list"
-import { Fact } from "@/components/facts"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
-import { buttonVariants } from "@/components/ui/button"
+import { Avatar } from "@/components/kit/avatar"
+import { Tile, Tiles } from "@/components/kit/detail-head"
+import { Foot, Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
+import { Hero } from "@/components/kit/hero"
+import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { Failed, ListLoading, NotFound } from "@/components/states"
 import { ApiError } from "@/lib/api"
 import { currencyOf, rateLine, som, useCurrencies, UZS } from "@/lib/currencies"
 import { formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { useOpeningStock } from "@/lib/queries"
-import type { Permission, PurchaseItem } from "@/lib/types"
+import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { DeleteOpeningStockButton } from "./delete-opening-stock-button"
@@ -22,11 +22,12 @@ const back = { href: "/opening-stock", label: "Boshlang'ich qoldiq" }
 
 // OpeningStockDetailPage is one opening stock of the member's locations
 // (logic/warehouse.md, 5.3), for whoever may see the stock documents
-// (changing and deleting each take their permission): its location (with
-// two or more to work in), moment, currency and rate (with another than
-// the so'm), what it came to (in so'm too), its note, who entered it and
-// when; its lines, each product with its quantity, price and what the line
-// came to.
+// (changing and deleting each take their permission), as the prototype's
+// page: its number over what it came to, its location and moment; the
+// tiles (editing, deleting); its lines, each product with how much at what
+// price and the sum; its facts: the location (with two or more to work
+// in), the currency and rate (with another than the so'm), the total (in
+// so'm too), the note, who entered it and when.
 export function OpeningStockDetailPage({ id }: { id: number }) {
   const gate = usePermission("stock.view")
   const companyId = gate?.company.id ?? null
@@ -38,75 +39,76 @@ export function OpeningStockDetailPage({ id }: { id: number }) {
 
   if (!gate) return null
   if (opening.error instanceof ApiError && opening.error.status === 404) {
-    return <PageHeader title="Hujjat topilmadi" description="Bu hujjat o'chirilgan yoki siz ishlamaydigan lokatsiyada." back={back} />
-  }
-  if (!opening.data) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Boshlang'ich qoldiq" back={back} />
+      <>
+        <BackLink {...back} />
+        <NotFound title="Hujjat topilmadi" description="Bu hujjat o'chirilgan yoki siz ishlamaydigan lokatsiyada." />
+      </>
+    )
+  }
+  if (!opening.data || companyId === null) {
+    return (
+      <>
+        <PageTitle title="Boshlang'ich qoldiq" back={back} />
         {opening.isError ? <Failed error={opening.error} onRetry={() => opening.refetch()} /> : <ListLoading rows={4} mark="none" />}
-      </div>
+      </>
     )
   }
   const o = opening.data
   const currency = currencyOf(currencies, o.currency_id)
-  const columns: Column<PurchaseItem>[] = [
-    { header: "Mahsulot", primary: true, cell: (item) => item.name },
-    { header: "Miqdor", card: "inline", className: "tabular-nums", cell: (item) => formatQuantity(item.quantity, item.unit) },
-    { header: `Narx, ${currency.symbol}`, align: "end", card: "inline", cell: (item) => formatAmount(item.price) },
-    { header: `Summa, ${currency.symbol}`, align: "end", card: "aside", cell: (item) => formatAmount(item.amount) },
-  ]
+  const tiles = [
+    allowed("stock.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/opening-stock/${o.id}/edit`} />,
+    allowed("stock.delete") && <DeleteOpeningStockButton key="delete" companyId={companyId} opening={o} afterDelete={() => router.replace("/opening-stock")} />,
+  ].filter(Boolean)
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title={`Boshlang'ich qoldiq № ${o.number}`}
-        description={`${o.location_name} · ${formatDateTime(o.at)}`}
-        back={back}
-        stack
-        actions={
-          companyId !== null &&
-          (allowed("stock.edit") || allowed("stock.delete")) && (
-            <>
-              {allowed("stock.edit") && (
-                <Link href={`/opening-stock/${o.id}/edit`} className={buttonVariants({ size: "lg", className: "px-3.5" })}>
-                  <PencilIcon />
-                  Tahrirlash
-                </Link>
-              )}
-              {allowed("stock.delete") && <DeleteOpeningStockButton companyId={companyId} opening={o} afterDelete={() => router.replace("/opening-stock")} />}
-            </>
-          )
+    <>
+      <BackLink {...back} />
+      <Hero
+        heading
+        label={`Boshlang'ich qoldiq № ${o.number}`}
+        value={o.total}
+        unit={currency.symbol}
+        badges={
+          <span className="font-medium text-muted-foreground">
+            {o.location_name} · {formatDateTime(o.at)}
+          </span>
         }
+        className="pt-2"
       />
-      <section aria-labelledby="opening-info" className="space-y-3">
-        <h2 id="opening-info" className="text-base font-semibold">
-          Ma&apos;lumot
-        </h2>
-        <dl className="divide-y rounded-xl border bg-card tabular-nums">
-          {locations.length >= 2 && <Fact name="Lokatsiya" value={o.location_name} />}
-          <Fact name="Vaqt" value={formatDateTime(o.at)} />
-          {o.currency_id !== UZS && <Fact name="Valyuta" value={`${currency.code} · ${rateLine({ ...currency, rate: o.rate })}`} />}
-          <Fact name="Jami" value={formatMoney(o.total, currency)} />
-          {o.currency_id !== UZS && <Fact name="So'mda" value={formatMoney(o.total_uzs, som)} />}
-          <Fact name="Izoh" value={o.note} />
-          <Fact name="Qo'shgan" value={o.created_by_name} />
-          <Fact name="Qo'shilgan" value={formatDate(o.created_at)} />
-        </dl>
+      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
+      <section aria-labelledby="opening-lines">
+        <SectionHeading hint={o.items.length}>
+          <span id="opening-lines">Mahsulotlar</span>
+        </SectionHeading>
+        <Group label="Mahsulotlar" inset="icon">
+          {o.items.map((item) => (
+            <Row
+              key={item.product_id}
+              href={`/products/${item.product_id}`}
+              media={<Avatar name={item.name} seed={item.product_id} square letter />}
+              title={item.name}
+              sub={`${formatQuantity(item.quantity, item.unit)} × ${formatAmount(item.price)}`}
+              end={formatAmount(item.amount)}
+              chevron={false}
+            />
+          ))}
+        </Group>
+        <Foot className="-mt-4 mb-6">Jami: {formatMoney(o.total, currency)}</Foot>
       </section>
-      <section aria-labelledby="opening-lines" className="space-y-3">
-        <h2 id="opening-lines" className="text-base font-semibold">
-          Qatorlar
-        </h2>
-        <DataList
-          label="Qatorlar"
-          items={o.items}
-          columns={columns}
-          getKey={(item) => item.product_id}
-          href={(item) => `/products/${item.product_id}`}
-          footer={<span className="tabular-nums">Jami: {formatAmount(o.total)}</span>}
-        />
+      <section aria-label="Ma'lumot">
+        <SectionHeading>Ma&apos;lumot</SectionHeading>
+        <Group as="dl">
+          {locations.length >= 2 && <KeyValue label="Lokatsiya" value={o.location_name} />}
+          <KeyValue label="Vaqt" value={formatDateTime(o.at)} />
+          {o.currency_id !== UZS && <KeyValue label="Valyuta" value={`${currency.code} · ${rateLine({ ...currency, rate: o.rate })}`} />}
+          <KeyValue label="Jami" value={formatMoney(o.total, currency)} />
+          {o.currency_id !== UZS && <KeyValue label="So'mda" value={formatMoney(o.total_uzs, som)} />}
+          <KeyValue label="Izoh" value={o.note} />
+          <KeyValue label="Qo'shgan" value={o.created_by_name} />
+          <KeyValue label="Qo'shilgan" value={formatDate(o.created_at)} />
+        </Group>
       </section>
-    </div>
+    </>
   )
 }
