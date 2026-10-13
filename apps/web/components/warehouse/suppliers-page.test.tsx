@@ -4,41 +4,44 @@ import { ALI, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { currentUrl, router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
+import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { SuppliersPage } from "./suppliers-page"
 
-const table = () => screen.findByRole("table", { name: "Ta'minotchilar" })
-const titles = (table: HTMLElement) =>
-  within(table)
-    .getAllByRole("rowheader")
-    .map((cell) => within(cell).queryByRole("link")?.textContent ?? cell.textContent)
-const headers = (table: HTMLElement) => within(table).getAllByRole("columnheader").map((cell) => cell.textContent)
+// The list is the suppliers' rows, a list on any screen.
+const list = () => screen.findByRole("list", { name: "Ta'minotchilar" })
+const rows = (list: HTMLElement) => within(list).getAllByRole("listitem").map((item) => item.firstElementChild as HTMLElement)
+// parts are a row's title, line and end, the spaces as one plain space.
+const parts = (row: HTMLElement) => {
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ") ?? null
+  const { title, sub, end } = rowParts(row)
+  return { title: plain(title), sub: plain(sub), end: plain(end) }
+}
 
-test("the owner's suppliers: by name, with the phone and what is owed; the inactive ones under their own tab", async () => {
+test("the owner's suppliers: a row each, the phone under the name, what is owed at its end; the chips say how many", async () => {
   const { bozor } = seedWarehouse(seedCatalog())
   await signIn(ALI)
   setLocation("/suppliers")
   const { user } = renderWithProviders(<SuppliersPage />)
 
-  const list = await table()
+  const suppliers = await list()
   expect(screen.getByRole("heading", { level: 1, name: "Ta'minotchilar" })).toBeInTheDocument()
   expect(screen.getByText("Kompaniyangiz ta'minotchilari · 1 ta")).toBeInTheDocument()
   // The page leads back to the warehouse's hub, which lists its pages.
   expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
   expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
-  expect(headers(list)).toEqual(["Ta'minotchi", "Telefon", "Qarz", "Qo'shgan", "Qo'shilgan"])
-  expect(titles(list)).toEqual(["Bozor"])
-  expect(within(list).getByRole("link", { name: "Bozor" })).toHaveAttribute("href", `/suppliers/${bozor.id}`)
-  const row = within(list).getByRole("link", { name: "Bozor" }).closest("tr")!
-  expect(within(row).getByText("+998 90 123 45 67")).toBeInTheDocument()
-  expect(within(row).getByText("15 001,50")).toBeInTheDocument()
-  expect(within(row).getByText("Ali Valiyev")).toBeInTheDocument()
-  expect(within(list).queryByText("Dehqon")).not.toBeInTheDocument()
+  const [row] = rows(suppliers)
+  expect(parts(row)).toEqual({ title: "Bozor", sub: "+998 90 123 45 67", end: "Qarz: 15 001,50 so'm" })
+  expect(row).toHaveAttribute("href", `/suppliers/${bozor.id}`)
+  expect(within(suppliers).queryByText("Dehqon")).not.toBeInTheDocument()
+  expect(screen.getByText("Jami: 1")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Ta'minotchi qo'shish" })).toBeInTheDocument()
 
-  await user.click(screen.getByRole("tab", { name: "Nofaol" }))
+  const status = screen.getByRole("radiogroup", { name: "Holat" })
+  await waitFor(() => expect(within(status).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Faol 1", "Nofaol 1"]))
+  await user.click(within(status).getByRole("radio", { name: "Nofaol 1" }))
   await waitFor(() => expect(currentUrl()).toBe("/suppliers?status=inactive"))
-  expect(await within(await table()).findByText("Dehqon")).toBeInTheDocument()
+  expect(await within(await list()).findByText("Dehqon")).toBeInTheDocument()
   expect(screen.queryByText("Bozor")).not.toBeInTheDocument()
 })
 
@@ -47,11 +50,13 @@ test("a search looks in the names", async () => {
   await signIn(ALI)
   setLocation("/suppliers")
   const { user } = renderWithProviders(<SuppliersPage />)
-  await table()
+  await list()
 
-  await user.type(screen.getByRole("searchbox", { name: "Qidirish" }), "bo")
+  const search = screen.getByRole("searchbox", { name: "Qidirish" })
+  expect(search).toHaveAttribute("placeholder", "Nom yoki telefon")
+  await user.type(search, "bo")
   await waitFor(() => expect(currentUrl()).toBe("/suppliers?search=bo"))
-  await waitFor(() => expect(titles(screen.getByRole("table", { name: "Ta'minotchilar" }))).toEqual(["Bozor"]))
+  await waitFor(async () => expect(rows(await list()).map((row) => parts(row).title)).toEqual(["Bozor"]))
 })
 
 test("whoever may see the suppliers alone sees no balance and no way to add", async () => {
@@ -62,9 +67,8 @@ test("whoever may see the suppliers alone sees no balance and no way to add", as
   setLocation("/suppliers")
   renderWithProviders(<SuppliersPage />)
 
-  const list = await table()
-  expect(headers(list)).toEqual(["Ta'minotchi", "Telefon", "Qo'shgan", "Qo'shilgan"])
-  expect(within(list).queryByText("15 001,50")).not.toBeInTheDocument()
+  const [row] = rows(await list())
+  expect(parts(row)).toEqual({ title: "Bozor", sub: "+998 90 123 45 67", end: null })
   expect(screen.queryByRole("button", { name: "Ta'minotchi qo'shish" })).not.toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
 })
