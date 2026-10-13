@@ -25,16 +25,25 @@ import type { Member } from "@/lib/types"
 // RemoveEmployeeButton takes an employee out of the owner's company, after
 // asking. From their next request on they are out of it; the other
 // companies they work in are theirs still. A refusal shows the API's reason.
+// open, with onOpenChange, opens the question from outside (the employee's
+// sheet): it has no button then.
 export function RemoveEmployeeButton({
   companyId,
   companyName,
   employee,
+  open,
+  onOpenChange,
 }: {
   companyId: number
   companyName: string
   employee: Member
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [confirming, setConfirming] = useState(false)
+  const [confirmingOwn, setConfirmingOwn] = useState(false)
+  const controlled = open !== undefined
+  const confirming = controlled ? open : confirmingOwn
+  const setConfirming = (next: boolean) => (controlled ? onOpenChange?.(next) : setConfirmingOwn(next))
   const queryClient = useQueryClient()
   const name = employee.full_name ?? formatPhone(employee.phone)
   const remove = useMutation({
@@ -49,6 +58,7 @@ export function RemoveEmployeeButton({
 
   return (
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
+      {!controlled && (
       <ActionTooltip label="O'chirish">
         <AlertDialogTrigger
           render={
@@ -63,6 +73,7 @@ export function RemoveEmployeeButton({
           <Trash2Icon />
         </AlertDialogTrigger>
       </ActionTooltip>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Xodimni o&apos;chirasizmi?</AlertDialogTitle>
