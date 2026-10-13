@@ -21,3 +21,24 @@ SELECT COALESCE(sum(b.balance) FILTER (WHERE b.balance > 0), 0)::numeric(14,2) A
        count(*) FILTER (WHERE b.balance > 0) AS debtors,
        COALESCE(-sum(b.balance) FILTER (WHERE b.balance < 0), 0)::numeric(14,2) AS advance
 FROM balances b;
+
+-- name: DashboardCustomersByDay :many
+-- The company's live customers on each day of the month up to today, the
+-- days counted in the zone: how many there were before the month, and how
+-- many by the day's end.
+SELECT d.day::date AS day, b.before::bigint AS before,
+       (b.before + COALESCE(sum(x.added) OVER (ORDER BY d.day), 0))::bigint AS total
+FROM generate_series(sqlc.arg('month_start')::date, sqlc.arg('today')::date, interval '1 day') AS d(day)
+CROSS JOIN (
+    SELECT count(*) AS before FROM customers c
+    WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
+      AND (c.created_at AT TIME ZONE sqlc.arg('zone')::text)::date < sqlc.arg('month_start')::date
+) b
+LEFT JOIN (
+    SELECT (c.created_at AT TIME ZONE sqlc.arg('zone')::text)::date AS day, count(*) AS added
+    FROM customers c
+    WHERE c.company_id = sqlc.arg('company_id') AND c.deleted_at IS NULL
+      AND (c.created_at AT TIME ZONE sqlc.arg('zone')::text)::date BETWEEN sqlc.arg('month_start')::date AND sqlc.arg('today')::date
+    GROUP BY 1
+) x ON x.day = d.day::date
+ORDER BY d.day;

@@ -49,6 +49,7 @@ type Input struct {
 // Dashboard is the home's blocks; one the member may not see is nil.
 type Dashboard struct {
 	Suppliers *Suppliers
+	Customers *Customers
 }
 
 // Suppliers is what the company's suppliers are owed, in so'm, each
@@ -61,6 +62,15 @@ type Suppliers struct {
 	Advance string
 }
 
+// Customers is the company's live customers: how many there are by the
+// end of today, how many of them came this month, and how many there were
+// by the end of each day of the month up to today (the member's days).
+type Customers struct {
+	Total          int64
+	AddedThisMonth int64
+	ByDay          []int64
+}
+
 // Get is the dashboard of the member within the scope.
 func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, error) {
 	var d Dashboard
@@ -71,7 +81,27 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 		}
 		d.Suppliers = &Suppliers{Debt: amount(row.Debt), Debtors: row.Debtors, Advance: amount(row.Advance)}
 	}
+	if in.Permissions.Has(access.CustomersView) {
+		rows, err := s.q.DashboardCustomersByDay(ctx, gen.DashboardCustomersByDayParams{
+			CompanyID: scope.CompanyID, Zone: in.Zone, MonthStart: monthStart(in.Today), Today: in.Today,
+		})
+		if err != nil {
+			return Dashboard{}, err
+		}
+		c := &Customers{ByDay: make([]int64, 0, len(rows))}
+		for _, row := range rows {
+			c.ByDay = append(c.ByDay, row.Total)
+			c.Total = row.Total
+			c.AddedThisMonth = row.Total - row.Before
+		}
+		d.Customers = c
+	}
 	return d, nil
+}
+
+// monthStart is the first day of the day's month.
+func monthStart(day time.Time) time.Time {
+	return time.Date(day.Year(), day.Month(), 1, 0, 0, 0, 0, time.UTC)
 }
 
 // amount is a sum of money as the API shows it: two decimals.

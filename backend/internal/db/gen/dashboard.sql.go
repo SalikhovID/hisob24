@@ -7,9 +7,70 @@ package gen
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const dashboardCustomersByDay = `-- name: DashboardCustomersByDay :many
+SELECT d.day::date AS day, b.before::bigint AS before,
+       (b.before + COALESCE(sum(x.added) OVER (ORDER BY d.day), 0))::bigint AS total
+FROM generate_series($1::date, $2::date, interval '1 day') AS d(day)
+CROSS JOIN (
+    SELECT count(*) AS before FROM customers c
+    WHERE c.company_id = $3 AND c.deleted_at IS NULL
+      AND (c.created_at AT TIME ZONE $4::text)::date < $1::date
+) b
+LEFT JOIN (
+    SELECT (c.created_at AT TIME ZONE $4::text)::date AS day, count(*) AS added
+    FROM customers c
+    WHERE c.company_id = $3 AND c.deleted_at IS NULL
+      AND (c.created_at AT TIME ZONE $4::text)::date BETWEEN $1::date AND $2::date
+    GROUP BY 1
+) x ON x.day = d.day::date
+ORDER BY d.day
+`
+
+type DashboardCustomersByDayParams struct {
+	MonthStart time.Time
+	Today      time.Time
+	CompanyID  int64
+	Zone       string
+}
+
+type DashboardCustomersByDayRow struct {
+	Day    time.Time
+	Before int64
+	Total  int64
+}
+
+// The company's live customers on each day of the month up to today, the
+// days counted in the zone: how many there were before the month, and how
+// many by the day's end.
+func (q *Queries) DashboardCustomersByDay(ctx context.Context, arg DashboardCustomersByDayParams) ([]DashboardCustomersByDayRow, error) {
+	rows, err := q.db.Query(ctx, dashboardCustomersByDay,
+		arg.MonthStart,
+		arg.Today,
+		arg.CompanyID,
+		arg.Zone,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DashboardCustomersByDayRow{}
+	for rows.Next() {
+		var i DashboardCustomersByDayRow
+		if err := rows.Scan(&i.Day, &i.Before, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const dashboardSuppliers = `-- name: DashboardSuppliers :one
 

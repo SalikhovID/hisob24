@@ -156,3 +156,40 @@ func TestSuppliers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, got.Suppliers, restricted.Suppliers, "a member of one location sees every supplier's balance (logic/locations.md)")
 }
+
+// addCustomer enters a customer of the company on the moment given (RFC
+// 3339); deleted hides it.
+func addCustomer(t *testing.T, pool *pgxpool.Pool, companyID int64, phone, at string, deleted bool) int64 {
+	t.Helper()
+	ctx := t.Context()
+	var typeID int64
+	if err := pool.QueryRow(ctx, "SELECT id FROM customer_types WHERE company_id = $1 ORDER BY id LIMIT 1", companyID).Scan(&typeID); err != nil {
+		require.NoError(t, pool.QueryRow(ctx, "INSERT INTO customer_types (company_id, name, position) VALUES ($1, 'Jismoniy', 1) RETURNING id", companyID).Scan(&typeID))
+	}
+	var id int64
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO customers (company_id, type_id, phone, created_by, created_at, deleted_at) VALUES ($1, $2, $3, $4, $5, CASE WHEN $6 THEN now() END) RETURNING id",
+		companyID, typeID, phone, ali, at, deleted).Scan(&id))
+	return id
+}
+
+func TestCustomers(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, pool, "Olma")
+	addCustomer(t, pool, sh.company, "998900000001", "2026-09-20T12:00:00+05:00", false)
+	// 01:30 on the 1st in Tashkent is still September in UTC: the member's
+	// zone says which day it is.
+	addCustomer(t, pool, sh.company, "998900000002", "2026-09-30T20:30:00Z", false)
+	addCustomer(t, pool, sh.company, "998900000003", "2026-10-01T18:00:00+05:00", false)
+	addCustomer(t, pool, sh.company, "998900000004", "2026-10-05T12:00:00+05:00", false)
+	addCustomer(t, pool, sh.company, "998900000005", "2026-10-03T12:00:00+05:00", true)
+	nok := newShop(t, pool, "Nok")
+	addCustomer(t, pool, nok.company, "998900000006", "2026-10-02T12:00:00+05:00", false)
+
+	got, err := s.Get(ctx, sh.scope(), input(access.CustomersView))
+
+	require.NoError(t, err)
+	assert.Equal(t, &Customers{Total: 4, AddedThisMonth: 3, ByDay: []int64{3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4}}, got.Customers,
+		"by each day's end of the month up to today: the one of September, two on the 1st, one on the 5th; the deleted and another company's are out")
+}

@@ -214,6 +214,10 @@ type Querier interface {
 	// cannot be told not to repeat. A text is compared in any case; the deleted
 	// customers do not count.
 	CustomerFieldHasDuplicates(ctx context.Context, fieldID int64) (bool, error)
+	// The company's live customers on each day of the month up to today, the
+	// days counted in the zone: how many there were before the month, and how
+	// many by the day's end.
+	DashboardCustomersByDay(ctx context.Context, arg DashboardCustomersByDayParams) ([]DashboardCustomersByDayRow, error)
 	// The home's blocks at a glance
 	// (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md). Money is in
 	// so'm, each document turned by its own rate row (logic/currencies.md,
