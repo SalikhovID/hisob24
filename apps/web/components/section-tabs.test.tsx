@@ -36,3 +36,15 @@ test("with one tab to see there is no strip", () => {
 
   expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
 })
+
+test("the strip is the prototype's segmented control: a pill, the page's link on the thumb", () => {
+  setLocation("/products")
+  renderWithProviders(<SectionTabs item={products} permissions={["products.view"]} />)
+
+  const nav = screen.getByRole("navigation", { name: "Mahsulotlar bo'limi" })
+  const pill = nav.querySelector("[data-slot=segmented]")
+  expect(pill).not.toBeNull()
+  expect(pill).toHaveStyle({ "--n": "2" })
+  expect(within(nav).getByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("data-active")
+  expect(within(nav).getByRole("link", { name: "Xizmatlar" })).not.toHaveAttribute("data-active")
+})
