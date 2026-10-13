@@ -1,13 +1,23 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { useState } from "react"
 import { expect, test, vi } from "vitest"
-import type { PickerItem } from "@/components/picker"
+import type { PickerItem } from "@/components/warehouse/pickers"
 import { ALI, seedCustomers } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { CustomerPicker } from "./customer-picker"
 
-test("the customer picker offers the customers whose names or phones hold what was typed, after a pause", async () => {
+// names are the options the sheet offers, as they read (the avatars hidden).
+const names = (sheet: HTMLElement) =>
+  within(within(sheet).getByRole("listbox"))
+    .queryAllByRole("option")
+    .map((option) => {
+      const read = option.cloneNode(true) as HTMLElement
+      read.querySelectorAll("[aria-hidden=true]").forEach((hidden) => hidden.remove())
+      return read.textContent?.replace(/\s+/g, " ").trim()
+    })
+
+test("the sale's customer is a row that opens a sheet: «Chakana» first, then the customers, found by name or phone as it is typed", async () => {
   const { dilshod } = seedCustomers()
   await signIn(ALI)
   const onChange = vi.fn()
@@ -26,14 +36,26 @@ test("the customer picker offers the customers whose names or phones hold what w
   }
   const { user } = renderWithProviders(<Harness />)
 
-  await user.type(screen.getByRole("combobox", { name: "Mijoz" }), "dil")
-  const list = await screen.findByRole("listbox", { name: "Mijoz takliflari" })
-  expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["Dilshod Karimov+998 91 111 22 33"])
-  await user.click(within(list).getByRole("option", { name: /Dilshod/ }))
+  // None taken is a retail sale.
+  const row = screen.getByRole("button", { name: /^Mijoz/ })
+  expect(row).toHaveTextContent("Chakana")
+  await user.click(row)
+  let sheet = await screen.findByRole("dialog", { name: "Mijoz" })
+  await waitFor(() => expect(names(sheet)[0]).toBe("Chakana Mijozsiz sotuv"))
+  expect(names(sheet)).toContain("Dilshod Karimov +998 91 111 22 33")
+  await user.type(within(sheet).getByRole("searchbox"), "dil")
+  await waitFor(() => expect(names(sheet)).toEqual(["Dilshod Karimov +998 91 111 22 33"]))
+  await user.click(within(sheet).getByRole("option", { name: /Dilshod/ }))
   expect(onChange).toHaveBeenCalledWith({ id: dilshod.id, name: "Dilshod Karimov", meta: "+998 91 111 22 33" })
-  expect(within(screen.getByRole("group", { name: "Mijoz" })).getByText("Dilshod Karimov")).toBeInTheDocument()
-  await user.click(screen.getByRole("button", { name: "Mijoz: bekor qilish" }))
+  expect(screen.getByRole("button", { name: /^Mijoz/ })).toHaveTextContent("Dilshod Karimov")
+
+  // Back to retail; a phone finds a customer too.
+  await user.click(screen.getByRole("button", { name: /^Mijoz/ }))
+  sheet = await screen.findByRole("dialog", { name: "Mijoz" })
+  await user.click(await within(sheet).findByRole("option", { name: /^Chakana/ }))
   expect(onChange).toHaveBeenLastCalledWith(null)
-  await user.type(screen.getByRole("combobox", { name: "Mijoz" }), "911")
-  expect(within(await screen.findByRole("listbox", { name: "Mijoz takliflari" })).getAllByRole("option")).toHaveLength(1)
+  await user.click(screen.getByRole("button", { name: /^Mijoz/ }))
+  sheet = await screen.findByRole("dialog", { name: "Mijoz" })
+  await user.type(within(sheet).getByRole("searchbox"), "911")
+  await waitFor(() => expect(names(sheet)).toEqual(["Dilshod Karimov +998 91 111 22 33"]))
 })

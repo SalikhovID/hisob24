@@ -30,9 +30,8 @@ test("a sale to a customer out of the current location: the customer found by na
   expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(screen.getByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).toBeInTheDocument()
 
-  await user.type(screen.getByRole("combobox", { name: "Mijoz" }), "dil")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mijoz takliflari" })).getByRole("option", { name: /Dilshod/ }))
-  expect(within(screen.getByRole("group", { name: "Mijoz" })).getByText("Dilshod Karimov")).toBeInTheDocument()
+  await pick(user, document.body, "Mijoz", "dil", /Dilshod/)
+  expect(screen.getByRole("button", { name: /^Mijoz/ })).toHaveTextContent("Dilshod Karimov")
   expect(screen.queryByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).not.toBeInTheDocument()
 
   const first = line(1)
@@ -99,7 +98,7 @@ test("without a way to the customers the sale is retail alone; without the produ
   setLocation("/sales/new")
   const { unmount } = renderWithProviders(<NewSalePage />)
   await screen.findByRole("heading", { level: 1, name: "Yangi sotuv" })
-  expect(screen.queryByRole("combobox", { name: "Mijoz" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^Mijoz/ })).not.toBeInTheDocument()
   expect(screen.getByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).toBeInTheDocument()
   unmount()
 
@@ -125,7 +124,7 @@ test("editing: the sale comes filled in with its customer and payment, and is sa
   expect(await screen.findByText("№ 1 · Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("heading", { level: 1, name: "Sotuvni tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sotuv № 1" })).toHaveAttribute("href", `/sales/${sale.id}`)
-  expect(within(screen.getByRole("group", { name: "Mijoz" })).getByText("Dilshod Karimov")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: /^Mijoz/ })).toHaveTextContent("Dilshod Karimov")
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("4.000")
   expect(within(paymentLine(1)).getByLabelText("Summa")).toHaveValue("5000.00")
   await user.clear(within(line(1)).getByLabelText("Miqdor"))

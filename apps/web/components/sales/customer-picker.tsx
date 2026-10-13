@@ -1,24 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Picker, type PickerItem } from "@/components/picker"
+import { useState } from "react"
+import { Avatar } from "@/components/kit/avatar"
+import { PickRow } from "@/components/kit/form-row"
+import { SearchPickerSheet } from "@/components/kit/picker-sheet"
+import type { PickerItem } from "@/components/warehouse/pickers"
 import { customerName } from "@/lib/customers"
 import { formatPhone } from "@/lib/phone"
 import { useCustomerSearch, useCustomerTypes } from "@/lib/queries"
 
-// useDebounced is the value once it has stood still for ms.
-function useDebounced(value: string, ms = 300): string {
-  const [settled, setSettled] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(value), ms)
-    return () => clearTimeout(timer)
-  }, [value, ms])
-  return settled
-}
-
-// CustomerPicker finds a customer of the company by name or phone, for the
-// sale form (logic/sales.md, 3.4); the one taken stands as a chip with
-// their phone. None taken is a retail sale.
+// CustomerPicker is the sale form's customer (logic/sales.md, 3.4) as the
+// prototype's row: it opens a sheet of the company's customers, found by
+// name or phone as it is typed, each with their phone; «Chakana» stands
+// first, a retail sale that names nobody (none taken).
 export function CustomerPicker({
   companyId,
   value,
@@ -32,30 +26,44 @@ export function CustomerPicker({
   error?: string
   disabled?: boolean
 }) {
-  const [typed, setTyped] = useState("")
-  const settled = useDebounced(typed)
-  const suggestions = useCustomerSearch(companyId, settled)
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  // The sheet asks once it is open; every opening starts with nothing typed.
+  const suggestions = useCustomerSearch(open ? companyId : null, query)
   const types = useCustomerTypes(companyId)
-  const items: PickerItem[] =
-    settled.trim() === ""
-      ? []
-      : (suggestions.data?.items ?? []).map((c) => {
-          const name = customerName(c, types.data?.find((type) => type.id === c.type_id))
-          return name ? { id: c.id, name, meta: formatPhone(c.phone) } : { id: c.id, name: formatPhone(c.phone) }
-        })
+  const show = (next: boolean) => {
+    setOpen(next)
+    if (next) setQuery("")
+  }
+  const items: PickerItem[] = (suggestions.data?.items ?? []).map((c) => {
+    const name = customerName(c, types.data?.find((type) => type.id === c.type_id))
+    return name ? { id: c.id, name, meta: formatPhone(c.phone) } : { id: c.id, name: formatPhone(c.phone) }
+  })
+  const retail = { value: "", label: "Chakana", sub: "Mijozsiz sotuv" }
   return (
-    <Picker
-      label="Mijoz"
-      placeholder="Nom yoki telefon"
-      listLabel="Mijoz takliflari"
-      typed={typed}
-      onTyped={setTyped}
-      items={items}
-      selected={value}
-      onSelect={(item) => onChange(item)}
-      onClear={() => onChange(null)}
-      error={error}
-      disabled={disabled}
-    />
+    <>
+      <PickRow label="Mijoz" value={value?.name ?? "Chakana"} onClick={() => show(true)} error={error} disabled={disabled} />
+      <SearchPickerSheet
+        open={open}
+        onOpenChange={show}
+        title="Mijoz"
+        placeholder="Nom yoki telefon"
+        query={query}
+        onQuery={setQuery}
+        options={[
+          ...(query.trim() === "" ? [retail] : []),
+          ...items.map((item) => ({
+            value: String(item.id),
+            label: item.name,
+            sub: item.meta,
+            media: <Avatar name={item.meta ? item.name : null} seed={item.id} className="size-8 text-xs" />,
+          })),
+        ]}
+        value={value ? String(value.id) : ""}
+        onChange={(id) => onChange(id === "" ? null : (items.find((item) => String(item.id) === id) ?? null))}
+        loading={suggestions.isPending}
+        emptyText="Mijoz topilmadi"
+      />
+    </>
   )
 }

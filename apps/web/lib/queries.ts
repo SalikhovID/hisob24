@@ -790,7 +790,8 @@ export function useCustomerSearch(companyId: number | null, text: string) {
   return useQuery({
     queryKey: [...customersKey(companyId), "search", search],
     queryFn: () => call(api.GET("/app/customers", { params: { query: { search, page: 1 } } })),
-    enabled: companyId !== null && search.length > 0,
+    // Nothing typed is the first customers: a picker's sheet opens with them.
+    enabled: companyId !== null,
     placeholderData: keepPreviousData,
   })
 }

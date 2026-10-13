@@ -25,9 +25,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await expect(page).toHaveURL(/\/sales\/new$/)
   await expect(page.getByRole("heading", { level: 1, name: "Yangi sotuv" })).toBeVisible()
   await expect(page.getByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).toBeVisible()
-  // The sale's customer is still found in its own box (the sales follow in stage 6).
-  await page.getByRole("combobox", { name: "Mijoz" }).fill("dil")
-  await page.getByRole("listbox").getByRole("option", { name: /Dilshod/ }).click()
+  await pick(page, page, "Mijoz", "dil", /Dilshod/)
   await expect(page.getByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).toBeHidden()
   const first = page.getByRole("group", { name: "1-qator" })
   await pick(page, first, "Mahsulot", "ol", /Olma/)
