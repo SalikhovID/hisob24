@@ -11,13 +11,13 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
-import { ChevronsLeftIcon, PlusIcon } from "lucide-react"
+import { PlusIcon, XIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ActionTooltip } from "@/components/action-tooltip"
+import { Foot } from "@/components/kit/group"
 import { Failed, Loading } from "@/components/states"
 import { Button } from "@/components/ui/button"
 import { type StageFilter, useMoveTask, useStageTasks } from "@/lib/queries"
-import { colorClasses } from "@/lib/stage-colors"
+import { colorValues } from "@/lib/stage-colors"
 import type { Task, TaskStage, TaskType } from "@/lib/types"
 import { useKept } from "@/lib/use-kept"
 import { cn } from "@/lib/utils"
@@ -36,8 +36,12 @@ function ids(kept: string | null): string[] {
 
 const instructions = "Kartani sudrab boshqa bosqichga tashlang, yoki kartadagi Bosqich menyusidan tanlang."
 
-// TaskBoard is the company's tasks as a board: a column per stage, in the
-// stages' order, each with its tasks due soonest first, twenty at a time.
+// howToMove is said under the board to whoever may move the cards.
+const howToMove = "Kartani bosib turing va boshqa ustunga suring yoki ⋯ orqali bosqichni almashtiring."
+
+// TaskBoard is the location's tasks as the prototype's board: a column per
+// stage, in the stages' order (most of a phone's width each, snapping into
+// place), each with its tasks due soonest first, twenty at a time.
 // A card is dragged to another column, or moved from its menu; every move
 // is said aloud. A done stage's column stands folded until it is opened,
 // and stays as it was left. The columns count their tasks up for the page.
@@ -78,7 +82,7 @@ export function TaskBoard({
   // drag too, so the column still scrolls under a passing thumb.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 330, tolerance: 6 } }),
   )
 
   // The done columns the user opened, kept in the browser.
@@ -126,8 +130,8 @@ export function TaskBoard({
       }}
     >
       {/* The columns scroll sideways, out to the page's edges. */}
-      <section aria-label="Kanban" className="-mx-4 overflow-x-auto px-4 pb-2 md:-mx-6 md:px-6">
-        <div className="flex snap-x items-start gap-3">
+      <section aria-label="Kanban" className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 pt-0.5 pb-2 scrollbar-hide md:-mx-6 md:scroll-px-6 md:px-6">
+        <div className="flex items-start gap-2.5">
           {stages.map((stage) => (
             <StageColumn
               key={stage.id}
@@ -146,15 +150,14 @@ export function TaskBoard({
           ))}
         </div>
       </section>
+      {canMove && <Foot className="mt-1.5">{howToMove}</Foot>}
       <DragOverlay dropAnimation={null}>
         {dragging && (
-          <div className={cn(cardClass, "w-72 cursor-grabbing shadow-lg")}>
+          <div className={cn(cardClass, "w-72 rotate-2 cursor-grabbing px-3.5 py-3 shadow-float")}>
             <CardContent
               task={dragging}
               stage={stages.find((stage) => stage.id === dragging.stage_id) ?? stages[0]}
-              stages={stages}
               type={everyType ? types.find((type) => type.id === dragging.type_id) : undefined}
-              onMove={canMove ? moveTo : undefined}
             />
           </div>
         )}
@@ -206,16 +209,16 @@ function StageColumn({
   }, [settled, stage.id, total, onLoaded])
 
   const count = total ?? "…"
-  const dot = <span aria-hidden="true" className={cn("size-2.5 shrink-0 rounded-full", colorClasses[stage.color].dot)} />
+  const dot = <span aria-hidden="true" style={{ background: colorValues[stage.color] }} className="size-2.5 shrink-0 rounded-full" />
   return (
     <section
       aria-label={stage.name}
       ref={setNodeRef}
       data-slot="stage-column"
       className={cn(
-        "flex shrink-0 snap-start flex-col rounded-xl bg-muted/50 ring-ring/50 transition-shadow",
-        folded ? "w-12" : "w-72 max-md:w-[85vw]",
-        isOver && "ring-2",
+        "flex shrink-0 snap-start flex-col rounded-[24px] bg-muted p-1.5 transition-[background-color,box-shadow] duration-150 dark:bg-card",
+        folded ? "w-[58px]" : "w-[84%] md:w-72",
+        isOver && "bg-primary-soft ring-2 ring-primary ring-inset",
       )}
     >
       {folded ? (
@@ -224,70 +227,71 @@ function StageColumn({
           type="button"
           aria-expanded={false}
           onClick={onToggle}
-          className="flex min-h-48 w-12 flex-col items-center gap-2 rounded-xl py-3 text-sm font-medium text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex min-h-60 w-full flex-col items-center gap-2.5 rounded-[20px] py-3.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           {dot}
-          <span className="[writing-mode:vertical-rl]">
-            {stage.name} ({count})
+          <span className="flex items-center gap-2 text-[15px] font-semibold [writing-mode:vertical-rl]">
+            {stage.name}{" "}
+            <span className="font-medium text-muted-foreground">({count})</span>
           </span>
         </button>
       ) : (
         <>
-          <header className="flex items-center gap-2 px-3 py-2">
+          <header className="flex min-h-11 items-center gap-2 py-1.5 pr-1.5 pl-2.5 text-base font-semibold">
             {dot}
-            <h2 className="min-w-0 truncate text-sm font-semibold">{stage.name}</h2>
-            <span data-slot="column-count" className="rounded-full bg-background px-1.5 text-xs text-muted-foreground tabular-nums">
+            <h2 className="min-w-0 truncate">{stage.name}</h2>
+            <span data-slot="column-count" className="font-medium text-muted-foreground tabular-nums">
               {count}
             </span>
             <span className="ml-auto flex items-center">
               {stage.is_done && (
-                <ActionTooltip label="Yig'ish">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-expanded
-                    aria-label={`${stage.name} (${count})`}
-                    onClick={onToggle}
-                    className="text-muted-foreground"
-                  >
-                    <ChevronsLeftIcon />
-                  </Button>
-                </ActionTooltip>
+                <button
+                  type="button"
+                  aria-expanded
+                  aria-label={`${stage.name} (${count})`}
+                  onClick={onToggle}
+                  className="grid size-9 place-items-center rounded-full text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <XIcon aria-hidden="true" strokeWidth={2.4} className="size-[18px]" />
+                </button>
               )}
               {onAdd && (
-                <ActionTooltip label="Vazifa qo'shish">
-                  <Button variant="ghost" size="icon-sm" aria-label={`Vazifa qo'shish: ${stage.name}`} onClick={onAdd} className="text-muted-foreground">
-                    <PlusIcon />
-                  </Button>
-                </ActionTooltip>
+                <button
+                  type="button"
+                  aria-label={`Vazifa qo'shish: ${stage.name}`}
+                  onClick={onAdd}
+                  className="grid size-9 place-items-center rounded-full text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
+                </button>
               )}
             </span>
           </header>
-          <div className="px-2">
-            {tasks.isPending && <Loading rows={2} />}
-            {tasks.isError && <Failed error={tasks.error} onRetry={() => tasks.refetch()} />}
-            {tasks.data &&
-              (items.length === 0 ? (
-                <p className="rounded-xl border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">Vazifa yo&apos;q</p>
-              ) : (
-                <ul aria-label={`${stage.name}: vazifalar`} className="grid gap-2">
-                  {items.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      stage={stage}
-                      stages={stages}
-                      type={everyType ? types.find((type) => type.id === task.type_id) : undefined}
-                      onMove={onMove}
-                    />
-                  ))}
-                </ul>
-              ))}
-          </div>
-          <footer className="flex min-h-10 items-center justify-between gap-2 px-3 py-1.5 text-[0.8125rem] leading-5 text-muted-foreground">
+          {tasks.isPending && <Loading rows={2} />}
+          {tasks.isError && <Failed error={tasks.error} onRetry={() => tasks.refetch()} />}
+          {tasks.data &&
+            (items.length === 0 ? (
+              <p className="rounded-2xl border-[1.5px] border-dashed border-border px-2 py-[18px] text-center text-md text-muted-foreground">
+                {onMove ? "Kartani shu yerga suring" : "Bo'sh"}
+              </p>
+            ) : (
+              <ul aria-label={`${stage.name}: vazifalar`} className="flex min-h-[60px] flex-col gap-1.5">
+                {items.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    stage={stage}
+                    stages={stages}
+                    type={everyType ? types.find((type) => type.id === task.type_id) : undefined}
+                    onMove={onMove}
+                  />
+                ))}
+              </ul>
+            ))}
+          <footer className="flex min-h-10 items-center justify-between gap-2 px-2.5 pt-2 pb-1 text-xs text-muted-foreground">
             <span>Jami: {total ?? 0}</span>
             {tasks.hasNextPage && (
-              <Button variant="outline" size="sm" className="bg-card" onClick={() => tasks.fetchNextPage()} disabled={tasks.isFetchingNextPage}>
+              <Button variant="outline" size="sm" onClick={() => tasks.fetchNextPage()} disabled={tasks.isFetchingNextPage}>
                 Yana
               </Button>
             )}

@@ -1,52 +1,40 @@
 "use client"
 
-import { EllipsisVerticalIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { colorClasses } from "@/lib/stage-colors"
+import { EllipsisIcon } from "lucide-react"
+import { useState } from "react"
+import { ActionSheet } from "@/components/kit/action-sheet"
+import { colorValues } from "@/lib/stage-colors"
 import type { Task, TaskStage } from "@/lib/types"
-import { cn } from "@/lib/utils"
 
-// StageMenu moves a task to another stage from a menu of the stages, the
-// one it stands in marked: the way for a keyboard, and for a thumb that
-// does not want to drag. It is named by the task, since a board holds many.
+// StageMenu moves a task to another stage from a sheet of the stages, as the
+// prototype's ⋯ on a card: each stage with its color, the one the task
+// stands in marked. It is the way for a keyboard, and for a thumb that does
+// not want to drag; it is named by the task, since a board holds many.
 export function StageMenu({ task, stages, onMove }: { task: Task; stages: TaskStage[]; onMove: (task: Task, stage: TaskStage) => void }) {
+  const [open, setOpen] = useState(false)
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Bosqich: ${task.title}`}
-            className="-mt-1 -mr-1.5 shrink-0 text-muted-foreground hover:text-foreground"
-          />
-        }
+    <>
+      <button
+        type="button"
+        aria-label={`Bosqich: ${task.title}`}
+        onClick={() => setOpen(true)}
+        // The press is the button's own: it does not start a drag of the card.
+        onPointerDown={(event) => event.stopPropagation()}
+        className="absolute top-1 right-0.5 grid size-10 place-items-center rounded-full text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <EllipsisVerticalIcon />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuRadioGroup
-          value={String(task.stage_id)}
-          onValueChange={(value) => {
-            const stage = stages.find((candidate) => String(candidate.id) === String(value))
-            if (stage) onMove(task, stage)
-          }}
-        >
-          {stages.map((stage) => (
-            <DropdownMenuRadioItem key={stage.id} value={String(stage.id)}>
-              <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", colorClasses[stage.color].dot)} />
-              {stage.name}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <EllipsisIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
+      </button>
+      <ActionSheet
+        open={open}
+        onOpenChange={setOpen}
+        title={`«${task.title}» bosqichi`}
+        items={stages.map((stage) => ({
+          label: stage.name,
+          dot: colorValues[stage.color],
+          checked: stage.id === task.stage_id,
+          onSelect: () => onMove(task, stage),
+        }))}
+      />
+    </>
   )
 }
