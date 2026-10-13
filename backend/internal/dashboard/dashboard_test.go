@@ -323,3 +323,30 @@ func TestPurchasesAndSales(t *testing.T) {
 		"one location's")
 	assert.Nil(t, one.Sales, "without sales.view")
 }
+
+func TestEachBlockIsItsPermissions(t *testing.T) {
+	s, pool := newService(t)
+	sh := newShop(t, pool, "Olma")
+	addStages(t, pool, sh.company)
+
+	for about, tc := range map[string]struct {
+		perms                                         []access.Permission
+		suppliers, customers, tasks, purchases, sales bool
+	}{
+		"nothing to see":     {nil, false, false, false, false, false},
+		"the purchases":      {[]access.Permission{access.PurchasesView}, true, false, false, true, false},
+		"the customers":      {[]access.Permission{access.CustomersView}, false, true, false, false, false},
+		"the tasks":          {[]access.Permission{access.TasksView}, false, false, true, false, false},
+		"the sales":          {[]access.Permission{access.SalesView}, false, false, false, false, true},
+		"the suppliers only": {[]access.Permission{access.SuppliersView}, false, false, false, false, false},
+		"everything":         {access.All, true, true, true, true, true},
+	} {
+		got, err := s.Get(t.Context(), sh.scope(), input(tc.perms...))
+		require.NoError(t, err, about)
+		assert.Equal(t, tc.suppliers, got.Suppliers != nil, about+": suppliers")
+		assert.Equal(t, tc.customers, got.Customers != nil, about+": customers")
+		assert.Equal(t, tc.tasks, got.Tasks != nil, about+": tasks")
+		assert.Equal(t, tc.purchases, got.Purchases != nil, about+": purchases")
+		assert.Equal(t, tc.sales, got.Sales != nil, about+": sales")
+	}
+}
