@@ -1,4 +1,3 @@
-import type { SelectOption } from "@/components/select-field"
 import { formatPhone } from "./phone"
 import type { Member, Task } from "./types"
 
@@ -12,11 +11,17 @@ export function worksIn(member: Member, locationId: number): boolean {
 // nameOf is how a member is offered: by name, or by phone without one.
 const nameOf = (member: { phone: string; full_name: string | null }) => member.full_name ?? formatPhone(member.phone)
 
+// MemberOption is an assignee as a picker offers it: the phone and the name.
+export interface MemberOption {
+  value: string
+  label: string
+}
+
 // assigneeOptions is who a task in the location may be assigned to: the
 // members who work there. The assignee a task has stays offered as long as
 // the edit keeps them (logic/tasks.md, 4.2): one who works elsewhere now,
 // and one who left the company, each said so.
-export function assigneeOptions(members: Member[], locationId: number, task?: Task): SelectOption[] {
+export function assigneeOptions(members: Member[], locationId: number, task?: Task): MemberOption[] {
   const options = members.filter((member) => worksIn(member, locationId)).map((member) => ({ value: member.phone, label: nameOf(member) }))
   const assignee = task?.assignee
   if (assignee && !options.some((option) => option.value === assignee.phone)) {
