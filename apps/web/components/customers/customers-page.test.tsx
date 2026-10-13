@@ -3,28 +3,23 @@ import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
 import { ALI, db, nextId, seedCatalog, seedCustomers, seedWarehouse, typesOf, VALI } from "@/mocks/data"
-import { identityOf } from "@/test/identity"
 import { asosiyOf } from "@/test/locations"
 import { currentUrl, router, setLocation, slowNavigation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
+import { rowParts } from "@/test/rows"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
 import { CustomersPage } from "./customers-page"
 
-// rowsOf are the customers in the table (the page shows them as cards too,
-// for phones): the row of each, without the header.
-const rowsOf = (table: HTMLElement) => within(table).getAllByRole("row").slice(1)
-const table = () => screen.findByRole("table", { name: "Mijozlar" })
-// A customer is one identity, heading its row: the name over the phone.
-const nameAndPhone = (row: HTMLElement) => identityOf(within(row).getByRole("rowheader"))
-const cellsOf = (row: HTMLElement) =>
-  within(row)
-    .getAllByRole("cell")
-    .map((cell) => cell.textContent)
+// The customers are a group of rows, on a phone and a wide screen alike:
+// each a link to its customer, its name over its phone and type.
+const list = () => screen.findByRole("list", { name: "Mijozlar" })
+const rowsOf = (group: HTMLElement) => within(group).getAllByRole("link")
+const names = () => rowsOf(screen.getByRole("list", { name: "Mijozlar" })).map((row) => rowParts(row).title)
 
-test("the customers page lists the company's customers, the newest first, with their answers", async () => {
+test("the customers page lists the company's customers, the newest first, each under its name with its phone and type", async () => {
   await signIn(ALI)
   const { dilshod } = seedCustomers()
   setLocation("/customers")
@@ -32,33 +27,14 @@ test("the customers page lists the company's customers, the newest first, with t
   renderWithProviders(<CustomersPage />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Mijozlar" })).toBeInTheDocument()
-  const list = await table()
-  // The answers of every type, a column for each field name; the field a
-  // customer goes by is no column of its own.
-  // The owner sees the sales: what each owes is a column too.
-  expect(within(list).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
-    "Mijoz",
-    "Turi",
-    "Manba",
-    "INN",
-    "Qarz",
-    "Qo'shgan",
-    "Qo'shilgan",
+  const rows = rowsOf(await list())
+  expect(rows.map((row) => [rowParts(row).title, rowParts(row).sub])).toEqual([
+    ["Malika Yusupova", "+998 95 555 66 77 · Jismoniy"],
+    ["Anor Tekstil MChJ", "+998 93 333 44 55 · Yuridik"],
+    ["Dilshod Karimov", "+998 91 111 22 33 · Jismoniy"],
   ])
-  const rows = rowsOf(list)
-  expect(rows.map(nameAndPhone)).toEqual([
-    ["Malika Yusupova", "+998 95 555 66 77"],
-    ["Anor Tekstil MChJ", "+998 93 333 44 55"],
-    ["Dilshod Karimov", "+998 91 111 22 33"],
-  ])
-  expect(rows.map(cellsOf)).toEqual([
-    ["Jismoniy", "YouTube", "—", "—", "Sardor Karimov", "02.10.2026"],
-    ["Yuridik", "—", "301234567", "—", "Ali Valiyev", "02.10.2026"],
-    ["Jismoniy", "Instagram", "—", "—", "Vali Aliyev", "02.10.2026"],
-  ])
-  // The name is the way into the customer, and the only link of its row.
-  expect(within(rows[2]).getAllByRole("link")).toHaveLength(1)
-  expect(within(rows[2]).getByRole("link", { name: "Dilshod Karimov" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
+  expect(rows[2]).toHaveAttribute("href", `/customers/${dilshod.id}`)
+  expect(screen.getByText("Jami: 3")).toBeInTheDocument()
 })
 
 test("the page says how many customers the company has; while they load, the list's shape holds their place", async () => {
@@ -86,24 +62,40 @@ test("a list that did not load says why and offers to try again", async () => {
   const { user } = renderWithProviders(<CustomersPage />)
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Mijozlar yuklanmadi: ichki xatolik")
-  expect(screen.queryByRole("table")).not.toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Mijozlar" })).not.toBeInTheDocument()
 
   server.resetHandlers()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
-  expect(rowsOf(await table())).toHaveLength(3)
+  expect(rowsOf(await list())).toHaveLength(3)
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 })
 
-test("a company with no customers says so, and what to do about it", async () => {
+test("a company with no customers says so, and offers to add the first", async () => {
   await signIn(ALI)
   setLocation("/customers")
-
-  renderWithProviders(<CustomersPage />)
+  const { user } = renderWithProviders(<CustomersPage />)
 
   expect(await screen.findByText("Hali mijoz yo'q")).toBeInTheDocument()
   expect(screen.getByText("Birinchi mijozni «Mijoz qo'shish» tugmasi orqali qo'shing.")).toBeInTheDocument()
-  expect(screen.queryByRole("table")).not.toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Mijozlar" })).not.toBeInTheDocument()
   expect(screen.getByText("Kompaniyangiz mijozlari · 0 ta")).toBeInTheDocument()
+
+  const buttons = screen.getAllByRole("button", { name: "Mijoz qo'shish" })
+  expect(buttons).toHaveLength(2)
+  await user.click(buttons[1])
+  expect(await screen.findByRole("dialog", { name: "Mijoz qo'shish" })).toBeInTheDocument()
+})
+
+test("the round + adds a customer", async () => {
+  await signIn(ALI)
+  seedCustomers()
+  setLocation("/customers")
+  const { user } = renderWithProviders(<CustomersPage />)
+  await list()
+
+  await user.click(screen.getByRole("button", { name: "Mijoz qo'shish" }))
+
+  expect(await screen.findByRole("dialog", { name: "Mijoz qo'shish" })).toBeInTheDocument()
 })
 
 test("a customer with no name goes by the phone, which is then not said twice", async () => {
@@ -114,9 +106,9 @@ test("a customer with no name goes by the phone, which is then not said twice", 
 
   renderWithProviders(<CustomersPage />)
 
-  const rows = rowsOf(await table())
-  expect(nameAndPhone(rows[2])).toEqual(["+998 91 111 22 33", null])
-  expect(within(rows[2]).getByRole("link", { name: "+998 91 111 22 33" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
+  const rows = rowsOf(await list())
+  expect(rowParts(rows[2])).toMatchObject({ title: "+998 91 111 22 33", sub: "Jismoniy" })
+  expect(rows[2]).toHaveAttribute("href", `/customers/${dilshod.id}`)
 })
 
 test("an employee sees the company's customers too", async () => {
@@ -127,48 +119,40 @@ test("an employee sees the company's customers too", async () => {
 
   renderWithProviders(<CustomersPage />)
 
-  expect(rowsOf(await table()).map(nameAndPhone)).toHaveLength(3)
+  expect(rowsOf(await list())).toHaveLength(3)
 })
 
-// names are the customers the table shows, in order.
-const names = () => rowsOf(screen.getByRole("table", { name: "Mijozlar" })).map((row) => nameAndPhone(row)[0])
-const headers = () =>
-  within(screen.getByRole("table", { name: "Mijozlar" }))
-    .getAllByRole("columnheader")
-    .map((header) => header.textContent)
-
-test("a tab keeps the customers of one type, under that type's own fields, and stays in the address", async () => {
+test("a type chip keeps the customers of one type and stays in the address", async () => {
   await signIn(ALI)
   seedCustomers()
   const [jismoniy, yuridik] = typesOf(1)
   setLocation("/customers")
   const { user } = renderWithProviders(<CustomersPage />)
-  await table()
+  await list()
 
-  expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Barchasi", "Jismoniy", "Yuridik"])
-  expect(screen.getByRole("tab", { name: "Barchasi" })).toHaveAttribute("aria-selected", "true")
+  const types = screen.getByRole("radiogroup", { name: "Mijoz turi" })
+  expect(within(types).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Barchasi", "Jismoniy", "Yuridik"])
+  expect(within(types).getByRole("radio", { name: "Barchasi" })).toBeChecked()
 
-  await user.click(screen.getByRole("tab", { name: "Yuridik" }))
+  await user.click(within(types).getByRole("radio", { name: "Yuridik" }))
   await waitFor(() => expect(names()).toEqual(["Anor Tekstil MChJ"]))
   expect(currentUrl()).toBe(`/customers?type=${yuridik.id}`)
-  // Every customer here is a Yuridik: the type is not said in each row, and
-  // the other types' fields are not asked about.
-  expect(headers()).toEqual(["Mijoz", "INN", "Qarz", "Qo'shgan", "Qo'shilgan"])
-  // One matches the tab; the company still has three. The count is not shown as the company's.
+  // Every customer here is a Yuridik: the type is not said in each row.
+  expect(rowParts(rowsOf(screen.getByRole("list", { name: "Mijozlar" }))[0]).sub).toBe("+998 93 333 44 55")
+  // One matches the chip; the company still has three. The count is not shown as the company's.
   expect(screen.getByText("Kompaniyangiz mijozlari")).toBeInTheDocument()
 
-  await user.click(screen.getByRole("tab", { name: "Jismoniy" }))
+  await user.click(within(types).getByRole("radio", { name: "Jismoniy" }))
   await waitFor(() => expect(names()).toEqual(["Malika Yusupova", "Dilshod Karimov"]))
   expect(currentUrl()).toBe(`/customers?type=${jismoniy.id}`)
-  expect(headers()).toEqual(["Mijoz", "Manba", "Qarz", "Qo'shgan", "Qo'shilgan"])
 
-  await user.click(screen.getByRole("tab", { name: "Barchasi" }))
+  await user.click(within(types).getByRole("radio", { name: "Barchasi" }))
   await waitFor(() => expect(names()).toHaveLength(3))
   expect(currentUrl()).toBe("/customers")
   expect(await screen.findByText("Kompaniyangiz mijozlari · 3 ta")).toBeInTheDocument()
 })
 
-test("the list opens under the tab the address names", async () => {
+test("the list opens under the type the address names", async () => {
   await signIn(ALI)
   seedCustomers()
   const [jismoniy] = typesOf(1)
@@ -176,12 +160,12 @@ test("the list opens under the tab the address names", async () => {
 
   renderWithProviders(<CustomersPage />)
 
-  await table()
+  await list()
   expect(names()).toEqual(["Malika Yusupova", "Dilshod Karimov"])
-  expect(screen.getByRole("tab", { name: "Jismoniy" })).toHaveAttribute("aria-selected", "true")
+  expect(screen.getByRole("radio", { name: "Jismoniy" })).toBeChecked()
 })
 
-test("a tab with no customers says that none were found, not that the company has none", async () => {
+test("a type with no customers says that none were found, not that the company has none", async () => {
   await signIn(ALI)
   const { anor } = seedCustomers()
   anor.deleted = true
@@ -225,7 +209,7 @@ test("the list opens with the search the address names, in the box too", async (
 
   renderWithProviders(<CustomersPage />)
 
-  await table()
+  await list()
   expect(names()).toEqual(["Anor Tekstil MChJ"])
   expect(screen.getByRole("searchbox", { name: "Qidirish" })).toHaveValue("anor")
 })
@@ -244,7 +228,7 @@ test("the list goes page by page, twenty at a time", async () => {
   setLocation("/customers")
   const { user } = renderWithProviders(<CustomersPage />)
 
-  expect(rowsOf(await table())).toHaveLength(20)
+  expect(rowsOf(await list())).toHaveLength(20)
   expect(screen.getByText("24 tadan 20 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Oldingi" })).toBeDisabled()
   expect(screen.getByRole("button", { name: "1" })).toHaveAttribute("aria-current", "page")
@@ -252,7 +236,7 @@ test("the list goes page by page, twenty at a time", async () => {
   // A page is opened by its number.
   await user.click(screen.getByRole("button", { name: "2" }))
 
-  await waitFor(() => expect(rowsOf(screen.getByRole("table", { name: "Mijozlar" }))).toHaveLength(4))
+  await waitFor(() => expect(rowsOf(screen.getByRole("list", { name: "Mijozlar" }))).toHaveLength(4))
   expect(currentUrl()).toBe("/customers?page=2")
   expect(screen.getByText("24 tadan 4 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page")
@@ -269,7 +253,7 @@ test("a search dropped from the address is dropped from the box, and stays dropp
   seedCustomers()
   setLocation("/customers?search=anor")
   renderWithProviders(<CustomersPage />)
-  await table()
+  await list()
   await waitFor(() => expect(names()).toEqual(["Anor Tekstil MChJ"]))
   const box = screen.getByRole("searchbox", { name: "Qidirish" })
   expect(box).toHaveValue("anor")
@@ -291,7 +275,7 @@ test("typing that goes on while the address catches up is kept", async () => {
   // The address moves a moment after it is asked to, as the real router's does.
   slowNavigation(120)
   const { user } = renderWithProviders(<CustomersPage />)
-  await table()
+  await list()
   const box = screen.getByRole("searchbox", { name: "Qidirish" })
 
   await user.type(box, "a")
@@ -305,7 +289,7 @@ test("typing that goes on while the address catches up is kept", async () => {
   await waitFor(() => expect(currentUrl()).toBe("/customers?search=an"))
 })
 
-test("a tab chosen while the cleared search is still on its way keeps both changes", async () => {
+test("a type chosen while the cleared search is still on its way keeps both changes", async () => {
   await signIn(ALI)
   seedCustomers()
   const [, yuridik] = typesOf(1)
@@ -313,98 +297,14 @@ test("a tab chosen while the cleared search is still on its way keeps both chang
   // The address takes a while to change, as on a slow connection.
   slowNavigation(400)
   const { user } = renderWithProviders(<CustomersPage />)
-  await table()
+  await list()
 
-  // The box waits 300 ms before it reports; the tab is chosen meanwhile.
+  // The box waits 300 ms before it reports; the type is chosen meanwhile.
   await user.clear(screen.getByRole("searchbox", { name: "Qidirish" }))
-  await user.click(screen.getByRole("tab", { name: "Yuridik" }))
+  await user.click(screen.getByRole("radio", { name: "Yuridik" }))
 
   await waitFor(() => expect(currentUrl()).toBe(`/customers?type=${yuridik.id}`), { timeout: 3000 })
   await waitFor(() => expect(names()).toEqual(["Anor Tekstil MChJ"]))
-})
-
-// ticks are the Ustunlar menu's columns as [name, shown or not].
-const ticks = (menu: HTMLElement) =>
-  within(menu)
-    .getAllByRole("menuitemcheckbox")
-    .map((item) => [item.textContent, item.getAttribute("aria-checked") === "true"])
-
-test("the Ustunlar menu hides and shows the columns; the choice is kept for the next visit", async () => {
-  await signIn(ALI)
-  seedCustomers()
-  setLocation("/customers")
-  const { user, unmount } = renderWithProviders(<CustomersPage />)
-  await table()
-
-  await user.click(screen.getByRole("button", { name: "Ustunlar" }))
-  const menu = await screen.findByRole("menu")
-  // Every column but the customer itself, which is never hidden.
-  expect(ticks(menu)).toEqual([
-    ["Turi", true],
-    ["Manba", true],
-    ["INN", true],
-    ["Qarz", true],
-    ["Qo'shgan", true],
-    ["Qo'shilgan", true],
-  ])
-
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "INN" }))
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Qo'shgan" }))
-
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "Qarz", "Qo'shilgan"])
-  // The menu stays open, so several can be changed in one go.
-  expect(ticks(menu)).toEqual([
-    ["Turi", true],
-    ["Manba", true],
-    ["INN", false],
-    ["Qarz", true],
-    ["Qo'shgan", false],
-    ["Qo'shilgan", true],
-  ])
-  // A phone's card leaves the column out as well.
-  const [card] = within(screen.getByRole("list", { name: "Mijozlar" })).getAllByRole("listitem")
-  expect(within(card).queryByText("Sardor Karimov")).not.toBeInTheDocument()
-
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "INN" }))
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qarz", "Qo'shilgan"])
-
-  unmount()
-  renderWithProviders(<CustomersPage />)
-  await table()
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qarz", "Qo'shilgan"])
-})
-
-test("under a tab the menu offers that type's columns; a column hidden there is hidden everywhere", async () => {
-  await signIn(ALI)
-  seedCustomers()
-  const [jismoniy] = typesOf(1)
-  setLocation(`/customers?type=${jismoniy.id}`)
-  const { user } = renderWithProviders(<CustomersPage />)
-  await table()
-
-  await user.click(screen.getByRole("button", { name: "Ustunlar" }))
-  const menu = await screen.findByRole("menu")
-  expect(ticks(menu).map(([name]) => name)).toEqual(["Manba", "Qarz", "Qo'shgan", "Qo'shilgan"])
-  await user.click(within(menu).getByRole("menuitemcheckbox", { name: "Manba" }))
-  expect(headers()).toEqual(["Mijoz", "Qarz", "Qo'shgan", "Qo'shilgan"])
-  await user.keyboard("{Escape}")
-
-  await user.click(screen.getByRole("tab", { name: "Barchasi" }))
-  await waitFor(() => expect(names()).toHaveLength(3))
-  expect(headers()).toEqual(["Mijoz", "Turi", "INN", "Qarz", "Qo'shgan", "Qo'shilgan"])
-})
-
-test("the columns one user hides stay shown for another", async () => {
-  localStorage.setItem(`customers_hidden_columns:1:${ALI}`, JSON.stringify(["type", "created_by"]))
-  await signIn(VALI)
-  await chooseCompany(1)
-  seedCustomers()
-  setLocation("/customers")
-
-  renderWithProviders(<CustomersPage />)
-
-  await table()
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qarz", "Qo'shgan", "Qo'shilgan"])
 })
 
 // noTypes deletes every customer type of Olma Savdo, as its owner may.
@@ -417,12 +317,12 @@ test("with no customer types the owner is led to the settings, and no customer c
 
   renderWithProviders(<CustomersPage />)
 
-  expect(await screen.findByText("Mijoz turlari yo'q")).toBeInTheDocument()
-  expect(screen.getByText("Mijoz qo'shish uchun avval Sozlamalarda tur yarating.")).toBeInTheDocument()
+  expect(await screen.findByText("Sozlama yetishmaydi")).toBeInTheDocument()
+  expect(screen.getByText("Avval mijoz turlarini sozlang.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings")
   expect(screen.queryByRole("button", { name: "Mijoz qo'shish" })).not.toBeInTheDocument()
   // Nothing to filter or to search either.
-  expect(screen.queryByRole("tab")).not.toBeInTheDocument()
+  expect(screen.queryByRole("radiogroup", { name: "Mijoz turi" })).not.toBeInTheDocument()
   expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
   expect(screen.queryByText("Hali mijoz yo'q")).not.toBeInTheDocument()
 })
@@ -435,7 +335,7 @@ test("with no customer types an employee is told whose it is to set them up", as
 
   renderWithProviders(<CustomersPage />)
 
-  expect(await screen.findByText("Mijoz turlari yo'q")).toBeInTheDocument()
+  expect(await screen.findByText("Sozlama yetishmaydi")).toBeInTheDocument()
   expect(screen.getByText("Kompaniya egasi mijoz turlarini sozlashi kerak.")).toBeInTheDocument()
   expect(screen.queryByRole("link", { name: "Sozlamalarni ochish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Mijoz qo'shish" })).not.toBeInTheDocument()
@@ -449,7 +349,7 @@ test("an employee whose role holds customers.view alone sees the list without a 
   setLocation("/customers")
   renderWithProviders(<CustomersPage />)
 
-  expect(rowsOf(await table())).toHaveLength(3)
+  expect(rowsOf(await list())).toHaveLength(3)
   expect(screen.queryByRole("button", { name: "Mijoz qo'shish" })).not.toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
 })
@@ -464,7 +364,7 @@ test("with no customer type the way to the settings is for whoever may open them
   setLocation("/customers")
   renderWithProviders(<CustomersPage />)
 
-  expect(await screen.findByText("Mijoz qo'shish uchun avval Sozlamalarda tur yarating.")).toBeInTheDocument()
+  expect(await screen.findByText("Avval mijoz turlarini sozlang.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings")
 })
 
@@ -479,7 +379,7 @@ test("an employee whose role holds no customers.view is sent home", async () => 
   expect(screen.queryByRole("heading", { level: 1, name: "Mijozlar" })).not.toBeInTheDocument()
 })
 
-test("the list says what each customer owes, for whoever may see the sales; one who may not sees no such column", async () => {
+test("each row says what the customer owes, for whoever may see the sales; one who may not sees nothing of it", async () => {
   const catalog = seedCatalog()
   seedWarehouse(catalog)
   const { dilshod, malika } = seedCustomers()
@@ -491,8 +391,8 @@ test("the list says what each customer owes, for whoever may see the sales; one 
   setLocation("/customers")
   const { unmount } = renderWithProviders(<CustomersPage />)
 
-  const rows = rowsOf(await table())
-  expect(rows.map((row) => cellsOf(row)[3])).toEqual(["Avans: 50\u00a0000 so'm", "—", "Qarz: 7\u00a0000 so'm"])
+  const rows = rowsOf(await list())
+  expect(rows.map((row) => rowParts(row).end)).toEqual(["Avans: 50 000 so'm", null, "Qarz: 7 000 so'm"])
   unmount()
 
   giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
@@ -500,6 +400,5 @@ test("the list says what each customer owes, for whoever may see the sales; one 
   await signIn(VALI)
   await chooseCompany(1)
   renderWithProviders(<CustomersPage />)
-  await table()
-  expect(headers()).toEqual(["Mijoz", "Turi", "Manba", "INN", "Qo'shgan", "Qo'shilgan"])
+  expect(rowsOf(await list()).map((row) => rowParts(row).end)).toEqual([null, null, null])
 })
