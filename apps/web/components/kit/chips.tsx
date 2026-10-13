@@ -63,7 +63,6 @@ export function ChoiceChips({
   onChange,
   options,
   bare = false,
-  disabled = false,
   className,
 }: {
   label: string
@@ -73,9 +72,6 @@ export function ChoiceChips({
   // bare drops the strip: the radios stand in a strip of more filters (the
   // tasks' «Mas'ul» and «Bosqich» beside the types).
   bare?: boolean
-  // disabled shows the choice and takes no change (a customer that is there,
-  // linked to a task, has its type).
-  disabled?: boolean
   className?: string
 }) {
   return (
@@ -83,7 +79,6 @@ export function ChoiceChips({
       aria-label={label}
       value={value}
       onValueChange={(next) => onChange(String(next))}
-      disabled={disabled}
       data-slot="chips"
       className={cn(bare ? "flex shrink-0 gap-1.5" : strip, className)}
     >
@@ -92,7 +87,7 @@ export function ChoiceChips({
           key={option.value}
           value={option.value}
           data-slot="chip"
-          className={cn(chip, "data-checked:bg-primary-soft data-checked:font-semibold data-checked:text-primary data-disabled:opacity-60")}
+          className={cn(chip, "data-checked:bg-primary-soft data-checked:font-semibold data-checked:text-primary")}
         >
           {option.label}
           {option.count !== undefined && (
