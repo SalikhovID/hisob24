@@ -451,7 +451,7 @@ test("the owner sees what the customer owes and their statement, with the sale a
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
   const balance = await screen.findByRole("region", { name: "Balans" })
   expect(figure(balance)).toBe("Qarz 7 000 so'm")
-  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
   // The sale, and the payment entered with it, each lead to the sale.
   const links = within(statement).getAllByRole("link", { name: /Sotuv № 1/ })
   expect(links).toHaveLength(2)
@@ -476,7 +476,7 @@ test("whoever may see the sales alone sees the balance and the statement, with n
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
   expect(figure(await screen.findByRole("region", { name: "Balans" }))).toBe("Qarz 7 000 so'm")
-  expect(await screen.findByRole("list", { name: "Hisob harakati" })).toBeInTheDocument()
+  expect(await screen.findByRole("region", { name: "Hisob harakati" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Boshlang'ich" })).not.toBeInTheDocument()
   expect(within(screen.getByRole("group", { name: "Amallar" })).queryByRole("button", { name: "To'lov" })).not.toBeInTheDocument()
 })

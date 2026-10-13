@@ -61,7 +61,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
   const balance = page.getByRole("region", { name: "Balans" })
   await expect(balance.locator("[data-slot=hero]")).toContainText(/Qarz\s*24\s000\s*so'm/)
-  const statement = page.getByRole("list", { name: "Hisob harakati" })
+  const statement = days(page, "Hisob harakati")
   await expect(statement.getByRole("link", { name: "Sotuv № 1" })).toHaveCount(2)
   await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "To'lov" }).click()
   const paymentDialog = page.getByRole("dialog", { name: "To'lov qo'shish" })

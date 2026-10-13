@@ -3,12 +3,13 @@
 import { BanknoteIcon, type LucideIcon, ReceiptIcon, ScaleIcon, ShoppingBagIcon } from "lucide-react"
 import { useState } from "react"
 import { ActionSheet } from "@/components/kit/action-sheet"
+import { DayGroups } from "@/components/kit/day-groups"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
-import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
+import { formatAmount, formatMoney, formatTime } from "@/lib/format"
 import type { Party } from "@/lib/party"
 import { useCustomerStatement, useStatement } from "@/lib/queries"
 import { type OpeningFields, openingOfRow } from "@/lib/stock"
@@ -66,9 +67,9 @@ function iconOf(row: StatementRow): { icon: LucideIcon; color?: string } {
 // StatementList is a party's statement, on its page: a supplier's
 // (logic/warehouse.md, section 6) or a customer's (logic/sales.md, section
 // 5), as the prototype's rows: every live document in time, the newest
-// first, its moment and account (its amount too when not in so'm) under its
-// name, how it changed what is owed (in so'm, red when it grew, green when
-// it shrank) and what was owed after it at its end. A purchase or a sale,
+// first, by its day; its time and account (its amount too when not in so'm)
+// under its name, how it changed what is owed (in so'm, red when it grew,
+// green when it shrank) and what was owed after it at its end. A purchase or a sale,
 // and a payment entered with one, lead to that document; a payment or an
 // opening balance entered on its own opens a sheet of its actions (editing,
 // deleting); the heading adds an opening balance. A payment is the page's
@@ -112,7 +113,7 @@ export function StatementList({
   const parties = { party, companyId, partyId }
 
   return (
-    <section aria-labelledby="party-statement">
+    <>
       <SectionHeading
         action={
           canAdd && (
@@ -122,7 +123,7 @@ export function StatementList({
           )
         }
       >
-        <span id="party-statement">Hisob harakati</span>
+        Hisob harakati
       </SectionHeading>
       {statement.isPending && <ListLoading rows={2} mark="none" />}
       {statement.isError && <Failed error={statement.error} onRetry={() => statement.refetch()} />}
@@ -133,12 +134,12 @@ export function StatementList({
       )}
       {data && data.total > 0 && (
         <>
-          <Group label="Hisob harakati" inset="icon">
-            {data.items.map((row) => {
+          <DayGroups label="Hisob harakati" items={data.items} at={(row) => row.at}>
+            {(row) => {
               const delta = Number(row.delta_uzs)
               const { icon, color } = iconOf(row)
               const own = isOpening(row) || (isPayment(row) && row.linked_id === null)
-              const sub = [formatDateTime(row.at), row.account_name, row.currency_id !== UZS ? formatMoney(row.amount, currencyOf(currencies, row.currency_id)) : null]
+              const sub = [formatTime(row.at), row.account_name, row.currency_id !== UZS ? formatMoney(row.amount, currencyOf(currencies, row.currency_id)) : null]
               return (
                 <Row
                   key={`${row.kind}-${row.id}`}
@@ -157,8 +158,8 @@ export function StatementList({
                   chevron={false}
                 />
               )
-            })}
-          </Group>
+            }}
+          </DayGroups>
           {data.total > data.page_size && <Pager page={data.page} pageSize={data.page_size} total={data.total} onPage={setPage} />}
         </>
       )}
@@ -172,6 +173,6 @@ export function StatementList({
       {removing && <DeletePaymentDialog {...parties} payment={removing} open onOpenChange={(open) => !open && setRemoving(null)} />}
       {opening !== undefined && <OpeningDialog {...parties} opening={opening ?? undefined} open onOpenChange={(open) => !open && setOpening(undefined)} />}
       {dropping && <DeleteOpeningDialog {...parties} opening={dropping} open onOpenChange={(open) => !open && setDropping(null)} />}
-    </section>
+    </>
   )
 }

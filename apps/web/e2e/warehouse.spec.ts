@@ -3,7 +3,7 @@ import { seedCatalog, seedWarehouse } from "../mocks/data"
 import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { choose, chooseLocation, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
+import { choose, chooseLocation, days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
 
 // hub is the warehouse's own page: a row for each of its parts.
 const hub = (page: Page) => page.getByRole("list", { name: "Ombor bo'limlari" })
@@ -92,7 +92,7 @@ test("the owner keeps the warehouse: a supplier, a purchase into the stock, the 
   await expect(page.getByRole("heading", { level: 1, name: "Bozor" })).toBeVisible()
   const balance = page.getByRole("region", { name: "Balans" })
   await expect(balance.locator("[data-slot=hero]")).toContainText(/Qarz\s*12\s501,50\s*so'm/)
-  const statement = page.getByRole("list", { name: "Hisob harakati" })
+  const statement = days(page, "Hisob harakati")
   await expect(statement.getByRole("link", { name: "Xarid № 1" })).toHaveCount(2)
   await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "To'lov" }).click()
   const paymentDialog = page.getByRole("dialog", { name: "To'lov qo'shish" })
@@ -234,7 +234,7 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
   await expect(page.getByRole("region", { name: "Balans" }).locator("[data-slot=hero]")).toContainText(/Qarz\s*1\s015\s001,50\s*so'm/)
-  await expect(page.getByRole("list", { name: "Hisob harakati" }).getByText("Boshlang'ich qarz")).toBeVisible()
+  await expect(days(page, "Hisob harakati").getByText("Boshlang'ich qarz")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 })
 

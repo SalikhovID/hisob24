@@ -43,11 +43,11 @@ test("the supplier page: its facts, what is owed, its statement, and the actions
 
   // The statement: the documents in time, the newest first, each with how
   // it changed what is owed and what was owed after it.
-  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
   const rows = within(statement).getAllByRole("listitem").map((item) => item.firstElementChild as HTMLElement)
   expect(rows.map((row) => [rowParts(row).title, rowParts(row).sub?.replace(/\s+/g, " "), rowParts(row).end?.replace(/\s+/g, " ")])).toEqual([
-    ["To'lov", "03.10.2026 09:00 · Naqd", "−1 200,50 balans 13 801"],
-    ["To'lov · Xarid № 1", expect.stringMatching(/ · Naqd$/), "−5 000 balans 15 001,50"],
+    ["To'lov", "09:00 · Naqd", "−1 200,50 balans 13 801"],
+    ["To'lov · Xarid № 1", "09:00 · Naqd", "−5 000 balans 15 001,50"],
     ["Xarid № 1", expect.any(String), "+20 001,50 balans 20 001,50"],
   ])
   // The payment entered on its own is handled in its sheet; the purchase, and
@@ -114,7 +114,7 @@ test("the opening balances stand in the statement with their own sheet of action
   await enterOpening(bozor.id, { kind: "debt", amount: "1000000", at: "2026-09-30T09:00:00+05:00" })
   const { user } = renderWithProviders(<SupplierPage id={bozor.id} />)
 
-  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
   await user.click(within(statement).getByRole("button", { name: /^Boshlang'ich qarz/ }))
   const sheet = await screen.findByRole("menu")
   expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])

@@ -31,17 +31,18 @@ const parts = (row: HTMLElement) => {
   return { title: plain(title), sub: plain(sub), end: plain(end) }
 }
 
-test("a customer's statement: a row per document, the newest first, how it changed what is owed and what was owed after it", async () => {
+test("a customer's statement: a row per document by its day, the newest first, its time and account under it, how it changed what is owed and what was owed after it", async () => {
   const { dilshod, sale } = await dilshodsStatement()
   renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd canEdit canDelete />)
 
-  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
+  expect(within(statement).getAllByRole("list").map((day) => day.getAttribute("aria-label"))).toEqual(["6-oktabr, seshanba", "5-oktabr, dushanba", "1-oktabr, payshanba"])
   const [own, withSale, sold, opening] = rows(statement)
   expect([own, withSale, sold, opening].map(parts)).toEqual([
-    { title: "To'lov", sub: "06.10.2026 09:00 · Naqd", end: "−1 000 balans 306 000" },
-    { title: "To'lov · Sotuv № 1", sub: "05.10.2026 09:00 · Naqd", end: "−5 000 balans 307 000" },
-    { title: "Sotuv № 1", sub: "05.10.2026 09:00", end: "+12 000 balans 312 000" },
-    { title: "Boshlang'ich qarz", sub: "01.10.2026 09:00", end: "+300 000 balans 300 000" },
+    { title: "To'lov", sub: "09:00 · Naqd", end: "−1 000 balans 306 000" },
+    { title: "To'lov · Sotuv № 1", sub: "09:00 · Naqd", end: "−5 000 balans 307 000" },
+    { title: "Sotuv № 1", sub: "09:00", end: "+12 000 balans 312 000" },
+    { title: "Boshlang'ich qarz", sub: "09:00", end: "+300 000 balans 300 000" },
   ])
   // A sale, and a payment entered with it, lead to the sale; the rest are handled in their sheet.
   expect(withSale).toHaveAttribute("href", `/sales/${sale.id}`)
@@ -53,7 +54,7 @@ test("a customer's statement: a row per document, the newest first, how it chang
 test("a payment or an opening balance entered on its own is edited or deleted from its sheet of actions", async () => {
   const { dilshod } = await dilshodsStatement()
   const { user } = renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd canEdit canDelete />)
-  const [own, , , opening] = rows(await screen.findByRole("list", { name: "Hisob harakati" }))
+  const [own, , , opening] = rows(await screen.findByRole("region", { name: "Hisob harakati" }))
 
   await user.click(own)
   const sheet = await screen.findByRole("menu")
@@ -71,7 +72,7 @@ test("a payment or an opening balance entered on its own is edited or deleted fr
 test("an opening balance is added from the statement's heading", async () => {
   const { dilshod } = await dilshodsStatement()
   const { user } = renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd canEdit canDelete />)
-  await screen.findByRole("list", { name: "Hisob harakati" })
+  await screen.findByRole("region", { name: "Hisob harakati" })
 
   await user.click(screen.getByRole("button", { name: "Boshlang'ich" }))
 
@@ -84,7 +85,7 @@ test("the actions follow the permissions: a reader sees the rows alone", async (
   const { dilshod } = await dilshodsStatement()
   renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd={false} canEdit={false} canDelete={false} />)
 
-  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
   expect(within(statement).queryAllByRole("button")).toHaveLength(0)
   expect(screen.queryByRole("button", { name: "Boshlang'ich" })).not.toBeInTheDocument()
 })
