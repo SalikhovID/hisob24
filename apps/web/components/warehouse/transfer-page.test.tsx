@@ -5,6 +5,7 @@ import { stockOf } from "@/mocks/ledger"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterTransfer } from "@/test/stock"
 import { TransferPage } from "./transfer-page"
@@ -34,8 +35,10 @@ test("the transfer page: its facts, its lines, and the actions for whoever may e
   expect(await screen.findByRole("heading", { level: 1, name: "Ko'chirish № 1" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy → Chilonzor · 05.10.2026 09:00")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ko'chirishlar" })).toHaveAttribute("href", "/transfers")
-  expect(screen.getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/transfers/${transfer.id}/edit`)
-  expect(screen.getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  // What may be done with it are the tiles.
+  const tiles = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "O'chirish"])
+  expect(within(tiles).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/transfers/${transfer.id}/edit`)
   expect(facts()).toEqual({
     Qayerdan: "Asosiy",
     Qayerga: "Chilonzor",
@@ -44,10 +47,10 @@ test("the transfer page: its facts, its lines, and the actions for whoever may e
     "Qo'shgan": "Ali Valiyev",
     "Qo'shilgan": expect.any(String),
   })
-  const lines = screen.getByRole("table", { name: "Qatorlar" })
-  expect(within(lines).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Mahsulot", "Miqdor"])
-  expect(within(lines).getByRole("link", { name: "Olma" })).toHaveAttribute("href", `/products/${catalog.olma.id}`)
-  expect(within(within(lines).getByRole("link", { name: "Olma" }).closest("tr")!).getByText("4 kg")).toBeInTheDocument()
+  // The lines are rows that lead to their products, each with how much moved.
+  const [olma] = within(screen.getByRole("list", { name: "Mahsulotlar" })).getAllByRole("link")
+  expect(olma).toHaveAttribute("href", `/products/${catalog.olma.id}`)
+  expect(rowParts(olma)).toMatchObject({ title: "Olma", end: "4\u00a0kg" })
 })
 
 test("seen from its destination alone the transfer is read, not changed", async () => {
