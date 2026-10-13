@@ -1,15 +1,17 @@
 "use client"
 
-import { CalendarXIcon, LogOutIcon } from "lucide-react"
+import { CalendarXIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Logo } from "@/components/logo"
-import { Button } from "@/components/ui/button"
+import { MainBar, MainButton } from "@/components/kit/main-button"
+import { ShellLess } from "@/components/shell-less"
+import { StateScreen } from "@/components/states"
 import { useLogout, useSwitchCompany } from "@/lib/queries"
 import { useMiniApp } from "@/lib/telegram"
 
-// Expired is where a session for a company whose subscription is over lands.
-// The way on is another company: the session drops this one first, so the
-// company list loads without a 402.
+// Expired is where a session for a company whose subscription is over
+// lands, as the prototype's state screen: the red calendar, why, and the way
+// on, another company (the session drops this one first, so the company
+// list loads without a 402). In a browser the way out is there too.
 export function Expired() {
   const router = useRouter()
   const switchCompany = useSwitchCompany()
@@ -17,38 +19,32 @@ export function Expired() {
   const miniApp = useMiniApp()
 
   return (
-    <main className="flex min-h-svh items-center justify-center px-4 pb-4 pt-safe-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <Logo className="mx-auto" />
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-          <CalendarXIcon className="size-6" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-xl font-semibold">Obuna muddati tugagan</h1>
-          <p className="text-sm text-muted-foreground">
-            Kompaniya obunasini uzaytirish uchun administrator bilan bog&apos;laning.
-          </p>
-        </div>
-        {switchCompany.isError && (
-          <p role="alert" className="text-sm text-destructive">
-            {switchCompany.error.message}
-          </p>
-        )}
-        <div className="grid gap-2">
-          <Button
-            disabled={switchCompany.isPending}
+    <ShellLess>
+      <StateScreen
+        icon={CalendarXIcon}
+        tone="red"
+        title="Obuna muddati tugagan"
+        description="Kompaniya obunasini uzaytirish uchun administrator bilan bog'laning."
+      >
+        <MainBar className="md:items-center">
+          {switchCompany.isError && (
+            <p role="alert" className="pb-2 text-center text-md text-destructive">
+              {switchCompany.error.message}
+            </p>
+          )}
+          <MainButton
+            pending={switchCompany.isPending}
             onClick={() => switchCompany.mutate(null, { onSuccess: () => router.replace("/select-company") })}
           >
             Boshqa kompaniyani tanlash
-          </Button>
+          </MainButton>
           {!miniApp && (
-            <Button variant="ghost" disabled={logout.isPending} onClick={() => logout.mutate()}>
-              <LogOutIcon />
+            <MainButton variant="ghost" pending={logout.isPending} onClick={() => logout.mutate()}>
               Chiqish
-            </Button>
+            </MainButton>
           )}
-        </div>
-      </div>
-    </main>
+        </MainBar>
+      </StateScreen>
+    </ShellLess>
   )
 }

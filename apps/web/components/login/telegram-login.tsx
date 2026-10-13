@@ -1,10 +1,11 @@
 "use client"
 
-import { Loader2Icon } from "lucide-react"
+import { CircleAlertIcon, LockIcon, SmartphoneIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { type ReactNode, useCallback, useEffect, useState } from "react"
-import { Logo } from "@/components/logo"
-import { Button } from "@/components/ui/button"
+import { useCallback, useEffect, useState } from "react"
+import { MainBar, MainButton } from "@/components/kit/main-button"
+import { ShellLess } from "@/components/shell-less"
+import { Splash, StateScreen } from "@/components/states"
 import { api, ApiError, call } from "@/lib/api"
 import { setAccessToken } from "@/lib/session"
 import type { TelegramWebApp } from "@/types/telegram"
@@ -113,81 +114,72 @@ export function TelegramLogin({
 
   if (stage.kind === "no_cookie") {
     return (
-      <Centered>
-        <h1 className="text-xl font-semibold">Kirib bo&apos;lmadi</h1>
-        <p className="text-sm text-muted-foreground">
-          Brauzer kirish ma&apos;lumotini saqlamadi. Mini App&apos;ni telefon yoki kompyuterdagi Telegram ilovasida
-          oching.
-        </p>
-        <Button className="mt-2" onClick={() => webApp.close()}>
-          Yopish
-        </Button>
-      </Centered>
+      <ShellLess>
+        <StateScreen
+          icon={CircleAlertIcon}
+          tone="red"
+          title="Kirib bo'lmadi"
+          description="Brauzer kirish ma'lumotini saqlamadi. Mini App'ni telefon yoki kompyuterdagi Telegram ilovasida oching."
+        >
+          <MainBar className="md:items-center">
+            <MainButton onClick={() => webApp.close()}>Yopish</MainButton>
+          </MainBar>
+        </StateScreen>
+      </ShellLess>
     )
   }
   if (stage.kind === "no_access") {
     return (
-      <Centered>
-        <h1 className="text-xl font-semibold">Kirish huquqi yo&apos;q</h1>
-        <p className="text-sm text-muted-foreground">{stage.message}</p>
-        <Button className="mt-2" onClick={() => webApp.close()}>
-          Yopish
-        </Button>
-      </Centered>
+      <ShellLess>
+        <StateScreen icon={LockIcon} tone="red" title="Kirish huquqi yo'q" description={stage.message}>
+          <MainBar className="md:items-center">
+            <MainButton onClick={() => webApp.close()}>Yopish</MainButton>
+          </MainBar>
+        </StateScreen>
+      </ShellLess>
     )
   }
   if (stage.kind === "not_shared") {
+    // Shared, but not at the bot yet: the prototype's second screen, in the
+    // warning's tone, with another try. Declined, or where Telegram cannot
+    // ask for the contact, the way is through the bot.
+    const toBot = stage.declined || !webApp.requestContact
     return (
-      <Centered>
-        <h1 className="text-xl font-semibold">Telefon raqamingiz ulanmagan</h1>
-        <p className="text-sm text-muted-foreground">Hisob24&apos;ga kirish uchun Telegram raqamingizni botga yuboring.</p>
-        {stage.late ? (
-          <>
-            <p className="text-sm text-muted-foreground">Raqam hali yetib kelmadi.</p>
-            <Button className="mt-2 w-full" onClick={() => void tryAgain([0])}>
-              Qayta urinish
-            </Button>
-          </>
-        ) : (
-          webApp.requestContact && (
-            <Button className="mt-2 w-full" onClick={share}>
-              Raqamni yuborish
-            </Button>
-          )
-        )}
-        {(stage.declined || !webApp.requestContact) && <BotInstructions webApp={webApp} />}
-      </Centered>
+      <ShellLess>
+        <StateScreen
+          icon={SmartphoneIcon}
+          tone={stage.late ? "warn" : "accent"}
+          title="Telefon raqamingiz ulanmagan"
+          description={
+            stage.late ? (
+              "Raqam hali yetib kelmadi."
+            ) : (
+              <>
+                <span className="block">Hisob24&apos;ga kirish uchun Telegram raqamingizni botga yuboring.</span>
+                {toBot && <span className="mt-2 block">Botga qaytib, /start yozing va raqamingizni yuboring.</span>}
+              </>
+            )
+          }
+        >
+          <MainBar className="md:items-center">
+            {stage.late ? (
+              <MainButton onClick={() => void tryAgain([0])}>Qayta urinish</MainButton>
+            ) : (
+              webApp.requestContact && <MainButton onClick={share}>Raqamni yuborish</MainButton>
+            )}
+            {!stage.late && toBot && (
+              <MainButton variant={webApp.requestContact ? "ghost" : "accent"} onClick={() => webApp.close()}>
+                Botga qaytish
+              </MainButton>
+            )}
+          </MainBar>
+        </StateScreen>
+      </ShellLess>
     )
   }
   return (
-    <Centered>
-      <Loader2Icon className="size-8 animate-spin text-primary" />
-      <p className="text-sm text-muted-foreground">Telegram orqali kirilmoqda…</p>
-    </Centered>
-  )
-}
-
-// BotInstructions is the way to share the phone without the app: in the bot.
-function BotInstructions({ webApp }: { webApp: TelegramWebApp }) {
-  return (
-    <>
-      <p className="text-sm text-muted-foreground">Botga qaytib, /start yozing va raqamingizni yuboring.</p>
-      <Button variant="outline" className="w-full" onClick={() => webApp.close()}>
-        Botga qaytish
-      </Button>
-    </>
-  )
-}
-
-// Centered is every screen of this login: what it says, under the logo. Its
-// top padding keeps clear of what Telegram lays over a full-screen Mini App.
-function Centered({ children }: { children: ReactNode }) {
-  return (
-    <main className="flex min-h-svh items-center justify-center px-4 pb-4 pt-safe-4">
-      <div className="flex w-full max-w-sm flex-col items-center gap-3 text-center">
-        <Logo className="mb-3 h-7" />
-        {children}
-      </div>
-    </main>
+    <ShellLess logo={false}>
+      <Splash>Telegram orqali kirilmoqda…</Splash>
+    </ShellLess>
   )
 }
