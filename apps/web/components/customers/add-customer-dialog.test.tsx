@@ -2,26 +2,26 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { delay, http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/data"
-import { identityOf } from "@/test/identity"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { CustomersPage } from "./customers-page"
 
-// names are the customers the table shows, in order.
+// names are the customers the list shows, in order.
 const names = () =>
-  within(screen.getByRole("table", { name: "Mijozlar" }))
-    .getAllByRole("row")
-    .slice(1)
-    .map((row) => identityOf(within(row).getByRole("rowheader"))[0])
+  within(screen.getByRole("list", { name: "Mijozlar" }))
+    .getAllByRole("link")
+    .map((row) => rowParts(row).title)
 
 // openDialog opens the page and its dialog for a new customer.
 async function openDialog(href = "/customers") {
   setLocation(href)
   const rendered = renderWithProviders(<CustomersPage />)
-  await rendered.user.click(await screen.findByRole("button", { name: "Mijoz qo'shish" }))
+  // The round + heads the page; an empty list offers one more below.
+  await rendered.user.click((await screen.findAllByRole("button", { name: "Mijoz qo'shish" }))[0])
   return { ...rendered, dialog: await screen.findByRole("dialog", { name: "Mijoz qo'shish" }) }
 }
 
@@ -68,7 +68,7 @@ test("the dialog opens empty every time", async () => {
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
-  await user.click(screen.getByRole("button", { name: "Mijoz qo'shish" }))
+  await user.click(screen.getAllByRole("button", { name: "Mijoz qo'shish" })[0])
 
   expect(within(await screen.findByRole("dialog", { name: "Mijoz qo'shish" })).getByLabelText("F.I.Sh.")).toHaveValue("")
 })

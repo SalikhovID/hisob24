@@ -8,6 +8,7 @@ import { addDays, ALI, db, localToday, seedCatalog, seedCustomers, seedSixKinds,
 import { addLocation, asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { choose, optionsOf } from "@/test/select"
 import { server } from "@/test/server"
@@ -209,14 +210,14 @@ test("an employee deletes the customer after being asked, and is taken back to t
   const { dilshod } = seedCustomers()
   const { user } = open(dilshod.id)
 
-  await user.click(await screen.findByRole("button", { name: "O'chirish" }))
+  await user.click(await screen.findByRole("button", { name: "Mijozni o'chirish" }))
   let confirm = await screen.findByRole("alertdialog", { name: "Mijozni o'chirasizmi?" })
   expect(confirm).toHaveTextContent("Dilshod Karimov mijozlar ro'yxatidan olib tashlanadi. Qayta tiklab bo'lmaydi.")
   await user.click(within(confirm).getByRole("button", { name: "Bekor qilish" }))
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
   expect(dilshod.deleted).toBeUndefined()
 
-  await user.click(screen.getByRole("button", { name: "O'chirish" }))
+  await user.click(screen.getByRole("button", { name: "Mijozni o'chirish" }))
   confirm = await screen.findByRole("alertdialog", { name: "Mijozni o'chirasizmi?" })
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
@@ -235,7 +236,7 @@ test("a delete that is refused says why, and the customer stays", async () => {
   )
   const { user } = open(dilshod.id)
 
-  await user.click(await screen.findByRole("button", { name: "O'chirish" }))
+  await user.click(await screen.findByRole("button", { name: "Mijozni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Mijoz o'chmadi: ichki xatolik")).toBeInTheDocument()
@@ -377,14 +378,13 @@ test("a customer's page lists its tasks, the one due soonest first, with their s
   open(dilshod.id)
 
   const region = await tasksOf()
-  const table = await within(region).findByRole("table", { name: "Vazifalar" })
-  expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual(["Vazifa", "Bosqich", "Muddat"])
-  const rows = within(table).getAllByRole("row").slice(1)
-  expect(rows.map((row) => within(row).getByRole("rowheader").textContent)).toEqual(["Eski buyurtma", "Qo'ng'iroq qilish"])
-  expect(within(rows[0]).getByRole("link", { name: "Eski buyurtma" })).toHaveAttribute("href", `/tasks/${old.id}`)
-  expect(within(rows[1]).getByRole("link", { name: "Qo'ng'iroq qilish" })).toHaveAttribute("href", `/tasks/${call.id}`)
-  expect(within(rows[0]).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["Bajarildi", formatDate(addDays(today, -5))])
-  expect(within(rows[1]).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["Yangi", `${formatDate(addDays(today, 3))} · 3 kun qoldi`])
+  const rows = within(await within(region).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
+  expect(rows.map((row) => rowParts(row).title)).toEqual(["Eski buyurtma", "Qo'ng'iroq qilish"])
+  expect(rows[0]).toHaveAttribute("href", `/tasks/${old.id}`)
+  expect(rows[1]).toHaveAttribute("href", `/tasks/${call.id}`)
+  // A done task says its stage where the others say how far their deadline is.
+  expect(rowParts(rows[0])).toMatchObject({ sub: "Bajarildi · Ali V.", end: `${formatDate(addDays(today, -5)).slice(0, 5)} Bajarildi` })
+  expect(rowParts(rows[1])).toMatchObject({ sub: "Yangi · Vali A.", end: `${formatDate(addDays(today, 3)).slice(0, 5)} 3 kun qoldi` })
   expect(within(region).getByText("Jami: 2")).toBeInTheDocument()
 })
 
@@ -395,7 +395,7 @@ test("a customer with no tasks says so", async () => {
   open(anor.id)
 
   expect(await within(await tasksOf()).findByText("Bu mijozda vazifa yo'q")).toBeInTheDocument()
-  expect(screen.queryByRole("table", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Vazifalar" })).not.toBeInTheDocument()
 })
 
 test("a customer with tasks is not deleted: the API's reason is shown, and the customer stays", async () => {
@@ -404,7 +404,7 @@ test("a customer with tasks is not deleted: the API's reason is shown, and the c
   const { user } = open(dilshod.id)
   await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })
 
-  await user.click(screen.getByRole("button", { name: "O'chirish" }))
+  await user.click(screen.getByRole("button", { name: "Mijozni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Bu mijozda 2 ta vazifa bor")).toBeInTheDocument()
@@ -422,7 +422,7 @@ test("an employee whose role holds customers.view alone sees the customer withou
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
   await info()
   expect(screen.queryByRole("button", { name: "Tahrirlash" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Mijozni o'chirish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Vazifalar" })).not.toBeInTheDocument()
   // What the customer owes is the sales' business (logic/sales.md, section 5).
@@ -487,7 +487,7 @@ test("the customer's actions follow the role: editing, the history and the tasks
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
   await info()
   expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Mijozni o'chirish" })).not.toBeInTheDocument()
   expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
   expect(screen.getByRole("heading", { name: "Vazifalar" })).toBeInTheDocument()
 })
@@ -503,11 +503,19 @@ test("a customer's tasks are of every location the member works in; with two or 
 
   open(dilshod.id)
 
-  const table = await within(await tasksOf()).findByRole("table", { name: "Vazifalar" })
-  expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual(["Vazifa", "Bosqich", "Lokatsiya", "Muddat"])
-  const rows = within(table).getAllByRole("row").slice(1)
-  expect(rows.map((row) => [within(row).getByRole("rowheader").textContent, within(row).getAllByRole("cell")[1].textContent])).toEqual([
-    ["Eski buyurtma", "Asosiy"],
-    ["Qo'ng'iroq qilish", "Chilonzor"],
+  const rows = within(await within(await tasksOf()).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
+  expect(rows.map((row) => [rowParts(row).title, rowParts(row).sub])).toEqual([
+    ["Eski buyurtma", "Bajarildi · Asosiy · Ali V."],
+    ["Qo'ng'iroq qilish", "Yangi · Chilonzor · Vali A."],
   ])
+})
+
+test("the customer's tiles: editing for whoever may, and the call to its phone", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedCustomers()
+  open(dilshod.id)
+
+  const tiles = within(await screen.findByRole("group", { name: "Amallar" }))
+  expect(tiles.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
+  expect(tiles.getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998911112233")
 })

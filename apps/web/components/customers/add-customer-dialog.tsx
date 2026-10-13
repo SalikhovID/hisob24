@@ -50,7 +50,9 @@ export function AddCustomerDialog({
   const controlled = openGiven !== undefined
   const open = controlled ? openGiven : openOwn
   const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
-  const [typeId, setTypeId] = useState(types[0].id)
+  // It opens on the type the list is narrowed to (or the first): mounted
+  // open from outside as well as opened by its button.
+  const [typeId, setTypeId] = useState((types.find((candidate) => candidate.id === preferred) ?? types[0]).id)
   const type = types.find((candidate) => candidate.id === typeId) ?? types[0]
   const queryClient = useQueryClient()
   const form = useForm<CustomerForm, unknown, CustomerOutput>({

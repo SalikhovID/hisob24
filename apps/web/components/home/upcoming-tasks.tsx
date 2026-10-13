@@ -1,14 +1,10 @@
-import { CircleCheckIcon, ClipboardListIcon, MapPinIcon, PlusIcon } from "lucide-react"
+import { CircleCheckIcon, MapPinIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { EmptyState } from "@/components/states"
-import { shortName } from "@/lib/initials"
-import { formatPhone } from "@/lib/phone"
-import { colorValues } from "@/lib/stage-colors"
-import { deadlineOf } from "@/lib/tasks"
+import { TaskRow } from "@/components/tasks/task-row"
 import type { Dashboard, TaskStage } from "@/lib/types"
-import { cn } from "@/lib/utils"
 
 // UpcomingTasks is the home's «Yaqin muddatlar», as the prototype's: the
 // tasks not done that are due soonest, each a row to its page (its icon in
@@ -67,32 +63,9 @@ export function UpcomingTasks({
     <>
       {heading}
       <Group label="Yaqin muddatlar" inset="icon">
-        {tasks.upcoming.map((task) => {
-          const stage = stages.find((s) => s.id === task.stage_id)
-          const deadline = deadlineOf(task.deadline, false)
-          const assignee = task.assignee && (task.assignee.full_name ? shortName(task.assignee.full_name) : formatPhone(task.assignee.phone))
-          const who = [task.customer.name ?? formatPhone(task.customer.phone), assignee].filter(Boolean).join(" · ")
-          return (
-            <Row
-              key={task.id}
-              href={`/tasks/${task.id}`}
-              media={
-                <span
-                  aria-hidden="true"
-                  style={{ color: stage ? colorValues[stage.color] : undefined }}
-                  className="grid size-9 place-items-center rounded-[11px] bg-[color-mix(in_srgb,currentColor_14%,transparent)]"
-                >
-                  <ClipboardListIcon className="size-5" />
-                </span>
-              }
-              title={task.title}
-              sub={who}
-              end={<span className={cn(deadline.overdue && "text-destructive")}>{deadline.date.slice(0, 5)}</span>}
-              endSub={<span className={cn(deadline.overdue && "text-destructive")}>{deadline.relative}</span>}
-              chevron={false}
-            />
-          )
-        })}
+        {tasks.upcoming.map((task) => (
+          <TaskRow key={task.id} task={task} stage={stages.find((s) => s.id === task.stage_id)} showCustomer />
+        ))}
         <Row variant="link" href="/tasks?view=list" title="Barcha vazifalar" chevron />
       </Group>
     </>

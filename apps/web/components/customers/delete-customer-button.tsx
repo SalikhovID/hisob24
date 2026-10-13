@@ -1,10 +1,10 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
+import { Group, Row } from "@/components/kit/group"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -14,13 +14,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { customersKey } from "@/lib/queries"
 
-// DeleteCustomerButton deletes the customer on screen, after asking, and
+// DeleteCustomerButton is the danger row at the foot of the customer's page:
+// it deletes the customer on screen, after asking, and
 // leaves for the list: the customer's page is gone with it. A deleted
 // customer is not shown anywhere again, and its phone is free for another.
 // A refusal shows the API's reason, and the customer stays.
@@ -42,19 +41,11 @@ export function DeleteCustomerButton({ companyId, id, name }: { companyId: numbe
   })
 
   return (
-    <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      <AlertDialogTrigger
-        render={
-          <Button
-            variant="outline"
-            size="lg"
-            className="px-3.5 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
-          />
-        }
-      >
-        <Trash2Icon />
-        O&apos;chirish
-      </AlertDialogTrigger>
+    <>
+      <Group>
+        <Row variant="danger" onClick={() => setConfirming(true)} title="Mijozni o'chirish" />
+      </Group>
+      <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Mijozni o&apos;chirasizmi?</AlertDialogTitle>
@@ -79,6 +70,7 @@ export function DeleteCustomerButton({ companyId, id, name }: { companyId: numbe
           </PendingButton>
         </AlertDialogFooter>
       </AlertDialogContent>
-    </AlertDialog>
+      </AlertDialog>
+    </>
   )
 }
