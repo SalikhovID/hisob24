@@ -27,6 +27,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/config"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
+	"github.com/SalikhovID/hisob24/backend/internal/dashboard"
 	"github.com/SalikhovID/hisob24/backend/internal/finance"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/sms"
@@ -87,16 +88,18 @@ func run() error {
 	}
 	userAuth := auth.NewUserAuth(pool, cfg.OTPHMACSecret, cfg.JWTSecret, cfg.UserBotToken, sms.New(cfg, slog.Default()), codes)
 	customers := customer.NewService(pool)
+	tasks := task.NewService(pool, customers)
 	appAPI := app.NewHandler(app.Services{
 		Auth:       userAuth,
 		Profiles:   user.NewProfiles(pool),
 		Companies:  companies,
 		Customers:  customers,
-		Tasks:      task.NewService(pool, customers),
+		Tasks:      tasks,
 		Catalog:    catalog.NewService(pool),
 		Warehouse:  warehouse.NewService(pool),
 		Currencies: currencies,
 		Finance:    money,
+		Dashboard:  dashboard.NewService(pool, tasks),
 	}, cfg.CookieSecure, httpx.NewRateLimiter(5, time.Minute), httpx.NewRateLimiter(5, time.Minute))
 	mounts := []func(chi.Router){adminAPI.Routes, appAPI.Routes}
 

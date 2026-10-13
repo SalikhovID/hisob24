@@ -622,6 +622,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bosh sahifa bloklari
+         * @description Bosh sahifaning bir qarashdagi ma'lumoti (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): har blok o'z ruxsati bilan, ruxsatsizi null. Pul so'mda, har hujjat o'z kurs qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt zonasida (standart Asia/Tashkent). Vazifalar, xaridlar va sotuvlar location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga ruxsatli hamma lokatsiyaniki; ta'minotchilar va mijozlar kompaniyaniki.
+         */
+        get: operations["getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/employees": {
         parameters: {
             query?: never;
@@ -3777,6 +3797,72 @@ export interface components {
             /** @description Mas'ulning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, biriktirilgan paytdagi ismi */
             full_name: string | null;
         };
+        Dashboard: {
+            /** @description purchases.view bo'lganga, aks holda null */
+            suppliers: components["schemas"]["DashboardSuppliers"] | null;
+            /** @description customers.view bo'lganga, aks holda null */
+            customers: components["schemas"]["DashboardCustomers"] | null;
+            /** @description tasks.view bo'lganga, aks holda null */
+            tasks: components["schemas"]["DashboardTasks"] | null;
+            /** @description Xaridlar; purchases.view bo'lganga, aks holda null */
+            purchases: components["schemas"]["DashboardMoney"] | null;
+            /** @description Sotuvlar; sales.view bo'lganga, aks holda null */
+            sales: components["schemas"]["DashboardMoney"] | null;
+        };
+        /** @description Kompaniyaning jonli ta'minotchilari so'mdagi balanslari (ro'yxatdagi balance): musbatlari yig'indisi va soni, manfiylari yig'indisi musbat son sifatida */
+        DashboardSuppliers: {
+            /** @description Qarz, so'mda, ikki kasr xonasi bilan */
+            debt: string;
+            /**
+             * Format: int64
+             * @description Qarzdor (balansi musbat) ta'minotchilar soni
+             */
+            debtors: number;
+            /** @description Avans, so'mda, ikki kasr xonasi bilan */
+            advance: string;
+        };
+        DashboardCustomers: {
+            /**
+             * Format: int64
+             * @description Bugun oxirigacha jonli mijozlar soni
+             */
+            total: number;
+            /** Format: int64 */
+            added_this_month: number;
+            /** @description Oyning har kuni oxirigacha jonli mijozlar soni, 1-kundan bugungacha */
+            by_day: number[];
+        };
+        DashboardTasks: {
+            /**
+             * Format: int64
+             * @description Yakuniy bo'lmagan bosqichdagi vazifalar
+             */
+            active: number;
+            /**
+             * Format: int64
+             * @description Ulardan muddati bugundan oldingilari
+             */
+            late: number;
+            /** @description Har yakuniy bo'lmagan bosqich, tartibi bilan, 0 lilari ham */
+            by_stage: components["schemas"]["DashboardStageCount"][];
+            /** @description Eng yaqin muddatli 5 ta faol vazifa (muddat, keyin ID bo'yicha) */
+            upcoming: components["schemas"]["Task"][];
+        };
+        DashboardStageCount: {
+            /** Format: int64 */
+            stage_id: number;
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description Shu oyning bugungacha jonli hujjatlari (xarid yoki sotuv) */
+        DashboardMoney: {
+            /** @description Jami, so'mda, ikki kasr xonasi bilan */
+            month_total: string;
+            /** Format: int64 */
+            month_count: number;
+            /** @description Oyning har kuni oxirigacha yig'ilgan so'm, 1-kundan bugungacha */
+            by_day: string[];
+        };
         Task: {
             /** Format: int64 */
             id: number;
@@ -5637,6 +5723,32 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["CompanyRequired"];
+        };
+    };
+    getDashboard: {
+        parameters: {
+            query?: {
+                location_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bloklar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listEmployees: {

@@ -1058,6 +1058,43 @@ paths:
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
           $ref: "#/components/responses/CompanyRequired"
+  /app/dashboard:
+    get:
+      operationId: getDashboard
+      summary: Bosh sahifa bloklari
+      description: >
+        Bosh sahifaning bir qarashdagi ma'lumoti
+        (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): har blok
+        o'z ruxsati bilan, ruxsatsizi null. Pul so'mda, har hujjat o'z kurs
+        qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt
+        zonasida (standart Asia/Tashkent). Vazifalar, xaridlar va sotuvlar
+        location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403
+        forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga
+        ruxsatli hamma lokatsiyaniki; ta'minotchilar va mijozlar
+        kompaniyaniki.
+      security:
+        - appBearer: []
+      parameters:
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Bloklar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /app/employees:
     get:
       operationId: listEmployees
@@ -8358,6 +8395,118 @@ components:
           description: >
             Mas'ulning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan
             bo'lsa, biriktirilgan paytdagi ismi
+    Dashboard:
+      type: object
+      required: [suppliers, customers, tasks, purchases, sales]
+      properties:
+        suppliers:
+          description: purchases.view bo'lganga, aks holda null
+          oneOf:
+            - $ref: "#/components/schemas/DashboardSuppliers"
+            - type: "null"
+        customers:
+          description: customers.view bo'lganga, aks holda null
+          oneOf:
+            - $ref: "#/components/schemas/DashboardCustomers"
+            - type: "null"
+        tasks:
+          description: tasks.view bo'lganga, aks holda null
+          oneOf:
+            - $ref: "#/components/schemas/DashboardTasks"
+            - type: "null"
+        purchases:
+          description: Xaridlar; purchases.view bo'lganga, aks holda null
+          oneOf:
+            - $ref: "#/components/schemas/DashboardMoney"
+            - type: "null"
+        sales:
+          description: Sotuvlar; sales.view bo'lganga, aks holda null
+          oneOf:
+            - $ref: "#/components/schemas/DashboardMoney"
+            - type: "null"
+    DashboardSuppliers:
+      type: object
+      description: >
+        Kompaniyaning jonli ta'minotchilari so'mdagi balanslari (ro'yxatdagi
+        balance): musbatlari yig'indisi va soni, manfiylari yig'indisi
+        musbat son sifatida
+      required: [debt, debtors, advance]
+      properties:
+        debt:
+          type: string
+          description: Qarz, so'mda, ikki kasr xonasi bilan
+        debtors:
+          type: integer
+          format: int64
+          description: Qarzdor (balansi musbat) ta'minotchilar soni
+        advance:
+          type: string
+          description: Avans, so'mda, ikki kasr xonasi bilan
+    DashboardCustomers:
+      type: object
+      required: [total, added_this_month, by_day]
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: Bugun oxirigacha jonli mijozlar soni
+        added_this_month:
+          type: integer
+          format: int64
+        by_day:
+          type: array
+          description: Oyning har kuni oxirigacha jonli mijozlar soni, 1-kundan bugungacha
+          items:
+            type: integer
+            format: int64
+    DashboardTasks:
+      type: object
+      required: [active, late, by_stage, upcoming]
+      properties:
+        active:
+          type: integer
+          format: int64
+          description: Yakuniy bo'lmagan bosqichdagi vazifalar
+        late:
+          type: integer
+          format: int64
+          description: Ulardan muddati bugundan oldingilari
+        by_stage:
+          type: array
+          description: Har yakuniy bo'lmagan bosqich, tartibi bilan, 0 lilari ham
+          items:
+            $ref: "#/components/schemas/DashboardStageCount"
+        upcoming:
+          type: array
+          description: Eng yaqin muddatli 5 ta faol vazifa (muddat, keyin ID bo'yicha)
+          items:
+            $ref: "#/components/schemas/Task"
+    DashboardStageCount:
+      type: object
+      required: [stage_id, count]
+      properties:
+        stage_id:
+          type: integer
+          format: int64
+        count:
+          type: integer
+          format: int64
+    DashboardMoney:
+      type: object
+      description: Shu oyning bugungacha jonli hujjatlari (xarid yoki sotuv)
+      required: [month_total, month_count, by_day]
+      properties:
+        month_total:
+          type: string
+          description: Jami, so'mda, ikki kasr xonasi bilan
+        month_count:
+          type: integer
+          format: int64
+        by_day:
+          type: array
+          description: Oyning har kuni oxirigacha yig'ilgan so'm, 1-kundan bugungacha
+          items:
+            type: string
     Task:
       type: object
       required: [id, type_id, stage_id, location_id, title, deadline, customer, assignee, values, created_by_name, created_at, updated_at]

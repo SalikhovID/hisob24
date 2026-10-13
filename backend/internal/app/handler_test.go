@@ -22,6 +22,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
+	"github.com/SalikhovID/hisob24/backend/internal/dashboard"
 	"github.com/SalikhovID/hisob24/backend/internal/finance"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
@@ -126,6 +127,7 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 			Warehouse:  warehouse.NewService(pool),
 			Currencies: currency.NewService(pool),
 			Finance:    finance.NewService(pool),
+			Dashboard:  dashboard.NewService(pool, task.NewService(pool, customer.NewService(pool))),
 		},
 		cookieSecure,
 		httpx.NewRateLimiter(5, time.Minute),

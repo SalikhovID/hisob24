@@ -15,6 +15,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/company"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
+	"github.com/SalikhovID/hisob24/backend/internal/dashboard"
 	"github.com/SalikhovID/hisob24/backend/internal/finance"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
@@ -33,6 +34,7 @@ type Services struct {
 	Warehouse  *warehouse.Service
 	Currencies *currency.Service
 	Finance    *finance.Service
+	Dashboard  *dashboard.Service
 }
 
 // Handler serves /app.
@@ -46,6 +48,7 @@ type Handler struct {
 	warehouse     *warehouse.Service
 	currencies    *currency.Service
 	finance       *finance.Service
+	dashboard     *dashboard.Service
 	cookieSecure  bool
 	sendLimiter   *httpx.RateLimiter
 	verifyLimiter *httpx.RateLimiter
@@ -55,7 +58,7 @@ type Handler struct {
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
 	return &Handler{
-		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog, warehouse: s.Warehouse, currencies: s.Currencies, finance: s.Finance,
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog, warehouse: s.Warehouse, currencies: s.Currencies, finance: s.Finance, dashboard: s.Dashboard,
 		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
 	}
 }
@@ -91,6 +94,8 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Use(h.requireCompany)
 				// The member's own order of the menu (logic/roles.md, section 8).
 				r.Put("/me/nav", h.setNavOrder)
+				// The home's blocks, each by its own permission.
+				r.Get("/dashboard", h.getDashboard)
 				// What every member reads: the lists the forms are built from.
 				r.Get("/members", h.listMembers)
 				r.Get("/customer-dropdowns", h.listCustomerDropdowns)
