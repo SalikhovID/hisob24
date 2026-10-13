@@ -9,7 +9,7 @@ import { Failed, ListLoading, NotFound } from "@/components/states"
 import { api, call } from "@/lib/api"
 import { rolesKey, useRoles } from "@/lib/queries"
 import { useOwner } from "@/lib/use-gate"
-import { DeleteButton } from "./delete-button"
+import { DeleteDialog } from "./delete-button"
 import { RoleForm } from "./role-form"
 
 const back = { href: "/settings/roles", label: "Rollar" }
@@ -70,8 +70,7 @@ export function RolePage({ id }: { id: number }) {
         </Group>
       </RoleForm>
       {removing && (
-        <DeleteButton
-          label={`O'chirish: ${role.name}`}
+        <DeleteDialog
           title="Rolni o'chirasizmi?"
           description={`«${role.name}» roli o'chadi. Xodimga biriktirilgan rol o'chirilmaydi.`}
           done="Rol o'chirildi"

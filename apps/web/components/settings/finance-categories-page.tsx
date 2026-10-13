@@ -17,7 +17,7 @@ import type { FinanceCategory, FinanceKind, Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
-import { DeleteButton } from "./delete-button"
+import { DeleteDialog } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 
 // The words of each kind: what its list is called and what its rows are for.
@@ -170,8 +170,7 @@ export function FinanceCategoriesPage() {
         />
       )}
       {sheet && "remove" in sheet && (
-        <DeleteButton
-          label={`O'chirish: ${sheet.remove.name}`}
+        <DeleteDialog
           title="Kategoriyani o'chirasizmi?"
           description={`«${sheet.remove.name}» kategoriyasi o'chadi. Hujjati bor kategoriya o'chirilmaydi: uni nofaol qilish mumkin.`}
           done="Kategoriya o'chirildi"

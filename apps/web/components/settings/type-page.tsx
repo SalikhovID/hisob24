@@ -16,7 +16,7 @@ import { customerTypesKey, taskTypesKey, useCustomerDropdowns, useCustomerTypes,
 import type { CustomerField, CustomerType, Permission, TaskField, TaskType } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
-import { DeleteButton } from "./delete-button"
+import { DeleteDialog } from "./delete-button"
 import { AddFieldSheet, EditFieldSheet } from "./field-sheet"
 import { NameDialog } from "./name-dialog"
 
@@ -200,8 +200,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
         />
       )}
       {removing && sheet && "removeField" in sheet && (
-        <DeleteButton
-          label={`O'chirish: ${removing.label}`}
+        <DeleteDialog
           title="Maydonni o'chirasizmi?"
           description={`«${removing.label}» maydoni formadan olib tashlanadi. ${w.fieldStops}`}
           done="Maydon o'chirildi"
@@ -231,8 +230,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
         />
       )}
       {sheet && "removeType" in sheet && (
-        <DeleteButton
-          label={`O'chirish: ${type.name}`}
+        <DeleteDialog
           title={w.remove.title}
           description={`«${type.name}» turi va uning maydonlari o'chadi. ${w.remove.stops}`}
           done={w.remove.done}

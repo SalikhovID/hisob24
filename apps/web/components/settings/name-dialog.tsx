@@ -2,11 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
-import { type ReactElement, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
-import { ActionTooltip } from "@/components/action-tooltip"
 import { TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -19,7 +17,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { nameSchema } from "@/lib/schemas"
 
@@ -37,10 +34,8 @@ export function NameDialog({
   initial = "",
   submit,
   done,
-  trigger,
-  tooltip,
   placeholder,
-  open: openGiven,
+  open,
   onOpenChange,
   onSubmit,
 }: {
@@ -51,43 +46,24 @@ export function NameDialog({
   // submit names the dialog's button; done is what the toast says after.
   submit: string
   done: string
-  // trigger is the button that opens the dialog; tooltip says what an icon
-  // button does. open, with onOpenChange, opens it from outside instead (a
-  // page's plus, a row): it has no button then.
-  trigger?: ReactElement
-  tooltip?: string
   // placeholder is the name's example in its row.
   placeholder?: string
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onSubmit: (name: string) => Promise<unknown>
 }) {
-  const [openOwn, setOpenOwn] = useState(false)
-  const controlled = openGiven !== undefined
-  const open = controlled ? openGiven : openOwn
-  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const form = useForm<Input, unknown, Output>({ resolver: zodResolver(nameSchema), defaultValues: { name: initial } })
   const save = useMutation({
     mutationFn: ({ name }: Output) => onSubmit(name),
     onSuccess: () => {
       toast.success(done)
-      setOpen(false)
+      onOpenChange(false)
     },
   })
 
-  // Every opening starts from the name as it is now.
-  const changeOpen = (next: boolean) => {
-    setOpen(next)
-    if (next) {
-      form.reset({ name: initial })
-      save.reset()
-    }
-  }
 
-  const opener = <DialogTrigger render={trigger} />
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      {controlled ? null : tooltip ? <ActionTooltip label={tooltip}>{opener}</ActionTooltip> : opener}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

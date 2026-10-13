@@ -18,7 +18,7 @@ import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
 import { AddOptionForm } from "./add-option-form"
-import { DeleteButton } from "./delete-button"
+import { DeleteDialog } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 
 const back = { href: "/settings/dropdowns", label: "Dropdownlar" }
@@ -157,8 +157,7 @@ export function DropdownPage({ id }: { id: number }) {
         />
       )}
       {sheet && "remove" in sheet && (
-        <DeleteButton
-          label={`O'chirish: ${sheet.remove.label}`}
+        <DeleteDialog
           title="Variantni o'chirasizmi?"
           description={`«${sheet.remove.label}» ro'yxatdan olib tashlanadi. Mijozlarda tanlangan variant o'chirilmaydi: uni nofaol qilish mumkin.`}
           done="Variant o'chirildi"
@@ -186,8 +185,7 @@ export function DropdownPage({ id }: { id: number }) {
         />
       )}
       {sheet && "removeDropdown" in sheet && (
-        <DeleteButton
-          label={`O'chirish: ${dropdown.name}`}
+        <DeleteDialog
           title="Dropdownni o'chirasizmi?"
           description={`«${dropdown.name}» va uning variantlari o'chadi. Maydonga ulangan dropdown o'chirilmaydi.`}
           done="Dropdown o'chirildi"

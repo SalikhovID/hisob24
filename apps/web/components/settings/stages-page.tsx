@@ -16,7 +16,7 @@ import type { Permission, TaskStage } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
-import { DeleteButton } from "./delete-button"
+import { DeleteDialog } from "./delete-button"
 import { StageDialog } from "./stage-dialog"
 
 // Sheet is what is open over the page: a stage being added, changed or deleted.
@@ -118,8 +118,7 @@ export function StagesPage() {
         />
       )}
       {sheet && "remove" in sheet && (
-        <DeleteButton
-          label={`O'chirish: ${sheet.remove.name}`}
+        <DeleteDialog
           title="Bosqichni o'chirasizmi?"
           description={`«${sheet.remove.name}» bosqichi o'chadi. Vazifasi bor bosqich o'chirilmaydi.`}
           done="Bosqich o'chirildi"

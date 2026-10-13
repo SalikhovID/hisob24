@@ -4,11 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import { useMutation } from "@tanstack/react-query"
-import { type ReactElement, useId, useState } from "react"
+import { useId } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
-import { ActionTooltip } from "@/components/action-tooltip"
 import { FormRow, SwitchRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -21,7 +20,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { stageSchema } from "@/lib/schemas"
 import { colorClasses, colorLabels, stageColors } from "@/lib/stage-colors"
@@ -45,9 +43,7 @@ export function StageDialog({
   initial = empty,
   submit,
   done,
-  trigger,
-  tooltip,
-  open: openGiven,
+  open,
   onOpenChange,
   onDelete,
   onSubmit,
@@ -59,45 +55,25 @@ export function StageDialog({
   // submit names the dialog's button; done is what the toast says after.
   submit: string
   done: string
-  // trigger is the button that opens the dialog; tooltip says what an icon
-  // button does.
-  trigger?: ReactElement
-  tooltip?: string
-  // open, with onOpenChange, opens it from outside instead (a page's plus,
-  // a row): it has no button then.
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
   // onDelete, for a stage being changed, is the danger row's: the caller asks and deletes.
   onDelete?: () => void
   onSubmit: (stage: StageOutput) => Promise<unknown>
 }) {
-  const [openOwn, setOpenOwn] = useState(false)
-  const controlled = openGiven !== undefined
-  const open = controlled ? openGiven : openOwn
-  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const id = useId()
   const form = useForm<Input, unknown, StageOutput>({ resolver: zodResolver(stageSchema), defaultValues: initial })
   const save = useMutation({
     mutationFn: onSubmit,
     onSuccess: () => {
       toast.success(done)
-      setOpen(false)
+      onOpenChange(false)
     },
   })
 
-  // Every opening starts from the stage as it is now.
-  const changeOpen = (next: boolean) => {
-    setOpen(next)
-    if (next) {
-      form.reset(initial)
-      save.reset()
-    }
-  }
 
-  const opener = <DialogTrigger render={trigger} />
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      {controlled ? null : tooltip ? <ActionTooltip label={tooltip}>{opener}</ActionTooltip> : opener}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
