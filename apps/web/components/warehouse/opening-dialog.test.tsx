@@ -7,6 +7,7 @@ import { renderWithProviders } from "@/test/render"
 import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpening } from "@/test/stock"
+import { momentIn } from "@/test/moment"
 import { OpeningDialog } from "./opening-dialog"
 
 // Opened is the sheet as the statement opens it (its «Boshlang'ich»
@@ -24,7 +25,7 @@ test("an opening debt is entered: the kind chosen, the amount typed the Uzbek wa
   const { user } = renderWithProviders(<Opened companyId={1} partyId={bozor.id} />)
 
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
-  expect((within(dialog).getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(dialog)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(within(dialog).queryByLabelText("Valyuta")).not.toBeInTheDocument()
   await user.click(kind(dialog, "Qarz"))
   expect(within(dialog).getByText("so'm")).toBeInTheDocument()
@@ -79,7 +80,7 @@ test("an opening balance is edited from its fields; its kind stays", async () =>
   expect(kind(dialog, "Qarz")).toBeDisabled()
   expect(kind(dialog, "Avans")).toBeDisabled()
   expect(within(dialog).getByLabelText("Summa")).toHaveValue("1000000.00")
-  expect(within(dialog).getByLabelText("Vaqt")).toHaveValue("2026-10-03T09:00")
+  expect(momentIn(dialog)).toBe("2026-10-03T09:00")
   expect(within(dialog).getByLabelText("Izoh")).toHaveValue("Eski qarz")
   await user.clear(within(dialog).getByLabelText("Summa"))
   await user.type(within(dialog).getByLabelText("Summa"), "1500")

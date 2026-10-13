@@ -5,6 +5,7 @@ import { stockOf } from "@/mocks/ledger"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
+import { momentIn } from "@/test/moment"
 import { EditPurchasePage } from "./edit-purchase-page"
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
@@ -21,7 +22,7 @@ test("a purchase is edited from its fields as they are: a line changed, a line t
   expect(screen.getByRole("heading", { level: 1, name: "Xaridni tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xarid № 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
   expect(screen.getByRole("button", { name: /^Ta'minotchi/ })).toHaveTextContent("Bozor")
-  expect(screen.getByLabelText("Vaqt")).toHaveValue("2026-10-01T09:00")
+  expect(momentIn(document.body)).toBe("2026-10-01T09:00")
   expect(within(line(1)).getByText("Olma")).toBeInTheDocument()
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("12.500")
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1000.00")

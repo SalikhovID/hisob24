@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainBar, MainButton } from "@/components/kit/main-button"
@@ -49,7 +50,7 @@ export function OpeningStockForm({
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-1 flex-col [&>*]:shrink-0">
       {refusal && <Refusal className="mb-4">{refusal}</Refusal>}
       <Group>
-        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        <DateTimeRow control={form.control} name="at" label="Vaqt" />
         {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
         {isMulti(currencies) && currencyId !== UZS && (
           <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />

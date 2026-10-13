@@ -10,6 +10,7 @@ import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { enterInventory } from "@/test/stock"
+import { momentIn, pickDay } from "@/test/moment"
 import { EditInventoryPage } from "./edit-inventory-page"
 import { NewInventoryPage } from "./new-inventory-page"
 
@@ -27,7 +28,7 @@ test("a count of the current location: every product in stock added at once with
   expect(await screen.findByRole("heading", { level: 1, name: "Yangi inventarizatsiya" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Inventarizatsiya" })).toHaveAttribute("href", "/inventories")
-  expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(document.body)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(line(1)).toHaveAttribute("data-slot", "line-card")
   expect(screen.getByRole("button", { name: "Saqlash" }).closest("[data-slot=main-bar]")).not.toBeNull()
 
@@ -75,9 +76,7 @@ test("a product picked by name shows the stock expected at the moment, which fol
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await waitFor(() => expect(figure(line(1), "Tizim")).toBe(formatQuantity("12.500", "kg")))
   // Dated before the purchase, nothing was expected.
-  const at = screen.getByLabelText("Vaqt")
-  await user.clear(at)
-  await user.type(at, "2026-09-30T09:00")
+  await pickDay(user, document.body, "2026-09-30")
   await waitFor(() => expect(figure(line(1), "Tizim")).toBe(formatQuantity("0", "kg")))
 
   // A lone line is not taken away.
@@ -98,7 +97,7 @@ test("editing: the count comes filled in with what the journal expects without i
   expect(await screen.findByText("№ 1 · Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("heading", { level: 1, name: "Inventarizatsiyani tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Inventarizatsiya № 1" })).toHaveAttribute("href", `/inventories/${inventory.id}`)
-  expect(screen.getByLabelText("Vaqt")).toHaveValue("2026-10-05T09:00")
+  expect(momentIn(document.body)).toBe("2026-10-05T09:00")
   expect(within(line(1)).getByText("Olma")).toBeInTheDocument()
   await waitFor(() => expect(figure(line(1), "Tizim")).toBe(formatQuantity("12.500", "kg")))
   expect(within(line(1)).getByLabelText("Sanalgan")).toHaveValue("10.000")

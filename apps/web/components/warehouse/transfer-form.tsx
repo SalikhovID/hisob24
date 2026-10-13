@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainBar, MainButton } from "@/components/kit/main-button"
@@ -43,7 +44,7 @@ export function TransferForm({
       {refusal && <Refusal className="mb-4">{refusal}</Refusal>}
       <Group>
         <SelectRow control={form.control} name="to_location_id" label="Qayerga" options={destinations} />
-        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        <DateTimeRow control={form.control} name="at" label="Vaqt" />
       </Group>
       <LinesField form={form} companyId={companyId} withPrice={false} currencyId={UZS} pending={pending} />
       <Group>

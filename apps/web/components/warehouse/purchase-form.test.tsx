@@ -8,6 +8,7 @@ import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
+import { momentIn } from "@/test/moment"
 import { NewPurchasePage } from "./new-purchase-page"
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
@@ -23,7 +24,7 @@ test("a purchase is entered into the current location: the supplier and the prod
   expect(await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xaridlar" })).toHaveAttribute("href", "/purchases")
-  expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(document.body)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(screen.queryByLabelText("Valyuta")).not.toBeInTheDocument()
   // The form says what saving does, and saves from the bar at the bottom.
   expect(screen.getByText("Saqlangach mahsulotlar «Asosiy» qoldig'iga qo'shiladi, to'lanmagan qismi ta'minotchi qarziga yoziladi.")).toBeInTheDocument()

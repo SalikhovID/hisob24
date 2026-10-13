@@ -7,6 +7,7 @@ import { renderWithProviders } from "@/test/render"
 import { choose, optionsOf } from "@/test/select"
 import { signIn } from "@/test/session"
 import { enterExpense } from "@/test/finance"
+import { momentIn } from "@/test/moment"
 import { ExpenseDialog } from "./expense-dialog"
 
 // Opened is the sheet as a page opens it (the account's tile, a document's
@@ -37,7 +38,7 @@ test("an expense is entered out of the account given, under a category of its ki
   // The amount stands with its account's currency; the note may be left empty.
   expect(within(dialog).getByText("so'm")).toBeInTheDocument()
   expect(within(dialog).getByLabelText("Izoh")).toHaveAttribute("placeholder", "ixtiyoriy")
-  expect((within(dialog).getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(dialog)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Kategoriyani tanlang")).toBeInTheDocument()
   expect(await optionsOf(user, within(dialog).getByLabelText("Kategoriya"))).toEqual(["Ijara"])
@@ -75,7 +76,7 @@ test("an expense is edited from its fields: its category offered among the activ
   const dialog = await screen.findByRole("dialog", { name: "Xarajatni tahrirlash" })
   await waitFor(() => expect(within(dialog).getByLabelText("Kategoriya")).toHaveTextContent("Ijara"))
   expect(within(dialog).getByLabelText("Summa")).toHaveValue("150000.00")
-  expect(within(dialog).getByLabelText("Vaqt")).toHaveValue("2026-10-03T09:00")
+  expect(momentIn(dialog)).toBe("2026-10-03T09:00")
   expect(within(dialog).getByLabelText("Izoh")).toHaveValue("Oktabr")
   expect(await optionsOf(user, within(dialog).getByLabelText("Kategoriya"))).toEqual(["Ijara"])
   await user.clear(within(dialog).getByLabelText("Summa"))

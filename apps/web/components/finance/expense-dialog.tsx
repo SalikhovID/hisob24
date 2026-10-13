@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -92,7 +93,7 @@ export function ExpenseDialog({
             <SelectRow control={form.control} name="bank_account_id" label="Akkaunt" options={accountOptions(accounts, currencies, expense?.bank_account_id)} />
             <SelectRow control={form.control} name="category_id" label="Kategoriya" options={offered.map((c) => ({ value: String(c.id), label: c.name }))} />
             <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
-            <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+            <DateTimeRow control={form.control} name="at" label="Vaqt" />
             <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
           </Group>
           {none && (

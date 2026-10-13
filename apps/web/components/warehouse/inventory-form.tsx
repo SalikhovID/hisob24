@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, XIcon } from "lucide-react"
 import { useEffect } from "react"
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { TextRow } from "@/components/kit/form-row"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { MainBar, MainButton } from "@/components/kit/main-button"
@@ -79,7 +80,7 @@ export function InventoryForm({
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-1 flex-col [&>*]:shrink-0">
       {refusal && <Refusal className="mb-4">{refusal}</Refusal>}
       <Group>
-        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        <DateTimeRow control={form.control} name="at" label="Vaqt" />
       </Group>
 
       <section aria-labelledby="inventory-lines">

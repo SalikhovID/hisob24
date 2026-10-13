@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, OptionChips, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -97,7 +98,7 @@ export function OpeningDialog({
             <OptionChips control={form.control} name="kind" label="Tur" options={kindOptions} disabled={opening !== undefined} />
             {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
             <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
-            <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+            <DateTimeRow control={form.control} name="at" label="Vaqt" />
             {isMulti(currencies) && currencyId !== UZS && (
               <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
             )}

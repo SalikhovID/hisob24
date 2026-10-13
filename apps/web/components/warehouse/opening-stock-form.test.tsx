@@ -10,6 +10,7 @@ import { renderWithProviders } from "@/test/render"
 import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpeningStock } from "@/test/stock"
+import { momentIn } from "@/test/moment"
 import { EditOpeningStockPage } from "./edit-opening-stock-page"
 import { NewOpeningStockPage } from "./new-opening-stock-page"
 
@@ -25,7 +26,7 @@ test("an opening stock is entered into the current location like a purchase with
   expect(await screen.findByRole("heading", { level: 1, name: "Yangi boshlang'ich qoldiq" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Boshlang'ich qoldiq" })).toHaveAttribute("href", "/opening-stock")
-  expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(document.body)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(screen.queryByRole("button", { name: /^Ta'minotchi/ })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
   expect(screen.queryByLabelText("Valyuta")).not.toBeInTheDocument()
@@ -89,7 +90,7 @@ test("editing: the document comes filled in, and is saved with another price", a
   expect(await screen.findByText("№ 1 · Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("heading", { level: 1, name: "Boshlang'ich qoldiqni tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Boshlang'ich qoldiq № 1" })).toHaveAttribute("href", `/opening-stock/${opening.id}`)
-  expect(screen.getByLabelText("Vaqt")).toHaveValue("2026-09-30T09:00")
+  expect(momentIn(document.body)).toBe("2026-09-30T09:00")
   expect(within(line(1)).getByText("Olma")).toBeInTheDocument()
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("2.000")
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1000.00")

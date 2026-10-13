@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -84,7 +85,7 @@ export function ConversionDialog({
           </Group>
           {rate && <Foot className="-mt-4 tabular-nums">{rate}</Foot>}
           <Group>
-            <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+            <DateTimeRow control={form.control} name="at" label="Vaqt" />
             <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
           </Group>
           <DialogFooter>

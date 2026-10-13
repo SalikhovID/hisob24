@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -72,7 +73,7 @@ export function CashOpeningDialog({
           <Group>
             <SelectRow control={form.control} name="bank_account_id" label="Akkaunt" options={accountOptions(accounts, currencies, opening?.bank_account_id)} />
             <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
-            <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+            <DateTimeRow control={form.control} name="at" label="Vaqt" />
             <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
           </Group>
           <DialogFooter>

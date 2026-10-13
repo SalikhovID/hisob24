@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -76,7 +77,7 @@ export function MoneyTransferDialog({
             <SelectRow control={form.control} name="from_account_id" label="Qayerdan" options={accountOptions(accounts, currencies, transfer?.from_account_id)} />
             <SelectRow control={form.control} name="to_account_id" label="Qayerga" options={accountOptions(targets, currencies, transfer?.to_account_id)} />
             <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
-            <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+            <DateTimeRow control={form.control} name="at" label="Vaqt" />
             <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
           </Group>
           <DialogFooter>

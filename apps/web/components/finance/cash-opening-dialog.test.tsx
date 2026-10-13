@@ -6,6 +6,7 @@ import { ALI, db, nextId } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { enterCashOpening } from "@/test/finance"
+import { momentIn } from "@/test/moment"
 import { CashOpeningDialog } from "./cash-opening-dialog"
 
 // Opened is the sheet as a page opens it (the account's tile, a document's
@@ -24,7 +25,7 @@ test("an opening balance of the cash is entered: into the account given, the amo
   const dialog = await screen.findByRole("dialog", { name: "Kassa boshlang'ich qoldig'i" })
   // The accounts come with the session: the row says the account once they are known.
   await waitFor(() => expect(within(dialog).getByLabelText("Akkaunt")).toHaveTextContent("Kassa 2 (so'm)"))
-  expect((within(dialog).getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(dialog)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Summani kiriting")).toBeInTheDocument()
   await user.type(within(dialog).getByLabelText("Summa"), "1 000 000,5")
@@ -44,7 +45,7 @@ test("an opening balance is edited from its fields", async () => {
   // A role's name keeps the amount's no-break spaces.
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qoldiqni tahrirlash" })
   expect(within(dialog).getByLabelText("Summa")).toHaveValue("1000000.00")
-  expect(within(dialog).getByLabelText("Vaqt")).toHaveValue("2026-10-01T09:00")
+  expect(momentIn(dialog)).toBe("2026-10-01T09:00")
   await user.clear(within(dialog).getByLabelText("Summa"))
   await user.type(within(dialog).getByLabelText("Summa"), "900000")
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))

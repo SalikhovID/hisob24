@@ -9,6 +9,7 @@ import { renderWithProviders } from "@/test/render"
 import { choose, optionsOf } from "@/test/select"
 import { signIn } from "@/test/session"
 import { enterTransfer } from "@/test/stock"
+import { momentIn } from "@/test/moment"
 import { EditTransferPage } from "./edit-transfer-page"
 import { NewTransferPage } from "./new-transfer-page"
 
@@ -26,7 +27,7 @@ test("a transfer is entered out of the current location: the other location chos
   expect(await screen.findByRole("heading", { level: 1, name: "Yangi ko'chirish" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ko'chirishlar" })).toHaveAttribute("href", "/transfers")
-  expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(document.body)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   const to = screen.getByLabelText("Qayerga")
   expect(await optionsOf(user, to)).toEqual(["Chilonzor", "Qo'yliq"])
   await choose(user, to, "Qo'yliq")
@@ -92,7 +93,7 @@ test("editing: the transfer comes filled in, and is saved with fewer of the prod
   expect(screen.getByRole("heading", { level: 1, name: "Ko'chirishni tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ko'chirish № 1" })).toHaveAttribute("href", `/transfers/${transfer.id}`)
   expect(screen.getByLabelText("Qayerga")).toHaveTextContent("Chilonzor")
-  expect(screen.getByLabelText("Vaqt")).toHaveValue("2026-10-05T09:00")
+  expect(momentIn(document.body)).toBe("2026-10-05T09:00")
   expect(within(line(1)).getByText("Olma")).toBeInTheDocument()
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("4.000")
   await user.clear(within(line(1)).getByLabelText("Miqdor"))

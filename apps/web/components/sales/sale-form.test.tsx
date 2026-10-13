@@ -10,6 +10,7 @@ import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
+import { momentIn } from "@/test/moment"
 import { EditSalePage } from "./edit-sale-page"
 import { NewSalePage } from "./new-sale-page"
 
@@ -27,7 +28,7 @@ test("a sale to a customer out of the current location: the customer found by na
   expect(await screen.findByRole("heading", { level: 1, name: "Yangi sotuv" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sotuvlar" })).toHaveAttribute("href", "/sales")
-  expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(document.body)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(screen.getByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).toBeInTheDocument()
   // The form says what saving does, and saves from the bar at the bottom.
   expect(screen.getByText("Saqlangach mahsulotlar «Asosiy» qoldig'idan chiqadi, to'lanmagan qismi mijoz qarziga yoziladi.")).toBeInTheDocument()

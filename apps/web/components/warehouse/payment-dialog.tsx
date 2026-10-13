@@ -6,6 +6,7 @@ import { useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { AmountSheet, decimalToTyped } from "@/components/kit/amount-sheet"
+import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { SelectRow } from "@/components/kit/picker-sheet"
@@ -119,7 +120,7 @@ export function PaymentDialog({
       {save.isError && <Refusal className="mb-3">{save.error.message}</Refusal>}
       <Group className="mb-2">
         <SelectRow control={form.control} name="bank_account_id" label="Akkaunt" options={accountOptions(accounts, currencies, payment?.bank_account_id)} />
-        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        <DateTimeRow control={form.control} name="at" label="Vaqt" />
         {isMulti(currencies) && currency.id !== UZS && (
           <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
         )}

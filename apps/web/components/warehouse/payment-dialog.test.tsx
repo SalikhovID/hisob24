@@ -7,6 +7,7 @@ import { toPayment } from "@/mocks/warehouse"
 import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
+import { momentIn } from "@/test/moment"
 import { PaymentDialog } from "./payment-dialog"
 
 // Opened is the sheet as a page opens it (the «To'lov» tile, a payment's
@@ -28,7 +29,7 @@ test("a payment is typed on the keypad: out of the cash, now unless another mome
   expect(within(dialog).getByText("Bozor")).toBeInTheDocument()
   // The accounts come with the session: the first one is taken once they are known.
   await waitFor(() => expect(within(dialog).getByLabelText("Akkaunt")).toHaveTextContent("Naqd (so'm)"))
-  expect((within(dialog).getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
+  expect(momentIn(dialog)).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(within(dialog).queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
   await press(user, dialog, "1200,5")
   expect(typed(dialog)).toBe("1 200,5 so'm")
@@ -73,7 +74,7 @@ test("a payment entered on its own is edited: its amount comes typed, a key chan
 
   const dialog = await screen.findByRole("dialog", { name: "To'lovni tahrirlash" })
   expect(typed(dialog)).toBe("1 200,5 so'm")
-  expect(within(dialog).getByLabelText("Vaqt")).toHaveValue("2026-10-03T09:00")
+  expect(momentIn(dialog)).toBe("2026-10-03T09:00")
   await press(user, dialog, "<<<<<<1500")
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
