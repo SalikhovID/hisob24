@@ -108,11 +108,13 @@ export function StatCard({
           <Icon strokeWidth={2.8} className="size-3" />
         </span>
         {title}
-      </span>
+      </span>{" "}
       <span data-slot="stat-value" className="mt-1.5 text-[22px] leading-tight font-bold tracking-[-0.02em] whitespace-nowrap">
         {value}
-        {unit && <span className="ml-1 text-md font-semibold tracking-normal text-muted-foreground">{unit}</span>}
+        {unit && " "}
+        {unit && <span className="text-md font-semibold tracking-normal text-muted-foreground">{unit}</span>}
       </span>
+      {meta && " "}
       {meta && <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold">{meta}</span>}
       {chart}
     </>
