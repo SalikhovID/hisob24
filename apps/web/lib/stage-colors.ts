@@ -32,3 +32,17 @@ export const colorClasses: Record<StageColor, { dot: string; badge: string }> = 
   violet: { dot: "bg-violet-500", badge: "bg-violet-500/10 text-violet-800 dark:text-violet-300" },
   pink: { dot: "bg-pink-500", badge: "bg-pink-500/10 text-pink-800 dark:text-pink-300" },
 }
+
+// colorValues are the colors themselves, for what a class cannot paint (a
+// chart's bar): the hues of the dots.
+export const colorValues: Record<StageColor, string> = {
+  slate: "#64748b",
+  red: "#ef4444",
+  orange: "#f97316",
+  amber: "#f59e0b",
+  green: "#22c55e",
+  teal: "#14b8a6",
+  blue: "#3b82f6",
+  violet: "#8b5cf6",
+  pink: "#ec4899",
+}

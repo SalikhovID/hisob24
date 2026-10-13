@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, unitLabel } from "./format"
+import { compactAmount, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, unitLabel } from "./format"
 
 test("formatDate writes a date as dd.mm.yyyy", () => {
   expect(formatDate("2026-10-07")).toBe("07.10.2026")
@@ -48,4 +48,13 @@ test("formatRate writes a rate without its trailing zeros", () => {
   expect(formatRate("12800.0000")).toBe("12 800")
   expect(formatRate("12800.5000")).toBe("12 800,5")
   expect(formatRate("0.1234")).toBe("0,1234")
+})
+
+test("a compact amount is millions to two decimals where they matter, a smaller one grouped whole", () => {
+  // Apart by a no-break space, as formatAmount writes the thousands.
+  expect(compactAmount("4600000.00")).toBe("4,6\u00a0mln")
+  expect(compactAmount("1234567.89")).toBe("1,23\u00a0mln")
+  expect(compactAmount("12000000.00")).toBe("12\u00a0mln")
+  expect(compactAmount("750000.50")).toBe(formatAmount("750000"))
+  expect(compactAmount("0.00")).toBe("0")
 })

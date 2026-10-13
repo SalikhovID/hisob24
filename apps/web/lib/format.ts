@@ -60,3 +60,14 @@ export function formatRate(rate: string): string {
   const trimmed = decimals.replace(/0+$/, "")
   return trimmed ? `${grouped},${trimmed}` : grouped
 }
+
+// compactAmount writes a large sum where room is short (a card): millions
+// as "4,6 mln", a smaller sum grouped and whole.
+export function compactAmount(amount: string): string {
+  const n = Number(amount)
+  if (Math.abs(n) >= 1_000_000) {
+    const millions = (n / 1_000_000).toFixed(2).replace(/\.?0+$/, "").replace(".", ",")
+    return `${millions}\u00a0mln`
+  }
+  return formatAmount(amount.split(".")[0])
+}

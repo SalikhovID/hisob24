@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { colorClasses, colorLabels, stageColors } from "./stage-colors"
+import { colorValues, colorClasses, colorLabels, stageColors } from "./stage-colors"
 
 test("the nine colors a stage may have, each with its Uzbek name, in the order a form offers them", () => {
   expect(stageColors.map((color) => [color, colorLabels[color]])).toEqual([
@@ -24,4 +24,10 @@ test("every color has a dot and a badge in its own hue, as whole class names Tai
     expect(colorClasses[color].badge, color).toContain(`text-${color}-800`)
     expect(colorClasses[color].badge, color).toContain(`dark:text-${color}-300`)
   }
+})
+
+test("each color has a value to paint with, where a class will not do (a chart's bar)", () => {
+  expect(Object.keys(colorValues)).toEqual(stageColors)
+  expect(colorValues.blue).toMatch(/^#[0-9a-f]{6}$/)
+  expect(new Set(Object.values(colorValues)).size).toBe(stageColors.length)
 })
