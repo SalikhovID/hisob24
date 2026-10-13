@@ -97,7 +97,7 @@ interface SheetProps {
   // search, when given, is the search box's placeholder: the options are
   // narrowed in place as it is typed in.
   search?: string
-  note?: string
+  note?: ReactNode
   emptyText?: string
 }
 
@@ -144,7 +144,7 @@ function PickerBody({
   onChange: (value: string) => void
   none?: string
   search?: string
-  note?: string
+  note?: ReactNode
   emptyText?: string
   onClose: () => void
 }) {
@@ -207,7 +207,7 @@ function MultiPickerBody({
   value: string[]
   onChange: (value: string[]) => void
   search?: string
-  note?: string
+  note?: ReactNode
   emptyText?: string
   onClose: () => void
 }) {
@@ -244,7 +244,7 @@ interface Bound<T extends FieldValues, TOut extends FieldValues> {
   label: string
   options: PickerOption[]
   search?: string
-  note?: string
+  note?: ReactNode
   disabled?: boolean
 }
 
@@ -373,7 +373,7 @@ export function SearchPickerSheet({
   onChange: (value: string) => void
   loading: boolean
   emptyText?: string
-  note?: string
+  note?: ReactNode
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
