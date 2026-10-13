@@ -5,9 +5,9 @@ import { EyeIcon, EyeOffIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Tile } from "@/components/kit/detail-head"
 import { api, call } from "@/lib/api"
+import { nounOf } from "@/lib/catalog"
 import { productKey, productsKey } from "@/lib/queries"
 import type { Product } from "@/lib/types"
-import { nounOf } from "./icon-action"
 
 // useProductActive turns a product or a service off (it is no longer
 // offered, its name stays taken; logic/products.md, 3.3) or on again, and

@@ -33,6 +33,9 @@ const price = z.string().transform((value, context) => {
 // text), turned into the id the API takes.
 const currencyId = z.string().min(1, "Valyutani tanlang").transform(Number)
 
+// nounOf is what a record is called: a product or a service.
+export const nounOf = (kind: "product" | "service") => (kind === "service" ? "Xizmat" : "Mahsulot")
+
 // productSchema checks the product dialog in the API's words and turns it
 // into what the API takes (without the kind, which the dialog knows).
 export const productSchema = z.object({

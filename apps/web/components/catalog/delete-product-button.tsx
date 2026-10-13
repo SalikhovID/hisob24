@@ -15,9 +15,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { api, call } from "@/lib/api"
+import { nounOf } from "@/lib/catalog"
 import { productsKey } from "@/lib/queries"
 import type { Product } from "@/lib/types"
-import { nounOf } from "./icon-action"
 
 // DeleteProductButton is the danger row at the foot of a product's (or a
 // service's) page: it deletes the record after asking. afterDelete is what
