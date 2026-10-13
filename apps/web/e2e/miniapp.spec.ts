@@ -1,7 +1,7 @@
 import { ALI, seedTasks, TG_ALI, TG_STRANGER, TG_UNLINKED } from "../mocks/data"
 import type { Page } from "@playwright/test"
 import { expect, test } from "./fixtures"
-import { onPhone, openSection } from "./helpers"
+import { homeHead, onPhone, openSection } from "./helpers"
 
 const fits = async (page: Page) =>
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
@@ -17,6 +17,8 @@ const wentFullscreen = (page: Page) =>
 // requestFullscreen (Bot API 8.0) does what a phone's client does: the app
 // takes the whole screen and the status bar (47px) and Telegram's floating
 // controls (46px) now lie over its top, published as the safe area insets.
+// Its BackButton keeps whether it is shown and what a press does; its home
+// screen (Bot API 8.0) has not got the app yet, and adding it is noted.
 function fakeTelegram(telegramId: number, platform = "android") {
   return `
   const themeParams = {
@@ -47,6 +49,15 @@ function fakeTelegram(telegramId: number, platform = "android") {
       },
       onEvent() {},
       offEvent() {},
+      BackButton: {
+        isVisible: false,
+        show() { window.Telegram.WebApp.BackButton.isVisible = true },
+        hide() { window.Telegram.WebApp.BackButton.isVisible = false },
+        onClick(handler) { window.__back = handler },
+        offClick(handler) { if (window.__back === handler) window.__back = undefined },
+      },
+      checkHomeScreenStatus(callback) { callback("missed") },
+      addToHomeScreen() { window.__addedToHome = true },
       requestContact(callback) {
         fetch("/api/__mock/contacts", {
           method: "POST",
@@ -74,28 +85,53 @@ test.describe("a linked user", () => {
     // The page is the grouped list's background (the chat's secondary
     // color), its groups the sections' (docs: 2026-10-13 Mini App UI).
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(35, 46, 60)")
-    await expect(page.getByRole("button", { name: "Mavzuni almashtirish" })).toHaveCount(0)
     await fits(page)
-    // On a phone the sections are a tab bar along the bottom, in the chat's colors.
+    // On a phone the sections are a floating bar of the chat's glass: its
+    // background color, see-through.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
-      await expect(bar.getByRole("link", { name: "Mijozlar" })).toBeVisible()
-      // The owner's seven sections: four and «Yana».
-      await expect(bar.getByRole("button", { name: "Yana" })).toBeVisible()
-      await expect(bar).toHaveCSS("background-color", "rgb(35, 46, 60)")
-      await expect(page.getByRole("button", { name: "Menyu", exact: true })).toHaveCount(0)
+      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv"])
+      await expect(bar).toHaveCSS("background-color", /^color\(srgb 0\.0901\d* 0\.1294\d* 0\.1686\d* \/ 0\.6\)$/)
     }
-    // Full screen on a phone's client: the top bar starts under the status
-    // bar and Telegram's controls (47px + 46px), the shell no taller than
-    // the screen.
+    // Full screen on a phone's client: the page starts under the status bar
+    // and Telegram's controls (47px + 46px), the shell no taller than the
+    // screen.
     expect(await wentFullscreen(page)).toBe(true)
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "93px")
-    expect((await page.getByRole("banner").boundingBox())?.y).toBeGreaterThanOrEqual(93)
+    expect((await homeHead(page).boundingBox())?.y).toBeGreaterThanOrEqual(93)
     await fits(page)
-    // Closing the Mini App is the way out: the profile menu offers none.
-    await page.getByRole("button", { name: "Profil" }).click()
-    await expect(page.getByRole("menu").getByText("+998 90 123 45 67")).toBeVisible()
-    await expect(page.getByRole("menuitem", { name: "Chiqish" })).toHaveCount(0)
+    // Closing the Mini App is the way out: the profile offers no sign-out,
+    // and the chat sets the theme.
+    await homeHead(page).click()
+    await expect(page).toHaveURL(/\/profile$/)
+    await expect(page.getByText("+998 90 123 45 67")).toBeVisible()
+    await expect(page.getByText(/Telegram ichida chiqish uchun ilovani yoping/)).toBeVisible()
+    await expect(page.getByRole("button", { name: "Chiqish" })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /^Mavzu/ })).toHaveCount(0)
+  })
+
+  test("shows Telegram's back button inside a section and goes back with it; the home hides it", async ({ page }) => {
+    await page.goto("/")
+    await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+    const backShown = () => page.evaluate(() => window.Telegram?.WebApp?.BackButton?.isVisible ?? false)
+    expect(await backShown()).toBe(false)
+
+    await homeHead(page).click()
+    await expect(page).toHaveURL(/\/profile$/)
+    await expect.poll(backShown).toBe(true)
+    await page.evaluate(() => (window as unknown as { __back: () => void }).__back())
+
+    await expect(page).toHaveURL(/\/$/)
+    await expect.poll(backShown).toBe(false)
+  })
+
+  test("offers to put the app on the home screen, and asks Telegram for it", async ({ page }) => {
+    await page.goto("/")
+    await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+
+    await page.getByRole("button", { name: /Hisob24'ni bosh ekranga qo'shing/ }).click()
+
+    expect(await page.evaluate(() => (window as unknown as { __addedToHome?: boolean }).__addedToHome)).toBe(true)
   })
 
   // openList goes to the tasks as a list, the way a thumb does: the tab bar,
@@ -152,8 +188,8 @@ test.describe("a phone that is no user's", () => {
     await expect(page.getByRole("heading", { name: "Kirish huquqi yo'q" })).toBeVisible()
     await expect(page.getByText("Raqamingiz: +998 90 555 66 77")).toBeVisible()
     await expect(page.getByRole("button", { name: "Yopish" })).toBeVisible()
-    // Full screen too: the screen's padding keeps its top clear (16px + 93px).
-    await expect(page.getByRole("main")).toHaveCSS("padding-top", "109px")
+    // Full screen too: the screen's padding keeps its top clear (24px + 93px).
+    await expect(page.getByRole("main")).toHaveCSS("padding-top", "117px")
     await fits(page)
   })
 
@@ -208,6 +244,6 @@ test.describe("a desktop Telegram", () => {
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
     expect(await wentFullscreen(page)).toBe(false)
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
-    expect((await page.getByRole("banner").boundingBox())?.y).toBe(0)
+    expect((await homeHead(page).boundingBox())?.y).toBeLessThan(93)
   })
 })
