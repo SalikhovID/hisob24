@@ -251,6 +251,15 @@ test("a document's day and time stand whole on a phone, each in its row: neither
   const time = page.getByLabel("Vaqt", { exact: true })
   await expect(time).toHaveValue(/^\d\d:\d\d$/)
   expect(await time.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+
+  // A sheet is narrower than a page: the payment's day stands whole too.
+  await page.goto("/suppliers")
+  await page.getByRole("list", { name: "Ta'minotchilar" }).getByRole("link", { name: /^Bozor/ }).click()
+  await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "To'lov" }).click()
+  const sheet = page.getByRole("dialog", { name: "To'lov qo'shish" })
+  const sheetDay = sheet.getByRole("button", { name: /^Sana/ }).locator("[data-slot=pick-value]")
+  await expect(sheetDay).toHaveText(/^\d\d\.\d\d\.\d{4}/)
+  expect(await sheetDay.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
 })
 
 test("an employee whose role lacks the warehouse has no way to it, and the addresses lead home", async ({ page }) => {

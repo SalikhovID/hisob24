@@ -240,7 +240,8 @@ export function DateRow<T extends FieldValues, TOut extends FieldValues = T>({ c
 // DateTimeRow is a moment in a form (YYYY-MM-DDTHH:mm, what a
 // datetime-local input gives) as two rows: «Sana», the day picked in the
 // calendar (the prototype's row), and under it the time typed (label, its
-// name). One row held both and cut the day on a phone.
+// name). One row held both and cut the day on a phone; the day goes without
+// «· bugun» (a document starts as now), which a sheet's row cut too.
 export function DateTimeRow<T extends FieldValues, TOut extends FieldValues = T>({ control, name, label, disabled }: Bound<T, TOut>) {
   const [open, setOpen] = useState(false)
   const id = useId()
@@ -254,7 +255,7 @@ export function DateTimeRow<T extends FieldValues, TOut extends FieldValues = T>
           <>
             <PickRow
               label="Sana"
-              value={shownDay(day)}
+              value={day ? formatDate(day) : undefined}
               placeholder="Sanani tanlang"
               onClick={() => setOpen(true)}
               error={fieldState.error?.message}

@@ -74,11 +74,13 @@ test("a date row says the day (and that it is today); a date-time row is the day
   const submit = vi.fn()
   render(<Form onSubmit={submit} />)
   expect(screen.getByRole("button", { name: "Muddat 13.10.2026 · bugun" })).toBeInTheDocument()
-  await userEvent.click(screen.getByRole("button", { name: /^Sana 13\.10\.2026/ }))
+  // A document's day goes without «· bugun»: it starts as today anyway, and
+  // the row stays short enough for a sheet on a phone.
+  await userEvent.click(screen.getByRole("button", { name: "Sana 13.10.2026" }))
   const sheet = await screen.findByRole("dialog", { name: "Sana" })
   await userEvent.click(within(sheet).getByRole("button", { name: "15.10.2026" }))
   await userEvent.click(within(sheet).getByRole("button", { name: "Tanlash" }))
-  expect(screen.getByRole("button", { name: /^Sana 15\.10\.2026/ })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Sana 15.10.2026" })).toBeInTheDocument()
   const time = screen.getByLabelText("Vaqt")
   expect(time).toHaveValue("10:30")
   // jsdom's time input takes a whole value at once, not keystrokes.
