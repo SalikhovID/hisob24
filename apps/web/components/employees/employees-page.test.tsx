@@ -1,126 +1,59 @@
-import { act, screen, waitFor, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, membersOf, nextId, SARDOR, seedTasks, VALI } from "@/mocks/data"
-import { identityOf } from "@/test/identity"
-import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
+import { ALI, db, membersOf, nextId, SARDOR, VALI } from "@/mocks/data"
+import { addLocation, restrictTo } from "@/test/locations"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
-import { choose } from "@/test/select"
+import { rowParts } from "@/test/rows"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { EmployeesPage } from "./employees-page"
 
-// rows are the members in the table (the page shows them as cards too, for
-// phones): the row of each, without the header.
+// rows are the members in the list, each a row that opens the member's sheet.
 async function rows() {
-  const table = await screen.findByRole("table", { name: "Xodimlar" })
-  return within(table).getAllByRole("row").slice(1)
+  const list = await screen.findByRole("list", { name: "Xodimlar" })
+  return within(list)
+    .getAllByRole("listitem")
+    .map((item) => item.firstElementChild as HTMLElement)
+}
+// said is what a row says: its title (with «Siz»), the line under it and its end, the spaces plain.
+const said = (row: HTMLElement) => {
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ").trim() ?? null
+  const { title, sub, end } = rowParts(row)
+  return [plain(title), plain(sub), plain(end)]
+}
+// sheetOf opens a member's sheet from their row.
+async function sheetOf(user: { click: (element: Element) => Promise<void> }, index: number) {
+  await user.click((await rows())[index])
+  return screen.findByRole("dialog", { name: "Xodim" })
 }
 
-// A member is one identity, heading its row: the name over the phone.
-const nameAndPhone = (row: HTMLElement) => identityOf(within(row).getByRole("rowheader"))
-
-test("the owner sees the company's members: themselves first, then the employees", async () => {
+test("the owner sees the company's members as the prototype's rows: themselves first, then the employees, each by name with the phone under it and the role at the end", async () => {
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view"])
   await signIn(ALI)
   renderWithProviders(<EmployeesPage />)
 
-  expect(await screen.findByRole("heading", { name: "Xodimlar" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Xodimlar" })).toBeInTheDocument()
   expect(screen.getByLabelText("Yuklanmoqda")).toBeInTheDocument()
-  const members = await rows()
-  expect(members.map(nameAndPhone)).toEqual([
-    ["Ali Valiyev", "+998 90 123 45 67"],
-    ["Vali Aliyev", "+998 90 222 33 44"],
-    ["Sardor Karimov", "+998 90 333 44 55"],
+  expect((await rows()).map(said)).toEqual([
+    ["Ali Valiyev Siz", "+998 90 123 45 67", "Egasi"],
+    ["Vali Aliyev", "+998 90 222 33 44", "Sotuvchi"],
+    ["Sardor Karimov", "+998 90 333 44 55", "Xodim"],
   ])
-  const headers = within(screen.getByRole("table", { name: "Xodimlar" })).getAllByRole("columnheader")
-  expect(headers[0]).toHaveTextContent("A'zo")
-  expect(headers.map((header) => header.textContent)).not.toContain("Telefon")
-  expect(within(members[0]).getByText("Egasi")).toBeInTheDocument()
-  // "Siz" says who the row is, so it stands by the name; the role column
-  // holds the role alone.
-  expect(within(within(members[0]).getByRole("rowheader")).getByText("Siz")).toBeInTheDocument()
-  expect(within(members[0]).getAllByText("Siz")).toHaveLength(1)
-  expect(within(members[1]).getByText("Xodim")).toBeInTheDocument()
-  expect(within(members[1]).queryByText("Siz")).not.toBeInTheDocument()
+  expect(screen.getByText("Kompaniyangiz a'zolari · 3 kishi")).toBeInTheDocument()
+  expect(screen.getByText("Jami: 3. Xodim o'z raqami bilan SMS kod yoki Telegram bot orqali kiradi.")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Xodim qo'shish" })).toBeInTheDocument()
 })
 
-test("a member without a name goes by their phone", async () => {
+test("a member without a name goes by their phone, said once", async () => {
   await signIn(ALI)
   db.users[VALI] = null
   renderWithProviders(<EmployeesPage />)
 
   const [, vali] = await rows()
-  expect(nameAndPhone(vali)).toEqual(["+998 90 222 33 44", null])
-  expect(within(vali).getAllByText("+998 90 222 33 44")).toHaveLength(1)
-})
-
-test("the list says when each member joined", async () => {
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-
-  const members = await rows()
-  const headers = within(screen.getByRole("table", { name: "Xodimlar" })).getAllByRole("columnheader")
-  expect(headers.map((header) => header.textContent)).toContain("Qo'shilgan")
-  members.forEach((member) => expect(within(member).getByText("02.10.2026")).toBeInTheDocument())
-})
-
-test("the page says how many members the company has", async () => {
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-
-  await rows()
-
-  expect(screen.getByText("Kompaniyangiz a'zolari · 3 kishi")).toBeInTheDocument()
-})
-
-test("the list ends with its total", async () => {
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-
-  expect(await rows()).toHaveLength(3)
-
-  expect(screen.getByText("Jami: 3")).toBeInTheDocument()
-})
-
-test("on a phone a member is a card: role and date in one line, the actions at its top", async () => {
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-  await rows()
-
-  const [owner, vali] = within(screen.getByRole("list", { name: "Xodimlar" })).getAllByRole("listitem")
-
-  expect(identityOf(vali)).toEqual(["Vali Aliyev", "+998 90 222 33 44"])
-  const inline = Array.from(vali.querySelectorAll('[data-slot="data-list-meta"] > div')).map((pair) => [
-    pair.querySelector("dt")?.textContent,
-    pair.querySelector("dd")?.textContent,
-  ])
-  expect(inline).toEqual([
-    ["Rol", "Xodim"],
-    ["Qo'shilgan", "02.10.2026"],
-  ])
-  // The badge needs no name on screen; the date keeps its own.
-  expect(within(vali).getByText("Rol")).toHaveClass("sr-only")
-  expect(within(vali).getByText("Qo'shilgan")).not.toHaveClass("sr-only")
-  expect(within(vali).queryByText("Amallar")).not.toBeInTheDocument()
-  const actions = vali.querySelector<HTMLElement>('[data-slot="data-list-actions"]')!
-  expect(within(actions).getByRole("button", { name: "Ismni o'zgartirish: Vali Aliyev" })).toBeInTheDocument()
-  expect(within(actions).getByRole("button", { name: "O'chirish: Vali Aliyev" })).toBeInTheDocument()
-  // Nothing can be done with the owner here: no place is kept for actions.
-  expect(owner.querySelector('[data-slot="data-list-actions"]')).not.toBeInTheDocument()
-})
-
-test("an employee's actions say what they do when the keyboard reaches them", async () => {
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-  const [, vali] = await rows()
-
-  act(() => within(vali).getByRole("button", { name: "Ismni o'zgartirish: Vali Aliyev" }).focus())
-  expect(await screen.findByText("Ismni o'zgartirish")).toBeInTheDocument()
-
-  act(() => within(vali).getByRole("button", { name: "O'chirish: Vali Aliyev" }).focus())
-  expect(await screen.findByText("O'chirish")).toBeInTheDocument()
+  expect(said(vali)).toEqual(["+998 90 222 33 44", null, "Xodim"])
 })
 
 test("an employee is sent home: the page is the owner's", async () => {
@@ -151,328 +84,185 @@ test("a list that fails to load says why and can be asked for again", async () =
   expect(await rows()).toHaveLength(3)
 })
 
-test("an owner with nobody added yet is told how to add someone", async () => {
+test("an owner with nobody added yet is told how to add someone; with employees there is no such hint", async () => {
   await signIn(VALI)
   await chooseCompany(2)
-  renderWithProviders(<EmployeesPage />)
-
+  const { unmount } = renderWithProviders(<EmployeesPage />)
   expect(await rows()).toHaveLength(1)
   expect(screen.getByText(/Hali xodim yo'q/)).toBeInTheDocument()
-})
+  unmount()
 
-test("with employees there is no such hint", async () => {
+  db.cooldown = false
   await signIn(ALI)
   renderWithProviders(<EmployeesPage />)
-
   expect(await rows()).toHaveLength(3)
   expect(screen.queryByText(/Hali xodim yo'q/)).not.toBeInTheDocument()
 })
 
-test("an employee is added from the dialog and joins the list", async () => {
+test("an employee is added from the plus's sheet and joins the list; the sheet opened again starts empty", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<EmployeesPage />)
   await rows()
 
   await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
-  const dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
-  await user.type(within(dialog).getByLabelText("Telefon"), "907778899")
-  await user.type(within(dialog).getByLabelText("Ism"), "Yangi Xodim")
-  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  let sheet = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
+  // The owner's own number is a member already: refused, nobody added.
+  await user.type(within(sheet).getByLabelText("Telefon"), "901234567")
+  await user.type(within(sheet).getByLabelText("Ism"), "Ali")
+  await user.click(within(sheet).getByRole("button", { name: "Qo'shish" }))
+  await within(sheet).findByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")
+  await user.click(within(sheet).getByRole("button", { name: "Yopish" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
+  sheet = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
+  expect(within(sheet).getByLabelText("Telefon")).toHaveValue("")
+  expect(within(sheet).getByLabelText("Ism")).toHaveValue("")
+  expect(within(sheet).queryByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).not.toBeInTheDocument()
+  await user.type(within(sheet).getByLabelText("Telefon"), "907778899")
+  await user.type(within(sheet).getByLabelText("Ism"), "Yangi Xodim")
+  await user.click(within(sheet).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(await screen.findByText("Xodim qo'shildi")).toBeInTheDocument()
-  await waitFor(async () =>
-    expect((await rows()).map(nameAndPhone)).toContainEqual(["Yangi Xodim", "+998 90 777 88 99"]),
-  )
-  expect(within((await rows())[3]).getByText("Xodim")).toBeInTheDocument()
+  await waitFor(async () => expect((await rows()).map(said)).toContainEqual(["Yangi Xodim", "+998 90 777 88 99", "Xodim"]))
 })
 
-test("the add-employee dialog says what is missing, and why the API refused", async () => {
+test("a row opens the member's sheet: an employee is renamed there and the row follows; the owner's sheet changes nothing", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<EmployeesPage />)
-  await rows()
-  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
-  const dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
 
-  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
-  expect(await within(dialog).findByText("Telefon raqamini to'liq kiriting")).toBeInTheDocument()
-  expect(within(dialog).getByText("Ismni kiriting")).toBeInTheDocument()
-
-  // The owner's own number is a member already.
-  await user.type(within(dialog).getByLabelText("Telefon"), "901234567")
-  await user.type(within(dialog).getByLabelText("Ism"), "Ali")
-  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
-  expect(await within(dialog).findByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).toBeInTheDocument()
-  // The dialog stays open with the reason; nobody was added.
-  expect(screen.getByRole("dialog", { name: "Xodim qo'shish" })).toBeInTheDocument()
-  expect(membersOf(1)).toHaveLength(3)
-})
-
-test("a dialog opened again starts empty, with the last refusal gone", async () => {
-  await signIn(ALI)
-  const { user } = renderWithProviders(<EmployeesPage />)
-  await rows()
-  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
-  let dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
-  await user.type(within(dialog).getByLabelText("Telefon"), "901234567")
-  await user.type(within(dialog).getByLabelText("Ism"), "Ali")
-  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
-  await within(dialog).findByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")
-
-  await user.click(within(dialog).getByRole("button", { name: "Yopish" }))
+  const owner = await sheetOf(user, 0)
+  expect(within(owner).getByRole("heading", { level: 2, name: "Ali Valiyev" })).toBeInTheDocument()
+  expect(within(owner).queryByRole("button", { name: /^Ism/ })).not.toBeInTheDocument()
+  await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
-  dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
 
-  expect(within(dialog).getByLabelText("Telefon")).toHaveValue("")
-  expect(within(dialog).getByLabelText("Ism")).toHaveValue("")
-  expect(within(dialog).queryByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).not.toBeInTheDocument()
-})
+  const vali = await sheetOf(user, 1)
+  await user.click(within(vali).getByRole("button", { name: /^Ism/ }))
+  const rename = await screen.findByRole("dialog", { name: "Ismni o'zgartirish" })
+  await user.clear(within(rename).getByLabelText("Ism"))
+  await user.type(within(rename).getByLabelText("Ism"), "Vali (hisobchi)")
+  await user.click(within(rename).getByRole("button", { name: "Saqlash" }))
 
-test("an employee is renamed from the dialog; the owner is not to be renamed here", async () => {
-  await signIn(ALI)
-  const { user } = renderWithProviders(<EmployeesPage />)
-  const [owner, vali] = await rows()
-  expect(within(owner).queryByRole("button", { name: /Ismni o'zgartirish/ })).not.toBeInTheDocument()
-
-  await user.click(within(vali).getByRole("button", { name: "Ismni o'zgartirish: Vali Aliyev" }))
-  const dialog = await screen.findByRole("dialog", { name: "Ismni o'zgartirish" })
-  const name = within(dialog).getByLabelText("Ism")
-  expect(name).toHaveValue("Vali Aliyev")
-  expect(within(dialog).getByText("+998 90 222 33 44")).toBeInTheDocument()
-  await user.clear(name)
-  await user.type(name, "Vali (hisobchi)")
-  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
-
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Ismni o'zgartirish" })).not.toBeInTheDocument())
+  // The sheet stays, with the new name; closed, the row under it says it too.
+  expect(await within(screen.getByRole("dialog", { name: "Xodim" })).findByRole("heading", { level: 2, name: "Vali (hisobchi)" })).toBeInTheDocument()
+  await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(await screen.findByText("Ism o'zgartirildi")).toBeInTheDocument()
-  await waitFor(async () =>
-    expect((await rows()).map(nameAndPhone)).toContainEqual(["Vali (hisobchi)", "+998 90 222 33 44"]),
-  )
+  expect(said((await rows())[1])[0]).toBe("Vali (hisobchi)")
 })
 
-test("an employee is removed after asking; cancelling keeps them; the owner is not to be removed here", async () => {
+test("an employee is removed from their sheet after asking; cancelling keeps them; the sheet goes with them", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<EmployeesPage />)
-  const [owner, vali] = await rows()
-  expect(within(owner).queryByRole("button", { name: /O'chirish/ })).not.toBeInTheDocument()
 
-  await user.click(within(vali).getByRole("button", { name: "O'chirish: Vali Aliyev" }))
+  let sheet = await sheetOf(user, 1)
+  await user.click(within(sheet).getByRole("button", { name: "Xodimni o'chirish" }))
   let confirm = await screen.findByRole("alertdialog", { name: "Xodimni o'chirasizmi?" })
   expect(within(confirm).getByText(/Vali Aliyev Olma Savdo kompaniyasiga kira olmaydi/)).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "Bekor qilish" }))
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
-  expect(await rows()).toHaveLength(3)
+  expect(screen.getByRole("dialog", { name: "Xodim" })).toBeInTheDocument()
 
-  await user.click(within((await rows())[1]).getByRole("button", { name: "O'chirish: Vali Aliyev" }))
+  sheet = screen.getByRole("dialog", { name: "Xodim" })
+  await user.click(within(sheet).getByRole("button", { name: "Xodimni o'chirish" }))
   confirm = await screen.findByRole("alertdialog", { name: "Xodimni o'chirasizmi?" })
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
-  expect(await screen.findByText("Xodim o'chirildi")).toBeInTheDocument()
-  await waitFor(async () =>
-    expect((await rows()).map(nameAndPhone)).toEqual([
-      ["Ali Valiyev", "+998 90 123 45 67"],
-      ["Sardor Karimov", "+998 90 333 44 55"],
-    ]),
-  )
+  expect((await screen.findAllByText("Xodim o'chirildi")).length).toBeGreaterThan(0)
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  await waitFor(async () => expect((await rows()).map((row) => said(row)[0])).toEqual(["Ali Valiyev Siz", "Sardor Karimov"]))
 })
 
-test("the list names the role each employee holds", async () => {
-  giveRole(VALI, 1, "Sotuvchi", ["customers.view"])
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-
-  const [owner, vali, sardor] = await rows()
-  expect(within(owner).getByText("Egasi")).toBeInTheDocument()
-  expect(within(vali).getByText("Sotuvchi")).toBeInTheDocument()
-  expect(within(vali).queryByText("Xodim")).not.toBeInTheDocument()
-  expect(within(sardor).getByText("Xodim")).toBeInTheDocument()
-})
-
-test("an employee whose role lets them see the employees sees the list, without the actions the role lacks", async () => {
+test("an employee whose role lets them see the employees sees the list and the sheets, without the actions the role lacks", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["employees.view"])
   await signIn(VALI)
   await chooseCompany(1)
-  renderWithProviders(<EmployeesPage />)
+  const { user } = renderWithProviders(<EmployeesPage />)
 
-  const members = await rows()
-  expect(members).toHaveLength(3)
+  expect(await rows()).toHaveLength(3)
   expect(screen.queryByRole("button", { name: "Xodim qo'shish" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /Ismni o'zgartirish/ })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+  const sardor = await sheetOf(user, 2)
+  expect(within(sardor).queryByRole("button", { name: /^(Ism|Rol|Lokatsiyalar|Xodimni o'chirish)/ })).not.toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
 })
 
-test("the employees actions follow the role: adding and renaming here, not deleting", async () => {
+test("the employees actions follow the role: adding and renaming, not deleting; the role is the owner's alone", async () => {
   giveRole(VALI, 1, "HR", ["employees.view", "employees.create", "employees.edit"])
   await signIn(VALI)
   await chooseCompany(1)
-  renderWithProviders(<EmployeesPage />)
+  const { user } = renderWithProviders(<EmployeesPage />)
 
-  const [, , sardor] = await rows()
+  await rows()
   expect(screen.getByRole("button", { name: "Xodim qo'shish" })).toBeInTheDocument()
-  expect(within(sardor).getByRole("button", { name: /Ismni o'zgartirish/ })).toBeInTheDocument()
-  expect(within(sardor).queryByRole("button", { name: /^O'chirish/ })).not.toBeInTheDocument()
+  const sardor = await sheetOf(user, 2)
+  expect(within(sardor).getByRole("button", { name: /^Ism/ })).toBeInTheDocument()
+  expect(within(sardor).queryByRole("button", { name: "Xodimni o'chirish" })).not.toBeInTheDocument()
+  expect(within(sardor).queryByRole("button", { name: /^Rol/ })).not.toBeInTheDocument()
 })
 
-const roleButton = (row: HTMLElement) => within(row).getByRole("button", { name: "Rolni o'zgartirish: Vali Aliyev" })
-
-test("the owner gives an employee a role, and takes it away again", async () => {
+test("the owner gives an employee a role from their sheet, and takes it away again: the row follows", async () => {
   const sotuvchi = { id: nextId(), companyId: 1, name: "Sotuvchi", permissions: ["customers.view" as const] }
   db.roles.push(sotuvchi)
   await signIn(ALI)
   const { user } = renderWithProviders(<EmployeesPage />)
 
-  await user.click(roleButton((await rows())[1]))
-  const dialog = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
-  expect(within(dialog).getByText("Vali Aliyev · +998 90 222 33 44")).toBeInTheDocument()
-  const box = within(dialog).getByRole("combobox", { name: "Rol" })
-  expect(box).toHaveTextContent("Rolsiz")
-  expect(within(dialog).getByText("Rolsiz xodim mijozlar va vazifalar bilan ishlaydi.")).toBeInTheDocument()
-  await choose(user, box, "Sotuvchi")
-  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
-
+  let sheet = await sheetOf(user, 1)
+  await user.click(within(sheet).getByRole("button", { name: /^Rol/ }))
+  await user.click(await within(await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })).findByRole("option", { name: /^Sotuvchi/ }))
+  await waitFor(() => expect(db.members[VALI].find((m) => m.companyId === 1)?.roleId).toBe(sotuvchi.id))
+  // The sheet stays and says the role; closed, the row says it too.
+  sheet = screen.getByRole("dialog", { name: "Xodim" })
+  await waitFor(() => expect(within(sheet).getByRole("button", { name: /^Rol/ })).toHaveTextContent("Sotuvchi"))
+  await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(await screen.findByText("Rol o'zgartirildi")).toBeInTheDocument()
-  await waitFor(async () => expect(within((await rows())[1]).getByText("Sotuvchi")).toBeInTheDocument())
-  expect(db.members[VALI].find((m) => m.companyId === 1)?.roleId).toBe(sotuvchi.id)
+  expect(said((await rows())[1])[2]).toBe("Sotuvchi")
 
-  await user.click(roleButton((await rows())[1]))
-  const again = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
-  const box2 = within(again).getByRole("combobox", { name: "Rol" })
-  expect(box2).toHaveTextContent("Sotuvchi")
-  await choose(user, box2, "Rolsiz")
-  await user.click(within(again).getByRole("button", { name: "Saqlash" }))
-
+  sheet = await sheetOf(user, 1)
+  await user.click(within(sheet).getByRole("button", { name: /^Rol/ }))
+  await user.click(await within(await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })).findByRole("option", { name: "Rolsiz" }))
   await waitFor(() => expect(db.members[VALI].find((m) => m.companyId === 1)?.roleId).toBeUndefined())
-  await waitFor(async () => expect(within((await rows())[1]).getByText("Xodim")).toBeInTheDocument())
+  await waitFor(() => expect(within(screen.getByRole("dialog", { name: "Xodim" })).getByRole("button", { name: /^Rol/ })).toHaveTextContent("Rolsiz"))
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(said((await rows())[1])[2]).toBe("Xodim")
 })
 
-test("with no role to give, the dialog says so and leads to the settings", async () => {
+test("with two or more locations each row says where the member works: every one, the restriction's live ones, or none; with one it says nothing of them", async () => {
   await signIn(ALI)
-  const { user } = renderWithProviders(<EmployeesPage />)
+  const { unmount } = renderWithProviders(<EmployeesPage />)
+  expect((await rows()).map((row) => row.querySelector("[data-slot=row-end-sub]"))).toEqual([null, null, null])
+  unmount()
 
-  await user.click(roleButton((await rows())[1]))
-  const dialog = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
-  expect(await within(dialog).findByText(/Hali rol yo'q/)).toBeInTheDocument()
-  expect(within(dialog).getByRole("link", { name: "Sozlamalarda rol yarating" })).toHaveAttribute("href", "/settings?tab=roles")
-})
-
-test("the role button is the owner's alone, and never on the owner's own row", async () => {
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-  const [owner, vali] = await rows()
-  expect(within(owner).queryByRole("button", { name: /^Rolni o'zgartirish/ })).not.toBeInTheDocument()
-  expect(within(vali).getByRole("button", { name: "Rolni o'zgartirish: Vali Aliyev" })).toBeInTheDocument()
-})
-
-test("an employee who manages the employees sees no role button", async () => {
-  giveRole(VALI, 1, "HR", ["employees.view", "employees.create", "employees.edit", "employees.delete"])
-  await signIn(VALI)
-  await chooseCompany(1)
-  renderWithProviders(<EmployeesPage />)
-
-  const [, , sardor] = await rows()
-  expect(within(sardor).getByRole("button", { name: /^O'chirish/ })).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /^Rolni o'zgartirish/ })).not.toBeInTheDocument()
-})
-
-// The locations each member works in, and the owner's way to restrict an
-// employee to some (logic/locations.md, section 5).
-const locationsButton = (row: HTMLElement) => within(row).getByRole("button", { name: "Lokatsiyalarni o'zgartirish: Vali Aliyev" })
-// locationsOf reads a member's locations from the table: the cell under
-// "Lokatsiyalar".
-function locationsOf(row: HTMLElement) {
-  const headers = within(screen.getByRole("table", { name: "Xodimlar" }))
-    .getAllByRole("columnheader")
-    .map((header) => header.textContent)
-  return within(row).getAllByRole("cell")[headers.indexOf("Lokatsiyalar") - 1].textContent
-}
-
-test("with one location the list says nothing of locations", async () => {
-  await signIn(ALI)
-  renderWithProviders(<EmployeesPage />)
-
-  await rows()
-  expect(within(screen.getByRole("table", { name: "Xodimlar" })).queryByRole("columnheader", { name: "Lokatsiyalar" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /^Lokatsiyalarni o'zgartirish/ })).not.toBeInTheDocument()
-})
-
-test("with two or more locations the list says each member's: every one, the restriction's live ones, or none", async () => {
   const chilonzor = addLocation(1, "Chilonzor")
   const gone = addLocation(1, "Yopilgan")
   gone.deleted = true
   restrictTo(VALI, 1, [chilonzor.id, gone.id])
   restrictTo(SARDOR, 1, [gone.id])
+  db.cooldown = false
   await signIn(ALI)
   renderWithProviders(<EmployeesPage />)
-
-  const members = await rows()
-  expect(locationsOf(members[0])).toBe("Barchasi")
-  expect(locationsOf(members[1])).toBe("Chilonzor")
-  expect(locationsOf(members[2])).toBe("—")
-  // The restriction is the owner's to set, and never on the owner's own row.
-  expect(within(members[0]).queryByRole("button", { name: /^Lokatsiyalarni o'zgartirish/ })).not.toBeInTheDocument()
-  expect(locationsButton(members[1])).toBeInTheDocument()
+  const where = (row: HTMLElement) => row.querySelector("[data-slot=row-end-sub]")?.textContent
+  await waitFor(async () => expect((await rows()).map(where)).toEqual(["Barchasi", "Chilonzor", "—"]))
 })
 
-test("the owner restricts an employee to some locations, and lifts the restriction again", async () => {
+test("the owner restricts an employee from their sheet, and the row says where they work now", async () => {
   const chilonzor = addLocation(1, "Chilonzor")
   await signIn(ALI)
   const { user } = renderWithProviders(<EmployeesPage />)
 
-  await user.click(locationsButton((await rows())[1]))
-  const dialog = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
-  expect(within(dialog).getByText("Vali Aliyev · +998 90 222 33 44")).toBeInTheDocument()
-  expect(within(dialog).getByText("Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi.")).toBeInTheDocument()
-  const all = within(dialog).getByRole("checkbox", { name: "Barcha lokatsiyalar" })
-  expect(all).toBeChecked()
-  // Base UI's checkbox is a button that says it is disabled either way.
-  const disabled = (box: HTMLElement) => box.hasAttribute("disabled") || box.getAttribute("aria-disabled") === "true"
-  expect(disabled(within(dialog).getByRole("checkbox", { name: "Asosiy" }))).toBe(true)
-  await user.click(all)
-  expect(disabled(within(dialog).getByRole("checkbox", { name: "Asosiy" }))).toBe(false)
-  // Nothing chosen: refused in the API's words, before anything is sent.
-  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
-  expect(await within(dialog).findByText("Kamida bitta lokatsiyani tanlang")).toBeInTheDocument()
-  await user.click(within(dialog).getByRole("checkbox", { name: "Chilonzor" }))
-  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+  const sheet = await sheetOf(user, 1)
+  await user.click(within(sheet).getByRole("button", { name: /^Lokatsiyalar/ }))
+  const places = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
+  await user.click(within(places).getByRole("switch", { name: "Barcha lokatsiyalar" }))
+  await user.click(await within(places).findByRole("checkbox", { name: "Asosiy" }))
+  await user.click(within(places).getByRole("button", { name: "Saqlash" }))
 
+  await waitFor(() => expect(db.members[VALI].find((m) => m.companyId === 1)?.locationIds).toEqual([chilonzor.id]))
+  await waitFor(() => expect(within(screen.getByRole("dialog", { name: "Xodim" })).getByRole("button", { name: /^Lokatsiyalar/ })).toHaveTextContent("Chilonzor"))
+  await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(await screen.findByText("Lokatsiyalar o'zgartirildi")).toBeInTheDocument()
-  await waitFor(async () => expect(locationsOf((await rows())[1])).toBe("Chilonzor"))
-  expect(db.members[VALI].find((m) => m.companyId === 1)?.locationIds).toEqual([chilonzor.id])
-
-  await user.click(locationsButton((await rows())[1]))
-  const again = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
-  expect(within(again).getByRole("checkbox", { name: "Barcha lokatsiyalar" })).not.toBeChecked()
-  expect(within(again).getByRole("checkbox", { name: "Chilonzor" })).toBeChecked()
-  expect(within(again).getByRole("checkbox", { name: "Asosiy" })).not.toBeChecked()
-  await user.click(within(again).getByRole("checkbox", { name: "Barcha lokatsiyalar" }))
-  await user.click(within(again).getByRole("button", { name: "Saqlash" }))
-
-  await waitFor(() => expect(db.members[VALI].find((m) => m.companyId === 1)?.locationIds).toBeUndefined())
-  await waitFor(async () => expect(locationsOf((await rows())[1])).toBe("Barchasi"))
-})
-
-test("the dialog warns of the tasks the employee is assigned in the locations left out", async () => {
-  addLocation(1, "Chilonzor")
-  await signIn(ALI)
-  const seeded = seedTasks()
-  // Vali is assigned "Qo'ng'iroq qilish" already; "Shartnoma yuborish" too.
-  seeded.contract.assignee = VALI
-  seeded.contract.assigneeName = "Vali Aliyev"
-  const { user } = renderWithProviders(<EmployeesPage />)
-
-  await user.click(locationsButton((await rows())[1]))
-  const dialog = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
-  await user.click(within(dialog).getByRole("checkbox", { name: "Barcha lokatsiyalar" }))
-  await user.click(within(dialog).getByRole("checkbox", { name: "Chilonzor" }))
-  expect(await within(dialog).findByText("Boshqa lokatsiyalarda 2 ta vazifaga mas'ul")).toBeInTheDocument()
-
-  await user.click(within(dialog).getByRole("checkbox", { name: "Asosiy" }))
-  await waitFor(() => expect(within(dialog).queryByText(/Boshqa lokatsiyalarda/)).not.toBeInTheDocument())
-  expect(asosiyOf(1).name).toBe("Asosiy")
+  expect((await rows())[1].querySelector("[data-slot=row-end-sub]")).toHaveTextContent("Chilonzor")
 })
 
 test("an employee who manages the employees sees the locations, not the way to change them", async () => {
@@ -481,9 +271,11 @@ test("an employee who manages the employees sees the locations, not the way to c
   giveRole(VALI, 1, "HR", ["employees.view", "employees.create", "employees.edit", "employees.delete"])
   await signIn(VALI)
   await chooseCompany(1)
-  renderWithProviders(<EmployeesPage />)
+  const { user } = renderWithProviders(<EmployeesPage />)
 
-  const members = await rows()
-  expect(locationsOf(members[2])).toBe("Chilonzor")
-  expect(screen.queryByRole("button", { name: /^Lokatsiyalarni o'zgartirish/ })).not.toBeInTheDocument()
+  expect((await rows())[2].querySelector("[data-slot=row-end-sub]")).toHaveTextContent("Chilonzor")
+  const sardor = await sheetOf(user, 2)
+  expect(within(sardor).queryByRole("button", { name: /^Lokatsiyalar/ })).not.toBeInTheDocument()
+  expect(within(sardor).getByRole("button", { name: "Xodimni o'chirish" })).toBeInTheDocument()
+  expect(membersOf(1)).toHaveLength(3)
 })

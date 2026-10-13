@@ -1,124 +1,96 @@
 "use client"
 
-import { type Column, DataList } from "@/components/data-list"
-import { Identity } from "@/components/identity"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
+import { useState } from "react"
+import { Avatar } from "@/components/kit/avatar"
+import { Foot, Group, Row } from "@/components/kit/group"
+import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { RoleBadge } from "@/components/role-badge"
+import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { formatDate } from "@/lib/format"
+import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import { useEmployees } from "@/lib/queries"
-import { can } from "@/lib/permissions"
-import type { Member } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
+import { cn } from "@/lib/utils"
 import { AddEmployeeDialog } from "./add-employee-dialog"
-import { EmployeeLocationsDialog } from "./employee-locations-dialog"
-import { EmployeeRoleDialog } from "./employee-role-dialog"
-import { RemoveEmployeeButton } from "./remove-employee-button"
-import { RenameEmployeeDialog } from "./rename-employee-dialog"
+import { EmployeeSheet, locationsText } from "./employee-sheet"
 
 // EmployeesPage is the company's members, for whoever may see them (the
-// owner, and an employee whose role holds employees.view): the owner first,
-// then the employees in the order they joined, each under the name they go
-// by in this company and with the role they hold. Adding, renaming and
-// removing each take their permission; anyone without the page's is sent
-// home (the API would refuse them all the same): the menu shows them no
-// way here.
+// owner, and an employee whose role holds employees.view), as the
+// prototype's list: the owner first, then the employees in the order they
+// joined, each a row by the name they go by in this company (the phone
+// under it), «Siz» beside one's own, the role at its end and, with two or
+// more locations, where they work under it. A row opens the member's sheet,
+// where they are renamed, given a role, restricted to some locations and
+// removed (each with its permission); the plus adds an employee. Anyone
+// without the page's permission is sent home: the menu shows them no way here.
 export function EmployeesPage() {
   const gate = usePermission("employees.view")
   const employees = useEmployees(gate ? gate.company.id : null)
-  // With two or more locations the list says each member's, and the owner
-  // (who works in every one) may restrict an employee to some.
   const { locations } = useLocation()
   const severalLocations = locations.length >= 2
+  const [adding, setAdding] = useState(false)
+  // The member whose sheet is open, by phone: the sheet follows the list as it changes.
+  const [opened, setOpened] = useState<string | null>(null)
 
   if (!gate) return null
   const ownPhone = gate.user.phone
-  const companyId = gate.company.id
-  const companyName = gate.company.name
   const allowed = (permission: Parameters<typeof can>[1]) => can(gate.permissions, permission)
-  // The roles are the owner's to give (logic/roles.md, section 5).
+  // The roles and the locations are the owner's to give (logic/roles.md, section 5; logic/locations.md, section 5).
   const isOwner = gate.company.role === "owner"
-
-  const columns: Column<Member>[] = [
-    {
-      header: "A'zo",
-      primary: true,
-      // A member with no name goes by the phone, which then is not said twice.
-      cell: (m) => (
-        <Identity
-          title={m.full_name ?? formatPhone(m.phone)}
-          subtitle={m.full_name ? formatPhone(m.phone) : undefined}
-          name={m.full_name}
-          seed={m.phone}
-          mark={m.phone === ownPhone && <Badge variant="outline">Siz</Badge>}
-        />
-      ),
-    },
-    { header: "Rol", card: "tag", cell: (m) => <RoleBadge role={m.role} name={m.role_name} /> },
-    ...(severalLocations
-      ? [
-          {
-            header: "Lokatsiyalar",
-            // Every one, the restriction's live ones, or none (a dash).
-            cell: (m) => (m.locations === null ? "Barchasi" : m.locations.map((l) => l.name).join(", ")),
-          } satisfies Column<Member>,
-        ]
-      : []),
-    {
-      header: "Qo'shilgan",
-      card: "inline",
-      // Beside the open sidebar a narrow table has no room for it: the date
-      // is context, and the card on a phone still shows it.
-      className: "text-muted-foreground max-lg:hidden",
-      cell: (m) => formatDate(m.created_at),
-    },
-    {
-      header: "Amallar",
-      actions: true,
-      // The owner is the admin panel's to change: only employees get these,
-      // and only from someone whose permissions hold the action; the role
-      // is the owner's to give.
-      cell: (m) =>
-        m.role === "user" &&
-        (isOwner || allowed("employees.edit") || allowed("employees.delete")) && (
-          <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-            {isOwner && <EmployeeRoleDialog companyId={companyId} employee={m} />}
-            {isOwner && severalLocations && <EmployeeLocationsDialog companyId={companyId} employee={m} locations={locations} />}
-            {allowed("employees.edit") && <RenameEmployeeDialog companyId={companyId} employee={m} />}
-            {allowed("employees.delete") && <RemoveEmployeeButton companyId={companyId} companyName={companyName} employee={m} />}
-          </span>
-        ),
-    },
-  ]
+  const members = employees.data
+  const open = members?.find((m) => m.phone === opened)
 
   return (
-    <div className="space-y-5">
-      <PageHeader
+    <>
+      <PageTitle
         title="Xodimlar"
-        description={
-          employees.data ? `Kompaniyangiz a'zolari · ${employees.data.length} kishi` : "Kompaniyangiz a'zolari"
-        }
-        actions={allowed("employees.create") && <AddEmployeeDialog companyId={companyId} />}
+        description={members ? `Kompaniyangiz a'zolari · ${members.length} kishi` : "Kompaniyangiz a'zolari"}
+        action={allowed("employees.create") && <PlusButton label="Xodim qo'shish" onClick={() => setAdding(true)} />}
       />
       {employees.isPending && <ListLoading />}
       {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}
-      {employees.data && (
-        <DataList
-          label="Xodimlar"
-          items={employees.data}
-          columns={columns}
-          getKey={(m) => m.phone}
-          footer={`Jami: ${employees.data.length}`}
+      {members && (
+        <>
+          <Group label="Xodimlar" inset="icon">
+            {members.map((m) => {
+              const where = locationsText(m)
+              return (
+                <Row
+                  key={m.phone}
+                  onClick={() => setOpened(m.phone)}
+                  media={<Avatar name={m.full_name} seed={m.phone} />}
+                  // A member with no name goes by the phone, which then is not said twice.
+                  title={m.full_name ?? formatPhone(m.phone)}
+                  badge={m.phone === ownPhone && <Badge>Siz</Badge>}
+                  sub={m.full_name ? formatPhone(m.phone) : undefined}
+                  end={<RoleBadge role={m.role} name={m.role_name} />}
+                  endSub={severalLocations && <span className={cn(where === "—" && "text-destructive")}>{where}</span>}
+                  chevron={false}
+                />
+              )
+            })}
+          </Group>
+          <Foot className="-mt-4">Jami: {members.length}. Xodim o&apos;z raqami bilan SMS kod yoki Telegram bot orqali kiradi.</Foot>
+          {members.every((m) => m.role === "owner") && (
+            <Foot>Hali xodim yo&apos;q. Xodim qo&apos;shsangiz, u o&apos;z telefon raqami bilan tizimga kiradi.</Foot>
+          )}
+        </>
+      )}
+      {adding && <AddEmployeeDialog companyId={gate.company.id} open onOpenChange={(next) => !next && setAdding(false)} />}
+      {open && (
+        <EmployeeSheet
+          companyId={gate.company.id}
+          companyName={gate.company.name}
+          employee={open}
+          you={open.phone === ownPhone}
+          can={{ rename: allowed("employees.edit"), remove: allowed("employees.delete"), role: isOwner, locations: isOwner }}
+          severalLocations={severalLocations}
+          open
+          onOpenChange={(next) => !next && setOpened(null)}
         />
       )}
-      {employees.data?.every((m) => m.role === "owner") && (
-        <p className="px-1 text-sm text-pretty text-muted-foreground md:px-4">
-          Hali xodim yo&apos;q. Xodim qo&apos;shsangiz, u o&apos;z telefon raqami bilan tizimga kiradi.
-        </p>
-      )}
-    </div>
+    </>
   )
 }

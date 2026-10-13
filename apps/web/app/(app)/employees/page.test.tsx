@@ -11,5 +11,5 @@ test("/employees is the company's members", async () => {
   renderWithProviders(<EmployeesRoute />)
 
   expect(await screen.findByRole("heading", { name: "Xodimlar" })).toBeInTheDocument()
-  expect(await screen.findByRole("table", { name: "Xodimlar" })).toBeInTheDocument()
+  expect(await screen.findByRole("list", { name: "Xodimlar" })).toBeInTheDocument()
 })
