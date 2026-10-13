@@ -7,6 +7,7 @@ import { catalogHandlers } from "./catalog"
 import { currenciesHandlers } from "./currencies"
 import { customerSettingsHandlers } from "./customer-settings"
 import { customersHandlers } from "./customers"
+import { dashboardHandlers } from "./dashboard"
 import { financeHandlers } from "./finance"
 import { rolesHandlers } from "./roles"
 import { taskSettingsHandlers } from "./task-settings"
@@ -293,6 +294,7 @@ export const handlers = [
   ...customersHandlers,
   ...taskSettingsHandlers,
   ...tasksHandlers,
+  ...dashboardHandlers,
   ...catalogHandlers,
   ...warehouseHandlers,
   ...stockHandlers,
