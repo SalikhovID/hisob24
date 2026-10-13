@@ -126,3 +126,25 @@ export function taskDefaults(type: TaskType, customerType: CustomerType | null, 
     },
   }
 }
+
+export type DeadlineBucket = "late" | "today" | "week" | "later" | "done"
+
+// bucketLabels are the tasks list's groups, in their order.
+export const bucketLabels: Record<DeadlineBucket, string> = {
+  late: "Kechikkan",
+  today: "Bugun",
+  week: "Shu hafta",
+  later: "Keyinroq",
+  done: "Bajarilgan",
+}
+
+// deadlineBucket is the group of the tasks list a task falls in by its
+// deadline (YYYY-MM-DD) against today: past it, today, within a week, later;
+// a done one is done.
+export function deadlineBucket(deadline: string, done: boolean, today = todayISO()): DeadlineBucket {
+  if (done) return "done"
+  const days = Math.round((Date.parse(`${deadline}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / DAY)
+  if (days < 0) return "late"
+  if (days === 0) return "today"
+  return days <= 7 ? "week" : "later"
+}

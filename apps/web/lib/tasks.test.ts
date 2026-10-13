@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { Customer, CustomerType, Task, TaskType } from "./types"
-import { deadlineOf, taskDefaults, taskSchema, todayISO } from "./tasks"
+import { bucketLabels, deadlineBucket, deadlineOf, taskDefaults, taskSchema, todayISO } from "./tasks"
 
 test("todayISO is the day where the browser stands, as YYYY-MM-DD", () => {
   const now = new Date()
@@ -151,4 +151,15 @@ test("the form opens empty for a new task, in the stage it was opened for, and f
   const unassigned: Customer = { id: 42, type_id: 5, phone: "998901112233", values: {}, balance: null, balance_by_currency: null, created_by_name: null, created_at: "", updated_at: "" }
   expect(unassigned.id).toBe(42)
   expect(taskDefaults(buyurtma, jismoniy, 12, { ...task, assignee: null }).assignee_phone).toBe("")
+})
+
+test("a task's group by its deadline: the late, today's, this week's, the later; a done one is done whatever its day", () => {
+  const today = "2026-10-06"
+  expect(deadlineBucket("2026-10-05", false, today)).toBe("late")
+  expect(deadlineBucket("2026-10-06", false, today)).toBe("today")
+  expect(deadlineBucket("2026-10-07", false, today)).toBe("week")
+  expect(deadlineBucket("2026-10-13", false, today)).toBe("week")
+  expect(deadlineBucket("2026-10-14", false, today)).toBe("later")
+  expect(deadlineBucket("2026-10-01", true, today)).toBe("done")
+  expect(bucketLabels).toEqual({ late: "Kechikkan", today: "Bugun", week: "Shu hafta", later: "Keyinroq", done: "Bajarilgan" })
 })
