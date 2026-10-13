@@ -24,6 +24,9 @@ test("someone in one company signs in with an SMS code and lands on the dashboar
   const phone = page.getByRole("textbox", { name: "Telefon raqami" })
   await expect(page.getByText("+998", { exact: true })).toBeVisible()
   await expect(phone).toHaveValue("")
+  // Keys pressed before React takes the page over are lost (the field is
+  // read-only till then), as a thumb's would be: type once it is editable.
+  await expect(phone).toBeEditable()
   await phone.pressSequentially("901234567")
   await expect(phone).toHaveValue("90 123 45 67")
   await page.getByRole("button", { name: "Kodni olish" }).click()
