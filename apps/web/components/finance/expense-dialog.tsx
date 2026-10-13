@@ -9,14 +9,15 @@ import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { ActionTooltip } from "@/components/action-tooltip"
 import { iconAction } from "@/components/catalog/icon-action"
-import { PendingButton } from "@/components/pending-button"
+import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { Foot, Group } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
+import { SelectRow } from "@/components/kit/picker-sheet"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { SelectField } from "@/components/select-field"
 import { settingsHref } from "@/components/settings/use-settings-tab"
-import { TextField } from "@/components/text-field"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { accountCurrency, accountOptions, useAccounts, useCurrencies } from "@/lib/currencies"
 import { type ExpenseForm, type ExpenseOutput, expenseDefaults, expenseSchema, forgetFinance } from "@/lib/finance"
@@ -38,7 +39,11 @@ const words: Record<FinanceKind, { add: string; edit: string; noun: string }> = 
 // another is chosen) and a note; or saves the one given with other fields,
 // its kind staying. Without a category of the kind there is nothing to
 // file the document under: the settings make them (settingsAllowed: the
-// way there is offered).
+// way there is offered). As the prototype's sheet: the account and the
+// category picked in sheets, the amount with the account's currency, the
+// moment and the note as rows. open, with onOpenChange, opens it from
+// outside (an account's tile, a document's «Tahrirlash»): it has no button
+// then.
 export function ExpenseDialog({
   companyId,
   kind,
@@ -46,6 +51,8 @@ export function ExpenseDialog({
   expense,
   iconOnly = false,
   settingsAllowed = false,
+  open: openGiven,
+  onOpenChange,
 }: {
   companyId: number
   kind: FinanceKind
@@ -53,8 +60,13 @@ export function ExpenseDialog({
   expense?: Expense
   iconOnly?: boolean
   settingsAllowed?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const accounts = useAccounts()
@@ -91,7 +103,7 @@ export function ExpenseDialog({
   const w = words[expense?.kind ?? kind]
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      {expense && iconOnly ? (
+      {controlled ? null : expense && iconOnly ? (
         <ActionTooltip label="Tahrirlash">
           <DialogTrigger render={<Button variant="ghost" size="icon" className={iconAction} aria-label={`Tahrirlash: ${formatAmount(expense.amount)}`} />}>
             <PencilIcon />
@@ -103,40 +115,40 @@ export function ExpenseDialog({
           {expense ? "Tahrirlash" : w.add}
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{expense ? w.edit : w.add}</DialogTitle>
-          <DialogDescription>Akkaunt, kategoriya, summa (akkaunt valyutasida) va vaqt majburiy; izoh ixtiyoriy.</DialogDescription>
+          <DialogDescription>Akkaunt, kategoriya, summa va vaqt majburiy; izoh ixtiyoriy.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((fields) => save.mutate(fields))} noValidate className="space-y-4">
-          <FieldGroup>
-            <SelectField control={form.control} name="bank_account_id" label="Akkaunt" placeholder="Tanlang" options={accountOptions(accounts, currencies, expense?.bank_account_id)} />
-            <SelectField control={form.control} name="category_id" label="Kategoriya" placeholder="Tanlang" options={offered.map((c) => ({ value: String(c.id), label: c.name }))} />
-            {none && (
-              <p className="text-sm text-muted-foreground">
-                {settingsAllowed ? (
-                  <>
-                    Avval Sozlamalarda {w.noun} kategoriyasini yarating.{" "}
-                    <Link href={settingsHref("finance")} className={buttonVariants({ variant: "link", size: "sm", className: "h-auto p-0" })}>
-                      Sozlamalarni ochish
-                    </Link>
-                  </>
-                ) : (
-                  `Kompaniya egasi Sozlamalarda ${w.noun} kategoriyasini yaratishi kerak.`
-                )}
-              </p>
-            )}
-            <TextField control={form.control} name="amount" label={`Summa, ${currency.symbol}`} inputMode="decimal" autoComplete="off" />
-            <TextField control={form.control} name="at" label="Vaqt" type="datetime-local" />
-            <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
-          </FieldGroup>
-          {save.isError && <Refusal>{save.error.message}</Refusal>}
+        <SheetForm onSubmit={form.handleSubmit((fields) => save.mutate(fields))}>
+          {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
+          <Group>
+            <SelectRow control={form.control} name="bank_account_id" label="Akkaunt" options={accountOptions(accounts, currencies, expense?.bank_account_id)} />
+            <SelectRow control={form.control} name="category_id" label="Kategoriya" options={offered.map((c) => ({ value: String(c.id), label: c.name }))} />
+            <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
+            <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+            <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
+          </Group>
+          {none && (
+            <Foot className="-mt-4">
+              {settingsAllowed ? (
+                <>
+                  Avval Sozlamalarda {w.noun} kategoriyasini yarating.{" "}
+                  <Link href={settingsHref("finance")} className="font-medium text-primary">
+                    Sozlamalarni ochish
+                  </Link>
+                </>
+              ) : (
+                `Kompaniya egasi Sozlamalarda ${w.noun} kategoriyasini yaratishi kerak.`
+              )}
+            </Foot>
+          )}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
+            <MainButton type="submit" pending={save.isPending}>
               {expense ? "Saqlash" : "Qo'shish"}
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )
