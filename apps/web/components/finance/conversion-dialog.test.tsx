@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import { type ComponentProps, useState } from "react"
 import { expect, test } from "vitest"
 import { ALI, db, nextId } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
@@ -6,6 +7,13 @@ import { choose, optionsOf } from "@/test/select"
 import { signIn } from "@/test/session"
 import { enterConversion } from "@/test/finance"
 import { ConversionDialog } from "./conversion-dialog"
+
+// Opened is the sheet as a page opens it (the account's tile, a document's
+// «Tahrirlash»): open from the start, closed when it says so.
+function Opened(props: Omit<ComponentProps<typeof ConversionDialog>, "open" | "onOpenChange">) {
+  const [open, setOpen] = useState(true)
+  return <ConversionDialog {...props} open={open} onOpenChange={setOpen} />
+}
 
 function accounts() {
   db.currencies[1].push(2)
@@ -18,17 +26,17 @@ function accounts() {
 test("money is turned from one currency into another: the targets offered are the active accounts in other currencies; the rate is told as the amounts are typed", async () => {
   const { cash, card } = accounts()
   await signIn(ALI)
-  const { user } = renderWithProviders(<ConversionDialog companyId={1} accountId={cash} />)
+  const { user } = renderWithProviders(<Opened companyId={1} accountId={cash} />)
 
-  await user.click(screen.getByRole("button", { name: "Konvertatsiya qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "Konvertatsiya qo'shish" })
-  expect(within(dialog).getByRole("combobox", { name: "Qayerdan" })).toHaveTextContent("Naqd (so'm)")
-  expect(await optionsOf(user, within(dialog).getByRole("combobox", { name: "Qayerga" }))).toEqual(["Karta ($)"])
-  await choose(user, within(dialog).getByRole("combobox", { name: "Qayerga" }), "Karta ($)")
-  await user.type(within(dialog).getByLabelText("Chiqqan summa, so'm"), "128 000")
+  // The accounts come with the session: the row says the account once they are known.
+  await waitFor(() => expect(within(dialog).getByLabelText("Qayerdan")).toHaveTextContent("Naqd (so'm)"))
+  expect(await optionsOf(user, within(dialog).getByLabelText("Qayerga"))).toEqual(["Karta ($)"])
+  await choose(user, within(dialog).getByLabelText("Qayerga"), "Karta ($)")
+  await user.type(within(dialog).getByLabelText("Chiqdi"), "128 000")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Maqsad summani kiriting")).toBeInTheDocument()
-  await user.type(within(dialog).getByLabelText("Kirgan summa, $"), "10")
+  await user.type(within(dialog).getByLabelText("Kirdi"), "10")
   expect(within(dialog).getByText("1 $ = 12 800 so'm")).toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -36,18 +44,17 @@ test("money is turned from one currency into another: the targets offered are th
   expect((await screen.findAllByText("Hujjat qo'shildi")).length).toBeGreaterThan(0)
 })
 
-test("a conversion is edited from its row, by its icon, with both amounts", async () => {
+test("a conversion is edited from its fields, with both amounts", async () => {
   const { cash, card } = accounts()
   await signIn(ALI)
   const converted = await enterConversion({ from_account_id: cash, amount: "128000", to_account_id: card.id, to_amount: "10", at: "2026-10-06T09:00:00+05:00" })
-  const { user } = renderWithProviders(<ConversionDialog companyId={1} conversion={converted} iconOnly />)
+  const { user } = renderWithProviders(<Opened companyId={1} conversion={converted} />)
 
-  await user.click(screen.getByRole("button", { name: "Tahrirlash: 128 000" }))
   const dialog = await screen.findByRole("dialog", { name: "Konvertatsiyani tahrirlash" })
-  expect(within(dialog).getByLabelText("Chiqqan summa, so'm")).toHaveValue("128000.00")
-  expect(within(dialog).getByLabelText("Kirgan summa, $")).toHaveValue("10.00")
-  await user.clear(within(dialog).getByLabelText("Chiqqan summa, so'm"))
-  await user.type(within(dialog).getByLabelText("Chiqqan summa, so'm"), "130000")
+  expect(within(dialog).getByLabelText("Chiqdi")).toHaveValue("128000.00")
+  expect(within(dialog).getByLabelText("Kirdi")).toHaveValue("10.00")
+  await user.clear(within(dialog).getByLabelText("Chiqdi"))
+  await user.type(within(dialog).getByLabelText("Chiqdi"), "130000")
   expect(within(dialog).getByText("1 $ = 13 000 so'm")).toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
