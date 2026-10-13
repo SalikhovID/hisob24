@@ -2,43 +2,42 @@
 
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { CheckIcon, InfoIcon, TriangleAlertIcon, XIcon, Loader2Icon } from "lucide-react"
 
+// The toasts are the prototype's: a glass pill at the top of the screen
+// with a green (or red) round icon and the message in one line.
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      position="top-center"
       className="toaster group"
       icons={{
-        success: (
-          <CircleCheckIcon className="size-4" />
-        ),
-        info: (
-          <InfoIcon className="size-4" />
-        ),
-        warning: (
-          <TriangleAlertIcon className="size-4" />
-        ),
-        error: (
-          <OctagonXIcon className="size-4" />
-        ),
-        loading: (
-          <Loader2Icon className="size-4 animate-spin" />
-        ),
+        success: <CheckIcon className="size-[13px]" strokeWidth={3.2} />,
+        info: <InfoIcon className="size-[13px]" strokeWidth={3} />,
+        warning: <TriangleAlertIcon className="size-[13px]" strokeWidth={3} />,
+        error: <XIcon className="size-[13px]" strokeWidth={3.2} />,
+        loading: <Loader2Icon className="size-[13px] animate-spin" />,
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          "--normal-bg": "var(--menu)",
+          "--normal-text": "var(--foreground)",
+          "--normal-border": "transparent",
+          "--border-radius": "22px",
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast:
+            "cn-toast w-fit! max-w-[calc(100vw-32px)] items-center gap-2 py-2.5 pr-4 pl-3 text-md! font-semibold! shadow-float! ring-[0.5px] ring-glass-edge ring-inset backdrop-blur-[24px] backdrop-saturate-[1.8]",
+          icon: "m-0! grid size-[22px] place-items-center rounded-full bg-positive text-white [&_svg]:size-[13px]",
+          error: "[&_[data-icon]]:bg-destructive",
+          warning: "[&_[data-icon]]:bg-warning",
+          info: "[&_[data-icon]]:bg-primary",
+          description: "text-sm font-normal text-muted-foreground",
         },
       }}
       containerAriaLabel="Bildirishnomalar"

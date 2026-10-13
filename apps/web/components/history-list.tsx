@@ -28,14 +28,14 @@ const shown = (value: string) => (value === "" ? "—" : value)
 // here under its old name.
 export function HistoryList({ label, entries }: { label: string; entries: HistoryEntry[] }) {
   return (
-    <ol aria-label={label} className="divide-y rounded-xl border bg-card tabular-nums">
+    <ol aria-label={label} className="overflow-hidden rounded-group bg-card tabular-nums">
       {entries.map((entry) => (
-        <li key={entry.id} className="px-4 py-3 text-sm">
-          <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span data-slot="history-action" className="font-medium">
+        <li key={entry.id} className="relative px-4 py-3 text-md not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-4 not-first:before:h-[0.5px] not-first:before:bg-border not-first:before:content-['']">
+          <p className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+            <span data-slot="history-action" className="font-semibold">
               {actions[entry.action]}
             </span>
-            <span className="text-[0.8125rem] leading-5 text-muted-foreground">
+            <span className="text-right text-xs leading-5 text-muted-foreground">
               <span data-slot="history-actor">{entry.actor_name ?? "—"}</span>
               {", "}
               <span data-slot="history-time" className="whitespace-nowrap">
@@ -44,26 +44,26 @@ export function HistoryList({ label, entries }: { label: string; entries: Histor
             </span>
           </p>
           {entry.changes.length > 0 && (
-            <dl className="mt-2 grid gap-1.5">
+            <dl className="mt-1.5 grid gap-1 text-sm text-muted-foreground">
               {/* By their place: two changes may go by one name (the
                   phone, and a field the owner named "Telefon"). */}
               {entry.changes.map((change, place) => (
                 <div
                   key={place}
                   data-slot="history-change"
-                  className="grid gap-x-4 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]"
+                  className="min-w-0 [overflow-wrap:anywhere]"
                 >
-                  <dt data-slot="change-label" className="text-[0.8125rem] leading-5 text-muted-foreground [overflow-wrap:anywhere]">
+                  <dt data-slot="change-label" className="inline font-medium text-foreground after:content-[':_']">
                     {change.label}
                   </dt>
-                  <dd className="min-w-0 [overflow-wrap:anywhere]">
+                  <dd className="inline">
                     <span className="sr-only">avval: </span>
                     <span data-slot="change-old" className="text-muted-foreground">
                       {shown(change.old)}
                     </span>
                     <ArrowRightIcon aria-hidden="true" className="mx-1.5 inline size-3.5 align-[-0.125em] text-muted-foreground" />
                     <span className="sr-only">keyin: </span>
-                    <span data-slot="change-new">{shown(change.new)}</span>
+                    <span data-slot="change-new" className="text-foreground">{shown(change.new)}</span>
                   </dd>
                 </div>
               ))}
