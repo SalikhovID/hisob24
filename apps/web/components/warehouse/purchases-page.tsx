@@ -6,20 +6,16 @@ import { useEffect, useRef } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
-import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatDateTime, formatMoney } from "@/lib/format"
-import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { usePurchases } from "@/lib/queries"
 import type { Permission, Purchase } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { usePageFilter } from "./use-page-filter"
-
-const warehouseSection = navItems.find((item) => item.key === "warehouse")!
 
 // PurchasesPage is the purchases of the current location (logic/warehouse.md,
 // 4.5; logic/locations.md, section 7), for whoever may see them
@@ -82,8 +78,8 @@ export function PurchasesPage() {
   if (!gate) return null
   return (
     <div className="space-y-5">
-      <SectionTabs item={warehouseSection} permissions={gate.permissions} />
       <PageHeader
+        back={{ href: "/warehouse", label: "Ombor" }}
         title="Xaridlar"
         description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya xaridlari"}
         actions={

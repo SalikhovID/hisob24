@@ -6,12 +6,10 @@ import { useEffect, useRef } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
-import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { formatDateTime } from "@/lib/format"
-import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { useTransfers } from "@/lib/queries"
 import type { Permission, Transfer } from "@/lib/types"
@@ -19,8 +17,6 @@ import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { NoLocation } from "./no-location"
 import { usePageFilter } from "./use-page-filter"
-
-const warehouseSection = navItems.find((item) => item.key === "warehouse")!
 
 // TransfersPage is the transfers out of or into the current location
 // (logic/warehouse.md, 5.1), for whoever may see the stock documents
@@ -76,8 +72,8 @@ export function TransfersPage() {
   if (!gate) return null
   return (
     <div className="space-y-5">
-      <SectionTabs item={warehouseSection} permissions={gate.permissions} />
       <PageHeader
+        back={{ href: "/warehouse", label: "Ombor" }}
         title="Ko'chirishlar"
         description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya ko'chirishlari"}
         actions={

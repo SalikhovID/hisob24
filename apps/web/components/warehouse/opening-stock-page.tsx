@@ -6,12 +6,10 @@ import { useEffect, useRef } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
-import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { buttonVariants } from "@/components/ui/button"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatDateTime, formatMoney } from "@/lib/format"
-import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { useOpeningStockList } from "@/lib/queries"
 import type { OpeningStock, Permission } from "@/lib/types"
@@ -19,8 +17,6 @@ import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { NoLocation } from "./no-location"
 import { usePageFilter } from "./use-page-filter"
-
-const warehouseSection = navItems.find((item) => item.key === "warehouse")!
 
 // OpeningStockPage is the opening stock documents of the current location
 // (logic/warehouse.md, 5.3), for whoever may see the stock documents
@@ -70,8 +66,8 @@ export function OpeningStockPage() {
   if (!gate) return null
   return (
     <div className="space-y-5">
-      <SectionTabs item={warehouseSection} permissions={gate.permissions} />
       <PageHeader
+        back={{ href: "/warehouse", label: "Ombor" }}
         title="Boshlang'ich qoldiq"
         description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya boshlang'ich qoldiqlari"}
         actions={

@@ -23,9 +23,9 @@ test("the owner's suppliers: by name, with the phone and what is owed; the inact
   const list = await table()
   expect(screen.getByRole("heading", { level: 1, name: "Ta'minotchilar" })).toBeInTheDocument()
   expect(screen.getByText("Kompaniyangiz ta'minotchilari · 1 ta")).toBeInTheDocument()
-  const tabs = screen.getByRole("navigation", { name: "Ombor bo'limi" })
-  expect(within(tabs).getByRole("link", { name: "Ta'minotchilar" })).toHaveAttribute("aria-current", "page")
-  expect(within(tabs).getByRole("link", { name: "Xaridlar" })).toHaveAttribute("href", "/purchases")
+  // The page leads back to the warehouse's hub, which lists its pages.
+  expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
+  expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
   expect(headers(list)).toEqual(["Ta'minotchi", "Telefon", "Qarz", "Qo'shgan", "Qo'shilgan"])
   expect(titles(list)).toEqual(["Bozor"])
   expect(within(list).getByRole("link", { name: "Bozor" })).toHaveAttribute("href", `/suppliers/${bozor.id}`)

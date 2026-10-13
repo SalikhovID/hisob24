@@ -24,8 +24,9 @@ test("the owner's transfers out of or into the current location, the newest firs
   const list = await table()
   expect(screen.getByRole("heading", { level: 1, name: "Ko'chirishlar" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 1 ta")).toBeInTheDocument()
-  const tabs = screen.getByRole("navigation", { name: "Ombor bo'limi" })
-  expect(within(tabs).getByRole("link", { name: "Ko'chirishlar" })).toHaveAttribute("aria-current", "page")
+  // The page leads back to the warehouse's hub, which lists its pages.
+  expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
+  expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
   expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Ko'chirish", "Yo'nalish", "Qo'shgan"])
   expect(within(list).getByRole("link", { name: /№ 1 · Asosiy → Chilonzor/ })).toHaveAttribute("href", `/transfers/${transfer.id}`)
   const row = within(list).getByRole("link", { name: /№ 1/ }).closest("tr")!

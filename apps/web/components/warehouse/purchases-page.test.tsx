@@ -19,9 +19,9 @@ test("the owner's purchases of the current location, the newest first, each by i
   const list = await table()
   expect(screen.getByRole("heading", { level: 1, name: "Xaridlar" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 1 ta")).toBeInTheDocument()
-  const tabs = screen.getByRole("navigation", { name: "Ombor bo'limi" })
-  expect(within(tabs).getByRole("link", { name: "Xaridlar" })).toHaveAttribute("aria-current", "page")
-  expect(within(tabs).getByRole("link", { name: "Ta'minotchilar" })).toHaveAttribute("href", "/suppliers")
+  // The page leads back to the warehouse's hub, which lists its pages.
+  expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
+  expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
   expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Xarid", "Jami", "To'langan", "Qo'shgan"])
   expect(within(list).getByRole("link", { name: /№ 1 · Bozor/ })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
   const row = within(list).getByRole("link", { name: /№ 1 · Bozor/ }).closest("tr")!

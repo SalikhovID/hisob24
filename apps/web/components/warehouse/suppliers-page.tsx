@@ -6,11 +6,9 @@ import { SearchInput } from "@/components/customers/search-input"
 import { type Column, DataList } from "@/components/data-list"
 import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
-import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatAmount, formatDate } from "@/lib/format"
-import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import { useSuppliers } from "@/lib/queries"
@@ -21,8 +19,6 @@ import { SupplierDialog } from "./supplier-dialog"
 // A tab is quiet until it is the chosen one, which then stands out as a card
 // on the muted strip. Never the brand color: that is the page's one button.
 const tab = "px-3 text-muted-foreground data-active:bg-card"
-
-const warehouseSection = navItems.find((item) => item.key === "warehouse")!
 
 // Balance is what a supplier is owed in the list: red when something is
 // owed, green when paid in advance, nothing when even. Shown to whoever may
@@ -74,8 +70,8 @@ export function SuppliersPage() {
   if (!gate) return null
   return (
     <div className="space-y-5">
-      <SectionTabs item={warehouseSection} permissions={gate.permissions} />
       <PageHeader
+        back={{ href: "/warehouse", label: "Ombor" }}
         title="Ta'minotchilar"
         description={unfiltered && total !== undefined ? `Kompaniyangiz ta'minotchilari · ${total} ta` : "Kompaniyangiz ta'minotchilari"}
         actions={companyId !== null && allowed("suppliers.create") && <SupplierDialog companyId={companyId} />}

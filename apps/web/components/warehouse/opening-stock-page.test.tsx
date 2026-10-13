@@ -21,8 +21,9 @@ test("the owner's opening stock of the current location, the newest first, each 
   const list = await screen.findByRole("table", { name: "Boshlang'ich qoldiq" })
   expect(screen.getByRole("heading", { level: 1, name: "Boshlang'ich qoldiq" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 1 ta")).toBeInTheDocument()
-  const tabs = screen.getByRole("navigation", { name: "Ombor bo'limi" })
-  expect(within(tabs).getByRole("link", { name: "Boshlang'ich qoldiq" })).toHaveAttribute("aria-current", "page")
+  // The page leads back to the warehouse's hub, which lists its pages.
+  expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
+  expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
   expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Hujjat", "Jami", "Qo'shgan"])
   expect(within(list).getByRole("link", { name: /№ 1/ })).toHaveAttribute("href", `/opening-stock/${opening.id}`)
   const row = within(list).getByRole("link", { name: /№ 1/ }).closest("tr")!
