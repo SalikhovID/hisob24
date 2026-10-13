@@ -93,7 +93,7 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   expect(screen.getByText("25 600 $")).toBeInTheDocument()
 })
 
-test("the form refuses in the API's words before asking: a supplier, a product and its numbers, at least one line, a product once, a payment's account and amount", async () => {
+test("the form refuses in the API's words before asking: a supplier, a product and its numbers, a payment's account and amount; a product is not taken twice, a lone line not taken away", async () => {
   const catalog = seedCatalog()
   seedWarehouse(catalog)
   await signIn(ALI)
@@ -112,19 +112,17 @@ test("the form refuses in the API's words before asking: a supplier, a product a
   await user.click(screen.getByRole("button", { name: "1-to'lovni olib tashlash" }))
   expect(screen.queryByRole("group", { name: "1-to'lov" })).not.toBeInTheDocument()
 
+  // A product of another line is not taken twice: its option is marked.
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
-  for (const n of [1, 2]) {
-    await pick(user, line(n), "Mahsulot", "ol", /Olma/)
-    await user.type(within(line(n)).getByLabelText("Miqdor"), "1")
-  }
-  await user.click(screen.getByRole("button", { name: "Saqlash" }))
-  expect(await within(line(2)).findByText("Bu mahsulot allaqachon kiritilgan")).toBeInTheDocument()
+  await user.click(within(line(2)).getByRole("button", { name: /^Mahsulot/ }))
+  const sheet = await screen.findByRole("dialog", { name: "Mahsulot" })
+  expect(await within(sheet).findByRole("option", { name: /Olma/ })).toHaveAttribute("aria-disabled", "true")
+  await user.keyboard("{Escape}")
 
+  // A lone line is not taken away.
   await user.click(screen.getByRole("button", { name: "2-qatorni olib tashlash" }))
-  await user.click(screen.getByRole("button", { name: "1-qatorni olib tashlash" }))
-  expect(screen.queryByRole("group", { name: "1-qator" })).not.toBeInTheDocument()
-  await user.click(screen.getByRole("button", { name: "Saqlash" }))
-  expect(await screen.findByText("Kamida bitta mahsulot qo'shing")).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "1-qatorni olib tashlash" })).not.toBeInTheDocument()
 })
 
 test("a member with no location to work in is told so; one without a way to the suppliers is sent to the purchases", async () => {

@@ -1,25 +1,77 @@
 "use client"
 
 import { PlusIcon, XIcon } from "lucide-react"
-import { Controller, type FieldPath, type FieldValues, useFieldArray, type UseFormReturn, useWatch } from "react-hook-form"
-import { TextField } from "@/components/text-field"
-import { Button } from "@/components/ui/button"
-import { FieldError } from "@/components/ui/field"
+import { useId } from "react"
+import { type Control, Controller, type FieldPath, type FieldValues, useFieldArray, type UseFormReturn, useWatch } from "react-hook-form"
+import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { convert, currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatMoney, unitLabel } from "@/lib/format"
 import type { LastPrice, ProductKind } from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { emptyLine, type LineForm, lineAmount, purchaseTotal } from "@/lib/warehouse"
 import { type Offer, ProductPicker } from "./pickers"
 
 // WithLines is a form that holds the lines of a goods document.
 type WithLines = { items: LineForm[] }
 
+// LineInput is a number in a line's card (its quantity, its price): the
+// name small over the input, the unit beside it, the error under it.
+function LineInput<T extends FieldValues, TOut extends FieldValues>({
+  control,
+  name,
+  label,
+  suffix,
+  disabled,
+}: {
+  control: Control<T, unknown, TOut>
+  name: FieldPath<T>
+  label: string
+  suffix?: string
+  disabled?: boolean
+}) {
+  const id = useId()
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <div data-invalid={fieldState.invalid || undefined} className="group min-w-0 px-4 py-2 [&+&]:border-l-[0.5px] [&+&]:border-border">
+          <label htmlFor={id} className="block text-sm text-muted-foreground group-data-invalid:text-destructive">
+            {label}
+          </label>
+          <span className="flex items-center gap-2">
+            <input
+              id={id}
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0"
+              disabled={disabled}
+              aria-invalid={fieldState.invalid || undefined}
+              aria-describedby={fieldState.error ? `${id}-error` : undefined}
+              className="h-8 min-w-0 flex-1 bg-transparent text-base text-foreground tabular-nums outline-none placeholder:text-muted-foreground/80"
+              {...field}
+              value={field.value ?? ""}
+            />
+            {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
+          </span>
+          {fieldState.error && (
+            <p id={`${id}-error`} role="alert" className="pt-1 text-xs text-destructive">
+              {fieldState.error.message}
+            </p>
+          )}
+        </div>
+      )}
+    />
+  )
+}
+
 // LinesField is the lines of a goods document (logic/warehouse.md, 4.1,
-// 5.1, 5.3): each a product found by name or SKU, its quantity in its
-// unit and, with prices, its price (offered as the last one paid, turned
-// into the document's currency) and what the line comes to; under them,
-// with prices, what the lines come to. The form's items are LineForm
-// rows, whatever else it holds.
+// 5.1, 5.3) as the prototype's cards: each a product picked in a sheet (one
+// of another line is not taken twice), its quantity in its unit and, with
+// prices, its price (offered as the last one paid, turned into the
+// document's currency) and what the line comes to; a row adds a line, a
+// lone line is not taken away; under them, with prices, what the lines
+// come to. The form's items are LineForm rows, whatever else it holds.
 export function LinesField<TForm extends WithLines & FieldValues, TOut extends FieldValues>({
   form,
   companyId,
@@ -51,6 +103,7 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
   const itemsError = form.formState.errors.items
   const linesMessage = (itemsError as { root?: { message?: string }; message?: string } | undefined)?.root?.message ?? (itemsError as { message?: string } | undefined)?.message
   const set = (name: string, value: unknown) => form.setValue(path(name), value as never)
+  const chosen = items.map((item) => Number(item?.product_id) || 0).filter((id) => id > 0)
 
   // offered is a product's last price in the document's currency: as is
   // when the currencies match, turned by the rates in force otherwise.
@@ -62,89 +115,89 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
   }
 
   return (
-    <section aria-labelledby="document-lines" className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 id="document-lines" className="text-base font-semibold">
-          {heading}
-        </h2>
-        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => append(emptyLine() as never)}>
-          <PlusIcon />
-          Qator qo&apos;shish
-        </Button>
-      </div>
+    <section aria-labelledby="document-lines">
+      <SectionHeading hint={`${fields.length} qator`}>
+        <span id="document-lines">{heading}</span>
+      </SectionHeading>
       {fields.map((line, index) => {
         const current = items[index]
         const amount = current ? lineAmount(current.quantity, current.price) : null
+        const unit = current?.unit ? unitLabel(current.unit) : undefined
         return (
-          <fieldset
-            key={line.id}
-            aria-label={`${index + 1}-qator`}
-            className={
-              withPrice
-                ? "grid gap-3 rounded-xl border bg-card p-3 md:grid-cols-[minmax(0,1fr)_8rem_9rem_minmax(7rem,auto)_2.5rem] md:items-start"
-                : "grid gap-3 rounded-xl border bg-card p-3 md:grid-cols-[minmax(0,1fr)_9rem_2.5rem] md:items-start"
-            }
-          >
-            <Controller
-              control={form.control}
-              name={path(`items.${index}.product_id`)}
-              render={({ field, fieldState }) => (
-                <ProductPicker
-                  companyId={companyId}
-                  kinds={kinds}
-                  offer={offer}
-                  value={
-                    field.value
-                      ? // The unit stands at the quantity, not in the chip.
-                        { id: Number(field.value), name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null, price: null }
-                      : null
-                  }
-                  onChange={(pick) => {
-                    field.onChange(pick?.id ?? 0)
-                    set(`items.${index}.product_name`, pick?.name ?? "")
-                    set(`items.${index}.unit`, pick?.unit ?? null)
-                    // The price offered (the last bought, or the sale price) is
-                    // put in; one typed stays.
-                    const price = withPrice ? offered((offer === "price" ? pick?.price : pick?.last_price) ?? null) : null
-                    if (price !== null && !form.getValues(path(`items.${index}.price`))) set(`items.${index}.price`, price)
-                  }}
-                  error={fieldState.error?.message}
-                  disabled={pending}
+          <fieldset key={line.id} aria-label={`${index + 1}-qator`} data-slot="line-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[20px] bg-card">
+            <div className="flex items-center">
+              <div className="min-w-0 flex-1">
+                <Controller
+                  control={form.control}
+                  name={path(`items.${index}.product_id`)}
+                  render={({ field, fieldState }) => (
+                    <ProductPicker
+                      companyId={companyId}
+                      kinds={kinds}
+                      offer={offer}
+                      used={chosen}
+                      value={field.value ? { id: Number(field.value), name: current?.product_name ?? "", unit: current?.unit ?? null, last_price: null, price: null } : null}
+                      onChange={(pick) => {
+                        field.onChange(pick?.id ?? 0)
+                        set(`items.${index}.product_name`, pick?.name ?? "")
+                        set(`items.${index}.unit`, pick?.unit ?? null)
+                        // The price offered (the last bought, or the sale price) is
+                        // put in; one typed stays.
+                        const price = withPrice ? offered((offer === "price" ? pick?.price : pick?.last_price) ?? null) : null
+                        if (price !== null && !form.getValues(path(`items.${index}.price`))) set(`items.${index}.price`, price)
+                      }}
+                      error={fieldState.error?.message}
+                      disabled={pending}
+                    />
+                  )}
                 />
-              )}
-            />
-            <div className="relative">
-              <TextField control={form.control} name={path(`items.${index}.quantity`)} label="Miqdor" inputMode="decimal" autoComplete="off" className={current?.unit ? "pr-14" : undefined} />
-              {current?.unit && (
-                <span className="pointer-events-none absolute top-[calc(1.25rem+0.5rem)] right-3 inline-flex h-9 items-center text-sm text-muted-foreground">{unitLabel(current.unit)}</span>
+              </div>
+              {fields.length > 1 && (
+                <button
+                  type="button"
+                  aria-label={`${index + 1}-qatorni olib tashlash`}
+                  disabled={pending}
+                  onClick={() => remove(index)}
+                  className="mr-1.5 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <XIcon aria-hidden="true" strokeWidth={2.4} className="size-[18px]" />
+                </button>
               )}
             </div>
-            {withPrice && <TextField control={form.control} name={path(`items.${index}.price`)} label="Narx" inputMode="decimal" autoComplete="off" />}
+            <div className={cn("grid border-t-[0.5px] border-border", withPrice ? "grid-cols-2" : "grid-cols-1")}>
+              <LineInput control={form.control} name={path(`items.${index}.quantity`)} label="Miqdor" suffix={unit} disabled={pending} />
+              {withPrice && <LineInput control={form.control} name={path(`items.${index}.price`)} label="Narx" suffix={currency.symbol} disabled={pending} />}
+            </div>
             {withPrice && (
-              <div className="flex flex-col gap-2 text-sm">
-                <span className="text-[0.8125rem] leading-5 font-medium">Summa</span>
-                <span className="inline-flex h-9 items-center tabular-nums">{amount === null ? <span className="text-muted-foreground">—</span> : formatAmount(amount)}</span>
-              </div>
+              <p className="flex justify-between border-t-[0.5px] border-border px-4 py-2.5 text-md text-muted-foreground">
+                <span>Summa</span>
+                <b className="font-semibold text-foreground tabular-nums">{amount === null ? "—" : formatAmount(amount)}</b>
+              </p>
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-destructive md:mt-7"
-              aria-label={`${index + 1}-qatorni olib tashlash`}
-              disabled={pending}
-              onClick={() => remove(index)}
-            >
-              <XIcon />
-            </Button>
           </fieldset>
         )
       })}
-      {linesMessage && <FieldError errors={[{ message: linesMessage }]} />}
+      <Group className="mb-3.5">
+        <Row
+          variant="link"
+          onClick={pending ? undefined : () => append(emptyLine() as never)}
+          title={
+            <span className="flex items-center gap-2">
+              <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
+              Qator qo&apos;shish
+            </span>
+          }
+        />
+      </Group>
+      {linesMessage && (
+        <p role="alert" className="-mt-2 mb-3.5 px-4 text-sm text-destructive">
+          {linesMessage}
+        </p>
+      )}
       {withPrice && (
-        <p className="flex items-baseline justify-end gap-2 text-sm">
+        <p className="mb-6 flex items-baseline justify-between gap-2 rounded-group bg-card px-4 py-3.5 text-base">
           <span className="text-muted-foreground">Jami</span>
-          <span className="text-base font-semibold tabular-nums">{formatMoney(total, currency)}</span>
+          <b className="text-lg font-semibold tabular-nums">{formatMoney(total, currency)}</b>
         </p>
       )}
     </section>

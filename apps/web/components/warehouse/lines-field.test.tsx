@@ -60,3 +60,23 @@ test("without prices: the product and its quantity alone, no price, no sum", asy
   expect(within(first).getByLabelText("Miqdor")).toHaveValue("4")
   expect(within(first).getByText("kg")).toBeInTheDocument()
 })
+
+test("the lines are the prototype's cards: the heading counts them, a lone line is not taken away, a product of another line is not taken twice", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Host withPrice />)
+
+  expect(screen.getByRole("heading", { level: 2, name: "Mahsulotlar" }).parentElement).toHaveTextContent("1 qator")
+  expect(line(1)).toHaveAttribute("data-slot", "line-card")
+  expect(screen.queryByRole("button", { name: "1-qatorni olib tashlash" })).not.toBeInTheDocument()
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
+
+  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  expect(screen.getByRole("heading", { level: 2, name: "Mahsulotlar" }).parentElement).toHaveTextContent("2 qator")
+  expect(screen.getByRole("button", { name: "1-qatorni olib tashlash" })).toBeInTheDocument()
+  await user.click(within(line(2)).getByRole("button", { name: /^Mahsulot/ }))
+  const sheet = await screen.findByRole("dialog", { name: "Mahsulot" })
+  const olma = await within(sheet).findByRole("option", { name: /Olma/ })
+  expect(olma).toHaveAttribute("aria-disabled", "true")
+})
