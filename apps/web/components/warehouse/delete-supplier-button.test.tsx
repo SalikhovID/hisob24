@@ -11,7 +11,9 @@ test("a supplier with a purchase is kept: the API's refusal is told", async () =
   await signIn(ALI)
   const { user } = renderWithProviders(<DeleteSupplierButton companyId={1} supplier={toSupplier(bozor, true)} />)
 
-  await user.click(screen.getByRole("button", { name: "O'chirish" }))
+  const row = screen.getByRole("button", { name: "Ta'minotchini o'chirish" })
+  expect(row).toHaveAttribute("data-variant", "danger")
+  await user.click(row)
   const dialog = await screen.findByRole("alertdialog", { name: "Ta'minotchini o'chirasizmi?" })
   expect(within(dialog).getByText("Bozor ro'yxatdan olib tashlanadi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "O'chirish" }))
@@ -20,13 +22,13 @@ test("a supplier with a purchase is kept: the API's refusal is told", async () =
   expect(db.suppliers.find((s) => s.id === bozor.id)?.deleted).toBeUndefined()
 })
 
-test("a supplier is deleted from the row by its icon, and the caller is told", async () => {
+test("a supplier is deleted from its danger row, and the caller is told", async () => {
   const { dehqon } = seedWarehouse()
   const afterDelete = vi.fn()
   await signIn(ALI)
-  const { user } = renderWithProviders(<DeleteSupplierButton companyId={1} supplier={toSupplier(dehqon, true)} iconOnly afterDelete={afterDelete} />)
+  const { user } = renderWithProviders(<DeleteSupplierButton companyId={1} supplier={toSupplier(dehqon, true)} afterDelete={afterDelete} />)
 
-  await user.click(screen.getByRole("button", { name: "O'chirish: Dehqon" }))
+  await user.click(screen.getByRole("button", { name: "Ta'minotchini o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Ta'minotchini o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
   await waitFor(() => expect(db.suppliers.find((s) => s.id === dehqon.id)?.deleted).toBe(true))

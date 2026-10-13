@@ -21,7 +21,7 @@ test("the supplier page: its facts, what is owed, its statement, and the actions
   expect(screen.getByRole("link", { name: "Ta'minotchilar" })).toHaveAttribute("href", "/suppliers")
   expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Nofaol qilish" })).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Ta'minotchini o'chirish" })).toBeInTheDocument()
   expect(screen.queryByText("Nofaol")).not.toBeInTheDocument()
   expect(facts()).toMatchObject({ Telefon: "+998 90 123 45 67", Izoh: "Chorsu", "Qo'shgan": "Ali Valiyev" })
 
@@ -90,7 +90,7 @@ test("deleting the supplier leads back to the list", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<SupplierPage id={dehqon.id} />)
 
-  await user.click(await screen.findByRole("button", { name: "O'chirish" }))
+  await user.click(await screen.findByRole("button", { name: "Ta'minotchini o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Ta'minotchini o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/suppliers"))
