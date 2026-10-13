@@ -25,6 +25,14 @@ export function nextAmount(current: string, key: Key | string): string {
 // amountToDecimal is the typed amount as the API takes it: a dot for the comma.
 export const amountToDecimal = (typed: string) => typed.replace(",", ".")
 
+// decimalToTyped is an amount as the API writes it ("1200.50") typed back
+// the keypad's way ("1200,5"): a comma, the trailing zeros dropped.
+export function decimalToTyped(decimal: string): string {
+  const [whole, decimals = ""] = decimal.split(".")
+  const kept = decimals.replace(/0+$/, "")
+  return kept ? `${whole},${kept}` : whole
+}
+
 // Keypad is the prototype's keypad: the digits, the comma and delete.
 export function Keypad({ onKey }: { onKey: (key: Key) => void }) {
   return (

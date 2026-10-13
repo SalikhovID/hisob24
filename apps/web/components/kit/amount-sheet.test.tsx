@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
-import { AmountSheet, amountToDecimal, nextAmount } from "./amount-sheet"
+import { AmountSheet, amountToDecimal, decimalToTyped, nextAmount } from "./amount-sheet"
 
 test("the keys build an amount: at most eleven whole digits, two decimals, one comma, no leading zero", () => {
   expect(nextAmount("", "0")).toBe("0")
@@ -51,4 +51,12 @@ test("a «To'liq» offer fills the whole debt; an error is said under the amount
   await userEvent.click(screen.getByRole("button", { name: "To'liq" }))
   expect(full).toHaveBeenCalledTimes(1)
   expect(screen.getByRole("alert")).toHaveTextContent("Summani kiriting")
+})
+
+test("an amount as the API writes it is typed back the keypad's way: a comma, no trailing zeros", () => {
+  expect(decimalToTyped("1200.50")).toBe("1200,5")
+  expect(decimalToTyped("1500.00")).toBe("1500")
+  expect(decimalToTyped("0.05")).toBe("0,05")
+  expect(decimalToTyped("700")).toBe("700")
+  expect(decimalToTyped("")).toBe("")
 })
