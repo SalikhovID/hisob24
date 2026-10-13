@@ -3,9 +3,22 @@ import { seedCatalog, seedWarehouse } from "../mocks/data"
 import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { choose, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
+import { choose, chooseLocation, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
 
-const sectionTabs = (page: Page) => page.getByRole("navigation", { name: "Ombor bo'limi" })
+// hub is the warehouse's own page: a row for each of its parts.
+const hub = (page: Page) => page.getByRole("list", { name: "Ombor bo'limlari" })
+
+// openWarehouse goes to a part of the warehouse through its hub: from a
+// part's list by its «‹ Ombor», from elsewhere through the sections.
+async function openWarehouse(page: Page, name: string) {
+  if (!/\/warehouse$/.test(page.url())) {
+    const back = page.getByRole("main").getByRole("link", { name: "Ombor", exact: true })
+    if ((await back.count()) > 0) await back.click()
+    else await openSection(page, "Ombor")
+    await expect(page).toHaveURL(/\/warehouse$/)
+  }
+  await hub(page).getByRole("link", { name, exact: true }).click()
+}
 
 test("the owner keeps the warehouse: a supplier, a purchase into the stock, the balance and a payment, an edit and a deletion", async ({ page }) => {
   test.setTimeout(150_000)
@@ -13,13 +26,13 @@ test("the owner keeps the warehouse: a supplier, a purchase into the stock, the 
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
 
-  // The warehouse opens at the purchases: none yet. The suppliers are a tab away.
-  await openSection(page, "Ombor")
+  // The warehouse opens at its hub; the purchases: none yet. The suppliers are the hub's too.
+  await openWarehouse(page, "Xaridlar")
   await expect(page).toHaveURL(/\/purchases$/)
   await expect(page.getByRole("heading", { level: 1, name: "Xaridlar" })).toBeVisible()
   await expect(page.getByText("Hali xarid yo'q")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
-  await sectionTabs(page).getByRole("link", { name: "Ta'minotchilar" }).click()
+  await openWarehouse(page, "Ta'minotchilar")
   await expect(page).toHaveURL(/\/suppliers$/)
   await expect(page.getByText("Hali ta'minotchi yo'q")).toBeVisible()
   await page.getByRole("button", { name: "Ta'minotchi qo'shish" }).click()
@@ -32,7 +45,7 @@ test("the owner keeps the warehouse: a supplier, a purchase into the stock, the 
   await settle(page)
 
   // A purchase of two products into Asosiy, 5 000 paid with it.
-  await sectionTabs(page).getByRole("link", { name: "Xaridlar" }).click()
+  await openWarehouse(page, "Xaridlar")
   await page.getByRole("link", { name: "Xarid qo'shish" }).click()
   await expect(page).toHaveURL(/\/purchases\/new$/)
   await expect(page.getByRole("heading", { level: 1, name: "Yangi xarid" })).toBeVisible()
@@ -74,8 +87,7 @@ test("the owner keeps the warehouse: a supplier, a purchase into the stock, the 
   await expect(list(page, "Xaridlar").getByRole("link", { name: /№ 1 · Bozor/ })).toBeVisible()
 
   // The supplier is owed the rest; a payment settles it.
-  await openSection(page, "Ombor")
-  await sectionTabs(page).getByRole("link", { name: "Ta'minotchilar" }).click()
+  await openWarehouse(page, "Ta'minotchilar")
   await list(page, "Ta'minotchilar").getByRole("link", { name: /Bozor/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Bozor" })).toBeVisible()
   const balance = page.getByRole("region", { name: "Balans" })
@@ -139,10 +151,10 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   await openSection(page, "Ombor")
-  await expect(sectionTabs(page).getByRole("link")).toHaveText(["Xaridlar", "Ko'chirishlar", "Inventarizatsiya", "Boshlang'ich qoldiq", "Ta'minotchilar"])
+  await expect(hub(page).getByRole("link")).toHaveText(["Xaridlar", "Ko'chirishlar", "Inventarizatsiya", "Boshlang'ich qoldiq", "Ta'minotchilar"])
 
   // A transfer of 4 kg Olma to Chilonzor: it leaves Asosiy and arrives there.
-  await sectionTabs(page).getByRole("link", { name: "Ko'chirishlar" }).click()
+  await openWarehouse(page, "Ko'chirishlar")
   await expect(page).toHaveURL(/\/transfers$/)
   await expect(page.getByText("Hali ko'chirish yo'q")).toBeVisible()
   await page.getByRole("link", { name: "Ko'chirish qo'shish" }).click()
@@ -160,13 +172,13 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   await settle(page)
   await page.getByRole("main").getByRole("link", { name: "Ko'chirishlar" }).click()
   await expect(list(page, "Ko'chirishlar").getByText("Chiqim")).toBeVisible()
-  await choose(page.getByRole("combobox", { name: "Lokatsiya" }), "Chilonzor")
+  await chooseLocation(page, "Chilonzor")
   await expect(list(page, "Ko'chirishlar").getByText("Kirim")).toBeVisible()
-  await choose(page.getByRole("combobox", { name: "Lokatsiya" }), "Asosiy")
+  await chooseLocation(page, "Asosiy")
   await expect(list(page, "Ko'chirishlar").getByText("Chiqim")).toBeVisible()
 
   // A count of Asosiy: everything in stock at once, Olma half a kilo short.
-  await sectionTabs(page).getByRole("link", { name: "Inventarizatsiya" }).click()
+  await openWarehouse(page, "Inventarizatsiya")
   await page.getByRole("link", { name: "Inventarizatsiya qo'shish" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Yangi inventarizatsiya" })).toBeVisible()
   await page.getByRole("button", { name: "Hammasini qo'shish" }).click()
@@ -180,12 +192,12 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   await expect(list(page, "Qatorlar").getByText("−0,5 kg")).toBeVisible()
   await settle(page)
 
-  // The stock Chilonzor started with: 10 Nok at 2 000. The tabs are on the
-  // lists: back to the counts first.
+  // The stock Chilonzor started with: 10 Nok at 2 000. The hub is a list
+  // away: back to the counts first.
   await page.getByRole("main").getByRole("link", { name: "Inventarizatsiya", exact: true }).click()
   await expect(page).toHaveURL(/\/inventories$/)
-  await choose(page.getByRole("combobox", { name: "Lokatsiya" }), "Chilonzor")
-  await sectionTabs(page).getByRole("link", { name: "Boshlang'ich qoldiq" }).click()
+  await chooseLocation(page, "Chilonzor")
+  await openWarehouse(page, "Boshlang'ich qoldiq")
   await page.getByRole("link", { name: "Boshlang'ich qoldiq qo'shish" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Yangi boshlang'ich qoldiq" })).toBeVisible()
   const opening = page.getByRole("group", { name: "1-qator" })
@@ -210,8 +222,7 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   await expect(page.getByRole("region", { name: "Qoldiq" }).getByText("8 kg")).toBeVisible()
 
   // What the supplier was owed before the books began: in the balance and the statement.
-  await openSection(page, "Ombor")
-  await sectionTabs(page).getByRole("link", { name: "Ta'minotchilar" }).click()
+  await openWarehouse(page, "Ta'minotchilar")
   await list(page, "Ta'minotchilar").getByRole("link", { name: /Bozor/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Bozor" })).toBeVisible()
   await page.getByRole("button", { name: "Boshlang'ich qarz / avans" }).click()
