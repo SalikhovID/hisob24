@@ -56,7 +56,7 @@ test("with no category of the kind yet the dialog says to make one in the settin
   const { unmount } = renderWithProviders(<Opened companyId={1} kind="income" settingsAllowed />)
   const dialog = await screen.findByRole("dialog", { name: "Kirim qo'shish" })
   expect(await within(dialog).findByText("Avval Sozlamalarda kirim kategoriyasini yarating.")).toBeInTheDocument()
-  expect(within(dialog).getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings?tab=finance")
+  expect(within(dialog).getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings/finance-categories")
   unmount()
 
   renderWithProviders(<Opened companyId={1} kind="income" />)

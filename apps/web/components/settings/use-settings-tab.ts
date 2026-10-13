@@ -1,34 +1,26 @@
-"use client"
+// SettingsTab is a part of the settings, each on a page of its own: what the
+// company's customers are asked, what its tasks are asked and the stages
+// they go through, the dropdowns both take their options from, the
+// currency rates, the finance categories, and the roles (the owner's alone).
+export type SettingsTab = "customers" | "tasks" | "stages" | "dropdowns" | "currencies" | "finance" | "roles"
 
-import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback } from "react"
-
-// SettingsTab is one of the settings' tabs: what the company's customers
-// are asked, what its tasks are asked, the dropdowns both take their
-// options from, the currency rates, the finance categories, and the roles
-// (the owner's alone).
-export type SettingsTab = "customers" | "tasks" | "dropdowns" | "currencies" | "finance" | "roles"
-
-const tabs: SettingsTab[] = ["customers", "tasks", "dropdowns", "currencies", "finance", "roles"]
-
-// asTab reads a tab's name; anything else is the customers' tab.
-export function asTab(value: unknown): SettingsTab {
-  return tabs.find((candidate) => candidate === value) ?? "customers"
+const pages: Record<SettingsTab, string> = {
+  customers: "/settings/customer-types",
+  tasks: "/settings/task-types",
+  stages: "/settings/stages",
+  dropdowns: "/settings/dropdowns",
+  currencies: "/settings/currencies",
+  finance: "/settings/finance-categories",
+  roles: "/settings/roles",
 }
 
-// settingsHref is the address of a tab of the settings: the customers are
-// the page itself, the others name themselves.
+// settingsHref is the address of a part of the settings.
 export function settingsHref(tab: SettingsTab): string {
-  return tab === "customers" ? "/settings" : `/settings?tab=${tab}`
+  return pages[tab]
 }
 
-// useSettingsTab keeps the settings' open tab in the address, so a reload,
-// the back button or a page's way back finds the same tab. An address that
-// names no tab, or one that is not there, opens the customers.
-export function useSettingsTab(): [SettingsTab, (tab: SettingsTab) => void] {
-  const params = useSearchParams()
-  const router = useRouter()
-  const tab = asTab(params.get("tab"))
-  const select = useCallback((next: SettingsTab) => router.replace(settingsHref(next)), [router])
-  return [tab, select]
+// oldTabHref is where an address of the settings' old tabs (/settings?tab=x)
+// leads now: the part's page; null with no tab named, or one not there.
+export function oldTabHref(tab: string | null): string | null {
+  return tab !== null && tab in pages ? pages[tab as SettingsTab] : null
 }

@@ -65,6 +65,6 @@ test("with no role to give, the picker says so and leads to the settings", async
 
   const sheet = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
   expect(await within(sheet).findByText(/Hali rol yo'q/)).toBeInTheDocument()
-  expect(within(sheet).getByRole("link", { name: "Sozlamalarda rol yarating" })).toHaveAttribute("href", "/settings?tab=roles")
+  expect(within(sheet).getByRole("link", { name: "Sozlamalarda rol yarating" })).toHaveAttribute("href", "/settings/roles")
   expect(options(sheet)).toEqual(["Rolsiz"])
 })
