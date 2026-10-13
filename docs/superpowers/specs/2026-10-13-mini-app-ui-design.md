@@ -192,6 +192,25 @@ Har bosqich: TDD (RED → GREEN → commit), oxirida `make lint && make test && 
 - Tab-bar linzasini sudrash, chapdan surib qaytish imo-ishorasi.
 - Production deploy alohida so'raladi.
 
+## Amalga oshirishda belgilangan qarorlar
+
+### 2-bosqich (qobiq, profil, kirish ekranlari)
+
+1. **Bosh sahifa doim birinchi** va qulflangan: `navFor` uni boshiga qo'yadi, `nav_order` dagi `home` o'rni e'tiborga olinmaydi. Tab-bar: bosh sahifa + a'zoning birinchi 4 bo'limi (`barItems` → `{ shown, more }`), qolganlari profil sahifasida va telefonda bosh sahifada qator-qator; «Yana» yo'q. Tab yorlig'i «Bosh sahifa» (prototipda «Hisob24»), belgisi «24».
+2. **Ildiz sahifalar** (`rootPaths`, `isRootPath`): `/`, har bo'lim manzili, segmentli bo'limlarning tablari, ombor hub'i. Tab-bar faqat ildizda ko'rinadi (yashirilganda `aria-hidden` + `inert`), ichki sahifada sahifaning `BackLink` i va Telegram BackButton.
+3. **Telegram BackButton** (`TelegramSync`): ildiz va qobiqsiz sahifalarda (`/login`, `/select-company`, `/expired`) yashirin; bosilganda orqada sahifa bo'lsa `router.back()`, bo'lmasa bo'lim ildiziga. «Orqada sahifa bormi» — Navigation API `canGoBack` (bor joyda), aks holda `history.length > 1`: birinchi sahifaga qaytilgandan keyin tarix uzun qoladi, tugma o'lik bo'lmasin.
+4. **Lokatsiya tanlovi** bosh sahifa boshida (pill + action sheet), keng ekranda sidebar pastida va profil sahifasida («Lokatsiya» qatori). Ro'yxat sahifalarida tanlov yo'q (prototipdagidek); telefonda boshqa lokatsiyaga o'tish bosh sahifa orqali.
+5. **Profil sahifasi** (`/profile`): `DetailHead`, Telegram'da «Bosh ekran» kartasi («Qo'shish» / «Yashirish»), «Kompaniya» (nom + rol, lokatsiya, kompaniyani almashtirish), «Bo'limlar» (bar'ga sig'maganlar), «Ilova» («Pastki menyu», brauzerda «Mavzu»: Tizim / Yorug' / Qorong'i), `Foot`, brauzerda «Chiqish». `Topbar`, `MoreSheet`, `NavOrderDialog`, `ThemeToggle` o'chirildi (testlari bilan: funksiyalari profil va `/profile/menu` ga ko'chdi).
+6. **Bosh sahifaning `h1`** «Salom, {ism}» ko'zga ko'rinmas (`sr-only`), ko'zga prototipdagi profil tugmasi (kompaniya, «Ali V. · Egasi»: `shortName`). Bosh sahifadagi «Bo'limlar» qatorlari faqat telefonda (`md:hidden`): keng ekranda hammasi sidebar'da.
+7. **Bosh ekranga qo'shish** (`useHomeScreenOffer`): Telegram 8.0+, `addToHomeScreen` va `checkHomeScreenStatus` bor, holat `missed` yoki `unknown`; `homeScreenAdded` hodisasidan keyin yoki «Yopish» / «Yashirish» bosilsa yo'qoladi (`home_screen_offer_hidden` brauzerda).
+8. **Kompaniya tanlash** (`/select-company`): kvadrat avatarli qatorlar, nofaollari xira + sabab badge'i, ulardan biri bo'lsa `Foot` «Muddati o'tgan yoki bloklangan kompaniyani tanlab bo'lmaydi.»; ilovadan kelinganda (sessiyada kompaniya bor) joriysi «Joriy» va «‹ Profil» havolasi.
+9. **Holat ekranlari** (`ShellLess` + `StateScreen` / `Splash`): to'liq ekranda Telegram sarlavhasi yo'q, shuning uchun tepada kichik Hisob24 logotipi qoladi; splash'da logotip o'rnida «H24» belgisi (`role="img"`, nomi «Hisob24»). Raqamni yuborishni rad etgandan keyin «Raqamni yuborish» qoladi, ostida «Botga qaytish».
+10. **Kirish (brauzer):** raqam `PhoneRow` qatorida, «Kodni olish» `MainButton`, kod qadamida ghost tugmalar, Telegram'dan qaytish sababi `Refusal` kartasi. `LoginFrame` brend paneli o'zgarmadi.
+11. **Forma qatori**dagi input 44px (barmoq nishoni), qator balandligi prototipdagidek 52px (`py-1`).
+12. **Tab kengligi** `min(72px, (100vw − 24px) / 5)`: 360px va 320px telefonda ham bar ekranga sig'adi.
+13. **Sidebar** yig'ilganda 64px (avvalgidek), pastida lokatsiya pill'i va profil qatori (avatar, ism, rol); yig'ilganda avatar «Profil: {ism}».
+14. **e2e:** Playwright serveri Next dev indikatorini yashiradi (`HIDE_DEV_INDICATOR=1`): burchakdagi indikator suzuvchi bar'ning birinchi tabini to'sardi. Yordamchilar: `goHome`, `openSection` (bar'dan tashqaridagi bo'lim bosh sahifa ro'yxati orqali), `openProfile`, `signOut`, `homeHead`, `locationSwitch`, `chooseLocation` (telefonda bosh sahifaga borib qaytadi).
+
 ## Tekshiruv
 
 - `make lint`, `make test`, `make e2e` toza (admin e2e ham: admin'ga tegilmagan).
