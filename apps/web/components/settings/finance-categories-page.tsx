@@ -1,64 +1,69 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { EyeIcon, EyeOffIcon, PencilIcon, PlusIcon } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
-import { SortableList } from "@/components/sortable-list"
-import { EmptyState, Failed, ListLoading } from "@/components/states"
+import { ActionSheet } from "@/components/kit/action-sheet"
+import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
+import { OrderedRows } from "@/components/kit/ordered-rows"
+import { PageTitle, PlusButton } from "@/components/kit/page-title"
+import { Segmented } from "@/components/kit/segmented"
+import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { financeCategoriesKey, useFinanceCategories } from "@/lib/queries"
 import type { FinanceCategory, FinanceKind, Permission } from "@/lib/types"
+import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
+import { cn } from "@/lib/utils"
 import { DeleteButton } from "./delete-button"
 import { NameDialog } from "./name-dialog"
-import { Section } from "./section"
-import { iconAction, SettingRow, settingList } from "./setting-row"
 
-// The words of each kind: what a section is called and what its rows are.
-const words: Record<FinanceKind, { title: string; description: string; noun: string; add: string; empty: string }> = {
+// The words of each kind: what its list is called and what its rows are for.
+const words: Record<FinanceKind, { title: string; foot: string; noun: string; example: string; empty: string }> = {
   expense: {
     title: "Xarajat kategoriyalari",
-    description: "Xarajat kiritishda tanlanadi: ijara, kommunal, maosh.",
+    foot: "Xarajat kiritishda tanlanadi: ijara, kommunal, maosh.",
     noun: "Xarajat kategoriyasi",
-    add: "Kategoriya qo'shish",
+    example: "Masalan, Ijara",
     empty: "Xarajat kiritish uchun kamida bitta kategoriya kerak.",
   },
   income: {
     title: "Kirim kategoriyalari",
-    description: "Sotuvdan tashqari kirimlarda tanlanadi: boshqa kirim, foiz.",
+    foot: "Sotuvdan tashqari kirimlarda tanlanadi: boshqa kirim, foiz.",
     noun: "Kirim kategoriyasi",
-    add: "Kategoriya qo'shish",
+    example: "Masalan, Foiz",
     empty: "Kirim kiritish uchun kamida bitta kategoriya kerak.",
   },
 }
 
-// FinanceCategories is the settings' tab of the finance categories
-// (logic/finance.md, section 6): the expense categories and the income
-// categories, each kind in the order the owner put them in.
-export function FinanceCategories({ companyId, permissions }: { companyId: number; permissions: Permission[] }) {
-  return (
-    <>
-      <Categories companyId={companyId} permissions={permissions} kind="expense" />
-      <Categories companyId={companyId} permissions={permissions} kind="income" />
-    </>
-  )
-}
+// Sheet is what is open over the page: a category being added, its
+// actions, a category being renamed or deleted.
+type Sheet = { add: true } | { act: FinanceCategory } | { rename: FinanceCategory } | { remove: FinanceCategory }
 
-// Categories is one kind's categories: added, renamed, turned off and on,
-// deleted and put in order, each with its permission.
-function Categories({ companyId, permissions, kind }: { companyId: number; permissions: Permission[]; kind: FinanceKind }) {
-  const allowed = (permission: Permission) => can(permissions, permission)
-  const w = words[kind]
+// FinanceCategoriesPage is the finance categories (logic/finance.md, section
+// 6), for whoever may see the settings, as the prototype's page: the kind
+// (expense or income) segmented; the kind's categories in the order the
+// owner put them in, each a row (one turned off marked) opening a sheet of
+// its actions (renaming, turning off and on: settings.edit; deleting:
+// settings.delete); the plus adds one of the kind (settings.create); the
+// «Tartiblash» mode orders them (settings.edit).
+export function FinanceCategoriesPage() {
+  const gate = usePermission("settings.view")
+  const companyId = gate?.company.id ?? null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
+  const [kind, setKind] = useState<FinanceKind>("expense")
   const categories = useFinanceCategories(companyId, kind)
   const queryClient = useQueryClient()
   const queryKey = financeCategoriesKey(companyId, kind)
   // What a change did shows once the list is asked for again.
   const refresh = () => queryClient.invalidateQueries({ queryKey })
   const reorder = useReorder<FinanceCategory[]>(queryKey, inOrder, (ids) => call(api.PUT("/app/finance-categories/order", { body: { kind, ids } })))
+  const [sheet, setSheet] = useState<Sheet | null>(null)
+  const close = (open: boolean) => !open && setSheet(null)
+  const w = words[kind]
+
   const setActive = async (category: FinanceCategory, active: boolean) => {
     try {
       await call(api.PATCH("/app/finance-categories/{id}", { params: { path: { id: category.id } }, body: { is_active: active } }))
@@ -68,101 +73,116 @@ function Categories({ companyId, permissions, kind }: { companyId: number; permi
       toast.error(error instanceof Error ? error.message : String(error))
     }
   }
+  const actions = (category: FinanceCategory) => [
+    ...(allowed("settings.edit")
+      ? [
+          { label: "Nomini o'zgartirish", onSelect: () => setSheet({ rename: category }) },
+          { label: category.is_active ? "Nofaol qilish" : "Faollashtirish", onSelect: () => setActive(category, !category.is_active) },
+        ]
+      : []),
+    ...(allowed("settings.delete") ? [{ label: "O'chirish", danger: true, onSelect: () => setSheet({ remove: category }) }] : []),
+  ]
+  const acts = allowed("settings.edit") || allowed("settings.delete")
 
+  if (!gate || companyId === null) return null
+  const acting = sheet && "act" in sheet ? sheet.act : null
+  const list = categories.data
   return (
-    <Section
-      title={w.title}
-      description={w.description}
-      action={
-        allowed("settings.create") && (
-          <NameDialog
-            title={w.add}
-            description={`${w.noun} nomi. Tur ichida takrorlanmaydi.`}
-            submit="Qo'shish"
-            done="Kategoriya qo'shildi"
-            trigger={
-              <Button variant="outline" size="lg" className="px-3.5">
-                <PlusIcon />
-                {w.add}
-              </Button>
-            }
-            onSubmit={async (name) => {
-              await call(api.POST("/app/finance-categories", { body: { name, kind } }))
-              await refresh()
-            }}
-          />
-        )
-      }
-    >
+    <>
+      <PageTitle
+        title="Moliya kategoriyalari"
+        description="Xarajat va kirimlar kategoriyasi bilan kiritiladi."
+        back={{ href: "/settings", label: "Sozlamalar" }}
+        action={allowed("settings.create") && <PlusButton label="Kategoriya qo'shish" onClick={() => setSheet({ add: true })} />}
+      />
+      <Segmented
+        label="Tur"
+        value={kind}
+        onChange={(next) => setKind(next === "income" ? "income" : "expense")}
+        options={[
+          { value: "expense", label: "Xarajat" },
+          { value: "income", label: "Kirim" },
+        ]}
+      />
       {categories.isPending && <ListLoading rows={2} mark="none" />}
       {categories.isError && <Failed error={categories.error} onRetry={() => categories.refetch()} />}
-      {categories.data?.length === 0 && <EmptyState title="Hali kategoriya yo'q" description={w.empty} />}
-      {categories.data && categories.data.length > 0 && (
-        <SortableList
+      {list?.length === 0 && (
+        <>
+          <SectionHeading>{w.title}</SectionHeading>
+          <Group>
+            <div className="px-4 py-3">
+              <p className="text-base font-medium">Hali kategoriya yo&apos;q</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{w.empty}</p>
+            </div>
+          </Group>
+        </>
+      )}
+      {list && list.length > 0 && (
+        <OrderedRows
           label={w.title}
-          items={categories.data}
+          heading={`${list.length} ta kategoriya`}
+          items={list}
           getId={(category) => String(category.id)}
           getLabel={(category) => category.name}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
-          className={settingList}
-          disabled={!allowed("settings.edit")}
-          renderItem={(category, handle) => (
-            <SettingRow
-              handle={handle}
-              title={category.name}
-              marks={!category.is_active && <Badge variant="secondary">Nofaol</Badge>}
-              actions={
-                <>
-                  {allowed("settings.edit") && (
-                    <NameDialog
-                      title="Kategoriya nomini o'zgartirish"
-                      description="Shu kategoriyadagi hujjatlar o'zgarmaydi."
-                      initial={category.name}
-                      submit="Saqlash"
-                      done="Kategoriya nomi o'zgartirildi"
-                      tooltip="Nomini o'zgartirish"
-                      trigger={
-                        <Button variant="ghost" size="icon" className={iconAction} aria-label={`Nomini o'zgartirish: ${category.name}`}>
-                          <PencilIcon />
-                        </Button>
-                      }
-                      onSubmit={async (name) => {
-                        await call(api.PATCH("/app/finance-categories/{id}", { params: { path: { id: category.id } }, body: { name } }))
-                        await refresh()
-                      }}
-                    />
-                  )}
-                  {allowed("settings.edit") && (
-                    <ActionTooltip label={category.is_active ? "Nofaol qilish" : "Faollashtirish"}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={iconAction}
-                        aria-label={`${category.is_active ? "Nofaol qilish" : "Faollashtirish"}: ${category.name}`}
-                        onClick={() => setActive(category, !category.is_active)}
-                      >
-                        {category.is_active ? <EyeOffIcon /> : <EyeIcon />}
-                      </Button>
-                    </ActionTooltip>
-                  )}
-                  {allowed("settings.delete") && (
-                    <DeleteButton
-                      label={`O'chirish: ${category.name}`}
-                      title="Kategoriyani o'chirasizmi?"
-                      description={`«${category.name}» kategoriyasi o'chadi. Hujjati bor kategoriya o'chirilmaydi: uni nofaol qilish mumkin.`}
-                      done="Kategoriya o'chirildi"
-                      onDelete={async () => {
-                        await call(api.DELETE("/app/finance-categories/{id}", { params: { path: { id: category.id } } }))
-                        await refresh()
-                      }}
-                    />
-                  )}
-                </>
-              }
-            />
-          )}
+          canOrder={allowed("settings.edit")}
+          row={(category, handle) => {
+            const off = !category.is_active && <Badge>Nofaol</Badge>
+            const title = <span className={cn(!category.is_active && "text-muted-foreground")}>{category.name}</span>
+            return handle ? (
+              <Row compact media={handle} title={title} badge={off} />
+            ) : (
+              <Row compact onClick={acts ? () => setSheet({ act: category }) : undefined} title={title} badge={off} chevron={false} />
+            )
+          }}
         />
       )}
-    </Section>
+      <Foot className="-mt-4">{w.foot}</Foot>
+      <ActionSheet open={acting !== null} onOpenChange={close} title={acting?.name} items={acting ? actions(acting) : []} />
+      {sheet && "add" in sheet && (
+        <NameDialog
+          title="Kategoriya qo'shish"
+          description={`${w.noun} nomi. Tur ichida takrorlanmaydi.`}
+          placeholder={w.example}
+          submit="Qo'shish"
+          done="Kategoriya qo'shildi"
+          open
+          onOpenChange={close}
+          onSubmit={async (name) => {
+            await call(api.POST("/app/finance-categories", { body: { name, kind } }))
+            await refresh()
+          }}
+        />
+      )}
+      {sheet && "rename" in sheet && (
+        <NameDialog
+          title="Kategoriya nomini o'zgartirish"
+          description="Shu kategoriyadagi hujjatlar o'zgarmaydi."
+          initial={sheet.rename.name}
+          submit="Saqlash"
+          done="Kategoriya nomi o'zgartirildi"
+          open
+          onOpenChange={close}
+          onSubmit={async (name) => {
+            await call(api.PATCH("/app/finance-categories/{id}", { params: { path: { id: sheet.rename.id } }, body: { name } }))
+            await refresh()
+          }}
+        />
+      )}
+      {sheet && "remove" in sheet && (
+        <DeleteButton
+          label={`O'chirish: ${sheet.remove.name}`}
+          title="Kategoriyani o'chirasizmi?"
+          description={`«${sheet.remove.name}» kategoriyasi o'chadi. Hujjati bor kategoriya o'chirilmaydi: uni nofaol qilish mumkin.`}
+          done="Kategoriya o'chirildi"
+          onDelete={async () => {
+            await call(api.DELETE("/app/finance-categories/{id}", { params: { path: { id: sheet.remove.id } } }))
+            await refresh()
+          }}
+          open
+          onOpenChange={close}
+        />
+      )}
+    </>
   )
 }

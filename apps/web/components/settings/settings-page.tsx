@@ -30,7 +30,7 @@ import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
 import { CurrencyRatesPage } from "./currency-rates-page"
 import { DeleteButton } from "./delete-button"
-import { FinanceCategories } from "./finance-categories-page"
+import { FinanceCategoriesPage } from "./finance-categories-page"
 import { NameDialog } from "./name-dialog"
 import { Section } from "./section"
 import { iconAction, SettingRow, settingList } from "./setting-row"
@@ -105,7 +105,7 @@ export function SettingsPage() {
           <CurrencyRatesPage />
         </TabsContent>
         <TabsContent value="finance" className="space-y-8 text-base">
-          <FinanceCategories companyId={companyId} permissions={permissions} />
+          <FinanceCategoriesPage />
         </TabsContent>
         {isOwner && (
           <TabsContent value="roles" className="space-y-8 text-base">
