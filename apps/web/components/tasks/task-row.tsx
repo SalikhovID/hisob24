@@ -1,5 +1,6 @@
 import { ClipboardListIcon } from "lucide-react"
 import { Row } from "@/components/kit/group"
+import { SoftIcon } from "@/components/kit/tile-icon"
 import { shortName } from "@/lib/initials"
 import { formatPhone } from "@/lib/phone"
 import { colorValues } from "@/lib/stage-colors"
@@ -40,15 +41,7 @@ export function TaskRow({
   return (
     <Row
       href={`/tasks/${task.id}`}
-      media={
-        <span
-          aria-hidden="true"
-          style={{ color: stage ? colorValues[stage.color] : undefined }}
-          className="grid size-9 place-items-center rounded-[11px] bg-[color-mix(in_srgb,currentColor_14%,transparent)]"
-        >
-          <ClipboardListIcon className="size-5" />
-        </span>
-      }
+      media={<SoftIcon icon={ClipboardListIcon} color={stage ? colorValues[stage.color] : "var(--muted-foreground)"} />}
       title={task.title}
       sub={sub || undefined}
       end={<span className={cn(late && "text-destructive")}>{deadline.date.slice(0, 5)}</span>}
