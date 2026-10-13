@@ -128,12 +128,14 @@ export function NotFound({ title, description, icon: Icon }: { title: string; de
 }
 
 // Splash is the app's opening screen while Telegram signs the user in: the
-// pulsing mark, a loading line and a word on what is going on.
+// pulsing mark (Hisob24's, named so for a screen reader), a loading line
+// and a word on what is going on.
 export function Splash({ children }: { children: ReactNode }) {
   return (
     <div role="status" data-slot="splash" className="flex flex-1 flex-col items-center justify-center px-7 pt-6 pb-[140px] text-center">
       <span
-        aria-hidden="true"
+        role="img"
+        aria-label="Hisob24"
         className="grid size-[84px] place-items-center rounded-[26px] bg-brand-panel text-[30px] font-extrabold tracking-[-0.05em] text-brand-panel-foreground italic shadow-[0_10px_30px_rgba(23,68,73,.3)] motion-safe:animate-[pulse-mark_1.4s_ease-in-out_infinite]"
       >
         H24

@@ -99,3 +99,9 @@ test("a state screen heads its message and holds the way out under it", () => {
   expect(screen.getByRole("heading", { level: 1, name: "Obuna muddati tugagan" })).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Boshqa kompaniyani tanlash" })).toBeInTheDocument()
 })
+
+test("the splash's mark is Hisob24's, for a screen reader too", () => {
+  render(<Splash>Telegram orqali kirilmoqda…</Splash>)
+
+  expect(screen.getByRole("img", { name: "Hisob24" })).toHaveTextContent("H24")
+})

@@ -133,3 +133,34 @@ test("the company list stands under Hisob24's logo", async () => {
   expect(screen.getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
   await screen.findByRole("button", { name: /Nok Market/ })
 })
+
+test("from the app, the company the session works in is marked «Joriy» and the page leads back to the profile", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<SelectCompany />)
+
+  expect(await screen.findByRole("button", { name: /Olma Savdo/ })).toHaveTextContent("Joriy")
+  expect(screen.getByRole("button", { name: /Nok Market/ })).not.toHaveTextContent("Joriy")
+  expect(screen.getByRole("link", { name: "Profil" })).toHaveAttribute("href", "/profile")
+})
+
+test("straight from the login there is no current company and nothing to go back to", async () => {
+  await signIn(VALI)
+  renderWithProviders(<SelectCompany />)
+
+  await screen.findByRole("button", { name: /Nok Market/ })
+  expect(screen.queryByText("Joriy")).not.toBeInTheDocument()
+  expect(screen.queryByRole("link", { name: "Profil" })).not.toBeInTheDocument()
+})
+
+test("a list with a company that cannot be chosen says so at its foot", async () => {
+  await signIn(SARDOR)
+  const sardor = renderWithProviders(<SelectCompany />)
+  expect(await screen.findByText("Muddati o'tgan yoki bloklangan kompaniyani tanlab bo'lmaydi.")).toBeInTheDocument()
+  sardor.unmount()
+
+  await signIn(VALI)
+  renderWithProviders(<SelectCompany />)
+  await screen.findByRole("button", { name: /Nok Market/ })
+  expect(screen.queryByText("Muddati o'tgan yoki bloklangan kompaniyani tanlab bo'lmaydi.")).not.toBeInTheDocument()
+})
