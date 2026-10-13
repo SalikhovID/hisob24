@@ -29,8 +29,30 @@ export interface TelegramWebApp {
   requestFullscreen?: () => void
   exitFullscreen?: () => void
   isFullscreen?: boolean
-  onEvent: (event: "themeChanged", handler: () => void) => void
-  offEvent: (event: "themeChanged", handler: () => void) => void
+  // addToHomeScreen asks to put the Mini App on the phone's home screen
+  // (Bot API 8.0+); checkHomeScreenStatus says whether it is there, may be
+  // put there, or cannot be.
+  addToHomeScreen?: () => void
+  checkHomeScreenStatus?: (callback: (status: HomeScreenStatus) => void) => void
+  // BackButton is Telegram's own back button in the Mini App's header or
+  // floating controls (Bot API 6.1+).
+  BackButton?: TelegramBackButton
+  onEvent: (event: TelegramEvent, handler: () => void) => void
+  offEvent: (event: TelegramEvent, handler: () => void) => void
+}
+
+export type HomeScreenStatus = "unsupported" | "unknown" | "added" | "missed"
+
+// The events the app listens to: the chat's theme changed, the Mini App was
+// put on the home screen.
+export type TelegramEvent = "themeChanged" | "homeScreenAdded"
+
+export interface TelegramBackButton {
+  isVisible: boolean
+  show: () => void
+  hide: () => void
+  onClick: (handler: () => void) => void
+  offClick: (handler: () => void) => void
 }
 
 declare global {

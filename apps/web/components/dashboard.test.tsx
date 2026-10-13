@@ -1,75 +1,105 @@
-import { screen } from "@testing-library/react"
-import { expect, test } from "vitest"
-import { ALI, db, SARDOR, VALI } from "@/mocks/data"
+import { act, screen, within } from "@testing-library/react"
+import { expect, test, vi } from "vitest"
+import { formatDate } from "@/lib/format"
+import { setMiniApp } from "@/lib/telegram"
+import { ALI, db, VALI } from "@/mocks/data"
+import { addLocation } from "@/test/locations"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
+import { fakeWebApp } from "@/test/telegram"
 import { Dashboard } from "./dashboard"
 
-// The shell around the dashboard holds the top bar (sign-out, theme), shows
-// the loading and the failure, and sends away a session without a usable
-// company: components/shell/*.test.tsx.
+// The home heads itself, as the prototype's: who is signed in and where is
+// the way to the profile; the greeting is the page's heading for a screen
+// reader.
 
-test("greets the user by name and shows the company they work in", async () => {
+test("the home says who is signed in and where: the company, the short name and the role, the way to the profile", async () => {
   await signIn(ALI)
   renderWithProviders(<Dashboard />)
 
-  expect(await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })).toBeInTheDocument()
-  expect(screen.getByText("Olma Savdo")).toBeInTheDocument()
-  expect(screen.getByText("Egasi")).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Salom, Ali Valiyev" })).toHaveClass("sr-only")
+  expect(screen.getByRole("link", { name: "Olma Savdo Ali V. · Egasi" })).toHaveAttribute("href", "/profile")
 })
 
-test("without a name the greeting uses the phone number", async () => {
+test("without a name the greeting and the head use the phone number", async () => {
   db.users[ALI] = null
   await signIn(ALI)
-
   renderWithProviders(<Dashboard />)
 
   expect(await screen.findByRole("heading", { name: "Salom, +998 90 123 45 67" })).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Olma Savdo +998 90 123 45 67 · Egasi" })).toBeInTheDocument()
 })
 
-test("someone with another company to work in can switch to it", async () => {
-  await signIn(VALI)
-  await chooseCompany(1)
-
-  renderWithProviders(<Dashboard />)
-
-  expect(await screen.findByRole("link", { name: "Kompaniyani almashtirish" })).toHaveAttribute(
-    "href",
-    "/select-company",
-  )
-})
-
-test.each([
-  ["one company", ALI, null],
-  ["the others expired or blocked", SARDOR, 1],
-])("with %s there is nothing to switch to", async (_, phone, company) => {
-  await signIn(phone)
-  if (company !== null) await chooseCompany(company)
-
-  renderWithProviders(<Dashboard />)
-
-  await screen.findByRole("heading", { name: /^Salom/ })
-  expect(screen.queryByRole("link", { name: "Kompaniyani almashtirish" })).not.toBeInTheDocument()
-})
-
-test("the dashboard is its content alone: the shell holds the top bar", async () => {
-  await signIn(ALI)
-  renderWithProviders(<Dashboard />)
-
-  await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })
-  expect(screen.queryByRole("banner")).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
-})
-
-test("an employee with a role sees the role's name on the company card", async () => {
+test("an employee with a role sees the role's name in the head", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
   await signIn(VALI)
   await chooseCompany(1)
   renderWithProviders(<Dashboard />)
 
-  await screen.findByRole("heading", { name: "Salom, Vali Aliyev" })
-  expect(screen.getByText("Kuzatuvchi")).toBeInTheDocument()
-  expect(screen.queryByText("Xodim")).not.toBeInTheDocument()
+  expect(await screen.findByRole("link", { name: "Olma Savdo Vali A. · Kuzatuvchi" })).toBeInTheDocument()
+})
+
+test("the sections the bar does not hold are a row away each", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Dashboard />)
+
+  const sections = await screen.findByRole("list", { name: "Bo'limlar" })
+  expect(within(sections).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["/warehouse", "/accounts", "/employees", "/settings"])
+})
+
+test("the subscription's end is said at the foot", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Dashboard />)
+
+  const endDate = db.companies.find((company) => company.id === 1)!.end_date
+  expect(await screen.findByText(`Obuna ${formatDate(endDate)} gacha faol`)).toBeInTheDocument()
+})
+
+test("with two locations the head holds the switch between them", async () => {
+  addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  renderWithProviders(<Dashboard />)
+
+  expect(await screen.findByRole("button", { name: "Lokatsiya: Asosiy" })).toBeInTheDocument()
+})
+
+test("inside Telegram (Bot API 8.0) the home offers to add the app to the home screen; put away, it stays away", async () => {
+  const webApp = fakeWebApp({
+    isVersionAtLeast: vi.fn(() => true),
+    addToHomeScreen: vi.fn(),
+    checkHomeScreenStatus: vi.fn((callback: (status: "unsupported" | "unknown" | "added" | "missed") => void) => callback("missed")),
+  })
+  setMiniApp(webApp)
+  await signIn(ALI)
+  const { user, unmount } = renderWithProviders(<Dashboard />)
+
+  await user.click(await screen.findByRole("button", { name: /Hisob24'ni bosh ekranga qo'shing/ }))
+  expect(webApp.addToHomeScreen).toHaveBeenCalledTimes(1)
+  // Once added, Telegram says so and the offer goes.
+  act(() => webApp.fire("homeScreenAdded"))
+  expect(screen.queryByRole("button", { name: /bosh ekranga qo'shing/ })).not.toBeInTheDocument()
+  unmount()
+
+  webApp.checkHomeScreenStatus = vi.fn((callback: (status: "unsupported" | "unknown" | "added" | "missed") => void) => callback("missed"))
+  const again = renderWithProviders(<Dashboard />)
+  await again.user.click(await screen.findByRole("button", { name: "Yopish" }))
+  expect(screen.queryByRole("button", { name: /bosh ekranga qo'shing/ })).not.toBeInTheDocument()
+  again.unmount()
+  renderWithProviders(<Dashboard />)
+  await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })
+  expect(screen.queryByRole("button", { name: /bosh ekranga qo'shing/ })).not.toBeInTheDocument()
+})
+
+test("in a browser, or where the app is on the home screen already, there is no offer", async () => {
+  await signIn(ALI)
+  const browser = renderWithProviders(<Dashboard />)
+  await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })
+  expect(screen.queryByRole("button", { name: /bosh ekranga qo'shing/ })).not.toBeInTheDocument()
+  browser.unmount()
+
+  setMiniApp(fakeWebApp({ isVersionAtLeast: vi.fn(() => true), addToHomeScreen: vi.fn(), checkHomeScreenStatus: vi.fn((callback) => callback("added")) }))
+  renderWithProviders(<Dashboard />)
+  await screen.findByRole("heading", { name: "Salom, Ali Valiyev" })
+  expect(screen.queryByRole("button", { name: /bosh ekranga qo'shing/ })).not.toBeInTheDocument()
 })
