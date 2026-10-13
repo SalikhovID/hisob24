@@ -332,6 +332,19 @@ html[data-telegram] body {
   background: var(--border);
 }
 
+/* The caret of an amount being typed, the pulsing mark of the splash and
+   its loading line. */
+@keyframes blink {
+  50% { opacity: 0; }
+}
+@keyframes pulse-mark {
+  50% { transform: scale(0.94); opacity: 0.85; }
+}
+@keyframes load-line {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(260%); }
+}
+
 /* Motion answers an action (a dialog opening, a row under the pointer) and
    nothing else; whoever asked for less of it gets none. */
 @media (prefers-reduced-motion: reduce) {
