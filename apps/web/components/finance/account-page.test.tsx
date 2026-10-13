@@ -1,7 +1,8 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { ALI, db, nextId, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterCashOpening, enterConversion, enterExpense, enterMoneyTransfer } from "@/test/finance"
@@ -27,60 +28,113 @@ async function books() {
   return { cash, card, kassa2, bozor, opening, rent, moved, converted }
 }
 
-test("the account page: what it holds, its statement with each document's other side and the balance after it, and the way to the cash", async () => {
-  const { cash, kassa2, card } = await books()
+// statementRows reads the statement's rows: each with its title, the line
+// under it and its end.
+async function statementRows() {
+  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  return within(statement)
+    .getAllByRole("listitem")
+    .map((item) => item.firstElementChild as HTMLElement)
+}
+const said = (row: HTMLElement) => [rowParts(row).title, rowParts(row).sub?.replace(/\s+/g, " ") ?? null, rowParts(row).end?.replace(/\s+/g, " ") ?? null]
+
+test("the account page, as the prototype's: what it holds large under its name, the tiles that enter a document into it, its statement in rows, the way to the cash", async () => {
+  const { cash } = await books()
   renderWithProviders(<AccountPage id={cash} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Naqd" })).toBeInTheDocument()
-  expect(screen.getByText("UZS · Faol")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Kassa" })).toHaveAttribute("href", "/accounts")
-  const balance = screen.getByRole("region", { name: "Qoldiq" })
-  expect(within(balance).getByText("617 000 so'm")).toBeInTheDocument()
+  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Naqd 617 000 so'm UZS")
+  const tiles = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Xarajat", "Kirim", "O'tkazma", "Yana"])
 
-  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
-  expect(within(statement).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Hujjat", "Vaqt", "Qarshi tomon", "Summa, so'm", "Qoldiq, so'm", "Qo'shgan", "Amallar"])
-  const rows = within(statement).getAllByRole("row").slice(1)
-  expect(rows).toHaveLength(5)
-  expect(within(rows[0]).getByText("Konvertatsiya № 1")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("06.10.2026 09:00")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("Karta")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("−128 000")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("617 000")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("O'tkazma № 1")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("Kassa 2")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("−100 000")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("745 000")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("Xarajat № 1")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("Ijara")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("−150 000")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("845 000")).toBeInTheDocument()
-  // The opening balance and the payment with the purchase share the moment
-  // (9:00 on the 1st): the later entered comes first.
-  expect(within(rows[3]).getByText("Kassa boshlang'ich qoldig'i")).toBeInTheDocument()
-  expect(within(rows[3]).getByText("+1 000 000")).toBeInTheDocument()
-  expect(within(rows[3]).getByText("995 000")).toBeInTheDocument()
-  expect(within(rows[3]).getByText("Ali Valiyev")).toBeInTheDocument()
-  expect(rows[4]).toHaveTextContent("To'lov · Xarid № 1")
-  expect(within(rows[4]).getByRole("link", { name: "Xarid № 1" })).toHaveAttribute("href", expect.stringMatching(/^\/purchases\/\d+$/))
-  expect(within(rows[4]).getByText("Bozor")).toBeInTheDocument()
-  // The first document took the account below zero: the change and the balance after it.
-  expect(within(rows[4]).getAllByText("−5 000")).toHaveLength(2)
-  // The opening balance is edited and deleted in its row; the owner adds one from the header.
-  expect(within(rows[3]).getByRole("button", { name: "Tahrirlash: 1\u00a0000\u00a0000" })).toBeInTheDocument()
-  expect(within(rows[3]).getByRole("button", { name: "O'chirish: 1\u00a0000\u00a0000" })).toBeInTheDocument()
-  expect(within(rows[4]).queryAllByRole("button")).toHaveLength(0)
-  // The other cash documents are deleted in their rows and edited on their pages.
-  expect(within(rows[0]).getByRole("button", { name: "O'chirish: 128\u00a0000" })).toBeInTheDocument()
-  expect(within(rows[0]).queryByRole("button", { name: /Tahrirlash/ })).not.toBeInTheDocument()
-  expect(within(rows[2]).getByRole("button", { name: "O'chirish: 150\u00a0000" })).toBeInTheDocument()
-  // The header enters every kind into this account.
-  for (const name of ["Boshlang'ich qoldiq", "Xarajat qo'shish", "Kirim qo'shish", "O'tkazma qo'shish", "Konvertatsiya qo'shish"]) {
-    expect(screen.getByRole("button", { name })).toBeInTheDocument()
-  }
+  // The statement: every document that named the account, the newest first,
+  // its moment and other side under its name, how it changed what the
+  // account holds and what it held after it at its end.
+  const rows = await statementRows()
+  expect(rows.map(said)).toEqual([
+    ["Konvertatsiya № 1", "06.10.2026 09:00 · Karta", "−128 000 qoldiq 617 000"],
+    ["O'tkazma № 1", "05.10.2026 09:00 · Kassa 2", "−100 000 qoldiq 745 000"],
+    ["Xarajat № 1", "03.10.2026 09:00 · Ijara", "−150 000 qoldiq 845 000"],
+    // The opening balance and the payment with the purchase share the moment
+    // (9:00 on the 1st): the later entered comes first. The first document
+    // took the account below zero.
+    ["Kassa boshlang'ich qoldig'i", "01.10.2026 09:00", "+1 000 000 qoldiq 995 000"],
+    ["To'lov · Xarid № 1", "01.10.2026 09:00 · Bozor", "−5 000 qoldiq −5 000"],
+  ])
+  // A cash document is handled in its sheet of actions; a payment leads to
+  // the document it was entered with.
+  expect(rows.slice(0, 4).map((row) => row.tagName)).toEqual(["BUTTON", "BUTTON", "BUTTON", "BUTTON"])
+  expect(rows[4]).toHaveAttribute("href", expect.stringMatching(/^\/purchases\/\d+$/))
+})
 
-  // The card holds the dollars that arrived; the second cash what was moved in.
-  expect(kassa2.id).toBeGreaterThan(0)
-  expect(card.id).toBeGreaterThan(0)
+test("a cash document's sheet: the opening balance is edited and deleted there, the others deleted (they are edited on their lists)", async () => {
+  const { cash } = await books()
+  const { user } = renderWithProviders(<AccountPage id={cash} />)
+  const rows = await statementRows()
+
+  await user.click(rows[3])
+  const sheet = await screen.findByRole("menu")
+  expect(sheet).toHaveTextContent("Kassa boshlang'ich qoldig'i · 1 000 000 so'm")
+  expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
+  await user.click(within(sheet).getByRole("menuitem", { name: "Tahrirlash" }))
+  const edit = await screen.findByRole("dialog", { name: "Boshlang'ich qoldiqni tahrirlash" })
+  expect(within(edit).getByLabelText("Summa")).toHaveValue("1000000.00")
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+  await user.click(rows[2])
+  const other = await screen.findByRole("menu")
+  expect(within(other).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["O'chirish"])
+  await user.click(within(other).getByRole("menuitem", { name: "O'chirish" }))
+  expect(await screen.findByRole("alertdialog", { name: "Hujjatni o'chirasizmi?" })).toBeInTheDocument()
+})
+
+test("the tiles open the sheets that enter a document into the account; «Yana» has the conversion and the opening balance", async () => {
+  const { cash } = await books()
+  const { user } = renderWithProviders(<AccountPage id={cash} />)
+  const tiles = await screen.findByRole("group", { name: "Amallar" })
+
+  await user.click(within(tiles).getByRole("button", { name: "Xarajat" }))
+  const expense = await screen.findByRole("dialog", { name: "Xarajat qo'shish" })
+  await waitFor(() => expect(within(expense).getByLabelText("Akkaunt")).toHaveTextContent("Naqd (so'm)"))
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+  await user.click(within(tiles).getByRole("button", { name: "Kirim" }))
+  expect(await screen.findByRole("dialog", { name: "Kirim qo'shish" })).toBeInTheDocument()
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+  await user.click(within(tiles).getByRole("button", { name: "O'tkazma" }))
+  const transfer = await screen.findByRole("dialog", { name: "O'tkazma qo'shish" })
+  await waitFor(() => expect(within(transfer).getByLabelText("Qayerdan")).toHaveTextContent("Naqd (so'm)"))
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+  await user.click(within(tiles).getByRole("button", { name: "Yana" }))
+  const more = await screen.findByRole("menu")
+  expect(within(more).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Konvertatsiya", "Boshlang'ich qoldiq"])
+  await user.click(within(more).getByRole("menuitem", { name: "Konvertatsiya" }))
+  expect(await screen.findByRole("dialog", { name: "Konvertatsiya qo'shish" })).toBeInTheDocument()
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+  await user.click(within(tiles).getByRole("button", { name: "Yana" }))
+  await user.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: "Boshlang'ich qoldiq" }))
+  const opening = await screen.findByRole("dialog", { name: "Kassa boshlang'ich qoldig'i" })
+  await waitFor(() => expect(within(opening).getByLabelText("Akkaunt")).toHaveTextContent("Naqd (so'm)"))
+})
+
+test("an inactive account says so; nothing is entered into it (the forms do not offer it)", async () => {
+  const { kassa2 } = await books()
+  db.accounts[1].find((a) => a.id === kassa2.id)!.is_active = false
+  renderWithProviders(<AccountPage id={kassa2.id} />)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Kassa 2" })).toBeInTheDocument()
+  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Kassa 2 100 000 so'm UZS Nofaol")
+  expect(screen.queryByRole("group", { name: "Amallar" })).not.toBeInTheDocument()
+  expect((await statementRows()).map(said)).toEqual([["O'tkazma № 1", "05.10.2026 09:00 · Naqd", "+100 000 qoldiq 100 000"]])
 })
 
 test("the card: in dollars, what arrived by the conversion, from the cash", async () => {
@@ -88,14 +142,8 @@ test("the card: in dollars, what arrived by the conversion, from the cash", asyn
   renderWithProviders(<AccountPage id={card.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Karta" })).toBeInTheDocument()
-  expect(screen.getByText("USD · Faol")).toBeInTheDocument()
-  expect(within(screen.getByRole("region", { name: "Qoldiq" })).getByText("10 $")).toBeInTheDocument()
-  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
-  expect(within(statement).getAllByRole("columnheader").map((cell) => cell.textContent)).toContain("Summa, $")
-  const rows = within(statement).getAllByRole("row").slice(1)
-  expect(rows).toHaveLength(1)
-  expect(within(rows[0]).getByText("Naqd")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("+10")).toBeInTheDocument()
+  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Karta 10 $ USD")
+  expect((await statementRows()).map(said)).toEqual([["Konvertatsiya № 1", "06.10.2026 09:00 · Naqd", "+10 qoldiq 10"]])
 })
 
 test("whoever may see the finance alone sees the account without a way to change it; another company's account is not found", async () => {
@@ -106,9 +154,11 @@ test("whoever may see the finance alone sees the account without a way to change
   await chooseCompany(1)
   const { unmount } = renderWithProviders(<AccountPage id={cash} />)
   expect(await screen.findByRole("heading", { level: 1, name: "Naqd" })).toBeInTheDocument()
-  await screen.findByRole("table", { name: "Hisob harakati" })
-  expect(screen.queryByRole("button", { name: "Boshlang'ich qoldiq" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /Tahrirlash:/ })).not.toBeInTheDocument()
+  // No tiles; the cash documents' rows have no sheet; the payment still leads to its purchase.
+  const rows = await statementRows()
+  expect(screen.queryByRole("group", { name: "Amallar" })).not.toBeInTheDocument()
+  expect(rows.slice(0, 4).map((row) => row.tagName)).toEqual(["DIV", "DIV", "DIV", "DIV"])
+  expect(rows[4]).toHaveAttribute("href", expect.stringMatching(/^\/purchases\/\d+$/))
   unmount()
 
   renderWithProviders(<AccountPage id={9102} />)

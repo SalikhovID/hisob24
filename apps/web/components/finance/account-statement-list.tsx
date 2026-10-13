@@ -1,17 +1,19 @@
 "use client"
 
-import Link from "next/link"
+import { ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, BanknoteIcon, type LucideIcon, RepeatIcon, ScaleIcon } from "lucide-react"
 import { useState } from "react"
-import { type Column, DataList } from "@/components/data-list"
+import { ActionSheet } from "@/components/kit/action-sheet"
+import { Group, Row, SectionHeading } from "@/components/kit/group"
+import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
-import { EmptyState, Failed, ListLoading } from "@/components/states"
+import { Failed, ListLoading } from "@/components/states"
 import { type FinanceDocumentKind, financeKindTitle } from "@/lib/finance"
-import { formatAmount, formatDateTime } from "@/lib/format"
+import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
 import { useAccountStatement } from "@/lib/queries"
 import type { AccountBalance, AccountStatementRow, CashOpening, CompanyCurrency } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { CashOpeningDialog } from "./cash-opening-dialog"
-import { DeleteCashDocumentButton } from "./delete-cash-document-button"
+import { type CashDocument, DeleteCashDocumentButton } from "./delete-cash-document-button"
 
 // signed is a change of what the account holds, with its sign: "+1 000 000", "−128 000".
 export function signed(amount: string): string {
@@ -28,23 +30,46 @@ export function minus(amount: string): string {
 // cash documents are, but the opening balance and the payments are not.
 const numbered = (kind: FinanceDocumentKind) => kind === "expense" || kind === "income" || kind === "money_transfer" || kind === "conversion"
 
+// isPayment tells a payment (entered with a purchase or a sale, or on its own) from a cash document.
+const isPayment = (kind: FinanceDocumentKind) => kind === "supplier_payment" || kind === "customer_payment"
+
 // titleOf says what a row is: a cash document by its kind and number, a
-// payment with the document it was entered with (the way into it).
-function titleOf(row: AccountStatementRow) {
+// payment with the document it was entered with.
+function titleOf(row: AccountStatementRow): string {
   const kind = row.kind as FinanceDocumentKind
-  if (kind === "supplier_payment" || kind === "customer_payment") {
+  if (isPayment(kind)) {
     if (row.linked_id === null) return "To'lov"
-    const [href, name] = kind === "supplier_payment" ? [`/purchases/${row.linked_id}`, "Xarid"] : [`/sales/${row.linked_id}`, "Sotuv"]
-    return (
-      <>
-        To&apos;lov ·{" "}
-        <Link href={href} className="font-medium underline-offset-4 hover:underline">
-          {name} № {row.linked_number}
-        </Link>
-      </>
-    )
+    return `To'lov · ${kind === "supplier_payment" ? "Xarid" : "Sotuv"} № ${row.linked_number}`
   }
   return numbered(kind) ? `${financeKindTitle[kind]} № ${row.number}` : financeKindTitle[kind]
+}
+
+// hrefOf is where a payment entered with a purchase or a sale leads: to
+// that document. A cash document is handled in its sheet.
+function hrefOf(row: AccountStatementRow): string | undefined {
+  if (row.linked_id === null) return undefined
+  if (row.kind === "supplier_payment") return `/purchases/${row.linked_id}`
+  if (row.kind === "customer_payment") return `/sales/${row.linked_id}`
+  return undefined
+}
+
+// iconOf is a row's soft icon: an expense in red, an income in green, an
+// opening balance in the warning's color, the rest in the accent.
+function iconOf(kind: FinanceDocumentKind): { icon: LucideIcon; color?: string } {
+  switch (kind) {
+    case "cash_opening":
+      return { icon: ScaleIcon, color: "var(--warning)" }
+    case "expense":
+      return { icon: ArrowUpRightIcon, color: "var(--destructive)" }
+    case "income":
+      return { icon: ArrowDownLeftIcon, color: "var(--positive)" }
+    case "money_transfer":
+      return { icon: ArrowLeftRightIcon }
+    case "conversion":
+      return { icon: RepeatIcon }
+    default:
+      return { icon: BanknoteIcon }
+  }
 }
 
 // openingOfRow is an opening balance of the cash as its row tells it: into
@@ -66,10 +91,13 @@ function openingOfRow(row: AccountStatementRow, account: AccountBalance): CashOp
 }
 
 // AccountStatementList is an account's statement (logic/finance.md, section
-// 4): every live document that named it, the newest first, each with its
-// other side, how it changed what the account holds and what the account
-// held after it; a cash document is edited and deleted in its row, a
-// payment goes with the document it was entered with.
+// 4), as the prototype's rows: every live document that named it, the
+// newest first, its moment and other side under its name, how it changed
+// what the account holds (green when it grew, red when it shrank) and what
+// the account held after it at its end. A cash document opens a sheet of
+// its actions: an opening balance of the cash is edited and deleted there,
+// the others deleted (they are edited on their lists); a payment leads to
+// the document it was entered with.
 export function AccountStatementList({
   companyId,
   account,
@@ -85,55 +113,67 @@ export function AccountStatementList({
 }) {
   const [page, setPage] = useState(1)
   const statement = useAccountStatement(companyId, account.id, page)
+  const [acting, setActing] = useState<AccountStatementRow | null>(null)
+  // The sheets the actions open: an opening balance being edited, a cash document being deleted.
+  const [opening, setOpening] = useState<CashOpening | null>(null)
+  const [removing, setRemoving] = useState<CashDocument | null>(null)
+  const data = statement.data
 
-  const columns: Column<AccountStatementRow>[] = [
-    { header: "Hujjat", primary: true, cell: titleOf },
-    { header: "Vaqt", card: "inline", className: "whitespace-nowrap text-muted-foreground", cell: (row) => formatDateTime(row.at) },
-    { header: "Qarshi tomon", card: "inline", cell: (row) => row.party_name },
-    {
-      header: `Summa, ${currency.symbol}`,
-      align: "end",
-      card: "aside",
-      cell: (row) => <span className={cn("tabular-nums", row.delta.startsWith("-") && "text-destructive")}>{signed(row.delta)}</span>,
-    },
-    { header: `Qoldiq, ${currency.symbol}`, align: "end", card: "inline", className: "tabular-nums", cell: (row) => minus(row.balance) },
-    { header: "Qo'shgan", className: "text-muted-foreground", cell: (row) => row.created_by_name },
-    {
-      header: "Amallar",
-      actions: true,
-      // A cash document is deleted here; an opening balance of the cash is
-      // edited here too, the others on their own pages. A payment goes with
-      // the document it was entered with.
-      cell: (row) => {
-        const kind = row.kind as FinanceDocumentKind
-        if (kind === "supplier_payment" || kind === "customer_payment" || !(canEdit || canDelete)) return null
-        return (
-          <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-            {canEdit && kind === "cash_opening" && <CashOpeningDialog companyId={companyId} opening={openingOfRow(row, account)} iconOnly />}
-            {canDelete && <DeleteCashDocumentButton companyId={companyId} document={{ id: row.id, kind, amount: row.delta.replace(/^-/, ""), currency_id: account.currency_id, at: row.at }} />}
-          </span>
-        )
-      },
-    },
-  ]
+  const actionsOf = (row: AccountStatementRow) => {
+    const kind = row.kind as FinanceDocumentKind
+    if (isPayment(kind)) return []
+    const document = { id: row.id, kind: kind as CashDocument["kind"], amount: row.delta.replace(/^-/, ""), currency_id: account.currency_id, at: row.at }
+    return [
+      ...(canEdit && kind === "cash_opening" ? [{ label: "Tahrirlash", onSelect: () => setOpening(openingOfRow(row, account)) }] : []),
+      ...(canDelete ? [{ label: "O'chirish", danger: true, onSelect: () => setRemoving(document) }] : []),
+    ]
+  }
 
   return (
-    <section aria-labelledby="account-statement" className="space-y-3">
-      <h2 id="account-statement" className="text-base font-semibold">
-        Hisob harakati
-      </h2>
+    <section aria-labelledby="account-statement">
+      <SectionHeading>
+        <span id="account-statement">Hisob harakati</span>
+      </SectionHeading>
       {statement.isPending && <ListLoading rows={4} mark="none" />}
       {statement.isError && <Failed error={statement.error} onRetry={() => statement.refetch()} />}
-      {statement.data?.total === 0 && <EmptyState title="Bu akkauntda hujjat yo'q" />}
-      {statement.data && statement.data.total > 0 && (
-        <DataList
-          label="Hisob harakati"
-          items={statement.data.items}
-          columns={columns}
-          getKey={(row) => row.id}
-          footer={<Pager page={statement.data.page} pageSize={statement.data.page_size} total={statement.data.total} onPage={setPage} />}
-        />
+      {data?.total === 0 && (
+        <Group>
+          <p className="px-4 py-3.5 text-md text-muted-foreground">Bu akkauntda hujjat yo&apos;q</p>
+        </Group>
       )}
+      {data && data.total > 0 && (
+        <>
+          <Group label="Hisob harakati" inset="icon">
+            {data.items.map((row) => {
+              const kind = row.kind as FinanceDocumentKind
+              const { icon, color } = iconOf(kind)
+              const negative = row.delta.startsWith("-")
+              return (
+                <Row
+                  key={`${row.kind}-${row.id}`}
+                  href={hrefOf(row)}
+                  onClick={actionsOf(row).length > 0 ? () => setActing(row) : undefined}
+                  media={<SoftIcon icon={icon} color={color} />}
+                  title={titleOf(row)}
+                  sub={[formatDateTime(row.at), row.party_name].filter(Boolean).join(" · ")}
+                  end={<span className={cn("tabular-nums", negative ? "text-destructive" : Number(row.delta) > 0 && "text-positive")}>{signed(row.delta)}</span>}
+                  endSub={`qoldiq ${minus(row.balance)}`}
+                  chevron={false}
+                />
+              )
+            })}
+          </Group>
+          {data.total > data.page_size && <Pager page={data.page} pageSize={data.page_size} total={data.total} onPage={setPage} />}
+        </>
+      )}
+      <ActionSheet
+        open={acting !== null}
+        onOpenChange={(open) => !open && setActing(null)}
+        title={acting ? `${titleOf(acting)} · ${formatMoney(acting.delta.replace(/^-/, ""), currency)}` : undefined}
+        items={acting ? actionsOf(acting) : []}
+      />
+      {opening && <CashOpeningDialog companyId={companyId} opening={opening} open onOpenChange={(open) => !open && setOpening(null)} />}
+      {removing && <DeleteCashDocumentButton companyId={companyId} document={removing} open onOpenChange={(open) => !open && setRemoving(null)} />}
     </section>
   )
 }
