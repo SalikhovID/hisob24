@@ -27,7 +27,7 @@ test("a transfer is entered out of the current location: the other location chos
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ko'chirishlar" })).toHaveAttribute("href", "/transfers")
   expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
-  const to = screen.getByRole("combobox", { name: "Qayerga" })
+  const to = screen.getByLabelText("Qayerga")
   expect(await optionsOf(user, to)).toEqual(["Chilonzor", "Qo'yliq"])
   await choose(user, to, "Qo'yliq")
 
@@ -37,6 +37,7 @@ test("a transfer is entered out of the current location: the other location chos
   await user.type(within(first).getByLabelText("Miqdor"), "4,5")
   expect(within(first).getByText("kg")).toBeInTheDocument()
   await user.type(screen.getByLabelText("Izoh"), " Filialga ")
+  expect(screen.getByRole("button", { name: "Saqlash" }).closest("[data-slot=main-bar]")).not.toBeNull()
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() => expect(db.transactions.find((t) => t.kind === "transfer")).toBeTruthy())
@@ -61,7 +62,7 @@ test("the form refuses in the API's words before asking, and tells the API's ref
   expect(within(line(1)).getByText("Mahsulotni tanlang")).toBeInTheDocument()
   expect(within(line(1)).getByText("Miqdor noto'g'ri")).toBeInTheDocument()
 
-  await choose(user, screen.getByRole("combobox", { name: "Qayerga" }), "Chilonzor")
+  await choose(user, screen.getByLabelText("Qayerga"), "Chilonzor")
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await user.type(within(line(1)).getByLabelText("Miqdor"), "20")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
@@ -90,7 +91,7 @@ test("editing: the transfer comes filled in, and is saved with fewer of the prod
   expect(await screen.findByText("№ 1 · Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("heading", { level: 1, name: "Ko'chirishni tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ko'chirish № 1" })).toHaveAttribute("href", `/transfers/${transfer.id}`)
-  expect(screen.getByRole("combobox", { name: "Qayerga" })).toHaveTextContent("Chilonzor")
+  expect(screen.getByLabelText("Qayerga")).toHaveTextContent("Chilonzor")
   expect(screen.getByLabelText("Vaqt")).toHaveValue("2026-10-05T09:00")
   expect(within(line(1)).getByText("Olma")).toBeInTheDocument()
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("4.000")

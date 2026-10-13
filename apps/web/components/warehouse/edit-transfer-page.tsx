@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
+import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { Failed, ListLoading, NotFound } from "@/components/states"
 import { api, ApiError, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { useTransfer } from "@/lib/queries"
@@ -42,20 +42,25 @@ export function EditTransferPage({ id }: { id: number }) {
 
   if (!gate || companyId === null || !withPickers) return null
   if (transfer.error instanceof ApiError && transfer.error.status === 404) {
-    return <PageHeader title="Ko'chirish topilmadi" description="Bu ko'chirish o'chirilgan yoki siz ishlamaydigan lokatsiyalar orasida." back={back} />
+    return (
+      <>
+        <BackLink {...back} />
+        <NotFound title="Ko'chirish topilmadi" description="Bu ko'chirish o'chirilgan yoki siz ishlamaydigan lokatsiyalar orasida." />
+      </>
+    )
   }
   if (!transfer.data) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Ko'chirishni tahrirlash" back={back} />
+      <>
+        <PageTitle title="Ko'chirishni tahrirlash" back={back} />
         {transfer.isError ? <Failed error={transfer.error} onRetry={() => transfer.refetch()} /> : <ListLoading rows={4} mark="none" />}
-      </div>
+      </>
     )
   }
   const t = transfer.data
   return (
-    <div className="space-y-5">
-      <PageHeader title="Ko'chirishni tahrirlash" description={`№ ${t.number} · ${t.location_name}`} back={{ href: `/transfers/${t.id}`, label: `Ko'chirish № ${t.number}` }} />
+    <>
+      <PageTitle title="Ko'chirishni tahrirlash" description={`№ ${t.number} · ${t.location_name}`} back={{ href: `/transfers/${t.id}`, label: `Ko'chirish № ${t.number}` }} />
       <TransferForm
         key={t.updated_at}
         companyId={companyId}
@@ -66,6 +71,6 @@ export function EditTransferPage({ id }: { id: number }) {
         pending={save.isPending || save.isSuccess}
         refusal={save.error?.message}
       />
-    </div>
+    </>
   )
 }

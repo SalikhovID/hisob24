@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
+import { PageTitle } from "@/components/kit/page-title"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { transferDefaults, type TransferOutput } from "@/lib/stock"
@@ -51,16 +51,16 @@ export function NewTransferPage() {
   if (!gate || companyId === null || noWay) return null
   if (location.ready && locationId === null) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Yangi ko'chirish" back={back} />
+      <>
+        <PageTitle title="Yangi ko'chirish" back={back} />
         <NoLocation />
-      </div>
+      </>
     )
   }
   if (locationId === null) return null
   return (
-    <div className="space-y-5">
-      <PageHeader title="Yangi ko'chirish" description={location.current?.name} back={back} />
+    <>
+      <PageTitle title="Yangi ko'chirish" description={location.current?.name} back={back} />
       <TransferForm
         companyId={companyId}
         locationId={locationId}
@@ -70,6 +70,6 @@ export function NewTransferPage() {
         pending={create.isPending || create.isSuccess}
         refusal={create.error?.message}
       />
-    </div>
+    </>
   )
 }
