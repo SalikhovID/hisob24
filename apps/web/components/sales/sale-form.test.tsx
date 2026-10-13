@@ -29,6 +29,9 @@ test("a sale to a customer out of the current location: the customer found by na
   expect(screen.getByRole("link", { name: "Sotuvlar" })).toHaveAttribute("href", "/sales")
   expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(screen.getByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).toBeInTheDocument()
+  // The form says what saving does, and saves from the bar at the bottom.
+  expect(screen.getByText("Saqlangach mahsulotlar «Asosiy» qoldig'idan chiqadi, to'lanmagan qismi mijoz qarziga yoziladi.")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Saqlash" }).closest("[data-slot=main-bar]")).not.toBeNull()
 
   await pick(user, document.body, "Mijoz", "dil", /Dilshod/)
   expect(screen.getByRole("button", { name: /^Mijoz/ })).toHaveTextContent("Dilshod Karimov")

@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
+import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { Failed, ListLoading, NotFound } from "@/components/states"
 import { forgetWarehouse } from "@/components/warehouse/new-purchase-page"
 import { api, ApiError, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
@@ -43,20 +43,25 @@ export function EditSalePage({ id }: { id: number }) {
 
   if (!gate || companyId === null || !withPickers) return null
   if (sale.error instanceof ApiError && sale.error.status === 404) {
-    return <PageHeader title="Sotuv topilmadi" description="Bu sotuv o'chirilgan yoki siz ishlamaydigan lokatsiyada." back={back} />
+    return (
+      <>
+        <BackLink {...back} />
+        <NotFound title="Sotuv topilmadi" description="Bu sotuv o'chirilgan yoki siz ishlamaydigan lokatsiyada." />
+      </>
+    )
   }
   if (!sale.data) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Sotuvni tahrirlash" back={back} />
+      <>
+        <PageTitle title="Sotuvni tahrirlash" back={back} />
         {sale.isError ? <Failed error={sale.error} onRetry={() => sale.refetch()} /> : <ListLoading rows={4} mark="none" />}
-      </div>
+      </>
     )
   }
   const s = sale.data
   return (
-    <div className="space-y-5">
-      <PageHeader title="Sotuvni tahrirlash" description={`№ ${s.number} · ${s.location_name}`} back={{ href: `/sales/${s.id}`, label: `Sotuv № ${s.number}` }} />
+    <>
+      <PageTitle title="Sotuvni tahrirlash" description={`№ ${s.number} · ${s.location_name}`} back={{ href: `/sales/${s.id}`, label: `Sotuv № ${s.number}` }} />
       <SaleForm
         key={s.updated_at}
         companyId={companyId}
@@ -66,7 +71,8 @@ export function EditSalePage({ id }: { id: number }) {
         submitLabel="Saqlash"
         pending={save.isPending || save.isSuccess}
         refusal={save.error?.message}
+        locationName={s.location_name}
       />
-    </div>
+    </>
   )
 }

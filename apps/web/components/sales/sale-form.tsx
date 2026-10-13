@@ -3,23 +3,25 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
-import { CurrencyField } from "@/components/currency-field"
-import { PendingButton } from "@/components/pending-button"
+import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { Foot, Group } from "@/components/kit/group"
+import { MainBar, MainButton } from "@/components/kit/main-button"
+import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
-import { FieldGroup } from "@/components/ui/field"
 import { LinesField } from "@/components/warehouse/lines-field"
 import { PaymentsField } from "@/components/warehouse/payments-field"
-import { currencyOf, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
+import { currencyOf, currencyOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { type SaleForm as SaleFormValues, type SaleOutput, saleSchema } from "@/lib/sales"
 import { purchaseTotal } from "@/lib/warehouse"
 import { CustomerPicker } from "./customer-picker"
 
-// SaleForm is a sale as it is entered or edited (logic/sales.md, 3.1–3.3):
-// the customer found by name or phone (none: a retail sale, paid in full
-// with it), the moment, the currency and rate (with more than the so'm),
-// the lines of products and services with their sale prices, the payments
-// into the accounts and a note. The location is the page's. Without a way
+// SaleForm is a sale as it is entered or edited (logic/sales.md, 3.1–3.3),
+// as the prototype's document form: the customer picked in a sheet (none:
+// a retail sale, paid in full with it), the moment, the currency and rate
+// (with more than the so'm) as rows; the lines of products and services
+// with their sale prices as cards; the payments into the accounts; a note;
+// what saving does, said under it; the main button in the bar at the
+// bottom. The location is the page's (locationName says it). Without a way
 // to the customers (withCustomers) the sale is retail alone.
 export function SaleForm({
   companyId,
@@ -29,6 +31,7 @@ export function SaleForm({
   submitLabel,
   pending,
   refusal,
+  locationName,
 }: {
   companyId: number
   withCustomers: boolean
@@ -37,6 +40,7 @@ export function SaleForm({
   submitLabel: string
   pending: boolean
   refusal?: string
+  locationName?: string
 }) {
   const currencies = useCurrencies()
   const accounts = useAccounts()
@@ -53,9 +57,11 @@ export function SaleForm({
     if (rate !== null) form.setValue("rate", trimRate(rate))
   }, [currencyId, currencies, form])
 
+  const currency = currencyOf(currencies, currencyId)
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-6">
-      <FieldGroup>
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-1 flex-col [&>*]:shrink-0">
+      {refusal && <Refusal className="mb-4">{refusal}</Refusal>}
+      <Group>
         {withCustomers && (
           <Controller
             control={form.control}
@@ -74,22 +80,29 @@ export function SaleForm({
             )}
           />
         )}
-        {!customerId && <p className="text-sm text-muted-foreground">Chakana sotuv: to&apos;liq to&apos;langan bo&apos;lishi shart</p>}
-        <TextField control={form.control} name="at" label="Vaqt" type="datetime-local" />
-        {isMulti(currencies) && <CurrencyField control={form.control} currencyName="currency_id" rateName="rate" currencies={currencies} />}
-      </FieldGroup>
+        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
+        {isMulti(currencies) && currencyId !== UZS && (
+          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
+        )}
+      </Group>
+      {!customerId && <Foot className="-mt-4">Chakana sotuv: to&apos;liq to&apos;langan bo&apos;lishi shart</Foot>}
 
       <LinesField form={form} companyId={companyId} withPrice currencyId={currencyId} pending={pending} kinds={["product", "service"]} offer="price" />
 
       <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={currencyId} total={Number(total)} pending={pending} />
 
-      <FieldGroup>
-        <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
-      </FieldGroup>
-      {refusal && <Refusal>{refusal}</Refusal>}
-      <PendingButton type="submit" size="lg" className="px-3.5" pending={pending}>
-        {submitLabel}
-      </PendingButton>
+      <Group>
+        <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
+      </Group>
+      {locationName && (
+        <Foot>Saqlangach mahsulotlar «{locationName}» qoldig&apos;idan chiqadi, to&apos;lanmagan qismi mijoz qarziga yoziladi.</Foot>
+      )}
+      <MainBar>
+        <MainButton type="submit" pending={pending}>
+          {submitLabel}
+        </MainButton>
+      </MainBar>
     </form>
   )
 }

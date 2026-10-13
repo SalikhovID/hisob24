@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
+import { PageTitle } from "@/components/kit/page-title"
 import { forgetWarehouse } from "@/components/warehouse/new-purchase-page"
 import { NoLocation } from "@/components/warehouse/no-location"
 import { api, call } from "@/lib/api"
@@ -47,15 +47,15 @@ export function NewSalePage() {
   if (!gate || companyId === null || !withPickers) return null
   if (location.ready && locationId === null) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Yangi sotuv" back={back} />
+      <>
+        <PageTitle title="Yangi sotuv" back={back} />
         <NoLocation />
-      </div>
+      </>
     )
   }
   return (
-    <div className="space-y-5">
-      <PageHeader title="Yangi sotuv" description={location.current?.name} back={back} />
+    <>
+      <PageTitle title="Yangi sotuv" description={location.current?.name} back={back} />
       <SaleForm
         companyId={companyId}
         withCustomers={withCustomers}
@@ -64,7 +64,8 @@ export function NewSalePage() {
         submitLabel="Saqlash"
         pending={create.isPending || create.isSuccess}
         refusal={create.error?.message}
+        locationName={location.current?.name}
       />
-    </div>
+    </>
   )
 }
