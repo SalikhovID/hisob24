@@ -109,14 +109,18 @@ export async function choose(box: Locator, name: string) {
 // list is a named list as the screen shows it. The sections that have the
 // prototype's rows are a list on any screen; the rest are still a table on a
 // wide screen and cards on a phone.
-const rowLists = new Set(["Mijozlar", "Vazifalar"])
+const rowLists = new Set(["Mijozlar", "Vazifalar", "Mahsulotlar", "Xizmatlar", "Ta'minotchilar", "Harakatlar", "Xaridlar"])
 export const list = (page: Page, name: string) =>
   onPhone(page) || rowLists.has(name) ? page.getByRole("list", { name }) : page.getByRole("table", { name })
 
 // pick finds an item in a picker by what is typed and takes the option.
 export async function pick(page: Page, scope: Page | Locator, label: string, typed: string, option: RegExp) {
-  await scope.getByRole("combobox", { name: label }).fill(typed)
-  await page.getByRole("listbox").getByRole("option", { name: option }).click()
+  // The record is picked in a sheet its row opens: what is typed searches.
+  await scope.getByRole("button", { name: new RegExp(`^${label}`) }).click()
+  const sheet = page.getByRole("dialog", { name: label })
+  if (typed) await sheet.getByRole("searchbox").fill(typed)
+  await sheet.getByRole("option", { name: option }).click()
+  await expect(sheet).toBeHidden()
 }
 
 // settle waits for the toasts of the last step to go: on a phone they stand
@@ -124,4 +128,13 @@ export async function pick(page: Page, scope: Page | Locator, label: string, typ
 export async function settle(page: Page) {
   await page.mouse.move(8, 300)
   await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 15_000 })
+}
+
+// press types on an amount sheet's keypad (components/kit/amount-sheet.tsx)
+// within scope: a comma is «vergul», "<" a step back («O'chirish»).
+export async function press(scope: Locator, keys: string) {
+  const keypad = scope.getByRole("group", { name: "Raqamlar" })
+  for (const key of keys) {
+    await keypad.getByRole("button", { name: key === "," ? "vergul" : key === "<" ? "O'chirish" : key, exact: true }).click()
+  }
 }
