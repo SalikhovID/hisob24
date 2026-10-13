@@ -149,3 +149,22 @@ test("a member with no location to work in is told so", async () => {
   expect(await screen.findByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Saqlash" })).not.toBeInTheDocument()
 })
+
+test("from a supplier's «Xarid» tile the supplier comes chosen; from a product's, the first line holds it at its last price", async () => {
+  const catalog = seedCatalog()
+  const { bozor } = seedWarehouse(catalog)
+  await signIn(ALI)
+  setLocation(`/purchases/new?supplier=${bozor.id}`)
+  const { unmount } = renderWithProviders(<NewPurchasePage />)
+
+  await waitFor(() => expect(screen.getByRole("button", { name: /^Ta'minotchi/ })).toHaveTextContent("Bozor"))
+  unmount()
+
+  setLocation(`/purchases/new?product=${catalog.olma.id}`)
+  renderWithProviders(<NewPurchasePage />)
+
+  await waitFor(() => expect(within(line(1)).getByRole("button", { name: /^Mahsulot/ })).toHaveTextContent("Olma"))
+  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1000.00")
+  expect(within(line(1)).getByText("kg")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: /^Ta'minotchi/ })).toHaveTextContent("Tanlang")
+})

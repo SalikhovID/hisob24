@@ -2,17 +2,19 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MapPinIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import { PageTitle } from "@/components/kit/page-title"
 import { EmptyState } from "@/components/states"
 import { api, call } from "@/lib/api"
+import { UZS } from "@/lib/currencies"
 import { can } from "@/lib/permissions"
+import { useProduct, useSupplier } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
-import { type PurchaseOutput, nowLocal, purchaseDefaults } from "@/lib/warehouse"
+import { emptyLine, nowLocal, type PurchaseOutput, purchaseDefaults } from "@/lib/warehouse"
 import { forgetFinance } from "@/lib/finance"
 import { PurchaseForm } from "./purchase-form"
 
@@ -54,8 +56,10 @@ export function forgetWarehouse(queryClient: ReturnType<typeof useQueryClient>, 
 
 // NewPurchasePage enters a purchase into the current location, for whoever
 // may add purchases and may see the suppliers and the products (the form
-// finds them by name; logic/roles.md, 4.3). Saved, it opens the purchase's
-// page.
+// finds them by name; logic/roles.md, 4.3). Opened from a supplier's or a
+// product's «Xarid» tile (?supplier=, ?product=) it starts with that one
+// chosen: the product in the first line at its last price, when that is in
+// so'm. Saved, it opens the purchase's page.
 export function NewPurchasePage() {
   const gate = usePermission("purchases.create")
   const companyId = gate?.company.id ?? null
@@ -65,7 +69,25 @@ export function NewPurchasePage() {
   const locationId = location.current?.id ?? null
   const router = useRouter()
   const queryClient = useQueryClient()
-  const defaults = useMemo(() => purchaseDefaults(null, nowLocal()), [])
+  const params = useSearchParams()
+  const supplierId = Number(params.get("supplier")) || 0
+  const productId = Number(params.get("product")) || 0
+  const supplier = useSupplier(supplierId ? companyId : null, supplierId)
+  const product = useProduct(productId ? companyId : null, productId)
+  // The form starts once what it starts with is known (or is not to be had).
+  const ready = (!supplierId || !supplier.isPending) && (!productId || !product.isPending)
+  const defaults = useMemo(() => {
+    const empty = purchaseDefaults(null, nowLocal())
+    if (!ready) return empty
+    const s = supplier.data
+    const p = product.data?.kind === "product" ? product.data : undefined
+    const price = p?.last_price && p.last_price.currency_id === UZS ? p.last_price.amount : ""
+    return {
+      ...empty,
+      ...(s && { supplier_id: s.id, supplier_name: s.name }),
+      ...(p && { items: [{ ...emptyLine(), product_id: p.id, product_name: p.name, unit: p.unit, price }] }),
+    }
+  }, [ready, supplier.data, product.data])
   const create = useMutation({
     mutationFn: (purchase: PurchaseOutput) => call(api.POST("/app/purchases", { body: { ...purchase, location_id: locationId ?? 0 } })),
     onSuccess: (saved) => {
@@ -91,6 +113,7 @@ export function NewPurchasePage() {
       </>
     )
   }
+  if (!ready) return <PageTitle title="Yangi xarid" description={location.current?.name} back={back} />
   return (
     <>
       <PageTitle title="Yangi xarid" description={location.current?.name} back={back} />
