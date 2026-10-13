@@ -214,6 +214,15 @@ type Querier interface {
 	// cannot be told not to repeat. A text is compared in any case; the deleted
 	// customers do not count.
 	CustomerFieldHasDuplicates(ctx context.Context, fieldID int64) (bool, error)
+	// The home's blocks at a glance
+	// (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md). Money is in
+	// so'm, each document turned by its own rate row (logic/currencies.md,
+	// section 4), as a supplier's balance is.
+	// What the company's live suppliers are owed: the so'm balances above zero
+	// summed and counted, and those below zero (the advances) summed as a
+	// positive amount. A balance is the supplier list's: purchases and opening
+	// debts add, payments and opening advances take away.
+	DashboardSuppliers(ctx context.Context, companyID int64) (DashboardSuppliersRow, error)
 	DeactivateAdmin(ctx context.Context, telegramID int64) (int64, error)
 	// Drops a code the bot could not deliver.
 	DeleteAdminLoginCode(ctx context.Context, id int64) error
