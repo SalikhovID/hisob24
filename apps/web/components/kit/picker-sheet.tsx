@@ -1,7 +1,7 @@
 "use client"
 
 import { CheckIcon } from "lucide-react"
-import { type CSSProperties, type KeyboardEvent, type ReactNode, useEffect, useState } from "react"
+import { type CSSProperties, type KeyboardEvent, type ReactNode, useState } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
@@ -109,39 +109,62 @@ export function PickerSheet({
   onOpenChange,
   title,
   options,
-  value,
-  onChange,
-  none,
   search,
-  note,
-  emptyText = "Hech narsa topilmadi",
+  ...body
 }: SheetProps & { value: string; onChange: (value: string) => void; none?: string }) {
-  const [query, setQuery] = useState("")
-  useEffect(() => {
-    if (!open) setQuery("")
-  }, [open])
-  const shown = matches(options, query)
-  const listed = none && query === "" ? [{ value: "", label: none }, ...shown] : shown
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent tall={search !== undefined || options.length > 8}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        {search !== undefined && <SearchBox value={query} onSearch={setQuery} placeholder={search} delay={0} className="mb-3" />}
-        <OptionList
-          title={title}
-          options={listed}
-          isSelected={(candidate) => candidate === value}
-          onSelect={(candidate) => {
-            onChange(candidate)
-            onOpenChange(false)
-          }}
-          emptyText={emptyText}
-        />
-        {note && <Foot className="mt-3">{note}</Foot>}
+        <PickerBody title={title} options={options} search={search} onClose={() => onOpenChange(false)} {...body} />
       </DialogContent>
     </Dialog>
+  )
+}
+
+// PickerBody is the open sheet's search and list: it mounts with every
+// opening (the closed sheet holds nothing), so each one starts unsearched.
+function PickerBody({
+  title,
+  options,
+  value,
+  onChange,
+  none,
+  search,
+  note,
+  emptyText = "Hech narsa topilmadi",
+  onClose,
+}: {
+  title: string
+  options: PickerOption[]
+  value: string
+  onChange: (value: string) => void
+  none?: string
+  search?: string
+  note?: string
+  emptyText?: string
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const shown = matches(options, query)
+  const listed = none && query === "" ? [{ value: "", label: none }, ...shown] : shown
+  return (
+    <>
+      {search !== undefined && <SearchBox value={query} onSearch={setQuery} placeholder={search} delay={0} className="mb-3" />}
+      <OptionList
+        title={title}
+        options={listed}
+        isSelected={(candidate) => candidate === value}
+        onSelect={(candidate) => {
+          onChange(candidate)
+          onClose()
+        }}
+        emptyText={emptyText}
+      />
+      {note && <Foot className="mt-3">{note}</Foot>}
+    </>
   )
 }
 
@@ -152,45 +175,65 @@ export function MultiPickerSheet({
   onOpenChange,
   title,
   options,
-  value,
-  onChange,
   search,
-  note,
-  emptyText = "Hech narsa topilmadi",
+  ...body
 }: SheetProps & { value: string[]; onChange: (value: string[]) => void }) {
-  const [query, setQuery] = useState("")
-  const [chosen, setChosen] = useState(value)
-  useEffect(() => {
-    if (open) setChosen(value)
-    else setQuery("")
-  }, [open, value])
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent tall={search !== undefined || options.length > 8}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        {search !== undefined && <SearchBox value={query} onSearch={setQuery} placeholder={search} delay={0} className="mb-3" />}
-        <OptionList
-          title={title}
-          options={matches(options, query)}
-          isSelected={(candidate) => chosen.includes(candidate)}
-          onSelect={(candidate) => setChosen(chosen.includes(candidate) ? chosen.filter((v) => v !== candidate) : [...chosen, candidate])}
-          emptyText={emptyText}
-        />
-        {note && <Foot className="mt-3">{note}</Foot>}
-        <DialogFooter>
-          <MainButton
-            onClick={() => {
-              onChange(chosen)
-              onOpenChange(false)
-            }}
-          >
-            Tayyor
-          </MainButton>
-        </DialogFooter>
+        <MultiPickerBody title={title} options={options} search={search} onClose={() => onOpenChange(false)} {...body} />
       </DialogContent>
     </Dialog>
+  )
+}
+
+// MultiPickerBody starts, with every opening, from the choice as it stands.
+function MultiPickerBody({
+  title,
+  options,
+  value,
+  onChange,
+  search,
+  note,
+  emptyText = "Hech narsa topilmadi",
+  onClose,
+}: {
+  title: string
+  options: PickerOption[]
+  value: string[]
+  onChange: (value: string[]) => void
+  search?: string
+  note?: string
+  emptyText?: string
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const [chosen, setChosen] = useState(value)
+  return (
+    <>
+      {search !== undefined && <SearchBox value={query} onSearch={setQuery} placeholder={search} delay={0} className="mb-3" />}
+      <OptionList
+        title={title}
+        options={matches(options, query)}
+        isSelected={(candidate) => chosen.includes(candidate)}
+        onSelect={(candidate) => setChosen(chosen.includes(candidate) ? chosen.filter((v) => v !== candidate) : [...chosen, candidate])}
+        emptyText={emptyText}
+      />
+      {note && <Foot className="mt-3">{note}</Foot>}
+      <DialogFooter>
+        <MainButton
+          onClick={() => {
+            onChange(chosen)
+            onClose()
+          }}
+        >
+          Tayyor
+        </MainButton>
+      </DialogFooter>
+    </>
   )
 }
 

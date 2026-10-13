@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
-import { useEffect, useId, useState } from "react"
+import { useId, useState } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatDate } from "@/lib/format"
@@ -54,19 +54,28 @@ export function DateSheet({
   value: string
   onChange: (value: string) => void
 }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <Calendar value={value} onChange={onChange} onClose={() => onOpenChange(false)} />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// Calendar is the open sheet's body: it mounts with every opening (the
+// closed sheet holds nothing), so it starts at the value's month, or
+// today's.
+function Calendar({ value, onChange, onClose }: { value: string; onChange: (value: string) => void; onClose: () => void }) {
   const now = today()
   const [picked, setPicked] = useState(value || now)
   const [[year, month], setShown] = useState(() => {
     const [y, m] = (value || now).split("-").map(Number)
     return [y, m]
   })
-  useEffect(() => {
-    if (!open) return
-    const start = value || today()
-    setPicked(start)
-    const [y, m] = start.split("-").map(Number)
-    setShown([y, m])
-  }, [open, value])
 
   const pick = (day: string) => {
     setPicked(day)
@@ -94,73 +103,68 @@ export function DateSheet({
   ]
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <Chips className="mb-2.5">
-          {presets.map(([label, day]) => (
-            <Chip key={label} pressed={picked === day} onClick={() => pick(day)} className={picked !== day ? "bg-sheet-cell text-foreground" : undefined}>
-              {label}
-            </Chip>
-          ))}
-        </Chips>
-        <div data-slot="calendar" className="rounded-group bg-sheet-cell px-3 pt-2.5 pb-3">
-          <div className="flex items-center justify-between px-0.5 pb-2">
-            <b className="text-base font-semibold">
-              {MONTHS[month - 1]} {year}
-            </b>
-            <div className="flex">
-              <button type="button" aria-label="Oldingi oy" onClick={() => page(-1)} className="grid size-11 place-items-center text-primary">
-                <ChevronLeftIcon aria-hidden="true" strokeWidth={2.4} className="size-6" />
-              </button>
-              <button type="button" aria-label="Keyingi oy" onClick={() => page(1)} className="grid size-11 place-items-center text-primary">
-                <ChevronRightIcon aria-hidden="true" strokeWidth={2.4} className="size-6" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-7 gap-y-0.5 text-center">
-            {WEEKDAYS.map((weekday) => (
-              <span key={weekday} aria-hidden="true" className="pt-1 pb-1.5 text-[12px] font-semibold text-muted-foreground">
-                {weekday}
-              </span>
-            ))}
-            {monthGrid(year, month).map((day, index) =>
-              day === null ? (
-                <span key={`blank-${index}`} />
-              ) : (
-                <button
-                  key={day}
-                  type="button"
-                  aria-label={formatDate(day)}
-                  aria-pressed={day === picked}
-                  data-today={day === now || undefined}
-                  onClick={() => pick(day)}
-                  className={cn(
-                    "size-[42px] justify-self-center rounded-full text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                    day === now && "font-bold text-primary",
-                    day === picked && "bg-primary font-semibold text-primary-foreground",
-                  )}
-                >
-                  {Number(day.slice(8))}
-                </button>
-              ),
-            )}
+    <>
+      <Chips className="mb-2.5">
+        {presets.map(([label, day]) => (
+          <Chip key={label} pressed={picked === day} onClick={() => pick(day)} className={picked !== day ? "bg-sheet-cell text-foreground" : undefined}>
+            {label}
+          </Chip>
+        ))}
+      </Chips>
+      <div data-slot="calendar" className="rounded-group bg-sheet-cell px-3 pt-2.5 pb-3">
+        <div className="flex items-center justify-between px-0.5 pb-2">
+          <b className="text-base font-semibold">
+            {MONTHS[month - 1]} {year}
+          </b>
+          <div className="flex">
+            <button type="button" aria-label="Oldingi oy" onClick={() => page(-1)} className="grid size-11 place-items-center text-primary">
+              <ChevronLeftIcon aria-hidden="true" strokeWidth={2.4} className="size-6" />
+            </button>
+            <button type="button" aria-label="Keyingi oy" onClick={() => page(1)} className="grid size-11 place-items-center text-primary">
+              <ChevronRightIcon aria-hidden="true" strokeWidth={2.4} className="size-6" />
+            </button>
           </div>
         </div>
-        <DialogFooter>
-          <MainButton
-            onClick={() => {
-              onChange(picked)
-              onOpenChange(false)
-            }}
-          >
-            Tanlash
-          </MainButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="grid grid-cols-7 gap-y-0.5 text-center">
+          {WEEKDAYS.map((weekday) => (
+            <span key={weekday} aria-hidden="true" className="pt-1 pb-1.5 text-[12px] font-semibold text-muted-foreground">
+              {weekday}
+            </span>
+          ))}
+          {monthGrid(year, month).map((day, index) =>
+            day === null ? (
+              <span key={`blank-${index}`} />
+            ) : (
+              <button
+                key={day}
+                type="button"
+                aria-label={formatDate(day)}
+                aria-pressed={day === picked}
+                data-today={day === now || undefined}
+                onClick={() => pick(day)}
+                className={cn(
+                  "size-[42px] justify-self-center rounded-full text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                  day === now && "font-bold text-primary",
+                  day === picked && "bg-primary font-semibold text-primary-foreground",
+                )}
+              >
+                {Number(day.slice(8))}
+              </button>
+            ),
+          )}
+        </div>
+      </div>
+      <DialogFooter>
+        <MainButton
+          onClick={() => {
+            onChange(picked)
+            onClose()
+          }}
+        >
+          Tanlash
+        </MainButton>
+      </DialogFooter>
+    </>
   )
 }
 
