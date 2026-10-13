@@ -14,6 +14,12 @@ test("a detail head names the record, with its mark and badges outside the headi
   expect(screen.getByText("Nofaol")).toBeInTheDocument()
 })
 
+test("in a sheet over a page the head's name is a second-level heading: the page keeps its own", () => {
+  render(<DetailHead title="Vali Aliyev" description="+998 90 222 33 44" heading="h2" />)
+  expect(screen.getByRole("heading", { level: 2, name: "Vali Aliyev" })).toBeInTheDocument()
+  expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument()
+})
+
 test("the tiles are the record's actions: buttons, a link to call, a red one to delete", async () => {
   const edit = vi.fn()
   render(

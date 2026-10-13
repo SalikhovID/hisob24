@@ -13,18 +13,22 @@ export function DetailHead({
   title,
   description,
   badges,
+  heading = "h1",
   className,
 }: {
   media?: ReactNode
   title: string
   description?: ReactNode
   badges?: ReactNode
+  // heading is the name's level: a sheet over a page heads it as h2.
+  heading?: "h1" | "h2"
   className?: string
 }) {
+  const Heading = heading
   return (
     <header data-slot="detail-head" className={cn("flex flex-col items-center px-4 pt-4 pb-5 text-center", className)}>
       {media && <div className="mb-3">{media}</div>}
-      <h1 className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] [overflow-wrap:anywhere]">{title}</h1>
+      <Heading className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] [overflow-wrap:anywhere]">{title}</Heading>
       {description && <p className="mt-1.5 text-md text-muted-foreground">{description}</p>}
       {badges && <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">{badges}</div>}
     </header>
