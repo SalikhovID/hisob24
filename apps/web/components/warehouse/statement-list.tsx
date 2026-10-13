@@ -13,7 +13,7 @@ import type { Party } from "@/lib/party"
 import { useCustomerStatement, useStatement } from "@/lib/queries"
 import type { StatementRow } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { openingOfRow } from "@/lib/stock"
+import { type OpeningFields, openingOfRow } from "@/lib/stock"
 import { type PaymentFields, paymentOfRow } from "@/lib/warehouse"
 import { DeleteOpeningButton } from "./delete-opening-button"
 import { DeletePaymentButton } from "./delete-payment-button"
@@ -84,6 +84,8 @@ export function StatementList({
   const [page, setPage] = useState(1)
   // The payment sheet: a new payment (null), or the one being edited.
   const [paying, setPaying] = useState<PaymentFields | null | undefined>(undefined)
+  // The opening balance sheet: a new one (null), or the one being edited.
+  const [opening, setOpening] = useState<OpeningFields | null | undefined>(undefined)
   const suppliers = useStatement(party === "supplier" ? companyId : null, partyId, page)
   const customers = useCustomerStatement(party === "customer" ? companyId : null, partyId, page)
   const statement = party === "supplier" ? suppliers : customers
@@ -128,7 +130,11 @@ export function StatementList({
               if (row.kind === "supplier_debt" || row.kind === "supplier_prepay" || row.kind === "customer_debt" || row.kind === "customer_prepay") {
                 return (
                   <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-                    {canEdit && <OpeningDialog party={party} companyId={companyId} partyId={partyId} opening={openingOfRow(row)} iconOnly />}
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" aria-label={`Tahrirlash: ${formatAmount(row.amount)}`} onClick={() => setOpening(openingOfRow(row))}>
+                        <PencilIcon />
+                      </Button>
+                    )}
                     {canDelete && <DeleteOpeningButton party={party} companyId={companyId} partyId={partyId} opening={openingOfRow(row)} />}
                   </span>
                 )
@@ -159,13 +165,25 @@ export function StatementList({
         </h2>
         {canAdd && (
           <div className="flex flex-wrap justify-end gap-2">
-            <OpeningDialog party={party} companyId={companyId} partyId={partyId} />
+            <Button size="lg" variant="outline" className="px-3.5" onClick={() => setOpening(null)}>
+              Boshlang&apos;ich qarz / avans
+            </Button>
             <Button size="lg" className="px-3.5" onClick={() => setPaying(null)}>
               To&apos;lov qo&apos;shish
             </Button>
           </div>
         )}
       </div>
+      {opening !== undefined && (
+        <OpeningDialog
+          party={party}
+          companyId={companyId}
+          partyId={partyId}
+          opening={opening ?? undefined}
+          open
+          onOpenChange={(open) => !open && setOpening(undefined)}
+        />
+      )}
       {paying !== undefined && (
         <PaymentDialog
           party={party}

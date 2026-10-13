@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import { type ComponentProps, useState } from "react"
 import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCustomers, seedWarehouse, VALI } from "@/mocks/data"
@@ -8,17 +9,26 @@ import { chooseCompany, signIn } from "@/test/session"
 import { enterOpening } from "@/test/stock"
 import { OpeningDialog } from "./opening-dialog"
 
+// Opened is the sheet as the statement opens it (its «Boshlang'ich»
+// action, a balance's «Tahrirlash»): open from the start, closed when it says so.
+function Opened(props: Omit<ComponentProps<typeof OpeningDialog>, "open" | "onOpenChange">) {
+  const [open, setOpen] = useState(true)
+  return <OpeningDialog {...props} open={open} onOpenChange={setOpen} />
+}
+// kind is the chip of an opening balance's kind.
+const kind = (dialog: HTMLElement, name: string) => within(within(dialog).getByRole("radiogroup", { name: "Tur" })).getByRole("radio", { name })
+
 test("an opening debt is entered: the kind chosen, the amount typed the Uzbek way, now unless another moment is chosen, a note", async () => {
   const { bozor } = seedWarehouse()
   await signIn(ALI)
-  const { user } = renderWithProviders(<OpeningDialog companyId={1} partyId={bozor.id} />)
+  const { user } = renderWithProviders(<Opened companyId={1} partyId={bozor.id} />)
 
-  await user.click(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" }))
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
   expect((within(dialog).getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
-  expect(within(dialog).queryByRole("combobox", { name: "Valyuta" })).not.toBeInTheDocument()
-  await choose(user, within(dialog).getByRole("combobox", { name: "Tur" }), "Qarz")
-  await user.type(within(dialog).getByLabelText("Summa, so'm"), "1 000 000")
+  expect(within(dialog).queryByLabelText("Valyuta")).not.toBeInTheDocument()
+  await user.click(kind(dialog, "Qarz"))
+  expect(within(dialog).getByText("so'm")).toBeInTheDocument()
+  await user.type(within(dialog).getByLabelText("Summa"), "1 000 000")
   await user.type(within(dialog).getByLabelText("Izoh"), " Eski qarz ")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -30,9 +40,8 @@ test("an opening debt is entered: the kind chosen, the amount typed the Uzbek wa
 test("the dialog refuses in the API's words before asking", async () => {
   const { bozor } = seedWarehouse()
   await signIn(ALI)
-  const { user } = renderWithProviders(<OpeningDialog companyId={1} partyId={bozor.id} />)
+  const { user } = renderWithProviders(<Opened companyId={1} partyId={bozor.id} />)
 
-  await user.click(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" }))
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Turni tanlang")).toBeInTheDocument()
@@ -45,38 +54,35 @@ test("with more than the so'm an advance is entered in dollars at the rate in fo
   await chooseCompany(2)
   const at = "2026-10-02T05:00:00Z"
   db.suppliers.push({ id: 801, companyId: 2, name: "Bozor", phone: null, note: null, active: true, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
-  const { user } = renderWithProviders(<OpeningDialog companyId={2} partyId={801} />)
+  const { user } = renderWithProviders(<Opened companyId={2} partyId={801} />)
 
-  await user.click(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" }))
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
-  await choose(user, within(dialog).getByRole("combobox", { name: "Tur" }), "Avans")
-  expect(within(dialog).getByRole("combobox", { name: "Valyuta" })).toHaveTextContent("UZS — O'zbek so'mi")
+  await user.click(kind(dialog, "Avans"))
+  expect(within(dialog).getByLabelText("Valyuta")).toHaveTextContent("UZS — O'zbek so'mi")
   expect(within(dialog).queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
-  await choose(user, within(dialog).getByRole("combobox", { name: "Valyuta" }), "USD — AQSH dollari")
+  await choose(user, within(dialog).getByLabelText("Valyuta"), "USD — AQSH dollari")
   expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
-  await user.type(within(dialog).getByLabelText("Summa, $"), "10")
+  await user.type(within(dialog).getByLabelText("Summa"), "10")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(db.transactions.find((t) => t.kind === "supplier_prepay" && t.supplierId === 801)).toMatchObject({ total: 10, currencyId: 2, rateId: 9001 }))
 })
 
-test("an opening balance is edited from its row, by its icon; its kind stays", async () => {
+test("an opening balance is edited from its fields; its kind stays", async () => {
   const { bozor } = seedWarehouse()
   await signIn(ALI)
   const opening = await enterOpening(bozor.id, { kind: "debt", amount: "1000000", at: "2026-10-03T09:00:00+05:00", note: "Eski qarz" })
-  const { user } = renderWithProviders(<OpeningDialog companyId={1} partyId={bozor.id} opening={opening} iconOnly />)
+  const { user } = renderWithProviders(<Opened companyId={1} partyId={bozor.id} opening={opening} />)
 
-  await user.click(screen.getByRole("button", { name: "Tahrirlash: 1 000 000" }))
   const dialog = await screen.findByRole("dialog", { name: "Hujjatni tahrirlash" })
-  const kind = within(dialog).getByRole("combobox", { name: "Tur" })
-  expect(kind).toHaveTextContent("Qarz")
-  // A Base UI select that is disabled: jsdom shows disabled or aria-disabled.
-  expect(kind.hasAttribute("disabled") || kind.getAttribute("aria-disabled") === "true").toBe(true)
-  expect(within(dialog).getByLabelText("Summa, so'm")).toHaveValue("1000000.00")
+  expect(kind(dialog, "Qarz")).toHaveAttribute("aria-checked", "true")
+  expect(kind(dialog, "Qarz")).toBeDisabled()
+  expect(kind(dialog, "Avans")).toBeDisabled()
+  expect(within(dialog).getByLabelText("Summa")).toHaveValue("1000000.00")
   expect(within(dialog).getByLabelText("Vaqt")).toHaveValue("2026-10-03T09:00")
   expect(within(dialog).getByLabelText("Izoh")).toHaveValue("Eski qarz")
-  await user.clear(within(dialog).getByLabelText("Summa, so'm"))
-  await user.type(within(dialog).getByLabelText("Summa, so'm"), "1500")
+  await user.clear(within(dialog).getByLabelText("Summa"))
+  await user.type(within(dialog).getByLabelText("Summa"), "1500")
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() => expect(db.transactions.find((t) => t.id === opening.id)).toMatchObject({ kind: "supplier_debt", total: 1500 }))
@@ -86,12 +92,11 @@ test("an opening balance is edited from its row, by its icon; its kind stays", a
 test("a customer's opening advance goes to the customer", async () => {
   const { dilshod } = seedCustomers()
   await signIn(ALI)
-  const { user } = renderWithProviders(<OpeningDialog party="customer" companyId={1} partyId={dilshod.id} />)
+  const { user } = renderWithProviders(<Opened party="customer" companyId={1} partyId={dilshod.id} />)
 
-  await user.click(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" }))
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
-  await choose(user, within(dialog).getByRole("combobox", { name: "Tur" }), "Avans")
-  await user.type(within(dialog).getByLabelText("Summa, so'm"), "50 000")
+  await user.click(kind(dialog, "Avans"))
+  await user.type(within(dialog).getByLabelText("Summa"), "50 000")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(db.transactions.find((t) => t.kind === "customer_prepay" && t.customerId === dilshod.id)).toMatchObject({ total: 50000 }))

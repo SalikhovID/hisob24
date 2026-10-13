@@ -121,7 +121,7 @@ export function PaymentDialog({
         <SelectRow control={form.control} name="bank_account_id" label="Akkaunt" options={accountOptions(accounts, currencies, payment?.bank_account_id)} />
         <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
         {isMulti(currencies) && currency.id !== UZS && (
-          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" />
+          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
         )}
         <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
       </Group>
