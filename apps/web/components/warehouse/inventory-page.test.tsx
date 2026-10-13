@@ -5,6 +5,7 @@ import { stockOf } from "@/mocks/ledger"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterInventory } from "@/test/stock"
 import { InventoryPage } from "./inventory-page"
@@ -34,8 +35,10 @@ test("the inventory page: its facts and its lines with what was expected, counte
   expect(await screen.findByRole("heading", { level: 1, name: "Inventarizatsiya № 1" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 05.10.2026 09:00")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Inventarizatsiya" })).toHaveAttribute("href", "/inventories")
-  expect(screen.getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/inventories/${inventory.id}/edit`)
-  expect(screen.getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  // What may be done with it are the tiles.
+  const tiles = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "O'chirish"])
+  expect(within(tiles).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/inventories/${inventory.id}/edit`)
   expect(facts()).toEqual({
     Lokatsiya: "Asosiy",
     Vaqt: "05.10.2026 09:00",
@@ -43,14 +46,13 @@ test("the inventory page: its facts and its lines with what was expected, counte
     "Qo'shgan": "Ali Valiyev",
     "Qo'shilgan": expect.any(String),
   })
-  const lines = screen.getByRole("table", { name: "Qatorlar" })
-  expect(within(lines).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Mahsulot", "Tizim", "Sanalgan", "Farq"])
-  const row = within(lines).getByRole("link", { name: "Olma" }).closest("tr")!
-  expect(within(lines).getByRole("link", { name: "Olma" })).toHaveAttribute("href", `/products/${catalog.olma.id}`)
-  // getByText folds the no-break space before the unit into a plain one.
-  expect(within(row).getByText("12,5 kg")).toBeInTheDocument()
-  expect(within(row).getByText("10 kg")).toBeInTheDocument()
-  expect(within(row).getByText("−2,5 kg")).toBeInTheDocument()
+  // A line is a product row: what the journal expected and what was counted
+  // under its name, the difference at its end.
+  const [olma] = within(screen.getByRole("list", { name: "Mahsulotlar" })).getAllByRole("link")
+  expect(olma).toHaveAttribute("href", `/products/${catalog.olma.id}`)
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ")
+  expect(plain(rowParts(olma).sub)).toBe("tizim 12,5 kg · sanalgan 10 kg")
+  expect(plain(rowParts(olma).end)).toBe("−2,5 kg")
 })
 
 test("deleting the inventory takes its differences out of the stock and leads to the list", async () => {
