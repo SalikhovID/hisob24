@@ -1,18 +1,18 @@
 "use client"
 
 import { MapPinIcon, ReceiptIcon } from "lucide-react"
-import { Fragment, useEffect, useRef } from "react"
-import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
+import { useEffect, useRef } from "react"
+import { DayGroups } from "@/components/kit/day-groups"
+import { Foot, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { dayOf, dayTitle, formatAmount, formatMoney } from "@/lib/format"
+import { formatAmount, formatMoney } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { usePurchases } from "@/lib/queries"
-import { todayISO } from "@/lib/tasks"
 import type { Permission, Purchase } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
@@ -69,15 +69,6 @@ export function PurchasesPage() {
   // stranger is on their way home.
   if (!gate) return null
   const page = purchases.data
-  // The page's purchases by their day, in the order they come (the newest first).
-  const days: { day: string; items: Purchase[] }[] = []
-  for (const purchase of page?.items ?? []) {
-    const day = dayOf(purchase.at)
-    const last = days.at(-1)
-    if (last?.day === day) last.items.push(purchase)
-    else days.push({ day, items: [purchase] })
-  }
-  const today = todayISO()
   return (
     <>
       <PageTitle
@@ -94,31 +85,26 @@ export function PurchasesPage() {
       )}
       {!loading && !purchases.isError && page && page.total > 0 && (
         <>
-          <section aria-label="Xaridlar" className={cn(purchases.isPlaceholderData && "opacity-60")}>
-            {days.map(({ day, items }) => {
-              const title = dayTitle(day, today)
-              const sum = items.reduce((all, purchase) => all + Number(purchase.total_uzs), 0)
-              return (
-                <Fragment key={day}>
-                  <SectionHeading hint={formatAmount(sum.toFixed(2))}>{title}</SectionHeading>
-                  <Group label={title} inset="icon">
-                    {items.map((purchase) => (
-                      <Row
-                        key={purchase.id}
-                        href={`/purchases/${purchase.id}`}
-                        media={<SoftIcon icon={ReceiptIcon} />}
-                        title={`№ ${purchase.number} · ${purchase.supplier.name}`}
-                        sub={[`${purchase.items_count} ta mahsulot`, purchase.created_by_name && shortName(purchase.created_by_name)].filter(Boolean).join(" · ")}
-                        end={formatMoney(purchase.total, currencyOf(currencies, purchase.currency_id))}
-                        endSub={paidText(purchase)}
-                        chevron={false}
-                      />
-                    ))}
-                  </Group>
-                </Fragment>
-              )
-            })}
-          </section>
+          <DayGroups
+            label="Xaridlar"
+            items={page.items}
+            at={(purchase) => purchase.at}
+            hint={(day) => formatAmount(day.reduce((sum, purchase) => sum + Number(purchase.total_uzs), 0).toFixed(2))}
+            className={cn(purchases.isPlaceholderData && "opacity-60")}
+          >
+            {(purchase) => (
+              <Row
+                key={purchase.id}
+                href={`/purchases/${purchase.id}`}
+                media={<SoftIcon icon={ReceiptIcon} />}
+                title={`№ ${purchase.number} · ${purchase.supplier.name}`}
+                sub={[`${purchase.items_count} ta mahsulot`, purchase.created_by_name && shortName(purchase.created_by_name)].filter(Boolean).join(" · ")}
+                end={formatMoney(purchase.total, currencyOf(currencies, purchase.currency_id))}
+                endSub={paidText(purchase)}
+                chevron={false}
+              />
+            )}
+          </DayGroups>
           {page.total > page.page_size ? (
             <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
           ) : (
