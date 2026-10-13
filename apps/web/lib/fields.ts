@@ -39,31 +39,6 @@ export function answerText(field: FormField, answer: Answer | undefined, dropdow
   return chosen.flatMap((id) => options.find((option) => option.id === id)?.label ?? []).join(", ")
 }
 
-// FieldColumn is a column of a list that shows answers. Fields of one name
-// share a column, whatever the type: fields holds each type's field of that
-// name, by the id of the type.
-export interface FieldColumn {
-  key: string
-  label: string
-  fields: Record<number, FormField>
-}
-
-// fieldColumns are a list's answer columns for the types it shows, in the
-// order of the types and of their fields. A name counts whatever its case,
-// and is spelled as the first type spells it.
-export function fieldColumns(types: { id: number; fields: FormField[] }[]): FieldColumn[] {
-  const columns = new Map<string, FieldColumn>()
-  for (const type of types) {
-    for (const field of type.fields) {
-      const key = `field:${field.label.toLowerCase()}`
-      const column = columns.get(key) ?? { key, label: field.label, fields: {} }
-      column.fields[type.id] = field
-      columns.set(key, column)
-    }
-  }
-  return [...columns.values()]
-}
-
 // fieldKey names a field's entry in a form. A bare number would not do:
 // react-hook-form reads a numeric key as a place in an array.
 export const fieldKey = (field: Pick<FormField, "id">) => `f${field.id}`

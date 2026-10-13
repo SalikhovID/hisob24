@@ -62,16 +62,26 @@ export function ChoiceChips({
   value,
   onChange,
   options,
+  bare = false,
   className,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   options: { value: string; label: string; count?: number }[]
+  // bare drops the strip: the radios stand in a strip of more filters (the
+  // tasks' «Mas'ul» and «Bosqich» beside the types).
+  bare?: boolean
   className?: string
 }) {
   return (
-    <RadioGroup aria-label={label} value={value} onValueChange={(next) => onChange(String(next))} data-slot="chips" className={cn(strip, className)}>
+    <RadioGroup
+      aria-label={label}
+      value={value}
+      onValueChange={(next) => onChange(String(next))}
+      data-slot="chips"
+      className={cn(bare ? "flex shrink-0 gap-1.5" : strip, className)}
+    >
       {options.map((option) => (
         <Radio.Root
           key={option.value}

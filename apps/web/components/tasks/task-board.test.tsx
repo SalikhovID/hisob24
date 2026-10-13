@@ -39,7 +39,7 @@ test("the board shows a column per stage, in order, with the tasks due soonest f
   expect(within(column("Yangi")).getByText("2", { selector: "[data-slot=column-count]" })).toBeInTheDocument()
   expect(within(column("Jarayonda")).getByText("1", { selector: "[data-slot=column-count]" })).toBeInTheDocument()
   expect(within(column("Yangi")).getByText("Jami: 2")).toBeInTheDocument()
-  expect(await screen.findByText("Kompaniyangiz vazifalari · 4 ta")).toBeInTheDocument()
+  expect(await screen.findByText("4 ta")).toBeInTheDocument()
   // The done column is folded: its name and count on a button, no cards.
   const folded = within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (1)" })
   expect(folded).toHaveAttribute("aria-expanded", "false")
@@ -114,8 +114,8 @@ test("a card's stage menu moves the task to another column, where it takes its p
   expect(within(column("Jarayonda")).getByText("Jami: 2")).toBeInTheDocument()
   expect(db.tasks.find((task) => task.id === invoice.id)?.stageId).toBe(jarayonda.id)
   expect(screen.getByRole("status", { name: "Ko'chirishlar" })).toHaveTextContent("«Hisob-faktura» «Jarayonda» bosqichiga ko'chirildi")
-  // The company still has four tasks.
-  expect(screen.getByText("Kompaniyangiz vazifalari · 4 ta")).toBeInTheDocument()
+  // The location still has four tasks.
+  expect(screen.getByText("4 ta")).toBeInTheDocument()
 })
 
 test("a move the API refuses puts the card back and says why; the stages are asked for again", async () => {
@@ -171,10 +171,10 @@ test("a column shows twenty tasks and offers more; Jami says how many there are"
   await waitFor(() => expect(cards("Yangi")).toHaveLength(23))
   expect(cards("Yangi").slice(-1)).toEqual(["Vazifa 20"])
   expect(within(column("Yangi")).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
-  expect(await screen.findByText("Kompaniyangiz vazifalari · 25 ta")).toBeInTheDocument()
+  expect(await screen.findByText("25 ta")).toBeInTheDocument()
 })
 
-test("the type tab, the search and the assignee narrow every column", async () => {
+test("the type chip, the search and the assignee narrow every column", async () => {
   await signIn(ALI)
   seedTasks()
   setLocation("/tasks")
@@ -182,21 +182,21 @@ test("the type tab, the search and the assignee narrow every column", async () =
   await board()
   await waitFor(() => expect(cards("Yangi")).toHaveLength(2))
 
-  await user.click(screen.getByRole("tab", { name: "Buyurtma" }))
+  await user.click(screen.getByRole("radio", { name: "Buyurtma" }))
   await waitFor(() => expect(cards("Jarayonda")).toEqual([]))
   expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"])
   expect(within(column("Jarayonda")).getByText("Vazifa yo'q")).toBeInTheDocument()
-  // Under a tab the type is not said on every card.
+  // Under a type the type is not said on every card, and the count is not the location's.
   expect(within(column("Yangi")).queryByText("Buyurtma")).not.toBeInTheDocument()
-  expect(screen.getByText("Kompaniyangiz vazifalari")).toBeInTheDocument()
+  expect(screen.queryByText("4 ta")).not.toBeInTheDocument()
 
-  await user.click(screen.getByRole("tab", { name: "Barchasi" }))
+  await user.click(screen.getByRole("radio", { name: "Barchasi" }))
   await user.type(screen.getByRole("searchbox", { name: "Qidirish" }), "shartnoma")
   await waitFor(() => expect(cards("Yangi")).toEqual([]))
   expect(cards("Jarayonda")).toEqual(["Shartnoma yuborish"])
 
   await user.clear(screen.getByRole("searchbox", { name: "Qidirish" }))
-  await choose(user, await screen.findByRole("combobox", { name: "Mas'ul" }), "Vali Aliyev")
+  await choose(user, await screen.findByRole("button", { name: "Barcha mas'ullar" }), "Vali Aliyev")
   await waitFor(() => expect(cards("Yangi")).toEqual(["Qo'ng'iroq qilish"]))
   expect(cards("Jarayonda")).toEqual([])
 })
@@ -211,7 +211,7 @@ test("a board with no tasks says so in every column", async () => {
   await waitFor(() => expect(within(column("Yangi")).getByText("Vazifa yo'q")).toBeInTheDocument())
   expect(within(column("Jarayonda")).getByText("Vazifa yo'q")).toBeInTheDocument()
   expect(within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (0)" })).toBeInTheDocument()
-  expect(await screen.findByText("Kompaniyangiz vazifalari · 0 ta")).toBeInTheDocument()
+  expect(await screen.findByText("0 ta")).toBeInTheDocument()
 })
 
 test("an employee whose role holds tasks.view alone sees the board without the stage menus or a way to add", async () => {

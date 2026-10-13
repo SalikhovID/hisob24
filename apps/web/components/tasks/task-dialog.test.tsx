@@ -5,6 +5,7 @@ import { addDays, ALI, db, localToday, SARDOR, seedTasks, taskTypesOf, typesOf, 
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { choose, optionsOf } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
@@ -14,7 +15,8 @@ import { TasksPage } from "./tasks-page"
 async function openDialog(href = "/tasks?view=list") {
   setLocation(href)
   const rendered = renderWithProviders(<TasksPage />)
-  await rendered.user.click(await screen.findByRole("button", { name: "Vazifa qo'shish" }))
+  // The round + heads the page; an empty list offers one more below.
+  await rendered.user.click((await screen.findAllByRole("button", { name: "Vazifa qo'shish" }))[0])
   return { ...rendered, dialog: await screen.findByRole("dialog", { name: "Vazifa qo'shish" }) }
 }
 
@@ -23,12 +25,11 @@ const today = localToday()
 // setDate fills a date input, which is not typed into.
 const setDate = (input: HTMLElement, value: string) => fireEvent.change(input, { target: { value } })
 
-// titles are the tasks the table shows, in order.
+// titles are the tasks the list shows, in order.
 const titles = () =>
-  within(screen.getByRole("table", { name: "Vazifalar" }))
-    .getAllByRole("row")
-    .slice(1)
-    .map((row) => within(row).getByRole("rowheader").textContent)
+  within(screen.getByRole("region", { name: "Vazifalar" }))
+    .getAllByRole("link")
+    .map((row) => rowParts(row).title)
 
 test("the dialog: the type on top, the customer on the left and the task on the right; it opens in the first stage, with the deadline empty and nobody assigned", async () => {
   await signIn(VALI)

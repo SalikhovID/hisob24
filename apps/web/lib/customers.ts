@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { answersDefaults, type Entries, type FieldColumn, fieldColumns as columnsOf, readAnswers } from "./fields"
+import { answersDefaults, type Entries, readAnswers } from "./fields"
 import { formatPhoneInput, phoneDigits } from "./phone"
 import type { Customer, CustomerAnswers, CustomerField, CustomerType } from "./types"
 
@@ -15,18 +15,6 @@ export function customerName(customer: Pick<Customer, "values">, type: Pick<Cust
   const field = type && nameFieldOf(type)
   const answer = field ? customer.values[field.id] : undefined
   return typeof answer === "string" && answer !== "" ? answer : null
-}
-
-// fieldColumns are the customers list's answer columns for the types it
-// shows. The field a type's customers go by is not a column: it is the
-// customer's name.
-export function fieldColumns(types: CustomerType[]): FieldColumn[] {
-  return columnsOf(
-    types.map((type) => {
-      const nameField = nameFieldOf(type)
-      return { id: type.id, fields: type.fields.filter((field) => field !== nameField) }
-    }),
-  )
 }
 
 // CustomerForm is what the customer form holds: the phone field's value and

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { answersDefaults, answerText, fieldColumns, fieldKey, isChoice, kindLabels, kinds, readAnswers } from "./fields"
+import { answersDefaults, answerText, fieldKey, isChoice, kindLabels, kinds, readAnswers } from "./fields"
 import type { CustomerDropdown, CustomerField } from "./types"
 
 test("the six kinds of field have Uzbek names, in the order a form offers them", () => {
@@ -65,34 +65,6 @@ test("an answer is written for people to read: options by their names", () => {
 
 test("a field's entry in a form is named by its id, with a letter in front", () => {
   expect(fieldKey({ id: 7 })).toBe("f7")
-})
-
-test("the list has a column for every field name, shared by the types that have a field of that name", () => {
-  const yuridik = [
-    field(201, "Nomi", "string", { required: true }),
-    field(202, "INN", "int", { required: true, is_unique: true }),
-    field(203, "MANBA", "radio", { dropdown_id: 10 }),
-    field(204, "F.I.Sh.", "string"),
-  ]
-  const columns = fieldColumns([
-    { id: 1, fields: jismoniy },
-    { id: 2, fields: yuridik },
-  ])
-
-  // In the order of the types and of their fields; a name in another case is
-  // the same name, spelled as the first type spells it.
-  expect(columns.map((column) => [column.key, column.label])).toEqual([
-    ["field:yoshi", "Yoshi"],
-    ["field:f.i.sh.", "F.I.Sh."],
-    ["field:manzil", "Manzil"],
-    ["field:manba", "Manba"],
-    ["field:kanallar", "Kanallar"],
-    ["field:nomi", "Nomi"],
-    ["field:inn", "INN"],
-  ])
-  expect([columns[3].fields[1].id, columns[3].fields[2].id]).toEqual([104, 203])
-  expect([columns[1].fields[1].id, columns[1].fields[2].id]).toEqual([102, 204])
-  expect(fieldColumns([])).toEqual([])
 })
 
 test("a form opens with an entry for every field: empty, or holding the answers given", () => {

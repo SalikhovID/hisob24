@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { customerName, customerSchema, fieldColumns, formDefaults, nameFieldOf } from "./customers"
+import { customerName, customerSchema, formDefaults, nameFieldOf } from "./customers"
 import type { Customer, CustomerField, CustomerType } from "./types"
 
 const field = (id: number, label: string, kind: CustomerField["kind"], rest: Partial<CustomerField> = {}): CustomerField => ({
@@ -37,43 +37,6 @@ test("a customer goes by its answer to the type's first text field", () => {
   expect(customerName({ values: { 101: 30 } }, { fields: [field(101, "Yoshi", "int")] })).toBeNull()
   // A type that was deleted meanwhile.
   expect(customerName({ values: { 102: "Ali" } }, undefined)).toBeNull()
-})
-
-const yuridik: CustomerType = {
-  id: 2,
-  name: "Yuridik",
-  fields: [
-    field(201, "Nomi", "string", { required: true }),
-    field(202, "INN", "int", { required: true, is_unique: true }),
-    field(203, "MANBA", "radio", { dropdown_id: 10 }),
-    field(204, "F.I.Sh.", "string"),
-  ],
-}
-
-test("the list has a column for every field name, shared by the types that have a field of that name", () => {
-  const columns = fieldColumns([jismoniy, yuridik])
-
-  // In the order of the types and of their fields; a name in another case is
-  // the same name, spelled as the first type spells it.
-  expect(columns.map((column) => [column.key, column.label])).toEqual([
-    ["field:yoshi", "Yoshi"],
-    ["field:manzil", "Manzil"],
-    ["field:manba", "Manba"],
-    ["field:kanallar", "Kanallar"],
-    ["field:inn", "INN"],
-    ["field:f.i.sh.", "F.I.Sh."],
-  ])
-  const manbaColumn = columns[2]
-  expect([manbaColumn.fields[1].id, manbaColumn.fields[2].id]).toEqual([104, 203])
-  // Each type's first text field is its customers' name, not a column: the
-  // F.I.Sh. column is Yuridik's second text field alone.
-  expect(Object.keys(columns[5].fields)).toEqual(["2"])
-  expect(columns.some((column) => column.label === "Nomi")).toBe(false)
-})
-
-test("under one type the columns are that type's fields", () => {
-  expect(fieldColumns([yuridik]).map((column) => column.label)).toEqual(["INN", "MANBA", "F.I.Sh."])
-  expect(fieldColumns([])).toEqual([])
 })
 
 const ali: Customer = {
