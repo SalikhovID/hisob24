@@ -5,6 +5,7 @@ import { ALI, db, seedCatalog, seedCustomers, seedWarehouse, VALI } from "@/mock
 import { stockOf } from "@/mocks/ledger"
 import { asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
+import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
@@ -35,14 +36,12 @@ test("a sale to a customer out of the current location: the customer found by na
   expect(screen.queryByText("Chakana sotuv: to'liq to'langan bo'lishi shart")).not.toBeInTheDocument()
 
   const first = line(1)
-  await user.type(within(first).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, first, "Mahsulot", "ol", /Olma/)
   expect(within(first).getByLabelText("Narx")).toHaveValue("12000.00")
   await user.type(within(first).getByLabelText("Miqdor"), "2")
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
   const second = line(2)
-  await user.type(within(second).getByRole("combobox", { name: "Mahsulot" }), "yet")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Yetkazish/ }))
+  await pick(user, second, "Mahsulot", "yet", /Yetkazish/)
   expect(within(second).getByLabelText("Narx")).toHaveValue("50000.00")
   await user.type(within(second).getByLabelText("Miqdor"), "1")
   expect(screen.getByText("74 000 so'm")).toBeInTheDocument()
@@ -75,8 +74,7 @@ test("a retail sale is paid in full with «To'liq»; the form tells the API's re
 
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
   expect(await within(line(1)).findByText("Mahsulotni tanlang")).toBeInTheDocument()
-  await user.type(within(line(1)).getByRole("combobox", { name: "Mahsulot" }), "n")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Nok/ }))
+  await pick(user, line(1), "Mahsulot", "n", /Nok/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("")
   await user.type(within(line(1)).getByLabelText("Narx"), "2000")
   await user.type(within(line(1)).getByLabelText("Miqdor"), "1")

@@ -3,6 +3,7 @@ import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
+import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { choose } from "@/test/select"
@@ -25,13 +26,11 @@ test("a purchase is entered into the current location: the supplier and the prod
   expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
   expect(screen.queryByRole("combobox", { name: "Valyuta" })).not.toBeInTheDocument()
 
-  await user.type(screen.getByRole("combobox", { name: "Ta'minotchi" }), "bo")
-  await user.click(within(await screen.findByRole("listbox", { name: "Ta'minotchi takliflari" })).getByRole("option", { name: /Bozor/ }))
-  expect(within(screen.getByRole("group", { name: "Ta'minotchi" })).getByText("Bozor")).toBeInTheDocument()
+  await pick(user, document.body, "Ta'minotchi", "bo", /Bozor/)
+  expect(screen.getByRole("button", { name: /^Ta'minotchi/ })).toHaveTextContent("Bozor")
 
   const first = line(1)
-  await user.type(within(first).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, first, "Mahsulot", "ol", /Olma/)
   expect(within(first).getByLabelText("Narx")).toHaveValue("1000.00")
   await user.type(within(first).getByLabelText("Miqdor"), "2")
   expect(within(first).getByText("2 000")).toBeInTheDocument()
@@ -39,8 +38,7 @@ test("a purchase is entered into the current location: the supplier and the prod
 
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
   const second = line(2)
-  await user.type(within(second).getByRole("combobox", { name: "Mahsulot" }), "n")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Nok/ }))
+  await pick(user, second, "Mahsulot", "n", /Nok/)
   expect(within(second).getByLabelText("Narx")).toHaveValue("2500.50")
   await user.type(within(second).getByLabelText("Miqdor"), "3")
   expect(within(second).getByText("7 501,5")).toBeInTheDocument()
@@ -87,8 +85,7 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
 
   expect(screen.getByRole("combobox", { name: "Valyuta" })).toHaveTextContent("UZS — O'zbek so'mi")
   expect(screen.queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
-  await user.type(within(line(1)).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12800")
   await choose(user, screen.getByRole("combobox", { name: "Valyuta" }), "USD — AQSH dollari")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
@@ -117,8 +114,7 @@ test("the form refuses in the API's words before asking: a supplier, a product a
 
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
   for (const n of [1, 2]) {
-    await user.type(within(line(n)).getByRole("combobox", { name: "Mahsulot" }), "ol")
-    await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+    await pick(user, line(n), "Mahsulot", "ol", /Olma/)
     await user.type(within(line(n)).getByLabelText("Miqdor"), "1")
   }
   await user.click(screen.getByRole("button", { name: "Saqlash" }))

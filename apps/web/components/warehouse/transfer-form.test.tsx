@@ -4,6 +4,7 @@ import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCatalog, seedWarehouse } from "@/mocks/data"
 import { addLocation, asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
+import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { choose, optionsOf } from "@/test/select"
 import { signIn } from "@/test/session"
@@ -31,8 +32,7 @@ test("a transfer is entered out of the current location: the other location chos
   await choose(user, to, "Qo'yliq")
 
   const first = line(1)
-  await user.type(within(first).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, first, "Mahsulot", "ol", /Olma/)
   expect(within(first).queryByLabelText("Narx")).not.toBeInTheDocument()
   await user.type(within(first).getByLabelText("Miqdor"), "4,5")
   expect(within(first).getByText("kg")).toBeInTheDocument()
@@ -62,8 +62,7 @@ test("the form refuses in the API's words before asking, and tells the API's ref
   expect(within(line(1)).getByText("Miqdor noto'g'ri")).toBeInTheDocument()
 
   await choose(user, screen.getByRole("combobox", { name: "Qayerga" }), "Chilonzor")
-  await user.type(within(line(1)).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await user.type(within(line(1)).getByLabelText("Miqdor"), "20")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
   expect(await screen.findByText("«Olma» uchun omborda yetarli qoldiq yo'q")).toBeInTheDocument()

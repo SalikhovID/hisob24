@@ -6,6 +6,7 @@ import { ALI, db, seedCatalog, seedWarehouse } from "@/mocks/data"
 import { stockOf } from "@/mocks/ledger"
 import { asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
+import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { enterInventory } from "@/test/stock"
@@ -70,8 +71,7 @@ test("a product picked by name shows the stock expected at the moment, which fol
   expect(await within(line(1)).findByText("Mahsulotni tanlang")).toBeInTheDocument()
   expect(within(line(1)).getByText("Sanalganni kiriting")).toBeInTheDocument()
 
-  await user.type(within(line(1)).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await waitFor(() => expect(figure(line(1), "Tizim")).toBe(formatQuantity("12.500", "kg")))
   // Dated before the purchase, nothing was expected.
   const at = screen.getByLabelText("Vaqt")

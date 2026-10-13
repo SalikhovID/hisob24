@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { expect, test } from "vitest"
 import { emptyLine, type LineForm } from "@/lib/warehouse"
 import { ALI, seedCatalog, seedWarehouse } from "@/mocks/data"
+import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { LinesField } from "./lines-field"
@@ -26,8 +27,7 @@ test("with prices: a product found by name, its unit at the quantity, the last p
 
   expect(screen.getByRole("heading", { level: 2, name: "Mahsulotlar" })).toBeInTheDocument()
   const first = line(1)
-  await user.type(within(first).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, first, "Mahsulot", "ol", /Olma/)
   expect(within(first).getByLabelText("Narx")).toHaveValue("1000.00")
   expect(within(first).getByText("kg")).toBeInTheDocument()
   await user.type(within(first).getByLabelText("Miqdor"), "2")
@@ -36,8 +36,7 @@ test("with prices: a product found by name, its unit at the quantity, the last p
 
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
   const second = line(2)
-  await user.type(within(second).getByRole("combobox", { name: "Mahsulot" }), "n")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Nok/ }))
+  await pick(user, second, "Mahsulot", "n", /Nok/)
   await user.type(within(second).getByLabelText("Miqdor"), "3")
   expect(within(second).getByText("7 501,5")).toBeInTheDocument()
   expect(screen.getByText("9 501,5 so'm")).toBeInTheDocument()
@@ -53,8 +52,7 @@ test("without prices: the product and its quantity alone, no price, no sum", asy
   const { user } = renderWithProviders(<Host withPrice={false} />)
 
   const first = line(1)
-  await user.type(within(first).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, first, "Mahsulot", "ol", /Olma/)
   expect(within(first).queryByLabelText("Narx")).not.toBeInTheDocument()
   expect(within(first).queryByText("Summa")).not.toBeInTheDocument()
   expect(screen.queryByText("Jami")).not.toBeInTheDocument()

@@ -5,6 +5,7 @@ import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { stockOf } from "@/mocks/ledger"
 import { asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
+import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
@@ -30,8 +31,7 @@ test("an opening stock is entered into the current location like a purchase with
   expect(screen.queryByRole("combobox", { name: "Valyuta" })).not.toBeInTheDocument()
 
   const first = line(1)
-  await user.type(within(first).getByRole("combobox", { name: "Mahsulot" }), "n")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Nok/ }))
+  await pick(user, first, "Mahsulot", "n", /Nok/)
   expect(within(first).getByLabelText("Narx")).toHaveValue("2500.50")
   await user.clear(within(first).getByLabelText("Narx"))
   await user.type(within(first).getByLabelText("Narx"), "2000")
@@ -66,8 +66,7 @@ test("with more than the so'm the currency and the rate are asked, and the total
   expect(screen.getByRole("combobox", { name: "Valyuta" })).toHaveTextContent("UZS — O'zbek so'mi")
   await choose(user, screen.getByRole("combobox", { name: "Valyuta" }), "USD — AQSH dollari")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
-  await user.type(within(line(1)).getByRole("combobox", { name: "Mahsulot" }), "ol")
-  await user.click(within(await screen.findByRole("listbox", { name: "Mahsulot takliflari" })).getByRole("option", { name: /Olma/ }))
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
   await user.type(within(line(1)).getByLabelText("Narx"), "25")
   expect(screen.getByText("50 $")).toBeInTheDocument()

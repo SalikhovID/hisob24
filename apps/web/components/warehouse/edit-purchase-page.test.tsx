@@ -20,7 +20,7 @@ test("a purchase is edited from its fields as they are: a line changed, a line t
   expect(await screen.findByText("№ 1 · Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("heading", { level: 1, name: "Xaridni tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xarid № 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
-  expect(within(screen.getByRole("group", { name: "Ta'minotchi" })).getByText("Bozor")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: /^Ta'minotchi/ })).toHaveTextContent("Bozor")
   expect(screen.getByLabelText("Vaqt")).toHaveValue("2026-10-01T09:00")
   expect(within(line(1)).getByText("Olma")).toBeInTheDocument()
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("12.500")

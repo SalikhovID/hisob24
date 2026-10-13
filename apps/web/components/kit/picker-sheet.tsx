@@ -56,6 +56,7 @@ function Option({ option, selected, onSelect }: { option: PickerOption; selected
           <span className="truncate">{option.label}</span>
           {option.badge}
         </span>
+        {option.sub && " "}
         {option.sub && <span className="mt-0.5 block truncate text-sm text-muted-foreground">{option.sub}</span>}
       </span>
       {selected && <CheckIcon aria-hidden="true" strokeWidth={2.6} className="size-5 shrink-0 text-primary" />}

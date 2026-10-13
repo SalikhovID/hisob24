@@ -470,7 +470,8 @@ export function useSupplierSuggestions(companyId: number | null, text: string) {
   return useQuery({
     queryKey: [...suppliersKey(companyId), "suggest", search],
     queryFn: () => call(api.GET("/app/suppliers", { params: { query: { status: "active", search, page: 1 } } })),
-    enabled: companyId !== null && search.length > 0,
+    // Nothing typed is the first active ones: a picker's sheet opens with them.
+    enabled: companyId !== null,
     placeholderData: keepPreviousData,
   })
 }
@@ -574,7 +575,8 @@ export function useProductSuggestions(companyId: number | null, text: string, ki
       const pages = await Promise.all(kinds.map((kind) => call(api.GET("/app/products", { params: { query: { kind, status: "active", search, page: 1 } } }))))
       return { items: pages.flatMap((page) => page.items) }
     },
-    enabled: companyId !== null && search.length > 0,
+    // Nothing typed is the first active ones: a picker's sheet opens with them.
+    enabled: companyId !== null,
     placeholderData: keepPreviousData,
   })
 }

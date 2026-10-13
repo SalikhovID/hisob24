@@ -105,7 +105,7 @@ function HomeAddCustomer({ companyId, onClose }: { companyId: number; onClose: (
 function SupplierPicker({ companyId, onPick, onClose }: { companyId: number; onPick: (id: number) => void; onClose: () => void }) {
   const [query, setQuery] = useState("")
   const active = useSuppliers(companyId, { status: "active", search: "", page: 1 })
-  const found = useSupplierSuggestions(companyId, query)
+  const found = useSupplierSuggestions(query.trim() ? companyId : null, query)
   const list = query.trim() ? found : active
   const options = (list.data?.items ?? []).map((s) => ({ value: String(s.id), label: s.name, sub: s.phone ? formatPhone(s.phone) : undefined }))
   return (
