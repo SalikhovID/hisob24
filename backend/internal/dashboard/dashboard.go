@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/SalikhovID/hisob24/backend/internal/access"
-	"github.com/SalikhovID/hisob24/backend/internal/numtext"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
+	"github.com/SalikhovID/hisob24/backend/internal/numtext"
 	"github.com/SalikhovID/hisob24/backend/internal/task"
 )
 
