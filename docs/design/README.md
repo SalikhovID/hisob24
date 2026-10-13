@@ -2,7 +2,7 @@
 
 Dizayner uchun. Holat: 2026-10-08, commit `488eaee`.
 
-> **Eskirmoqda (2026-10-13).** Shu holat asosida chizilgan prototip (`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`) bo'yicha user app Telegram Wallet (iOS guruhli ro'yxat) uslubiga o'tkazilmoqda: suzuvchi tab-bar, profil sahifasi, guruhli ro'yxatlar hamma enda, varaq-dialoglar, dashboard. Bu hujjatdagi 3–7-bo'limlar va skrinshotlar o'sha ish tugaguncha eski ko'rinishni tasvirlaydi; 1, 2, 5, 8 va 9-bo'limlardagi qoidalar (bo'limlar, ruxsatlar, oqimlar, maydonlar, Telegram) amalda.
+> **Eskirgan (2026-10-14).** User app shu holat asosida chizilgan prototip bo'yicha Telegram Wallet (iOS guruhli ro'yxat) uslubiga o'tkazildi (`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`): suzuvchi tab-bar va profil sahifasi, guruhli ro'yxatlar hamma enda, varaq-dialoglar, dashboard, sahifa o'tishlari. Hozirgi ko'rinish — pastdagi [«Hozirgi ko'rinish»](#hozirgi-korinish-2026-10-14) bo'limi va [`screens-v2/`](screens-v2/). Bu hujjatdagi 3, 4, 6 va 7-bo'limlar va [`screens/`](screens/) dagi skrinshotlar 2026-10-13 gacha bo'lgan ko'rinishni tasvirlaydi (tarix uchun qoldirildi); 1, 2, 5, 8 va 9-bo'limlardagi qoidalar (bo'limlar, ruxsatlar, oqimlar, maydonlar, Telegram) amalda, ekran tafsilotlari esa yangi ko'rinishda.
 
 Bu hujjat Hisob24 user app'i va Telegram botlari qanday ishlashini tasvirlaydi. User app brauzerda `app.hisob24.uz` da va Telegram ichida Mini App bo'lib ochiladi. Hujjatda kim foydalanishi, qanday ekranlar borligi, ular qanday bog'langani, har ekranda nima turgani va hozir qanday ko'rinishi bor. Admin panel (platforma adminlari uchun) bu hujjatga kirmaydi.
 
@@ -18,6 +18,7 @@ Interfeys matnlari koddagidek, aynan keltirilgan.
 
 ## Mundarija
 
+0. [Hozirgi ko'rinish (2026-10-14)](#hozirgi-korinish-2026-10-14)
 1. [Mahsulot haqida](#1-mahsulot-haqida)
 2. [Kim foydalanadi: rollar va ruxsatlar](#2-kim-foydalanadi-rollar-va-ruxsatlar)
 3. [Qobiq va navigatsiya](#3-qobiq-va-navigatsiya)
@@ -30,6 +31,52 @@ Interfeys matnlari koddagidek, aynan keltirilgan.
 10. [Dizayn tizimi (hozirgi holat)](#10-dizayn-tizimi-hozirgi-holat)
 11. [Dizaynerga eslatmalar](#11-dizaynerga-eslatmalar)
 12. [Ilova: interfeys matnlari](#12-ilova-interfeys-matnlari)
+
+---
+
+## Hozirgi ko'rinish (2026-10-14)
+
+User app prototip bo'yicha o'tkazilgandan keyingi holat: [`screens-v2/`](screens-v2/), jami 57 ta. Qoidalar va qarorlar: `docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`.
+
+- Mock ma'lumotlar bilan, «Olma Savdo» egasi (Ali Valiyev) ko'zi bilan; ikki lokatsiya («Asosiy», «Chilonzor»), xaridlar, sotuvlar, kassa hujjatlari, «Sotuvchi» roli.
+- Telefon: 375×812 pt, @2x. Keng ekran: 1280×800 px, @1x. Uzun sahifalar to'liq bo'yi bilan.
+- Light mavzuda; qorong'i va Telegram mavzusi alohida ko'rsatilgan.
+
+| Ekran | Telefon | Keng ekran |
+|---|---|---|
+| Kirish (`/login`) | [01-login-phone](screens-v2/01-login-phone.png) | [01-login-desktop](screens-v2/01-login-desktop.png) |
+| Bosh sahifa (`/`) | [10-home-phone](screens-v2/10-home-phone.png) | [10-home-desktop](screens-v2/10-home-desktop.png) |
+| Profil (`/profile`) | [11-profile-phone](screens-v2/11-profile-phone.png) | [11-profile-desktop](screens-v2/11-profile-desktop.png) |
+| Pastki menyu (`/profile/menu`) | [12-menu-order-phone](screens-v2/12-menu-order-phone.png) | — |
+| Bosh sahifa, qorong'i mavzu | [13-home-dark-phone](screens-v2/13-home-dark-phone.png) | [13-home-dark-desktop](screens-v2/13-home-dark-desktop.png) |
+| Mini App: bosh sahifa (Telegram mavzusi, to'liq ekran, «Bosh ekranga qo'shing») | [14-miniapp-home-phone](screens-v2/14-miniapp-home-phone.png) | — |
+| Mini App: mijoz sahifasi | [15-miniapp-customer-phone](screens-v2/15-miniapp-customer-phone.png) | — |
+| Mijozlar (`/customers`) | [20-customers-phone](screens-v2/20-customers-phone.png) | [20-customers-desktop](screens-v2/20-customers-desktop.png) |
+| Mijoz qo'shish (varaq) | [21-customer-sheet-phone](screens-v2/21-customer-sheet-phone.png) | — |
+| Mijoz sahifasi | [22-customer-page-phone](screens-v2/22-customer-page-phone.png) | [22-customer-page-desktop](screens-v2/22-customer-page-desktop.png) |
+| O'chirish savoli | [23-delete-alert-phone](screens-v2/23-delete-alert-phone.png) | — |
+| Vazifalar: kanban | [30-tasks-kanban-phone](screens-v2/30-tasks-kanban-phone.png) | [30-tasks-kanban-desktop](screens-v2/30-tasks-kanban-desktop.png) |
+| Bosqich tanlash (action sheet) | [31-stage-action-sheet-phone](screens-v2/31-stage-action-sheet-phone.png) | — |
+| Vazifalar: ro'yxat | [32-tasks-list-phone](screens-v2/32-tasks-list-phone.png) | [32-tasks-list-desktop](screens-v2/32-tasks-list-desktop.png) |
+| Vazifa sahifasi | [33-task-page-phone](screens-v2/33-task-page-phone.png) | [33-task-page-desktop](screens-v2/33-task-page-desktop.png) |
+| Mahsulotlar | [40-products-phone](screens-v2/40-products-phone.png) | [40-products-desktop](screens-v2/40-products-desktop.png) |
+| Mahsulot sahifasi | [41-product-page-phone](screens-v2/41-product-page-phone.png) | [41-product-page-desktop](screens-v2/41-product-page-desktop.png) |
+| Ombor (`/warehouse`) | [50-warehouse-phone](screens-v2/50-warehouse-phone.png) | [50-warehouse-desktop](screens-v2/50-warehouse-desktop.png) |
+| Xaridlar | [51-purchases-phone](screens-v2/51-purchases-phone.png) | [51-purchases-desktop](screens-v2/51-purchases-desktop.png) |
+| Xarid sahifasi | [52-purchase-page-phone](screens-v2/52-purchase-page-phone.png) | [52-purchase-page-desktop](screens-v2/52-purchase-page-desktop.png) |
+| Yangi xarid | [53-purchase-new-phone](screens-v2/53-purchase-new-phone.png) | [53-purchase-new-desktop](screens-v2/53-purchase-new-desktop.png) |
+| Ta'minotchi sahifasi | [54-supplier-page-phone](screens-v2/54-supplier-page-phone.png) | [54-supplier-page-desktop](screens-v2/54-supplier-page-desktop.png) |
+| To'lov (summa klaviaturasi) | [55-payment-sheet-phone](screens-v2/55-payment-sheet-phone.png) | — |
+| Bo'sh holat (ko'chirishlar) | [56-empty-transfers-phone](screens-v2/56-empty-transfers-phone.png) | — |
+| Sotuvlar | [60-sales-phone](screens-v2/60-sales-phone.png) | [60-sales-desktop](screens-v2/60-sales-desktop.png) |
+| Sotuv sahifasi | [61-sale-page-phone](screens-v2/61-sale-page-phone.png) | [61-sale-page-desktop](screens-v2/61-sale-page-desktop.png) |
+| Kassa (`/accounts`) | [70-accounts-phone](screens-v2/70-accounts-phone.png) | [70-accounts-desktop](screens-v2/70-accounts-desktop.png) |
+| Akkaunt sahifasi | [71-account-page-phone](screens-v2/71-account-page-phone.png) | [71-account-page-desktop](screens-v2/71-account-page-desktop.png) |
+| Xarajatlar | [72-expenses-phone](screens-v2/72-expenses-phone.png) | [72-expenses-desktop](screens-v2/72-expenses-desktop.png) |
+| Xodimlar | [80-employees-phone](screens-v2/80-employees-phone.png) | [80-employees-desktop](screens-v2/80-employees-desktop.png) |
+| Xodim varag'i | [81-employee-sheet-phone](screens-v2/81-employee-sheet-phone.png) | — |
+| Sozlamalar (`/settings`) | [90-settings-phone](screens-v2/90-settings-phone.png) | [90-settings-desktop](screens-v2/90-settings-desktop.png) |
+| Rol sahifasi | [91-role-page-phone](screens-v2/91-role-page-phone.png) | [91-role-page-desktop](screens-v2/91-role-page-desktop.png) |
 
 ---
 

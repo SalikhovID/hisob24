@@ -6,7 +6,7 @@ Multi-tenant SaaS. Platforma adminlari company yaratadi, obunasini uzaytiradi va
 |---|---|---|
 | Go API (`backend/`) | http://localhost:8080 | HTTP API va ikkala Telegram bot, bitta jarayonda |
 | Admin panel (`apps/admin`) | http://localhost:3001 | Company'lar, billing va adminlar. Admin botda Mini App sifatida ham ochiladi |
-| User app (`apps/web`) | http://localhost:3000 | Kod bilan kirish (SMS yoki, raqam botga ulangan bo'lsa, Telegram), company tanlash, mijozlar; xodimlar va sozlamalar (company egasi uchun) |
+| User app (`apps/web`) | http://localhost:3000 | Kod bilan kirish (SMS yoki, raqam botga ulangan bo'lsa, Telegram), company tanlash, bosh sahifa (dashboard), mijozlar, vazifalar, mahsulotlar, sotuv, ombor, moliya, xodimlar va sozlamalar. Telegram Wallet uslubidagi UI; user botda Mini App sifatida ham ochiladi |
 | Admin bot | Telegram | `/login` → panelga kirish kodi |
 | User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi; ulangan raqamning kirish kodlari SMS o'rniga shu chatga keladi; menu tugmasi user app'ni Mini App sifatida ochadi (login'siz) |
 
@@ -19,6 +19,7 @@ Hujjatlar:
 - [`docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md`](docs/superpowers/specs/2026-10-03-employees-roles-sidebar-design.md): xodimlar, rollar va user app sidebar dizayni;
 - [`logic/customers.md`](logic/customers.md): mijozlar, turlar, maydonlar va dropdownlar qoidalari;
 - [`docs/superpowers/specs/2026-10-04-customers-design.md`](docs/superpowers/specs/2026-10-04-customers-design.md): mijozlar bo'limi dizayni va amalga oshirishdagi qarorlar;
+- [`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`](docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): user app UI'si (Telegram Wallet uslubi: qobiq, profil, dashboard, varaqlar, o'tish animatsiyalari);
 - [`CLAUDE.md`](CLAUDE.md): ish qoidalari (TDD, git);
 - [`backend/openapi.yaml`](backend/openapi.yaml): API kontrakti.
 
@@ -107,18 +108,29 @@ pnpm --filter @hisob24/admin dev &
 pnpm --filter @hisob24/web dev
 ```
 
+## User app ko'rinishi
+
+Telegram Wallet (iOS guruhli ro'yxat) uslubi, telefonda ham, keng ekranda ham bir xil. Dizayn: [`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`](docs/superpowers/specs/2026-10-13-mini-app-ui-design.md), to'plam: `apps/web/components/kit/`.
+
+- **Qobiq:** telefonda suzuvchi tab-bar (Bosh sahifa + 4 bo'lim), faqat bo'lim sahifalarida; ichki sahifada tepada ota sahifaga havola («‹ Mijozlar»). Keng ekranda chapda sidebar (yig'iladi; pastida lokatsiya va profil). Panelga sig'magan bo'limlar, kompaniya, lokatsiya, menyu tartibi, mavzu va chiqish — **Profil** sahifasida (`/profile`, bosh sahifadagi ism tugmasi).
+- **Bosh sahifa** (`/`): asosiy raqam (ruxsatga qarab ta'minotchilarga qarz, faol vazifalar yoki mijozlar soni), tezkor plitkalar (Vazifa, Mijoz, Sotuv, Xarid, To'lov ichidan ruxsatli 4 tasi), «Umumiy holat» kartalari, yaqin muddatlar. Ma'lumot bitta so'rovda: `GET /app/dashboard` (har blok o'z `*.view` ruxsati bilan, ruxsatsizi `null`; vazifa, xarid va sotuv joriy lokatsiyaniki).
+- **Sahifalar:** ro'yxat — katta sarlavha va `+`, qidiruv, chiplar, guruhli qatorlar (hujjatlar kun bo'yicha); yozuv — sarlavha, tezkor plitkalar (Tahrirlash, Qo'ng'iroq `tel:` va boshqalar), «Ma'lumot», pastda o'chirish qatori. Kichik formalar pastdan chiqadigan varaqda; tanlov, kun (kalendar) va summa (klaviatura) ham varaqda. Ko'p qatorli hujjat formasi alohida sahifa.
+- **Sozlamalar** (`/settings`) va **Ombor** (`/warehouse`) — hub sahifalar: har qism o'z sahifasida. Eski `/settings?tab=…` manzillari qism sahifasiga yo'naltiriladi.
+- **O'tishlar:** yozuvga, formaga yoki hub ichiga o'tish yangi sahifani o'ngdan suradi; orqaga qaytish («‹ …» havolasi, Telegram'ning Back tugmasi, saqlangan tahrir) teskari. Bo'lim almashganda, filtr va segmentlarda, brauzerning o'z orqaga tugmasida sahifa darhol almashadi; «kamroq harakat» sozlamasida animatsiya yo'q.
+- **Telegram Mini App:** telefonda to'liq ekran, ichki sahifada Telegram'ning Back tugmasi (orqada sahifa bo'lsa unga, bo'lmasa bo'lim sahifasiga), bosh sahifada va profilda «Bosh ekranga qo'shing» taklifi (Bot API 8.0+; qo'shilgan yoki yopilgan bo'lsa chiqmaydi), Telegram mavzusi ranglari.
+
 ## Rollar va xodimlar
 
 | Rol | Interfeysda | Qayerdan qo'shiladi | User app'da |
 |---|---|---|---|
 | `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Vazifalar**, **Mahsulotlar** (mahsulotlar va xizmatlar), **Sotuv**, **Ombor** (xaridlar, ko'chirishlar, inventarizatsiya, boshlang'ich qoldiq, ta'minotchilar), **Moliya** (kassa, xarajatlar, o'tkazmalar), **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
 | `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**, **Vazifalar**, **Mahsulotlar**, **Sotuv**, **Ombor** va **Moliya** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
-| `user`, rolli | rol nomi (masalan, Sotuvchi) | egasi **Xodimlar → Rolni o'zgartirish** da rol biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Sotuv, Ombor hujjatlari, Moliya, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
+| `user`, rolli | rol nomi (masalan, Sotuvchi) egasi **Xodimlar** da xodim varag'idagi **Rol** qatorida biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Sotuv, Ombor hujjatlari, Moliya, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
 
 - **Kompaniya rollari** egasi **Sozlamalar → Rollar** da tuzadi: nom va ruxsat matritsasi. Amal bo'limning "Ko'rish" ruxsatisiz qabul qilinmaydi. Xodimlarga biriktirilgan rol o'chirilmaydi. Rollarni faqat egasi boshqaradi va biriktiradi.
 - Ruxsat har so'rovda bazadan o'qiladi: rol o'zgarsa, xodim keyingi so'rovdanoq yangi ruxsat bilan ishlaydi. Ruxsati yo'q amal API'da 403 `forbidden`; rollar API xodimga 403 `owner_only`.
 - Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi rolsiz xodim bo'lib qoladi; yangi egasining roli olib tashlanadi.
-- Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar, tor ekranda (telefon brauzeri va Telegram Mini App) pastdagi tab-bar. Bosh sahifa hammaga. Tab-bar'da 5 tagacha bo'lim sig'adi; ko'proq bo'lsa birinchi 4 tasi va **Yana** (qolganlari pastdan chiqadigan ro'yxatda). Har a'zo **Menyuni sozlash** (profil menyusida va «Yana» pastida) orqali bo'limlarni sudrab o'z tartibiga qo'yadi; tartib serverda, har company'da alohida saqlanadi va sidebar bilan tab-bar'ga birdek tegadi.
+- Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar, tor ekranda (telefon brauzeri va Telegram Mini App) suzuvchi tab-bar: **Bosh sahifa** (hammaga) va a'zo tartibidagi birinchi 4 bo'lim; qolganlari **Profil** sahifasida (`/profile`) va telefonda bosh sahifa pastida. Har a'zo **Profil → Pastki menyu** (`/profile/menu`) da bo'limlarni sudrab o'z tartibiga qo'yadi; tartib serverda, har company'da alohida saqlanadi va sidebar bilan tab-bar'ga birdek tegadi.
 - Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
 - Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga kod ham ketmaydi (SMS ham, Telegram ham).
 - Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.
@@ -131,13 +143,13 @@ Company o'z mijozlarini user app'da yuritadi. Mijozning **turi** bor, tur esa fo
 
 | Bo'lim | Kim | Nima qiladi |
 |---|---|---|
-| **Mijozlar** (`/customers`) | egasi va xodim | ro'yxat (tur tablari, qidiruv, sahifalar), mijoz qo'shish, mijoz sahifasi (`/customers/[id]`), tahrirlash, o'chirish |
-| **Sozlamalar** (`/settings`: «Mijozlar» va «Dropdownlar» tablari) | faqat egasi | mijoz turlari va maydonlari, dropdownlar va variantlari; tartib sudrab o'zgartiriladi |
+| **Mijozlar** (`/customers`) | egasi va xodim | ro'yxat (tur chiplari, qidiruv, sahifalar), mijoz qo'shish, mijoz sahifasi (`/customers/[id]`), tahrirlash, o'chirish |
+| **Sozlamalar** (`/settings/customer-types`, `/settings/dropdowns`) | faqat egasi | mijoz turlari va maydonlari, dropdownlar va variantlari; tartib «Tartiblash» rejimida sudrab o'zgartiriladi |
 
 - **Telefon** har mijozda bor va majburiy: faqat `+998`, companyning mijozlari ichida takrorlanmaydi. Maydon qilib qo'shilmaydi.
 - **Maydon turlari:** matn, butun son, dropdown (bitta yoki bir nechta tanlov), radio, checkbox. Tanlov turlari variantlarini dropdowndan oladi. Maydon "Majburiy" va (matn, son uchun) "Takrorlanmasin" bo'lishi mumkin.
 - **Mijoz nomi** alohida maydon emas: turning birinchi matn maydoni. Har yangi company ikki tayyor tur bilan boshlaydi: Jismoniy ("F.I.Sh.") va Yuridik ("Nomi", "INN").
-- **Ro'yxat:** turli turlardagi bir xil nomli maydonlar bitta ustun. Har user "Ustunlar" menyusida ustunlarni o'ziga yashiradi; tanlov brauzerda saqlanadi.
+- **Ro'yxat:** qatorda nom (nomsiz mijoz telefon bilan), «telefon · tur», o'ngda qarz yoki avans (`sales.view` bilan); maydon javoblari mijoz sahifasida.
 - **Takror** telefon yoki takrorlanmas qiymat rad etiladi va forma mavjud mijozga havola beradi.
 - **O'chirish:** hech narsa bazadan o'chmaydi (`deleted_at`). O'chirilgan mijoz ko'rinmaydi, raqami bo'shaydi. Mijozlarda ishlatilgan tur, maydon va variant o'chirilmaydi; variantni nofaol qilish mumkin.
 - **Tarix:** mijozning har o'zgarishi (kim, qachon, qaysi maydon, eski va yangi qiymat) yoziladi; uni mijoz sahifasida faqat egasi ko'radi.
@@ -150,12 +162,12 @@ Company xodimlari bajaradigan ishlar. Har vazifa bitta mijozga biriktiriladi, **
 
 | Bo'lim | Kim | Nima qiladi |
 |---|---|---|
-| **Vazifalar** (`/tasks`) | egasi va xodim | kanban (birinchi marta) yoki ro'yxat; tur tablari, qidiruv, bosqich va mas'ul filtrlari; vazifa qo'shish (mavjud mijozni telefon takliflaridan tanlab yoki yangi mijoz bilan); vazifa sahifasi (`/tasks/[id]`), tahrirlash, bosqichni o'zgartirish, o'chirish |
-| **Sozlamalar** (`/settings?tab=tasks`: «Vazifalar» tabi) | faqat egasi | bosqichlar (nom, rang, "Yakuniy", tartib), vazifa turlari va maydonlari |
+| **Vazifalar** (`/tasks`) | egasi va xodim | kanban (birinchi marta) yoki ro'yxat (muddat bo'yicha guruhlar); tur chiplari, qidiruv, bosqich va mas'ul filtrlari; vazifa qo'shish (mavjud mijozni telefon takliflaridan tanlab yoki yangi mijoz bilan); vazifa sahifasi (`/tasks/[id]`), tahrirlash, bosqichni o'zgartirish, o'chirish |
+| **Sozlamalar** (`/settings/stages`, `/settings/task-types`) | faqat egasi | bosqichlar (nom, rang, "Yakuniy", tartib), vazifa turlari va maydonlari |
 
 - **Doimiy maydonlar:** nomi, muddat (sana), mijoz va bosqich majburiy; mas'ul (kompaniya a'zosi) ixtiyoriy. Mijoz va tur keyin o'zgarmaydi.
 - **Bosqichlar:** har yangi company "Yangi", "Jarayonda", "Bajarildi" (yakuniy) bosqichlari va "Vazifa" turi bilan boshlaydi. Yakuniy bosqichdagi vazifa muddati o'tgan deb belgilanmaydi; kanban'da yakuniy ustun yig'ilgan turadi.
-- **Kanban:** karta sudrab yoki menyudan boshqa bosqichga o'tkaziladi; har ustunda 20 tadan, "Yana" bilan davomi; ustun sarlavhasidagi "+" shu bosqichga vazifa qo'shadi.
+- **Kanban:** karta sudrab (telefonda bosib turib) yoki `⋯` varag'idan boshqa bosqichga o'tkaziladi; har ustunda 20 tadan, "Yana" bilan davomi; ustun sarlavhasidagi "+" shu bosqichga vazifa qo'shadi.
 - **Muddat:** `dd.mm.yyyy` va "Bugun" / "N kun qoldi" / "N kun kechikdi" (brauzerning sanasidan); kechikkan vazifa qizil.
 - **Mijoz takliflari:** telefonning 3 raqami yozilganda mavjud mijozlar taklif qilinadi (`GET /app/customers?phone=`); tanlangach mijoz maydonlari to'ldirilib, qulflanadi. Yangi mijoz vazifa bilan bitta so'rovda yoziladi; takror telefon rad etiladi va o'sha mijozni biriktirish taklif qilinadi.
 - **O'chirish:** vazifa yashiriladi (`deleted_at`). Vazifasi bor mijoz, bosqich, tur, maydon va variant o'chirilmaydi.
@@ -170,14 +182,14 @@ Company'ning filiallari. Har vazifa bitta lokatsiyada turadi; mijozlar, xodimlar
 | Kim | Qayerda | Nima qiladi |
 |---|---|---|
 | platforma admini | admin panel → kompaniya sahifasi → **Lokatsiyalar** | lokatsiya qo'shadi, nomini o'zgartiradi, bo'shini o'chiradi |
-| egasi | user app → **Xodimlar** → lokatsiya tugmasi | xodimni ayrim lokatsiyalar bilan cheklaydi yoki cheklovni olib tashlaydi |
-| egasi va xodim | user app → topbar'dagi tanlovchi | joriy lokatsiyani almashtiradi (2+ ruxsatli lokatsiya bo'lsa) |
+| egasi | user app → **Xodimlar** → xodim varag'i → **Lokatsiyalar** | xodimni ayrim lokatsiyalar bilan cheklaydi yoki cheklovni olib tashlaydi |
+| egasi va xodim | user app → bosh sahifa tepasidagi lokatsiya tugmasi, sidebar pastidagi tanlovchi yoki **Profil → Lokatsiya** | joriy lokatsiyani almashtiradi (2+ ruxsatli lokatsiya bo'lsa) |
 
 - Har company **"Asosiy"** lokatsiya bilan boshlaydi (mavjud company'larning vazifalari unga tushgan); keyingilarini admin qo'shadi. Vazifasi bor lokatsiya va yagona lokatsiya o'chirilmaydi.
 - **Joriy lokatsiya** brauzerda eslanadi (company va user bo'yicha). Vazifalar ro'yxati va kanban joriy lokatsiyaniki, yangi vazifa unga tushadi va keyin o'zgarmaydi. Tanlovchi faqat 2+ ruxsatli lokatsiyada ko'rinadi; 1 ta bo'lsa hech narsa ko'rinmaydi.
 - **Mijoz sahifasi** mijozning hamma ruxsatli lokatsiyadagi vazifalarini ko'rsatadi (2+ lokatsiyada belgisi bilan); vazifa sahifasida "Lokatsiya" fakti.
 - **Mas'ul** vazifa lokatsiyasida ishlaydigan a'zo bo'lishi shart: formada faqat shular taklif qilinadi, API 400 "Mas'ul bu lokatsiyada ishlamaydi".
-- **Xodim cheklovi** faqat egasiniki (rollar kabi): standart holat hammasi; cheklanganda faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi, keyingi so'rovdanoq. Boshqa lokatsiyalarda unga biriktirilgan vazifalar qoladi (dialog ogohlantiradi). Ruxsatsiz lokatsiya bilan so'rov 403 `forbidden`; ruxsatsiz lokatsiyadagi vazifa 404. Lokatsiyasi qolmagan xodim "Sizga lokatsiya biriktirilmagan" ko'radi.
+- **Xodim cheklovi** faqat egasiniki (rollar kabi): standart holat hammasi; cheklanganda faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi, keyingi so'rovdanoq. Boshqa lokatsiyalarda unga biriktirilgan vazifalar qoladi (varaq ogohlantiradi). Ruxsatsiz lokatsiya bilan so'rov 403 `forbidden`; ruxsatsiz lokatsiyadagi vazifa 404. Lokatsiyasi qolmagan xodim "Sizga lokatsiya biriktirilmagan" ko'radi.
 
 To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/locations.md`](logic/locations.md).
 
@@ -187,7 +199,7 @@ Company sotadigan narsalar: **mahsulot** (omborga olinadigan tovar, birligi bor)
 
 | Bo'lim | Kim | Nima qiladi |
 |---|---|---|
-| **Mahsulotlar** (`/products`) | `products.view` (rolsiz xodimga hammasi) | ro'yxat (Faol / Nofaol tablari, nom va artikul bo'yicha qidiruv, joriy lokatsiyadagi qoldiq), mahsulot qo'shish, mahsulot sahifasi (`/products/[id]`: qoldiq lokatsiyalar bo'yicha, oxirgi xarid narxi, xaridlari), tahrirlash, nofaol qilish, o'chirish |
+| **Mahsulotlar** (`/products`) | `products.view` (rolsiz xodimga hammasi) | ro'yxat (Faol / Nofaol chiplari sonlari bilan, nom va artikul bo'yicha qidiruv, joriy lokatsiyadagi qoldiq), mahsulot qo'shish, mahsulot sahifasi (`/products/[id]`: qoldiq lokatsiyalar bo'yicha, oxirgi xarid narxi, xaridlari), tahrirlash, nofaol qilish, o'chirish |
 | **Xizmatlar** (`/services`) | `products.view` | ro'yxat va qator amallari (tahrirlash, nofaol, o'chirish); xizmatning alohida sahifasi yo'q |
 
 - **Mahsulot maydonlari:** nom (majburiy, mahsulotlar ichida takrorlanmaydi), birlik (tayyor ro'yxat: dona, kg, g, l, ml, m, m², quti, juft, komplekt), sotuv narxi, artikul (company'da takrorlanmaydi), izoh. **Xizmat:** nom (xizmatlar ichida takrorlanmaydi), narx, izoh.
@@ -198,12 +210,12 @@ To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/products.md`](logic/pr
 
 ## Ombor
 
-Har lokatsiya bitta **ombor**: xarid joriy lokatsiyaga tushadi va shu lokatsiyadagi qoldiqni oshiradi. Statuslar yo'q: saqlangan zahoti qoldiqda.
+Har lokatsiya bitta **ombor**: xarid joriy lokatsiyaga tushadi va shu lokatsiyadagi qoldiqni oshiradi. Statuslar yo'q: saqlangan zahoti qoldiqda. Bo'lim sahifasi — **Ombor** hub'i (`/warehouse`): Xaridlar, Ko'chirishlar, Inventarizatsiya, Boshlang'ich qoldiq, Ta'minotchilar (ruxsat bo'yicha).
 
 | Bo'lim | Kim | Nima qiladi |
 |---|---|---|
 | **Xaridlar** (`/purchases`) | `purchases.view`; qo'shish uchun `purchases.create` + `suppliers.view` + `products.view` | joriy lokatsiya xaridlari (yangi birinchi), xarid qo'shish (`/purchases/new`: ta'minotchi va mahsulotlar nom bo'yicha tanlanadi, qatorlar, «To'langan» va «To'liq»), xarid sahifasi (`/purchases/[id]`: qatorlar, jami, to'langan), tahrirlash (`/purchases/[id]/edit`), o'chirish |
-| **Ta'minotchilar** (`/suppliers`) | `suppliers.view`; balans `purchases.view` bilan | ro'yxat (Faol / Nofaol, nom yoki telefon bo'yicha qidiruv, qarz), ta'minotchi qo'shish (nom, telefon, izoh), sahifasi (`/suppliers/[id]`: balans kartasi, xaridlari, to'lovlari, to'lov qo'shish), tahrirlash, nofaol qilish, o'chirish |
+| **Ta'minotchilar** (`/suppliers`) | `suppliers.view`; balans `purchases.view` bilan | ro'yxat (Faol / Nofaol, nom yoki telefon bo'yicha qidiruv, qarz), ta'minotchi qo'shish (nom, telefon, izoh), sahifasi (`/suppliers/[id]`: balans, kun bo'yicha hisob harakati — xaridlar, to'lovlar, boshlang'ich qarz / avans —, to'lov qo'shish), tahrirlash, nofaol qilish, o'chirish |
 
 - **Xarid:** company ichida tartib raqami («№ 12», o'chirilganniki bo'shamaydi), lokatsiya (keyin o'zgarmaydi), ta'minotchi, sana, qatorlar (har mahsulot bir marta; miqdor 3 kasrgacha, narx 2 kasrgacha), to'langan summa (xaridga bog'langan to'lov sifatida yoziladi), izoh. Tahrirda qoldiq farq bilan yangilanadi; o'chirishda qaytadi. Mahsulot tanlanganda narx maydoniga oxirgi xarid narxi tushadi.
 - **Balans** = ta'minotchining jonli xaridlari jami − jonli to'lovlari jami: musbat **Qarz**, manfiy **Avans** (qarzdan ortiq to'lash mumkin), 0 «Qarz yo'q». Xarid bilan kiritilgan to'lov faqat xarid orqali o'zgaradi (409 `payment_linked`); o'z to'lovlari ta'minotchi sahifasida tahrirlanadi va o'chiriladi.
@@ -214,7 +226,7 @@ To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/warehouse.md`](logic/w
 
 ## Sotuv
 
-**Sotuv** (`/sales`, `sales.*`): joriy lokatsiyadan mijozga yoki chakana (mijozsiz; to'liq to'langan bo'lishi shart) sotuv, qatorlarda mahsulot (qoldiqdan chiqadi) yoki xizmat (harakatsiz), narx taklifi mahsulotning sotuv narxi, to'lov qatorlari akkaunt bilan. Mijoz sahifasida balans kartasi (qarz / avans), «Hisob harakati» (sotuvlar, to'lovlar, boshlang'ich qarz / avans), to'lov va boshlang'ich qarz / avans dialoglari; mijozlar ro'yxatida «Qarz» ustuni (`sales.view`). Qoidalar: [`logic/sales.md`](logic/sales.md).
+**Sotuv** (`/sales`, `sales.*`): joriy lokatsiyadan mijozga yoki chakana (mijozsiz; to'liq to'langan bo'lishi shart) sotuv, qatorlarda mahsulot (qoldiqdan chiqadi) yoki xizmat (harakatsiz), narx taklifi mahsulotning sotuv narxi, to'lov qatorlari akkaunt bilan. Mijoz sahifasida balans kartasi (qarz / avans), «Hisob harakati» (sotuvlar, to'lovlar, boshlang'ich qarz / avans), to'lov va boshlang'ich qarz / avans varaqlari; mijozlar ro'yxati qatorida qarz / avans (`sales.view`). Qoidalar: [`logic/sales.md`](logic/sales.md).
 
 ## Moliya
 
@@ -222,8 +234,8 @@ To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/warehouse.md`](logic/w
 
 | Bo'lim | Nima qiladi |
 |---|---|
-| **Kassa** | akkauntlar va o'z valyutasidagi qoldiqlari (faollar avval, nofaollar oxirida); akkaunt sahifasi (`/accounts/[id]`): qoldiq, **hisob harakati** (akkauntga tegadigan hamma hujjat: kassa boshlang'ich qoldig'i, xarajat / kirim, o'tkazma va konvertatsiya, ta'minotchiga va mijozdan to'lovlar; ± summa va keyingi qoldiq), hujjat qo'shish dialoglari |
-| **Xarajatlar** | Xarajat / Kirim tablari; akkaunt, kategoriya va kun oralig'i filtri; qatorda tahrirlash va o'chirish |
+| **Kassa** | akkauntlar va o'z valyutasidagi qoldiqlari (faollar avval, nofaollar oxirida); akkaunt sahifasi (`/accounts/[id]`): qoldiq, **hisob harakati** (akkauntga tegadigan hamma hujjat: kassa boshlang'ich qoldig'i, xarajat / kirim, o'tkazma va konvertatsiya, ta'minotchiga va mijozdan to'lovlar; ± summa va keyingi qoldiq, kun bo'yicha), hujjat qo'shish varaqlari |
+| **Xarajatlar** | Xarajat / Kirim; akkaunt, kategoriya va kun oralig'i chiplari; qator bosilganda tahrirlash va o'chirish |
 | **O'tkazmalar** | akkauntlar aro o'tkazma (bir valyutada) va konvertatsiya (ikki summa, kurs ma'lumot uchun) bitta ro'yxatda |
 
 - Qoldiq akkaunt valyutasida, aylantirilmaydi; manfiy bo'lishi mumkin (pul chiqishi tekshirilmaydi).
@@ -425,7 +437,7 @@ backend/
   migrations/        goose
   openapi.yaml       API kontrakti
 apps/admin/          admin panel (Next.js, shadcn), Telegram Mini App
-apps/web/            user app (Next.js, shadcn)
+apps/web/            user app (Next.js; components/kit: Telegram Wallet uslubidagi to'plam)
 packages/api-client/ openapi.yaml'dan generatsiya qilingan TS client
 logic/               qoidalar: user.md (userlar, multi-user, xodimlar), roles.md (rollar), customers.md (mijozlar)
 scripts/ensure-db.sh make db

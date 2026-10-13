@@ -2,6 +2,8 @@
 
 Sana: 2026-10-06. Holat: foydalanuvchi tasdiqlagan yo'nalish (reja: `docs/superpowers/plans/2026-10-06-selects-settings-tabs-pager.md`).
 
+> **User app'da almashtirildi (2026-10-14).** User app'da tanlovlar varaqda (`PickerSheet`, `SelectRow`), sozlamalar tablar o'rniga hub va ichki sahifalarda (`settingsHref`; eski `?tab=` manzili qism sahifasiga yo'naltiriladi), `Pager` qoldi: `2026-10-13-mini-app-ui-design.md`. Admin paneldagi select'lar va pager uchun bu hujjat amal qiladi.
+
 ## Maqsad
 
 Foydalanuvchining so'zlari (2026-10-06): "dropdownlar shadcn nikini ishlat, sozlamalarda mijozlar va vazifalarni alohida guruhla yoki sahifa qil, paginationni to'g'irla undan ../enwin dan namuna ol".

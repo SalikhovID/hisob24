@@ -2,6 +2,8 @@
 
 Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan yo'nalish (reja: `docs/superpowers/plans/2026-10-04-crud-ui-refresh.md`). A-bosqich (asos va Xodimlar) va B-bosqich (admin panel, review) amalga oshirilgan.
 
+> **User app'da almashtirildi (2026-10-14).** User app `2026-10-13-mini-app-ui-design.md` bo'yicha Telegram Wallet uslubiga o'tdi: u yerda `DataList`, `Identity`, `PageHeader` va jadvallar yo'q. Bu hujjat admin panel uchun amal qiladi.
+
 ## Maqsad
 
 Foydalanuvchining so'zlari (2026-10-04): "localda run qil va CRUD sahifalarni chiroyliroq qilib ber ultrathink UI agentlar ishlat".

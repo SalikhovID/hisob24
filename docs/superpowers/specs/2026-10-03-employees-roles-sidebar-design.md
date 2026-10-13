@@ -2,6 +2,8 @@
 
 Sana: 2026-10-03. Holat: foydalanuvchi tasdiqlagan (shu hujjat va `logic/` ko'rib chiqilgan); 0–4 bosqichlarning hammasi amalga oshirilgan (hujjat oxiridagi "N-bosqich qarorlari" bo'limlari). Har bosqichga alohida reja yozilgan: `docs/superpowers/plans/2026-10-03-employees-stage<N>-*.md`.
 
+> **Sidebar va sahifalar ko'rinishi user app'da almashtirildi (2026-10-14):** `2026-10-13-mini-app-ui-design.md`. Xodimlar va rollar qoidalari amal qiladi.
+
 ## Maqsad
 
 Foydalanuvchining so'zlari (2026-10-03): "endi mana bunday tizim qo'shish kerak, o'ziga hodimlar qo'shish imkoniyati bo'lishi kerak, adminkadan qo'shilgan user har doim owner bo'lib qoladi, tizimdan qo'shilganlarini rollari user bo'lib qoladi. va sidebar tizim qilish kerak ../enwin/frontend dan ol dizaynini. agar boshqa kompaniyada mavjud raqam kiritilinsa demak multi-user bo'lib qolishi kerak bularni logic/ degan folder ochib user.md, roles.md qilib qanday ishlashligi kerakligi haqida malumot yozib ket".
