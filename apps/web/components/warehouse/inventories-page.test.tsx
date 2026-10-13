@@ -4,6 +4,7 @@ import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { asosiyOf, restrictTo } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterInventory } from "@/test/stock"
@@ -18,17 +19,17 @@ test("the owner's inventories of the current location, the newest first, each by
   setLocation("/inventories")
   renderWithProviders(<InventoriesPage />)
 
-  const list = await screen.findByRole("table", { name: "Inventarizatsiya" })
+  const list = await screen.findByRole("region", { name: "Inventarizatsiya" })
   expect(screen.getByRole("heading", { level: 1, name: "Inventarizatsiya" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 1 ta")).toBeInTheDocument()
   // The page leads back to the warehouse's hub, which lists its pages.
   expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
   expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
-  expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Inventarizatsiya", "Qo'shgan"])
-  expect(within(list).getByRole("link", { name: /№ 1/ })).toHaveAttribute("href", `/inventories/${inventory.id}`)
-  const row = within(list).getByRole("link", { name: /№ 1/ }).closest("tr")!
-  expect(within(row).getByText("05.10.2026 09:00 · 1 ta mahsulot")).toBeInTheDocument()
-  expect(within(row).getByText("Ali Valiyev")).toBeInTheDocument()
+  // A count is a row under its day: its number, how many products and who counted.
+  const [row] = within(within(list).getByRole("list", { name: "5-oktabr, dushanba" })).getAllByRole("link")
+  expect(row).toHaveAttribute("href", `/inventories/${inventory.id}`)
+  expect(rowParts(row)).toMatchObject({ title: "№ 1", sub: "1 ta mahsulot · Ali V." })
+  expect(screen.getByText("Jami: 1")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Inventarizatsiya qo'shish" })).toHaveAttribute("href", "/inventories/new")
 })
 
