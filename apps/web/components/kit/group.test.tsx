@@ -71,3 +71,12 @@ test("a section heading is a heading with a hint or an action beside it; a foot 
   expect(screen.getByRole("button", { name: "Tartiblash" })).toBeInTheDocument()
   expect(screen.getByText("Nofaol variant yangi tanlovlarda chiqmaydi.")).toHaveAttribute("data-slot", "foot")
 })
+
+test("a row's parts read as words apart: the title, the line under it, the value and its line", () => {
+  render(
+    <Group label="Ro'yxat">
+      <Row href="/customers/1" title="Ali Valiyev" sub="+998 90 123 45 67" end="12 000" endSub="so'm" />
+    </Group>,
+  )
+  expect(screen.getByRole("link", { name: "Ali Valiyev +998 90 123 45 67 12 000 so'm" })).toBeInTheDocument()
+})

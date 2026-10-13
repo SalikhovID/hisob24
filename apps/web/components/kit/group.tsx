@@ -118,12 +118,14 @@ export function Row({
           <span className="truncate">{title}</span>
           {badge}
         </span>
+        {sub && " "}
         {sub && (
           <span data-slot="row-sub" className="mt-0.5 block truncate text-sm text-muted-foreground">
             {sub}
           </span>
         )}
       </span>
+      {(end || endSub) && " "}
       {(end || endSub) && (
         <span data-slot="row-end" className="max-w-[52%] shrink-0 text-right">
           {end && (
@@ -131,6 +133,7 @@ export function Row({
               {end}
             </span>
           )}
+          {end && endSub && " "}
           {endSub && (
             <span data-slot="row-end-sub" className="mt-0.5 block whitespace-nowrap text-sm text-muted-foreground">
               {endSub}
