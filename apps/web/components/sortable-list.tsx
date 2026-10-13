@@ -11,9 +11,8 @@ import {
 } from "@dnd-kit/core"
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVerticalIcon } from "lucide-react"
+import { GripIcon } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
-import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export interface SortableListProps<T> {
@@ -29,6 +28,9 @@ export interface SortableListProps<T> {
   // where it fits.
   renderItem: (item: T, handle: ReactNode) => ReactNode
   disabled?: boolean
+  // sorting: the list is in its ordering mode («Tartiblash»): the handles
+  // show and the items move. Off, the rows are plain.
+  sorting?: boolean
   className?: string
 }
 
@@ -48,6 +50,7 @@ export function SortableList<T>({
   onReorder,
   renderItem,
   disabled = false,
+  sorting = true,
   className,
 }: SortableListProps<T>) {
   const descriptionId = useId()
@@ -100,6 +103,7 @@ export function SortableList<T>({
               key={getId(item)}
               id={getId(item)}
               disabled={disabled}
+              sorting={sorting}
               handleLabel={`${getLabel(item)}: tartibini o'zgartirish`}
               descriptionId={descriptionId}
               registerHandle={(node) => {
@@ -128,6 +132,7 @@ const keys: Record<string, -1 | 1 | "first" | "last"> = { ArrowUp: -1, ArrowDown
 function SortableItem({
   id,
   disabled,
+  sorting,
   handleLabel,
   descriptionId,
   registerHandle,
@@ -136,6 +141,7 @@ function SortableItem({
 }: {
   id: string
   disabled: boolean
+  sorting: boolean
   handleLabel: string
   descriptionId: string
   registerHandle: (node: HTMLButtonElement | null) => void
@@ -144,9 +150,9 @@ function SortableItem({
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id,
-    disabled,
+    disabled: disabled || !sorting,
   })
-  const handle = (
+  const handle = sorting ? (
     <button
       type="button"
       ref={(node) => {
@@ -163,10 +169,7 @@ function SortableItem({
       aria-label={handleLabel}
       disabled={disabled}
       data-slot="sortable-handle"
-      className={cn(
-        buttonVariants({ variant: "ghost", size: "icon" }),
-        "shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing max-md:size-9 pointer-coarse:size-9",
-      )}
+      className="-ml-2.5 grid h-11 w-10 shrink-0 cursor-grab touch-none place-items-center text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing disabled:cursor-default disabled:opacity-50"
       onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
         const to = keys[event.key]
         if (to === undefined) return
@@ -174,16 +177,16 @@ function SortableItem({
         onMove(to)
       }}
     >
-      <GripVerticalIcon />
+      <GripIcon aria-hidden="true" className="size-[18px]" />
     </button>
-  )
+  ) : null
   return (
     <li
       ref={setNodeRef}
       data-slot="sortable-item"
       data-dragging={isDragging || undefined}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn("relative", isDragging && "z-10 bg-card opacity-90 shadow-md")}
+      className={cn("relative", isDragging && "z-10 rounded-main bg-card shadow-float")}
     >
       {children(handle)}
     </li>

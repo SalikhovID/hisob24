@@ -82,3 +82,27 @@ test("a list that may not be put in order keeps its handles off", async () => {
 
   expect(handleOf("LinkedIn")).toBeDisabled()
 })
+
+test("while sorting is off the list has no handles: the rows are read, not moved", () => {
+  render(
+    <SortableList
+      label="Bosqichlar"
+      sorting={false}
+      items={[
+        { id: "1", name: "Yangi" },
+        { id: "2", name: "Jarayonda" },
+      ]}
+      getId={(item) => item.id}
+      getLabel={(item) => item.name}
+      onReorder={() => {}}
+      renderItem={(item, handle) => (
+        <div>
+          {handle}
+          {item.name}
+        </div>
+      )}
+    />,
+  )
+  expect(screen.getByRole("list", { name: "Bosqichlar" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /tartibini o'zgartirish/ })).not.toBeInTheDocument()
+})
