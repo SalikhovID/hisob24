@@ -3,33 +3,30 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
-import { useId } from "react"
+import { type ReactNode, useId } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
-import { PendingButton } from "@/components/pending-button"
+import { TextRow } from "@/components/kit/form-row"
+import { Foot, Group, SectionHeading } from "@/components/kit/group"
+import { MainBar, MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
-import { Checkbox } from "@/components/ui/checkbox"
-import { FieldGroup } from "@/components/ui/field"
+import { Switch } from "@/components/ui/switch"
 import { api, call } from "@/lib/api"
-import { actionLabels, actions, actionsOf, permissionOf, sectionLabels, sections, toggled } from "@/lib/permissions"
+import { actionLabels, actionsOf, permissionOf, sectionLabels, sections, toggled } from "@/lib/permissions"
 import { rolesKey } from "@/lib/queries"
 import { roleSchema } from "@/lib/schemas"
 import type { CompanyRole, Permission } from "@/lib/types"
-import { cn } from "@/lib/utils"
-import { settingsHref } from "./use-settings-tab"
 
 type RoleInput = { name: string; permissions: Permission[] }
 
-// The matrix is a table from the md breakpoint up (a row per section, a
-// column per action, the header saying the actions) and a list of groups
-// below it (a section's name over its actions, each with its own label).
-const columns = "md:grid md:grid-cols-[minmax(8rem,1fr)_repeat(5,minmax(5.5rem,auto))] md:items-center md:gap-x-4"
-
 // RoleForm is a role's name and its permissions (logic/roles.md, section
-// 5): a new role (no role) or one being changed. Saving makes or replaces it
-// and opens the roles tab; a refusal (a name taken) shows the API's reason.
-export function RoleForm({ companyId, role }: { companyId: number; role?: CompanyRole }) {
+// 5), a new role (no role) or one being changed, as the prototype's form:
+// the name a row; each section under its heading (how many it holds beside
+// it) with its actions as switches; the main button in the bar at the
+// bottom. Saving makes or replaces it and opens the roles; a refusal (a name
+// taken) shows the API's reason. children stand between the matrix and the
+// bar (the way to delete a role being changed).
+export function RoleForm({ companyId, role, children }: { companyId: number; role?: CompanyRole; children?: ReactNode }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const form = useForm<RoleInput>({
@@ -38,69 +35,63 @@ export function RoleForm({ companyId, role }: { companyId: number; role?: Compan
   })
   const save = useMutation({
     mutationFn: (input: RoleInput) =>
-      role
-        ? call(api.PUT("/app/roles/{id}", { params: { path: { id: role.id } }, body: input }))
-        : call(api.POST("/app/roles", { body: input })),
+      role ? call(api.PUT("/app/roles/{id}", { params: { path: { id: role.id } }, body: input })) : call(api.POST("/app/roles", { body: input })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rolesKey(companyId) })
       toast.success(role ? "Rol saqlandi" : "Rol yaratildi")
-      router.push(settingsHref("roles"))
+      router.push("/settings/roles")
     },
   })
 
   return (
-    <form onSubmit={form.handleSubmit((input) => save.mutate(input))} noValidate className="space-y-6">
-      <FieldGroup className="max-w-lg">
-        <TextField control={form.control} name="name" label="Rol nomi" autoComplete="off" />
-      </FieldGroup>
-      <Controller
-        control={form.control}
-        name="permissions"
-        render={({ field }) => <PermissionMatrix value={field.value} onChange={field.onChange} />}
-      />
-      {save.isError && <Refusal>{save.error.message}</Refusal>}
-      <PendingButton type="submit" size="lg" className="px-3.5 max-sm:w-full" pending={save.isPending}>
-        {role ? "Saqlash" : "Yaratish"}
-      </PendingButton>
+    <form onSubmit={form.handleSubmit((input) => save.mutate(input))} noValidate>
+      {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
+      <Group>
+        <TextRow control={form.control} name="name" label="Rol nomi" placeholder="Masalan, Sotuvchi" autoComplete="off" />
+      </Group>
+      <Controller control={form.control} name="permissions" render={({ field }) => <PermissionMatrix value={field.value} onChange={field.onChange} />} />
+      <Foot className="-mt-4">Amal yoqilsa «Ko&apos;rish» o&apos;zi yoqiladi. «Ko&apos;rish» o&apos;chirilsa, bo&apos;limning hamma amali tozalanadi.</Foot>
+      {children}
+      <MainBar>
+        <MainButton type="submit" pending={save.isPending}>
+          {role ? "Saqlash" : "Yaratish"}
+        </MainButton>
+      </MainBar>
     </form>
   )
 }
 
-// PermissionMatrix is the permissions as checkboxes, a group per section.
-// Ticking an action ticks the section's view too; unticking the view clears
-// the section.
+// PermissionMatrix is the permissions as switches, a group per section
+// under its heading. Turning an action on turns the section's view on too;
+// turning the view off clears the section.
 function PermissionMatrix({ value, onChange }: { value: Permission[]; onChange: (next: Permission[]) => void }) {
   const id = useId()
   return (
-    <div role="group" aria-label="Ruxsatlar" className="divide-y rounded-xl border bg-card">
-      <div aria-hidden="true" className={cn("hidden px-4 py-2 text-[0.8125rem] leading-5 text-muted-foreground", columns)}>
-        <span>Bo&apos;lim</span>
-        {actions.map((action) => (
-          <span key={action}>{actionLabels[action]}</span>
-        ))}
-      </div>
-      {sections.map((section) => (
-        <div key={section} role="group" aria-label={sectionLabels[section]} className={cn("px-4 py-3", columns)}>
-          <span className="block text-sm font-medium max-md:mb-2">{sectionLabels[section]}</span>
-          {actions.map((action) => {
-            if (!actionsOf(section).includes(action)) return <span key={action} aria-hidden="true" className="hidden md:block" />
-            const permission = permissionOf(section, action)
-            const boxId = `${id}-${permission}`
-            return (
-              <span key={action} className="inline-flex items-center gap-2 max-md:mr-4 max-md:mb-1">
-                <Checkbox
-                  id={boxId}
-                  checked={value.includes(permission)}
-                  onCheckedChange={(checked) => onChange(toggled(value, permission, checked === true))}
-                />
-                <label htmlFor={boxId} className="text-sm md:sr-only">
-                  {actionLabels[action]}
-                </label>
-              </span>
-            )
-          })}
-        </div>
-      ))}
-    </div>
+    <>
+      {sections.map((section) => {
+        const held = actionsOf(section).filter((action) => value.includes(permissionOf(section, action))).length
+        return (
+          <div key={section}>
+            <SectionHeading hint={held > 0 ? `${held} ta` : undefined}>{sectionLabels[section]}</SectionHeading>
+            <div role="group" aria-label={sectionLabels[section]}>
+              <Group>
+                {actionsOf(section).map((action) => {
+                  const permission = permissionOf(section, action)
+                  const switchId = `${id}-${permission}`
+                  return (
+                    <div key={action} data-slot="row" className="flex min-h-12 items-center gap-3 px-4 py-1.5">
+                      <label htmlFor={switchId} className="min-w-0 flex-1 text-base">
+                        {actionLabels[action]}
+                      </label>
+                      <Switch id={switchId} checked={value.includes(permission)} onCheckedChange={(checked) => onChange(toggled(value, permission, checked))} />
+                    </div>
+                  )
+                })}
+              </Group>
+            </div>
+          </div>
+        )
+      })}
+    </>
   )
 }

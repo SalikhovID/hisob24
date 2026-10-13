@@ -8,7 +8,7 @@ import { chooseCompany, signIn } from "@/test/session"
 import { NewRolePage, RolePage } from "./role-page"
 
 const group = (name: string) => screen.getByRole("group", { name })
-const box = (section: string, action: string) => within(group(section)).getByRole("checkbox", { name: action })
+const box = (section: string, action: string) => within(group(section)).getByRole("switch", { name: action })
 
 // open puts the test on a role's page.
 function open(id: number) {
@@ -16,14 +16,14 @@ function open(id: number) {
   return renderWithProviders(<RolePage id={id} />)
 }
 
-test("a role's page opens with its name and permissions; saving replaces them and the roles tab opens", async () => {
+test("a role's page opens with its name and permissions; saving replaces them and the roles open", async () => {
   const role = giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.create"])
   await signIn(ALI)
   const { user } = open(role.id)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Sotuvchi" })).toBeInTheDocument()
   expect(screen.getByText("Rol · 1 ta xodim")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings?tab=roles")
+  expect(screen.getByRole("link", { name: "Rollar" })).toHaveAttribute("href", "/settings/roles")
   expect(screen.getByLabelText("Rol nomi")).toHaveValue("Sotuvchi")
   expect(box("Mijozlar", "Qo'shish")).toBeChecked()
   expect(box("Mijozlar", "Ko'rish")).toBeChecked()
@@ -34,7 +34,7 @@ test("a role's page opens with its name and permissions; saving replaces them an
   await user.click(box("Vazifalar", "Ko'rish"))
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings?tab=roles"))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
   expect(db.roles.find((candidate) => candidate.id === role.id)).toMatchObject({
     name: "Katta sotuvchi",
     permissions: ["customers.view", "customers.create", "tasks.view"],
@@ -42,19 +42,28 @@ test("a role's page opens with its name and permissions; saving replaces them an
   expect(await screen.findByText("Rol saqlandi")).toBeInTheDocument()
 })
 
-test("a role nobody holds is deleted from its page, and the roles tab opens", async () => {
+test("a role nobody holds is deleted from its page's danger row, and the roles open; one someone holds is refused with the reason", async () => {
   db.roles.push({ id: 900, companyId: 1, name: "Bo'sh", permissions: [] })
+  const held = giveRole(VALI, 1, "Sotuvchi", ["customers.view"])
   await signIn(ALI)
-  const { user } = open(900)
+  const { user, unmount } = open(900)
 
   await screen.findByRole("heading", { level: 1, name: "Bo'sh" })
   expect(screen.getByText("Rol · Hech kimda")).toBeInTheDocument()
-  await user.click(screen.getByRole("button", { name: "O'chirish: Bo'sh" }))
+  await user.click(screen.getByRole("button", { name: "Rolni o'chirish" }))
   const confirm = await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
+  expect(within(confirm).getByText("«Bo'sh» roli o'chadi. Xodimga biriktirilgan rol o'chirilmaydi.")).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
+  expect(db.roles.map((role) => role.name)).toEqual(["Sotuvchi"])
+  unmount()
 
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings?tab=roles"))
-  expect(db.roles).toEqual([])
+  router.push.mockClear()
+  open(held.id)
+  await user.click(await screen.findByRole("button", { name: "Rolni o'chirish" }))
+  await user.click(within(await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
+  expect((await screen.findAllByText("Bu rol 1 ta xodimga biriktirilgan")).length).toBeGreaterThan(0)
+  expect(router.push).not.toHaveBeenCalled()
 })
 
 test("a role that is gone, or another company's, is not found", async () => {
@@ -64,7 +73,7 @@ test("a role that is gone, or another company's, is not found", async () => {
 
   expect(await screen.findByRole("heading", { level: 1, name: "Rol topilmadi" })).toBeInTheDocument()
   expect(screen.getByText("Bu rol o'chirilgan yoki sizning kompaniyangizniki emas.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings?tab=roles")
+  expect(screen.getByRole("link", { name: "Rollar" })).toHaveAttribute("href", "/settings/roles")
 })
 
 test("the page of a new role", async () => {
@@ -75,7 +84,7 @@ test("the page of a new role", async () => {
   expect(await screen.findByRole("heading", { level: 1, name: "Yangi rol" })).toBeInTheDocument()
   expect(screen.getByLabelText("Rol nomi")).toHaveValue("")
   expect(screen.getByRole("button", { name: "Yaratish" })).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings?tab=roles")
+  expect(screen.getByRole("link", { name: "Rollar" })).toHaveAttribute("href", "/settings/roles")
 })
 
 test("an employee is sent home: the roles are the owner's", async () => {

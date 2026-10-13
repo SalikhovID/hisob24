@@ -6,34 +6,37 @@ import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { RoleForm } from "./role-form"
 
-// The matrix is a group per section, a checkbox per action in it.
+// The matrix is a group per section under its heading, a switch per action in it.
 const group = (name: string) => screen.getByRole("group", { name })
-const box = (section: string, action: string) => within(group(section)).getByRole("checkbox", { name: action })
+const box = (section: string, action: string) => within(group(section)).getByRole("switch", { name: action })
 
-test("the matrix is a row per section with its actions; an action brings its section's view with it, and the view taken away takes the actions with it", async () => {
+test("the matrix as the prototype's: a heading per section (how many it holds beside it) over its actions' switches; an action brings its section's view with it, and the view taken away takes the actions with it", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<RoleForm companyId={1} />)
 
   for (const section of ["Mijozlar", "Vazifalar", "Mahsulotlar", "Ta'minotchilar", "Xaridlar", "Sotuv", "Ombor hujjatlari", "Moliya", "Xodimlar", "Sozlamalar"]) {
     expect(group(section)).toBeInTheDocument()
   }
-  expect(within(group("Mijozlar")).getAllByRole("checkbox").map((checkbox) => checkbox.getAttribute("aria-label") ?? "")).toHaveLength(5)
-  expect(within(group("Xodimlar")).queryByRole("checkbox", { name: "Tarix" })).not.toBeInTheDocument()
-  expect(within(group("Xodimlar")).getAllByRole("checkbox")).toHaveLength(4)
-  expect(within(group("Xaridlar")).getAllByRole("checkbox")).toHaveLength(4)
-  expect(within(group("Moliya")).getAllByRole("checkbox")).toHaveLength(4)
+  expect(within(group("Mijozlar")).getAllByRole("switch")).toHaveLength(5)
+  expect(within(group("Xodimlar")).queryByRole("switch", { name: "Tarix" })).not.toBeInTheDocument()
+  expect(within(group("Xodimlar")).getAllByRole("switch")).toHaveLength(4)
+  expect(within(group("Xaridlar")).getAllByRole("switch")).toHaveLength(4)
+  expect(within(group("Moliya")).getAllByRole("switch")).toHaveLength(4)
+  expect(screen.getByLabelText("Rol nomi")).toHaveAttribute("placeholder", "Masalan, Sotuvchi")
+  expect(screen.getByText("Amal yoqilsa «Ko'rish» o'zi yoqiladi. «Ko'rish» o'chirilsa, bo'limning hamma amali tozalanadi.")).toBeInTheDocument()
 
   await user.click(box("Mijozlar", "Qo'shish"))
   expect(box("Mijozlar", "Qo'shish")).toBeChecked()
   expect(box("Mijozlar", "Ko'rish")).toBeChecked()
   expect(box("Vazifalar", "Ko'rish")).not.toBeChecked()
+  expect(screen.getByRole("heading", { level: 2, name: "Mijozlar" }).parentElement).toHaveTextContent("2 ta")
 
   await user.click(box("Mijozlar", "Ko'rish"))
   expect(box("Mijozlar", "Ko'rish")).not.toBeChecked()
   expect(box("Mijozlar", "Qo'shish")).not.toBeChecked()
 })
 
-test("a new role is made with its name and permissions, in the catalog's order, and the roles tab opens", async () => {
+test("a new role is made with its name and permissions, in the catalog's order, and the roles open", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<RoleForm companyId={1} />)
 
@@ -42,7 +45,7 @@ test("a new role is made with its name and permissions, in the catalog's order, 
   await user.click(box("Mijozlar", "Tahrirlash"))
   await user.click(screen.getByRole("button", { name: "Yaratish" }))
 
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings?tab=roles"))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
   expect(db.roles.map((role) => [role.name, role.permissions])).toEqual([["Sotuvchi", ["customers.view", "customers.edit", "tasks.view"]]])
   expect(await screen.findByText("Rol yaratildi")).toBeInTheDocument()
 })
