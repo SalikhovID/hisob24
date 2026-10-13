@@ -14,8 +14,14 @@ export function formatDate(value: string): string {
 // formatDateTime writes a moment as dd.mm.yyyy hh:mm, in the browser's time
 // zone: when something was done.
 export function formatDateTime(value: string): string {
+  return `${formatDate(value)} ${formatTime(value)}`
+}
+
+// formatTime writes a moment's time of day as hh:mm, in the browser's time
+// zone: a row under its day's heading.
+export function formatTime(value: string): string {
   const date = new Date(value)
-  return `${formatDate(value)} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 // formatAmount writes a stored amount ("150000.50") for people to read:
