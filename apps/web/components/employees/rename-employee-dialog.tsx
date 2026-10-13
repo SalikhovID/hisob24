@@ -8,9 +8,11 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { ActionTooltip } from "@/components/action-tooltip"
-import { PendingButton } from "@/components/pending-button"
+import { TextRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,7 +23,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { formatPhone } from "@/lib/phone"
 import { employeesKey } from "@/lib/queries"
@@ -33,9 +34,24 @@ type Output = z.output<typeof renameSchema>
 
 // RenameEmployeeDialog changes the name an employee goes by in the owner's
 // company; the names they go by in other companies stay. The phone is who
-// the employee is, so it is shown, not edited.
-export function RenameEmployeeDialog({ companyId, employee }: { companyId: number; employee: Member }) {
-  const [open, setOpen] = useState(false)
+// the employee is, so it is shown, not edited. As the prototype's sheet:
+// the name a row, the main button under it. open, with onOpenChange, opens
+// it from outside (the employee's sheet): it has no button then.
+export function RenameEmployeeDialog({
+  companyId,
+  employee,
+  open: openGiven,
+  onOpenChange,
+}: {
+  companyId: number
+  employee: Member
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const current: Input = { full_name: employee.full_name ?? "" }
   const form = useForm<Input, unknown, Output>({ resolver: zodResolver(renameSchema), defaultValues: current })
@@ -60,6 +76,7 @@ export function RenameEmployeeDialog({ companyId, employee }: { companyId: numbe
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
+      {!controlled && (
       <ActionTooltip label="Ismni o'zgartirish">
         <DialogTrigger
           render={
@@ -74,22 +91,23 @@ export function RenameEmployeeDialog({ companyId, employee }: { companyId: numbe
           <PencilIcon />
         </DialogTrigger>
       </ActionTooltip>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Ismni o&apos;zgartirish</DialogTitle>
           <DialogDescription>{formatPhone(employee.phone)}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((name) => rename.mutate(name))} noValidate className="space-y-4">
-          <FieldGroup>
-            <TextField control={form.control} name="full_name" label="Ism" autoComplete="off" />
-          </FieldGroup>
-          {rename.isError && <Refusal>{rename.error.message}</Refusal>}
+        <SheetForm onSubmit={form.handleSubmit((name) => rename.mutate(name))}>
+          {rename.isError && <Refusal className="mb-4">{rename.error.message}</Refusal>}
+          <Group>
+            <TextRow control={form.control} name="full_name" label="Ism" placeholder="Ism Familiya" autoComplete="off" />
+          </Group>
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={rename.isPending}>
+            <MainButton type="submit" pending={rename.isPending}>
               Saqlash
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )
