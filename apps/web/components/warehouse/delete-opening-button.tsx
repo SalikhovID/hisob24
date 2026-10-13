@@ -1,11 +1,7 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Trash2Icon } from "lucide-react"
-import { useState } from "react"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
-import { iconAction } from "@/components/catalog/icon-action"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -15,23 +11,33 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
+import { formatDateTime, formatMoney } from "@/lib/format"
 import { forgetParty, type Party } from "@/lib/party"
 import type { OpeningFields } from "@/lib/stock"
 
-// DeleteOpeningButton deletes an opening debt or advance after asking, from
-// its row in the supplier's or the customer's statement. What is owed
-// changes back by it.
-export function DeleteOpeningButton({ party = "supplier", companyId, partyId, opening }: { party?: Party; companyId: number; partyId: number; opening: OpeningFields }) {
-  const [confirming, setConfirming] = useState(false)
+// DeleteOpeningDialog asks whether to delete an opening debt or advance,
+// and does: the supplier's or the customer's statement opens it from the
+// balance's sheet of actions. What is owed changes back by it.
+export function DeleteOpeningDialog({
+  party = "supplier",
+  companyId,
+  partyId,
+  opening,
+  open,
+  onOpenChange,
+}: {
+  party?: Party
+  companyId: number
+  partyId: number
+  opening: OpeningFields
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
-  const amount = formatAmount(opening.amount)
   const remove = useMutation({
     mutationFn: () =>
       party === "customer"
@@ -40,21 +46,16 @@ export function DeleteOpeningButton({ party = "supplier", companyId, partyId, op
     onSuccess: () => {
       forgetParty(queryClient, party, companyId, partyId)
       toast.success("Hujjat o'chirildi")
-      setConfirming(false)
+      onOpenChange(false)
     },
     onError: (error) => {
       toast.error(error.message)
-      setConfirming(false)
+      onOpenChange(false)
     },
   })
 
   return (
-    <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      <ActionTooltip label="O'chirish">
-        <AlertDialogTrigger render={<Button variant="ghost" size="icon" className={`${iconAction} hover:text-destructive`} aria-label={`O'chirish: ${amount}`} />}>
-          <Trash2Icon />
-        </AlertDialogTrigger>
-      </ActionTooltip>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Hujjatni o&apos;chirasizmi?</AlertDialogTitle>

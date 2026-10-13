@@ -15,7 +15,7 @@ import type { StatementRow } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { type OpeningFields, openingOfRow } from "@/lib/stock"
 import { type PaymentFields, paymentOfRow } from "@/lib/warehouse"
-import { DeleteOpeningButton } from "./delete-opening-button"
+import { DeleteOpeningDialog } from "./delete-opening-button"
 import { DeletePaymentDialog } from "./delete-payment-button"
 import { OpeningDialog } from "./opening-dialog"
 import { PaymentDialog } from "./payment-dialog"
@@ -85,6 +85,7 @@ export function StatementList({
   // The payment sheet: a new payment (null), or the one being edited.
   const [paying, setPaying] = useState<PaymentFields | null | undefined>(undefined)
   const [removing, setRemoving] = useState<PaymentFields | null>(null)
+  const [dropping, setDropping] = useState<OpeningFields | null>(null)
   // The opening balance sheet: a new one (null), or the one being edited.
   const [opening, setOpening] = useState<OpeningFields | null | undefined>(undefined)
   const suppliers = useStatement(party === "supplier" ? companyId : null, partyId, page)
@@ -136,7 +137,11 @@ export function StatementList({
                         <PencilIcon />
                       </Button>
                     )}
-                    {canDelete && <DeleteOpeningButton party={party} companyId={companyId} partyId={partyId} opening={openingOfRow(row)} />}
+                    {canDelete && (
+                      <Button variant="ghost" size="icon" aria-label={`O'chirish: ${formatAmount(row.amount)}`} onClick={() => setDropping(openingOfRow(row))}>
+                        <Trash2Icon />
+                      </Button>
+                    )}
                   </span>
                 )
               }
@@ -179,6 +184,16 @@ export function StatementList({
           </div>
         )}
       </div>
+      {dropping && (
+        <DeleteOpeningDialog
+          party={party}
+          companyId={companyId}
+          partyId={partyId}
+          opening={dropping}
+          open
+          onOpenChange={(open) => !open && setDropping(null)}
+        />
+      )}
       {removing && (
         <DeletePaymentDialog
           party={party}
