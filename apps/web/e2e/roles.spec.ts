@@ -68,7 +68,7 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar"])
   await shown.getByRole("link", { name: "Mijozlar" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Mijoz qo'shish" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Mijoz qo'shish" }).first()).toBeVisible()
   await openSection(page, "Vazifalar")
   await expect(page.getByRole("heading", { level: 1, name: "Vazifalar" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Vazifa qo'shish" })).toHaveCount(0)

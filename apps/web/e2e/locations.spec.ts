@@ -46,7 +46,7 @@ test("the owner switches between the locations: the tasks are the current one's,
   // In Asosiy the task is out of sight.
   await chooseLocation(page, "Asosiy")
   await expect(yangi.getByText("Chilonzorda")).toHaveCount(0)
-  await expect(yangi.getByText("Vazifa yo'q")).toBeVisible()
+  await expect(yangi.getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   // The customer's page shows its tasks of every location, each with its own.
@@ -54,8 +54,7 @@ test("the owner switches between the locations: the tasks are the current one's,
   await page.getByRole("link", { name: "Chilonzor Mijozi" }).click()
   await expect(page.getByRole("heading", { name: "Chilonzor Mijozi" })).toBeVisible()
   const tasks = page.getByRole("region", { name: "Vazifalar" })
-  await expect(tasks.getByText("Chilonzorda").filter({ visible: true })).toBeVisible()
-  await expect(tasks.getByText("Chilonzor", { exact: true }).filter({ visible: true })).toBeVisible()
+  await expect(tasks.getByRole("link", { name: /^Chilonzorda/ }).locator("[data-slot=row-sub]")).toHaveText("Yangi · Chilonzor")
 
   // The task's page says its location; the current one stays where it was.
   await tasks.getByRole("link", { name: "Chilonzorda" }).click()
@@ -132,7 +131,7 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   await expect(locationSwitch(page)).toHaveCount(0)
   await openSection(page, "Vazifalar")
   const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
-  await expect(yangi.getByText("Vazifa yo'q")).toBeVisible()
+  await expect(yangi.getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   await expect(yangi.getByText("Asosiyda")).toHaveCount(0)
   await enterTask(page, "Chilonzorda", "901112255", null)
   await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()

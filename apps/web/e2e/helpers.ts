@@ -106,9 +106,12 @@ export async function choose(box: Locator, name: string) {
   await box.page().getByRole("option", { name, exact: true }).click()
 }
 
-// list is a named list as the screen shows it: a table on a wide screen,
-// cards on a phone.
-export const list = (page: Page, name: string) => (onPhone(page) ? page.getByRole("list", { name }) : page.getByRole("table", { name }))
+// list is a named list as the screen shows it. The sections that have the
+// prototype's rows are a list on any screen; the rest are still a table on a
+// wide screen and cards on a phone.
+const rowLists = new Set(["Mijozlar", "Vazifalar"])
+export const list = (page: Page, name: string) =>
+  onPhone(page) || rowLists.has(name) ? page.getByRole("list", { name }) : page.getByRole("table", { name })
 
 // pick finds an item in a picker by what is typed and takes the option.
 export async function pick(page: Page, scope: Page | Locator, label: string, typed: string, option: RegExp) {

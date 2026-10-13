@@ -17,11 +17,14 @@ async function openTasks(page: Page) {
 
 // column is a stage's column of the board; cards are the titles in it.
 const column = (page: Page, name: string) => page.getByRole("region", { name: "Kanban" }).getByRole("region", { name })
-const cards = (page: Page, name: string) => column(page, name).getByRole("listitem").getByRole("link")
+const cards = (page: Page, name: string) => column(page, name).getByRole("listitem").locator("[data-slot=card-title]")
 
-// The list is a table on wide screens and cards on a phone.
-const list = (page: Page) =>
-  onPhone(page) ? page.getByRole("list", { name: "Vazifalar" }) : page.getByRole("table", { name: "Vazifalar" })
+// The list is the tasks' rows, grouped by how far their deadlines are, on
+// any screen; a row is named by its title first.
+const list = (page: Page) => page.getByRole("region", { name: "Vazifalar" })
+const row = (page: Page, title: string) => list(page).getByRole("link", { name: new RegExp(`^${title}`) })
+// view picks Kanban or Ro'yxat.
+const view = (page: Page, name: "Kanban" | "Ro'yxat") => page.getByRole("tablist", { name: "Ko'rinish" }).getByRole("tab", { name }).click()
 
 test("an employee enters a task with a new customer; the board opens first, and the list stays chosen once chosen", async ({ page }) => {
   await signIn(page, "902223344")
@@ -29,7 +32,7 @@ test("an employee enters a task with a new customer; the board opens first, and 
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
   await openSection(page, "Vazifalar")
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
-  await expect(column(page, "Yangi").getByText("Vazifa yo'q")).toBeVisible()
+  await expect(column(page, "Yangi").getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   await page.getByRole("button", { name: "Vazifa qo'shish", exact: true }).click()
@@ -50,25 +53,21 @@ test("an employee enters a task with a new customer; the board opens first, and 
   await expect(card).toBeVisible()
   await expect(card).toContainText("Yangi Mijoz")
   await expect(card).toContainText("2 kun qoldi")
-  await expect(card).toContainText("Vali Aliyev")
-  await expect(page.getByText("Kompaniyangiz vazifalari · 1 ta")).toBeVisible()
+  await expect(card).toContainText("Vali A.")
+  await expect(page.getByText("1 ta", { exact: true })).toBeVisible()
   expect(db.customers.filter((c) => c.companyId === 1).map((c) => c.phone)).toEqual(["998901112233"])
 
   // The list, once chosen, is what opens next time.
-  await page.getByRole("radiogroup", { name: "Ko'rinish" }).getByRole("radio", { name: "Ro'yxat" }).click()
+  await view(page, "Ro'yxat")
   await expect(page).toHaveURL(/view=list/)
-  await expect(list(page).getByRole("link", { name: "Shartnoma tuzish" })).toBeVisible()
-  // The table links the customer; a card only names it, its whole face being
-  // the task's link (a second link under a thumb would open the customer).
-  if (onPhone(page)) {
-    await expect(list(page).getByText("Yangi Mijoz")).toBeVisible()
-    await expect(list(page).getByRole("link", { name: "Yangi Mijoz" })).toHaveCount(0)
-  } else {
-    await expect(list(page).getByRole("link", { name: "Yangi Mijoz" })).toBeVisible()
-  }
+  await expect(row(page, "Shartnoma tuzish")).toBeVisible()
+  // A row only names the customer, its whole face being the task's link (a
+  // second link under a thumb would open the customer).
+  await expect(row(page, "Shartnoma tuzish")).toContainText("Yangi Mijoz")
+  await expect(list(page).getByRole("link", { name: /^Yangi Mijoz/ })).toHaveCount(0)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
   await page.goto("/tasks")
-  await expect(list(page).getByRole("link", { name: "Shartnoma tuzish" })).toBeVisible()
+  await expect(row(page, "Shartnoma tuzish")).toBeVisible()
   await expect(page.getByRole("region", { name: "Kanban" })).toHaveCount(0)
 })
 
@@ -86,14 +85,12 @@ test("a customer that is there is picked from the suggestions; the + of a column
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill("933")
   await page.getByRole("option", { name: /Anor Tekstil MChJ/ }).click()
 
-  await expect(customer.getByRole("region", { name: "Mavjud mijoz" })).toContainText("Anor Tekstil MChJ")
-  await expect(customer.getByRole("combobox", { name: "Telefon raqami" })).toHaveValue("93 333 44 55")
-  await expect(customer.getByRole("combobox", { name: "Telefon raqami" })).toBeDisabled()
-  await expect(customer.getByRole("radio", { name: "Yuridik" })).toHaveAttribute("aria-checked", "true")
-  await expect(customer.getByLabel("Nomi")).toHaveValue("Anor Tekstil MChJ")
-  await expect(customer.getByLabel("Nomi")).toBeDisabled()
-  await expect(customer.getByLabel("INN")).toHaveValue("301234567")
-  await expect(customer.getByLabel("INN")).toBeDisabled()
+  // The customer that is there stands in a card of its own: nothing more is asked about it.
+  const linked = customer.getByRole("region", { name: "Mavjud mijoz" })
+  await expect(linked).toContainText("Anor Tekstil MChJ")
+  await expect(linked).toContainText("Yuridik · +998 93 333 44 55")
+  await expect(customer.getByRole("combobox", { name: "Telefon raqami" })).toHaveCount(0)
+  await expect(customer.getByLabel("INN")).toHaveCount(0)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   await task.getByLabel("Nomi").fill("Hisobni tekshirish")
@@ -134,7 +131,7 @@ test("on the board a card is moved to another column, from its menu or by draggi
   await expect(cards(page, "Yangi")).toHaveText(["Qo'ng'iroq qilish"])
   await expect.poll(() => db.tasks.find((t) => t.id === invoice.id)?.stageId).toBe(jarayonda.id)
   await expect(column(page, "Yangi").getByText("Jami: 1")).toBeVisible()
-  await expect(page.getByText("Kompaniyangiz vazifalari · 4 ta")).toBeVisible()
+  await expect(page.getByText("4 ta", { exact: true })).toBeVisible()
 
   // The done column stands folded; opened, it shows its task by the day alone.
   await expect(cards(page, "Bajarildi")).toHaveCount(0)
@@ -149,14 +146,15 @@ test("on the board a card is moved to another column, from its menu or by draggi
 test("the owner edits a task, reads its history, finds it on the customer's page, cannot delete the customer or the stage, and deletes the task", async ({ page }) => {
   const { call } = seedTasks()
   await openTasks(page)
-  await page.getByRole("radiogroup", { name: "Ko'rinish" }).getByRole("radio", { name: "Ro'yxat" }).click()
-  await list(page).getByRole("link", { name: "Qo'ng'iroq qilish" }).click()
+  await view(page, "Ro'yxat")
+  await row(page, "Qo'ng'iroq qilish").click()
   await expect(page).toHaveURL(new RegExp(`/tasks/${call.id}$`))
   await expect(page.getByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeVisible()
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("Ertalab qo'ng'iroq")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  await choose(page.getByRole("combobox", { name: "Bosqich" }), "Jarayonda")
+  // The stage is moved right on its track.
+  await page.getByRole("radiogroup", { name: "Bosqich" }).getByRole("radio", { name: "Jarayonda" }).click()
   await expect(page.getByText("Bosqich o'zgartirildi")).toBeVisible()
 
   await page.getByRole("button", { name: "Tahrirlash" }).click()
@@ -176,12 +174,12 @@ test("the owner edits a task, reads its history, finds it on the customer's page
   await expect(entered).toContainText("Qo'shildi")
 
   // The customer's page shows the task; the customer is not deleted while it has one.
-  await page.getByRole("region", { name: "Mijoz" }).getByRole("link", { name: "Dilshod Karimov" }).click()
+  await page.getByRole("region", { name: "Mijoz" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
   const tasks = page.getByRole("region", { name: "Vazifalar" })
-  await expect(tasks.getByRole("link", { name: "Qayta qo'ng'iroq" })).toBeVisible()
-  await expect(tasks.getByText("Jami: 2")).toBeVisible()
-  await page.getByRole("button", { name: "O'chirish" }).click()
+  await expect(tasks.getByRole("link", { name: /^Qayta qo'ng'iroq/ })).toBeVisible()
+  await expect(tasks.getByRole("link")).toHaveCount(2)
+  await page.getByRole("button", { name: "Mijozni o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Mijozni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page.getByText("Bu mijozda 2 ta vazifa bor")).toBeVisible()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
@@ -195,8 +193,9 @@ test("the owner edits a task, reads its history, finds it on the customer's page
 
   await page.goto(`/tasks/${call.id}`)
   await expect(page.getByRole("heading", { level: 1, name: "Qayta qo'ng'iroq" })).toBeVisible()
-  await page.getByRole("button", { name: "O'chirish" }).click()
+  await page.getByRole("button", { name: "Vazifani o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Vazifani o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page).toHaveURL(/\/tasks$/)
-  await expect(list(page).getByRole("link", { name: "Qayta qo'ng'iroq" })).toHaveCount(0)
+  await expect(row(page, "Hisob-faktura")).toBeVisible()
+  await expect(row(page, "Qayta qo'ng'iroq")).toHaveCount(0)
 })
