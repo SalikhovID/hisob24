@@ -15,3 +15,8 @@ test("a hero with no way in is a plain block", () => {
   expect(screen.queryByRole("button")).not.toBeInTheDocument()
   expect(screen.getByText("Mijozlar")).toBeInTheDocument()
 })
+
+test("a hero's label may be the page's heading: a document's page opens with it", () => {
+  render(<Hero heading label="Xarid № 3" value="20001.50" unit="so'm" />)
+  expect(screen.getByRole("heading", { level: 1, name: "Xarid № 3" })).toBeInTheDocument()
+})
