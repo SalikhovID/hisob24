@@ -1,5 +1,5 @@
 import { act, screen, waitFor } from "@testing-library/react"
-import { expect, test, vi } from "vitest"
+import { expect, onTestFinished, test, vi } from "vitest"
 import { useMiniApp } from "@/lib/telegram"
 import { renderWithProviders } from "@/test/render"
 import { router, setLocation } from "@/test/navigation"
@@ -146,4 +146,23 @@ test.each(["/customers", "/", "/login", "/select-company"])("on %s Telegram's ba
 
   await waitFor(() => expect(back.hide).toHaveBeenCalled())
   expect(back.show).not.toHaveBeenCalled()
+})
+
+test("back at the first page the app was opened at, Telegram's back button leads to the section, though the history is longer", async () => {
+  const back = backButton()
+  window.Telegram = { WebApp: fakeWebApp({ BackButton: back }) }
+  window.history.pushState({}, "", "/customers/7")
+  // The browser knows there is nothing behind (the Navigation API).
+  vi.stubGlobal("navigation", { canGoBack: false })
+  onTestFinished(() => {
+    vi.unstubAllGlobals()
+  })
+  setLocation("/customers/7")
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(back.show).toHaveBeenCalled())
+  act(() => back.press())
+  expect(router.back).not.toHaveBeenCalled()
+  expect(router.push).toHaveBeenCalledWith("/customers")
 })

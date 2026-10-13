@@ -9,6 +9,14 @@ import { setMiniApp, useMiniApp, waitForWebApp } from "@/lib/telegram"
 // The pages outside the app's shell: there is nothing to go back to there.
 const SHELL_LESS = ["/login", "/select-company", "/expired"]
 
+// canGoBack tells whether there is a page behind this one. The Navigation
+// API knows, where the browser has it (back at the first page, the history
+// stays longer than one entry); elsewhere a longer history is taken for it.
+function canGoBack(): boolean {
+  const navigation = (window as { navigation?: { canGoBack?: boolean } }).navigation
+  return navigation?.canGoBack ?? window.history.length > 1
+}
+
 // TelegramSync fits the app to Telegram when it runs as a Mini App: it
 // tells Telegram the app is ready, opens it to full height, keeps its
 // vertical swipes from folding the app, marks <html>
@@ -64,7 +72,7 @@ export function TelegramSync() {
       back.hide()
       return
     }
-    const goBack = () => (window.history.length > 1 ? router.back() : router.push(sectionRootOf(pathname)))
+    const goBack = () => (canGoBack() ? router.back() : router.push(sectionRootOf(pathname)))
     back.onClick(goBack)
     back.show()
     return () => back.offClick(goBack)
