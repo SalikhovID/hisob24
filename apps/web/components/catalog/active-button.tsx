@@ -3,25 +3,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { EyeIcon, EyeOffIcon } from "lucide-react"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
-import { PendingButton } from "@/components/pending-button"
-import { Button } from "@/components/ui/button"
+import { Tile } from "@/components/kit/detail-head"
 import { api, call } from "@/lib/api"
 import { productKey, productsKey } from "@/lib/queries"
 import type { Product } from "@/lib/types"
-import { iconAction, nounOf } from "./icon-action"
+import { nounOf } from "./icon-action"
 
-// ActiveButton turns a product or a service off (it is no longer offered,
-// its name stays taken; logic/products.md, 3.3) or on again: on a page as
-// a full button, in a list's row as an icon.
-export function ActiveButton({ companyId, product, iconOnly = false }: { companyId: number; product: Product; iconOnly?: boolean }) {
+// useProductActive turns a product or a service off (it is no longer
+// offered, its name stays taken; logic/products.md, 3.3) or on again, and
+// says which: the page's tile and a service's sheet of actions in the list
+// both ask it.
+export function useProductActive(companyId: number) {
   const queryClient = useQueryClient()
-  const label = product.is_active ? "Nofaol qilish" : "Faollashtirish"
-  const Icon = product.is_active ? EyeOffIcon : EyeIcon
-  const toggle = useMutation({
-    mutationFn: () =>
+  return useMutation({
+    mutationFn: (product: Product) =>
       call(api.PATCH("/app/products/{id}", { params: { path: { id: product.id } }, body: { is_active: !product.is_active } })),
-    onSuccess: (saved) => {
+    onSuccess: (saved, product) => {
       queryClient.invalidateQueries({ queryKey: productsKey(companyId) })
       // The page's product carries its stock, which the answer does not:
       // the fields change, the stock stays.
@@ -30,27 +27,18 @@ export function ActiveButton({ companyId, product, iconOnly = false }: { company
     },
     onError: (error) => toast.error(error.message),
   })
+}
 
-  if (iconOnly) {
-    return (
-      <ActionTooltip label={label}>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={iconAction}
-          aria-label={`${label}: ${product.name}`}
-          disabled={toggle.isPending}
-          onClick={() => toggle.mutate()}
-        >
-          <Icon />
-        </Button>
-      </ActionTooltip>
-    )
-  }
+// ActiveButton is the tile on a product's page that turns it off, or on
+// again.
+export function ActiveButton({ companyId, product }: { companyId: number; product: Product }) {
+  const toggle = useProductActive(companyId)
   return (
-    <PendingButton variant="outline" size="lg" className="px-3.5" pending={toggle.isPending} onClick={() => toggle.mutate()}>
-      <Icon />
-      {label}
-    </PendingButton>
+    <Tile
+      icon={product.is_active ? EyeOffIcon : EyeIcon}
+      label={product.is_active ? "Nofaol qilish" : "Faollashtirish"}
+      disabled={toggle.isPending}
+      onClick={() => toggle.mutate(product)}
+    />
   )
 }

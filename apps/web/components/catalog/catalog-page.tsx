@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
-import { PencilIcon, Trash2Icon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,7 +19,7 @@ import type { Permission, Product, ProductKind } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { SearchInput } from "@/components/customers/search-input"
-import { ActiveButton } from "./active-button"
+import { useProductActive } from "./active-button"
 import { DeleteProductDialog } from "./delete-product-button"
 import { ProductDialog } from "./product-dialog"
 import { ServiceDialog } from "./service-dialog"
@@ -44,6 +44,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
+  const toggle = useProductActive(companyId ?? 0)
   // The stock shown is the current location's (logic/products.md, section 5).
   const location = useLocation()
   const products = useProducts(companyId, { kind, ...filter, locationId: location.current?.id ?? null })
@@ -87,7 +88,16 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
                       <PencilIcon />
                     </Button>
                   )}
-                  {allowed("products.edit") && <ActiveButton companyId={companyId} product={p} iconOnly />}
+                  {allowed("products.edit") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${p.is_active ? "Nofaol qilish" : "Faollashtirish"}: ${p.name}`}
+                      onClick={() => toggle.mutate(p)}
+                    >
+                      {p.is_active ? <EyeOffIcon /> : <EyeIcon />}
+                    </Button>
+                  )}
                   {allowed("products.delete") && (
                     <Button variant="ghost" size="icon" aria-label={`O'chirish: ${p.name}`} onClick={() => setDeleting(p)}>
                       <Trash2Icon />
