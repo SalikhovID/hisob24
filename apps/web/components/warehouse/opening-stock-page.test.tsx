@@ -4,6 +4,7 @@ import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { asosiyOf, restrictTo } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpeningStock } from "@/test/stock"
@@ -18,18 +19,20 @@ test("the owner's opening stock of the current location, the newest first, each 
   setLocation("/opening-stock")
   renderWithProviders(<OpeningStockPage />)
 
-  const list = await screen.findByRole("table", { name: "Boshlang'ich qoldiq" })
+  const list = await screen.findByRole("region", { name: "Boshlang'ich qoldiq" })
   expect(screen.getByRole("heading", { level: 1, name: "Boshlang'ich qoldiq" })).toBeInTheDocument()
   expect(screen.getByText("Asosiy · 1 ta")).toBeInTheDocument()
   // The page leads back to the warehouse's hub, which lists its pages.
   expect(screen.getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
   expect(screen.queryByRole("navigation", { name: "Ombor bo'limi" })).not.toBeInTheDocument()
-  expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Hujjat", "Jami", "Qo'shgan"])
-  expect(within(list).getByRole("link", { name: /№ 1/ })).toHaveAttribute("href", `/opening-stock/${opening.id}`)
-  const row = within(list).getByRole("link", { name: /№ 1/ }).closest("tr")!
-  expect(within(row).getByText("30.09.2026 09:00 · 1 ta mahsulot")).toBeInTheDocument()
-  expect(within(row).getByText("12 500 so'm")).toBeInTheDocument()
-  expect(within(row).getByText("Ali Valiyev")).toBeInTheDocument()
+  // A document is a row under its day: its number, how many products and who entered it, what it came to.
+  const [row] = within(within(list).getByRole("list", { name: "30-sentabr, chorshanba" })).getAllByRole("link")
+  expect(row).toHaveAttribute("href", `/opening-stock/${opening.id}`)
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ")
+  expect(plain(rowParts(row).title)).toBe("№ 1")
+  expect(plain(rowParts(row).sub)).toBe("1 ta mahsulot · Ali V.")
+  expect(plain(rowParts(row).end)).toBe("12 500 so'm")
+  expect(screen.getByText("Jami: 1")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Boshlang'ich qoldiq qo'shish" })).toHaveAttribute("href", "/opening-stock/new")
 })
 
