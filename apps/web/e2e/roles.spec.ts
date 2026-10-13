@@ -1,17 +1,25 @@
 import type { Locator, Page } from "@playwright/test"
 import { db } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, homeHead, onPhone, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
+import { homeHead, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
 
 // The whole way of a role (logic/roles.md): the owner makes one in the
 // settings, gives it to an employee in the employees, the employee works by
 // it alone, and the owner takes it away again.
 
-// memberRow is an employee's row of the members: a table row on a wide
-// screen, a card on a phone.
-function memberRow(page: Page, name: string): Locator {
-  const members = onPhone(page) ? page.getByRole("list", { name: "Xodimlar" }) : page.getByRole("table", { name: "Xodimlar" })
-  return members.getByRole(onPhone(page) ? "listitem" : "row").filter({ hasText: name })
+// memberRow is an employee's row of the members: it opens their sheet.
+const memberRow = (page: Page, name: string): Locator => page.getByRole("list", { name: "Xodimlar" }).getByRole("button", { name: new RegExp(`^${name}`) })
+
+// pickRole gives the employee a role in their sheet's picker, and closes the sheet.
+async function pickRole(page: Page, name: string, role: RegExp, shown: string) {
+  await memberRow(page, name).click()
+  const sheet = page.getByRole("dialog", { name: "Xodim" })
+  await sheet.getByRole("button", { name: /^Rol/ }).click()
+  await page.getByRole("dialog", { name: "Rolni o'zgartirish" }).getByRole("option", { name: role }).click()
+  await expect(page.getByRole("dialog", { name: "Rolni o'zgartirish" })).toBeHidden()
+  await expect(sheet.getByRole("button", { name: /^Rol/ })).toContainText(shown)
+  await page.keyboard.press("Escape")
+  await expect(sheet).toBeHidden()
 }
 
 // tick ticks an action of a section in the role's matrix.
@@ -50,13 +58,8 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   // The employee takes the role.
   await openSection(page, "Xodimlar")
   await expect(page.getByRole("heading", { name: "Xodimlar" })).toBeVisible()
-  const vali = memberRow(page, "Vali Aliyev")
-  await vali.getByRole("button", { name: "Rolni o'zgartirish: Vali Aliyev" }).click()
-  const dialog = page.getByRole("dialog", { name: "Rolni o'zgartirish" })
-  await choose(dialog.getByRole("combobox", { name: "Rol" }), "Sotuvchi")
-  await dialog.getByRole("button", { name: "Saqlash" }).click()
-  await expect(dialog).toBeHidden()
-  await expect(vali.getByText("Sotuvchi")).toBeVisible()
+  await pickRole(page, "Vali Aliyev", /^Sotuvchi/, "Sotuvchi")
+  await expect(memberRow(page, "Vali Aliyev")).toContainText("Sotuvchi")
   await signOut(page)
 
   // The employee sees the sections the role opens, and nothing else.
@@ -81,13 +84,8 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   // The owner takes the role away: the role is held by nobody and may go.
   await signIn(page, "901234567")
   await openSection(page, "Xodimlar")
-  const again = memberRow(page, "Vali Aliyev")
-  await again.getByRole("button", { name: "Rolni o'zgartirish: Vali Aliyev" }).click()
-  const taking = page.getByRole("dialog", { name: "Rolni o'zgartirish" })
-  await choose(taking.getByRole("combobox", { name: "Rol" }), "Rolsiz")
-  await taking.getByRole("button", { name: "Saqlash" }).click()
-  await expect(taking).toBeHidden()
-  await expect(again.getByText("Xodim", { exact: true })).toBeVisible()
+  await pickRole(page, "Vali Aliyev", /^Rolsiz$/, "Rolsiz")
+  await expect(memberRow(page, "Vali Aliyev")).toContainText("Xodim")
   await page.goto("/settings?tab=roles")
   await page.getByRole("list", { name: "Rollar" }).getByRole("button", { name: "O'chirish: Sotuvchi" }).click()
   await page.getByRole("alertdialog", { name: "Rolni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()

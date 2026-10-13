@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { addDays, db, DILNOZA, join, localToday } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, chooseLocation, goHome, locationSwitch, onPhone, openSection, sideScroll, signIn, signOut } from "./helpers"
+import { choose, chooseLocation, goHome, locationSwitch, openSection, sideScroll, signIn, signOut } from "./helpers"
 
 const today = localToday()
 
@@ -13,9 +13,15 @@ async function openNok(page: Page) {
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 }
 
-// The members are a table on a wide screen and cards on a phone.
-const members = (page: Page) =>
-  onPhone(page) ? page.getByRole("list", { name: "Xodimlar" }) : page.getByRole("table", { name: "Xodimlar" })
+// The members are the prototype's rows on any screen.
+const members = (page: Page) => page.getByRole("list", { name: "Xodimlar" })
+
+// placesOf opens a member's locations sheet: their row opens their sheet, its row the locations'.
+async function placesOf(page: Page, name: RegExp) {
+  await members(page).getByRole("button", { name }).click()
+  await page.getByRole("dialog", { name: "Xodim" }).getByRole("button", { name: /^Lokatsiyalar/ }).click()
+  return page.getByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
+}
 
 test("the owner switches between the locations: the tasks are the current one's, the customer's page shows them all, the task's page says its own", async ({
   page,
@@ -102,15 +108,16 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
   await enterTask(page, "Asosiyda", "901112244", "Dilnoza Rahimova")
 
-  // Restricted to Chilonzor: the dialog warns of the task left in Asosiy.
+  // Restricted to Chilonzor: the sheet warns of the task left in Asosiy.
   await openSection(page, "Xodimlar")
-  await members(page).getByRole("button", { name: "Lokatsiyalarni o'zgartirish: Dilnoza Rahimova" }).click()
-  const dialog = page.getByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
-  await dialog.getByRole("checkbox", { name: "Barcha lokatsiyalar" }).click()
-  await dialog.getByRole("checkbox", { name: "Chilonzor" }).click()
-  await expect(dialog.getByText("Boshqa lokatsiyalarda 1 ta vazifaga mas'ul")).toBeVisible()
+  const dialog = await placesOf(page, /^Dilnoza Rahimova/)
+  await dialog.getByRole("switch", { name: "Barcha lokatsiyalar" }).click()
+  await dialog.getByRole("checkbox", { name: "Asosiy" }).click()
+  await expect(dialog.getByText("Boshqa lokatsiyalarda 1 ta vazifaga mas'ul. Saqlash baribir mumkin.")).toBeVisible()
   await dialog.getByRole("button", { name: "Saqlash" }).click()
   await expect(dialog).toBeHidden()
+  await page.keyboard.press("Escape")
+  await expect(page.getByRole("dialog", { name: "Xodim" })).toBeHidden()
   await expect(members(page).getByText("Chilonzor", { exact: true })).toBeVisible()
 
   // In Asosiy, Dilnoza is not offered for a task any more.
@@ -142,12 +149,13 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   // The restriction lifted, she sees both locations again.
   await openNok(page)
   await openSection(page, "Xodimlar")
-  await members(page).getByRole("button", { name: "Lokatsiyalarni o'zgartirish: Dilnoza Rahimova" }).click()
-  const again = page.getByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
-  await again.getByRole("checkbox", { name: "Barcha lokatsiyalar" }).click()
+  const again = await placesOf(page, /^Dilnoza Rahimova/)
+  await again.getByRole("switch", { name: "Barcha lokatsiyalar" }).click()
   await again.getByRole("button", { name: "Saqlash" }).click()
   await expect(again).toBeHidden()
-  await expect(members(page).getByText("Barchasi").filter({ visible: true })).toHaveCount(2)
+  await page.keyboard.press("Escape")
+  await expect(page.getByRole("dialog", { name: "Xodim" })).toBeHidden()
+  await expect(members(page).getByText("Barchasi")).toHaveCount(2)
   await signOut(page)
   await signIn(page, "906667788")
   await expect(locationSwitch(page)).toHaveAccessibleName("Lokatsiya: Asosiy")

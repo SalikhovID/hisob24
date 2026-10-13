@@ -11,18 +11,20 @@ async function signIn(page: Page, number: string) {
   await page.getByRole("textbox", { name: "Kod" }).fill(LOGIN_CODE)
 }
 
-// The sidebar is a column from the md breakpoint up, a tab bar along the
-// bottom below it; the members are a table there and cards here.
-const onPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 768
-
 // sections is the list of sections as the screen shows it: the sidebar's on
 // a wide screen, the tab bar's on a phone.
 async function sections(page: Page): Promise<Locator> {
   return page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
 }
 
-const members = (page: Page) =>
-  onPhone(page) ? page.getByRole("list", { name: "Xodimlar" }) : page.getByRole("table", { name: "Xodimlar" })
+// The members are the prototype's rows on any screen; a row opens the member's sheet.
+const members = (page: Page) => page.getByRole("list", { name: "Xodimlar" })
+async function openMember(page: Page, name: RegExp) {
+  await members(page).getByRole("button", { name }).click()
+  const sheet = page.getByRole("dialog", { name: "Xodim" })
+  await expect(sheet).toBeVisible()
+  return sheet
+}
 
 // openEmployees signs the owner of Olma Savdo in and opens the employees.
 async function openEmployees(page: Page) {
@@ -36,7 +38,7 @@ async function openEmployees(page: Page) {
 async function addEmployee(page: Page, number: string, name: string) {
   await page.getByRole("button", { name: "Xodim qo'shish" }).click()
   const dialog = page.getByRole("dialog", { name: "Xodim qo'shish" })
-  await dialog.getByLabel("Telefon raqami").fill(number)
+  await dialog.getByLabel("Telefon").fill(number)
   await dialog.getByLabel("Ism").fill(name)
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
@@ -84,19 +86,23 @@ test("the owner renames an employee and takes them out; out of their only compan
   await openEmployees(page)
   await addEmployee(page, "907778899", "Yangi Xodim")
 
-  await members(page).getByRole("button", { name: "Ismni o'zgartirish: Yangi Xodim" }).click()
+  // The name is changed in the member's sheet, which stays with the new one.
+  const sheet = await openMember(page, /^Yangi Xodim/)
+  await sheet.getByRole("button", { name: /^Ism/ }).click()
   const rename = page.getByRole("dialog", { name: "Ismni o'zgartirish" })
   await expect(rename.getByLabel("Ism")).toHaveValue("Yangi Xodim")
   await rename.getByLabel("Ism").fill("Yangi Kassir")
   await rename.getByRole("button", { name: "Saqlash" }).click()
   await expect(rename).toBeHidden()
-  await expect(members(page).getByText("Yangi Kassir")).toBeVisible()
+  await expect(sheet.getByRole("heading", { name: "Yangi Kassir" })).toBeVisible()
 
-  await members(page).getByRole("button", { name: "O'chirish: Yangi Kassir" }).click()
+  // Taken out from the sheet too: it goes with them.
+  await sheet.getByRole("button", { name: "Xodimni o'chirish" }).click()
   const confirm = page.getByRole("alertdialog", { name: "Xodimni o'chirasizmi?" })
   await expect(confirm.getByText(/Yangi Kassir Olma Savdo kompaniyasiga kira olmaydi/)).toBeVisible()
   await confirm.getByRole("button", { name: "O'chirish" }).click()
   await expect(confirm).toBeHidden()
+  await expect(sheet).toBeHidden()
   await expect(members(page).getByText("+998 90 777 88 99")).toHaveCount(0)
 
   await signOut(page)
@@ -139,7 +145,7 @@ test("an owner replaced while signed in loses the employees at the next request"
   db.members[VALI].find((membership) => membership.companyId === 1)!.role = "owner"
   await page.getByRole("button", { name: "Xodim qo'shish" }).click()
   const dialog = page.getByRole("dialog", { name: "Xodim qo'shish" })
-  await dialog.getByLabel("Telefon raqami").fill("907778899")
+  await dialog.getByLabel("Telefon").fill("907778899")
   await dialog.getByLabel("Ism").fill("Yangi Xodim")
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
 
@@ -154,7 +160,8 @@ test("a subscription that runs out under the owner leads to /expired at the next
   await openEmployees(page)
 
   db.companies.find((company) => company.id === 1)!.end_date = addDays(TODAY, -1)
-  await members(page).getByRole("button", { name: "O'chirish: Vali Aliyev" }).click()
+  const sheet = await openMember(page, /^Vali Aliyev/)
+  await sheet.getByRole("button", { name: "Xodimni o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Xodimni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
 
   await expect(page).toHaveURL(/\/expired$/)
