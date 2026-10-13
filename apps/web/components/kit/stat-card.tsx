@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
+import { stepInto } from "@/lib/moves"
 
 const W = 160
 const H = 78
@@ -121,7 +122,7 @@ export function StatCard({
   )
   if (href !== undefined) {
     return (
-      <Link href={href} data-slot="stat-card" className={classes}>
+      <Link href={href} transitionTypes={stepInto(href)} data-slot="stat-card" className={classes}>
         {content}
       </Link>
     )

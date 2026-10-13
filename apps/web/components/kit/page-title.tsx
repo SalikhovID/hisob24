@@ -4,7 +4,7 @@ import { ChevronLeftIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { stepBack, stepForward } from "@/lib/moves"
+import { stepBack, stepInto } from "@/lib/moves"
 
 // BackLink is the way back from a page under another, as iOS draws it: a
 // chevron and the parent's name in the accent color, with a thumb-sized
@@ -37,7 +37,7 @@ export function PlusButton({ label, onClick, href, className }: { label: string;
   const icon = <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-[22px]" />
   if (href !== undefined) {
     return (
-      <Link href={href} transitionTypes={stepForward} aria-label={label} data-slot="plus-button" className={classes}>
+      <Link href={href} transitionTypes={stepInto(href)} aria-label={label} data-slot="plus-button" className={classes}>
         {icon}
       </Link>
     )

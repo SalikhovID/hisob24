@@ -4,7 +4,7 @@ import { ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 import { type ComponentProps, type CSSProperties, createContext, type ReactNode, useContext } from "react"
 import { cn } from "@/lib/utils"
-import { stepForward } from "@/lib/moves"
+import { stepInto } from "@/lib/moves"
 
 // The hairline between rows starts after the row's media: an avatar (icon),
 // a tile icon (tile), or at the text (none). globals.css draws it at --inset.
@@ -163,7 +163,7 @@ export function Row({
   const common = { "data-slot": "row", "data-variant": variant, className: classes, ...aria }
   const element =
     href !== undefined ? (
-      <Link href={href} transitionTypes={stepForward} aria-disabled={disabled || undefined} {...common}>
+      <Link href={href} transitionTypes={stepInto(href)} aria-disabled={disabled || undefined} {...common}>
         {body}
       </Link>
     ) : onClick !== undefined ? (
