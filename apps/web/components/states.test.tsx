@@ -1,7 +1,8 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
-import { EmptyState, Failed, ListLoading, Loading } from "./states"
+import { CalendarXIcon, UserIcon } from "lucide-react"
+import { EmptyState, Failed, ListLoading, Loading, NotFound, Splash, StateScreen } from "./states"
 
 test("EmptyState says what is missing and what would change that, as plain text", () => {
   render(
@@ -57,4 +58,44 @@ test("Failed announces why it failed, and offers to try again", async () => {
 
   await userEvent.click(screen.getByRole("button", { name: "Qayta urinish" }))
   expect(retry).toHaveBeenCalledTimes(1)
+})
+
+test("an empty state may carry an icon and the way forward, as a button", async () => {
+  const add = vi.fn()
+  render(
+    <EmptyState
+      icon={UserIcon}
+      title="Hali mijoz yo'q"
+      description="Birinchi mijozni qo'shing."
+      action={
+        <button type="button" onClick={add}>
+          Mijoz qo&apos;shish
+        </button>
+      }
+    />,
+  )
+  expect(screen.getByText("Hali mijoz yo'q").closest('[data-slot="empty-state"]')?.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
+  await userEvent.click(screen.getByRole("button", { name: "Mijoz qo'shish" }))
+  expect(add).toHaveBeenCalledTimes(1)
+})
+
+test("a record not found is said as a heading and a line under it", () => {
+  render(<NotFound title="Mijoz topilmadi" description="Bu mijoz o'chirilgan." />)
+  expect(screen.getByRole("heading", { level: 1, name: "Mijoz topilmadi" })).toBeInTheDocument()
+  expect(screen.getByText("Bu mijoz o'chirilgan.")).toBeInTheDocument()
+})
+
+test("the splash is a status that says what is going on", () => {
+  render(<Splash>Telegram orqali kirilmoqda…</Splash>)
+  expect(screen.getByRole("status")).toHaveTextContent("Telegram orqali kirilmoqda…")
+})
+
+test("a state screen heads its message and holds the way out under it", () => {
+  render(
+    <StateScreen icon={CalendarXIcon} tone="red" title="Obuna muddati tugagan" description="Administrator bilan bog'laning.">
+      <button type="button">Boshqa kompaniyani tanlash</button>
+    </StateScreen>,
+  )
+  expect(screen.getByRole("heading", { level: 1, name: "Obuna muddati tugagan" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Boshqa kompaniyani tanlash" })).toBeInTheDocument()
 })
