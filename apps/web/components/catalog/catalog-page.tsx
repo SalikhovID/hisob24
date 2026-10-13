@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
+import { PencilIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -41,6 +42,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const [filter, update] = useCatalogFilter()
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<Product | null>(null)
   // The stock shown is the current location's (logic/products.md, section 5).
   const location = useLocation()
   const products = useProducts(companyId, { kind, ...filter, locationId: location.current?.id ?? null })
@@ -79,7 +81,11 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
               companyId !== null &&
               (allowed("products.edit") || allowed("products.delete")) && (
                 <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-                  {allowed("products.edit") && <ServiceDialog companyId={companyId} service={p} iconOnly />}
+                  {allowed("products.edit") && (
+                    <Button variant="ghost" size="icon" aria-label={`Tahrirlash: ${p.name}`} onClick={() => setEditing(p)}>
+                      <PencilIcon />
+                    </Button>
+                  )}
                   {allowed("products.edit") && <ActiveButton companyId={companyId} product={p} iconOnly />}
                   {allowed("products.delete") && <DeleteProductButton companyId={companyId} product={p} iconOnly />}
                 </span>
@@ -111,17 +117,23 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
         description={unfiltered && total !== undefined ? `${whose} · ${total} ta` : whose}
         actions={
           companyId !== null &&
-          allowed("products.create") &&
-          (isProduct ? (
+          allowed("products.create") && (
             <Button size="lg" className="px-3.5" onClick={() => setAdding(true)}>
-              Mahsulot qo&apos;shish
+              {noun} qo&apos;shish
             </Button>
-          ) : (
-            <ServiceDialog companyId={companyId} />
-          ))
+          )
         }
       />
-      {adding && companyId !== null && <ProductDialog companyId={companyId} open onOpenChange={(next) => !next && setAdding(false)} />}
+      {adding &&
+        companyId !== null &&
+        (isProduct ? (
+          <ProductDialog companyId={companyId} open onOpenChange={(next) => !next && setAdding(false)} />
+        ) : (
+          <ServiceDialog companyId={companyId} open onOpenChange={(next) => !next && setAdding(false)} />
+        ))}
+      {editing && companyId !== null && (
+        <ServiceDialog companyId={companyId} service={editing} open onOpenChange={(next) => !next && setEditing(null)} />
+      )}
       <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Tabs value={filter.status} onValueChange={(value) => update({ status: value === "inactive" ? "inactive" : "active" })}>

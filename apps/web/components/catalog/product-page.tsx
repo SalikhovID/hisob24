@@ -90,13 +90,10 @@ export function ProductPage({ id }: { id: number }) {
           (allowed("products.edit") || allowed("products.delete")) && (
             <>
               {allowed("products.edit") &&
-                (isProduct ? (
-                  <Button size="lg" className="px-3.5" onClick={() => setEditing(true)}>
-                    Tahrirlash
-                  </Button>
-                ) : (
-                  <ServiceDialog companyId={companyId} service={p} />
-                ))}
+                <Button size="lg" className="px-3.5" onClick={() => setEditing(true)}>
+                  Tahrirlash
+                </Button>
+              }
               {allowed("products.edit") && <ActiveButton companyId={companyId} product={p} />}
               {allowed("products.delete") && (
                 <DeleteProductButton companyId={companyId} product={p} afterDelete={() => router.replace(back.href)} />
@@ -105,9 +102,13 @@ export function ProductPage({ id }: { id: number }) {
           )
         }
       />
-      {editing && companyId !== null && (
-        <ProductDialog companyId={companyId} product={p} open onOpenChange={(next) => !next && setEditing(false)} />
-      )}
+      {editing &&
+        companyId !== null &&
+        (isProduct ? (
+          <ProductDialog companyId={companyId} product={p} open onOpenChange={(next) => !next && setEditing(false)} />
+        ) : (
+          <ServiceDialog companyId={companyId} service={p} open onOpenChange={(next) => !next && setEditing(false)} />
+        ))}
       <section aria-labelledby="product-info" className="space-y-3">
         <h2 id="product-info" className="text-base font-semibold">
           Ma&apos;lumot
