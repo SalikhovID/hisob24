@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 import { Amount, groupDigits, splitAmount } from "./amount"
 
@@ -47,4 +47,44 @@ test("a figure too wide for its box is scaled down to the box's content width: t
     </div>,
   )
   expect(scaleOf(figure())).toBeCloseTo(319 / 352, 2)
+})
+
+// Observed stands in for the browser's ResizeObserver: the test tells it
+// when the box changed, and to what.
+class Observed {
+  static last: Observed
+  constructor(readonly report: ResizeObserverCallback) {
+    Observed.last = this
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  // resized tells the figure its box is now width × height (content box).
+  resized(width: number, height: number) {
+    act(() => this.report([{ contentRect: { width, height } } as ResizeObserverEntry], this as unknown as ResizeObserver))
+  }
+}
+
+test("the figure is fitted again when its box grows or shrinks in width; a change of height alone (its own scaling) leaves it be", () => {
+  vi.stubGlobal("ResizeObserver", Observed)
+  const size = layout({ box: 343, natural: 352 })
+  render(
+    <div style={{ padding: "0 8px" }}>
+      <Amount value="1000000" unit="so'm" />
+    </div>,
+  )
+  const fitted = scaleOf(figure())
+  expect(fitted).toBeCloseTo(319 / 352, 2)
+
+  // Scaled, the figure is lower, and so is its box: nothing to fit. (Were
+  // it measured again, the figure would be fitted anew to 400px.)
+  size.natural = 400
+  Observed.last.resized(327, 109.8)
+  expect(scaleOf(figure())).toBe(fitted)
+
+  // A narrower box (a turned phone, a sidebar opened) fits it again.
+  size.box = 300
+  Observed.last.resized(284, 109.8)
+  expect(scaleOf(figure())).toBeCloseTo(276 / 400, 2)
+  vi.unstubAllGlobals()
 })

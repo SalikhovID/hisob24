@@ -39,16 +39,21 @@ export function Amount({
   const [scale, setScale] = useState(1)
 
   // The figure is measured at full size against its parent; a longer one is
-  // scaled down, never below half.
+  // scaled down, never below half. It is fitted again only when the parent's
+  // width changes: its height follows the figure's own scaling, and fitting
+  // on that would rock the scale back and forth with every frame.
   useLayoutEffect(() => {
     const node = ref.current
     const parent = node?.parentElement
     if (!node || !parent) return
+    let fitted = -1
     const fit = () => {
       node.style.setProperty("--k", "1")
       // The room is the box's content width (its padding is not room), less a margin.
       const style = getComputedStyle(parent)
-      const room = parent.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - 8
+      const content = parent.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)
+      fitted = content
+      const room = content - 8
       const width = node.scrollWidth
       const next = room <= 0 || width === 0 ? 1 : Math.max(0.5, Math.min(1, room / width))
       // Set on the node too: React re-applies the style prop only when the
@@ -57,7 +62,12 @@ export function Amount({
       setScale(next)
     }
     fit()
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit)
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(([entry]) => {
+            if (Math.abs(entry.contentRect.width - fitted) >= 0.5) fit()
+          })
     observer?.observe(parent)
     return () => observer?.disconnect()
   }, [whole, decimals, unit])
