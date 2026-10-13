@@ -10,7 +10,7 @@ import { AppShell } from "./app-shell"
 
 const page = <p>Sahifa mazmuni</p>
 
-test("a session with a company gets its page, framed by the sections and the top bar", async () => {
+test("a session with a company gets its page, framed by the sections; the way to the profile is the sidebar's", async () => {
   await signIn(ALI)
   renderWithProviders(<AppShell>{page}</AppShell>)
   expect(screen.getByLabelText("Yuklanmoqda")).toBeInTheDocument()
@@ -20,7 +20,16 @@ test("a session with a company gets its page, framed by the sections and the top
   expect(screen.getByRole("main")).toContainElement(screen.getByText("Sahifa mazmuni"))
   const sidebar = screen.getByRole("complementary", { name: "Menyu" })
   expect(within(sidebar).getByRole("link", { name: "Xodimlar" })).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Profil" })).toBeInTheDocument()
+  expect(within(sidebar).getByRole("link", { name: "Ali Valiyev Egasi" })).toHaveAttribute("href", "/profile")
+})
+
+test("there is no top bar: the page heads the screen itself", async () => {
+  await signIn(ALI)
+  renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  expect(screen.queryByRole("banner")).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Profil" })).not.toBeInTheDocument()
 })
 
 test("a session for an expired company is sent to /expired, its page not shown", async () => {

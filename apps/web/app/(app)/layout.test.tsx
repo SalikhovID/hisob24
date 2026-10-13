@@ -17,5 +17,6 @@ test("the app's pages open inside the shell", async () => {
 
   expect(await screen.findByText("Sahifa mazmuni")).toBeInTheDocument()
   expect(within(screen.getByRole("complementary", { name: "Menyu" })).getByRole("link", { name: "Bosh sahifa" })).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Profil" })).toBeInTheDocument()
+  // The way to the profile is the sidebar's (the top bar is gone).
+  expect(screen.getByRole("link", { name: "Ali Valiyev Egasi" })).toHaveAttribute("href", "/profile")
 })

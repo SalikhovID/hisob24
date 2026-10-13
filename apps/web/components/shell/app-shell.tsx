@@ -1,25 +1,30 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { type ReactNode, useEffect } from "react"
 import { Failed, Loading } from "@/components/states"
 import { subscriptionExpired } from "@/lib/api"
+import { isRootPath } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { useSidebar } from "@/lib/use-sidebar"
+import { cn } from "@/lib/utils"
 import { Sidebar } from "./sidebar"
 import { TabBar } from "./tab-bar"
-import { Topbar } from "./topbar"
 
-// AppShell frames every page of the app: the sections beside it on a wide
-// screen (the sidebar) and under it on a narrow one (the tab bar), the top
-// bar above it. It is also the pages' gate: they are for a session with a
-// company that may be used, so an expired one goes to /expired and one with
-// no company yet to the company list, and a page is shown only once the
-// session is known to have its company. Inside Telegram the shell is as
-// tall as the Mini App's stable viewport (globals.css) and, opened full
-// screen, starts under the status bar and Telegram's controls (pt-safe).
+// AppShell frames every page of the app, as the prototype does: no top bar
+// (the page heads the screen itself; the home holds the way to the profile),
+// the sections beside the page on a wide screen (the sidebar) and floating
+// under it on a narrow one (the tab bar, on a section's own pages: the page
+// keeps room for it there). It is also the pages' gate: they are for a
+// session with a company that may be used, so an expired one goes to
+// /expired and one with no company yet to the company list, and a page is
+// shown only once the session is known to have its company. Inside Telegram
+// the shell is as tall as the Mini App's stable viewport (globals.css) and,
+// opened full screen, starts under the status bar and Telegram's controls
+// (pt-safe).
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const me = useMe()
   const sidebar = useSidebar()
   const away = subscriptionExpired(me.error) ? "/expired" : me.data?.company === null ? "/select-company" : null
@@ -31,19 +36,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div data-slot="app-shell" className="flex h-dvh overflow-hidden pt-safe">
       <Sidebar collapsed={sidebar.collapsed} onToggleCollapsed={sidebar.toggleCollapsed} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
-        <main className="h-0 flex-1 overflow-auto p-4 md:p-6">
-          {me.isPending ? (
-            <Loading rows={2} />
-          ) : me.isError ? (
-            !away && <Failed error={me.error} onRetry={() => me.refetch()} />
-          ) : (
-            me.data.company && children
-          )}
-        </main>
-        <TabBar />
-      </div>
+      <main
+        className={cn(
+          "flex min-w-0 flex-1 flex-col overflow-y-auto px-4 pt-2 md:px-6 md:pt-6 md:pb-10",
+          isRootPath(pathname) ? "pb-bar" : "pb-safe-6",
+        )}
+      >
+        {me.isPending ? (
+          <Loading rows={2} />
+        ) : me.isError ? (
+          !away && <Failed error={me.error} onRetry={() => me.refetch()} />
+        ) : (
+          me.data.company && children
+        )}
+      </main>
+      <TabBar />
     </div>
   )
 }
