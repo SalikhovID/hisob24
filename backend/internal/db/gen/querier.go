@@ -227,6 +227,12 @@ type Querier interface {
 	// positive amount. A balance is the supplier list's: purchases and opening
 	// debts add, payments and opening advances take away.
 	DashboardSuppliers(ctx context.Context, companyID int64) (DashboardSuppliersRow, error)
+	// The company's tasks in the locations given not done yet, and how many of
+	// them are past their deadline (before today).
+	DashboardTasks(ctx context.Context, arg DashboardTasksParams) (DashboardTasksRow, error)
+	// How many of the company's tasks in the locations given stand in each of
+	// its stages not done, in the stages' order, the empty ones too.
+	DashboardTasksByStage(ctx context.Context, arg DashboardTasksByStageParams) ([]DashboardTasksByStageRow, error)
 	DeactivateAdmin(ctx context.Context, telegramID int64) (int64, error)
 	// Drops a code the bot could not deliver.
 	DeleteAdminLoginCode(ctx context.Context, id int64) error

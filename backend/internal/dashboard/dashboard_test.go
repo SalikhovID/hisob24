@@ -193,3 +193,83 @@ func TestCustomers(t *testing.T) {
 	assert.Equal(t, &Customers{Total: 4, AddedThisMonth: 3, ByDay: []int64{3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4}}, got.Customers,
 		"by each day's end of the month up to today: the one of September, two on the 1st, one on the 5th; the deleted and another company's are out")
 }
+
+// stages is a company's stages of the tasks: Yangi, Jarayonda and the
+// done Bajarildi, with a task type.
+type stages struct{ yangi, jarayonda, bajarildi, buyurtma int64 }
+
+func addStages(t *testing.T, pool *pgxpool.Pool, companyID int64) stages {
+	t.Helper()
+	ctx := t.Context()
+	var st stages
+	for _, s := range []struct {
+		name string
+		done bool
+		into *int64
+	}{{"Yangi", false, &st.yangi}, {"Jarayonda", false, &st.jarayonda}, {"Bajarildi", true, &st.bajarildi}} {
+		require.NoError(t, pool.QueryRow(ctx,
+			"INSERT INTO task_stages (company_id, name, color, is_done, position) VALUES ($1, $2, 'blue', $3, (SELECT count(*) + 1 FROM task_stages WHERE company_id = $1)) RETURNING id",
+			companyID, s.name, s.done).Scan(s.into))
+	}
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO task_types (company_id, name, position) VALUES ($1, 'Buyurtma', 1) RETURNING id", companyID).Scan(&st.buyurtma))
+	return st
+}
+
+// addTask enters a task of the company in the stage and the location, due
+// on the day, for the customer; deleted hides it.
+func addTask(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, title, deadline string, deleted bool) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(),
+		"INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END)",
+		companyID, st.buyurtma, stageID, customerID, locationID, title, deadline, ali, deleted)
+	require.NoError(t, err)
+}
+
+func TestTasks(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, pool, "Olma")
+	st := addStages(t, pool, sh.company)
+	karim := addCustomer(t, pool, sh.company, "998900000001", "2026-09-20T12:00:00+05:00", false)
+	addTask(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Kechikkan", "2026-10-10", false)
+	addTask(t, pool, sh.company, st, st.jarayonda, sh.asosiy, karim, "Bugun", "2026-10-13", false)
+	addTask(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Ertaga", "2026-10-14", false)
+	addTask(t, pool, sh.company, st, st.bajarildi, sh.asosiy, karim, "Bajarilgan", "2026-10-01", false)
+	addTask(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "O'chirilgan", "2026-10-01", true)
+	addTask(t, pool, sh.company, st, st.jarayonda, sh.chilonzor, karim, "Chilonzorda", "2026-10-11", false)
+	nok := newShop(t, pool, "Nok")
+	nst := addStages(t, pool, nok.company)
+	begona := addCustomer(t, pool, nok.company, "998900000002", "2026-09-20T12:00:00+05:00", false)
+	addTask(t, pool, nok.company, nst, nst.yangi, nok.asosiy, begona, "Begona", "2026-10-01", false)
+
+	titles := func(tasks []task.Task) []string {
+		out := []string{}
+		for _, t := range tasks {
+			out = append(out, t.Title)
+		}
+		return out
+	}
+	for about, tc := range map[string]struct {
+		scope    Scope
+		location int64
+		active   int64
+		late     int64
+		stages   []StageCount
+		upcoming []string
+	}{
+		"every location of the scope":  {sh.scope(), 0, 4, 2, []StageCount{{st.yangi, 2}, {st.jarayonda, 2}}, []string{"Kechikkan", "Chilonzorda", "Bugun", "Ertaga"}},
+		"one location":                 {sh.scope(), sh.asosiy, 3, 1, []StageCount{{st.yangi, 2}, {st.jarayonda, 1}}, []string{"Kechikkan", "Bugun", "Ertaga"}},
+		"a location outside the scope": {sh.scope(sh.asosiy), sh.chilonzor, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []string{}},
+		"a member with no location":    {sh.scope([]int64{}...), 0, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []string{}},
+	} {
+		in := input(access.TasksView)
+		in.LocationID = tc.location
+		got, err := s.Get(ctx, tc.scope, in)
+		require.NoError(t, err, about)
+		require.NotNil(t, got.Tasks, about)
+		assert.Equal(t, tc.active, got.Tasks.Active, about+": not done yet; the done, the deleted and another company's are out")
+		assert.Equal(t, tc.late, got.Tasks.Late, about+": due before today")
+		assert.Equal(t, tc.stages, got.Tasks.ByStage, about+": each stage not done, in its order, the empty ones too")
+		assert.Equal(t, tc.upcoming, titles(got.Tasks.Upcoming), about+": the soonest due first")
+	}
+}

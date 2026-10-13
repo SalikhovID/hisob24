@@ -50,6 +50,7 @@ type Input struct {
 type Dashboard struct {
 	Suppliers *Suppliers
 	Customers *Customers
+	Tasks     *Tasks
 }
 
 // Suppliers is what the company's suppliers are owed, in so'm, each
@@ -69,6 +70,23 @@ type Customers struct {
 	Total          int64
 	AddedThisMonth int64
 	ByDay          []int64
+}
+
+// Tasks is the tasks of the location (or of every one of the scope) not
+// done yet: how many, how many of them are past their deadline, how many
+// stand in each stage not done (in the stages' order, the empty ones too)
+// and the five due soonest.
+type Tasks struct {
+	Active   int64
+	Late     int64
+	ByStage  []StageCount
+	Upcoming []task.Task
+}
+
+// StageCount is how many tasks stand in a stage.
+type StageCount struct {
+	StageID int64
+	Count   int64
 }
 
 // Get is the dashboard of the member within the scope.
@@ -96,7 +114,47 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 		}
 		d.Customers = c
 	}
+	if in.Permissions.Has(access.TasksView) {
+		locations := scope.locations(in.LocationID)
+		counts, err := s.q.DashboardTasks(ctx, gen.DashboardTasksParams{CompanyID: scope.CompanyID, LocationIds: locations, Today: in.Today})
+		if err != nil {
+			return Dashboard{}, err
+		}
+		rows, err := s.q.DashboardTasksByStage(ctx, gen.DashboardTasksByStageParams{CompanyID: scope.CompanyID, LocationIds: locations})
+		if err != nil {
+			return Dashboard{}, err
+		}
+		upcoming, err := s.tasks.Upcoming(ctx, task.Scope{CompanyID: scope.CompanyID, LocationIDs: scope.LocationIDs}, in.LocationID, upcomingCount)
+		if err != nil {
+			return Dashboard{}, err
+		}
+		tasks := &Tasks{Active: counts.Active, Late: counts.Late, ByStage: make([]StageCount, 0, len(rows)), Upcoming: upcoming}
+		for _, row := range rows {
+			tasks.ByStage = append(tasks.ByStage, StageCount{StageID: row.StageID, Count: row.Count})
+		}
+		d.Tasks = tasks
+	}
 	return d, nil
+}
+
+// upcomingCount is how many of the tasks due soonest the home shows.
+const upcomingCount = 5
+
+// locations is where the dashboard counts: the location named, when it is
+// the scope's (none when it is not), every one of the scope otherwise.
+func (sc Scope) locations(id int64) []int64 {
+	if id == 0 {
+		if sc.LocationIDs == nil {
+			return []int64{}
+		}
+		return sc.LocationIDs
+	}
+	for _, l := range sc.LocationIDs {
+		if l == id {
+			return []int64{id}
+		}
+	}
+	return []int64{}
 }
 
 // monthStart is the first day of the day's month.
