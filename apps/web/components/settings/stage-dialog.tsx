@@ -9,10 +9,11 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { ActionTooltip } from "@/components/action-tooltip"
-import { CheckboxField } from "@/components/checkbox-field"
-import { PendingButton } from "@/components/pending-button"
+import { FormRow, SwitchRow, TextRow } from "@/components/kit/form-row"
+import { Foot, Group, Row } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Field, FieldError, FieldGroup, FieldTitle } from "@/components/ui/field"
 import { stageSchema } from "@/lib/schemas"
 import { colorClasses, colorLabels, stageColors } from "@/lib/stage-colors"
 import { cn } from "@/lib/utils"
@@ -35,7 +35,10 @@ const empty: Input = { name: "", color: "", is_done: false }
 // StageDialog asks what a stage is: its name, its color (a swatch) and
 // whether it is the final one, and hands it on: it adds a stage, or changes
 // one. What to do with it is the caller's (onSubmit); a refusal shows the
-// API's reason in the dialog, which stays open.
+// API's reason in the dialog, which stays open. As the prototype's sheet:
+// the name a row, the colors as swatches with the chosen one named, the
+// final mark a switch with what it means, and, for a stage being changed,
+// the way to delete it.
 export function StageDialog({
   title,
   description,
@@ -44,6 +47,9 @@ export function StageDialog({
   done,
   trigger,
   tooltip,
+  open: openGiven,
+  onOpenChange,
+  onDelete,
   onSubmit,
 }: {
   title: string
@@ -55,11 +61,20 @@ export function StageDialog({
   done: string
   // trigger is the button that opens the dialog; tooltip says what an icon
   // button does.
-  trigger: ReactElement
+  trigger?: ReactElement
   tooltip?: string
+  // open, with onOpenChange, opens it from outside instead (a page's plus,
+  // a row): it has no button then.
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  // onDelete, for a stage being changed, is the danger row's: the caller asks and deletes.
+  onDelete?: () => void
   onSubmit: (stage: StageOutput) => Promise<unknown>
 }) {
-  const [open, setOpen] = useState(false)
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const id = useId()
   const form = useForm<Input, unknown, StageOutput>({ resolver: zodResolver(stageSchema), defaultValues: initial })
   const save = useMutation({
@@ -82,58 +97,63 @@ export function StageDialog({
   const opener = <DialogTrigger render={trigger} />
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      {tooltip ? <ActionTooltip label={tooltip}>{opener}</ActionTooltip> : opener}
+      {controlled ? null : tooltip ? <ActionTooltip label={tooltip}>{opener}</ActionTooltip> : opener}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((stage) => save.mutate(stage))} noValidate className="space-y-4">
-          <FieldGroup>
-            <TextField control={form.control} name="name" label="Nomi" autoComplete="off" />
+        <SheetForm onSubmit={form.handleSubmit((stage) => save.mutate(stage))}>
+          {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
+          <Group>
+            <TextRow control={form.control} name="name" label="Nomi" placeholder="Masalan, Jarayonda" autoComplete="off" />
             <Controller
               control={form.control}
               name="color"
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid || undefined}>
-                  <FieldTitle id={`${id}-color`}>Rangi</FieldTitle>
-                  {/* A swatch for each color, named by the color's name. */}
-                  <RadioGroup
-                    aria-labelledby={`${id}-color`}
-                    value={field.value}
-                    onValueChange={(value) => field.onChange(String(value))}
-                    className="flex flex-wrap gap-2.5"
-                  >
-                    {stageColors.map((color) => (
-                      <Radio.Root
-                        key={color}
-                        value={color}
-                        aria-label={colorLabels[color]}
-                        className={cn(
-                          "size-8 rounded-full ring-offset-2 ring-offset-card outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:ring-2 data-checked:ring-foreground",
-                          colorClasses[color].dot,
-                        )}
-                      />
-                    ))}
-                  </RadioGroup>
-                  <FieldError errors={[fieldState.error]} />
-                </Field>
-              )}
+              render={({ field, fieldState }) => {
+                const chosen = stageColors.find((color) => color === field.value)
+                return (
+                  <FormRow stack label={`Rangi${chosen ? ` · ${colorLabels[chosen]}` : ""}`} error={fieldState.error?.message} errorId={`${id}-color-error`}>
+                    {/* A swatch for each color, named by the color's name. */}
+                    <RadioGroup
+                      aria-label="Rangi"
+                      aria-describedby={fieldState.error ? `${id}-color-error` : undefined}
+                      value={field.value}
+                      onValueChange={(value) => field.onChange(String(value))}
+                      className="flex flex-wrap gap-3"
+                    >
+                      {stageColors.map((color) => (
+                        <Radio.Root
+                          key={color}
+                          value={color}
+                          aria-label={colorLabels[color]}
+                          className={cn(
+                            "size-9 rounded-full ring-offset-2 ring-offset-card outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:ring-[2.5px] data-checked:ring-foreground",
+                            colorClasses[color].dot,
+                          )}
+                        />
+                      ))}
+                    </RadioGroup>
+                  </FormRow>
+                )
+              }}
             />
-            <div className="space-y-1">
-              <CheckboxField control={form.control} name="is_done" label="Yakuniy bosqich" />
-              <p className="text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
-                Bu bosqichdagi vazifa bajarilgan hisoblanadi: muddati o&apos;tgan deb belgilanmaydi.
-              </p>
-            </div>
-          </FieldGroup>
-          {save.isError && <Refusal>{save.error.message}</Refusal>}
+          </Group>
+          <Group>
+            <SwitchRow control={form.control} name="is_done" label="Yakuniy bosqich" />
+          </Group>
+          <Foot className="-mt-4">Bu bosqichdagi vazifa bajarilgan hisoblanadi: muddati o&apos;tgan deb belgilanmaydi.</Foot>
+          {onDelete && (
+            <Group>
+              <Row variant="danger" onClick={onDelete} title="Bosqichni o'chirish" />
+            </Group>
+          )}
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
+            <MainButton type="submit" pending={save.isPending}>
               {submit}
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )

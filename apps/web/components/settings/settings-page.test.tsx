@@ -339,7 +339,7 @@ test("a stage is added from the dialog with its color and the final mark, and jo
   const dialog = await screen.findByRole("dialog", { name: "Bosqich qo'shish" })
   await user.type(within(dialog).getByLabelText("Nomi"), "Kutilmoqda")
   await user.click(within(within(dialog).getByRole("radiogroup", { name: "Rangi" })).getByRole("radio", { name: "Moviy" }))
-  await user.click(within(dialog).getByRole("checkbox", { name: "Yakuniy bosqich" }))
+  await user.click(within(dialog).getByRole("switch", { name: "Yakuniy bosqich" }))
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
@@ -378,11 +378,11 @@ test("a stage is edited from its row: its name, color and final mark come filled
   const name = within(dialog).getByLabelText("Nomi")
   expect(name).toHaveValue("Jarayonda")
   expect(within(dialog).getByRole("radio", { name: "Sariq" })).toBeChecked()
-  expect(within(dialog).getByRole("checkbox", { name: "Yakuniy bosqich" })).not.toBeChecked()
+  expect(within(dialog).getByRole("switch", { name: "Yakuniy bosqich" })).not.toBeChecked()
   await user.clear(name)
   await user.type(name, "Ishda")
   await user.click(within(dialog).getByRole("radio", { name: "Binafsha" }))
-  await user.click(within(dialog).getByRole("checkbox", { name: "Yakuniy bosqich" }))
+  await user.click(within(dialog).getByRole("switch", { name: "Yakuniy bosqich" }))
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
