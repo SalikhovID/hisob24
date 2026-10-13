@@ -1,10 +1,12 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { MapPinIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
+import { PageTitle } from "@/components/kit/page-title"
+import { EmptyState } from "@/components/states"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import type { Permission } from "@/lib/types"
@@ -83,18 +85,15 @@ export function NewPurchasePage() {
   // A member with no location to work in enters nothing (logic/locations.md, section 5).
   if (location.ready && locationId === null) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Yangi xarid" back={back} />
-        <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
-          <p className="font-medium">Sizga lokatsiya biriktirilmagan</p>
-          <p className="mt-1 text-pretty text-muted-foreground">Kompaniya egasi lokatsiya biriktirishi kerak.</p>
-        </div>
-      </div>
+      <>
+        <PageTitle title="Yangi xarid" back={back} />
+        <EmptyState icon={MapPinIcon} title="Sizga lokatsiya biriktirilmagan" description="Kompaniya egasi lokatsiya biriktirishi kerak." />
+      </>
     )
   }
   return (
-    <div className="space-y-5">
-      <PageHeader title="Yangi xarid" description={location.current?.name} back={back} />
+    <>
+      <PageTitle title="Yangi xarid" description={location.current?.name} back={back} />
       <PurchaseForm
         companyId={companyId}
         defaults={defaults}
@@ -102,7 +101,8 @@ export function NewPurchasePage() {
         submitLabel="Saqlash"
         pending={create.isPending || create.isSuccess}
         refusal={create.error?.message}
+        locationName={location.current?.name}
       />
-    </div>
+    </>
   )
 }

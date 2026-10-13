@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
+import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { Failed, ListLoading, NotFound } from "@/components/states"
 import { api, ApiError, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { usePurchase } from "@/lib/queries"
@@ -43,20 +43,25 @@ export function EditPurchasePage({ id }: { id: number }) {
 
   if (!gate || companyId === null || !withPickers) return null
   if (purchase.error instanceof ApiError && purchase.error.status === 404) {
-    return <PageHeader title="Xarid topilmadi" description="Bu xarid o'chirilgan yoki siz ishlamaydigan lokatsiyada." back={back} />
+    return (
+      <>
+        <BackLink {...back} />
+        <NotFound title="Xarid topilmadi" description="Bu xarid o'chirilgan yoki siz ishlamaydigan lokatsiyada." />
+      </>
+    )
   }
   if (!purchase.data) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Xaridni tahrirlash" back={back} />
+      <>
+        <PageTitle title="Xaridni tahrirlash" back={back} />
         {purchase.isError ? <Failed error={purchase.error} onRetry={() => purchase.refetch()} /> : <ListLoading rows={4} mark="none" />}
-      </div>
+      </>
     )
   }
   const p = purchase.data
   return (
-    <div className="space-y-5">
-      <PageHeader title="Xaridni tahrirlash" description={`№ ${p.number} · ${p.location_name}`} back={{ href: `/purchases/${p.id}`, label: `Xarid № ${p.number}` }} />
+    <>
+      <PageTitle title="Xaridni tahrirlash" description={`№ ${p.number} · ${p.location_name}`} back={{ href: `/purchases/${p.id}`, label: `Xarid № ${p.number}` }} />
       <PurchaseForm
         key={p.updated_at}
         companyId={companyId}
@@ -65,7 +70,8 @@ export function EditPurchasePage({ id }: { id: number }) {
         submitLabel="Saqlash"
         pending={save.isPending || save.isSuccess}
         refusal={save.error?.message}
+        locationName={p.location_name}
       />
-    </div>
+    </>
   )
 }

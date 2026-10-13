@@ -24,7 +24,10 @@ test("a purchase is entered into the current location: the supplier and the prod
   expect(screen.getByText("Asosiy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xaridlar" })).toHaveAttribute("href", "/purchases")
   expect((screen.getByLabelText("Vaqt") as HTMLInputElement).value).toMatch(new RegExp(`^${nowLocal().slice(0, 13)}`))
-  expect(screen.queryByRole("combobox", { name: "Valyuta" })).not.toBeInTheDocument()
+  expect(screen.queryByLabelText("Valyuta")).not.toBeInTheDocument()
+  // The form says what saving does, and saves from the bar at the bottom.
+  expect(screen.getByText("Saqlangach mahsulotlar «Asosiy» qoldig'iga qo'shiladi, to'lanmagan qismi ta'minotchi qarziga yoziladi.")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Saqlash" }).closest("[data-slot=main-bar]")).not.toBeNull()
 
   await pick(user, document.body, "Ta'minotchi", "bo", /Bozor/)
   expect(screen.getByRole("button", { name: /^Ta'minotchi/ })).toHaveTextContent("Bozor")
@@ -83,11 +86,11 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   const { user } = renderWithProviders(<NewPurchasePage />)
   await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
 
-  expect(screen.getByRole("combobox", { name: "Valyuta" })).toHaveTextContent("UZS — O'zbek so'mi")
+  expect(screen.getByLabelText("Valyuta")).toHaveTextContent("UZS — O'zbek so'mi")
   expect(screen.queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12800")
-  await choose(user, screen.getByRole("combobox", { name: "Valyuta" }), "USD — AQSH dollari")
+  await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
   expect(screen.getByText("25 600 $")).toBeInTheDocument()
