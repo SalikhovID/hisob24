@@ -211,6 +211,18 @@ Har bosqich: TDD (RED → GREEN → commit), oxirida `make lint && make test && 
 13. **Sidebar** yig'ilganda 64px (avvalgidek), pastida lokatsiya pill'i va profil qatori (avatar, ism, rol); yig'ilganda avatar «Profil: {ism}».
 14. **e2e:** Playwright serveri Next dev indikatorini yashiradi (`HIDE_DEV_INDICATOR=1`): burchakdagi indikator suzuvchi bar'ning birinchi tabini to'sardi. Yordamchilar: `goHome`, `openSection` (bar'dan tashqaridagi bo'lim bosh sahifa ro'yxati orqali), `openProfile`, `signOut`, `homeHead`, `locationSwitch`, `chooseLocation` (telefonda bosh sahifaga borib qaytadi).
 
+### 3-bosqich (dashboard API va bosh sahifa vidjetlari)
+
+1. **Pul so'mda**, har hujjat o'z kurs qatori bilan (`logic/currencies.md`, 4-bo'lim; ta'minotchilar ro'yxatidagi `balance` formulasi): yuqoridagi qoralamadagi `BalanceLine[]` o'rniga bitta summa. `suppliers { debt, debtors, advance }`, `purchases` / `sales` `{ month_total, month_count, by_day }`.
+2. **Begona lokatsiya 403 `forbidden`** (ro'yxatlar qoidasi, `logic/locations.md`; client shundan `/app/me` ni qayta so'raydi), son emas 400 «Lokatsiya noto'g'ri»; qoralamadagi 404 o'rniga. `location_id` berilmasa a'zoga ruxsatli hamma lokatsiya.
+3. **Kunlar a'zoning vaqt zonasida** (`users.timezone`, standart Asia/Tashkent; kassa ro'yxatidagi `memberZone` kabi): bugun, oy boshi, hujjat va mijoz kuni. Bugun Go'dan uzatiladi (testlarda qat'iy sana).
+4. **Bloklar ruxsat bo'yicha**: `suppliers` va `purchases` — `purchases.view`, `customers` — `customers.view`, `tasks` — `tasks.view`, `sales` — `sales.view`. Ta'minotchi va mijoz bloklari kompaniyaniki (cheklangan xodim ham butun balansni ko'radi), vazifa, xarid va sotuv lokatsiyaniki. `tasks.upcoming` — `task.Service.Upcoming` (ro'yxatdagi `Task`).
+5. **Yangilik:** dashboard har bosh sahifa ochilishida qayta so'raladi (so'rovlar darhol eskiradi), bosh sahifadagi dialog (vazifa, mijoz, to'lov) yopilganda ham — mutatsiyalarning har biriga eskirtirish qo'shilmadi.
+6. **Tezkor plitkalar:** Vazifa (`tasks.create` + `customers.view` + lokatsiya), Mijoz (`customers.create`), Sotuv (`sales.create` + lokatsiya, `/sales/new`), Xarid (`purchases.create` + `suppliers.view` + lokatsiya, `/purchases/new`), To'lov (`purchases.create` + `suppliers.view`: faol ta'minotchilar varag'i, keyin to'lov dialogi); birinchi 4 tasi. Sozlamasi yo'q kompaniyada (vazifa turi / bosqich, mijoz turi yo'q) plitka bo'limga olib boradi, u yerda nima sozlash kerakligi aytiladi. `PaymentDialog` va `AddCustomerDialog` tashqaridan ham ochiladi (`open` / `onOpenChange`, tugmasiz); akkauntlar keyin kelsa, yangi to'lov birinchisini oladi.
+7. **Kartalar:** Vazifalar (bosqichlar `Bars`, bosqich rangi `colorValues`), Xaridlar yoki Mijozlar, Sotuv; ixcham summa `compactAmount` («4,6 mln»). `StatCard` raqami va birligi orasida matnli bo'sh joy (ekran o'quvchi «4 ta faol» deb o'qiydi).
+8. **Qobiq tuzatishi:** `main` ning bevosita bolalari `shrink-0`: aks holda uzun sahifada `overflow-hidden` guruh ro'yxati ekranga sig'ish uchun qisqarib, oxirgi qatorlari kesilardi (telefonda «Yaqin muddatlar» qatorlari bosilmasdi).
+9. Test yordamchisi `renderWithProviders` ning `rerender` i o'sha provider'lar ichida chizadi.
+
 ## Tekshiruv
 
 - `make lint`, `make test`, `make e2e` toza (admin e2e ham: admin'ga tegilmagan).
