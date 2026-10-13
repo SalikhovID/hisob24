@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest"
 import { ALI, db, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { addLocation } from "@/test/locations"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { Sidebar, type SidebarProps } from "./sidebar"
@@ -119,3 +120,25 @@ test("folded, the sidebar is headed by the logo's mark, inside the button that u
   expect(within(sidebar()).queryByRole("img", { name: "Hisob24" })).not.toBeInTheDocument()
 })
 
+
+test("the sidebar ends with who is signed in: a way to the profile", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(await within(sidebar()).findByRole("link", { name: "Ali Valiyev Egasi" })).toHaveAttribute("href", "/profile")
+})
+
+test("with two locations the sidebar holds the switch between them", async () => {
+  addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(await within(sidebar()).findByRole("button", { name: "Lokatsiya: Asosiy" })).toBeInTheDocument()
+})
+
+test("folded, the way to the profile is the avatar, named for screen readers", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props({ collapsed: true })} />)
+
+  expect(await within(sidebar()).findByRole("link", { name: "Profil: Ali Valiyev" })).toHaveAttribute("href", "/profile")
+})
