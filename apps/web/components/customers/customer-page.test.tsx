@@ -475,6 +475,27 @@ test("whoever may see the sales alone sees the balance and the statement, with n
   expect(await screen.findByRole("table", { name: "Hisob harakati" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Boshlang'ich qarz / avans" })).not.toBeInTheDocument()
+  expect(within(screen.getByRole("group", { name: "Amallar" })).queryByRole("button", { name: "To'lov" })).not.toBeInTheDocument()
+})
+
+test("a payment from the customer is entered from its «To'lov» tile: the sheet is the customer's, what they owe under the amount", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const { dilshod } = seedCustomers()
+  await signIn(ALI)
+  await sold(dilshod, catalog)
+  const { user } = open(dilshod.id)
+
+  await user.click(within(await screen.findByRole("group", { name: "Amallar" })).getByRole("button", { name: "To'lov" }))
+
+  const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
+  expect(within(dialog).getByText("Dilshod Karimov")).toBeInTheDocument()
+  expect(within(dialog).getByText(/Qarz: 7 000 so'm/)).toBeInTheDocument()
+  await user.click(within(dialog).getByRole("button", { name: "To'liq" }))
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  await waitFor(() =>
+    expect(db.transactions.find((t) => t.kind === "customer_payment" && t.customerId === dilshod.id && t.linkedId === null)).toMatchObject({ total: 7000 }),
+  )
 })
 
 test("the customer's actions follow the role: editing, the history and the tasks here; not deleting", async () => {

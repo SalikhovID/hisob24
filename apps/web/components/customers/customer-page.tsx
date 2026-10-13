@@ -1,6 +1,6 @@
 "use client"
 
-import { ClipboardPlusIcon, PencilIcon, PhoneIcon } from "lucide-react"
+import { BanknoteIcon, ClipboardPlusIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
 import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
@@ -19,6 +19,7 @@ import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { BalanceCard } from "@/components/warehouse/balance-card"
+import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { StatementList } from "@/components/warehouse/statement-list"
 import { CustomerHistory } from "./customer-history"
 import { CustomerTasks } from "./customer-tasks"
@@ -45,6 +46,7 @@ export function CustomerPage({ id }: { id: number }) {
   const dropdowns = useCustomerDropdowns(companyId)
   const [editing, setEditing] = useState(false)
   const [tasking, setTasking] = useState(false)
+  const [paying, setPaying] = useState(false)
   // A task for the customer goes into the current location.
   const locationId = useLocation().current?.id ?? null
 
@@ -90,6 +92,7 @@ export function CustomerPage({ id }: { id: number }) {
       <Tiles>
         {type && allowed("customers.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
         {allowed("tasks.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setTasking(true)} />}
+        {allowed("sales.create") && <Tile icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
         <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${customer.data.phone}`} />
       </Tiles>
       {allowed("sales.view") && customer.data.balance !== null && (
@@ -122,6 +125,17 @@ export function CustomerPage({ id }: { id: number }) {
       {/* Who did what to the customer takes its permission. */}
       {companyId !== null && allowed("customers.history") && <CustomerHistory companyId={companyId} id={customer.data.id} />}
       {companyId !== null && allowed("customers.delete") && <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />}
+      {paying && companyId !== null && (
+        <PaymentDialog
+          party="customer"
+          companyId={companyId}
+          partyId={customer.data.id}
+          partyName={name ?? phone}
+          owed={customer.data.balance}
+          open
+          onOpenChange={(open) => !open && setPaying(false)}
+        />
+      )}
       {tasking && companyId !== null && locationId !== null && (
         <NewTask
           companyId={companyId}
