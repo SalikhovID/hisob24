@@ -3,9 +3,15 @@
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "cn"
-
-import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
+
+// The dialogs are the prototype's sheets: they come up from the bottom of
+// the screen (on a wide screen too, 480px wide in the middle), a grab
+// handle on top, the close button at the top left, the title centered, the
+// body scrolling under a sticky head, the main button in a sticky footer.
+// The API is the one from before (Dialog, DialogContent, DialogHeader,
+// DialogTitle, DialogDescription, DialogFooter), so every dialog of the app
+// is a sheet from here on.
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -23,15 +29,12 @@ function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
-function DialogOverlay({
-  className,
-  ...props
-}: DialogPrimitive.Backdrop.Props) {
+function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) {
   return (
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-scrim transition-opacity duration-300 data-starting-style:opacity-0 data-ending-style:opacity-0",
         className
       )}
       {...props}
@@ -43,53 +46,66 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  tall = false,
+  right,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  // tall: the sheet takes the whole height (a long form, a list to search).
+  tall?: boolean
+  // right: a control at the head's right (a second action).
+  right?: React.ReactNode
 }) {
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
+        data-tall={tall || undefined}
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex max-h-[calc(100dvh-18px)] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-4px_40px_rgba(0,0,0,.12)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px)]",
           className
         )}
         {...props}
       >
-        {children}
+        <span aria-hidden="true" data-slot="dialog-grab" className="absolute top-1.5 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full bg-muted-foreground/35" />
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
+            aria-label="Yopish"
+            className="absolute top-3 left-3 z-10 grid size-11 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <XIcon
-            />
-            <span className="sr-only">Yopish</span>
+            <span className="grid size-9 place-items-center rounded-full bg-muted text-foreground">
+              <XIcon strokeWidth={2.6} className="size-4" />
+            </span>
           </DialogPrimitive.Close>
         )}
+        {right && (
+          <span data-slot="dialog-right" className="absolute top-3 right-3 z-10 flex h-11 items-center">
+            {right}
+          </span>
+        )}
+        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 scrollbar-hide">
+          {children}
+        </div>
       </DialogPrimitive.Popup>
     </DialogPortal>
   )
 }
 
+// DialogHeader is the sheet's head: it stays at the top while the body
+// scrolls, the title centered between the close button and the right slot.
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("sticky top-0 z-[1] -mx-4 mb-2 flex flex-col gap-1 bg-sheet px-14 pt-5 pb-2 text-center", className)}
       {...props}
     />
   )
 }
 
+// DialogFooter is the main button's bar at the bottom of the sheet.
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -102,15 +118,15 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "sticky bottom-0 z-[1] -mx-4 -mb-4 mt-auto flex flex-col gap-1 bg-gradient-to-t from-sheet from-70% to-transparent px-4 pt-3 pb-4 [&>*]:w-full",
         className
       )}
       {...props}
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
+        <DialogPrimitive.Close className="h-11 rounded-main text-base font-semibold text-primary">
+          Yopish
         </DialogPrimitive.Close>
       )}
     </div>
@@ -121,26 +137,17 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn(
-        "font-heading text-base leading-6 font-semibold",
-        className
-      )}
+      className={cn("text-base leading-tight font-semibold", className)}
       {...props}
     />
   )
 }
 
-function DialogDescription({
-  className,
-  ...props
-}: DialogPrimitive.Description.Props) {
+function DialogDescription({ className, ...props }: DialogPrimitive.Description.Props) {
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn(
-        "text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
-        className
-      )}
+      className={cn("text-sm leading-snug text-muted-foreground *:[a]:underline *:[a]:underline-offset-3", className)}
       {...props}
     />
   )
