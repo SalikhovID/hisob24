@@ -8,7 +8,8 @@ import { stepBack, stepInto } from "@/lib/moves"
 
 // BackLink is the way back from a page under another, as iOS draws it: a
 // chevron and the parent's name in the accent color, with a thumb-sized
-// target. Inside Telegram the BackButton (TelegramSync) stands beside it.
+// target as wide as its words (not the page's column it stands in). Inside
+// Telegram the BackButton (TelegramSync) stands beside it.
 export function BackLink({ href, label, className }: { href: string; label: string; className?: string }) {
   return (
     <Link
@@ -16,7 +17,7 @@ export function BackLink({ href, label, className }: { href: string; label: stri
       transitionTypes={stepBack}
       data-slot="back-link"
       className={cn(
-        "relative -ml-1.5 inline-flex min-h-11 items-center gap-0.5 pr-3 text-base text-primary outline-none after:absolute after:-inset-x-2 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50",
+        "relative -ml-1.5 inline-flex min-h-11 items-center gap-0.5 self-start pr-3 text-base text-primary outline-none after:absolute after:-inset-x-2 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50",
         className,
       )}
     >

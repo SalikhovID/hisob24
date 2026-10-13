@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test"
+import { seedCustomers } from "../mocks/data"
 import { expect, test } from "./fixtures"
 import { onPhone, openProfile, sections, signIn } from "./helpers"
 
@@ -99,6 +100,22 @@ test("the home's head is the way to the profile, which says who is signed in and
   await expect(page).toHaveURL(/\/profile$/)
   await page.getByRole("link", { name: "Bosh sahifa" }).filter({ visible: true }).first().click()
   await expect(page).toHaveURL(/\/$/)
+})
+
+test("a page's way back is as wide as its words, as iOS's: the rest of its row leads nowhere", async ({ page }) => {
+  const { dilshod } = seedCustomers()
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await page.goto(`/customers/${dilshod.id}`)
+  await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
+
+  const back = (await page.getByRole("main").getByRole("link", { name: "Mijozlar", exact: true }).boundingBox())!
+  const main = (await page.getByRole("main").boundingBox())!
+  expect(back.width).toBeLessThan(main.width / 2)
+  // A tap at the row's other end stays on the page.
+  await page.mouse.click(main.x + main.width - 40, back.y + back.height / 2)
+  await page.waitForTimeout(500)
+  await expect(page).toHaveURL(/\/customers\/\d+$/)
 })
 
 test("the shell is headed by Hisob24's logo on a wide screen, the company's name under it, its mark when folded; a phone shows the company on the home", async ({
