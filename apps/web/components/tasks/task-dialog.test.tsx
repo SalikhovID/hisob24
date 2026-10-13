@@ -31,13 +31,12 @@ const titles = () =>
     .getAllByRole("link")
     .map((row) => rowParts(row).title)
 
-test("the dialog: the type on top, the customer on the left and the task on the right; it opens in the first stage, with the deadline empty and nobody assigned", async () => {
+test("the sheet: the type on top, the customer and then the task; it opens in the first stage, with the deadline empty and nobody assigned", async () => {
   await signIn(VALI)
   await chooseCompany(1)
   seedTasks()
   const { user, dialog } = await openDialog()
 
-  expect(dialog).toHaveClass("sm:max-w-3xl")
   expect(within(dialog).getByText("Turni tanlang, mijozni biriktiring va vazifani to'ldiring.")).toBeInTheDocument()
   const types = within(dialog).getByRole("radiogroup", { name: "Vazifa turi" })
   expect(within(types).getAllByRole("radio").map((radio) => [radio.textContent, radio.getAttribute("aria-checked")])).toEqual([
@@ -114,7 +113,7 @@ test("a task with a new customer is entered in one go, and the list shows it at 
   expect(entered.customerId).toBe(db.customers.at(-1)!.id)
 })
 
-test("a customer that is there is taken from the suggestions: its fields fill in and lock, and the task is entered for it", async () => {
+test("a customer that is there is taken from the suggestions: it stands in a card of its own, and the task is entered for it", async () => {
   await signIn(ALI)
   const { dilshod } = seedTasks()
   // Its name is gone (its source stays): a required field left empty does
@@ -128,15 +127,14 @@ test("a customer that is there is taken from the suggestions: its fields fill in
   await user.type(phone, "911")
   await user.click(await screen.findByRole("option", { name: /91 111 22 33/ }))
 
-  expect(phone).toHaveValue("91 111 22 33")
-  expect(phone).toBeDisabled()
-  expect(within(customer).getByRole("radio", { name: "Jismoniy" })).toHaveAttribute("aria-checked", "true")
-  expect(within(customer).getByRole("radio", { name: "Yuridik" })).toHaveAttribute("aria-disabled", "true")
-  expect(within(customer).getByLabelText("F.I.Sh.")).toBeDisabled()
-  expect(within(customer).getByLabelText("Manba")).toBeDisabled()
-  expect(within(customer).getByLabelText("Manba")).toHaveTextContent("Instagram")
+  // The customer that is there stands in a card of its own: its phone, its
+  // type and its answers are not asked about any more.
   const linked = within(customer).getByRole("region", { name: "Mavjud mijoz" })
   expect(within(linked).getByText("+998 91 111 22 33")).toBeInTheDocument()
+  expect(within(linked).getByText("Jismoniy")).toBeInTheDocument()
+  expect(within(customer).queryByRole("combobox", { name: "Telefon raqami" })).not.toBeInTheDocument()
+  expect(within(customer).queryByRole("radiogroup", { name: "Mijoz turi" })).not.toBeInTheDocument()
+  expect(within(customer).queryByLabelText("F.I.Sh.")).not.toBeInTheDocument()
   expect(within(linked).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
 
   const task = within(dialog).getByRole("group", { name: "Vazifa" })
@@ -149,14 +147,14 @@ test("a customer that is there is taken from the suggestions: its fields fill in
   expect(db.customers.filter((c) => c.companyId === 1)).toHaveLength(3)
 })
 
-test("Boshqa mijoz lets the customer go: the fields unlock and empty", async () => {
+test("Boshqa mijoz lets the customer go: the phone and the fields come back, empty", async () => {
   await signIn(ALI)
   seedTasks()
   const { user, dialog } = await openDialog()
   const customer = within(dialog).getByRole("group", { name: "Mijoz" })
   await user.type(within(customer).getByRole("combobox", { name: "Telefon raqami" }), "911")
   await user.click(await screen.findByRole("option", { name: /Dilshod Karimov/ }))
-  expect(within(customer).getByLabelText("F.I.Sh.")).toHaveValue("Dilshod Karimov")
+  expect(within(within(customer).getByRole("region", { name: "Mavjud mijoz" })).getByText("Dilshod Karimov")).toBeInTheDocument()
 
   await user.click(within(customer).getByRole("button", { name: "Boshqa mijoz" }))
 
@@ -214,8 +212,8 @@ test("a phone that another customer has leads to that customer: linked at a pres
 
   await user.click(within(dialog).getByRole("button", { name: "Shu mijozni biriktirish" }))
 
-  expect(await within(customer).findByRole("region", { name: "Mavjud mijoz" })).toBeInTheDocument()
-  expect(within(customer).getByLabelText("F.I.Sh.")).toHaveValue("Dilshod Karimov")
+  const linked = await within(customer).findByRole("region", { name: "Mavjud mijoz" })
+  expect(within(linked).getByText("Dilshod Karimov")).toBeInTheDocument()
   expect(within(dialog).queryByText("Bu raqamli mijoz allaqachon bor")).not.toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())

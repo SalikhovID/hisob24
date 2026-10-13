@@ -1,13 +1,13 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Radio } from "@base-ui/react/radio"
-import { RadioGroup } from "@base-ui/react/radio-group"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import { PendingButton } from "@/components/pending-button"
+import { ChoiceChips } from "@/components/kit/chips"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
 import { answersDefaults } from "@/lib/fields"
@@ -15,7 +15,7 @@ import { formatPhoneInput } from "@/lib/phone"
 import { customerKey, customersKey, tasksKey } from "@/lib/queries"
 import { type TaskForm, type TaskOutput, taskDefaults, taskSchema } from "@/lib/tasks"
 import type { Customer, CustomerDropdown, CustomerType, Member, TaskStage, TaskType } from "@/lib/types"
-import { choice, choices, CustomerSection, TaskFields, TaskRefusal } from "./task-form"
+import { CustomerSection, FormSection, TaskFields, TaskRefusal } from "./task-form"
 
 // AddTaskDialog enters a task into the company: the type on top, the
 // customer on the left (one that is there, taken from the suggestions, or
@@ -131,50 +131,45 @@ export function AddTaskDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent tall>
         <DialogHeader>
           <DialogTitle>Vazifa qo&apos;shish</DialogTitle>
           <DialogDescription>Turni tanlang, mijozni biriktiring va vazifani to&apos;ldiring.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((task) => add.mutate(task))} noValidate className="space-y-4">
+        <SheetForm onSubmit={form.handleSubmit((task) => add.mutate(task))}>
+          {add.isError && <TaskRefusal error={add.error} onLink={linkById} />}
           {/* With one type there is nothing to choose. */}
           {types.length > 1 && (
-            <RadioGroup aria-label="Vazifa turi" value={String(type.id)} onValueChange={(value) => changeType(Number(value))} className={choices}>
-              {types.map((candidate) => (
-                <Radio.Root key={candidate.id} value={String(candidate.id)} className={choice}>
-                  {candidate.name}
-                </Radio.Root>
-              ))}
-            </RadioGroup>
+            <ChoiceChips
+              label="Vazifa turi"
+              value={String(type.id)}
+              onChange={(value) => changeType(Number(value))}
+              options={types.map((candidate) => ({ value: String(candidate.id), label: candidate.name }))}
+            />
           )}
-          <div className="grid gap-6 md:grid-cols-2">
-            <fieldset className="min-w-0">
-              <legend className="mb-3 text-sm font-semibold">Mijoz</legend>
-              <CustomerSection
-                control={form.control}
-                companyId={companyId}
-                customerTypes={customerTypes}
-                customerType={customerType}
-                canCreate={canCreateCustomer}
-                onChangeType={changeCustomerType}
-                dropdowns={dropdowns}
-                linked={linked}
-                onLink={link}
-                onUnlink={unlink}
-              />
-            </fieldset>
-            <fieldset className="min-w-0">
-              <legend className="mb-3 text-sm font-semibold">Vazifa</legend>
-              <TaskFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} locationId={locationId} />
-            </fieldset>
-          </div>
-          {add.isError && <TaskRefusal error={add.error} onLink={linkById} />}
+          <FormSection legend="Mijoz">
+            <CustomerSection
+              control={form.control}
+              companyId={companyId}
+              customerTypes={customerTypes}
+              customerType={customerType}
+              canCreate={canCreateCustomer}
+              onChangeType={changeCustomerType}
+              dropdowns={dropdowns}
+              linked={linked}
+              onLink={link}
+              onUnlink={unlink}
+            />
+          </FormSection>
+          <FormSection legend="Vazifa">
+            <TaskFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} locationId={locationId} />
+          </FormSection>
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={add.isPending}>
+            <MainButton type="submit" pending={add.isPending}>
               Qo&apos;shish
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )

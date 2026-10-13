@@ -6,7 +6,8 @@ import { PencilIcon } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import { PendingButton } from "@/components/pending-button"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +23,7 @@ import { api, call } from "@/lib/api"
 import { taskHistoryKey, taskKey, tasksKey } from "@/lib/queries"
 import { type TaskForm, type TaskOutput, taskDefaults, taskSchema } from "@/lib/tasks"
 import type { CustomerDropdown, Member, Task, TaskStage, TaskType } from "@/lib/types"
-import { LinkedCustomerCard, TaskFields } from "./task-form"
+import { FormSection, LinkedCustomerCard, TaskFields } from "./task-form"
 
 // EditTaskDialog saves a task with another title, deadline, stage, assignee
 // and answers. Its type and its customer were chosen when it was entered
@@ -100,37 +101,33 @@ export function EditTaskDialog({
           Tahrirlash
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent tall>
         <DialogHeader>
           <DialogTitle>Vazifani tahrirlash</DialogTitle>
           <DialogDescription>{type.name} · mijoz va tur o&apos;zgarmaydi</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((edited) => save.mutate(edited))} noValidate className="space-y-4">
-          <div className="grid gap-6 md:grid-cols-2">
-            <fieldset className="min-w-0">
-              <legend className="mb-3 text-sm font-semibold">Mijoz</legend>
-              <LinkedCustomerCard name={task.customer.name} phone={task.customer.phone} href={`/customers/${task.customer.id}`} />
-            </fieldset>
-            <fieldset className="min-w-0">
-              <legend className="mb-3 text-sm font-semibold">Vazifa</legend>
-              <TaskFields
-                control={form.control}
-                type={type}
-                stages={stages}
-                members={members}
-                dropdowns={dropdowns}
-                locationId={task.location_id}
-                task={task}
-              />
-            </fieldset>
-          </div>
-          {save.isError && <Refusal>{save.error.message}</Refusal>}
+        <SheetForm onSubmit={form.handleSubmit((edited) => save.mutate(edited))}>
+          {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
+          <FormSection legend="Mijoz">
+            <LinkedCustomerCard name={task.customer.name} phone={task.customer.phone} href={`/customers/${task.customer.id}`} seed={task.customer.id} />
+          </FormSection>
+          <FormSection legend="Vazifa">
+            <TaskFields
+              control={form.control}
+              type={type}
+              stages={stages}
+              members={members}
+              dropdowns={dropdowns}
+              locationId={task.location_id}
+              task={task}
+            />
+          </FormSection>
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
+            <MainButton type="submit" pending={save.isPending}>
               Saqlash
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )
