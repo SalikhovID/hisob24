@@ -68,7 +68,8 @@ test("the tab bar names the sections under the page, for a phone; there is no me
     "Mahsulotlar",
     "Sotuv",
   ])
-  expect(within(tabBar).getByRole("button", { name: "Yana" })).toBeInTheDocument()
+  // The rest of the sections are the profile page's: no «Yana».
+  expect(within(tabBar).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
   expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
 })

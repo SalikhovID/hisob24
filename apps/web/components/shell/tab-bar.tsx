@@ -1,83 +1,73 @@
 "use client"
 
-import { EllipsisIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
-import { barItems, isCurrentItem, navFor } from "@/lib/nav"
+import type { CSSProperties } from "react"
+import { tabIcons } from "@/components/kit/tab-icons"
+import { barItems, isCurrentItem, isRootPath, navFor } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
-import { MoreSheet } from "./more-sheet"
-import { NavOrderDialog } from "./nav-order-dialog"
 
-const tab =
-  "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 pt-1.5 pb-1 text-[0.6875rem] leading-4 font-medium transition-colors"
-const pill = "flex h-7 w-12 items-center justify-center rounded-full"
+// The tab bar's tabs are 72px wide; the lens under the current one moves by
+// a tab.
+const TAB = 72
 
-// TabBar is the app's sections along the bottom of a narrow screen (a phone,
-// the Telegram Mini App), where the sidebar is hidden: each member sees the
-// sections their permissions open, in their own order (logic/roles.md,
-// section 8), the page's one marked by a filled pill behind its icon (the
-// sidebar's accent, not the brand color). Up to five sections stand in the
-// bar; past that, four and «Yana», which holds the rest and the way to put
-// the sections in one's own order. It keeps clear of the phone's home
-// indicator and of Telegram's own bottom edge.
+// TabBar is the prototype's floating «liquid glass» bar along the bottom of
+// a narrow screen (a phone, the Telegram Mini App), where the sidebar is
+// hidden: the home and the first four of the member's sections, in their
+// own order (logic/roles.md, section 8), each a filled icon over its name.
+// The rest are the profile page's. A lens of glass stands under the page's
+// section and slides to the next. The bar shows on a section's own pages;
+// inside one (a record, a form, the profile) it steps down out of the way,
+// and the page leads back. It keeps clear of the phone's home indicator and
+// of Telegram's own bottom edge.
 export function TabBar() {
   const me = useMe()
   const pathname = usePathname()
-  const { shown, more } = barItems(navFor(me.data?.permissions, me.data?.nav_order))
-  const [moreOpen, setMoreOpen] = useState(false)
-  const [orderOpen, setOrderOpen] = useState(false)
-  const moreCurrent = more.some((item) => isCurrentItem(item, pathname))
+  const { shown } = barItems(navFor(me.data?.permissions, me.data?.nav_order))
+  const current = shown.findIndex((item) => isCurrentItem(item, pathname))
+  const hidden = !isRootPath(pathname)
 
   return (
-    <>
-      <nav aria-label="Bo'limlar" className="flex shrink-0 border-t bg-sidebar text-sidebar-foreground pb-safe md:hidden">
-        {shown.map((item) => {
-          const current = isCurrentItem(item, pathname)
-          const Icon = item.icon
-          return (
-            <Link
-              key={item.key}
-              href={item.href}
-              aria-current={current ? "page" : undefined}
-              className={cn(tab, current ? "text-sidebar-accent-foreground" : "text-muted-foreground hover:text-sidebar-accent-foreground")}
-            >
-              <span className={cn(pill, current && "bg-sidebar-accent")}>
-                <Icon strokeWidth={current ? 2.5 : 1.5} className="size-5" aria-hidden="true" />
-              </span>
-              <span className="max-w-full truncate">{item.label}</span>
-            </Link>
-          )
-        })}
-        {more.length > 0 && (
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={moreOpen}
-            aria-current={moreCurrent ? "page" : undefined}
-            onClick={() => setMoreOpen(true)}
-            className={cn(tab, moreCurrent ? "text-sidebar-accent-foreground" : "text-muted-foreground hover:text-sidebar-accent-foreground")}
-          >
-            <span className={cn(pill, moreCurrent && "bg-sidebar-accent")}>
-              <EllipsisIcon strokeWidth={moreCurrent ? 2.5 : 1.5} className="size-5" aria-hidden="true" />
-            </span>
-            <span className="max-w-full truncate">Yana</span>
-          </button>
-        )}
-      </nav>
-      {more.length > 0 && (
-        <MoreSheet
-          items={more}
-          open={moreOpen}
-          onOpenChange={setMoreOpen}
-          onCustomize={() => {
-            setMoreOpen(false)
-            setOrderOpen(true)
-          }}
-        />
+    <nav
+      aria-label="Bo'limlar"
+      aria-hidden={hidden || undefined}
+      inert={hidden}
+      data-slot="tab-bar"
+      data-hidden={hidden || undefined}
+      style={{ "--i": String(Math.max(current, 0)) } as CSSProperties}
+      className={cn(
+        "fixed bottom-[calc(22px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] left-1/2 z-20 flex h-16 -translate-x-1/2 rounded-[32px] bg-glass p-1 shadow-bar ring-[0.5px] ring-glass-edge ring-inset backdrop-blur-[14px] backdrop-brightness-[1.04] backdrop-saturate-[1.9] transition-[translate,opacity] duration-[380ms] ease-drawer select-none md:hidden",
+        hidden && "pointer-events-none translate-y-[140%] opacity-0",
       )}
-      <NavOrderDialog open={orderOpen} onOpenChange={setOrderOpen} />
-    </>
+    >
+      <span
+        aria-hidden="true"
+        data-slot="tab-lens"
+        className={cn(
+          "absolute top-1 left-1 z-[1] h-14 rounded-[28px] bg-muted transition-[translate,opacity] duration-[450ms] ease-spring",
+          current < 0 && "opacity-0",
+        )}
+        style={{ width: TAB, translate: `calc(var(--i) * ${TAB}px) 0` }}
+      />
+      {shown.map((item) => {
+        const on = isCurrentItem(item, pathname)
+        const Icon = tabIcons[item.key]
+        return (
+          <Link
+            key={item.key}
+            href={item.href}
+            aria-current={on ? "page" : undefined}
+            className={cn(
+              "relative z-[2] flex h-14 w-[72px] flex-col items-center justify-center gap-[3px] rounded-[28px] text-[10.5px] font-semibold tracking-[-0.01em] outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              on ? "text-primary" : "text-foreground",
+            )}
+          >
+            <Icon className="size-[26px]" />
+            <span className="max-w-full truncate px-0.5">{item.label}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }

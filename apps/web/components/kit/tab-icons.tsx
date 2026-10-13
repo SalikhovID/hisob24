@@ -1,8 +1,10 @@
 import { type ComponentProps, type FC, useId } from "react"
+import { MARK_24 } from "@/components/logo"
 import type { NavKey } from "@/lib/nav"
 
 // The tab bar's icons are the prototype's filled marks, 28×28, in the
-// current color; the ones with a cut-out (the home's "24", the tasks' tick,
+// current color; the ones with a cut-out (the home's "24", the mark's own
+// shape, the tasks' tick,
 // the box, the bag, the warehouse, the wallet) mask it with an id of their
 // own, so two of a kind on one page do not share one.
 type Props = ComponentProps<"svg">
@@ -15,19 +17,9 @@ const Home: FC<Props> = (props) => {
     <svg {...frame(props)}>
       <mask id={id}>
         <rect width="28" height="28" fill="#fff" />
-        <text
-          x="14"
-          y="18.6"
-          textAnchor="middle"
-          fontFamily="-apple-system, Geist, system-ui, sans-serif"
-          fontSize="11.5"
-          fontWeight="800"
-          fontStyle="italic"
-          letterSpacing="-.6"
-          fill="#000"
-        >
-          24
-        </text>
+        {/* The mark's own "24", cut out of the tile (a shape, not text: the
+            tab's name is its label's). */}
+        <path d={MARK_24} fill="#000" fillRule="evenodd" clipRule="evenodd" transform="translate(6.6 9.4) scale(0.0574) translate(-218.22 -173)" />
       </mask>
       <rect x="3" y="3" width="22" height="22" rx="7" mask={`url(#${id})`} />
     </svg>
