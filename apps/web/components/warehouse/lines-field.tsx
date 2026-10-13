@@ -16,7 +16,7 @@ type WithLines = { items: LineForm[] }
 
 // LineInput is a number in a line's card (its quantity, its price): the
 // name small over the input, the unit beside it, the error under it.
-function LineInput<T extends FieldValues, TOut extends FieldValues>({
+export function LineInput<T extends FieldValues, TOut extends FieldValues>({
   control,
   name,
   label,

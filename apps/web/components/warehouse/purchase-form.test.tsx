@@ -46,13 +46,13 @@ test("a purchase is entered into the current location: the supplier and the prod
 
   await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
   const payment = paymentLine(1)
-  expect(within(payment).getByRole("combobox", { name: "Akkaunt" })).toHaveTextContent("Naqd (so'm)")
+  expect(within(payment).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Naqd (so'm)")
   await user.click(within(payment).getByRole("button", { name: "To'liq" }))
   expect(within(payment).getByLabelText("Summa")).toHaveValue("9501.5")
-  expect(screen.getByText("0 so'm")).toBeInTheDocument()
+  expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 0 so'm")
   await user.clear(within(payment).getByLabelText("Summa"))
   await user.type(within(payment).getByLabelText("Summa"), "5 000")
-  expect(screen.getByText("4 501,5 so'm")).toBeInTheDocument()
+  expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 4 501,5 so'm")
   await user.type(screen.getByLabelText("Izoh"), " Ertalab ")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 

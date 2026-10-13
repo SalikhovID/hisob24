@@ -2,22 +2,23 @@
 
 import { PlusIcon, XIcon } from "lucide-react"
 import { type FieldPath, type FieldValues, useFieldArray, type UseFormReturn, useWatch } from "react-hook-form"
-import { SelectField } from "@/components/select-field"
-import { TextField } from "@/components/text-field"
-import { Button } from "@/components/ui/button"
+import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
+import { SelectRow } from "@/components/kit/picker-sheet"
 import { accountCurrency, accountOptions, convert, currencyOf } from "@/lib/currencies"
 import { formatMoney } from "@/lib/format"
 import type { AppAccount, CompanyCurrency } from "@/lib/types"
 import { amountOf, type PaymentLineForm } from "@/lib/warehouse"
+import { LineInput } from "./lines-field"
 
-// PaymentsField is the payments entered with a purchase (logic/warehouse.md,
-// 4.1) or a sale (logic/sales.md, 3.1): lines of an account and an amount
-// in the account's currency.
-// «To'liq» fills a line with what is left of the total, in the line's
-// currency by the rates in force; what is left shows under the lines.
 // WithPayments is a form that holds the payment lines of a document.
 type WithPayments = { payments: PaymentLineForm[] }
 
+// PaymentsField is the payments entered with a purchase (logic/warehouse.md,
+// 4.1) or a sale (logic/sales.md, 3.1) as the prototype's cards: each an
+// account picked in a sheet and an amount in the account's currency, with
+// «To'liq» to fill it with what is left of the total (in the line's
+// currency by the rates in force); a row adds one; what is left is said
+// under them.
 export function PaymentsField<TForm extends WithPayments & FieldValues, TOut extends FieldValues>({
   form,
   accounts,
@@ -57,50 +58,64 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
   }
 
   return (
-    <section aria-labelledby="document-payments" className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 id="document-payments" className="text-base font-semibold">
-          {heading}
-        </h2>
-        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => append({ bank_account_id: first ? String(first.id) : "", amount: "" } as never)}>
-          <PlusIcon />
-          To&apos;lov qo&apos;shish
-        </Button>
-      </div>
+    <section aria-labelledby="document-payments">
+      <SectionHeading>
+        <span id="document-payments">{heading}</span>
+      </SectionHeading>
       {fields.map((line, index) => {
         const current = lines[index]
+        const own = accountCurrency(accounts, currencies, Number(current?.bank_account_id))
         return (
-          <fieldset key={line.id} aria-label={`${index + 1}-to'lov`} className="grid gap-3 rounded-xl border bg-card p-3 md:grid-cols-[minmax(0,1fr)_10rem_auto_2.5rem] md:items-start">
-            <SelectField
-              control={form.control}
-              name={path(`payments.${index}.bank_account_id`)}
-              label="Akkaunt"
-              placeholder="Tanlang"
-              options={accountOptions(accounts, currencies, Number(current?.bank_account_id))}
-            />
-            <TextField control={form.control} name={path(`payments.${index}.amount`)} label="Summa" inputMode="decimal" autoComplete="off" />
-            <Button type="button" variant="outline" className="h-9 md:mt-7" disabled={pending} onClick={() => fill(index)}>
-              To&apos;liq
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-destructive md:mt-7"
-              aria-label={`${index + 1}-to'lovni olib tashlash`}
-              onClick={() => remove(index)}
-            >
-              <XIcon />
-            </Button>
+          <fieldset key={line.id} aria-label={`${index + 1}-to'lov`} data-slot="payment-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[20px] bg-card">
+            <div className="flex items-center">
+              <div className="min-w-0 flex-1">
+                <SelectRow
+                  control={form.control}
+                  name={path(`payments.${index}.bank_account_id`)}
+                  label="Akkaunt"
+                  options={accountOptions(accounts, currencies, Number(current?.bank_account_id))}
+                  disabled={pending}
+                />
+              </div>
+              <button
+                type="button"
+                aria-label={`${index + 1}-to'lovni olib tashlash`}
+                disabled={pending}
+                onClick={() => remove(index)}
+                className="mr-1.5 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <XIcon aria-hidden="true" strokeWidth={2.4} className="size-[18px]" />
+              </button>
+            </div>
+            <div className="flex items-center border-t-[0.5px] border-border pr-3">
+              <div className="min-w-0 flex-1">
+                <LineInput control={form.control} name={path(`payments.${index}.amount`)} label="Summa" suffix={own.symbol} disabled={pending} />
+              </div>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => fill(index)}
+                className="h-[34px] shrink-0 rounded-full bg-primary-soft px-3.5 text-md font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                To&apos;liq
+              </button>
+            </div>
           </fieldset>
         )
       })}
-      {fields.length > 0 && (
-        <p className="flex items-baseline justify-end gap-2 text-sm">
-          <span className="text-muted-foreground">Qolgan</span>
-          <span className="font-medium tabular-nums">{formatMoney(String(remaining), currency)}</span>
-        </p>
-      )}
+      <Group className="mb-3.5">
+        <Row
+          variant="link"
+          onClick={pending ? undefined : () => append({ bank_account_id: first ? String(first.id) : "", amount: "" } as never)}
+          title={
+            <span className="flex items-center gap-2">
+              <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
+              To&apos;lov qo&apos;shish
+            </span>
+          }
+        />
+      </Group>
+      {fields.length > 0 && <Foot className="-mt-2">Qolgan: {formatMoney(String(remaining), currency)}</Foot>}
     </section>
   )
 }

@@ -28,7 +28,7 @@ test("a purchase is edited from its fields as they are: a line changed, a line t
   expect(within(line(2)).getByText("Nok")).toBeInTheDocument()
   expect(within(line(2)).getByLabelText("Miqdor")).toHaveValue("3.000")
   const payment = screen.getByRole("group", { name: "1-to'lov" })
-  expect(within(payment).getByRole("combobox", { name: "Akkaunt" })).toHaveTextContent("Naqd (so'm)")
+  expect(within(payment).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Naqd (so'm)")
   expect(within(payment).getByLabelText("Summa")).toHaveValue("5000.00")
   expect(screen.getByLabelText("Izoh")).toHaveValue("Ertalab")
   expect(screen.getByText("20 001,5 so'm")).toBeInTheDocument()
