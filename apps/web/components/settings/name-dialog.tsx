@@ -7,9 +7,11 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { ActionTooltip } from "@/components/action-tooltip"
-import { PendingButton } from "@/components/pending-button"
+import { TextRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
 import {
   Dialog,
   DialogContent,
@@ -19,7 +21,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { FieldGroup } from "@/components/ui/field"
 import { nameSchema } from "@/lib/schemas"
 
 type Input = z.input<typeof nameSchema>
@@ -28,7 +29,8 @@ type Output = z.output<typeof nameSchema>
 // NameDialog asks for one name and hands it on: it adds a customer type, a
 // dropdown or an option, or gives one of them another name. What to do with
 // the name is the caller's (onSubmit); a refusal shows the API's reason in
-// the dialog, which stays open.
+// the dialog, which stays open. As the prototype's sheet: the name a row,
+// the main button under it.
 export function NameDialog({
   title,
   description,
@@ -37,6 +39,9 @@ export function NameDialog({
   done,
   trigger,
   tooltip,
+  placeholder,
+  open: openGiven,
+  onOpenChange,
   onSubmit,
 }: {
   title: string
@@ -47,12 +52,20 @@ export function NameDialog({
   submit: string
   done: string
   // trigger is the button that opens the dialog; tooltip says what an icon
-  // button does.
-  trigger: ReactElement
+  // button does. open, with onOpenChange, opens it from outside instead (a
+  // page's plus, a row): it has no button then.
+  trigger?: ReactElement
   tooltip?: string
+  // placeholder is the name's example in its row.
+  placeholder?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onSubmit: (name: string) => Promise<unknown>
 }) {
-  const [open, setOpen] = useState(false)
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const form = useForm<Input, unknown, Output>({ resolver: zodResolver(nameSchema), defaultValues: { name: initial } })
   const save = useMutation({
     mutationFn: ({ name }: Output) => onSubmit(name),
@@ -74,23 +87,23 @@ export function NameDialog({
   const opener = <DialogTrigger render={trigger} />
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      {tooltip ? <ActionTooltip label={tooltip}>{opener}</ActionTooltip> : opener}
+      {controlled ? null : tooltip ? <ActionTooltip label={tooltip}>{opener}</ActionTooltip> : opener}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((values) => save.mutate(values))} noValidate className="space-y-4">
-          <FieldGroup>
-            <TextField control={form.control} name="name" label="Nomi" autoComplete="off" />
-          </FieldGroup>
-          {save.isError && <Refusal>{save.error.message}</Refusal>}
+        <SheetForm onSubmit={form.handleSubmit((values) => save.mutate(values))}>
+          {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
+          <Group>
+            <TextRow control={form.control} name="name" label="Nomi" placeholder={placeholder} autoComplete="off" />
+          </Group>
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
+            <MainButton type="submit" pending={save.isPending}>
               {submit}
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )
