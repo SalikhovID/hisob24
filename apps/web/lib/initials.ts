@@ -21,3 +21,10 @@ export function tone(seed: string | number): number {
   for (const char of String(seed)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
   return hash % TONES
 }
+
+// shortName is a name as the prototype says it where room is short (the
+// home's head, a card): the first word and the next one's first letter.
+export function shortName(name: string): string {
+  const [first = "", second] = name.trim().split(/\s+/)
+  return second ? `${first} ${second.charAt(0)}.` : first
+}

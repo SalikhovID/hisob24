@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { initials, TONES, tone } from "./initials"
+import { initials, shortName, TONES, tone } from "./initials"
 
 test("initials are the first letters of a name's first two words", () => {
   expect(initials("Ali Valiyev")).toBe("AV")
@@ -38,4 +38,11 @@ test("tone is a stable place in the palette, and not the same one for everybody"
   })
   expect(new Set(tones).size).toBeGreaterThan(2)
   expect(tone(1)).toBe(tone("1"))
+})
+
+test("a short name is the first word and the next one's first letter", () => {
+  expect(shortName("Ali Valiyev")).toBe("Ali V.")
+  expect(shortName("Dilshod Karimov Akbarovich")).toBe("Dilshod K.")
+  expect(shortName("Ali")).toBe("Ali")
+  expect(shortName("  Ali   Valiyev ")).toBe("Ali V.")
 })
