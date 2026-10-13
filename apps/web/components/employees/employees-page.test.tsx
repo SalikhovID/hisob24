@@ -175,7 +175,7 @@ test("an employee is added from the dialog and joins the list", async () => {
 
   await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
-  await user.type(within(dialog).getByLabelText("Telefon raqami"), "907778899")
+  await user.type(within(dialog).getByLabelText("Telefon"), "907778899")
   await user.type(within(dialog).getByLabelText("Ism"), "Yangi Xodim")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -199,7 +199,7 @@ test("the add-employee dialog says what is missing, and why the API refused", as
   expect(within(dialog).getByText("Ismni kiriting")).toBeInTheDocument()
 
   // The owner's own number is a member already.
-  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901234567")
+  await user.type(within(dialog).getByLabelText("Telefon"), "901234567")
   await user.type(within(dialog).getByLabelText("Ism"), "Ali")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).toBeInTheDocument()
@@ -214,7 +214,7 @@ test("a dialog opened again starts empty, with the last refusal gone", async () 
   await rows()
   await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
   let dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
-  await user.type(within(dialog).getByLabelText("Telefon raqami"), "901234567")
+  await user.type(within(dialog).getByLabelText("Telefon"), "901234567")
   await user.type(within(dialog).getByLabelText("Ism"), "Ali")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   await within(dialog).findByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")
@@ -224,7 +224,7 @@ test("a dialog opened again starts empty, with the last refusal gone", async () 
   await user.click(screen.getByRole("button", { name: "Xodim qo'shish" }))
   dialog = await screen.findByRole("dialog", { name: "Xodim qo'shish" })
 
-  expect(within(dialog).getByLabelText("Telefon raqami")).toHaveValue("")
+  expect(within(dialog).getByLabelText("Telefon")).toHaveValue("")
   expect(within(dialog).getByLabelText("Ism")).toHaveValue("")
   expect(within(dialog).queryByText("Bu raqam kompaniyangizga allaqachon qo'shilgan")).not.toBeInTheDocument()
 })

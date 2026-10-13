@@ -7,10 +7,11 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
-import { PendingButton } from "@/components/pending-button"
-import { PhoneField } from "@/components/phone-field"
+import { PhoneRow, TextRow } from "@/components/kit/form-row"
+import { Foot, Group } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,7 +22,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { employeesKey } from "@/lib/queries"
 import { employeeSchema } from "@/lib/schemas"
@@ -34,9 +34,23 @@ const empty: Input = { phone: "", full_name: "" }
 // AddEmployeeDialog adds a phone to the owner's company as an employee,
 // under the name the owner gives. A phone that works in another company is
 // added the same way and from then on is in both; one that is in this
-// company already is refused, and the API's reason shows in the dialog.
-export function AddEmployeeDialog({ companyId }: { companyId: number }) {
-  const [open, setOpen] = useState(false)
+// company already is refused, and the API's reason shows in the dialog. As
+// the prototype's sheet: the phone and the name rows, what a new employee
+// may do said under them. open, with onOpenChange, opens it from outside
+// (the page's plus): it has no button then.
+export function AddEmployeeDialog({
+  companyId,
+  open: openGiven,
+  onOpenChange,
+}: {
+  companyId: number
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const form = useForm<Input, unknown, Output>({ resolver: zodResolver(employeeSchema), defaultValues: empty })
   const add = useMutation({
@@ -59,10 +73,12 @@ export function AddEmployeeDialog({ companyId }: { companyId: number }) {
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
-        <UserPlusIcon />
-        Xodim qo&apos;shish
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
+          <UserPlusIcon />
+          Xodim qo&apos;shish
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Xodim qo&apos;shish</DialogTitle>
@@ -70,18 +86,19 @@ export function AddEmployeeDialog({ companyId }: { companyId: number }) {
             Xodim shu raqam bilan tizimga kiradi: SMS kod yoki Telegram bot orqali.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((employee) => add.mutate(employee))} noValidate className="space-y-4">
-          <FieldGroup>
-            <PhoneField control={form.control} name="phone" label="Telefon raqami" autoComplete="off" />
-            <TextField control={form.control} name="full_name" label="Ism" autoComplete="off" />
-          </FieldGroup>
-          {add.isError && <Refusal>{add.error.message}</Refusal>}
+        <SheetForm onSubmit={form.handleSubmit((employee) => add.mutate(employee))}>
+          {add.isError && <Refusal className="mb-4">{add.error.message}</Refusal>}
+          <Group>
+            <PhoneRow control={form.control} name="phone" />
+            <TextRow control={form.control} name="full_name" label="Ism" placeholder="Ism Familiya" autoComplete="off" />
+          </Group>
+          <Foot className="-mt-4">Yangi xodim rolsiz va hamma lokatsiyada ishlaydi. Keyin o&apos;zgartirish mumkin.</Foot>
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={add.isPending}>
+            <MainButton type="submit" pending={add.isPending}>
               Qo&apos;shish
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )
