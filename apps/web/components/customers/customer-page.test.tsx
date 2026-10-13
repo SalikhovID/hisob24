@@ -451,13 +451,14 @@ test("the owner sees what the customer owes and their statement, with the sale a
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
   const balance = await screen.findByRole("region", { name: "Balans" })
   expect(figure(balance)).toBe("Qarz 7 000 so'm")
-  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
   // The sale, and the payment entered with it, each lead to the sale.
-  const links = within(statement).getAllByRole("link", { name: "Sotuv № 1" })
+  const links = within(statement).getAllByRole("link", { name: /Sotuv № 1/ })
   expect(links).toHaveLength(2)
   expect(links[0]).toHaveAttribute("href", `/sales/${sale.id}`)
-  expect(screen.getByRole("button", { name: "To'lov qo'shish" })).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" })).toBeInTheDocument()
+  // A payment is the page's tile; an opening balance the statement's heading.
+  expect(within(screen.getByRole("group", { name: "Amallar" })).getByRole("button", { name: "To'lov" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Boshlang'ich" })).toBeInTheDocument()
 })
 
 test("whoever may see the sales alone sees the balance and the statement, with no way to add to them", async () => {
@@ -475,9 +476,8 @@ test("whoever may see the sales alone sees the balance and the statement, with n
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
   expect(figure(await screen.findByRole("region", { name: "Balans" }))).toBe("Qarz 7 000 so'm")
-  expect(await screen.findByRole("table", { name: "Hisob harakati" })).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Boshlang'ich qarz / avans" })).not.toBeInTheDocument()
+  expect(await screen.findByRole("list", { name: "Hisob harakati" })).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Boshlang'ich" })).not.toBeInTheDocument()
   expect(within(screen.getByRole("group", { name: "Amallar" })).queryByRole("button", { name: "To'lov" })).not.toBeInTheDocument()
 })
 

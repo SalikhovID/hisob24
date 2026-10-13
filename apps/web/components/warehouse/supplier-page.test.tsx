@@ -3,6 +3,7 @@ import { expect, test } from "vitest"
 import { ALI, seedCatalog, seedPayment, seedWarehouse, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpening } from "@/test/stock"
@@ -42,28 +43,18 @@ test("the supplier page: its facts, what is owed, its statement, and the actions
 
   // The statement: the documents in time, the newest first, each with how
   // it changed what is owed and what was owed after it.
-  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
-  expect(within(statement).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Hujjat", "Vaqt", "Summa", "Qarz, so'm", "Balans, so'm", "Qo'shgan", "Amallar"])
-  const rows = within(statement).getAllByRole("row").slice(1)
-  expect(rows).toHaveLength(3)
-  expect(within(rows[0]).getByText("To'lov")).toBeInTheDocument()
-  expect(within(rows[0]).getAllByText("Naqd")).toHaveLength(1)
-  expect(within(rows[0]).getByText("03.10.2026 09:00")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("1 200,50 so'm")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("−1 200,50")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("13 801")).toBeInTheDocument()
-  expect(within(rows[0]).getByRole("button", { name: "Tahrirlash: 1\u00a0200,50" })).toBeInTheDocument()
-  expect(within(rows[0]).getByRole("button", { name: "O'chirish: 1\u00a0200,50" })).toBeInTheDocument()
-  expect(within(rows[1]).getByRole("link", { name: "Xarid № 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
-  expect(within(rows[1]).getByText("5 000 so'm")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("−5 000")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("15 001,50")).toBeInTheDocument()
-  expect(within(rows[1]).queryAllByRole("button")).toHaveLength(0)
-  expect(within(rows[2]).getByRole("link", { name: "Xarid № 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
-  expect(within(rows[2]).getByText("20 001,50 so'm")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("+20 001,50")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("20 001,50")).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "To'lov qo'shish" })).toBeInTheDocument()
+  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const rows = within(statement).getAllByRole("listitem").map((item) => item.firstElementChild as HTMLElement)
+  expect(rows.map((row) => [rowParts(row).title, rowParts(row).sub?.replace(/\s+/g, " "), rowParts(row).end?.replace(/\s+/g, " ")])).toEqual([
+    ["To'lov", "03.10.2026 09:00 · Naqd", "−1 200,50 balans 13 801"],
+    ["To'lov · Xarid № 1", expect.stringMatching(/ · Naqd$/), "−5 000 balans 15 001,50"],
+    ["Xarid № 1", expect.any(String), "+20 001,50 balans 20 001,50"],
+  ])
+  // The payment entered on its own is handled in its sheet; the purchase, and
+  // the payment entered with it, lead to the purchase.
+  expect(rows[0].tagName).toBe("BUTTON")
+  expect(rows[1]).toHaveAttribute("href", `/purchases/${purchase!.id}`)
+  expect(rows[2]).toHaveAttribute("href", `/purchases/${purchase!.id}`)
 })
 
 test("whoever may see the suppliers alone sees the facts: no balance, no statement, no action", async () => {
@@ -117,28 +108,16 @@ test("a supplier that is gone, or another company's, is not found", async () => 
   expect(screen.getByRole("link", { name: "Ta'minotchilar" })).toHaveAttribute("href", "/suppliers")
 })
 
-test("the opening balances stand in the statement with their own actions, and the statement's header adds one", async () => {
+test("the opening balances stand in the statement with their own sheet of actions, and the statement's heading adds one", async () => {
   const { bozor } = seedWarehouse(seedCatalog())
   await signIn(ALI)
-  const opening = await enterOpening(bozor.id, { kind: "debt", amount: "1000000", at: "2026-09-30T09:00:00+05:00" })
-  renderWithProviders(<SupplierPage id={bozor.id} />)
-
-  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
-  const row = within(statement).getByText("Boshlang'ich qarz").closest("tr")!
-  expect(within(row).getByRole("button", { name: "Tahrirlash: 1 000 000" })).toBeInTheDocument()
-  expect(within(row).getByRole("button", { name: "O'chirish: 1 000 000" })).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" })).toBeInTheDocument()
-  expect(opening.kind).toBe("debt")
-})
-
-test("a payment to the supplier is entered from its «To'lov» tile: the sheet is the supplier's, what it is owed under the amount", async () => {
-  const { bozor } = seedWarehouse(seedCatalog())
-  await signIn(ALI)
+  await enterOpening(bozor.id, { kind: "debt", amount: "1000000", at: "2026-09-30T09:00:00+05:00" })
   const { user } = renderWithProviders(<SupplierPage id={bozor.id} />)
 
-  await user.click(within(await screen.findByRole("group", { name: "Amallar" })).getByRole("button", { name: "To'lov" }))
-
-  const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
-  expect(within(dialog).getByText("Bozor")).toBeInTheDocument()
-  expect(within(dialog).getByText(/Qarz: 15 001,50 so'm/)).toBeInTheDocument()
+  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  await user.click(within(statement).getByRole("button", { name: /^Boshlang'ich qarz/ }))
+  const sheet = await screen.findByRole("menu")
+  expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
+  await user.keyboard("{Escape}")
+  expect(screen.getByRole("button", { name: "Boshlang'ich" })).toBeInTheDocument()
 })

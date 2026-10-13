@@ -3,8 +3,8 @@ import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
 import { ALI, db, seedCatalog, seedCustomers, seedWarehouse } from "@/mocks/data"
 import { asosiyOf } from "@/test/locations"
-import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { signIn } from "@/test/session"
 import { StatementList } from "./statement-list"
 
@@ -22,44 +22,69 @@ async function dilshodsStatement() {
   return { dilshod, sale, cash }
 }
 
-test("a customer's statement: the sale as the way in, the payments and the opening debt with their actions, and the ways to add", async () => {
-  const { dilshod, sale, cash } = await dilshodsStatement()
+// rows are the statement's rows in their order; parts read one, the
+// spaces as one plain space.
+const rows = (statement: HTMLElement) => within(statement).getAllByRole("listitem").map((item) => item.firstElementChild as HTMLElement)
+const parts = (row: HTMLElement) => {
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ") ?? null
+  const { title, sub, end } = rowParts(row)
+  return { title: plain(title), sub: plain(sub), end: plain(end) }
+}
+
+test("a customer's statement: a row per document, the newest first, how it changed what is owed and what was owed after it", async () => {
+  const { dilshod, sale } = await dilshodsStatement()
+  renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd canEdit canDelete />)
+
+  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const [own, withSale, sold, opening] = rows(statement)
+  expect([own, withSale, sold, opening].map(parts)).toEqual([
+    { title: "To'lov", sub: "06.10.2026 09:00 · Naqd", end: "−1 000 balans 306 000" },
+    { title: "To'lov · Sotuv № 1", sub: "05.10.2026 09:00 · Naqd", end: "−5 000 balans 307 000" },
+    { title: "Sotuv № 1", sub: "05.10.2026 09:00", end: "+12 000 balans 312 000" },
+    { title: "Boshlang'ich qarz", sub: "01.10.2026 09:00", end: "+300 000 balans 300 000" },
+  ])
+  // A sale, and a payment entered with it, lead to the sale; the rest are handled in their sheet.
+  expect(withSale).toHaveAttribute("href", `/sales/${sale.id}`)
+  expect(sold).toHaveAttribute("href", `/sales/${sale.id}`)
+  expect(own.tagName).toBe("BUTTON")
+  expect(opening.tagName).toBe("BUTTON")
+})
+
+test("a payment or an opening balance entered on its own is edited or deleted from its sheet of actions", async () => {
+  const { dilshod } = await dilshodsStatement()
   const { user } = renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd canEdit canDelete />)
+  const [own, , , opening] = rows(await screen.findByRole("list", { name: "Hisob harakati" }))
 
-  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
-  const rows = within(statement).getAllByRole("row").slice(1)
-  expect(rows).toHaveLength(4)
-  expect(within(rows[0]).getByText("To'lov")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("−1 000")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("306 000")).toBeInTheDocument()
-  expect(within(rows[0]).getByRole("button", { name: "Tahrirlash: 1 000" })).toBeInTheDocument()
-  expect(within(rows[0]).getByRole("button", { name: "O'chirish: 1 000" })).toBeInTheDocument()
-  expect(within(rows[1]).getByRole("link", { name: "Sotuv № 1" })).toHaveAttribute("href", `/sales/${sale.id}`)
-  expect(within(rows[1]).getByText("−5 000")).toBeInTheDocument()
-  expect(within(rows[1]).queryAllByRole("button")).toHaveLength(0)
-  expect(within(rows[2]).getByRole("link", { name: "Sotuv № 1" })).toHaveAttribute("href", `/sales/${sale.id}`)
-  expect(within(rows[2]).getByText("+12 000")).toBeInTheDocument()
-  expect(within(rows[3]).getByText("Boshlang'ich qarz")).toBeInTheDocument()
-  expect(within(rows[3]).getByRole("button", { name: "Tahrirlash: 300 000" })).toBeInTheDocument()
-  expect(within(rows[3]).getByRole("button", { name: "O'chirish: 300 000" })).toBeInTheDocument()
+  await user.click(own)
+  const sheet = await screen.findByRole("menu")
+  expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
+  await user.click(within(sheet).getByRole("menuitem", { name: "Tahrirlash" }))
+  expect(await screen.findByRole("dialog", { name: "To'lovni tahrirlash" })).toBeInTheDocument()
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
-  // A payment added here is the customer's.
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
-  const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
-  await press(user, dialog, "500")
-  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
-  await waitFor(() => expect(db.transactions.filter((t) => t.kind === "customer_payment" && t.customerId === dilshod.id && !t.deleted)).toHaveLength(3))
-  expect(db.transactions.find((t) => t.kind === "customer_payment" && t.total === 500)).toMatchObject({ bankAccountId: cash, linkedId: null })
-  await waitFor(() => expect(within(screen.getByRole("table", { name: "Hisob harakati" })).getAllByRole("row").slice(1)).toHaveLength(5))
-  expect(screen.getByRole("button", { name: "Boshlang'ich qarz / avans" })).toBeInTheDocument()
+  await user.click(opening)
+  await user.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: "O'chirish" }))
+  expect(await screen.findByRole("alertdialog", { name: "Hujjatni o'chirasizmi?" })).toBeInTheDocument()
+})
+
+test("an opening balance is added from the statement's heading", async () => {
+  const { dilshod } = await dilshodsStatement()
+  const { user } = renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd canEdit canDelete />)
+  await screen.findByRole("list", { name: "Hisob harakati" })
+
+  await user.click(screen.getByRole("button", { name: "Boshlang'ich" }))
+
+  expect(await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })).toBeInTheDocument()
+  // A payment is the page's own tile, not the statement's.
+  expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
 })
 
 test("the actions follow the permissions: a reader sees the rows alone", async () => {
   const { dilshod } = await dilshodsStatement()
   renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd={false} canEdit={false} canDelete={false} />)
 
-  const statement = await screen.findByRole("table", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
   expect(within(statement).queryAllByRole("button")).toHaveLength(0)
-  expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Boshlang'ich qarz / avans" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Boshlang'ich" })).not.toBeInTheDocument()
 })
