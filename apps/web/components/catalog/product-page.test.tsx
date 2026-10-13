@@ -46,7 +46,7 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   })
   expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Nofaol qilish" })).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Mahsulotni o'chirish" })).toBeInTheDocument()
   expect(screen.queryByText("Nofaol")).not.toBeInTheDocument()
   expect(stock()).toEqual({ Asosiy: "12,5 kg", Chilonzor: "0 kg" })
   const purchases = await screen.findByRole("table", { name: "Xaridlar" })
@@ -80,7 +80,7 @@ test("a product in a purchase is kept: the API's refusal is told", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<ProductPage id={catalog.olma.id} />)
 
-  await user.click(await screen.findByRole("button", { name: "O'chirish" }))
+  await user.click(await screen.findByRole("button", { name: "Mahsulotni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Mahsulotni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Bu mahsulot 1 ta hujjatda bor")).toBeInTheDocument()
@@ -106,7 +106,7 @@ test("deleting the product leads back to the list", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<ProductPage id={nok.id} />)
 
-  await user.click(await screen.findByRole("button", { name: "O'chirish" }))
+  await user.click(await screen.findByRole("button", { name: "Mahsulotni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Mahsulotni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/products"))

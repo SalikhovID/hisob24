@@ -1,10 +1,9 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
+import { Group, Row } from "@/components/kit/group"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -14,31 +13,45 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { productsKey } from "@/lib/queries"
 import type { Product } from "@/lib/types"
-import { iconAction, nounOf } from "./icon-action"
+import { nounOf } from "./icon-action"
 
-// DeleteProductButton deletes a product or a service after asking. A
-// deleted record is not shown anywhere again, and its name (and SKU) is free
-// for another. A refusal (a product a purchase holds) shows the API's reason
-// and the record stays. afterDelete is what follows: a page leaves for the
-// list.
-export function DeleteProductButton({
+// DeleteProductButton is the danger row at the foot of a product's (or a
+// service's) page: it deletes the record after asking. afterDelete is what
+// follows: the page leaves for the list.
+export function DeleteProductButton({ companyId, product, afterDelete }: { companyId: number; product: Product; afterDelete?: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  return (
+    <>
+      <Group>
+        <Row variant="danger" onClick={() => setConfirming(true)} title={`${nounOf(product.kind)}ni o'chirish`} />
+      </Group>
+      <DeleteProductDialog companyId={companyId} product={product} open={confirming} onOpenChange={setConfirming} afterDelete={afterDelete} />
+    </>
+  )
+}
+
+// DeleteProductDialog asks whether to delete a product or a service, and
+// does. It opens from outside: the danger row of a page, «O'chirish» in a
+// service's sheet of actions in the list. A deleted record is not shown
+// anywhere again, and its name (and SKU) is free for another. A refusal (a
+// product a purchase holds) shows the API's reason, and the record stays.
+export function DeleteProductDialog({
   companyId,
   product,
-  iconOnly = false,
+  open,
+  onOpenChange,
   afterDelete,
 }: {
   companyId: number
   product: Product
-  iconOnly?: boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
   afterDelete?: () => void
 }) {
-  const [confirming, setConfirming] = useState(false)
   const queryClient = useQueryClient()
   const noun = nounOf(product.kind)
   const remove = useMutation({
@@ -46,46 +59,17 @@ export function DeleteProductButton({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productsKey(companyId) })
       toast.success(`${noun} o'chirildi`)
-      setConfirming(false)
+      onOpenChange(false)
       afterDelete?.()
     },
     onError: (error) => {
       toast.error(error.message)
-      setConfirming(false)
+      onOpenChange(false)
     },
   })
 
   return (
-    <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      {iconOnly ? (
-        <ActionTooltip label="O'chirish">
-          <AlertDialogTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`${iconAction} hover:text-destructive`}
-                aria-label={`O'chirish: ${product.name}`}
-              />
-            }
-          >
-            <Trash2Icon />
-          </AlertDialogTrigger>
-        </ActionTooltip>
-      ) : (
-        <AlertDialogTrigger
-          render={
-            <Button
-              variant="outline"
-              size="lg"
-              className="px-3.5 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
-            />
-          }
-        >
-          <Trash2Icon />
-          O&apos;chirish
-        </AlertDialogTrigger>
-      )}
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{noun}ni o&apos;chirasizmi?</AlertDialogTitle>

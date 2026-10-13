@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header"
 import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
-import { PencilIcon } from "lucide-react"
+import { PencilIcon, Trash2Icon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -20,7 +20,7 @@ import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { SearchInput } from "@/components/customers/search-input"
 import { ActiveButton } from "./active-button"
-import { DeleteProductButton } from "./delete-product-button"
+import { DeleteProductDialog } from "./delete-product-button"
 import { ProductDialog } from "./product-dialog"
 import { ServiceDialog } from "./service-dialog"
 import { useCatalogFilter } from "./use-catalog-filter"
@@ -43,6 +43,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   const [filter, update] = useCatalogFilter()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
+  const [deleting, setDeleting] = useState<Product | null>(null)
   // The stock shown is the current location's (logic/products.md, section 5).
   const location = useLocation()
   const products = useProducts(companyId, { kind, ...filter, locationId: location.current?.id ?? null })
@@ -87,7 +88,11 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
                     </Button>
                   )}
                   {allowed("products.edit") && <ActiveButton companyId={companyId} product={p} iconOnly />}
-                  {allowed("products.delete") && <DeleteProductButton companyId={companyId} product={p} iconOnly />}
+                  {allowed("products.delete") && (
+                    <Button variant="ghost" size="icon" aria-label={`O'chirish: ${p.name}`} onClick={() => setDeleting(p)}>
+                      <Trash2Icon />
+                    </Button>
+                  )}
                 </span>
               ),
           } satisfies Column<Product>,
@@ -131,6 +136,9 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
         ) : (
           <ServiceDialog companyId={companyId} open onOpenChange={(next) => !next && setAdding(false)} />
         ))}
+      {deleting && companyId !== null && (
+        <DeleteProductDialog companyId={companyId} product={deleting} open onOpenChange={(next) => !next && setDeleting(null)} />
+      )}
       {editing && companyId !== null && (
         <ServiceDialog companyId={companyId} service={editing} open onOpenChange={(next) => !next && setEditing(null)} />
       )}

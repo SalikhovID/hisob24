@@ -4,15 +4,15 @@ import { toProduct } from "@/mocks/catalog"
 import { ALI, db, seedCatalog } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
-import { DeleteProductButton } from "./delete-product-button"
+import { DeleteProductButton, DeleteProductDialog } from "./delete-product-button"
 
-test("a product is deleted after asking, and the caller is told", async () => {
+test("a product is deleted from the danger row at the page's foot, after asking, and the caller is told", async () => {
   const { olma } = seedCatalog()
   const afterDelete = vi.fn()
   await signIn(ALI)
   const { user } = renderWithProviders(<DeleteProductButton companyId={1} product={toProduct(olma)} afterDelete={afterDelete} />)
 
-  await user.click(screen.getByRole("button", { name: "O'chirish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulotni o'chirish" }))
   const dialog = await screen.findByRole("alertdialog", { name: "Mahsulotni o'chirasizmi?" })
   expect(within(dialog).getByText("Olma ro'yxatdan olib tashlanadi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "O'chirish" }))
@@ -22,14 +22,23 @@ test("a product is deleted after asking, and the caller is told", async () => {
   await waitFor(() => expect(afterDelete).toHaveBeenCalledOnce())
 })
 
-test("a service is deleted from the row, by its icon", async () => {
+test("a service's page names its own danger row", async () => {
   const { yetkazish } = seedCatalog()
   await signIn(ALI)
-  const { user } = renderWithProviders(<DeleteProductButton companyId={1} product={toProduct(yetkazish)} iconOnly />)
+  renderWithProviders(<DeleteProductButton companyId={1} product={toProduct(yetkazish)} />)
 
-  await user.click(screen.getByRole("button", { name: "O'chirish: Yetkazish" }))
+  expect(screen.getByRole("button", { name: "Xizmatni o'chirish" })).toBeInTheDocument()
+})
+
+test("a service is deleted from the list's sheet: the question opens at once, and closes when answered", async () => {
+  const { yetkazish } = seedCatalog()
+  const onOpenChange = vi.fn()
+  await signIn(ALI)
+  const { user } = renderWithProviders(<DeleteProductDialog companyId={1} product={toProduct(yetkazish)} open onOpenChange={onOpenChange} />)
+
   await user.click(within(await screen.findByRole("alertdialog", { name: "Xizmatni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
   await waitFor(() => expect(db.products.find((p) => p.id === yetkazish.id)?.deleted).toBe(true))
   expect(await screen.findByText("Xizmat o'chirildi")).toBeInTheDocument()
+  expect(onOpenChange).toHaveBeenCalledWith(false)
 })
