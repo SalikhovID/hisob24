@@ -5,7 +5,7 @@ import { ALI, db, seedCustomers, seedSixKinds, typesOf, VALI } from "@/mocks/dat
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { rowParts } from "@/test/rows"
-import { choose, optionsOf } from "@/test/select"
+import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { CustomersPage } from "./customers-page"
@@ -131,33 +131,38 @@ test("a field of each kind has an input of its own, and every answer is saved", 
 
   // A whole number is typed on the digits keyboard.
   expect(within(dialog).getByLabelText("Yoshi")).toHaveAttribute("inputmode", "numeric")
-  // A radio shows its options at once; one that may stay empty can be taken back.
+  // A radio shows its options at once, as chips: none is chosen yet.
   const radios = within(dialog).getByRole("radiogroup", { name: "Jinsi" })
-  expect(within(radios).getAllByRole("radio")).toHaveLength(3)
-  expect(within(radios).getByRole("radio", { name: "Tanlanmagan" })).toHaveAttribute("aria-checked", "true")
+  expect(within(radios).getAllByRole("radio")).toHaveLength(2)
+  expect(within(radios).queryByRole("radio", { checked: true })).not.toBeInTheDocument()
   // Checkboxes: one for each option that is offered (Ingliz is turned off).
   const boxes = within(dialog).getByRole("group", { name: "Tillar" })
   expect(within(boxes).getAllByRole("checkbox")).toHaveLength(2)
-  // A dropdown of several is a select that says what is chosen.
-  const several = within(dialog).getByRole("combobox", { name: "Kanallar" })
+  // A dropdown of several is a row that says what is chosen.
+  const several = within(dialog).getByRole("button", { name: /^Kanallar/ })
   expect(several).toHaveTextContent("Tanlanmagan")
 
   await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
   await user.type(within(dialog).getByLabelText("F.I.Sh."), "Olti Tur")
   await user.type(within(dialog).getByLabelText("Yoshi"), "30")
   await choose(user, within(dialog).getByLabelText("Manba"), "Instagram")
+  // A chosen chip pressed again is taken back.
+  await user.click(within(radios).getByRole("radio", { name: "Ayol" }))
+  await user.click(within(radios).getByRole("radio", { name: "Ayol" }))
+  expect(within(radios).queryByRole("radio", { checked: true })).not.toBeInTheDocument()
   await user.click(within(radios).getByRole("radio", { name: "Ayol" }))
   await user.click(within(boxes).getByRole("checkbox", { name: "Rus" }))
   await user.click(within(boxes).getByRole("checkbox", { name: "O'zbek" }))
-  // The list of several stays open while options are chosen.
+  // The sheet of several stays open while options are chosen, and hands them over on «Tayyor».
   await user.click(several)
-  const list = await screen.findByRole("listbox")
+  const sheet = await screen.findByRole("dialog", { name: "Kanallar" })
+  const list = within(sheet).getByRole("listbox")
   expect(within(list).getAllByRole("option").map((item) => item.textContent)).toEqual(["Instagram", "LinkedIn"])
   await user.click(within(list).getByRole("option", { name: "LinkedIn" }))
   await user.click(within(list).getByRole("option", { name: "Instagram" }))
-  expect(several).toHaveTextContent("Instagram, LinkedIn")
-  await user.keyboard("{Escape}")
+  await user.click(within(sheet).getByRole("button", { name: "Tayyor" }))
   await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
+  expect(several).toHaveTextContent("Instagram, LinkedIn")
 
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -264,7 +269,12 @@ test("a choice whose dropdown offers nothing says so, and a required one cannot 
   const { user, dialog } = await openDialog()
 
   expect(within(dialog).getByText("Faol variant yo'q. Variantlar Sozlamalarda qo'shiladi.")).toBeInTheDocument()
-  expect(await optionsOf(user, within(dialog).getByLabelText("Manba"))).toEqual(["Tanlanmagan"])
+  // A required choice offers no «Tanlanmagan»: with nothing active there is nothing at all.
+  await user.click(within(dialog).getByLabelText("Manba"))
+  const sheet = await screen.findByRole("dialog", { name: "Manba" })
+  expect(within(sheet).queryAllByRole("option")).toHaveLength(0)
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Manba" })).not.toBeInTheDocument())
 
   await user.type(within(dialog).getByLabelText("Telefon raqami"), "901112233")
   await user.type(within(dialog).getByLabelText("F.I.Sh."), "Ali")
