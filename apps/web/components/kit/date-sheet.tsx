@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { formatDate, MONTHS } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { Chip, Chips } from "./chips"
-import { PickRow } from "./form-row"
+import { FormRow, inputClass, PickRow } from "./form-row"
 import { MainButton } from "./main-button"
 
 const WEEKDAYS = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"]
@@ -238,8 +238,9 @@ export function DateRow<T extends FieldValues, TOut extends FieldValues = T>({ c
 }
 
 // DateTimeRow is a moment in a form (YYYY-MM-DDTHH:mm, what a
-// datetime-local input gives): the day picked in the calendar, the time
-// typed beside it.
+// datetime-local input gives) as two rows: «Sana», the day picked in the
+// calendar (the prototype's row), and under it the time typed (label, its
+// name). One row held both and cut the day on a phone.
 export function DateTimeRow<T extends FieldValues, TOut extends FieldValues = T>({ control, name, label, disabled }: Bound<T, TOut>) {
   const [open, setOpen] = useState(false)
   const id = useId()
@@ -251,31 +252,26 @@ export function DateTimeRow<T extends FieldValues, TOut extends FieldValues = T>
         const [day = "", time = "00:00"] = String(field.value ?? "").split("T")
         return (
           <>
-            <div className="flex items-stretch">
-              <div className="min-w-0 flex-1">
-                <PickRow
-                  label={label}
-                  value={shownDay(day)}
-                  placeholder="Sanani tanlang"
-                  onClick={() => setOpen(true)}
-                  error={fieldState.error?.message}
-                  disabled={disabled || field.disabled}
-                />
-              </div>
-              <label className="flex shrink-0 items-center pr-4">
-                <span className="sr-only">{label}: soat</span>
-                <input
-                  id={id}
-                  type="time"
-                  value={time}
-                  disabled={disabled || field.disabled}
-                  onChange={(event) => field.onChange(`${day}T${event.target.value || "00:00"}`)}
-                  onBlur={field.onBlur}
-                  className="h-10 bg-transparent text-base text-foreground outline-none"
-                />
-              </label>
-            </div>
-            <DateSheet open={open} onOpenChange={setOpen} title={label} value={day} onChange={(picked) => field.onChange(`${picked}T${time}`)} />
+            <PickRow
+              label="Sana"
+              value={shownDay(day)}
+              placeholder="Sanani tanlang"
+              onClick={() => setOpen(true)}
+              error={fieldState.error?.message}
+              disabled={disabled || field.disabled}
+            />
+            <FormRow label={label} htmlFor={id}>
+              <input
+                id={id}
+                type="time"
+                value={time}
+                disabled={disabled || field.disabled}
+                onChange={(event) => field.onChange(`${day}T${event.target.value || "00:00"}`)}
+                onBlur={field.onBlur}
+                className={inputClass}
+              />
+            </FormRow>
+            <DateSheet open={open} onOpenChange={setOpen} title="Sana" value={day} onChange={(picked) => field.onChange(`${picked}T${time}`)} />
           </>
         )
       }}

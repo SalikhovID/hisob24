@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 // target, in a row as tall as the prototype's (52px).
 
 const labelClass = "shrink-0 basis-[112px] text-[16px] leading-tight text-foreground group-data-invalid:text-destructive"
-const inputClass = "h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
+export const inputClass = "h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
 
 interface Bound<T extends FieldValues, TOut extends FieldValues> {
   control: Control<T, unknown, TOut>

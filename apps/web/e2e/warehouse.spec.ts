@@ -238,6 +238,21 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 })
 
+test("a document's day and time stand whole on a phone, each in its row: neither is cut", async ({ page }) => {
+  seedWarehouse(seedCatalog())
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await page.goto("/purchases/new")
+  await expect(page.getByRole("heading", { level: 1, name: "Yangi xarid" })).toBeVisible()
+
+  const day = page.getByRole("button", { name: /^Sana/ }).locator("[data-slot=pick-value]")
+  await expect(day).toHaveText(/^\d\d\.\d\d\.\d{4}/)
+  expect(await day.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+  const time = page.getByLabel("Vaqt", { exact: true })
+  await expect(time).toHaveValue(/^\d\d:\d\d$/)
+  expect(await time.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+})
+
 test("an employee whose role lacks the warehouse has no way to it, and the addresses lead home", async ({ page }) => {
   seedCatalog()
   giveRole("998902223344", 1, "Kuzatuvchi", ["customers.view"])

@@ -70,14 +70,16 @@ function Form({ onSubmit }: { onSubmit: (values: { deadline: string; at: string 
   )
 }
 
-test("a date row says the day (and that it is today); a date-time row keeps the time beside the day", async () => {
+test("a date row says the day (and that it is today); a date-time row is the day's row, picked in the calendar, over the time's row", async () => {
   const submit = vi.fn()
   render(<Form onSubmit={submit} />)
   expect(screen.getByRole("button", { name: "Muddat 13.10.2026 · bugun" })).toBeInTheDocument()
-  await userEvent.click(screen.getByRole("button", { name: /^Vaqt/ }))
-  await userEvent.click(await screen.findByRole("button", { name: "15.10.2026" }))
-  await userEvent.click(screen.getByRole("button", { name: "Tanlash" }))
-  const time = screen.getByLabelText("Vaqt: soat")
+  await userEvent.click(screen.getByRole("button", { name: /^Sana 13\.10\.2026/ }))
+  const sheet = await screen.findByRole("dialog", { name: "Sana" })
+  await userEvent.click(within(sheet).getByRole("button", { name: "15.10.2026" }))
+  await userEvent.click(within(sheet).getByRole("button", { name: "Tanlash" }))
+  expect(screen.getByRole("button", { name: /^Sana 15\.10\.2026/ })).toBeInTheDocument()
+  const time = screen.getByLabelText("Vaqt")
   expect(time).toHaveValue("10:30")
   // jsdom's time input takes a whole value at once, not keystrokes.
   fireEvent.change(time, { target: { value: "18:45" } })
