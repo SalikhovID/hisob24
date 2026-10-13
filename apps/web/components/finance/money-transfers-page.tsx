@@ -1,29 +1,45 @@
 "use client"
 
-import { type Column, DataList } from "@/components/data-list"
-import { PageHeader } from "@/components/page-header"
+import { ArrowLeftRightIcon, RepeatIcon } from "lucide-react"
+import { useState } from "react"
+import { ActionSheet } from "@/components/kit/action-sheet"
+import { Chip, Chips } from "@/components/kit/chips"
+import { DayGroups } from "@/components/kit/day-groups"
+import { Foot, Row } from "@/components/kit/group"
+import { PageTitle, PlusButton } from "@/components/kit/page-title"
+import { PickerSheet } from "@/components/kit/picker-sheet"
+import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
-import { SelectBox } from "@/components/select-field"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { accountOptions, currencyOf, useAccounts, useCurrencies } from "@/lib/currencies"
 import { conversionRateText, financeKindTitle } from "@/lib/finance"
-import { formatDateTime, formatMoney } from "@/lib/format"
+import { formatMoney, formatTime } from "@/lib/format"
+import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { useMoneyTransfers } from "@/lib/queries"
 import type { MoneyTransfer, Permission } from "@/lib/types"
-import { useMoneyTransferFilter } from "@/lib/use-money-transfer-filter"
 import { usePermission } from "@/lib/use-gate"
+import { useMoneyTransferFilter } from "@/lib/use-money-transfer-filter"
+import { cn } from "@/lib/utils"
 import { financeSection } from "./accounts-page"
 import { ConversionDialog } from "./conversion-dialog"
 import { DeleteCashDocumentButton } from "./delete-cash-document-button"
 import { MoneyTransferDialog } from "./money-transfer-dialog"
 
+// Entering is the sheet open to enter or edit a document: a new transfer or
+// conversion (no document), or the document given.
+type Entering = { kind: "money_transfer" | "conversion"; document?: MoneyTransfer }
+
 // MoneyTransfersPage is the transfers between the company's accounts and
 // the conversions between its currencies, in one list (logic/finance.md,
-// section 5), for whoever may see the finance: the newest first, each with
-// where it came from and went to (a conversion with the rate it came to);
-// narrowed to an account; each edited and deleted in its row.
+// section 5), for whoever may see the finance, as the prototype's list:
+// an account as a chip opening its sheet; the documents by their day, the
+// newest first, each by its kind and number, its time, the accounts it went
+// between and who entered it under it, what left at its end (and what
+// arrived, for a conversion). A row opens a sheet of its actions (editing,
+// deleting; with the permissions; a conversion's rate said in its title);
+// the plus offers a transfer or a conversion.
 export function MoneyTransfersPage() {
   const gate = usePermission("finance.view")
   const companyId = gate?.company.id ?? null
@@ -32,110 +48,112 @@ export function MoneyTransfersPage() {
   const currencies = useCurrencies()
   const accounts = useAccounts()
   const transfers = useMoneyTransfers(companyId, filter)
-
-  const columns: Column<MoneyTransfer>[] = [
-    {
-      header: "Hujjat",
-      primary: true,
-      cell: (t) => (
-        <span className="flex min-w-0 flex-col">
-          <span className="min-w-0 [overflow-wrap:anywhere]">
-            {financeKindTitle[t.kind]} № {t.number}
-          </span>
-          <span className="text-[0.8125rem] leading-5 font-normal whitespace-nowrap text-muted-foreground">{formatDateTime(t.at)}</span>
-        </span>
-      ),
-    },
-    {
-      header: "Qayerdan",
-      card: "inline",
-      cell: (t) => (
-        <span className="flex min-w-0 flex-col">
-          <span>{t.from_account_name}</span>
-          <span className="text-[0.8125rem] leading-5 text-muted-foreground tabular-nums">{formatMoney(t.amount, currencyOf(currencies, t.currency_id))}</span>
-        </span>
-      ),
-    },
-    {
-      header: "Qayerga",
-      card: "inline",
-      cell: (t) => {
-        const from = currencyOf(currencies, t.currency_id)
-        const to = currencyOf(currencies, t.to_currency_id)
-        return (
-          <span className="flex min-w-0 flex-col">
-            <span>{t.to_account_name}</span>
-            <span className="text-[0.8125rem] leading-5 text-muted-foreground tabular-nums">{formatMoney(t.to_amount ?? t.amount, to)}</span>
-            {t.kind === "conversion" && t.to_amount !== null && <span className="text-[0.8125rem] leading-5 text-muted-foreground tabular-nums">{conversionRateText(t.amount, t.to_amount, from, to)}</span>}
-          </span>
-        )
-      },
-    },
-    { header: "Qo'shgan", className: "text-muted-foreground", cell: (t) => t.created_by_name },
-    {
-      header: "Amallar",
-      actions: true,
-      cell: (t) =>
-        companyId !== null &&
-        (allowed("finance.edit") || allowed("finance.delete")) && (
-          <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-            {allowed("finance.edit") && (t.kind === "conversion" ? <ConversionDialog companyId={companyId} conversion={t} iconOnly /> : <MoneyTransferDialog companyId={companyId} transfer={t} iconOnly />)}
-            {allowed("finance.delete") && <DeleteCashDocumentButton companyId={companyId} document={{ id: t.id, kind: t.kind, amount: t.amount, currency_id: t.currency_id, at: t.at }} />}
-          </span>
-        ),
-    },
-  ]
+  const [choosing, setChoosing] = useState(false)
+  const [offering, setOffering] = useState(false)
+  const [acting, setActing] = useState<MoneyTransfer | null>(null)
+  const [entering, setEntering] = useState<Entering | null>(null)
+  const [removing, setRemoving] = useState<MoneyTransfer | null>(null)
 
   const unfiltered = filter.accountId === null
   const settling = transfers.isPlaceholderData && transfers.data?.total === 0
   const loading = transfers.isPending || settling
+  const account = accounts.find((a) => a.id === filter.accountId)
+  const acts = allowed("finance.edit") || allowed("finance.delete")
+  // moved says what left, and for a conversion what arrived.
+  const moved = (t: MoneyTransfer) => {
+    const out = formatMoney(t.amount, currencyOf(currencies, t.currency_id))
+    return t.kind === "conversion" && t.to_amount !== null ? `${out} → ${formatMoney(t.to_amount, currencyOf(currencies, t.to_currency_id))}` : out
+  }
+  const titleOf = (t: MoneyTransfer) => `${financeKindTitle[t.kind]} № ${t.number}`
+  const rateOf = (t: MoneyTransfer) =>
+    t.kind === "conversion" && t.to_amount !== null ? conversionRateText(t.amount, t.to_amount, currencyOf(currencies, t.currency_id), currencyOf(currencies, t.to_currency_id)) : null
 
   if (!gate) return null
+  const page = transfers.data
   return (
-    <div className="space-y-5">
-      <SectionTabs item={financeSection} permissions={gate.permissions} />
-      <PageHeader
+    <>
+      <PageTitle
         title="O'tkazmalar"
-        description="Akkauntlar aro o'tkazmalar va valyuta konvertatsiyalari"
-        // Two buttons do not fit beside the title on a phone: they go under it.
-        stack
-        actions={
-          companyId !== null &&
-          allowed("finance.create") && (
-            <>
-              <MoneyTransferDialog companyId={companyId} />
-              <ConversionDialog companyId={companyId} />
-            </>
-          )
-        }
+        description="Akkauntlar aro o'tkazmalar va konvertatsiyalar"
+        action={companyId !== null && allowed("finance.create") && <PlusButton label="O'tkazma qo'shish" onClick={() => setOffering(true)} />}
       />
-      <div className="space-y-3">
-        <SelectBox
-          aria-label="Akkaunt"
-          className="h-9! w-fit"
-          value={filter.accountId === null ? "" : String(filter.accountId)}
-          onChange={(value) => update({ accountId: value ? Number(value) : null })}
-          options={accountOptions(accounts, currencies, filter.accountId ?? undefined)}
-          empty="Hamma akkauntlar"
+      <SectionTabs item={financeSection} permissions={gate.permissions} />
+      <Chips>
+        <Chip pressed={filter.accountId !== null} chevron onClick={() => setChoosing(true)}>
+          {account?.name ?? "Akkaunt"}
+        </Chip>
+      </Chips>
+      <PickerSheet
+        open={choosing}
+        onOpenChange={setChoosing}
+        title="Akkaunt"
+        options={accountOptions(accounts, currencies, filter.accountId ?? undefined)}
+        value={filter.accountId === null ? "" : String(filter.accountId)}
+        onChange={(value) => update({ accountId: value ? Number(value) : null })}
+        none="Hamma akkauntlar"
+      />
+      {loading && <ListLoading rows={6} />}
+      {transfers.isError && <Failed error={transfers.error} onRetry={() => transfers.refetch()} />}
+      {!loading && !transfers.isError && page?.total === 0 && (
+        <EmptyState
+          icon={ArrowLeftRightIcon}
+          title={unfiltered ? "Hali o'tkazma yo'q" : "Hech narsa topilmadi"}
+          description={unfiltered ? (allowed("finance.create") ? "Birinchi o'tkazmani «O'tkazma qo'shish» tugmasi orqali kiriting." : undefined) : "Filtrni o'zgartirib ko'ring."}
         />
-        {loading && <ListLoading rows={6} mark="none" />}
-        {transfers.isError && <Failed error={transfers.error} onRetry={() => transfers.refetch()} />}
-        {!loading && !transfers.isError && transfers.data?.total === 0 && (
-          <EmptyState
-            title={unfiltered ? "Hali o'tkazma yo'q" : "Hech narsa topilmadi"}
-            description={unfiltered ? (allowed("finance.create") ? "Birinchi o'tkazmani «O'tkazma qo'shish» tugmasi orqali kiriting." : undefined) : "Filtrni o'zgartirib ko'ring."}
-          />
-        )}
-        {!loading && !transfers.isError && transfers.data && transfers.data.total > 0 && (
-          <DataList
-            label="O'tkazmalar"
-            items={transfers.data.items}
-            columns={columns}
-            getKey={(t) => t.id}
-            footer={<Pager page={transfers.data.page} pageSize={transfers.data.page_size} total={transfers.data.total} onPage={(page) => update({ page })} />}
-          />
-        )}
-      </div>
-    </div>
+      )}
+      {!loading && !transfers.isError && page && page.total > 0 && (
+        <>
+          <DayGroups label="O'tkazmalar" items={page.items} at={(t) => t.at} className={cn(transfers.isPlaceholderData && "opacity-60")}>
+            {(t) => (
+              <Row
+                key={t.id}
+                onClick={acts ? () => setActing(t) : undefined}
+                media={<SoftIcon icon={t.kind === "conversion" ? RepeatIcon : ArrowLeftRightIcon} />}
+                title={titleOf(t)}
+                sub={[formatTime(t.at), `${t.from_account_name} → ${t.to_account_name}`, t.created_by_name && shortName(t.created_by_name)].filter(Boolean).join(" · ")}
+                end={moved(t)}
+                chevron={false}
+              />
+            )}
+          </DayGroups>
+          {page.total > page.page_size ? (
+            <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
+          ) : (
+            <Foot>Jami: {page.total}</Foot>
+          )}
+        </>
+      )}
+      <ActionSheet
+        open={offering}
+        onOpenChange={setOffering}
+        items={[
+          { label: "O'tkazma", onSelect: () => setEntering({ kind: "money_transfer" }) },
+          { label: "Konvertatsiya", onSelect: () => setEntering({ kind: "conversion" }) },
+        ]}
+      />
+      <ActionSheet
+        open={acting !== null}
+        onOpenChange={(open) => !open && setActing(null)}
+        title={acting ? [titleOf(acting), moved(acting), rateOf(acting)].filter(Boolean).join(" · ") : undefined}
+        items={[
+          ...(allowed("finance.edit") ? [{ label: "Tahrirlash", onSelect: () => acting && setEntering({ kind: acting.kind, document: acting }) }] : []),
+          ...(allowed("finance.delete") ? [{ label: "O'chirish", danger: true, onSelect: () => setRemoving(acting) }] : []),
+        ]}
+      />
+      {companyId !== null && entering?.kind === "money_transfer" && (
+        <MoneyTransferDialog companyId={companyId} transfer={entering.document} open onOpenChange={(open) => !open && setEntering(null)} />
+      )}
+      {companyId !== null && entering?.kind === "conversion" && (
+        <ConversionDialog companyId={companyId} conversion={entering.document} open onOpenChange={(open) => !open && setEntering(null)} />
+      )}
+      {companyId !== null && removing && (
+        <DeleteCashDocumentButton
+          companyId={companyId}
+          document={{ id: removing.id, kind: removing.kind, amount: removing.amount, currency_id: removing.currency_id, at: removing.at }}
+          open
+          onOpenChange={(open) => !open && setRemoving(null)}
+        />
+      )}
+    </>
   )
 }
