@@ -5,6 +5,7 @@ import { stockOf } from "@/mocks/ledger"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
 import { SalePage } from "./sale-page"
@@ -36,8 +37,12 @@ test("the sale page: its facts, its lines summed, its payments, and the actions 
   expect(await screen.findByRole("heading", { level: 1, name: "Sotuv № 1" })).toBeInTheDocument()
   expect(screen.getByText("Dilshod Karimov · 05.10.2026 09:00")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sotuvlar" })).toHaveAttribute("href", "/sales")
-  expect(screen.getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/sales/${sale.id}/edit`)
-  expect(screen.getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
+  // The sale opens with its total and what is left to pay; the tiles are what may be done.
+  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Sotuv № 1 22 000 so'm Qoldi 17 000 Dilshod Karimov · 05.10.2026 09:00")
+  const tiles = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "Mijoz", "O'chirish"])
+  expect(within(tiles).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/sales/${sale.id}/edit`)
+  expect(within(tiles).getByRole("link", { name: "Mijoz" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
   expect(facts()).toEqual({
     Mijoz: "Dilshod Karimov",
     Vaqt: "05.10.2026 09:00",
@@ -49,15 +54,15 @@ test("the sale page: its facts, its lines summed, its payments, and the actions 
     "Qo'shilgan": expect.any(String),
   })
   expect(screen.getByRole("link", { name: "Dilshod Karimov" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
-  const lines = screen.getByRole("table", { name: "Qatorlar" })
-  expect(within(lines).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Mahsulot", "Miqdor", "Narx, so'm", "Summa, so'm"])
-  expect(within(lines).getByRole("link", { name: "Olma" })).toHaveAttribute("href", `/products/${catalog.olma.id}`)
-  expect(within(within(lines).getByRole("link", { name: "Olma" }).closest("tr")!).getByText("4 kg")).toBeInTheDocument()
-  expect(within(lines).getByText("Yetkazish")).toBeInTheDocument()
-  expect(screen.getByText("Jami: 22 000")).toBeInTheDocument()
-  const payments = screen.getByRole("table", { name: "To'lovlar" })
-  expect(within(payments).getByText("Naqd")).toBeInTheDocument()
-  expect(within(payments).getByText("5 000 so'm")).toBeInTheDocument()
+  // The lines are rows that lead to their products: how much at what price, and the sum.
+  const lines = within(screen.getByRole("list", { name: "Mahsulotlar" })).getAllByRole("link")
+  expect(lines.map((line) => rowParts(line).title)).toEqual(["Olma", "Yetkazish"])
+  expect(lines[0]).toHaveAttribute("href", `/products/${catalog.olma.id}`)
+  expect(rowParts(lines[0]).sub?.replace(/\s+/g, " ")).toBe("4 kg × 3 000")
+  expect(screen.getByText("Jami: 22 000 so'm")).toBeInTheDocument()
+  const [payment] = within(screen.getByRole("list", { name: "To'lovlar" })).getAllByRole("listitem")
+  expect(payment).toHaveTextContent("Naqd")
+  expect(payment).toHaveTextContent("5 000 so'm")
 })
 
 test("a retail sale names nobody", async () => {
