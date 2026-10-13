@@ -3,14 +3,14 @@ import { expect, test, vi } from "vitest"
 import { ALI, db, membersOf, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
-import { RemoveEmployeeButton } from "./remove-employee-button"
+import { RemoveEmployeeDialog } from "./remove-employee-button"
 
 const vali = () => membersOf(1).find((m) => m.phone === VALI)!
 
-test("the question is opened from outside (the employee's sheet), with no button of its own, and closes when answered", async () => {
+test("the question is opened from outside (the employee's sheet), has no button of its own, and closes when answered", async () => {
   await signIn(ALI)
   const onOpenChange = vi.fn()
-  const { user } = renderWithProviders(<RemoveEmployeeButton companyId={1} companyName="Olma Savdo" employee={vali()} open onOpenChange={onOpenChange} />)
+  const { user } = renderWithProviders(<RemoveEmployeeDialog companyId={1} companyName="Olma Savdo" employee={vali()} open onOpenChange={onOpenChange} />)
 
   const dialog = await screen.findByRole("alertdialog", { name: "Xodimni o'chirasizmi?" })
   expect(dialog).toHaveTextContent("Vali Aliyev Olma Savdo kompaniyasiga kira olmaydi. Keyin qayta qo'shish mumkin.")

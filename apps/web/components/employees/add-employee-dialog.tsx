@@ -2,8 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { UserPlusIcon } from "lucide-react"
-import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
@@ -12,7 +10,6 @@ import { Foot, Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -20,7 +17,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
 import { employeesKey } from "@/lib/queries"
@@ -36,21 +32,16 @@ const empty: Input = { phone: "", full_name: "" }
 // added the same way and from then on is in both; one that is in this
 // company already is refused, and the API's reason shows in the dialog. As
 // the prototype's sheet: the phone and the name rows, what a new employee
-// may do said under them. open, with onOpenChange, opens it from outside
-// (the page's plus): it has no button then.
+// may do said under them. It is opened from outside (the page's plus).
 export function AddEmployeeDialog({
   companyId,
-  open: openGiven,
+  open,
   onOpenChange,
 }: {
   companyId: number
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const [openOwn, setOpenOwn] = useState(false)
-  const controlled = openGiven !== undefined
-  const open = controlled ? openGiven : openOwn
-  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const form = useForm<Input, unknown, Output>({ resolver: zodResolver(employeeSchema), defaultValues: empty })
   const add = useMutation({
@@ -58,27 +49,13 @@ export function AddEmployeeDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeesKey(companyId) })
       toast.success("Xodim qo'shildi")
-      setOpen(false)
+      onOpenChange(false)
     },
   })
 
-  // Every opening starts from an empty form.
-  const changeOpen = (next: boolean) => {
-    setOpen(next)
-    if (next) {
-      form.reset(empty)
-      add.reset()
-    }
-  }
 
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      {!controlled && (
-        <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
-          <UserPlusIcon />
-          Xodim qo&apos;shish
-        </DialogTrigger>
-      )}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Xodim qo&apos;shish</DialogTitle>

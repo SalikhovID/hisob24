@@ -15,7 +15,7 @@ import type { Member } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { EmployeeLocationsSheet } from "./employee-locations-sheet"
 import { EmployeeRoleSheet } from "./employee-role-sheet"
-import { RemoveEmployeeButton } from "./remove-employee-button"
+import { RemoveEmployeeDialog } from "./remove-employee-button"
 import { RenameEmployeeDialog } from "./rename-employee-dialog"
 
 // locationsText says where a member works: every location, the
@@ -121,7 +121,7 @@ export function EmployeeSheet({
       {sheet === "rename" && <RenameEmployeeDialog {...over} />}
       {sheet === "role" && <EmployeeRoleSheet {...over} />}
       {sheet === "locations" && <EmployeeLocationsSheet {...over} />}
-      {sheet === "remove" && <RemoveEmployeeButton {...over} companyName={companyName} />}
+      {sheet === "remove" && <RemoveEmployeeDialog {...over} companyName={companyName} />}
     </>
   )
 }
