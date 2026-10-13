@@ -36,8 +36,9 @@ export function Hero({
     <>
       <span data-slot="hero-label" className={cn("mb-1.5 block text-md font-semibold", tone === "red" && "text-destructive", tone === "green" && "text-positive")}>
         {label}
-      </span>
+      </span>{" "}
       <Amount value={value} unit={unit} />
+      {badges && " "}
       {badges && (
         <span data-slot="hero-badges" className="mt-2.5 flex flex-wrap items-center justify-center gap-2 text-md font-semibold">
           {badges}

@@ -16,7 +16,8 @@ const facts = () =>
       .getAllByRole("term")
       .map((dt) => [dt.textContent, dt.nextElementSibling?.textContent]),
   )
-// stock reads the "Qoldiq" list: each location with its quantity.
+// stock reads the "Qoldiq" cards: each location with its quantity (the
+// current one marked «Joriy» beside its name).
 const stock = () =>
   Object.fromEntries(
     within(screen.getByRole("region", { name: "Qoldiq" }))
@@ -35,6 +36,13 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(await screen.findByRole("heading", { level: 1, name: "Olma" })).toBeInTheDocument()
   expect(screen.getByText("kg · OL-1")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("href", "/products")
+  // The sale price stands large under the head.
+  const price = document.querySelector("[data-slot=hero]")!
+  expect(price.textContent?.replace(/\s+/g, " ")).toBe("Sotuv narxi 12 000 so'm")
+  // What may be done with it are the tiles; a purchase of it is entered from here.
+  const tiles = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "Xarid", "Nofaol qilish"])
+  expect(within(tiles).getByRole("link", { name: "Xarid" })).toHaveAttribute("href", `/purchases/new?product=${olma.id}`)
   expect(facts()).toEqual({
     Birlik: "kg",
     Narx: "12 000 so'm",
@@ -44,11 +52,9 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
     "Qo'shgan": "Ali Valiyev",
     "Qo'shilgan": "02.10.2026",
   })
-  expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Nofaol qilish" })).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Mahsulotni o'chirish" })).toBeInTheDocument()
   expect(screen.queryByText("Nofaol")).not.toBeInTheDocument()
-  expect(stock()).toEqual({ Asosiy: "12,5 kg", Chilonzor: "0 kg" })
+  expect(stock()).toEqual({ "Asosiy Joriy": "12,5 kg", Chilonzor: "0 kg" })
   const purchases = await screen.findByRole("table", { name: "Xaridlar" })
   expect(within(purchases).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Xarid", "Vaqt", "Lokatsiya", "Miqdor", "Narx", "Summa"])
   expect(within(purchases).getByRole("link", { name: "№ 1 · Bozor" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
@@ -95,9 +101,12 @@ test("an inactive product says so and offers to turn it on; what it lacks is a d
 
   expect(await screen.findByRole("heading", { level: 1, name: "Eski mahsulot" })).toBeInTheDocument()
   expect(screen.getByText("Nofaol")).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Faollashtirish" })).toBeInTheDocument()
+  // Nothing is bought of an inactive product; with no price there is no figure.
+  const tiles = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "Faollashtirish"])
+  expect(screen.queryByText("Sotuv narxi")).not.toBeInTheDocument()
   expect(facts()).toMatchObject({ Narx: "—", "Oxirgi xarid narxi": "—", Artikul: "—", Izoh: "—" })
-  expect(stock()).toEqual({ Asosiy: "0 dona" })
+  expect(stock()).toEqual({ "Asosiy Joriy": "0 dona" })
   expect(await screen.findByText("Bu mahsulot hali xarid qilinmagan")).toBeInTheDocument()
 })
 
@@ -122,6 +131,7 @@ test("an employee with the view alone sees the facts and no action", async () =>
 
   expect(await screen.findByRole("heading", { level: 1, name: "Olma" })).toBeInTheDocument()
   expect(screen.queryAllByRole("button")).toHaveLength(0)
+  expect(screen.queryByRole("group", { name: "Amallar" })).not.toBeInTheDocument()
   expect(screen.getByRole("region", { name: "Qoldiq" })).toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Xaridlar" })).not.toBeInTheDocument()
 })
@@ -141,6 +151,9 @@ test("a service opened by its id leads back to the services", async () => {
 
   expect(await screen.findByRole("heading", { level: 1, name: "Yetkazish" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xizmatlar" })).toHaveAttribute("href", "/services")
+  expect(screen.getByText("Xizmat")).toBeInTheDocument()
+  expect(within(screen.getByRole("group", { name: "Amallar" })).queryByRole("link", { name: "Xarid" })).not.toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Xizmatni o'chirish" })).toBeInTheDocument()
   expect(facts()).toEqual({ Narx: "50 000 so'm", Izoh: "—", "Qo'shgan": "Ali Valiyev", "Qo'shilgan": "02.10.2026" })
   expect(screen.queryByRole("region", { name: "Qoldiq" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Xaridlar" })).not.toBeInTheDocument()
@@ -159,9 +172,9 @@ test("an edit or a switch on the page keeps the stock on screen (the answer carr
   await user.type(within(dialog).getByLabelText("Nomi"), "Qizil olma")
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
   expect(await screen.findByRole("heading", { level: 1, name: "Qizil olma" })).toBeInTheDocument()
-  expect(stock()).toEqual({ Asosiy: "12,5 kg" })
+  expect(stock()).toEqual({ "Asosiy Joriy": "12,5 kg" })
 
   await user.click(screen.getByRole("button", { name: "Nofaol qilish" }))
   expect(await screen.findByRole("button", { name: "Faollashtirish" })).toBeInTheDocument()
-  expect(stock()).toEqual({ Asosiy: "12,5 kg" })
+  expect(stock()).toEqual({ "Asosiy Joriy": "12,5 kg" })
 })
