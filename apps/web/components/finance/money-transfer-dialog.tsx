@@ -8,13 +8,14 @@ import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { ActionTooltip } from "@/components/action-tooltip"
 import { iconAction } from "@/components/catalog/icon-action"
-import { PendingButton } from "@/components/pending-button"
+import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
+import { SelectRow } from "@/components/kit/picker-sheet"
+import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { SelectField } from "@/components/select-field"
-import { TextField } from "@/components/text-field"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { accountCurrency, accountOptions, useAccounts, useCurrencies } from "@/lib/currencies"
 import { forgetFinance, type MoneyTransferForm, type MoneyTransferOutput, moneyTransferDefaults, moneyTransferSchema } from "@/lib/finance"
@@ -26,9 +27,29 @@ import { nowLocal } from "@/lib/warehouse"
 // currency (logic/finance.md, section 5): the account it leaves (the
 // page's, when opened from one), another in its currency it arrives in,
 // the amount, a moment (now unless another is chosen) and a note; or saves
-// the one given with other fields.
-export function MoneyTransferDialog({ companyId, accountId, transfer, iconOnly = false }: { companyId: number; accountId?: number; transfer?: MoneyTransfer; iconOnly?: boolean }) {
-  const [open, setOpen] = useState(false)
+// the one given with other fields. As the prototype's sheet: both accounts
+// picked in sheets, the amount with its currency, the moment and the note
+// as rows. open, with onOpenChange, opens it from outside (an account's
+// tile, a document's «Tahrirlash»): it has no button then.
+export function MoneyTransferDialog({
+  companyId,
+  accountId,
+  transfer,
+  iconOnly = false,
+  open: openGiven,
+  onOpenChange,
+}: {
+  companyId: number
+  accountId?: number
+  transfer?: MoneyTransfer
+  iconOnly?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const accounts = useAccounts()
@@ -64,7 +85,7 @@ export function MoneyTransferDialog({ companyId, accountId, transfer, iconOnly =
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      {transfer && iconOnly ? (
+      {controlled ? null : transfer && iconOnly ? (
         <ActionTooltip label="Tahrirlash">
           <DialogTrigger render={<Button variant="ghost" size="icon" className={iconAction} aria-label={`Tahrirlash: ${formatAmount(transfer.amount)}`} />}>
             <PencilIcon />
@@ -76,26 +97,26 @@ export function MoneyTransferDialog({ companyId, accountId, transfer, iconOnly =
           {transfer ? "Tahrirlash" : "O'tkazma qo'shish"}
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{transfer ? "O'tkazmani tahrirlash" : "O'tkazma qo'shish"}</DialogTitle>
-          <DialogDescription>Bir akkauntdan boshqasiga, shu valyutada. Ikkala akkaunt, summa va vaqt majburiy; izoh ixtiyoriy.</DialogDescription>
+          <DialogDescription>Bir akkauntdan boshqasiga, shu valyutada.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((fields) => save.mutate(fields))} noValidate className="space-y-4">
-          <FieldGroup>
-            <SelectField control={form.control} name="from_account_id" label="Qayerdan" placeholder="Tanlang" options={accountOptions(accounts, currencies, transfer?.from_account_id)} />
-            <SelectField control={form.control} name="to_account_id" label="Qayerga" placeholder="Tanlang" options={accountOptions(targets, currencies, transfer?.to_account_id)} />
-            <TextField control={form.control} name="amount" label={`Summa, ${currency.symbol}`} inputMode="decimal" autoComplete="off" />
-            <TextField control={form.control} name="at" label="Vaqt" type="datetime-local" />
-            <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
-          </FieldGroup>
-          {save.isError && <Refusal>{save.error.message}</Refusal>}
+        <SheetForm onSubmit={form.handleSubmit((fields) => save.mutate(fields))}>
+          {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
+          <Group>
+            <SelectRow control={form.control} name="from_account_id" label="Qayerdan" options={accountOptions(accounts, currencies, transfer?.from_account_id)} />
+            <SelectRow control={form.control} name="to_account_id" label="Qayerga" options={accountOptions(targets, currencies, transfer?.to_account_id)} />
+            <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
+            <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+            <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
+          </Group>
           <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
+            <MainButton type="submit" pending={save.isPending}>
               {transfer ? "Saqlash" : "Qo'shish"}
-            </PendingButton>
+            </MainButton>
           </DialogFooter>
-        </form>
+        </SheetForm>
       </DialogContent>
     </Dialog>
   )
