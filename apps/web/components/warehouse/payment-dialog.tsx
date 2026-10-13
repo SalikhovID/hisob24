@@ -2,27 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { PencilIcon, PlusIcon } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useEffect } from "react"
+import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
-import { iconAction } from "@/components/catalog/icon-action"
-import { PendingButton } from "@/components/pending-button"
+import { AmountSheet, decimalToTyped } from "@/components/kit/amount-sheet"
+import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
+import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
-import { SelectField } from "@/components/select-field"
-import { TextField } from "@/components/text-field"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { FieldGroup } from "@/components/ui/field"
 import { api, call } from "@/lib/api"
 import { accountCurrency, accountOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { formatAmount } from "@/lib/format"
@@ -30,43 +17,45 @@ import { forgetParty, type Party } from "@/lib/party"
 import { nowLocal, type PaymentFields, type PaymentForm, type PaymentOutput, paymentDefaults, paymentSchema } from "@/lib/warehouse"
 
 // PaymentDialog enters a payment to the supplier (logic/warehouse.md,
-// section 6) or from the customer (logic/sales.md, section 5): out of or
-// into an account, an amount in its currency, a moment (now unless another
-// is chosen), the rate (with another currency than the so'm) and a note;
-// or saves the one given, entered on its own, with other fields.
+// section 6) or from the customer (logic/sales.md, section 5), or saves the
+// one given, entered on its own, as the prototype's amount sheet: the amount
+// typed on the keypad in its account's currency (what is owed in so'm said
+// under it, with «To'liq» to type it whole), then the account, the moment
+// (now unless another is chosen), the rate (with another currency than the
+// so'm) and a note. A page opens it (the «To'lov» tile, a payment's
+// «Tahrirlash») and mounts it for each opening; partyName heads it, owed is
+// what the party owes in so'm when it is known.
 export function PaymentDialog({
   party = "supplier",
   companyId,
   partyId,
+  partyName,
+  owed,
   payment,
-  iconOnly = false,
-  open: openGiven,
+  open,
   onOpenChange,
 }: {
   party?: Party
   companyId: number
   partyId: number
+  partyName?: string
+  owed?: string | null
   payment?: PaymentFields
-  iconOnly?: boolean
-  // open, with onOpenChange, opens the dialog from outside (the home's
-  // «To'lov» tile, once the supplier is picked): it has no button then,
-  // and every mounting starts afresh.
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const [openOwn, setOpenOwn] = useState(false)
-  const controlled = openGiven !== undefined
-  const open = controlled ? openGiven : openOwn
-  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const accounts = useAccounts()
   const firstAccount = accounts.find((a) => a.is_active)?.id ?? null
+  const defaults = paymentDefaults(payment, nowLocal(), firstAccount)
   const form = useForm<PaymentForm, unknown, PaymentOutput>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: paymentDefaults(payment, nowLocal(), firstAccount),
+    // The keypad types an amount its own way ("1200,5").
+    defaultValues: { ...defaults, amount: decimalToTyped(defaults.amount) },
   })
-  const accountId = Number(form.watch("bank_account_id"))
+  const accountId = Number(useWatch({ control: form.control, name: "bank_account_id" }))
+  const amount = useWatch({ control: form.control, name: "amount" })
   const currency = accountCurrency(accounts, currencies, accountId)
   const save = useMutation({
     // Either party's answer is its own shape; the dialog needs none of it.
@@ -86,7 +75,7 @@ export function PaymentDialog({
       // What is owed changes with every payment.
       forgetParty(queryClient, party, companyId, partyId)
       toast.success(payment ? "To'lov saqlandi" : "To'lov qo'shildi")
-      setOpen(false)
+      onOpenChange(false)
     },
   })
 
@@ -104,53 +93,38 @@ export function PaymentDialog({
     if (currency.rate !== null) form.setValue("rate", trimRate(currency.rate))
   }, [open, currency, form])
 
-  // Every opening starts from the payment as it is now, or from an empty
-  // form dated now, out of the first account.
-  const changeOpen = (next: boolean) => {
-    setOpen(next)
-    if (next) {
-      form.reset(paymentDefaults(payment, nowLocal(), firstAccount))
-      save.reset()
-    }
-  }
+  // What is owed in so'm, said under the amount; a payment being edited is
+  // owed again. It is offered whole when it is a debt and the account is in so'm.
+  const debt = owed === undefined || owed === null ? null : Number(owed) + (payment && payment.currency_id === UZS ? Number(payment.amount) : 0)
+  const hint =
+    debt === null ? undefined : debt > 0 ? `Qarz: ${formatAmount(debt.toFixed(2))} so'm` : debt < 0 ? `Avans: ${formatAmount((-debt).toFixed(2))} so'm` : "Qarz yo'q"
+  const full = debt !== null && debt > 0 && currency.id === UZS ? () => form.setValue("amount", decimalToTyped(debt.toFixed(2))) : undefined
 
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      {controlled ? null : payment && iconOnly ? (
-        <ActionTooltip label="Tahrirlash">
-          <DialogTrigger render={<Button variant="ghost" size="icon" className={iconAction} aria-label={`Tahrirlash: ${formatAmount(payment.amount)}`} />}>
-            <PencilIcon />
-          </DialogTrigger>
-        </ActionTooltip>
-      ) : (
-        <DialogTrigger render={<Button size={payment ? "sm" : "lg"} variant={payment ? "outline" : "default"} className="px-3.5" />}>
-          {payment ? <PencilIcon /> : <PlusIcon />}
-          {payment ? "Tahrirlash" : "To'lov qo'shish"}
-        </DialogTrigger>
-      )}
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{payment ? "To'lovni tahrirlash" : "To'lov qo'shish"}</DialogTitle>
-          <DialogDescription>Akkaunt, summa (akkaunt valyutasida) va vaqt majburiy; izoh ixtiyoriy.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit((fields) => save.mutate(fields))} noValidate className="space-y-4">
-          <FieldGroup>
-            <SelectField control={form.control} name="bank_account_id" label="Akkaunt" placeholder="Tanlang" options={accountOptions(accounts, currencies, payment?.bank_account_id)} />
-            <TextField control={form.control} name="amount" label={`Summa, ${currency.symbol}`} inputMode="decimal" autoComplete="off" />
-            <TextField control={form.control} name="at" label="Vaqt" type="datetime-local" />
-            {isMulti(currencies) && currency.id !== UZS && (
-              <TextField control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} inputMode="decimal" autoComplete="off" />
-            )}
-            <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
-          </FieldGroup>
-          {save.isError && <Refusal>{save.error.message}</Refusal>}
-          <DialogFooter>
-            <PendingButton type="submit" size="lg" className="px-3.5 max-sm:h-10" pending={save.isPending}>
-              {payment ? "Saqlash" : "Qo'shish"}
-            </PendingButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <AmountSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={payment ? "To'lovni tahrirlash" : "To'lov qo'shish"}
+      subtitle={partyName}
+      value={amount}
+      onChange={(next) => form.setValue("amount", next, { shouldValidate: form.formState.isSubmitted })}
+      hint={hint}
+      onFull={full}
+      error={form.formState.errors.amount?.message}
+      unit={currency.symbol}
+      submitLabel={payment ? "Saqlash" : "Qo'shish"}
+      onSubmit={() => form.handleSubmit((fields) => save.mutate(fields))()}
+      pending={save.isPending}
+    >
+      {save.isError && <Refusal className="mb-3">{save.error.message}</Refusal>}
+      <Group className="mb-2">
+        <SelectRow control={form.control} name="bank_account_id" label="Akkaunt" options={accountOptions(accounts, currencies, payment?.bank_account_id)} />
+        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        {isMulti(currencies) && currency.id !== UZS && (
+          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" />
+        )}
+        <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
+      </Group>
+    </AmountSheet>
   )
 }

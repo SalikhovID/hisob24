@@ -4,6 +4,7 @@ import { allPermissions } from "@/lib/permissions"
 import type { Permission } from "@/lib/types"
 import { ALI, db, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
 import { asosiyOf } from "@/test/locations"
+import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
 import { chooseCompany, signIn } from "@/test/session"
 import { QuickTiles } from "./quick-tiles"
@@ -70,7 +71,7 @@ test("To'lov picks the supplier among the active ones, then takes the payment to
   await user.click(within(picker).getByRole("option", { name: /Bozor/ }))
 
   const payment = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
-  await user.type(within(payment).getByLabelText("Summa, so'm"), "5000")
+  await press(user, payment, "5000")
   await user.click(within(payment).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(db.transactions.some((t) => t.kind === "supplier_payment" && t.supplierId === bozor.id && t.total === 5000)).toBe(true))

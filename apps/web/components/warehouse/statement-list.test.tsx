@@ -3,6 +3,7 @@ import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
 import { ALI, db, seedCatalog, seedCustomers, seedWarehouse } from "@/mocks/data"
 import { asosiyOf } from "@/test/locations"
+import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { StatementList } from "./statement-list"
@@ -45,7 +46,7 @@ test("a customer's statement: the sale as the way in, the payments and the openi
   // A payment added here is the customer's.
   await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
   const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
-  await user.type(within(dialog).getByLabelText("Summa, so'm"), "500")
+  await press(user, dialog, "500")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   await waitFor(() => expect(db.transactions.filter((t) => t.kind === "customer_payment" && t.customerId === dilshod.id && !t.deleted)).toHaveLength(3))
   expect(db.transactions.find((t) => t.kind === "customer_payment" && t.total === 500)).toMatchObject({ bankAccountId: cash, linkedId: null })

@@ -1,10 +1,12 @@
 "use client"
 
+import { PencilIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { type Column, DataList } from "@/components/data-list"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
+import { Button } from "@/components/ui/button"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
 import type { Party } from "@/lib/party"
@@ -12,7 +14,7 @@ import { useCustomerStatement, useStatement } from "@/lib/queries"
 import type { StatementRow } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { openingOfRow } from "@/lib/stock"
-import { paymentOfRow } from "@/lib/warehouse"
+import { type PaymentFields, paymentOfRow } from "@/lib/warehouse"
 import { DeleteOpeningButton } from "./delete-opening-button"
 import { DeletePaymentButton } from "./delete-payment-button"
 import { OpeningDialog } from "./opening-dialog"
@@ -80,6 +82,8 @@ export function StatementList({
   canDelete: boolean
 }) {
   const [page, setPage] = useState(1)
+  // The payment sheet: a new payment (null), or the one being edited.
+  const [paying, setPaying] = useState<PaymentFields | null | undefined>(undefined)
   const suppliers = useStatement(party === "supplier" ? companyId : null, partyId, page)
   const customers = useCustomerStatement(party === "customer" ? companyId : null, partyId, page)
   const statement = party === "supplier" ? suppliers : customers
@@ -133,7 +137,11 @@ export function StatementList({
                 (row.kind === "supplier_payment" || row.kind === "customer_payment") &&
                 row.linked_id === null && (
                   <span className="inline-flex items-center justify-end gap-1 max-md:gap-2 pointer-coarse:gap-2">
-                    {canEdit && <PaymentDialog party={party} companyId={companyId} partyId={partyId} payment={paymentOfRow(row)} iconOnly />}
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" aria-label={`Tahrirlash: ${formatAmount(row.amount)}`} onClick={() => setPaying(paymentOfRow(row))}>
+                        <PencilIcon />
+                      </Button>
+                    )}
                     {canDelete && <DeletePaymentButton party={party} companyId={companyId} partyId={partyId} payment={paymentOfRow(row)} />}
                   </span>
                 )
@@ -152,10 +160,22 @@ export function StatementList({
         {canAdd && (
           <div className="flex flex-wrap justify-end gap-2">
             <OpeningDialog party={party} companyId={companyId} partyId={partyId} />
-            <PaymentDialog party={party} companyId={companyId} partyId={partyId} />
+            <Button size="lg" className="px-3.5" onClick={() => setPaying(null)}>
+              To&apos;lov qo&apos;shish
+            </Button>
           </div>
         )}
       </div>
+      {paying !== undefined && (
+        <PaymentDialog
+          party={party}
+          companyId={companyId}
+          partyId={partyId}
+          payment={paying ?? undefined}
+          open
+          onOpenChange={(open) => !open && setPaying(undefined)}
+        />
+      )}
       {statement.isPending && <ListLoading rows={2} mark="none" />}
       {statement.isError && <Failed error={statement.error} onRetry={() => statement.refetch()} />}
       {statement.data?.total === 0 && <EmptyState title={party === "supplier" ? "Bu ta'minotchida hujjat yo'q" : "Bu mijozda hujjat yo'q"} />}
