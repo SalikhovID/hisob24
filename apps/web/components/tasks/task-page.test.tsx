@@ -153,7 +153,7 @@ test("the task is deleted after asking, and the list is where one lands", async 
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Vazifa o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/tasks"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/tasks", { transitionTypes: ["nav-back"] }))
   expect(db.tasks.find((task) => task.id === call.id)?.deleted).toBe(true)
 })
 

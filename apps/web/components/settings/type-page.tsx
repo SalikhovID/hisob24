@@ -19,6 +19,7 @@ import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteDialog } from "./delete-button"
 import { AddFieldSheet, EditFieldSheet } from "./field-sheet"
 import { NameDialog } from "./name-dialog"
+import { stepBack } from "@/lib/moves"
 
 type Field = CustomerField | TaskField
 type Type = CustomerType | TaskType
@@ -239,7 +240,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
             else await call(api.DELETE("/app/task-types/{id}", { params: { path: { id: type.id } } }))
           }}
           onDone={() => {
-            router.replace(w.back.href)
+            router.replace(w.back.href, { transitionTypes: stepBack })
             refresh()
           }}
           open

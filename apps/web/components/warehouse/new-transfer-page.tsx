@@ -14,6 +14,7 @@ import { nowLocal } from "@/lib/warehouse"
 import { forgetWarehouse } from "./new-purchase-page"
 import { NoLocation } from "./no-location"
 import { TransferForm } from "./transfer-form"
+import { stepForward } from "@/lib/moves"
 
 const back = { href: "/transfers", label: "Ko'chirishlar" }
 
@@ -37,7 +38,7 @@ export function NewTransferPage() {
     onSuccess: (saved) => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Ko'chirish qo'shildi")
-      router.push(`/transfers/${saved.id}`)
+      router.push(`/transfers/${saved.id}`, { transitionTypes: stepForward })
     },
   })
 

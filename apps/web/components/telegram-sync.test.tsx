@@ -121,7 +121,7 @@ test("inside a section the Mini App shows Telegram's back button; with nothing t
 
   await waitFor(() => expect(back.show).toHaveBeenCalled())
   act(() => back.press())
-  expect(router.push).toHaveBeenCalledWith("/customers")
+  expect(router.push).toHaveBeenCalledWith("/customers", { transitionTypes: ["nav-back"] })
 })
 
 test("with a page to go back to, Telegram's back button goes back", async () => {
@@ -164,5 +164,5 @@ test("back at the first page the app was opened at, Telegram's back button leads
   await waitFor(() => expect(back.show).toHaveBeenCalled())
   act(() => back.press())
   expect(router.back).not.toHaveBeenCalled()
-  expect(router.push).toHaveBeenCalledWith("/customers")
+  expect(router.push).toHaveBeenCalledWith("/customers", { transitionTypes: ["nav-back"] })
 })

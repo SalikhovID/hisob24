@@ -14,6 +14,7 @@ import { usePermission } from "@/lib/use-gate"
 import { nowLocal } from "@/lib/warehouse"
 import { InventoryForm } from "./inventory-form"
 import { forgetWarehouse } from "./new-purchase-page"
+import { stepBack } from "@/lib/moves"
 
 const back = { href: "/inventories", label: "Inventarizatsiya" }
 
@@ -33,7 +34,7 @@ export function EditInventoryPage({ id }: { id: number }) {
     onSuccess: () => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Inventarizatsiya saqlandi")
-      router.push(`/inventories/${id}`)
+      router.push(`/inventories/${id}`, { transitionTypes: stepBack })
     },
   })
 

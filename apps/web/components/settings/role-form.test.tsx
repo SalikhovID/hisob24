@@ -45,7 +45,7 @@ test("a new role is made with its name and permissions, in the catalog's order, 
   await user.click(box("Mijozlar", "Tahrirlash"))
   await user.click(screen.getByRole("button", { name: "Yaratish" }))
 
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles", { transitionTypes: ["nav-back"] }))
   expect(db.roles.map((role) => [role.name, role.permissions])).toEqual([["Sotuvchi", ["customers.view", "customers.edit", "tasks.view"]]])
   expect(await screen.findByText("Rol yaratildi")).toBeInTheDocument()
 })

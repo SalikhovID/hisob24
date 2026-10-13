@@ -14,6 +14,7 @@ import { usePermission } from "@/lib/use-gate"
 import { type PurchaseOutput, nowLocal, purchaseDefaults } from "@/lib/warehouse"
 import { forgetWarehouse } from "./new-purchase-page"
 import { PurchaseForm } from "./purchase-form"
+import { stepBack } from "@/lib/moves"
 
 const back = { href: "/purchases", label: "Xaridlar" }
 
@@ -33,7 +34,7 @@ export function EditPurchasePage({ id }: { id: number }) {
     onSuccess: () => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Xarid saqlandi")
-      router.push(`/purchases/${id}`)
+      router.push(`/purchases/${id}`, { transitionTypes: stepBack })
     },
   })
 

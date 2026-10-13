@@ -249,7 +249,7 @@ test("the type is renamed from its page, and deleted from it after asking: back 
   const confirm = await screen.findByRole("alertdialog", { name: "Turni o'chirasizmi?" })
   expect(within(confirm).getByText(/«Firma» turi va uning maydonlari o'chadi/)).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/customer-types"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/customer-types", { transitionTypes: ["nav-back"] }))
   expect(typesOf(1).map((type) => type.name)).toEqual(["Jismoniy"])
   unmount()
 

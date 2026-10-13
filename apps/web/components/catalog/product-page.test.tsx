@@ -122,7 +122,7 @@ test("deleting the product leads back to the list", async () => {
   await user.click(await screen.findByRole("button", { name: "Mahsulotni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Mahsulotni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/products"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/products", { transitionTypes: ["nav-back"] }))
   expect(await screen.findByText("Mahsulot o'chirildi")).toBeInTheDocument()
 })
 

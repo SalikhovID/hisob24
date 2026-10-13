@@ -67,7 +67,7 @@ test("deleting the inventory takes its differences out of the stock and leads to
   await waitFor(() => expect(db.transactions.find((t) => t.id === inventory.id)?.deleted).toBe(true))
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(12.5)
   expect(await screen.findByText("Inventarizatsiya o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/inventories"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/inventories", { transitionTypes: ["nav-back"] }))
 })
 
 test("an inventory that is gone, or of a location the member does not work in, is not found", async () => {

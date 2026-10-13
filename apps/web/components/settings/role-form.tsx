@@ -16,6 +16,7 @@ import { actionLabels, actionsOf, permissionOf, sectionLabels, sections, toggled
 import { rolesKey } from "@/lib/queries"
 import { roleSchema } from "@/lib/schemas"
 import type { CompanyRole, Permission } from "@/lib/types"
+import { stepBack } from "@/lib/moves"
 
 type RoleInput = { name: string; permissions: Permission[] }
 
@@ -39,7 +40,7 @@ export function RoleForm({ companyId, role, children }: { companyId: number; rol
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rolesKey(companyId) })
       toast.success(role ? "Rol saqlandi" : "Rol yaratildi")
-      router.push("/settings/roles")
+      router.push("/settings/roles", { transitionTypes: stepBack })
     },
   })
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { TasksPage } from "@/components/tasks/tasks-page"
+import { PageTransition } from "@/components/kit/page-transition"
 
 export const metadata: Metadata = { title: "Vazifalar — Hisob24" }
 
@@ -9,8 +10,10 @@ export const metadata: Metadata = { title: "Vazifalar — Hisob24" }
 // (useSearchParams), which needs a Suspense boundary.
 export default function TasksRoute() {
   return (
-    <Suspense>
-      <TasksPage />
-    </Suspense>
+    <PageTransition>
+      <Suspense>
+        <TasksPage />
+      </Suspense>
+    </PageTransition>
   )
 }

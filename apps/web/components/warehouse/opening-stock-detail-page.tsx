@@ -17,6 +17,7 @@ import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { DeleteOpeningStockButton } from "./delete-opening-stock-button"
+import { stepBack } from "@/lib/moves"
 
 const back = { href: "/opening-stock", label: "Boshlang'ich qoldiq" }
 
@@ -58,7 +59,7 @@ export function OpeningStockDetailPage({ id }: { id: number }) {
   const currency = currencyOf(currencies, o.currency_id)
   const tiles = [
     allowed("stock.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/opening-stock/${o.id}/edit`} />,
-    allowed("stock.delete") && <DeleteOpeningStockButton key="delete" companyId={companyId} opening={o} afterDelete={() => router.replace("/opening-stock")} />,
+    allowed("stock.delete") && <DeleteOpeningStockButton key="delete" companyId={companyId} opening={o} afterDelete={() => router.replace("/opening-stock", { transitionTypes: stepBack })} />,
   ].filter(Boolean)
 
   return (

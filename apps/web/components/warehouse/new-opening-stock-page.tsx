@@ -14,6 +14,7 @@ import { nowLocal } from "@/lib/warehouse"
 import { forgetWarehouse } from "./new-purchase-page"
 import { NoLocation } from "./no-location"
 import { OpeningStockForm } from "./opening-stock-form"
+import { stepForward } from "@/lib/moves"
 
 const back = { href: "/opening-stock", label: "Boshlang'ich qoldiq" }
 
@@ -34,7 +35,7 @@ export function NewOpeningStockPage() {
     onSuccess: (saved) => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Boshlang'ich qoldiq qo'shildi")
-      router.push(`/opening-stock/${saved.id}`)
+      router.push(`/opening-stock/${saved.id}`, { transitionTypes: stepForward })
     },
   })
 

@@ -346,6 +346,72 @@ html[data-telegram] body {
   to { transform: translateX(260%); }
 }
 
+/* The moves between pages (components/kit/page-transition.tsx), as the
+   prototype's push and pop: forward, the new page comes in from the right
+   over the old one, which goes a little to the left and dims (420ms); back,
+   the old one leaves to the right over the page it uncovers (340ms). Beside
+   the sidebar (md and up) the page under does not move: it would pass over
+   the sidebar. Clicks during a move reach the page. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(.push-in),
+::view-transition-group(.pop-out) {
+  z-index: 2;
+}
+::view-transition-new(.push-in) {
+  animation: 420ms var(--ease-drawer) both page-from-right;
+}
+::view-transition-old(.push-out) {
+  animation: 420ms var(--ease-drawer) both page-to-under;
+}
+::view-transition-old(.pop-out) {
+  animation: 340ms var(--ease-drawer) both page-to-right;
+}
+::view-transition-new(.pop-in) {
+  animation: 340ms var(--ease-drawer) both page-from-under;
+}
+@media (min-width: 48rem) {
+  ::view-transition-old(.push-out) {
+    animation: 200ms ease-out both page-fade-out;
+  }
+  ::view-transition-new(.pop-in) {
+    animation: 200ms ease-in both page-fade-in;
+  }
+}
+@keyframes page-from-right {
+  from {
+    translate: 100% 0;
+  }
+}
+@keyframes page-to-right {
+  to {
+    translate: 100% 0;
+  }
+}
+@keyframes page-to-under {
+  to {
+    translate: -28% 0;
+    filter: brightness(0.94);
+  }
+}
+@keyframes page-from-under {
+  from {
+    translate: -28% 0;
+    filter: brightness(0.94);
+  }
+}
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Motion answers an action (a dialog opening, a row under the pointer) and
    nothing else; whoever asked for less of it gets none. */
 @media (prefers-reduced-motion: reduce) {
@@ -356,6 +422,12 @@ html[data-telegram] body {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }
 

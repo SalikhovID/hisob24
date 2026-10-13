@@ -95,7 +95,7 @@ test("deleting the purchase gives the stock back and leads to the list", async (
   await waitFor(() => expect(db.transactions.find((t) => t.id === purchase!.id)?.deleted).toBe(true))
   expect(stockOf(catalog.olma.id, [db.locations.find((l) => l.companyId === 1)!.id])).toBe(0)
   expect(await screen.findByText("Xarid o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/purchases"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/purchases", { transitionTypes: ["nav-back"] }))
 })
 
 test("a purchase that is gone, or outside the member's locations, is not found", async () => {

@@ -11,6 +11,7 @@ import { rolesKey, useRoles } from "@/lib/queries"
 import { useOwner } from "@/lib/use-gate"
 import { DeleteDialog } from "./delete-button"
 import { RoleForm } from "./role-form"
+import { stepBack } from "@/lib/moves"
 
 const back = { href: "/settings/roles", label: "Rollar" }
 
@@ -78,7 +79,7 @@ export function RolePage({ id }: { id: number }) {
             await call(api.DELETE("/app/roles/{id}", { params: { path: { id: role.id } } }))
             await queryClient.invalidateQueries({ queryKey: rolesKey(companyId) })
           }}
-          onDone={() => router.push(back.href)}
+          onDone={() => router.push(back.href, { transitionTypes: stepBack })}
           open
           onOpenChange={(open) => !open && setRemoving(false)}
         />

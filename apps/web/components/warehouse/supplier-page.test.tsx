@@ -96,7 +96,7 @@ test("deleting the supplier leads back to the list", async () => {
   await user.click(await screen.findByRole("button", { name: "Ta'minotchini o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Ta'minotchini o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/suppliers"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/suppliers", { transitionTypes: ["nav-back"] }))
   expect(await screen.findByText("Ta'minotchi o'chirildi")).toBeInTheDocument()
 })
 

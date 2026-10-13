@@ -63,7 +63,7 @@ test("a sale to a customer out of the current location: the customer found by na
   expect(db.transactions.find((t) => t.linkedId === saved.id)).toMatchObject({ kind: "customer_payment", customerId: dilshod.id, total: 50000 })
   expect(stockOf(catalog.olma.id, [asosiyOf(1).id])).toBe(10.5)
   expect(await screen.findByText("Sotuv qo'shildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${saved.id}`))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${saved.id}`, { transitionTypes: ["nav-forward"] }))
 })
 
 test("a retail sale is paid in full with «To'liq»; the form tells the API's refusals", async () => {
@@ -138,5 +138,5 @@ test("editing: the sale comes filled in with its customer and payment, and is sa
   await waitFor(() => expect(db.items.find((i) => i.transactionId === sale.id)?.quantity).toBe(2))
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(10.5)
   expect(await screen.findByText("Sotuv saqlandi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${sale.id}`))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${sale.id}`, { transitionTypes: ["nav-back"] }))
 })

@@ -34,7 +34,7 @@ test("a role's page opens with its name and permissions; saving replaces them an
   await user.click(box("Vazifalar", "Ko'rish"))
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles", { transitionTypes: ["nav-back"] }))
   expect(db.roles.find((candidate) => candidate.id === role.id)).toMatchObject({
     name: "Katta sotuvchi",
     permissions: ["customers.view", "customers.create", "tasks.view"],
@@ -54,7 +54,7 @@ test("a role nobody holds is deleted from its page's danger row, and the roles o
   const confirm = await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
   expect(within(confirm).getByText("«Bo'sh» roli o'chadi. Xodimga biriktirilgan rol o'chirilmaydi.")).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles", { transitionTypes: ["nav-back"] }))
   expect(db.roles.map((role) => role.name)).toEqual(["Sotuvchi"])
   unmount()
 

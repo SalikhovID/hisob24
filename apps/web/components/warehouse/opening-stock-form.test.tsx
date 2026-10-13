@@ -48,7 +48,7 @@ test("an opening stock is entered into the current location like a purchase with
   expect(db.items.filter((i) => i.transactionId === saved.id).map((i) => [i.productId, i.quantity, i.price])).toEqual([[catalog.nok.id, 4, 2000]])
   expect(stockOf(catalog.nok.id, [asosiyOf(1).id])).toBe(7)
   expect(await screen.findByText("Boshlang'ich qoldiq qo'shildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/opening-stock/${saved.id}`))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/opening-stock/${saved.id}`, { transitionTypes: ["nav-forward"] }))
 })
 
 test("with more than the so'm the currency and the rate are asked, and the total is in it; the form refuses in the API's words", async () => {
@@ -100,5 +100,5 @@ test("editing: the document comes filled in, and is saved with another price", a
 
   await waitFor(() => expect(db.transactions.find((t) => t.id === opening.id)?.total).toBe(2200))
   expect(await screen.findByText("Boshlang'ich qoldiq saqlandi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/opening-stock/${opening.id}`))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/opening-stock/${opening.id}`, { transitionTypes: ["nav-back"] }))
 })

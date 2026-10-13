@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 import { AddOptionForm } from "./add-option-form"
 import { DeleteDialog } from "./delete-button"
 import { NameDialog } from "./name-dialog"
+import { stepBack } from "@/lib/moves"
 
 const back = { href: "/settings/dropdowns", label: "Dropdownlar" }
 
@@ -191,7 +192,7 @@ export function DropdownPage({ id }: { id: number }) {
           done="Dropdown o'chirildi"
           onDelete={() => call(api.DELETE("/app/customer-dropdowns/{id}", { params: { path: { id: dropdown.id } } }))}
           onDone={() => {
-            router.replace(back.href)
+            router.replace(back.href, { transitionTypes: stepBack })
             refresh()
           }}
           open

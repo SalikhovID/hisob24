@@ -224,7 +224,7 @@ test("an employee deletes the customer after being asked, and is taken back to t
   confirm = await screen.findByRole("alertdialog", { name: "Mijozni o'chirasizmi?" })
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/customers"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/customers", { transitionTypes: ["nav-back"] }))
   expect(await screen.findByText("Mijoz o'chirildi")).toBeInTheDocument()
   expect(dilshod.deleted).toBe(true)
 })

@@ -5,6 +5,7 @@ import { useTheme } from "next-themes"
 import { useEffect } from "react"
 import { isRootPath, sectionRootOf } from "@/lib/nav"
 import { setMiniApp, useMiniApp, waitForWebApp } from "@/lib/telegram"
+import { stepBack } from "@/lib/moves"
 
 // The pages outside the app's shell: there is nothing to go back to there.
 const SHELL_LESS = ["/login", "/select-company", "/expired"]
@@ -72,7 +73,7 @@ export function TelegramSync() {
       back.hide()
       return
     }
-    const goBack = () => (canGoBack() ? router.back() : router.push(sectionRootOf(pathname)))
+    const goBack = () => (canGoBack() ? router.back() : router.push(sectionRootOf(pathname), { transitionTypes: stepBack }))
     back.onClick(goBack)
     back.show()
     return () => back.offClick(goBack)

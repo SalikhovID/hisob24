@@ -70,7 +70,7 @@ test("a purchase is entered into the current location: the supplier and the prod
   ])
   expect(db.transactions.find((t) => t.linkedId === saved.id)).toMatchObject({ kind: "supplier_payment", total: 5000, bankAccountId: db.accounts[1][0].id })
   expect(await screen.findByText("Xarid qo'shildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/purchases/${saved.id}`))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/purchases/${saved.id}`, { transitionTypes: ["nav-forward"] }))
 })
 
 test("with more than the so'm the currency and the rate are asked, and a last price in another currency is turned", async () => {

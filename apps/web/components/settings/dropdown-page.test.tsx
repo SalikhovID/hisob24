@@ -202,7 +202,7 @@ test("the dropdown is renamed from its page; one a field uses is not deleted, wi
   renderWithProviders(<DropdownPage id={900} />)
   await user.click(await screen.findByRole("button", { name: "Dropdownni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/dropdowns"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/dropdowns", { transitionTypes: ["nav-back"] }))
   expect(dropdownsOf(1).map((dropdown) => dropdown.name)).toEqual(["Qayerdan"])
 })
 

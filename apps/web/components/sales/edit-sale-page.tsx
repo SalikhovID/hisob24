@@ -14,6 +14,7 @@ import { saleDefaults, type SaleOutput } from "@/lib/sales"
 import { usePermission } from "@/lib/use-gate"
 import { nowLocal } from "@/lib/warehouse"
 import { SaleForm } from "./sale-form"
+import { stepBack } from "@/lib/moves"
 
 const back = { href: "/sales", label: "Sotuvlar" }
 
@@ -33,7 +34,7 @@ export function EditSalePage({ id }: { id: number }) {
     onSuccess: () => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Sotuv saqlandi")
-      router.push(`/sales/${id}`)
+      router.push(`/sales/${id}`, { transitionTypes: stepBack })
     },
   })
 

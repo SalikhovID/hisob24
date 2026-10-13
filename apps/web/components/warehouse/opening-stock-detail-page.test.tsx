@@ -83,7 +83,7 @@ test("deleting the opening stock takes its products out of the stock and leads t
   await waitFor(() => expect(db.transactions.find((t) => t.id === opening.id)?.deleted).toBe(true))
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(12.5)
   expect(await screen.findByText("Boshlang'ich qoldiq o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/opening-stock"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/opening-stock", { transitionTypes: ["nav-back"] }))
 })
 
 test("an opening stock that is gone, or of a location the member does not work in, is not found", async () => {

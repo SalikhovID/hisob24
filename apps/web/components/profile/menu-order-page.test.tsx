@@ -34,7 +34,7 @@ test("a section moved and saved: the order is sent, said, and the page goes back
 
   await waitFor(() => expect(db.members[ALI][0].navOrder).toEqual(["settings", "customers", "tasks", "products", "sales", "warehouse", "finance", "employees"]))
   expect(await screen.findByText("Menyu tartibi saqlandi")).toBeInTheDocument()
-  expect(router.push).toHaveBeenCalledWith("/profile")
+  expect(router.push).toHaveBeenCalledWith("/profile", { transitionTypes: ["nav-back"] })
 })
 
 test("the page starts from the member's own order; «Standart holat» drops it", async () => {

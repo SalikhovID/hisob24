@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { PurchasesPage } from "@/components/warehouse/purchases-page"
+import { PageTransition } from "@/components/kit/page-transition"
 
 export const metadata: Metadata = { title: "Xaridlar — Hisob24" }
 
@@ -9,8 +10,10 @@ export const metadata: Metadata = { title: "Xaridlar — Hisob24" }
 // needs a Suspense boundary.
 export default function PurchasesRoute() {
   return (
-    <Suspense>
-      <PurchasesPage />
-    </Suspense>
+    <PageTransition>
+      <Suspense>
+        <PurchasesPage />
+      </Suspense>
+    </PageTransition>
   )
 }

@@ -18,6 +18,7 @@ import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
 import { DeleteInventoryButton } from "./delete-inventory-button"
+import { stepBack } from "@/lib/moves"
 
 const back = { href: "/inventories", label: "Inventarizatsiya" }
 
@@ -56,7 +57,7 @@ export function InventoryPage({ id }: { id: number }) {
   const i = inventory.data
   const tiles = [
     allowed("stock.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/inventories/${i.id}/edit`} />,
-    allowed("stock.delete") && <DeleteInventoryButton key="delete" companyId={companyId} inventory={i} afterDelete={() => router.replace("/inventories")} />,
+    allowed("stock.delete") && <DeleteInventoryButton key="delete" companyId={companyId} inventory={i} afterDelete={() => router.replace("/inventories", { transitionTypes: stepBack })} />,
   ].filter(Boolean)
 
   return (
