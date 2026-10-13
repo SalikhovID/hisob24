@@ -45,9 +45,24 @@ function remove(d: CashDocument) {
 }
 
 // DeleteCashDocumentButton deletes a cash document after asking, from its
-// row. What the accounts hold changes back by it.
-export function DeleteCashDocumentButton({ companyId, document }: { companyId: number; document: CashDocument }) {
-  const [confirming, setConfirming] = useState(false)
+// row. What the accounts hold changes back by it. open, with onOpenChange,
+// opens the question from outside (a document's sheet of actions): it has
+// no button then.
+export function DeleteCashDocumentButton({
+  companyId,
+  document,
+  open,
+  onOpenChange,
+}: {
+  companyId: number
+  document: CashDocument
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
+  const [confirmingOwn, setConfirmingOwn] = useState(false)
+  const controlled = open !== undefined
+  const confirming = controlled ? open : confirmingOwn
+  const setConfirming = (next: boolean) => (controlled ? onOpenChange?.(next) : setConfirmingOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const amount = formatAmount(document.amount)
@@ -66,11 +81,13 @@ export function DeleteCashDocumentButton({ companyId, document }: { companyId: n
 
   return (
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
+      {!controlled && (
       <ActionTooltip label="O'chirish">
         <AlertDialogTrigger render={<Button variant="ghost" size="icon" className={`${iconAction} hover:text-destructive`} aria-label={`O'chirish: ${amount}`} />}>
           <Trash2Icon />
         </AlertDialogTrigger>
       </ActionTooltip>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Hujjatni o&apos;chirasizmi?</AlertDialogTitle>

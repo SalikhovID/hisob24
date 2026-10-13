@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react"
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import { ALI, db, nextId } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
@@ -31,4 +31,21 @@ test("an expense goes through the expenses' endpoint", async () => {
   expect(within(dialog).getByText("03.10.2026 09:00 dagi 150 000 so'm xarajat o'chiriladi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "O'chirish" }))
   await waitFor(() => expect(db.transactions.find((t) => t.id === rent.id)?.deleted).toBe(true))
+})
+
+test("the question opens from outside too (a document's sheet of actions), with no button, and closes when answered", async () => {
+  const cash = db.accounts[1][0].id
+  await signIn(ALI)
+  const opening = await enterCashOpening({ bank_account_id: cash, amount: "1000000", at: "2026-10-01T09:00:00+05:00" })
+  const onOpenChange = vi.fn()
+  const { user } = renderWithProviders(
+    <DeleteCashDocumentButton companyId={1} document={{ id: opening.id, kind: "cash_opening", amount: opening.amount, currency_id: 1, at: opening.at }} open onOpenChange={onOpenChange} />,
+  )
+
+  const dialog = await screen.findByRole("alertdialog", { name: "Hujjatni o'chirasizmi?" })
+  expect(screen.queryByRole("button", { name: /^O'chirish: / })).not.toBeInTheDocument()
+  await user.click(within(dialog).getByRole("button", { name: "O'chirish" }))
+
+  await waitFor(() => expect(db.transactions.find((t) => t.id === opening.id)?.deleted).toBe(true))
+  expect(onOpenChange).toHaveBeenCalledWith(false)
 })
