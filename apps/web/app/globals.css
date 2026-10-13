@@ -5,8 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    /* The prototype's stack: the system's SF on Apple devices, Geist (next/font) elsewhere. */
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-geist), system-ui, "Segoe UI", sans-serif;
     --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -24,6 +25,7 @@
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
+    --color-destructive-soft: var(--destructive-soft);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
@@ -32,6 +34,7 @@
     --color-secondary: var(--secondary);
     --color-primary-foreground: var(--primary-foreground);
     --color-primary: var(--primary);
+    --color-primary-soft: var(--primary-soft);
     --color-popover-foreground: var(--popover-foreground);
     --color-popover: var(--popover);
     --color-card-foreground: var(--card-foreground);
@@ -41,6 +44,20 @@
     --color-brand: var(--brand);
     --color-brand-panel: var(--brand-panel);
     --color-brand-panel-foreground: var(--brand-panel-foreground);
+    /* The prototype's own tokens. */
+    --color-press: var(--press);
+    --color-heading: var(--heading);
+    --color-positive: var(--positive);
+    --color-positive-soft: var(--positive-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-glass: var(--glass);
+    --color-glass-edge: var(--glass-edge);
+    --color-menu: var(--menu);
+    --color-sheet: var(--sheet);
+    --color-sheet-cell: var(--sheet-cell);
+    --color-scrim: var(--scrim);
+    --color-skeleton: var(--skel);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -48,33 +65,68 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-badge: 7px;
+    --radius-main: 14px;
+    --radius-tile: 18px;
+    --radius-group: 22px;
+    --radius-sheet: 36px;
+    /* The prototype's type scale: 17px rows, 15px secondary, 14px small, 13px notes. */
+    --text-xs: 13px;
+    --text-xs--line-height: 1.3;
+    --text-sm: 14px;
+    --text-sm--line-height: 1.35;
+    --text-md: 15px;
+    --text-md--line-height: 1.35;
+    --text-base: 17px;
+    --text-base--line-height: 1.3;
+    --shadow-float: var(--shadow);
+    --shadow-bar: 0 10px 30px rgba(0, 0, 0, 0.13), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --ease-out-expo: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-spring: cubic-bezier(0.34, 1.4, 0.52, 1);
 }
 
 :root {
-    --background: oklch(0.985 0.003 277);
-    --foreground: oklch(0.21 0.02 277);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.21 0.02 277);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.21 0.02 277);
-    --primary: oklch(0.511 0.262 276.966);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.955 0.006 277);
-    --secondary-foreground: oklch(0.21 0.02 277);
-    --muted: oklch(0.955 0.006 277);
-    --muted-foreground: oklch(0.5 0.02 277);
-    --accent: oklch(0.955 0.006 277);
-    --accent-foreground: oklch(0.21 0.02 277);
-    --destructive: oklch(0.505 0.213 27.518);
-    --border: oklch(0.92 0.006 277);
-    --input: oklch(0.871 0.008 277);
-    --ring: oklch(0.585 0.233 277.117);
+    --background: #EDEEF2;
+    --foreground: #000000;
+    --card: #ffffff;
+    --card-foreground: #000000;
+    --popover: #ffffff;
+    --popover-foreground: #000000;
+    --primary: #117A68;
+    --primary-foreground: #ffffff;
+    --primary-soft: rgba(17, 122, 104, 0.12);
+    --secondary: rgba(118, 118, 128, 0.12);
+    --secondary-foreground: #000000;
+    --muted: rgba(118, 118, 128, 0.12);
+    --muted-foreground: #636368;
+    --accent: rgba(118, 118, 128, 0.12);
+    --accent-foreground: #000000;
+    --destructive: #D92D20;
+    --destructive-soft: rgba(217, 45, 32, 0.1);
+    --positive: #1A7F37;
+    --positive-soft: rgba(26, 127, 55, 0.12);
+    --warning: #A15C00;
+    --warning-soft: rgba(255, 149, 0, 0.14);
+    --border: rgba(60, 60, 67, 0.17);
+    --input: rgba(60, 60, 67, 0.17);
+    --ring: #117A68;
+    --press: #E2E3E8;
+    --heading: #3A3A3F;
+    --glass: rgba(255, 255, 255, 0.56);
+    --glass-edge: rgba(255, 255, 255, 0.9);
+    --menu: rgba(250, 250, 252, 0.86);
+    --sheet: #F2F2F7;
+    --sheet-cell: #ffffff;
+    --scrim: rgba(0, 0, 0, 0.26);
+    --shadow: 0 12px 34px rgba(0, 0, 0, 0.14);
+    --skel: rgba(0, 0, 0, 0.065);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
+    --radius: 14px;
     /* The logo's color: the brand's own on a light page, white on a dark one,
        the chat's text color inside Telegram (its background is the chat's). */
     --brand: #174449;
@@ -82,83 +134,116 @@
        same in light and in dark, as the surface's color is known. */
     --brand-panel: #174449;
     --brand-panel-foreground: #ffffff;
-    --sidebar: oklch(0.985 0.003 277);
-    --sidebar-foreground: oklch(0.21 0.02 277);
-    --sidebar-primary: oklch(0.511 0.262 276.966);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.955 0.006 277);
-    --sidebar-accent-foreground: oklch(0.21 0.02 277);
-    --sidebar-border: oklch(0.92 0.006 277);
-    --sidebar-ring: oklch(0.585 0.233 277.117);
+    --sidebar: #EDEEF2;
+    --sidebar-foreground: #000000;
+    --sidebar-primary: #117A68;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgba(17, 122, 104, 0.12);
+    --sidebar-accent-foreground: #117A68;
+    --sidebar-border: rgba(60, 60, 67, 0.17);
+    --sidebar-ring: #117A68;
+    color-scheme: light;
 }
 
 .dark {
-    --background: oklch(0.155 0.008 277);
-    --foreground: oklch(0.985 0.002 277);
-    --card: oklch(0.205 0.01 277);
-    --card-foreground: oklch(0.985 0.002 277);
-    --popover: oklch(0.205 0.01 277);
-    --popover-foreground: oklch(0.985 0.002 277);
-    --primary: oklch(0.673 0.182 276.935);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.27 0.012 277);
-    --secondary-foreground: oklch(0.985 0.002 277);
-    --muted: oklch(0.27 0.012 277);
-    --muted-foreground: oklch(0.715 0.015 277);
-    --accent: oklch(0.27 0.012 277);
-    --accent-foreground: oklch(0.985 0.002 277);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.673 0.182 276.935);
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #1C1C1E;
+    --card-foreground: #ffffff;
+    --popover: #1C1C1E;
+    --popover-foreground: #ffffff;
+    --primary: #3CC5AE;
+    --primary-foreground: #00261F;
+    --primary-soft: rgba(60, 197, 174, 0.16);
+    --secondary: rgba(118, 118, 128, 0.24);
+    --secondary-foreground: #ffffff;
+    --muted: rgba(118, 118, 128, 0.24);
+    --muted-foreground: #98989F;
+    --accent: rgba(118, 118, 128, 0.24);
+    --accent-foreground: #ffffff;
+    --destructive: #FF6961;
+    --destructive-soft: rgba(255, 105, 97, 0.16);
+    --positive: #4CD27A;
+    --positive-soft: rgba(76, 210, 122, 0.15);
+    --warning: #FFB340;
+    --warning-soft: rgba(255, 179, 64, 0.16);
+    --border: rgba(84, 84, 88, 0.6);
+    --input: rgba(84, 84, 88, 0.6);
+    --ring: #3CC5AE;
+    --press: #2C2C2E;
+    --heading: #D1D1D6;
+    --glass: rgba(40, 40, 44, 0.5);
+    --glass-edge: rgba(255, 255, 255, 0.16);
+    --menu: rgba(38, 38, 42, 0.88);
+    --sheet: #1C1C1E;
+    --sheet-cell: #2C2C2E;
+    --scrim: rgba(0, 0, 0, 0.55);
+    --shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+    --skel: rgba(255, 255, 255, 0.08);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --brand: #ffffff;
-    --sidebar: oklch(0.205 0.01 277);
-    --sidebar-foreground: oklch(0.985 0.002 277);
-    --sidebar-primary: oklch(0.673 0.182 276.935);
-    --sidebar-primary-foreground: oklch(0.205 0 0);
-    --sidebar-accent: oklch(0.27 0.012 277);
-    --sidebar-accent-foreground: oklch(0.985 0.002 277);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.673 0.182 276.935);
+    --sidebar: #000000;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #3CC5AE;
+    --sidebar-primary-foreground: #00261F;
+    --sidebar-accent: rgba(60, 197, 174, 0.16);
+    --sidebar-accent-foreground: #3CC5AE;
+    --sidebar-border: rgba(84, 84, 88, 0.6);
+    --sidebar-ring: #3CC5AE;
+    color-scheme: dark;
 }
 
 /* Inside Telegram (TelegramSync sets data-telegram) the app wears the
    chat's colors: telegram-web-app.js publishes themeParams as --tg-theme-*.
-   The fallbacks cover clients older than Bot API 7.0. */
+   The fallbacks cover clients older than Bot API 7.0. The soft tints are
+   mixed from the chat's own colors; the statuses (green, amber) keep their
+   own hues. */
 html[data-telegram] {
-    --background: var(--tg-theme-bg-color);
+    --background: var(--tg-theme-secondary-bg-color);
     --foreground: var(--tg-theme-text-color);
     --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
     --card-foreground: var(--tg-theme-text-color);
-    --popover: var(--tg-theme-bg-color);
+    --popover: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
     --popover-foreground: var(--tg-theme-text-color);
     --primary: var(--tg-theme-button-color);
     --primary-foreground: var(--tg-theme-button-text-color);
-    --secondary: var(--tg-theme-secondary-bg-color);
+    --primary-soft: color-mix(in srgb, var(--tg-theme-button-color) 12%, transparent);
+    --secondary: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
     --secondary-foreground: var(--tg-theme-text-color);
-    --muted: var(--tg-theme-secondary-bg-color);
+    --muted: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
     --muted-foreground: var(--tg-theme-hint-color);
-    --accent: var(--tg-theme-secondary-bg-color);
+    --accent: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
     --accent-foreground: var(--tg-theme-text-color);
-    --destructive: var(--tg-theme-destructive-text-color, oklch(0.577 0.245 27.325));
+    --destructive: var(--tg-theme-destructive-text-color, #D92D20);
+    --destructive-soft: color-mix(in srgb, var(--tg-theme-destructive-text-color, #D92D20) 12%, transparent);
+    --border: var(--tg-theme-section-separator-color, color-mix(in srgb, var(--tg-theme-hint-color) 30%, transparent));
+    --input: var(--tg-theme-section-separator-color, color-mix(in srgb, var(--tg-theme-hint-color) 30%, transparent));
     --ring: var(--tg-theme-button-color);
+    --press: color-mix(in srgb, var(--tg-theme-text-color) 8%, var(--tg-theme-section-bg-color, var(--tg-theme-bg-color)));
+    --heading: color-mix(in srgb, var(--tg-theme-text-color) 85%, var(--tg-theme-secondary-bg-color));
+    --glass: color-mix(in srgb, var(--tg-theme-bg-color) 60%, transparent);
+    --glass-edge: color-mix(in srgb, var(--tg-theme-text-color) 12%, transparent);
+    --menu: color-mix(in srgb, var(--tg-theme-section-bg-color, var(--tg-theme-bg-color)) 88%, transparent);
+    --sheet: var(--tg-theme-secondary-bg-color);
+    --sheet-cell: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
+    --skel: color-mix(in srgb, var(--tg-theme-text-color) 7%, transparent);
     --sidebar: var(--tg-theme-secondary-bg-color);
     --sidebar-foreground: var(--tg-theme-text-color);
     --sidebar-primary: var(--tg-theme-button-color);
     --sidebar-primary-foreground: var(--tg-theme-button-text-color);
-    --sidebar-accent: var(--tg-theme-bg-color);
-    --sidebar-accent-foreground: var(--tg-theme-text-color);
+    --sidebar-accent: color-mix(in srgb, var(--tg-theme-button-color) 12%, transparent);
+    --sidebar-accent-foreground: var(--tg-theme-button-color);
     --brand: var(--tg-theme-text-color);
     --brand-panel: var(--tg-theme-secondary-bg-color);
     --brand-panel-foreground: var(--tg-theme-text-color);
 }
 
-/* A list that scrolls without showing its scrollbar: the sidebar's sections. */
+/* A list that scrolls without showing its scrollbar: the sidebar's sections,
+   the chips, a sheet's body. */
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -173,6 +258,17 @@ html[data-telegram] {
    own bottom edge. */
 @utility pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px));
+}
+
+/* pb-safe-<n>: padding of its own plus the bottom edge (the main button's bar). */
+@utility pb-safe-* {
+  padding-bottom: calc(--spacing(--value(integer)) + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
+}
+
+/* pb-bar: room under a page for the floating tab bar (64px, 22px off the
+   bottom) and the bottom edge. */
+@utility pb-bar {
+  padding-bottom: calc(128px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
 }
 
 /* --safe-top is what lies over the top of the page: in a Telegram Mini App
@@ -208,6 +304,34 @@ html[data-telegram] body {
   overscroll-behavior: none;
 }
 
+/* The avatars' tints: a gradient per tone (lib/initials.ts picks it by seed). */
+[data-slot="avatar"][data-tone="0"] { background: linear-gradient(180deg, #72D5FD, #2A9EF1); }
+[data-slot="avatar"][data-tone="1"] { background: linear-gradient(180deg, #E0A2F3, #C85FE6); }
+[data-slot="avatar"][data-tone="2"] { background: linear-gradient(180deg, #6FE0EE, #22A6C0); }
+[data-slot="avatar"][data-tone="3"] { background: linear-gradient(180deg, #FFA8C4, #E2648D); }
+[data-slot="avatar"][data-tone="4"] { background: linear-gradient(180deg, #B9C3D0, #7F8DA1); }
+
+/* The hairline between the rows of a group starts where the group's inset
+   says (--inset: after the avatar, the tile icon, or at the text); a form
+   row's starts at the text. */
+[data-slot="row"],
+[data-slot="form-row"] {
+  position: relative;
+}
+[data-slot="row"] + [data-slot="row"]::before,
+[data-slot="row-item"] + [data-slot="row-item"] > [data-slot="row"]::before,
+[data-slot="form-row"] + [data-slot="form-row"]::before,
+[data-slot="row"] + [data-slot="form-row"]::before,
+[data-slot="form-row"] + [data-slot="row"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--inset, 16px);
+  height: 0.5px;
+  background: var(--border);
+}
+
 /* Motion answers an action (a dialog opening, a row under the pointer) and
    nothing else; whoever asked for less of it gets none. */
 @media (prefers-reduced-motion: reduce) {
@@ -224,11 +348,13 @@ html[data-telegram] body {
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
-    @apply bg-background text-foreground;
-    }
+    @apply bg-background text-base text-foreground antialiased;
+    font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
+  }
   html {
     @apply font-sans;
-    }
+  }
 }
