@@ -37,7 +37,7 @@ test("the owner keeps the cash: an opening balance, an expense under its categor
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
   await expect(balance).toContainText(/1\s000\s000\s*so'm/)
-  await expect(list(page, "Hisob harakati").getByText("Kassa boshlang'ich qoldig'i")).toBeVisible()
+  await expect(days(page, "Hisob harakati").getByText("Boshlang'ich qoldiq")).toBeVisible()
   await settle(page)
 
   // The rent, under its category.
@@ -48,7 +48,7 @@ test("the owner keeps the cash: an opening balance, an expense under its categor
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
   await expect(balance).toContainText(/850\s000\s*so'm/)
-  await expect(list(page, "Hisob harakati").getByText("Xarajat № 1")).toBeVisible()
+  await expect(days(page, "Hisob harakati").getByText("Xarajat № 1")).toBeVisible()
   await settle(page)
 
   // 100 000 to the second cash; 128 000 turned into 10 dollars on the card.
@@ -70,7 +70,7 @@ test("the owner keeps the cash: an opening balance, an expense under its categor
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
   await expect(balance).toContainText(/622\s000\s*so'm/)
-  await expect(list(page, "Hisob harakati").getByText("Konvertatsiya № 1")).toBeVisible()
+  await expect(days(page, "Hisob harakati").getByText("Konvertatsiya № 1")).toBeVisible()
   await settle(page)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 

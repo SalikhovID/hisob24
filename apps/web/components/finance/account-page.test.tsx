@@ -28,14 +28,19 @@ async function books() {
   return { cash, card, kassa2, bozor, opening, rent, moved, converted }
 }
 
-// statementRows reads the statement's rows: each with its title, the line
-// under it and its end.
+// statementRows reads the statement's rows, the days' groups one after
+// another: each with its title, the line under it and its end.
 async function statementRows() {
-  const statement = await screen.findByRole("list", { name: "Hisob harakati" })
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
   return within(statement)
     .getAllByRole("listitem")
     .map((item) => item.firstElementChild as HTMLElement)
 }
+// statementDays are the days the statement's groups are headed with.
+const statementDays = () =>
+  within(screen.getByRole("region", { name: "Hisob harakati" }))
+    .getAllByRole("list")
+    .map((list) => list.getAttribute("aria-label"))
 const said = (row: HTMLElement) => [rowParts(row).title, rowParts(row).sub?.replace(/\s+/g, " ") ?? null, rowParts(row).end?.replace(/\s+/g, " ") ?? null]
 
 test("the account page, as the prototype's: what it holds large under its name, the tiles that enter a document into it, its statement in rows, the way to the cash", async () => {
@@ -49,18 +54,20 @@ test("the account page, as the prototype's: what it holds large under its name, 
   expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Xarajat", "Kirim", "O'tkazma", "Yana"])
 
   // The statement: every document that named the account, the newest first,
-  // its moment and other side under its name, how it changed what the
-  // account holds and what it held after it at its end.
+  // by its day; its time and other side under its name, how it changed what
+  // the account holds and what it held after it at its end.
   const rows = await statementRows()
+  expect(statementDays()).toEqual(["6-oktabr, seshanba", "5-oktabr, dushanba", "3-oktabr, shanba", "1-oktabr, payshanba"])
   expect(rows.map(said)).toEqual([
-    ["Konvertatsiya № 1", "06.10.2026 09:00 · Karta", "−128 000 qoldiq 617 000"],
-    ["O'tkazma № 1", "05.10.2026 09:00 · Kassa 2", "−100 000 qoldiq 745 000"],
-    ["Xarajat № 1", "03.10.2026 09:00 · Ijara", "−150 000 qoldiq 845 000"],
+    ["Konvertatsiya № 1", "09:00 · Karta", "−128 000 qoldiq 617 000"],
+    ["O'tkazma № 1", "09:00 · Kassa 2", "−100 000 qoldiq 745 000"],
+    ["Xarajat № 1", "09:00 · Ijara", "−150 000 qoldiq 845 000"],
     // The opening balance and the payment with the purchase share the moment
     // (9:00 on the 1st): the later entered comes first. The first document
     // took the account below zero.
-    ["Kassa boshlang'ich qoldig'i", "01.10.2026 09:00", "+1 000 000 qoldiq 995 000"],
-    ["To'lov · Xarid № 1", "01.10.2026 09:00 · Bozor", "−5 000 qoldiq −5 000"],
+    // In the cash's own statement the opening balance needs no «Kassa».
+    ["Boshlang'ich qoldiq", "09:00", "+1 000 000 qoldiq 995 000"],
+    ["To'lov · Xarid № 1", "09:00 · Bozor", "−5 000 qoldiq −5 000"],
   ])
   // A cash document is handled in its sheet of actions; a payment leads to
   // the document it was entered with.
@@ -75,7 +82,7 @@ test("a cash document's sheet: the opening balance is edited and deleted there, 
 
   await user.click(rows[3])
   const sheet = await screen.findByRole("menu")
-  expect(sheet).toHaveTextContent("Kassa boshlang'ich qoldig'i · 1 000 000 so'm")
+  expect(sheet).toHaveTextContent("Boshlang'ich qoldiq · 1 000 000 so'm")
   expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
   await user.click(within(sheet).getByRole("menuitem", { name: "Tahrirlash" }))
   const edit = await screen.findByRole("dialog", { name: "Boshlang'ich qoldiqni tahrirlash" })
@@ -134,7 +141,7 @@ test("an inactive account says so; nothing is entered into it (the forms do not 
   expect(await screen.findByRole("heading", { level: 1, name: "Kassa 2" })).toBeInTheDocument()
   expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Kassa 2 100 000 so'm UZS Nofaol")
   expect(screen.queryByRole("group", { name: "Amallar" })).not.toBeInTheDocument()
-  expect((await statementRows()).map(said)).toEqual([["O'tkazma № 1", "05.10.2026 09:00 · Naqd", "+100 000 qoldiq 100 000"]])
+  expect((await statementRows()).map(said)).toEqual([["O'tkazma № 1", "09:00 · Naqd", "+100 000 qoldiq 100 000"]])
 })
 
 test("the card: in dollars, what arrived by the conversion, from the cash", async () => {
@@ -143,7 +150,7 @@ test("the card: in dollars, what arrived by the conversion, from the cash", asyn
 
   expect(await screen.findByRole("heading", { level: 1, name: "Karta" })).toBeInTheDocument()
   expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Karta 10 $ USD")
-  expect((await statementRows()).map(said)).toEqual([["Konvertatsiya № 1", "06.10.2026 09:00 · Naqd", "+10 qoldiq 10"]])
+  expect((await statementRows()).map(said)).toEqual([["Konvertatsiya № 1", "09:00 · Naqd", "+10 qoldiq 10"]])
 })
 
 test("whoever may see the finance alone sees the account without a way to change it; another company's account is not found", async () => {

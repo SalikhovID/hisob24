@@ -40,6 +40,10 @@ test("the transfers and the conversions as the prototype's list: by their day, t
   expect(screen.getByRole("heading", { level: 1, name: "O'tkazmalar" })).toBeInTheDocument()
   expect(within(screen.getByRole("navigation", { name: "Moliya bo'limi" })).getByRole("link", { name: "O'tkazmalar" })).toHaveAttribute("aria-current", "page")
   expect(day(list, "6-oktabr, seshanba").map(parts)).toEqual([{ title: "Konvertatsiya № 1", sub: "09:00 · Naqd → Karta · Ali V.", end: "128 000 so'm → 10 $" }])
+  // What arrived stands under what left: the row's end stays narrow.
+  const [conversion] = day(list, "6-oktabr, seshanba")
+  expect(conversion.querySelector("[data-slot=row-value]")).toHaveTextContent("128 000 so'm")
+  expect(conversion.querySelector("[data-slot=row-end-sub]")).toHaveTextContent("→ 10 $")
   expect(day(list, "5-oktabr, dushanba").map(parts)).toEqual([{ title: "O'tkazma № 1", sub: "09:00 · Naqd → Kassa 2 · Ali V.", end: "100 000 so'm" }])
   expect(screen.getByText("Jami: 2")).toBeInTheDocument()
 

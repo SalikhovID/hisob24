@@ -36,8 +36,8 @@ type Entering = { kind: "money_transfer" | "conversion"; document?: MoneyTransfe
 // section 5), for whoever may see the finance, as the prototype's list:
 // an account as a chip opening its sheet; the documents by their day, the
 // newest first, each by its kind and number, its time, the accounts it went
-// between and who entered it under it, what left at its end (and what
-// arrived, for a conversion). A row opens a sheet of its actions (editing,
+// between and who entered it under it, what left at its end (and under it
+// what arrived, for a conversion). A row opens a sheet of its actions (editing,
 // deleting; with the permissions; a conversion's rate said in its title);
 // the plus offers a transfer or a conversion.
 export function MoneyTransfersPage() {
@@ -111,7 +111,8 @@ export function MoneyTransfersPage() {
                 media={<SoftIcon icon={t.kind === "conversion" ? RepeatIcon : ArrowLeftRightIcon} />}
                 title={titleOf(t)}
                 sub={[formatTime(t.at), `${t.from_account_name} → ${t.to_account_name}`, t.created_by_name && shortName(t.created_by_name)].filter(Boolean).join(" · ")}
-                end={moved(t)}
+                end={formatMoney(t.amount, currencyOf(currencies, t.currency_id))}
+                endSub={t.kind === "conversion" && t.to_amount !== null ? `→ ${formatMoney(t.to_amount, currencyOf(currencies, t.to_currency_id))}` : undefined}
                 chevron={false}
               />
             )}

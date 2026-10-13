@@ -3,12 +3,13 @@
 import { ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, BanknoteIcon, type LucideIcon, RepeatIcon, ScaleIcon } from "lucide-react"
 import { useState } from "react"
 import { ActionSheet } from "@/components/kit/action-sheet"
-import { Group, Row, SectionHeading } from "@/components/kit/group"
+import { DayGroups } from "@/components/kit/day-groups"
+import { Group, Row } from "@/components/kit/group"
 import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { Failed, ListLoading } from "@/components/states"
 import { type FinanceDocumentKind, financeKindTitle } from "@/lib/finance"
-import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
+import { formatAmount, formatMoney, formatTime } from "@/lib/format"
 import { useAccountStatement } from "@/lib/queries"
 import type { AccountBalance, AccountStatementRow, CashOpening, CompanyCurrency } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -33,10 +34,12 @@ const numbered = (kind: FinanceDocumentKind) => kind === "expense" || kind === "
 // isPayment tells a payment (entered with a purchase or a sale, or on its own) from a cash document.
 const isPayment = (kind: FinanceDocumentKind) => kind === "supplier_payment" || kind === "customer_payment"
 
-// titleOf says what a row is: a cash document by its kind and number, a
-// payment with the document it was entered with.
+// titleOf says what a row is: a cash document by its kind and number (the
+// opening balance needs no «Kassa» in the cash's own statement), a payment
+// with the document it was entered with.
 function titleOf(row: AccountStatementRow): string {
   const kind = row.kind as FinanceDocumentKind
+  if (kind === "cash_opening") return "Boshlang'ich qoldiq"
   if (isPayment(kind)) {
     if (row.linked_id === null) return "To'lov"
     return `To'lov · ${kind === "supplier_payment" ? "Xarid" : "Sotuv"} № ${row.linked_number}`
@@ -92,7 +95,7 @@ function openingOfRow(row: AccountStatementRow, account: AccountBalance): CashOp
 
 // AccountStatementList is an account's statement (logic/finance.md, section
 // 4), as the prototype's rows: every live document that named it, the
-// newest first, its moment and other side under its name, how it changed
+// newest first, by its day; its time and other side under its name, how it changed
 // what the account holds (green when it grew, red when it shrank) and what
 // the account held after it at its end. A cash document opens a sheet of
 // its actions: an opening balance of the cash is edited and deleted there,
@@ -130,10 +133,7 @@ export function AccountStatementList({
   }
 
   return (
-    <section aria-labelledby="account-statement">
-      <SectionHeading>
-        <span id="account-statement">Hisob harakati</span>
-      </SectionHeading>
+    <>
       {statement.isPending && <ListLoading rows={4} mark="none" />}
       {statement.isError && <Failed error={statement.error} onRetry={() => statement.refetch()} />}
       {data?.total === 0 && (
@@ -143,8 +143,8 @@ export function AccountStatementList({
       )}
       {data && data.total > 0 && (
         <>
-          <Group label="Hisob harakati" inset="icon">
-            {data.items.map((row) => {
+          <DayGroups label="Hisob harakati" items={data.items} at={(row) => row.at} className={cn(statement.isPlaceholderData && "opacity-60")}>
+            {(row) => {
               const kind = row.kind as FinanceDocumentKind
               const { icon, color } = iconOf(kind)
               const negative = row.delta.startsWith("-")
@@ -155,14 +155,14 @@ export function AccountStatementList({
                   onClick={actionsOf(row).length > 0 ? () => setActing(row) : undefined}
                   media={<SoftIcon icon={icon} color={color} />}
                   title={titleOf(row)}
-                  sub={[formatDateTime(row.at), row.party_name].filter(Boolean).join(" · ")}
+                  sub={[formatTime(row.at), row.party_name].filter(Boolean).join(" · ")}
                   end={<span className={cn("tabular-nums", negative ? "text-destructive" : Number(row.delta) > 0 && "text-positive")}>{signed(row.delta)}</span>}
                   endSub={`qoldiq ${minus(row.balance)}`}
                   chevron={false}
                 />
               )
-            })}
-          </Group>
+            }}
+          </DayGroups>
           {data.total > data.page_size && <Pager page={data.page} pageSize={data.page_size} total={data.total} onPage={setPage} />}
         </>
       )}
@@ -174,6 +174,6 @@ export function AccountStatementList({
       />
       {opening && <CashOpeningDialog companyId={companyId} opening={opening} open onOpenChange={(open) => !open && setOpening(null)} />}
       {removing && <DeleteCashDocumentDialog companyId={companyId} document={removing} open onOpenChange={(open) => !open && setRemoving(null)} />}
-    </section>
+    </>
   )
 }
