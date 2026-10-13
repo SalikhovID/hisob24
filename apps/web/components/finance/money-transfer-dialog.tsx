@@ -2,54 +2,42 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { PencilIcon, PlusIcon } from "lucide-react"
-import { useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
-import { iconAction } from "@/components/catalog/icon-action"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { SelectRow } from "@/components/kit/picker-sheet"
 import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
 import { accountCurrency, accountOptions, useAccounts, useCurrencies } from "@/lib/currencies"
 import { forgetFinance, type MoneyTransferForm, type MoneyTransferOutput, moneyTransferDefaults, moneyTransferSchema } from "@/lib/finance"
-import { formatAmount } from "@/lib/format"
 import type { MoneyTransfer } from "@/lib/types"
 import { nowLocal } from "@/lib/warehouse"
 
 // MoneyTransferDialog moves money from one account to another in the same
 // currency (logic/finance.md, section 5): the account it leaves (the
-// page's, when opened from one), another in its currency it arrives in,
-// the amount, a moment (now unless another is chosen) and a note; or saves
-// the one given with other fields. As the prototype's sheet: both accounts
+// page's, when opened from one), another in its currency it arrives in, the
+// amount, a moment (now unless another is chosen) and a note; or saves the
+// one given with other fields. As the prototype's sheet: both accounts
 // picked in sheets, the amount with its currency, the moment and the note
-// as rows. open, with onOpenChange, opens it from outside (an account's
-// tile, a document's «Tahrirlash»): it has no button then.
+// as rows. It is opened from outside (an account's tile, a document's
+// «Tahrirlash»).
 export function MoneyTransferDialog({
   companyId,
   accountId,
   transfer,
-  iconOnly = false,
-  open: openGiven,
+  open,
   onOpenChange,
 }: {
   companyId: number
   accountId?: number
   transfer?: MoneyTransfer
-  iconOnly?: boolean
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const [openOwn, setOpenOwn] = useState(false)
-  const controlled = openGiven !== undefined
-  const open = controlled ? openGiven : openOwn
-  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const accounts = useAccounts()
@@ -71,32 +59,12 @@ export function MoneyTransferDialog({
     onSuccess: () => {
       forgetFinance(queryClient, companyId)
       toast.success(transfer ? "Hujjat saqlandi" : "Hujjat qo'shildi")
-      setOpen(false)
+      onOpenChange(false)
     },
   })
 
-  const changeOpen = (next: boolean) => {
-    setOpen(next)
-    if (next) {
-      form.reset(moneyTransferDefaults(transfer, nowLocal(), firstAccount))
-      save.reset()
-    }
-  }
-
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      {controlled ? null : transfer && iconOnly ? (
-        <ActionTooltip label="Tahrirlash">
-          <DialogTrigger render={<Button variant="ghost" size="icon" className={iconAction} aria-label={`Tahrirlash: ${formatAmount(transfer.amount)}`} />}>
-            <PencilIcon />
-          </DialogTrigger>
-        </ActionTooltip>
-      ) : (
-        <DialogTrigger render={<Button size={transfer ? "sm" : "lg"} variant={transfer ? "outline" : "default"} className="px-3.5" />}>
-          {transfer ? <PencilIcon /> : <PlusIcon />}
-          {transfer ? "Tahrirlash" : "O'tkazma qo'shish"}
-        </DialogTrigger>
-      )}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{transfer ? "O'tkazmani tahrirlash" : "O'tkazma qo'shish"}</DialogTitle>

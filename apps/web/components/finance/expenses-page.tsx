@@ -24,7 +24,7 @@ import { useExpenseFilter } from "@/lib/use-expense-filter"
 import { usePermission } from "@/lib/use-gate"
 import { cn } from "@/lib/utils"
 import { financeSection } from "./accounts-page"
-import { DeleteCashDocumentButton } from "./delete-cash-document-button"
+import { DeleteCashDocumentDialog } from "./delete-cash-document-button"
 import { ExpenseDialog } from "./expense-dialog"
 
 const words = {
@@ -171,7 +171,7 @@ export function ExpensesPage() {
         />
       )}
       {companyId !== null && removing && (
-        <DeleteCashDocumentButton
+        <DeleteCashDocumentDialog
           companyId={companyId}
           document={{ id: removing.id, kind: removing.kind, amount: removing.amount, currency_id: removing.currency_id, at: removing.at }}
           open

@@ -24,7 +24,7 @@ import { useMoneyTransferFilter } from "@/lib/use-money-transfer-filter"
 import { cn } from "@/lib/utils"
 import { financeSection } from "./accounts-page"
 import { ConversionDialog } from "./conversion-dialog"
-import { DeleteCashDocumentButton } from "./delete-cash-document-button"
+import { DeleteCashDocumentDialog } from "./delete-cash-document-button"
 import { MoneyTransferDialog } from "./money-transfer-dialog"
 
 // Entering is the sheet open to enter or edit a document: a new transfer or
@@ -147,7 +147,7 @@ export function MoneyTransfersPage() {
         <ConversionDialog companyId={companyId} conversion={entering.document} open onOpenChange={(open) => !open && setEntering(null)} />
       )}
       {companyId !== null && removing && (
-        <DeleteCashDocumentButton
+        <DeleteCashDocumentDialog
           companyId={companyId}
           document={{ id: removing.id, kind: removing.kind, amount: removing.amount, currency_id: removing.currency_id, at: removing.at }}
           open

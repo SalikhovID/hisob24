@@ -1,11 +1,7 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Trash2Icon } from "lucide-react"
-import { useState } from "react"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
-import { iconAction } from "@/components/catalog/icon-action"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -15,13 +11,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { financeKindTitle, forgetFinance } from "@/lib/finance"
-import { formatAmount, formatDateTime, formatMoney } from "@/lib/format"
+import { formatDateTime, formatMoney } from "@/lib/format"
 
 // CashDocument is what the button needs of a cash document: which one, of
 // which kind (the endpoint is the kind's), its amount and moment (for the
@@ -44,11 +38,11 @@ function remove(d: CashDocument) {
   }
 }
 
-// DeleteCashDocumentButton deletes a cash document after asking, from its
-// row. What the accounts hold changes back by it. open, with onOpenChange,
-// opens the question from outside (a document's sheet of actions): it has
-// no button then.
-export function DeleteCashDocumentButton({
+// DeleteCashDocumentDialog asks whether to delete a cash document, and
+// does: an account's statement and the expenses' and the transfers' lists
+// open it from the document's sheet of actions. What the accounts hold
+// changes back by it.
+export function DeleteCashDocumentDialog({
   companyId,
   document,
   open,
@@ -56,38 +50,26 @@ export function DeleteCashDocumentButton({
 }: {
   companyId: number
   document: CashDocument
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const [confirmingOwn, setConfirmingOwn] = useState(false)
-  const controlled = open !== undefined
-  const confirming = controlled ? open : confirmingOwn
-  const setConfirming = (next: boolean) => (controlled ? onOpenChange?.(next) : setConfirmingOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
-  const amount = formatAmount(document.amount)
   const deletion = useMutation({
     mutationFn: () => remove(document),
     onSuccess: () => {
       forgetFinance(queryClient, companyId)
       toast.success("Hujjat o'chirildi")
-      setConfirming(false)
+      onOpenChange(false)
     },
     onError: (error) => {
       toast.error(error.message)
-      setConfirming(false)
+      onOpenChange(false)
     },
   })
 
   return (
-    <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      {!controlled && (
-      <ActionTooltip label="O'chirish">
-        <AlertDialogTrigger render={<Button variant="ghost" size="icon" className={`${iconAction} hover:text-destructive`} aria-label={`O'chirish: ${amount}`} />}>
-          <Trash2Icon />
-        </AlertDialogTrigger>
-      </ActionTooltip>
-      )}
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Hujjatni o&apos;chirasizmi?</AlertDialogTitle>

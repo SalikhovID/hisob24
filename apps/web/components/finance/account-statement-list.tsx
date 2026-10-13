@@ -13,7 +13,7 @@ import { useAccountStatement } from "@/lib/queries"
 import type { AccountBalance, AccountStatementRow, CashOpening, CompanyCurrency } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { CashOpeningDialog } from "./cash-opening-dialog"
-import { type CashDocument, DeleteCashDocumentButton } from "./delete-cash-document-button"
+import { type CashDocument, DeleteCashDocumentDialog } from "./delete-cash-document-button"
 
 // signed is a change of what the account holds, with its sign: "+1 000 000", "−128 000".
 export function signed(amount: string): string {
@@ -173,7 +173,7 @@ export function AccountStatementList({
         items={acting ? actionsOf(acting) : []}
       />
       {opening && <CashOpeningDialog companyId={companyId} opening={opening} open onOpenChange={(open) => !open && setOpening(null)} />}
-      {removing && <DeleteCashDocumentButton companyId={companyId} document={removing} open onOpenChange={(open) => !open && setRemoving(null)} />}
+      {removing && <DeleteCashDocumentDialog companyId={companyId} document={removing} open onOpenChange={(open) => !open && setRemoving(null)} />}
     </section>
   )
 }

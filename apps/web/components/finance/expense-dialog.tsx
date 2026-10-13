@@ -2,13 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { PencilIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
-import { ActionTooltip } from "@/components/action-tooltip"
-import { iconAction } from "@/components/catalog/icon-action"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -16,17 +12,15 @@ import { SelectRow } from "@/components/kit/picker-sheet"
 import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
 import { settingsHref } from "@/components/settings/use-settings-tab"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
 import { accountCurrency, accountOptions, useAccounts, useCurrencies } from "@/lib/currencies"
 import { type ExpenseForm, type ExpenseOutput, expenseDefaults, expenseSchema, forgetFinance } from "@/lib/finance"
-import { formatAmount } from "@/lib/format"
 import { useFinanceCategories } from "@/lib/queries"
 import type { Expense, FinanceKind } from "@/lib/types"
 import { nowLocal } from "@/lib/warehouse"
 
-// The words of each kind: what the button, the title and the note say.
+// The words of each kind: what the title and the note say.
 const words: Record<FinanceKind, { add: string; edit: string; noun: string }> = {
   expense: { add: "Xarajat qo'shish", edit: "Xarajatni tahrirlash", noun: "xarajat" },
   income: { add: "Kirim qo'shish", edit: "Kirimni tahrirlash", noun: "kirim" },
@@ -37,36 +31,29 @@ const words: Record<FinanceKind, { add: string; edit: string; noun: string }> = 
 // from one), a category of the kind (the active ones; the document's own
 // stays), the amount in the account's currency, a moment (now unless
 // another is chosen) and a note; or saves the one given with other fields,
-// its kind staying. Without a category of the kind there is nothing to
-// file the document under: the settings make them (settingsAllowed: the
-// way there is offered). As the prototype's sheet: the account and the
-// category picked in sheets, the amount with the account's currency, the
-// moment and the note as rows. open, with onOpenChange, opens it from
-// outside (an account's tile, a document's «Tahrirlash»): it has no button
-// then.
+// its kind staying. Without a category of the kind there is nothing to file
+// the document under: the settings make them (settingsAllowed: the way
+// there is offered). As the prototype's sheet: the account and the category
+// picked in sheets, the amount with the account's currency, the moment and
+// the note as rows. It is opened from outside (an account's tile, a
+// document's «Tahrirlash»).
 export function ExpenseDialog({
   companyId,
   kind,
   accountId,
   expense,
-  iconOnly = false,
   settingsAllowed = false,
-  open: openGiven,
+  open,
   onOpenChange,
 }: {
   companyId: number
   kind: FinanceKind
   accountId?: number
   expense?: Expense
-  iconOnly?: boolean
   settingsAllowed?: boolean
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const [openOwn, setOpenOwn] = useState(false)
-  const controlled = openGiven !== undefined
-  const open = controlled ? openGiven : openOwn
-  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
   const accounts = useAccounts()
@@ -87,34 +74,13 @@ export function ExpenseDialog({
     onSuccess: () => {
       forgetFinance(queryClient, companyId)
       toast.success(expense ? "Hujjat saqlandi" : "Hujjat qo'shildi")
-      setOpen(false)
+      onOpenChange(false)
     },
   })
 
-  // The dialog opens afresh each time: with the document as it is now, or empty, now.
-  const changeOpen = (next: boolean) => {
-    setOpen(next)
-    if (next) {
-      form.reset(expenseDefaults(expense, nowLocal(), firstAccount, kind))
-      save.reset()
-    }
-  }
-
   const w = words[expense?.kind ?? kind]
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      {controlled ? null : expense && iconOnly ? (
-        <ActionTooltip label="Tahrirlash">
-          <DialogTrigger render={<Button variant="ghost" size="icon" className={iconAction} aria-label={`Tahrirlash: ${formatAmount(expense.amount)}`} />}>
-            <PencilIcon />
-          </DialogTrigger>
-        </ActionTooltip>
-      ) : (
-        <DialogTrigger render={<Button size={expense ? "sm" : "lg"} variant={expense ? "outline" : "default"} className="px-3.5" />}>
-          {expense ? <PencilIcon /> : <PlusIcon />}
-          {expense ? "Tahrirlash" : w.add}
-        </DialogTrigger>
-      )}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{expense ? w.edit : w.add}</DialogTitle>
