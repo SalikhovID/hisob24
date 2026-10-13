@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils"
 // The rows of a form, as the prototype draws them inside a Group: the label
 // at the left (112px), the control beside it, the error under them in red.
 // Each is bound to a react-hook-form field through Controller. TOut is what
-// the form's schema turns the values into.
+// the form's schema turns the values into. An input is 44px tall, a thumb's
+// target, in a row as tall as the prototype's (52px).
 
 const labelClass = "shrink-0 basis-[112px] text-[16px] leading-tight text-foreground group-data-invalid:text-destructive"
-const inputClass = "h-10 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
+const inputClass = "h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
 
 interface Bound<T extends FieldValues, TOut extends FieldValues> {
   control: Control<T, unknown, TOut>
@@ -43,7 +44,7 @@ export function FormRow({
 }) {
   return (
     <div data-slot="form-row" data-invalid={error ? true : undefined} className={cn("group px-4", className)}>
-      <div className={cn("flex min-h-[52px] gap-3 py-1.5", stack ? "flex-col items-stretch gap-2 py-3" : "items-center")}>
+      <div className={cn("flex min-h-[52px] gap-3 py-1", stack ? "flex-col items-stretch gap-2 py-3" : "items-center")}>
         {htmlFor ? (
           <label htmlFor={htmlFor} className={cn(labelClass, stack && "basis-auto")}>
             {label}
