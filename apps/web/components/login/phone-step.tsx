@@ -4,8 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { PendingButton } from "@/components/pending-button"
-import { PhoneField } from "@/components/phone-field"
+import { PhoneRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
 import { api, call } from "@/lib/api"
 import { formatPhoneInput, phoneDigits } from "@/lib/phone"
@@ -15,7 +16,8 @@ const schema = z.object({
   phone: z.string().refine((phone) => phoneDigits(phone) !== null, "Telefon raqamini to'liq kiriting"),
 })
 
-// PhoneStep is the first login step: the phone number the code goes to.
+// PhoneStep is the first login step: the phone number the code goes to, in
+// a row of its own (+998 fixed before it), and the main button under it.
 // phone is the number as the API takes it (998901234567), in and out.
 export function PhoneStep({
   defaultPhone = "",
@@ -36,24 +38,14 @@ export function PhoneStep({
   })
 
   return (
-    <form noValidate onSubmit={submit} className="space-y-4">
-      <PhoneField
-        control={form.control}
-        name="phone"
-        label="Telefon raqami"
-        readOnly={!hydrated}
-        autoComplete="tel"
-        size="lg"
-      />
-      {send.isError && <Refusal>{send.error.message}</Refusal>}
-      <PendingButton
-        type="submit"
-        className="h-12 w-full rounded-xl text-base"
-        disabled={!hydrated}
-        pending={send.isPending}
-      >
+    <form noValidate onSubmit={submit}>
+      <Group className="mb-4">
+        <PhoneRow control={form.control} name="phone" label="Telefon raqami" readOnly={!hydrated} autoComplete="tel" />
+      </Group>
+      {send.isError && <Refusal className="mb-4">{send.error.message}</Refusal>}
+      <MainButton type="submit" disabled={!hydrated} pending={send.isPending}>
         Kodni olish
-      </PendingButton>
+      </MainButton>
     </form>
   )
 }

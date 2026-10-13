@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Logo } from "@/components/logo"
+import { Refusal } from "@/components/refusal"
 import { formatPhone } from "@/lib/phone"
 import { waitForWebApp } from "@/lib/telegram"
 import { cn } from "@/lib/utils"
@@ -51,11 +52,7 @@ export function LoginScreen() {
 
   return (
     <LoginFrame brand={<Logo className="h-7 lg:h-8" />} tagline="Biznesingiz uchun hisob tizimi">
-      {notice && (
-        <p role="alert" className="mb-6 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm text-destructive">
-          {notice}
-        </p>
-      )}
+      {notice && <Refusal className="mb-6">{notice}</Refusal>}
       <div
         key={step.kind}
         className={cn(
@@ -65,10 +62,10 @@ export function LoginScreen() {
         )}
       >
         <div className="space-y-1.5">
-          <h2 className="text-2xl font-semibold tracking-tight">
+          <h2 className="text-[26px] leading-[1.2] font-bold tracking-[-0.02em]">
             {step.kind === "phone" ? "Kirish" : "Kodni kiriting"}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-md text-muted-foreground">
             {step.kind === "phone"
               ? "Telefon raqamingizni kiriting, kod SMS yoki Telegram botga keladi"
               : `Kod ${formatPhone(step.phone)} raqamiga yuborildi. SMS yoki Telegram botni tekshiring`}

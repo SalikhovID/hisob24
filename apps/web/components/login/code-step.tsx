@@ -3,8 +3,8 @@
 import { useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { setAccessToken } from "@/lib/session"
 import { CodeField } from "./code-field"
@@ -73,19 +73,13 @@ export function CodeStep({
         disabled={verify.isPending}
       />
       {error && <Refusal>{error.message}</Refusal>}
-      <div className="grid gap-2 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-full rounded-xl tabular-nums"
-          disabled={left > 0 || resend.isPending}
-          onClick={() => resend.mutate()}
-        >
+      <div className="grid gap-1 pt-2">
+        <MainButton variant="ghost" className="tabular-nums" disabled={left > 0 || resend.isPending} onClick={() => resend.mutate()}>
           {left > 0 ? `Kodni qayta yuborish (${left})` : "Kodni qayta yuborish"}
-        </Button>
-        <Button type="button" variant="ghost" className="h-11 w-full rounded-xl" onClick={onChangePhone}>
+        </MainButton>
+        <MainButton variant="ghost" onClick={onChangePhone}>
           Raqamni o&apos;zgartirish
-        </Button>
+        </MainButton>
       </div>
     </div>
   )
