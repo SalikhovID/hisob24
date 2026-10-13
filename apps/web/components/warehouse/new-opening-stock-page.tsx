@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
+import { PageTitle } from "@/components/kit/page-title"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { openingStockDefaults, type OpeningStockOutput } from "@/lib/stock"
@@ -45,15 +45,15 @@ export function NewOpeningStockPage() {
   if (!gate || companyId === null || !withPickers) return null
   if (location.ready && locationId === null) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Yangi boshlang'ich qoldiq" back={back} />
+      <>
+        <PageTitle title="Yangi boshlang'ich qoldiq" back={back} />
         <NoLocation />
-      </div>
+      </>
     )
   }
   return (
-    <div className="space-y-5">
-      <PageHeader title="Yangi boshlang'ich qoldiq" description={location.current?.name} back={back} />
+    <>
+      <PageTitle title="Yangi boshlang'ich qoldiq" description={location.current?.name} back={back} />
       <OpeningStockForm
         companyId={companyId}
         defaults={defaults}
@@ -62,6 +62,6 @@ export function NewOpeningStockPage() {
         pending={create.isPending || create.isSuccess}
         refusal={create.error?.message}
       />
-    </div>
+    </>
   )
 }

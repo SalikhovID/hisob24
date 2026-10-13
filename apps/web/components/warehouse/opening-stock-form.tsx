@@ -3,19 +3,21 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
-import { CurrencyField } from "@/components/currency-field"
-import { PendingButton } from "@/components/pending-button"
+import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { Group } from "@/components/kit/group"
+import { MainBar, MainButton } from "@/components/kit/main-button"
+import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
-import { TextField } from "@/components/text-field"
-import { FieldGroup } from "@/components/ui/field"
-import { currencyOf, isMulti, trimRate, useCurrencies, UZS } from "@/lib/currencies"
+import { currencyOf, currencyOptions, isMulti, trimRate, useCurrencies, UZS } from "@/lib/currencies"
 import { type OpeningStockForm as OpeningStockFormValues, type OpeningStockOutput, openingStockSchema } from "@/lib/stock"
 import { LinesField } from "./lines-field"
 
 // OpeningStockForm is the stock a location starts with, as it is entered or
-// edited (logic/warehouse.md, 5.3): a purchase without a supplier or
-// payments: the moment, the currency and rate (with more than the so'm),
-// the lines with their prices and a note. The location is the page's.
+// edited (logic/warehouse.md, 5.3), as the prototype's document form: a
+// purchase without a supplier or payments: the moment, the currency and
+// rate (with more than the so'm) as rows, the lines with their prices as
+// cards, a note, the main button in the bar at the bottom. The location is
+// the page's.
 export function OpeningStockForm({
   companyId,
   defaults,
@@ -42,20 +44,26 @@ export function OpeningStockForm({
     if (rate !== null) form.setValue("rate", trimRate(rate))
   }, [currencyId, currencies, form])
 
+  const currency = currencyOf(currencies, currencyId)
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-6">
-      <FieldGroup>
-        <TextField control={form.control} name="at" label="Vaqt" type="datetime-local" />
-        {isMulti(currencies) && <CurrencyField control={form.control} currencyName="currency_id" rateName="rate" currencies={currencies} />}
-      </FieldGroup>
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-1 flex-col [&>*]:shrink-0">
+      {refusal && <Refusal className="mb-4">{refusal}</Refusal>}
+      <Group>
+        <TextRow control={form.control} name="at" label="Vaqt" type="datetime-local" />
+        {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
+        {isMulti(currencies) && currencyId !== UZS && (
+          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
+        )}
+      </Group>
       <LinesField form={form} companyId={companyId} withPrice currencyId={currencyId} pending={pending} />
-      <FieldGroup>
-        <TextField control={form.control} name="note" label="Izoh" autoComplete="off" />
-      </FieldGroup>
-      {refusal && <Refusal>{refusal}</Refusal>}
-      <PendingButton type="submit" size="lg" className="px-3.5" pending={pending}>
-        {submitLabel}
-      </PendingButton>
+      <Group>
+        <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
+      </Group>
+      <MainBar>
+        <MainButton type="submit" pending={pending}>
+          {submitLabel}
+        </MainButton>
+      </MainBar>
     </form>
   )
 }

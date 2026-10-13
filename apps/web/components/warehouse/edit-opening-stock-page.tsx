@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { Failed, ListLoading } from "@/components/states"
+import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { Failed, ListLoading, NotFound } from "@/components/states"
 import { api, ApiError, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
 import { useOpeningStock } from "@/lib/queries"
@@ -42,20 +42,25 @@ export function EditOpeningStockPage({ id }: { id: number }) {
 
   if (!gate || companyId === null || !withPickers) return null
   if (opening.error instanceof ApiError && opening.error.status === 404) {
-    return <PageHeader title="Hujjat topilmadi" description="Bu hujjat o'chirilgan yoki siz ishlamaydigan lokatsiyada." back={back} />
+    return (
+      <>
+        <BackLink {...back} />
+        <NotFound title="Hujjat topilmadi" description="Bu hujjat o'chirilgan yoki siz ishlamaydigan lokatsiyada." />
+      </>
+    )
   }
   if (!opening.data) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Boshlang'ich qoldiqni tahrirlash" back={back} />
+      <>
+        <PageTitle title="Boshlang'ich qoldiqni tahrirlash" back={back} />
         {opening.isError ? <Failed error={opening.error} onRetry={() => opening.refetch()} /> : <ListLoading rows={4} mark="none" />}
-      </div>
+      </>
     )
   }
   const o = opening.data
   return (
-    <div className="space-y-5">
-      <PageHeader
+    <>
+      <PageTitle
         title="Boshlang'ich qoldiqni tahrirlash"
         description={`№ ${o.number} · ${o.location_name}`}
         back={{ href: `/opening-stock/${o.id}`, label: `Boshlang'ich qoldiq № ${o.number}` }}
@@ -69,6 +74,6 @@ export function EditOpeningStockPage({ id }: { id: number }) {
         pending={save.isPending || save.isSuccess}
         refusal={save.error?.message}
       />
-    </div>
+    </>
   )
 }
