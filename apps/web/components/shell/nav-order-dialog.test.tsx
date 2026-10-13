@@ -8,12 +8,12 @@ import { NavOrderDialog } from "./nav-order-dialog"
 const list = () => screen.findByRole("list", { name: "Bo'limlar tartibi" })
 const names = (list: HTMLElement) => within(list).getAllByRole("listitem").map((item) => item.textContent)
 
-test("the dialog lists the member's sections in their order; Saqlash sends the order and says so", async () => {
+test("the dialog lists the member's sections in their order, the home locked first apart; Saqlash sends the order and says so", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<NavOrderDialog open onOpenChange={() => {}} />)
 
   const sections = await list()
-  expect(names(sections)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(names(sections)).toEqual(["Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
   within(sections).getByRole("button", { name: "Sozlamalar: tartibini o'zgartirish" }).focus()
   await user.keyboard("{Home}")
   expect(names(await list())[0]).toBe("Sozlamalar")
@@ -21,7 +21,7 @@ test("the dialog lists the member's sections in their order; Saqlash sends the o
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() =>
-    expect(db.members[ALI][0].navOrder).toEqual(["settings", "home", "customers", "tasks", "products", "sales", "warehouse", "finance", "employees"]),
+    expect(db.members[ALI][0].navOrder).toEqual(["settings", "customers", "tasks", "products", "sales", "warehouse", "finance", "employees"]),
   )
   expect(await screen.findByText("Menyu tartibi saqlandi")).toBeInTheDocument()
 })
@@ -33,7 +33,7 @@ test("the dialog starts from the member's own order; «Standart holat» drops it
 
   expect(names(await list())[0]).toBe("Sozlamalar")
   await user.click(screen.getByRole("button", { name: "Standart holat" }))
-  expect(names(await list())).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(names(await list())).toEqual(["Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
 
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 

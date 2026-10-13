@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barItems, isCurrent, isCurrentItem, navFor, navItems } from "./nav"
+import { barItems, isCurrent, isCurrentItem, isRootPath, navFor, navItems, sectionRootOf } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -26,10 +26,10 @@ test("an employee with a role sees the sections the role lets them view; before 
 test("a section with tabs opens at the first tab the member may see", () => {
   const href = (permissions: Permission[], label: string) => navFor(permissions).find((item) => item.label === label)?.href
   expect(href(allPermissions, "Mahsulotlar")).toBe("/products")
-  expect(href(allPermissions, "Ombor")).toBe("/purchases")
-  expect(href(["suppliers.view"], "Ombor")).toBe("/suppliers")
-  expect(href(["stock.view"], "Ombor")).toBe("/transfers")
-  expect(href(["stock.view", "suppliers.view"], "Ombor")).toBe("/transfers")
+  // The warehouse opens at its hub, whichever of its pages the member may see.
+  expect(href(allPermissions, "Ombor")).toBe("/warehouse")
+  expect(href(["suppliers.view"], "Ombor")).toBe("/warehouse")
+  expect(href(["stock.view"], "Ombor")).toBe("/warehouse")
   expect(href(allPermissions, "Sotuv")).toBe("/sales")
   expect(href(allPermissions, "Moliya")).toBe("/accounts")
   expect(href(["finance.view"], "Moliya")).toBe("/accounts")
@@ -48,11 +48,11 @@ test("the warehouse holds the purchases, the stock documents by kind and the sup
   ])
 })
 
-test("the member's own order comes first; what it does not name follows in the default order, what they may not see is left out", () => {
+test("the home comes first; the member's own order follows; what it does not name follows in the default order, what they may not see is left out", () => {
   expect(labels(allPermissions, ["settings", "tasks"])).toEqual([
+    "Bosh sahifa",
     "Sozlamalar",
     "Vazifalar",
-    "Bosh sahifa",
     "Mijozlar",
     "Mahsulotlar",
     "Sotuv",
@@ -60,18 +60,35 @@ test("the member's own order comes first; what it does not name follows in the d
     "Moliya",
     "Xodimlar",
   ])
-  expect(labels(defaultPermissions, ["settings", "warehouse", "home"])).toEqual(["Ombor", "Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Moliya"])
+  expect(labels(defaultPermissions, ["settings", "warehouse", "home"])).toEqual(["Bosh sahifa", "Ombor", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Moliya"])
   expect(labels(allPermissions, null)).toEqual(labels(allPermissions))
   expect(labels(allPermissions, ["bogus"])).toEqual(labels(allPermissions))
 })
 
-test("the bar shows up to five sections; past that, four and the rest apart", () => {
+test("the bar shows the home and the first four sections; the rest go to the profile", () => {
   const nine = navFor(allPermissions)
-  expect(barItems(nine).shown.map((item) => item.label)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
-  expect(barItems(nine).more.map((item) => item.label)).toEqual(["Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(barItems(nine).shown.map((item) => item.label)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv"])
+  expect(barItems(nine).more.map((item) => item.label)).toEqual(["Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
   const five = navFor(["customers.view", "tasks.view", "products.view", "sales.view"])
   expect(barItems(five).shown).toHaveLength(5)
   expect(barItems(five).more).toEqual([])
+})
+
+test("a section's root pages are where the tab bar shows; a record, a form or the profile are inside one", () => {
+  for (const path of ["/", "/customers", "/tasks", "/products", "/services", "/sales", "/warehouse", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings"]) {
+    expect(isRootPath(path), path).toBe(true)
+  }
+  for (const path of ["/customers/7", "/tasks/3", "/purchases", "/purchases/new", "/suppliers/2", "/sales/new", "/profile", "/profile/menu", "/settings/roles/new", "/accounts/4"]) {
+    expect(isRootPath(path), path).toBe(false)
+  }
+})
+
+test("a page inside a section leads back to the section's root", () => {
+  expect(sectionRootOf("/customers/7")).toBe("/customers")
+  expect(sectionRootOf("/purchases/3/edit")).toBe("/warehouse")
+  expect(sectionRootOf("/services")).toBe("/products")
+  expect(sectionRootOf("/settings/roles/1")).toBe("/settings")
+  expect(sectionRootOf("/profile/menu")).toBe("/")
 })
 
 test.each([
@@ -94,6 +111,7 @@ test.each([
   ["products", "/products", true],
   ["products", "/services/3", true],
   ["products", "/purchases", false],
+  ["warehouse", "/warehouse", true],
   ["warehouse", "/purchases/new", true],
   ["warehouse", "/suppliers/2", true],
   ["warehouse", "/transfers/3/edit", true],

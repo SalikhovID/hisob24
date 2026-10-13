@@ -10,7 +10,7 @@ import { TabBar } from "./tab-bar"
 const bar = () => screen.getByRole("navigation", { name: "Bo'limlar" })
 const tabs = () => within(bar()).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])
 
-test("the owner's bar is the first four sections and «Yana», which holds the rest; the page's section is marked where it is", async () => {
+test("the owner's bar is the home, the first four sections and «Yana», which holds the rest; the page's section is marked where it is", async () => {
   await signIn(ALI)
   setLocation("/employees")
   const { user } = renderWithProviders(<TabBar />)
@@ -21,14 +21,14 @@ test("the owner's bar is the first four sections and «Yana», which holds the r
     ["Mijozlar", "/customers"],
     ["Vazifalar", "/tasks"],
     ["Mahsulotlar", "/products"],
+    ["Sotuv", "/sales"],
   ])
   expect(within(bar()).getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current")
 
   await user.click(within(bar()).getByRole("button", { name: "Yana" }))
   const sheet = await screen.findByRole("dialog", { name: "Yana" })
   expect(within(sheet).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-    ["Sotuv", "/sales"],
-    ["Ombor", "/purchases"],
+    ["Ombor", "/warehouse"],
     ["Moliya", "/accounts"],
     ["Xodimlar", "/employees"],
     ["Sozlamalar", "/settings"],
@@ -55,18 +55,18 @@ test("an employee whose role gives five sections has them all in the bar, no «Y
   await chooseCompany(1)
   renderWithProviders(<TabBar />)
 
-  expect(await within(bar()).findByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/purchases")
+  expect(await within(bar()).findByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
   expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Ombor"])
   expect(within(bar()).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
 })
 
-test("the bar follows the member's own order", async () => {
+test("the bar follows the member's own order, the home first", async () => {
   db.members[ALI][0].navOrder = ["settings", "tasks"]
   await signIn(ALI)
   renderWithProviders(<TabBar />)
 
   expect(await within(bar()).findByRole("link", { name: "Sozlamalar" })).toBeInTheDocument()
-  expect(tabs().map(([label]) => label)).toEqual(["Sozlamalar", "Vazifalar", "Bosh sahifa", "Mijozlar"])
+  expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Sozlamalar", "Vazifalar", "Mijozlar", "Mahsulotlar"])
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {

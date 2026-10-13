@@ -41,7 +41,8 @@ export function NavOrderDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 function OrderForm({ me, onDone }: { me: Me; onDone: () => void }) {
   // null is the default order.
   const [order, setOrder] = useState<NavKey[] | null>(me.nav_order ?? null)
-  const items = navFor(me.permissions, order)
+  // The home stands first, locked: the order is the other sections'.
+  const items = navFor(me.permissions, order).filter((item) => item.key !== "home")
   const save = useSetNavOrder()
 
   return (

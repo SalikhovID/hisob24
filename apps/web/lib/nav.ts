@@ -38,6 +38,10 @@ export interface NavItem {
   // section without one and without tabs is everyone's.
   permission?: Permission
   tabs?: NavTab[]
+  // hub: the section opens at its own page (href), which lists its tabs;
+  // without it a section with tabs opens at the first one the member may
+  // see, and the tabs are its root pages (a segmented control switches them).
+  hub?: boolean
 }
 
 // navItems are the sections in the default order of the menu.
@@ -59,8 +63,9 @@ export const navItems: NavItem[] = [
   {
     key: "warehouse",
     label: "Ombor",
-    href: "/purchases",
+    href: "/warehouse",
     icon: WarehouseIcon,
+    hub: true,
     tabs: [
       { label: "Xaridlar", href: "/purchases", permission: "purchases.view" },
       { label: "Ko'chirishlar", href: "/transfers", permission: "stock.view" },
@@ -88,35 +93,59 @@ export const navItems: NavItem[] = [
 // menu is made of.
 export const navKeys: NavKey[] = navItems.map((item) => item.key)
 
-// BAR_LIMIT is how many sections the tab bar shows at most; past it, the
-// bar shows BAR_LIMIT - 1 and the rest under "Yana".
-export const BAR_LIMIT = 5
+// BAR_SECTIONS is how many sections the tab bar shows after the home; the
+// rest are the profile page's.
+export const BAR_SECTIONS = 4
 
 // navFor is the sections someone with permissions may open (what /app/me
 // told; undefined is a session not known yet, which may open the home
-// alone), in the member's own order (navOrder, what /app/me told) with what
-// it does not name after it in the default order. A section with tabs opens
-// at the first tab the member may see.
+// alone): the home first, as the prototype locks it, then the others in the
+// member's own order (navOrder, what /app/me told; where it puts the home
+// does not count) with what it does not name after them in the default
+// order. A section with tabs opens at the first tab the member may see, a
+// hub at its own page.
 export function navFor(permissions: readonly Permission[] | undefined, navOrder?: readonly string[] | null): NavItem[] {
   const visible = navItems.flatMap((item) => {
     if (item.tabs) {
       const tab = item.tabs.find((candidate) => can(permissions, candidate.permission))
-      return tab ? [{ ...item, href: tab.href }] : []
+      return tab ? [{ ...item, href: item.hub ? item.href : tab.href }] : []
     }
     return !item.permission || can(permissions, item.permission) ? [item] : []
   })
-  if (!navOrder) return visible
+  const home = visible.filter((item) => item.key === "home")
+  const rest = visible.filter((item) => item.key !== "home")
+  if (!navOrder) return [...home, ...rest]
   // The sort is stable: what the order does not name keeps the default order.
   const rank = new Map(navOrder.map((key, index) => [key, index]))
-  return [...visible].sort((a, b) => (rank.get(a.key) ?? navOrder.length) - (rank.get(b.key) ?? navOrder.length))
+  return [...home, ...rest.sort((a, b) => (rank.get(a.key) ?? navOrder.length) - (rank.get(b.key) ?? navOrder.length))]
 }
 
-// barItems splits the sections for the tab bar: all of them up to
-// BAR_LIMIT; past that, the first BAR_LIMIT - 1 and the rest, which go
-// under "Yana".
+// barItems splits the sections for the tab bar: the home and the first
+// BAR_SECTIONS after it stand in the bar, the rest are the profile page's.
 export function barItems(items: NavItem[]): { shown: NavItem[]; more: NavItem[] } {
-  if (items.length <= BAR_LIMIT) return { shown: items, more: [] }
-  return { shown: items.slice(0, BAR_LIMIT - 1), more: items.slice(BAR_LIMIT - 1) }
+  return { shown: items.slice(0, BAR_SECTIONS + 1), more: items.slice(BAR_SECTIONS + 1) }
+}
+
+// rootsOf are the pages that are a section's own (where the tab bar shows):
+// its address, and for a section whose tabs a segmented control switches,
+// every tab's.
+const rootsOf = (item: NavItem) => (item.tabs && !item.hub ? item.tabs.map((tab) => tab.href) : [item.href])
+
+// rootPaths are every section's own pages.
+export const rootPaths: string[] = navItems.flatMap(rootsOf)
+
+// isRootPath says whether the page at pathname is a section's own: there the
+// tab bar shows; any other page (a record, a form, the profile) is inside
+// one, and leads back.
+export function isRootPath(pathname: string): boolean {
+  return rootPaths.includes(pathname)
+}
+
+// sectionRootOf is the page a page inside a section leads back to: the
+// section's own; the home for a page in none.
+export function sectionRootOf(pathname: string): string {
+  const item = navItems.find((candidate) => candidate.key !== "home" && isCurrentItem(candidate, pathname))
+  return item?.href ?? "/"
 }
 
 // isCurrent says whether the page at pathname belongs to the section at href.
@@ -129,6 +158,6 @@ export function isCurrent(href: string, pathname: string): boolean {
 // isCurrentItem says whether the page at pathname belongs to the section: to
 // its address, or to any of its tabs'.
 export function isCurrentItem(item: NavItem, pathname: string): boolean {
-  const hrefs = item.tabs ? item.tabs.map((tab) => tab.href) : [item.href]
+  const hrefs = item.tabs ? [...(item.hub ? [item.href] : []), ...item.tabs.map((tab) => tab.href)] : [item.href]
   return hrefs.some((href) => isCurrent(href, pathname))
 }

@@ -26,7 +26,7 @@ test("the owner sees every section, under the company's name", async () => {
   expect(await within(sidebar()).findByRole("link", { name: "Xodimlar" })).toHaveAttribute("href", "/employees")
   expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
   expect(within(sidebar()).getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
-  expect(within(sidebar()).getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/purchases")
+  expect(within(sidebar()).getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
   expect(within(sidebar()).getByText("Olma Savdo")).toBeInTheDocument()
 })
 
@@ -39,13 +39,13 @@ test("an employee sees no section of the owner's", async () => {
   expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
 })
 
-test("the sidebar follows the member's own order", async () => {
+test("the sidebar follows the member's own order, the home first", async () => {
   db.members[ALI][0].navOrder = ["tasks", "home"]
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
 
   await within(sidebar()).findByRole("link", { name: "Xodimlar" })
-  expect(sections()).toEqual(["Vazifalar", "Bosh sahifa", "Mijozlar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Vazifalar", "Mijozlar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {
