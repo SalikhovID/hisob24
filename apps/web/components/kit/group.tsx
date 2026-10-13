@@ -120,6 +120,7 @@ export function Row({
       <span data-slot="row-body" className="min-w-0 flex-1">
         <span data-slot="row-title" className="flex min-w-0 items-center gap-1.5 leading-tight font-medium">
           <span className="truncate">{title}</span>
+          {badge && " "}
           {badge}
         </span>
         {sub && " "}

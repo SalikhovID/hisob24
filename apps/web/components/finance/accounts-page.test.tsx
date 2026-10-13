@@ -3,6 +3,7 @@ import { expect, test } from "vitest"
 import { ALI, db, nextId, VALI } from "@/mocks/data"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterCashOpening, enterExpense } from "@/test/finance"
@@ -20,22 +21,21 @@ test("the cash: every account with what it holds in its own currency, the active
   setLocation("/accounts")
   renderWithProviders(<AccountsPage />)
 
-  const list = await screen.findByRole("table", { name: "Akkauntlar" })
+  const list = await screen.findByRole("list", { name: "Akkauntlar" })
   expect(screen.getByRole("heading", { level: 1, name: "Kassa" })).toBeInTheDocument()
   const tabs = screen.getByRole("navigation", { name: "Moliya bo'limi" })
   expect(within(tabs).getAllByRole("link").map((link) => link.textContent)).toEqual(["Kassa", "Xarajatlar", "O'tkazmalar"])
   expect(within(tabs).getByRole("link", { name: "Kassa" })).toHaveAttribute("aria-current", "page")
-  expect(within(list).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["Akkaunt", "Valyuta", "Qoldiq"])
-  const rows = within(list).getAllByRole("row").slice(1)
-  // The name is the way into the account; the one turned off says so beside it.
-  expect(rows.map((row) => within(row).getByRole("link").getAttribute("href"))).toEqual([`/accounts/${cash}`, `/accounts/${kassa2.id}`, `/accounts/${eski.id}`])
-  expect(within(rows[1]).getByRole("link", { name: "Kassa 2" })).toBeInTheDocument()
-  expect(within(rows[0]).getByRole("link", { name: "Naqd" })).toHaveAttribute("href", `/accounts/${cash}`)
-  expect(within(rows[0]).getByText("UZS")).toBeInTheDocument()
-  expect(within(rows[0]).getByText("1 000 000 so'm")).toBeInTheDocument()
-  expect(within(rows[1]).getByText("−150 000 so'm")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("Nofaol")).toBeInTheDocument()
-  expect(within(rows[2]).getByText("0 so'm")).toBeInTheDocument()
+  // An account is a row that leads to its page: its currency under its name,
+  // what it holds at its end; the one turned off says so beside its name.
+  const rows = within(list).getAllByRole("link")
+  expect(rows.map((row) => row.getAttribute("href"))).toEqual([`/accounts/${cash}`, `/accounts/${kassa2.id}`, `/accounts/${eski.id}`])
+  const plain = (text: string | null) => text?.replace(/\s+/g, " ")
+  expect(rows.map((row) => [plain(rowParts(row).title), plain(rowParts(row).sub), plain(rowParts(row).end)])).toEqual([
+    ["Naqd", "UZS", "1 000 000 so'm"],
+    ["Kassa 2", "UZS", "−150 000 so'm"],
+    ["Eski Nofaol", "UZS", "0 so'm"],
+  ])
 })
 
 test("whoever may not see the finance is sent home", async () => {
