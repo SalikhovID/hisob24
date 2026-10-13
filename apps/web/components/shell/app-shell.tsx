@@ -21,7 +21,9 @@ import { TabBar } from "./tab-bar"
 // shown only once the session is known to have its company. Inside Telegram
 // the shell is as tall as the Mini App's stable viewport (globals.css) and,
 // opened full screen, starts under the status bar and Telegram's controls
-// (pt-safe).
+// (pt-safe). The page's blocks keep their height in the scrolling column:
+// one that clips its overflow (a group's rounded list) would shrink to fit
+// the screen otherwise, and lose its last rows.
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -38,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar collapsed={sidebar.collapsed} onToggleCollapsed={sidebar.toggleCollapsed} />
       <main
         className={cn(
-          "flex min-w-0 flex-1 flex-col overflow-y-auto px-4 pt-2 md:px-6 md:pt-6 md:pb-10",
+          "flex min-w-0 flex-1 flex-col overflow-y-auto px-4 pt-2 md:px-6 md:pt-6 md:pb-10 [&>*]:shrink-0",
           isRootPath(pathname) ? "pb-bar" : "pb-safe-6",
         )}
       >
