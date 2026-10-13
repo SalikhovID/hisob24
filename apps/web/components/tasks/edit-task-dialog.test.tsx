@@ -56,7 +56,8 @@ test("the edit dialog opens with the task as it is, its customer shown and not a
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(await screen.findByText("Vazifa saqlandi")).toBeInTheDocument()
   expect(await screen.findByRole("heading", { level: 1, name: "Qayta qo'ng'iroq" })).toBeInTheDocument()
-  expect(screen.getByText(/Buyurtma · Jarayonda/)).toBeInTheDocument()
+  // The page's track shows the stage it was saved in.
+  expect(within(screen.getByRole("radiogroup", { name: "Bosqich" })).getByRole("radio", { name: "Jarayonda" })).toHaveAttribute("aria-checked", "true")
   expect(db.tasks.find((task) => task.id === call.id)).toMatchObject({
     title: "Qayta qo'ng'iroq",
     deadline: addDays(today, 5),

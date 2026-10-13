@@ -1,10 +1,10 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
+import { Group, Row } from "@/components/kit/group"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -14,9 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import { api, call } from "@/lib/api"
 import { tasksKey } from "@/lib/queries"
 
@@ -41,19 +39,11 @@ export function DeleteTaskButton({ companyId, id, title }: { companyId: number; 
   })
 
   return (
-    <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      <AlertDialogTrigger
-        render={
-          <Button
-            variant="outline"
-            size="lg"
-            className="px-3.5 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
-          />
-        }
-      >
-        <Trash2Icon />
-        O&apos;chirish
-      </AlertDialogTrigger>
+    <>
+      <Group>
+        <Row variant="danger" onClick={() => setConfirming(true)} title="Vazifani o'chirish" />
+      </Group>
+      <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Vazifani o&apos;chirasizmi?</AlertDialogTitle>
@@ -78,6 +68,7 @@ export function DeleteTaskButton({ companyId, id, title }: { companyId: number; 
           </PendingButton>
         </AlertDialogFooter>
       </AlertDialogContent>
-    </AlertDialog>
+      </AlertDialog>
+    </>
   )
 }

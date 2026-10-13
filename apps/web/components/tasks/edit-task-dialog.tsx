@@ -35,6 +35,8 @@ export function EditTaskDialog({
   stages,
   members,
   dropdowns,
+  open: openGiven,
+  onOpenChange,
 }: {
   companyId: number
   task: Task
@@ -42,8 +44,16 @@ export function EditTaskDialog({
   stages: TaskStage[]
   members: Member[]
   dropdowns: CustomerDropdown[]
+  // open, with onOpenChange, opens the dialog from outside (the task's
+  // «Tahrirlash» tile): it has no button then, and every mounting starts
+  // from the task as it is now.
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [openOwn, setOpenOwn] = useState(false)
+  const controlled = openGiven !== undefined
+  const open = controlled ? openGiven : openOwn
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
   const queryClient = useQueryClient()
   const form = useForm<TaskForm, unknown, TaskOutput>({
     resolver: zodResolver(taskSchema(type, null, task.customer.id)),
@@ -84,10 +94,12 @@ export function EditTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
-        <PencilIcon />
-        Tahrirlash
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger render={<Button size="lg" className="px-3.5" />}>
+          <PencilIcon />
+          Tahrirlash
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Vazifani tahrirlash</DialogTitle>
