@@ -1,27 +1,44 @@
 "use client"
 
-import { MapPinIcon } from "lucide-react"
-import { SelectBox } from "@/components/select-field"
+import { ChevronDownIcon, MapPinIcon } from "lucide-react"
+import { useState } from "react"
+import { ActionSheet } from "@/components/kit/action-sheet"
 import { useLocation } from "@/lib/use-location"
+import { cn } from "@/lib/utils"
 
-// LocationSwitcher is the way from one location to another, in the top bar
-// (logic/locations.md, section 4): the locations the member may work in,
-// the current one chosen. It shows only when there are two or more; the
-// tasks the app shows and enters are the current one's. The choice is kept
-// in the browser for the next visit.
-export function LocationSwitcher() {
+// LocationSwitcher is the way from one location to another
+// (logic/locations.md, section 4), as the prototype draws it: a pill that
+// says the current location and opens a sheet of the ones the member may
+// work in, the current one marked. It shows only when there are two or
+// more; the tasks and the documents the app shows and enters are the
+// current one's. The choice is kept in the browser for the next visit.
+export function LocationSwitcher({ className }: { className?: string }) {
   const { locations, current, choose } = useLocation()
+  const [open, setOpen] = useState(false)
   if (locations.length < 2 || !current) return null
   return (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <MapPinIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <SelectBox
-        aria-label="Lokatsiya"
-        className="h-8 w-fit max-w-[8.5rem] bg-card sm:max-w-56"
-        value={String(current.id)}
-        onChange={(value) => choose(Number(value))}
-        options={locations.map((l) => ({ value: String(l.id), label: l.name }))}
+    <>
+      <button
+        type="button"
+        aria-label={`Lokatsiya: ${current.name}`}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+        data-slot="location-pill"
+        className={cn(
+          "inline-flex h-10 max-w-full shrink-0 items-center gap-1.5 rounded-full bg-card pr-3.5 pl-3 text-md font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          className,
+        )}
+      >
+        <MapPinIcon aria-hidden="true" strokeWidth={2.3} className="size-[17px] shrink-0 text-primary" />
+        <span className="min-w-0 truncate">{current.name}</span>
+        <ChevronDownIcon aria-hidden="true" strokeWidth={2.8} className="size-[15px] shrink-0 text-muted-foreground" />
+      </button>
+      <ActionSheet
+        open={open}
+        onOpenChange={setOpen}
+        title="Lokatsiya"
+        items={locations.map((location) => ({ label: location.name, checked: location.id === current.id, onSelect: () => choose(location.id) }))}
       />
-    </div>
+    </>
   )
 }

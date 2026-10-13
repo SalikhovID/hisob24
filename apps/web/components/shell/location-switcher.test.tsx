@@ -3,32 +3,33 @@ import { expect, test } from "vitest"
 import { ALI, VALI } from "@/mocks/data"
 import { addLocation, restrictTo } from "@/test/locations"
 import { renderWithProviders } from "@/test/render"
-import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
-import { Topbar } from "./topbar"
+import { LocationSwitcher } from "./location-switcher"
 
-// The switch between the locations the member may work in stands in the
-// top bar when there are two or more of them (logic/locations.md, section
-// 4); with one there is nothing to switch, and nothing is shown.
+// The switch between the locations the member may work in (logic/locations.md,
+// section 4) is a pill that opens a sheet of them; with one there is nothing
+// to switch, and nothing is shown.
 
-test("with one location the top bar shows no switch", async () => {
+test("with one location there is no switch", async () => {
   await signIn(ALI)
-  renderWithProviders(<Topbar />)
+  const { queryClient } = renderWithProviders(<LocationSwitcher />)
 
-  await within(screen.getByRole("banner")).findByText("Olma Savdo")
-  expect(screen.queryByRole("combobox", { name: "Lokatsiya" })).not.toBeInTheDocument()
+  await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+  expect(screen.queryByRole("button", { name: /^Lokatsiya/ })).not.toBeInTheDocument()
 })
 
-test("with two or more locations the top bar offers the switch; the choice is kept for the next visit", async () => {
+test("with two or more the pill says the current one; the sheet chooses another, kept for the next visit", async () => {
   const chilonzor = addLocation(1, "Chilonzor")
   await signIn(ALI)
-  const { user } = renderWithProviders(<Topbar />)
+  const { user } = renderWithProviders(<LocationSwitcher />)
 
-  const box = await screen.findByRole("combobox", { name: "Lokatsiya" })
-  expect(box).toHaveTextContent("Asosiy")
-  await choose(user, box, "Chilonzor")
+  const pill = await screen.findByRole("button", { name: "Lokatsiya: Asosiy" })
+  await user.click(pill)
+  const sheet = await screen.findByRole("dialog", { name: "Lokatsiya" })
+  expect(within(sheet).getByRole("menuitemradio", { name: "Asosiy" })).toHaveAttribute("aria-checked", "true")
+  await user.click(within(sheet).getByRole("menuitemradio", { name: "Chilonzor" }))
 
-  expect(screen.getByRole("combobox", { name: "Lokatsiya" })).toHaveTextContent("Chilonzor")
+  expect(await screen.findByRole("button", { name: "Lokatsiya: Chilonzor" })).toBeInTheDocument()
   expect(localStorage.getItem(`location:1:${ALI}`)).toBe(String(chilonzor.id))
 })
 
@@ -37,20 +38,8 @@ test("a restricted employee with one location to work in sees no switch, though 
   restrictTo(VALI, 1, [chilonzor.id])
   await signIn(VALI)
   await chooseCompany(1)
-  renderWithProviders(<Topbar />)
+  const { queryClient } = renderWithProviders(<LocationSwitcher />)
 
-  await within(screen.getByRole("banner")).findByText("Olma Savdo")
-  await waitFor(() => expect(screen.queryByRole("combobox", { name: "Lokatsiya" })).not.toBeInTheDocument())
-})
-
-test("the switch stands between the company's name and the profile", async () => {
-  addLocation(1, "Chilonzor")
-  await signIn(ALI)
-  renderWithProviders(<Topbar />)
-
-  const box = await screen.findByRole("combobox", { name: "Lokatsiya" })
-  const name = within(screen.getByRole("banner")).getByText("Olma Savdo")
-  const profile = screen.getByRole("button", { name: "Profil" })
-  expect(name.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  expect(box.compareDocumentPosition(profile) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+  expect(screen.queryByRole("button", { name: /^Lokatsiya/ })).not.toBeInTheDocument()
 })
