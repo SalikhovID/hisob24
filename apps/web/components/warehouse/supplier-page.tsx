@@ -1,10 +1,12 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Fact } from "@/components/facts"
 import { PageHeader } from "@/components/page-header"
 import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { formatAmount, formatDate } from "@/lib/format"
 import { can } from "@/lib/permissions"
@@ -31,6 +33,7 @@ export function SupplierPage({ id }: { id: number }) {
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const supplier = useSupplier(companyId, id)
   const router = useRouter()
+  const [editing, setEditing] = useState(false)
 
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
@@ -73,13 +76,20 @@ export function SupplierPage({ id }: { id: number }) {
           companyId !== null &&
           (allowed("suppliers.edit") || allowed("suppliers.delete")) && (
             <>
-              {allowed("suppliers.edit") && <SupplierDialog companyId={companyId} supplier={s} />}
+              {allowed("suppliers.edit") && (
+                <Button size="lg" className="px-3.5" onClick={() => setEditing(true)}>
+                  Tahrirlash
+                </Button>
+              )}
               {allowed("suppliers.edit") && <SupplierActiveButton companyId={companyId} supplier={s} />}
               {allowed("suppliers.delete") && <DeleteSupplierButton companyId={companyId} supplier={s} afterDelete={() => router.replace("/suppliers")} />}
             </>
           )
         }
       />
+      {editing && companyId !== null && (
+        <SupplierDialog companyId={companyId} supplier={s} open onOpenChange={(open) => !open && setEditing(false)} />
+      )}
       {seesBalance && (
         // What is owed: the live purchases less the live payments, the
         // whole company's (logic/warehouse.md, section 6).

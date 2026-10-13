@@ -1,11 +1,12 @@
 "use client"
 
 import { SearchIcon, TruckIcon } from "lucide-react"
+import { useState } from "react"
 import { useCatalogFilter } from "@/components/catalog/use-catalog-filter"
 import { Avatar } from "@/components/kit/avatar"
 import { ChoiceChips } from "@/components/kit/chips"
 import { Foot, Group, Row } from "@/components/kit/group"
-import { PageTitle } from "@/components/kit/page-title"
+import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { SearchBox } from "@/components/kit/search-box"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
@@ -41,6 +42,7 @@ export function SuppliersPage() {
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const [filter, update] = useCatalogFilter()
   const suppliers = useSuppliers(companyId, filter)
+  const [adding, setAdding] = useState(false)
   // The chips' counts: every active supplier and every inactive one,
   // whatever is searched. The active one is the list itself when nothing is.
   const active = useSuppliers(companyId, { status: "active", search: "", page: 1 })
@@ -65,7 +67,7 @@ export function SuppliersPage() {
         back={{ href: "/warehouse", label: "Ombor" }}
         title="Ta'minotchilar"
         description={activeCount !== undefined ? `Kompaniyangiz ta'minotchilari · ${activeCount} ta` : "Kompaniyangiz ta'minotchilari"}
-        action={companyId !== null && allowed("suppliers.create") && <SupplierDialog companyId={companyId} />}
+        action={companyId !== null && allowed("suppliers.create") && <PlusButton label="Ta'minotchi qo'shish" onClick={() => setAdding(true)} />}
       />
       <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder="Nom yoki telefon" />
       <ChoiceChips
@@ -114,6 +116,7 @@ export function SuppliersPage() {
           )}
         </>
       )}
+      {adding && companyId !== null && <SupplierDialog companyId={companyId} open onOpenChange={(open) => !open && setAdding(false)} />}
     </>
   )
 }
