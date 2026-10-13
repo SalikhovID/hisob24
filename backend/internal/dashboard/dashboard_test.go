@@ -273,3 +273,53 @@ func TestTasks(t *testing.T) {
 		assert.Equal(t, tc.upcoming, titles(got.Tasks.Upcoming), about+": the soonest due first")
 	}
 }
+
+// repeat is the value n times over.
+func repeat(value string, n int) []string {
+	out := make([]string, n)
+	for i := range out {
+		out[i] = value
+	}
+	return out
+}
+
+func TestPurchasesAndSales(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, pool, "Olma")
+	bozor := addSupplier(t, pool, sh.company, "Bozor", true, false)
+	// 01:00 on the 1st in Tashkent is still September in UTC.
+	sh.add(t, pool, doc{kind: "purchase", at: "2026-09-30T20:00:00Z", location: sh.asosiy, supplier: bozor, total: "100000"})
+	sh.add(t, pool, doc{kind: "purchase", at: "2026-09-30T12:00:00+05:00", location: sh.asosiy, supplier: bozor, total: "555555"})
+	// 50 $ by the standard rate: 640 000.
+	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, supplier: bozor, currency: 2, total: "50"})
+	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-03T15:00:00+05:00", location: sh.chilonzor, supplier: bozor, total: "10000"})
+	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-05T10:00:00+05:00", location: sh.asosiy, supplier: bozor, total: "999999", deleted: true})
+	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-14T10:00:00+05:00", location: sh.asosiy, supplier: bozor, total: "888888"})
+	sh.add(t, pool, doc{kind: "sale", at: "2026-10-02T10:00:00+05:00", location: sh.asosiy, total: "30000"})
+	// 20 $ by its own rate: 260 000.
+	sh.add(t, pool, doc{kind: "sale", at: "2026-10-12T10:00:00+05:00", location: sh.asosiy, currency: 2, rate: sh.ownRate, total: "20"})
+	nok := newShop(t, pool, "Nok")
+	begona := addSupplier(t, pool, nok.company, "Begona", true, false)
+	nok.add(t, pool, doc{kind: "purchase", at: "2026-10-03T10:00:00+05:00", location: nok.asosiy, supplier: begona, total: "7000000"})
+
+	got, err := s.Get(ctx, sh.scope(), input(access.PurchasesView, access.SalesView))
+
+	require.NoError(t, err)
+	assert.Equal(t, &Money{
+		MonthTotal: "750000.00", MonthCount: 3,
+		ByDay: append([]string{"100000.00", "100000.00"}, repeat("750000.00", 11)...),
+	}, got.Purchases, "this month's up to today, in so'm by each one's rate, by each day's end in the member's zone; September's, tomorrow's, the deleted and another company's are out")
+	assert.Equal(t, &Money{
+		MonthTotal: "290000.00", MonthCount: 2,
+		ByDay: append(append([]string{"0.00"}, repeat("30000.00", 10)...), "290000.00", "290000.00"),
+	}, got.Sales, "the sales the same way")
+
+	in := input(access.PurchasesView)
+	in.LocationID = sh.asosiy
+	one, err := s.Get(ctx, sh.scope(), in)
+	require.NoError(t, err)
+	assert.Equal(t, &Money{MonthTotal: "740000.00", MonthCount: 2, ByDay: append([]string{"100000.00", "100000.00"}, repeat("740000.00", 11)...)}, one.Purchases,
+		"one location's")
+	assert.Nil(t, one.Sales, "without sales.view")
+}

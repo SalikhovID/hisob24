@@ -72,6 +72,69 @@ func (q *Queries) DashboardCustomersByDay(ctx context.Context, arg DashboardCust
 	return items, nil
 }
 
+const dashboardMoneyByDay = `-- name: DashboardMoneyByDay :many
+SELECT d.day::date AS day,
+       COALESCE(sum(x.total) OVER (ORDER BY d.day), 0)::numeric(14,2) AS total,
+       COALESCE(sum(x.count) OVER (ORDER BY d.day), 0)::bigint AS count
+FROM generate_series($1::date, $2::date, interval '1 day') AS d(day)
+LEFT JOIN (
+    SELECT (t.doc_at AT TIME ZONE $3::text)::date AS day,
+           sum(convert_amount(t.total, t.currency_id, 1, cr)) AS total, count(*) AS count
+    FROM transactions t
+    JOIN currency_rates cr ON cr.id = t.currency_rate_id
+    WHERE t.company_id = $4 AND t.kind = $5::text AND t.deleted_at IS NULL
+      AND t.location_id = ANY($6::bigint[])
+      AND (t.doc_at AT TIME ZONE $3::text)::date BETWEEN $1::date AND $2::date
+    GROUP BY 1
+) x ON x.day = d.day::date
+ORDER BY d.day
+`
+
+type DashboardMoneyByDayParams struct {
+	MonthStart  time.Time
+	Today       time.Time
+	Zone        string
+	CompanyID   int64
+	Kind        string
+	LocationIds []int64
+}
+
+type DashboardMoneyByDayRow struct {
+	Day   time.Time
+	Total pgtype.Numeric
+	Count int64
+}
+
+// The company's live documents of the kind in the locations given on each
+// day of the month up to today, the days counted in the zone: their total
+// in so'm, each by its own rate row, and how many, both by the day's end.
+func (q *Queries) DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByDayParams) ([]DashboardMoneyByDayRow, error) {
+	rows, err := q.db.Query(ctx, dashboardMoneyByDay,
+		arg.MonthStart,
+		arg.Today,
+		arg.Zone,
+		arg.CompanyID,
+		arg.Kind,
+		arg.LocationIds,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DashboardMoneyByDayRow{}
+	for rows.Next() {
+		var i DashboardMoneyByDayRow
+		if err := rows.Scan(&i.Day, &i.Total, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const dashboardSuppliers = `-- name: DashboardSuppliers :one
 
 WITH balances AS (

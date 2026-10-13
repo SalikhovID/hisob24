@@ -61,3 +61,23 @@ LEFT JOIN tasks t ON t.stage_id = s.id AND t.deleted_at IS NULL AND t.location_i
 WHERE s.company_id = sqlc.arg('company_id') AND s.deleted_at IS NULL AND NOT s.is_done
 GROUP BY s.id, s.position
 ORDER BY s.position, s.id;
+
+-- name: DashboardMoneyByDay :many
+-- The company's live documents of the kind in the locations given on each
+-- day of the month up to today, the days counted in the zone: their total
+-- in so'm, each by its own rate row, and how many, both by the day's end.
+SELECT d.day::date AS day,
+       COALESCE(sum(x.total) OVER (ORDER BY d.day), 0)::numeric(14,2) AS total,
+       COALESCE(sum(x.count) OVER (ORDER BY d.day), 0)::bigint AS count
+FROM generate_series(sqlc.arg('month_start')::date, sqlc.arg('today')::date, interval '1 day') AS d(day)
+LEFT JOIN (
+    SELECT (t.doc_at AT TIME ZONE sqlc.arg('zone')::text)::date AS day,
+           sum(convert_amount(t.total, t.currency_id, 1, cr)) AS total, count(*) AS count
+    FROM transactions t
+    JOIN currency_rates cr ON cr.id = t.currency_rate_id
+    WHERE t.company_id = sqlc.arg('company_id') AND t.kind = sqlc.arg('kind')::text AND t.deleted_at IS NULL
+      AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
+      AND (t.doc_at AT TIME ZONE sqlc.arg('zone')::text)::date BETWEEN sqlc.arg('month_start')::date AND sqlc.arg('today')::date
+    GROUP BY 1
+) x ON x.day = d.day::date
+ORDER BY d.day;

@@ -51,6 +51,8 @@ type Dashboard struct {
 	Suppliers *Suppliers
 	Customers *Customers
 	Tasks     *Tasks
+	Purchases *Money
+	Sales     *Money
 }
 
 // Suppliers is what the company's suppliers are owed, in so'm, each
@@ -81,6 +83,16 @@ type Tasks struct {
 	Late     int64
 	ByStage  []StageCount
 	Upcoming []task.Task
+}
+
+// Money is a kind of goods documents (the purchases, the sales) of the
+// location (or of every one of the scope) this month up to today: their
+// total in so'm, each by its own rate row, how many, and the total by the
+// end of each day of the month (the member's days).
+type Money struct {
+	MonthTotal string
+	MonthCount int64
+	ByDay      []string
 }
 
 // StageCount is how many tasks stand in a stage.
@@ -133,6 +145,28 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 			tasks.ByStage = append(tasks.ByStage, StageCount{StageID: row.StageID, Count: row.Count})
 		}
 		d.Tasks = tasks
+	}
+	for _, block := range []struct {
+		permission access.Permission
+		kind       string
+		into       **Money
+	}{{access.PurchasesView, "purchase", &d.Purchases}, {access.SalesView, "sale", &d.Sales}} {
+		if !in.Permissions.Has(block.permission) {
+			continue
+		}
+		rows, err := s.q.DashboardMoneyByDay(ctx, gen.DashboardMoneyByDayParams{
+			CompanyID: scope.CompanyID, Kind: block.kind, LocationIds: scope.locations(in.LocationID), Zone: in.Zone, MonthStart: monthStart(in.Today), Today: in.Today,
+		})
+		if err != nil {
+			return Dashboard{}, err
+		}
+		m := &Money{MonthTotal: "0.00", ByDay: make([]string, 0, len(rows))}
+		for _, row := range rows {
+			m.ByDay = append(m.ByDay, amount(row.Total))
+			m.MonthTotal = amount(row.Total)
+			m.MonthCount = row.Count
+		}
+		*block.into = m
 	}
 	return d, nil
 }

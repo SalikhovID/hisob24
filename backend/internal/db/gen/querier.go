@@ -218,6 +218,10 @@ type Querier interface {
 	// days counted in the zone: how many there were before the month, and how
 	// many by the day's end.
 	DashboardCustomersByDay(ctx context.Context, arg DashboardCustomersByDayParams) ([]DashboardCustomersByDayRow, error)
+	// The company's live documents of the kind in the locations given on each
+	// day of the month up to today, the days counted in the zone: their total
+	// in so'm, each by its own rate row, and how many, both by the day's end.
+	DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByDayParams) ([]DashboardMoneyByDayRow, error)
 	// The home's blocks at a glance
 	// (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md). Money is in
 	// so'm, each document turned by its own rate row (logic/currencies.md,
