@@ -22,9 +22,9 @@ async function pickRole(page: Page, name: string, role: RegExp, shown: string) {
   await expect(sheet).toBeHidden()
 }
 
-// tick ticks an action of a section in the role's matrix.
+// tick turns an action of a section in the role's matrix on.
 const tick = (page: Page, section: string, action: string) =>
-  page.getByRole("group", { name: section }).getByRole("checkbox", { name: action }).click()
+  page.getByRole("group", { name: section }).getByRole("switch", { name: action }).click()
 
 test("the owner makes a role and gives it to an employee, who then sees and does what the role allows alone", async ({ page }) => {
   // Three sign-ins and a dozen pages, each compiled on its first visit by the dev server.
@@ -34,10 +34,10 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
 
-  // The roles are a tab of the settings, the owner's alone.
+  // The roles are a part of the settings of their own, the owner's alone.
   await openSection(page, "Sozlamalar")
-  await page.getByRole("tab", { name: "Rollar" }).click()
-  await expect(page).toHaveURL(/\/settings\?tab=roles$/)
+  await page.getByRole("main").getByRole("link", { name: /^Rollar/ }).click()
+  await expect(page).toHaveURL(/\/settings\/roles$/)
   await expect(page.getByText("Hali rol yo'q")).toBeVisible()
   await page.getByRole("link", { name: "Rol qo'shish" }).click()
   await expect(page).toHaveURL(/\/settings\/roles\/new$/)
@@ -47,13 +47,13 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   // An action brings its section's view with it.
   await page.getByLabel("Rol nomi").fill("Sotuvchi")
   await tick(page, "Mijozlar", "Qo'shish")
-  await expect(page.getByRole("group", { name: "Mijozlar" }).getByRole("checkbox", { name: "Ko'rish" })).toBeChecked()
+  await expect(page.getByRole("group", { name: "Mijozlar" }).getByRole("switch", { name: "Ko'rish" })).toBeChecked()
   await tick(page, "Vazifalar", "Ko'rish")
   await page.getByRole("button", { name: "Yaratish" }).click()
-  await expect(page).toHaveURL(/\/settings\?tab=roles$/)
+  await expect(page).toHaveURL(/\/settings\/roles$/)
   const roles = page.getByRole("list", { name: "Rollar" })
-  await expect(roles.getByRole("link", { name: "Sotuvchi" })).toBeVisible()
-  await expect(roles.getByText("Mijozlar, Vazifalar · Hech kimda")).toBeVisible()
+  await expect(roles.getByRole("link", { name: /^Sotuvchi/ })).toContainText("Mijozlar, Vazifalar")
+  await expect(roles.getByRole("link", { name: /^Sotuvchi/ })).toContainText("Hech kimda")
 
   // The employee takes the role.
   await openSection(page, "Xodimlar")
@@ -86,8 +86,13 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await openSection(page, "Xodimlar")
   await pickRole(page, "Vali Aliyev", /^Rolsiz$/, "Rolsiz")
   await expect(memberRow(page, "Vali Aliyev")).toContainText("Xodim")
+  // An old address of the roles' tab leads to them; the role is deleted from its page.
   await page.goto("/settings?tab=roles")
-  await page.getByRole("list", { name: "Rollar" }).getByRole("button", { name: "O'chirish: Sotuvchi" }).click()
+  await expect(page).toHaveURL(/\/settings\/roles$/)
+  await page.getByRole("list", { name: "Rollar" }).getByRole("link", { name: /^Sotuvchi/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Sotuvchi" })).toBeVisible()
+  await page.getByRole("button", { name: "Rolni o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Rolni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
+  await expect(page).toHaveURL(/\/settings\/roles$/)
   await expect(page.getByText("Hali rol yo'q")).toBeVisible()
 })

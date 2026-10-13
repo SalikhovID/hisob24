@@ -184,12 +184,14 @@ test("the owner edits a task, reads its history, finds it on the customer's page
   await expect(page.getByText("Bu mijozda 2 ta vazifa bor")).toBeVisible()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
 
-  // Nor is a stage with a task in it (the stages are on the tasks' tab).
+  // Nor is a stage with a task in it (the stages are a part of the settings).
   await openSection(page, "Sozlamalar")
-  await page.getByRole("tab", { name: "Vazifalar" }).click()
-  await page.getByRole("list", { name: "Bosqichlar" }).getByRole("button", { name: "O'chirish: Jarayonda" }).click()
+  await page.getByRole("main").getByRole("link", { name: /^Bosqichlar/ }).click()
+  await page.getByRole("list", { name: "Bosqichlar" }).getByRole("button", { name: /^Jarayonda/ }).click()
+  await page.getByRole("dialog", { name: "Bosqichni tahrirlash" }).getByRole("button", { name: "Bosqichni o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Bosqichni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page.getByText("Bu bosqichda 2 ta vazifa bor")).toBeVisible()
+  await page.keyboard.press("Escape")
 
   await page.goto(`/tasks/${call.id}`)
   await expect(page.getByRole("heading", { level: 1, name: "Qayta qo'ng'iroq" })).toBeVisible()

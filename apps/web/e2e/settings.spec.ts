@@ -1,9 +1,9 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { typesOf } from "../mocks/data"
 import { expect, test } from "./fixtures"
 import { choose, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
 
-// openSettings signs the owner of Olma Savdo in and opens the settings.
+// openSettings signs the owner of Olma Savdo in and opens the settings' hub.
 async function openSettings(page: Page) {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
@@ -12,34 +12,52 @@ async function openSettings(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "Sozlamalar" })).toBeVisible()
 }
 
-// backToSettings follows the page's own way back (the sidebar has a link of
-// the same name).
-const backToSettings = (page: Page) => page.getByRole("main").getByRole("link", { name: "Sozlamalar" }).click()
+// openPart follows a row of the hub to its page.
+async function openPart(page: Page, name: string, address: RegExp) {
+  await page.getByRole("main").getByRole("link", { name: new RegExp(`^${name}`) }).click()
+  await expect(page).toHaveURL(address)
+  await expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
+}
 
-// openTab opens one of the settings' tabs.
-const openTab = (page: Page, name: string) => page.getByRole("tab", { name }).click()
+// back follows a page's own way back (the sidebar may have a link of the same name).
+const back = (page: Page, name: string) => page.getByRole("main").getByRole("link", { name, exact: true }).click()
 
-test("the owner makes a dropdown, types its options in, and uses it in a field of a new type", async ({ page }) => {
+// titles are the titles of a list's rows, the marks beside them left out.
+const titles = (list: Locator) => list.locator('[data-slot="row-title"] > span:first-child').allTextContents()
+
+// moveUp takes a row up past the one above it in the «Tartiblash» mode: a
+// finger's drag needs a long press, so on a phone the handle's keys do it.
+async function moveUp(page: Page, list: Locator, name: string, above: string) {
+  await page.getByRole("button", { name: "Tartiblash" }).click()
+  const handle = list.getByRole("button", { name: `${name}: tartibini o'zgartirish` })
+  if (onPhone(page)) {
+    await handle.focus()
+    await page.keyboard.press("ArrowUp")
+  } else {
+    const from = (await handle.boundingBox())!
+    const to = (await list.getByRole("button", { name: `${above}: tartibini o'zgartirish` }).boundingBox())!
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2 - 6, { steps: 12 })
+    await page.mouse.up()
+  }
+  await page.getByRole("button", { name: "Tayyor" }).click()
+}
+
+test("the owner makes a dropdown, types its options in, and uses it in a field of a new type; a dropdown in use is not deleted", async ({ page }) => {
   await openSettings(page)
-  const types = page.getByRole("list", { name: "Mijoz turlari" })
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  await openPart(page, "Dropdownlar", /\/settings\/dropdowns$/)
   const dropdowns = page.getByRole("list", { name: "Dropdownlar" })
-  await expect(types.getByRole("link", { name: "Jismoniy" })).toBeVisible()
-  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
-
-  // The dropdowns are a tab of their own, and the open tab is in the address.
-  await openTab(page, "Dropdownlar")
-  await expect(page).toHaveURL(/\/settings\?tab=dropdowns$/)
-  await expect(dropdowns.getByRole("link", { name: "Manba" })).toBeVisible()
-  await expect(types).toHaveCount(0)
-  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
-
+  await expect(dropdowns.getByRole("link", { name: /^Manba/ })).toBeVisible()
   await page.getByRole("button", { name: "Dropdown qo'shish" }).click()
-  let dialog = page.getByRole("dialog", { name: "Dropdown qo'shish" })
-  await dialog.getByLabel("Nomi").fill("Holat")
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
+  let sheet = page.getByRole("dialog", { name: "Dropdown qo'shish" })
+  await sheet.getByLabel("Nomi").fill("Holat")
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
 
-  await dropdowns.getByRole("link", { name: "Holat" }).click()
+  await dropdowns.getByRole("link", { name: /^Holat/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Holat" })).toBeVisible()
   await expect(page.getByText("Hali variant yo'q")).toBeVisible()
   const line = page.getByRole("textbox", { name: "Yangi variant" })
@@ -51,71 +69,57 @@ test("the owner makes a dropdown, types its options in, and uses it in a field o
   await expect(page.getByText("Dropdown · 3 ta variant")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  // The way back leads to the dropdowns' tab; the types are on theirs.
-  await backToSettings(page)
-  await expect(page).toHaveURL(/\/settings\?tab=dropdowns$/)
-  await expect(dropdowns.getByRole("link", { name: "Holat" })).toBeVisible()
-  await openTab(page, "Mijozlar")
+  // Back through the dropdowns to the hub, then into the customer types.
+  await back(page, "Dropdownlar")
+  await expect(page).toHaveURL(/\/settings\/dropdowns$/)
+  await back(page, "Sozlamalar")
   await expect(page).toHaveURL(/\/settings$/)
+  await openPart(page, "Mijoz turlari", /\/settings\/customer-types$/)
   await page.getByRole("button", { name: "Tur qo'shish" }).click()
-  dialog = page.getByRole("dialog", { name: "Tur qo'shish" })
-  await dialog.getByLabel("Nomi").fill("Hamkor")
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
-  await types.getByRole("link", { name: "Hamkor" }).click()
+  sheet = page.getByRole("dialog", { name: "Tur qo'shish" })
+  await sheet.getByLabel("Nomi").fill("Hamkor")
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
+  await page.getByRole("list", { name: "Mijoz turlari" }).getByRole("link", { name: /^Hamkor/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Hamkor" })).toBeVisible()
   await expect(page.getByText("Bu turda maydon yo'q")).toBeVisible()
 
   await page.getByRole("button", { name: "Maydon qo'shish" }).click()
-  dialog = page.getByRole("dialog", { name: "Maydon qo'shish" })
-  await dialog.getByLabel("Nomi").fill("Holati")
-  await choose(dialog.getByLabel("Turi"), "Radio (bitta tanlov)")
-  await choose(dialog.getByLabel("Dropdown"), "Holat")
-  await dialog.getByRole("checkbox", { name: "Majburiy" }).click()
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
+  sheet = page.getByRole("dialog", { name: "Maydon qo'shish" })
+  await sheet.getByLabel("Nomi").fill("Holati")
+  await choose(sheet.getByLabel("Turi"), "Radio (bitta tanlov)")
+  await choose(sheet.getByLabel("Dropdown"), "Holat")
+  await sheet.getByRole("switch", { name: "Majburiy" }).click()
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
   const fields = page.getByRole("list", { name: "Maydonlar" })
   await expect(fields.getByText("Radio (bitta tanlov) · Holat")).toBeVisible()
   await expect(fields.getByText("Majburiy")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   // A dropdown that a field takes its options from is not deleted.
-  await backToSettings(page)
-  await expect(page).toHaveURL(/\/settings$/)
-  await openTab(page, "Dropdownlar")
-  await dropdowns.getByRole("button", { name: "O'chirish: Holat" }).click()
-  const confirm = page.getByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })
-  await confirm.getByRole("button", { name: "O'chirish" }).click()
+  await page.goto("/settings/dropdowns")
+  await page.getByRole("list", { name: "Dropdownlar" }).getByRole("link", { name: /^Holat/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Holat" })).toBeVisible()
+  await page.getByRole("button", { name: "Dropdownni o'chirish" }).click()
+  await page.getByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page.getByText("Bu dropdown 1 ta maydonda ishlatilgan")).toBeVisible()
-  await expect(dropdowns.getByRole("link", { name: "Holat" })).toBeVisible()
+  await expect(page.getByRole("heading", { level: 1, name: "Holat" })).toBeVisible()
 })
 
 test("the owner puts the customer types in a new order, and it stays", async ({ page }) => {
   await openSettings(page)
+  await openPart(page, "Mijoz turlari", /\/settings\/customer-types$/)
   const types = page.getByRole("list", { name: "Mijoz turlari" })
-  const names = () => types.locator('[data-slot="setting-title"]').allTextContents()
-  await expect.poll(names).toEqual(["Jismoniy", "Yuridik"])
+  await expect.poll(() => titles(types)).toEqual(["Jismoniy", "Yuridik"])
 
-  const handle = types.getByRole("button", { name: "Yuridik: tartibini o'zgartirish" })
-  if (onPhone(page)) {
-    // A finger's drag needs a long press; the handle answers the keys too.
-    await handle.focus()
-    await page.keyboard.press("ArrowUp")
-  } else {
-    const from = (await handle.boundingBox())!
-    const to = (await types.getByRole("button", { name: "Jismoniy: tartibini o'zgartirish" }).boundingBox())!
-    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2 - 6, { steps: 12 })
-    await page.mouse.up()
-  }
-
-  await expect.poll(names).toEqual(["Yuridik", "Jismoniy"])
+  await moveUp(page, types, "Yuridik", "Jismoniy")
+  await expect.poll(() => titles(types)).toEqual(["Yuridik", "Jismoniy"])
   await page.reload()
-  await expect.poll(names).toEqual(["Yuridik", "Jismoniy"])
+  await expect.poll(() => titles(types)).toEqual(["Yuridik", "Jismoniy"])
 })
 
-test("an employee finds no settings, and the address typed by hand leads home", async ({ page }) => {
+test("an employee finds no settings, and the addresses typed by hand lead home", async ({ page }) => {
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
@@ -124,95 +128,78 @@ test("an employee finds no settings, and the address typed by hand leads home", 
   await expect(nav.getByRole("link", { name: "Bosh sahifa" })).toBeVisible()
   await expect(nav.getByRole("link", { name: "Sozlamalar" })).toHaveCount(0)
 
-  await page.goto("/settings")
-  await expect(page).toHaveURL(/\/$/)
-  await page.goto(`/settings/customer-types/${typesOf(1)[0].id}`)
-  await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
+  for (const address of ["/settings", "/settings/customer-types", `/settings/customer-types/${typesOf(1)[0].id}`]) {
+    await page.goto(address)
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
+  }
 })
 
 test("the owner makes a stage with its color and the final mark, and puts the stages in a new order that stays", async ({ page }) => {
   await openSettings(page)
-  await openTab(page, "Vazifalar")
-  await expect(page).toHaveURL(/\/settings\?tab=tasks$/)
+  await openPart(page, "Bosqichlar", /\/settings\/stages$/)
   const stages = page.getByRole("list", { name: "Bosqichlar" })
-  const names = () => stages.locator('[data-slot="setting-title"]').allTextContents()
-  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
+  await expect.poll(() => titles(stages)).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
   await expect(stages.getByRole("listitem").filter({ hasText: "Bajarildi" }).getByText("Yakuniy")).toBeVisible()
 
   await page.getByRole("button", { name: "Bosqich qo'shish" }).click()
-  const dialog = page.getByRole("dialog", { name: "Bosqich qo'shish" })
-  await dialog.getByLabel("Nomi").fill("Kutilmoqda")
-  await dialog.getByRole("radio", { name: "Moviy" }).click()
-  await dialog.getByRole("checkbox", { name: "Yakuniy bosqich" }).click()
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
-  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Bajarildi", "Kutilmoqda"])
+  const sheet = page.getByRole("dialog", { name: "Bosqich qo'shish" })
+  await sheet.getByLabel("Nomi").fill("Kutilmoqda")
+  await sheet.getByRole("radio", { name: "Moviy" }).click()
+  await sheet.getByRole("switch", { name: "Yakuniy bosqich" }).click()
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
+  await expect.poll(() => titles(stages)).toEqual(["Yangi", "Jarayonda", "Bajarildi", "Kutilmoqda"])
   await expect(stages.getByRole("listitem").filter({ hasText: "Kutilmoqda" }).getByText("Yakuniy")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  const handle = stages.getByRole("button", { name: "Kutilmoqda: tartibini o'zgartirish" })
-  if (onPhone(page)) {
-    // A finger's drag needs a long press; the handle answers the keys too.
-    await handle.focus()
-    await page.keyboard.press("ArrowUp")
-  } else {
-    const from = (await handle.boundingBox())!
-    const to = (await stages.getByRole("button", { name: "Bajarildi: tartibini o'zgartirish" }).boundingBox())!
-    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2 - 6, { steps: 12 })
-    await page.mouse.up()
-  }
-
-  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Kutilmoqda", "Bajarildi"])
+  await moveUp(page, stages, "Kutilmoqda", "Bajarildi")
+  await expect.poll(() => titles(stages)).toEqual(["Yangi", "Jarayonda", "Kutilmoqda", "Bajarildi"])
   await page.reload()
-  await expect.poll(names).toEqual(["Yangi", "Jarayonda", "Kutilmoqda", "Bajarildi"])
+  await expect.poll(() => titles(stages)).toEqual(["Yangi", "Jarayonda", "Kutilmoqda", "Bajarildi"])
 })
 
 test("the owner makes a task type and gives it a choice field; the dropdown it uses is not deleted", async ({ page }) => {
   await openSettings(page)
-  await openTab(page, "Vazifalar")
+  await openPart(page, "Vazifa turlari", /\/settings\/task-types$/)
   const types = page.getByRole("list", { name: "Vazifa turlari" })
-  await expect(types.getByRole("link", { name: "Vazifa" })).toBeVisible()
+  await expect(types.getByRole("link", { name: /^Vazifa/ })).toBeVisible()
 
   await page.getByRole("button", { name: "Vazifa turi qo'shish" }).click()
-  let dialog = page.getByRole("dialog", { name: "Vazifa turi qo'shish" })
-  await dialog.getByLabel("Nomi").fill("Buyurtma")
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
-  await types.getByRole("link", { name: "Buyurtma" }).click()
+  let sheet = page.getByRole("dialog", { name: "Vazifa turi qo'shish" })
+  await sheet.getByLabel("Nomi").fill("Buyurtma")
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
+  await types.getByRole("link", { name: /^Buyurtma/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Buyurtma" })).toBeVisible()
   await expect(page.getByText("Bu turda maydon yo'q")).toBeVisible()
   await expect(page.getByText("Vazifa turi · 0 ta maydon")).toBeVisible()
 
   await page.getByRole("button", { name: "Maydon qo'shish" }).click()
-  dialog = page.getByRole("dialog", { name: "Maydon qo'shish" })
-  await expect(dialog.getByRole("checkbox", { name: "Takrorlanmasin" })).toHaveCount(0)
-  await dialog.getByLabel("Nomi").fill("Holati")
-  await choose(dialog.getByLabel("Turi"), "Radio (bitta tanlov)")
-  await choose(dialog.getByLabel("Dropdown"), "Manba")
-  await dialog.getByRole("checkbox", { name: "Majburiy" }).click()
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
+  sheet = page.getByRole("dialog", { name: "Maydon qo'shish" })
+  await expect(sheet.getByRole("switch", { name: "Takrorlanmasin" })).toHaveCount(0)
+  await sheet.getByLabel("Nomi").fill("Holati")
+  await choose(sheet.getByLabel("Turi"), "Radio (bitta tanlov)")
+  await choose(sheet.getByLabel("Dropdown"), "Manba")
+  await sheet.getByRole("switch", { name: "Majburiy" }).click()
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
   const fields = page.getByRole("list", { name: "Maydonlar" })
   await expect(fields.getByText("Radio (bitta tanlov) · Manba")).toBeVisible()
   await expect(fields.getByText("Majburiy")).toBeVisible()
   await expect(page.getByText("Vazifa turi · 1 ta maydon")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  // A dropdown that a task field takes its options from is not deleted. The
-  // way back leads to the tasks' tab; the dropdowns are on theirs.
-  await backToSettings(page)
-  await expect(page).toHaveURL(/\/settings\?tab=tasks$/)
-  await expect(types.getByRole("link", { name: "Buyurtma" })).toBeVisible()
-  await openTab(page, "Dropdownlar")
-  const dropdowns = page.getByRole("list", { name: "Dropdownlar" })
-  await dropdowns.getByRole("button", { name: "O'chirish: Manba" }).click()
-  const confirm = page.getByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })
-  await confirm.getByRole("button", { name: "O'chirish" }).click()
+  // A dropdown that a task field takes its options from is not deleted.
+  await back(page, "Vazifa turlari")
+  await expect(types.getByRole("link", { name: /^Buyurtma/ })).toBeVisible()
+  await back(page, "Sozlamalar")
+  await openPart(page, "Dropdownlar", /\/settings\/dropdowns$/)
+  await page.getByRole("list", { name: "Dropdownlar" }).getByRole("link", { name: /^Manba/ }).click()
+  await page.getByRole("button", { name: "Dropdownni o'chirish" }).click()
+  await page.getByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page.getByText("Bu dropdown 2 ta maydonda ishlatilgan")).toBeVisible()
-  await expect(dropdowns.getByRole("link", { name: "Manba" })).toBeVisible()
+  await expect(page.getByRole("heading", { level: 1, name: "Manba" })).toBeVisible()
 })
 
 test("the owner of a company in dollars enters the rate, which the history keeps", async ({ page }) => {
@@ -220,46 +207,46 @@ test("the owner of a company in dollars enters the rate, which the history keeps
   await page.getByRole("button", { name: /Nok Market/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
   await openSection(page, "Sozlamalar")
-  await openTab(page, "Valyuta kurslari")
-  await expect(page).toHaveURL(/\/settings\?tab=currencies$/)
+  await openPart(page, "Valyuta kurslari", /\/settings\/currencies$/)
   const current = page.getByRole("list", { name: "Joriy kurslar" })
   await expect(current.getByText("1 USD = 12 800 so'm")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   await page.getByRole("button", { name: "Kurslarni yangilash" }).click()
-  const dialog = page.getByRole("dialog", { name: "Kurslarni yangilash" })
-  await dialog.getByLabel("1 USD = ? so'm").fill("12 950")
-  await dialog.getByRole("button", { name: "Saqlash" }).click()
-  await expect(dialog).toBeHidden()
+  const sheet = page.getByRole("dialog", { name: "Kurslarni yangilash" })
+  await sheet.getByLabel("1 USD").fill("12 950")
+  await sheet.getByRole("button", { name: "Saqlash" }).click()
+  await expect(sheet).toBeHidden()
   await expect(current.getByText("1 USD = 12 950 so'm")).toBeVisible()
   // The history: the new row on top of the one Vali set before.
-  const history = page.getByRole("table", { name: "Kurslar tarixi" }).or(page.getByRole("list", { name: "Kurslar tarixi" }))
-  await expect(history.getByText("12 950")).toBeVisible()
-  await expect(history.getByText("12 800")).toBeVisible()
+  const history = page.getByRole("list", { name: "Kurslar tarixi" })
+  await expect(history.getByText("USD 12 950")).toBeVisible()
+  await expect(history.getByText("USD 12 800")).toBeVisible()
 })
 
-test("the owner keeps the finance categories: an expense category added, turned off, and an income one", async ({ page }) => {
+test("the owner keeps the finance categories: an expense category added and turned off, and an income one", async ({ page }) => {
   await openSettings(page)
-  await openTab(page, "Moliya kategoriyalari")
-  await expect(page).toHaveURL(/\/settings\?tab=finance$/)
+  await openPart(page, "Moliya kategoriyalari", /\/settings\/finance-categories$/)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  const [addExpense, addIncome] = await page.getByRole("button", { name: "Kategoriya qo'shish" }).all()
-  await addExpense.click()
-  let dialog = page.getByRole("dialog", { name: "Kategoriya qo'shish" })
-  await dialog.getByLabel("Nomi").fill("Ijara")
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
+  await page.getByRole("button", { name: "Kategoriya qo'shish" }).click()
+  let sheet = page.getByRole("dialog", { name: "Kategoriya qo'shish" })
+  await sheet.getByLabel("Nomi").fill("Ijara")
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
   const expenses = page.getByRole("list", { name: "Xarajat kategoriyalari" })
   await expect(expenses.getByText("Ijara")).toBeVisible()
 
-  await addIncome.click()
-  dialog = page.getByRole("dialog", { name: "Kategoriya qo'shish" })
-  await dialog.getByLabel("Nomi").fill("Boshqa kirim")
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
-  await expect(dialog).toBeHidden()
+  await page.getByRole("tab", { name: "Kirim" }).click()
+  await page.getByRole("button", { name: "Kategoriya qo'shish" }).click()
+  sheet = page.getByRole("dialog", { name: "Kategoriya qo'shish" })
+  await sheet.getByLabel("Nomi").fill("Boshqa kirim")
+  await sheet.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(sheet).toBeHidden()
   await expect(page.getByRole("list", { name: "Kirim kategoriyalari" }).getByText("Boshqa kirim")).toBeVisible()
 
-  await expenses.getByRole("button", { name: "Nofaol qilish: Ijara" }).click()
+  await page.getByRole("tab", { name: "Xarajat" }).click()
+  await expenses.getByRole("button", { name: /^Ijara/ }).click()
+  await page.getByRole("menuitem", { name: "Nofaol qilish" }).click()
   await expect(expenses.getByText("Nofaol")).toBeVisible()
 })
