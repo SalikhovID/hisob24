@@ -39,6 +39,16 @@ test("the presets jump: tomorrow is the day after today", async () => {
   expect(change).toHaveBeenCalledWith("2026-10-14")
 })
 
+test("a sheet for a span already past (a list's days) offers the past: today, yesterday, a week and a month back", async () => {
+  const change = vi.fn()
+  render(<DateSheet open onOpenChange={() => {}} title="Sanadan" value="" onChange={change} presets="past" />)
+  const dialog = await screen.findByRole("dialog", { name: "Sanadan" })
+  expect(Array.from(dialog.querySelectorAll("[data-slot=chip]"), (chip) => chip.textContent)).toEqual(["Bugun", "Kecha", "7 kun oldin", "30 kun oldin"])
+  await userEvent.click(within(dialog).getByRole("button", { name: "7 kun oldin" }))
+  await userEvent.click(within(dialog).getByRole("button", { name: "Tanlash" }))
+  expect(change).toHaveBeenCalledWith("2026-10-06")
+})
+
 function Form({ onSubmit }: { onSubmit: (values: { deadline: string; at: string }) => void }) {
   const form = useForm<{ deadline: string; at: string }>({ defaultValues: { deadline: "2026-10-13", at: "2026-10-13T10:30" } })
   return (

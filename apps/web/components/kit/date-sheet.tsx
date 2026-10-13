@@ -46,12 +46,15 @@ export function DateSheet({
   title = "Sana",
   value,
   onChange,
+  presets = "future",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title?: string
   value: string
   onChange: (value: string) => void
+  // presets are the days offered above the calendar: ahead (a deadline) or past (a list's days).
+  presets?: "future" | "past"
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,7 +62,7 @@ export function DateSheet({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <Calendar value={value} onChange={onChange} onClose={() => onOpenChange(false)} />
+        <Calendar value={value} onChange={onChange} onClose={() => onOpenChange(false)} past={presets === "past"} />
       </DialogContent>
     </Dialog>
   )
@@ -68,7 +71,7 @@ export function DateSheet({
 // Calendar is the open sheet's body: it mounts with every opening (the
 // closed sheet holds nothing), so it starts at the value's month, or
 // today's.
-function Calendar({ value, onChange, onClose }: { value: string; onChange: (value: string) => void; onClose: () => void }) {
+function Calendar({ value, onChange, onClose, past }: { value: string; onChange: (value: string) => void; onClose: () => void; past: boolean }) {
   const now = today()
   const [picked, setPicked] = useState(value || now)
   const [[year, month], setShown] = useState(() => {
@@ -94,12 +97,19 @@ function Calendar({ value, onChange, onClose }: { value: string; onChange: (valu
     }
     setShown([y, m])
   }
-  const presets: [string, string][] = [
-    ["Bugun", now],
-    ["Ertaga", addDays(now, 1)],
-    ["3 kundan keyin", addDays(now, 3)],
-    ["1 haftadan keyin", addDays(now, 7)],
-  ]
+  const presets: [string, string][] = past
+    ? [
+        ["Bugun", now],
+        ["Kecha", addDays(now, -1)],
+        ["7 kun oldin", addDays(now, -7)],
+        ["30 kun oldin", addDays(now, -30)],
+      ]
+    : [
+        ["Bugun", now],
+        ["Ertaga", addDays(now, 1)],
+        ["3 kundan keyin", addDays(now, 3)],
+        ["1 haftadan keyin", addDays(now, 7)],
+      ]
 
   return (
     <>
