@@ -13,7 +13,8 @@ const insets = { none: "16px", icon: "68px", tile: "60px" } as const
 const ListContext = createContext(false)
 
 // Group is the prototype's grouped block: a white card of rows with
-// hairlines between them. With a label it is a list (the rows become its
+// hairlines between them. Like every block of a page it carries its own
+// space under it (24px), so a page stacks its blocks as they come. With a label it is a list (the rows become its
 // items); as "dl" it holds key-value rows.
 export function Group({
   inset = "none",
@@ -31,7 +32,7 @@ export function Group({
   children: ReactNode
 }) {
   const styles = { ...style, "--inset": insets[inset] } as CSSProperties
-  const classes = cn("overflow-hidden rounded-group bg-card [[data-slot=group]+&]:mt-6", className)
+  const classes = cn("mb-6 overflow-hidden rounded-group bg-card", className)
   if (label) {
     return (
       <ListContext value={true}>
@@ -214,7 +215,7 @@ export function Foot({ children, center = false, className }: { children: ReactN
     <p
       data-slot="foot"
       className={cn(
-        "px-4 text-xs leading-[1.4] text-muted-foreground [[data-slot=group]+&]:-mt-3.5 [&_a]:text-primary [&_button]:text-primary",
+        "mb-6 px-4 text-xs leading-[1.4] text-muted-foreground [[data-slot=group]+&]:-mt-3.5 [&_a]:text-primary [&_button]:text-primary",
         center && "text-center",
         className,
       )}

@@ -320,6 +320,7 @@ html[data-telegram] body {
 }
 [data-slot="row"] + [data-slot="row"]::before,
 [data-slot="row-item"] + [data-slot="row-item"] > [data-slot="row"]::before,
+[data-slot="sortable-item"] + [data-slot="sortable-item"] > [data-slot="row"]::before,
 [data-slot="form-row"] + [data-slot="form-row"]::before,
 [data-slot="row"] + [data-slot="form-row"]::before,
 [data-slot="form-row"] + [data-slot="row"]::before {

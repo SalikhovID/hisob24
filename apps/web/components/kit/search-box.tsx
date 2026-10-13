@@ -46,7 +46,7 @@ export function SearchBox({
   }, [text, value, delay, onSearch])
 
   return (
-    <div data-slot="search-box" className={cn("flex h-11 items-center gap-2 rounded-full bg-muted px-3.5 text-muted-foreground", className)}>
+    <div data-slot="search-box" className={cn("mb-3 flex h-11 items-center gap-2 rounded-full bg-muted px-3.5 text-muted-foreground", className)}>
       <SearchIcon aria-hidden="true" strokeWidth={2.4} className="size-[19px] shrink-0" />
       <input
         type="search"

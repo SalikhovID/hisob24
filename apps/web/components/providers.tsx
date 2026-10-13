@@ -16,7 +16,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <TelegramSync />
         {children}
-        <Toaster position="top-center" richColors />
+        <Toaster />
       </QueryClientProvider>
     </ThemeProvider>
   )

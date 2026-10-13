@@ -3,11 +3,13 @@
 import { Tabs } from "@base-ui/react/tabs"
 import type { LucideIcon } from "lucide-react"
 import type { CSSProperties } from "react"
+import { cn } from "@/lib/utils"
 
 // Segmented is the prototype's segmented control: two or three views of one
 // thing (Kanban / Ro'yxat, Mahsulotlar / Xizmatlar) on a pill, a white
 // thumb sliding under the chosen one. It is a tab list (Base UI Tabs) with
-// no panels of its own: the page shows the view.
+// no panels of its own: the page shows the view. On a wide screen it keeps
+// a control's width rather than stretching across the page.
 export function Segmented({
   label,
   value,
@@ -22,7 +24,7 @@ export function Segmented({
   className?: string
 }) {
   return (
-    <Tabs.Root value={value} onValueChange={(next) => onChange(String(next))} className={className}>
+    <Tabs.Root value={value} onValueChange={(next) => onChange(String(next))} className={cn("mb-3.5 md:max-w-sm", className)}>
       <Tabs.List
         aria-label={label}
         data-slot="segmented"

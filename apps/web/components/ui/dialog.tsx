@@ -9,6 +9,8 @@ import { XIcon } from "lucide-react"
 // the screen (on a wide screen too, 480px wide in the middle), a grab
 // handle on top, the close button at the top left, the title centered, the
 // body scrolling under a sticky head, the main button in a sticky footer.
+// Inside a sheet the page's surfaces are the sheet's own (as the
+// prototype's .sheet redefines --cell and --bg): a group is a sheet cell.
 // The API is the one from before (Dialog, DialogContent, DialogHeader,
 // DialogTitle, DialogDescription, DialogFooter), so every dialog of the app
 // is a sheet from here on.
@@ -63,7 +65,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-tall={tall || undefined}
         className={cn(
-          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex max-h-[calc(100dvh-18px)] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-4px_40px_rgba(0,0,0,.12)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px)]",
+          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px)] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-4px_40px_rgba(0,0,0,.12)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px)]",
           className
         )}
         {...props}
@@ -85,7 +87,7 @@ function DialogContent({
             {right}
           </span>
         )}
-        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 scrollbar-hide">
+        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 scrollbar-hide has-[>[data-slot=dialog-footer]]:pb-0 [&>*]:shrink-0">
           {children}
         </div>
       </DialogPrimitive.Popup>
@@ -105,7 +107,9 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-// DialogFooter is the main button's bar at the bottom of the sheet.
+// DialogFooter is the main button's bar at the bottom of the sheet. It
+// sticks to the body's bottom edge; the body then has no padding under it
+// (a sticky box keeps clear of its scroller's padding).
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -118,7 +122,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "sticky bottom-0 z-[1] -mx-4 -mb-4 mt-auto flex flex-col gap-1 bg-gradient-to-t from-sheet from-70% to-transparent px-4 pt-3 pb-4 [&>*]:w-full",
+        "sticky bottom-0 z-[1] -mx-4 mt-auto flex flex-col gap-1 bg-gradient-to-t from-sheet from-70% to-transparent px-4 pt-3 pb-4 [&>*]:w-full",
         className
       )}
       {...props}

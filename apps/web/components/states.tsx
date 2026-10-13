@@ -44,7 +44,7 @@ const marks = { round: "rounded-full", square: "rounded-[12px]" }
 // motion.
 export function ListLoading({ rows = 3, mark = "round" }: { rows?: number; mark?: "round" | "square" | "none" }) {
   return (
-    <Placeholder className="overflow-hidden rounded-group bg-card motion-safe:animate-pulse">
+    <Placeholder className="mb-6 overflow-hidden rounded-group bg-card motion-safe:animate-pulse">
       {Array.from({ length: rows }, (_, i) => (
         <div
           key={i}
@@ -68,7 +68,7 @@ export function ListLoading({ rows = 3, mark = "round" }: { rows?: number; mark?
 // the list's frame.
 export function Failed({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-group bg-card px-6 py-8 text-center">
+    <div className="mb-6 flex flex-col items-center gap-3 rounded-group bg-card px-6 py-8 text-center">
       <p role="alert" className="text-md text-balance text-destructive">
         {error.message}
       </p>
@@ -98,7 +98,7 @@ export function EmptyState({
   className?: string
 }) {
   return (
-    <div data-slot="empty-state" className={cn("rounded-group bg-card px-6 py-7 text-center", className)}>
+    <div data-slot="empty-state" className={cn("mb-6 rounded-group bg-card px-6 py-7 text-center", className)}>
       {Icon && (
         <span aria-hidden="true" className="mx-auto mb-3.5 grid size-16 place-items-center rounded-[20px] bg-primary-soft text-primary">
           <Icon aria-hidden="true" strokeWidth={1.9} className="size-[30px]" />

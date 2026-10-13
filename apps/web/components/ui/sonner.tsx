@@ -4,8 +4,10 @@ import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CheckIcon, InfoIcon, TriangleAlertIcon, XIcon, Loader2Icon } from "lucide-react"
 
-// The toasts are the prototype's: a glass pill at the top of the screen
-// with a green (or red) round icon and the message in one line.
+// The toasts are the prototype's: a glass pill in the middle of the top of
+// the screen with a green (or red) round icon and the message in one line.
+// sonner's own padding and width are stronger than a class: they are
+// overridden (!), and the pill is centered over its full-width slot.
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
@@ -32,7 +34,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "cn-toast w-fit! max-w-[calc(100vw-32px)] items-center gap-2 py-2.5 pr-4 pl-3 text-md! font-semibold! shadow-float! ring-[0.5px] ring-glass-edge ring-inset backdrop-blur-[24px] backdrop-saturate-[1.8]",
+            "cn-toast right-0! left-0! mx-auto! w-fit! max-w-[calc(100vw-32px)] items-center gap-2! py-2.5! pr-4! pl-3! text-md! font-semibold! shadow-float! ring-[0.5px] ring-glass-edge ring-inset backdrop-blur-[24px] backdrop-saturate-[1.8]",
           icon: "m-0! grid size-[22px] place-items-center rounded-full bg-positive text-white [&_svg]:size-[13px]",
           error: "[&_[data-icon]]:bg-destructive",
           warning: "[&_[data-icon]]:bg-warning",

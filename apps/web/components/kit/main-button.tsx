@@ -60,14 +60,14 @@ export function MainButton({
 
 // MainBar is the bar the main button stands in at the bottom of a page or
 // a sheet: it sticks to the bottom, fades the content under it and keeps
-// clear of the phone's bottom edge. tone "sheet" fades into a sheet's own
-// background.
+// clear of the phone's bottom edge; on a wide screen its buttons keep a
+// button's width. tone "sheet" fades into a sheet's own background.
 export function MainBar({ children, tone = "page", className }: { children: ReactNode; tone?: "page" | "sheet"; className?: string }) {
   return (
     <div
       data-slot="main-bar"
       className={cn(
-        "sticky bottom-0 z-[5] -mx-4 mt-auto flex flex-col gap-1 px-4 pt-3 pb-safe-7",
+        "sticky bottom-0 z-[5] -mx-4 mt-auto flex flex-col gap-1 px-4 pt-3 pb-safe-7 md:items-start md:[&>*]:max-w-sm",
         tone === "page" ? "bg-gradient-to-t from-background from-70% to-transparent" : "bg-gradient-to-t from-sheet from-70% to-transparent",
         className,
       )}
