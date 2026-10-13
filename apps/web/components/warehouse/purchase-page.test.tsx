@@ -9,6 +9,7 @@ import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { PurchasePage } from "./purchase-page"
+import { moved } from "@/test/moves"
 
 // facts reads the "Ma'lumot" list: each name with its value (the lines'
 // cards hold terms of their own).
@@ -95,7 +96,8 @@ test("deleting the purchase gives the stock back and leads to the list", async (
   await waitFor(() => expect(db.transactions.find((t) => t.id === purchase!.id)?.deleted).toBe(true))
   expect(stockOf(catalog.olma.id, [db.locations.find((l) => l.companyId === 1)!.id])).toBe(0)
   expect(await screen.findByText("Xarid o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/purchases", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/purchases"))
+  expect(moved()).toBe("back")
 })
 
 test("a purchase that is gone, or outside the member's locations, is not found", async () => {

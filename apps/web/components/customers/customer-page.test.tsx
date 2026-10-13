@@ -15,6 +15,7 @@ import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
 import { CustomerPage } from "./customer-page"
+import { moved } from "@/test/moves"
 
 // open puts the test on a customer's page.
 function open(id: number) {
@@ -224,7 +225,8 @@ test("an employee deletes the customer after being asked, and is taken back to t
   confirm = await screen.findByRole("alertdialog", { name: "Mijozni o'chirasizmi?" })
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/customers", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/customers"))
+  expect(moved()).toBe("back")
   expect(await screen.findByText("Mijoz o'chirildi")).toBeInTheDocument()
   expect(dilshod.deleted).toBe(true)
 })

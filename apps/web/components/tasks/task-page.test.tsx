@@ -10,6 +10,7 @@ import { giveRole } from "@/test/roles"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { TaskPage } from "./task-page"
+import { moved } from "@/test/moves"
 
 // open puts the test on a task's page.
 function open(id: number) {
@@ -153,7 +154,8 @@ test("the task is deleted after asking, and the list is where one lands", async 
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Vazifa o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/tasks", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/tasks"))
+  expect(moved()).toBe("back")
   expect(db.tasks.find((task) => task.id === call.id)?.deleted).toBe(true)
 })
 

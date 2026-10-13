@@ -14,7 +14,7 @@ import { usePermission } from "@/lib/use-gate"
 import { nowLocal } from "@/lib/warehouse"
 import { forgetWarehouse } from "./new-purchase-page"
 import { OpeningStockForm } from "./opening-stock-form"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/opening-stock", label: "Boshlang'ich qoldiq" }
 
@@ -33,7 +33,7 @@ export function EditOpeningStockPage({ id }: { id: number }) {
     onSuccess: () => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Boshlang'ich qoldiq saqlandi")
-      router.push(`/opening-stock/${id}`, { transitionTypes: stepBack })
+      moving("back", () => router.push(`/opening-stock/${id}`))
     },
   })
 

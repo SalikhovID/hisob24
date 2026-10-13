@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest"
+import { moveTo } from "./lib/moves"
 import { clearSession } from "./lib/session"
 import { setMiniApp } from "./lib/telegram"
 import { resetDb } from "./mocks/data"
@@ -47,6 +48,7 @@ afterEach(() => {
     document.documentElement.removeAttribute("data-telegram")
     document.documentElement.removeAttribute("class")
     document.documentElement.removeAttribute("style")
+    moveTo(undefined)
     localStorage.clear()
   }
 })

@@ -17,7 +17,7 @@ import { useLocation } from "@/lib/use-location"
 import { emptyLine, nowLocal, type PurchaseOutput, purchaseDefaults } from "@/lib/warehouse"
 import { forgetFinance } from "@/lib/finance"
 import { PurchaseForm } from "./purchase-form"
-import { stepForward } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/purchases", label: "Xaridlar" }
 
@@ -94,7 +94,7 @@ export function NewPurchasePage() {
     onSuccess: (saved) => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Xarid qo'shildi")
-      router.push(`/purchases/${saved.id}`, { transitionTypes: stepForward })
+      moving("forward", () => router.push(`/purchases/${saved.id}`))
     },
   })
 

@@ -14,7 +14,7 @@ import { usePermission } from "@/lib/use-gate"
 import { nowLocal } from "@/lib/warehouse"
 import { forgetWarehouse } from "./new-purchase-page"
 import { TransferForm } from "./transfer-form"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/transfers", label: "Ko'chirishlar" }
 
@@ -33,7 +33,7 @@ export function EditTransferPage({ id }: { id: number }) {
     onSuccess: () => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Ko'chirish saqlandi")
-      router.push(`/transfers/${id}`, { transitionTypes: stepBack })
+      moving("back", () => router.push(`/transfers/${id}`))
     },
   })
 

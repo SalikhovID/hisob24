@@ -8,6 +8,7 @@ import { giveRole } from "@/test/roles"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { DropdownPage } from "./dropdown-page"
+import { moved } from "@/test/moves"
 
 const optionList = () => screen.findByRole("list", { name: "Variantlar" })
 // optionsOf reads the list as each option's name and marks.
@@ -202,7 +203,8 @@ test("the dropdown is renamed from its page; one a field uses is not deleted, wi
   renderWithProviders(<DropdownPage id={900} />)
   await user.click(await screen.findByRole("button", { name: "Dropdownni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Dropdownni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/dropdowns", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/dropdowns"))
+  expect(moved()).toBe("back")
   expect(dropdownsOf(1).map((dropdown) => dropdown.name)).toEqual(["Qayerdan"])
 })
 

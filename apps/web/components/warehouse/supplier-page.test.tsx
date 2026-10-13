@@ -8,6 +8,7 @@ import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpening } from "@/test/stock"
 import { SupplierPage } from "./supplier-page"
+import { moved } from "@/test/moves"
 
 // facts reads the "Ma'lumot" list: each name with its value.
 const facts = () => Object.fromEntries(screen.getAllByRole("term").map((dt) => [dt.textContent, dt.nextElementSibling?.textContent]))
@@ -96,7 +97,8 @@ test("deleting the supplier leads back to the list", async () => {
   await user.click(await screen.findByRole("button", { name: "Ta'minotchini o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Ta'minotchini o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/suppliers", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/suppliers"))
+  expect(moved()).toBe("back")
   expect(await screen.findByText("Ta'minotchi o'chirildi")).toBeInTheDocument()
 })
 

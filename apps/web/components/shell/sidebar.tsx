@@ -13,6 +13,7 @@ import { useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
 import { cn } from "@/lib/utils"
 import { LocationSwitcher } from "./location-switcher"
+import { moveTo } from "@/lib/moves"
 
 export interface SidebarProps {
   // collapsed: folded to icons.
@@ -120,6 +121,8 @@ function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boo
   const link = (
     <Link
       href={item.href}
+      // A section is switched to at once (lib/moves.ts).
+      onClick={() => moveTo(undefined)}
       aria-current={current ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={cn(

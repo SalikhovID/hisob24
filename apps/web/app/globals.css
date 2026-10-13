@@ -346,36 +346,52 @@ html[data-telegram] body {
   to { transform: translateX(260%); }
 }
 
-/* The moves between pages (components/kit/page-transition.tsx), as the
-   prototype's push and pop: forward, the new page comes in from the right
-   over the old one, which goes a little to the left and dims (420ms); back,
-   the old one leaves to the right over the page it uncovers (340ms). Beside
-   the sidebar (md and up) the page under does not move: it would pass over
-   the sidebar. Clicks during a move reach the page. */
+/* The moves between pages (lib/moves.ts, components/kit/page-transition.tsx),
+   as the prototype's push and pop: forward, the new page comes in from the
+   right over the old one, which goes a little to the left and dims (420ms);
+   back, the old one leaves to the right over the page it uncovers (340ms).
+   Beside the sidebar (md and up) the page under does not move: it would
+   pass over the sidebar. A page change with no move (a section from the
+   menu, the browser's own back) and the shell around the pages (the root's
+   picture: the sidebar, the tab bar) change at once, without the browser's
+   cross-fade. Clicks during a move reach the page. */
 ::view-transition {
   pointer-events: none;
 }
-::view-transition-group(.push-in),
-::view-transition-group(.pop-out) {
+::view-transition-old(root) {
+  display: none;
+}
+::view-transition-group(root),
+::view-transition-new(root) {
+  animation: none;
+}
+:root:not([data-move])::view-transition-old(.page-out) {
+  display: none;
+}
+:root:not([data-move])::view-transition-new(.page-in) {
+  animation: none;
+}
+:root[data-move="forward"]::view-transition-group(.page-in),
+:root[data-move="back"]::view-transition-group(.page-out) {
   z-index: 2;
 }
-::view-transition-new(.push-in) {
+:root[data-move="forward"]::view-transition-new(.page-in) {
   animation: 420ms var(--ease-drawer) both page-from-right;
 }
-::view-transition-old(.push-out) {
+:root[data-move="forward"]::view-transition-old(.page-out) {
   animation: 420ms var(--ease-drawer) both page-to-under;
 }
-::view-transition-old(.pop-out) {
+:root[data-move="back"]::view-transition-old(.page-out) {
   animation: 340ms var(--ease-drawer) both page-to-right;
 }
-::view-transition-new(.pop-in) {
+:root[data-move="back"]::view-transition-new(.page-in) {
   animation: 340ms var(--ease-drawer) both page-from-under;
 }
 @media (min-width: 48rem) {
-  ::view-transition-old(.push-out) {
+  :root[data-move="forward"]::view-transition-old(.page-out) {
     animation: 200ms ease-out both page-fade-out;
   }
-  ::view-transition-new(.pop-in) {
+  :root[data-move="back"]::view-transition-new(.page-in) {
     animation: 200ms ease-in both page-fade-in;
   }
 }

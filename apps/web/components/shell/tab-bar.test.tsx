@@ -1,11 +1,27 @@
 import { screen, waitFor, within } from "@testing-library/react"
-import { expect, test } from "vitest"
+import type { ComponentProps } from "react"
+import { expect, test, vi } from "vitest"
+import { moveTo } from "@/lib/moves"
 import { ALI, db, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
+import { moved } from "@/test/moves"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { TabBar } from "./tab-bar"
+
+// next/link as far as a click goes: a link that runs its click and stays.
+vi.mock("next/link", () => ({
+  default: ({ onClick, ...props }: ComponentProps<"a">) => (
+    <a
+      {...props}
+      onClick={(event) => {
+        onClick?.(event)
+        event.preventDefault()
+      }}
+    />
+  ),
+}))
 
 const bar = () => screen.getByRole("navigation", { name: "Bo'limlar" })
 const tabs = () => within(bar()).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])
@@ -80,4 +96,15 @@ test("before the session is known the tab bar has the home alone", async () => {
 
   expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa"])
   expect(await within(bar()).findByRole("link", { name: "Mahsulotlar" })).toBeInTheDocument()
+})
+
+test("a section from the bar is switched to at once: a move taken before it, which no page change came of yet, is dropped", async () => {
+  await signIn(ALI)
+  setLocation("/customers")
+  const { user } = renderWithProviders(<TabBar />)
+
+  const tasks = await within(bar()).findByRole("link", { name: "Vazifalar" })
+  moveTo("forward")
+  await user.click(tasks)
+  expect(moved()).toBeUndefined()
 })

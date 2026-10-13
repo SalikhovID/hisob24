@@ -9,6 +9,7 @@ import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpeningStock } from "@/test/stock"
 import { OpeningStockDetailPage } from "./opening-stock-detail-page"
+import { moved } from "@/test/moves"
 
 const facts = () =>
   Object.fromEntries(
@@ -83,7 +84,8 @@ test("deleting the opening stock takes its products out of the stock and leads t
   await waitFor(() => expect(db.transactions.find((t) => t.id === opening.id)?.deleted).toBe(true))
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(12.5)
   expect(await screen.findByText("Boshlang'ich qoldiq o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/opening-stock", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/opening-stock"))
+  expect(moved()).toBe("back")
 })
 
 test("an opening stock that is gone, or of a location the member does not work in, is not found", async () => {

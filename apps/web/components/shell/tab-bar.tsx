@@ -7,6 +7,7 @@ import { tabIcons } from "@/components/kit/tab-icons"
 import { barItems, isCurrentItem, isRootPath, navFor } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
+import { moveTo } from "@/lib/moves"
 
 // The tab bar's tabs are 72px wide; the lens under the current one moves by
 // a tab.
@@ -59,6 +60,8 @@ export function TabBar() {
           <Link
             key={item.key}
             href={item.href}
+            // A section is switched to at once (lib/moves.ts).
+            onClick={() => moveTo(undefined)}
             aria-current={on ? "page" : undefined}
             className={cn(
               "relative z-[2] flex h-14 w-(--tab) flex-col items-center justify-center gap-[3px] rounded-[28px] text-[10.5px] font-semibold tracking-[-0.01em] outline-none focus-visible:ring-3 focus-visible:ring-ring/50",

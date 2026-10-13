@@ -5,6 +5,7 @@ import { renderWithProviders } from "@/test/render"
 import { router, setLocation } from "@/test/navigation"
 import { fakeWebApp } from "@/test/telegram"
 import { TelegramSync } from "./telegram-sync"
+import { moved } from "@/test/moves"
 
 test("TelegramSync readies the Mini App and follows Telegram's color scheme", async () => {
   const webApp = fakeWebApp({ colorScheme: "dark" })
@@ -121,7 +122,8 @@ test("inside a section the Mini App shows Telegram's back button; with nothing t
 
   await waitFor(() => expect(back.show).toHaveBeenCalled())
   act(() => back.press())
-  expect(router.push).toHaveBeenCalledWith("/customers", { transitionTypes: ["nav-back"] })
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/customers"))
+  expect(moved()).toBe("back")
 })
 
 test("with a page to go back to, Telegram's back button goes back", async () => {
@@ -134,7 +136,9 @@ test("with a page to go back to, Telegram's back button goes back", async () => 
 
   await waitFor(() => expect(back.show).toHaveBeenCalled())
   act(() => back.press())
-  expect(router.back).toHaveBeenCalled()
+  await waitFor(() => expect(router.back).toHaveBeenCalled())
+  // The page it goes back to moves as the prototype's pop.
+  expect(moved()).toBe("back")
 })
 
 test.each(["/customers", "/", "/login", "/select-company"])("on %s Telegram's back button is hidden", async (path) => {
@@ -163,6 +167,7 @@ test("back at the first page the app was opened at, Telegram's back button leads
 
   await waitFor(() => expect(back.show).toHaveBeenCalled())
   act(() => back.press())
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/customers"))
   expect(router.back).not.toHaveBeenCalled()
-  expect(router.push).toHaveBeenCalledWith("/customers", { transitionTypes: ["nav-back"] })
+  expect(moved()).toBe("back")
 })

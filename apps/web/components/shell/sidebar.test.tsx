@@ -1,12 +1,28 @@
 import { screen, waitFor, within } from "@testing-library/react"
+import type { ComponentProps } from "react"
 import { expect, test, vi } from "vitest"
+import { moveTo } from "@/lib/moves"
 import { ALI, db, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { addLocation } from "@/test/locations"
+import { moved } from "@/test/moves"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { Sidebar, type SidebarProps } from "./sidebar"
+
+// next/link as far as a click goes: a link that runs its click and stays.
+vi.mock("next/link", () => ({
+  default: ({ onClick, ...props }: ComponentProps<"a">) => (
+    <a
+      {...props}
+      onClick={(event) => {
+        onClick?.(event)
+        event.preventDefault()
+      }}
+    />
+  ),
+}))
 
 const props = (overrides: Partial<SidebarProps> = {}): SidebarProps => ({
   collapsed: false,
@@ -141,4 +157,14 @@ test("folded, the way to the profile is the avatar, named for screen readers", a
   renderWithProviders(<Sidebar {...props({ collapsed: true })} />)
 
   expect(await within(sidebar()).findByRole("link", { name: "Profil: Ali Valiyev" })).toHaveAttribute("href", "/profile")
+})
+
+test("a section from the sidebar is switched to at once: a move taken before it, which no page change came of yet, is dropped", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Sidebar {...props()} />)
+
+  const tasks = await within(sidebar()).findByRole("link", { name: "Vazifalar" })
+  moveTo("forward")
+  await user.click(tasks)
+  expect(moved()).toBeUndefined()
 })

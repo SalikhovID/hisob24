@@ -13,6 +13,7 @@ import { enterSale } from "@/test/stock"
 import { momentIn } from "@/test/moment"
 import { EditSalePage } from "./edit-sale-page"
 import { NewSalePage } from "./new-sale-page"
+import { moved } from "@/test/moves"
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
 const paymentLine = (n: number) => screen.getByRole("group", { name: `${n}-to'lov` })
@@ -63,7 +64,8 @@ test("a sale to a customer out of the current location: the customer found by na
   expect(db.transactions.find((t) => t.linkedId === saved.id)).toMatchObject({ kind: "customer_payment", customerId: dilshod.id, total: 50000 })
   expect(stockOf(catalog.olma.id, [asosiyOf(1).id])).toBe(10.5)
   expect(await screen.findByText("Sotuv qo'shildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${saved.id}`, { transitionTypes: ["nav-forward"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${saved.id}`))
+  expect(moved()).toBe("forward")
 })
 
 test("a retail sale is paid in full with «To'liq»; the form tells the API's refusals", async () => {
@@ -138,5 +140,6 @@ test("editing: the sale comes filled in with its customer and payment, and is sa
   await waitFor(() => expect(db.items.find((i) => i.transactionId === sale.id)?.quantity).toBe(2))
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(10.5)
   expect(await screen.findByText("Sotuv saqlandi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${sale.id}`, { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/sales/${sale.id}`))
+  expect(moved()).toBe("back")
 })

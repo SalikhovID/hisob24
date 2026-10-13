@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { BAR_SECTIONS, type NavItem, type NavKey, navFor } from "@/lib/nav"
 import { useMe, useSetNavOrder } from "@/lib/queries"
 import type { Me } from "@/lib/types"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 // MenuOrderPage is where a member puts the sections in their own order
 // (logic/roles.md, section 8), as the prototype's «Pastki menyu»: the home
@@ -107,7 +107,7 @@ function OrderForm({ me }: { me: Me }) {
             save.mutate(order, {
               onSuccess: () => {
                 toast.success("Menyu tartibi saqlandi")
-                router.push("/profile", { transitionTypes: stepBack })
+                moving("back", () => router.push("/profile"))
               },
             })
           }

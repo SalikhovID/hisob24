@@ -23,7 +23,7 @@ import { PaymentDialog } from "./payment-dialog"
 import { StatementList } from "./statement-list"
 import { SupplierActiveButton } from "./supplier-active-button"
 import { SupplierDialog } from "./supplier-dialog"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/suppliers", label: "Ta'minotchilar" }
 
@@ -118,7 +118,7 @@ export function SupplierPage({ id }: { id: number }) {
       {(allowed("suppliers.edit") || allowed("suppliers.delete")) && (
         <Group>
           {allowed("suppliers.edit") && <SupplierActiveButton companyId={companyId} supplier={s} />}
-          {allowed("suppliers.delete") && <DeleteSupplierButton companyId={companyId} supplier={s} afterDelete={() => router.replace("/suppliers", { transitionTypes: stepBack })} />}
+          {allowed("suppliers.delete") && <DeleteSupplierButton companyId={companyId} supplier={s} afterDelete={() => moving("back", () => router.replace("/suppliers"))} />}
         </Group>
       )}
       {editing && <SupplierDialog companyId={companyId} supplier={s} open onOpenChange={(open) => !open && setEditing(false)} />}

@@ -10,6 +10,7 @@ import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { TaskTypePage } from "./task-type-page"
+import { moved } from "@/test/moves"
 
 const fieldList = () => screen.findByRole("list", { name: "Maydonlar" })
 const fieldRow = async (label: string) => within(await fieldList()).getByRole("button", { name: new RegExp(`^${label}`) })
@@ -158,7 +159,8 @@ test("the task type is renamed from its page, and deleted from it after asking: 
   const confirm = await screen.findByRole("alertdialog", { name: "Vazifa turini o'chirasizmi?" })
   expect(within(confirm).getByText(/«Umumiy» turi va uning maydonlari o'chadi/)).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/task-types", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/task-types"))
+  expect(moved()).toBe("back")
   expect(taskTypesOf(1)).toHaveLength(0)
 })
 

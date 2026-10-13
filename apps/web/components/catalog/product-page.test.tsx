@@ -8,6 +8,7 @@ import { giveRole } from "@/test/roles"
 import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { ProductPage } from "./product-page"
+import { moved } from "@/test/moves"
 
 // facts reads the "Ma'lumot" list: each name with its value (the stock
 // list holds terms of its own).
@@ -122,7 +123,8 @@ test("deleting the product leads back to the list", async () => {
   await user.click(await screen.findByRole("button", { name: "Mahsulotni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Mahsulotni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
 
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/products", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/products"))
+  expect(moved()).toBe("back")
   expect(await screen.findByText("Mahsulot o'chirildi")).toBeInTheDocument()
 })
 

@@ -16,7 +16,7 @@ import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { DeleteTransferButton } from "./delete-transfer-button"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/transfers", label: "Ko'chirishlar" }
 
@@ -55,7 +55,7 @@ export function TransferPage({ id }: { id: number }) {
   const mine = locations.some((l) => l.id === t.location_id)
   const tiles = [
     mine && allowed("stock.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/transfers/${t.id}/edit`} />,
-    mine && allowed("stock.delete") && <DeleteTransferButton key="delete" companyId={companyId} transfer={t} afterDelete={() => router.replace("/transfers", { transitionTypes: stepBack })} />,
+    mine && allowed("stock.delete") && <DeleteTransferButton key="delete" companyId={companyId} transfer={t} afterDelete={() => moving("back", () => router.replace("/transfers"))} />,
   ].filter(Boolean)
 
   return (

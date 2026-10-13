@@ -14,7 +14,7 @@ import { nowLocal } from "@/lib/warehouse"
 import { InventoryForm } from "./inventory-form"
 import { forgetWarehouse } from "./new-purchase-page"
 import { NoLocation } from "./no-location"
-import { stepForward } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/inventories", label: "Inventarizatsiya" }
 
@@ -35,7 +35,7 @@ export function NewInventoryPage() {
     onSuccess: (saved) => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Inventarizatsiya qo'shildi")
-      router.push(`/inventories/${saved.id}`, { transitionTypes: stepForward })
+      moving("forward", () => router.push(`/inventories/${saved.id}`))
     },
   })
 

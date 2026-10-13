@@ -25,7 +25,7 @@ import { ProductMoves } from "./product-moves"
 import { ProductPurchases } from "./product-purchases"
 import { ProductStock } from "./product-stock"
 import { ServiceDialog } from "./service-dialog"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 // backTo is the list a record's page leads back to: a service is listed
 // among the services (it has no page of its own, but the address opens).
@@ -113,7 +113,7 @@ export function ProductPage({ id }: { id: number }) {
       {/* The purchases the product is in (for whoever may see the purchases), its moves (with the stock documents' permission). */}
       {isProduct && allowed("purchases.view") && <ProductPurchases companyId={companyId} productId={p.id} unit={p.unit} />}
       {isProduct && allowed("stock.view") && <ProductMoves companyId={companyId} productId={p.id} unit={p.unit} />}
-      {allowed("products.delete") && <DeleteProductButton companyId={companyId} product={p} afterDelete={() => router.replace(back.href, { transitionTypes: stepBack })} />}
+      {allowed("products.delete") && <DeleteProductButton companyId={companyId} product={p} afterDelete={() => moving("back", () => router.replace(back.href))} />}
       {editing &&
         (isProduct ? (
           <ProductDialog companyId={companyId} product={p} open onOpenChange={(open) => !open && setEditing(false)} />

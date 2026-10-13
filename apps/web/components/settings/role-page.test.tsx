@@ -6,6 +6,7 @@ import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { NewRolePage, RolePage } from "./role-page"
+import { moved } from "@/test/moves"
 
 const group = (name: string) => screen.getByRole("group", { name })
 const box = (section: string, action: string) => within(group(section)).getByRole("switch", { name: action })
@@ -34,7 +35,8 @@ test("a role's page opens with its name and permissions; saving replaces them an
   await user.click(box("Vazifalar", "Ko'rish"))
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
+  expect(moved()).toBe("back")
   expect(db.roles.find((candidate) => candidate.id === role.id)).toMatchObject({
     name: "Katta sotuvchi",
     permissions: ["customers.view", "customers.create", "tasks.view"],
@@ -54,7 +56,8 @@ test("a role nobody holds is deleted from its page's danger row, and the roles o
   const confirm = await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
   expect(within(confirm).getByText("«Bo'sh» roli o'chadi. Xodimga biriktirilgan rol o'chirilmaydi.")).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
+  expect(moved()).toBe("back")
   expect(db.roles.map((role) => role.name)).toEqual(["Sotuvchi"])
   unmount()
 

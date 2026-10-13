@@ -9,6 +9,7 @@ import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterTransfer } from "@/test/stock"
 import { TransferPage } from "./transfer-page"
+import { moved as pageMove } from "@/test/moves"
 
 const facts = () =>
   Object.fromEntries(
@@ -78,7 +79,8 @@ test("deleting the transfer brings the products back to the source and leads to 
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(12.5)
   expect(stockOf(catalog.olma.id, [chilonzor])).toBe(0)
   expect(await screen.findByText("Ko'chirish o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/transfers", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/transfers"))
+  expect(pageMove()).toBe("back")
 })
 
 test("a transfer that is gone, or between locations the member does not work in, is not found", async () => {

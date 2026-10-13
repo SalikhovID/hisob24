@@ -12,6 +12,7 @@ import { enterTransfer } from "@/test/stock"
 import { momentIn } from "@/test/moment"
 import { EditTransferPage } from "./edit-transfer-page"
 import { NewTransferPage } from "./new-transfer-page"
+import { moved } from "@/test/moves"
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
 
@@ -46,7 +47,8 @@ test("a transfer is entered out of the current location: the other location chos
   expect(saved).toMatchObject({ number: 1, locationId: asosiyOf(1).id, toLocationId: qoyliq.id, note: "Filialga" })
   expect(db.items.filter((i) => i.transactionId === saved.id).map((i) => [i.productId, i.quantity, i.price])).toEqual([[catalog.olma.id, 4.5, null]])
   expect(await screen.findByText("Ko'chirish qo'shildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/transfers/${saved.id}`, { transitionTypes: ["nav-forward"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/transfers/${saved.id}`))
+  expect(moved()).toBe("forward")
 })
 
 test("the form refuses in the API's words before asking, and tells the API's refusal: more than the location has", async () => {
@@ -102,5 +104,6 @@ test("editing: the transfer comes filled in, and is saved with fewer of the prod
 
   await waitFor(() => expect(db.items.find((i) => i.transactionId === transfer.id)?.quantity).toBe(2))
   expect(await screen.findByText("Ko'chirish saqlandi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/transfers/${transfer.id}`, { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/transfers/${transfer.id}`))
+  expect(moved()).toBe("back")
 })

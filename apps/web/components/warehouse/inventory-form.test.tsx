@@ -13,6 +13,7 @@ import { enterInventory } from "@/test/stock"
 import { momentIn, pickDay } from "@/test/moment"
 import { EditInventoryPage } from "./edit-inventory-page"
 import { NewInventoryPage } from "./new-inventory-page"
+import { moved } from "@/test/moves"
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
 // expected and difference read a line's figures by their names.
@@ -58,7 +59,8 @@ test("a count of the current location: every product in stock added at once with
   ])
   expect(stockOf(catalog.olma.id, [asosiyOf(1).id])).toBe(11)
   expect(await screen.findByText("Inventarizatsiya qo'shildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/inventories/${saved.id}`, { transitionTypes: ["nav-forward"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/inventories/${saved.id}`))
+  expect(moved()).toBe("forward")
 })
 
 test("a product picked by name shows the stock expected at the moment, which follows the moment typed; the form refuses in the API's words; a lone line is not taken away", async () => {
@@ -109,5 +111,6 @@ test("editing: the count comes filled in with what the journal expects without i
   await waitFor(() => expect(db.items.find((i) => i.transactionId === inventory.id)?.quantity).toBe(9))
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(9)
   expect(await screen.findByText("Inventarizatsiya saqlandi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/inventories/${inventory.id}`, { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/inventories/${inventory.id}`))
+  expect(moved()).toBe("back")
 })

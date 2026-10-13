@@ -9,6 +9,7 @@ import { rowParts } from "@/test/rows"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
 import { SalePage } from "./sale-page"
+import { moved } from "@/test/moves"
 
 const facts = () =>
   Object.fromEntries(
@@ -91,7 +92,8 @@ test("deleting the sale gives the products back and leads to the list", async ()
   await waitFor(() => expect(db.transactions.find((t) => t.id === sale.id)?.deleted).toBe(true))
   expect(stockOf(catalog.olma.id, [asosiy])).toBe(12.5)
   expect(await screen.findByText("Sotuv o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/sales", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/sales"))
+  expect(moved()).toBe("back")
 })
 
 test("a sale that is gone, or of a location the member does not work in, is not found", async () => {

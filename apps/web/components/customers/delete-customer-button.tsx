@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { api, call } from "@/lib/api"
 import { customersKey } from "@/lib/queries"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 // DeleteCustomerButton is the danger row at the foot of the customer's page:
 // it deletes the customer on screen, after asking, and
@@ -33,7 +33,7 @@ export function DeleteCustomerButton({ companyId, id, name }: { companyId: numbe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customersKey(companyId) })
       toast.success("Mijoz o'chirildi")
-      router.replace("/customers", { transitionTypes: stepBack })
+      moving("back", () => router.replace("/customers"))
     },
     onError: (error) => {
       toast.error(error.message)

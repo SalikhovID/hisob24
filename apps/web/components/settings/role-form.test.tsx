@@ -5,6 +5,7 @@ import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { RoleForm } from "./role-form"
+import { moved } from "@/test/moves"
 
 // The matrix is a group per section under its heading, a switch per action in it.
 const group = (name: string) => screen.getByRole("group", { name })
@@ -45,7 +46,8 @@ test("a new role is made with its name and permissions, in the catalog's order, 
   await user.click(box("Mijozlar", "Tahrirlash"))
   await user.click(screen.getByRole("button", { name: "Yaratish" }))
 
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles", { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
+  expect(moved()).toBe("back")
   expect(db.roles.map((role) => [role.name, role.permissions])).toEqual([["Sotuvchi", ["customers.view", "customers.edit", "tasks.view"]]])
   expect(await screen.findByText("Rol yaratildi")).toBeInTheDocument()
 })

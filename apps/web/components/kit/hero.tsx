@@ -4,7 +4,7 @@ import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import { Amount } from "./amount"
-import { stepInto } from "@/lib/moves"
+import { moveTo, stepInto } from "@/lib/moves"
 
 // Hero is the figure a page opens with (the home's debt to the suppliers,
 // a purchase's total, a supplier's balance): a label, the amount large and
@@ -54,7 +54,7 @@ export function Hero({
   )
   if (href !== undefined) {
     return (
-      <Link href={href} transitionTypes={stepInto(href)} data-slot="hero" className={classes}>
+      <Link href={href} onClick={() => moveTo(stepInto(href))} data-slot="hero" className={classes}>
         {content}
       </Link>
     )

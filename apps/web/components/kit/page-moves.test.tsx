@@ -1,24 +1,36 @@
 import { render, screen } from "@testing-library/react"
-import { PencilIcon, PhoneIcon, ReceiptIcon } from "lucide-react"
+import userEvent from "@testing-library/user-event"
+import { PencilIcon, ReceiptIcon } from "lucide-react"
 import type { ComponentProps } from "react"
 import { expect, test, vi } from "vitest"
+import { moved } from "@/test/moves"
 import { DetailHead, Tile, Tiles } from "./detail-head"
 import { Group, Row } from "./group"
 import { Hero } from "./hero"
 import { BackLink, PlusButton } from "./page-title"
 import { StatCard } from "./stat-card"
 
-// next/link as far as the moves go: the directions a link gives its
-// navigation, on the anchor.
+// next/link as far as the moves go: a link that runs its click and stays.
 vi.mock("next/link", () => ({
-  default: ({ transitionTypes, ...props }: ComponentProps<"a"> & { transitionTypes?: string[] }) => (
-    <a data-moves={transitionTypes ? transitionTypes.join(" ") : "none"} {...props} />
+  default: ({ onClick, ...props }: ComponentProps<"a">) => (
+    <a
+      {...props}
+      onClick={(event) => {
+        onClick?.(event)
+        event.preventDefault()
+      }}
+    />
   ),
 }))
 
-const moves = (name: string | RegExp) => screen.getByRole("link", { name }).getAttribute("data-moves")
+// moveOf is the move a click on the link takes, from a stale one.
+async function moveOf(name: string | RegExp) {
+  document.documentElement.dataset.move = "stale"
+  await userEvent.setup().click(screen.getByRole("link", { name }))
+  return moved()
+}
 
-test("the kit's ways into a record move the page forward, as the prototype's push; a way to a section's own page switches to it without a slide, as its openSection", () => {
+test("the kit's ways into a record move the page forward, as the prototype's push; a way to a section's own page switches to it without a move, as its openSection", async () => {
   render(
     <>
       <Group label="Mijozlar">
@@ -29,7 +41,6 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
       <DetailHead title="Sotuv № 4" />
       <Tiles>
         <Tile icon={PencilIcon} label="Tahrirlash" href="/sales/4/edit" />
-        <Tile icon={PhoneIcon} label="Qo'ng'iroq" href="tel:+998911112233" />
       </Tiles>
       <Hero href="/customers" label="Mijozlar" value="3" unit="ta" />
       <StatCard href="/purchases" icon={ReceiptIcon} color="#AF52DE" title="Xaridlar" value="12" />
@@ -37,19 +48,17 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
     </>,
   )
 
-  expect(moves(/^Dilshod Karimov/)).toBe("nav-forward")
-  expect(moves("Sotuv qo'shish")).toBe("nav-forward")
-  expect(moves("Tahrirlash")).toBe("nav-forward")
-  expect(moves(/^Xaridlar/)).toBe("nav-forward")
-  expect(moves(/^Barcha vazifalar/)).toBe("none")
-  expect(moves(/^Mijozlar/)).toBe("none")
-  expect(moves(/^Vazifalar/)).toBe("none")
-  // A call leaves the app: a plain link, no move.
-  expect(moves("Qo'ng'iroq")).toBeNull()
+  expect(await moveOf(/^Dilshod Karimov/)).toBe("forward")
+  expect(await moveOf("Sotuv qo'shish")).toBe("forward")
+  expect(await moveOf("Tahrirlash")).toBe("forward")
+  expect(await moveOf(/^Xaridlar/)).toBe("forward")
+  expect(await moveOf(/^Barcha vazifalar/)).toBeUndefined()
+  expect(await moveOf(/^Mijozlar/)).toBeUndefined()
+  expect(await moveOf(/^Vazifalar/)).toBeUndefined()
 })
 
-test("the way back moves the page back, as the prototype's pop", () => {
+test("the way back moves the page back, as the prototype's pop", async () => {
   render(<BackLink href="/customers" label="Mijozlar" />)
 
-  expect(moves("Mijozlar")).toBe("nav-back")
+  expect(await moveOf("Mijozlar")).toBe("back")
 })

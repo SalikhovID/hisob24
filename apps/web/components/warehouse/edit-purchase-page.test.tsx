@@ -7,6 +7,7 @@ import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { momentIn } from "@/test/moment"
 import { EditPurchasePage } from "./edit-purchase-page"
+import { moved } from "@/test/moves"
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
 
@@ -45,7 +46,8 @@ test("a purchase is edited from its fields as they are: a line changed, a line t
   expect(stockOf(catalog.nok.id, [asosiy])).toBe(0)
   expect(db.transactions.filter((t) => t.linkedId === purchase!.id).every((t) => t.deleted)).toBe(true)
   expect(await screen.findByText("Xarid saqlandi")).toBeInTheDocument()
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/purchases/${purchase!.id}`, { transitionTypes: ["nav-back"] }))
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/purchases/${purchase!.id}`))
+  expect(moved()).toBe("back")
 })
 
 test("a purchase that is gone, or outside the member's locations, is not found", async () => {

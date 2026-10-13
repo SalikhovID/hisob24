@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { Children, type CSSProperties, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { stepInto } from "@/lib/moves"
+import { moveTo, stepInto } from "@/lib/moves"
 
 // DetailHead opens a record's page as the prototype does: its mark (a large
 // avatar, a colored icon) over its name, a line under it (the type, the
@@ -84,7 +84,7 @@ export function Tile({
   )
   if (href !== undefined) {
     return href.startsWith("/") ? (
-      <Link href={href} transitionTypes={stepInto(href)} data-slot="tile" data-danger={danger || undefined} className={classes}>
+      <Link href={href} onClick={() => moveTo(stepInto(href))} data-slot="tile" data-danger={danger || undefined} className={classes}>
         {content}
       </Link>
     ) : (

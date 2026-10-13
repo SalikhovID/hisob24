@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { api, call } from "@/lib/api"
 import { tasksKey } from "@/lib/queries"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 // DeleteTaskButton deletes the task on screen, after asking, and leaves for
 // the list: the task's page is gone with it. A deleted task is not shown
@@ -31,7 +31,7 @@ export function DeleteTaskButton({ companyId, id, title }: { companyId: number; 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tasksKey(companyId) })
       toast.success("Vazifa o'chirildi")
-      router.replace("/tasks", { transitionTypes: stepBack })
+      moving("back", () => router.replace("/tasks"))
     },
     onError: (error) => {
       toast.error(error.message)

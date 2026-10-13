@@ -20,7 +20,7 @@ import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { DeletePurchaseButton } from "./delete-purchase-button"
-import { stepBack } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/purchases", label: "Xaridlar" }
 
@@ -69,7 +69,7 @@ export function PurchasePage({ id }: { id: number }) {
   const tiles = [
     allowed("purchases.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/purchases/${p.id}/edit`} />,
     allowed("suppliers.view") && <Tile key="supplier" icon={TruckIcon} label="Ta'minotchi" href={`/suppliers/${p.supplier.id}`} />,
-    allowed("purchases.delete") && <DeletePurchaseButton key="delete" companyId={companyId} purchase={p} afterDelete={() => router.replace("/purchases", { transitionTypes: stepBack })} />,
+    allowed("purchases.delete") && <DeletePurchaseButton key="delete" companyId={companyId} purchase={p} afterDelete={() => moving("back", () => router.replace("/purchases"))} />,
   ].filter(Boolean)
 
   return (

@@ -14,7 +14,7 @@ import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { nowLocal } from "@/lib/warehouse"
 import { SaleForm } from "./sale-form"
-import { stepForward } from "@/lib/moves"
+import { moving } from "@/lib/moves"
 
 const back = { href: "/sales", label: "Sotuvlar" }
 
@@ -37,7 +37,7 @@ export function NewSalePage() {
     onSuccess: (saved) => {
       if (companyId !== null) forgetWarehouse(queryClient, companyId)
       toast.success("Sotuv qo'shildi")
-      router.push(`/sales/${saved.id}`, { transitionTypes: stepForward })
+      moving("forward", () => router.push(`/sales/${saved.id}`))
     },
   })
 
