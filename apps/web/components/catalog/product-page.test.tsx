@@ -69,7 +69,7 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(line).toHaveAttribute("href", `/purchases/${purchase!.id}`)
   expect(parts(line)).toEqual({ title: "№ 1 · Bozor", sub: "01.10.2026 09:00 · Asosiy · 12,5 kg × 1 000 so'm", end: "12 500 so'm" })
   // The moves come with the stock documents' permission.
-  expect(await screen.findByRole("table", { name: "Harakatlar" })).toBeInTheDocument()
+  expect(await screen.findByRole("list", { name: "Harakatlar" })).toBeInTheDocument()
 })
 
 test("without the stock documents' permission the moves are not shown", async () => {
