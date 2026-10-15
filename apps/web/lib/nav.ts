@@ -11,16 +11,22 @@ import {
   WarehouseIcon,
 } from "lucide-react"
 import { can } from "./permissions"
-import type { Permission } from "./types"
+import type { Permission, TabBarPage } from "./types"
 
 // NavKey names a section, as the API keeps a member's own order of the menu
 // (logic/roles.md, section 8). The finance is a key the API knows already;
 // its section comes with its pages.
 export type NavKey = "home" | "customers" | "tasks" | "products" | "sales" | "warehouse" | "finance" | "employees" | "settings"
 
-// NavTab is a page of a section that holds several: its own address and the
-// permission that opens it.
+// PageKey names a page of the menu that may stand in the tab bar (the
+// API's tab bar page): a section's own page, a tab, the warehouse or one
+// of its pages.
+export type PageKey = TabBarPage
+
+// NavTab is a page of a section that holds several: its key, its own
+// address and the permission that opens it.
 export interface NavTab {
+  key: PageKey
   label: string
   href: string
   permission: Permission
@@ -55,8 +61,8 @@ export const navItems: NavItem[] = [
     href: "/products",
     icon: PackageIcon,
     tabs: [
-      { label: "Mahsulotlar", href: "/products", permission: "products.view" },
-      { label: "Xizmatlar", href: "/services", permission: "products.view" },
+      { key: "products", label: "Mahsulotlar", href: "/products", permission: "products.view" },
+      { key: "services", label: "Xizmatlar", href: "/services", permission: "products.view" },
     ],
   },
   { key: "sales", label: "Sotuv", href: "/sales", icon: ShoppingCartIcon, permission: "sales.view" },
@@ -67,11 +73,11 @@ export const navItems: NavItem[] = [
     icon: WarehouseIcon,
     hub: true,
     tabs: [
-      { label: "Xaridlar", href: "/purchases", permission: "purchases.view" },
-      { label: "Ko'chirishlar", href: "/transfers", permission: "stock.view" },
-      { label: "Inventarizatsiya", href: "/inventories", permission: "stock.view" },
-      { label: "Boshlang'ich qoldiq", href: "/opening-stock", permission: "stock.view" },
-      { label: "Ta'minotchilar", href: "/suppliers", permission: "suppliers.view" },
+      { key: "purchases", label: "Xaridlar", href: "/purchases", permission: "purchases.view" },
+      { key: "transfers", label: "Ko'chirishlar", href: "/transfers", permission: "stock.view" },
+      { key: "inventories", label: "Inventarizatsiya", href: "/inventories", permission: "stock.view" },
+      { key: "opening_stock", label: "Boshlang'ich qoldiq", href: "/opening-stock", permission: "stock.view" },
+      { key: "suppliers", label: "Ta'minotchilar", href: "/suppliers", permission: "suppliers.view" },
     ],
   },
   {
@@ -80,9 +86,9 @@ export const navItems: NavItem[] = [
     href: "/accounts",
     icon: WalletIcon,
     tabs: [
-      { label: "Kassa", href: "/accounts", permission: "finance.view" },
-      { label: "Xarajatlar", href: "/expenses", permission: "finance.view" },
-      { label: "O'tkazmalar", href: "/money-transfers", permission: "finance.view" },
+      { key: "accounts", label: "Kassa", href: "/accounts", permission: "finance.view" },
+      { key: "expenses", label: "Xarajatlar", href: "/expenses", permission: "finance.view" },
+      { key: "money_transfers", label: "O'tkazmalar", href: "/money-transfers", permission: "finance.view" },
     ],
   },
   { key: "employees", label: "Xodimlar", href: "/employees", icon: UsersIcon, permission: "employees.view" },
@@ -92,6 +98,27 @@ export const navItems: NavItem[] = [
 // navKeys are the section keys in the default order: what an order of the
 // menu is made of.
 export const navKeys: NavKey[] = navItems.map((item) => item.key)
+
+// NavPage is a page of the menu, of its section: what the tab bar and
+// «Sozlama» hold.
+export interface NavPage {
+  key: PageKey
+  label: string
+  href: string
+  section: NavKey
+}
+
+// navPages are the pages of the menu in its order: a section's own page; a
+// section with tabs, its tabs (the warehouse, its own page first). The
+// settings are none of them: they stand under «Sozlama» alone.
+export const navPages: NavPage[] = navItems.flatMap((item): NavPage[] => {
+  if (item.key === "settings") return []
+  const tabs = (item.tabs ?? []).map((tab) => ({ key: tab.key, label: tab.label, href: tab.href, section: item.key }))
+  if (item.tabs && !item.hub) return tabs
+  // A section with a page of its own is a page by its key (the finance,
+  // which has none, is its tabs).
+  return [{ key: item.key as PageKey, label: item.label, href: item.href, section: item.key }, ...tabs]
+})
 
 // BAR_SECTIONS is how many sections the tab bar shows after the home; the
 // rest are the profile page's.
@@ -161,3 +188,4 @@ export function isCurrentItem(item: NavItem, pathname: string): boolean {
   const hrefs = item.tabs ? [...(item.hub ? [item.href] : []), ...item.tabs.map((tab) => tab.href)] : [item.href]
   return hrefs.some((href) => isCurrent(href, pathname))
 }
+

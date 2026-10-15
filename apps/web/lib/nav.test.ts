@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barItems, isCurrent, isCurrentItem, isRootPath, navFor, navItems, sectionRootOf } from "./nav"
+import { barItems, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, sectionRootOf } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -131,5 +131,26 @@ test("the finance holds the cash, the expenses and the transfers, in that order,
     ["Kassa", "/accounts", "finance.view"],
     ["Xarajatlar", "/expenses", "finance.view"],
     ["O'tkazmalar", "/money-transfers", "finance.view"],
+  ])
+})
+
+test("the pages of the menu, in its order, each of its section: the sections' own, the tabs, the warehouse and its pages; the settings are none of them", () => {
+  expect(navPages.map((page) => [page.key, page.label, page.href, page.section])).toEqual([
+    ["home", "Bosh sahifa", "/", "home"],
+    ["customers", "Mijozlar", "/customers", "customers"],
+    ["tasks", "Vazifalar", "/tasks", "tasks"],
+    ["products", "Mahsulotlar", "/products", "products"],
+    ["services", "Xizmatlar", "/services", "products"],
+    ["sales", "Sotuv", "/sales", "sales"],
+    ["warehouse", "Ombor", "/warehouse", "warehouse"],
+    ["purchases", "Xaridlar", "/purchases", "warehouse"],
+    ["transfers", "Ko'chirishlar", "/transfers", "warehouse"],
+    ["inventories", "Inventarizatsiya", "/inventories", "warehouse"],
+    ["opening_stock", "Boshlang'ich qoldiq", "/opening-stock", "warehouse"],
+    ["suppliers", "Ta'minotchilar", "/suppliers", "warehouse"],
+    ["accounts", "Kassa", "/accounts", "finance"],
+    ["expenses", "Xarajatlar", "/expenses", "finance"],
+    ["money_transfers", "O'tkazmalar", "/money-transfers", "finance"],
+    ["employees", "Xodimlar", "/employees", "employees"],
   ])
 })
