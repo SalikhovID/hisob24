@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { CSSProperties } from "react"
 import { pageIcons, tabIcons } from "@/components/kit/tab-icons"
-import { barPages, currentPin, isRootPath } from "@/lib/nav"
+import { barPages, currentPin, isMenuPath } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { moveTo } from "@/lib/moves"
@@ -24,9 +24,9 @@ const SettingsMark = tabIcons.settings
 // section 8; the default bar without one), each a filled icon over its
 // name, and «Sozlama» last, always, with the rest. A lens of glass stands
 // under the page's button and slides to the next; on a page the bar does
-// not hold it stands under «Sozlama». The bar shows on a section's own
-// pages; inside one (a record, a form, the profile) it steps down out of
-// the way, and the page leads back. It keeps clear of the phone's home
+// not hold it stands under «Sozlama». The bar shows on the menu's pages (a
+// hub's pages too: they may stand in it); inside one (a record, a form,
+// the profile) it steps down out of the way, and the page leads back. It keeps clear of the phone's home
 // indicator and of Telegram's own bottom edge.
 export function TabBar() {
   const me = useMe()
@@ -34,7 +34,7 @@ export function TabBar() {
   const pins = barPages(me.data?.permissions, me.data?.tab_bar)
   const pinned = currentPin(pins, pathname)
   const current = pinned < 0 ? pins.length : pinned
-  const hidden = !isRootPath(pathname)
+  const hidden = !isMenuPath(pathname)
 
   return (
     <nav

@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, VALI, ZARINA } from "@/mocks/data"
-import { router } from "@/test/navigation"
+import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { signIn } from "@/test/session"
@@ -75,6 +75,21 @@ test("the tab bar names the member's pages under the page and «Sozlama», for a
   expect(within(tabBar).getByRole("button", { name: "Sozlama" })).toBeInTheDocument()
   expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
+})
+
+test("the page keeps room for the tab bar on the menu's pages, a hub's pages too; a record keeps the safe area alone", async () => {
+  await signIn(ALI)
+  setLocation("/purchases")
+  const first = renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+  expect(screen.getByRole("main")).toHaveClass("pb-bar")
+  first.unmount()
+
+  setLocation("/purchases/3")
+  renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+  expect(screen.getByRole("main")).toHaveClass("pb-safe-6")
+  expect(screen.getByRole("main")).not.toHaveClass("pb-bar")
 })
 
 test("the sidebar folds, and a page opened later finds it folded", async () => {

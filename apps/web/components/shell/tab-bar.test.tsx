@@ -61,6 +61,20 @@ test("on a page the bar does not hold «Sozlama» is marked, and the bar stays",
   expect(lens()).toBe("4")
 })
 
+test("on a page of a hub the bar shows: the warehouse marked when the bar holds it, «Sozlama» on the settings' pages", async () => {
+  db.members[ALI][0].tabBar = ["home", "warehouse"]
+  await signIn(ALI)
+  setLocation("/transfers")
+  const first = renderWithProviders(<TabBar />)
+  expect(await within(bar()).findByRole("link", { name: "Ombor" })).toHaveAttribute("aria-current", "page")
+  first.unmount()
+
+  setLocation("/settings/stages")
+  renderWithProviders(<TabBar />)
+  await within(bar()).findByRole("link", { name: "Ombor" })
+  expect(more()).toHaveAttribute("aria-current", "page")
+})
+
 test("inside a section (a record, a form, the profile) the bar steps away", async () => {
   await signIn(ALI)
   setLocation("/customers/7")

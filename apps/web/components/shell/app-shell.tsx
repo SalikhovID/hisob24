@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { type ReactNode, useEffect } from "react"
 import { Failed, Loading } from "@/components/states"
 import { subscriptionExpired } from "@/lib/api"
-import { isRootPath } from "@/lib/nav"
+import { isMenuPath } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { useSidebar } from "@/lib/use-sidebar"
 import { cn } from "@/lib/utils"
@@ -14,7 +14,7 @@ import { TabBar } from "./tab-bar"
 // AppShell frames every page of the app, as the prototype does: no top bar
 // (the page heads the screen itself; the home holds the way to the profile),
 // the sections beside the page on a wide screen (the sidebar) and floating
-// under it on a narrow one (the tab bar, on a section's own pages: the page
+// under it on a narrow one (the tab bar, on the menu's pages: the page
 // keeps room for it there). It is also the pages' gate: they are for a
 // session with a company that may be used, so an expired one goes to
 // /expired and one with no company yet to the company list, and a page is
@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main
         className={cn(
           "flex min-w-0 flex-1 flex-col overflow-y-auto px-4 pt-2 md:px-6 md:pt-6 md:pb-10 [&>*]:shrink-0",
-          isRootPath(pathname) ? "pb-bar" : "pb-safe-6",
+          isMenuPath(pathname) ? "pb-bar" : "pb-safe-6",
         )}
       >
         {me.isPending ? (
