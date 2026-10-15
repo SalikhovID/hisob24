@@ -1,10 +1,10 @@
 "use client"
 
-import { PinIcon } from "lucide-react"
+import { PinIcon, SlidersHorizontalIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { type ReactNode, useId, useState } from "react"
-import { SectionHeading } from "@/components/kit/group"
+import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { SearchBox } from "@/components/kit/search-box"
 import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
@@ -71,8 +71,9 @@ function sectionsOf(me: Me): MenuSection[] {
 // MenuSheet is «Sozlama» of the tab bar (as enwin's «⋯»): the pages the
 // member may open, as tiles under their sections, the page's own marked
 // and the bar's pages pinned, with a search over their names. A page
-// chosen closes it and is switched to at once, as from the bar.
-export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void; onCustomize: () => void }) {
+// chosen closes it and is switched to at once, as from the bar. Under them
+// stands the way to choose the bar's pages (onCustomize).
+export function MenuSheet({ open, onOpenChange, onCustomize }: { open: boolean; onOpenChange: (open: boolean) => void; onCustomize: () => void }) {
   const me = useMe()
   const data = me.data
   return (
@@ -83,6 +84,9 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
           {data?.company && <DialogDescription>{data.company.name}</DialogDescription>}
         </DialogHeader>
         {data && <MenuBody me={data} onClose={() => onOpenChange(false)} />}
+        <Group className="mt-1 mb-0">
+          <Row onClick={onCustomize} media={<TileIcon icon={SlidersHorizontalIcon} color="#8E8E93" />} title="Pastki panelni sozlash" />
+        </Group>
       </DialogContent>
     </Dialog>
   )

@@ -134,3 +134,14 @@ test("a page chosen closes the sheet and is switched to at once", async () => {
   expect(onOpenChange).toHaveBeenCalledWith(false)
   expect(moved()).toBeUndefined()
 })
+
+test("«Pastki panelni sozlash» leads to the bar's pages, a search or none", async () => {
+  await signIn(ALI)
+  const onCustomize = vi.fn()
+  const { user } = renderWithProviders(<MenuSheet {...props()} onCustomize={onCustomize} />)
+
+  const menu = await sheet()
+  await user.type(await within(menu).findByRole("searchbox", { name: "Qidirish" }), "zzz")
+  await user.click(within(menu).getByRole("button", { name: "Pastki panelni sozlash" }))
+  expect(onCustomize).toHaveBeenCalledTimes(1)
+})
