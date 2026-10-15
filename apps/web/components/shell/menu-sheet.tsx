@@ -10,6 +10,7 @@ import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { barPages, navItems, pagesFor, settingsPagesFor } from "@/lib/nav"
+import { moveTo } from "@/lib/moves"
 import { useMe } from "@/lib/queries"
 import type { Me } from "@/lib/types"
 import { cn, norm } from "@/lib/utils"
@@ -69,7 +70,8 @@ function sectionsOf(me: Me): MenuSection[] {
 
 // MenuSheet is «Sozlama» of the tab bar (as enwin's «⋯»): the pages the
 // member may open, as tiles under their sections, the page's own marked
-// and the bar's pages pinned, with a search over their names.
+// and the bar's pages pinned, with a search over their names. A page
+// chosen closes it and is switched to at once, as from the bar.
 export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void; onCustomize: () => void }) {
   const me = useMe()
   const data = me.data
@@ -80,7 +82,7 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
           <DialogTitle>Sozlama</DialogTitle>
           {data?.company && <DialogDescription>{data.company.name}</DialogDescription>}
         </DialogHeader>
-        {data && <MenuBody me={data} />}
+        {data && <MenuBody me={data} onClose={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   )
@@ -88,7 +90,7 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
 
 // MenuBody is the open sheet's search and tiles: it mounts with every
 // opening (the closed sheet holds nothing), so each one starts unsearched.
-function MenuBody({ me }: { me: Me }) {
+function MenuBody({ me, onClose }: { me: Me; onClose: () => void }) {
   const pathname = usePathname()
   const pinHint = useId()
   const [query, setQuery] = useState("")
@@ -114,6 +116,11 @@ function MenuBody({ me }: { me: Me }) {
                     href={tile.href}
                     aria-current={current ? "page" : undefined}
                     aria-describedby={tile.pinned ? pinHint : undefined}
+                    onClick={() => {
+                      // A page from «Sozlama» is switched to at once (lib/moves.ts).
+                      moveTo(undefined)
+                      onClose()
+                    }}
                     className={cn(
                       "relative flex h-full min-h-[92px] flex-col items-center justify-center gap-2 rounded-tile bg-card px-1 py-3 text-center text-xs leading-tight font-medium no-underline outline-none transition-transform duration-150 ease-out-expo active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50",
                       current && "bg-primary-soft text-primary",

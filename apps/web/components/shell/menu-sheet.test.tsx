@@ -1,7 +1,9 @@
 import { screen, within } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { expect, test, vi } from "vitest"
+import { moveTo } from "@/lib/moves"
 import { ALI, db, VALI } from "@/mocks/data"
+import { moved } from "@/test/moves"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -119,4 +121,16 @@ test("the search finds the pages by name, the apostrophes aside; with none found
   await user.type(search, "zzz")
   expect(within(menu).getByText("Hech narsa topilmadi")).toBeInTheDocument()
   expect(within(menu).queryAllByRole("link")).toEqual([])
+})
+
+test("a page chosen closes the sheet and is switched to at once", async () => {
+  await signIn(ALI)
+  const onOpenChange = vi.fn()
+  const { user } = renderWithProviders(<MenuSheet {...props()} onOpenChange={onOpenChange} />)
+
+  const purchases = await within(await sheet()).findByRole("link", { name: "Xaridlar" })
+  moveTo("forward")
+  await user.click(purchases)
+  expect(onOpenChange).toHaveBeenCalledWith(false)
+  expect(moved()).toBeUndefined()
 })
