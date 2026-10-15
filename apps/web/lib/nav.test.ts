@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barItems, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, sectionRootOf } from "./nav"
+import { barItems, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -153,4 +153,15 @@ test("the pages of the menu, in its order, each of its section: the sections' ow
     ["money_transfers", "O'tkazmalar", "/money-transfers", "finance"],
     ["employees", "Xodimlar", "/employees", "employees"],
   ])
+})
+
+test("someone may open the pages their permissions open, the warehouse with any of its pages; before the session is known, the home alone", () => {
+  const keys = (permissions?: Permission[]) => pagesFor(permissions).map((page) => page.key)
+  expect(keys(allPermissions)).toEqual(navPages.map((page) => page.key))
+  expect(keys(["suppliers.view"])).toEqual(["home", "warehouse", "suppliers"])
+  expect(keys(["stock.view"])).toEqual(["home", "warehouse", "transfers", "inventories", "opening_stock"])
+  expect(keys(["finance.view", "sales.view"])).toEqual(["home", "sales", "accounts", "expenses", "money_transfers"])
+  expect(keys(["products.view"])).toEqual(["home", "products", "services"])
+  expect(keys([])).toEqual(["home"])
+  expect(keys(undefined)).toEqual(["home"])
 })

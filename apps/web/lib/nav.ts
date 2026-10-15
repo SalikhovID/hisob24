@@ -106,6 +106,9 @@ export interface NavPage {
   label: string
   href: string
   section: NavKey
+  // permissions: any of them opens the page (the warehouse, any of its
+  // pages'); without them it is everyone's (the home).
+  permissions?: Permission[]
 }
 
 // navPages are the pages of the menu in its order: a section's own page; a
@@ -113,11 +116,12 @@ export interface NavPage {
 // settings are none of them: they stand under «Sozlama» alone.
 export const navPages: NavPage[] = navItems.flatMap((item): NavPage[] => {
   if (item.key === "settings") return []
-  const tabs = (item.tabs ?? []).map((tab) => ({ key: tab.key, label: tab.label, href: tab.href, section: item.key }))
+  const tabs = (item.tabs ?? []).map((tab) => ({ key: tab.key, label: tab.label, href: tab.href, section: item.key, permissions: [tab.permission] }))
   if (item.tabs && !item.hub) return tabs
   // A section with a page of its own is a page by its key (the finance,
   // which has none, is its tabs).
-  return [{ key: item.key as PageKey, label: item.label, href: item.href, section: item.key }, ...tabs]
+  const permissions = item.tabs ? item.tabs.map((tab) => tab.permission) : item.permission && [item.permission]
+  return [{ key: item.key as PageKey, label: item.label, href: item.href, section: item.key, permissions }, ...tabs]
 })
 
 // BAR_SECTIONS is how many sections the tab bar shows after the home; the
@@ -189,3 +193,10 @@ export function isCurrentItem(item: NavItem, pathname: string): boolean {
   return hrefs.some((href) => isCurrent(href, pathname))
 }
 
+
+// pagesFor is the pages someone with permissions may open (what /app/me
+// told; undefined is a session not known yet, which may open the home
+// alone), in the order of the menu.
+export function pagesFor(permissions: readonly Permission[] | undefined): NavPage[] {
+  return navPages.filter((page) => !page.permissions || page.permissions.some((permission) => can(permissions, permission)))
+}
