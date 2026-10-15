@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react"
+import { act, screen, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { ALI, db, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
@@ -75,4 +75,15 @@ test("a bar with every page taken out says what to do", async () => {
   await user.click(await within(bar).findByRole("button", { name: "Olib tashlash: Bosh sahifa" }))
   expect(within(bar).getByRole("heading", { name: "Panelda · 0/4" })).toBeInTheDocument()
   expect(within(bar).getByText("Panelda sahifa yo'q — pastdagi ro'yxatdan qo'shing.")).toBeInTheDocument()
+})
+
+test("the bar's pages are put in order from the keyboard", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<TabBarSheet open onOpenChange={vi.fn()} />)
+
+  const bar = await sheet()
+  const handle = await within(bar).findByRole("button", { name: "Mahsulotlar: tartibini o'zgartirish" })
+  act(() => handle.focus())
+  await user.keyboard("{Home}")
+  expect(inBar(bar)).toEqual(["Mahsulotlar", "Bosh sahifa", "Mijozlar", "Vazifalar"])
 })

@@ -63,7 +63,7 @@ function BarForm({ me }: { me: Me }) {
           items={pinned}
           getId={(page) => page.key}
           getLabel={(page) => page.label}
-          onReorder={() => {}}
+          onReorder={(keys) => setDraft(keys as PageKey[])}
           className="mb-6 overflow-hidden rounded-group bg-card [--inset:100px]"
           renderItem={(page, handle) => (
             <div data-slot="row" className="flex min-h-12 items-center gap-3 pr-1 pl-4">
