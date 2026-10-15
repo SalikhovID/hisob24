@@ -200,3 +200,25 @@ export function isCurrentItem(item: NavItem, pathname: string): boolean {
 export function pagesFor(permissions: readonly Permission[] | undefined): NavPage[] {
   return navPages.filter((page) => !page.permissions || page.permissions.some((permission) => can(permissions, permission)))
 }
+
+// BAR_LIMIT is how many pages the tab bar holds beside «Sozlama».
+export const BAR_LIMIT = 4
+
+// DEFAULT_BAR is the order the default bar takes its pages in: each
+// section's first page, in the default order of the menu.
+const DEFAULT_BAR: PageKey[] = ["home", "customers", "tasks", "products", "sales", "warehouse", "accounts", "employees"]
+
+// defaultBar is the pages of the default bar: the first BAR_LIMIT of
+// DEFAULT_BAR that someone with permissions may open.
+export function defaultBar(permissions: readonly Permission[] | undefined): PageKey[] {
+  const open = new Set(pagesFor(permissions).map((page) => page.key))
+  return DEFAULT_BAR.filter((key) => open.has(key)).slice(0, BAR_LIMIT)
+}
+
+// barPages is the member's pages of the tab bar: their own (tabBar, what
+// /app/me told; null for the default bar), in their order, those they may
+// open, BAR_LIMIT at most.
+export function barPages(permissions: readonly Permission[] | undefined, tabBar?: readonly string[] | null): NavPage[] {
+  const open = pagesFor(permissions)
+  return (tabBar ?? defaultBar(permissions)).flatMap((key) => open.find((page) => page.key === key) ?? []).slice(0, BAR_LIMIT)
+}

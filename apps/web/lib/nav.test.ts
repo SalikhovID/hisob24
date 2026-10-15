@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barItems, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
+import { barItems, barPages, defaultBar, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -164,4 +164,23 @@ test("someone may open the pages their permissions open, the warehouse with any 
   expect(keys(["products.view"])).toEqual(["home", "products", "services"])
   expect(keys([])).toEqual(["home"])
   expect(keys(undefined)).toEqual(["home"])
+})
+
+test("the default bar is the first four of the home, the customers, the tasks, the products, the sales, the warehouse, the cash and the employees the member may open", () => {
+  expect(defaultBar(allPermissions)).toEqual(["home", "customers", "tasks", "products"])
+  expect(defaultBar(["sales.view", "stock.view", "finance.view"])).toEqual(["home", "sales", "warehouse", "accounts"])
+  expect(defaultBar(["employees.view", "purchases.view"])).toEqual(["home", "warehouse", "employees"])
+  expect(defaultBar(undefined)).toEqual(["home"])
+})
+
+test("the tab bar holds the member's own pages in their order, those they may open, four at most; without their own, the default bar", () => {
+  const bar = (permissions: Permission[] | undefined, tabBar?: string[] | null) => barPages(permissions, tabBar).map((page) => page.key)
+  expect(bar(allPermissions)).toEqual(["home", "customers", "tasks", "products"])
+  expect(bar(allPermissions, null)).toEqual(["home", "customers", "tasks", "products"])
+  expect(bar(["employees.view"], null)).toEqual(["home", "employees"])
+  expect(bar(allPermissions, ["purchases", "home", "money_transfers"])).toEqual(["purchases", "home", "money_transfers"])
+  expect(bar(["sales.view"], ["purchases", "sales", "home"]), "a page they may not open drops out").toEqual(["sales", "home"])
+  expect(bar(allPermissions, []), "nothing is a bar too").toEqual([])
+  expect(bar(allPermissions, ["bogus", "tasks"])).toEqual(["tasks"])
+  expect(bar(allPermissions, ["home", "customers", "tasks", "products", "sales"])).toEqual(["home", "customers", "tasks", "products"])
 })
