@@ -1,6 +1,6 @@
 # Pastki panel: 4 ta tanlanadigan sahifa + «Sozlama» — dizayn
 
-Sana: 2026-10-15. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan). User app (`apps/web`) uchun; admin panel o'zgarmaydi.
+Sana: 2026-10-15. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), amalga oshirilgan (2026-10-15, pastda «Amalga oshirishda belgilangan qarorlar»). User app (`apps/web`) uchun; admin panel o'zgarmaydi.
 
 ## Kontekst
 
@@ -99,3 +99,13 @@ Faqat varaqda, «Sozlamalar» guruhida (`settings.view`): Mijoz turlari, Vazifa 
 - «Yana» ⋯ yoki «Menyu» ☰ nomi: foydalanuvchi «Sozlama» ⚙ ni tanladi.
 - Faqat bo'limlar (API o'zgarmasdan): foydalanuvchi ichki sahifalarni ham tanladi.
 - Sidebar tartibini keng ekranda saqlab qolish (ikkita sozlama): foydalanuvchi olib tashlashni tanladi.
+
+## Amalga oshirishda belgilangan qarorlar
+
+1. **Pin havola nomini o'zgartirmaydi.** Paneldagi sahifa plitkasining pini bezak (`aria-hidden`); «Pastki panelda» havolaga `aria-describedby` bilan (bitta yashirin matn) beriladi: havola nomi sahifa nomi bo'lib qoladi.
+2. **Telefonda sozlamalar hub'i** (`/settings`) varaqda plitka emas: uning qismlari plitka. Hub'ga qism sahifasining «‹ Sozlamalar» havolasi olib boradi (panel u yerda ham ko'rinadi, «Sozlama» belgilangan). e2e `openSection("Sozlamalar")` telefonda shu yo'l bilan yuradi; «Moliya» — «Kassa» plitkasi orqali.
+3. **Umumiy qismlar:** guruhlash `pageGroups` (`lib/nav.ts`) «Sozlama» va «Pastki panel» uchun bitta; apostrofsiz solishtirish `norm` picker'dan `lib/utils.ts` ga ko'chdi (picker va «Sozlama» qidiruvi bitta); sahifa ranglari `pageColors` (`kit/tile-icon.tsx`), belgilari `pageIcons` (`kit/tab-icons.tsx`).
+4. **Telegram BackButton qoidasi o'zgarmadi** (`isRootPath`): ombor va sozlamalar qismlarida panel ham, «‹ …» havolasi va BackButton ham bor; sirpanish yo'nalishi (`stepInto`) ham o'zgarmadi (hub → qism oldinga).
+5. **«Standart»** standart panelda o'chiq; bo'sh guruh (ruxsat yo'q yoki hammasi panelda) chiqmaydi.
+6. **Testlar.** Olib tashlangan xatti-harakatning testlari almashtirildi: `TestNavSections`, `TestParseNavOrder`, `TestSetNavOrder` (app) → `TestTabBarPages`, `TestParseTabBar`, `TestSetTabBar`; service va DB testlari (`TestSetNavOrder`, `TestGetCompanyAccessTellsTheMembersOrderOfTheMenu`) `tab_bar` nomlariga o'tdi; `TestAMembershipKeepsTheMembersOrderOfTheMenu` (00012) ustun hali bor 16-versiyaga bog'landi; web'da `menu-order-page.test.tsx` o'chirildi, nav / tab-bar / sidebar / profil / bosh sahifa / AppShell / mock testlarining `nav_order` va «Bo'limlar» qismlari yangi xatti-harakatga almashtirildi.
+7. **Lokal muhit:** `go test ./...` hamma paketni parallel yurgizganda lokal Postgres'ning 100 ulanishi tugab, aloqasiz testlar `SQLSTATE 53300` bilan tasodifan yiqiladi; tekshiruv `go test -p 4 ./...` bilan.

@@ -9,7 +9,7 @@ Bu hujjat user bilan bog'liq qoidalarni belgilaydi: user nima, tizimga qanday tu
 | Tushuncha | Ma'nosi | Bazada |
 |---|---|---|
 | **User** | Bitta telefon raqami. Platformada bitta raqam = bitta user, nechta kompaniyada ishlashidan qat'i nazar. Vaqt mintaqasi (hujjat vaqtlari va kun filtrlari shu bilan ko'rsatiladi): hammaga standart `Asia/Tashkent` (+5), hozircha o'zgartirilmaydi. | `users.phone` (`998901234567` ko'rinishida), `users.timezone` |
-| **A'zolik** | Userning bitta kompaniyadagi o'rni: roli, kompaniya roli (bo'lsa), shu kompaniyadagi ismi, lokatsiya cheklovi ([locations.md](locations.md)) va menyu tartibi ([roles.md](roles.md), 8-bo'lim). | `user_companies` (`user_phone`, `company_id`, `role`, `role_id`, `full_name`, `all_locations`, `nav_order`), `member_locations` |
+| **A'zolik** | Userning bitta kompaniyadagi o'rni: roli, kompaniya roli (bo'lsa), shu kompaniyadagi ismi, lokatsiya cheklovi ([locations.md](locations.md)) va pastki panel sahifalari ([roles.md](roles.md), 8-bo'lim). | `user_companies` (`user_phone`, `company_id`, `role`, `role_id`, `full_name`, `all_locations`, `tab_bar`), `member_locations` |
 | **Egasi (owner)** | Kompaniyaning yagona egasi. Uni platforma admini qo'ygan. | `role = 'owner'` |
 | **Xodim** | `user` rolidagi a'zo. Uni kompaniya egasi (yoki `employees.create` ruxsatli xodim) qo'shgan. Egasi unga kompaniya rolini biriktirishi mumkin ([roles.md](roles.md), 5-bo'lim); rolsiz xodim standart ruxsat bilan ishlaydi. | `role = 'user'`, `role_id` |
 | **Multi-user** | Bir nechta kompaniyaga a'zo user. | bir nechta `user_companies` qatori |

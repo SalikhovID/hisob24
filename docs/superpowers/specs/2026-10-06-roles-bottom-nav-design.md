@@ -2,7 +2,7 @@
 
 Sana: 2026-10-06. Holat: foydalanuvchi reja sifatida tasdiqlagan; 0–5-bosqichlarning hammasi amalga oshirilgan (hujjat oxiridagi "N-bosqich qarorlari" bo'limlari); 2026-10-07 da production'ga chiqarilgan (pastda "Production'ga deploy"). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-06-roles-stage<N>-*.md`.
 
-> **Tab-bar qismi user app'da almashtirildi (2026-10-14):** suzuvchi tab-bar (bosh sahifa + 4 bo'lim, qolganlari profil sahifasida, «Yana» va «Menyuni sozlash» dialogi yo'q) — `2026-10-13-mini-app-ui-design.md`. Rollar va ruxsatlar qismi amal qiladi.
+> **Tab-bar qismi user app'da almashtirildi (2026-10-14):** suzuvchi tab-bar (bosh sahifa + 4 bo'lim, qolganlari profil sahifasida, «Yana» va «Menyuni sozlash» dialogi yo'q) — `2026-10-13-mini-app-ui-design.md`. 2026-10-15 dan: panelda a'zo tanlagan 4 tagacha sahifa va «Sozlama» varag'i (qolgan sahifalar, «Pastki panelni sozlash») — `2026-10-15-tab-bar-menu-design.md`. Rollar va ruxsatlar qismi amal qiladi.
 
 ## Maqsad
 
