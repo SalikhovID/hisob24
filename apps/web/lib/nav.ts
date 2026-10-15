@@ -222,3 +222,14 @@ export function barPages(permissions: readonly Permission[] | undefined, tabBar?
   const open = pagesFor(permissions)
   return (tabBar ?? defaultBar(permissions)).flatMap((key) => open.find((page) => page.key === key) ?? []).slice(0, BAR_LIMIT)
 }
+
+// currentPin is the index of the bar's page the page at pathname is: the
+// page itself; for a page of a hub (the warehouse's), the hub, unless the
+// page stands in the bar itself; -1 for none, when «Sozlama» is current.
+export function currentPin(pins: readonly NavPage[], pathname: string): number {
+  const own = pins.findIndex((pin) => pin.href === pathname)
+  if (own >= 0) return own
+  const page = navPages.find((candidate) => candidate.href === pathname)
+  const hub = page && navItems.find((item) => item.key === page.section && item.hub)
+  return hub ? pins.findIndex((pin) => pin.key === hub.key) : -1
+}

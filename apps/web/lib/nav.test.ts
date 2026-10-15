@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barItems, barPages, defaultBar, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
+import { barItems, barPages, currentPin, defaultBar, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -183,4 +183,19 @@ test("the tab bar holds the member's own pages in their order, those they may op
   expect(bar(allPermissions, []), "nothing is a bar too").toEqual([])
   expect(bar(allPermissions, ["bogus", "tasks"])).toEqual(["tasks"])
   expect(bar(allPermissions, ["home", "customers", "tasks", "products", "sales"])).toEqual(["home", "customers", "tasks", "products"])
+})
+
+test("the bar's current page is the page itself, or the warehouse on one of its pages that is not in the bar; elsewhere none (then «Sozlama» is)", () => {
+  const pins = barPages(allPermissions, ["home", "warehouse", "expenses", "purchases"])
+  expect(currentPin(pins, "/")).toBe(0)
+  expect(currentPin(pins, "/warehouse")).toBe(1)
+  expect(currentPin(pins, "/transfers")).toBe(1)
+  expect(currentPin(pins, "/suppliers")).toBe(1)
+  expect(currentPin(pins, "/purchases")).toBe(3)
+  expect(currentPin(pins, "/expenses")).toBe(2)
+  expect(currentPin(pins, "/accounts"), "a page beside a tab is not the tab").toBe(-1)
+  expect(currentPin(pins, "/customers")).toBe(-1)
+  expect(currentPin(pins, "/settings/stages")).toBe(-1)
+  expect(currentPin(barPages(allPermissions, ["purchases"]), "/transfers"), "only the warehouse holds its pages").toBe(-1)
+  expect(currentPin([], "/")).toBe(-1)
 })
