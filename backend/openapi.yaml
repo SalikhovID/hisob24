@@ -1027,14 +1027,15 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/FinanceCategoryConflict"
-  /app/me/nav:
+  /app/me/tab-bar:
     put:
-      operationId: setNavOrder
-      summary: Menyu tartibini saqlash
+      operationId: setTabBar
+      summary: Pastki panelni saqlash
       description: >
-        A'zo tanlangan kompaniyadagi bo'limlar tartibini saqlaydi
-        (logic/roles.md, 8-bo'lim): kalitlar katalogdan, takror bir marta;
-        null standart tartibga qaytaradi. Javob /app/me yangi tartib bilan.
+        A'zo tanlangan kompaniyadagi pastki panel sahifalarini saqlaydi
+        (logic/roles.md, 8-bo'lim): kalitlar katalogdan, o'z tartibida,
+        takror bir marta, ko'pi bilan 4 ta; bo'sh ro'yxat ham panel; null
+        standart panelga qaytaradi. Javob /app/me yangi panel bilan.
       security:
         - appBearer: []
       requestBody:
@@ -1042,10 +1043,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NavOrderInput"
+              $ref: "#/components/schemas/TabBarInput"
       responses:
         "200":
-          description: Joriy user, yangi tartib bilan
+          description: Joriy user, yangi panel bilan
           content:
             application/json:
               schema:
@@ -6661,7 +6662,7 @@ components:
           type: boolean
     Me:
       type: object
-      required: [user, company, companies, permissions, locations, nav_order, currencies, accounts]
+      required: [user, company, companies, permissions, locations, tab_bar, currencies, accounts]
       properties:
         user:
           $ref: "#/components/schemas/AppUser"
@@ -6693,15 +6694,15 @@ components:
             tanlovchi shundan quriladi; 2+ bo'lsa ko'rinadi.
           items:
             $ref: "#/components/schemas/Location"
-        nav_order:
+        tab_bar:
           type: [array, "null"]
           description: >
-            A'zoning tanlangan kompaniyadagi menyu tartibi, bo'lim kalitlari
-            bilan (logic/roles.md, 8-bo'lim): sidebar va tab-bar shu tartibda,
-            tartibda yo'q bo'limlar standart tartibda oxirida. null standart
-            tartib yoki kompaniya tanlanmagan.
+            A'zoning tanlangan kompaniyadagi pastki panel sahifalari, o'z
+            tartibida (logic/roles.md, 8-bo'lim): tor ekrandagi panelda shular
+            va «Sozlama»; a'zo ocha olmaydigan sahifa chiqmaydi. null standart
+            panel yoki kompaniya tanlanmagan.
           items:
-            $ref: "#/components/schemas/NavSection"
+            $ref: "#/components/schemas/TabBarPage"
         currencies:
           type: array
           description: >
@@ -7980,19 +7981,19 @@ components:
           type: integer
         page_size:
           type: integer
-    NavSection:
+    TabBarPage:
       type: string
-      description: Bo'lim kaliti, standart tartibida
-      enum: [home, customers, tasks, products, sales, warehouse, finance, employees, settings]
-    NavOrderInput:
+      description: Pastki panelga qo'yiladigan sahifa kaliti, menyu tartibida
+      enum: [home, customers, tasks, products, services, sales, warehouse, purchases, transfers, inventories, opening_stock, suppliers, accounts, expenses, money_transfers, employees]
+    TabBarInput:
       type: object
-      required: [sections]
+      required: [pages]
       properties:
-        sections:
+        pages:
           type: [array, "null"]
-          description: Bo'limlar tartibi (takror kalit bir marta); null standart tartibga qaytaradi
+          description: Panel sahifalari o'z tartibida (takror kalit bir marta, ko'pi bilan 4 ta); null standart panelga qaytaradi
           items:
-            $ref: "#/components/schemas/NavSection"
+            $ref: "#/components/schemas/TabBarPage"
     CustomerOption:
       type: object
       required: [id, label, is_active]

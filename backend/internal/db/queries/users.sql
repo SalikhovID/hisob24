@@ -84,7 +84,7 @@ SELECT EXISTS (SELECT 1 FROM user_companies WHERE user_phone = $1);
 -- added; logic/locations.md) and whether the subscription lets the company
 -- be used (the end date has not passed and it is not blocked). pgx.ErrNoRows
 -- when the user is not its member.
-SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.nav_order, u.timezone,
+SELECT uc.role, uc.role_id, r.permissions, uc.all_locations, uc.tab_bar, u.timezone,
        (SELECT COALESCE(array_agg(l.id ORDER BY l.id), '{}') FROM locations l
          WHERE l.company_id = uc.company_id AND l.deleted_at IS NULL
            AND (uc.all_locations OR EXISTS (SELECT 1 FROM member_locations ml
@@ -127,10 +127,10 @@ UPDATE user_companies SET role_id = sqlc.narg('role_id')
 WHERE user_phone = sqlc.arg('user_phone') AND company_id = sqlc.arg('company_id') AND role = 'user'
 RETURNING *;
 
--- name: SetNavOrder :one
--- Keeps the member's own order of the menu in the company (NULL: the
+-- name: SetTabBar :one
+-- Keeps the member's own pages of the tab bar in the company (NULL: the
 -- default; logic/roles.md, section 8). pgx.ErrNoRows when the user is not
 -- its member.
-UPDATE user_companies SET nav_order = sqlc.narg('nav_order')::text[]
+UPDATE user_companies SET tab_bar = sqlc.narg('tab_bar')::text[]
 WHERE user_phone = sqlc.arg('user_phone') AND company_id = sqlc.arg('company_id')
 RETURNING user_phone;

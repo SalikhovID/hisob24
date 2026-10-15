@@ -425,9 +425,9 @@ func TestSetCompanyUserRole(t *testing.T) {
 	assert.Equal(t, "23503", sqlState(err), "another company's role") // foreign_key_violation
 }
 
-// The access row tells the member's own order of the menu in the company
-// (logic/roles.md, section 8): nil for the default.
-func TestGetCompanyAccessTellsTheMembersOrderOfTheMenu(t *testing.T) {
+// The access row tells the member's own pages of the tab bar in the
+// company (logic/roles.md, section 8): nil for the default.
+func TestGetCompanyAccessTellsTheMembersTabBar(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	olma := createCompany(t, q, "Olma", today(t, pool))
@@ -438,12 +438,12 @@ func TestGetCompanyAccessTellsTheMembersOrderOfTheMenu(t *testing.T) {
 		return got
 	}
 
-	assert.Nil(t, access().NavOrder, "the default order")
-	mustExec(t, pool, "UPDATE user_companies SET nav_order = '{tasks,home}' WHERE user_phone = '998901234567' AND company_id = $1", olma.ID)
-	assert.Equal(t, []string{"tasks", "home"}, access().NavOrder)
+	assert.Nil(t, access().TabBar, "the default bar")
+	mustExec(t, pool, "UPDATE user_companies SET tab_bar = '{sales,home}' WHERE user_phone = '998901234567' AND company_id = $1", olma.ID)
+	assert.Equal(t, []string{"sales", "home"}, access().TabBar)
 }
 
-func TestSetNavOrder(t *testing.T) {
+func TestSetTabBar(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	olma := createCompany(t, q, "Olma", today(t, pool))
@@ -454,12 +454,12 @@ func TestSetNavOrder(t *testing.T) {
 		return got
 	}
 
-	_, err := q.SetNavOrder(ctx, gen.SetNavOrderParams{UserPhone: "998901234567", CompanyID: olma.ID, NavOrder: []string{"tasks", "home"}})
+	_, err := q.SetTabBar(ctx, gen.SetTabBarParams{UserPhone: "998901234567", CompanyID: olma.ID, TabBar: []string{"sales", "home"}})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"tasks", "home"}, access().NavOrder)
-	_, err = q.SetNavOrder(ctx, gen.SetNavOrderParams{UserPhone: "998901234567", CompanyID: olma.ID, NavOrder: nil})
+	assert.Equal(t, []string{"sales", "home"}, access().TabBar)
+	_, err = q.SetTabBar(ctx, gen.SetTabBarParams{UserPhone: "998901234567", CompanyID: olma.ID, TabBar: nil})
 	require.NoError(t, err)
-	assert.Nil(t, access().NavOrder, "back to the default")
-	_, err = q.SetNavOrder(ctx, gen.SetNavOrderParams{UserPhone: "998909999999", CompanyID: olma.ID, NavOrder: []string{"home"}})
+	assert.Nil(t, access().TabBar, "back to the default")
+	_, err = q.SetTabBar(ctx, gen.SetTabBarParams{UserPhone: "998909999999", CompanyID: olma.ID, TabBar: []string{"home"}})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "not a member")
 }

@@ -135,9 +135,9 @@ func TestAccess(t *testing.T) {
 	assert.ErrorIs(t, err, ErrNotMember, "no such company")
 }
 
-// A member's own order of the menu is kept with the membership and read
-// with their standing (logic/roles.md, section 8).
-func TestSetNavOrder(t *testing.T) {
+// A member's own pages of the tab bar are kept with the membership and
+// read with their standing (logic/roles.md, section 8).
+func TestSetTabBar(t *testing.T) {
 	t.Parallel()
 	pool := pgtest.New(t)
 	ctx := t.Context()
@@ -148,15 +148,15 @@ func TestSetNavOrder(t *testing.T) {
 		INSERT INTO user_companies (user_phone, company_id, role) SELECT '998901234567', id, 'owner' FROM c RETURNING company_id`).Scan(&olma))
 	profiles := NewProfiles(pool)
 
-	require.NoError(t, profiles.SetNavOrder(ctx, "998901234567", olma, []string{"tasks", "home"}))
+	require.NoError(t, profiles.SetTabBar(ctx, "998901234567", olma, []string{"sales", "home"}))
 	standing, err := profiles.Access(ctx, "998901234567", olma)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"tasks", "home"}, standing.NavOrder, "the member's own order, read on every request")
+	assert.Equal(t, []string{"sales", "home"}, standing.TabBar, "the member's own bar, read on every request")
 
-	require.NoError(t, profiles.SetNavOrder(ctx, "998901234567", olma, nil))
+	require.NoError(t, profiles.SetTabBar(ctx, "998901234567", olma, nil))
 	standing, err = profiles.Access(ctx, "998901234567", olma)
 	require.NoError(t, err)
-	assert.Nil(t, standing.NavOrder, "the default again")
+	assert.Nil(t, standing.TabBar, "the default again")
 
-	assert.ErrorIs(t, profiles.SetNavOrder(ctx, "998909999999", olma, []string{"home"}), ErrNotMember)
+	assert.ErrorIs(t, profiles.SetTabBar(ctx, "998909999999", olma, []string{"home"}), ErrNotMember)
 }

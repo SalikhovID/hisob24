@@ -92,8 +92,8 @@ func (h *Handler) Routes(r chi.Router) {
 			// may do there (logic/roles.md, section 4).
 			r.Group(func(r chi.Router) {
 				r.Use(h.requireCompany)
-				// The member's own order of the menu (logic/roles.md, section 8).
-				r.Put("/me/nav", h.setNavOrder)
+				// The member's own pages of the tab bar (logic/roles.md, section 8).
+				r.Put("/me/tab-bar", h.setTabBar)
 				// The home's blocks, each by its own permission.
 				r.Get("/dashboard", h.getDashboard)
 				// What every member reads: the lists the forms are built from.
@@ -393,9 +393,9 @@ type meJSON struct {
 	// Locations is the locations the user may work in there, as they are
 	// now (logic/locations.md, section 4); empty before a choice.
 	Locations []locationJSON `json:"locations"`
-	// NavOrder is the user's own order of the menu there, by section key
+	// TabBar is the user's own pages of the tab bar there, by page key
 	// (logic/roles.md, section 8); null for the default, and before a choice.
-	NavOrder *[]string `json:"nav_order"`
+	TabBar *[]string `json:"tab_bar"`
 	// Currencies is the currencies the company has turned on, each with
 	// the rate in force now (logic/currencies.md); empty before a choice.
 	Currencies []companyCurrencyJSON `json:"currencies"`
@@ -405,8 +405,8 @@ type meJSON struct {
 }
 
 // me is the signed-in user, the company they work in now, what they may do
-// there, the locations they may work in, their order of the menu and all of
-// their companies.
+// there, the locations they may work in, their pages of the tab bar and all
+// of their companies.
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	body, err := h.meBody(r.Context(), currentUser(r.Context()), currentAccess(r.Context()))
 	if err != nil {
@@ -417,8 +417,8 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 }
 
 // meBody is what /app/me answers: the user, the company the token is for,
-// what they may do, the locations they may work in and their order of the
-// menu there (from standing, as requireAccess read it, or as read anew after
+// what they may do, the locations they may work in and their pages of the
+// tab bar there (from standing, as requireAccess read it, or as read anew after
 // a change), and all of their companies. The user's name is the one they go
 // by in that company; before a choice of company, or when the membership
 // has no name, it is the user's own.
@@ -447,9 +447,9 @@ func (h *Handler) meBody(ctx context.Context, claims auth.AccessClaims, standing
 			return meJSON{}, err
 		}
 		body.Accounts = toAccountsJSON(accounts)
-		if standing.NavOrder != nil {
-			order := standing.NavOrder
-			body.NavOrder = &order
+		if standing.TabBar != nil {
+			pages := standing.TabBar
+			body.TabBar = &pages
 		}
 	}
 	for _, m := range profile.Companies {

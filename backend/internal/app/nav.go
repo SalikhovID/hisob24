@@ -8,27 +8,27 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 )
 
-// setNavOrder keeps the member's own order of the menu in the company the
-// session works in (logic/roles.md, section 8), or drops it for the default
-// (null), and answers /app/me with the order as it is now.
-func (h *Handler) setNavOrder(w http.ResponseWriter, r *http.Request) {
+// setTabBar keeps the member's own pages of the tab bar in the company the
+// session works in (logic/roles.md, section 8), or drops them for the
+// default (null), and answers /app/me with the bar as it is now.
+func (h *Handler) setTabBar(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Sections *[]string `json:"sections"`
+		Pages *[]string `json:"pages"`
 	}
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
-	var sections []string
-	if body.Sections != nil {
-		parsed, err := user.ParseNavOrder(*body.Sections)
+	var pages []string
+	if body.Pages != nil {
+		parsed, err := user.ParseTabBar(*body.Pages)
 		if err != nil {
 			httpx.WriteError(w, r, err)
 			return
 		}
-		sections = parsed
+		pages = parsed
 	}
 	claims := currentUser(r.Context())
-	if err := h.profiles.SetNavOrder(r.Context(), claims.Phone, *claims.CompanyID, sections); err != nil {
+	if err := h.profiles.SetTabBar(r.Context(), claims.Phone, *claims.CompanyID, pages); err != nil {
 		if errors.Is(err, user.ErrNotMember) {
 			unauthorized(w)
 			return

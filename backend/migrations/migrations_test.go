@@ -977,12 +977,15 @@ func TestTheCatalogMigrationDownRemovesTheProducts(t *testing.T) {
 }
 
 // A membership keeps the member's own order of the menu in the company
-// (logic/roles.md, section 8): NULL until they set one.
+// (logic/roles.md, section 8): NULL until they set one. The tab bar took
+// its place (00017).
 func TestAMembershipKeepsTheMembersOrderOfTheMenu(t *testing.T) {
 	pool := pgtest.New(t)
 	ctx := t.Context()
+	_, err := newProvider(t, pool).DownTo(ctx, 16)
+	require.NoError(t, err)
 	olma := addCompany(t, pool, "Olma")
-	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	_, err = pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998901111111', $1, 'owner')", olma)
 	require.NoError(t, err)
@@ -1488,4 +1491,61 @@ func TestTheLedgerMigrationDownBringsTheOldTablesBack(t *testing.T) {
 		require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM "+table).Scan(&count), table+" is back")
 		assert.Zero(t, count, table+" is empty")
 	}
+}
+
+// A membership keeps the member's own pages of the tab bar in the company
+// (logic/roles.md, section 8): NULL until they choose them.
+func TestAMembershipKeepsTheMembersTabBar(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998901111111', $1, 'owner')", olma)
+	require.NoError(t, err)
+
+	var pages []string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT tab_bar FROM user_companies WHERE user_phone = '998901111111'").Scan(&pages))
+	assert.Nil(t, pages, "the default bar until the member chooses one")
+	_, err = pool.Exec(ctx, "UPDATE user_companies SET tab_bar = '{sales,home}' WHERE user_phone = '998901111111'")
+	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(ctx, "SELECT tab_bar FROM user_companies WHERE user_phone = '998901111111'").Scan(&pages))
+	assert.Equal(t, []string{"sales", "home"}, pages)
+}
+
+// The tab bar takes the place of the order of the menu: the sidebar keeps
+// the default order, and the orders kept so far go.
+func TestTheTabBarMigrationTakesTheMenuOrderAway(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 16)
+	require.NoError(t, err)
+	olma := addCompany(t, pool, "Olma")
+	_, err = pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role, nav_order) VALUES ('998901111111', $1, 'owner', '{tasks,home}')", olma)
+	require.NoError(t, err)
+
+	_, err = provider.UpTo(ctx, 17)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "SELECT nav_order FROM user_companies")
+	assert.Equal(t, "42703", sqlState(err), "undefined_column")
+	var pages []string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT tab_bar FROM user_companies WHERE user_phone = '998901111111'").Scan(&pages))
+	assert.Nil(t, pages, "the member starts from the default bar")
+}
+
+func TestTheTabBarMigrationDownBringsTheMenuOrderBack(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+
+	_, err := newProvider(t, pool).DownTo(ctx, 16)
+	require.NoError(t, err)
+
+	_, err = pool.Exec(ctx, "SELECT tab_bar FROM user_companies")
+	assert.Equal(t, "42703", sqlState(err), "undefined_column")
+	_, err = pool.Exec(ctx, "SELECT nav_order FROM user_companies")
+	assert.NoError(t, err, "the order of the menu is back")
 }

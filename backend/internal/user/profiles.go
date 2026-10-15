@@ -75,10 +75,10 @@ type Access struct {
 	// they were added: every one of the company's unless restricted to
 	// some. Empty, never nil.
 	LocationIDs []int64
-	// NavOrder is the member's own order of the menu in the company, by
-	// section key (logic/roles.md, section 8); nil for the default.
-	NavOrder []string
-	Active   bool
+	// TabBar is the member's own pages of the tab bar in the company, by
+	// page key (logic/roles.md, section 8); nil for the default.
+	TabBar []string
+	Active bool
 	// Timezone is the user's time zone (an IANA name, Asia/Tashkent unless
 	// set otherwise): what the documents' moments are shown in.
 	Timezone string
@@ -104,14 +104,14 @@ func (p *Profiles) Access(ctx context.Context, phone string, companyID int64) (A
 	if locations == nil {
 		locations = []int64{}
 	}
-	return Access{Role: row.Role, Permissions: access.Effective(row.Role, row.RoleID != nil, row.Permissions), LocationIDs: locations, NavOrder: row.NavOrder, Active: row.Active, Timezone: row.Timezone}, nil
+	return Access{Role: row.Role, Permissions: access.Effective(row.Role, row.RoleID != nil, row.Permissions), LocationIDs: locations, TabBar: row.TabBar, Active: row.Active, Timezone: row.Timezone}, nil
 }
 
-// SetNavOrder keeps the member's own order of the menu in the company, or
-// drops it (nil) for the default. ErrNotMember when the user is not a
+// SetTabBar keeps the member's own pages of the tab bar in the company,
+// or drops them (nil) for the default. ErrNotMember when the user is not a
 // member of the company.
-func (p *Profiles) SetNavOrder(ctx context.Context, phone string, companyID int64, sections []string) error {
-	_, err := p.q.SetNavOrder(ctx, gen.SetNavOrderParams{UserPhone: phone, CompanyID: companyID, NavOrder: sections})
+func (p *Profiles) SetTabBar(ctx context.Context, phone string, companyID int64, pages []string) error {
+	_, err := p.q.SetTabBar(ctx, gen.SetTabBarParams{UserPhone: phone, CompanyID: companyID, TabBar: pages})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotMember
 	}

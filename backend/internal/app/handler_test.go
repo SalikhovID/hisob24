@@ -408,8 +408,8 @@ func TestMe(t *testing.T) {
 	}
 	assert.Equal(t, all, permissionsOf(t, body), "the owner may do everything")
 	assert.Equal(t, []any{location(asosiy, "Asosiy")}, body["locations"], "the locations the member may work in")
-	assert.Contains(t, body, "nav_order")
-	assert.Nil(t, body["nav_order"], "the default order of the menu")
+	assert.Contains(t, body, "tab_bar")
+	assert.Nil(t, body["tab_bar"], "the default pages of the tab bar")
 	assert.Equal(t, []any{uzs()}, body["currencies"], "the company's currencies with the rates in force")
 }
 

@@ -602,7 +602,7 @@ export interface paths {
         patch: operations["updateFinanceCategory"];
         trace?: never;
     };
-    "/app/me/nav": {
+    "/app/me/tab-bar": {
         parameters: {
             query?: never;
             header?: never;
@@ -611,10 +611,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * Menyu tartibini saqlash
-         * @description A'zo tanlangan kompaniyadagi bo'limlar tartibini saqlaydi (logic/roles.md, 8-bo'lim): kalitlar katalogdan, takror bir marta; null standart tartibga qaytaradi. Javob /app/me yangi tartib bilan.
+         * Pastki panelni saqlash
+         * @description A'zo tanlangan kompaniyadagi pastki panel sahifalarini saqlaydi (logic/roles.md, 8-bo'lim): kalitlar katalogdan, o'z tartibida, takror bir marta, ko'pi bilan 4 ta; bo'sh ro'yxat ham panel; null standart panelga qaytaradi. Javob /app/me yangi panel bilan.
          */
-        put: operations["setNavOrder"];
+        put: operations["setTabBar"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2784,8 +2784,8 @@ export interface components {
             permissions: components["schemas"]["Permission"][];
             /** @description Tanlangan kompaniyada user ishlay oladigan jonli lokatsiyalar, qo'shilish tartibida (logic/locations.md, 4-bo'lim): egasida va cheklanmagan xodimda kompaniyaning hammasi, cheklanganda cheklovdagilar. Kompaniya tanlanmagan bo'lsa bo'sh. Tepadagi tanlovchi shundan quriladi; 2+ bo'lsa ko'rinadi. */
             locations: components["schemas"]["Location"][];
-            /** @description A'zoning tanlangan kompaniyadagi menyu tartibi, bo'lim kalitlari bilan (logic/roles.md, 8-bo'lim): sidebar va tab-bar shu tartibda, tartibda yo'q bo'limlar standart tartibda oxirida. null standart tartib yoki kompaniya tanlanmagan. */
-            nav_order: components["schemas"]["NavSection"][] | null;
+            /** @description A'zoning tanlangan kompaniyadagi pastki panel sahifalari, o'z tartibida (logic/roles.md, 8-bo'lim): tor ekrandagi panelda shular va «Sozlama»; a'zo ocha olmaydigan sahifa chiqmaydi. null standart panel yoki kompaniya tanlanmagan. */
+            tab_bar: components["schemas"]["TabBarPage"][] | null;
             /** @description Tanlangan kompaniyada yoqilgan valyutalar, katalog tartibida, har birida hozir amaldagi kurs (logic/currencies.md): so'm doim, kursi "1.0000"; kurs kiritilmagan valyutada null. Kompaniya tanlanmagan bo'lsa bo'sh. Formalar valyuta tanlovi va kursni shundan oladi; 2+ valyutada ko'rinadi. */
             currencies: components["schemas"]["CompanyCurrency"][];
             /** @description Tanlangan kompaniyaning jonli akkauntlari (kassa, hisob raqam, karta), qo'shilish tartibida, nofaollari ham (logic/finance.md, 3-bo'lim): to'lov formalari akkauntni shundan tanlaydi (faqat faollarini taklif qiladi). Kompaniya tanlanmagan bo'lsa bo'sh. */
@@ -3563,13 +3563,13 @@ export interface components {
             page_size: number;
         };
         /**
-         * @description Bo'lim kaliti, standart tartibida
+         * @description Pastki panelga qo'yiladigan sahifa kaliti, menyu tartibida
          * @enum {string}
          */
-        NavSection: "home" | "customers" | "tasks" | "products" | "sales" | "warehouse" | "finance" | "employees" | "settings";
-        NavOrderInput: {
-            /** @description Bo'limlar tartibi (takror kalit bir marta); null standart tartibga qaytaradi */
-            sections: components["schemas"]["NavSection"][] | null;
+        TabBarPage: "home" | "customers" | "tasks" | "products" | "services" | "sales" | "warehouse" | "purchases" | "transfers" | "inventories" | "opening_stock" | "suppliers" | "accounts" | "expenses" | "money_transfers" | "employees";
+        TabBarInput: {
+            /** @description Panel sahifalari o'z tartibida (takror kalit bir marta, ko'pi bilan 4 ta); null standart panelga qaytaradi */
+            pages: components["schemas"]["TabBarPage"][] | null;
         };
         CustomerOption: {
             /** Format: int64 */
@@ -5697,7 +5697,7 @@ export interface operations {
             409: components["responses"]["FinanceCategoryConflict"];
         };
     };
-    setNavOrder: {
+    setTabBar: {
         parameters: {
             query?: never;
             header?: never;
@@ -5706,11 +5706,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NavOrderInput"];
+                "application/json": components["schemas"]["TabBarInput"];
             };
         };
         responses: {
-            /** @description Joriy user, yangi tartib bilan */
+            /** @description Joriy user, yangi panel bilan */
             200: {
                 headers: {
                     [name: string]: unknown;

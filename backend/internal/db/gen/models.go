@@ -388,5 +388,5 @@ type UserCompany struct {
 	FullName     *string
 	RoleID       *int64
 	AllLocations bool
-	NavOrder     []string
+	TabBar       []string
 }

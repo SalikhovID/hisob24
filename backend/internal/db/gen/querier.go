@@ -796,16 +796,16 @@ type Querier interface {
 	// again (true). No row (pgx.ErrNoRows) for the owner, who is never
 	// restricted, and for someone who is not a member.
 	SetMemberAllLocations(ctx context.Context, arg SetMemberAllLocationsParams) (UserCompany, error)
-	// Keeps the member's own order of the menu in the company (NULL: the
-	// default; logic/roles.md, section 8). pgx.ErrNoRows when the user is not
-	// its member.
-	SetNavOrder(ctx context.Context, arg SetNavOrderParams) (string, error)
 	// Turns a product or a service off (no longer offered) or on again.
 	// pgx.ErrNoRows when the company has no such row, or deleted it.
 	SetProductActive(ctx context.Context, arg SetProductActiveParams) (Product, error)
 	// Turns a supplier off (offered to no new purchase) or on again.
 	// pgx.ErrNoRows when the company has no such supplier, or deleted it.
 	SetSupplierActive(ctx context.Context, arg SetSupplierActiveParams) (Supplier, error)
+	// Keeps the member's own pages of the tab bar in the company (NULL: the
+	// default; logic/roles.md, section 8). pgx.ErrNoRows when the user is not
+	// its member.
+	SetTabBar(ctx context.Context, arg SetTabBarParams) (string, error)
 	// Writes a money document's amount (and a conversion's other amount).
 	SetTransactionAmount(ctx context.Context, arg SetTransactionAmountParams) error
 	// Writes a goods document's total as the sum of its lines (quantity ×
