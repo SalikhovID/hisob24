@@ -10,7 +10,7 @@ import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
 import { SortableList } from "@/components/sortable-list"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { BAR_LIMIT, barPages, type NavPage, type PageKey, pageGroups, pagesFor } from "@/lib/nav"
+import { BAR_LIMIT, barPages, defaultBar, type NavPage, type PageKey, pageGroups, pagesFor } from "@/lib/nav"
 import { useMe, useSetTabBar } from "@/lib/queries"
 import type { Me } from "@/lib/types"
 
@@ -26,7 +26,9 @@ function tile(page: NavPage) {
 
 // TabBarSheet is «Pastki panel» (enwin's «Panelni sozlash»): the choice of
 // the tab bar's pages (logic/roles.md, section 8). On top, the bar's pages
-// in their order, each with the way out; under «Qo'shish», the rest of the
+// in their order, each with the way out, and «Standart», which puts the
+// default bar back (and keeps none of the member's own: a later default
+// follows); under «Qo'shish», the rest of the
 // pages the member may open, under their sections, each with the way in
 // while the bar has room. Nothing is kept before «Saqlash»: the member's
 // own, on every device in this company; a bar the API refuses says why.
@@ -48,7 +50,13 @@ export function TabBarSheet({ open, onOpenChange }: { open: boolean; onOpenChang
 // BarForm is the open sheet's choice: it mounts with every opening (the
 // closed sheet holds nothing), so each one starts from the bar as it is.
 function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
-  const [draft, setDraft] = useState<PageKey[]>(() => barPages(me.permissions, me.tab_bar).map((page) => page.key))
+  const [draft, setKeys] = useState<PageKey[]>(() => barPages(me.permissions, me.tab_bar).map((page) => page.key))
+  // standard: the bar is the default one, of nobody's choosing.
+  const [standard, setStandard] = useState(me.tab_bar === null)
+  const setDraft = (change: (keys: PageKey[]) => PageKey[]) => {
+    setKeys(change)
+    setStandard(false)
+  }
   const open = pagesFor(me.permissions)
   const pinned = draft.flatMap((key) => open.find((page) => page.key === key) ?? [])
   const rest = open.filter((page) => !draft.includes(page.key))
@@ -57,7 +65,21 @@ function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
 
   return (
     <>
-      <SectionHeading>
+      <SectionHeading
+        action={
+          <button
+            type="button"
+            disabled={standard}
+            onClick={() => {
+              setKeys(defaultBar(me.permissions))
+              setStandard(true)
+            }}
+            className="disabled:opacity-35"
+          >
+            Standart
+          </button>
+        }
+      >
         Panelda · {pinned.length}/{BAR_LIMIT}
       </SectionHeading>
       {pinned.length === 0 ? (
@@ -68,7 +90,7 @@ function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
           items={pinned}
           getId={(page) => page.key}
           getLabel={(page) => page.label}
-          onReorder={(keys) => setDraft(keys as PageKey[])}
+          onReorder={(keys) => setDraft(() => keys as PageKey[])}
           className="mb-6 overflow-hidden rounded-group bg-card [--inset:100px]"
           renderItem={(page, handle) => (
             <div data-slot="row" className="flex min-h-12 items-center gap-3 pr-1 pl-4">
@@ -122,7 +144,7 @@ function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
         <MainButton
           pending={save.isPending}
           onClick={() =>
-            save.mutate(draft, {
+            save.mutate(standard ? null : draft, {
               onSuccess: () => {
                 toast.success("Pastki panel saqlandi")
                 onDone()

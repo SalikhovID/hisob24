@@ -116,3 +116,24 @@ test("a bar the API refuses says why, and the sheet stays", async () => {
   expect(await within(bar).findByText("Sahifa noto'g'ri")).toBeInTheDocument()
   expect(onOpenChange).not.toHaveBeenCalled()
 })
+
+test("«Standart» puts the default bar back and keeps no bar of the member's own; a change after it is theirs again", async () => {
+  db.members[ALI][0].tabBar = ["purchases", "expenses"]
+  await signIn(ALI)
+  const first = renderWithProviders(<TabBarSheet open onOpenChange={vi.fn()} />)
+
+  let bar = await sheet()
+  await first.user.click(await within(bar).findByRole("button", { name: "Standart" }))
+  expect(inBar(bar)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+  expect(within(bar).getByRole("button", { name: "Standart" })).toBeDisabled()
+  await first.user.click(within(bar).getByRole("button", { name: "Saqlash" }))
+  await waitFor(() => expect(db.members[ALI][0].tabBar).toBeUndefined())
+  first.unmount()
+
+  const second = renderWithProviders(<TabBarSheet open onOpenChange={vi.fn()} />)
+  bar = await sheet()
+  await second.user.click(await within(bar).findByRole("button", { name: "Olib tashlash: Mahsulotlar" }))
+  expect(within(bar).getByRole("button", { name: "Standart" })).toBeEnabled()
+  await second.user.click(within(bar).getByRole("button", { name: "Saqlash" }))
+  await waitFor(() => expect(db.members[ALI][0].tabBar).toEqual(["home", "customers", "tasks"]))
+})
