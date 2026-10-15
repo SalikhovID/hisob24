@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barItems, barPages, currentPin, defaultBar, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
+import { barItems, barPages, currentPin, defaultBar, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf, settingsPagesFor } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -198,4 +198,19 @@ test("the bar's current page is the page itself, or the warehouse on one of its 
   expect(currentPin(pins, "/settings/stages")).toBe(-1)
   expect(currentPin(barPages(allPermissions, ["purchases"]), "/transfers"), "only the warehouse holds its pages").toBe(-1)
   expect(currentPin([], "/")).toBe(-1)
+})
+
+test("«Sozlama» holds the settings' pages for whoever may see the settings, the roles for the owner alone", () => {
+  const pages = (permissions: Permission[], owner: boolean) => settingsPagesFor(permissions, owner).map((page) => [page.label, page.href])
+  expect(pages(allPermissions, true)).toEqual([
+    ["Mijoz turlari", "/settings/customer-types"],
+    ["Vazifa turlari", "/settings/task-types"],
+    ["Bosqichlar", "/settings/stages"],
+    ["Dropdownlar", "/settings/dropdowns"],
+    ["Valyuta kurslari", "/settings/currencies"],
+    ["Moliya kategoriyalari", "/settings/finance-categories"],
+    ["Rollar", "/settings/roles"],
+  ])
+  expect(pages(["settings.view"], false)).toEqual(pages(allPermissions, true).slice(0, 6))
+  expect(pages(defaultPermissions, false)).toEqual([])
 })
