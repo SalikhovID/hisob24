@@ -90,7 +90,8 @@ test.describe("a linked user", () => {
     // background color, see-through.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
-      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv"])
+      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+      await expect(bar.getByRole("button", { name: "Sozlama" })).toBeVisible()
       await expect(bar).toHaveCSS("background-color", /^color\(srgb 0\.0901\d* 0\.1294\d* 0\.1686\d* \/ 0\.6\)$/)
     }
     // Full screen on a phone's client: the page starts under the status bar

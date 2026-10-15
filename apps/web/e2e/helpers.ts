@@ -30,10 +30,11 @@ export async function goHome(page: Page) {
   await expect(page).toHaveURL(/\/$/)
 }
 
-// openSection goes to a section through the sidebar or the tab bar. On a
-// phone the bar holds the home and the member's first four sections; the
-// rest are a row each on the home and the profile (logic/roles.md,
-// section 8): the way there goes through the home.
+// openSection goes to a section's own page through the sidebar or the tab
+// bar. On a phone the bar holds the member's pages (by default the home,
+// the customers, the tasks and the products); the rest are tiles under
+// «Sozlama» (logic/roles.md, section 8): the finance opens at its cash, the
+// settings at their hub, through one of their pages and its way back.
 export async function openSection(page: Page, name: string) {
   let bar = await sections(page)
   if (!onPhone(page)) {
@@ -45,15 +46,21 @@ export async function openSection(page: Page, name: string) {
     bar = await sections(page)
   }
   const inBar = bar.getByRole("link", { name, exact: true })
-  // The sections come with the session: until then the bar holds the home
-  // alone. A full bar (the home and four) means the section is past it.
-  await inBar.or(bar.getByRole("link").nth(4)).first().waitFor()
+  // The pages come with the session: until then the bar holds the home
+  // alone. A full bar (four pages) means the page is past it.
+  await inBar.or(bar.getByRole("link").nth(3)).first().waitFor()
   if ((await inBar.count()) > 0) {
     await inBar.click()
     return
   }
-  await goHome(page)
-  await page.getByRole("main").getByRole("list", { name: "Bo'limlar" }).getByRole("link", { name, exact: true }).click()
+  await bar.getByRole("button", { name: "Sozlama" }).click()
+  const menu = page.getByRole("dialog", { name: "Sozlama" })
+  if (name === "Sozlamalar") {
+    await menu.getByRole("list", { name: "Sozlamalar" }).getByRole("link").first().click()
+    await page.getByRole("main").getByRole("link", { name: "Sozlamalar", exact: true }).click()
+    return
+  }
+  await menu.getByRole("link", { name: name === "Moliya" ? "Kassa" : name, exact: true }).click()
 }
 
 // homeHead is the home's head: the company, the short name and the role,
