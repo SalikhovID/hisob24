@@ -9,7 +9,7 @@ import { SearchBox } from "@/components/kit/search-box"
 import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { barPages, navItems, pagesFor, settingsPagesFor } from "@/lib/nav"
+import { barPages, type NavPage, pageGroups, pagesFor, settingsPagesFor } from "@/lib/nav"
 import { moveTo } from "@/lib/moves"
 import { useMe } from "@/lib/queries"
 import type { Me } from "@/lib/types"
@@ -38,7 +38,7 @@ interface MenuSection {
 function sectionsOf(me: Me): MenuSection[] {
   const open = pagesFor(me.permissions)
   const pins = new Set(barPages(me.permissions, me.tab_bar).map((page) => page.key))
-  const tile = (page: (typeof open)[number]): MenuTile => {
+  const tile = (page: NavPage): MenuTile => {
     const Icon = pageIcons[page.key]
     return {
       href: page.href,
@@ -51,10 +51,8 @@ function sectionsOf(me: Me): MenuSection[] {
       ),
     }
   }
-  const several = navItems.filter((item) => item.tabs)
   const sections: MenuSection[] = [
-    { label: "Bo'limlar", tiles: open.filter((page) => !several.some((item) => item.key === page.section)).map(tile) },
-    ...several.map((item) => ({ label: item.label, heading: item.label, tiles: open.filter((page) => page.section === item.key).map(tile) })),
+    ...pageGroups(open).map((group) => ({ label: group.label, heading: group.heading, tiles: group.pages.map(tile) })),
     {
       label: "Sozlamalar",
       heading: "Sozlamalar",

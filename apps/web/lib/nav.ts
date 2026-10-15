@@ -188,6 +188,26 @@ export function pagesFor(permissions: readonly Permission[] | undefined): NavPag
   return navPages.filter((page) => !page.permissions || page.permissions.some((permission) => can(permissions, permission)))
 }
 
+// PageGroup is a block of pages as «Sozlama» and the choice of the bar's
+// pages show them: label names it, heading shows over it (the sections'
+// only pages stand first, unheaded).
+export interface PageGroup {
+  label: string
+  heading?: string
+  pages: NavPage[]
+}
+
+// pageGroups is pages in blocks: the sections' only pages first, then
+// every section with several under its name; an empty block is left out.
+export function pageGroups(pages: readonly NavPage[]): PageGroup[] {
+  const several = navItems.filter((item) => item.tabs)
+  const groups: PageGroup[] = [
+    { label: "Bo'limlar", pages: pages.filter((page) => !several.some((item) => item.key === page.section)) },
+    ...several.map((item) => ({ label: item.label, heading: item.label, pages: pages.filter((page) => page.section === item.key) })),
+  ]
+  return groups.filter((group) => group.pages.length > 0)
+}
+
 // BAR_LIMIT is how many pages the tab bar holds beside «Sozlama».
 export const BAR_LIMIT = 4
 
