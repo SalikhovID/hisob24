@@ -61,24 +61,18 @@ test("a session that fails to load says why and can be asked for again", async (
   expect(await screen.findByText("Sahifa mazmuni")).toBeInTheDocument()
 })
 
-test("the tab bar names the sections under the page, for a phone; there is no menu button", async () => {
+test("the tab bar names the member's pages under the page and «Sozlama», for a phone; there is no menu button", async () => {
   await signIn(ALI)
   renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
 
-  // The sidebar's column and the tab bar name the same sections; CSS shows one or the other.
+  // The sidebar's column and the tab bar name the sections; CSS shows one or the other.
   const bars = screen.getAllByRole("navigation", { name: "Bo'limlar" })
   expect(bars).toHaveLength(2)
   const tabBar = bars[1]
-  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual([
-    "Bosh sahifa",
-    "Mijozlar",
-    "Vazifalar",
-    "Mahsulotlar",
-    "Sotuv",
-  ])
-  // The rest of the sections are the profile page's: no «Yana».
-  expect(within(tabBar).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
+  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+  // The rest are «Sozlama»'s.
+  expect(within(tabBar).getByRole("button", { name: "Sozlama" })).toBeInTheDocument()
   expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
 })

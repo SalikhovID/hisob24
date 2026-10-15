@@ -25,40 +25,40 @@ vi.mock("next/link", () => ({
 
 const bar = () => screen.getByRole("navigation", { name: "Bo'limlar" })
 const tabs = () => within(bar()).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])
+const more = () => within(bar()).getByRole("button", { name: "Sozlama" })
+// lens is the place of the glass under the current button, in buttons.
+const lens = () => bar().style.getPropertyValue("--i")
 
-test("the owner's bar is the home and the first four sections, the page's section marked; the rest are the profile's", async () => {
+test("the owner's bar is the default four pages, the page marked, and «Sozlama» last", async () => {
   await signIn(ALI)
   setLocation("/customers")
   renderWithProviders(<TabBar />)
 
-  expect(await within(bar()).findByRole("link", { name: "Sotuv" })).toBeInTheDocument()
+  expect(await within(bar()).findByRole("link", { name: "Mahsulotlar" })).toBeInTheDocument()
   expect(tabs()).toEqual([
     ["Bosh sahifa", "/"],
     ["Mijozlar", "/customers"],
     ["Vazifalar", "/tasks"],
     ["Mahsulotlar", "/products"],
-    ["Sotuv", "/sales"],
   ])
   expect(within(bar()).getByRole("link", { name: "Mijozlar" })).toHaveAttribute("aria-current", "page")
   expect(within(bar()).getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current")
-  expect(within(bar()).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
+  expect(lens()).toBe("1")
+  expect(more()).toHaveAttribute("aria-haspopup", "dialog")
+  expect(more()).toHaveAttribute("aria-expanded", "false")
+  expect(more()).not.toHaveAttribute("aria-current")
+  expect(within(bar()).getAllByRole("link").at(-1)?.compareDocumentPosition(more())).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
 })
 
-test("a segmented section's tabs are its page: on the services the products are marked", async () => {
+test("on a page the bar does not hold «Sozlama» is marked, and the bar stays", async () => {
   await signIn(ALI)
   setLocation("/services")
   renderWithProviders(<TabBar />)
 
-  expect(await within(bar()).findByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("aria-current", "page")
-})
-
-test("on a section the bar does not hold no tab is marked, and the bar stays", async () => {
-  await signIn(ALI)
-  setLocation("/employees")
-  renderWithProviders(<TabBar />)
-
-  await within(bar()).findByRole("link", { name: "Sotuv" })
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
   expect(within(bar()).getAllByRole("link").filter((link) => link.getAttribute("aria-current"))).toEqual([])
+  expect(more()).toHaveAttribute("aria-current", "page")
+  expect(lens()).toBe("4")
 })
 
 test("inside a section (a record, a form, the profile) the bar steps away", async () => {
@@ -81,13 +81,20 @@ test("an employee with a role sees the sections the role lets them view", async 
   expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Vazifalar"])
 })
 
-test("the bar follows the member's own order, the home first", async () => {
-  db.members[ALI][0].navOrder = ["settings", "tasks"]
+test("the bar holds the member's own pages in their order", async () => {
+  db.members[ALI][0].tabBar = ["purchases", "home", "money_transfers"]
   await signIn(ALI)
+  setLocation("/money-transfers")
   renderWithProviders(<TabBar />)
 
-  expect(await within(bar()).findByRole("link", { name: "Sozlamalar" })).toBeInTheDocument()
-  expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Sozlamalar", "Vazifalar", "Mijozlar", "Mahsulotlar"])
+  expect(await within(bar()).findByRole("link", { name: "Xaridlar" })).toBeInTheDocument()
+  expect(tabs()).toEqual([
+    ["Xaridlar", "/purchases"],
+    ["Bosh sahifa", "/"],
+    ["O'tkazmalar", "/money-transfers"],
+  ])
+  expect(within(bar()).getByRole("link", { name: "O'tkazmalar" })).toHaveAttribute("aria-current", "page")
+  expect(lens()).toBe("2")
 })
 
 test("before the session is known the tab bar has the home alone", async () => {

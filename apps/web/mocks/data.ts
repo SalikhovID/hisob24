@@ -76,9 +76,9 @@ export interface Membership {
   fullName?: string
   roleId?: number
   locationIds?: number[]
-  // navOrder is the member's own order of the menu in the company, by
-  // section key; without one the default order (logic/roles.md, section 8).
-  navOrder?: string[]
+  // tabBar is the member's own pages of the tab bar in the company, by page
+  // key; without them the default bar (logic/roles.md, section 8).
+  tabBar?: string[]
 }
 
 // A company role: a name and the permissions it holds (logic/roles.md,

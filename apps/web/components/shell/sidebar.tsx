@@ -26,13 +26,13 @@ export interface SidebarProps {
 // and its name (the page's one on the accent's soft tint), and at the foot
 // the location switch and who is signed in, the way to the profile. Each
 // member sees the sections their permissions open (the owner all of them),
-// in their own order, the home first. It folds to icons, the logo to its
+// in the default order. It folds to icons, the logo to its
 // mark. On a narrow screen it is hidden and the sections are the tab bar's.
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
   const company = me.data?.company
-  // The sections the member may open, in their own order (logic/roles.md, section 8).
-  const items = navFor(me.data?.permissions, me.data?.nav_order)
+  // The sections the member may open (logic/roles.md, section 8).
+  const items = navFor(me.data?.permissions)
   const user = me.data?.user
   const name = user ? (user.full_name ?? formatPhone(user.phone)) : null
   const role = company ? (company.role === "owner" ? roleLabels.owner : (company.role_name ?? roleLabels.user)) : null

@@ -1661,26 +1661,30 @@ test("the products take their permissions: an employee without a role has them a
   await expect(addProduct({ kind: "product", name: "Nok", unit: "dona" })).resolves.toMatchObject({ name: "Nok" })
 })
 
-// The member's own order of the menu (logic/roles.md, section 8;
+// The member's own pages of the tab bar (logic/roles.md, section 8;
 // backend/internal/app/nav_test.go).
-test("/app/me tells the member's own order of the menu; PUT /app/me/nav keeps it, a repeated key once, null drops it", async () => {
+test("/app/me tells the member's own pages of the tab bar; PUT /app/me/tab-bar keeps them, a repeated key once, four at most, null drops them", async () => {
   await signIn(ALI)
-  expect((await call(api.GET("/app/me"))).nav_order).toBeNull()
+  expect((await call(api.GET("/app/me"))).tab_bar).toBeNull()
 
-  const me = await call(api.PUT("/app/me/nav", { body: { sections: ["tasks", "home", "tasks"] } }))
-  expect(me.nav_order).toEqual(["tasks", "home"])
+  const me = await call(api.PUT("/app/me/tab-bar", { body: { pages: ["sales", "purchases", "sales", "home"] } }))
+  expect(me.tab_bar).toEqual(["sales", "purchases", "home"])
   expect(me.company?.name).toBe("Olma Savdo")
-  expect((await call(api.GET("/app/me"))).nav_order).toEqual(["tasks", "home"])
-  expect(await failure(call(api.PUT("/app/me/nav", { body: { sections: ["tasks", "reports" as never] } })))).toMatchObject({
+  expect((await call(api.GET("/app/me"))).tab_bar).toEqual(["sales", "purchases", "home"])
+  expect(await failure(call(api.PUT("/app/me/tab-bar", { body: { pages: ["tasks", "settings" as never] } })))).toMatchObject({
     status: 400,
-    message: "Bo'lim noto'g'ri",
+    message: "Sahifa noto'g'ri",
   })
-  expect((await call(api.GET("/app/me"))).nav_order).toEqual(["tasks", "home"])
-  expect((await call(api.PUT("/app/me/nav", { body: { sections: [] } }))).nav_order).toEqual([])
-  expect((await call(api.PUT("/app/me/nav", { body: { sections: null } }))).nav_order).toBeNull()
+  expect(await failure(call(api.PUT("/app/me/tab-bar", { body: { pages: ["home", "customers", "tasks", "products", "sales"] } })))).toMatchObject({
+    status: 400,
+    message: "Panelda ko'pi bilan 4 ta sahifa",
+  })
+  expect((await call(api.GET("/app/me"))).tab_bar).toEqual(["sales", "purchases", "home"])
+  expect((await call(api.PUT("/app/me/tab-bar", { body: { pages: [] } }))).tab_bar).toEqual([])
+  expect((await call(api.PUT("/app/me/tab-bar", { body: { pages: null } }))).tab_bar).toBeNull()
 
   await signIn(VALI)
-  expect(await failure(call(api.PUT("/app/me/nav", { body: { sections: ["home"] } })))).toMatchObject({ status: 403, code: "company_required" })
+  expect(await failure(call(api.PUT("/app/me/tab-bar", { body: { pages: ["home"] } })))).toMatchObject({ status: 403, code: "company_required" })
 })
 
 // The warehouse (logic/warehouse.md; backend/internal/app/warehouse_test.go).

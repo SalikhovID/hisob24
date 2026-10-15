@@ -3,32 +3,37 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { CSSProperties } from "react"
-import { tabIcons } from "@/components/kit/tab-icons"
-import { barItems, isCurrentItem, isRootPath, navFor } from "@/lib/nav"
+import { pageIcons, tabIcons } from "@/components/kit/tab-icons"
+import { barPages, currentPin, isRootPath } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { moveTo } from "@/lib/moves"
 
-// The tab bar's tabs are 72px wide; the lens under the current one moves by
-// a tab.
 // A tab is 72px wide, narrower on a phone too narrow for five (a 360px or
 // a 320px screen keeps 12px either side).
 const TAB = "min(72px, calc((100vw - 24px) / 5))"
 
+const tab =
+  "relative z-[2] flex h-14 w-(--tab) flex-col items-center justify-center gap-[3px] rounded-[28px] text-[10.5px] font-semibold tracking-[-0.01em] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+
+const SettingsMark = tabIcons.settings
+
 // TabBar is the prototype's floating «liquid glass» bar along the bottom of
 // a narrow screen (a phone, the Telegram Mini App), where the sidebar is
-// hidden: the home and the first four of the member's sections, in their
-// own order (logic/roles.md, section 8), each a filled icon over its name.
-// The rest are the profile page's. A lens of glass stands under the page's
-// section and slides to the next. The bar shows on a section's own pages;
-// inside one (a record, a form, the profile) it steps down out of the way,
-// and the page leads back. It keeps clear of the phone's home indicator and
-// of Telegram's own bottom edge.
+// hidden: up to four pages of the member's own choice (logic/roles.md,
+// section 8; the default bar without one), each a filled icon over its
+// name, and «Sozlama» last, always, with the rest. A lens of glass stands
+// under the page's button and slides to the next; on a page the bar does
+// not hold it stands under «Sozlama». The bar shows on a section's own
+// pages; inside one (a record, a form, the profile) it steps down out of
+// the way, and the page leads back. It keeps clear of the phone's home
+// indicator and of Telegram's own bottom edge.
 export function TabBar() {
   const me = useMe()
   const pathname = usePathname()
-  const { shown } = barItems(navFor(me.data?.permissions, me.data?.nav_order))
-  const current = shown.findIndex((item) => isCurrentItem(item, pathname))
+  const pins = barPages(me.data?.permissions, me.data?.tab_bar)
+  const pinned = currentPin(pins, pathname)
+  const current = pinned < 0 ? pins.length : pinned
   const hidden = !isRootPath(pathname)
 
   return (
@@ -38,7 +43,7 @@ export function TabBar() {
       inert={hidden}
       data-slot="tab-bar"
       data-hidden={hidden || undefined}
-      style={{ "--i": String(Math.max(current, 0)), "--tab": TAB } as CSSProperties}
+      style={{ "--i": String(current), "--tab": TAB } as CSSProperties}
       className={cn(
         "fixed bottom-[calc(22px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] left-1/2 z-20 flex h-16 -translate-x-1/2 rounded-[32px] bg-glass p-1 shadow-bar ring-[0.5px] ring-glass-edge ring-inset backdrop-blur-[14px] backdrop-brightness-[1.04] backdrop-saturate-[1.9] transition-[translate,opacity] duration-[380ms] ease-drawer select-none md:hidden",
         hidden && "pointer-events-none translate-y-[140%] opacity-0",
@@ -47,32 +52,36 @@ export function TabBar() {
       <span
         aria-hidden="true"
         data-slot="tab-lens"
-        className={cn(
-          "absolute top-1 left-1 z-[1] h-14 rounded-[28px] bg-muted transition-[translate,opacity] duration-[450ms] ease-spring",
-          current < 0 && "opacity-0",
-        )}
+        className="absolute top-1 left-1 z-[1] h-14 rounded-[28px] bg-muted transition-[translate,opacity] duration-[450ms] ease-spring"
         style={{ width: "var(--tab)", translate: "calc(var(--i) * var(--tab)) 0" }}
       />
-      {shown.map((item) => {
-        const on = isCurrentItem(item, pathname)
-        const Icon = tabIcons[item.key]
+      {pins.map((page, index) => {
+        const on = index === pinned
+        const Icon = pageIcons[page.key]
         return (
           <Link
-            key={item.key}
-            href={item.href}
-            // A section is switched to at once (lib/moves.ts).
+            key={page.key}
+            href={page.href}
+            // A page from the bar is switched to at once (lib/moves.ts).
             onClick={() => moveTo(undefined)}
             aria-current={on ? "page" : undefined}
-            className={cn(
-              "relative z-[2] flex h-14 w-(--tab) flex-col items-center justify-center gap-[3px] rounded-[28px] text-[10.5px] font-semibold tracking-[-0.01em] outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              on ? "text-primary" : "text-foreground",
-            )}
+            className={cn(tab, on ? "text-primary" : "text-foreground")}
           >
             <Icon className="size-[26px]" />
-            <span className="max-w-full truncate px-0.5">{item.label}</span>
+            <span className="max-w-full truncate px-0.5">{page.label}</span>
           </Link>
         )
       })}
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={false}
+        aria-current={pinned < 0 ? "page" : undefined}
+        className={cn(tab, pinned < 0 ? "text-primary" : "text-foreground")}
+      >
+        <SettingsMark className="size-[26px]" />
+        <span className="max-w-full truncate px-0.5">Sozlama</span>
+      </button>
     </nav>
   )
 }

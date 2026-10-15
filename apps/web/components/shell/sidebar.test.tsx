@@ -56,13 +56,13 @@ test("an employee sees no section of the owner's", async () => {
   expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
 })
 
-test("the sidebar follows the member's own order, the home first", async () => {
-  db.members[ALI][0].navOrder = ["tasks", "home"]
+test("the sidebar keeps the default order whatever the member's tab bar holds", async () => {
+  db.members[ALI][0].tabBar = ["employees", "tasks"]
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
 
   await within(sidebar()).findByRole("link", { name: "Xodimlar" })
-  expect(sections()).toEqual(["Bosh sahifa", "Vazifalar", "Mijozlar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {

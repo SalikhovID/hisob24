@@ -101,8 +101,7 @@ export const navItems: NavItem[] = [
   { key: "settings", label: "Sozlamalar", href: "/settings", icon: SettingsIcon, permission: "settings.view" },
 ]
 
-// navKeys are the section keys in the default order: what an order of the
-// menu is made of.
+// navKeys are the section keys in the default order.
 export const navKeys: NavKey[] = navItems.map((item) => item.key)
 
 // NavPage is a page of the menu, of its section: what the tab bar and
@@ -130,38 +129,20 @@ export const navPages: NavPage[] = navItems.flatMap((item): NavPage[] => {
   return [{ key: item.key as PageKey, label: item.label, href: item.href, section: item.key, permissions }, ...tabs]
 })
 
-// BAR_SECTIONS is how many sections the tab bar shows after the home; the
-// rest are the profile page's.
-export const BAR_SECTIONS = 4
-
 // navFor is the sections someone with permissions may open (what /app/me
 // told; undefined is a session not known yet, which may open the home
-// alone): the home first, as the prototype locks it, then the others in the
-// member's own order (navOrder, what /app/me told; where it puts the home
-// does not count) with what it does not name after them in the default
-// order. A section with tabs opens at the first tab the member may see, a
-// hub at its own page.
-export function navFor(permissions: readonly Permission[] | undefined, navOrder?: readonly string[] | null): NavItem[] {
-  const visible = navItems.flatMap((item) => {
+// alone), in the default order: the sidebar's. A section with tabs opens at
+// the first tab the member may see, a hub at its own page.
+export function navFor(permissions: readonly Permission[] | undefined): NavItem[] {
+  return navItems.flatMap((item) => {
     if (item.tabs) {
       const tab = item.tabs.find((candidate) => can(permissions, candidate.permission))
       return tab ? [{ ...item, href: item.hub ? item.href : tab.href }] : []
     }
     return !item.permission || can(permissions, item.permission) ? [item] : []
   })
-  const home = visible.filter((item) => item.key === "home")
-  const rest = visible.filter((item) => item.key !== "home")
-  if (!navOrder) return [...home, ...rest]
-  // The sort is stable: what the order does not name keeps the default order.
-  const rank = new Map(navOrder.map((key, index) => [key, index]))
-  return [...home, ...rest.sort((a, b) => (rank.get(a.key) ?? navOrder.length) - (rank.get(b.key) ?? navOrder.length))]
 }
 
-// barItems splits the sections for the tab bar: the home and the first
-// BAR_SECTIONS after it stand in the bar, the rest are the profile page's.
-export function barItems(items: NavItem[]): { shown: NavItem[]; more: NavItem[] } {
-  return { shown: items.slice(0, BAR_SECTIONS + 1), more: items.slice(BAR_SECTIONS + 1) }
-}
 
 // rootsOf are the pages that are a section's own (where the tab bar shows):
 // its address, and for a section whose tabs a segmented control switches,

@@ -12,7 +12,6 @@ import { toast } from "sonner"
 import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
 import { clearSession, setAccessToken } from "./session"
-import type { NavKey } from "./nav"
 import type { FinanceKind, Location, ProductKind, Task, TaskPage } from "./types"
 
 export const meKey = ["me"] as const
@@ -428,9 +427,6 @@ export function useProduct(companyId: number | null, id: number) {
   })
 }
 
-// useSetNavOrder keeps the member's own order of the menu in the company
-// (null: the default; logic/roles.md, section 8). The API answers with
-// /app/me as it is now, which the cache takes.
 export const suppliersKey = (companyId: number | null) => ["suppliers", companyId] as const
 
 // SupplierFilter narrows the suppliers: the active or the inactive ones, a
@@ -578,14 +574,6 @@ export function useProductSuggestions(companyId: number | null, text: string, ki
     // Nothing typed is the first active ones: a picker's sheet opens with them.
     enabled: companyId !== null,
     placeholderData: keepPreviousData,
-  })
-}
-
-export function useSetNavOrder() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (sections: NavKey[] | null) => call(api.PUT("/app/me/nav", { body: { sections } })),
-    onSuccess: (me) => queryClient.setQueryData(meKey, me),
   })
 }
 

@@ -16,7 +16,7 @@ import { salesHandlers } from "./sales"
 import { stockHandlers } from "./stock"
 import { warehouseHandlers } from "./warehouse"
 import { api, bearer, fail, isMember, memberSession, normalizePhone, ownerSession, permittedSession, read, type Session } from "./gate"
-import { navKeys } from "@/lib/nav"
+import { BAR_LIMIT, navPages } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
 import { accountsOf, companiesOf, currenciesOf, db, join, liveLocations, locationsOf, LOGIN_CODE, membersOf, nameIn, paidUp, permissionsOf } from "./data"
 
@@ -53,7 +53,7 @@ const ownerProtected = () =>
 
 // meOf is what /app/me answers for a session: the user under the name they
 // go by in the company, the company and all of theirs, what they may do,
-// the locations they may work in and their own order of the menu there.
+// the locations they may work in and their own pages of the tab bar there.
 function meOf(user: Session) {
   const companies = companiesOf(user.phone)
   const membership = user.companyId === null ? undefined : db.members[user.phone]?.find((m) => m.companyId === user.companyId)
@@ -65,8 +65,8 @@ function meOf(user: Session) {
     permissions: user.companyId === null ? [] : permissionsOf(user.phone, user.companyId),
     // And the locations they may work in there.
     locations: user.companyId === null ? [] : locationsOf(user.phone, user.companyId),
-    // And the order of the menu they set there, null for the default.
-    nav_order: membership?.navOrder ?? null,
+    // And the pages of the tab bar they chose there, null for the default.
+    tab_bar: membership?.tabBar ?? null,
     // And the currencies the company has on, with the rates in force.
     currencies: user.companyId === null ? [] : currenciesOf(user.companyId),
     // And the accounts its money sits in.
@@ -187,20 +187,24 @@ export const handlers = [
     return HttpResponse.json(meOf(user))
   }),
 
-  // The member's own order of the menu in the company (logic/roles.md,
-  // section 8): the keys from the list, a repeated one once; null drops it.
-  http.put(api("/app/me/nav"), async ({ request }) => {
+  // The member's own pages of the tab bar in the company (logic/roles.md,
+  // section 8): the keys from the list in their order, a repeated one once,
+  // four at most; null drops them.
+  http.put(api("/app/me/tab-bar"), async ({ request }) => {
     const member = memberSession(request)
     if (member instanceof Response) return member
-    const { sections } = (await request.json()) as { sections?: unknown }
+    const { pages } = (await request.json()) as { pages?: unknown }
     const membership = db.members[member.phone].find((m) => m.companyId === member.companyId)!
-    if (sections === null || sections === undefined) {
-      delete membership.navOrder
+    if (pages === null || pages === undefined) {
+      delete membership.tabBar
     } else {
-      if (!Array.isArray(sections) || sections.some((key) => !(navKeys as string[]).includes(key as string))) {
-        return fail(400, "validation_error", "Bo'lim noto'g'ri")
+      const keys: string[] = navPages.map((page) => page.key)
+      if (!Array.isArray(pages) || pages.some((key) => !keys.includes(key as string))) {
+        return fail(400, "validation_error", "Sahifa noto'g'ri")
       }
-      membership.navOrder = [...new Set(sections as string[])]
+      const unique = [...new Set(pages as string[])]
+      if (unique.length > BAR_LIMIT) return fail(400, "validation_error", "Panelda ko'pi bilan 4 ta sahifa")
+      membership.tabBar = unique
     }
     return HttpResponse.json(meOf({ phone: member.phone, companyId: member.companyId }))
   }),
