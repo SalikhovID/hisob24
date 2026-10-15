@@ -5,6 +5,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Foot, Group, SectionHeading } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
+import { Refusal } from "@/components/refusal"
 import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
 import { SortableList } from "@/components/sortable-list"
@@ -28,7 +29,7 @@ function tile(page: NavPage) {
 // in their order, each with the way out; under «Qo'shish», the rest of the
 // pages the member may open, under their sections, each with the way in
 // while the bar has room. Nothing is kept before «Saqlash»: the member's
-// own, on every device in this company.
+// own, on every device in this company; a bar the API refuses says why.
 export function TabBarSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const me = useMe()
   return (
@@ -116,6 +117,7 @@ function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
           </Group>
         </div>
       ))}
+      {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
       <DialogFooter>
         <MainButton
           pending={save.isPending}

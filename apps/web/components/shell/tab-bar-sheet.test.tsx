@@ -1,8 +1,10 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { ALI, db, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
+import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
 import { TabBarSheet } from "./tab-bar-sheet"
 
@@ -101,4 +103,16 @@ test("«Saqlash» keeps the bar's pages for the member, says so and closes the s
   await waitFor(() => expect(db.members[ALI][0].tabBar).toEqual(["home", "customers", "products", "purchases"]))
   expect(await screen.findByText("Pastki panel saqlandi")).toBeInTheDocument()
   expect(onOpenChange).toHaveBeenCalledWith(false)
+})
+
+test("a bar the API refuses says why, and the sheet stays", async () => {
+  server.use(http.put("*/api/app/me/tab-bar", () => HttpResponse.json({ error: "validation_error", message: "Sahifa noto'g'ri" }, { status: 400 })))
+  await signIn(ALI)
+  const onOpenChange = vi.fn()
+  const { user } = renderWithProviders(<TabBarSheet open onOpenChange={onOpenChange} />)
+
+  const bar = await sheet()
+  await user.click(await within(bar).findByRole("button", { name: "Saqlash" }))
+  expect(await within(bar).findByText("Sahifa noto'g'ri")).toBeInTheDocument()
+  expect(onOpenChange).not.toHaveBeenCalled()
 })
