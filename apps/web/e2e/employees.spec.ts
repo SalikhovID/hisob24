@@ -26,13 +26,16 @@ async function openMember(page: Page, name: RegExp) {
   return sheet
 }
 
-// openEmployees signs the owner of Olma Savdo in and opens the employees.
+// openEmployees signs the owner of Olma Savdo in and opens the employees,
+// once their list has come: a test that changes the company or the owner's
+// standing after it means the page's next request, not its first.
 async function openEmployees(page: Page) {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   await openSection(page, "Xodimlar")
   await expect(page).toHaveURL(/\/employees$/)
   await expect(page.getByRole("heading", { name: "Xodimlar" })).toBeVisible()
+  await expect(members(page).getByText("Siz")).toBeVisible()
 }
 
 async function addEmployee(page: Page, number: string, name: string) {
