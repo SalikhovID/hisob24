@@ -140,3 +140,20 @@ test("«Sozlama» opens the menu of every page", async () => {
   expect(await screen.findByRole("dialog", { name: "Sozlama" })).toBeInTheDocument()
   expect(button).toHaveAttribute("aria-expanded", "true")
 })
+
+test("«Pastki panelni sozlash» leads from «Sozlama» to the bar's pages; what is saved stands in the bar at once", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<TabBar />)
+
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
+  await user.click(more())
+  const menu = await screen.findByRole("dialog", { name: "Sozlama" })
+  await user.click(await within(menu).findByRole("button", { name: "Pastki panelni sozlash" }))
+  const sheet = await screen.findByRole("dialog", { name: "Pastki panel" })
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sozlama" })).not.toBeInTheDocument())
+
+  await user.click(await within(sheet).findByRole("button", { name: "Olib tashlash: Vazifalar" }))
+  await user.click(within(sheet).getByRole("button", { name: "Saqlash" }))
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Pastki panel" })).not.toBeInTheDocument())
+  expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Mijozlar", "Mahsulotlar"])
+})

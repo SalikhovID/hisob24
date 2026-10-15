@@ -9,6 +9,7 @@ import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { moveTo } from "@/lib/moves"
 import { MenuSheet } from "./menu-sheet"
+import { TabBarSheet } from "./tab-bar-sheet"
 
 // A tab is 72px wide, narrower on a phone too narrow for five (a 360px or
 // a 320px screen keeps 12px either side).
@@ -25,7 +26,8 @@ const SettingsMark = tabIcons.settings
 // section 8; the default bar without one), each a filled icon over its
 // name, and «Sozlama» last, always, with the rest. A lens of glass stands
 // under the page's button and slides to the next; on a page the bar does
-// not hold it stands under «Sozlama», which opens the menu of every page.
+// not hold it stands under «Sozlama», which opens the menu of every page
+// and, from it, the choice of the bar's pages.
 // The bar shows on the menu's pages (a hub's pages too: they may stand in
 // it); inside one (a record, a form, the profile) it steps down out of the
 // way, and the page leads back. It keeps clear of the phone's home
@@ -37,7 +39,9 @@ export function TabBar() {
   const pinned = currentPin(pins, pathname)
   const current = pinned < 0 ? pins.length : pinned
   const hidden = !isMenuPath(pathname)
-  const [menu, setMenu] = useState(false)
+  // sheet is the sheet open over the bar: «Sozlama», or the choice of the
+  // bar's pages it leads to.
+  const [sheet, setSheet] = useState<null | "menu" | "bar">(null)
 
   return (
     <>
@@ -79,16 +83,17 @@ export function TabBar() {
         <button
           type="button"
           aria-haspopup="dialog"
-          aria-expanded={menu}
+          aria-expanded={sheet === "menu"}
           aria-current={pinned < 0 ? "page" : undefined}
-          onClick={() => setMenu(true)}
+          onClick={() => setSheet("menu")}
           className={cn(tab, pinned < 0 ? "text-primary" : "text-foreground")}
         >
           <SettingsMark className="size-[26px]" />
           <span className="max-w-full truncate px-0.5">Sozlama</span>
         </button>
       </nav>
-      <MenuSheet open={menu} onOpenChange={setMenu} onCustomize={() => setMenu(false)} />
+      <MenuSheet open={sheet === "menu"} onOpenChange={(open) => setSheet(open ? "menu" : null)} onCustomize={() => setSheet("bar")} />
+      <TabBarSheet open={sheet === "bar"} onOpenChange={(open) => setSheet(open ? "bar" : null)} />
     </>
   )
 }
