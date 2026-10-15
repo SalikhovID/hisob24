@@ -1,6 +1,6 @@
 import { type ComponentProps, type FC, useId } from "react"
 import { MARK_24 } from "@/components/logo"
-import type { NavKey } from "@/lib/nav"
+import type { NavKey, PageKey } from "@/lib/nav"
 
 // The tab bar's icons are the prototype's filled marks, 28×28, in the
 // current color; the ones with a cut-out (the home's "24", the mark's own
@@ -127,4 +127,168 @@ export const tabIcons: Record<NavKey, FC<Props>> = {
   finance: Finance,
   employees: Employees,
   settings: Settings,
+}
+
+// The pages of the sections with several (logic/roles.md, section 8) wear
+// marks of the same kind, after the lucide icons their rows wear: the
+// services a wrench, the purchases a receipt, the transfers two arrows,
+// the inventories a clipboard ticked, the opening stock a crate with a
+// plus, the suppliers a truck, the expenses and the money transfers a coin
+// with what the money does.
+
+const Services: FC<Props> = (props) => {
+  const id = useId()
+  return (
+    <svg {...frame(props)}>
+      <mask id={id}>
+        <rect width="28" height="28" fill="#fff" />
+        <rect x="11.6" y="0" width="4.8" height="7.8" rx="1" fill="#000" transform="rotate(45 14 14)" />
+        <circle cx="14" cy="23.6" r="1.3" fill="#000" transform="rotate(45 14 14)" />
+      </mask>
+      <g mask={`url(#${id})`}>
+        <g transform="rotate(45 14 14)">
+          <circle cx="14" cy="7.6" r="6.4" />
+          <rect x="11.4" y="11" width="5.2" height="15.6" rx="2.6" />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+const Purchases: FC<Props> = (props) => {
+  const id = useId()
+  return (
+    <svg {...frame(props)}>
+      <mask id={id}>
+        <rect width="28" height="28" fill="#fff" />
+        <path d="M9 9.5h10M9 14h10M9 18.5h6" stroke="#000" strokeWidth="2.2" strokeLinecap="round" />
+      </mask>
+      <path
+        d="M4.5 5A1.5 1.5 0 0 1 6 3.5h16A1.5 1.5 0 0 1 23.5 5v20.5l-3.17-2.1-3.16 2.1-3.17-2.1-3.17 2.1-3.16-2.1-3.17 2.1z"
+        mask={`url(#${id})`}
+      />
+    </svg>
+  )
+}
+
+const Transfers: FC<Props> = (props) => (
+  <svg {...frame(props)}>
+    <path d="M5.5 6.5H18v-3l7 5-7 5v-3H5.5a2 2 0 0 1 0-4z" />
+    <path d="M22.5 17.5H10v-3l-7 5 7 5v-3h12.5a2 2 0 0 0 0-4z" />
+  </svg>
+)
+
+const Inventories: FC<Props> = (props) => {
+  const id = useId()
+  return (
+    <svg {...frame(props)}>
+      <mask id={id}>
+        <rect width="28" height="28" fill="#fff" />
+        {/* A gap round the clip, the clip itself, the tick. */}
+        <rect x="8.2" y="0.7" width="11.6" height="7.6" rx="2.8" fill="#000" />
+        <rect x="9.5" y="2" width="9" height="5" rx="2" fill="#fff" />
+        <path d="M9.4 16l3.1 3.1 6.2-6.6" stroke="#000" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </mask>
+      <g mask={`url(#${id})`}>
+        <rect x="4.5" y="4.5" width="19" height="21" rx="4.5" />
+        <rect x="9.5" y="2" width="9" height="5" rx="2" />
+      </g>
+    </svg>
+  )
+}
+
+const OpeningStock: FC<Props> = (props) => {
+  const id = useId()
+  return (
+    <svg {...frame(props)}>
+      <mask id={id}>
+        <rect width="28" height="28" fill="#fff" />
+        <path d="M2 10.2h24" stroke="#000" strokeWidth="1.5" />
+        <path d="M14 13.6v7.2M10.4 17.2h7.2" stroke="#000" strokeWidth="2.4" strokeLinecap="round" />
+      </mask>
+      <g mask={`url(#${id})`}>
+        <rect x="2.5" y="4.5" width="23" height="6" rx="2" />
+        <rect x="4" y="9.5" width="20" height="15" rx="3" />
+      </g>
+    </svg>
+  )
+}
+
+const Suppliers: FC<Props> = (props) => {
+  const id = useId()
+  return (
+    <svg {...frame(props)}>
+      <mask id={id}>
+        <rect width="28" height="28" fill="#fff" />
+        {/* A gap round each wheel, the wheel, its hub, the cab's window. */}
+        <circle cx="7.5" cy="21" r="4.2" fill="#000" />
+        <circle cx="20.5" cy="21" r="4.2" fill="#000" />
+        <circle cx="7.5" cy="21" r="2.9" fill="#fff" />
+        <circle cx="20.5" cy="21" r="2.9" fill="#fff" />
+        <circle cx="7.5" cy="21" r="1.1" fill="#000" />
+        <circle cx="20.5" cy="21" r="1.1" fill="#000" />
+        <path d="M19.3 11.8h1.9l2.2 3.2h-4.1z" fill="#000" />
+      </mask>
+      <g mask={`url(#${id})`}>
+        <rect x="1.5" y="5.5" width="15.5" height="14.5" rx="2" />
+        <path d="M17 9.8h4.8a2 2 0 0 1 1.65.87l2.85 4.15a2 2 0 0 1 .35 1.13V19a1 1 0 0 1-1 1H17z" />
+        <circle cx="7.5" cy="21" r="2.9" />
+        <circle cx="20.5" cy="21" r="2.9" />
+      </g>
+    </svg>
+  )
+}
+
+const Expenses: FC<Props> = (props) => {
+  const id = useId()
+  return (
+    <svg {...frame(props)}>
+      <mask id={id}>
+        <rect width="28" height="28" fill="#fff" />
+        <path d="M10 18l8-8M12 10h6v6" stroke="#000" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </mask>
+      <circle cx="14" cy="14" r="11" mask={`url(#${id})`} />
+    </svg>
+  )
+}
+
+const MoneyTransfers: FC<Props> = (props) => {
+  const id = useId()
+  return (
+    <svg {...frame(props)}>
+      <mask id={id}>
+        <rect width="28" height="28" fill="#fff" />
+        <path
+          d="M8.5 11h11M16.5 8l3 3-3 3M19.5 17h-11M11.5 14l-3 3 3 3"
+          stroke="#000"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </mask>
+      <circle cx="14" cy="14" r="11" mask={`url(#${id})`} />
+    </svg>
+  )
+}
+
+// pageIcons are the tab bar's icons of the menu's pages: a section's own
+// page wears the section's, the cash the finance's wallet.
+export const pageIcons: Record<PageKey, FC<Props>> = {
+  home: Home,
+  customers: Customers,
+  tasks: Tasks,
+  products: Products,
+  services: Services,
+  sales: Sales,
+  warehouse: Warehouse,
+  purchases: Purchases,
+  transfers: Transfers,
+  inventories: Inventories,
+  opening_stock: OpeningStock,
+  suppliers: Suppliers,
+  accounts: Finance,
+  expenses: Expenses,
+  money_transfers: MoneyTransfers,
+  employees: Employees,
 }
