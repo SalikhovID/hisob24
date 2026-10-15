@@ -269,3 +269,13 @@ export function settingsPagesFor(permissions: readonly Permission[] | undefined,
   if (!can(permissions, "settings.view")) return []
   return settingsPages.filter((page) => owner || !page.ownerOnly)
 }
+
+// menuPaths are the menu's pages: every section's own, its tabs, the hubs
+// and their pages (the warehouse's, the settings').
+const menuPaths = new Set([...rootPaths, ...navPages.map((page) => page.href), ...settingsPages.map((page) => page.href)])
+
+// isMenuPath says whether the page at pathname is one of the menu's: there
+// the tab bar shows; a record, a form or the profile hide it.
+export function isMenuPath(pathname: string): boolean {
+  return menuPaths.has(pathname)
+}

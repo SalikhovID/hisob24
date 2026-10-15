@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barItems, barPages, currentPin, defaultBar, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf, settingsPagesFor } from "./nav"
+import { barItems, barPages, currentPin, defaultBar, isCurrent, isCurrentItem, isMenuPath, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf, settingsPagesFor } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -213,4 +213,13 @@ test("«Sozlama» holds the settings' pages for whoever may see the settings, th
   ])
   expect(pages(["settings.view"], false)).toEqual(pages(allPermissions, true).slice(0, 6))
   expect(pages(defaultPermissions, false)).toEqual([])
+})
+
+test("the tab bar shows on every page of the menu: the sections' own, the tabs, the hubs and their pages; a record, a form or the profile are inside one", () => {
+  for (const path of ["/", "/customers", "/tasks", "/products", "/services", "/sales", "/warehouse", "/purchases", "/transfers", "/inventories", "/opening-stock", "/suppliers", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings", "/settings/customer-types", "/settings/roles"]) {
+    expect(isMenuPath(path), path).toBe(true)
+  }
+  for (const path of ["/customers/7", "/purchases/new", "/purchases/3", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/settings/task-types/4", "/accounts/4", "/select-company"]) {
+    expect(isMenuPath(path), path).toBe(false)
+  }
 })
