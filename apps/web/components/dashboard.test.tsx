@@ -43,12 +43,12 @@ test("an employee with a role sees the role's name in the head", async () => {
   expect(await screen.findByRole("link", { name: "Olma Savdo Vali A. · Kuzatuvchi" })).toBeInTheDocument()
 })
 
-test("the sections the bar does not hold are a row away each", async () => {
+test("the home lists no sections: the pages the bar does not hold are «Sozlama»'s", async () => {
   await signIn(ALI)
   renderWithProviders(<Dashboard />)
 
-  const sections = await screen.findByRole("list", { name: "Bo'limlar" })
-  expect(within(sections).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["/warehouse", "/accounts", "/employees", "/settings"])
+  expect(await screen.findByText(/Obuna .* gacha faol/)).toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Bo'limlar" })).not.toBeInTheDocument()
 })
 
 test("the subscription's end is said at the foot", async () => {

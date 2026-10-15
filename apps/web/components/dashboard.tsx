@@ -6,9 +6,7 @@ import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
 import { MONTHS } from "@/lib/format"
 import { HomeBanner } from "@/components/kit/banner"
-import { Foot, Group, Row } from "@/components/kit/group"
-import { tabIcons } from "@/components/kit/tab-icons"
-import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
+import { Foot } from "@/components/kit/group"
 import { HomeHero } from "@/components/home/home-hero"
 import { Overview } from "@/components/home/overview"
 import { QuickTiles } from "@/components/home/quick-tiles"
@@ -19,7 +17,6 @@ import { Failed, Loading } from "@/components/states"
 import { formatDate } from "@/lib/format"
 import { useHomeScreenOffer } from "@/lib/home-screen"
 import { shortName } from "@/lib/initials"
-import { barItems, navFor } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
 import { dashboardKey, useDashboard, useMe, useTaskStages } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
@@ -31,9 +28,8 @@ import { useLocation } from "@/lib/use-location"
 // and the location switch; the one figure that matters most (the hero),
 // the quick tiles; inside Telegram, the offer to put the app on the home
 // screen; the overview's cards and the nearest deadlines of the current
-// location; the sections the tab bar does not hold, a row away each (on a
-// phone: a wide screen has them in the sidebar); and the subscription's
-// end. The greeting is the page's heading for a screen reader. The shell
+// location; and the subscription's end. The pages the tab bar does not
+// hold are «Sozlama»'s (a wide screen has them in the sidebar). The greeting is the page's heading for a screen reader. The shell
 // around it shows it only to a session with a company.
 export function Dashboard() {
   const me = useMe()
@@ -51,7 +47,6 @@ export function Dashboard() {
   const user = data.user
   const name = user.full_name ?? formatPhone(user.phone)
   const role = company.role === "owner" ? roleLabels.owner : (company.role_name ?? roleLabels.user)
-  const { more } = barItems(navFor(data.permissions, data.nav_order))
 
   return (
     <>
@@ -109,26 +104,6 @@ export function Dashboard() {
             />
           )}
         </>
-      )}
-
-      {more.length > 0 && (
-        <Group label="Bo'limlar" inset="tile" className="md:hidden">
-          {more.map((item) => {
-            const Icon = tabIcons[item.key]
-            return (
-              <Row
-                key={item.key}
-                href={item.href}
-                media={
-                  <TileIcon color={sectionColors[item.key]}>
-                    <Icon className="size-5" />
-                  </TileIcon>
-                }
-                title={item.label}
-              />
-            )
-          })}
-        </Group>
       )}
 
       <Foot center>Obuna {formatDate(company.end_date)} gacha faol</Foot>
