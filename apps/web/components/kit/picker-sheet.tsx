@@ -4,7 +4,7 @@ import { CheckIcon } from "lucide-react"
 import { type CSSProperties, type KeyboardEvent, type ReactNode, useState } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
+import { cn, norm } from "@/lib/utils"
 import { PickRow } from "./form-row"
 import { Foot } from "./group"
 import { MainButton } from "./main-button"
@@ -20,10 +20,6 @@ export interface PickerOption {
   badge?: ReactNode
   disabled?: boolean
 }
-
-// norm is text for matching: lowercase, the apostrophes of o' and g' and
-// the tutuq dropped, so "o'zbek", "oʻzbek" and "ozbek" meet.
-const norm = (text: string) => text.toLowerCase().replace(/['ʻʼ’`]/g, "")
 
 const matches = (options: PickerOption[], query: string) =>
   query === "" ? options : options.filter((option) => norm(`${option.label} ${option.sub ?? ""}`).includes(norm(query)))

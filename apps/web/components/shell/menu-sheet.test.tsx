@@ -102,3 +102,21 @@ test("the page's own tile is marked; the bar's pages are said to stand in it", a
   expect(inBar.map((link) => link.textContent)).toEqual(["Bosh sahifa", "Xaridlar"])
   expect(within(menu).getByRole("link", { name: "Xaridlar" })).toHaveAccessibleDescription("Pastki panelda")
 })
+
+test("the search finds the pages by name, the apostrophes aside; with none found it says so", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<MenuSheet {...props()} />)
+
+  const menu = await sheet()
+  await within(menu).findByRole("list", { name: "Ombor" })
+  const search = within(menu).getByRole("searchbox", { name: "Qidirish" })
+  expect(search).toHaveAttribute("placeholder", "Sahifani qidirish")
+  await user.type(search, "kochir")
+  expect(within(menu).getAllByRole("link").map((link) => link.textContent)).toEqual(["Ko'chirishlar"])
+  expect(within(menu).queryByRole("list", { name: "Bo'limlar" })).not.toBeInTheDocument()
+
+  await user.clear(search)
+  await user.type(search, "zzz")
+  expect(within(menu).getByText("Hech narsa topilmadi")).toBeInTheDocument()
+  expect(within(menu).queryAllByRole("link")).toEqual([])
+})

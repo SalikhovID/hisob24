@@ -3,15 +3,16 @@
 import { PinIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { type ReactNode, useId } from "react"
+import { type ReactNode, useId, useState } from "react"
 import { SectionHeading } from "@/components/kit/group"
+import { SearchBox } from "@/components/kit/search-box"
 import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { barPages, navItems, pagesFor, settingsPagesFor } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import type { Me } from "@/lib/types"
-import { cn } from "@/lib/utils"
+import { cn, norm } from "@/lib/utils"
 
 // MenuTile is a page as «Sozlama» shows it: its address, name and tile
 // icon, and whether it stands in the tab bar.
@@ -68,11 +69,9 @@ function sectionsOf(me: Me): MenuSection[] {
 
 // MenuSheet is «Sozlama» of the tab bar (as enwin's «⋯»): the pages the
 // member may open, as tiles under their sections, the page's own marked
-// and the bar's pages pinned.
+// and the bar's pages pinned, with a search over their names.
 export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void; onCustomize: () => void }) {
   const me = useMe()
-  const pathname = usePathname()
-  const pinHint = useId()
   const data = me.data
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,38 +80,55 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
           <DialogTitle>Sozlama</DialogTitle>
           {data?.company && <DialogDescription>{data.company.name}</DialogDescription>}
         </DialogHeader>
-        <span id={pinHint} hidden>
-          Pastki panelda
-        </span>
-        {data &&
-          sectionsOf(data).map((section) => (
-            <section key={section.label} className="mb-5">
-              {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
-              <ul role="list" aria-label={section.label} className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {section.tiles.map((tile) => {
-                  const current = tile.href === pathname
-                  return (
-                    <li key={tile.href}>
-                      <Link
-                        href={tile.href}
-                        aria-current={current ? "page" : undefined}
-                        aria-describedby={tile.pinned ? pinHint : undefined}
-                        className={cn(
-                          "relative flex h-full min-h-[92px] flex-col items-center justify-center gap-2 rounded-tile bg-card px-1 py-3 text-center text-xs leading-tight font-medium no-underline outline-none transition-transform duration-150 ease-out-expo active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50",
-                          current && "bg-primary-soft text-primary",
-                        )}
-                      >
-                        {tile.pinned && <PinIcon aria-hidden="true" strokeWidth={2.2} className="absolute top-2 right-2 size-3.5 text-muted-foreground" />}
-                        {tile.media}
-                        <span className="line-clamp-2">{tile.label}</span>
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          ))}
+        {data && <MenuBody me={data} />}
       </DialogContent>
     </Dialog>
+  )
+}
+
+// MenuBody is the open sheet's search and tiles: it mounts with every
+// opening (the closed sheet holds nothing), so each one starts unsearched.
+function MenuBody({ me }: { me: Me }) {
+  const pathname = usePathname()
+  const pinHint = useId()
+  const [query, setQuery] = useState("")
+  const sections = sectionsOf(me)
+    .map((section) => ({ ...section, tiles: section.tiles.filter((tile) => norm(tile.label).includes(norm(query))) }))
+    .filter((section) => section.tiles.length > 0)
+  return (
+    <>
+      <span id={pinHint} hidden>
+        Pastki panelda
+      </span>
+      <SearchBox value={query} onSearch={setQuery} placeholder="Sahifani qidirish" delay={0} />
+      {sections.length === 0 && <p className="py-10 text-center text-md text-muted-foreground">Hech narsa topilmadi</p>}
+      {sections.map((section) => (
+        <section key={section.label} className="mb-5">
+          {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
+          <ul role="list" aria-label={section.label} className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {section.tiles.map((tile) => {
+              const current = tile.href === pathname
+              return (
+                <li key={tile.href}>
+                  <Link
+                    href={tile.href}
+                    aria-current={current ? "page" : undefined}
+                    aria-describedby={tile.pinned ? pinHint : undefined}
+                    className={cn(
+                      "relative flex h-full min-h-[92px] flex-col items-center justify-center gap-2 rounded-tile bg-card px-1 py-3 text-center text-xs leading-tight font-medium no-underline outline-none transition-transform duration-150 ease-out-expo active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50",
+                      current && "bg-primary-soft text-primary",
+                    )}
+                  >
+                    {tile.pinned && <PinIcon aria-hidden="true" strokeWidth={2.2} className="absolute top-2 right-2 size-3.5 text-muted-foreground" />}
+                    {tile.media}
+                    <span className="line-clamp-2">{tile.label}</span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ))}
+    </>
   )
 }
