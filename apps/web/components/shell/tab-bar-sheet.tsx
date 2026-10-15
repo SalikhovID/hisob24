@@ -2,7 +2,7 @@
 
 import { CircleMinusIcon, CirclePlusIcon } from "lucide-react"
 import { useState } from "react"
-import { Group, SectionHeading } from "@/components/kit/group"
+import { Foot, Group, SectionHeading } from "@/components/kit/group"
 import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
 import { SortableList } from "@/components/sortable-list"
@@ -23,8 +23,9 @@ function tile(page: NavPage) {
 
 // TabBarSheet is «Pastki panel» (enwin's «Panelni sozlash»): the choice of
 // the tab bar's pages (logic/roles.md, section 8). On top, the bar's pages
-// in their order; under «Qo'shish», the rest of the pages the member may
-// open, under their sections.
+// in their order, each with the way out; under «Qo'shish», the rest of the
+// pages the member may open, under their sections, each with the way in
+// while the bar has room.
 export function TabBarSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const me = useMe()
   return (
@@ -43,37 +44,48 @@ export function TabBarSheet({ open, onOpenChange }: { open: boolean; onOpenChang
 // BarForm is the open sheet's choice: it mounts with every opening (the
 // closed sheet holds nothing), so each one starts from the bar as it is.
 function BarForm({ me }: { me: Me }) {
-  const [draft] = useState<PageKey[]>(() => barPages(me.permissions, me.tab_bar).map((page) => page.key))
+  const [draft, setDraft] = useState<PageKey[]>(() => barPages(me.permissions, me.tab_bar).map((page) => page.key))
   const open = pagesFor(me.permissions)
   const pinned = draft.flatMap((key) => open.find((page) => page.key === key) ?? [])
   const rest = open.filter((page) => !draft.includes(page.key))
+  const full = pinned.length >= BAR_LIMIT
 
   return (
     <>
       <SectionHeading>
         Panelda · {pinned.length}/{BAR_LIMIT}
       </SectionHeading>
-      <SortableList
-        label="Panelda"
-        items={pinned}
-        getId={(page) => page.key}
-        getLabel={(page) => page.label}
-        onReorder={() => {}}
-        className="mb-6 overflow-hidden rounded-group bg-card [--inset:100px]"
-        renderItem={(page, handle) => (
-          <div data-slot="row" className="flex min-h-12 items-center gap-3 pr-1 pl-4">
-            {handle}
-            {tile(page)}
-            <span data-slot="row-title" className="min-w-0 flex-1 truncate text-base">
-              {page.label}
-            </span>
-            <button type="button" aria-label={`Olib tashlash: ${page.label}`} className="grid size-11 shrink-0 place-items-center text-destructive">
-              <CircleMinusIcon aria-hidden="true" className="size-[22px]" />
-            </button>
-          </div>
-        )}
-      />
+      {pinned.length === 0 ? (
+        <Foot className="rounded-group bg-card py-3.5 text-md">Panelda sahifa yo&apos;q — pastdagi ro&apos;yxatdan qo&apos;shing.</Foot>
+      ) : (
+        <SortableList
+          label="Panelda"
+          items={pinned}
+          getId={(page) => page.key}
+          getLabel={(page) => page.label}
+          onReorder={() => {}}
+          className="mb-6 overflow-hidden rounded-group bg-card [--inset:100px]"
+          renderItem={(page, handle) => (
+            <div data-slot="row" className="flex min-h-12 items-center gap-3 pr-1 pl-4">
+              {handle}
+              {tile(page)}
+              <span data-slot="row-title" className="min-w-0 flex-1 truncate text-base">
+                {page.label}
+              </span>
+              <button
+                type="button"
+                aria-label={`Olib tashlash: ${page.label}`}
+                onClick={() => setDraft((keys) => keys.filter((key) => key !== page.key))}
+                className="grid size-11 shrink-0 place-items-center text-destructive outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <CircleMinusIcon aria-hidden="true" className="size-[22px]" />
+              </button>
+            </div>
+          )}
+        />
+      )}
       <SectionHeading>Qo&apos;shish</SectionHeading>
+      {full && <Foot>Ko&apos;pi bilan 4 ta sahifa — yangisini qo&apos;shish uchun avval birini olib tashlang.</Foot>}
       {pageGroups(rest).map((group) => (
         <div key={group.label}>
           {group.heading && <p className="px-4 pb-1.5 text-xs text-muted-foreground uppercase">{group.heading}</p>}
@@ -85,7 +97,13 @@ function BarForm({ me }: { me: Me }) {
                   <span data-slot="row-title" className="min-w-0 flex-1 truncate text-base">
                     {page.label}
                   </span>
-                  <button type="button" aria-label={`Qo'shish: ${page.label}`} className="grid size-11 shrink-0 place-items-center text-primary">
+                  <button
+                    type="button"
+                    aria-label={`Qo'shish: ${page.label}`}
+                    disabled={full}
+                    onClick={() => setDraft((keys) => (keys.length < BAR_LIMIT ? [...keys, page.key] : keys))}
+                    className="grid size-11 shrink-0 place-items-center text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-35"
+                  >
                     <CirclePlusIcon aria-hidden="true" className="size-[22px]" />
                   </button>
                 </div>
