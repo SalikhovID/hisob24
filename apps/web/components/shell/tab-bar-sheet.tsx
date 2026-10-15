@@ -2,13 +2,15 @@
 
 import { CircleMinusIcon, CirclePlusIcon } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 import { Foot, Group, SectionHeading } from "@/components/kit/group"
+import { MainButton } from "@/components/kit/main-button"
 import { pageIcons } from "@/components/kit/tab-icons"
 import { pageColors, TileIcon } from "@/components/kit/tile-icon"
 import { SortableList } from "@/components/sortable-list"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BAR_LIMIT, barPages, type NavPage, type PageKey, pageGroups, pagesFor } from "@/lib/nav"
-import { useMe } from "@/lib/queries"
+import { useMe, useSetTabBar } from "@/lib/queries"
 import type { Me } from "@/lib/types"
 
 // tile is a page's tile icon, as the bar's button wears it.
@@ -25,7 +27,8 @@ function tile(page: NavPage) {
 // the tab bar's pages (logic/roles.md, section 8). On top, the bar's pages
 // in their order, each with the way out; under «Qo'shish», the rest of the
 // pages the member may open, under their sections, each with the way in
-// while the bar has room.
+// while the bar has room. Nothing is kept before «Saqlash»: the member's
+// own, on every device in this company.
 export function TabBarSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const me = useMe()
   return (
@@ -35,7 +38,7 @@ export function TabBarSheet({ open, onOpenChange }: { open: boolean; onOpenChang
           <DialogTitle>Pastki panel</DialogTitle>
           <DialogDescription>Panelda 4 tagacha sahifa turadi, qolganlari «Sozlama» ichida. Tartibini tutqichdan sudrab o&apos;zgartiring.</DialogDescription>
         </DialogHeader>
-        {me.data && <BarForm me={me.data} />}
+        {me.data && <BarForm me={me.data} onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   )
@@ -43,12 +46,13 @@ export function TabBarSheet({ open, onOpenChange }: { open: boolean; onOpenChang
 
 // BarForm is the open sheet's choice: it mounts with every opening (the
 // closed sheet holds nothing), so each one starts from the bar as it is.
-function BarForm({ me }: { me: Me }) {
+function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
   const [draft, setDraft] = useState<PageKey[]>(() => barPages(me.permissions, me.tab_bar).map((page) => page.key))
   const open = pagesFor(me.permissions)
   const pinned = draft.flatMap((key) => open.find((page) => page.key === key) ?? [])
   const rest = open.filter((page) => !draft.includes(page.key))
   const full = pinned.length >= BAR_LIMIT
+  const save = useSetTabBar()
 
   return (
     <>
@@ -112,6 +116,21 @@ function BarForm({ me }: { me: Me }) {
           </Group>
         </div>
       ))}
+      <DialogFooter>
+        <MainButton
+          pending={save.isPending}
+          onClick={() =>
+            save.mutate(draft, {
+              onSuccess: () => {
+                toast.success("Pastki panel saqlandi")
+                onDone()
+              },
+            })
+          }
+        >
+          Saqlash
+        </MainButton>
+      </DialogFooter>
     </>
   )
 }

@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner"
 import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
+import type { PageKey } from "./nav"
 import { clearSession, setAccessToken } from "./session"
 import type { FinanceKind, Location, ProductKind, Task, TaskPage } from "./types"
 
@@ -574,6 +575,17 @@ export function useProductSuggestions(companyId: number | null, text: string, ki
     // Nothing typed is the first active ones: a picker's sheet opens with them.
     enabled: companyId !== null,
     placeholderData: keepPreviousData,
+  })
+}
+
+// useSetTabBar keeps the member's own pages of the tab bar in the company
+// (null: the default bar; logic/roles.md, section 8). The API answers with
+// /app/me as it is now, which the cache takes: the bar follows at once.
+export function useSetTabBar() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (pages: PageKey[] | null) => call(api.PUT("/app/me/tab-bar", { body: { pages } })),
+    onSuccess: (me) => queryClient.setQueryData(meKey, me),
   })
 }
 

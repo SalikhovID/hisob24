@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { ALI, db, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
@@ -86,4 +86,19 @@ test("the bar's pages are put in order from the keyboard", async () => {
   act(() => handle.focus())
   await user.keyboard("{Home}")
   expect(inBar(bar)).toEqual(["Mahsulotlar", "Bosh sahifa", "Mijozlar", "Vazifalar"])
+})
+
+test("«Saqlash» keeps the bar's pages for the member, says so and closes the sheet", async () => {
+  await signIn(ALI)
+  const onOpenChange = vi.fn()
+  const { user } = renderWithProviders(<TabBarSheet open onOpenChange={onOpenChange} />)
+
+  const bar = await sheet()
+  await user.click(await within(bar).findByRole("button", { name: "Olib tashlash: Vazifalar" }))
+  await user.click(within(bar).getByRole("button", { name: "Qo'shish: Xaridlar" }))
+  await user.click(within(bar).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(db.members[ALI][0].tabBar).toEqual(["home", "customers", "products", "purchases"]))
+  expect(await screen.findByText("Pastki panel saqlandi")).toBeInTheDocument()
+  expect(onOpenChange).toHaveBeenCalledWith(false)
 })
