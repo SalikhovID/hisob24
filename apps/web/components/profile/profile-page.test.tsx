@@ -22,24 +22,14 @@ test("the profile says who is signed in and the company they work in, with their
   expect(screen.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
 })
 
-test("the sections the bar does not hold are here, each a way in", async () => {
+test("the profile holds no sections and no way to the bar's pages: they are «Sozlama»'s", async () => {
   await signIn(ALI)
   renderWithProviders(<ProfilePage />)
 
-  const sections = await screen.findByRole("list", { name: "Bo'limlar" })
-  expect(within(sections).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-    ["Ombor", "/warehouse"],
-    ["Moliya", "/accounts"],
-    ["Xodimlar", "/employees"],
-    ["Sozlamalar", "/settings"],
-  ])
-})
-
-test("the order of the bar is a row away, with how many sections it holds", async () => {
-  await signIn(ALI)
-  renderWithProviders(<ProfilePage />)
-
-  expect(await screen.findByRole("link", { name: "Pastki menyu 5 ta bo'lim" })).toHaveAttribute("href", "/profile/menu")
+  await screen.findByRole("heading", { level: 1, name: "Ali Valiyev" })
+  expect(screen.queryByRole("list", { name: "Bo'limlar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("link", { name: /Pastki menyu/ })).not.toBeInTheDocument()
+  expect(screen.getByRole("list", { name: "Ilova" })).toBeInTheDocument()
 })
 
 test("someone with another company to work in can switch to it; with one there is nothing to switch to", async () => {
@@ -95,6 +85,7 @@ test("inside Telegram there is no sign-out or theme: closing the Mini App is the
   await screen.findByRole("heading", { level: 1, name: "Ali Valiyev" })
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /^Mavzu/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Ilova" }), "nothing is left in it").not.toBeInTheDocument()
   expect(screen.getByText(/Telegram ichida chiqish uchun ilovani yoping/)).toBeInTheDocument()
 })
 

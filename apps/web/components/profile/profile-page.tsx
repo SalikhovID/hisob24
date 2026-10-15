@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRightIcon, BuildingIcon, MapPinIcon, MenuIcon, SunMoonIcon } from "lucide-react"
+import { ArrowLeftRightIcon, BuildingIcon, MapPinIcon, SunMoonIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState } from "react"
 import { ActionSheet } from "@/components/kit/action-sheet"
@@ -8,11 +8,9 @@ import { Avatar } from "@/components/kit/avatar"
 import { BackLink } from "@/components/kit/page-title"
 import { DetailHead } from "@/components/kit/detail-head"
 import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
-import { tabIcons } from "@/components/kit/tab-icons"
 import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
 import { RoleBadge } from "@/components/role-badge"
 import { unavailable } from "@/lib/companies"
-import { barItems, navFor } from "@/lib/nav"
 import { useHomeScreenOffer } from "@/lib/home-screen"
 import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
@@ -27,10 +25,10 @@ const themes = [
 
 // ProfilePage is who is signed in and where, as the prototype's profile: the
 // person, the company they work in with their role, the location (with two
-// or more) and the way to another company of theirs; the sections the tab
-// bar does not hold; the order of the bar and, in a browser, the theme; and,
-// in a browser, the way out. Inside Telegram closing the Mini App is the way
-// out, and the chat sets the theme.
+// or more) and the way to another company of theirs; in a browser, the
+// theme and the way out. Inside Telegram closing the Mini App is the way
+// out, and the chat sets the theme. The pages the tab bar does not hold,
+// and the bar's own, are «Sozlama»'s.
 export function ProfilePage() {
   const me = useMe()
   const miniApp = useMiniApp()
@@ -44,7 +42,6 @@ export function ProfilePage() {
   const user = data.user
   const company = data.company
   const name = user.full_name ?? formatPhone(user.phone)
-  const { shown, more } = barItems(navFor(data.permissions, data.nav_order))
   const canSwitch = data.companies.filter((candidate) => unavailable(candidate) === null).length > 1
   const current = location.current
 
@@ -86,46 +83,19 @@ export function ProfilePage() {
         </>
       )}
 
-      {more.length > 0 && (
+      {!miniApp && (
         <>
-          <SectionHeading>Bo&apos;limlar</SectionHeading>
-          <Group label="Bo'limlar" inset="tile">
-            {more.map((item) => {
-              const Icon = tabIcons[item.key]
-              return (
-                <Row
-                  key={item.key}
-                  href={item.href}
-                  media={
-                    <TileIcon color={sectionColors[item.key]}>
-                      <Icon className="size-5" />
-                    </TileIcon>
-                  }
-                  title={item.label}
-                />
-              )
-            })}
+          <SectionHeading>Ilova</SectionHeading>
+          <Group label="Ilova" inset="tile">
+            <Row
+              onClick={() => setSheet("theme")}
+              media={<TileIcon icon={SunMoonIcon} color="#007AFF" />}
+              title="Mavzu"
+              end={<span className="text-muted-foreground">{themes.find((candidate) => candidate.value === theme)?.label ?? "Tizim"}</span>}
+            />
           </Group>
         </>
       )}
-
-      <SectionHeading>Ilova</SectionHeading>
-      <Group label="Ilova" inset="tile">
-        <Row
-          href="/profile/menu"
-          media={<TileIcon icon={MenuIcon} color="#34C759" />}
-          title="Pastki menyu"
-          end={<span className="text-muted-foreground">{shown.length} ta bo&apos;lim</span>}
-        />
-        {!miniApp && (
-          <Row
-            onClick={() => setSheet("theme")}
-            media={<TileIcon icon={SunMoonIcon} color="#007AFF" />}
-            title="Mavzu"
-            end={<span className="text-muted-foreground">{themes.find((candidate) => candidate.value === theme)?.label ?? "Tizim"}</span>}
-          />
-        )}
-      </Group>
 
       <Foot>
         Hisob24 — biznesingiz uchun hisob tizimi.
