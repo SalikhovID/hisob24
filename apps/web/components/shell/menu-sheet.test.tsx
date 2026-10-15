@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { expect, test, vi } from "vitest"
-import { ALI, VALI } from "@/mocks/data"
+import { ALI, db, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -86,4 +86,19 @@ test("an employee's «Sozlama» holds the pages their role opens, the settings' 
   ])
   expect(within(menu).queryByRole("list", { name: "Moliya" })).not.toBeInTheDocument()
   expect(within(menu).queryByRole("list", { name: "Sozlamalar" })).not.toBeInTheDocument()
+})
+
+test("the page's own tile is marked; the bar's pages are said to stand in it", async () => {
+  db.members[ALI][0].tabBar = ["home", "purchases"]
+  await signIn(ALI)
+  setLocation("/expenses")
+  renderWithProviders(<MenuSheet {...props()} />)
+
+  const menu = await sheet()
+  const expenses = await within(menu).findByRole("link", { name: "Xarajatlar" })
+  expect(expenses).toHaveAttribute("aria-current", "page")
+  expect(within(menu).getAllByRole("link").filter((link) => link.hasAttribute("aria-current"))).toEqual([expenses])
+  const inBar = within(menu).getAllByRole("link").filter((link) => link.hasAttribute("aria-describedby"))
+  expect(inBar.map((link) => link.textContent)).toEqual(["Bosh sahifa", "Xaridlar"])
+  expect(within(menu).getByRole("link", { name: "Xaridlar" })).toHaveAccessibleDescription("Pastki panelda")
 })
