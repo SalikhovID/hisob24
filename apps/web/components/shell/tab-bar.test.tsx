@@ -129,3 +129,14 @@ test("a section from the bar is switched to at once: a move taken before it, whi
   await user.click(tasks)
   expect(moved()).toBeUndefined()
 })
+
+test("«Sozlama» opens the menu of every page", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<TabBar />)
+
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
+  const button = more()
+  await user.click(button)
+  expect(await screen.findByRole("dialog", { name: "Sozlama" })).toBeInTheDocument()
+  expect(button).toHaveAttribute("aria-expanded", "true")
+})
