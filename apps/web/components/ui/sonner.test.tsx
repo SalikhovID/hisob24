@@ -21,6 +21,6 @@ test("the toasts keep clear of what Telegram lays over a full-screen Mini App", 
 
   // The list of toasts is drawn once there is one; its offsets are inline.
   const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")
-  expect(toaster?.style.getPropertyValue("--offset-top")).toBe("calc(24px + var(--safe-top))")
+  expect(toaster?.style.getPropertyValue("--offset-top")).toBe("calc(20px + var(--safe-top))")
   expect(toaster?.style.getPropertyValue("--mobile-offset-top")).toBe("calc(16px + var(--safe-top))")
 })
