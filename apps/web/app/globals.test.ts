@@ -242,9 +242,8 @@ test("a lifted row is a white card in the light (not the segmented thumb's black
   expect(block(".dark {")).toContain("--lifted: rgba(255, 255, 255, 0.18)")
 })
 
-test("the sidebar's pane is a pale glass in the light, a dark violet glass in the night", () => {
-  expect(block(":root {")).toContain("--head: rgba(246, 247, 249, 0.72)")
-  expect(block(".dark {")).toContain("--head: rgba(28, 24, 40, 0.55)")
+test("the sidebar is a card of the frosted glass (surface): no pane of its own any more", () => {
+  expect(css).not.toContain("--head:")
 })
 
 test("the tab bar is the prototype's frosted pill (v2): a frost under its buttons, no refracting edge or halo; the lens a white glass capsule", () => {

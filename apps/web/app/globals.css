@@ -135,8 +135,6 @@
     --col: rgba(255, 255, 255, 0.45);
     /* A row lifted to be put in order. */
     --lifted: #ffffff;
-    /* The sidebar's pane of glass. */
-    --head: rgba(246, 247, 249, 0.72);
     /* The tab bar's frosted pill: its frost and the shadow round it; the
        lens under the current button, a white glass capsule, and its light. */
     --tb-frost: rgba(247, 248, 250, 0.74);
@@ -247,7 +245,6 @@
     --chip: rgba(255, 255, 255, 0.06);
     --col: rgba(255, 255, 255, 0.025);
     --lifted: rgba(255, 255, 255, 0.18);
-    --head: rgba(28, 24, 40, 0.55);
     --tb-frost: rgba(24, 26, 30, 0.72);
     --tb-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(0, 0, 0, 0.7);
     --lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.06) 100%);
