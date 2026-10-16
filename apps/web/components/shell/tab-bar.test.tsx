@@ -149,16 +149,20 @@ test("«Sozlamalar» is switched to at once, as a page from the bar", async () =
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
 })
 
-test("the bar is the prototype's clear liquid glass: no fill or blur of its own (its layers are the styles'), a soft shadow and a hairline round it; the lens likewise", async () => {
+test("the bar is the prototype's frosted pill: its own shadow (its frost is the styles'), the names grey and the current one in the text's ink", async () => {
   await signIn(ALI)
   setLocation("/customers")
   renderWithProviders(<TabBar />)
 
   await within(bar()).findByRole("link", { name: "Mahsulotlar" })
   expect(bar()).toHaveAttribute("data-slot", "tab-bar")
-  expect(bar()).toHaveClass("shadow-[0_12px_32px_rgba(40,30,80,.16),0_2px_4px_rgba(40,30,80,.08),0_0_0_.5px_var(--tb-line)]")
-  expect(bar()).not.toHaveClass("bg-glass")
+  expect(bar()).toHaveClass("shadow-(--tb-shadow)")
   expect(bar().className).not.toMatch(/backdrop-/)
-  const glass = bar().querySelector('[data-slot="tab-lens"]')
-  expect(glass).not.toHaveClass("bg-muted")
+  const current = within(bar()).getByRole("link", { name: "Mijozlar" })
+  const other = within(bar()).getByRole("link", { name: "Vazifalar" })
+  expect(current).toHaveClass("text-foreground", "font-semibold")
+  expect(other).toHaveClass("text-muted-foreground", "font-medium")
+  expect(other).not.toHaveClass("text-foreground")
+  // The marks are 25px, the current one drawn bolder; the names 11px.
+  expect(other).toHaveClass("text-[11px]", "[&_svg]:size-[25px]", "aria-[current=page]:[&_svg]:stroke-[2.2]")
 })

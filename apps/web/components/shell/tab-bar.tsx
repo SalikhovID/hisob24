@@ -13,12 +13,14 @@ import { moveTo } from "@/lib/moves"
 // a 320px screen keeps 12px either side).
 const TAB = "min(72px, calc((100vw - 24px) / 5))"
 
+// A button is the page's mark over its name: grey, the current one in the
+// text's ink, its mark drawn bolder.
 const tab =
-  "relative z-[2] flex h-14 w-(--tab) flex-col items-center justify-center gap-[3px] rounded-[28px] text-[10.5px] font-semibold tracking-[-0.01em] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+  "relative z-[2] flex h-14 w-(--tab) flex-col items-center justify-center gap-1 rounded-[28px] text-[11px] tracking-[-0.01em] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-[25px] aria-[current=page]:[&_svg]:stroke-[2.2]"
 
 const SettingsMark = tabIcons.settings
 
-// TabBar is the prototype's floating «liquid glass» bar (its layers are
+// TabBar is the prototype's floating frosted pill (its frost and lens are
 // globals.css's) along the bottom of a narrow screen (a phone, the Telegram
 // Mini App), where the sidebar is hidden: four pages of the member's own
 // choice (logic/roles.md, section 8; the default bar without one), each an
@@ -47,7 +49,7 @@ export function TabBar() {
         data-hidden={hidden || undefined}
         style={{ "--i": String(current), "--tab": TAB } as CSSProperties}
         className={cn(
-          "fixed bottom-[calc(22px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] left-1/2 z-20 flex h-16 -translate-x-1/2 rounded-[32px] p-1 shadow-[0_12px_32px_rgba(40,30,80,.16),0_2px_4px_rgba(40,30,80,.08),0_0_0_.5px_var(--tb-line)] transition-[translate,opacity] duration-[380ms] ease-drawer select-none md:hidden",
+          "fixed bottom-[calc(22px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] left-1/2 z-20 flex h-16 -translate-x-1/2 rounded-[32px] p-1 shadow-(--tb-shadow) transition-[translate,opacity] duration-[380ms] ease-drawer select-none md:hidden",
           hidden && "pointer-events-none translate-y-[140%] opacity-0",
         )}
       >
@@ -67,9 +69,9 @@ export function TabBar() {
               // A page from the bar is switched to at once (lib/moves.ts).
               onClick={() => moveTo(undefined)}
               aria-current={on ? "page" : undefined}
-              className={cn(tab, on ? "text-primary" : "text-foreground")}
+              className={cn(tab, on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}
             >
-              <Icon className="size-[26px]" />
+              <Icon />
               <span className="max-w-full truncate px-0.5">{page.label}</span>
             </Link>
           )
@@ -79,9 +81,9 @@ export function TabBar() {
           // The settings are switched to at once, as a page from the bar.
           onClick={() => moveTo(undefined)}
           aria-current={pinned < 0 ? "page" : undefined}
-          className={cn(tab, pinned < 0 ? "text-primary" : "text-foreground")}
+          className={cn(tab, pinned < 0 ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}
         >
-          <SettingsMark className="size-[26px]" />
+          <SettingsMark />
           <span className="max-w-full truncate px-0.5">Sozlamalar</span>
         </Link>
     </nav>

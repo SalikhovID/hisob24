@@ -94,14 +94,13 @@ test.describe("a linked user", () => {
       .poll(() => page.evaluate(() => (window as unknown as { __chrome?: Record<string, string> }).__chrome))
       .toEqual({ header: "#1C1D21", background: "#0F1013", bottomBar: "#14161A" })
     await fits(page)
-    // On a phone the sections are a floating bar of the app's own clear
-    // glass: no fill of its own, a thin frost under its buttons.
+    // On a phone the sections are a floating pill of the app's own frosted
+    // glass (the dark's): no fill of its own, the frost under its buttons.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
-      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
-      await expect(bar.getByRole("button", { name: "Sozlama" })).toBeVisible()
+      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
       await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
-      expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toBe("rgba(255, 255, 255, 0.035)")
+      expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toBe("rgba(24, 26, 30, 0.72)")
     }
     // Full screen on a phone's client: the page runs under the status bar
     // and Telegram's controls (47px + 46px) and starts its content below
@@ -122,13 +121,13 @@ test.describe("a linked user", () => {
     if (onPhone(page)) {
       // Measured where it stops, not on its way up.
       await page.emulateMedia({ reducedMotion: "reduce" })
-      await page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true }).getByRole("button", { name: "Sozlama" }).click()
-      const menu = page.getByRole("dialog", { name: "Sozlama" })
-      await expect(menu).toBeVisible()
+      await page.getByRole("main").getByRole("button", { name: "Vazifa", exact: true }).click()
+      const sheet = page.getByRole("dialog", { name: "Vazifa qo'shish" })
+      await expect(sheet).toBeVisible()
       await page.waitForTimeout(100)
-      expect((await menu.boundingBox())?.y).toBeGreaterThanOrEqual(93)
+      expect((await sheet.boundingBox())?.y).toBeGreaterThanOrEqual(93)
       await page.keyboard.press("Escape")
-      await expect(menu).toBeHidden()
+      await expect(sheet).toBeHidden()
     }
     await fits(page)
     // Closing the Mini App is the way out: the profile offers no sign-out,

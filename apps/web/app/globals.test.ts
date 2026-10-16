@@ -245,25 +245,33 @@ test("the sidebar's pane is a pale glass in the light, a dark violet glass in th
   expect(block(".dark {")).toContain("--head: rgba(28, 24, 40, 0.55)")
 })
 
-test("the tab bar's glass is two layers of its own: a thin frost with a specular rim, and a thick refracting edge", () => {
+test("the tab bar is the prototype's frosted pill (v2): a frost under its buttons, no refracting edge or halo; the lens a white glass capsule", () => {
   const frost = block('[data-slot="tab-bar"]::before {')
-  expect(frost).toContain("background: var(--tb-bg)")
-  expect(frost).toContain("backdrop-filter: blur(2.5px) saturate(1.7) brightness(1.07)")
-  expect(frost).toContain("inset 1.5px 1.5px 0 -0.5px var(--tb-spec)")
-  // The edge's own rule is the last of its selector (the first is shared with the frost).
-  const at = css.lastIndexOf('[data-slot="tab-bar"]::after {')
-  const edge = css.slice(at, css.indexOf("}", at))
-  expect(edge).toContain("padding: 9px")
-  expect(edge).toContain("backdrop-filter: blur(9px) saturate(2) brightness(1.15)")
-  expect(edge).toContain("mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)")
+  expect(frost).toContain("background: var(--tb-frost)")
+  expect(frost).toContain("backdrop-filter: blur(18px) saturate(1.8) brightness(1.04)")
+  expect(frost).not.toContain("box-shadow")
+  expect(css).not.toContain('[data-slot="tab-bar"]::after')
+  expect(css).not.toMatch(/text-shadow: 0 0 8px|drop-shadow\(0 0 5px/)
   const lens = block('[data-slot="tab-lens"] {')
-  expect(lens).toContain("background: var(--lens-bg)")
-  expect(lens).toContain("backdrop-filter: blur(1px) brightness(1.1) saturate(1.4)")
-  expect(block('[data-slot="tab-bar"] svg {')).toContain("filter: drop-shadow(0 0 5px var(--tb-halo))")
-  expect(block(":root {")).toContain("--tb-bg: rgba(255, 255, 255, 0.4)")
-  expect(block(":root {")).toContain("--lens-bg: rgba(255, 255, 255, 0.3)")
-  expect(block(".dark {")).toContain("--tb-bg: rgba(255, 255, 255, 0.035)")
-  expect(block(".dark {")).toContain("--tb-halo: rgba(0, 0, 0, 0.55)")
+  expect(lens).toContain("background: var(--lens-fill)")
+  expect(lens).toContain("backdrop-filter: blur(8px) saturate(1.8)")
+  expect(lens).toContain("box-shadow: var(--lens-shadow)")
+  const root = block(":root {")
+  expect(root).toContain("--tb-frost: rgba(247, 248, 250, 0.74)")
+  expect(root).toContain("--tb-shadow: 0 12px 32px rgba(20, 22, 30, 0.14), 0 2px 6px rgba(20, 22, 30, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.08)")
+  expect(root).toContain("--lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(233, 235, 239, 0.78) 100%)")
+  expect(root).toContain(
+    "--lens-shadow: 0 4px 12px rgba(20, 22, 30, 0.13), 0 1px 2px rgba(20, 22, 30, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.07), inset 0 1.5px 1px #ffffff, inset 0 -3px 6px rgba(20, 22, 30, 0.05)",
+  )
+  const dark = block(".dark {")
+  expect(dark).toContain("--tb-frost: rgba(24, 26, 30, 0.72)")
+  expect(dark).toContain("--tb-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(0, 0, 0, 0.7)")
+  expect(dark).toContain("--lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.06) 100%)")
+  expect(dark).toContain(
+    "--lens-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -3px 6px rgba(0, 0, 0, 0.2)",
+  )
+  // The clear glass's tokens of before are gone.
+  for (const token of ["--tb-bg", "--tb-rim", "--tb-spec", "--tb-glow", "--tb-line", "--tb-halo", "--lens-bg"]) expect(css, token).not.toContain(`${token}:`)
 })
 
 test("the top fade is as tall as what lies over the screen and a little more (none where nothing does), the page's fade falling to nothing under a blur", () => {

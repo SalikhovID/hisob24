@@ -137,15 +137,12 @@
     --lifted: #ffffff;
     /* The sidebar's pane of glass. */
     --head: rgba(246, 247, 249, 0.72);
-    /* The tab bar's clear glass: its frost, its rim and specular light, the
-       glow inside it, the hairline round it, the halo of its names, its lens. */
-    --tb-bg: rgba(255, 255, 255, 0.4);
-    --tb-rim: rgba(255, 255, 255, 0.55);
-    --tb-spec: rgba(255, 255, 255, 0.95);
-    --tb-glow: rgba(255, 255, 255, 0.22);
-    --tb-line: rgba(0, 0, 0, 0.1);
-    --tb-halo: rgba(255, 255, 255, 0.85);
-    --lens-bg: rgba(255, 255, 255, 0.3);
+    /* The tab bar's frosted pill: its frost and the shadow round it; the
+       lens under the current button, a white glass capsule, and its light. */
+    --tb-frost: rgba(247, 248, 250, 0.74);
+    --tb-shadow: 0 12px 32px rgba(20, 22, 30, 0.14), 0 2px 6px rgba(20, 22, 30, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+    --lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(233, 235, 239, 0.78) 100%);
+    --lens-shadow: 0 4px 12px rgba(20, 22, 30, 0.13), 0 1px 2px rgba(20, 22, 30, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.07), inset 0 1.5px 1px #ffffff, inset 0 -3px 6px rgba(20, 22, 30, 0.05);
     /* The ambient light behind the glass (bg-ambient): a white glow at the
        top over a grey falling to the base. */
     --ambient: radial-gradient(90% 38% at 50% -4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #F7F8F9 0%, #EFF0F3 50%, #E5E7EB 100%);
@@ -251,13 +248,10 @@
     --col: rgba(255, 255, 255, 0.025);
     --lifted: rgba(255, 255, 255, 0.18);
     --head: rgba(28, 24, 40, 0.55);
-    --tb-bg: rgba(255, 255, 255, 0.035);
-    --tb-rim: rgba(255, 255, 255, 0.2);
-    --tb-spec: rgba(255, 255, 255, 0.55);
-    --tb-glow: rgba(255, 255, 255, 0.07);
-    --tb-line: rgba(0, 0, 0, 0.35);
-    --tb-halo: rgba(0, 0, 0, 0.55);
-    --lens-bg: rgba(255, 255, 255, 0.08);
+    --tb-frost: rgba(24, 26, 30, 0.72);
+    --tb-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(0, 0, 0, 0.7);
+    --lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.06) 100%);
+    --lens-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -3px 6px rgba(0, 0, 0, 0.2);
     /* Near black: a faint white light in the top left corner over a dark
        grey falling to black and back to a grey at the foot. */
     --ambient: radial-gradient(75% 45% at 0% 0%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(160deg, #1D1F23 0%, #0E0F12 46%, #15171B 100%);
@@ -453,47 +447,25 @@ html[data-telegram] body {
   opacity: 1;
 }
 
-/* The tab bar is the prototype's clear liquid glass (shell/tab-bar.tsx): no
-   fill of its own, a thin frost with a specular rim under its buttons and,
-   over the frost, a thick edge that refracts what passes under it; its names
-   and icons glow with a halo; the lens under the current button is a clear
-   glass with its own rim. */
-[data-slot="tab-bar"]::before,
-[data-slot="tab-bar"]::after {
+/* The tab bar is the prototype's frosted pill (v2, shell/tab-bar.tsx): a
+   frost under its buttons, the shadow round it the bar's own; the lens
+   under the current button is a white glass capsule. */
+[data-slot="tab-bar"]::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-}
-[data-slot="tab-bar"]::before {
-  background: var(--tb-bg);
-  -webkit-backdrop-filter: blur(2.5px) saturate(1.7) brightness(1.07);
-  backdrop-filter: blur(2.5px) saturate(1.7) brightness(1.07);
-  box-shadow: inset 1.5px 1.5px 0 -0.5px var(--tb-spec), inset -1px -1.5px 0 -0.5px var(--tb-rim), inset 0 0 0 1px var(--tb-rim), inset 0 0 18px var(--tb-glow);
-}
-[data-slot="tab-bar"]::after {
-  padding: 9px;
-  -webkit-backdrop-filter: blur(9px) saturate(2) brightness(1.15);
-  backdrop-filter: blur(9px) saturate(2) brightness(1.15);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  opacity: 0.9;
-}
-[data-slot="tab-bar"] > a,
-[data-slot="tab-bar"] > button {
-  text-shadow: 0 0 8px var(--tb-halo);
-}
-[data-slot="tab-bar"] svg {
-  filter: drop-shadow(0 0 5px var(--tb-halo));
+  background: var(--tb-frost);
+  -webkit-backdrop-filter: blur(18px) saturate(1.8) brightness(1.04);
+  backdrop-filter: blur(18px) saturate(1.8) brightness(1.04);
 }
 [data-slot="tab-lens"] {
-  background: var(--lens-bg);
-  -webkit-backdrop-filter: blur(1px) brightness(1.1) saturate(1.4);
-  backdrop-filter: blur(1px) brightness(1.1) saturate(1.4);
-  box-shadow: inset 1.5px 1.5px 0 -0.5px var(--tb-spec), inset -1px -1.5px 0 -0.5px var(--tb-rim), inset 0 0 0 1px var(--tb-rim), inset 0 0 12px var(--tb-glow), 0 3px 10px rgba(40, 30, 80, 0.1);
+  background: var(--lens-fill);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8);
+  backdrop-filter: blur(8px) saturate(1.8);
+  box-shadow: var(--lens-shadow);
 }
 
 /* The hairline between the rows of a group starts where the group's inset
