@@ -78,3 +78,14 @@ test("a choice chip is the same glass, the chosen one the accent's tint with its
   )
   expect(screen.getByRole("radio", { name: "Nofaol" })).toHaveClass("not-data-checked:glass-chip", "data-checked:bg-primary-soft", `data-checked:${onRing}`)
 })
+
+test("on a phone the strip scrolls out to the page's edges; on a wide screen it stays in the page's column", () => {
+  render(
+    <Chips label="Turlar">
+      <Chip pressed={false} onClick={() => {}}>
+        Hammasi
+      </Chip>
+    </Chips>,
+  )
+  expect(screen.getByRole("group", { name: "Turlar" })).toHaveClass("-mx-4", "px-4", "md:mx-0", "md:px-0")
+})

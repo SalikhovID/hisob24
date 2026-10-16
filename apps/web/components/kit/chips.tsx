@@ -6,7 +6,7 @@ import { ChevronDownIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-const strip = "-mx-4 mb-3.5 flex gap-1.5 overflow-x-auto px-4 py-0.5 scrollbar-hide"
+const strip = "-mx-4 mb-3.5 flex gap-1.5 overflow-x-auto px-4 py-0.5 scrollbar-hide md:mx-0 md:px-0"
 
 const chip =
   "relative inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-md font-medium whitespace-nowrap text-heading outline-none transition-colors after:absolute after:-inset-x-0.5 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -16,7 +16,8 @@ const off = "glass-chip"
 const on = "bg-primary-soft font-semibold text-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]"
 
 // Chips is the strip of filters under a search: it scrolls sideways, out to
-// the page's edges, rather than squeezing.
+// the page's edges on a phone (inside the page's column on a wide screen),
+// rather than squeezing.
 export function Chips({ children, label, className }: { children: ReactNode; label?: string; className?: string }) {
   return (
     <div role={label ? "group" : undefined} aria-label={label} data-slot="chips" className={cn(strip, className)}>
