@@ -42,6 +42,11 @@ const instructions =
 // keys; Home and End take the item to either end. Every move is said aloud.
 // The order is the caller's: onReorder gets the new ids, and items bring
 // them back.
+// An item a finger lifts is a card of its own over the list: white in the
+// light, a pale glass in the night (the prototype took the segmented
+// thumb's color here, black in the light, which hid the row's black text).
+export const liftedClass = "rounded-[18px] bg-(--lifted) shadow-[0_12px_28px_rgba(60,40,120,.18)]"
+
 export function SortableList<T>({
   label,
   items,
@@ -186,7 +191,7 @@ function SortableItem({
       data-slot="sortable-item"
       data-dragging={isDragging || undefined}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn("relative", isDragging && "z-10 rounded-main bg-card shadow-float")}
+      className={cn("relative", isDragging && cn("z-10", liftedClass))}
     >
       {children(handle)}
     </li>

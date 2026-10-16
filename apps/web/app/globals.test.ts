@@ -200,3 +200,8 @@ test("a board's column is a faint glass: a whisper of white in the light, less i
   expect(block(":root {")).toContain("--col: rgba(255, 255, 255, 0.45)")
   expect(block(".dark {")).toContain("--col: rgba(255, 255, 255, 0.04)")
 })
+
+test("a lifted row is a white card in the light (not the segmented thumb's black, as the prototype's), a pale glass in the night", () => {
+  expect(block(":root {")).toContain("--lifted: #ffffff")
+  expect(block(".dark {")).toContain("--lifted: rgba(255, 255, 255, 0.18)")
+})

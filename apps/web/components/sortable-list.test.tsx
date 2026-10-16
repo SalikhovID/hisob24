@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { expect, test, vi } from "vitest"
-import { SortableList } from "./sortable-list"
+import { liftedClass, SortableList } from "./sortable-list"
 
 const ITEMS = [
   { id: "a", name: "Instagram" },
@@ -105,4 +105,8 @@ test("while sorting is off the list has no handles: the rows are read, not moved
   )
   expect(screen.getByRole("list", { name: "Bosqichlar" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /tartibini o'zgartirish/ })).not.toBeInTheDocument()
+})
+
+test("an item a finger lifts is a card of its own over the list: white in the light, a pale glass in the night, 18px round", () => {
+  expect(liftedClass.split(" ")).toEqual(expect.arrayContaining(["rounded-[18px]", "bg-(--lifted)", "shadow-[0_12px_28px_rgba(60,40,120,.18)]"]))
 })
