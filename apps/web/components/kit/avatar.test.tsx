@@ -1,24 +1,24 @@
 import { render } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { tone } from "@/lib/initials"
 import { Avatar } from "./avatar"
 
 const avatar = (container: HTMLElement) => container.querySelector('[data-slot="avatar"]') as HTMLElement
 
-test("an avatar shows the initials in the tint its seed always gets, and is decoration", () => {
+test("an avatar shows the initials dark on a plain grey, the same for everyone (the prototype's), and is decoration", () => {
   const { container } = render(<Avatar name="Ali Valiyev" seed="998901234567" />)
   const mark = avatar(container)
   expect(mark).toHaveTextContent("AV")
   expect(mark).toHaveAttribute("aria-hidden", "true")
-  expect(mark).toHaveAttribute("data-tone", String(tone("998901234567")))
+  expect(mark).not.toHaveAttribute("data-tone")
+  expect(mark).toHaveClass("bg-(--av-bg)", "text-(--av-ink)", "font-bold")
 })
 
-test("a record with a letter mark shows its first letter alone; one with no name shows an icon and no tint", () => {
+test("a record with a letter mark shows its first letter alone; one with no name shows an icon, muted", () => {
   const { container, rerender } = render(<Avatar name="olma" seed={4} letter square />)
   expect(avatar(container)).toHaveTextContent(/^O$/)
 
   rerender(<Avatar name={null} seed={4} />)
-  expect(avatar(container)).not.toHaveAttribute("data-tone")
+  expect(avatar(container)).toHaveClass("bg-muted", "text-muted-foreground")
   expect(avatar(container).querySelector("svg")).toBeInTheDocument()
 })
 

@@ -123,3 +123,11 @@ test("a page that moves is opaque in the ambient light, laid where the column's 
     /@media \(min-width: 48rem\) \{\s*:root\[data-move\] \[data-slot="page"\] \{\s*background-size: calc\(100% \+ 3rem\) 100vh;\s*background-position: -1\.5rem -1\.5rem;/,
   )
 })
+
+test("the avatars are the prototype's plain grey circles with dark initials: no tint per person", () => {
+  expect(css).not.toContain('[data-slot="avatar"][data-tone')
+  expect(block(":root {")).toContain("--av-bg: #E8E9EC")
+  expect(block(":root {")).toContain("--av-ink: #1A1B1F")
+  expect(block(".dark {")).toContain("--av-bg: rgba(255, 255, 255, 0.12)")
+  expect(block(".dark {")).toContain("--av-ink: #F2F2F5")
+})
