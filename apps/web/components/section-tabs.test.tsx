@@ -59,3 +59,10 @@ test("the strip wears the segmented control's glass: the page's link on the thum
   expect(current).toHaveClass("bg-(--seg-thumb)", "text-(--seg-on)", "shadow-(--seg-shadow)")
   expect(current).not.toHaveClass("bg-card")
 })
+
+test("on a wide screen the strip keeps to 420px, as the prototype's segmented control", () => {
+  setLocation("/products")
+  renderWithProviders(<SectionTabs item={products} permissions={["products.view"]} />)
+
+  expect(screen.getByRole("navigation", { name: "Mahsulotlar bo'limi" })).toHaveClass("md:max-w-[420px]")
+})

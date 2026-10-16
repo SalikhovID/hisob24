@@ -25,7 +25,7 @@ export function Segmented({
   className?: string
 }) {
   return (
-    <Tabs.Root value={value} onValueChange={(next) => onChange(String(next))} className={cn("mb-3.5 md:max-w-sm", className)}>
+    <Tabs.Root value={value} onValueChange={(next) => onChange(String(next))} className={cn("mb-3.5 md:max-w-[420px]", className)}>
       <Tabs.List
         aria-label={label}
         data-slot="segmented"

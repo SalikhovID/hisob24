@@ -19,7 +19,7 @@ export function SectionTabs({ item, permissions }: { item: NavItem; permissions:
   const tabs = (item.tabs ?? []).filter((tab) => can(permissions, tab.permission))
   if (tabs.length < 2) return null
   return (
-    <nav aria-label={`${item.label} bo'limi`} className="mb-3.5 md:max-w-sm">
+    <nav aria-label={`${item.label} bo'limi`} className="mb-3.5 md:max-w-[420px]">
       <div data-slot="segmented" style={{ "--n": String(tabs.length) } as CSSProperties} className="flex h-10 rounded-full bg-muted p-[3px] shadow-[inset_0_1px_2px_rgba(60,40,120,.06)]">
         {tabs.map((tab) => {
           const current = isCurrent(tab.href, pathname)

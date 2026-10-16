@@ -43,3 +43,18 @@ test("the segmented control is the prototype's: a recessed track and its thumb, 
   expect(thumb).not.toHaveClass("bg-card")
   expect(screen.getByRole("tab", { name: "Kanban" })).toHaveClass("data-active:text-(--seg-on)")
 })
+
+test("on a wide screen the segmented control keeps to 420px, as the prototype's web view", () => {
+  render(
+    <Segmented
+      label="Ko'rinish"
+      value="board"
+      onChange={() => {}}
+      options={[
+        { value: "board", label: "Kanban" },
+        { value: "list", label: "Ro'yxat" },
+      ]}
+    />,
+  )
+  expect(screen.getByRole("tablist", { name: "Ko'rinish" }).parentElement).toHaveClass("md:max-w-[420px]")
+})
