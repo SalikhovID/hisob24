@@ -41,3 +41,26 @@ test("a dialog comes up as a sheet named by its title; the close button at its h
   await userEvent.click(screen.getByRole("button", { name: "Yopish" }))
   expect(change).toHaveBeenCalledWith(false, expect.anything())
 })
+
+test("a sheet is the prototype's glass: the sheet's tint over a deep blur, a white edge; its close button a small glass", async () => {
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mijoz</DialogTitle>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>,
+  )
+  const sheet = await screen.findByRole("dialog", { name: "Mijoz" })
+  expect(sheet).toHaveClass(
+    "rounded-sheet",
+    "bg-sheet",
+    "backdrop-blur-[40px]",
+    "backdrop-saturate-[1.8]",
+    "shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)]",
+  )
+  const close = screen.getByRole("button", { name: "Yopish" }).firstElementChild
+  expect(close).toHaveClass("glass-chip")
+  expect(close).not.toHaveClass("bg-muted")
+})
