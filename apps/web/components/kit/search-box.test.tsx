@@ -46,3 +46,8 @@ test("the box is the prototype's search glass: its own tint and rim over a blur"
   expect(box).toHaveClass("bg-(--search)", "shadow-(--search-rim)", "backdrop-blur-[16px]", "backdrop-saturate-[1.5]")
   expect(box).not.toHaveClass("bg-muted")
 })
+
+test("on a wide screen the box keeps to 460px, as the prototype's web view", () => {
+  const { container } = render(<SearchBox value="" onSearch={() => {}} />)
+  expect(container.querySelector('[data-slot="search-box"]')).toHaveClass("md:max-w-[460px]")
+})

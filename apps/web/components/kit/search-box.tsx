@@ -49,7 +49,7 @@ export function SearchBox({
     <div
       data-slot="search-box"
       className={cn(
-        "mb-3 flex h-11 items-center gap-2 rounded-full bg-(--search) px-3.5 text-muted-foreground shadow-(--search-rim) backdrop-blur-[16px] backdrop-saturate-[1.5]",
+        "mb-3 flex h-11 items-center gap-2 rounded-full bg-(--search) px-3.5 text-muted-foreground shadow-(--search-rim) backdrop-blur-[16px] backdrop-saturate-[1.5] md:max-w-[460px]",
         className,
       )}
     >
