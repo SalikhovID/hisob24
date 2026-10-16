@@ -142,3 +142,10 @@ test("the fade under a bar is the page's own color, nearly opaque", () => {
   expect(block(":root {")).toContain("--fade: rgba(243, 244, 246, 0.94)")
   expect(block(".dark {")).toContain("--fade: rgba(21, 18, 30, 0.94)")
 })
+
+test("the search glass is a pale field with a hairline in the light, the chips' glass in the night", () => {
+  expect(block(":root {")).toContain("--search: rgba(240, 241, 243, 0.7)")
+  expect(block(":root {")).toContain("--search-rim: inset 0 0 0 1px rgba(0, 0, 0, 0.08)")
+  expect(block(".dark {")).toContain("--search: rgba(255, 255, 255, 0.08)")
+  expect(block(".dark {")).toContain("--search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16)")
+})

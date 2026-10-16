@@ -4,7 +4,7 @@ import { SearchIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 
-// SearchBox is the prototype's search pill. It reports what was typed once
+// SearchBox is the prototype's search pill, of its own glass. It reports what was typed once
 // typing pauses for delay ms (300 by default; 0 reports every keystroke, for
 // a list that filters in place). The search it is given may also change from
 // outside (a link to the bare list drops it from the address): the box then
@@ -46,7 +46,13 @@ export function SearchBox({
   }, [text, value, delay, onSearch])
 
   return (
-    <div data-slot="search-box" className={cn("mb-3 flex h-11 items-center gap-2 rounded-full bg-muted px-3.5 text-muted-foreground", className)}>
+    <div
+      data-slot="search-box"
+      className={cn(
+        "mb-3 flex h-11 items-center gap-2 rounded-full bg-(--search) px-3.5 text-muted-foreground shadow-(--search-rim) backdrop-blur-[16px] backdrop-saturate-[1.5]",
+        className,
+      )}
+    >
       <SearchIcon aria-hidden="true" strokeWidth={2.4} className="size-[19px] shrink-0" />
       <input
         type="search"

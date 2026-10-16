@@ -39,3 +39,10 @@ test("with no delay the box reports every keystroke (a picker's list)", async ()
   await userEvent.type(screen.getByRole("searchbox"), "ol")
   expect(search).toHaveBeenLastCalledWith("ol")
 })
+
+test("the box is the prototype's search glass: its own tint and rim over a blur", () => {
+  render(<SearchBox value="" onSearch={() => {}} />)
+  const box = screen.getByRole("searchbox").closest('[data-slot="search-box"]')
+  expect(box).toHaveClass("bg-(--search)", "shadow-(--search-rim)", "backdrop-blur-[16px]", "backdrop-saturate-[1.5]")
+  expect(box).not.toHaveClass("bg-muted")
+})
