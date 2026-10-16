@@ -25,7 +25,6 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
         key="tasks"
         href="/tasks"
         icon={CheckIcon}
-        color="#FF9500"
         title="Vazifalar"
         value={String(tasks.active)}
         unit="ta faol"
@@ -40,7 +39,6 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
         key="purchases"
         href="/purchases"
         icon={ReceiptIcon}
-        color="#AF52DE"
         title="Xaridlar"
         value={compactAmount(purchases.month_total)}
         unit="so'm"
@@ -59,7 +57,6 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
         key="customers"
         href="/customers"
         icon={UserIcon}
-        color="#007AFF"
         title="Mijozlar"
         value={String(customers.total)}
         unit="ta"
@@ -78,7 +75,6 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
         key="sales"
         href="/sales"
         icon={ShoppingBagIcon}
-        color="#FF2D55"
         title="Sotuv"
         value={compactAmount(sales.month_total)}
         unit="so'm"

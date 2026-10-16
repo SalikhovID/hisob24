@@ -43,8 +43,8 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
         <Tile icon={PencilIcon} label="Tahrirlash" href="/sales/4/edit" />
       </Tiles>
       <Hero href="/customers" label="Mijozlar" value="3" unit="ta" />
-      <StatCard href="/purchases" icon={ReceiptIcon} color="#AF52DE" title="Xaridlar" value="12" />
-      <StatCard href="/tasks" icon={ReceiptIcon} color="#FF9500" title="Vazifalar" value="4" />
+      <StatCard href="/purchases" icon={ReceiptIcon} title="Xaridlar" value="12" />
+      <StatCard href="/tasks" icon={ReceiptIcon} title="Vazifalar" value="4" />
     </>,
   )
 

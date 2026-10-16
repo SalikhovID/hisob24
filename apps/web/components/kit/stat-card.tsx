@@ -74,14 +74,13 @@ export function Bars({ items, label }: { items: { label: string; value: number; 
 }
 
 // StatCard is one of the "Umumiy holat" cards, frosted glass: a section's
-// glossy icon and name,
+// icon on the plain fill and its name,
 // a figure with its unit, a line of badges and a chart along the bottom;
 // the whole card leads to the section.
 export function StatCard({
   href,
   onClick,
   icon: Icon,
-  color,
   title,
   value,
   unit,
@@ -92,7 +91,6 @@ export function StatCard({
   href?: string
   onClick?: () => void
   icon: LucideIcon
-  color: string
   title: string
   value: string
   unit?: string
@@ -107,7 +105,7 @@ export function StatCard({
   const content = (
     <>
       <span className="flex items-center gap-1.5 text-md font-medium">
-        <span aria-hidden="true" style={{ background: color }} className="gloss grid size-5 place-items-center rounded-full text-white">
+        <span aria-hidden="true" className="grid size-5 place-items-center rounded-full bg-muted text-foreground">
           <Icon strokeWidth={2.8} className="size-3" />
         </span>
         {title}

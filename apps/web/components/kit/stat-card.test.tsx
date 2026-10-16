@@ -8,7 +8,6 @@ test("a stat card is the way to its section, named by its title and figure", () 
     <StatCard
       href="/tasks"
       icon={CheckIcon}
-      color="#FF9500"
       title="Vazifalar"
       value="12"
       unit="ta faol"
@@ -46,12 +45,15 @@ test("a sparkline is one path over its values", () => {
   expect(paths[1].getAttribute("d")).toMatch(/^M0\.0,/)
 })
 
-test("a stat card is frosted glass, its section's mark a glossy dot", () => {
-  render(<StatCard href="/tasks" icon={CheckIcon} color="#FF9500" title="Vazifalar" value="12" />)
+test("a stat card is frosted glass, its section's mark the icon on the plain fill, in the text's ink", () => {
+  render(<StatCard href="/tasks" icon={CheckIcon} title="Vazifalar" value="12" />)
   const card = screen.getByRole("link", { name: /Vazifalar/ })
   expect(card).toHaveClass("surface", "rounded-group")
   expect(card).not.toHaveClass("bg-card")
-  expect(card.querySelector("[aria-hidden=true]")).toHaveClass("gloss")
+  const mark = card.querySelector("[aria-hidden=true]") as HTMLElement
+  expect(mark).toHaveClass("bg-muted", "text-foreground")
+  expect(mark).not.toHaveClass("gloss")
+  expect(mark.style.background).toBe("")
 })
 
 test("a bar is its color with a light falling from its top, rounder at the top than at the foot", () => {
