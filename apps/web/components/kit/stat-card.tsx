@@ -45,7 +45,8 @@ export function Sparkline({ values, color = "var(--primary)", className }: { val
 }
 
 // Bars are a few figures side by side (the active tasks per stage), each
-// in its own color with the figure over it in the hint ink; the tallest is
+// in its own color with a light falling from its top and the figure over it
+// in the hint ink; the tallest is
 // the largest. Together they are one image, named with every figure; each
 // bar names its stage on hover.
 export function Bars({ items, label }: { items: { label: string; value: number; color: string }[]; label: string }) {
@@ -62,8 +63,8 @@ export function Bars({ items, label }: { items: { label: string; value: number; 
           key={item.label}
           data-slot="bar"
           title={item.label}
-          style={{ background: item.color, height: `${Math.max(10, (item.value / max) * 100)}%` }}
-          className="relative min-h-1.5 flex-1 rounded-t-[7px] rounded-b-[4px] opacity-90"
+          style={{ backgroundColor: item.color, height: `${Math.max(10, (item.value / max) * 100)}%` }}
+          className="relative min-h-1.5 flex-1 rounded-t-[8px] rounded-b-[5px] bg-[linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0))] opacity-90"
         >
           <i className="absolute inset-x-0 -top-[17px] text-center text-[11.5px] font-semibold text-muted-foreground not-italic">{item.value}</i>
         </span>

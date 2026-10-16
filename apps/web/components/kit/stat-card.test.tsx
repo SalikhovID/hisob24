@@ -53,3 +53,12 @@ test("a stat card is frosted glass, its section's mark a glossy dot", () => {
   expect(card).not.toHaveClass("bg-card")
   expect(card.querySelector("[aria-hidden=true]")).toHaveClass("gloss")
 })
+
+test("a bar is its color with a light falling from its top, rounder at the top than at the foot", () => {
+  const { container } = render(<Bars label="Bosqichlar bo'yicha" items={[{ label: "Yangi", value: 4, color: "#007AFF" }]} />)
+  const bar = container.querySelector<HTMLElement>('[data-slot="bar"]')!
+  // The color is the bar's own; the light over it comes from the class.
+  expect(bar.style.backgroundColor).toBe("rgb(0, 122, 255)")
+  expect(bar.style.backgroundImage).toBe("")
+  expect(bar).toHaveClass("bg-[linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0))]", "rounded-t-[8px]", "rounded-b-[5px]")
+})
