@@ -225,8 +225,11 @@ export function SwitchRow<T extends FieldValues, TOut extends FieldValues = T>({
   )
 }
 
-const optClass = "inline-flex h-9 items-center gap-1.5 rounded-full bg-muted px-3.5 text-md font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-const optOn = "bg-primary text-primary-foreground"
+// An option is a chip in the plain fill; the chosen one is the prototype's
+// glossy capsule.
+const optClass = "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-md font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+const optOff = "bg-muted"
+const optOn = "glossy"
 
 // OptionChips are the options of a choice field drawn as chips: one of
 // them (radios; the chosen one pressed again is unchosen) or several
@@ -282,7 +285,7 @@ export function OptionChips<T extends FieldValues, TOut extends FieldValues = T>
                     data-slot="option-chip"
                     onClick={() => toggle(option.value)}
                     disabled={disabled}
-                    className={cn(optClass, on && optOn, "disabled:opacity-60")}
+                    className={cn(optClass, on ? optOn : optOff, "disabled:opacity-60")}
                   >
                     {multiple && on && <CheckIcon aria-hidden="true" strokeWidth={3} className="size-[15px]" />}
                     {option.label}

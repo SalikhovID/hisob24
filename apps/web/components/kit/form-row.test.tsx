@@ -81,3 +81,13 @@ test("a pick row is a button that says its label and its value, or a prompt whil
   expect(screen.getByRole("button", { name: "Bosqich Yangi" })).toHaveAccessibleDescription("Bosqichni tanlang")
   expect(screen.getByRole("alert")).toHaveTextContent("Bosqichni tanlang")
 })
+
+test("a chosen option is the prototype's glossy capsule; the others are the plain fill", async () => {
+  render(<Form onSubmit={() => {}} defaults={{ source: "1" }} />)
+  const chosen = screen.getByRole("radio", { name: "Instagram" })
+  expect(chosen).toHaveClass("glossy")
+  expect(chosen).not.toHaveClass("bg-muted")
+  const other = screen.getByRole("radio", { name: "YouTube" })
+  expect(other).toHaveClass("bg-muted")
+  expect(other).not.toHaveClass("glossy")
+})
