@@ -176,3 +176,10 @@ test("the sidebar is a pane of glass over the ambient light, its edge a hairline
   expect(sidebar()).toHaveClass("bg-(--head)", "backdrop-blur-[22px]", "backdrop-saturate-[1.8]", "border-r-[0.5px]")
   expect(sidebar()).not.toHaveClass("bg-background")
 })
+
+test("the sidebar keeps clear of what lies over the top of the screen itself, as the shell no longer does", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(sidebar()).toHaveClass("pt-safe")
+})

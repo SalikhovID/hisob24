@@ -112,3 +112,13 @@ test("the sidebar folds, and a page opened later finds it folded", async () => {
   renderWithProviders(<AppShell>{page}</AppShell>)
   expect(await screen.findByRole("button", { name: "Menyuni yoyish" })).toBeInTheDocument()
 })
+
+test("the page runs under what lies over the top of the screen (Telegram's controls in full screen): the shell keeps no room for it, the page's column starts its content below it", async () => {
+  await signIn(ALI)
+  const { container } = renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  expect(container.querySelector('[data-slot="app-shell"]')).not.toHaveClass("pt-safe")
+  expect(screen.getByRole("main")).toHaveClass("pt-safe-2", "md:pt-safe-6")
+  expect(screen.getByRole("main")).not.toHaveClass("pt-2")
+})

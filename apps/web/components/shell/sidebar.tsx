@@ -41,7 +41,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     <aside
       aria-label="Menyu"
       className={cn(
-        "hidden shrink-0 flex-col border-r-[0.5px] border-border bg-(--head) text-foreground backdrop-blur-[22px] backdrop-saturate-[1.8] transition-[width] duration-300 ease-out-expo md:flex",
+        "hidden shrink-0 flex-col border-r-[0.5px] border-border bg-(--head) pt-safe text-foreground backdrop-blur-[22px] backdrop-saturate-[1.8] transition-[width] duration-300 ease-out-expo md:flex",
         collapsed ? "w-16" : "w-64",
       )}
     >

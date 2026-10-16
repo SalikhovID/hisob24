@@ -103,11 +103,12 @@ test.describe("a linked user", () => {
       await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
       expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toBe("rgba(255, 255, 255, 0.035)")
     }
-    // Full screen on a phone's client: the page starts under the status bar
-    // and Telegram's controls (47px + 46px), the shell no taller than the
-    // screen.
+    // Full screen on a phone's client: the page runs under the status bar
+    // and Telegram's controls (47px + 46px) and starts its content below
+    // them (8px more, 24px from md), the shell no taller than the screen.
     expect(await wentFullscreen(page)).toBe(true)
-    await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "93px")
+    await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
+    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "101px" : "117px")
     expect((await homeHead(page).boundingBox())?.y).toBeGreaterThanOrEqual(93)
     await fits(page)
     // Closing the Mini App is the way out: the profile offers no sign-out,
@@ -242,6 +243,7 @@ test.describe("a desktop Telegram", () => {
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
     expect(await wentFullscreen(page)).toBe(false)
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
+    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "8px" : "24px")
     expect((await homeHead(page).boundingBox())?.y).toBeLessThan(93)
   })
 })

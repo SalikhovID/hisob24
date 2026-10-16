@@ -115,12 +115,13 @@ test("a page that moves is opaque in the ambient light, laid where the column's 
   expect(moving).toContain("background-color: var(--ambient-base)")
   expect(moving).toContain("background-image: var(--ambient)")
   expect(moving).toContain("background-repeat: no-repeat")
-  // The sheet stands inside main's padding (16px aside, 8px on top; 24px
-  // from md): its light is main's, a screen tall, moved back by the padding.
+  // The sheet stands inside main's padding (16px aside, 8px on top under
+  // what lies over the screen's top; 24px from md): its light is main's, a
+  // screen tall, moved back by the padding.
   expect(moving).toContain("background-size: calc(100% + 2rem) 100vh")
-  expect(moving).toContain("background-position: -1rem -0.5rem")
+  expect(moving).toContain("background-position: -1rem calc(-1 * (var(--safe-top) + 0.5rem))")
   expect(css).toMatch(
-    /@media \(min-width: 48rem\) \{\s*:root\[data-move\] \[data-slot="page"\] \{\s*background-size: calc\(100% \+ 3rem\) 100vh;\s*background-position: -1\.5rem -1\.5rem;/,
+    /@media \(min-width: 48rem\) \{\s*:root\[data-move\] \[data-slot="page"\] \{\s*background-size: calc\(100% \+ 3rem\) 100vh;\s*background-position: -1\.5rem calc\(-1 \* \(var\(--safe-top\) \+ 1\.5rem\)\);/,
   )
 })
 
