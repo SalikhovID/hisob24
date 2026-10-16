@@ -218,3 +218,44 @@ test("on a phone the member chooses the bar's pages on «Pastki panel», under t
   await expect(page).toHaveURL(/\/settings$/)
   await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
 })
+
+// namesOf reads the bar's names as the screen sets them: whether each shows
+// whole (no ellipsis), how far its words keep from its button's edges, and
+// its size.
+const namesOf = (page: Page) =>
+  page.locator('[data-slot="tab-bar"] a > span').evaluateAll((names) =>
+    names.map((name) => {
+      const words = document.createRange()
+      words.selectNodeContents(name)
+      const width = words.getBoundingClientRect().width
+      const button = name.parentElement!.getBoundingClientRect().width
+      return { name: name.textContent, whole: width <= name.clientWidth + 0.5, clear: (button - width) / 2, size: getComputedStyle(name).fontSize }
+    }),
+  )
+
+test("the bar's names show whole on a phone of any width, clear of their buttons' edges and all one size; a narrow phone sets them a little smaller", async ({ page }) => {
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+
+  if (!onPhone(page)) {
+    // A wide screen names its sections in the sidebar, the bar hidden.
+    await expect(page.locator('[data-slot="tab-bar"]')).toBeHidden()
+    return
+  }
+  await expect(tabBar(page).getByRole("link")).toHaveCount(5)
+  const sizes: string[] = []
+  for (const width of [414, 375, 360, 320]) {
+    await page.setViewportSize({ width, height: 800 })
+    await expect
+      .poll(async () => (await namesOf(page)).filter((name) => !name.whole || name.clear < 3.5).map((name) => `${width}px ${name.name}: ${name.clear.toFixed(1)}px clear`))
+      .toEqual([])
+    const names = await namesOf(page)
+    expect(new Set(names.map((name) => name.size)).size).toBe(1)
+    sizes.push(names[0].size)
+  }
+  // 11px where there is room (the prototype's), less on a 320px phone, never under 9px.
+  expect(sizes[0]).toBe("11px")
+  expect(parseFloat(sizes[3])).toBeLessThan(11)
+  expect(parseFloat(sizes[3])).toBeGreaterThanOrEqual(9)
+})
+

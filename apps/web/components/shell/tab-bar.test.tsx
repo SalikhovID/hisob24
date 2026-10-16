@@ -1,6 +1,6 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import type { ComponentProps } from "react"
-import { expect, test, vi } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
 import { moveTo } from "@/lib/moves"
 import { ALI, db, VALI } from "@/mocks/data"
 import { setLocation } from "@/test/navigation"
@@ -166,3 +166,86 @@ test("the bar is the prototype's frosted pill: its own shadow (its frost is the 
   // The marks are 25px, the current one drawn bolder; the names 11px.
   expect(other).toHaveClass("text-[11px]", "[&_svg]:size-[25px]", "aria-[current=page]:[&_svg]:stroke-[2.2]")
 })
+
+// layout stands in for the browser's layout, which jsdom lacks: each button
+// of the bar is button wide, and each name as wide as names says at full
+// size (any other 40px), narrower in proportion to the names' scale.
+function layout(size: { button: number; names: Record<string, number> }) {
+  const scale = (el: Element) => Number(el.closest("nav")?.style.getPropertyValue("--name-k") || "1")
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    const name = this instanceof HTMLElement && this.dataset.slot === "tab-name"
+    const width = this.tagName === "A" ? size.button : name ? (size.names[this.textContent ?? ""] ?? 40) * scale(this) : 0
+    return { x: 0, y: 0, top: 0, left: 0, width, height: 0, right: width, bottom: 0, toJSON: () => ({}) }
+  })
+  return size
+}
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
+
+// The default bar's names as wide as Geist sets them at 11px, the current one bolder.
+const NAMES = { "Bosh sahifa": 62, Mijozlar: 41, Vazifalar: 45, Mahsulotlar: 62, Sozlamalar: 58 }
+const names = () => [...bar().querySelectorAll<HTMLElement>('[data-slot="tab-name"]')]
+const nameScale = () => Number(bar().style.getPropertyValue("--name-k"))
+
+test("the names keep 4px clear of their buttons' edges: on a bar too narrow for them they are all set a little smaller, together; a roomy bar keeps them at 11px", async () => {
+  await signIn(ALI)
+  setLocation("/customers")
+  // A 320px phone's buttons are 59px: 51px for a name, and the widest is 62px.
+  const size = layout({ button: 59, names: NAMES })
+  const first = renderWithProviders(<TabBar />)
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
+
+  await waitFor(() => expect(nameScale()).toBeCloseTo(51 / 62, 3))
+  expect(names()).toHaveLength(5)
+  for (const name of names()) expect(name.style.fontSize).toBe("calc(11px * var(--name-k))")
+  first.unmount()
+
+  size.button = 72
+  renderWithProviders(<TabBar />)
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
+  await waitFor(() => expect(nameScale()).toBe(1))
+})
+
+test("the names are set no smaller than 9px: there a name may take its button's whole width, and one longer still ends in an ellipsis", async () => {
+  db.members[ALI][0].tabBar = ["inventories", "home", "customers", "tasks"]
+  await signIn(ALI)
+  setLocation("/customers")
+  layout({ button: 59, names: { ...NAMES, Inventarizatsiya: 86 } })
+  renderWithProviders(<TabBar />)
+  const long = await within(bar()).findByRole("link", { name: "Inventarizatsiya" })
+
+  await waitFor(() => expect(nameScale()).toBeCloseTo(9 / 11, 3))
+  expect(long.querySelector('[data-slot="tab-name"]')).toHaveClass("max-w-full", "truncate")
+})
+
+// Observed stands in for the browser's ResizeObserver: the test tells it
+// when the bar changed.
+class Observed {
+  static last: Observed
+  constructor(readonly report: ResizeObserverCallback) {
+    Observed.last = this
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  resized() {
+    act(() => this.report([], this as unknown as ResizeObserver))
+  }
+}
+
+test("the names are fitted again when the bar's width changes: a phone turned, a window made narrower", async () => {
+  vi.stubGlobal("ResizeObserver", Observed)
+  await signIn(ALI)
+  setLocation("/customers")
+  const size = layout({ button: 72, names: NAMES })
+  renderWithProviders(<TabBar />)
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
+  await waitFor(() => expect(nameScale()).toBe(1))
+
+  size.button = 59
+  Observed.last.resized()
+  expect(nameScale()).toBeCloseTo(51 / 62, 3)
+})
+
