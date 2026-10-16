@@ -126,3 +126,15 @@ test("an empty state is frosted glass, its icon ringed in white, its button the 
     "[&_[data-slot=main-button]]:px-[22px]",
   )
 })
+
+test("a record not found, a failure and a list loading stand on the same frosted glass as a group", () => {
+  const { container, rerender } = render(<NotFound title="Mijoz topilmadi" description="U o'chirilgan." />)
+  expect(container.querySelector('[data-slot="not-found"]')).toHaveClass("surface")
+
+  rerender(<Failed error={new Error("Tarmoq xatosi")} onRetry={() => {}} />)
+  expect(screen.getByRole("alert").parentElement).toHaveClass("surface")
+  expect(screen.getByRole("alert").parentElement).not.toHaveClass("bg-card")
+
+  rerender(<ListLoading />)
+  expect(screen.getByRole("status").querySelector('[aria-hidden="true"]')).toHaveClass("surface")
+})
