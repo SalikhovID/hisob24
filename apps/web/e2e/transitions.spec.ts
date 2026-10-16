@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
-import { seedCatalog, seedCustomers, seedWarehouse } from "../mocks/data"
+import { seedCatalog, seedCustomers, seedTasks, seedWarehouse } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { back, onPhone, openSection, signIn } from "./helpers"
+import { back, onPhone, openSection, sections, signIn } from "./helpers"
 
 // recordMoves keeps, for every view transition the page starts (React
 // starts one when a page changes), the animations it runs on the
@@ -37,6 +37,48 @@ async function movedBy(page: Page, action: () => Promise<unknown>) {
   await action()
   return async () => (await moves(page)).slice(before)
 }
+
+// holdTransitions keeps each view transition on the screen for 3s, drawn as
+// it is (its root's picture runs a still animation), so that a shot can be
+// taken of one; the page says whether one is under way.
+async function holdTransitions(page: Page) {
+  await page.addStyleTag({
+    content: "::view-transition-image-pair(root) { animation: 3s linear both hold-still !important } @keyframes hold-still { to { opacity: 1 } }",
+  })
+  await page.evaluate(() => {
+    const seen = window as unknown as { __changing: boolean }
+    seen.__changing = false
+    const start = document.startViewTransition.bind(document)
+    document.startViewTransition = ((arg?: ViewTransitionUpdateCallback | StartViewTransitionOptions) => {
+      const transition = start(arg as StartViewTransitionOptions)
+      seen.__changing = true
+      transition.finished.finally(() => (seen.__changing = false))
+      return transition
+    }) as typeof document.startViewTransition
+  })
+}
+const changing = (page: Page) => page.evaluate(() => (window as unknown as { __changing: boolean }).__changing)
+
+// apart is the share of the pixels two shots of one box tell apart (by more
+// than a faint shade).
+const apart = (page: Page, one: Buffer, other: Buffer) =>
+  page.evaluate(async (sources) => {
+    const pixels = async (source: string) => {
+      const image = new Image()
+      image.src = source
+      await image.decode()
+      const canvas = new OffscreenCanvas(image.width, image.height)
+      const context = canvas.getContext("2d")!
+      context.drawImage(image, 0, 0)
+      return context.getImageData(0, 0, image.width, image.height).data
+    }
+    const [a, b] = await Promise.all(sources.map(pixels))
+    let differ = 0
+    for (let i = 0; i < a.length; i += 4) {
+      if (Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])) > 48) differ++
+    }
+    return differ / (a.length / 4)
+  }, [one, other].map((shot) => `data:image/png;base64,${shot.toString("base64")}`))
 
 // The prototype's push and pop on a phone; beside the sidebar the page under
 // fades instead of moving (it would pass over the sidebar).
@@ -111,3 +153,27 @@ test("a document opened from its list moves forward; deleted, it leads back to t
   await expect(page).toHaveURL(/\/purchases$/)
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.move ?? null)).toBeNull()
 })
+
+test("a page from the menu changes under the shell: while it changes, the screen is drawn as it is once changed, the page never over the tab bar", async ({ page }) => {
+  seedTasks()
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await expect(page.getByText("ta faol")).toBeVisible()
+  await openSection(page, "Vazifalar")
+  await expect(page.getByRole("heading", { level: 1, name: "Vazifalar" })).toBeVisible()
+  await holdTransitions(page)
+
+  await (await sections(page)).getByRole("link", { name: "Bosh sahifa", exact: true }).click()
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  // The home runs on below the screen's edge: on a phone its cards go under the bar.
+  expect(await page.getByRole("main").evaluate((main) => main.scrollHeight - main.clientHeight)).toBeGreaterThan(40)
+  // The bar's lens has slid under the home's button (450ms).
+  await page.waitForTimeout(800)
+  const shot = () => (onPhone(page) ? page.locator('[data-slot="tab-bar"]').screenshot() : page.screenshot())
+  const during = await shot()
+  expect(await changing(page)).toBe(true)
+  await expect.poll(() => changing(page), { timeout: 5_000 }).toBe(false)
+  const after = await shot()
+  expect(await apart(page, during, after)).toBeLessThan(0.001)
+})
+

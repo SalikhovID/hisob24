@@ -512,6 +512,13 @@ html[data-telegram] body {
 ::view-transition {
   pointer-events: none;
 }
+/* A page that does not move is drawn with the shell, in the root's picture:
+   React names every page that comes and goes, and a page drawn on its own
+   would stand over the tab bar for the frame or two the change takes, the
+   bar coming back over it after. Its name gives way to this one. */
+:root:not([data-move]) [data-slot="page"] {
+  view-transition-name: none !important;
+}
 /* The page that moves is opaque in the ambient light, so the page it
    covers does not show through it; at rest it lets the column's light show
    (AppShell). Its light is the column's: a screen tall, moved back by the
