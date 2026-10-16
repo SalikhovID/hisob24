@@ -42,7 +42,7 @@ test("a dialog comes up as a sheet named by its title; the close button at its h
   expect(change).toHaveBeenCalledWith(false, expect.anything())
 })
 
-test("a sheet is the prototype's glass: the sheet's tint over a deep blur, a white edge; its close button a small glass", async () => {
+test("a sheet is the prototype's: its own color, 40px round, a white edge; its close button a small glass", async () => {
   render(
     <Dialog open>
       <DialogContent>
@@ -53,19 +53,13 @@ test("a sheet is the prototype's glass: the sheet's tint over a deep blur, a whi
     </Dialog>,
   )
   const sheet = await screen.findByRole("dialog", { name: "Mijoz" })
-  expect(sheet).toHaveClass(
-    "rounded-sheet",
-    "bg-sheet",
-    "backdrop-blur-[40px]",
-    "backdrop-saturate-[1.8]",
-    "shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)]",
-  )
+  expect(sheet).toHaveClass("rounded-sheet", "bg-sheet", "shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)]")
   const close = screen.getByRole("button", { name: "Yopish" }).firstElementChild
   expect(close).toHaveClass("glass-chip")
   expect(close).not.toHaveClass("bg-muted")
 })
 
-test("a sheet's head and its main button's bar have no fill of their own: over the sheet they vanish, and what scrolls under them is frosted", async () => {
+test("a sheet's head and its main button's bar wear the sheet's own color, so what scrolls under them is hidden; the color is opaque, so it does not show twice", async () => {
   render(
     <Dialog open>
       <DialogContent>
@@ -81,8 +75,6 @@ test("a sheet's head and its main button's bar have no fill of their own: over t
   await screen.findByRole("dialog", { name: "Mijoz" })
   const head = document.querySelector('[data-slot="dialog-header"]')
   const foot = document.querySelector('[data-slot="dialog-footer"]')
-  expect(head).toHaveClass("backdrop-blur-[24px]")
-  expect(head).not.toHaveClass("bg-sheet")
-  expect(foot).toHaveClass("backdrop-blur-[24px]")
-  expect(foot).not.toHaveClass("from-sheet")
+  expect(head).toHaveClass("bg-sheet")
+  expect(foot).toHaveClass("from-sheet")
 })

@@ -21,7 +21,7 @@ test("the light theme is the prototype's light glass: grey-white, white cards, a
   expect(root).toContain("--muted-foreground: #6B6E76")
   expect(root).toContain("--heading: #2A2C31")
   expect(root).toContain("--press: rgba(0, 0, 0, 0.05)")
-  expect(root).toContain("--sheet: rgba(244, 245, 247, 0.88)")
+  expect(root).toContain("--sheet: #EFF0F2")
   expect(root).toContain("--positive: #23804E")
   expect(root).toContain("--destructive: #CF3F37")
 })
@@ -35,7 +35,7 @@ test("the dark theme is the prototype's night glass: a lavender accent on a deep
   expect(dark).toContain("--primary-foreground: #1A1433")
   expect(dark).toContain("--muted-foreground: #A7A1C0")
   expect(dark).toContain("--heading: #DAD5EE")
-  expect(dark).toContain("--sheet: rgba(30, 26, 44, 0.84)")
+  expect(dark).toContain("--sheet: #1C1829")
   expect(dark).toContain("--destructive: #FF7A70")
 })
 

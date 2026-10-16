@@ -5,8 +5,8 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "cn"
 import { XIcon } from "lucide-react"
 
-// The dialogs are the prototype's sheets of glass (the sheet's tint over a
-// deep blur, a white edge): they come up from the bottom of
+// The dialogs are the prototype's sheets (the sheet's own color, a white
+// edge): they come up from the bottom of
 // the screen (on a wide screen too, 480px wide in the middle), a grab
 // handle on top, the close button at the top left, the title centered, the
 // body scrolling under a sticky head, the main button in a sticky footer.
@@ -66,7 +66,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-tall={tall || undefined}
         className={cn(
-          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px)] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)] backdrop-blur-[40px] backdrop-saturate-[1.8] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px)]",
+          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px)] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px)]",
           className
         )}
         {...props}
@@ -98,13 +98,12 @@ function DialogContent({
 
 // DialogHeader is the sheet's head: it stays at the top while the body
 // scrolls, the title centered between the close button and the right slot.
-// It has no fill of its own (the sheet's glass would show twice): what
-// scrolls under it is frosted instead.
+// It wears the sheet's own color, so what scrolls under it is hidden.
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("sticky top-0 z-[1] -mx-4 mb-2 flex flex-col gap-1 px-14 pt-5 pb-2 text-center backdrop-blur-[24px]", className)}
+      className={cn("sticky top-0 z-[1] -mx-4 mb-2 flex flex-col gap-1 bg-sheet px-14 pt-5 pb-2 text-center", className)}
       {...props}
     />
   )
@@ -112,8 +111,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
 
 // DialogFooter is the main button's bar at the bottom of the sheet. It
 // sticks to the body's bottom edge; the body then has no padding under it
-// (a sticky box keeps clear of its scroller's padding). Like the head it
-// has no fill of its own: what scrolls under it is frosted.
+// (a sticky box keeps clear of its scroller's padding). What scrolls under
+// it fades into the sheet's color.
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -126,7 +125,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "sticky bottom-0 z-[1] -mx-4 mt-auto flex flex-col gap-1 px-4 pt-3 pb-4 backdrop-blur-[24px] [&>*]:w-full",
+        "sticky bottom-0 z-[1] -mx-4 mt-auto flex flex-col gap-1 bg-gradient-to-t from-sheet from-70% to-transparent px-4 pt-3 pb-4 [&>*]:w-full",
         className
       )}
       {...props}

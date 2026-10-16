@@ -116,7 +116,10 @@
     --glass: rgba(250, 247, 255, 0.72);
     --glass-edge: rgba(255, 255, 255, 0.95);
     --menu: rgba(250, 250, 251, 0.86);
-    --sheet: rgba(244, 245, 247, 0.88);
+    /* A sheet's color is opaque (the prototype's see-through rgba(244, 245,
+       247, .88) as it reads over the scrim): its head and its main button's
+       bar wear it too, and a see-through one would show twice there. */
+    --sheet: #EFF0F2;
     --sheet-cell: rgba(255, 255, 255, 0.92);
     --scrim: rgba(10, 12, 16, 0.2);
     --shadow: 0 18px 44px rgba(20, 22, 30, 0.16);
@@ -221,7 +224,7 @@
     --glass: rgba(44, 38, 64, 0.5);
     --glass-edge: rgba(255, 255, 255, 0.16);
     --menu: rgba(42, 36, 60, 0.82);
-    --sheet: rgba(30, 26, 44, 0.84);
+    --sheet: #1C1829;
     --sheet-cell: rgba(255, 255, 255, 0.08);
     --scrim: rgba(6, 4, 12, 0.5);
     --shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
