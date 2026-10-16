@@ -53,8 +53,9 @@ export function Tiles({ children, label = "Amallar", className }: { children: Re
   )
 }
 
-// Tile is one action: a round icon over its name; a button, or a link (an
-// address of the app, or tel: to call). A danger tile is red.
+// Tile is one action, a frosted glass square: a glossy round icon over its
+// name; a button, or a link (an address of the app, or tel: to call). A
+// danger tile is red.
 export function Tile({
   icon: Icon,
   label,
@@ -71,12 +72,12 @@ export function Tile({
   disabled?: boolean
 }) {
   const classes = cn(
-    "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-tile bg-card px-0.5 py-2 text-xs font-semibold no-underline transition-transform duration-150 ease-out-expo outline-none active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
+    "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-tile surface px-0.5 py-2 text-xs font-semibold no-underline transition-transform duration-150 ease-out-expo outline-none active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
     danger ? "text-destructive" : "text-primary",
   )
   const content = (
     <>
-      <span aria-hidden="true" className={cn("grid size-7 place-items-center rounded-full", danger ? "bg-destructive text-white" : "bg-primary text-primary-foreground")}>
+      <span aria-hidden="true" className={cn("grid size-7 place-items-center rounded-full", danger ? "glossy-red" : "glossy")}>
         <Icon strokeWidth={2.6} className="size-[17px]" />
       </span>
       <span className="max-w-full truncate">{label}</span>

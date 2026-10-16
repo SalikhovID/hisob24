@@ -38,3 +38,17 @@ test("the tiles are the record's actions: buttons, a link to call, a red one to 
   expect(within(group).getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998901234567")
   expect(within(group).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-danger", "true")
 })
+
+test("a tile is frosted glass with a glossy round icon; a red tile's icon is the red capsule", () => {
+  render(
+    <Tiles>
+      <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => {}} />
+      <Tile icon={Trash2Icon} label="O'chirish" onClick={() => {}} danger />
+    </Tiles>,
+  )
+  const edit = screen.getByRole("button", { name: "Tahrirlash" })
+  expect(edit).toHaveClass("surface", "rounded-tile")
+  expect(edit).not.toHaveClass("bg-card")
+  expect(edit.querySelector("[aria-hidden=true]")).toHaveClass("glossy")
+  expect(screen.getByRole("button", { name: "O'chirish" }).querySelector("[aria-hidden=true]")).toHaveClass("glossy-red")
+})
