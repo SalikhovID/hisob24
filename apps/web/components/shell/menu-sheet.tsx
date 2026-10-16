@@ -7,7 +7,7 @@ import { type ReactNode, useId, useState } from "react"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { SearchBox } from "@/components/kit/search-box"
 import { pageIcons } from "@/components/kit/tab-icons"
-import { pageColors, TileIcon } from "@/components/kit/tile-icon"
+import { TileIcon } from "@/components/kit/tile-icon"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { barPages, type NavPage, pageGroups, pagesFor, settingsPagesFor } from "@/lib/nav"
 import { moveTo } from "@/lib/moves"
@@ -45,7 +45,7 @@ function sectionsOf(me: Me): MenuSection[] {
       label: page.label,
       pinned: pins.has(page.key),
       media: (
-        <TileIcon color={pageColors[page.key]} className="size-10 rounded-[11px] [&_svg]:size-6">
+        <TileIcon className="size-10 rounded-[11px] [&_svg]:size-6">
           <Icon />
         </TileIcon>
       ),
@@ -59,7 +59,7 @@ function sectionsOf(me: Me): MenuSection[] {
       tiles: settingsPagesFor(me.permissions, me.company?.role === "owner").map((page) => ({
         href: page.href,
         label: page.label,
-        media: <TileIcon icon={page.icon} color={page.color} className="size-10 rounded-[11px] [&_svg]:size-[22px]" />,
+        media: <TileIcon icon={page.icon} className="size-10 rounded-[11px] [&_svg]:size-[22px]" />,
       })),
     },
   ]
@@ -83,7 +83,7 @@ export function MenuSheet({ open, onOpenChange, onCustomize }: { open: boolean; 
         </DialogHeader>
         {data && <MenuBody me={data} onClose={() => onOpenChange(false)} />}
         <Group className="mt-1 mb-0">
-          <Row onClick={onCustomize} media={<TileIcon icon={SlidersHorizontalIcon} color="#8E8E93" />} title="Pastki panelni sozlash" />
+          <Row onClick={onCustomize} media={<TileIcon icon={SlidersHorizontalIcon} />} title="Pastki panelni sozlash" />
         </Group>
       </DialogContent>
     </Dialog>

@@ -3,7 +3,7 @@
 import { WalletIcon } from "lucide-react"
 import { Group, Row } from "@/components/kit/group"
 import { PageTitle } from "@/components/kit/page-title"
-import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
+import { TileIcon } from "@/components/kit/tile-icon"
 import { SectionTabs } from "@/components/section-tabs"
 import { Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
@@ -48,7 +48,7 @@ export function AccountsPage() {
               <Row
                 key={account.id}
                 href={`/accounts/${account.id}`}
-                media={<TileIcon icon={WalletIcon} color={account.is_active ? sectionColors.finance : "#8E8E93"} />}
+                media={<TileIcon icon={WalletIcon} />}
                 title={account.name}
                 badge={!account.is_active && <Badge>Nofaol</Badge>}
                 sub={currency.code}

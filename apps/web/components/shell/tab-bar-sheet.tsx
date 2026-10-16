@@ -7,7 +7,7 @@ import { Foot, Group, SectionHeading } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
 import { pageIcons } from "@/components/kit/tab-icons"
-import { pageColors, TileIcon } from "@/components/kit/tile-icon"
+import { TileIcon } from "@/components/kit/tile-icon"
 import { SortableList } from "@/components/sortable-list"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BAR_LIMIT, barPages, defaultBar, type NavPage, type PageKey, pageGroups, pagesFor } from "@/lib/nav"
@@ -18,7 +18,7 @@ import type { Me } from "@/lib/types"
 function tile(page: NavPage) {
   const Icon = pageIcons[page.key]
   return (
-    <TileIcon color={pageColors[page.key]}>
+    <TileIcon>
       <Icon className="size-5" />
     </TileIcon>
   )

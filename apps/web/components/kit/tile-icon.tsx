@@ -1,68 +1,15 @@
 import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
-import type { NavKey, PageKey } from "@/lib/nav"
 import { cn } from "@/lib/utils"
 
-// sectionColors are the sections' own hues (the prototype's SECCOL): the
-// tile icon a section's row wears on the home page, in the settings and in
-// the profile. The sales and the finance came after the prototype and take
-// hues of their own in the same family.
-export const sectionColors: Record<NavKey, string> = {
-  home: "#174449",
-  customers: "#007AFF",
-  tasks: "#FF9500",
-  products: "#A2845E",
-  sales: "#FF2D55",
-  warehouse: "#AF52DE",
-  finance: "#5856D6",
-  employees: "#34C759",
-  settings: "#8E8E93",
-}
-
-// pageColors are the menu's pages' hues (logic/roles.md, section 8): a
-// section's own page wears the section's, a page of the warehouse its
-// row's on the warehouse's page, the cash the finance's.
-export const pageColors: Record<PageKey, string> = {
-  home: sectionColors.home,
-  customers: sectionColors.customers,
-  tasks: sectionColors.tasks,
-  products: sectionColors.products,
-  services: "#30B0C7",
-  sales: sectionColors.sales,
-  warehouse: sectionColors.warehouse,
-  purchases: "#AF52DE",
-  transfers: "#007AFF",
-  inventories: "#FF9500",
-  opening_stock: "#34C759",
-  suppliers: "#5856D6",
-  accounts: sectionColors.finance,
-  expenses: "#FF3B30",
-  money_transfers: "#007AFF",
-  employees: sectionColors.employees,
-}
-
-// TileIcon is the iOS-style square icon that opens a row: a 32px rounded
-// square in a color, glossy (a light falling from its top), a white icon on
-// it. It is decoration: the row's text names the row.
-export function TileIcon({
-  icon: Icon,
-  color,
-  className,
-  children,
-}: {
-  icon?: LucideIcon
-  color: string
-  className?: string
-  children?: ReactNode
-}) {
+// TileIcon is the icon that opens a row of a list of places (the settings,
+// the profile, the warehouse's parts, the menu's pages): the prototype's
+// plain outline mark in the heading's ink, no square of color under it. It
+// is decoration: the row's text names the row.
+export function TileIcon({ icon: Icon, className, children }: { icon?: LucideIcon; className?: string; children?: ReactNode }) {
   return (
-    <span
-      aria-hidden="true"
-      data-slot="tile-icon"
-      style={{ background: color }}
-      className={cn("gloss grid size-8 shrink-0 place-items-center rounded-[10px] text-white [&_svg]:size-[19px]", className)}
-    >
-      {children ?? (Icon && <Icon strokeWidth={2.2} />)}
+    <span aria-hidden="true" data-slot="tile-icon" className={cn("grid h-8 w-7 shrink-0 place-items-center text-heading [&_svg]:size-[22px]", className)}>
+      {children ?? (Icon && <Icon strokeWidth={1.8} />)}
     </span>
   )
 }

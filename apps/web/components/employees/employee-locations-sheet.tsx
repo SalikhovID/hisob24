@@ -110,7 +110,7 @@ export function EmployeeLocationsSheet({
                   data-slot="row"
                   className="flex min-h-12 w-full items-center gap-3 px-4 py-1.5 text-left text-base outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
                 >
-                  <TileIcon icon={MapPinIcon} color="#FF9500" />
+                  <TileIcon icon={MapPinIcon} />
                   <span className="min-w-0 flex-1 truncate">{location.name}</span>
                   {on && <CheckIcon aria-hidden="true" strokeWidth={2.6} className="size-5 shrink-0 text-primary" />}
                 </button>

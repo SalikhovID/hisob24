@@ -93,12 +93,12 @@ export function EmployeeSheet({
             <>
               {(can.rename || can.role || (can.locations && severalLocations)) && (
                 <Group inset="tile">
-                  {can.rename && <Row onClick={() => setSheet("rename")} media={<TileIcon icon={PencilIcon} color="#8E8E93" />} title="Ism" end={employee.full_name ?? "—"} />}
-                  {can.role && <Row onClick={() => setSheet("role")} media={<TileIcon icon={ShieldIcon} color="#FF3B30" />} title="Rol" end={employee.role_name ?? "Rolsiz"} />}
+                  {can.rename && <Row onClick={() => setSheet("rename")} media={<TileIcon icon={PencilIcon} />} title="Ism" end={employee.full_name ?? "—"} />}
+                  {can.role && <Row onClick={() => setSheet("role")} media={<TileIcon icon={ShieldIcon} />} title="Rol" end={employee.role_name ?? "Rolsiz"} />}
                   {can.locations && severalLocations && (
                     <Row
                       onClick={() => setSheet("locations")}
-                      media={<TileIcon icon={MapPinIcon} color="#FF9500" />}
+                      media={<TileIcon icon={MapPinIcon} />}
                       title="Lokatsiyalar"
                       end={<span className={cn(where === "—" && "text-destructive")}>{where}</span>}
                     />

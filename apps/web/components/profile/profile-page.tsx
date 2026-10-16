@@ -8,7 +8,7 @@ import { Avatar } from "@/components/kit/avatar"
 import { BackLink } from "@/components/kit/page-title"
 import { DetailHead } from "@/components/kit/detail-head"
 import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
-import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
+import { TileIcon } from "@/components/kit/tile-icon"
 import { RoleBadge } from "@/components/role-badge"
 import { unavailable } from "@/lib/companies"
 import { useHomeScreenOffer } from "@/lib/home-screen"
@@ -69,16 +69,16 @@ export function ProfilePage() {
         <>
           <SectionHeading>Kompaniya</SectionHeading>
           <Group label="Kompaniya" inset="tile">
-            <Row media={<TileIcon icon={BuildingIcon} color={sectionColors.home} />} title={company.name} end={<RoleBadge role={company.role} name={company.role_name} />} />
+            <Row media={<TileIcon icon={BuildingIcon} />} title={company.name} end={<RoleBadge role={company.role} name={company.role_name} />} />
             {location.locations.length > 1 && current && (
               <Row
                 onClick={() => setSheet("location")}
-                media={<TileIcon icon={MapPinIcon} color="#FF9500" />}
+                media={<TileIcon icon={MapPinIcon} />}
                 title="Lokatsiya"
                 end={<span className="text-muted-foreground">{current.name}</span>}
               />
             )}
-            {canSwitch && <Row href="/select-company" media={<TileIcon icon={ArrowLeftRightIcon} color="#5856D6" />} title="Kompaniyani almashtirish" />}
+            {canSwitch && <Row href="/select-company" media={<TileIcon icon={ArrowLeftRightIcon} />} title="Kompaniyani almashtirish" />}
           </Group>
         </>
       )}
@@ -89,7 +89,7 @@ export function ProfilePage() {
           <Group label="Ilova" inset="tile">
             <Row
               onClick={() => setSheet("theme")}
-              media={<TileIcon icon={SunMoonIcon} color="#007AFF" />}
+              media={<TileIcon icon={SunMoonIcon} />}
               title="Mavzu"
               end={<span className="text-muted-foreground">{themes.find((candidate) => candidate.value === theme)?.label ?? "Tizim"}</span>}
             />

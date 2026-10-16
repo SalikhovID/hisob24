@@ -1,20 +1,16 @@
 import { render } from "@testing-library/react"
 import { UserIcon } from "lucide-react"
 import { expect, test } from "vitest"
-import { sectionColors, SoftIcon, TileIcon } from "./tile-icon"
+import { SoftIcon, TileIcon } from "./tile-icon"
 
-test("a tile icon is a colored square with an icon, decoration beside its row's text", () => {
-  const { container } = render(<TileIcon icon={UserIcon} color="#34C759" />)
+test("a tile icon is the prototype's plain outline mark beside its row's text: no color under it, the heading's ink, decoration", () => {
+  const { container } = render(<TileIcon icon={UserIcon} />)
   const tile = container.querySelector('[data-slot="tile-icon"]') as HTMLElement
   expect(tile).toHaveAttribute("aria-hidden", "true")
-  expect(tile.style.background).toBe("rgb(52, 199, 89)")
-  expect(tile.querySelector("svg")).toBeInTheDocument()
-})
-
-test("every section has a color of its own", () => {
-  expect(sectionColors.home).toBe("#174449")
-  expect(sectionColors.customers).toBe("#007AFF")
-  expect(new Set(Object.values(sectionColors)).size).toBe(Object.keys(sectionColors).length)
+  expect(tile.style.background).toBe("")
+  expect(tile).toHaveClass("text-heading", "w-7", "[&_svg]:size-[22px]")
+  expect(tile).not.toHaveClass("gloss")
+  expect(tile.querySelector("svg")).toHaveAttribute("stroke-width", "1.8")
 })
 
 test("a soft icon is the icon in its color on a pale wash of it, decoration beside a document's row", () => {
@@ -25,10 +21,6 @@ test("a soft icon is the icon in its color on a pale wash of it, decoration besi
   expect(tile.querySelector("svg")).toBeInTheDocument()
 })
 
-test("a tile icon is glossy, as the prototype's: a light falling from its top, its corners 10px", () => {
-  const { container } = render(<TileIcon icon={UserIcon} color="#007AFF" />)
-  expect(container.querySelector('[data-slot="tile-icon"]')).toHaveClass("gloss", "rounded-[10px]")
-})
 
 test("a soft icon has a faint white rim, as the prototype's task icons", () => {
   const { container } = render(<SoftIcon icon={UserIcon} />)

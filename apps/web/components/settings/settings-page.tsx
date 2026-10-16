@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { PageTitle } from "@/components/kit/page-title"
-import { sectionColors, TileIcon } from "@/components/kit/tile-icon"
+import { TileIcon } from "@/components/kit/tile-icon"
 import { useCustomerDropdowns, useCustomerTypes, useRoles, useTaskStages, useTaskTypes } from "@/lib/queries"
 import { usePermission } from "@/lib/use-gate"
 import { oldTabHref, settingsHref } from "./use-settings-tab"
@@ -40,19 +40,19 @@ export function SettingsPage() {
     <>
       <PageTitle title="Sozlamalar" description="Mijozlar, vazifalar, valyutalar va moliya sozlamalari" />
       <Group label="Mijozlar va vazifalar" inset="tile">
-        <Row href={settingsHref("customers")} media={<TileIcon icon={UserIcon} color="#34C759" />} title="Mijoz turlari" end={count(customerTypes.data)} />
-        <Row href={settingsHref("tasks")} media={<TileIcon icon={TagIcon} color="#FF9500" />} title="Vazifa turlari" end={count(taskTypes.data)} />
-        <Row href={settingsHref("stages")} media={<TileIcon icon={LayersIcon} color="#5856D6" />} title="Bosqichlar" end={count(stages.data)} />
-        <Row href={settingsHref("dropdowns")} media={<TileIcon icon={ListIcon} color="#30B0C7" />} title="Dropdownlar" end={count(dropdowns.data)} />
+        <Row href={settingsHref("customers")} media={<TileIcon icon={UserIcon} />} title="Mijoz turlari" end={count(customerTypes.data)} />
+        <Row href={settingsHref("tasks")} media={<TileIcon icon={TagIcon} />} title="Vazifa turlari" end={count(taskTypes.data)} />
+        <Row href={settingsHref("stages")} media={<TileIcon icon={LayersIcon} />} title="Bosqichlar" end={count(stages.data)} />
+        <Row href={settingsHref("dropdowns")} media={<TileIcon icon={ListIcon} />} title="Dropdownlar" end={count(dropdowns.data)} />
       </Group>
       <Group label="Valyuta va moliya" inset="tile">
-        <Row href={settingsHref("currencies")} media={<TileIcon icon={CoinsIcon} color="#FFB800" />} title="Valyuta kurslari" />
-        <Row href={settingsHref("finance")} media={<TileIcon icon={WalletIcon} color={sectionColors.finance} />} title="Moliya kategoriyalari" />
+        <Row href={settingsHref("currencies")} media={<TileIcon icon={CoinsIcon} />} title="Valyuta kurslari" />
+        <Row href={settingsHref("finance")} media={<TileIcon icon={WalletIcon} />} title="Moliya kategoriyalari" />
       </Group>
       {isOwner && (
         <>
           <Group label="Rollar" inset="tile">
-            <Row href={settingsHref("roles")} media={<TileIcon icon={ShieldIcon} color="#FF3B30" />} title="Rollar" end={count(roles.data)} />
+            <Row href={settingsHref("roles")} media={<TileIcon icon={ShieldIcon} />} title="Rollar" end={count(roles.data)} />
           </Group>
           <Foot className="-mt-4">Rol xodimga qaysi bo&apos;limlarda nima qilishi mumkinligini belgilaydi. Rollar faqat kompaniya egasiga ko&apos;rinadi.</Foot>
         </>
