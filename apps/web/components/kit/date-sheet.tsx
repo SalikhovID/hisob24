@@ -130,7 +130,7 @@ function Calendar({
     <>
       <Chips className="mb-2.5">
         {presets.map(([label, day]) => (
-          <Chip key={label} pressed={picked === day} onClick={() => pick(day)} className={picked !== day ? "bg-sheet-cell text-foreground" : undefined}>
+          <Chip key={label} pressed={picked === day} onClick={() => pick(day)} className={picked !== day ? "text-foreground" : undefined}>
             {label}
           </Chip>
         ))}

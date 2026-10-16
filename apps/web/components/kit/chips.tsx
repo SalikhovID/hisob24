@@ -10,7 +10,10 @@ const strip = "-mx-4 mb-3.5 flex gap-1.5 overflow-x-auto px-4 py-0.5 scrollbar-h
 
 const chip =
   "relative inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-md font-medium whitespace-nowrap text-heading outline-none transition-colors after:absolute after:-inset-x-0.5 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50"
-const on = "bg-primary-soft font-semibold text-primary"
+// A chip is the prototype's small glass; on, it is the accent's tint with a
+// faint ring of the accent.
+const off = "glass-chip"
+const on = "bg-primary-soft font-semibold text-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]"
 
 // Chips is the strip of filters under a search: it scrolls sideways, out to
 // the page's edges, rather than squeezing.
@@ -40,7 +43,7 @@ export function Chip({
   className?: string
 }) {
   return (
-    <button type="button" aria-pressed={pressed} data-slot="chip" onClick={onClick} className={cn(chip, pressed && on, className)}>
+    <button type="button" aria-pressed={pressed} data-slot="chip" onClick={onClick} className={cn(chip, pressed ? on : off, className)}>
       {children}
       {count !== undefined && (
         <>
@@ -87,7 +90,10 @@ export function ChoiceChips({
           key={option.value}
           value={option.value}
           data-slot="chip"
-          className={cn(chip, "data-checked:bg-primary-soft data-checked:font-semibold data-checked:text-primary")}
+          className={cn(
+            chip,
+            "not-data-checked:glass-chip data-checked:bg-primary-soft data-checked:font-semibold data-checked:text-primary data-checked:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]",
+          )}
         >
           {option.label}
           {option.count !== undefined && (
