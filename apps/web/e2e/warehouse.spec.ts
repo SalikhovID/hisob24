@@ -3,7 +3,7 @@ import { seedCatalog, seedWarehouse } from "../mocks/data"
 import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { choose, chooseLocation, days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
+import { back, choose, chooseLocation, days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
 
 // hub is the warehouse's own page: a row for each of its parts.
 const hub = (page: Page) => page.getByRole("list", { name: "Ombor bo'limlari" })
@@ -171,7 +171,7 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("Chilonzor")).toBeVisible()
   await expect(list(page, "Mahsulotlar").getByText("4 kg")).toBeVisible()
   await settle(page)
-  await page.getByRole("main").getByRole("link", { name: "Ko'chirishlar" }).click()
+  await back(page, "Ko'chirishlar")
   const transfers = page.getByRole("region", { name: "Ko'chirishlar" })
   await expect(transfers.getByText("Chiqim")).toBeVisible()
   await chooseLocation(page, "Chilonzor")
@@ -196,7 +196,7 @@ test("the owner keeps the stock documents: a transfer between the locations, a c
 
   // The stock Chilonzor started with: 10 Nok at 2 000. The hub is a list
   // away: back to the counts first.
-  await page.getByRole("main").getByRole("link", { name: "Inventarizatsiya", exact: true }).click()
+  await back(page, "Inventarizatsiya")
   await expect(page).toHaveURL(/\/inventories$/)
   await chooseLocation(page, "Chilonzor")
   await openWarehouse(page, "Boshlang'ich qoldiq")

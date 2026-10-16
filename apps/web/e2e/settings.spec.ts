@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { typesOf } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
+import { back, choose, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
 
 // openSettings signs the owner of Olma Savdo in and opens the settings' hub.
 async function openSettings(page: Page) {
@@ -18,9 +18,6 @@ async function openPart(page: Page, name: string, address: RegExp) {
   await expect(page).toHaveURL(address)
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
 }
-
-// back follows a page's own way back (the sidebar may have a link of the same name).
-const back = (page: Page, name: string) => page.getByRole("main").getByRole("link", { name, exact: true }).click()
 
 // titles are the titles of a list's rows, the marks beside them left out.
 const titles = (list: Locator) => list.locator('[data-slot="row-title"] > span:first-child').allTextContents()

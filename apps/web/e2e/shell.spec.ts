@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { seedCustomers } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { onPhone, openProfile, sections, signIn } from "./helpers"
+import { expectSignedIn, onPhone, openProfile, sections, signIn } from "./helpers"
 
 const width = (page: Page) => async () => (await page.getByRole("complementary", { name: "Menyu" }).boundingBox())?.width
 
@@ -58,7 +58,7 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
   await expect(sidebar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
   await expect(sidebar.getByRole("link", { name: "Xodimlar" })).toBeVisible()
   await expect(sidebar.getByText("Olma Savdo")).toBeVisible()
-  await expect.poll(width(page)).toBe(256)
+  await expect.poll(width(page)).toBe(264)
   // A wide screen has every section in the sidebar: the home lists none of them.
   await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toBeHidden()
 
@@ -74,7 +74,7 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
   await expect.poll(width(page)).toBe(64)
   await expect(sidebar.getByRole("link", { name: "Profil: Ali Valiyev" })).toBeVisible()
   await sidebar.getByRole("button", { name: "Menyuni yoyish" }).click()
-  await expect.poll(width(page)).toBe(256)
+  await expect.poll(width(page)).toBe(264)
   await expect(sidebar.getByText("Olma Savdo")).toBeVisible()
 })
 
@@ -88,13 +88,13 @@ test("an employee sees no section of the owner's", async ({ page }) => {
   await expect(bar.getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
 })
 
-test("the home's head is the way to the profile, which says who is signed in and leads to their other company and back", async ({ page }) => {
+test("the way to the profile (the home's head on a phone, the sidebar's foot on a wide screen) says who is signed in and leads to their other company and back", async ({ page }) => {
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 
-  await page.getByRole("main").getByRole("link", { name: "Olma Savdo Vali A. · Xodim" }).click()
-  await expect(page).toHaveURL(/\/profile$/)
+  await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Xodim" })
+  await openProfile(page)
   await expect(page.getByRole("heading", { level: 1, name: "Vali Aliyev" })).toBeVisible()
   await expect(page.getByText("+998 90 222 33 44")).toBeVisible()
   await page.getByRole("link", { name: "Kompaniyani almashtirish" }).click()
@@ -114,6 +114,14 @@ test("a page's way back is as wide as its words, as iOS's: the rest of its row l
   await page.goto(`/customers/${dilshod.id}`)
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
 
+  if (!onPhone(page)) {
+    // On a wide screen the top bar leads back: a small glass, as wide as its words.
+    const back = page.locator('[data-slot="top-bar"]').getByRole("link", { name: "Orqaga" })
+    expect((await back.boundingBox())!.width).toBeLessThan(160)
+    await back.click()
+    await expect(page).toHaveURL(/\/customers$/)
+    return
+  }
   const back = (await page.getByRole("main").getByRole("link", { name: "Mijozlar", exact: true }).boundingBox())!
   const main = (await page.getByRole("main").boundingBox())!
   expect(back.width).toBeLessThan(main.width / 2)

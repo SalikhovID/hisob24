@@ -1,7 +1,7 @@
 import { seedCatalog, seedCustomers, seedWarehouse } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
+import { back, days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
 
 test("the owner sells: to a customer with a service and a part payment, the customer's debt and its settling, a retail sale paid in full, an edit, the product's moves and a deletion", async ({ page }) => {
   test.setTimeout(180_000)
@@ -96,7 +96,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await settle(page)
 
   // An edit: one kilo of Olma on the first sale; the total follows.
-  await page.getByRole("main").getByRole("link", { name: "Sotuvlar" }).click()
+  await back(page, "Sotuvlar")
   await expect(page).toHaveURL(/\/sales$/)
   await days(page, "Sotuvlar").getByRole("link", { name: /№ 1 · Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Sotuv № 1" })).toBeVisible()

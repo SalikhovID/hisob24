@@ -1,7 +1,7 @@
 import { db, nextId, seedCatalog } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { choose, days, list, openSection, sections, settle, sideScroll, signIn } from "./helpers"
+import { back, choose, days, list, openSection, sections, settle, sideScroll, signIn } from "./helpers"
 
 const sectionTabs = (page: import("@playwright/test").Page) => page.getByRole("navigation", { name: "Moliya bo'limi" })
 
@@ -75,7 +75,7 @@ test("the owner keeps the cash: an opening balance, an expense under its categor
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   // The cash: every account with what it holds now.
-  await page.getByRole("main").getByRole("link", { name: "Kassa" }).click()
+  await back(page, "Kassa")
   await expect(page).toHaveURL(/\/accounts$/)
   await expect(list(page, "Akkauntlar").getByText("622 000 so'm")).toBeVisible()
   await expect(list(page, "Akkauntlar").getByText("10 $")).toBeVisible()

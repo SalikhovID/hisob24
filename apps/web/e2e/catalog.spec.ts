@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test"
 import { seedCatalog } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { choose, openSection, sections, sideScroll, signIn } from "./helpers"
+import { back, choose, openSection, sections, sideScroll, signIn } from "./helpers"
 
 // The lists are rows on any screen.
 const list = (page: Page, name: string) => page.getByRole("list", { name })
@@ -67,7 +67,7 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await page.getByRole("button", { name: "Nofaol qilish" }).click()
   await expect(page.getByText("Nofaol", { exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Faollashtirish" })).toBeVisible()
-  await page.getByRole("main").getByRole("link", { name: "Mahsulotlar" }).click()
+  await back(page, "Mahsulotlar")
   await expect(page).toHaveURL(/\/products$/)
   await expect(products().getByRole("link", { name: "Anor" })).toBeVisible()
   await expect(products().getByRole("link", { name: "Olma" })).toHaveCount(0)

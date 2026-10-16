@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { db } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { homeHead, onPhone, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
+import { expectSignedIn, onPhone, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
 
 // The whole way of a role (logic/roles.md): the owner makes one in the
 // settings, gives it to an employee in the employees, the employee works by
@@ -66,7 +66,7 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
-  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Vali A. · Sotuvchi")
+  await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Sotuvchi" })
   const shown = await sections(page)
   // A phone's bar ends with «Sozlamalar», every member's way to their pages.
   await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", ...(onPhone(page) ? ["Sozlamalar"] : [])])

@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { addDays, ALI, db, join, LOGIN_CODE, TODAY, VALI } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { homeHead, openSection, signOut } from "./helpers"
+import { expectSignedIn, openSection, signOut } from "./helpers"
 
 // signIn goes through the login page: the number without +998, then the code.
 async function signIn(page: Page, number: string) {
@@ -61,7 +61,7 @@ test("the owner adds an employee, who signs in and finds no way to the employees
   await signOut(page)
   await signIn(page, "907778899")
   await expect(page.getByRole("heading", { name: "Salom, Yangi Xodim" })).toBeVisible()
-  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Yangi X. · Xodim")
+  await expectSignedIn(page, { company: "Olma Savdo", short: "Yangi X.", role: "Xodim" })
   const nav = await sections(page)
   await expect(nav.getByRole("link", { name: "Bosh sahifa" })).toBeVisible()
   await expect(nav.getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
@@ -154,7 +154,7 @@ test("an owner replaced while signed in loses the employees at the next request"
 
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Ali V. · Xodim")
+  await expectSignedIn(page, { company: "Olma Savdo", short: "Ali V.", role: "Xodim" })
   await expect((await sections(page)).getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
   expect(db.members["998907778899"]).toBeUndefined()
 })

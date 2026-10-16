@@ -59,9 +59,29 @@ export async function openSection(page: Page, name: string) {
   await page.getByRole("main").getByRole("link", { name: name === "Moliya" ? "Kassa" : name, exact: true }).click()
 }
 
+// back takes the page's way back: its own «‹ name» link on a phone, the
+// top bar's «Orqaga» on a wide screen (it leads where the page's link does).
+export async function back(page: Page, name: string) {
+  if (onPhone(page)) await page.getByRole("main").getByRole("link", { name, exact: true }).click()
+  else await page.locator('[data-slot="top-bar"]').getByRole("link", { name: "Orqaga" }).click()
+}
+
 // homeHead is the home's head: the company, the short name and the role,
 // the way to the profile.
 export const homeHead = (page: Page) => page.getByRole("main").locator('a[href="/profile"]')
+
+// expectSignedIn checks who is in and where: on a phone the home's head
+// names them ("Olma Savdo Ali V. · Egasi"); on a wide screen the sidebar
+// does, the company's name under the logo and the role on the profile card.
+export async function expectSignedIn(page: Page, who: { company: string; short: string; role: string }) {
+  if (onPhone(page)) {
+    await expect(homeHead(page)).toHaveAccessibleName(`${who.company} ${who.short} · ${who.role}`)
+    return
+  }
+  const sidebar = page.getByRole("complementary", { name: "Menyu" })
+  await expect(sidebar.getByText(who.company, { exact: true })).toBeVisible()
+  await expect(sidebar.locator('a[href="/profile"]')).toContainText(who.role)
+}
 
 // openProfile goes to the profile page: the sidebar's foot on a wide screen,
 // the home's head on a phone.
@@ -75,10 +95,11 @@ export async function openProfile(page: Page) {
   await expect(page).toHaveURL(/\/profile$/)
 }
 
-// signOut leaves through the profile page.
+// signOut leaves through the profile page (a wide screen's top bar has a
+// way out of its own, which asks first).
 export async function signOut(page: Page) {
   await openProfile(page)
-  await page.getByRole("button", { name: "Chiqish" }).click()
+  await page.getByRole("main").getByRole("button", { name: "Chiqish" }).click()
   await expect(page).toHaveURL(/\/login$/)
 }
 

@@ -1,7 +1,7 @@
 import { ALI, seedTasks, TG_ALI, TG_STRANGER, TG_UNLINKED } from "../mocks/data"
 import type { Page } from "@playwright/test"
 import { expect, test } from "./fixtures"
-import { homeHead, onPhone, openSection } from "./helpers"
+import { onPhone, openProfile, openSection } from "./helpers"
 
 const fits = async (page: Page) =>
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
@@ -77,6 +77,10 @@ function fakeTelegram(telegramId: number, platform = "android") {
 `
 }
 
+// homeHeadBox is where the home's head stands (on a wide screen it holds
+// the location alone, the way to the profile being the sidebar's).
+const homeHeadBox = (page: Page) => page.locator('[data-slot="home-head"]').boundingBox()
+
 test.describe("a linked user", () => {
   test.use({ telegramScript: fakeTelegram(TG_ALI) })
 
@@ -107,8 +111,9 @@ test.describe("a linked user", () => {
     // them (8px more, 24px from md), the shell no taller than the screen.
     expect(await wentFullscreen(page)).toBe(true)
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
-    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "101px" : "117px")
-    expect((await homeHead(page).boundingBox())?.y).toBeGreaterThanOrEqual(93)
+    // (From md the column starts under the top bar's 80px.)
+    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "101px" : "173px")
+    expect((await homeHeadBox(page))?.y).toBeGreaterThanOrEqual(93)
     // What scrolls up passes under the controls into a fade as tall as they
     // are and 18px more, there once the page is scrolled.
     const fade = page.locator('[data-slot="top-fade"]')
@@ -132,7 +137,7 @@ test.describe("a linked user", () => {
     await fits(page)
     // Closing the Mini App is the way out: the profile offers no sign-out,
     // and the chat sets the theme.
-    await homeHead(page).click()
+    await openProfile(page)
     await expect(page).toHaveURL(/\/profile$/)
     await expect(page.getByText("+998 90 123 45 67")).toBeVisible()
     await expect(page.getByText(/Telegram ichida chiqish uchun ilovani yoping/)).toBeVisible()
@@ -146,7 +151,7 @@ test.describe("a linked user", () => {
     const backShown = () => page.evaluate(() => window.Telegram?.WebApp?.BackButton?.isVisible ?? false)
     expect(await backShown()).toBe(false)
 
-    await homeHead(page).click()
+    await openProfile(page)
     await expect(page).toHaveURL(/\/profile$/)
     await expect.poll(backShown).toBe(true)
     await page.evaluate(() => (window as unknown as { __back: () => void }).__back())
@@ -264,8 +269,8 @@ test.describe("a desktop Telegram", () => {
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
     expect(await wentFullscreen(page)).toBe(false)
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
-    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "8px" : "24px")
-    expect((await homeHead(page).boundingBox())?.y).toBeLessThan(93)
+    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "8px" : "80px")
+    expect((await homeHeadBox(page))?.y).toBeLessThan(93)
     // Nothing lies over the page's top: no fade.
     await expect(page.locator('[data-slot="top-fade"]')).toHaveCSS("height", "0px")
   })

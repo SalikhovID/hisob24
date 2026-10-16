@@ -1,7 +1,7 @@
 import { seedCatalog, seedTasks, seedWarehouse } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { homeHead, onPhone, press, sideScroll, signIn } from "./helpers"
+import { expectSignedIn, onPhone, press, sideScroll, signIn } from "./helpers"
 
 // The home at a glance (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md):
 // the hero, the quick tiles, the overview and the nearest deadlines, each
@@ -33,7 +33,7 @@ test("an employee who keeps the purchases pays a supplier from the home and sees
   giveRole("998902223344", 1, "Omborchi", ["purchases.view", "purchases.create", "suppliers.view"])
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
-  await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Vali A. · Omborchi")
+  await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Omborchi" })
   const main = page.getByRole("main")
   const hero = main.getByRole("link", { name: /^Ta'minotchilarga qarz/ })
   await expect(hero).toContainText("15 001,50")

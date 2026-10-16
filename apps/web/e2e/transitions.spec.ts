@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { seedCatalog, seedCustomers, seedWarehouse } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { onPhone, openSection, signIn } from "./helpers"
+import { back, onPhone, openSection, signIn } from "./helpers"
 
 // recordMoves keeps, for every view transition the page starts (React
 // starts one when a page changes), the animations it runs on the
@@ -41,7 +41,7 @@ async function movedBy(page: Page, action: () => Promise<unknown>) {
 // The prototype's push and pop on a phone; beside the sidebar the page under
 // fades instead of moving (it would pass over the sidebar).
 const forward = (page: Page) => (onPhone(page) ? ["page-from-right", "page-to-under"] : ["page-fade-out", "page-from-right"])
-const back = (page: Page) => (onPhone(page) ? ["page-from-under", "page-to-right"] : ["page-fade-in", "page-to-right"])
+const backward = (page: Page) => (onPhone(page) ? ["page-from-under", "page-to-right"] : ["page-fade-in", "page-to-right"])
 
 test("a step into a record moves the page forward and its way back moves it back, as the prototype's push and pop; a section from the menu changes at once", async ({ page }) => {
   seedCustomers()
@@ -80,9 +80,9 @@ test("a step into a record moves the page forward and its way back moves it back
   const [sheetHeight, mainHeight] = await sheet.evaluate((element) => [element.getBoundingClientRect().height, element.parentElement!.clientHeight])
   expect(sheetHeight).toBeGreaterThan(mainHeight * 0.6)
 
-  const up = await movedBy(page, () => page.getByRole("main").getByRole("link", { name: "Mijozlar", exact: true }).click())
+  const up = await movedBy(page, () => back(page, "Mijozlar"))
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
-  await expect.poll(up).toEqual([back(page)])
+  await expect.poll(up).toEqual([backward(page)])
 
   // The browser's own back has its own gesture: the page changes at once.
   const history = await movedBy(page, () => page.goBack())
