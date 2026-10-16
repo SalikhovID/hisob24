@@ -85,3 +85,10 @@ test("a search picker asks its owner for the matches of what is typed", async ()
   await vi.waitFor(() => expect(query).toHaveBeenLastCalledWith("ag"))
   expect(screen.getByText("Hech narsa topilmadi")).toBeInTheDocument()
 })
+
+test("a picker's options stand on frosted glass, a sheet cell's", async () => {
+  render(<PickerSheet open onOpenChange={() => {}} title="Bosqich" options={stages} value="1" onChange={() => {}} />)
+  const listbox = await screen.findByRole("listbox", { name: "Bosqich" })
+  expect(listbox).toHaveClass("surface", "rounded-group")
+  expect(listbox).not.toHaveClass("bg-sheet-cell")
+})

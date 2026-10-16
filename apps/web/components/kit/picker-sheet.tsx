@@ -76,7 +76,7 @@ function OptionList({
 }) {
   const inset = options.some((option) => option.media) ? "68px" : "16px"
   return (
-    <ul role="listbox" aria-label={title} style={{ "--inset": inset } as CSSProperties} className="overflow-hidden rounded-group bg-sheet-cell">
+    <ul role="listbox" aria-label={title} style={{ "--inset": inset } as CSSProperties} className="overflow-hidden rounded-group surface">
       {options.map((option) => (
         <Option key={option.value} option={option} selected={isSelected(option.value)} onSelect={() => onSelect(option.value)} />
       ))}
