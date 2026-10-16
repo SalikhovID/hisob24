@@ -13,8 +13,8 @@ const insets = { none: "16px", icon: "68px", tile: "60px" } as const
 // Whether the rows stand in a list, in which case each takes a list item.
 const ListContext = createContext(false)
 
-// Group is the prototype's grouped block: a white card of rows with
-// hairlines between them. Like every block of a page it carries its own
+// Group is the prototype's grouped block: a frosted glass card of rows
+// (surface) with hairlines between them. Like every block of a page it carries its own
 // space under it (24px), so a page stacks its blocks as they come. With a label it is a list (the rows become its
 // items); as "dl" it holds key-value rows.
 export function Group({
@@ -33,7 +33,7 @@ export function Group({
   children: ReactNode
 }) {
   const styles = { ...style, "--inset": insets[inset] } as CSSProperties
-  const classes = cn("mb-6 overflow-hidden rounded-group bg-card", className)
+  const classes = cn("mb-6 overflow-hidden rounded-group surface", className)
   if (label) {
     return (
       <ListContext value={true}>

@@ -80,3 +80,14 @@ test("a row's parts read as words apart: the title, the line under it, the value
   )
   expect(screen.getByRole("link", { name: "Ali Valiyev +998 90 123 45 67 12 000 so'm" })).toBeInTheDocument()
 })
+
+test("a group is the prototype's frosted glass: a surface, not a flat card", () => {
+  render(
+    <Group label="Mijozlar">
+      <Row title="Ali Valiyev" />
+    </Group>,
+  )
+  const group = screen.getByRole("list", { name: "Mijozlar" })
+  expect(group).toHaveClass("surface", "rounded-group")
+  expect(group).not.toHaveClass("bg-card")
+})
