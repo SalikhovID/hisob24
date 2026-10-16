@@ -131,6 +131,8 @@
     --btn-glow: 0 8px 20px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
     /* A chip's or a small round button's glass (glass-chip). */
     --chip: rgba(255, 255, 255, 0.6);
+    /* A board's column: a faint glass. */
+    --col: rgba(255, 255, 255, 0.45);
     /* The ambient light behind the glass (bg-ambient): a white glow at the
        top over a grey falling to the base. */
     --ambient: radial-gradient(90% 38% at 50% -4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #F7F8F9 0%, #EFF0F3 50%, #E5E7EB 100%);
@@ -226,6 +228,7 @@
     --btn: linear-gradient(180deg, #C2B8FF 0%, #9585F5 100%);
     --btn-glow: 0 8px 24px rgba(149, 133, 245, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5);
     --chip: rgba(255, 255, 255, 0.08);
+    --col: rgba(255, 255, 255, 0.04);
     /* Violet, indigo, teal and gold lights in the corners of the night. */
     --ambient: radial-gradient(110% 55% at -5% -5%, rgba(92, 62, 120, 0.55) 0%, rgba(92, 62, 120, 0) 60%), radial-gradient(90% 50% at 105% 4%, rgba(60, 70, 140, 0.5) 0%, rgba(60, 70, 140, 0) 62%), radial-gradient(85% 45% at 8% 64%, rgba(40, 90, 90, 0.35) 0%, rgba(40, 90, 90, 0) 60%), radial-gradient(95% 55% at 102% 102%, rgba(130, 100, 40, 0.4) 0%, rgba(130, 100, 40, 0) 62%);
     --ambient-base: #15121E;

@@ -9,6 +9,7 @@ import { giveRole } from "@/test/roles"
 import { choose } from "@/test/select"
 import { server } from "@/test/server"
 import { chooseCompany, signIn } from "@/test/session"
+import { ghostClass } from "./task-card"
 import { TasksPage } from "./tasks-page"
 
 const board = () => screen.findByRole("region", { name: "Kanban" })
@@ -231,4 +232,21 @@ test("an employee whose role holds tasks.view alone sees the board without the s
   expect(screen.queryByRole("button", { name: /^Bosqich: / })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /^Vazifa qo'shish/ })).not.toBeInTheDocument()
   expect(screen.queryByText(/Kartani bosib turing/)).not.toBeInTheDocument()
+})
+
+test("the board is the prototype's glass: a column a faint glass with a white rim, a card frosted glass, the dragged copy a sheet's glass lifted high", async () => {
+  await signIn(ALI)
+  seedTasks()
+  setLocation("/tasks")
+
+  renderWithProviders(<TasksPage />)
+
+  await board()
+  await waitFor(() => expect(cards("Yangi")).toHaveLength(2))
+  expect(column("Yangi")).toHaveClass("bg-(--col)", "shadow-(--rim)", "rounded-[28px]")
+  expect(column("Yangi")).not.toHaveClass("bg-muted")
+  const [card] = within(column("Yangi")).getAllByRole("listitem")
+  expect(card).toHaveClass("surface", "rounded-[20px]")
+  expect(card).not.toHaveClass("bg-card")
+  expect(ghostClass.split(" ")).toEqual(expect.arrayContaining(["rounded-[20px]", "bg-sheet-cell", "backdrop-blur-[20px]", "shadow-[var(--rim),0_22px_46px_rgba(60,40,120,.22)]"]))
 })

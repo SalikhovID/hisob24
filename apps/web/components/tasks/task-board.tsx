@@ -21,7 +21,7 @@ import { colorValues } from "@/lib/stage-colors"
 import type { Task, TaskStage, TaskType } from "@/lib/types"
 import { useKept } from "@/lib/use-kept"
 import { cn } from "@/lib/utils"
-import { CardContent, cardClass, TaskCard } from "./task-card"
+import { CardContent, ghostClass, TaskCard } from "./task-card"
 
 // ids reads the stages a user opened, as kept. What the browser hands back
 // is not trusted: anything but a list of ids is no choice at all.
@@ -153,7 +153,7 @@ export function TaskBoard({
       {canMove && <Foot className="mt-1.5">{howToMove}</Foot>}
       <DragOverlay dropAnimation={null}>
         {dragging && (
-          <div className={cn(cardClass, "w-72 rotate-2 cursor-grabbing px-3.5 py-3 shadow-float")}>
+          <div className={cn(ghostClass, "w-72 rotate-2 cursor-grabbing px-3.5 py-3")}>
             <CardContent
               task={dragging}
               stage={stages.find((stage) => stage.id === dragging.stage_id) ?? stages[0]}
@@ -216,7 +216,7 @@ function StageColumn({
       ref={setNodeRef}
       data-slot="stage-column"
       className={cn(
-        "flex shrink-0 snap-start flex-col rounded-[24px] bg-muted p-1.5 transition-[background-color,box-shadow] duration-150 dark:bg-card",
+        "flex shrink-0 snap-start flex-col rounded-[28px] bg-(--col) p-1.5 shadow-(--rim) transition-[background-color,box-shadow] duration-150",
         folded ? "w-[58px]" : "w-[84%] md:w-72",
         isOver && "bg-primary-soft ring-2 ring-primary ring-inset",
       )}

@@ -54,7 +54,10 @@ export function CardContent({ task, stage, type }: Pick<CardProps, "task" | "sta
   )
 }
 
-export const cardClass = "relative rounded-[18px] bg-card"
+// A card is frosted glass; the copy that follows a dragging finger is a
+// sheet's glass over a blur, lifted high above the board.
+export const cardClass = "relative rounded-[20px] surface"
+export const ghostClass = "relative rounded-[20px] bg-sheet-cell backdrop-blur-[20px] shadow-[var(--rim),0_22px_46px_rgba(60,40,120,.22)]"
 
 // TaskCard is a task on the board: the way into it, a card that a pointer
 // drags to another column (a press that moves a little, or a finger that
@@ -67,7 +70,7 @@ export function TaskCard({ task, stage, stages, type, onMove }: CardProps) {
       <Link
         href={`/tasks/${task.id}`}
         draggable={false}
-        className={cn("block rounded-[18px] py-3 pl-3.5 outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50", onMove ? "pr-11" : "pr-3.5")}
+        className={cn("block rounded-[20px] py-3 pl-3.5 outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50", onMove ? "pr-11" : "pr-3.5")}
       >
         <CardContent task={task} stage={stage} type={type} />
       </Link>

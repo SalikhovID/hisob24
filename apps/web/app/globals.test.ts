@@ -195,3 +195,8 @@ test("under the brand's fill the panel's own color is its deepest: near black in
   expect(block(":root {")).toContain("--brand-panel: #0E0F11")
   expect(block(".dark {")).toContain("--brand-panel: #6453D3")
 })
+
+test("a board's column is a faint glass: a whisper of white in the light, less in the night", () => {
+  expect(block(":root {")).toContain("--col: rgba(255, 255, 255, 0.45)")
+  expect(block(".dark {")).toContain("--col: rgba(255, 255, 255, 0.04)")
+})
