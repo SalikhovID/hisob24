@@ -48,3 +48,9 @@ test("an edit lists each change: the field, and its value before and after, a da
   expect(edited).toHaveTextContent("keyin: 301234568")
   expect(created.querySelector('[data-slot="history-change"]')).toBeNull()
 })
+
+test("the history stands on frosted glass, as a group's", () => {
+  render(<HistoryList label="Tarix" entries={[entry]} />)
+  expect(screen.getByRole("list", { name: "Tarix" })).toHaveClass("surface", "rounded-group")
+  expect(screen.getByRole("list", { name: "Tarix" })).not.toHaveClass("bg-card")
+})

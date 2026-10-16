@@ -28,7 +28,7 @@ const shown = (value: string) => (value === "" ? "—" : value)
 // here under its old name.
 export function HistoryList({ label, entries }: { label: string; entries: HistoryEntry[] }) {
   return (
-    <ol aria-label={label} className="overflow-hidden rounded-group bg-card tabular-nums">
+    <ol aria-label={label} className="overflow-hidden rounded-group surface tabular-nums">
       {entries.map((entry) => (
         <li key={entry.id} className="relative px-4 py-3 text-md not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-4 not-first:before:h-[0.5px] not-first:before:bg-border not-first:before:content-['']">
           <p className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
