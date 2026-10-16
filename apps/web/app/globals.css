@@ -128,7 +128,7 @@
     --chart-5: oklch(0.269 0 0);
     --radius: 14px;
     /* The logo's color: the brand's own on a light page, white on a dark one,
-       the chat's text color inside Telegram (its background is the chat's). */
+       inside Telegram too (the app keeps its colors there). */
     --brand: #174449;
     /* The brand's own surface (the login's panel) and what stands on it: the
        same in light and in dark, as the surface's color is known. */
@@ -197,51 +197,6 @@
     color-scheme: dark;
 }
 
-/* Inside Telegram (TelegramSync sets data-telegram) the app wears the
-   chat's colors: telegram-web-app.js publishes themeParams as --tg-theme-*.
-   The fallbacks cover clients older than Bot API 7.0. The soft tints are
-   mixed from the chat's own colors; the statuses (green, amber) keep their
-   own hues. */
-html[data-telegram] {
-    --background: var(--tg-theme-secondary-bg-color);
-    --foreground: var(--tg-theme-text-color);
-    --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
-    --card-foreground: var(--tg-theme-text-color);
-    --popover: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
-    --popover-foreground: var(--tg-theme-text-color);
-    --primary: var(--tg-theme-button-color);
-    --primary-foreground: var(--tg-theme-button-text-color);
-    --primary-soft: color-mix(in srgb, var(--tg-theme-button-color) 12%, transparent);
-    --secondary: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
-    --secondary-foreground: var(--tg-theme-text-color);
-    --muted: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
-    --muted-foreground: var(--tg-theme-hint-color);
-    --accent: color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
-    --accent-foreground: var(--tg-theme-text-color);
-    --destructive: var(--tg-theme-destructive-text-color, #D92D20);
-    --destructive-soft: color-mix(in srgb, var(--tg-theme-destructive-text-color, #D92D20) 12%, transparent);
-    --border: var(--tg-theme-section-separator-color, color-mix(in srgb, var(--tg-theme-hint-color) 30%, transparent));
-    --input: var(--tg-theme-section-separator-color, color-mix(in srgb, var(--tg-theme-hint-color) 30%, transparent));
-    --ring: var(--tg-theme-button-color);
-    --press: color-mix(in srgb, var(--tg-theme-text-color) 8%, var(--tg-theme-section-bg-color, var(--tg-theme-bg-color)));
-    --heading: color-mix(in srgb, var(--tg-theme-text-color) 85%, var(--tg-theme-secondary-bg-color));
-    --glass: color-mix(in srgb, var(--tg-theme-bg-color) 60%, transparent);
-    --glass-edge: color-mix(in srgb, var(--tg-theme-text-color) 12%, transparent);
-    --menu: color-mix(in srgb, var(--tg-theme-section-bg-color, var(--tg-theme-bg-color)) 88%, transparent);
-    --sheet: var(--tg-theme-secondary-bg-color);
-    --sheet-cell: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
-    --skel: color-mix(in srgb, var(--tg-theme-text-color) 7%, transparent);
-    --sidebar: var(--tg-theme-secondary-bg-color);
-    --sidebar-foreground: var(--tg-theme-text-color);
-    --sidebar-primary: var(--tg-theme-button-color);
-    --sidebar-primary-foreground: var(--tg-theme-button-text-color);
-    --sidebar-accent: color-mix(in srgb, var(--tg-theme-button-color) 12%, transparent);
-    --sidebar-accent-foreground: var(--tg-theme-button-color);
-    --brand: var(--tg-theme-text-color);
-    --brand-panel: var(--tg-theme-secondary-bg-color);
-    --brand-panel-foreground: var(--tg-theme-text-color);
-}
-
 /* A list that scrolls without showing its scrollbar: the sidebar's sections,
    the chips, a sheet's body. */
 @utility scrollbar-hide {
@@ -292,7 +247,9 @@ html[data-telegram] {
   padding-top: calc(--spacing(--value(integer)) + var(--safe-top));
 }
 
-/* Inside Telegram the shell is as tall as the Mini App's stable viewport
+/* Inside Telegram (TelegramSync sets data-telegram) the app keeps its own
+   colors: the chat gives the scheme alone, light or dark. The shell is as
+   tall as the Mini App's stable viewport
    (telegram-web-app.js publishes it), not the window, so the tab bar stays
    in sight while the client's own panels come and go; and the page does not
    bounce, which the client would take for a swipe. */

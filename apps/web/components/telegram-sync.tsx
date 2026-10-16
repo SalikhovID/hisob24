@@ -21,8 +21,8 @@ function canGoBack(): boolean {
 // TelegramSync fits the app to Telegram when it runs as a Mini App: it
 // tells Telegram the app is ready, opens it to full height, keeps its
 // vertical swipes from folding the app, marks <html>
-// with data-telegram (globals.css then takes the colors from Telegram's
-// themeParams) and follows Telegram's light or dark scheme. Inside a
+// with data-telegram (globals.css keeps the app's own colors there) and
+// follows Telegram's light or dark scheme. Inside a
 // section (a record, a form, the profile) it shows Telegram's own back
 // button, beside the page's: back where the app came from, or to the
 // section's own page when there is nothing behind.

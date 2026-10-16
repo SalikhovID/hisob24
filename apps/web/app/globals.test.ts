@@ -39,11 +39,8 @@ test("the dark theme is the prototype's night glass: a lavender accent on a deep
   expect(dark).toContain("--destructive: #FF7A70")
 })
 
-test("inside Telegram the chat gives the colors", () => {
-  const telegram = block("html[data-telegram] {")
-  expect(telegram).toContain("--background: var(--tg-theme-secondary-bg-color)")
-  expect(telegram).toContain("--primary: var(--tg-theme-button-color)")
-  expect(telegram).toContain("--sheet: var(--tg-theme-secondary-bg-color)")
+test("inside Telegram the app keeps its own colors: the chat gives the scheme, not its theme's colors", () => {
+  expect(css).not.toMatch(/var\(--tg-theme-/)
 })
 
 test("the radii, the text sizes and the font stack are the prototype's", () => {

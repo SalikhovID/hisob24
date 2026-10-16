@@ -76,23 +76,23 @@ function fakeTelegram(telegramId: number, platform = "android") {
 test.describe("a linked user", () => {
   test.use({ telegramScript: fakeTelegram(TG_ALI) })
 
-  test("opens the Mini App and is in, in the chat's colors and with no sign-out", async ({ page }) => {
+  test("opens the Mini App and is in, in the app's own colors of the chat's scheme and with no sign-out", async ({ page }) => {
     await page.goto("/")
 
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
     await expect(page.locator("html")).toHaveAttribute("data-telegram", "")
-    // The page is the grouped list's background (the chat's secondary
-    // color), its groups the sections' (docs: 2026-10-13 Mini App UI).
-    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(35, 46, 60)")
+    // The chat gives the scheme (dark), not its theme's colors: the page
+    // is the app's own night glass (docs: 2026-10-16 liquid glass).
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(21, 18, 30)")
     await fits(page)
-    // On a phone the sections are a floating bar of the chat's glass: its
-    // background color, see-through.
+    // On a phone the sections are a floating bar of the app's own glass,
+    // see-through.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
       await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
       await expect(bar.getByRole("button", { name: "Sozlama" })).toBeVisible()
-      await expect(bar).toHaveCSS("background-color", /^color\(srgb 0\.0901\d* 0\.1294\d* 0\.1686\d* \/ 0\.6\)$/)
+      await expect(bar).toHaveCSS("background-color", "rgba(44, 38, 64, 0.5)")
     }
     // Full screen on a phone's client: the page starts under the status bar
     // and Telegram's controls (47px + 46px), the shell no taller than the
@@ -182,11 +182,11 @@ test.describe("a phone that is no user's", () => {
     await fits(page)
   })
 
-  test("sees the logo in the chat's text color", async ({ page }) => {
+  test("sees the logo in the app's own color of the chat's scheme", async ({ page }) => {
     await page.goto("/")
 
     await expect(page.getByRole("heading", { name: "Kirish huquqi yo'q" })).toBeVisible()
-    await expect(page.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(245, 245, 245)")
+    await expect(page.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(255, 255, 255)")
   })
 })
 
@@ -209,14 +209,14 @@ test.describe("a Mini App whose sign-in fails", () => {
   // hash=bad stands for forged initData: the API refuses it.
   test.use({ telegramScript: fakeTelegram(TG_ALI).replace("hash=abc", "hash=bad") })
 
-  test("falls back to the SMS form, its panel in the chat's colors", async ({ page }) => {
+  test("falls back to the SMS form, its panel in the brand's own colors", async ({ page }) => {
     await page.goto("/")
 
     await expect(page.getByRole("alert").filter({ hasText: "Telegram ma'lumoti yaroqsiz" })).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Telefon raqami" })).toBeVisible()
     const panel = page.getByRole("banner")
-    await expect(panel).toHaveCSS("background-color", "rgb(35, 46, 60)")
-    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(245, 245, 245)")
+    await expect(panel).toHaveCSS("background-color", "rgb(23, 68, 73)")
+    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(255, 255, 255)")
     // Full screen: the panel's own padding (40px on a phone, 48px from lg)
     // grows by the insets (93px), so the logo stays clear of the controls.
     await expect(panel).toHaveCSS("padding-top", onPhone(page) ? "133px" : "141px")
