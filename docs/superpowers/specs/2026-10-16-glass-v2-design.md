@@ -211,3 +211,32 @@ Ish `dev` branch'ida. Har bosqich TDD (RED → GREEN → commit), oxirida `make 
     - Desktopda: sidebar kartasi, tepa paneldagi «Orqaga», mavzu, chiqish savoli va `/login`.
     - Sahifa xatosi 0. Keyin DB o'chirildi, lokal `hisob24` ga tegilmadi.
 19. **Skrinshotlar** `docs/design/screens-v2/` da 68 ta: `12-menu-sheet` o'rniga `12-settings-menu`; yangilari `02-login-dark`, `17-tab-bar-editor`, `18-settings-dark`, `19-customer-page-dark`, `*-wide` (1600px).
+
+### Test serverdan keyingi tuzatishlar (2026-10-17)
+
+Foydalanuvchi Mini App'da ikki narsani ko'rdi: tab almashganda sahifa bo'limlari avval tab-bar'ni yopib qo'yadi, keyin bir zumda bar ularni orqasiga oladi; bar yozuvlari esa sal sig'maydi.
+
+20. **Sabab: view transition qatlamlari.**
+    - React `ViewTransition` kelayotgan va ketayotgan har sahifaga nom beradi (`page-in` / `page-out`). Brauzer nomli sahifani alohida qatlam qilib, ildiz suratining (tab-bar, tepadagi fade, sidebar) ustida chizadi.
+    - Surilishsiz almashish ~36ms (2 kadr) davom etadi. Shu vaqtda sahifa kartalari tab-bar ustida turdi, o'tish tugagach bar ularning ustiga qaytdi.
+    - O'tish test uchun ushlab turilib (`::view-transition-image-pair(root)` ga 3s jim animatsiya) Playwright'da suratga olindi. Shunda telefonda bar piksellarining 5% i keskin farq qildi.
+21. **Surilishsiz almashish** (tab, menyu, filtr, brauzerning orqaga tugmasi): `:root:not([data-move]) [data-slot="page"] { view-transition-name: none !important }`. Sahifa ildiz suratida qoladi, shuning uchun o'tish paytidagi ekran almashgandan keyingisi bilan piksel-piksel bir xil chiqadi. React nomni inline qo'yadi, `!important` undan ustun turadi.
+22. **Surilishda** (oldinga yoki orqaga) tab-bar ikkala sahifa ustida turadi, prototipdagi `.tabbar` (`z-index: 20`) kabi:
+    - `:root[data-move]:active-view-transition [data-slot="tab-bar"] { view-transition-name: tab-bar }`;
+    - guruh `z-index: 3`, harakat yo'q, eski surat `display: none`, yangisi jonli: bar yozuv kelganda pastga tushadi, ro'yxat qaytganda chiqadi.
+    - Faqat surilishda nomlanadi: tinch holatda va surilishsiz almashishda bar ildiz suratida qoladi, muzi ostidagi sahifani xiralashtiradi. Alohida suratda blur ko'rinmaydi, chunki bar orqasida hech narsa bo'lmaydi.
+    - Kuzatuv: Telegram'ning native Back tugmasi (`router.back()` → `popstate`) o'tish boshlamaydi, sahifa darhol almashadi. Sahifadagi «‹ …» havolasi esa suriladi. Bu o'zgartirilmadi.
+23. **Yozuvlar.** Tugma eni `min(72px, (100vw − 24px) / 5)`, yozuv esa doim 11px edi. 360px da «Bosh sahifa» (joriy, 600) va «Mahsulotlar» tugma chetiga 2.5px gacha yaqinlashardi, 320px da uchtasi kesilardi.
+    - Endi har yozuv chetdan 4px uzoqda turadi. Tor barda hammasi birga kichrayadi (`--name-k`, `calc(11px * var(--name-k))`), eng kichigi 9px. U yerda yozuv tugmaning butun enini olishi mumkin, undan uzuni ellipsis bilan tugaydi.
+    - O'lchov kasrli (`getBoundingClientRect`), yozuv cheklovsiz o'lchanadi. Shrift eni o'lchamga aniq proporsional emas (9px da ~2% kengroq), shuning uchun masshtab o'z o'lchamida qayta tekshiriladi (3 o'tish).
+    - Qayta sig'diriladi: bar eni o'zgarganda (`ResizeObserver`), joriy sahifa o'zgarganda va shrift yuklanganda (`document.fonts.ready`).
+    - Natija: 414 va 375px da 11px, 360px da ~10.3px, 320px da 9px.
+24. **Testlar:**
+    - e2e `transitions.spec.ts`: «a page from the menu changes under the shell…» (ushlab turilgan o'tish va o'tishdan keyingi kadr solishtiriladi, farq < 0.1%) va «while a page moves the tab bar stands over both pages…» (o'tish `ready` bo'lganda bar va sahifa guruhlarining `z-index` i).
+    - e2e `shell.spec.ts`: «the bar's names show whole…» (414/375/360/320px, haqiqiy shrift).
+    - Unit `tab-bar.test.tsx`: uchta test (birga kichrayish va 11px, 9px chegara va ellipsis, `ResizeObserver` bilan qayta sig'dirish).
+    - Mualliflikdagi tuzatishlar:
+      - Unit testlardagi layout mock'i `clientWidth` / `scrollWidth` dan `getBoundingClientRect` ga o'tdi, chunki butun sonli o'lchov 0.3px oshib ketishni ko'rmasdi. Aniq qiymatlar (51/62, 9/11) o'zgarmadi.
+      - e2e qatlam testida ekranda turmagan bar (`display: none`, desktop) «chizilmagan» deb o'qiladi.
+      - Yozuv o'tishning boshida qo'shiladi, shunda menyudan almashishning kech `ready` si keyingi sanoqqa tushmaydi.
+    - Tekshiruv: `make lint`, unit (web 1153, admin 244), Go, `make e2e` (admin 46, web 150). Production build CSS'ida `:active-view-transition`, `view-transition-name:none!important` va `::view-transition-group(tab-bar)` saqlangan.
