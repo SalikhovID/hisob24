@@ -6,7 +6,7 @@ import type { StockLine } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 // ProductStock is the product's stock in each of the member's locations
-// (logic/products.md, section 6), as the prototype's cards: every location
+// (logic/products.md, section 6), as the prototype's glass cards: every location
 // is there, with 0 too, in the order the locations were added; the current
 // one is marked «Joriy».
 export function ProductStock({ stock, unit, currentId }: { stock: StockLine[]; unit: string | null; currentId: number | null }) {
@@ -17,7 +17,7 @@ export function ProductStock({ stock, unit, currentId }: { stock: StockLine[]; u
         {stock.map((line) => {
           const current = line.location_id === currentId
           return (
-            <div key={line.location_id} className="flex min-h-[104px] flex-col rounded-group bg-card px-3.5 py-3.5">
+            <div key={line.location_id} className="flex min-h-[104px] flex-col rounded-group surface px-3.5 py-3.5">
               <dt className="flex flex-wrap items-center gap-1.5 text-md font-medium">
                 <span aria-hidden="true" className={cn("grid size-5 place-items-center rounded-full text-white", current ? "bg-primary" : "bg-muted-foreground")}>
                   <MapPinIcon strokeWidth={2.8} className="size-3" />
