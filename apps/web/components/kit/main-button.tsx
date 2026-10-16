@@ -3,8 +3,9 @@
 import type { ComponentProps, MouseEvent, ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-// MainButton is the prototype's main button: full width, 52px, the accent
-// (or a ghost in the accent color, or red for an irreversible act). While
+// MainButton is the prototype's main button: a full-width glossy capsule,
+// 54px tall, in the accent (or a ghost in the accent color, or the red
+// capsule for an irreversible act). While
 // its request is on its way it is busy: it says so, keeps the focus (a
 // button the browser disables cannot hold it, and whoever pressed Enter on
 // it would be dropped to the top of the page), shows a spinner and takes no
@@ -39,10 +40,10 @@ export function MainButton({
         onClick?.(event)
       }}
       className={cn(
-        "flex h-[52px] w-full items-center justify-center gap-2 rounded-main text-base font-semibold outline-none transition-[transform,opacity] duration-150 ease-out-expo active:scale-[.98] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 aria-disabled:pointer-events-none",
-        variant === "accent" && "bg-primary text-primary-foreground",
+        "flex h-[54px] w-full items-center justify-center gap-2 rounded-full text-base font-semibold outline-none transition-[transform,opacity] duration-150 ease-out-expo active:scale-[.98] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 aria-disabled:pointer-events-none",
+        variant === "accent" && "glossy",
         variant === "ghost" && "h-11 bg-transparent text-primary",
-        variant === "red" && "bg-destructive text-white",
+        variant === "red" && "glossy-red",
         className,
       )}
       {...props}

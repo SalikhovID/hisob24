@@ -36,3 +36,20 @@ test("a main button says its variant; a bar holds the buttons under a page", () 
   expect(screen.getByRole("button", { name: "Bekor qilish" })).toHaveAttribute("data-variant", "ghost")
   expect(screen.getByRole("button", { name: "O'chirish" }).closest('[data-slot="main-bar"]')).toBeInTheDocument()
 })
+
+test("a main button is the prototype's glossy capsule, 54px tall; a red one the red capsule; a ghost has no fill", () => {
+  render(
+    <>
+      <MainButton>Saqlash</MainButton>
+      <MainButton variant="red">O&apos;chirish</MainButton>
+      <MainButton variant="ghost">Bekor qilish</MainButton>
+    </>,
+  )
+  const save = screen.getByRole("button", { name: "Saqlash" })
+  expect(save).toHaveClass("glossy", "rounded-full", "h-[54px]")
+  expect(save).not.toHaveClass("bg-primary")
+  expect(screen.getByRole("button", { name: "O'chirish" })).toHaveClass("glossy-red", "rounded-full", "h-[54px]")
+  const ghost = screen.getByRole("button", { name: "Bekor qilish" })
+  expect(ghost).toHaveClass("h-11", "bg-transparent")
+  expect(ghost).not.toHaveClass("glossy")
+})
