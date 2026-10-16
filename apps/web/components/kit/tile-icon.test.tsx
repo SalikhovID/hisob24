@@ -29,3 +29,8 @@ test("a tile icon is glossy, as the prototype's: a light falling from its top, i
   const { container } = render(<TileIcon icon={UserIcon} color="#007AFF" />)
   expect(container.querySelector('[data-slot="tile-icon"]')).toHaveClass("gloss", "rounded-[10px]")
 })
+
+test("a soft icon has a faint white rim, as the prototype's task icons", () => {
+  const { container } = render(<SoftIcon icon={UserIcon} />)
+  expect(container.querySelector('[data-slot="soft-icon"]')).toHaveClass("shadow-[inset_0_0_0_1px_rgba(255,255,255,.5)]")
+})
