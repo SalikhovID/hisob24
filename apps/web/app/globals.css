@@ -170,9 +170,9 @@
     /* The logo's color: the light glass's ink on a light page, white on a
        dark one, inside Telegram too (the app keeps its colors there). */
     --brand: #0E0F12;
-    /* The brand's own surface (the login's panel) and what stands on it: the
-       same in light and in dark, as the surface's color is known. */
-    --brand-panel: #174449;
+    /* The brand's own surface (the login's panel: the brand's fill over its
+       deepest color) and what stands on it, white in light and in dark. */
+    --brand-panel: #0E0F11;
     --brand-panel-foreground: #ffffff;
     --sidebar: #F1F2F4;
     --sidebar-foreground: #0E0F12;
@@ -252,6 +252,7 @@
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --brand: #ffffff;
+    --brand-panel: #6453D3;
     --sidebar: #15121E;
     --sidebar-foreground: #F5F2FF;
     --sidebar-primary: #B0A4FF;

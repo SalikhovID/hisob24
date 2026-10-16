@@ -2,8 +2,9 @@ import type { ReactNode } from "react"
 import { Logo24 } from "@/components/logo"
 import { cn } from "@/lib/utils"
 
-// LoginFrame is the login's page: the brand's panel and, in the page's main
-// part, what is asked for. On a phone the panel is a band across the top and
+// LoginFrame is the login's page: the brand's panel (its fill: glossy black
+// in the light, lavender in the night) and, in the page's main part on the
+// ambient light, what is asked for. On a phone the panel is a band across the top and
 // the rest a sheet drawn over its lower edge; from lg up the two stand side
 // by side, each as tall as the screen. brand heads the page (the h1 holds
 // it), tagline says what the product is: a line under the brand on a phone,
@@ -20,7 +21,7 @@ export function LoginFrame({ brand, tagline, children }: { brand: ReactNode; tag
     <div className="flex min-h-svh flex-col lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <header
         className={cn(
-          "relative isolate overflow-hidden bg-brand-panel px-6 pt-safe-10 pb-16 text-brand-panel-foreground",
+          "relative isolate overflow-hidden bg-brand-panel bg-(image:--brand-fill) px-6 pt-safe-10 pb-16 text-brand-panel-foreground",
           "[--brand:var(--brand-panel-foreground)] [--muted-foreground:color-mix(in_oklab,var(--brand-panel-foreground)_72%,transparent)]",
           "lg:flex lg:flex-col lg:justify-between lg:p-12 lg:pt-safe-12",
         )}
@@ -31,7 +32,7 @@ export function LoginFrame({ brand, tagline, children }: { brand: ReactNode; tag
           {tagline}
         </p>
       </header>
-      <main className="relative -mt-6 flex flex-1 flex-col rounded-t-3xl bg-background px-6 pt-8 pb-10 lg:mt-0 lg:justify-center lg:rounded-none lg:px-12">
+      <main className="relative -mt-6 flex flex-1 flex-col rounded-t-3xl bg-ambient px-6 pt-8 pb-10 lg:mt-0 lg:justify-center lg:rounded-none lg:px-12">
         <div className="mx-auto w-full max-w-sm">{children}</div>
       </main>
     </div>

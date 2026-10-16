@@ -190,3 +190,8 @@ test("on a page's own background the logo is the light glass's ink, near black; 
   expect(block(":root {")).toContain("--brand: #0E0F12")
   expect(block(".dark {")).toContain("--brand: #ffffff")
 })
+
+test("under the brand's fill the panel's own color is its deepest: near black in the light, the lavender's in the night", () => {
+  expect(block(":root {")).toContain("--brand-panel: #0E0F11")
+  expect(block(".dark {")).toContain("--brand-panel: #6453D3")
+})

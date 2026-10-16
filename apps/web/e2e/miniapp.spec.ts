@@ -223,7 +223,7 @@ test.describe("a Mini App whose sign-in fails", () => {
     await expect(page.getByRole("alert").filter({ hasText: "Telegram ma'lumoti yaroqsiz" })).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Telefon raqami" })).toBeVisible()
     const panel = page.getByRole("banner")
-    await expect(panel).toHaveCSS("background-color", "rgb(23, 68, 73)")
+    await expect(panel).toHaveCSS("background-color", "rgb(100, 83, 211)")
     await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(255, 255, 255)")
     // Full screen: the panel's own padding (40px on a phone, 48px from lg)
     // grows by the insets (93px), so the logo stays clear of the controls.

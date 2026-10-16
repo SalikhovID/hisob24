@@ -34,3 +34,11 @@ test("the panel's backdrop is the mark's number, a decoration: the brand is the 
   expect(screen.getByRole("banner").querySelector('[data-slot="logo-24"]')).not.toBeNull()
   expect(screen.getAllByRole("img")).toHaveLength(1)
 })
+
+test("the panel is the brand's fill (black in the light, lavender in the night); the form stands in the ambient light", () => {
+  render(frame)
+
+  expect(screen.getByRole("banner")).toHaveClass("bg-brand-panel", "bg-(image:--brand-fill)")
+  expect(screen.getByRole("main")).toHaveClass("bg-ambient")
+  expect(screen.getByRole("main")).not.toHaveClass("bg-background")
+})
