@@ -74,3 +74,10 @@ test("glossy is the prototype's capsule fill of an accent control: the accent as
   expect(block(":root {")).toContain("--btn: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%)")
   expect(block(".dark {")).toContain("--btn: linear-gradient(180deg, #C2B8FF 0%, #9585F5 100%)")
 })
+
+test("glossy-red is the prototype's red capsule of an act that cannot be undone, in either theme", () => {
+  const red = block("@utility glossy-red {")
+  expect(red).toContain("background-image: linear-gradient(180deg, #F2847A, #CF3F37)")
+  expect(red).toContain("box-shadow: 0 8px 22px rgba(207, 63, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4)")
+  expect(red).toContain("color: #ffffff")
+})

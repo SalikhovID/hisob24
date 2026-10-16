@@ -282,6 +282,15 @@
   color: var(--primary-foreground);
 }
 
+/* glossy-red is the same capsule in red, for an act that cannot be undone
+   (deleting): one red in either theme, as the prototype's. */
+@utility glossy-red {
+  background-color: var(--destructive);
+  background-image: linear-gradient(180deg, #F2847A, #CF3F37);
+  box-shadow: 0 8px 22px rgba(207, 63, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+
 /* Inside Telegram (TelegramSync sets data-telegram) the app keeps its own
    colors: the chat gives the scheme alone, light or dark. The shell is as
    tall as the Mini App's stable viewport
