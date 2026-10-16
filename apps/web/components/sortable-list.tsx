@@ -11,7 +11,7 @@ import {
 } from "@dnd-kit/core"
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripIcon } from "lucide-react"
+import { GripVerticalIcon } from "lucide-react"
 import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
@@ -193,7 +193,7 @@ function SortableItem({
         onMove(to)
       }}
     >
-      <GripIcon aria-hidden="true" className="size-[18px]" />
+      <GripVerticalIcon aria-hidden="true" className="size-[18px]" />
     </button>
   ) : null
   return (

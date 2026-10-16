@@ -137,3 +137,23 @@ test("a divider may stand before an item: a line of words between the items, its
   expect(items[1].nextElementSibling).toBe(divider)
   expect(divider?.nextElementSibling).toBe(items[2])
 })
+
+test("a handle is the prototype's grip: two rows of three dots, upright", () => {
+  render(
+    <SortableList
+      label="Turlar"
+      items={["Jismoniy", "Yuridik"]}
+      getId={(item) => item}
+      getLabel={(item) => item}
+      onReorder={() => {}}
+      renderItem={(item, handle) => (
+        <div>
+          {handle}
+          {item}
+        </div>
+      )}
+    />,
+  )
+  const handle = screen.getByRole("button", { name: "Jismoniy: tartibini o'zgartirish" })
+  expect(handle.querySelector("svg")).toHaveClass("lucide-grip-vertical")
+})
