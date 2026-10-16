@@ -103,3 +103,9 @@ test("the ambient light is the prototype's: soft gradients over the theme's base
   expect(block(".dark {")).toContain("--ambient: radial-gradient(110% 55% at -5% -5%, rgba(92, 62, 120, 0.55) 0%, rgba(92, 62, 120, 0) 60%)")
   expect(block(".dark {")).toContain("--ambient-base: #15121E")
 })
+
+test("the page's body is lit by the ambient light, under the screens without the shell too", () => {
+  const body = block("  body {")
+  expect(body).toContain("@apply bg-ambient")
+  expect(body).not.toContain("bg-background")
+})

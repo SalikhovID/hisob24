@@ -481,7 +481,7 @@ html[data-telegram] body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-base text-foreground antialiased;
+    @apply bg-ambient text-base text-foreground antialiased;
     font-variant-numeric: tabular-nums;
     -webkit-tap-highlight-color: transparent;
   }
