@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barOrder, barPages, currentPin, defaultBar, isCurrent, isCurrentItem, isMenuPath, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
+import { barOrder, barPages, currentPin, isCurrent, isCurrentItem, isMenuPath, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -138,13 +138,6 @@ test("someone may open the pages their permissions open, the warehouse with any 
   expect(keys(["products.view"])).toEqual(["home", "products", "services"])
   expect(keys([])).toEqual(["home"])
   expect(keys(undefined)).toEqual(["home"])
-})
-
-test("the default bar is the first four of the home, the customers, the tasks, the products, the sales, the warehouse, the cash and the employees the member may open", () => {
-  expect(defaultBar(allPermissions)).toEqual(["home", "customers", "tasks", "products"])
-  expect(defaultBar(["sales.view", "stock.view", "finance.view"])).toEqual(["home", "sales", "warehouse", "accounts"])
-  expect(defaultBar(["employees.view", "purchases.view"])).toEqual(["home", "warehouse", "employees"])
-  expect(defaultBar(undefined)).toEqual(["home"])
 })
 
 test("the bar's order is the member's own pages they may open, then the rest by the default bar's order and the menu's", () => {

@@ -209,13 +209,6 @@ export const BAR_LIMIT = 4
 // section's first page, in the default order of the menu.
 const DEFAULT_BAR: PageKey[] = ["home", "customers", "tasks", "products", "sales", "warehouse", "accounts", "employees"]
 
-// defaultBar is the pages of the default bar: the first BAR_LIMIT of
-// DEFAULT_BAR that someone with permissions may open.
-export function defaultBar(permissions: readonly Permission[] | undefined): PageKey[] {
-  const open = new Set(pagesFor(permissions).map((page) => page.key))
-  return DEFAULT_BAR.filter((key) => open.has(key)).slice(0, BAR_LIMIT)
-}
-
 // barOrder is the pages someone with permissions may open in the order the
 // bar takes them (the bar's editor lists them so): their own first (tabBar,
 // what /app/me told; null for none), then the rest by DEFAULT_BAR's order
