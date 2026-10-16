@@ -64,3 +64,25 @@ test("a sheet is the prototype's glass: the sheet's tint over a deep blur, a whi
   expect(close).toHaveClass("glass-chip")
   expect(close).not.toHaveClass("bg-muted")
 })
+
+test("a sheet's head and its main button's bar have no fill of their own: over the sheet they vanish, and what scrolls under them is frosted", async () => {
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mijoz</DialogTitle>
+        </DialogHeader>
+        <DialogFooter>
+          <button type="button">Saqlash</button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>,
+  )
+  await screen.findByRole("dialog", { name: "Mijoz" })
+  const head = document.querySelector('[data-slot="dialog-header"]')
+  const foot = document.querySelector('[data-slot="dialog-footer"]')
+  expect(head).toHaveClass("backdrop-blur-[24px]")
+  expect(head).not.toHaveClass("bg-sheet")
+  expect(foot).toHaveClass("backdrop-blur-[24px]")
+  expect(foot).not.toHaveClass("from-sheet")
+})

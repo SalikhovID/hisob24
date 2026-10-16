@@ -98,11 +98,13 @@ function DialogContent({
 
 // DialogHeader is the sheet's head: it stays at the top while the body
 // scrolls, the title centered between the close button and the right slot.
+// It has no fill of its own (the sheet's glass would show twice): what
+// scrolls under it is frosted instead.
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("sticky top-0 z-[1] -mx-4 mb-2 flex flex-col gap-1 bg-sheet px-14 pt-5 pb-2 text-center", className)}
+      className={cn("sticky top-0 z-[1] -mx-4 mb-2 flex flex-col gap-1 px-14 pt-5 pb-2 text-center backdrop-blur-[24px]", className)}
       {...props}
     />
   )
@@ -110,7 +112,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
 
 // DialogFooter is the main button's bar at the bottom of the sheet. It
 // sticks to the body's bottom edge; the body then has no padding under it
-// (a sticky box keeps clear of its scroller's padding).
+// (a sticky box keeps clear of its scroller's padding). Like the head it
+// has no fill of its own: what scrolls under it is frosted.
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -123,7 +126,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "sticky bottom-0 z-[1] -mx-4 mt-auto flex flex-col gap-1 bg-gradient-to-t from-sheet from-70% to-transparent px-4 pt-3 pb-4 [&>*]:w-full",
+        "sticky bottom-0 z-[1] -mx-4 mt-auto flex flex-col gap-1 px-4 pt-3 pb-4 backdrop-blur-[24px] [&>*]:w-full",
         className
       )}
       {...props}
