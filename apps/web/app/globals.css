@@ -148,6 +148,12 @@
     --switch-off: rgba(120, 108, 176, 0.18);
     /* An amount's unit. */
     --gold: #6B6E76;
+    /* The home screen banner: its card, its ink, the line under, the close
+       button's glass. */
+    --ban: linear-gradient(135deg, #FFFFFF 0%, #EDEFF2 100%);
+    --ban-ink: #0E0F12;
+    --ban-sub: #4A4D55;
+    --ban-x: rgba(255, 255, 255, 0.55);
     /* An avatar: a plain grey circle with dark initials. */
     --av-bg: #E8E9EC;
     --av-ink: #1A1B1F;
@@ -227,6 +233,10 @@
     --seg-shadow: 0 4px 14px rgba(60, 40, 120, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7);
     --switch-off: rgba(255, 255, 255, 0.08);
     --gold: #E4C27C;
+    --ban: linear-gradient(135deg, #3B2F52 0%, #2D2A4A 55%, #4A3B22 100%);
+    --ban-ink: #F5F2FF;
+    --ban-sub: #E4C27C;
+    --ban-x: rgba(255, 255, 255, 0.14);
     --av-bg: rgba(255, 255, 255, 0.12);
     --av-ink: #F2F2F5;
     --chart-1: oklch(0.87 0 0);

@@ -168,3 +168,11 @@ test("the gold of an amount's unit is the hint's grey in the light, a warm gold 
   expect(block(":root {")).toContain("--gold: #6B6E76")
   expect(block(".dark {")).toContain("--gold: #E4C27C")
 })
+
+test("the banner is a white card in the light, violet to gold in the night", () => {
+  expect(block(":root {")).toContain("--ban: linear-gradient(135deg, #FFFFFF 0%, #EDEFF2 100%)")
+  expect(block(":root {")).toContain("--ban-ink: #0E0F12")
+  expect(block(":root {")).toContain("--ban-sub: #4A4D55")
+  expect(block(".dark {")).toContain("--ban: linear-gradient(135deg, #3B2F52 0%, #2D2A4A 55%, #4A3B22 100%)")
+  expect(block(".dark {")).toContain("--ban-sub: #E4C27C")
+})
