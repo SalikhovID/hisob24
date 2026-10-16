@@ -178,7 +178,8 @@ test("on a phone the member chooses the bar's pages on «Pastki panel», under t
   const choose = async () => {
     await bar.getByRole("link", { name: "Sozlamalar" }).click()
     await page.getByRole("link", { name: /^Pastki panelni sozlash/ }).click()
-    await expect(page).toHaveURL(/\/settings\/tab-bar$/)
+    // The editor's first visit may wait for the dev server to build it.
+    await expect(page).toHaveURL(/\/settings\/tab-bar$/, { timeout: 15_000 })
     return page.getByRole("main")
   }
   let editor = await choose()

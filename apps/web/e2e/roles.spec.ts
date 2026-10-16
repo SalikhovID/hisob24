@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { db } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { homeHead, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
+import { homeHead, onPhone, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
 
 // The whole way of a role (logic/roles.md): the owner makes one in the
 // settings, gives it to an employee in the employees, the employee works by
@@ -68,15 +68,20 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
   await expect(homeHead(page)).toHaveAccessibleName("Olma Savdo Vali A. · Sotuvchi")
   const shown = await sections(page)
-  await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar"])
+  // A phone's bar ends with «Sozlamalar», every member's way to their pages.
+  await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", ...(onPhone(page) ? ["Sozlamalar"] : [])])
   await shown.getByRole("link", { name: "Mijozlar" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Mijoz qo'shish" }).first()).toBeVisible()
   await openSection(page, "Vazifalar")
   await expect(page.getByRole("heading", { level: 1, name: "Vazifalar" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Vazifa qo'shish" })).toHaveCount(0)
-  // The settings are not theirs: the address leads home.
+  // The settings are not theirs: «Sozlamalar» lists their pages alone, and a
+  // settings page's address leads home.
   await page.goto("/settings")
+  await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toBeVisible()
+  await expect(page.getByRole("main").getByRole("list", { name: "Mijozlar va vazifalar" })).toHaveCount(0)
+  await page.goto("/settings/customer-types")
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
   await signOut(page)
