@@ -36,7 +36,16 @@ test("the plus is the prototype's glossy round button", () => {
   expect(plus).not.toHaveClass("bg-primary")
 })
 
-test("a page's name is the prototype's large title: 32px, drawn a little tighter", () => {
+test("a page's name is the prototype's large title: 28px, drawn a little tighter; 30px on a wide screen", () => {
   render(<PageTitle title="Mijozlar" />)
-  expect(screen.getByRole("heading", { level: 1, name: "Mijozlar" })).toHaveClass("text-[32px]", "tracking-[-0.03em]")
+  expect(screen.getByRole("heading", { level: 1, name: "Mijozlar" })).toHaveClass("text-[28px]", "tracking-[-0.025em]", "md:text-[30px]")
+})
+
+test("a page's title opens with the brand mark beside the name on a phone; on a wide screen the sidebar holds it", () => {
+  const { container } = render(<PageTitle title="Mijozlar" description="Kompaniyangiz mijozlari" />)
+  const mark = container.querySelector('[data-slot="page-title"] [data-slot="brand-mark"]')
+  expect(mark).toBeInTheDocument()
+  expect(mark).toHaveClass("md:hidden")
+  // The mark stands before the name and its line, at their left.
+  expect(mark?.nextElementSibling).toContainElement(screen.getByRole("heading", { level: 1, name: "Mijozlar" }))
 })

@@ -3,6 +3,7 @@
 import { ChevronLeftIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { BrandMark } from "@/components/kit/brand-mark"
 import { cn } from "@/lib/utils"
 import { moveTo, stepInto } from "@/lib/moves"
 
@@ -51,9 +52,10 @@ export function PlusButton({ label, onClick, href, className }: { label: string;
 }
 
 // PageTitle opens a page as the prototype does: the way back (on a page
-// under another), the name large, a line under it on what the page holds
-// (with how many, when that is known) and, at the right, what can be done
-// (a PlusButton, or another control).
+// under another), the brand mark (on a phone: a wide screen has it in the
+// sidebar), the name large, a line under it on what the page holds (with
+// how many, when that is known) and, at the right, what can be done (a
+// PlusButton, or another control).
 export function PageTitle({
   title,
   description,
@@ -70,10 +72,13 @@ export function PageTitle({
   return (
     <header data-slot="page-title" className={className}>
       {back && <BackLink {...back} />}
-      <div className="flex items-start justify-between gap-3 px-0.5 pt-1.5 pb-3.5">
-        <div className="min-w-0">
-          <h1 className="text-[32px] leading-[1.1] font-bold tracking-[-0.03em] [overflow-wrap:anywhere]">{title}</h1>
-          {description && <p className="mt-0.5 text-md text-muted-foreground">{description}</p>}
+      <div className="flex items-center justify-between gap-3 px-0.5 pt-1.5 pb-3.5">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <BrandMark className="md:hidden" />
+          <div className="min-w-0">
+            <h1 className="text-[28px] leading-[1.1] font-bold tracking-[-0.025em] [overflow-wrap:anywhere] md:text-[30px]">{title}</h1>
+            {description && <p className="mt-0.5 text-md text-muted-foreground">{description}</p>}
+          </div>
         </div>
         {action}
       </div>
