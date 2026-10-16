@@ -76,7 +76,7 @@ export function TransferPage({ id }: { id: number }) {
             <Row
               key={item.product_id}
               href={`/products/${item.product_id}`}
-              media={<Avatar name={item.name} seed={item.product_id} square letter />}
+              media={<Avatar name={item.name} square letter />}
               title={item.name}
               end={formatQuantity(item.quantity, item.unit)}
               chevron={false}

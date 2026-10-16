@@ -62,7 +62,7 @@ export function SelectCompany() {
                   onClick={() => choose.mutate(company.id, { onSuccess: () => router.replace("/") })}
                   disabled={reason !== null || choose.isPending}
                   className={reason ? "opacity-55" : undefined}
-                  media={<Avatar name={company.name} seed={company.id} square />}
+                  media={<Avatar name={company.name} square />}
                   title={company.name}
                   sub={roleLabels[company.role]}
                   end={

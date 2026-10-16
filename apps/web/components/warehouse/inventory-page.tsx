@@ -78,7 +78,7 @@ export function InventoryPage({ id }: { id: number }) {
             <Row
               key={item.product_id}
               href={`/products/${item.product_id}`}
-              media={<Avatar name={item.name} seed={item.product_id} square letter />}
+              media={<Avatar name={item.name} square letter />}
               title={item.name}
               sub={`tizim ${formatQuantity(item.expected, item.unit)} · sanalgan ${formatQuantity(item.counted, item.unit)}`}
               end={

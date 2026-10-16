@@ -125,7 +125,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
             {page.items.map((p) => {
               const currency = currencyOf(currencies, p.currency_id)
               const price = p.price ? formatAmount(p.price) : null
-              const media = <Avatar name={p.name} seed={p.id} square letter />
+              const media = <Avatar name={p.name} square letter />
               const none = <span className="text-muted-foreground">—</span>
               if (isProduct) {
                 const unit = p.unit ? unitLabel(p.unit) : null

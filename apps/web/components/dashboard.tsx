@@ -56,7 +56,7 @@ export function Dashboard() {
           href="/profile"
           className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-[22px] pr-2 text-left outline-none active:opacity-70 focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <Avatar name={user.full_name} seed={user.phone} />
+          <Avatar name={user.full_name} />
           <span className="min-w-0">
             <b className="block truncate text-md leading-tight font-semibold">{company.name}</b>{" "}
             <small className="block truncate text-xs text-muted-foreground">

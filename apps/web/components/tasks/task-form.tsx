@@ -96,20 +96,18 @@ export function LinkedCustomerCard({
   phone,
   typeName,
   href,
-  seed,
   onUnlink,
 }: {
   name: string | null
   phone: string
   typeName?: string
   href: string
-  seed: number
   onUnlink?: () => void
 }) {
   const facts = [typeName, name ? formatPhone(phone) : null].filter((fact): fact is string => !!fact)
   return (
     <section aria-label="Mavjud mijoz" className="mb-6 flex items-center gap-3 rounded-group bg-card px-4 py-3">
-      <Avatar name={name} seed={seed} />
+      <Avatar name={name} />
       <span className="min-w-0 flex-1">
         <small className="block text-xs text-muted-foreground">Mavjud mijoz</small>
         <span className="block font-medium [overflow-wrap:anywhere]">{name ?? formatPhone(phone)}</span>
@@ -167,7 +165,6 @@ export function CustomerSection({
           phone={linked.phone}
           typeName={linkedType?.name}
           href={`/customers/${linked.id}`}
-          seed={linked.id}
           onUnlink={onUnlink}
         />
       ) : (

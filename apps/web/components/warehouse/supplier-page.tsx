@@ -82,7 +82,7 @@ export function SupplierPage({ id }: { id: number }) {
     <>
       <BackLink {...back} />
       <DetailHead
-        media={<Avatar name={s.name} seed={s.id} square size="lg" />}
+        media={<Avatar name={s.name} square size="lg" />}
         title={s.name}
         description={phone ?? "Telefon yo'q"}
         badges={!s.is_active && <Badge>Nofaol</Badge>}

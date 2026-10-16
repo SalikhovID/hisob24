@@ -125,7 +125,7 @@ export function CustomersPage() {
                     <Row
                       key={customer.id}
                       href={`/customers/${customer.id}`}
-                      media={<Avatar name={name} seed={customer.id} />}
+                      media={<Avatar name={name} />}
                       title={name ?? phone}
                       sub={sub || undefined}
                       end={

@@ -87,7 +87,7 @@ export function ProductPage({ id }: { id: number }) {
     <>
       <BackLink {...back} />
       <DetailHead
-        media={<Avatar name={p.name} seed={p.id} square letter size="lg" />}
+        media={<Avatar name={p.name} square letter size="lg" />}
         title={p.name}
         description={isProduct ? [p.unit && unitLabel(p.unit), p.sku].filter(Boolean).join(" · ") || undefined : "Xizmat"}
         badges={!p.is_active && <Badge>Nofaol</Badge>}

@@ -70,7 +70,7 @@ export function EmployeeSheet({
           <DetailHead
             heading="h2"
             className="pt-1"
-            media={<Avatar name={employee.full_name} seed={employee.phone} size="lg" />}
+            media={<Avatar name={employee.full_name} size="lg" />}
             title={name}
             description={employee.full_name ? formatPhone(employee.phone) : undefined}
             badges={

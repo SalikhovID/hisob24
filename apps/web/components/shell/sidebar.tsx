@@ -85,7 +85,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
               collapsed && "justify-center px-0",
             )}
           >
-            <Avatar name={user.full_name} seed={user.phone} className="size-9 text-[13px]" />
+            <Avatar name={user.full_name} className="size-9 text-[13px]" />
             {!collapsed && (
               <span className="min-w-0">
                 <b className="block truncate text-md leading-tight font-semibold">{name}</b>{" "}

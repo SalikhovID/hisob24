@@ -84,7 +84,7 @@ export function CustomerPage({ id }: { id: number }) {
     <>
       <BackLink {...back} />
       <DetailHead
-        media={<Avatar name={name} seed={customer.data.id} size="lg" />}
+        media={<Avatar name={name} size="lg" />}
         title={name ?? phone}
         // A customer with no name goes by the phone, which is then not said twice.
         description={[type?.name, name ? phone : null].filter(Boolean).join(" · ")}

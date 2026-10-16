@@ -151,7 +151,7 @@ export function CustomerPicker<T extends FieldValues, TOut extends FieldValues =
                       onMouseMove={() => setActive(index)}
                       onClick={() => choose(customer)}
                     >
-                      <Avatar name={customerTitle} seed={customer.id} className="size-8 text-xs" />
+                      <Avatar name={customerTitle} className="size-8 text-xs" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{customerTitle ?? formatPhone(customer.phone)}</span>{" "}
                         <span className="block truncate text-sm text-muted-foreground">

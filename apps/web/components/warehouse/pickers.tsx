@@ -59,7 +59,7 @@ export function SupplierPicker({
           value: String(item.id),
           label: item.name,
           sub: item.meta ?? "Telefon yo'q",
-          media: <Avatar name={item.name} seed={item.id} square className="size-8 text-xs" />,
+          media: <Avatar name={item.name} square className="size-8 text-xs" />,
         }))}
         value={value ? String(value.id) : ""}
         onChange={(id) => onChange(items.find((item) => String(item.id) === id) ?? null)}
@@ -144,7 +144,7 @@ export function ProductPicker({
             value: String(pick.id),
             label: pick.name,
             sub: pick.meta || undefined,
-            media: <Avatar name={pick.name} seed={pick.id} square letter className="size-8 text-xs" />,
+            media: <Avatar name={pick.name} square letter className="size-8 text-xs" />,
             disabled: taken,
             badge: taken ? <Badge>qo&apos;shilgan</Badge> : undefined,
           }

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 // products square; a product shows its first letter alone (letter). One that
 // is muted (someone no longer active) keeps its initials in the hint's ink.
 // It is decoration: the name itself is beside it, so assistive technology
-// skips it. seed is kept for the callers: the tint it chose is gone.
+// skips it.
 export function Avatar({
   name,
   icon: Icon = UserIcon,
@@ -19,7 +19,6 @@ export function Avatar({
   className,
 }: {
   name: string | null | undefined
-  seed: string | number
   icon?: LucideIcon
   square?: boolean
   size?: "md" | "lg"

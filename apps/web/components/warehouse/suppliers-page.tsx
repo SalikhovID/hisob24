@@ -101,7 +101,7 @@ export function SuppliersPage() {
               <Row
                 key={supplier.id}
                 href={`/suppliers/${supplier.id}`}
-                media={<Avatar name={supplier.name} seed={supplier.id} square />}
+                media={<Avatar name={supplier.name} square />}
                 title={supplier.name}
                 sub={supplier.phone ? formatPhone(supplier.phone) : "Telefon yo'q"}
                 end={owed ? <Balance balance={supplier.balance} /> : undefined}

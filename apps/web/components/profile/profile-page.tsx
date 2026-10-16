@@ -49,7 +49,7 @@ export function ProfilePage() {
     <>
       <BackLink href="/" label="Bosh sahifa" />
       <DetailHead
-        media={<Avatar name={user.full_name} seed={user.phone} size="lg" />}
+        media={<Avatar name={user.full_name} size="lg" />}
         title={name}
         description={user.full_name ? formatPhone(user.phone) : undefined}
       />

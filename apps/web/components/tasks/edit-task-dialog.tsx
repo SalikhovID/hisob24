@@ -109,7 +109,7 @@ export function EditTaskDialog({
         <SheetForm onSubmit={form.handleSubmit((edited) => save.mutate(edited))}>
           {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
           <FormSection legend="Mijoz">
-            <LinkedCustomerCard name={task.customer.name} phone={task.customer.phone} href={`/customers/${task.customer.id}`} seed={task.customer.id} />
+            <LinkedCustomerCard name={task.customer.name} phone={task.customer.phone} href={`/customers/${task.customer.id}`} />
           </FormSection>
           <FormSection legend="Vazifa">
             <TaskFields

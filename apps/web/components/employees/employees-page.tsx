@@ -60,7 +60,7 @@ export function EmployeesPage() {
                 <Row
                   key={m.phone}
                   onClick={() => setOpened(m.phone)}
-                  media={<Avatar name={m.full_name} seed={m.phone} />}
+                  media={<Avatar name={m.full_name} />}
                   // A member with no name goes by the phone, which then is not said twice.
                   title={m.full_name ?? formatPhone(m.phone)}
                   badge={m.phone === ownPhone && <Badge>Siz</Badge>}

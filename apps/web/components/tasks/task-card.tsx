@@ -44,7 +44,7 @@ export function CardContent({ task, stage, type }: Pick<CardProps, "task" | "sta
         </span>{" "}
         {assignee && (
           <span className="inline-flex items-center gap-1.5">
-            <Avatar name={assignee.full_name} seed={assignee.phone} className="size-[18px] text-[8.5px]" />
+            <Avatar name={assignee.full_name} className="size-[18px] text-[8.5px]" />
             {assignee.full_name ? shortName(assignee.full_name) : formatPhone(assignee.phone)}
           </span>
         )}{" "}

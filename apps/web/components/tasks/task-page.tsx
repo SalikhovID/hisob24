@@ -145,7 +145,7 @@ export function TaskPage({ id }: { id: number }) {
           {/* A customer with no name goes by the phone, which is then not said twice. */}
           <Row
             href={customerHref}
-            media={<Avatar name={name} seed={task.data.customer.id} />}
+            media={<Avatar name={name} />}
             title={name ?? phone}
             sub={[customerType?.name, name ? phone : null].filter(Boolean).join(" · ") || undefined}
           />

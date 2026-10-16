@@ -56,7 +56,7 @@ export function CustomerPicker({
             value: String(item.id),
             label: item.name,
             sub: item.meta,
-            media: <Avatar name={item.meta ? item.name : null} seed={item.id} className="size-8 text-xs" />,
+            media: <Avatar name={item.meta ? item.name : null} className="size-8 text-xs" />,
           })),
         ]}
         value={value ? String(value.id) : ""}
