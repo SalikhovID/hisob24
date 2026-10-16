@@ -314,6 +314,22 @@
   box-shadow: var(--rim);
 }
 
+/* gloss is the shine of a small colored icon (a tile icon, a card's mark):
+   a thin light rim, a soft shadow and a light falling from its top. */
+@utility gloss {
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.4), 0 3px 8px rgba(60, 40, 120, 0.12);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 55%);
+    pointer-events: none;
+  }
+}
+
 /* bg-ambient is the prototype's ambient light behind the glass: soft
    gradients over the theme's base, a screen tall from the top of the box
    (below it, on a long page, the base goes on). */

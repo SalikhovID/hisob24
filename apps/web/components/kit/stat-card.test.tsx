@@ -45,3 +45,11 @@ test("a sparkline is one path over its values", () => {
   expect(paths).toHaveLength(2)
   expect(paths[1].getAttribute("d")).toMatch(/^M0\.0,/)
 })
+
+test("a stat card is frosted glass, its section's mark a glossy dot", () => {
+  render(<StatCard href="/tasks" icon={CheckIcon} color="#FF9500" title="Vazifalar" value="12" />)
+  const card = screen.getByRole("link", { name: /Vazifalar/ })
+  expect(card).toHaveClass("surface", "rounded-group")
+  expect(card).not.toHaveClass("bg-card")
+  expect(card.querySelector("[aria-hidden=true]")).toHaveClass("gloss")
+})

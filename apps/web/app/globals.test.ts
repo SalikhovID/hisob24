@@ -131,3 +131,9 @@ test("the avatars are the prototype's plain grey circles with dark initials: no 
   expect(block(".dark {")).toContain("--av-bg: rgba(255, 255, 255, 0.12)")
   expect(block(".dark {")).toContain("--av-ink: #F2F2F5")
 })
+
+test("gloss is the shine of a small colored icon: a thin light rim, a soft shadow and a light falling from its top", () => {
+  const gloss = block("@utility gloss {")
+  expect(gloss).toContain("box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.4), 0 3px 8px rgba(60, 40, 120, 0.12)")
+  expect(css).toMatch(/@utility gloss \{[^@]*&::after \{[^}]*background: linear-gradient\(180deg, rgba\(255, 255, 255, 0\.42\) 0%, rgba\(255, 255, 255, 0\) 55%\)/)
+})

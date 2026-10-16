@@ -72,7 +72,8 @@ export function Bars({ items, label }: { items: { label: string; value: number; 
   )
 }
 
-// StatCard is one of the "Umumiy holat" cards: a section's icon and name,
+// StatCard is one of the "Umumiy holat" cards, frosted glass: a section's
+// glossy icon and name,
 // a figure with its unit, a line of badges and a chart along the bottom;
 // the whole card leads to the section.
 export function StatCard({
@@ -99,13 +100,13 @@ export function StatCard({
   className?: string
 }) {
   const classes = cn(
-    "relative flex h-48 flex-col items-stretch overflow-hidden rounded-group bg-card px-3.5 pt-3.5 text-left no-underline transition-transform duration-150 ease-out-expo outline-none active:scale-[.97] focus-visible:ring-3 focus-visible:ring-ring/50",
+    "relative flex h-48 flex-col items-stretch overflow-hidden rounded-group surface px-3.5 pt-3.5 text-left no-underline transition-transform duration-150 ease-out-expo outline-none active:scale-[.97] focus-visible:ring-3 focus-visible:ring-ring/50",
     className,
   )
   const content = (
     <>
       <span className="flex items-center gap-1.5 text-md font-medium">
-        <span aria-hidden="true" style={{ background: color }} className="grid size-5 place-items-center rounded-full text-white">
+        <span aria-hidden="true" style={{ background: color }} className="gloss grid size-5 place-items-center rounded-full text-white">
           <Icon strokeWidth={2.8} className="size-3" />
         </span>
         {title}
