@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { expect, test, vi } from "vitest"
@@ -109,4 +109,31 @@ test("while sorting is off the list has no handles: the rows are read, not moved
 
 test("an item a finger lifts is a card of its own over the list: white in the light, a pale glass in the night, 18px round", () => {
   expect(liftedClass.split(" ")).toEqual(expect.arrayContaining(["rounded-[18px]", "bg-(--lifted)", "shadow-[0_12px_28px_rgba(60,40,120,.18)]"]))
+})
+
+test("a divider may stand before an item: a line of words between the items, itself no item and not moved", () => {
+  render(
+    <SortableList
+      label="Panel"
+      items={["Bosh sahifa", "Mijozlar", "Vazifalar"]}
+      getId={(item) => item}
+      getLabel={(item) => item}
+      onReorder={() => {}}
+      renderItem={(item, handle) => (
+        <div>
+          {handle}
+          {item}
+        </div>
+      )}
+      divider={{ before: 2, label: "Panelda emas · Sozlamalar sahifasida" }}
+    />,
+  )
+  const list = screen.getByRole("list", { name: "Panel" })
+  expect(within(list).getAllByRole("listitem")).toHaveLength(3)
+  const divider = list.querySelector('[data-slot="sortable-divider"]')
+  expect(divider).toHaveTextContent("Panelda emas · Sozlamalar sahifasida")
+  expect(divider).toHaveAttribute("aria-hidden", "true")
+  const items = list.querySelectorAll('[data-slot="sortable-item"]')
+  expect(items[1].nextElementSibling).toBe(divider)
+  expect(divider?.nextElementSibling).toBe(items[2])
 })

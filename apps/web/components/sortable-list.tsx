@@ -12,7 +12,7 @@ import {
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripIcon } from "lucide-react"
-import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
+import { Fragment, type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
 export interface SortableListProps<T> {
@@ -31,6 +31,10 @@ export interface SortableListProps<T> {
   // sorting: the list is in its ordering mode («Tartiblash»): the handles
   // show and the items move. Off, the rows are plain.
   sorting?: boolean
+  // divider is a line of words before the item at an index (the tab bar's
+  // editor: the pages past the bar): no item itself, not moved, and not
+  // read aloud (the items' own buttons say which side they are on).
+  divider?: { before: number; label: string }
   className?: string
 }
 
@@ -56,6 +60,7 @@ export function SortableList<T>({
   renderItem,
   disabled = false,
   sorting = true,
+  divider,
   className,
 }: SortableListProps<T>) {
   const descriptionId = useId()
@@ -104,21 +109,27 @@ export function SortableList<T>({
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <ul data-slot="sortable-list" aria-label={label} className={className}>
           {items.map((item, index) => (
-            <SortableItem
-              key={getId(item)}
-              id={getId(item)}
-              disabled={disabled}
-              sorting={sorting}
-              handleLabel={`${getLabel(item)}: tartibini o'zgartirish`}
-              descriptionId={descriptionId}
-              registerHandle={(node) => {
-                if (node) handles.current.set(getId(item), node)
-                else handles.current.delete(getId(item))
-              }}
-              onMove={(to) => move(index, to === "first" ? 0 : to === "last" ? ids.length - 1 : index + to)}
-            >
-              {(handle) => renderItem(item, handle)}
-            </SortableItem>
+            <Fragment key={getId(item)}>
+              {divider && index === divider.before && (
+                <li aria-hidden="true" data-slot="sortable-divider" className="bg-muted px-4 pt-3.5 pb-1.5 text-xs text-muted-foreground">
+                  {divider.label}
+                </li>
+              )}
+              <SortableItem
+                id={getId(item)}
+                disabled={disabled}
+                sorting={sorting}
+                handleLabel={`${getLabel(item)}: tartibini o'zgartirish`}
+                descriptionId={descriptionId}
+                registerHandle={(node) => {
+                  if (node) handles.current.set(getId(item), node)
+                  else handles.current.delete(getId(item))
+                }}
+                onMove={(to) => move(index, to === "first" ? 0 : to === "last" ? ids.length - 1 : index + to)}
+              >
+                {(handle) => renderItem(item, handle)}
+              </SortableItem>
+            </Fragment>
           ))}
         </ul>
       </SortableContext>
