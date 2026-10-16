@@ -31,3 +31,18 @@ test("an alert dialog asks its question in the middle of the screen, its two but
   expect(screen.getByRole("button", { name: "Bekor qilish" })).toHaveAttribute("data-slot", "alert-dialog-cancel")
   expect(screen.getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "alert-dialog-action")
 })
+
+test("an alert is the prototype's glass card: 34px corners, a white edge over its shadow", async () => {
+  render(
+    <AlertDialog open>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Rolni o&apos;chirasizmi?</AlertDialogTitle>
+        </AlertDialogHeader>
+      </AlertDialogContent>
+    </AlertDialog>,
+  )
+  const dialog = await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
+  expect(dialog).toHaveClass("rounded-[34px]", "shadow-[var(--shadow),inset_0_0_0_1px_var(--glass-edge)]")
+  expect(dialog).not.toHaveClass("rounded-[32px]")
+})
