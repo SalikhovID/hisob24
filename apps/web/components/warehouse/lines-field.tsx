@@ -124,7 +124,7 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
         const amount = current ? lineAmount(current.quantity, current.price) : null
         const unit = current?.unit ? unitLabel(current.unit) : undefined
         return (
-          <fieldset key={line.id} aria-label={`${index + 1}-qator`} data-slot="line-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[20px] bg-card">
+          <fieldset key={line.id} aria-label={`${index + 1}-qator`} data-slot="line-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[24px] surface">
             <div className="flex items-center">
               <div className="min-w-0 flex-1">
                 <Controller
@@ -195,7 +195,7 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
         </p>
       )}
       {withPrice && (
-        <p className="mb-6 flex items-baseline justify-between gap-2 rounded-group bg-card px-4 py-3.5 text-base">
+        <p className="mb-6 flex items-baseline justify-between gap-2 rounded-group surface px-4 py-3.5 text-base">
           <span className="text-muted-foreground">Jami</span>
           <b className="text-lg font-semibold tabular-nums">{formatMoney(total, currency)}</b>
         </p>

@@ -80,3 +80,14 @@ test("the lines are the prototype's cards: the heading counts them, a lone line 
   const olma = await within(sheet).findByRole("option", { name: /Olma/ })
   expect(olma).toHaveAttribute("aria-disabled", "true")
 })
+
+test("a line is the prototype's card of frosted glass, 24px round; the total stands on the same glass", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  await signIn(ALI)
+  renderWithProviders(<Host withPrice />)
+
+  expect(line(1)).toHaveClass("surface", "rounded-[24px]")
+  expect(line(1)).not.toHaveClass("bg-card")
+  expect(screen.getByText("Jami").parentElement).toHaveClass("surface")
+})

@@ -41,3 +41,12 @@ test("the payments are the prototype's cards: the account picked in a sheet, the
   await user.click(within(first).getByRole("button", { name: "1-to'lovni olib tashlash" }))
   expect(screen.queryByRole("group", { name: "1-to'lov" })).not.toBeInTheDocument()
 })
+
+test("a payment is the prototype's card of frosted glass, 24px round", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Host total={10000} />)
+
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  expect(payment(1)).toHaveClass("surface", "rounded-[24px]")
+  expect(payment(1)).not.toHaveClass("bg-card")
+})

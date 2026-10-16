@@ -114,3 +114,15 @@ test("editing: the count comes filled in with what the journal expects without i
   await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/inventories/${inventory.id}`))
   expect(moved()).toBe("back")
 })
+
+test("a counted line is the prototype's card of frosted glass, 24px round", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  await signIn(ALI)
+  setLocation("/inventories/new")
+  renderWithProviders(<NewInventoryPage />)
+
+  expect(await screen.findByRole("heading", { level: 1, name: "Yangi inventarizatsiya" })).toBeInTheDocument()
+  expect(line(1)).toHaveClass("surface", "rounded-[24px]")
+  expect(line(1)).not.toHaveClass("bg-card")
+})

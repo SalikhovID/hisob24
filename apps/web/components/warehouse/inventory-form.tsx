@@ -97,7 +97,7 @@ export function InventoryForm({
           const current = items[index]
           const difference = current?.product_id ? differenceOf(current.expected || "0", current.counted) : null
           return (
-            <fieldset key={line.id} aria-label={`${index + 1}-qator`} data-slot="line-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[20px] bg-card">
+            <fieldset key={line.id} aria-label={`${index + 1}-qator`} data-slot="line-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[24px] surface">
               <div className="flex items-center">
                 <div className="min-w-0 flex-1">
                   <Controller

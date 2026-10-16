@@ -66,7 +66,7 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
         const current = lines[index]
         const own = accountCurrency(accounts, currencies, Number(current?.bank_account_id))
         return (
-          <fieldset key={line.id} aria-label={`${index + 1}-to'lov`} data-slot="payment-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[20px] bg-card">
+          <fieldset key={line.id} aria-label={`${index + 1}-to'lov`} data-slot="payment-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[24px] surface">
             <div className="flex items-center">
               <div className="min-w-0 flex-1">
                 <SelectRow
