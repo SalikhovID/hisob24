@@ -58,7 +58,7 @@ export function OrderedRows<T>({
           onReorder={onReorder}
           sorting={on}
           disabled={!orderable}
-          className="mb-6 overflow-hidden rounded-group bg-card"
+          className="mb-6 overflow-hidden rounded-group surface"
           renderItem={(item, handle) => row(item, on ? handle : null)}
         />
       </div>

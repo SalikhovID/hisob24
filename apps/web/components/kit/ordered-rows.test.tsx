@@ -58,3 +58,10 @@ test("whoever may not change the order, or a list of one, is offered no ordering
   render(<List items={types.slice(0, 1)} />)
   expect(screen.queryByRole("button", { name: "Tartiblash" })).not.toBeInTheDocument()
 })
+
+test("the ordered rows stand on frosted glass, as a group's", () => {
+  render(<List />)
+  const list = screen.getByRole("list", { name: "Mijoz turlari" })
+  expect(list).toHaveClass("surface", "rounded-group")
+  expect(list).not.toHaveClass("bg-card")
+})
