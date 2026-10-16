@@ -7,9 +7,10 @@ import { XIcon } from "lucide-react"
 
 // The dialogs are the prototype's sheets (the sheet's own color, a white
 // edge), stopping short of what lies over the screen's top (Telegram's
-// controls in full screen): they come up from the bottom of
-// the screen (on a wide screen too, 480px wide in the middle), a grab
-// handle on top, the close button at the top left, the title centered, the
+// controls in full screen): on a phone they come up from the bottom of the
+// screen with a grab handle on top; on a wide screen they are the
+// prototype's dialog, 540px wide in the middle, 40px from the top, 32px
+// round. The close button stands at the top left, the title centered, the
 // body scrolling under a sticky head, the main button in a sticky footer.
 // Inside a sheet the page's surfaces are the sheet's own (as the
 // prototype's .sheet redefines --cell and --bg): a group is a sheet cell.
@@ -67,12 +68,12 @@ function DialogContent({
         data-slot="dialog-content"
         data-tall={tall || undefined}
         className={cn(
-          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px-var(--safe-top))] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px-var(--safe-top))]",
+          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px-var(--safe-top))] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px-var(--safe-top))] md:inset-x-auto md:top-10 md:bottom-auto md:left-1/2 md:w-[540px] md:max-w-none md:-translate-x-1/2 md:max-h-[calc(100dvh-80px)] md:rounded-[32px] md:data-tall:h-[calc(100dvh-80px)]",
           className
         )}
         {...props}
       >
-        <span aria-hidden="true" data-slot="dialog-grab" className="absolute top-1.5 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full bg-muted-foreground/35" />
+        <span aria-hidden="true" data-slot="dialog-grab" className="absolute top-1.5 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full bg-muted-foreground/35 md:hidden" />
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"

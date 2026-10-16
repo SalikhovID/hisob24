@@ -93,3 +93,27 @@ test("a sheet stops short of what lies over the screen's top (Telegram's control
   expect(sheet).toHaveClass("max-h-[calc(100dvh-18px-var(--safe-top))]", "data-tall:h-[calc(100dvh-18px-var(--safe-top))]")
   expect(sheet).not.toHaveClass("max-h-[calc(100dvh-18px)]")
 })
+
+test("on a wide screen a sheet is the prototype's dialog: in the middle, 40px from the top, 540px wide, 32px round, with no handle", async () => {
+  render(
+    <Dialog open>
+      <DialogContent tall>
+        <DialogHeader>
+          <DialogTitle>Mijoz</DialogTitle>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>,
+  )
+  const sheet = await screen.findByRole("dialog", { name: "Mijoz" })
+  expect(sheet).toHaveClass(
+    "md:top-10",
+    "md:bottom-auto",
+    "md:left-1/2",
+    "md:w-[540px]",
+    "md:-translate-x-1/2",
+    "md:rounded-[32px]",
+    "md:max-h-[calc(100dvh-80px)]",
+    "md:data-tall:h-[calc(100dvh-80px)]",
+  )
+  expect(document.querySelector('[data-slot="dialog-grab"]')).toHaveClass("md:hidden")
+})
