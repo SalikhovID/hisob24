@@ -8,7 +8,7 @@ import { moveTo, stepInto } from "@/lib/moves"
 
 // The hairline between rows starts after the row's media: an avatar (icon),
 // a tile icon (tile), or at the text (none). globals.css draws it at --inset.
-const insets = { none: "16px", icon: "68px", tile: "60px" } as const
+const insets = { none: "16px", icon: "68px", tile: "56px" } as const
 
 // Whether the rows stand in a list, in which case each takes a list item.
 const ListContext = createContext(false)

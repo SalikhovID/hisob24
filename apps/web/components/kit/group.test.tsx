@@ -91,3 +91,12 @@ test("a group is the prototype's frosted glass: a surface, not a flat card", () 
   expect(group).toHaveClass("surface", "rounded-group")
   expect(group).not.toHaveClass("bg-card")
 })
+
+test("in a group of rows with tile icons the hairline starts after the plain mark, at 56px, as the prototype's", () => {
+  render(
+    <Group label="Sozlamalar" inset="tile">
+      <Row title="Mijoz turlari" />
+    </Group>,
+  )
+  expect(screen.getByRole("list", { name: "Sozlamalar" }).style.getPropertyValue("--inset")).toBe("56px")
+})
