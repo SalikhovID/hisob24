@@ -61,15 +61,19 @@ export function MainButton({
 
 // MainBar is the bar the main button stands in at the bottom of a page or
 // a sheet: it sticks to the bottom, fades the content under it and keeps
-// clear of the phone's bottom edge; on a wide screen its buttons keep a
-// button's width. tone "sheet" fades into a sheet's own background.
+// clear of the phone's bottom edge. On a wide screen a page's bar is the
+// prototype's web view's: its button 380px wide at the column's right, no
+// fade; a sheet's keeps a button's width at its left. tone "sheet" fades
+// into a sheet's own background.
 export function MainBar({ children, tone = "page", className }: { children: ReactNode; tone?: "page" | "sheet"; className?: string }) {
   return (
     <div
       data-slot="main-bar"
       className={cn(
-        "sticky bottom-0 z-[5] -mx-4 mt-auto flex flex-col gap-1 px-4 pt-3 pb-safe-7 md:items-start md:[&>*]:max-w-sm",
-        tone === "page" ? "bg-gradient-to-t from-(--fade) from-55% to-transparent" : "bg-gradient-to-t from-sheet from-70% to-transparent",
+        "sticky bottom-0 z-[5] -mx-4 mt-auto flex flex-col gap-1 px-4 pt-3 pb-safe-7",
+        tone === "page"
+          ? "bg-gradient-to-t from-(--fade) from-55% to-transparent md:mx-0 md:items-end md:bg-none md:px-0 md:pb-7 md:[&>*]:max-w-[380px]"
+          : "bg-gradient-to-t from-sheet from-70% to-transparent md:items-start md:[&>*]:max-w-sm",
         className,
       )}
     >

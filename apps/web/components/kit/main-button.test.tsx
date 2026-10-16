@@ -71,3 +71,19 @@ test("a bar under a page fades the page into the prototype's fade, half its heig
   )
   expect(bar()).toHaveClass("from-sheet")
 })
+
+test("on a wide screen a page's bar is the prototype's: its button 380px wide at the column's right, with no fade; a sheet's stays its own", () => {
+  render(
+    <>
+      <MainBar>
+        <MainButton>Saqlash</MainButton>
+      </MainBar>
+      <MainBar tone="sheet">
+        <MainButton>Qo&apos;shish</MainButton>
+      </MainBar>
+    </>,
+  )
+  const [page, sheet] = document.querySelectorAll('[data-slot="main-bar"]')
+  expect(page).toHaveClass("md:mx-0", "md:items-end", "md:px-0", "md:pb-7", "md:bg-none", "md:[&>*]:max-w-[380px]")
+  expect(sheet).not.toHaveClass("md:bg-none")
+})
