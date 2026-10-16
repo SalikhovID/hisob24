@@ -84,7 +84,7 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
             <span className="font-medium text-muted-foreground">{month}</span>
           </>
         }
-        chart={<Sparkline values={sales.by_day.map(Number)} color="#FF2D55" />}
+        chart={<Sparkline values={sales.by_day.map(Number)} />}
       />,
     )
   }

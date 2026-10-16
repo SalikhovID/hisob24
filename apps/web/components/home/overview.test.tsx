@@ -72,3 +72,11 @@ test("the cards stand two to a row on a phone; on a wide screen as many as fit, 
   expect(grid).toHaveClass("grid-cols-2", "md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]")
   expect(grid).not.toHaveClass("md:grid-cols-4")
 })
+
+test("every card's line is drawn in the accent, the sales' too, as the prototype's", () => {
+  render(<Overview dashboard={full} stages={stages} hasLocation month="oktabr" />)
+  for (const name of [/^Xaridlar/, /^Sotuv/]) {
+    const line = screen.getByRole("link", { name }).querySelector("svg path[stroke]")
+    expect(line, String(name)).toHaveAttribute("stroke", "var(--primary)")
+  }
+})
