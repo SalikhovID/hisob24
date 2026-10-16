@@ -140,6 +140,10 @@
     /* The search box's glass. */
     --search: rgba(240, 241, 243, 0.7);
     --search-rim: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    /* The segmented control's thumb and the ink of the word on it. */
+    --seg-thumb: #111214;
+    --seg-on: #ffffff;
+    --seg-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     /* An avatar: a plain grey circle with dark initials. */
     --av-bg: #E8E9EC;
     --av-ink: #1A1B1F;
@@ -214,6 +218,9 @@
     --fade: rgba(21, 18, 30, 0.94);
     --search: rgba(255, 255, 255, 0.08);
     --search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    --seg-thumb: rgba(255, 255, 255, 0.18);
+    --seg-on: #F5F2FF;
+    --seg-shadow: 0 4px 14px rgba(60, 40, 120, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7);
     --av-bg: rgba(255, 255, 255, 0.12);
     --av-ink: #F2F2F5;
     --chart-1: oklch(0.87 0 0);

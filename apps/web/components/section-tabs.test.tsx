@@ -48,3 +48,14 @@ test("the strip is the prototype's segmented control: a pill, the page's link on
   expect(within(nav).getByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("data-active")
   expect(within(nav).getByRole("link", { name: "Xizmatlar" })).not.toHaveAttribute("data-active")
 })
+
+test("the strip wears the segmented control's glass: the page's link on the thumb, in its ink", () => {
+  setLocation("/products")
+  renderWithProviders(<SectionTabs item={products} permissions={["products.view"]} />)
+
+  const nav = screen.getByRole("navigation", { name: "Mahsulotlar bo'limi" })
+  expect(nav.querySelector("[data-slot=segmented]")).toHaveClass("bg-muted", "shadow-[inset_0_1px_2px_rgba(60,40,120,.06)]")
+  const current = within(nav).getByRole("link", { name: "Mahsulotlar" })
+  expect(current).toHaveClass("bg-(--seg-thumb)", "text-(--seg-on)", "shadow-(--seg-shadow)")
+  expect(current).not.toHaveClass("bg-card")
+})

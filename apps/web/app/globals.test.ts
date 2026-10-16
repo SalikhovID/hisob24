@@ -149,3 +149,12 @@ test("the search glass is a pale field with a hairline in the light, the chips' 
   expect(block(".dark {")).toContain("--search: rgba(255, 255, 255, 0.08)")
   expect(block(".dark {")).toContain("--search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16)")
 })
+
+test("the segmented thumb is black with white ink in the light, a pale glass in the night", () => {
+  expect(block(":root {")).toContain("--seg-thumb: #111214")
+  expect(block(":root {")).toContain("--seg-on: #ffffff")
+  expect(block(":root {")).toContain("--seg-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)")
+  expect(block(".dark {")).toContain("--seg-thumb: rgba(255, 255, 255, 0.18)")
+  expect(block(".dark {")).toContain("--seg-on: #F5F2FF")
+  expect(block(".dark {")).toContain("--seg-shadow: 0 4px 14px rgba(60, 40, 120, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7)")
+})
