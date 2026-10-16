@@ -27,6 +27,8 @@ Hozir user app Mini App sifatida `expand()` bilan Telegram sarlavhasi ostida to'
 
 > 6-qaror 2026-10-13 da bekor qilindi: ichki sahifalarda ilovaning o'z «‹ Orqaga» tugmasi bilan birga `WebApp.BackButton` ham ko'rsatiladi (`2026-10-13-mini-app-ui-design.md`, 2-qaror). To'liq ekran rejimi o'zgarmaydi.
 
+> 2026-10-16 dan user app'da kontent Telegram tugmalari ostidan scroll bo'ladi: qobiqdan `pt-safe` olinadi, `main` `pt-safe-2` oladi, scroll bo'lganda tepada fade chiqadi, varaqlar tugmalar ostidan boshlanadi (`2026-10-16-liquid-glass-design.md`). 4-qaror (faqat CSS, JS tinglovchisiz) saqlanadi.
+
 | # | Savol | Qaror |
 |---|---|---|
 | 7 | Qayta so'rash | Faqat ochilganda bir marta; foydalanuvchi "⋯" dan chiqsa, qayta so'ralmaydi, chetlar 0 ga tushadi va app sarlavha ostida ishlayveradi |

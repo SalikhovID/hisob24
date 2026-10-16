@@ -2,6 +2,8 @@
 
 Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja: `docs/superpowers/plans/2026-10-04-login.md`), amalga oshirilgan.
 
+> **User app'da 2026-10-16 dan:** brend paneli yangi palitrada — yorug'da qora, tungida lavanda gradient (`--brand-fill`), Telegram ichida ham ilovaning o'z palitrasi (`2026-10-16-liquid-glass-design.md`, 3-qaror). Admin panel uchun shu hujjat amal qiladi.
+
 ## Maqsad
 
 Foydalanuvchining so'zlari (2026-10-04): "login dizaynini chiroyliroq qilish kerak".

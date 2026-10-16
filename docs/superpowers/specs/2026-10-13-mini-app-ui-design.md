@@ -1,6 +1,6 @@
 # User app'ning Telegram Wallet (iOS guruhli ro'yxat) uslubidagi UI'si — dizayn va reja
 
-Sana: 2026-10-13. Holat: foydalanuvchi reja sifatida tasdiqlagan (reja savollari bilan); 0–8-bosqichlar amalga oshirilgan (2026-10-14, pastda «Amalga oshirishda belgilangan qarorlar»). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-13-mini-app-ui-stage<N>-*.md`. Tab-bar, profil va bosh sahifadagi «Bo'limlar» va `/profile/menu` qismi 2026-10-15 da almashtirildi: `2026-10-15-tab-bar-menu-design.md`.
+Sana: 2026-10-13. Holat: foydalanuvchi reja sifatida tasdiqlagan (reja savollari bilan); 0–8-bosqichlar amalga oshirilgan (2026-10-14, pastda «Amalga oshirishda belgilangan qarorlar»). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-13-mini-app-ui-stage<N>-*.md`. Tab-bar, profil va bosh sahifadagi «Bo'limlar» va `/profile/menu` qismi 2026-10-15 da almashtirildi: `2026-10-15-tab-bar-menu-design.md`. Tokenlar (ranglar, radiuslar, Telegram ustuni), avatarlar, yuzalar va to'liq ekrandagi tepa 2026-10-16 da almashtirildi: `2026-10-16-liquid-glass-design.md`.
 
 ## Kontekst
 
@@ -66,6 +66,8 @@ Bu `docs/SPEC.md` da yo'q ish, foydalanuvchi so'rovi bilan. SPEC 7-bo'limdagi «
 ## Dizayn
 
 ### Tokenlar (`apps/web/app/globals.css`)
+
+> **2026-10-16 da almashtirildi:** `2026-10-16-liquid-glass-design.md` («Yorug' shisha» / «Tungi shisha», Telegram'da ilovaning o'z palitrasi, radiuslar 26 / 22 / 40, `surface` va boshqa utility'lar). Pastdagi jadval 2026-10-13 holati.
 
 Prototip o'zgaruvchilari shadcn nomlariga ulanadi (mavjud `bg-card`, `text-muted-foreground`, `border` classlar ishlayveradi), yetishmaganlari yangi token.
 
