@@ -34,6 +34,13 @@ export interface TelegramWebApp {
   // put there, or cannot be.
   addToHomeScreen?: () => void
   checkHomeScreenStatus?: (callback: (status: HomeScreenStatus) => void) => void
+  // setHeaderColor, setBackgroundColor and setBottomBarColor paint
+  // Telegram's own chrome around the Mini App: its header (a #RRGGBB color
+  // from Bot API 6.9), the background behind the app (6.1) and the bar under
+  // it (7.10).
+  setHeaderColor?: (color: string) => void
+  setBackgroundColor?: (color: string) => void
+  setBottomBarColor?: (color: string) => void
   // BackButton is Telegram's own back button in the Mini App's header or
   // floating controls (Bot API 6.1+).
   BackButton?: TelegramBackButton

@@ -18,7 +18,8 @@ const wentFullscreen = (page: Page) =>
 // takes the whole screen and the status bar (47px) and Telegram's floating
 // controls (46px) now lie over its top, published as the safe area insets.
 // Its BackButton keeps whether it is shown and what a press does; its home
-// screen (Bot API 8.0) has not got the app yet, and adding it is noted.
+// screen (Bot API 8.0) has not got the app yet, and adding it is noted; the
+// colors the app paints its header, background and bottom bar are noted.
 function fakeTelegram(telegramId: number, platform = "android") {
   return `
   const themeParams = {
@@ -49,6 +50,9 @@ function fakeTelegram(telegramId: number, platform = "android") {
       },
       onEvent() {},
       offEvent() {},
+      setHeaderColor(color) { window.__chrome = { ...window.__chrome, header: color } },
+      setBackgroundColor(color) { window.__chrome = { ...window.__chrome, background: color } },
+      setBottomBarColor(color) { window.__chrome = { ...window.__chrome, bottomBar: color } },
       BackButton: {
         isVisible: false,
         show() { window.Telegram.WebApp.BackButton.isVisible = true },
@@ -85,6 +89,10 @@ test.describe("a linked user", () => {
     // The chat gives the scheme (dark), not its theme's colors: the page
     // is the app's own night glass (docs: 2026-10-16 liquid glass).
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(21, 18, 30)")
+    // Telegram's own chrome round the app wears its night base too.
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __chrome?: Record<string, string> }).__chrome))
+      .toEqual({ header: "#15121E", background: "#15121E", bottomBar: "#15121E" })
     await fits(page)
     // On a phone the sections are a floating bar of the app's own glass,
     // see-through.

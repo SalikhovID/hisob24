@@ -97,6 +97,54 @@ test("TelegramSync asks nothing of a client older than Bot API 8.0, which would 
   expect(webApp.requestFullscreen).not.toHaveBeenCalled()
 })
 
+// atLeast is a client at Bot API version client: it knows a method of that
+// version or older.
+const atLeast = (client: string) =>
+  vi.fn((version: string) => {
+    const [major, minor] = client.split(".").map(Number)
+    const [wantMajor, wantMinor] = version.split(".").map(Number)
+    return major > wantMajor || (major === wantMajor && minor >= wantMinor)
+  })
+
+const chrome = () => ({ setHeaderColor: vi.fn(), setBackgroundColor: vi.fn(), setBottomBarColor: vi.fn() })
+
+test("TelegramSync paints Telegram's header, background and bottom bar in the app's own colors of the scheme", async () => {
+  const webApp = fakeWebApp({ colorScheme: "dark", isVersionAtLeast: atLeast("8.0"), ...chrome() })
+  window.Telegram = { WebApp: webApp }
+
+  renderWithProviders(<TelegramSync />)
+
+  // The night glass's base, all round.
+  await waitFor(() => expect(webApp.setHeaderColor).toHaveBeenCalledWith("#15121E"))
+  expect(webApp.setBackgroundColor).toHaveBeenCalledWith("#15121E")
+  expect(webApp.setBottomBarColor).toHaveBeenCalledWith("#15121E")
+
+  // The light glass: its ambient light's top over the app, its base behind
+  // it, its bottom under it.
+  webApp.colorScheme = "light"
+  act(() => webApp.fire("themeChanged"))
+  expect(webApp.setHeaderColor).toHaveBeenLastCalledWith("#F7F8F9")
+  expect(webApp.setBackgroundColor).toHaveBeenLastCalledWith("#F1F2F4")
+  expect(webApp.setBottomBarColor).toHaveBeenLastCalledWith("#E5E7EB")
+})
+
+test.each([
+  ["6.1", ["setBackgroundColor"]],
+  ["7.0", ["setHeaderColor", "setBackgroundColor"]],
+  ["7.10", ["setHeaderColor", "setBackgroundColor", "setBottomBarColor"]],
+] as const)("a client at Bot API %s is asked for the colors it knows alone", async (version, asked) => {
+  const webApp = fakeWebApp({ isVersionAtLeast: atLeast(version), ...chrome() })
+  window.Telegram = { WebApp: webApp }
+
+  renderWithProviders(<TelegramSync />)
+
+  await waitFor(() => expect(webApp[asked[0]]).toHaveBeenCalled())
+  for (const method of ["setHeaderColor", "setBackgroundColor", "setBottomBarColor"] as const) {
+    if (asked.includes(method as never)) expect(webApp[method]).toHaveBeenCalled()
+    else expect(webApp[method]).not.toHaveBeenCalled()
+  }
+})
+
 // backButton stands in for Telegram's BackButton; press calls what the app
 // gave it.
 function backButton() {

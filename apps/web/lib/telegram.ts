@@ -39,3 +39,13 @@ export function useMiniApp(): TelegramWebApp | null {
     () => null,
   )
 }
+
+// chromeColors are the app's own colors for Telegram's chrome around the
+// Mini App, by scheme: the header over its top, the background behind it
+// and the bar under it are the top, the base and the bottom of the ambient
+// light (app/globals.css), so the app keeps its colors inside Telegram
+// (docs: 2026-10-16 liquid glass, decision 2).
+export const chromeColors = {
+  light: { header: "#F7F8F9", background: "#F1F2F4", bottomBar: "#E5E7EB" },
+  dark: { header: "#15121E", background: "#15121E", bottomBar: "#15121E" },
+} as const
