@@ -1,4 +1,4 @@
-import { CircleCheckIcon, MapPinIcon, PlusIcon } from "lucide-react"
+import { ChevronRightIcon, CircleCheckIcon, MapPinIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
@@ -27,8 +27,12 @@ export function UpcomingTasks({
 }) {
   const heading = (
     <SectionHeading hint={hasLocation ? `Jami: ${tasks.active}` : undefined}>
-      <Link href="/tasks?view=list" className="rounded outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+      <Link
+        href="/tasks?view=list"
+        className="inline-flex items-center gap-0.5 rounded text-[17px] font-semibold text-heading outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
         Yaqin muddatlar
+        <ChevronRightIcon aria-hidden="true" strokeWidth={2.6} className="size-[18px] text-muted-foreground" />
       </Link>
     </SectionHeading>
   )

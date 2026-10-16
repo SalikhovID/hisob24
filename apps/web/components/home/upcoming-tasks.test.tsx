@@ -68,3 +68,11 @@ test("a member with no location is told so", () => {
   expect(screen.getByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
   expect(screen.queryByRole("list", { name: "Yaqin muddatlar" })).not.toBeInTheDocument()
 })
+
+test("the heading's way to every task is the prototype's: the heading's ink, 17px and bold, with a chevron after it", () => {
+  const tasks: Tasks = { active: 1, late: 0, by_stage: [], upcoming: [task(1, "Hisob-faktura", todayISO())] }
+  render(<UpcomingTasks tasks={tasks} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
+  const link = screen.getByRole("link", { name: "Yaqin muddatlar" })
+  expect(link).toHaveClass("text-[17px]", "font-semibold", "text-heading")
+  expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
+})
