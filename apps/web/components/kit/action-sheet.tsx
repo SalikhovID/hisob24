@@ -16,7 +16,10 @@ export interface ActionItem {
   disabled?: boolean
 }
 
-const glass = "rounded-[24px] bg-menu p-1.5 shadow-float ring-[0.5px] ring-glass-edge ring-inset backdrop-blur-[30px] backdrop-saturate-[1.8]"
+// The prototype's glass menu: 26px corners, a white edge all round and a
+// light along its top, over a blur.
+const glass =
+  "rounded-[26px] bg-menu p-1.5 shadow-[var(--shadow),inset_0_0_0_1px_var(--glass-edge),inset_0_1px_0_var(--glass-edge)] backdrop-blur-[30px] backdrop-saturate-[1.8]"
 
 // ActionSheet is the prototype's action sheet: what can be done with a
 // record (edit, deactivate, delete) or which state to put it in, in a glass

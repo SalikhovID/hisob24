@@ -42,3 +42,10 @@ test("a choice among states marks the current one", () => {
   expect(screen.getByRole("menuitemradio", { name: "Asosiy" })).toHaveAttribute("aria-checked", "true")
   expect(screen.getByRole("menuitemradio", { name: "Chilonzor" })).toHaveAttribute("aria-checked", "false")
 })
+
+test("an action sheet's lists are the prototype's glass menus: 26px corners, a white edge and a light along the top", async () => {
+  render(<ActionSheet open onOpenChange={() => {}} items={[{ label: "Tahrirlash", onSelect: () => {} }]} />)
+  const menu = await screen.findByRole("menu")
+  expect(menu).toHaveClass("rounded-[26px]", "shadow-[var(--shadow),inset_0_0_0_1px_var(--glass-edge),inset_0_1px_0_var(--glass-edge)]")
+  expect(screen.getByRole("button", { name: "Bekor qilish" }).parentElement).toHaveClass("rounded-[26px]")
+})
