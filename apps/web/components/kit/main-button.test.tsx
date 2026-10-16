@@ -53,3 +53,21 @@ test("a main button is the prototype's glossy capsule, 54px tall; a red one the 
   expect(ghost).toHaveClass("h-11", "bg-transparent")
   expect(ghost).not.toHaveClass("glossy")
 })
+
+test("a bar under a page fades the page into the prototype's fade, half its height; in a sheet, into the sheet", () => {
+  const { rerender } = render(
+    <MainBar>
+      <MainButton>Saqlash</MainButton>
+    </MainBar>,
+  )
+  const bar = () => screen.getByRole("button", { name: "Saqlash" }).closest('[data-slot="main-bar"]')
+  expect(bar()).toHaveClass("from-(--fade)", "from-55%")
+  expect(bar()).not.toHaveClass("from-background")
+
+  rerender(
+    <MainBar tone="sheet">
+      <MainButton>Saqlash</MainButton>
+    </MainBar>,
+  )
+  expect(bar()).toHaveClass("from-sheet")
+})

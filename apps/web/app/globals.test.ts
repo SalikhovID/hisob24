@@ -137,3 +137,8 @@ test("gloss is the shine of a small colored icon: a thin light rim, a soft shado
   expect(gloss).toContain("box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.4), 0 3px 8px rgba(60, 40, 120, 0.12)")
   expect(css).toMatch(/@utility gloss \{[^@]*&::after \{[^}]*background: linear-gradient\(180deg, rgba\(255, 255, 255, 0\.42\) 0%, rgba\(255, 255, 255, 0\) 55%\)/)
 })
+
+test("the fade under a bar is the page's own color, nearly opaque", () => {
+  expect(block(":root {")).toContain("--fade: rgba(243, 244, 246, 0.94)")
+  expect(block(".dark {")).toContain("--fade: rgba(21, 18, 30, 0.94)")
+})
