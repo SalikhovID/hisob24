@@ -2,14 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { type CSSProperties, useState } from "react"
+import type { CSSProperties } from "react"
 import { pageIcons, tabIcons } from "@/components/kit/tab-icons"
 import { barPages, currentPin, isMenuPath } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { moveTo } from "@/lib/moves"
-import { MenuSheet } from "./menu-sheet"
-import { TabBarSheet } from "./tab-bar-sheet"
 
 // A tab is 72px wide, narrower on a phone too narrow for five (a 360px or
 // a 320px screen keeps 12px either side).
@@ -20,15 +18,14 @@ const tab =
 
 const SettingsMark = tabIcons.settings
 
-// TabBar is the prototype's floating clear «liquid glass» bar (its layers
-// are globals.css's) along the bottom of
-// a narrow screen (a phone, the Telegram Mini App), where the sidebar is
-// hidden: up to four pages of the member's own choice (logic/roles.md,
-// section 8; the default bar without one), each a filled icon over its
-// name, and «Sozlama» last, always, with the rest. A lens of glass stands
-// under the page's button and slides to the next; on a page the bar does
-// not hold it stands under «Sozlama», which opens the menu of every page
-// and, from it, the choice of the bar's pages.
+// TabBar is the prototype's floating «liquid glass» bar (its layers are
+// globals.css's) along the bottom of a narrow screen (a phone, the Telegram
+// Mini App), where the sidebar is hidden: four pages of the member's own
+// choice (logic/roles.md, section 8; the default bar without one), each an
+// outline icon over its name, and «Sozlamalar» last, always: the settings
+// page, which lists every page and leads to the choice of the bar's pages.
+// A lens of glass stands under the page's button and slides to the next;
+// on a page the bar does not hold it stands under «Sozlamalar».
 // The bar shows on the menu's pages (a hub's pages too: they may stand in
 // it); inside one (a record, a form, the profile) it steps down out of the
 // way, and the page leads back. It keeps clear of the phone's home
@@ -40,13 +37,9 @@ export function TabBar() {
   const pinned = currentPin(pins, pathname)
   const current = pinned < 0 ? pins.length : pinned
   const hidden = !isMenuPath(pathname)
-  // sheet is the sheet open over the bar: «Sozlama», or the choice of the
-  // bar's pages it leads to.
-  const [sheet, setSheet] = useState<null | "menu" | "bar">(null)
 
   return (
-    <>
-      <nav
+    <nav
         aria-label="Bo'limlar"
         aria-hidden={hidden || undefined}
         inert={hidden}
@@ -81,20 +74,16 @@ export function TabBar() {
             </Link>
           )
         })}
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={sheet === "menu"}
+        <Link
+          href="/settings"
+          // The settings are switched to at once, as a page from the bar.
+          onClick={() => moveTo(undefined)}
           aria-current={pinned < 0 ? "page" : undefined}
-          onClick={() => setSheet("menu")}
           className={cn(tab, pinned < 0 ? "text-primary" : "text-foreground")}
         >
           <SettingsMark className="size-[26px]" />
-          <span className="max-w-full truncate px-0.5">Sozlama</span>
-        </button>
-      </nav>
-      <MenuSheet open={sheet === "menu"} onOpenChange={(open) => setSheet(open ? "menu" : null)} onCustomize={() => setSheet("bar")} />
-      <TabBarSheet open={sheet === "bar"} onOpenChange={(open) => setSheet(open ? "bar" : null)} />
-    </>
+          <span className="max-w-full truncate px-0.5">Sozlamalar</span>
+        </Link>
+    </nav>
   )
 }

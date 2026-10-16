@@ -1,17 +1,11 @@
 import {
-  CoinsIcon,
   ContactIcon,
   HouseIcon,
-  LayersIcon,
-  ListIcon,
   ListTodoIcon,
   type LucideIcon,
   PackageIcon,
   SettingsIcon,
-  ShieldIcon,
   ShoppingCartIcon,
-  TagIcon,
-  UserIcon,
   UsersIcon,
   WalletIcon,
   WarehouseIcon,
@@ -241,35 +235,17 @@ export function currentPin(pins: readonly NavPage[], pathname: string): number {
   return hub ? pins.findIndex((pin) => pin.key === hub.key) : -1
 }
 
-// SettingsPage is a page of the settings, which stands under «Sozlama»
-// alone (never in the tab bar), with its tile icon as the settings' hub
-// wears it.
-export interface SettingsPage {
-  label: string
-  href: string
-  icon: LucideIcon
-  color: string
-  // ownerOnly: the company's owner's alone (the roles).
-  ownerOnly?: boolean
-}
-
-// settingsPages are the settings' pages in the order of their hub.
-export const settingsPages: SettingsPage[] = [
-  { label: "Mijoz turlari", href: "/settings/customer-types", icon: UserIcon, color: "#34C759" },
-  { label: "Vazifa turlari", href: "/settings/task-types", icon: TagIcon, color: "#FF9500" },
-  { label: "Bosqichlar", href: "/settings/stages", icon: LayersIcon, color: "#5856D6" },
-  { label: "Dropdownlar", href: "/settings/dropdowns", icon: ListIcon, color: "#30B0C7" },
-  { label: "Valyuta kurslari", href: "/settings/currencies", icon: CoinsIcon, color: "#FFB800" },
-  { label: "Moliya kategoriyalari", href: "/settings/finance-categories", icon: WalletIcon, color: "#5856D6" },
-  { label: "Rollar", href: "/settings/roles", icon: ShieldIcon, color: "#FF3B30", ownerOnly: true },
+// settingsPages are the settings' pages in the order of their hub: pages
+// of the menu (the tab bar stands on them), never in the bar itself.
+export const settingsPages: { label: string; href: string }[] = [
+  { label: "Mijoz turlari", href: "/settings/customer-types" },
+  { label: "Vazifa turlari", href: "/settings/task-types" },
+  { label: "Bosqichlar", href: "/settings/stages" },
+  { label: "Dropdownlar", href: "/settings/dropdowns" },
+  { label: "Valyuta kurslari", href: "/settings/currencies" },
+  { label: "Moliya kategoriyalari", href: "/settings/finance-categories" },
+  { label: "Rollar", href: "/settings/roles" },
 ]
-
-// settingsPagesFor is the settings' pages someone may open: every one for
-// whoever may see the settings, the roles for the owner alone.
-export function settingsPagesFor(permissions: readonly Permission[] | undefined, owner: boolean): SettingsPage[] {
-  if (!can(permissions, "settings.view")) return []
-  return settingsPages.filter((page) => owner || !page.ownerOnly)
-}
 
 // menuPaths are the menu's pages: every section's own, its tabs, the hubs
 // and their pages (the warehouse's, the settings').

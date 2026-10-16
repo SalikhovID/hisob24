@@ -24,12 +24,18 @@ vi.mock("next/link", () => ({
 }))
 
 const bar = () => screen.getByRole("navigation", { name: "Bo'limlar" })
-const tabs = () => within(bar()).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])
-const more = () => within(bar()).getByRole("button", { name: "Sozlama" })
+// settings is «Sozlamalar», the bar's last button: the way to every page.
+const settings = () => within(bar()).getByRole("link", { name: "Sozlamalar" })
+// tabs is the member's pages in the bar, [name, address], before «Sozlamalar».
+const tabs = () =>
+  within(bar())
+    .getAllByRole("link")
+    .filter((link) => link !== settings())
+    .map((link) => [link.textContent, link.getAttribute("href")])
 // lens is the place of the glass under the current button, in buttons.
 const lens = () => bar().style.getPropertyValue("--i")
 
-test("the owner's bar is the default four pages, the page marked, and «Sozlama» last", async () => {
+test("the owner's bar is the default four pages, the page marked, and «Sozlamalar» last, the way to the settings page", async () => {
   await signIn(ALI)
   setLocation("/customers")
   renderWithProviders(<TabBar />)
@@ -44,24 +50,24 @@ test("the owner's bar is the default four pages, the page marked, and «Sozlama�
   expect(within(bar()).getByRole("link", { name: "Mijozlar" })).toHaveAttribute("aria-current", "page")
   expect(within(bar()).getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current")
   expect(lens()).toBe("1")
-  expect(more()).toHaveAttribute("aria-haspopup", "dialog")
-  expect(more()).toHaveAttribute("aria-expanded", "false")
-  expect(more()).not.toHaveAttribute("aria-current")
-  expect(within(bar()).getAllByRole("link").at(-1)?.compareDocumentPosition(more())).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  expect(settings()).toHaveAttribute("href", "/settings")
+  expect(settings()).not.toHaveAttribute("aria-current")
+  expect(within(bar()).getAllByRole("link").at(-1)).toBe(settings())
 })
 
-test("on a page the bar does not hold «Sozlama» is marked, and the bar stays", async () => {
+test("on a page the bar does not hold «Sozlamalar» is marked, and the bar stays", async () => {
   await signIn(ALI)
   setLocation("/services")
   renderWithProviders(<TabBar />)
 
   await within(bar()).findByRole("link", { name: "Mahsulotlar" })
-  expect(within(bar()).getAllByRole("link").filter((link) => link.getAttribute("aria-current"))).toEqual([])
-  expect(more()).toHaveAttribute("aria-current", "page")
+  // None of the member's pages is marked: the page is past the bar.
+  expect(within(bar()).getAllByRole("link").filter((link) => link !== settings() && link.getAttribute("aria-current"))).toEqual([])
+  expect(settings()).toHaveAttribute("aria-current", "page")
   expect(lens()).toBe("4")
 })
 
-test("on a page of a hub the bar shows: the warehouse marked when the bar holds it, «Sozlama» on the settings' pages", async () => {
+test("on a page of a hub the bar shows: the warehouse marked when the bar holds it, «Sozlamalar» on the settings' pages", async () => {
   db.members[ALI][0].tabBar = ["home", "warehouse"]
   await signIn(ALI)
   setLocation("/transfers")
@@ -72,7 +78,7 @@ test("on a page of a hub the bar shows: the warehouse marked when the bar holds 
   setLocation("/settings/stages")
   renderWithProviders(<TabBar />)
   await within(bar()).findByRole("link", { name: "Ombor" })
-  expect(more()).toHaveAttribute("aria-current", "page")
+  expect(settings()).toHaveAttribute("aria-current", "page")
 })
 
 test("inside a section (a record, a form, the profile) the bar steps away", async () => {
@@ -130,32 +136,16 @@ test("a section from the bar is switched to at once: a move taken before it, whi
   expect(moved()).toBeUndefined()
 })
 
-test("«Sozlama» opens the menu of every page", async () => {
+test("«Sozlamalar» is switched to at once, as a page from the bar", async () => {
   await signIn(ALI)
+  setLocation("/customers")
   const { user } = renderWithProviders(<TabBar />)
 
   await within(bar()).findByRole("link", { name: "Mahsulotlar" })
-  const button = more()
-  await user.click(button)
-  expect(await screen.findByRole("dialog", { name: "Sozlama" })).toBeInTheDocument()
-  expect(button).toHaveAttribute("aria-expanded", "true")
-})
-
-test("«Pastki panelni sozlash» leads from «Sozlama» to the bar's pages; what is saved stands in the bar at once", async () => {
-  await signIn(ALI)
-  const { user } = renderWithProviders(<TabBar />)
-
-  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
-  await user.click(more())
-  const menu = await screen.findByRole("dialog", { name: "Sozlama" })
-  await user.click(await within(menu).findByRole("button", { name: "Pastki panelni sozlash" }))
-  const sheet = await screen.findByRole("dialog", { name: "Pastki panel" })
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sozlama" })).not.toBeInTheDocument())
-
-  await user.click(await within(sheet).findByRole("button", { name: "Olib tashlash: Vazifalar" }))
-  await user.click(within(sheet).getByRole("button", { name: "Saqlash" }))
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Pastki panel" })).not.toBeInTheDocument())
-  expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Mijozlar", "Mahsulotlar"])
+  moveTo("forward")
+  await user.click(settings())
+  expect(moved()).toBeUndefined()
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
 })
 
 test("the bar is the prototype's clear liquid glass: no fill or blur of its own (its layers are the styles'), a soft shadow and a hairline round it; the lens likewise", async () => {

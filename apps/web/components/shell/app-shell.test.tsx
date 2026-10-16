@@ -61,7 +61,7 @@ test("a session that fails to load says why and can be asked for again", async (
   expect(await screen.findByText("Sahifa mazmuni")).toBeInTheDocument()
 })
 
-test("the tab bar names the member's pages under the page and «Sozlama», for a phone; there is no menu button", async () => {
+test("the tab bar names the member's pages under the page and «Sozlamalar», for a phone; there is no menu button", async () => {
   await signIn(ALI)
   renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
@@ -70,9 +70,8 @@ test("the tab bar names the member's pages under the page and «Sozlama», for a
   const bars = screen.getAllByRole("navigation", { name: "Bo'limlar" })
   expect(bars).toHaveLength(2)
   const tabBar = bars[1]
-  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
-  // The rest are «Sozlama»'s.
-  expect(within(tabBar).getByRole("button", { name: "Sozlama" })).toBeInTheDocument()
+  // The member's four pages, then «Sozlamalar», the way to the rest.
+  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
   expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
 })
