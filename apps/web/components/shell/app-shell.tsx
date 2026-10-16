@@ -23,7 +23,9 @@ import { TabBar } from "./tab-bar"
 // opened full screen, starts under the status bar and Telegram's controls
 // (pt-safe). The page's blocks keep their height in the scrolling column:
 // one that clips its overflow (a group's rounded list) would shrink to fit
-// the screen otherwise, and lose its last rows.
+// the screen otherwise, and lose its last rows. The column holds the ambient
+// light still (a scroller's own background does not scroll): the page moves
+// over it, as the prototype's screens do over theirs.
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -40,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar collapsed={sidebar.collapsed} onToggleCollapsed={sidebar.toggleCollapsed} />
       <main
         className={cn(
-          "flex min-w-0 flex-1 flex-col overflow-y-auto px-4 pt-2 md:px-6 md:pt-6 md:pb-10 [&>*]:shrink-0",
+          "flex min-w-0 flex-1 flex-col overflow-y-auto bg-ambient px-4 pt-2 md:px-6 md:pt-6 md:pb-10 [&>*]:shrink-0",
           isMenuPath(pathname) ? "pb-bar" : "pb-safe-6",
         )}
       >

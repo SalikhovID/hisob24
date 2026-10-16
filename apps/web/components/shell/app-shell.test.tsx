@@ -92,6 +92,14 @@ test("the page keeps room for the tab bar on the menu's pages, a hub's pages too
   expect(screen.getByRole("main")).not.toHaveClass("pb-bar")
 })
 
+test("the page column holds the ambient light still: the page scrolls over it, as the prototype's screens", async () => {
+  await signIn(ALI)
+  renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  expect(screen.getByRole("main")).toHaveClass("bg-ambient")
+})
+
 test("the sidebar folds, and a page opened later finds it folded", async () => {
   await signIn(ALI)
   const first = renderWithProviders(<AppShell>{page}</AppShell>)
