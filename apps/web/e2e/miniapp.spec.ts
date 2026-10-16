@@ -89,10 +89,10 @@ test.describe("a linked user", () => {
     // The chat gives the scheme (dark), not its theme's colors: the page
     // is the app's own dark glass (docs: 2026-10-16 glass v2).
     await expect(page.locator("body")).toHaveCSS("background-color", "rgb(21, 23, 27)")
-    // Telegram's own chrome round the app wears its night base too.
+    // Telegram's own chrome round the app wears its dark glass too.
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __chrome?: Record<string, string> }).__chrome))
-      .toEqual({ header: "#15121E", background: "#15121E", bottomBar: "#15121E" })
+      .toEqual({ header: "#1C1D21", background: "#0F1013", bottomBar: "#14161A" })
     await fits(page)
     // On a phone the sections are a floating bar of the app's own clear
     // glass: no fill of its own, a thin frost under its buttons.

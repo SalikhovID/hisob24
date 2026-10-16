@@ -114,10 +114,11 @@ test("TelegramSync paints Telegram's header, background and bottom bar in the ap
 
   renderWithProviders(<TelegramSync />)
 
-  // The night glass's base, all round.
-  await waitFor(() => expect(webApp.setHeaderColor).toHaveBeenCalledWith("#15121E"))
-  expect(webApp.setBackgroundColor).toHaveBeenCalledWith("#15121E")
-  expect(webApp.setBottomBarColor).toHaveBeenCalledWith("#15121E")
+  // The dark glass: its ambient light's top (the centre of the screen's top
+  // edge, as drawn) over the app, its base behind it, its foot under it.
+  await waitFor(() => expect(webApp.setHeaderColor).toHaveBeenCalledWith("#1C1D21"))
+  expect(webApp.setBackgroundColor).toHaveBeenCalledWith("#0F1013")
+  expect(webApp.setBottomBarColor).toHaveBeenCalledWith("#14161A")
 
   // The light glass: its ambient light's top over the app, its base behind
   // it, its bottom under it.
