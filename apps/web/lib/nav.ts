@@ -216,12 +216,27 @@ export function defaultBar(permissions: readonly Permission[] | undefined): Page
   return DEFAULT_BAR.filter((key) => open.has(key)).slice(0, BAR_LIMIT)
 }
 
-// barPages is the member's pages of the tab bar: their own (tabBar, what
-// /app/me told; null for the default bar), in their order, those they may
-// open, BAR_LIMIT at most.
-export function barPages(permissions: readonly Permission[] | undefined, tabBar?: readonly string[] | null): NavPage[] {
+// barOrder is the pages someone with permissions may open in the order the
+// bar takes them (the bar's editor lists them so): their own first (tabBar,
+// what /app/me told; null for none), then the rest by DEFAULT_BAR's order
+// and the menu's.
+export function barOrder(permissions: readonly Permission[] | undefined, tabBar?: readonly string[] | null): NavPage[] {
   const open = pagesFor(permissions)
-  return (tabBar ?? defaultBar(permissions)).flatMap((key) => open.find((page) => page.key === key) ?? []).slice(0, BAR_LIMIT)
+  const rank = (page: NavPage) => {
+    const at = DEFAULT_BAR.indexOf(page.key)
+    return at < 0 ? DEFAULT_BAR.length + navPages.indexOf(page) : at
+  }
+  const own = (tabBar ?? []).flatMap((key) => open.find((page) => page.key === key) ?? [])
+  const rest = open.filter((page) => !own.includes(page)).sort((a, b) => rank(a) - rank(b))
+  return [...new Set([...own, ...rest])]
+}
+
+// barPages is the member's pages of the tab bar: the first BAR_LIMIT of the
+// bar's order. The bar is always full (2026-10-16 glass v2, decision 8): a
+// page the member may no longer open, or a bar saved shorter, is filled up
+// from the default order; only a member who may open fewer pages has fewer.
+export function barPages(permissions: readonly Permission[] | undefined, tabBar?: readonly string[] | null): NavPage[] {
+  return barOrder(permissions, tabBar).slice(0, BAR_LIMIT)
 }
 
 // currentPin is the index of the bar's page the page at pathname is: the

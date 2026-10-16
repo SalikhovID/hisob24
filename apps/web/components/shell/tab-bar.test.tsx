@@ -101,7 +101,7 @@ test("an employee with a role sees the sections the role lets them view", async 
   expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Vazifalar"])
 })
 
-test("the bar holds the member's own pages in their order", async () => {
+test("the bar holds the member's own pages in their order, filled up to four from the default order", async () => {
   db.members[ALI][0].tabBar = ["purchases", "home", "money_transfers"]
   await signIn(ALI)
   setLocation("/money-transfers")
@@ -112,6 +112,7 @@ test("the bar holds the member's own pages in their order", async () => {
     ["Xaridlar", "/purchases"],
     ["Bosh sahifa", "/"],
     ["O'tkazmalar", "/money-transfers"],
+    ["Mijozlar", "/customers"],
   ])
   expect(within(bar()).getByRole("link", { name: "O'tkazmalar" })).toHaveAttribute("aria-current", "page")
   expect(lens()).toBe("2")
