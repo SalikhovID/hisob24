@@ -56,3 +56,15 @@ test("a tile is frosted glass with a glossy round icon, flat on it with no glow;
   expect(red).toHaveClass("bg-[linear-gradient(180deg,#F2847A,#CF3F37)]", "text-white")
   expect(red).not.toHaveClass("glossy-red")
 })
+
+test("the tiles share the row alike; on a wide screen they keep to 680px, as the prototype's web view", () => {
+  render(
+    <Tiles>
+      <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => {}} />
+      <Tile icon={Trash2Icon} label="O'chirish" onClick={() => {}} danger />
+    </Tiles>,
+  )
+  const tiles = screen.getByRole("group", { name: "Amallar" })
+  expect(tiles).toHaveClass("grid-cols-[repeat(var(--n),minmax(0,1fr))]", "md:max-w-[680px]")
+  expect(tiles).not.toHaveClass("md:grid-cols-[repeat(var(--n),minmax(0,10rem))]")
+})

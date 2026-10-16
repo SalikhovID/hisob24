@@ -37,7 +37,8 @@ export function DetailHead({
 }
 
 // Tiles are a record's quick actions in a row of equal squares under its
-// head; on a wide screen they keep a tile's width instead of stretching.
+// head, sharing the row alike; on a wide screen they keep to 680px, as the
+// prototype's web view.
 export function Tiles({ children, label = "Amallar", className }: { children: ReactNode; label?: string; className?: string }) {
   const count = Children.toArray(children).length
   return (
@@ -46,7 +47,7 @@ export function Tiles({ children, label = "Amallar", className }: { children: Re
       aria-label={label}
       data-slot="tiles"
       style={{ "--n": String(count) } as CSSProperties}
-      className={cn("mb-3 grid grid-cols-[repeat(var(--n),minmax(0,1fr))] gap-2 md:grid-cols-[repeat(var(--n),minmax(0,10rem))]", className)}
+      className={cn("mb-3 grid grid-cols-[repeat(var(--n),minmax(0,1fr))] gap-2 md:max-w-[680px]", className)}
     >
       {children}
     </div>
