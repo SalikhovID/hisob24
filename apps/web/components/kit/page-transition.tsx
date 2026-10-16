@@ -16,9 +16,11 @@ const settles = () => {
 const SETTLED_MS = 600
 
 // PageTransition is a page's content, moving with the steps between pages as
-// the prototype's screens do: one opaque sheet filling the main area, laid
-// out as main lays out its children, so what it covers in a move does not
-// show through it. Put in each page.tsx, not a layout: a layout stays across
+// the prototype's screens do: one sheet filling the main area, laid out as
+// main lays out its children. At rest it is see-through (the column's
+// ambient light shows); while it moves it is opaque in that light
+// (globals.css), so what it covers in a move does not show through it. Put
+// in each page.tsx, not a layout: a layout stays across
 // navigations, so it never enters or leaves. The sheet enters as page-in and
 // leaves as page-out on every page change; how it moves is the move under
 // way (lib/moves.ts), read by app/globals.css. A React without ViewTransition
@@ -30,7 +32,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
     return () => clearTimeout(settling)
   }, [])
   const sheet = (
-    <div data-slot="page" className="flex flex-1 flex-col bg-background [&>*]:shrink-0">
+    <div data-slot="page" className="flex flex-1 flex-col [&>*]:shrink-0">
       {children}
     </div>
   )

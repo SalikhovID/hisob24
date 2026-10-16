@@ -387,6 +387,23 @@ html[data-telegram] body {
 ::view-transition {
   pointer-events: none;
 }
+/* The page that moves is opaque in the ambient light, so the page it
+   covers does not show through it; at rest it lets the column's light show
+   (AppShell). Its light is the column's: a screen tall, moved back by the
+   column's padding, so it lies where the column's own does. */
+:root[data-move] [data-slot="page"] {
+  background-color: var(--ambient-base);
+  background-image: var(--ambient);
+  background-repeat: no-repeat;
+  background-size: calc(100% + 2rem) 100vh;
+  background-position: -1rem -0.5rem;
+}
+@media (min-width: 48rem) {
+  :root[data-move] [data-slot="page"] {
+    background-size: calc(100% + 3rem) 100vh;
+    background-position: -1.5rem -1.5rem;
+  }
+}
 ::view-transition-old(root) {
   display: none;
 }

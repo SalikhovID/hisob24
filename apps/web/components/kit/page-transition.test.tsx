@@ -27,3 +27,13 @@ test("a page is one sheet; once it has come, the move it came with is over a lit
   act(() => vi.advanceTimersByTime(700))
   expect(moved()).toBe("back")
 })
+
+test("at rest a page is see-through: the column's ambient light shows under it (globals.css makes it opaque while it moves)", () => {
+  const { container } = render(
+    <PageTransition>
+      <p>Sahifa</p>
+    </PageTransition>,
+  )
+
+  expect(container.querySelector("[data-slot=page]")!.className).not.toMatch(/(^|\s)bg-/)
+})
