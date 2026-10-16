@@ -100,3 +100,12 @@ test("in a group of rows with tile icons the hairline starts after the plain mar
   )
   expect(screen.getByRole("list", { name: "Sozlamalar" }).style.getPropertyValue("--inset")).toBe("56px")
 })
+
+test("a section heading is the prototype's quiet heading: 16px, not bold, the hint's grey", () => {
+  render(<SectionHeading>Umumiy holat</SectionHeading>)
+  const heading = screen.getByRole("heading", { level: 2, name: "Umumiy holat" })
+  expect(heading).toHaveClass("text-[16px]", "font-medium")
+  expect(heading).not.toHaveClass("font-semibold")
+  expect(heading.closest('[data-slot="section-heading"]')).toHaveClass("text-muted-foreground")
+  expect(heading.closest('[data-slot="section-heading"]')).not.toHaveClass("text-heading")
+})

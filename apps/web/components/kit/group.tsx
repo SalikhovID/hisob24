@@ -189,8 +189,9 @@ export function KeyValue({ label, value }: { label: ReactNode; value?: ReactNode
   )
 }
 
-// SectionHeading heads a block of a page: a heading at the left, an action
-// (a button or a link) or a hint (a count) at the right.
+// SectionHeading heads a block of a page, quietly as the prototype's (16px,
+// not bold, the hint's grey): a heading at the left, an action (a button or
+// a link) or a hint (a count) at the right.
 export function SectionHeading({
   children,
   action,
@@ -203,8 +204,8 @@ export function SectionHeading({
   className?: string
 }) {
   return (
-    <div data-slot="section-heading" className={cn("flex items-baseline justify-between gap-3 px-1 pb-2 text-heading", className)}>
-      <h2 className="min-w-0 truncate text-base font-semibold">{children}</h2>
+    <div data-slot="section-heading" className={cn("flex items-baseline justify-between gap-3 px-1 pb-2 text-muted-foreground", className)}>
+      <h2 className="min-w-0 truncate text-[16px] font-medium">{children}</h2>
       {action && (
         <span className="shrink-0 text-[16px] font-medium text-primary [&_a]:text-primary [&_button]:min-h-8 [&_button]:text-primary">{action}</span>
       )}
