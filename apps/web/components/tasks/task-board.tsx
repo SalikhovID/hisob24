@@ -130,7 +130,7 @@ export function TaskBoard({
       }}
     >
       {/* The columns scroll sideways, out to the page's edges. */}
-      <section aria-label="Kanban" className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 pt-0.5 pb-2 scrollbar-hide md:-mx-6 md:scroll-px-6 md:px-6">
+      <section aria-label="Kanban" className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 pt-0.5 pb-2 scrollbar-hide md:mx-0 md:scroll-px-0 md:px-0">
         <div className="flex items-start gap-2.5">
           {stages.map((stage) => (
             <StageColumn
@@ -217,7 +217,7 @@ function StageColumn({
       data-slot="stage-column"
       className={cn(
         "flex shrink-0 snap-start flex-col rounded-[28px] bg-(--col) p-1.5 shadow-(--rim) transition-[background-color,box-shadow] duration-150",
-        folded ? "w-[58px]" : "w-[84%] md:w-72",
+        folded ? "w-[58px]" : "w-[84%] md:w-[300px]",
         isOver && "bg-primary-soft ring-2 ring-primary ring-inset",
       )}
     >

@@ -250,3 +250,17 @@ test("the board is the prototype's glass: a column a faint glass with a white ri
   expect(card).not.toHaveClass("bg-card")
   expect(ghostClass.split(" ")).toEqual(expect.arrayContaining(["rounded-[20px]", "bg-sheet-cell", "backdrop-blur-[20px]", "shadow-[var(--rim),0_22px_46px_rgba(60,40,120,.22)]"]))
 })
+
+test("on a wide screen the board stays in the page's column, its columns 300px wide, as the prototype's web view", async () => {
+  await signIn(ALI)
+  seedTasks()
+  setLocation("/tasks")
+
+  renderWithProviders(<TasksPage />)
+
+  const kanban = await board()
+  await waitFor(() => expect(cards("Yangi")).toHaveLength(2))
+  expect(kanban).toHaveClass("md:mx-0", "md:px-0", "md:scroll-px-0")
+  expect(kanban).not.toHaveClass("md:-mx-6")
+  expect(column("Yangi")).toHaveClass("md:w-[300px]")
+})
