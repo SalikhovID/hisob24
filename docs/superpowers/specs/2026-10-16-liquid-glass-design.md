@@ -1,6 +1,6 @@
 # User app'ning «liquid glass» ko'rinishi — dizayn
 
-Sana: 2026-10-16. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), amalga oshirilmoqda. Reja: `docs/superpowers/plans/2026-10-16-liquid-glass.md`. User app (`apps/web`) uchun; admin panel o'zgarmaydi.
+Sana: 2026-10-16. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), 1–4-bosqichlar amalga oshirilgan (2026-10-16, pastda «Amalga oshirishda belgilangan qarorlar»). Reja: `docs/superpowers/plans/2026-10-16-liquid-glass.md`. User app (`apps/web`) uchun; admin panel o'zgarmaydi.
 
 ## Kontekst
 
@@ -189,3 +189,21 @@ Ish `dev` branch'ida. Har bosqich: TDD (RED → GREEN → commit), oxirida `make
 - `make lint`, `make test`, `make e2e` toza (admin e2e ham).
 - Vizual: 375px @2x va 1280px skrinshotlar prototip bilan yonma-yon (yorug', tungi, soxta Telegram to'liq ekran); 320 / 360 / 375 / 768 / 1280px enlarda yon scroll yo'q.
 - Lokal haqiqiy stack: kirish, bosh sahifa, mijoz / vazifa / xarid varaqlari, kanban, tungi rejim. Telegram'da haqiqiy qurilma tekshiruvi foydalanuvchiniki.
+
+## Amalga oshirishda belgilangan qarorlar
+
+1. **Varaq rangi noshaffof.** Prototipning `--sheet-bg` i shaffof (yorug' `rgba(244,245,247,.88)`, tungi `rgba(30,26,44,.84)`) va blur ostida. Bizda varaq sarlavhasi (sticky) va asosiy tugma paneli ham varaq rangini kiyadi: shaffof rang ular ostida ikki marta chizilib, oqroq tasma bo'lib ko'rinardi. Sarlavhani fonsiz qilib `backdrop-filter` berish ham yordam bermadi: blur ham varaq rangini qayta chizadi. Shuning uchun `--sheet` skrim ustidagi effektiv rangda noshaffof: yorug' `#EFF0F2`, tungi `#1C1829`; varaqda `backdrop-filter` yo'q. Shaffoflik skrim va 40px blur ostida deyarli ko'rinmas edi.
+2. **To'qnashuvchi classlar bir-birini istisno qiladi.** Tailwind'ning o'z classlari bilan maxsus utility'lar (`glass-chip`, `glossy`, `surface`) orasida tartib kafolatlanmagan: chip (`glass-chip` yoki yoqilgan holat), tanlov chip'i (`bg-muted` yoki `glossy`), «Sozlama» plitkasi (`surface` yoki joriy sahifaning `bg-primary-soft`) har holatda faqat bittasini oladi.
+3. **`Button`:** `default` → `glossy`, `secondary` / `outline` → `glass-chip`, `destructive` → `glossy-red`; `mini` o'lchami endi o'zi fon bermaydi (avval `default` + `mini` och kulrang ustida oq matn edi), `add-option-form` ning «Qo'shish» tugmasi `secondary`.
+4. **`gloss` utility** — kichik rangli ikonkaning yaltirashi (`TileIcon`, stat-karta belgisi): ichki oq hoshiya, soya, tepadan tushgan yorug'lik.
+5. **Avatar `seed` prop'i olib tashlandi** (rang tanlamaydi; 24 chaqiruv joyi). `lib/initials.ts` `tone` eski `components/avatar.tsx` uchun qoldi.
+6. **Sinab bo'lmaydigan holatlar konstantada:** sudralayotgan kanban kartasi (`ghostClass`, `task-card.tsx`) va ko'tarilgan qator (`liftedClass`, `sortable-list.tsx`) — ular faqat barmoq bilan sudrashda chiziladi, testlar konstantani tekshiradi.
+7. **Telegram ranglari** (`chromeColors`, `lib/telegram.ts`): yorug' sarlavha `#F7F8F9`, fon `#F1F2F4`, pastki panel `#E5E7EB` (ambient'ning tepasi, asosi, pasti); tungi uchalasi `#15121E`. Versiya `isVersionAtLeast` bilan: hex sarlavha 6.9, fon 6.1, pastki panel 7.10.
+8. **Tab-bar qatlamlari** `globals.css` da `[data-slot="tab-bar"]` va `[data-slot="tab-lens"]` qoidalari; eski `--glass`, `--color-glass`, `--shadow-bar` olib tashlandi.
+9. **Tepadagi fade** — `AppShell` dagi `data-slot="top-fade"`: `main.scrollTop > 4` da `data-on`; balandligi `calc(var(--safe-top) + min(var(--safe-top), 18px))`, `z-index: 10`.
+10. **Varaq chegarasi** avval xato edi: to'liq ekranda baland varaq tepadan 10px da boshlanib, yopish tugmasi Telegram tugmalari tagida qolardi; endi tepa `≥ 93px` (e2e).
+11. **Talab o'zgargani uchun yangilangan testlar:** `globals.test.ts` (palitralar, Telegram rang xaritasi yo'q, varaq rangi); `transitions.spec.ts` (varaq faqat surilishda noshaffof); `miniapp.spec.ts` (ilova ranglari, Telegram sarlavha ranglari, tab-bar fonsiz + `::before`, qobiq va `main` padding'i, fade, varaq tepasi, panel `rgb(100, 83, 211)`); `logo.spec.ts` va `login.spec.ts` (panel gradienti, logotip `rgb(14, 15, 18)`); `avatar.test.tsx` (kulrang).
+12. **Tekshiruv:** web unit 1034 → 1121 test; e2e web 144, admin 46; mutatsiyalar (pastki panel rangi 7.0 dan, fade 4px da, doim yorug' ranglar, `onScroll` yo'q, Telegram ranglari yo'q) testlarda yiqildi; 320 / 360 / 375 / 768 / 1280px enlarda 42 sahifada yon scroll yo'q. 1-bosqichning birinchi to'liq e2e yurishida telefon proyektida 2 ta test (`shell.spec:92`, `settings.spec:47`) havola bosilgach 5 soniyada sahifa ochilmagani uchun yiqildi; alohida va to'liq qayta yurishda o'tdi (yuklama ostidagi dev server kompilyatsiyasi deb hisoblandi).
+13. **Skrinshotlar** `docs/design/screens-v2/` da yangilandi (58 ta): `12-menu-order` o'rniga `12-menu-sheet` («Sozlama» varag'i), yangi `16-miniapp-scrolled` (Telegram tugmalari ostidagi fade).
+14. **Production build** (`next build`, vaqtinchalik dist papka) CSS'ida hamma shisha qoidalari bor: `gloss` ning `&::after` i `.gloss:after` bo'lib yassilangan, tab-bar qatlamlarining `mask` va `-webkit-mask-composite`, fade, surilayotgan varaq, `-webkit-backdrop-filter`.
+15. **Haqiqiy stack smoke** (`hisob24` dan nusxa olingan vaqtinchalik DB, API :8090, user app :3020): «Smoke Behi» egasi SMS kod bilan kirdi; bosh sahifa, mijozlar (bo'sh holat, varaqda mijoz qo'shildi, ro'yxat, mijoz sahifasi), vazifalar (bo'sh kanban), tungi rejim, telefon va desktop enida; sahifa xatosi yo'q. Keyin DB o'chirildi, lokal `hisob24` ga tegilmadi.
