@@ -185,3 +185,8 @@ test("the brand's fill is the glossy black in the light, the lavender in the nig
     "--mark-shadow: 0 12px 30px rgba(106, 90, 214, 0.32), inset 0 0 0 1.5px rgba(242, 208, 138, 0.75), inset 0 2px 0 rgba(255, 255, 255, 0.4)",
   )
 })
+
+test("on a page's own background the logo is the light glass's ink, near black; white in the night", () => {
+  expect(block(":root {")).toContain("--brand: #0E0F12")
+  expect(block(".dark {")).toContain("--brand: #ffffff")
+})
