@@ -11,15 +11,19 @@ const block = (selector: string) => {
   return css.slice(start, css.indexOf("}", start))
 }
 
-test("the light theme wears the prototype's colors", () => {
+test("the light theme is the prototype's light glass: grey-white, white cards, a black accent", () => {
   const root = block(":root {")
-  expect(root).toContain("--background: #EDEEF2")
-  expect(root).toContain("--card: #ffffff")
-  expect(root).toContain("--primary: #117A68")
-  expect(root).toContain("--muted-foreground: #636368")
-  expect(root).toContain("--press: #E2E3E8")
-  expect(root).toContain("--sheet: #F2F2F7")
-  expect(root).toContain("--positive: #1A7F37")
+  expect(root).toContain("--background: #F1F2F4")
+  expect(root).toContain("--foreground: #0E0F12")
+  expect(root).toContain("--card: rgba(255, 255, 255, 0.86)")
+  expect(root).toContain("--primary: #111214")
+  expect(root).toContain("--primary-soft: rgba(17, 18, 20, 0.07)")
+  expect(root).toContain("--muted-foreground: #6B6E76")
+  expect(root).toContain("--heading: #2A2C31")
+  expect(root).toContain("--press: rgba(0, 0, 0, 0.05)")
+  expect(root).toContain("--sheet: rgba(244, 245, 247, 0.88)")
+  expect(root).toContain("--positive: #23804E")
+  expect(root).toContain("--destructive: #CF3F37")
 })
 
 test("the dark theme wears the prototype's colors", () => {
