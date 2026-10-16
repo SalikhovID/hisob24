@@ -185,9 +185,8 @@ test("a switch that is on has a white thumb in the light, a black one on the dar
   expect(block(".dark {")).toContain("--switch-knob-on: #0E0F12")
 })
 
-test("the gold of an amount's unit is the hint's grey in the light, a warm gold in the night", () => {
-  expect(block(":root {")).toContain("--gold: #6B6E76")
-  expect(block(".dark {")).toContain("--gold: #E4C27C")
+test("an amount's unit wears the hint's grey: there is no gold of its own any more", () => {
+  expect(css).not.toContain("--gold")
 })
 
 test("the banner is a white card in the light, a dark grey one in the dark", () => {

@@ -16,7 +16,7 @@ export function splitAmount(value: string): { whole: string; decimals: string } 
 }
 
 // Amount is the prototype's large figure: the whole part big, the decimals
-// smaller, the unit in gold; the whole shrinks to fit its box
+// smaller, the unit in the hint's grey; the whole shrinks to fit its box
 // (down to half) when it is too long. size "input" is the keypad's, with a
 // caret after the digits.
 export function Amount({
@@ -90,7 +90,7 @@ export function Amount({
         </span>
       )}
       {caret && <span aria-hidden="true" className="mx-0.5 inline-block h-[46px] w-[2.5px] self-center rounded-sm bg-primary motion-safe:animate-[blink_1s_steps(1)_infinite]" />}
-      <span data-slot="amount-unit" className="ml-[calc(9px*var(--k))] font-semibold tracking-[-0.01em] text-(--gold)" style={{ fontSize: "calc(32px * var(--k))" }}>
+      <span data-slot="amount-unit" className="ml-[calc(9px*var(--k))] font-medium tracking-[-0.01em] text-muted-foreground" style={{ fontSize: "calc(26px * var(--k))" }}>
         {" "}
         {unit}
       </span>

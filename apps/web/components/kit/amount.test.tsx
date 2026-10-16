@@ -89,9 +89,10 @@ test("the figure is fitted again when its box grows or shrinks in width; a chang
   vi.unstubAllGlobals()
 })
 
-test("an amount's unit is in the prototype's gold", () => {
-  const { container } = render(<Amount value="10" unit="so'm" />)
-  const unit = container.querySelector('[data-slot="amount-unit"]')
-  expect(unit).toHaveClass("text-(--gold)")
-  expect(unit).not.toHaveClass("text-muted-foreground")
+test("an amount's unit is the hint's grey, a little smaller and lighter than the figure, as the prototype's", () => {
+  const { container } = render(<Amount value="300000" unit="so'm" />)
+  const unit = container.querySelector('[data-slot="amount-unit"]') as HTMLElement
+  expect(unit).toHaveClass("text-muted-foreground", "font-medium")
+  expect(unit).not.toHaveClass("text-(--gold)")
+  expect(unit.style.fontSize).toBe("calc(26px * var(--k))")
 })

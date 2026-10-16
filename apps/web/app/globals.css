@@ -163,8 +163,6 @@
        accent's other end: white on the black track, black on the white). */
     --switch-off: rgba(120, 108, 176, 0.18);
     --switch-knob-on: #ffffff;
-    /* An amount's unit. */
-    --gold: #6B6E76;
     /* The home screen banner: its card, its ink, the line under, the close
        button's glass. */
     --ban: linear-gradient(135deg, #FFFFFF 0%, #EDEFF2 100%);
@@ -272,7 +270,6 @@
     --seg-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     --switch-off: rgba(255, 255, 255, 0.07);
     --switch-knob-on: #0E0F12;
-    --gold: #E4C27C;
     --ban: linear-gradient(135deg, #26282D 0%, #16181B 100%);
     --ban-ink: #F2F3F5;
     --ban-sub: #A9ACB3;
