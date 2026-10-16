@@ -126,6 +126,9 @@
     --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 60%);
     --rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 0 #ffffff;
     --lift: 0 1px 2px rgba(20, 22, 30, 0.04), 0 12px 30px rgba(20, 22, 30, 0.08);
+    /* The accent as a glossy gradient with a glow (glossy). */
+    --btn: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%);
+    --btn-glow: 0 8px 20px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -188,6 +191,8 @@
     --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 58%);
     --rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16);
     --lift: 0 10px 30px rgba(0, 0, 0, 0.32);
+    --btn: linear-gradient(180deg, #C2B8FF 0%, #9585F5 100%);
+    --btn-glow: 0 8px 24px rgba(149, 133, 245, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -265,6 +270,16 @@
   box-shadow: var(--rim), var(--lift);
   -webkit-backdrop-filter: blur(18px) saturate(1.6);
   backdrop-filter: blur(18px) saturate(1.6);
+}
+
+/* glossy is the prototype's capsule fill of an accent control (the main
+   button, the plus, a tile's icon, a chosen option, a picked day): the
+   accent as a gradient with a glow under it, the accent's ink on it. */
+@utility glossy {
+  background-color: var(--primary);
+  background-image: var(--btn);
+  box-shadow: var(--btn-glow);
+  color: var(--primary-foreground);
 }
 
 /* Inside Telegram (TelegramSync sets data-telegram) the app keeps its own

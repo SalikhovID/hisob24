@@ -65,3 +65,12 @@ test("a surface is the prototype's frosted glass: the cell, a sheen over its top
   expect(block(":root {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 0 #ffffff")
   expect(block(".dark {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16)")
 })
+
+test("glossy is the prototype's capsule fill of an accent control: the accent as a gradient with a glow", () => {
+  const glossy = block("@utility glossy {")
+  expect(glossy).toContain("background-image: var(--btn)")
+  expect(glossy).toContain("box-shadow: var(--btn-glow)")
+  expect(glossy).toContain("color: var(--primary-foreground)")
+  expect(block(":root {")).toContain("--btn: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%)")
+  expect(block(".dark {")).toContain("--btn: linear-gradient(180deg, #C2B8FF 0%, #9585F5 100%)")
+})
