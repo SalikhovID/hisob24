@@ -135,7 +135,7 @@ function Calendar({
           </Chip>
         ))}
       </Chips>
-      <div data-slot="calendar" className="rounded-group bg-sheet-cell px-3 pt-2.5 pb-3">
+      <div data-slot="calendar" className="rounded-group surface px-3 pt-2.5 pb-3">
         <div className="flex items-center justify-between px-0.5 pb-2">
           <b className="text-base font-semibold">
             {MONTHS[month - 1]} {year}
@@ -169,7 +169,7 @@ function Calendar({
                 className={cn(
                   "size-[42px] justify-self-center rounded-full text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                   day === now && "font-bold text-primary",
-                  day === picked && "bg-primary font-semibold text-primary-foreground",
+                  day === picked && "glossy font-semibold",
                 )}
               >
                 {Number(day.slice(8))}

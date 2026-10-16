@@ -88,3 +88,13 @@ test("a date row says the day (and that it is today); a date-time row is the day
   await userEvent.click(screen.getByRole("button", { name: "Saqlash" }))
   expect(submit).toHaveBeenCalledWith({ deadline: "2026-10-13", at: "2026-10-15T18:45" }, expect.anything())
 })
+
+test("the calendar is frosted glass; the picked day is the glossy accent", async () => {
+  render(<DateSheet open onOpenChange={() => {}} title="Muddat" value="2026-10-20" onChange={() => {}} />)
+  const dialog = await screen.findByRole("dialog", { name: "Muddat" })
+  expect(dialog.querySelector('[data-slot="calendar"]')).toHaveClass("surface")
+  expect(dialog.querySelector('[data-slot="calendar"]')).not.toHaveClass("bg-sheet-cell")
+  const picked = within(dialog).getByRole("button", { name: "20.10.2026" })
+  expect(picked).toHaveClass("glossy")
+  expect(picked).not.toHaveClass("bg-primary")
+})
