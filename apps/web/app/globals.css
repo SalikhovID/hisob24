@@ -417,6 +417,28 @@ html[data-telegram] body {
   overscroll-behavior: none;
 }
 
+/* The top fade (AppShell) stands over the top of a scrolled page, under what
+   lies over the screen (Telegram's controls and the status bar in full
+   screen): as tall as that and a little more, none where nothing does; the
+   page's own fade falling to nothing under a blur, as the prototype's head. */
+[data-slot="top-fade"] {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10;
+  height: calc(var(--safe-top) + min(var(--safe-top), 18px));
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--fade) 40%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.6);
+  backdrop-filter: blur(12px) saturate(1.6);
+  -webkit-mask: linear-gradient(#000 55%, transparent);
+  mask: linear-gradient(#000 55%, transparent);
+  opacity: 0;
+  transition: opacity 250ms;
+}
+[data-slot="top-fade"][data-on] {
+  opacity: 1;
+}
+
 /* The tab bar is the prototype's clear liquid glass (shell/tab-bar.tsx): no
    fill of its own, a thin frost with a specular rim under its buttons and,
    over the frost, a thick edge that refracts what passes under it; its names

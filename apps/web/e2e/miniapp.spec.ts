@@ -110,6 +110,14 @@ test.describe("a linked user", () => {
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
     await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "101px" : "117px")
     expect((await homeHead(page).boundingBox())?.y).toBeGreaterThanOrEqual(93)
+    // What scrolls up passes under the controls into a fade as tall as they
+    // are and 18px more, there once the page is scrolled.
+    const fade = page.locator('[data-slot="top-fade"]')
+    await expect(fade).toHaveCSS("height", "111px")
+    await expect(fade).not.toHaveAttribute("data-on")
+    await page.getByRole("main").evaluate((main) => main.scrollTo({ top: 60 }))
+    await expect(fade).toHaveAttribute("data-on", "true")
+    await page.getByRole("main").evaluate((main) => main.scrollTo({ top: 0 }))
     await fits(page)
     // Closing the Mini App is the way out: the profile offers no sign-out,
     // and the chat sets the theme.
@@ -245,5 +253,7 @@ test.describe("a desktop Telegram", () => {
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
     await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "8px" : "24px")
     expect((await homeHead(page).boundingBox())?.y).toBeLessThan(93)
+    // Nothing lies over the page's top: no fade.
+    await expect(page.locator('[data-slot="top-fade"]')).toHaveCSS("height", "0px")
   })
 })

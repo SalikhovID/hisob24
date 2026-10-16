@@ -232,3 +232,13 @@ test("the tab bar's glass is two layers of its own: a thin frost with a specular
   expect(block(".dark {")).toContain("--tb-bg: rgba(255, 255, 255, 0.035)")
   expect(block(".dark {")).toContain("--tb-halo: rgba(0, 0, 0, 0.55)")
 })
+
+test("the top fade is as tall as what lies over the screen and a little more (none where nothing does), the page's fade falling to nothing under a blur", () => {
+  const fade = block('[data-slot="top-fade"] {')
+  expect(fade).toContain("height: calc(var(--safe-top) + min(var(--safe-top), 18px))")
+  expect(fade).toContain("background: linear-gradient(to bottom, var(--fade) 40%, transparent)")
+  expect(fade).toContain("backdrop-filter: blur(12px) saturate(1.6)")
+  expect(fade).toContain("mask: linear-gradient(#000 55%, transparent)")
+  expect(fade).toContain("opacity: 0")
+  expect(block('[data-slot="top-fade"][data-on] {')).toContain("opacity: 1")
+})

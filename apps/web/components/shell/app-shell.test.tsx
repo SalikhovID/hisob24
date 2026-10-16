@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { ALI, VALI, ZARINA } from "@/mocks/data"
@@ -121,4 +121,25 @@ test("the page runs under what lies over the top of the screen (Telegram's contr
   expect(container.querySelector('[data-slot="app-shell"]')).not.toHaveClass("pt-safe")
   expect(screen.getByRole("main")).toHaveClass("pt-safe-2", "md:pt-safe-6")
   expect(screen.getByRole("main")).not.toHaveClass("pt-2")
+})
+
+test("once the page is scrolled past a few pixels a soft fade stands at the top, under what lies over the screen; back at the top it goes", async () => {
+  await signIn(ALI)
+  const { container } = renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  const fade = container.querySelector('[data-slot="top-fade"]')!
+  expect(fade).toHaveAttribute("aria-hidden", "true")
+  expect(fade).not.toHaveAttribute("data-on")
+  const main = screen.getByRole("main")
+  const scrollTo = (top: number) => {
+    main.scrollTop = top
+    fireEvent.scroll(main)
+  }
+  scrollTo(4)
+  expect(fade).not.toHaveAttribute("data-on")
+  scrollTo(5)
+  expect(fade).toHaveAttribute("data-on")
+  scrollTo(0)
+  expect(fade).not.toHaveAttribute("data-on")
 })
