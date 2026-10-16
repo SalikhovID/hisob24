@@ -33,10 +33,11 @@ export function BalanceCard({ balance, byCurrency, children }: { balance: string
 }
 
 // BalanceChip is one of the totals under a balance (the supplier's
-// purchases and payments): its name, and the amount in bold under it.
+// purchases and payments), a small card of frosted glass: its name, and the
+// amount in bold under it.
 export function BalanceChip({ label, value }: { label: string; value: string }) {
   return (
-    <span data-slot="balance-chip" className="flex min-w-[9.5rem] flex-col items-center rounded-[14px] bg-card px-3.5 py-2 text-sm text-muted-foreground">
+    <span data-slot="balance-chip" className="flex min-w-[9.5rem] flex-col items-center rounded-[14px] surface px-3.5 py-2 text-sm text-muted-foreground">
       {label}{" "}
       <b className="text-base font-semibold text-foreground tabular-nums">{value}</b>
     </span>

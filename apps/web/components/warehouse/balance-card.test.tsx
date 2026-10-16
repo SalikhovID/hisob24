@@ -36,3 +36,10 @@ test("what of it is in another currency is said under it; the totals stand besid
   const chip = within(screen.getByRole("region", { name: "Balans" })).getByText("Jami xaridlar").closest("[data-slot=balance-chip]") as HTMLElement
   expect(read(chip)).toBe("Jami xaridlar 20 001,50 so'm")
 })
+
+test("a total's chip is a small card of frosted glass", () => {
+  renderWithProviders(<BalanceChip label="Jami xaridlar" value="12 000 so'm" />)
+  const chip = screen.getByText("Jami xaridlar")
+  expect(chip).toHaveClass("surface", "rounded-[14px]")
+  expect(chip).not.toHaveClass("bg-card")
+})
