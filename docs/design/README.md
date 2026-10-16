@@ -2,7 +2,7 @@
 
 Dizayner uchun. Holat: 2026-10-08, commit `488eaee`.
 
-> **Eskirgan (2026-10-14).** User app shu holat asosida chizilgan prototip bo'yicha Telegram Wallet (iOS guruhli ro'yxat) uslubiga o'tkazildi (`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`): suzuvchi tab-bar va profil sahifasi, guruhli ro'yxatlar hamma enda, varaq-dialoglar, dashboard, sahifa o'tishlari; 2026-10-16 dan ranglari va yuzalari «liquid glass» (`docs/superpowers/specs/2026-10-16-liquid-glass-design.md`). Hozirgi ko'rinish — pastdagi [«Hozirgi ko'rinish»](#hozirgi-korinish-2026-10-16) bo'limi va [`screens-v2/`](screens-v2/). Bu hujjatdagi 3, 4, 6 va 7-bo'limlar va [`screens/`](screens/) dagi skrinshotlar 2026-10-13 gacha bo'lgan ko'rinishni tasvirlaydi (tarix uchun qoldirildi); 1, 2, 5, 8 va 9-bo'limlardagi qoidalar (bo'limlar, ruxsatlar, oqimlar, maydonlar, Telegram) amalda, ekran tafsilotlari esa yangi ko'rinishda.
+> **Eskirgan (2026-10-14).** User app shu holat asosida chizilgan prototip bo'yicha Telegram Wallet (iOS guruhli ro'yxat) uslubiga o'tkazildi (`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`): suzuvchi tab-bar va profil sahifasi, guruhli ro'yxatlar hamma enda, varaq-dialoglar, dashboard, sahifa o'tishlari; 2026-10-16 dan ranglari va yuzalari «liquid glass» (`docs/superpowers/specs/2026-10-16-liquid-glass-design.md`), keyin «Qorong'i shisha», konturli belgilar, «Sozlamalar» sahifasi va web ko'rinishi (`docs/superpowers/specs/2026-10-16-glass-v2-design.md`). Hozirgi ko'rinish — pastdagi [«Hozirgi ko'rinish»](#hozirgi-korinish-2026-10-16) bo'limi va [`screens-v2/`](screens-v2/). Bu hujjatdagi 3, 4, 6 va 7-bo'limlar va [`screens/`](screens/) dagi skrinshotlar 2026-10-13 gacha bo'lgan ko'rinishni tasvirlaydi (tarix uchun qoldirildi); 1, 2, 5, 8 va 9-bo'limlardagi qoidalar (bo'limlar, ruxsatlar, oqimlar, maydonlar, Telegram) amalda, ekran tafsilotlari esa yangi ko'rinishda.
 
 Bu hujjat Hisob24 user app'i va Telegram botlari qanday ishlashini tasvirlaydi. User app brauzerda `app.hisob24.uz` da va Telegram ichida Mini App bo'lib ochiladi. Hujjatda kim foydalanishi, qanday ekranlar borligi, ular qanday bog'langani, har ekranda nima turgani va hozir qanday ko'rinishi bor. Admin panel (platforma adminlari uchun) bu hujjatga kirmaydi.
 
@@ -36,24 +36,28 @@ Interfeys matnlari koddagidek, aynan keltirilgan.
 
 ## Hozirgi ko'rinish (2026-10-16)
 
-User app prototipning 2026-10-16 versiyasi («liquid glass») bo'yicha: [`screens-v2/`](screens-v2/), jami 58 ta. Qoidalar va qarorlar: `docs/superpowers/specs/2026-10-13-mini-app-ui-design.md` (sahifalar va naqshlar) va `docs/superpowers/specs/2026-10-16-liquid-glass-design.md` (ranglar, shisha yuzalar, tab-bar, to'liq ekran).
+User app prototipning 2026-10-16 dagi ikkinchi versiyasi (`1792163353`) bo'yicha: [`screens-v2/`](screens-v2/), jami 68 ta. Qoidalar va qarorlar: `docs/superpowers/specs/2026-10-13-mini-app-ui-design.md` (sahifalar va naqshlar), `docs/superpowers/specs/2026-10-16-liquid-glass-design.md` (shisha yuzalar, to'liq ekran) va `docs/superpowers/specs/2026-10-16-glass-v2-design.md` («Qorong'i shisha», konturli belgilar, tab-bar v2, «Sozlamalar» va «Pastki panel» sahifalari, web ko'rinishi).
 
 - Mock ma'lumotlar bilan, «Olma Savdo» egasi (Ali Valiyev) ko'zi bilan; ikki lokatsiya («Asosiy», «Chilonzor»), xaridlar, sotuvlar, kassa hujjatlari, «Sotuvchi» roli.
-- Telefon: 375×812 pt, @2x. Keng ekran: 1280×800 px, @1x. Uzun sahifalar to'liq bo'yi bilan.
-- «Yorug' shisha» mavzusida (kulrang-oq fon, oq kartalar, qora urg'u); «Tungi shisha» (lavanda) va Telegram Mini App (to'liq ekran; Telegram'da ham ilovaning o'z ranglari) alohida ko'rsatilgan.
+- Telefon: 375×812 pt, @2x. Keng ekran: 1280×800 px, @1x (web ko'rinishi: suzuvchi sidebar, tepa panel, 1120px ustun); `*-wide` — 1600×1000 px, ustun o'rtada. Uzun sahifalar to'liq bo'yi bilan.
+- «Yorug' shisha» mavzusida (kulrang-oq fon, oq kartalar, qora urg'u); «Qorong'i shisha» (deyarli qora fon, oq urg'u) va Telegram Mini App (to'liq ekran; Telegram'da ham ilovaning o'z ranglari) alohida ko'rsatilgan.
 
 | Ekran | Telefon | Keng ekran |
 |---|---|---|
 | Kirish (`/login`) | [01-login-phone](screens-v2/01-login-phone.png) | [01-login-desktop](screens-v2/01-login-desktop.png) |
-| Bosh sahifa (`/`) | [10-home-phone](screens-v2/10-home-phone.png) | [10-home-desktop](screens-v2/10-home-desktop.png) |
+| Kirish, «Qorong'i shisha» (oq brend paneli) | [02-login-dark-phone](screens-v2/02-login-dark-phone.png) | [02-login-dark-desktop](screens-v2/02-login-dark-desktop.png) |
+| Bosh sahifa (`/`) | [10-home-phone](screens-v2/10-home-phone.png) | [10-home-desktop](screens-v2/10-home-desktop.png), [10-home-wide](screens-v2/10-home-wide.png) |
 | Profil (`/profile`) | [11-profile-phone](screens-v2/11-profile-phone.png) | [11-profile-desktop](screens-v2/11-profile-desktop.png) |
-| «Sozlama» varag'i (pastki panelning 5-tugmasi) | [12-menu-sheet-phone](screens-v2/12-menu-sheet-phone.png) | — |
-| Bosh sahifa, «Tungi shisha» | [13-home-dark-phone](screens-v2/13-home-dark-phone.png) | [13-home-dark-desktop](screens-v2/13-home-dark-desktop.png) |
+| «Sozlamalar» (pastki panelning 5-tugmasi: hamma sahifa, «Pastki panelni sozlash», sozlamalar) | [12-settings-menu-phone](screens-v2/12-settings-menu-phone.png) | — |
+| Bosh sahifa, «Qorong'i shisha» | [13-home-dark-phone](screens-v2/13-home-dark-phone.png) | [13-home-dark-desktop](screens-v2/13-home-dark-desktop.png) |
 | Mini App: bosh sahifa (Telegram'ning tungi rejimi, to'liq ekran, «Bosh ekranga qo'shing») | [14-miniapp-home-phone](screens-v2/14-miniapp-home-phone.png) | — |
 | Mini App: mijoz sahifasi | [15-miniapp-customer-phone](screens-v2/15-miniapp-customer-phone.png) | — |
 | Mini App: scroll qilingan sahifa (Telegram tugmalari ostidagi fade) | [16-miniapp-scrolled-phone](screens-v2/16-miniapp-scrolled-phone.png) | — |
-| Mijozlar (`/customers`) | [20-customers-phone](screens-v2/20-customers-phone.png) | [20-customers-desktop](screens-v2/20-customers-desktop.png) |
-| Mijoz qo'shish (varaq) | [21-customer-sheet-phone](screens-v2/21-customer-sheet-phone.png) | — |
+| «Pastki panel» (`/settings/tab-bar`: panel ko'rinishi, ✓ / +, «Standart holat») | [17-tab-bar-editor-phone](screens-v2/17-tab-bar-editor-phone.png) | — |
+| Sozlamalar, «Qorong'i shisha» | [18-settings-dark-phone](screens-v2/18-settings-dark-phone.png) | [18-settings-dark-desktop](screens-v2/18-settings-dark-desktop.png) |
+| Mijoz sahifasi, «Qorong'i shisha» | [19-customer-page-dark-phone](screens-v2/19-customer-page-dark-phone.png) | [19-customer-page-dark-desktop](screens-v2/19-customer-page-dark-desktop.png) |
+| Mijozlar (`/customers`) | [20-customers-phone](screens-v2/20-customers-phone.png) | [20-customers-desktop](screens-v2/20-customers-desktop.png), [20-customers-wide](screens-v2/20-customers-wide.png) |
+| Mijoz qo'shish (varaq; keng ekranda o'rtadagi dialog) | [21-customer-sheet-phone](screens-v2/21-customer-sheet-phone.png) | [21-customer-dialog-wide](screens-v2/21-customer-dialog-wide.png) |
 | Mijoz sahifasi | [22-customer-page-phone](screens-v2/22-customer-page-phone.png) | [22-customer-page-desktop](screens-v2/22-customer-page-desktop.png) |
 | O'chirish savoli | [23-delete-alert-phone](screens-v2/23-delete-alert-phone.png) | — |
 | Vazifalar: kanban | [30-tasks-kanban-phone](screens-v2/30-tasks-kanban-phone.png) | [30-tasks-kanban-desktop](screens-v2/30-tasks-kanban-desktop.png) |
