@@ -43,3 +43,13 @@ test("a restricted employee with one location to work in sees no switch, though 
   await waitFor(() => expect(queryClient.isFetching()).toBe(0))
   expect(screen.queryByRole("button", { name: /^Lokatsiya/ })).not.toBeInTheDocument()
 })
+
+test("the pill is the prototype's frosted glass", async () => {
+  addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  renderWithProviders(<LocationSwitcher />)
+
+  const pill = await screen.findByRole("button", { name: "Lokatsiya: Asosiy" })
+  expect(pill).toHaveClass("surface", "rounded-full")
+  expect(pill).not.toHaveClass("bg-card")
+})

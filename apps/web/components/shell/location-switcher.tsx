@@ -25,7 +25,7 @@ export function LocationSwitcher({ className }: { className?: string }) {
         onClick={() => setOpen(true)}
         data-slot="location-pill"
         className={cn(
-          "inline-flex h-10 max-w-full shrink-0 items-center gap-1.5 rounded-full bg-card pr-3.5 pl-3 text-md font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "inline-flex h-10 max-w-full shrink-0 items-center gap-1.5 rounded-full surface pr-3.5 pl-3 text-md font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
           className,
         )}
       >
