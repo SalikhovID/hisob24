@@ -185,12 +185,26 @@ test("the gold of an amount's unit is the hint's grey in the light, a warm gold 
   expect(block(".dark {")).toContain("--gold: #E4C27C")
 })
 
-test("the banner is a white card in the light, violet to gold in the night", () => {
+test("the banner is a white card in the light, a dark grey one in the dark", () => {
   expect(block(":root {")).toContain("--ban: linear-gradient(135deg, #FFFFFF 0%, #EDEFF2 100%)")
   expect(block(":root {")).toContain("--ban-ink: #0E0F12")
   expect(block(":root {")).toContain("--ban-sub: #4A4D55")
-  expect(block(".dark {")).toContain("--ban: linear-gradient(135deg, #3B2F52 0%, #2D2A4A 55%, #4A3B22 100%)")
-  expect(block(".dark {")).toContain("--ban-sub: #E4C27C")
+  expect(block(".dark {")).toContain("--ban: linear-gradient(135deg, #26282D 0%, #16181B 100%)")
+  expect(block(".dark {")).toContain("--ban-ink: #F2F3F5")
+  expect(block(".dark {")).toContain("--ban-sub: #A9ACB3")
+})
+
+test("the banner's art is the accent's tile with the other end's 24 on it and grey sparks: black in the light, white in the dark", () => {
+  const root = block(":root {")
+  expect(root).toContain("--art1: #3A3B40")
+  expect(root).toContain("--art2: #0E0F11")
+  expect(root).toContain("--art-ink: #ffffff")
+  expect(root).toContain("--art-spark: #9A9DA4")
+  const dark = block(".dark {")
+  expect(dark).toContain("--art1: #FFFFFF")
+  expect(dark).toContain("--art2: #C9CBD0")
+  expect(dark).toContain("--art-ink: #0E0F12")
+  expect(dark).toContain("--art-spark: #8E9198")
 })
 
 test("the brand's fill is the glossy black in the light, the glossy white in the dark (the accent's own); its mark's shadow follows", () => {

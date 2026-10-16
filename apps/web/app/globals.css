@@ -169,6 +169,12 @@
     --ban-ink: #0E0F12;
     --ban-sub: #4A4D55;
     --ban-x: rgba(255, 255, 255, 0.55);
+    /* The banner's art: the accent's own tile with the other end's "24" on
+       it and grey sparks around (the prototype's --art*). */
+    --art1: #3A3B40;
+    --art2: #0E0F11;
+    --art-ink: #ffffff;
+    --art-spark: #9A9DA4;
     /* The brand's own fill (the splash's mark, the login's panel) and its
        mark's shadow: the glossy black. */
     --brand-fill: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%);
@@ -264,10 +270,14 @@
     --seg-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     --switch-off: rgba(255, 255, 255, 0.07);
     --gold: #E4C27C;
-    --ban: linear-gradient(135deg, #3B2F52 0%, #2D2A4A 55%, #4A3B22 100%);
-    --ban-ink: #F5F2FF;
-    --ban-sub: #E4C27C;
+    --ban: linear-gradient(135deg, #26282D 0%, #16181B 100%);
+    --ban-ink: #F2F3F5;
+    --ban-sub: #A9ACB3;
     --ban-x: rgba(255, 255, 255, 0.14);
+    --art1: #FFFFFF;
+    --art2: #C9CBD0;
+    --art-ink: #0E0F12;
+    --art-spark: #8E9198;
     /* The glossy white, the dark's accent (the prototype's splash mark). */
     --brand-fill: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%);
     --mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
