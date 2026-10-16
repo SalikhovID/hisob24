@@ -65,3 +65,10 @@ test("with no location the tasks' and the documents' cards are out; with nothing
   rerender(<Overview dashboard={none} stages={stages} hasLocation month="oktabr" />)
   expect(screen.queryByRole("heading", { name: "Umumiy holat" })).not.toBeInTheDocument()
 })
+
+test("the cards stand two to a row on a phone; on a wide screen as many as fit, 300px at least each", () => {
+  render(<Overview dashboard={full} stages={stages} hasLocation month="oktabr" />)
+  const grid = screen.getByRole("link", { name: /^Vazifalar/ }).parentElement
+  expect(grid).toHaveClass("grid-cols-2", "md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]")
+  expect(grid).not.toHaveClass("md:grid-cols-4")
+})

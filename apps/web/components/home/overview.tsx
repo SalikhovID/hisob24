@@ -92,7 +92,7 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
   return (
     <>
       <SectionHeading>Umumiy holat</SectionHeading>
-      <div className="mb-6 grid grid-cols-2 gap-2.5 md:grid-cols-4">{cards}</div>
+      <div className="mb-6 grid grid-cols-2 gap-2.5 md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">{cards}</div>
     </>
   )
 }
