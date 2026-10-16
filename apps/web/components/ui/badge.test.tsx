@@ -26,3 +26,10 @@ test("the names from before still work, for the pages not yet moved over", () =>
   render(<Badge variant="secondary">Jismoniy</Badge>)
   expect(screen.getByText("Jismoniy")).toHaveAttribute("data-variant", "secondary")
 })
+
+test("a badge is the prototype's pill: round ends, 9px aside", () => {
+  render(<Badge>Nofaol</Badge>)
+  const badge = screen.getByText("Nofaol")
+  expect(badge).toHaveAttribute("data-slot", "badge")
+  expect(badge).toHaveClass("rounded-badge", "px-[9px]")
+})

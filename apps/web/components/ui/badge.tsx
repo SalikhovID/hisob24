@@ -3,11 +3,11 @@ import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
-// The prototype's badge: 22px tall, 7px corners, a soft tint with the hue's
-// own text. The names from before (default, secondary, destructive, outline)
+// The prototype's badge: a pill 22px tall, 9px aside, a soft tint with the
+// hue's own text. The names from before (default, secondary, destructive, outline)
 // stay for the pages not yet moved over.
 const badgeVariants = cva(
-  "group/badge inline-flex h-[22px] w-fit shrink-0 items-center justify-center gap-1.5 rounded-badge px-2 text-xs font-medium whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex h-[22px] w-fit shrink-0 items-center justify-center gap-1.5 rounded-badge px-[9px] text-xs font-medium whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
