@@ -94,13 +94,14 @@ test.describe("a linked user", () => {
       .poll(() => page.evaluate(() => (window as unknown as { __chrome?: Record<string, string> }).__chrome))
       .toEqual({ header: "#15121E", background: "#15121E", bottomBar: "#15121E" })
     await fits(page)
-    // On a phone the sections are a floating bar of the app's own glass,
-    // see-through.
+    // On a phone the sections are a floating bar of the app's own clear
+    // glass: no fill of its own, a thin frost under its buttons.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
       await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
       await expect(bar.getByRole("button", { name: "Sozlama" })).toBeVisible()
-      await expect(bar).toHaveCSS("background-color", "rgba(44, 38, 64, 0.5)")
+      await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+      expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toBe("rgba(255, 255, 255, 0.035)")
     }
     // Full screen on a phone's client: the page starts under the status bar
     // and Telegram's controls (47px + 46px), the shell no taller than the

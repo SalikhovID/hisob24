@@ -20,7 +20,8 @@ const tab =
 
 const SettingsMark = tabIcons.settings
 
-// TabBar is the prototype's floating «liquid glass» bar along the bottom of
+// TabBar is the prototype's floating clear «liquid glass» bar (its layers
+// are globals.css's) along the bottom of
 // a narrow screen (a phone, the Telegram Mini App), where the sidebar is
 // hidden: up to four pages of the member's own choice (logic/roles.md,
 // section 8; the default bar without one), each a filled icon over its
@@ -53,14 +54,14 @@ export function TabBar() {
         data-hidden={hidden || undefined}
         style={{ "--i": String(current), "--tab": TAB } as CSSProperties}
         className={cn(
-          "fixed bottom-[calc(22px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] left-1/2 z-20 flex h-16 -translate-x-1/2 rounded-[32px] bg-glass p-1 shadow-bar ring-[0.5px] ring-glass-edge ring-inset backdrop-blur-[14px] backdrop-brightness-[1.04] backdrop-saturate-[1.9] transition-[translate,opacity] duration-[380ms] ease-drawer select-none md:hidden",
+          "fixed bottom-[calc(22px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] left-1/2 z-20 flex h-16 -translate-x-1/2 rounded-[32px] p-1 shadow-[0_12px_32px_rgba(40,30,80,.16),0_2px_4px_rgba(40,30,80,.08),0_0_0_.5px_var(--tb-line)] transition-[translate,opacity] duration-[380ms] ease-drawer select-none md:hidden",
           hidden && "pointer-events-none translate-y-[140%] opacity-0",
         )}
       >
         <span
           aria-hidden="true"
           data-slot="tab-lens"
-          className="absolute top-1 left-1 z-[1] h-14 rounded-[28px] bg-muted transition-[translate,opacity] duration-[450ms] ease-spring"
+          className="absolute top-1 left-1 z-[1] h-14 rounded-[28px] transition-[translate,opacity] duration-[450ms] ease-spring"
           style={{ width: "var(--tab)", translate: "calc(var(--i) * var(--tab)) 0" }}
         />
         {pins.map((page, index) => {

@@ -157,3 +157,17 @@ test("«Pastki panelni sozlash» leads from «Sozlama» to the bar's pages; what
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Pastki panel" })).not.toBeInTheDocument())
   expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Mijozlar", "Mahsulotlar"])
 })
+
+test("the bar is the prototype's clear liquid glass: no fill or blur of its own (its layers are the styles'), a soft shadow and a hairline round it; the lens likewise", async () => {
+  await signIn(ALI)
+  setLocation("/customers")
+  renderWithProviders(<TabBar />)
+
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
+  expect(bar()).toHaveAttribute("data-slot", "tab-bar")
+  expect(bar()).toHaveClass("shadow-[0_12px_32px_rgba(40,30,80,.16),0_2px_4px_rgba(40,30,80,.08),0_0_0_.5px_var(--tb-line)]")
+  expect(bar()).not.toHaveClass("bg-glass")
+  expect(bar().className).not.toMatch(/backdrop-/)
+  const glass = bar().querySelector('[data-slot="tab-lens"]')
+  expect(glass).not.toHaveClass("bg-muted")
+})
