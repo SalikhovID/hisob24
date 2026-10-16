@@ -62,7 +62,7 @@ export function TransferPage({ id }: { id: number }) {
     <>
       <BackLink {...back} />
       <DetailHead
-        media={<SoftIcon icon={ArrowLeftRightIcon} className="size-[76px] rounded-[24px] [&_svg]:size-9" />}
+        media={<SoftIcon icon={ArrowLeftRightIcon} className="size-[76px] rounded-[24px] bg-[color-mix(in_srgb,currentColor_14%,transparent)] [&_svg]:size-9" />}
         title={`Ko'chirish № ${t.number}`}
         description={`${t.location_name} → ${t.to_location_name} · ${formatDateTime(t.at)}`}
       />

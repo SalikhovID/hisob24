@@ -14,22 +14,19 @@ export function TileIcon({ icon: Icon, className, children }: { icon?: LucideIco
   )
 }
 
-// SoftIcon is the prototype's soft square that opens a document's row (a
-// purchase, a payment, a task): the icon in its color on a pale wash of the
-// same color, the accent's by default, with a faint white rim. It is
-// decoration: the row's text names the row.
+// SoftIcon is the prototype's mark that opens a document's row (a task, a
+// purchase, a payment): a 40px circle on the plain fill with the icon alone
+// in its color, the accent's by default. It is decoration: the row's text
+// names the row.
 export function SoftIcon({ icon: Icon, color = "var(--primary)", className }: { icon: LucideIcon; color?: string; className?: string }) {
   return (
     <span
       aria-hidden="true"
       data-slot="soft-icon"
       style={{ color }}
-      className={cn(
-        "grid size-9 shrink-0 place-items-center rounded-[11px] bg-[color-mix(in_srgb,currentColor_14%,transparent)] shadow-[inset_0_0_0_1px_rgba(255,255,255,.5)] [&_svg]:size-5",
-        className,
-      )}
+      className={cn("grid size-10 shrink-0 place-items-center rounded-full bg-muted [&_svg]:size-5", className)}
     >
-      <Icon strokeWidth={2.2} />
+      <Icon strokeWidth={2.3} />
     </span>
   )
 }

@@ -64,7 +64,7 @@ export function InventoryPage({ id }: { id: number }) {
     <>
       <BackLink {...back} />
       <DetailHead
-        media={<SoftIcon icon={ClipboardCheckIcon} className="size-[76px] rounded-[24px] [&_svg]:size-9" />}
+        media={<SoftIcon icon={ClipboardCheckIcon} className="size-[76px] rounded-[24px] bg-[color-mix(in_srgb,currentColor_14%,transparent)] [&_svg]:size-9" />}
         title={`Inventarizatsiya № ${i.number}`}
         description={`${i.location_name} · ${formatDateTime(i.at)}`}
       />
