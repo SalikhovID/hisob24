@@ -8,7 +8,8 @@ import { moveTo, stepInto } from "@/lib/moves"
 
 // Hero is the figure a page opens with (the home's debt to the suppliers,
 // a purchase's total, a supplier's balance): a label, the amount large and
-// badges under it; the whole leads somewhere when told.
+// badges under it, larger pills than a row's; the whole leads somewhere
+// when told.
 export function Hero({
   label,
   value,
@@ -46,7 +47,10 @@ export function Hero({
       <Amount value={value} unit={unit} />
       {badges && " "}
       {badges && (
-        <span data-slot="hero-badges" className="mt-2.5 flex flex-wrap items-center justify-center gap-2 text-md font-semibold">
+        <span
+          data-slot="hero-badges"
+          className="mt-2.5 flex flex-wrap items-center justify-center gap-2 text-md font-semibold [&_[data-slot=badge]]:h-[26px] [&_[data-slot=badge]]:px-[11px] [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:font-semibold"
+        >
           {badges}
         </span>
       )}
