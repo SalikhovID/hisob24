@@ -42,8 +42,8 @@ export const pageColors: Record<PageKey, string> = {
 }
 
 // TileIcon is the iOS-style square icon that opens a row: a 32px rounded
-// square in a color, a white icon on it. It is decoration: the row's text
-// names the row.
+// square in a color, glossy (a light falling from its top), a white icon on
+// it. It is decoration: the row's text names the row.
 export function TileIcon({
   icon: Icon,
   color,
@@ -60,7 +60,7 @@ export function TileIcon({
       aria-hidden="true"
       data-slot="tile-icon"
       style={{ background: color }}
-      className={cn("grid size-8 shrink-0 place-items-center rounded-[9px] text-white [&_svg]:size-[19px]", className)}
+      className={cn("gloss grid size-8 shrink-0 place-items-center rounded-[10px] text-white [&_svg]:size-[19px]", className)}
     >
       {children ?? (Icon && <Icon strokeWidth={2.2} />)}
     </span>

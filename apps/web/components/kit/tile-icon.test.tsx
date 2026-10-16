@@ -24,3 +24,8 @@ test("a soft icon is the icon in its color on a pale wash of it, decoration besi
   expect(tile.style.color).toBe("rgb(52, 199, 89)")
   expect(tile.querySelector("svg")).toBeInTheDocument()
 })
+
+test("a tile icon is glossy, as the prototype's: a light falling from its top, its corners 10px", () => {
+  const { container } = render(<TileIcon icon={UserIcon} color="#007AFF" />)
+  expect(container.querySelector('[data-slot="tile-icon"]')).toHaveClass("gloss", "rounded-[10px]")
+})
