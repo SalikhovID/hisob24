@@ -1,5 +1,9 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { act, screen, waitFor, within } from "@testing-library/react"
+import { ThemeProvider } from "next-themes"
 import type { ComponentProps, ReactNode } from "react"
+import { hydrateRoot } from "react-dom/client"
+import { renderToString } from "react-dom/server"
 import { afterEach, expect, test, vi } from "vitest"
 import { BackTargetProvider } from "@/components/kit/back-target"
 import { BackLink } from "@/components/kit/page-title"
@@ -88,4 +92,31 @@ test("inside Telegram there is no theme or way out: the chat sets the theme, and
   renderWithProviders(shell(<BackLink href="/customers" label="Mijozlar" />))
   expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
+})
+
+test("the theme button is the same on the server and in the browser until the page is hydrated: a dark browser's page hydrates without a mismatch", async () => {
+  const queryClient = new QueryClient()
+  const app = (
+    <ThemeProvider attribute="class" defaultTheme="light">
+      <QueryClientProvider client={queryClient}>
+        <BackTargetProvider>
+          <TopBar />
+        </BackTargetProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  )
+  const container = document.createElement("div")
+  document.body.append(container)
+  // The server knows no theme of the browser's.
+  container.innerHTML = renderToString(app)
+  localStorage.setItem("theme", "dark")
+  const recovered: unknown[] = []
+  await act(async () => {
+    hydrateRoot(container, app, { onRecoverableError: (error) => recovered.push(error) })
+  })
+  expect(recovered).toEqual([])
+  // Hydrated, it shows the theme's own: the sun in the dark.
+  await waitFor(() => expect(container.querySelector(".lucide-sun")).not.toBeNull())
+  localStorage.removeItem("theme")
+  container.remove()
 })

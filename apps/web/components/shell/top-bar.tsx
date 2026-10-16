@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { moveTo } from "@/lib/moves"
 import { useLogout } from "@/lib/queries"
 import { useMiniApp } from "@/lib/telegram"
+import { useHydrated } from "@/lib/use-hydrated"
 import { cn } from "@/lib/utils"
 
 // A tool of the bar: a 40px pill, its icon (and words) in the heading's ink.
@@ -37,7 +38,9 @@ export function TopBar() {
   const { resolvedTheme, setTheme } = useTheme()
   const logout = useLogout()
   const [leaving, setLeaving] = useState(false)
-  const dark = resolvedTheme === "dark"
+  // The server knows no theme of the browser's: until the page is hydrated
+  // the button is the server's (the moon), then the theme's own.
+  const dark = useHydrated() && resolvedTheme === "dark"
 
   return (
     <div
