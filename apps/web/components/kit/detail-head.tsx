@@ -53,7 +53,8 @@ export function Tiles({ children, label = "Amallar", className }: { children: Re
   )
 }
 
-// Tile is one action, a frosted glass square: a glossy round icon over its
+// Tile is one action, a frosted glass square: a round icon in the glossy
+// accent, flat on the glass with no glow (as the prototype's), over its
 // name; a button, or a link (an address of the app, or tel: to call). A
 // danger tile is red.
 export function Tile({
@@ -77,7 +78,13 @@ export function Tile({
   )
   const content = (
     <>
-      <span aria-hidden="true" className={cn("grid size-7 place-items-center rounded-full", danger ? "glossy-red" : "glossy")}>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "grid size-7 place-items-center rounded-full",
+          danger ? "bg-destructive bg-[linear-gradient(180deg,#F2847A,#CF3F37)] text-white" : "bg-primary bg-(image:--btn) text-primary-foreground",
+        )}
+      >
         <Icon strokeWidth={2.6} className="size-[17px]" />
       </span>
       <span className="max-w-full truncate">{label}</span>

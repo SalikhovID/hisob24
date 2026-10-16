@@ -39,7 +39,7 @@ test("the tiles are the record's actions: buttons, a link to call, a red one to 
   expect(within(group).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-danger", "true")
 })
 
-test("a tile is frosted glass with a glossy round icon; a red tile's icon is the red capsule", () => {
+test("a tile is frosted glass with a glossy round icon, flat on it with no glow; a red tile's icon is the red gradient", () => {
   render(
     <Tiles>
       <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => {}} />
@@ -49,6 +49,10 @@ test("a tile is frosted glass with a glossy round icon; a red tile's icon is the
   const edit = screen.getByRole("button", { name: "Tahrirlash" })
   expect(edit).toHaveClass("surface", "rounded-tile")
   expect(edit).not.toHaveClass("bg-card")
-  expect(edit.querySelector("[aria-hidden=true]")).toHaveClass("glossy")
-  expect(screen.getByRole("button", { name: "O'chirish" }).querySelector("[aria-hidden=true]")).toHaveClass("glossy-red")
+  const icon = edit.querySelector("[aria-hidden=true]")
+  expect(icon).toHaveClass("bg-primary", "bg-(image:--btn)", "text-primary-foreground")
+  expect(icon).not.toHaveClass("glossy")
+  const red = screen.getByRole("button", { name: "O'chirish" }).querySelector("[aria-hidden=true]")
+  expect(red).toHaveClass("bg-[linear-gradient(180deg,#F2847A,#CF3F37)]", "text-white")
+  expect(red).not.toHaveClass("glossy-red")
 })
