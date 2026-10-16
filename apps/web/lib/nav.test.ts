@@ -198,7 +198,7 @@ test("the tab bar shows on every page of the menu: the sections' own, the tabs, 
   for (const path of ["/", "/customers", "/tasks", "/products", "/services", "/sales", "/warehouse", "/purchases", "/transfers", "/inventories", "/opening-stock", "/suppliers", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings", "/settings/customer-types", "/settings/roles"]) {
     expect(isMenuPath(path), path).toBe(true)
   }
-  for (const path of ["/customers/7", "/purchases/new", "/purchases/3", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/settings/task-types/4", "/accounts/4", "/select-company"]) {
+  for (const path of ["/customers/7", "/purchases/new", "/purchases/3", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/settings/task-types/4", "/settings/tab-bar", "/accounts/4", "/select-company"]) {
     expect(isMenuPath(path), path).toBe(false)
   }
 })
