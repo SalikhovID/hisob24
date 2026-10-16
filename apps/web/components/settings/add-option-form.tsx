@@ -53,7 +53,7 @@ export function AddOptionForm({ companyId, dropdownId }: { companyId: number; dr
             }}
             className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
           />
-          <Button type="submit" size="mini" disabled={add.isPending} aria-busy={add.isPending || undefined}>
+          <Button type="submit" variant="secondary" size="mini" disabled={add.isPending} aria-busy={add.isPending || undefined}>
             Qo&apos;shish
           </Button>
         </div>

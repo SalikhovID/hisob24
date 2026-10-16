@@ -2,16 +2,20 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
+// The buttons wear the prototype's glass: the accent a glossy capsule, a
+// quiet one (secondary, outline) a small glass, a deletion the red capsule;
+// a mini button is a small capsule in the accent's ink over its variant's
+// fill.
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-main border border-transparent bg-clip-padding text-md font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 ease-out-expo outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:scale-[.98] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground active:opacity-90",
-        outline: "border-border bg-card text-primary active:bg-press",
-        secondary: "bg-muted text-foreground active:bg-press",
+        default: "glossy active:opacity-90",
+        outline: "glass-chip text-primary active:bg-press",
+        secondary: "glass-chip text-foreground active:bg-press",
         ghost: "text-primary active:bg-muted",
-        destructive: "bg-destructive text-white active:opacity-90",
+        destructive: "glossy-red active:opacity-90",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -19,7 +23,7 @@ const buttonVariants = cva(
         xs: "h-7 rounded-full px-2.5 text-xs",
         sm: "h-8 rounded-full px-3 text-sm",
         lg: "h-11 px-4 text-base",
-        mini: "h-[34px] rounded-full bg-muted px-3 text-sm",
+        mini: "h-[34px] rounded-full px-3 text-sm text-primary",
         round: "size-11 rounded-full p-0 [&_svg:not([class*='size-'])]:size-[22px]",
         icon: "size-9",
         "icon-xs": "size-7 rounded-full [&_svg:not([class*='size-'])]:size-3",
