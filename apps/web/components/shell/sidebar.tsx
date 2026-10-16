@@ -4,8 +4,9 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
+import { BrandMark } from "@/components/kit/brand-mark"
 import { tabIcons } from "@/components/kit/tab-icons"
-import { Logo, LogoMark } from "@/components/logo"
+import { Logo } from "@/components/logo"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { isCurrentItem, type NavItem, navFor } from "@/lib/nav"
 import { formatPhone } from "@/lib/phone"
@@ -21,13 +22,15 @@ export interface SidebarProps {
   onToggleCollapsed: () => void
 }
 
-// Sidebar is the app's sections on a wide screen, in the prototype's look,
-// a pane of glass over the ambient light: Hisob24's logo over the company's name, the sections each a filled icon
-// and its name (the page's one on the accent's soft tint), and at the foot
-// the location switch and who is signed in, the way to the profile. Each
-// member sees the sections their permissions open (the owner all of them),
-// in the default order. It folds to icons, the logo to its
-// mark. On a narrow screen it is hidden and the sections are the tab bar's.
+// Sidebar is the app's sections on a wide screen, as the prototype's web
+// view: a floating card of frosted glass 16px off the screen's edges,
+// headed by the brand mark, Hisob24's logo and the company's name under it;
+// the sections each an outline icon and its name (the page's one the glossy
+// accent); at the foot the location switch and who is signed in, a card of
+// the plain fill, the way to the profile. Each member sees the sections
+// their permissions open (the owner all of them), in the default order. It
+// folds to icons, headed by the mark alone. On a narrow screen it is hidden
+// and the sections are the tab bar's.
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
   const company = me.data?.company
@@ -38,64 +41,69 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const role = company ? (company.role === "owner" ? roleLabels.owner : (company.role_name ?? roleLabels.user)) : null
 
   return (
-    <aside
-      aria-label="Menyu"
-      className={cn(
-        "hidden shrink-0 flex-col border-r-[0.5px] border-border bg-(--head) pt-safe text-foreground backdrop-blur-[22px] backdrop-saturate-[1.8] transition-[width] duration-300 ease-out-expo md:flex",
-        collapsed ? "w-16" : "w-64",
-      )}
-    >
-      <div className="flex h-16 shrink-0 items-center justify-between px-4">
-        {collapsed ? (
-          <button
-            type="button"
-            aria-label="Menyuni yoyish"
-            onClick={onToggleCollapsed}
-            className="group relative mx-auto flex h-8 w-10 items-center justify-center rounded outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <LogoMark className="h-auto w-9 transition-opacity group-hover:opacity-0" />
-            <ChevronRightIcon strokeWidth={2.5} className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100" />
-          </button>
-        ) : (
-          <>
-            <div className="min-w-0">
-              <Logo className="h-4" />
-              <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium">{company?.name}</p>
-            </div>
+    <div className="hidden shrink-0 p-4 pt-safe-4 md:flex">
+      <aside
+        aria-label="Menyu"
+        className={cn(
+          "flex flex-col rounded-[30px] surface pt-[22px] pb-3.5 text-foreground transition-[width] duration-300 ease-out-expo",
+          collapsed ? "w-16 px-2" : "w-[264px] px-3.5",
+        )}
+      >
+        <div className={cn("flex shrink-0 items-center justify-between gap-2 pb-7", !collapsed && "pl-2.5")}>
+          {collapsed ? (
             <button
               type="button"
-              aria-label="Menyuni yig'ish"
+              aria-label="Menyuni yoyish"
               onClick={onToggleCollapsed}
-              className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground outline-none hover:bg-press focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="group relative mx-auto grid place-items-center rounded-[12px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <ChevronLeftIcon strokeWidth={2.5} className="size-4" />
+              <BrandMark className="transition-opacity group-hover:opacity-0" />
+              <ChevronRightIcon strokeWidth={2.5} className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100" />
             </button>
-          </>
-        )}
-      </div>
-      <SidebarNav items={items} collapsed={collapsed} />
-      {company && name && user && (
-        <div className="flex shrink-0 flex-col gap-2 p-3">
-          {!collapsed && <LocationSwitcher className="self-start" />}
-          <Link
-            href="/profile"
-            aria-label={collapsed ? `Profil: ${name}` : undefined}
-            className={cn(
-              "flex min-h-12 items-center gap-2.5 rounded-[14px] px-2 py-1.5 text-left outline-none hover:bg-press focus-visible:ring-3 focus-visible:ring-ring/50",
-              collapsed && "justify-center px-0",
-            )}
-          >
-            <Avatar name={user.full_name} className="size-9 text-[13px]" />
-            {!collapsed && (
-              <span className="min-w-0">
-                <b className="block truncate text-md leading-tight font-semibold">{name}</b>{" "}
-                <small className="block truncate text-xs text-muted-foreground">{role}</small>
-              </span>
-            )}
-          </Link>
+          ) : (
+            <>
+              <div className="flex min-w-0 items-center gap-3">
+                <BrandMark />
+                <div className="min-w-0">
+                  <Logo className="h-[17px]" />
+                  <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium text-muted-foreground">{company?.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Menyuni yig'ish"
+                onClick={onToggleCollapsed}
+                className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <ChevronLeftIcon strokeWidth={2.5} className="size-4" />
+              </button>
+            </>
+          )}
         </div>
-      )}
-    </aside>
+        <SidebarNav items={items} collapsed={collapsed} />
+        {company && name && user && (
+          <div className="flex shrink-0 flex-col gap-2 pt-2">
+            {!collapsed && <LocationSwitcher className="self-start" />}
+            <Link
+              href="/profile"
+              aria-label={collapsed ? `Profil: ${name}` : undefined}
+              className={cn(
+                "flex items-center gap-3 rounded-[20px] bg-muted px-3.5 py-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                collapsed && "justify-center px-0 py-2",
+              )}
+            >
+              <Avatar name={user.full_name} />
+              {!collapsed && (
+                <span className="min-w-0">
+                  <b className="block truncate text-md leading-tight font-semibold">{name}</b>{" "}
+                  <small className="block truncate text-xs text-muted-foreground">{role}</small>
+                </span>
+              )}
+            </Link>
+          </div>
+        )}
+      </aside>
+    </div>
   )
 }
 
@@ -104,7 +112,7 @@ function SidebarNav({ items, collapsed }: { items: NavItem[]; collapsed: boolean
   const pathname = usePathname()
   return (
     <TooltipProvider>
-      <nav aria-label="Bo'limlar" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-2 scrollbar-hide">
+      <nav aria-label="Bo'limlar" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto scrollbar-hide">
         {items.map((item) => (
           <SidebarLink key={item.key} item={item} current={isCurrentItem(item, pathname)} collapsed={collapsed} />
         ))}
@@ -113,9 +121,10 @@ function SidebarNav({ items, collapsed }: { items: NavItem[]; collapsed: boolean
   )
 }
 
-// SidebarLink is one section; the one the page belongs to stands on the
-// accent's soft tint. Folded, it is the icon alone: the name stays for
-// screen readers and shows beside it on hover.
+// SidebarLink is one section, its outline icon and name in the heading's
+// ink; the one the page belongs to is the glossy accent. Folded, it is the
+// icon alone: the name stays for screen readers and shows beside it on
+// hover.
 function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boolean; collapsed: boolean }) {
   const Icon = tabIcons[item.key]
   const link = (
@@ -126,8 +135,8 @@ function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boo
       aria-current={current ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={cn(
-        "flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-base font-medium outline-none transition-colors hover:bg-press focus-visible:ring-3 focus-visible:ring-ring/50",
-        current && "bg-primary-soft text-primary hover:bg-primary-soft",
+        "flex min-h-12 items-center gap-3.5 rounded-2xl px-4 text-[16px] font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+        current ? "glossy" : "text-heading hover:bg-muted [&_svg]:text-muted-foreground",
         collapsed && "justify-center px-0",
       )}
     >

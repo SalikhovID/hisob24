@@ -169,17 +169,52 @@ test("a section from the sidebar is switched to at once: a move taken before it,
   expect(moved()).toBeUndefined()
 })
 
-test("the sidebar is a pane of glass over the ambient light, its edge a hairline", async () => {
+test("the sidebar is the prototype's floating card of frosted glass: 30px round, 264px wide (64 folded), 16px off the screen's edges", async () => {
   await signIn(ALI)
-  renderWithProviders(<Sidebar {...props()} />)
+  const first = renderWithProviders(<Sidebar {...props()} />)
 
-  expect(sidebar()).toHaveClass("bg-(--head)", "backdrop-blur-[22px]", "backdrop-saturate-[1.8]", "border-r-[0.5px]")
-  expect(sidebar()).not.toHaveClass("bg-background")
+  expect(sidebar()).toHaveClass("surface", "rounded-[30px]", "w-[264px]")
+  expect(sidebar()).not.toHaveClass("border-r-[0.5px]")
+  expect(sidebar().parentElement).toHaveClass("hidden", "md:flex", "p-4")
+  first.unmount()
+
+  renderWithProviders(<Sidebar {...props({ collapsed: true })} />)
+  expect(sidebar()).toHaveClass("w-16")
 })
 
 test("the sidebar keeps clear of what lies over the top of the screen itself, as the shell no longer does", async () => {
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
 
-  expect(sidebar()).toHaveClass("pt-safe")
+  expect(sidebar().parentElement).toHaveClass("pt-safe-4")
+})
+
+test("the sidebar is headed by the brand mark before Hisob24's logo", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  const logo = await within(sidebar()).findByRole("img", { name: "Hisob24" })
+  const mark = sidebar().querySelector('[data-slot="brand-mark"]')
+  expect(mark).not.toBeNull()
+  expect(mark!.compareDocumentPosition(logo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
+test("the current section is the glossy accent, the others the heading's ink; a section is 48px tall, 16px round", async () => {
+  await signIn(ALI)
+  setLocation("/employees")
+  renderWithProviders(<Sidebar {...props()} />)
+
+  const current = await within(sidebar()).findByRole("link", { name: "Xodimlar" })
+  const other = within(sidebar()).getByRole("link", { name: "Vazifalar" })
+  expect(current).toHaveClass("glossy", "min-h-12", "rounded-2xl")
+  expect(current).not.toHaveClass("text-heading")
+  expect(other).toHaveClass("text-heading", "hover:bg-muted")
+  expect(other).not.toHaveClass("glossy")
+})
+
+test("who is signed in is a card at the sidebar's foot: the plain fill, 20px round", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(await within(sidebar()).findByRole("link", { name: "Ali Valiyev Egasi" })).toHaveClass("bg-muted", "rounded-[20px]")
 })
