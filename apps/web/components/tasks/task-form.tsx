@@ -88,7 +88,8 @@ export function TaskFields({
   )
 }
 
-// LinkedCustomerCard shows the customer a task is for, once it is known:
+// LinkedCustomerCard shows the customer a task is for, once it is known, on
+// frosted glass:
 // the name (or the phone), the type and the phone, the way to its page and,
 // where the customer may still be let go (a new task), the way to do so.
 export function LinkedCustomerCard({
@@ -106,7 +107,7 @@ export function LinkedCustomerCard({
 }) {
   const facts = [typeName, name ? formatPhone(phone) : null].filter((fact): fact is string => !!fact)
   return (
-    <section aria-label="Mavjud mijoz" className="mb-6 flex items-center gap-3 rounded-group bg-card px-4 py-3">
+    <section aria-label="Mavjud mijoz" className="mb-6 flex items-center gap-3 rounded-group surface px-4 py-3">
       <Avatar name={name} />
       <span className="min-w-0 flex-1">
         <small className="block text-xs text-muted-foreground">Mavjud mijoz</small>
@@ -117,7 +118,7 @@ export function LinkedCustomerCard({
         </Link>
       </span>
       {onUnlink && (
-        <button type="button" onClick={onUnlink} className="h-[34px] shrink-0 rounded-full bg-primary-soft px-3.5 text-md font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <button type="button" onClick={onUnlink} className="h-[34px] shrink-0 rounded-full glass-chip px-3.5 text-md font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           Boshqa mijoz
         </button>
       )}
