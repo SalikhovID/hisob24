@@ -180,6 +180,11 @@ test("a switch that is off is a faint violet track in the light, the plain fill 
   expect(block(".dark {")).toContain("--switch-off: rgba(255, 255, 255, 0.07)")
 })
 
+test("a switch that is on has a white thumb in the light, a black one on the dark's white track", () => {
+  expect(block(":root {")).toContain("--switch-knob-on: #ffffff")
+  expect(block(".dark {")).toContain("--switch-knob-on: #0E0F12")
+})
+
 test("the gold of an amount's unit is the hint's grey in the light, a warm gold in the night", () => {
   expect(block(":root {")).toContain("--gold: #6B6E76")
   expect(block(".dark {")).toContain("--gold: #E4C27C")

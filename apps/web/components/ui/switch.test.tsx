@@ -32,3 +32,9 @@ test("the switch is the prototype's: off, its own pale track; on, the glossy acc
   expect(track).not.toHaveClass("bg-[#E3E3E8]")
   expect(track.querySelector('[data-slot="switch-thumb"]')).toHaveClass("shadow-[0_3px_8px_rgba(60,40,120,.18),0_1px_1px_rgba(60,40,120,.08)]")
 })
+
+test("a switch that is on keeps its thumb in the accent's other end: white on the black of the light, black on the white of the dark", () => {
+  render(<Switch aria-label="Majburiy" checked onCheckedChange={() => {}} />)
+  const thumb = screen.getByRole("switch", { name: "Majburiy" }).querySelector('[data-slot="switch-thumb"]')
+  expect(thumb).toHaveClass("bg-white", "data-checked:bg-(--switch-knob-on)")
+})
