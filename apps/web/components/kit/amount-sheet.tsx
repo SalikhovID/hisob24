@@ -33,7 +33,8 @@ export function decimalToTyped(decimal: string): string {
   return kept ? `${whole},${kept}` : whole
 }
 
-// Keypad is the prototype's keypad: the digits, the comma and delete.
+// Keypad is the prototype's keypad: the digits on frosted glass keys, the
+// comma and delete with no fill.
 export function Keypad({ onKey }: { onKey: (key: Key) => void }) {
   return (
     <div role="group" aria-label="Raqamlar" data-slot="keypad" className="grid grid-cols-3 gap-1.5 pt-2 pb-1">
@@ -44,8 +45,8 @@ export function Keypad({ onKey }: { onKey: (key: Key) => void }) {
           aria-label={key === "del" ? "O'chirish" : key === "," ? "vergul" : key}
           onClick={() => onKey(key)}
           className={cn(
-            "grid h-[52px] place-items-center rounded-main text-[25px] font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-            key === "," || key === "del" ? "bg-transparent" : "bg-sheet-cell shadow-[0_1px_0_rgba(0,0,0,.08)] active:bg-press",
+            "grid h-[52px] place-items-center rounded-[18px] text-[25px] font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            key === "," || key === "del" ? "bg-transparent" : "surface active:bg-press",
           )}
         >
           {key === "del" ? <DeleteIcon aria-hidden="true" strokeWidth={1.9} className="size-[26px]" /> : key}

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
-import { AmountSheet, amountToDecimal, decimalToTyped, nextAmount } from "./amount-sheet"
+import { AmountSheet, amountToDecimal, decimalToTyped, Keypad, nextAmount } from "./amount-sheet"
 
 test("the keys build an amount: at most eleven whole digits, two decimals, one comma, no leading zero", () => {
   expect(nextAmount("", "0")).toBe("0")
@@ -59,4 +59,12 @@ test("an amount as the API writes it is typed back the keypad's way: a comma, no
   expect(decimalToTyped("0.05")).toBe("0,05")
   expect(decimalToTyped("700")).toBe("700")
   expect(decimalToTyped("")).toBe("")
+})
+
+test("a digit key is frosted glass, its corners 18px; the comma and delete have no fill", () => {
+  render(<Keypad onKey={() => {}} />)
+  const one = screen.getByRole("button", { name: "1" })
+  expect(one).toHaveClass("surface", "rounded-[18px]")
+  expect(one).not.toHaveClass("bg-sheet-cell")
+  expect(screen.getByRole("button", { name: "vergul" })).not.toHaveClass("surface")
 })
