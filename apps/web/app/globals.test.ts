@@ -55,3 +55,13 @@ test("the radii, the text sizes and the font stack are the prototype's", () => {
   expect(theme).toMatch(/--font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var\(--font-geist\)/)
   expect(css).toContain("@utility pb-bar")
 })
+
+test("a surface is the prototype's frosted glass: the cell, a sheen over its top, a white rim and a soft lift", () => {
+  const surface = block("@utility surface {")
+  expect(surface).toContain("background-color: var(--card)")
+  expect(surface).toContain("background-image: var(--sheen)")
+  expect(surface).toContain("box-shadow: var(--rim), var(--lift)")
+  expect(surface).toContain("backdrop-filter: blur(18px) saturate(1.6)")
+  expect(block(":root {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 0 #ffffff")
+  expect(block(".dark {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16)")
+})

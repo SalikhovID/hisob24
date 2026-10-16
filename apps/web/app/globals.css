@@ -121,6 +121,11 @@
     --scrim: rgba(10, 12, 16, 0.2);
     --shadow: 0 18px 44px rgba(20, 22, 30, 0.16);
     --skel: rgba(0, 0, 0, 0.06);
+    /* The glass of a surface: a sheen over its top, a white rim and a soft
+       lift under it. */
+    --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 60%);
+    --rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 0 #ffffff;
+    --lift: 0 1px 2px rgba(20, 22, 30, 0.04), 0 12px 30px rgba(20, 22, 30, 0.08);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -180,6 +185,9 @@
     --scrim: rgba(6, 4, 12, 0.5);
     --shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
     --skel: rgba(255, 255, 255, 0.08);
+    --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 58%);
+    --rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    --lift: 0 10px 30px rgba(0, 0, 0, 0.32);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -245,6 +253,18 @@
 
 @utility pt-safe-* {
   padding-top: calc(--spacing(--value(integer)) + var(--safe-top));
+}
+
+/* surface is the prototype's frosted glass for the cards of a page (a
+   group, a tile, a card): the cell's tint with a sheen over its top, a white
+   rim and a soft lift, over a blur of what lies behind. Inside a sheet the
+   cell is the sheet's (ui/dialog.tsx redefines --card). */
+@utility surface {
+  background-color: var(--card);
+  background-image: var(--sheen);
+  box-shadow: var(--rim), var(--lift);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
 }
 
 /* Inside Telegram (TelegramSync sets data-telegram) the app keeps its own
