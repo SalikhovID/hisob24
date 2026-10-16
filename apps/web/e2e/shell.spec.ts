@@ -9,7 +9,7 @@ const width = (page: Page) => async () => (await page.getByRole("complementary",
 // sidebar's being hidden there.
 const tabBar = (page: Page) => page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
 
-test("the sections are a folding sidebar on a wide screen and a floating tab bar on a phone, the rest under «Sozlama»", async ({ page }) => {
+test("the sections are a folding sidebar on a wide screen and a floating tab bar on a phone, the rest on the settings page", async ({ page }) => {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   const sidebar = page.getByRole("complementary", { name: "Menyu" })
@@ -18,10 +18,9 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
     await expect(sidebar).toBeHidden()
     await expect(page.getByRole("banner")).toHaveCount(0)
     const bar = tabBar(page)
-    // The default bar: four pages, «Sozlama» last with the rest.
-    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+    // The default bar: four pages, «Sozlamalar» last, the way to the rest.
+    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
-    await expect(bar.getByRole("button", { name: "Sozlama" })).toBeVisible()
     // The bar floats over the page, clear of the bottom edge, and the page fits its width.
     const box = (await bar.boundingBox())!
     const viewport = page.viewportSize()!
@@ -37,18 +36,18 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
       expect(fitted.x + fitted.width, `${narrow}px`).toBeLessThanOrEqual(narrow)
     }
     await page.setViewportSize(viewport)
-    // The home lists no sections: the rest are «Sozlama»'s tiles, found by name.
+    // The home lists no sections: the rest are rows of the settings page.
     await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toHaveCount(0)
-    await bar.getByRole("button", { name: "Sozlama" }).click()
-    const menu = page.getByRole("dialog", { name: "Sozlama" })
-    await expect(menu.getByRole("list", { name: "Ombor" }).getByRole("link")).toHaveText(["Ombor", "Xaridlar", "Ko'chirishlar", "Inventarizatsiya", "Boshlang'ich qoldiq", "Ta'minotchilar"])
-    await menu.getByRole("searchbox", { name: "Qidirish" }).fill("xodim")
-    await menu.getByRole("link", { name: "Xodimlar", exact: true }).click()
+    await bar.getByRole("link", { name: "Sozlamalar" }).click()
+    await expect(page).toHaveURL(/\/settings$/)
+    await expect(bar.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("aria-current", "page")
+    const main = page.getByRole("main")
+    await expect(main.getByRole("list", { name: "Ombor" }).getByRole("link")).toHaveText(["Ombor", "Xaridlar", "Ko'chirishlar", "Inventarizatsiya", "Boshlang'ich qoldiq", "Ta'minotchilar"])
+    await main.getByRole("link", { name: "Xodimlar", exact: true }).click()
     await expect(page).toHaveURL(/\/employees$/)
-    await expect(menu).toBeHidden()
-    // A page past the bar is a page of the menu too: the bar stays, «Sozlama» marked.
+    // A page past the bar is a page of the menu too: the bar stays, «Sozlamalar» marked.
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current", "page")
-    await expect(bar.getByRole("button", { name: "Sozlama" })).toHaveAttribute("aria-current", "page")
+    await expect(bar.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("aria-current", "page")
     // On a record or the profile the bar steps aside.
     await openProfile(page)
     await expect(page.getByRole("navigation", { name: "Bo'limlar" })).toHaveCount(0)
@@ -150,7 +149,7 @@ test("the shell is headed by Hisob24's logo on a wide screen, the company's name
   await expect(sidebar.getByRole("button", { name: "Menyuni yoyish" }).locator('[data-slot="logo-mark"]')).toBeVisible()
 })
 
-test("on a phone the member chooses the bar's pages under «Sozlama», which the bar keeps after a reload; a wide screen's sidebar keeps the default order", async ({
+test("on a phone the member chooses the bar's pages on «Pastki panel», under the settings, which the bar keeps after a reload; a wide screen's sidebar keeps the default order", async ({
   page,
 }) => {
   await signIn(page, "901234567")
@@ -168,37 +167,45 @@ test("on a phone the member chooses the bar's pages under «Sozlama», which the
       "Xodimlar",
       "Sozlamalar",
     ])
-    await expect(page.getByRole("button", { name: "Sozlama" })).toBeHidden()
+    // A wide screen has no bar to choose: the settings page leads to none.
+    await (await sections(page)).getByRole("link", { name: "Sozlamalar" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "Sozlamalar" })).toBeVisible()
+    await expect(page.getByRole("link", { name: /^Pastki panelni sozlash/ })).toBeHidden()
     return
   }
 
   const bar = tabBar(page)
   const choose = async () => {
-    await bar.getByRole("button", { name: "Sozlama" }).click()
-    await page.getByRole("dialog", { name: "Sozlama" }).getByRole("button", { name: "Pastki panelni sozlash" }).click()
-    return page.getByRole("dialog", { name: "Pastki panel" })
+    await bar.getByRole("link", { name: "Sozlamalar" }).click()
+    await page.getByRole("link", { name: /^Pastki panelni sozlash/ }).click()
+    await expect(page).toHaveURL(/\/settings\/tab-bar$/)
+    return page.getByRole("main")
   }
-  let sheet = await choose()
-  await expect(sheet.getByRole("heading", { name: "Panelda · 4/4" })).toBeVisible()
-  await sheet.getByRole("button", { name: "Olib tashlash: Vazifalar" }).click()
-  await sheet.getByRole("button", { name: "Qo'shish: Xaridlar" }).click()
-  await sheet.getByRole("button", { name: "Xaridlar: tartibini o'zgartirish" }).focus()
+  let editor = await choose()
+  // The bar steps aside on its own editor, which pictures it.
+  await expect(page.getByRole("navigation", { name: "Bo'limlar" })).toHaveCount(0)
+  await expect(editor.getByText("4 / 4")).toBeVisible()
+  await editor.getByRole("button", { name: "Paneldan olib tashlash: Vazifalar" }).click()
+  await editor.getByRole("button", { name: "Panelga qo'shish: Xaridlar" }).click()
+  await editor.getByRole("button", { name: "Xaridlar: tartibini o'zgartirish" }).focus()
   await page.keyboard.press("Home")
-  await sheet.getByRole("button", { name: "Saqlash" }).click()
+  await expect(editor.getByRole("list", { name: "Ko'rinishi" }).getByRole("listitem")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlamalar"])
+  await editor.getByRole("button", { name: "Saqlash" }).click()
   await expect(page.getByText("Pastki panel saqlandi")).toBeVisible()
-  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Mahsulotlar"])
+  await expect(page).toHaveURL(/\/settings$/)
+  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlamalar"])
 
   await page.reload()
-  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Mahsulotlar"])
+  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlamalar"])
   // A page of the warehouse in the bar opens with the bar standing, its button marked.
   await bar.getByRole("link", { name: "Xaridlar" }).click()
   await expect(page).toHaveURL(/\/purchases$/)
   await expect(bar.getByRole("link", { name: "Xaridlar" })).toHaveAttribute("aria-current", "page")
 
-  // «Standart» puts the default bar back.
-  sheet = await choose()
-  await sheet.getByRole("button", { name: "Standart" }).click()
-  await sheet.getByRole("button", { name: "Saqlash" }).click()
-  await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar"])
+  // «Standart holat» puts the default bar back.
+  editor = await choose()
+  await editor.getByRole("button", { name: "Standart holat" }).click()
+  await editor.getByRole("button", { name: "Saqlash" }).click()
+  await expect(page).toHaveURL(/\/settings$/)
+  await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
 })

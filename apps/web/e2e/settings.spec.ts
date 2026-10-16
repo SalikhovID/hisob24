@@ -119,16 +119,22 @@ test("the owner puts the customer types in a new order, and it stays", async ({ 
   await expect.poll(() => titles(types)).toEqual(["Yuridik", "Jismoniy"])
 })
 
-test("an employee finds no settings, and the addresses typed by hand lead home", async ({ page }) => {
+test("an employee finds no settings: «Sozlamalar» lists the pages they may open alone, and the settings' addresses typed by hand lead home", async ({ page }) => {
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 
+  // The sidebar holds the sections the member may open, the settings none of
+  // them; a phone's bar ends with «Sozlamalar», every member's way to every page.
   const nav = await sections(page)
   await expect(nav.getByRole("link", { name: "Bosh sahifa" })).toBeVisible()
-  await expect(nav.getByRole("link", { name: "Sozlamalar" })).toHaveCount(0)
+  await expect(nav.getByRole("link", { name: "Sozlamalar" })).toHaveCount(onPhone(page) ? 1 : 0)
+  await page.goto("/settings")
+  await expect(page.getByRole("heading", { level: 1, name: "Sozlamalar" })).toBeVisible()
+  await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toBeVisible()
+  await expect(page.getByRole("main").getByRole("list", { name: "Mijozlar va vazifalar" })).toHaveCount(0)
 
-  for (const address of ["/settings", "/settings/customer-types", `/settings/customer-types/${typesOf(1)[0].id}`]) {
+  for (const address of ["/settings/customer-types", `/settings/customer-types/${typesOf(1)[0].id}`]) {
     await page.goto(address)
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
