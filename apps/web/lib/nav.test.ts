@@ -172,7 +172,7 @@ test("the tab bar is the first four of the bar's order: always full, unless the 
   expect(bar(allPermissions, ["home", "customers", "tasks", "products", "sales"])).toEqual(["home", "customers", "tasks", "products"])
 })
 
-test("the bar's current page is the page itself, or the warehouse on one of its pages that is not in the bar; elsewhere none (then «Sozlama» is)", () => {
+test("the bar's current page is the page itself, or the warehouse on one of its pages that is not in the bar; elsewhere none (then «Sozlamalar» is)", () => {
   const pins = barPages(allPermissions, ["home", "warehouse", "expenses", "purchases"])
   expect(currentPin(pins, "/")).toBe(0)
   expect(currentPin(pins, "/warehouse")).toBe(1)

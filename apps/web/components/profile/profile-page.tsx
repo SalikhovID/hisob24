@@ -28,7 +28,7 @@ const themes = [
 // or more) and the way to another company of theirs; in a browser, the
 // theme and the way out. Inside Telegram closing the Mini App is the way
 // out, and the chat sets the theme. The pages the tab bar does not hold,
-// and the bar's own, are «Sozlama»'s.
+// and the choice of the bar's own, are the settings page's.
 export function ProfilePage() {
   const me = useMe()
   const miniApp = useMiniApp()

@@ -99,7 +99,7 @@ export const navItems: NavItem[] = [
 export const navKeys: NavKey[] = navItems.map((item) => item.key)
 
 // NavPage is a page of the menu, of its section: what the tab bar and
-// «Sozlama» hold.
+// settings page («Sozlamalar») hold.
 export interface NavPage {
   key: PageKey
   label: string
@@ -112,7 +112,7 @@ export interface NavPage {
 
 // navPages are the pages of the menu in its order: a section's own page; a
 // section with tabs, its tabs (the warehouse, its own page first). The
-// settings are none of them: they stand under «Sozlama» alone.
+// settings are none of them: they stand on the settings page alone.
 export const navPages: NavPage[] = navItems.flatMap((item): NavPage[] => {
   if (item.key === "settings") return []
   const tabs = (item.tabs ?? []).map((tab) => ({ key: tab.key, label: tab.label, href: tab.href, section: item.key, permissions: [tab.permission] }))
@@ -182,7 +182,7 @@ export function pagesFor(permissions: readonly Permission[] | undefined): NavPag
   return navPages.filter((page) => !page.permissions || page.permissions.some((permission) => can(permissions, permission)))
 }
 
-// PageGroup is a block of pages as «Sozlama» and the choice of the bar's
+// PageGroup is a block of pages as the settings page and the choice of the bar's
 // pages show them: label names it, heading shows over it (the sections'
 // only pages stand first, unheaded).
 export interface PageGroup {
@@ -202,7 +202,7 @@ export function pageGroups(pages: readonly NavPage[]): PageGroup[] {
   return groups.filter((group) => group.pages.length > 0)
 }
 
-// BAR_LIMIT is how many pages the tab bar holds beside «Sozlama».
+// BAR_LIMIT is how many pages the tab bar holds beside «Sozlamalar».
 export const BAR_LIMIT = 4
 
 // DEFAULT_BAR is the order the default bar takes its pages in: each
@@ -234,7 +234,7 @@ export function barPages(permissions: readonly Permission[] | undefined, tabBar?
 
 // currentPin is the index of the bar's page the page at pathname is: the
 // page itself; for a page of a hub (the warehouse's), the hub, unless the
-// page stands in the bar itself; -1 for none, when «Sozlama» is current.
+// page stands in the bar itself; -1 for none, when «Sozlamalar» is current.
 export function currentPin(pins: readonly NavPage[], pathname: string): number {
   const own = pins.findIndex((pin) => pin.href === pathname)
   if (own >= 0) return own

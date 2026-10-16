@@ -22,7 +22,7 @@ test("the profile says who is signed in and the company they work in, with their
   expect(screen.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
 })
 
-test("the profile holds no sections and no way to the bar's pages: they are «Sozlama»'s", async () => {
+test("the profile holds no sections and no way to the bar's pages: they are the settings page's", async () => {
   await signIn(ALI)
   renderWithProviders(<ProfilePage />)
 

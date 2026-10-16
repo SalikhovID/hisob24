@@ -29,7 +29,7 @@ import { useLocation } from "@/lib/use-location"
 // the quick tiles; inside Telegram, the offer to put the app on the home
 // screen; the overview's cards and the nearest deadlines of the current
 // location; and the subscription's end. The pages the tab bar does not
-// hold are «Sozlama»'s (a wide screen has them in the sidebar). The greeting is the page's heading for a screen reader. The shell
+// hold are the settings page's (a wide screen has them in the sidebar). The greeting is the page's heading for a screen reader. The shell
 // around it shows it only to a session with a company.
 export function Dashboard() {
   const me = useMe()

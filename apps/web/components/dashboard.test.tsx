@@ -43,7 +43,7 @@ test("an employee with a role sees the role's name in the head", async () => {
   expect(await screen.findByRole("link", { name: "Olma Savdo Vali A. · Kuzatuvchi" })).toBeInTheDocument()
 })
 
-test("the home lists no sections: the pages the bar does not hold are «Sozlama»'s", async () => {
+test("the home lists no sections: the pages the bar does not hold are the settings page's", async () => {
   await signIn(ALI)
   renderWithProviders(<Dashboard />)
 
