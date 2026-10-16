@@ -32,3 +32,8 @@ test("a refusal may offer what to do about it, as buttons beside the reason", as
   await userEvent.click(screen.getByRole("button", { name: "Mijozni ochish" }))
   expect(open).toHaveBeenCalledTimes(1)
 })
+
+test("a refusal is the prototype's soft red card, its corners 20px", () => {
+  const { container } = render(<Refusal>Raqam band</Refusal>)
+  expect(container.querySelector('[data-slot="refusal"]')).toHaveClass("rounded-[20px]")
+})

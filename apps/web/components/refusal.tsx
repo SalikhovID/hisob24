@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 // alert's own text: the pages (and their tests) find it by that.
 export function Refusal({ children, actions, className }: { children: ReactNode; actions?: ReactNode; className?: string }) {
   return (
-    <div data-slot="refusal" className={cn("flex gap-2.5 rounded-[16px] bg-destructive-soft px-3.5 py-3 text-md leading-snug text-destructive", className)}>
+    <div data-slot="refusal" className={cn("flex gap-2.5 rounded-[20px] bg-destructive-soft px-3.5 py-3 text-md leading-snug text-destructive", className)}>
       <CircleAlertIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
       <div className="min-w-0 flex-1">
         <div role="alert">{children}</div>
