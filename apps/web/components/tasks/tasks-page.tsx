@@ -171,7 +171,7 @@ export function TasksPage() {
           description={settingsAllowed ? `Avval ${setupWhat}ni sozlang.` : `Kompaniya egasi ${setupWhat}ni sozlashi kerak.`}
           action={
             settingsAllowed && (
-              <Link href={settingsHref("tasks")} className="inline-flex h-11 items-center rounded-main bg-primary px-5 font-semibold text-primary-foreground">
+              <Link href={settingsHref("tasks")} className="inline-flex h-[46px] items-center rounded-full glossy px-[22px] text-[16px] font-semibold">
                 Sozlamalarni ochish
               </Link>
             )

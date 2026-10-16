@@ -402,3 +402,15 @@ test("each row says what the customer owes, for whoever may see the sales; one w
   renderWithProviders(<CustomersPage />)
   expect(rowsOf(await list()).map((row) => rowParts(row).end)).toEqual([null, null, null])
 })
+
+test("the way to the settings is the empty state's glossy capsule", async () => {
+  await signIn(ALI)
+  noTypes()
+  setLocation("/customers")
+
+  renderWithProviders(<CustomersPage />)
+
+  const link = await screen.findByRole("link", { name: "Sozlamalarni ochish" })
+  expect(link).toHaveClass("glossy", "rounded-full", "h-[46px]", "px-[22px]")
+  expect(link).not.toHaveClass("bg-primary")
+})

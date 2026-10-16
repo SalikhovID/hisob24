@@ -417,3 +417,15 @@ test("a member with no location to work in is told so, and cannot add a task", a
   expect(screen.queryByRole("region", { name: "Vazifalar" })).not.toBeInTheDocument()
   expect(screen.queryByRole("region", { name: "Kanban" })).not.toBeInTheDocument()
 })
+
+test("the way to the settings is the empty state's glossy capsule", async () => {
+  await signIn(ALI)
+  noStages()
+  setLocation("/tasks")
+
+  renderWithProviders(<TasksPage />)
+
+  const link = await screen.findByRole("link", { name: "Sozlamalarni ochish" })
+  expect(link).toHaveClass("glossy", "rounded-full", "h-[46px]", "px-[22px]")
+  expect(link).not.toHaveClass("bg-primary")
+})
