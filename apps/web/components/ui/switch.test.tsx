@@ -24,3 +24,11 @@ test("a label beside the switch names it, and a press on the label turns it", as
   await userEvent.click(screen.getByText("Yakuniy bosqich"))
   expect(change).toHaveBeenCalledWith(false, expect.anything())
 })
+
+test("the switch is the prototype's: off, its own pale track; on, the glossy accent; the thumb lifted by a soft shadow", () => {
+  render(<Switch aria-label="Majburiy" />)
+  const track = screen.getByRole("switch", { name: "Majburiy" })
+  expect(track).toHaveClass("bg-(--switch-off)", "data-checked:bg-(image:--btn)")
+  expect(track).not.toHaveClass("bg-[#E3E3E8]")
+  expect(track.querySelector('[data-slot="switch-thumb"]')).toHaveClass("shadow-[0_3px_8px_rgba(60,40,120,.18),0_1px_1px_rgba(60,40,120,.08)]")
+})

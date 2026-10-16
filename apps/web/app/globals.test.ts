@@ -158,3 +158,8 @@ test("the segmented thumb is black with white ink in the light, a pale glass in 
   expect(block(".dark {")).toContain("--seg-on: #F5F2FF")
   expect(block(".dark {")).toContain("--seg-shadow: 0 4px 14px rgba(60, 40, 120, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7)")
 })
+
+test("a switch that is off is a faint violet track in the light, the plain fill in the night", () => {
+  expect(block(":root {")).toContain("--switch-off: rgba(120, 108, 176, 0.18)")
+  expect(block(".dark {")).toContain("--switch-off: rgba(255, 255, 255, 0.08)")
+})
