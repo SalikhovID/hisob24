@@ -178,3 +178,16 @@ test("a payment entered from the home shows in what the suppliers are owed at on
 
   await waitFor(() => expect(screen.getByRole("link", { name: /^Ta'minotchilarga qarz/ })).toHaveTextContent("14 000 so'm"))
 })
+
+test("on a wide screen the home's head is the location alone, at the right: the way to the profile is the sidebar's", async () => {
+  await signIn(ALI)
+  const { container } = renderWithProviders(<Dashboard />)
+
+  const head = await waitFor(() => {
+    const found = container.querySelector('[data-slot="home-head"]')
+    expect(found).not.toBeNull()
+    return found as HTMLElement
+  })
+  expect(head).toHaveClass("md:justify-end")
+  expect(head.querySelector('a[href="/profile"]')).toHaveClass("md:hidden")
+})

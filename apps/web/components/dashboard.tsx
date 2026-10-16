@@ -51,10 +51,12 @@ export function Dashboard() {
   return (
     <>
       <h1 className="sr-only">Salom, {name}</h1>
-      <div data-slot="home-head" className="mb-3 flex items-center justify-between gap-2.5 pt-1.5 pb-1">
+      {/* On a wide screen the head is the location alone, at the right: the
+          sidebar holds the way to the profile (the prototype's web view). */}
+      <div data-slot="home-head" className="mb-3 flex items-center justify-between gap-2.5 pt-1.5 pb-1 md:justify-end md:pt-0">
         <Link
           href="/profile"
-          className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-[22px] pr-2 text-left outline-none active:opacity-70 focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-[22px] pr-2 text-left outline-none active:opacity-70 focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
         >
           <Avatar name={user.full_name} />
           <span className="min-w-0">
