@@ -145,3 +145,17 @@ test("«Pastki panelni sozlash» leads to the bar's pages, a search or none", as
   await user.click(within(menu).getByRole("button", { name: "Pastki panelni sozlash" }))
   expect(onCustomize).toHaveBeenCalledTimes(1)
 })
+
+test("a page's tile is frosted glass; the page's own is the accent's tint instead", async () => {
+  await signIn(ALI)
+  setLocation("/expenses")
+  renderWithProviders(<MenuSheet {...props()} />)
+
+  const menu = await sheet()
+  const own = await within(menu).findByRole("link", { name: "Xarajatlar" })
+  expect(own).toHaveClass("bg-primary-soft")
+  expect(own).not.toHaveClass("surface")
+  const other = within(menu).getByRole("link", { name: "Mijozlar" })
+  expect(other).toHaveClass("surface", "rounded-tile")
+  expect(other).not.toHaveClass("bg-card")
+})

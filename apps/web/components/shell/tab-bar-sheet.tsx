@@ -83,7 +83,7 @@ function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
         Panelda · {pinned.length}/{BAR_LIMIT}
       </SectionHeading>
       {pinned.length === 0 ? (
-        <Foot className="rounded-group bg-card py-3.5 text-md">Panelda sahifa yo&apos;q — pastdagi ro&apos;yxatdan qo&apos;shing.</Foot>
+        <Foot className="rounded-group surface py-3.5 text-md">Panelda sahifa yo&apos;q — pastdagi ro&apos;yxatdan qo&apos;shing.</Foot>
       ) : (
         <SortableList
           label="Panelda"
@@ -91,7 +91,7 @@ function BarForm({ me, onDone }: { me: Me; onDone: () => void }) {
           getId={(page) => page.key}
           getLabel={(page) => page.label}
           onReorder={(keys) => setDraft(() => keys as PageKey[])}
-          className="mb-6 overflow-hidden rounded-group bg-card [--inset:100px]"
+          className="mb-6 overflow-hidden rounded-group surface [--inset:100px]"
           renderItem={(page, handle) => (
             <div data-slot="row" className="flex min-h-12 items-center gap-3 pr-1 pl-4">
               {handle}

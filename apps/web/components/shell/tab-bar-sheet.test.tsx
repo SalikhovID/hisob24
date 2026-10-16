@@ -137,3 +137,14 @@ test("«Standart» puts the default bar back and keeps no bar of the member's ow
   await second.user.click(within(bar).getByRole("button", { name: "Saqlash" }))
   await waitFor(() => expect(db.members[ALI][0].tabBar).toEqual(["home", "customers", "tasks"]))
 })
+
+test("the bar's pages stand on frosted glass; with none, so does what to do", async () => {
+  db.members[ALI][0].tabBar = ["home"]
+  await signIn(ALI)
+  const { user } = renderWithProviders(<TabBarSheet open onOpenChange={vi.fn()} />)
+
+  const bar = await sheet()
+  expect(await within(bar).findByRole("list", { name: "Panelda" })).toHaveClass("surface", "rounded-group")
+  await user.click(within(bar).getByRole("button", { name: "Olib tashlash: Bosh sahifa" }))
+  expect(within(bar).getByText("Panelda sahifa yo'q — pastdagi ro'yxatdan qo'shing.")).toHaveClass("surface", "rounded-group")
+})

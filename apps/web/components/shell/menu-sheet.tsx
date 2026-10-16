@@ -124,8 +124,8 @@ function MenuBody({ me, onClose }: { me: Me; onClose: () => void }) {
                       onClose()
                     }}
                     className={cn(
-                      "relative flex h-full min-h-[92px] flex-col items-center justify-center gap-2 rounded-tile bg-card px-1 py-3 text-center text-xs leading-tight font-medium no-underline outline-none transition-transform duration-150 ease-out-expo active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50",
-                      current && "bg-primary-soft text-primary",
+                      "relative flex h-full min-h-[92px] flex-col items-center justify-center gap-2 rounded-tile px-1 py-3 text-center text-xs leading-tight font-medium no-underline outline-none transition-transform duration-150 ease-out-expo active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50",
+                      current ? "bg-primary-soft text-primary" : "surface",
                     )}
                   >
                     {tile.pinned && <PinIcon aria-hidden="true" strokeWidth={2.2} className="absolute top-2 right-2 size-3.5 text-muted-foreground" />}
