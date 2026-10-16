@@ -72,7 +72,7 @@ export function PageTitle({
       {back && <BackLink {...back} />}
       <div className="flex items-start justify-between gap-3 px-0.5 pt-1.5 pb-3.5">
         <div className="min-w-0">
-          <h1 className="text-[30px] leading-[1.1] font-bold tracking-[-0.025em] [overflow-wrap:anywhere]">{title}</h1>
+          <h1 className="text-[32px] leading-[1.1] font-bold tracking-[-0.03em] [overflow-wrap:anywhere]">{title}</h1>
           {description && <p className="mt-0.5 text-md text-muted-foreground">{description}</p>}
         </div>
         {action}

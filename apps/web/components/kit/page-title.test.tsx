@@ -35,3 +35,8 @@ test("the plus is the prototype's glossy round button", () => {
   expect(plus).toHaveClass("glossy", "rounded-full")
   expect(plus).not.toHaveClass("bg-primary")
 })
+
+test("a page's name is the prototype's large title: 32px, drawn a little tighter", () => {
+  render(<PageTitle title="Mijozlar" />)
+  expect(screen.getByRole("heading", { level: 1, name: "Mijozlar" })).toHaveClass("text-[32px]", "tracking-[-0.03em]")
+})
