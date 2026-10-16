@@ -81,3 +81,11 @@ test("glossy-red is the prototype's red capsule of an act that cannot be undone,
   expect(red).toContain("box-shadow: 0 8px 22px rgba(207, 63, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4)")
   expect(red).toContain("color: #ffffff")
 })
+
+test("glass-chip is the prototype's small glass of a chip or a round button: the chip's tint and the white rim", () => {
+  const chip = block("@utility glass-chip {")
+  expect(chip).toContain("background-color: var(--chip)")
+  expect(chip).toContain("box-shadow: var(--rim)")
+  expect(block(":root {")).toContain("--chip: rgba(255, 255, 255, 0.6)")
+  expect(block(".dark {")).toContain("--chip: rgba(255, 255, 255, 0.08)")
+})
