@@ -176,3 +176,12 @@ test("the banner is a white card in the light, violet to gold in the night", () 
   expect(block(".dark {")).toContain("--ban: linear-gradient(135deg, #3B2F52 0%, #2D2A4A 55%, #4A3B22 100%)")
   expect(block(".dark {")).toContain("--ban-sub: #E4C27C")
 })
+
+test("the brand's fill is the glossy black in the light, the lavender in the night; its mark's shadow follows", () => {
+  expect(block(":root {")).toContain("--brand-fill: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%)")
+  expect(block(":root {")).toContain("--mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)")
+  expect(block(".dark {")).toContain("--brand-fill: linear-gradient(150deg, #A497F7 0%, #6453D3 100%)")
+  expect(block(".dark {")).toContain(
+    "--mark-shadow: 0 12px 30px rgba(106, 90, 214, 0.32), inset 0 0 0 1.5px rgba(242, 208, 138, 0.75), inset 0 2px 0 rgba(255, 255, 255, 0.4)",
+  )
+})

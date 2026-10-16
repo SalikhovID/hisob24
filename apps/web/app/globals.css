@@ -154,6 +154,10 @@
     --ban-ink: #0E0F12;
     --ban-sub: #4A4D55;
     --ban-x: rgba(255, 255, 255, 0.55);
+    /* The brand's own fill (the splash's mark, the login's panel) and its
+       mark's shadow: the glossy black. */
+    --brand-fill: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%);
+    --mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     /* An avatar: a plain grey circle with dark initials. */
     --av-bg: #E8E9EC;
     --av-ink: #1A1B1F;
@@ -237,6 +241,9 @@
     --ban-ink: #F5F2FF;
     --ban-sub: #E4C27C;
     --ban-x: rgba(255, 255, 255, 0.14);
+    /* The lavender, its mark ringed in gold. */
+    --brand-fill: linear-gradient(150deg, #A497F7 0%, #6453D3 100%);
+    --mark-shadow: 0 12px 30px rgba(106, 90, 214, 0.32), inset 0 0 0 1.5px rgba(242, 208, 138, 0.75), inset 0 2px 0 rgba(255, 255, 255, 0.4);
     --av-bg: rgba(255, 255, 255, 0.12);
     --av-ink: #F2F2F5;
     --chart-1: oklch(0.87 0 0);
