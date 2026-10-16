@@ -26,16 +26,28 @@ test("the light theme is the prototype's light glass: grey-white, white cards, a
   expect(root).toContain("--destructive: #CF3F37")
 })
 
-test("the dark theme is the prototype's night glass: a lavender accent on a deep violet", () => {
+test("the dark theme is the prototype's dark glass: near black, faint glass cards, a white accent", () => {
   const dark = block(".dark {")
-  expect(dark).toContain("--background: #15121E")
-  expect(dark).toContain("--foreground: #F5F2FF")
-  expect(dark).toContain("--card: rgba(255, 255, 255, 0.075)")
-  expect(dark).toContain("--primary: #B0A4FF")
-  expect(dark).toContain("--primary-foreground: #1A1433")
-  expect(dark).toContain("--muted-foreground: #A7A1C0")
-  expect(dark).toContain("--heading: #DAD5EE")
-  expect(dark).toContain("--sheet: #1C1829")
+  expect(dark).toContain("--background: #0F1013")
+  expect(dark).toContain("--foreground: #F2F3F5")
+  expect(dark).toContain("--card: rgba(255, 255, 255, 0.045)")
+  expect(dark).toContain("--primary: #F2F3F5")
+  expect(dark).toContain("--primary-foreground: #0E0F12")
+  expect(dark).toContain("--primary-soft: rgba(255, 255, 255, 0.1)")
+  expect(dark).toContain("--muted: rgba(255, 255, 255, 0.07)")
+  expect(dark).toContain("--muted-foreground: #8E9198")
+  expect(dark).toContain("--heading: #D5D7DC")
+  expect(dark).toContain("--border: rgba(255, 255, 255, 0.08)")
+  expect(dark).toContain("--press: rgba(255, 255, 255, 0.06)")
+  expect(dark).toContain("--menu: rgba(30, 32, 36, 0.9)")
+  // The prototype's see-through rgba(22, 23, 27, .92) as it reads over the
+  // scrim: the sheet's head and bar wear it too (2026-10-16, decision 1).
+  expect(dark).toContain("--sheet: #15161A")
+  expect(dark).toContain("--sheet-cell: rgba(255, 255, 255, 0.05)")
+  expect(dark).toContain("--scrim: rgba(0, 0, 0, 0.55)")
+  expect(dark).toContain("--shadow: 0 18px 44px rgba(0, 0, 0, 0.55)")
+  expect(dark).toContain("--sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 50%)")
+  expect(dark).toContain("--lift: 0 14px 34px rgba(0, 0, 0, 0.35)")
   expect(dark).toContain("--destructive: #FF7A70")
 })
 
@@ -63,7 +75,7 @@ test("a surface is the prototype's frosted glass: the cell, a sheen over its top
   expect(surface).toContain("box-shadow: var(--rim), var(--lift)")
   expect(surface).toContain("backdrop-filter: blur(18px) saturate(1.6)")
   expect(block(":root {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 0 #ffffff")
-  expect(block(".dark {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16)")
+  expect(block(".dark {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.1)")
 })
 
 test("glossy is the prototype's capsule fill of an accent control: the accent as a gradient with a glow", () => {
@@ -72,7 +84,8 @@ test("glossy is the prototype's capsule fill of an accent control: the accent as
   expect(glossy).toContain("box-shadow: var(--btn-glow)")
   expect(glossy).toContain("color: var(--primary-foreground)")
   expect(block(":root {")).toContain("--btn: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%)")
-  expect(block(".dark {")).toContain("--btn: linear-gradient(180deg, #C2B8FF 0%, #9585F5 100%)")
+  expect(block(".dark {")).toContain("--btn: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%)")
+  expect(block(".dark {")).toContain("--btn-glow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.08)")
 })
 
 test("glossy-red is the prototype's red capsule of an act that cannot be undone, in either theme", () => {
@@ -87,7 +100,7 @@ test("glass-chip is the prototype's small glass of a chip or a round button: the
   expect(chip).toContain("background-color: var(--chip)")
   expect(chip).toContain("box-shadow: var(--rim)")
   expect(block(":root {")).toContain("--chip: rgba(255, 255, 255, 0.6)")
-  expect(block(".dark {")).toContain("--chip: rgba(255, 255, 255, 0.08)")
+  expect(block(".dark {")).toContain("--chip: rgba(255, 255, 255, 0.06)")
 })
 
 test("the ambient light is the prototype's: soft gradients over the theme's base, a screen tall from the top", () => {
@@ -100,8 +113,10 @@ test("the ambient light is the prototype's: soft gradients over the theme's base
     "--ambient: radial-gradient(90% 38% at 50% -4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #F7F8F9 0%, #EFF0F3 50%, #E5E7EB 100%)",
   )
   expect(block(":root {")).toContain("--ambient-base: #E5E7EB")
-  expect(block(".dark {")).toContain("--ambient: radial-gradient(110% 55% at -5% -5%, rgba(92, 62, 120, 0.55) 0%, rgba(92, 62, 120, 0) 60%)")
-  expect(block(".dark {")).toContain("--ambient-base: #15121E")
+  expect(block(".dark {")).toContain(
+    "--ambient: radial-gradient(75% 45% at 0% 0%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(160deg, #1D1F23 0%, #0E0F12 46%, #15171B 100%)",
+  )
+  expect(block(".dark {")).toContain("--ambient-base: #15171B")
 })
 
 test("the page's body is lit by the ambient light, under the screens without the shell too", () => {
@@ -129,8 +144,8 @@ test("the avatars are the prototype's plain grey circles with dark initials: no 
   expect(css).not.toContain('[data-slot="avatar"][data-tone')
   expect(block(":root {")).toContain("--av-bg: #E8E9EC")
   expect(block(":root {")).toContain("--av-ink: #1A1B1F")
-  expect(block(".dark {")).toContain("--av-bg: rgba(255, 255, 255, 0.12)")
-  expect(block(".dark {")).toContain("--av-ink: #F2F2F5")
+  expect(block(".dark {")).toContain("--av-bg: rgba(255, 255, 255, 0.1)")
+  expect(block(".dark {")).toContain("--av-ink: #F2F3F5")
 })
 
 test("gloss is the shine of a small colored icon: a thin light rim, a soft shadow and a light falling from its top", () => {
@@ -141,28 +156,28 @@ test("gloss is the shine of a small colored icon: a thin light rim, a soft shado
 
 test("the fade under a bar is the page's own color, nearly opaque", () => {
   expect(block(":root {")).toContain("--fade: rgba(243, 244, 246, 0.94)")
-  expect(block(".dark {")).toContain("--fade: rgba(21, 18, 30, 0.94)")
+  expect(block(".dark {")).toContain("--fade: rgba(14, 15, 18, 0.94)")
 })
 
-test("the search glass is a pale field with a hairline in the light, the chips' glass in the night", () => {
+test("the search glass is a pale field with a hairline in the light, a fainter one in the dark", () => {
   expect(block(":root {")).toContain("--search: rgba(240, 241, 243, 0.7)")
   expect(block(":root {")).toContain("--search-rim: inset 0 0 0 1px rgba(0, 0, 0, 0.08)")
-  expect(block(".dark {")).toContain("--search: rgba(255, 255, 255, 0.08)")
-  expect(block(".dark {")).toContain("--search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16)")
+  expect(block(".dark {")).toContain("--search: rgba(255, 255, 255, 0.05)")
+  expect(block(".dark {")).toContain("--search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09);")
 })
 
-test("the segmented thumb is black with white ink in the light, a pale glass in the night", () => {
+test("the segmented thumb is black with white ink in the light, white with black ink in the dark", () => {
   expect(block(":root {")).toContain("--seg-thumb: #111214")
   expect(block(":root {")).toContain("--seg-on: #ffffff")
   expect(block(":root {")).toContain("--seg-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)")
-  expect(block(".dark {")).toContain("--seg-thumb: rgba(255, 255, 255, 0.18)")
-  expect(block(".dark {")).toContain("--seg-on: #F5F2FF")
-  expect(block(".dark {")).toContain("--seg-shadow: 0 4px 14px rgba(60, 40, 120, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.7)")
+  expect(block(".dark {")).toContain("--seg-thumb: #F2F3F5")
+  expect(block(".dark {")).toContain("--seg-on: #0E0F12")
+  expect(block(".dark {")).toContain("--seg-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);")
 })
 
-test("a switch that is off is a faint violet track in the light, the plain fill in the night", () => {
+test("a switch that is off is a faint violet track in the light, the plain fill in the dark", () => {
   expect(block(":root {")).toContain("--switch-off: rgba(120, 108, 176, 0.18)")
-  expect(block(".dark {")).toContain("--switch-off: rgba(255, 255, 255, 0.08)")
+  expect(block(".dark {")).toContain("--switch-off: rgba(255, 255, 255, 0.07)")
 })
 
 test("the gold of an amount's unit is the hint's grey in the light, a warm gold in the night", () => {
@@ -197,9 +212,9 @@ test("under the brand's fill the panel's own color is its deepest: near black in
   expect(block(".dark {")).toContain("--brand-panel: #6453D3")
 })
 
-test("a board's column is a faint glass: a whisper of white in the light, less in the night", () => {
+test("a board's column is a faint glass: a whisper of white in the light, less in the dark", () => {
   expect(block(":root {")).toContain("--col: rgba(255, 255, 255, 0.45)")
-  expect(block(".dark {")).toContain("--col: rgba(255, 255, 255, 0.04)")
+  expect(block(".dark {")).toContain("--col: rgba(255, 255, 255, 0.025)")
 })
 
 test("a lifted row is a white card in the light (not the segmented thumb's black, as the prototype's), a pale glass in the night", () => {
