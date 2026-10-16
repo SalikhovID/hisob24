@@ -88,3 +88,10 @@ test("the figure is fitted again when its box grows or shrinks in width; a chang
   expect(scaleOf(figure())).toBeCloseTo(276 / 400, 2)
   vi.unstubAllGlobals()
 })
+
+test("an amount's unit is in the prototype's gold", () => {
+  const { container } = render(<Amount value="10" unit="so'm" />)
+  const unit = container.querySelector('[data-slot="amount-unit"]')
+  expect(unit).toHaveClass("text-(--gold)")
+  expect(unit).not.toHaveClass("text-muted-foreground")
+})
