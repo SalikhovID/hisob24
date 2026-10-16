@@ -26,12 +26,17 @@ test("the light theme is the prototype's light glass: grey-white, white cards, a
   expect(root).toContain("--destructive: #CF3F37")
 })
 
-test("the dark theme wears the prototype's colors", () => {
+test("the dark theme is the prototype's night glass: a lavender accent on a deep violet", () => {
   const dark = block(".dark {")
-  expect(dark).toContain("--background: #000000")
-  expect(dark).toContain("--card: #1C1C1E")
-  expect(dark).toContain("--primary: #3CC5AE")
-  expect(dark).toContain("--primary-foreground: #00261F")
+  expect(dark).toContain("--background: #15121E")
+  expect(dark).toContain("--foreground: #F5F2FF")
+  expect(dark).toContain("--card: rgba(255, 255, 255, 0.075)")
+  expect(dark).toContain("--primary: #B0A4FF")
+  expect(dark).toContain("--primary-foreground: #1A1433")
+  expect(dark).toContain("--muted-foreground: #A7A1C0")
+  expect(dark).toContain("--heading: #DAD5EE")
+  expect(dark).toContain("--sheet: rgba(30, 26, 44, 0.84)")
+  expect(dark).toContain("--destructive: #FF7A70")
 })
 
 test("inside Telegram the chat gives the colors", () => {
