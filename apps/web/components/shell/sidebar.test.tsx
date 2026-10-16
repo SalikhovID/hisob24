@@ -168,3 +168,11 @@ test("a section from the sidebar is switched to at once: a move taken before it,
   await user.click(tasks)
   expect(moved()).toBeUndefined()
 })
+
+test("the sidebar is a pane of glass over the ambient light, its edge a hairline", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(sidebar()).toHaveClass("bg-(--head)", "backdrop-blur-[22px]", "backdrop-saturate-[1.8]", "border-r-[0.5px]")
+  expect(sidebar()).not.toHaveClass("bg-background")
+})

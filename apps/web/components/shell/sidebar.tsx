@@ -21,8 +21,8 @@ export interface SidebarProps {
   onToggleCollapsed: () => void
 }
 
-// Sidebar is the app's sections on a wide screen, in the prototype's look:
-// Hisob24's logo over the company's name, the sections each a filled icon
+// Sidebar is the app's sections on a wide screen, in the prototype's look,
+// a pane of glass over the ambient light: Hisob24's logo over the company's name, the sections each a filled icon
 // and its name (the page's one on the accent's soft tint), and at the foot
 // the location switch and who is signed in, the way to the profile. Each
 // member sees the sections their permissions open (the owner all of them),
@@ -41,7 +41,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     <aside
       aria-label="Menyu"
       className={cn(
-        "hidden shrink-0 flex-col border-r-[0.5px] border-border bg-background text-foreground transition-[width] duration-300 ease-out-expo md:flex",
+        "hidden shrink-0 flex-col border-r-[0.5px] border-border bg-(--head) text-foreground backdrop-blur-[22px] backdrop-saturate-[1.8] transition-[width] duration-300 ease-out-expo md:flex",
         collapsed ? "w-16" : "w-64",
       )}
     >

@@ -205,3 +205,8 @@ test("a lifted row is a white card in the light (not the segmented thumb's black
   expect(block(":root {")).toContain("--lifted: #ffffff")
   expect(block(".dark {")).toContain("--lifted: rgba(255, 255, 255, 0.18)")
 })
+
+test("the sidebar's pane is a pale glass in the light, a dark violet glass in the night", () => {
+  expect(block(":root {")).toContain("--head: rgba(246, 247, 249, 0.72)")
+  expect(block(".dark {")).toContain("--head: rgba(28, 24, 40, 0.55)")
+})
