@@ -6,7 +6,8 @@ import { cn } from "cn"
 import { XIcon } from "lucide-react"
 
 // The dialogs are the prototype's sheets (the sheet's own color, a white
-// edge): they come up from the bottom of
+// edge), stopping short of what lies over the screen's top (Telegram's
+// controls in full screen): they come up from the bottom of
 // the screen (on a wide screen too, 480px wide in the middle), a grab
 // handle on top, the close button at the top left, the title centered, the
 // body scrolling under a sticky head, the main button in a sticky footer.
@@ -66,7 +67,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-tall={tall || undefined}
         className={cn(
-          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px)] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px)]",
+          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px-var(--safe-top))] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px-var(--safe-top))]",
           className
         )}
         {...props}

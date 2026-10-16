@@ -118,6 +118,18 @@ test.describe("a linked user", () => {
     await page.getByRole("main").evaluate((main) => main.scrollTo({ top: 60 }))
     await expect(fade).toHaveAttribute("data-on", "true")
     await page.getByRole("main").evaluate((main) => main.scrollTo({ top: 0 }))
+    // A sheet, the tallest too, starts below the controls.
+    if (onPhone(page)) {
+      // Measured where it stops, not on its way up.
+      await page.emulateMedia({ reducedMotion: "reduce" })
+      await page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true }).getByRole("button", { name: "Sozlama" }).click()
+      const menu = page.getByRole("dialog", { name: "Sozlama" })
+      await expect(menu).toBeVisible()
+      await page.waitForTimeout(100)
+      expect((await menu.boundingBox())?.y).toBeGreaterThanOrEqual(93)
+      await page.keyboard.press("Escape")
+      await expect(menu).toBeHidden()
+    }
     await fits(page)
     // Closing the Mini App is the way out: the profile offers no sign-out,
     // and the chat sets the theme.

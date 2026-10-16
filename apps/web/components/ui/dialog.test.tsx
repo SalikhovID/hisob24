@@ -78,3 +78,18 @@ test("a sheet's head and its main button's bar wear the sheet's own color, so wh
   expect(head).toHaveClass("bg-sheet")
   expect(foot).toHaveClass("from-sheet")
 })
+
+test("a sheet stops short of what lies over the screen's top (Telegram's controls in full screen), a tall one too", async () => {
+  render(
+    <Dialog open>
+      <DialogContent tall>
+        <DialogHeader>
+          <DialogTitle>Sozlama</DialogTitle>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>,
+  )
+  const sheet = await screen.findByRole("dialog", { name: "Sozlama" })
+  expect(sheet).toHaveClass("max-h-[calc(100dvh-18px-var(--safe-top))]", "data-tall:h-[calc(100dvh-18px-var(--safe-top))]")
+  expect(sheet).not.toHaveClass("max-h-[calc(100dvh-18px)]")
+})
