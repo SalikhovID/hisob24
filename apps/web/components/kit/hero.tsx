@@ -10,8 +10,9 @@ import { moveTo, stepInto } from "@/lib/moves"
 // a purchase's total, an account's balance), the prototype's card of
 // frosted glass: a label in the hint's grey (a debt's red, an advance's
 // green), the amount large and badges under it, larger pills than a row's,
-// all at the left; on a wide screen the figure is larger. The whole leads
-// somewhere when told.
+// all at the left; on a wide screen the figure is larger. A plain one is
+// the figure alone in the middle, no card (a product's price, a balance,
+// as the prototype's). The whole leads somewhere when told.
 export function Hero({
   label,
   value,
@@ -21,6 +22,7 @@ export function Hero({
   onClick,
   tone,
   heading = false,
+  plain = false,
   className,
 }: {
   label: string
@@ -34,10 +36,15 @@ export function Hero({
   // heading makes the label the page's heading (a document's page opens
   // with its figure).
   heading?: boolean
+  // plain: the figure alone in the middle, no card.
+  plain?: boolean
   className?: string
 }) {
   const classes = cn(
-    "mt-1.5 mb-4 block w-full rounded-[30px] surface px-[22px] pt-6 pb-[22px] text-left text-foreground no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:[--amount-big:72px] md:[--amount-small:48px]",
+    "block w-full text-foreground no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+    plain
+      ? "px-2 pt-2 pb-6 text-center"
+      : "mt-1.5 mb-4 rounded-[30px] surface px-[22px] pt-6 pb-[22px] text-left md:[--amount-big:72px] md:[--amount-small:48px]",
     className,
   )
   const Label = heading ? "h1" : "span"
@@ -54,7 +61,10 @@ export function Hero({
       {badges && (
         <span
           data-slot="hero-badges"
-          className="mt-3.5 flex flex-wrap items-center justify-start gap-2 text-md font-semibold [&_[data-slot=badge]]:h-[26px] [&_[data-slot=badge]]:px-[11px] [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:font-semibold"
+          className={cn(
+            "mt-3.5 flex flex-wrap items-center gap-2 text-md font-semibold [&_[data-slot=badge]]:h-[26px] [&_[data-slot=badge]]:px-[11px] [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:font-semibold",
+            plain ? "justify-center" : "justify-start",
+          )}
         >
           {badges}
         </span>

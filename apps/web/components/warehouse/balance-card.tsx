@@ -20,6 +20,7 @@ export function BalanceCard({ balance, byCurrency, children }: { balance: string
   return (
     <section aria-label="Balans" className="mb-4">
       <Hero
+        plain
         label={kind === "debt" ? "Qarz" : kind === "advance" ? "Avans" : "Qarz yo'q"}
         tone={kind === "debt" ? "red" : kind === "advance" ? "green" : undefined}
         value={balance.replace("-", "")}

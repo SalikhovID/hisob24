@@ -92,7 +92,7 @@ export function ProductPage({ id }: { id: number }) {
         description={isProduct ? [p.unit && unitLabel(p.unit), p.sku].filter(Boolean).join(" · ") || undefined : "Xizmat"}
         badges={!p.is_active && <Badge>Nofaol</Badge>}
       />
-      {p.price && <Hero label="Sotuv narxi" value={p.price} unit={currency.symbol} className="-mt-3 pt-0 pb-5 [&_[data-slot=hero-label]]:text-muted-foreground" />}
+      {p.price && <Hero plain label="Sotuv narxi" value={p.price} unit={currency.symbol} className="-mt-3 pt-0 pb-5" />}
       {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       {/* The stock in every location of the member, the current one marked. */}
       {isProduct && <ProductStock stock={p.stock} unit={p.unit} currentId={location.current?.id ?? null} />}

@@ -57,3 +57,13 @@ test("a debt's label keeps its red, an advance's its green", () => {
   expect(screen.getByText("Qarz")).not.toHaveClass("text-muted-foreground")
   expect(screen.getByText("Avans")).toHaveClass("text-positive")
 })
+
+test("a plain hero is the figure alone in the middle, no card (a product's price, a balance), as the prototype's", () => {
+  render(<Hero plain label="Sotuv narxi" value="12000" unit="so'm" badges={<span>shu jumladan 5 $</span>} />)
+  const hero = screen.getByText("Sotuv narxi").closest('[data-slot="hero"]')
+  expect(hero).toHaveClass("text-center")
+  expect(hero).not.toHaveClass("surface")
+  expect(hero).not.toHaveClass("rounded-[30px]")
+  expect(hero?.querySelector('[data-slot="hero-badges"]')).toHaveClass("justify-center")
+  expect(screen.getByText("Sotuv narxi")).toHaveClass("text-[16px]", "font-medium", "text-muted-foreground")
+})
