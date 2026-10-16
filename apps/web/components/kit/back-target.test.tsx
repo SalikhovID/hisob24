@@ -33,12 +33,18 @@ test("a page's way back is the shell's to know while the page shows it, and gone
   expect(await screen.findByText("none")).toBeInTheDocument()
 })
 
-test("a page's way back is a phone's: on a wide screen the shell's top bar leads back", () => {
-  render(<BackLink href="/customers" label="Mijozlar" />)
+test("inside the shell a page's way back is a phone's: on a wide screen the shell's top bar leads back", () => {
+  render(
+    <BackTargetProvider>
+      <BackLink href="/customers" label="Mijozlar" />
+    </BackTargetProvider>,
+  )
   expect(screen.getByRole("link", { name: "Mijozlar" })).toHaveClass("md:hidden")
 })
 
-test("without the shell a way back stands alone", () => {
-  render(<BackLink href="/" label="Bosh sahifa" />)
-  expect(screen.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
+test("without the shell (a page of its own, as the company list) a way back stands on every screen", () => {
+  render(<BackLink href="/profile" label="Profil" />)
+  const link = screen.getByRole("link", { name: "Profil" })
+  expect(link).toHaveAttribute("href", "/profile")
+  expect(link).not.toHaveClass("md:hidden")
 })

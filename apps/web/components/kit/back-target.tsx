@@ -33,13 +33,15 @@ export function useBackTarget(): BackTarget | null {
 }
 
 // useRegisterBack tells the shell a page's way back while the page shows
-// it. Leaving, it takes back its own alone: the next page may have told
-// its already.
-export function useRegisterBack({ href, label }: BackTarget) {
+// it, and says whether there is a shell to tell (a page of its own, as the
+// company list, has none). Leaving, it takes back its own alone: the next
+// page may have told its already.
+export function useRegisterBack({ href, label }: BackTarget): boolean {
   const setTarget = useContext(SetContext)
   useEffect(() => {
     if (!setTarget) return
     setTarget(() => ({ href, label }))
     return () => setTarget((current) => (current?.href === href && current.label === label ? null : current))
   }, [setTarget, href, label])
+  return setTarget !== null
 }
