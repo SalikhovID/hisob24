@@ -45,8 +45,10 @@ test("inside Telegram the app keeps its own colors: the chat gives the scheme, n
 
 test("the radii, the text sizes and the font stack are the prototype's", () => {
   const theme = block("@theme inline {")
-  expect(theme).toContain("--radius-group: 22px")
-  expect(theme).toContain("--radius-sheet: 36px")
+  expect(theme).toContain("--radius-group: 26px")
+  expect(theme).toContain("--radius-tile: 22px")
+  expect(theme).toContain("--radius-sheet: 40px")
+  expect(theme).toContain("--radius-badge: 999px")
   expect(theme).toContain("--radius-main: 14px")
   expect(theme).toContain("--text-base: 17px")
   expect(theme).toContain("--text-md: 15px")

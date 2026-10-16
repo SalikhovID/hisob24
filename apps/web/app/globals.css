@@ -65,11 +65,11 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
-    --radius-badge: 7px;
+    --radius-badge: 999px;
     --radius-main: 14px;
-    --radius-tile: 18px;
-    --radius-group: 22px;
-    --radius-sheet: 36px;
+    --radius-tile: 22px;
+    --radius-group: 26px;
+    --radius-sheet: 40px;
     /* The prototype's type scale: 17px rows, 15px secondary, 14px small, 13px notes. */
     --text-xs: 13px;
     --text-xs--line-height: 1.3;
