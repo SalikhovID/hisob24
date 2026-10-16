@@ -7,9 +7,11 @@ import { Amount } from "./amount"
 import { moveTo, stepInto } from "@/lib/moves"
 
 // Hero is the figure a page opens with (the home's debt to the suppliers,
-// a purchase's total, a supplier's balance): a label, the amount large and
-// badges under it, larger pills than a row's; the whole leads somewhere
-// when told.
+// a purchase's total, an account's balance), the prototype's card of
+// frosted glass: a label in the hint's grey (a debt's red, an advance's
+// green), the amount large and badges under it, larger pills than a row's,
+// all at the left; on a wide screen the figure is larger. The whole leads
+// somewhere when told.
 export function Hero({
   label,
   value,
@@ -35,13 +37,16 @@ export function Hero({
   className?: string
 }) {
   const classes = cn(
-    "block w-full rounded-[24px] px-2 pt-6 pb-7 text-center text-foreground no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+    "mt-1.5 mb-4 block w-full rounded-[30px] surface px-[22px] pt-6 pb-[22px] text-left text-foreground no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:[--amount-big:72px] md:[--amount-small:48px]",
     className,
   )
   const Label = heading ? "h1" : "span"
   const content = (
     <>
-      <Label data-slot="hero-label" className={cn("mb-1.5 block text-md font-semibold", tone === "red" && "text-destructive", tone === "green" && "text-positive")}>
+      <Label
+        data-slot="hero-label"
+        className={cn("mb-2.5 block text-[16px] font-medium", tone === "red" ? "text-destructive" : tone === "green" ? "text-positive" : "text-muted-foreground")}
+      >
         {label}
       </Label>{" "}
       <Amount value={value} unit={unit} />
@@ -49,7 +54,7 @@ export function Hero({
       {badges && (
         <span
           data-slot="hero-badges"
-          className="mt-2.5 flex flex-wrap items-center justify-center gap-2 text-md font-semibold [&_[data-slot=badge]]:h-[26px] [&_[data-slot=badge]]:px-[11px] [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:font-semibold"
+          className="mt-3.5 flex flex-wrap items-center justify-start gap-2 text-md font-semibold [&_[data-slot=badge]]:h-[26px] [&_[data-slot=badge]]:px-[11px] [&_[data-slot=badge]]:text-sm [&_[data-slot=badge]]:font-semibold"
         >
           {badges}
         </span>

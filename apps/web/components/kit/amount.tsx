@@ -72,8 +72,10 @@ export function Amount({
     return () => observer?.disconnect()
   }, [whole, decimals, unit])
 
-  const big = size === "hero" ? 56 : 52
-  const small = size === "hero" ? 40 : 52
+  // A hero's figure takes its size from its box when the box gives one (a
+  // hero on a wide screen); the keypad's is its own.
+  const big = size === "hero" ? "var(--amount-big, 56px)" : "52px"
+  const small = size === "hero" ? "var(--amount-small, 40px)" : "52px"
   return (
     <span
       ref={ref}
@@ -81,11 +83,11 @@ export function Amount({
       style={{ "--k": String(scale) } as CSSProperties}
       className={cn("inline-flex items-baseline justify-center leading-none font-bold tracking-[-0.035em] whitespace-nowrap", muted && "text-muted-foreground", className)}
     >
-      <span data-slot="amount-whole" style={{ fontSize: `calc(${big}px * var(--k))` }}>
+      <span data-slot="amount-whole" style={{ fontSize: `calc(${big} * var(--k))` }}>
         {whole}
       </span>
       {decimals && (
-        <span data-slot="amount-decimals" style={{ fontSize: `calc(${small}px * var(--k))` }}>
+        <span data-slot="amount-decimals" style={{ fontSize: `calc(${small} * var(--k))` }}>
           {decimals}
         </span>
       )}

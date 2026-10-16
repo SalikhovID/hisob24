@@ -96,3 +96,9 @@ test("an amount's unit is the hint's grey, a little smaller and lighter than the
   expect(unit).not.toHaveClass("text-(--gold)")
   expect(unit.style.fontSize).toBe("calc(26px * var(--k))")
 })
+
+test("a figure takes its size from its box when the box gives one (a hero on a wide screen), 56px and 40px otherwise", () => {
+  const { container } = render(<Amount value="1250.50" unit="so'm" />)
+  expect((container.querySelector('[data-slot="amount-whole"]') as HTMLElement).style.fontSize).toBe("calc(var(--amount-big, 56px) * var(--k))")
+  expect((container.querySelector('[data-slot="amount-decimals"]') as HTMLElement).style.fontSize).toBe("calc(var(--amount-small, 40px) * var(--k))")
+})
