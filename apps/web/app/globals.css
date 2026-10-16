@@ -519,6 +519,24 @@ html[data-telegram] body {
 :root:not([data-move]) [data-slot="page"] {
   view-transition-name: none !important;
 }
+/* While a page moves, the tab bar stands over both pages, as the
+   prototype's bar stands over its screens: it is drawn on its own, as it is
+   (stepping down as a record comes, up as its list comes back), over them.
+   Only then: at rest and in a change with no move it stays in the root's
+   picture, its frost on the page under it. */
+:root[data-move]:active-view-transition [data-slot="tab-bar"] {
+  view-transition-name: tab-bar;
+}
+::view-transition-group(tab-bar) {
+  z-index: 3;
+  animation: none;
+}
+::view-transition-old(tab-bar) {
+  display: none;
+}
+::view-transition-new(tab-bar) {
+  animation: none;
+}
 /* The page that moves is opaque in the ambient light, so the page it
    covers does not show through it; at rest it lets the column's light show
    (AppShell). Its light is the column's: a screen tall, moved back by the

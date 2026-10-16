@@ -38,6 +38,43 @@ async function movedBy(page: Page, action: () => Promise<unknown>) {
   return async () => (await moves(page)).slice(before)
 }
 
+// recordLayers keeps, for every view transition the page starts, how the
+// browser stacks the tab bar's picture over the pages' ones: each one's
+// z-index as its group has it ("none" for a bar not drawn on its own).
+async function recordLayers(page: Page) {
+  await page.addInitScript(() => {
+    const layers: { bar: string; pages: string[]; ready: boolean }[] = []
+    ;(window as unknown as { __layers: typeof layers }).__layers = layers
+    const start = document.startViewTransition?.bind(document)
+    if (!start) return
+    const pages = () =>
+      [...document.querySelectorAll('[data-slot="page"]')].map((page) => getComputedStyle(page).viewTransitionName).filter((name) => name !== "none")
+    const layer = (name: string) => getComputedStyle(document.documentElement, `::view-transition-group(${name})`).zIndex
+    document.startViewTransition = ((arg?: ViewTransitionUpdateCallback | StartViewTransitionOptions) => {
+      const transition = start(arg as StartViewTransitionOptions)
+      // The page that goes is named as it is captured, before it goes.
+      const going = pages()
+      const seen = { bar: "none", pages: [] as string[], ready: false }
+      layers.push(seen)
+      transition.ready
+        .then(() => {
+          // A bar that is not on the screen (a wide screen's) is not drawn at all.
+          const bar = document.querySelector('[data-slot="tab-bar"]')
+          const name = bar && bar.getClientRects().length > 0 ? getComputedStyle(bar).viewTransitionName : "none"
+          seen.bar = name === "none" ? "none" : layer(name)
+          seen.pages = [...going, ...pages()].map(layer)
+          seen.ready = true
+        })
+        .catch(() => {})
+      return transition
+    }) as typeof document.startViewTransition
+  })
+}
+const layers = (page: Page) => page.evaluate(() => (window as unknown as { __layers: { bar: string; pages: string[]; ready: boolean }[] }).__layers)
+// readyLayers is how many of the transitions started since before have shown.
+const readyLayers = async (page: Page, before: number) => (await layers(page)).slice(before).filter((move) => move.ready).length
+const over = (layer: string) => (layer === "auto" ? 0 : Number(layer))
+
 // holdTransitions keeps each view transition on the screen for 3s, drawn as
 // it is (its root's picture runs a still animation), so that a shot can be
 // taken of one; the page says whether one is under way.
@@ -177,3 +214,31 @@ test("a page from the menu changes under the shell: while it changes, the screen
   expect(await apart(page, during, after)).toBeLessThan(0.001)
 })
 
+test("while a page moves the tab bar stands over both pages, stepping down as a record comes and up as its list comes back, as the prototype's bar over its screens", async ({ page }) => {
+  seedCustomers()
+  await recordLayers(page)
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await openSection(page, "Mijozlar")
+  await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
+  const before = (await layers(page)).length
+
+  await page.getByRole("list", { name: "Mijozlar" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
+  await expect.poll(() => readyLayers(page, before)).toBe(1)
+  await back(page, "Mijozlar")
+  await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
+  await expect.poll(() => readyLayers(page, before)).toBe(2)
+
+  const moves = (await layers(page)).slice(before)
+  if (!onPhone(page)) {
+    // A wide screen has no tab bar: the sidebar stands beside the pages.
+    expect(moves.map((move) => move.bar)).toEqual(["none", "none"])
+    return
+  }
+  for (const move of moves) {
+    expect(move.pages).toHaveLength(2)
+    expect(move.bar).not.toBe("none")
+    expect(over(move.bar)).toBeGreaterThan(Math.max(...move.pages.map(over)))
+  }
+})
