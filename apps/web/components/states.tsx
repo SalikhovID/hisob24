@@ -81,9 +81,10 @@ export function Failed({ error, onRetry }: { error: Error; onRetry: () => void }
 }
 
 // EmptyState says there is nothing to show and, under that, what would
-// change it: with an icon in the accent tint, and the way forward (a
-// button) when there is one. It takes the list's place, in the list's
-// frame: a note inside its section, so it has no heading.
+// change it: on frosted glass, with an icon in the accent tint ringed in
+// white, and the way forward (a button, the prototype's smaller capsule)
+// when there is one. It takes the list's place, in the list's frame: a
+// note inside its section, so it has no heading.
 export function EmptyState({
   icon: Icon,
   title,
@@ -98,15 +99,22 @@ export function EmptyState({
   className?: string
 }) {
   return (
-    <div data-slot="empty-state" className={cn("mb-6 rounded-group bg-card px-6 py-7 text-center", className)}>
+    <div data-slot="empty-state" className={cn("mb-6 rounded-group surface px-6 py-7 text-center", className)}>
       {Icon && (
-        <span aria-hidden="true" className="mx-auto mb-3.5 grid size-16 place-items-center rounded-[20px] bg-primary-soft text-primary">
+        <span
+          aria-hidden="true"
+          className="mx-auto mb-3.5 grid size-16 place-items-center rounded-[20px] bg-primary-soft text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,.6)]"
+        >
           <Icon aria-hidden="true" strokeWidth={1.9} className="size-[30px]" />
         </span>
       )}
       <p className="text-[18px] font-semibold">{title}</p>
       {description && <p className="mt-1.5 text-md text-pretty text-muted-foreground">{description}</p>}
-      {action && <div className="mt-4 inline-flex">{action}</div>}
+      {action && (
+        <div className="mt-[18px] inline-flex [&_[data-slot=main-button]]:h-[46px] [&_[data-slot=main-button]]:w-auto [&_[data-slot=main-button]]:px-[22px] [&_[data-slot=main-button]]:text-[16px]">
+          {action}
+        </div>
+      )}
     </div>
   )
 }

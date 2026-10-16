@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
 import { CalendarXIcon, UserIcon } from "lucide-react"
+import { MainButton } from "@/components/kit/main-button"
 import { EmptyState, Failed, ListLoading, Loading, NotFound, Splash, StateScreen } from "./states"
 
 test("EmptyState says what is missing and what would change that, as plain text", () => {
@@ -111,4 +112,17 @@ test("the splash's mark is the brand's fill: black glass in the light, lavender 
   const mark = screen.getByRole("img", { name: "Hisob24" })
   expect(mark).toHaveClass("bg-(image:--brand-fill)", "shadow-(--mark-shadow)")
   expect(mark).not.toHaveClass("bg-brand-panel")
+})
+
+test("an empty state is frosted glass, its icon ringed in white, its button the prototype's smaller capsule", () => {
+  const { container } = render(<EmptyState icon={UserIcon} title="Mijoz yo'q" action={<MainButton>Mijoz qo&apos;shish</MainButton>} />)
+  const empty = container.querySelector('[data-slot="empty-state"]')!
+  expect(empty).toHaveClass("surface", "rounded-group")
+  expect(empty).not.toHaveClass("bg-card")
+  expect(empty.querySelector("[aria-hidden=true]")).toHaveClass("shadow-[inset_0_0_0_1px_rgba(255,255,255,.6)]")
+  expect(screen.getByRole("button", { name: "Mijoz qo'shish" }).parentElement).toHaveClass(
+    "[&_[data-slot=main-button]]:h-[46px]",
+    "[&_[data-slot=main-button]]:w-auto",
+    "[&_[data-slot=main-button]]:px-[22px]",
+  )
 })
