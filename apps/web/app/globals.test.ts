@@ -89,3 +89,17 @@ test("glass-chip is the prototype's small glass of a chip or a round button: the
   expect(block(":root {")).toContain("--chip: rgba(255, 255, 255, 0.6)")
   expect(block(".dark {")).toContain("--chip: rgba(255, 255, 255, 0.08)")
 })
+
+test("the ambient light is the prototype's: soft gradients over the theme's base, a screen tall from the top", () => {
+  const ambient = block("@utility bg-ambient {")
+  expect(ambient).toContain("background-color: var(--ambient-base)")
+  expect(ambient).toContain("background-image: var(--ambient)")
+  expect(ambient).toContain("background-repeat: no-repeat")
+  expect(ambient).toContain("background-size: 100% 100vh")
+  expect(block(":root {")).toContain(
+    "--ambient: radial-gradient(90% 38% at 50% -4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #F7F8F9 0%, #EFF0F3 50%, #E5E7EB 100%)",
+  )
+  expect(block(":root {")).toContain("--ambient-base: #E5E7EB")
+  expect(block(".dark {")).toContain("--ambient: radial-gradient(110% 55% at -5% -5%, rgba(92, 62, 120, 0.55) 0%, rgba(92, 62, 120, 0) 60%)")
+  expect(block(".dark {")).toContain("--ambient-base: #15121E")
+})
