@@ -193,13 +193,11 @@ test("the banner is a white card in the light, violet to gold in the night", () 
   expect(block(".dark {")).toContain("--ban-sub: #E4C27C")
 })
 
-test("the brand's fill is the glossy black in the light, the lavender in the night; its mark's shadow follows", () => {
+test("the brand's fill is the glossy black in the light, the glossy white in the dark (the accent's own); its mark's shadow follows", () => {
   expect(block(":root {")).toContain("--brand-fill: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%)")
   expect(block(":root {")).toContain("--mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)")
-  expect(block(".dark {")).toContain("--brand-fill: linear-gradient(150deg, #A497F7 0%, #6453D3 100%)")
-  expect(block(".dark {")).toContain(
-    "--mark-shadow: 0 12px 30px rgba(106, 90, 214, 0.32), inset 0 0 0 1.5px rgba(242, 208, 138, 0.75), inset 0 2px 0 rgba(255, 255, 255, 0.4)",
-  )
+  expect(block(".dark {")).toContain("--brand-fill: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%)")
+  expect(block(".dark {")).toContain("--mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);")
 })
 
 test("on a page's own background the logo is the light glass's ink, near black; white in the night", () => {
@@ -207,9 +205,11 @@ test("on a page's own background the logo is the light glass's ink, near black; 
   expect(block(".dark {")).toContain("--brand: #ffffff")
 })
 
-test("under the brand's fill the panel's own color is its deepest: near black in the light, the lavender's in the night", () => {
+test("under the brand's fill the panel's own color is its deepest, and what stands on it is the other end: white on black in the light, black on white in the dark", () => {
   expect(block(":root {")).toContain("--brand-panel: #0E0F11")
-  expect(block(".dark {")).toContain("--brand-panel: #6453D3")
+  expect(block(":root {")).toContain("--brand-panel-foreground: #ffffff")
+  expect(block(".dark {")).toContain("--brand-panel: #E2E3E6")
+  expect(block(".dark {")).toContain("--brand-panel-foreground: #0E0F12")
 })
 
 test("a board's column is a faint glass: a whisper of white in the light, less in the dark", () => {

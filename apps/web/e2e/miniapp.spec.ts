@@ -87,8 +87,8 @@ test.describe("a linked user", () => {
     await expect(page).toHaveURL(/\/$/)
     await expect(page.locator("html")).toHaveAttribute("data-telegram", "")
     // The chat gives the scheme (dark), not its theme's colors: the page
-    // is the app's own night glass (docs: 2026-10-16 liquid glass).
-    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(21, 18, 30)")
+    // is the app's own dark glass (docs: 2026-10-16 glass v2).
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(21, 23, 27)")
     // Telegram's own chrome round the app wears its night base too.
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __chrome?: Record<string, string> }).__chrome))
@@ -245,8 +245,10 @@ test.describe("a Mini App whose sign-in fails", () => {
     await expect(page.getByRole("alert").filter({ hasText: "Telegram ma'lumoti yaroqsiz" })).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Telefon raqami" })).toBeVisible()
     const panel = page.getByRole("banner")
-    await expect(panel).toHaveCSS("background-color", "rgb(100, 83, 211)")
-    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(255, 255, 255)")
+    // The chat's scheme is dark: the brand's panel is the glossy white,
+    // the logo on it black (docs: 2026-10-16 glass v2, decision 6).
+    await expect(panel).toHaveCSS("background-color", "rgb(226, 227, 230)")
+    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(14, 15, 18)")
     // Full screen: the panel's own padding (40px on a phone, 48px from lg)
     // grows by the insets (93px), so the logo stays clear of the controls.
     await expect(panel).toHaveCSS("padding-top", onPhone(page) ? "133px" : "141px")

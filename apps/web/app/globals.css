@@ -186,7 +186,9 @@
        dark one, inside Telegram too (the app keeps its colors there). */
     --brand: #0E0F12;
     /* The brand's own surface (the login's panel: the brand's fill over its
-       deepest color) and what stands on it, white in light and in dark. */
+       deepest color) and what stands on it (the panel's words, the splash's
+       mark): white on the black of the light, black on the white of the
+       dark. */
     --brand-panel: #0E0F11;
     --brand-panel-foreground: #ffffff;
     --sidebar: #F1F2F4;
@@ -266,9 +268,9 @@
     --ban-ink: #F5F2FF;
     --ban-sub: #E4C27C;
     --ban-x: rgba(255, 255, 255, 0.14);
-    /* The lavender, its mark ringed in gold. */
-    --brand-fill: linear-gradient(150deg, #A497F7 0%, #6453D3 100%);
-    --mark-shadow: 0 12px 30px rgba(106, 90, 214, 0.32), inset 0 0 0 1.5px rgba(242, 208, 138, 0.75), inset 0 2px 0 rgba(255, 255, 255, 0.4);
+    /* The glossy white, the dark's accent (the prototype's splash mark). */
+    --brand-fill: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%);
+    --mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
     --av-bg: rgba(255, 255, 255, 0.1);
     --av-ink: #F2F3F5;
     --chart-1: oklch(0.87 0 0);
@@ -277,7 +279,8 @@
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --brand: #ffffff;
-    --brand-panel: #6453D3;
+    --brand-panel: #E2E3E6;
+    --brand-panel-foreground: #0E0F12;
     --sidebar: #0F1013;
     --sidebar-foreground: #F2F3F5;
     --sidebar-primary: #F2F3F5;
