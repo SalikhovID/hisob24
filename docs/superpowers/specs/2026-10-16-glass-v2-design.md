@@ -1,6 +1,6 @@
 # User app: «Qorong'i shisha», konturli belgilar, «Sozlamalar» sahifasi va web ko'rinishi — dizayn
 
-Sana: 2026-10-16. Holat: foydalanuvchi reja sifatida tasdiqlagan (ikki savol-javob bilan). Reja: `docs/superpowers/plans/2026-10-16-glass-v2.md`. Faqat user app (`apps/web`); admin panel, backend va API o'zgarmaydi.
+Sana: 2026-10-16. Holat: foydalanuvchi reja sifatida tasdiqlagan (ikki savol-javob bilan); 0–5-bosqichlar amalga oshirilgan (2026-10-16, pastda «Amalga oshirishda belgilangan qarorlar»). Reja: `docs/superpowers/plans/2026-10-16-glass-v2.md`. Faqat user app (`apps/web`); admin panel, backend va API o'zgarmaydi.
 
 ## Kontekst
 
@@ -173,4 +173,41 @@ Ish `dev` branch'ida. Har bosqich TDD (RED → GREEN → commit), oxirida `make 
 
 ## Amalga oshirishda belgilangan qarorlar
 
-(Bosqichlar davomida to'ldiriladi.)
+1. **Brend siyohi uchun yangi token kerak bo'lmadi.** Splash belgisi ham, kirish paneli ham `--brand-panel-foreground` ni oladi (qorong'ida `#0E0F12`). Kalitda faqat yoqilgan holatdagi tugmacha o'zgaradi (`--switch-knob-on`), o'chig'i oq qoladi (prototipdagi `.sw.on::after`).
+2. **Banner rasmi ranglari class bilan beriladi** (`[stop-color:var(--art1)]`, `fill-(--art-ink)`, `fill-(--art-spark)`): SVG atributi CSS o'zgaruvchisini qabul qilmaydi.
+3. **Telegram'ning qorong'i ranglari o'lchab olindi.** Qorong'i ambient 160deg ostida, shuning uchun telefon ekrani tepa va past chetining o'rtasi brauzerda chizilib o'lchandi: sarlavha `#1C1D21`, fon `#0F1013`, pastki panel `#14161A`.
+4. **Belgilar.** `TileIcon` dan `color` olib tashlandi, `sectionColors` va `pageColors` ham ketdi. Ombor hub'i qatorlari tab-bar belgilarini (`pageIcons`) kiyadi. `SoftIcon` endi prototipdagi `.tk-ic`: 40px doira, `bg-muted`. Hujjat boshidagi 76px kvadrat (inventarizatsiya, ko'chirish) o'z rangli fonini saqlaydi (prototipdagi `.pic.stg`). `StatCard` dan `color` ketdi. «Sotuv» kartasining chizig'i ham urg'u rangida (prototipda hamma chiziq shunday).
+5. **Amal plitkasining ikonkasi** `bg-primary bg-(image:--btn)` bilan yozildi, `glossy` va `shadow-none` ustma-ust qo'yilmadi (custom utility va Tailwind tartibi kafolatlanmagan).
+6. **Hero.** Standart ko'rinish karta. `plain` varianti mahsulot narxi va `balance-card` (ta'minotchi va mijoz balansi) uchun. Kassa sahifasi kartani saqladi, chunki u hujjat kabi sahifani boshlaydi. Summa o'lchami `--amount-big` / `--amount-small` dan olinadi, karta 768px dan 72/48 beradi.
+7. **«Yaqin muddatlar ›» havolasi** prototipdagi `.go`: 17px/600, sarlavha rangi, chevron. Bo'lim sarlavhasining o'zi esa jim (16px/500, kulrang).
+8. **Panel tartibi.** `barOrder`: a'zoning saqlangan sahifalari, keyin qolganlari `DEFAULT_BAR` va menyu tartibida. `barPages` uning birinchi 4 tasi. `defaultBar`, `settingsPagesFor` va `settingsPages` ning `icon` / `color` / `ownerOnly` maydonlari varaqlar bilan birga olib tashlandi.
+9. **«Sozlamalar» sahifasi** `useGate(() => true)` bilan ochiladi. Sozlamalar so'rovlari faqat `settings.view` bo'lsa yuboriladi, eski `?tab=` yo'naltirishi ham faqat shunda ishlaydi.
+10. **«Pastki panel».** «Standart holat» tartib standart bo'lib turganda o'chiq (10-15 dagi 5-qarordagidek). `n = min(4, ochiq sahifalar)`. Saqlangach `moving("back")` bilan «Sozlamalar» ga qaytadi. `SortableList` ga `divider` qo'shildi (`aria-hidden` qator, o'zi element emas). Tutqich prototipdagi 2×3 nuqta (`GripVerticalIcon`), hamma tartiblash ro'yxatida.
+11. **Orqaga yo'li konteksti** `components/kit/back-target.tsx` da. `BackLink` o'z manzilini ro'yxatdan o'tkazadi va 768px dan faqat qobiq ichida yashirinadi. Desktop e2e topdi: qobiqsiz `/select-company` sahifasi «‹ Profil» ni yo'qotgan edi, tepa panel esa u yerda yo'q. Tuzatildi.
+12. **Tepa panel** landmark emas (`div`, `data-slot="top-bar"`). Fade ustida `pointer-events-none`, tugmalari esa bosiladi. Mavzu `resolvedTheme` ni almashtiradi. Skrinshot yurishi gidratsiya xatosini topdi: qorong'i brauzerda server oyni, client quyoshni chizardi. Endi belgi `useHydrated` dan keyin almashadi. Test `renderToString` + `hydrateRoot` bilan.
+13. **Qobiq.** `AppShell` sidebar enini `--side` bilan bildiradi (296 yoki 96px). Surilayotgan sahifaning ambient siljishi 768px dan shu bilan hisoblanadi: `--pad: max(32px, (100vw − side − 1120px) / 2)`, tepadan 80px. Sidebar kartasi 264 / 64px, `p-4 pt-safe-4` ustunda. `--head` tokeni olib tashlandi.
+14. **Desktop'da `MainBar`** faqat sahifadagisi (`tone="page"`) o'ngga, 380px, fadesiz bo'ladi; varaqdagisi o'zgarmaydi.
+15. **e2e yordamchilari:**
+    - `back(page, name)`: telefonda «‹ …», desktopda «Orqaga».
+    - `expectSignedIn(page, who)`: telefonda bosh sahifa boshi, desktopda sidebar.
+    - `openSection` telefonda «Sozlamalar» sahifasi orqali yuradi.
+    - `signOut` profilning `main` idagi «Chiqish» ni bosadi.
+    - Mini App'dagi baland varaq chegarasi endi «Vazifa» plitkasi orqali tekshiriladi.
+    - «Pastki panel» ga birinchi kirishda 15 s kutiladi (dev server kompilyatsiyasi).
+16. **Talab o'zgargani uchun yangilangan testlar:**
+    - Unit: `globals.test.ts` (qorong'i palitra, brend, banner, `--gold`, tab-bar, `--head`), `banner`, `switch`, `amount`, `tab-icons` (konturli; mask testlari ketdi), `tile-icon` (rangsiz; rang testlari ketdi), `stat-card`, `detail-head`, `page-title`, `hero`, `group`, `tab-bar` (havola; varaq testlari ketdi), `nav` (`barOrder`, to'ldirish; `settingsPagesFor` va `defaultBar` testlari ketdi), `settings-page` (hammaga ochiq), `app-shell`, `sidebar`, `sonner`, `dialog`, `main-button`, `telegram-sync`, `overview`, `upcoming-tasks`.
+    - e2e: `logo`, `miniapp`, `shell`, `settings`, `roles`, `login`, `home`, `employees`, `catalog`, `finance`, `sales`, `transitions`, `warehouse`.
+    - Kod bilan birga o'chirilgan testlar: `menu-sheet.test.tsx`, `tab-bar-sheet.test.tsx`.
+17. **Tekshiruv:**
+    - Web unit 1124 → 1150 test, admin 244. e2e web 144 va admin 46 har bosqich oxirida (Go lint va testlari ham).
+    - 2-bosqichning e2e yurishida telefon proyektida 9 test yuklama ostida kirish 5 soniyada tugamagani uchun yiqildi; alohida yurganda hammasi o'tdi.
+    - 9 ta mutatsiya testlarda ushlandi: panel to'ldirilmasa, «Orqaga» doim chiqsa, `BackLink` qobiqsiz ham yashirinsa, ✓/+ boshqa sahifa bilan almashsa, sozlamalar hammaga ochilsa, mavzu belgisi gidratsiyadan oldin almashsa, eski tungi Telegram ranglari qaytsa, «Sozlamalar» joriy bo'lmasa, standart panel o'zi deb saqlansa.
+    - Production `next build` CSS'ida yangi qoidalar bor: tab-bar muzi va linzasi, `--switch-knob-on`, banner rasmi, `aria-[current=page]` stroke, 1120px ustun, `--pad`, md dialog, `auto-fill` to'r.
+    - 320 / 360 / 375 / 768 / 1280 / 1600px enlarda 42 sahifada yon scroll yo'q.
+    - Prototip bilan yonma-yon solishtirildi: bosh sahifa (yorug' va qorong'i), «Sozlamalar», «Pastki panel», mijozlar, web bosh sahifa.
+18. **Haqiqiy stack smoke** (`hisob24` dan TEMPLATE nusxa DB, API :8092, user app :3020):
+    - Admin API ikki kompaniya yaratdi, har biri o'z egasi bilan.
+    - Telefonda: panel 4 + «Sozlamalar», «Sozlamalar» sahifasi, «Pastki panel» da «+ Xaridlar» va saqlash, qayta yuklangach panel saqlangan, qorong'i fon.
+    - Desktopda: sidebar kartasi, tepa paneldagi «Orqaga», mavzu, chiqish savoli va `/login`.
+    - Sahifa xatosi 0. Keyin DB o'chirildi, lokal `hisob24` ga tegilmadi.
+19. **Skrinshotlar** `docs/design/screens-v2/` da 68 ta: `12-menu-sheet` o'rniga `12-settings-menu`; yangilari `02-login-dark`, `17-tab-bar-editor`, `18-settings-dark`, `19-customer-page-dark`, `*-wide` (1600px).
