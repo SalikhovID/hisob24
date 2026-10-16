@@ -76,7 +76,7 @@ Hisoblangan kontrast (WCAG):
 
 ## Sahifalar
 
-**Kenglik.** Sahifa mazmuni kontent maydonining to'liq enini oladi (enwin'dagidek), o'rtaga siqilmaydi. Dizayner 768px ustun tavsiya qilgan edi; foydalanuvchi ko'rib, kengroq bo'lishini so'radi (2026-10-04). Ustunlar jadvalda tabiiy taqsimlanadi. Bosh sahifadagi kartochka o'z enida qoladi, lekin chapdan boshlanadi. Admin panelda ham `main` cheklovsiz.
+**Kenglik.** Sahifa mazmuni kontent maydonining to'liq enini oladi (enwin'dagidek), o'rtaga siqilmaydi. **User app'da 2026-10-16 dan** desktop kontenti prototipdagidek 1120px ustunda, o'rtada (foydalanuvchi qarori, `2026-10-16-glass-v2-design.md`); admin panelda o'zgarmaydi. Dizayner 768px ustun tavsiya qilgan edi; foydalanuvchi ko'rib, kengroq bo'lishini so'radi (2026-10-04). Ustunlar jadvalda tabiiy taqsimlanadi. Bosh sahifadagi kartochka o'z enida qoladi, lekin chapdan boshlanadi. Admin panelda ham `main` cheklovsiz.
 
 **Xodimlar (web, amalga oshirilgan).** "Kompaniyangiz a'zolari · N kishi"; ustunlar: A'zo, Rol, Qo'shilgan (tor jadvalda yashirin), amallar; "Jami: N"; faqat egasi bo'lsa ro'yxat ostida izoh.
 

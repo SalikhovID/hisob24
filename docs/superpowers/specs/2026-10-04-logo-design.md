@@ -2,7 +2,7 @@
 
 Sana: 2026-10-04. Holat: foydalanuvchi tasdiqlagan (reja: `docs/superpowers/plans/2026-10-04-logo.md`), amalga oshirilgan.
 
-> **User app'da 2026-10-16 dan:** `--brand` yorug' rejimda `#0E0F12`, Telegram ichida ham ilovaning o'z palitrasi (`2026-10-16-liquid-glass-design.md`). Admin panel uchun shu hujjat amal qiladi.
+> **User app'da 2026-10-16 dan:** `--brand` yorug' rejimda `#0E0F12`, Telegram ichida ham ilovaning o'z palitrasi (`2026-10-16-liquid-glass-design.md`). Sarlavhalar yonida va sidebar'da `LogoMark` glossy kvadratda turadi (`BrandMark`, `2026-10-16-glass-v2-design.md`). Admin panel uchun shu hujjat amal qiladi.
 
 ## Maqsad
 

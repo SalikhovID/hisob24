@@ -2,6 +2,8 @@
 
 Sana: 2026-10-15. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), amalga oshirilgan (2026-10-15, pastda «Amalga oshirishda belgilangan qarorlar»). User app (`apps/web`) uchun; admin panel o'zgarmaydi.
 
+> **2026-10-16 da almashtirildi:** `2026-10-16-glass-v2-design.md`. 5-tugma «Sozlamalar» varaq emas, `/settings` sahifasini ochadi: sahifalar ro'yxati va «Pastki panelni sozlash». «Pastki panel» endi `/settings/tab-bar` sahifasi (ko'rinishi, ✓/+, «Standart holat»). Panel doim to'la (`min(4, ochiq sahifalar)`). Sahifalar katalogi, `tab_bar` va API o'zgarmadi.
+
 ## Kontekst
 
 Foydalanuvchining so'zlari: "mini app yoki kichik ekranlarda 5-button sozlama bo'lsin unda boshqa shifalar va pasdagi 4ta buttonni o'zgartirish bo'lsin, namumani ../enwin/ dan ol".

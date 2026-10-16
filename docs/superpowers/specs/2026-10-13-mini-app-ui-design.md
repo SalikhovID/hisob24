@@ -2,6 +2,8 @@
 
 Sana: 2026-10-13. Holat: foydalanuvchi reja sifatida tasdiqlagan (reja savollari bilan); 0–8-bosqichlar amalga oshirilgan (2026-10-14, pastda «Amalga oshirishda belgilangan qarorlar»). Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-13-mini-app-ui-stage<N>-*.md`. Tab-bar, profil va bosh sahifadagi «Bo'limlar» va `/profile/menu` qismi 2026-10-15 da almashtirildi: `2026-10-15-tab-bar-menu-design.md`. Tokenlar (ranglar, radiuslar, Telegram ustuni), avatarlar, yuzalar va to'liq ekrandagi tepa 2026-10-16 da almashtirildi: `2026-10-16-liquid-glass-design.md`.
 
+> **2026-10-16 (ikkinchi versiya):** tungi palitra, tab-bar va sidebar ko'rinishi, plitka-ikonkalar, sarlavha, hero, desktop qobig'i (tepa panel, 1120px ustun, o'rtadagi varaq) `2026-10-16-glass-v2-design.md` bo'yicha.
+
 ## Kontekst
 
 Foydalanuvchining so'zlari: "shu sahifani analiz qil va loyihani shunday UI ga o'tkazib ber" — sahifa: `https://claude.ai/artifact/6634ff38-6626-42c0-8dea-2bdd4b68122e`, «Hisob24 · Telegram Mini App prototipi» (bitta HTML, 2559 qator, sof CSS + JS; `docs/design/README.md` dagi 2026-10-08 holati asosida chizilgan).

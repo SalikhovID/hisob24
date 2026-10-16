@@ -2,6 +2,8 @@
 
 Sana: 2026-10-16. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), 1–4-bosqichlar amalga oshirilgan (2026-10-16, pastda «Amalga oshirishda belgilangan qarorlar»). Reja: `docs/superpowers/plans/2026-10-16-liquid-glass.md`. User app (`apps/web`) uchun; admin panel o'zgarmaydi.
 
+> **2026-10-16 da (prototipning `1792163353` versiyasi) qisman almashtirildi:** `2026-10-16-glass-v2-design.md`. Tungi palitra endi «Qorong'i shisha». Tab-bar muzlagan pill, konturli belgilar va oq kapsula linzadan iborat. Rangli plitka-ikonkalar o'rniga konturli belgilar keldi. «Sozlama» varag'i o'rnida «Sozlamalar» sahifasi. Kirish paneli tungida oq. Desktopda tepa panel, suzuvchi sidebar va 1120px ustun.
+
 ## Kontekst
 
 Foydalanuvchining so'zlari: "dizayn yana o'zgardi: https://claude.ai/artifact/Dd1uTB3kPpSzCbvux94ZHw shunga moslab ber".
