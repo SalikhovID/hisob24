@@ -6,6 +6,7 @@ import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { signIn } from "@/test/session"
+import { BackLink } from "@/components/kit/page-title"
 import { AppShell } from "./app-shell"
 
 const page = <p>Sahifa mazmuni</p>
@@ -23,13 +24,45 @@ test("a session with a company gets its page, framed by the sections; the way to
   expect(within(sidebar).getByRole("link", { name: "Ali Valiyev Egasi" })).toHaveAttribute("href", "/profile")
 })
 
-test("there is no top bar: the page heads the screen itself", async () => {
+test("on a wide screen a top bar stands over the page's column, beside the sidebar; on a phone the page heads the screen itself", async () => {
+  await signIn(ALI)
+  const { container } = renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  const bar = container.querySelector('[data-slot="top-bar"]')
+  expect(bar).toHaveClass("hidden", "md:flex")
+  expect(bar?.parentElement).toContainElement(screen.getByRole("main"))
+  expect(bar?.parentElement).not.toContainElement(screen.getByRole("complementary", { name: "Menyu" }))
+  expect(screen.queryByRole("banner")).not.toBeInTheDocument()
+})
+
+test("the top bar leads back where the page's own way back does", async () => {
+  await signIn(ALI)
+  renderWithProviders(
+    <AppShell>
+      <BackLink href="/customers" label="Mijozlar" />
+    </AppShell>,
+  )
+  expect(await screen.findByRole("link", { name: "Orqaga" })).toHaveAttribute("href", "/customers")
+})
+
+test("on a wide screen the page's column is the prototype's: 1120px at most, in the middle, 32px at least either side, under the top bar", async () => {
   await signIn(ALI)
   renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
 
-  expect(screen.queryByRole("banner")).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Profil" })).not.toBeInTheDocument()
+  expect(screen.getByRole("main")).toHaveClass("md:px-[max(32px,calc((100%-1120px)/2))]", "md:pt-safe-20", "md:pb-20")
+})
+
+test("the shell says how wide its sidebar stands, folded or not, for the page that moves", async () => {
+  await signIn(ALI)
+  const { container, user } = renderWithProviders(<AppShell>{page}</AppShell>)
+  await screen.findByText("Sahifa mazmuni")
+
+  const shell = container.querySelector('[data-slot="app-shell"]') as HTMLElement
+  expect(shell.style.getPropertyValue("--side")).toBe("296px")
+  await user.click(screen.getByRole("button", { name: "Menyuni yig'ish" }))
+  await waitFor(() => expect(shell.style.getPropertyValue("--side")).toBe("96px"))
 })
 
 test("a session for an expired company is sent to /expired, its page not shown", async () => {
@@ -118,7 +151,7 @@ test("the page runs under what lies over the top of the screen (Telegram's contr
   await screen.findByText("Sahifa mazmuni")
 
   expect(container.querySelector('[data-slot="app-shell"]')).not.toHaveClass("pt-safe")
-  expect(screen.getByRole("main")).toHaveClass("pt-safe-2", "md:pt-safe-6")
+  expect(screen.getByRole("main")).toHaveClass("pt-safe-2", "md:pt-safe-20")
   expect(screen.getByRole("main")).not.toHaveClass("pt-2")
 })
 

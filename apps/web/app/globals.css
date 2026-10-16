@@ -518,7 +518,9 @@ html[data-telegram] body {
 /* The page that moves is opaque in the ambient light, so the page it
    covers does not show through it; at rest it lets the column's light show
    (AppShell). Its light is the column's: a screen tall, moved back by the
-   column's padding, so it lies where the column's own does. */
+   column's padding, so it lies where the column's own does (from md the
+   column is what the sidebar leaves, --side, and 1120px at most in its
+   middle under the top bar's 80px). */
 :root[data-move] [data-slot="page"] {
   background-color: var(--ambient-base);
   background-image: var(--ambient);
@@ -528,8 +530,9 @@ html[data-telegram] body {
 }
 @media (min-width: 48rem) {
   :root[data-move] [data-slot="page"] {
-    background-size: calc(100% + 3rem) 100vh;
-    background-position: -1.5rem calc(-1 * (var(--safe-top) + 1.5rem));
+    --pad: max(32px, calc((100vw - var(--side, 296px) - 1120px) / 2));
+    background-size: calc(100vw - var(--side, 296px)) 100vh;
+    background-position: calc(-1 * var(--pad)) calc(-1 * (var(--safe-top) + 80px));
   }
 }
 ::view-transition-old(root) {

@@ -135,8 +135,10 @@ test("a page that moves is opaque in the ambient light, laid where the column's 
   // screen tall, moved back by the padding.
   expect(moving).toContain("background-size: calc(100% + 2rem) 100vh")
   expect(moving).toContain("background-position: -1rem calc(-1 * (var(--safe-top) + 0.5rem))")
-  expect(css).toMatch(
-    /@media \(min-width: 48rem\) \{\s*:root\[data-move\] \[data-slot="page"\] \{\s*background-size: calc\(100% \+ 3rem\) 100vh;\s*background-position: -1\.5rem calc\(-1 \* \(var\(--safe-top\) \+ 1\.5rem\)\);/,
+  // From md the column is 1120px at most in the middle of what the sidebar
+  // leaves (the shell says its width, --side), under 80px for the top bar.
+  expect(css).toContain(
+    "@media (min-width: 48rem) {\n  :root[data-move] [data-slot=\"page\"] {\n    --pad: max(32px, calc((100vw - var(--side, 296px) - 1120px) / 2));\n    background-size: calc(100vw - var(--side, 296px)) 100vh;\n    background-position: calc(-1 * var(--pad)) calc(-1 * (var(--safe-top) + 80px));",
   )
 })
 
