@@ -28,12 +28,12 @@ export function BackLink({ href, label, className }: { href: string; label: stri
   )
 }
 
-// PlusButton is the round glossy accent button that adds a record, at the right of
-// a page's title: a button or a link, named in full for assistive technology
-// ("Mijoz qo'shish").
+// PlusButton is the glossy accent capsule (56 by 42) that adds a record, at
+// the right of a page's title: a button or a link, named in full for
+// assistive technology ("Mijoz qo'shish").
 export function PlusButton({ label, onClick, href, className }: { label: string; onClick?: () => void; href?: string; className?: string }) {
   const classes = cn(
-    "grid size-11 shrink-0 place-items-center rounded-full glossy transition-transform duration-150 ease-out-expo outline-none active:scale-[.92] focus-visible:ring-3 focus-visible:ring-ring/50",
+    "grid h-[42px] w-14 shrink-0 place-items-center rounded-[21px] glossy transition-transform duration-150 ease-out-expo outline-none active:scale-[.92] focus-visible:ring-3 focus-visible:ring-ring/50",
     className,
   )
   const icon = <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-[22px]" />

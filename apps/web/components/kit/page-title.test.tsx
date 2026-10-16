@@ -29,10 +29,11 @@ test("a back link's chevron is decoration", () => {
   expect(screen.getByRole("link", { name: "Bosh sahifa" }).querySelector("svg")).toHaveAttribute("aria-hidden", "true")
 })
 
-test("the plus is the prototype's glossy round button", () => {
+test("the plus is the prototype's glossy capsule: 56 by 42, its ends round", () => {
   render(<PlusButton label="Mijoz qo'shish" onClick={() => {}} />)
   const plus = screen.getByRole("button", { name: "Mijoz qo'shish" })
-  expect(plus).toHaveClass("glossy", "rounded-full")
+  expect(plus).toHaveClass("glossy", "h-[42px]", "w-14", "rounded-[21px]")
+  expect(plus).not.toHaveClass("size-11")
   expect(plus).not.toHaveClass("bg-primary")
 })
 
