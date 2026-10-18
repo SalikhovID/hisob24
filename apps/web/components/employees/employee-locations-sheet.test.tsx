@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { type ComponentProps, useState } from "react"
 import { expect, test } from "vitest"
-import { ALI, db, membersOf, seedTasks, VALI } from "@/mocks/data"
+import { ALI, db, membersOf, seedOrders, VALI } from "@/mocks/data"
 import { addLocation } from "@/test/locations"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
@@ -58,10 +58,10 @@ test("the owner restricts an employee to some locations in the prototype's sheet
   await waitFor(() => expect(locationIdsOf()).toBeUndefined())
 })
 
-test("the sheet warns of the tasks the employee is assigned in the locations left out: saving is still allowed", async () => {
+test("the sheet warns of the orders the employee is assigned in the locations left out: saving is still allowed", async () => {
   addLocation(1, "Chilonzor")
   await signIn(ALI)
-  const seeded = seedTasks()
+  const seeded = seedOrders()
   // Vali is assigned "Qo'ng'iroq qilish" already; "Shartnoma yuborish" too, both in Asosiy.
   seeded.contract.assignee = VALI
   seeded.contract.assigneeName = "Vali Aliyev"

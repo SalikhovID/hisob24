@@ -17,7 +17,7 @@ const languages: CustomerOption[] = [
   { id: 21, label: "O'zbek", is_active: true },
 ]
 
-// Form holds a customer's answers under a path of its own, the way a task's
+// Form holds a customer's answers under a path of its own, the way an order's
 // form holds the customer it is entered with.
 type Form = { customer: { values: { f3: string; f5: string[] } } }
 

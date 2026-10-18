@@ -4,19 +4,19 @@ import { Bars, Sparkline, StatCard } from "@/components/kit/stat-card"
 import { Badge } from "@/components/ui/badge"
 import { compactAmount } from "@/lib/format"
 import { colorValues } from "@/lib/stage-colors"
-import type { Dashboard, TaskStage } from "@/lib/types"
+import type { Dashboard, OrderStage } from "@/lib/types"
 
 // Overview is the home's «Umumiy holat», as the prototype's cards: the
-// tasks not done (how many are late, the stages as bars), this month's
+// orders not done (how many are late, the stages as bars), this month's
 // purchases (or, to whoever does not see them, the customers) and sales,
 // each a figure with a chart along the bottom and the way to its section.
-// The tasks and the documents are the current location's: with none, they
+// The orders and the documents are the current location's: with none, they
 // are out. month is the month's name, for the cards' line ("oktabr").
-export function Overview({ dashboard, stages, hasLocation, month }: { dashboard: Dashboard; stages: TaskStage[]; hasLocation: boolean; month: string }) {
-  const { orders: tasks, purchases, sales, customers } = dashboard
+export function Overview({ dashboard, stages, hasLocation, month }: { dashboard: Dashboard; stages: OrderStage[]; hasLocation: boolean; month: string }) {
+  const { orders, purchases, sales, customers } = dashboard
   const cards = []
-  if (tasks && hasLocation) {
-    const bars = tasks.by_stage.flatMap((count) => {
+  if (orders && hasLocation) {
+    const bars = orders.by_stage.flatMap((count) => {
       const stage = stages.find((s) => s.id === count.stage_id)
       return stage ? [{ label: stage.name, value: count.count, color: colorValues[stage.color] }] : []
     })
@@ -26,9 +26,9 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
         href="/tasks"
         icon={CheckIcon}
         title="Vazifalar"
-        value={String(tasks.active)}
+        value={String(orders.active)}
         unit="ta faol"
-        meta={tasks.late > 0 ? <Badge variant="red">{tasks.late} kechikkan</Badge> : <Badge variant="green">Vaqtida</Badge>}
+        meta={orders.late > 0 ? <Badge variant="red">{orders.late} kechikkan</Badge> : <Badge variant="green">Vaqtida</Badge>}
         chart={bars.length > 0 && <Bars items={bars} label="Bosqichlar bo'yicha" />}
       />,
     )

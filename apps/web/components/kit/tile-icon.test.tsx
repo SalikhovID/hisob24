@@ -22,7 +22,7 @@ test("a soft icon is the icon in its color on a pale wash of it, decoration besi
 })
 
 
-test("a soft icon is the prototype's task mark: a 40px circle on the plain fill, no rim, the icon alone in its color", () => {
+test("a soft icon is the prototype's order mark: a 40px circle on the plain fill, no rim, the icon alone in its color", () => {
   const { container } = render(<SoftIcon icon={UserIcon} color="#34C759" />)
   const icon = container.querySelector('[data-slot="soft-icon"]') as HTMLElement
   expect(icon).toHaveClass("size-10", "rounded-full", "bg-muted")

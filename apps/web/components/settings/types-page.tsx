@@ -9,8 +9,8 @@ import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
-import { customerTypesKey, taskTypesKey, useCustomerTypes, useTaskTypes } from "@/lib/queries"
-import type { CustomerType, Permission, TaskType } from "@/lib/types"
+import { customerTypesKey, orderTypesKey, useCustomerTypes, useOrderTypes } from "@/lib/queries"
+import type { CustomerType, Permission, OrderType } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { NameDialog } from "./name-dialog"
@@ -28,7 +28,7 @@ const words = {
     needed: "Mijoz qo'shish uchun kamida bitta tur kerak.",
     href: (id: number) => `/settings/customer-types/${id}`,
   },
-  task: {
+  order: {
     title: "Vazifa turlari",
     description: "Vazifa qo'shishda tanlanadi. Har turning o'z maydonlari bor.",
     add: "Vazifa turi qo'shish",
@@ -41,29 +41,29 @@ const words = {
   },
 } as const
 
-// TypesPage is the company's customer types, or its task types, in the
+// TypesPage is the company's customer types, or its order types, in the
 // order the owner put them in (the order of the type chips when a customer
-// or a task is added), for whoever may see the settings, as the prototype's
+// or an order is added), for whoever may see the settings, as the prototype's
 // page: each type a row by name with its fields under it, leading to its
 // page; the plus adds one in a sheet (settings.create); the «Tartiblash»
 // mode puts them in order (settings.edit).
-export function TypesPage({ kind }: { kind: "customer" | "task" }) {
+export function TypesPage({ kind }: { kind: "customer" | "order" }) {
   const gate = usePermission("settings.view")
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const customerTypes = useCustomerTypes(kind === "customer" ? companyId : null)
-  const taskTypes = useTaskTypes(kind === "task" ? companyId : null)
-  const types = kind === "customer" ? customerTypes : taskTypes
-  const queryKey = kind === "customer" ? customerTypesKey(companyId) : taskTypesKey(companyId)
+  const orderTypes = useOrderTypes(kind === "order" ? companyId : null)
+  const types = kind === "customer" ? customerTypes : orderTypes
+  const queryKey = kind === "customer" ? customerTypesKey(companyId) : orderTypesKey(companyId)
   const queryClient = useQueryClient()
-  const reorder = useReorder<(CustomerType | TaskType)[]>(queryKey, inOrder, (ids) =>
+  const reorder = useReorder<(CustomerType | OrderType)[]>(queryKey, inOrder, (ids) =>
     kind === "customer" ? call(api.PUT("/app/customer-types/order", { body: { ids } })) : call(api.PUT("/app/order-types/order", { body: { ids } })),
   )
   const [adding, setAdding] = useState(false)
   const w = words[kind]
 
   if (!gate) return null
-  const list: (CustomerType | TaskType)[] | undefined = types.data
+  const list: (CustomerType | OrderType)[] | undefined = types.data
   return (
     <>
       <PageTitle

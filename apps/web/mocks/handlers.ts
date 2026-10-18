@@ -10,8 +10,8 @@ import { customersHandlers } from "./customers"
 import { dashboardHandlers } from "./dashboard"
 import { financeHandlers } from "./finance"
 import { rolesHandlers } from "./roles"
-import { taskSettingsHandlers } from "./task-settings"
-import { tasksHandlers } from "./tasks"
+import { orderSettingsHandlers } from "./order-settings"
+import { ordersHandlers } from "./orders"
 import { salesHandlers } from "./sales"
 import { stockHandlers } from "./stock"
 import { warehouseHandlers } from "./warehouse"
@@ -215,7 +215,7 @@ export const handlers = [
     return HttpResponse.json(membersOf(member.companyId))
   }),
 
-  // The members are every member's to see: a task's assignee is chosen
+  // The members are every member's to see: an order's assignee is chosen
   // among them.
   http.get(api("/app/members"), ({ request }) => {
     const member = memberSession(request)
@@ -296,8 +296,8 @@ export const handlers = [
   ...rolesHandlers,
   ...customerSettingsHandlers,
   ...customersHandlers,
-  ...taskSettingsHandlers,
-  ...tasksHandlers,
+  ...orderSettingsHandlers,
+  ...ordersHandlers,
   ...dashboardHandlers,
   ...catalogHandlers,
   ...warehouseHandlers,

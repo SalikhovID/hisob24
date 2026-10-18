@@ -13,7 +13,7 @@ import type { CustomerOption } from "@/lib/types"
 // chosen, «Tanlanmagan» while nothing is), or the options as chips (radios
 // or checkboxes, «· ixtiyoriy» beside the name of one that may be left
 // empty). options is what the field's dropdown offers. A disabled answer is
-// shown and not changed (a customer that is there, linked to a task).
+// shown and not changed (a customer that is there, linked to an order).
 export function FieldAnswer<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   name,

@@ -61,7 +61,7 @@ const kinds: Record<CustomerFieldKind, { choice: boolean }> = {
   checkbox: { choice: true },
 }
 
-// fieldsUsing counts the fields, of the customer types and of the task
+// fieldsUsing counts the fields, of the customer types and of the order
 // types, that take their options from a dropdown: those not deleted, of
 // types not deleted.
 function fieldsUsing(dropdownId: number): number {
@@ -69,7 +69,7 @@ function fieldsUsing(dropdownId: number): number {
     fields.filter((f) => !f.deleted && f.dropdownId === dropdownId).length
   return (
     live(db.types.filter((t) => !t.deleted).flatMap((t) => t.fields)) +
-    live(db.taskTypes.filter((t) => !t.deleted).flatMap((t) => t.fields))
+    live(db.orderTypes.filter((t) => !t.deleted).flatMap((t) => t.fields))
   )
 }
 
@@ -91,11 +91,11 @@ function chose(dropdown: DropdownRow, optionId: number): number {
   ).length
 }
 
-// choseInTasks counts the live tasks that chose the option, in any task
+// choseInOrders counts the live orders that chose the option, in any order
 // field that takes its options from the dropdown.
-function choseInTasks(dropdown: DropdownRow, optionId: number): number {
-  const fields = db.taskTypes.flatMap((t) => t.fields).filter((f) => f.dropdownId === dropdown.id)
-  return db.tasks.filter(
+function choseInOrders(dropdown: DropdownRow, optionId: number): number {
+  const fields = db.orderTypes.flatMap((t) => t.fields).filter((f) => f.dropdownId === dropdown.id)
+  return db.orders.filter(
     (t) =>
       !t.deleted &&
       fields.some((f) => {
@@ -212,9 +212,9 @@ export const customerSettingsHandlers = [
     if (!dropdown || !option) return optionNotFound()
     const used = chose(dropdown, option.id)
     if (used > 0) return fail(409, "option_in_use", `Bu variant ${used} ta mijozda tanlangan`)
-    // The tasks hold it too, and are told after the customers.
-    const inTasks = choseInTasks(dropdown, option.id)
-    if (inTasks > 0) return fail(409, "option_in_use", `Bu variant ${inTasks} ta vazifada tanlangan`)
+    // The orders hold it too, and are told after the customers.
+    const inOrders = choseInOrders(dropdown, option.id)
+    if (inOrders > 0) return fail(409, "option_in_use", `Bu variant ${inOrders} ta vazifada tanlangan`)
     option.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

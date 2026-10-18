@@ -37,7 +37,7 @@ const Customers: FC<Props> = (props) => (
   </svg>
 )
 
-const Tasks: FC<Props> = (props) => (
+const Orders: FC<Props> = (props) => (
   <svg {...frame(props)}>
     <rect x="4.5" y="3.5" width="15" height="17" rx="3.5" />
     <path d="M8.5 9.2l2 2 4-4.2M8.5 15.5h7" />
@@ -91,7 +91,7 @@ const Settings: FC<Props> = (props) => (
 export const tabIcons: Record<NavKey, FC<Props>> = {
   home: Home,
   customers: Customers,
-  orders: Tasks,
+  orders: Orders,
   products: Products,
   sales: Sales,
   warehouse: Warehouse,
@@ -146,7 +146,7 @@ const MoneyTransfers: FC<Props> = (props) => (
 export const pageIcons: Record<PageKey, FC<Props>> = {
   home: Home,
   customers: Customers,
-  orders: Tasks,
+  orders: Orders,
   products: Products,
   services: Services,
   sales: Sales,

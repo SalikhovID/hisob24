@@ -1,11 +1,11 @@
 import type { Customer, CustomerDropdown, CustomerField, CustomerFieldKind } from "./types"
 
 // What a form of fields the owner sets up is made of, shared by the
-// customers and the tasks: the kinds, how an answer reads, the columns a
+// customers and the orders: the kinds, how an answer reads, the columns a
 // list of answers has, and how a form holds and reads the answers.
 
 // FormField is a field of a form the owner set up, of a customer type or of
-// a task type: what showing and reading an answer needs of it. (A customer
+// an order type: what showing and reading an answer needs of it. (A customer
 // field may also be told not to repeat; that is the customers' own.)
 export type FormField = Pick<CustomerField, "id" | "label" | "kind" | "required" | "dropdown_id">
 

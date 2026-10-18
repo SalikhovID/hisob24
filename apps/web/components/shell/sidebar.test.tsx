@@ -163,9 +163,9 @@ test("a section from the sidebar is switched to at once: a move taken before it,
   await signIn(ALI)
   const { user } = renderWithProviders(<Sidebar {...props()} />)
 
-  const tasks = await within(sidebar()).findByRole("link", { name: "Vazifalar" })
+  const orders = await within(sidebar()).findByRole("link", { name: "Vazifalar" })
   moveTo("forward")
-  await user.click(tasks)
+  await user.click(orders)
   expect(moved()).toBeUndefined()
 })
 

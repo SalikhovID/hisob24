@@ -74,7 +74,7 @@ export function ChoiceChips({
   onChange: (value: string) => void
   options: { value: string; label: string; count?: number }[]
   // bare drops the strip: the radios stand in a strip of more filters (the
-  // tasks' «Mas'ul» and «Bosqich» beside the types).
+  // orders' «Mas'ul» and «Bosqich» beside the types).
   bare?: boolean
   className?: string
 }) {

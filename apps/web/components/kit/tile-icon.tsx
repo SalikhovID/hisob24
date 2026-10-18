@@ -14,7 +14,7 @@ export function TileIcon({ icon: Icon, className, children }: { icon?: LucideIco
   )
 }
 
-// SoftIcon is the prototype's mark that opens a document's row (a task, a
+// SoftIcon is the prototype's mark that opens a document's row (an order, a
 // purchase, a payment): a 40px circle on the plain fill with the icon alone
 // in its color, the accent's by default. It is decoration: the row's text
 // names the row.

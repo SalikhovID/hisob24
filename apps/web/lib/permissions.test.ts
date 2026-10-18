@@ -81,7 +81,7 @@ test("summaryOf names the sections a set of permissions reaches into, in order",
   expect(summaryOf([])).toBe("Ruxsat yo'q")
 })
 
-test("the actions of a section, named: the history is the customers' and the tasks' alone", () => {
+test("the actions of a section, named: the history is the customers' and the orders' alone", () => {
   expect(actionsOf("customers")).toEqual(["view", "create", "edit", "delete", "history"])
   expect(actionsOf("orders")).toEqual(["view", "create", "edit", "delete", "history"])
   expect(actionsOf("products")).toEqual(["view", "create", "edit", "delete"])

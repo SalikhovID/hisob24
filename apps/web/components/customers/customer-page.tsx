@@ -7,7 +7,7 @@ import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
 import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
-import { NewTask } from "@/components/tasks/new-task"
+import { NewOrder } from "@/components/orders/new-order"
 import { ApiError } from "@/lib/api"
 import { customerName } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
@@ -22,20 +22,20 @@ import { BalanceCard } from "@/components/warehouse/balance-card"
 import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { StatementList } from "@/components/warehouse/statement-list"
 import { CustomerHistory } from "./customer-history"
-import { CustomerTasks } from "./customer-tasks"
+import { CustomerOrders } from "./customer-orders"
 import { DeleteCustomerButton } from "./delete-customer-button"
 import { EditCustomerDialog } from "./edit-customer-dialog"
 
 const back = { href: "/customers", label: "Mijozlar" }
 
 // CustomerPage is one customer of the company, for whoever may see the
-// customers (changing, deleting, the history and the tasks each take their
+// customers (changing, deleting, the history and the orders each take their
 // permission), as the prototype's page: who it is (its avatar, its name,
-// its type and phone), the tiles (editing, a task for it, a call to its
+// its type and phone), the tiles (editing, an order for it, a call to its
 // phone), its answer
 // to every field of its type in the type's order with who entered it and
 // when; for whoever may see the sales, what they owe and their statement
-// (logic/sales.md, section 5); its tasks, its history, and at the foot the
+// (logic/sales.md, section 5); its orders, its history, and at the foot the
 // way to delete it.
 export function CustomerPage({ id }: { id: number }) {
   const gate = usePermission("customers.view")
@@ -45,9 +45,9 @@ export function CustomerPage({ id }: { id: number }) {
   const types = useCustomerTypes(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const [editing, setEditing] = useState(false)
-  const [tasking, setTasking] = useState(false)
+  const [ordering, setOrdering] = useState(false)
   const [paying, setPaying] = useState(false)
-  // A task for the customer goes into the current location.
+  // An order for the customer goes into the current location.
   const locationId = useLocation().current?.id ?? null
 
   // A customer that is gone, or is another company's, is not found: there
@@ -91,7 +91,7 @@ export function CustomerPage({ id }: { id: number }) {
       />
       <Tiles>
         {type && allowed("customers.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
-        {allowed("orders.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setTasking(true)} />}
+        {allowed("orders.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setOrdering(true)} />}
         {allowed("sales.create") && <Tile icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
         <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${customer.data.phone}`} />
       </Tiles>
@@ -120,8 +120,8 @@ export function CustomerPage({ id }: { id: number }) {
           canDelete={allowed("sales.delete")}
         />
       )}
-      {/* The tasks the customer has (for whoever may see the tasks): a customer with one is not deleted. */}
-      {companyId !== null && allowed("orders.view") && <CustomerTasks companyId={companyId} customerId={customer.data.id} />}
+      {/* The orders the customer has (for whoever may see the orders): a customer with one is not deleted. */}
+      {companyId !== null && allowed("orders.view") && <CustomerOrders companyId={companyId} customerId={customer.data.id} />}
       {/* Who did what to the customer takes its permission. */}
       {companyId !== null && allowed("customers.history") && <CustomerHistory companyId={companyId} id={customer.data.id} />}
       {companyId !== null && allowed("customers.delete") && <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />}
@@ -136,13 +136,13 @@ export function CustomerPage({ id }: { id: number }) {
           onOpenChange={(open) => !open && setPaying(false)}
         />
       )}
-      {tasking && companyId !== null && locationId !== null && (
-        <NewTask
+      {ordering && companyId !== null && locationId !== null && (
+        <NewOrder
           companyId={companyId}
           locationId={locationId}
           canCreateCustomer={allowed("customers.create")}
           customer={customer.data}
-          onClose={() => setTasking(false)}
+          onClose={() => setOrdering(false)}
         />
       )}
       {editing && companyId !== null && type && (

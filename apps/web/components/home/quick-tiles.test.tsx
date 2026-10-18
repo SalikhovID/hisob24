@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { allPermissions } from "@/lib/permissions"
 import type { Permission } from "@/lib/types"
-import { ALI, db, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
+import { ALI, db, seedOrders, seedWarehouse, VALI } from "@/mocks/data"
 import { asosiyOf } from "@/test/locations"
 import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
@@ -38,8 +38,8 @@ test("Sotuv and Xarid lead to their new documents", async () => {
   expect(tiles().getByRole("link", { name: "Xarid" })).toHaveAttribute("href", "/purchases/new")
 })
 
-test("Vazifa enters a task right from the home", async () => {
-  seedTasks()
+test("Vazifa enters an order right from the home", async () => {
+  seedOrders()
   await signIn(ALI)
   const { user } = renderWithProviders(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={allPermissions} />)
 

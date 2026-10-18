@@ -16,8 +16,8 @@ import type {
   ProductKind,
   Role,
   StageColor,
-  TaskStage,
-  TaskType,
+  OrderStage,
+  OrderType,
   Unit,
 } from "@/lib/types"
 
@@ -90,7 +90,7 @@ export interface RoleRow {
   permissions: Permission[]
 }
 
-// A location of a company (logic/locations.md): a task stands in one. A row
+// A location of a company (logic/locations.md): an order stands in one. A row
 // is never removed: deleted hides it. The order of the array is the order
 // the admin added them in.
 export interface LocationRow {
@@ -135,8 +135,8 @@ export interface TypeRow {
   deleted?: boolean
 }
 
-// What a company's owner sets up for its tasks: the stages (the columns of
-// the board) and the task types with their fields, which are never told not
+// What a company's owner sets up for its orders: the stages (the columns of
+// the board) and the order types with their fields, which are never told not
 // to repeat. A row is never removed: deleted hides it.
 export interface StageRow {
   id: number
@@ -147,7 +147,7 @@ export interface StageRow {
   deleted?: boolean
 }
 
-export interface TaskFieldRow {
+export interface OrderFieldRow {
   id: number
   label: string
   kind: CustomerFieldKind
@@ -156,11 +156,11 @@ export interface TaskFieldRow {
   deleted?: boolean
 }
 
-export interface TaskTypeRow {
+export interface OrderTypeRow {
   id: number
   companyId: number
   name: string
-  fields: TaskFieldRow[]
+  fields: OrderFieldRow[]
   deleted?: boolean
 }
 
@@ -196,11 +196,11 @@ export interface HistoryRow {
   changes: { label: string; old: string; new: string }[]
 }
 
-// A task of a company: of a type, in a stage, in a location, for a
+// An order of a company: of a type, in a stage, in a location, for a
 // customer, due on a day (YYYY-MM-DD), assigned to a member or nobody
 // (assigneeName is the name they went by when assigned). The values are the
-// answers by the id of the field. A deleted task is hidden, never removed.
-export interface TaskRow {
+// answers by the id of the field. A deleted order is hidden, never removed.
+export interface OrderRow {
   id: number
   companyId: number
   typeId: number
@@ -242,7 +242,7 @@ export interface ProductRow {
   deleted?: boolean
 }
 
-// What happened to a task: like a customer's history.
+// What happened to an order: like a customer's history.
 // A supplier of a company (logic/warehouse.md, section 3). A row is never
 // removed: deleted hides it; active false keeps it out of new purchases.
 export interface SupplierRow {
@@ -331,9 +331,9 @@ export interface MoveRow {
   quantity: number
 }
 
-export interface TaskHistoryRow {
+export interface OrderHistoryRow {
   id: number
-  taskId: number
+  orderId: number
   action: "created" | "updated" | "deleted"
   by: string
   byName: string | null
@@ -389,11 +389,11 @@ interface Db {
   dropdowns: DropdownRow[]
   types: TypeRow[]
   stages: StageRow[]
-  taskTypes: TaskTypeRow[]
+  orderTypes: OrderTypeRow[]
   customers: CustomerRow[]
   history: HistoryRow[]
-  tasks: TaskRow[]
-  taskHistory: TaskHistoryRow[]
+  orders: OrderRow[]
+  orderHistory: OrderHistoryRow[]
   products: ProductRow[]
   suppliers: SupplierRow[]
   // transactions: the journal; items its lines; moves its stock moves.
@@ -431,10 +431,10 @@ interface Db {
 }
 
 // seedSettings is what the companies start with: the ready location Asosiy,
-// the two ready customer types, the three ready stages and the ready task
+// the two ready customer types, the three ready stages and the ready order
 // type every company has and, in Olma Savdo, a dropdown with a field that
 // uses it.
-function seedSettings(companies: Company[]): Pick<Db, "locations" | "dropdowns" | "types" | "stages" | "taskTypes" | "lastId"> {
+function seedSettings(companies: Company[]): Pick<Db, "locations" | "dropdowns" | "types" | "stages" | "orderTypes" | "lastId"> {
   let lastId = 0
   const next = () => (lastId += 1)
   const locations = companies.map((company): LocationRow => ({ id: next(), companyId: company.id, name: "Asosiy" }))
@@ -475,8 +475,8 @@ function seedSettings(companies: Company[]): Pick<Db, "locations" | "dropdowns" 
     { id: next(), companyId: company.id, name: "Jarayonda", color: "amber", done: false },
     { id: next(), companyId: company.id, name: "Bajarildi", color: "green", done: true },
   ])
-  const taskTypes = companies.map((company): TaskTypeRow => ({ id: next(), companyId: company.id, name: "Vazifa", fields: [] }))
-  return { locations, dropdowns: [manba], types, stages, taskTypes, lastId }
+  const orderTypes = companies.map((company): OrderTypeRow => ({ id: next(), companyId: company.id, name: "Vazifa", fields: [] }))
+  return { locations, dropdowns: [manba], types, stages, orderTypes, lastId }
 }
 
 function seed(): Db {
@@ -492,8 +492,8 @@ function seed(): Db {
     ...seedSettings(companies),
     customers: [],
     history: [],
-    tasks: [],
-    taskHistory: [],
+    orders: [],
+    orderHistory: [],
     products: [],
     suppliers: [],
     transactions: [],
@@ -635,7 +635,7 @@ export function join(phone: string, companyId: number, name: string) {
 }
 
 // customerNameOf is the name a customer goes by, as the API tells it with a
-// task: its answer to its type's first text field; null when it has none.
+// order: its answer to its type's first text field; null when it has none.
 export function customerNameOf(customer: CustomerRow): string | null {
   const type = db.types.find((t) => t.id === customer.typeId)
   const field = type?.fields.find((f) => f.kind === "string" && !f.deleted)
@@ -694,9 +694,9 @@ export function typesOf(companyId: number): CustomerType[] {
   return db.types.filter((t) => t.companyId === companyId && !t.deleted).map(toType)
 }
 
-export const toStage = (s: StageRow): TaskStage => ({ id: s.id, name: s.name, color: s.color, is_done: s.done })
+export const toStage = (s: StageRow): OrderStage => ({ id: s.id, name: s.name, color: s.color, is_done: s.done })
 
-export const toTaskField = (f: TaskFieldRow) => ({
+export const toOrderField = (f: OrderFieldRow) => ({
   id: f.id,
   label: f.label,
   kind: f.kind,
@@ -704,20 +704,20 @@ export const toTaskField = (f: TaskFieldRow) => ({
   dropdown_id: f.dropdownId,
 })
 
-export const toTaskType = (t: TaskTypeRow): TaskType => ({
+export const toOrderType = (t: OrderTypeRow): OrderType => ({
   id: t.id,
   name: t.name,
-  fields: t.fields.filter((f) => !f.deleted).map(toTaskField),
+  fields: t.fields.filter((f) => !f.deleted).map(toOrderField),
 })
 
-// stagesOf and taskTypesOf are a company's stages and task types as the API
+// stagesOf and orderTypesOf are a company's stages and order types as the API
 // lists them: in their order, without what was deleted.
-export function stagesOf(companyId: number): TaskStage[] {
+export function stagesOf(companyId: number): OrderStage[] {
   return db.stages.filter((s) => s.companyId === companyId && !s.deleted).map(toStage)
 }
 
-export function taskTypesOf(companyId: number): TaskType[] {
-  return db.taskTypes.filter((t) => t.companyId === companyId && !t.deleted).map(toTaskType)
+export function orderTypesOf(companyId: number): OrderType[] {
+  return db.orderTypes.filter((t) => t.companyId === companyId && !t.deleted).map(toOrderType)
 }
 
 // liveLocations is a company's locations as they are now, without the
@@ -804,30 +804,30 @@ export function seedSixKinds() {
   }
 }
 
-// seedOrderType gives Olma Savdo a task type Buyurtma with a required text
+// seedOrderType gives Olma Savdo an order type Buyurtma with a required text
 // Izoh, a number Summa and a checkbox Kanal over Manba. A test asks for it.
 export function seedOrderType() {
   const manba = db.dropdowns[0]
-  const field = (label: string, kind: CustomerFieldKind, required = false, dropdownId: number | null = null): TaskFieldRow => ({
+  const field = (label: string, kind: CustomerFieldKind, required = false, dropdownId: number | null = null): OrderFieldRow => ({
     id: nextId(),
     label,
     kind,
     required,
     dropdownId,
   })
-  const buyurtma: TaskTypeRow = {
+  const buyurtma: OrderTypeRow = {
     id: nextId(),
     companyId: 1,
     name: "Buyurtma",
     fields: [field("Izoh", "string", true), field("Summa", "int"), field("Kanal", "checkbox", false, manba.id)],
   }
-  db.taskTypes.push(buyurtma)
+  db.orderTypes.push(buyurtma)
   const [izoh, summa, kanal] = buyurtma.fields
   return { buyurtma, izoh, summa, kanal }
 }
 
-// seedTasks enters the customers of seedCustomers, the type of seedOrderType
-// and the tasks the pages are tested with into Olma Savdo, in its ready
+// seedOrders enters the customers of seedCustomers, the type of seedOrderType
+// and the orders the pages are tested with into Olma Savdo, in its ready
 // location Asosiy, with deadlines
 // measured from the browser's day: "Eski buyurtma" (a Vazifa for Dilshod,
 // Bajarildi, five days late, assigned to Ali, entered by Ali), "Hisob-
@@ -836,11 +836,11 @@ export function seedOrderType() {
 // today, nobody's, by Vali) and "Qo'ng'iroq qilish" (a Buyurtma for
 // Dilshod, Yangi, three days off, assigned to Vali, by Ali): in that order
 // they are due. The company starts with none: a test asks for them.
-export function seedTasks() {
+export function seedOrders() {
   const customers = seedCustomers()
-  const order = seedOrderType()
+  const orderType = seedOrderType()
   const [yangi, jarayonda, bajarildi] = db.stages.filter((s) => s.companyId === 1)
-  const [vazifa] = db.taskTypes.filter((t) => t.companyId === 1)
+  const [vazifa] = db.orderTypes.filter((t) => t.companyId === 1)
   const [asosiy] = liveLocations(1)
   const [instagram, linkedin] = db.dropdowns[0].options
   const today = localToday()
@@ -853,9 +853,9 @@ export function seedTasks() {
     assignee: string | null,
     values: Record<number, Answer>,
     by: string,
-  ): TaskRow => {
+  ): OrderRow => {
     const at = now()
-    const task: TaskRow = {
+    const order: OrderRow = {
       id: nextId(),
       companyId: 1,
       typeId,
@@ -872,28 +872,28 @@ export function seedTasks() {
       createdAt: at,
       updatedAt: at,
     }
-    db.tasks.push(task)
-    db.taskHistory.push({ id: nextId(), taskId: task.id, action: "created", by, byName: task.byName, createdAt: at, changes: [] })
-    return task
+    db.orders.push(order)
+    db.orderHistory.push({ id: nextId(), orderId: order.id, action: "created", by, byName: order.byName, createdAt: at, changes: [] })
+    return order
   }
   return {
     ...customers,
-    ...order,
+    ...orderType,
     yangi,
     jarayonda,
     bajarildi,
     vazifa,
     old: enter(vazifa.id, bajarildi.id, customers.dilshod.id, "Eski buyurtma", addDays(today, -5), ALI, {}, ALI),
-    invoice: enter(order.buyurtma.id, yangi.id, customers.malika.id, "Hisob-faktura", addDays(today, -2), null, { [order.izoh.id]: "Kechikkan" }, SARDOR),
+    invoice: enter(orderType.buyurtma.id, yangi.id, customers.malika.id, "Hisob-faktura", addDays(today, -2), null, { [orderType.izoh.id]: "Kechikkan" }, SARDOR),
     contract: enter(vazifa.id, jarayonda.id, customers.anor.id, "Shartnoma yuborish", today, null, {}, VALI),
     call: enter(
-      order.buyurtma.id,
+      orderType.buyurtma.id,
       yangi.id,
       customers.dilshod.id,
       "Qo'ng'iroq qilish",
       addDays(today, 3),
       VALI,
-      { [order.izoh.id]: "Ertalab qo'ng'iroq", [order.summa.id]: 45000, [order.kanal.id]: [instagram.id, linkedin.id] },
+      { [orderType.izoh.id]: "Ertalab qo'ng'iroq", [orderType.summa.id]: 45000, [orderType.kanal.id]: [instagram.id, linkedin.id] },
       ALI,
     ),
   }

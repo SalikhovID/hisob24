@@ -14,7 +14,7 @@ import { usePermission } from "@/lib/use-gate"
 import { NameDialog } from "./name-dialog"
 
 // DropdownsPage is the company's dropdowns, in the order they were made
-// (the choice fields of the customers and the tasks take their options from
+// (the choice fields of the customers and the orders take their options from
 // them), for whoever may see the settings, as the prototype's page: each a
 // row by name with its options under it, leading to its page; the plus adds
 // one in a sheet (settings.create).

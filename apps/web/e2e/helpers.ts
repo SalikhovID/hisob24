@@ -32,7 +32,7 @@ export async function goHome(page: Page) {
 
 // openSection goes to a section's own page through the sidebar or the tab
 // bar. On a phone the bar holds the member's pages (by default the home,
-// the customers, the tasks and the products) and «Sozlamalar» last; the
+// the customers, the orders and the products) and «Sozlamalar» last; the
 // rest are rows of the settings page (logic/roles.md, section 8): the
 // finance opens at its cash.
 export async function openSection(page: Page, name: string) {

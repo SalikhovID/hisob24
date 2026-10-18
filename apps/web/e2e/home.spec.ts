@@ -1,4 +1,4 @@
-import { seedCatalog, seedTasks, seedWarehouse } from "../mocks/data"
+import { seedCatalog, seedOrders, seedWarehouse } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
 import { expectSignedIn, onPhone, press, sideScroll, signIn } from "./helpers"
@@ -7,8 +7,8 @@ import { expectSignedIn, onPhone, press, sideScroll, signIn } from "./helpers"
 // the hero, the quick tiles, the overview and the nearest deadlines, each
 // from GET /app/dashboard as the member may see it.
 
-test("the owner's home: what the suppliers are owed, the quick tiles, the overview, the nearest deadlines leading to a task", async ({ page }) => {
-  seedTasks()
+test("the owner's home: what the suppliers are owed, the quick tiles, the overview, the nearest deadlines leading to an order", async ({ page }) => {
+  seedOrders()
   seedWarehouse(seedCatalog())
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()

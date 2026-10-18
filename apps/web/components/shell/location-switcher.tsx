@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 // (logic/locations.md, section 4), as the prototype draws it: a pill that
 // says the current location and opens a sheet of the ones the member may
 // work in, the current one marked. It shows only when there are two or
-// more; the tasks and the documents the app shows and enters are the
+// more; the orders and the documents the app shows and enters are the
 // current one's. The choice is kept in the browser for the next visit.
 export function LocationSwitcher({ className }: { className?: string }) {
   const { locations, current, choose } = useLocation()

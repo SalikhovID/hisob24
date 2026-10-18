@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { ALI, db, taskTypesOf, typesOf, VALI } from "@/mocks/data"
+import { ALI, db, orderTypesOf, typesOf, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -92,7 +92,7 @@ test("an empty list says what it is for; a list that fails to load says why and 
   unmount()
 
   server.use(http.get("*/api/app/order-types", () => HttpResponse.error(), { once: true }))
-  const { user } = renderWithProviders(<TypesPage kind="task" />)
+  const { user } = renderWithProviders(<TypesPage kind="order" />)
   expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
   expect(await screen.findByRole("list", { name: "Vazifa turlari" })).toBeInTheDocument()
@@ -135,13 +135,13 @@ test("settings.view alone reads the rows, with no plus and no ordering; settings
   expect(screen.getByRole("button", { name: "Tartiblash" })).toBeInTheDocument()
 })
 
-test("the task types: the same rows and sheet, in their own words; with none yet they say what they are for", async () => {
+test("the order types: the same rows and sheet, in their own words; with none yet they say what they are for", async () => {
   await signIn(ALI)
-  const { user, unmount } = renderWithProviders(<TypesPage kind="task" />)
+  const { user, unmount } = renderWithProviders(<TypesPage kind="order" />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Vazifa turlari" })).toBeInTheDocument()
   const types = await screen.findByRole("list", { name: "Vazifa turlari" })
-  const [vazifa] = taskTypesOf(1)
+  const [vazifa] = orderTypesOf(1)
   expect(rowsOf(types)).toEqual([["Vazifa", vazifa.fields.map((field) => field.label).join(", ") || "Maydon yo'q"]])
   expect(within(types).getByRole("link")).toHaveAttribute("href", `/settings/task-types/${vazifa.id}`)
   await user.click(screen.getByRole("button", { name: "Vazifa turi qo'shish" }))
@@ -152,8 +152,8 @@ test("the task types: the same rows and sheet, in their own words; with none yet
   await waitFor(async () => expect(names(await screen.findByRole("list", { name: "Vazifa turlari" }))).toEqual(["Vazifa", "Buyurtma"]))
   unmount()
 
-  db.taskTypes.forEach((type) => (type.deleted = true))
-  renderWithProviders(<TypesPage kind="task" />)
+  db.orderTypes.forEach((type) => (type.deleted = true))
+  renderWithProviders(<TypesPage kind="order" />)
   expect(await screen.findByText("Hali vazifa turi yo'q")).toBeInTheDocument()
   expect(screen.getByText("Vazifa qo'shish uchun kamida bitta tur kerak.")).toBeInTheDocument()
 })

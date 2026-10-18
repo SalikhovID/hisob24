@@ -1,4 +1,4 @@
-import { ALI, seedTasks, TG_ALI, TG_STRANGER, TG_UNLINKED } from "../mocks/data"
+import { ALI, seedOrders, TG_ALI, TG_STRANGER, TG_UNLINKED } from "../mocks/data"
 import type { Page } from "@playwright/test"
 import { expect, test } from "./fixtures"
 import { onPhone, openProfile, openSection } from "./helpers"
@@ -169,7 +169,7 @@ test.describe("a linked user", () => {
     expect(await page.evaluate(() => (window as unknown as { __addedToHome?: boolean }).__addedToHome)).toBe(true)
   })
 
-  // openList goes to the tasks as a list, the way a thumb does: the tab bar,
+  // openList goes to the orders as a list, the way a thumb does: the tab bar,
   // then the view switch.
   const openList = async (page: Page) => {
     await page.goto("/")
@@ -178,27 +178,27 @@ test.describe("a linked user", () => {
     await page.getByRole("tablist", { name: "Ko'rinish" }).getByRole("tab", { name: "Ro'yxat" }).click()
     await expect(page).toHaveURL(/view=list/)
   }
-  const tasks = (page: Page) => page.getByRole("region", { name: "Vazifalar" })
-  const rowOf = (page: Page, title: string) => tasks(page).getByRole("link", { name: new RegExp(`^${title}`) })
+  const orders = (page: Page) => page.getByRole("region", { name: "Vazifalar" })
+  const rowOf = (page: Page, title: string) => orders(page).getByRole("link", { name: new RegExp(`^${title}`) })
 
-  test("opens a task from anywhere on its row in the list", async ({ page }) => {
-    const { call } = seedTasks()
+  test("opens an order from anywhere on its row in the list", async ({ page }) => {
+    const { call } = seedOrders()
     await openList(page)
 
     // A thumb lands on the row's body (its middle), not on the title: the
-    // task opens all the same.
+    // order opens all the same.
     await rowOf(page, "Qo'ng'iroq qilish").click()
 
     await expect(page).toHaveURL(new RegExp(`/tasks/${call.id}$`))
     await expect(page.getByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeVisible()
   })
 
-  test("names a task's customer on its row without a link of its own", async ({ page }) => {
-    seedTasks()
+  test("names an order's customer on its row without a link of its own", async ({ page }) => {
+    seedOrders()
     await openList(page)
 
     await expect(rowOf(page, "Qo'ng'iroq qilish")).toContainText("Dilshod Karimov")
-    await expect(tasks(page).getByRole("link", { name: /^Dilshod Karimov/ })).toHaveCount(0)
+    await expect(orders(page).getByRole("link", { name: /^Dilshod Karimov/ })).toHaveCount(0)
   })
 })
 

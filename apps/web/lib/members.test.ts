@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import type { Member, Task } from "./types"
+import type { Member, Order } from "./types"
 import { assigneeOptions, worksIn } from "./members"
 
 const member = (phone: string, name: string, locations: Member["locations"]): Member => ({
@@ -30,19 +30,19 @@ test("assigneeOptions offers the members who work in the location, by name or ph
   expect(assigneeOptions([{ ...vali, full_name: null }], 2)).toEqual([{ value: "998902223344", label: "+998 90 222 33 44" }])
 })
 
-test("assigneeOptions keeps a task's assignee who works elsewhere now, or who left, so the edit may keep them", () => {
-  const task = { assignee: { phone: "998902223344", full_name: "Vali Aliyev" } } as Task
-  expect(assigneeOptions([ali, vali], 1, task)).toEqual([
+test("assigneeOptions keeps an order's assignee who works elsewhere now, or who left, so the edit may keep them", () => {
+  const order = { assignee: { phone: "998902223344", full_name: "Vali Aliyev" } } as Order
+  expect(assigneeOptions([ali, vali], 1, order)).toEqual([
     { value: "998901234567", label: "Ali Valiyev" },
     { value: "998902223344", label: "Vali Aliyev (bu lokatsiyada ishlamaydi)" },
   ])
-  expect(assigneeOptions([ali], 1, task)).toEqual([
+  expect(assigneeOptions([ali], 1, order)).toEqual([
     { value: "998901234567", label: "Ali Valiyev" },
     { value: "998902223344", label: "Vali Aliyev (chiqarilgan)" },
   ])
-  expect(assigneeOptions([ali, vali], 2, task)).toEqual([
+  expect(assigneeOptions([ali, vali], 2, order)).toEqual([
     { value: "998901234567", label: "Ali Valiyev" },
     { value: "998902223344", label: "Vali Aliyev" },
   ])
-  expect(assigneeOptions([ali], 1, { assignee: null } as Task)).toEqual([{ value: "998901234567", label: "Ali Valiyev" }])
+  expect(assigneeOptions([ali], 1, { assignee: null } as Order)).toEqual([{ value: "998901234567", label: "Ali Valiyev" }])
 })

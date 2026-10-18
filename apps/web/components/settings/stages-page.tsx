@@ -10,9 +10,9 @@ import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { api, call } from "@/lib/api"
 import { can } from "@/lib/permissions"
-import { taskStagesKey, useTaskStages } from "@/lib/queries"
+import { orderStagesKey, useOrderStages } from "@/lib/queries"
 import { colorClasses, colorLabels } from "@/lib/stage-colors"
-import type { Permission, TaskStage } from "@/lib/types"
+import type { Permission, OrderStage } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { cn } from "@/lib/utils"
@@ -20,7 +20,7 @@ import { DeleteDialog } from "./delete-button"
 import { StageDialog } from "./stage-dialog"
 
 // Sheet is what is open over the page: a stage being added, changed or deleted.
-type Sheet = { add: true } | { edit: TaskStage } | { remove: TaskStage }
+type Sheet = { add: true } | { edit: OrderStage } | { remove: OrderStage }
 
 // StagesPage is the company's stages in the order the owner put them in
 // (the board's columns, left to right), for whoever may see the settings,
@@ -32,16 +32,16 @@ export function StagesPage() {
   const gate = usePermission("settings.view")
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
-  const stages = useTaskStages(companyId)
+  const stages = useOrderStages(companyId)
   const queryClient = useQueryClient()
-  const queryKey = taskStagesKey(companyId)
+  const queryKey = orderStagesKey(companyId)
   const refresh = () => queryClient.invalidateQueries({ queryKey })
-  const reorder = useReorder<TaskStage[]>(queryKey, inOrder, (ids) => call(api.PUT("/app/order-stages/order", { body: { ids } })))
+  const reorder = useReorder<OrderStage[]>(queryKey, inOrder, (ids) => call(api.PUT("/app/order-stages/order", { body: { ids } })))
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const close = (open: boolean) => !open && setSheet(null)
 
   if (!gate) return null
-  const open = (stage: TaskStage) => (allowed("settings.edit") ? () => setSheet({ edit: stage }) : allowed("settings.delete") ? () => setSheet({ remove: stage }) : undefined)
+  const open = (stage: OrderStage) => (allowed("settings.edit") ? () => setSheet({ edit: stage }) : allowed("settings.delete") ? () => setSheet({ remove: stage }) : undefined)
   return (
     <>
       <PageTitle

@@ -1,5 +1,5 @@
 import { formatPhone } from "./phone"
-import type { Member, Task } from "./types"
+import type { Member, Order } from "./types"
 
 // worksIn tells whether the member may work in the location
 // (logic/locations.md, section 5): everywhere unless restricted, in the
@@ -17,13 +17,13 @@ export interface MemberOption {
   label: string
 }
 
-// assigneeOptions is who a task in the location may be assigned to: the
-// members who work there. The assignee a task has stays offered as long as
+// assigneeOptions is who an order in the location may be assigned to: the
+// members who work there. The assignee an order has stays offered as long as
 // the edit keeps them (logic/tasks.md, 4.2): one who works elsewhere now,
 // and one who left the company, each said so.
-export function assigneeOptions(members: Member[], locationId: number, task?: Task): MemberOption[] {
+export function assigneeOptions(members: Member[], locationId: number, order?: Order): MemberOption[] {
   const options = members.filter((member) => worksIn(member, locationId)).map((member) => ({ value: member.phone, label: nameOf(member) }))
-  const assignee = task?.assignee
+  const assignee = order?.assignee
   if (assignee && !options.some((option) => option.value === assignee.phone)) {
     const still = members.some((member) => member.phone === assignee.phone)
     options.push({ value: assignee.phone, label: `${nameOf(assignee)} (${still ? "bu lokatsiyada ishlamaydi" : "chiqarilgan"})` })

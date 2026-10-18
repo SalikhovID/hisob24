@@ -36,7 +36,7 @@ type Output = z.output<typeof locationSchema>
 const rowButton =
   "text-muted-foreground hover:text-foreground max-md:relative max-md:size-9 max-md:after:absolute max-md:after:-inset-1 pointer-coarse:relative pointer-coarse:size-9 pointer-coarse:after:absolute pointer-coarse:after:-inset-1"
 
-// AddLocationDialog adds a location (a branch) to the company: a task of
+// AddLocationDialog adds a location (a branch) to the company: an order of
 // the company stands in one of them (logic/locations.md, section 3).
 export function AddLocationDialog({ companyId }: { companyId: number }) {
   const [open, setOpen] = useState(false)
@@ -142,7 +142,7 @@ export function RenameLocationDialog({ companyId, location }: { companyId: numbe
 }
 
 // DeleteLocationButton hides a location after asking. The API refuses the
-// company's only location and one a task stands in: its reason shows.
+// company's only location and one an order stands in: its reason shows.
 export function DeleteLocationButton({ companyId, location }: { companyId: number; location: AdminLocation }) {
   const [confirming, setConfirming] = useState(false)
   const queryClient = useQueryClient()

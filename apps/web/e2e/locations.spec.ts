@@ -23,14 +23,14 @@ async function placesOf(page: Page, name: RegExp) {
   return page.getByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
 }
 
-test("the owner switches between the locations: the tasks are the current one's, the customer's page shows them all, the task's page says its own", async ({
+test("the owner switches between the locations: the orders are the current one's, the customer's page shows them all, the order's page says its own", async ({
   page,
 }) => {
   await openNok(page)
   await expect(locationSwitch(page)).toHaveAccessibleName("Lokatsiya: Asosiy")
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  // A task entered in Chilonzor.
+  // An order entered in Chilonzor.
   await chooseLocation(page, "Chilonzor")
   await openSection(page, "Vazifalar")
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
@@ -39,31 +39,31 @@ test("the owner switches between the locations: the tasks are the current one's,
   const customer = dialog.getByRole("group", { name: "Mijoz" })
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill("901112233")
   await customer.getByLabel("F.I.Sh.").fill("Chilonzor Mijozi")
-  const task = dialog.getByRole("group", { name: "Vazifa" })
-  await task.getByLabel("Nomi").fill("Chilonzorda")
-  await task.getByLabel("Muddat").fill(addDays(today, 2))
+  const order = dialog.getByRole("group", { name: "Vazifa" })
+  await order.getByLabel("Nomi").fill("Chilonzorda")
+  await order.getByLabel("Muddat").fill(addDays(today, 2))
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
   const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
   await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()
   const chilonzor = db.locations.find((l) => l.companyId === 2 && l.name === "Chilonzor")!
-  expect(db.tasks.at(-1)?.locationId).toBe(chilonzor.id)
+  expect(db.orders.at(-1)?.locationId).toBe(chilonzor.id)
 
-  // In Asosiy the task is out of sight.
+  // In Asosiy the order is out of sight.
   await chooseLocation(page, "Asosiy")
   await expect(yangi.getByText("Chilonzorda")).toHaveCount(0)
   await expect(yangi.getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  // The customer's page shows its tasks of every location, each with its own.
+  // The customer's page shows its orders of every location, each with its own.
   await openSection(page, "Mijozlar")
   await page.getByRole("link", { name: "Chilonzor Mijozi" }).click()
   await expect(page.getByRole("heading", { name: "Chilonzor Mijozi" })).toBeVisible()
-  const tasks = page.getByRole("region", { name: "Vazifalar" })
-  await expect(tasks.getByRole("link", { name: /^Chilonzorda/ }).locator("[data-slot=row-sub]")).toHaveText("Yangi · Chilonzor")
+  const orders = page.getByRole("region", { name: "Vazifalar" })
+  await expect(orders.getByRole("link", { name: /^Chilonzorda/ }).locator("[data-slot=row-sub]")).toHaveText("Yangi · Chilonzor")
 
-  // The task's page says its location; the current one stays where it was.
-  await tasks.getByRole("link", { name: "Chilonzorda" }).click()
+  // The order's page says its location; the current one stays where it was.
+  await orders.getByRole("link", { name: "Chilonzorda" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Chilonzorda" })).toBeVisible()
   const info = page.getByRole("region", { name: "Ma'lumot" })
   await expect(info.getByText("Lokatsiya", { exact: true })).toBeVisible()
@@ -78,23 +78,23 @@ test("with one location there is nothing to switch", async ({ page }) => {
   await expect(locationSwitch(page)).toHaveCount(0)
 })
 
-// enterTask enters a task with a new customer into the current location,
+// enterOrder enters an order with a new customer into the current location,
 // assigned to whoever is named.
-async function enterTask(page: Page, title: string, phone: string, assignee: string | null) {
+async function enterOrder(page: Page, title: string, phone: string, assignee: string | null) {
   await page.getByRole("button", { name: "Vazifa qo'shish", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Vazifa qo'shish" })
   const customer = dialog.getByRole("group", { name: "Mijoz" })
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill(phone)
   await customer.getByLabel("F.I.Sh.").fill(`Mijoz ${title}`)
-  const task = dialog.getByRole("group", { name: "Vazifa" })
-  await task.getByLabel("Nomi").fill(title)
-  await task.getByLabel("Muddat").fill(addDays(today, 2))
-  if (assignee) await choose(task.getByLabel("Mas'ul"), assignee)
+  const order = dialog.getByRole("group", { name: "Vazifa" })
+  await order.getByLabel("Nomi").fill(title)
+  await order.getByLabel("Muddat").fill(addDays(today, 2))
+  if (assignee) await choose(order.getByLabel("Mas'ul"), assignee)
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
 }
 
-test("the owner restricts an employee to one location: they see its tasks alone, with no switch, until the restriction is lifted", async ({
+test("the owner restricts an employee to one location: they see its orders alone, with no switch, until the restriction is lifted", async ({
   page,
 }) => {
   // Three sign-ins in one test: the mock's SMS minute is off.
@@ -103,12 +103,12 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   join(DILNOZA, 2, "Dilnoza Rahimova")
   await openNok(page)
 
-  // A task in Asosiy, assigned to Dilnoza.
+  // An order in Asosiy, assigned to Dilnoza.
   await openSection(page, "Vazifalar")
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
-  await enterTask(page, "Asosiyda", "901112244", "Dilnoza Rahimova")
+  await enterOrder(page, "Asosiyda", "901112244", "Dilnoza Rahimova")
 
-  // Restricted to Chilonzor: the sheet warns of the task left in Asosiy.
+  // Restricted to Chilonzor: the sheet warns of the order left in Asosiy.
   await openSection(page, "Xodimlar")
   const dialog = await placesOf(page, /^Dilnoza Rahimova/)
   await dialog.getByRole("switch", { name: "Barcha lokatsiyalar" }).click()
@@ -120,7 +120,7 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   await expect(page.getByRole("dialog", { name: "Xodim" })).toBeHidden()
   await expect(members(page).getByText("Chilonzor", { exact: true })).toBeVisible()
 
-  // In Asosiy, Dilnoza is not offered for a task any more.
+  // In Asosiy, Dilnoza is not offered for an order any more.
   await openSection(page, "Vazifalar")
   await page.getByRole("button", { name: "Vazifa qo'shish", exact: true }).click()
   const add = page.getByRole("dialog", { name: "Vazifa qo'shish" })
@@ -132,7 +132,7 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   await expect(add).toBeHidden()
   await signOut(page)
 
-  // Dilnoza: no switch, Chilonzor's tasks alone; she enters one there.
+  // Dilnoza: no switch, Chilonzor's orders alone; she enters one there.
   await signIn(page, "906667788")
   await expect(page.getByRole("heading", { name: "Salom, Dilnoza Rahimova" })).toBeVisible()
   await expect(locationSwitch(page)).toHaveCount(0)
@@ -140,10 +140,10 @@ test("the owner restricts an employee to one location: they see its tasks alone,
   const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
   await expect(yangi.getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   await expect(yangi.getByText("Asosiyda")).toHaveCount(0)
-  await enterTask(page, "Chilonzorda", "901112255", null)
+  await enterOrder(page, "Chilonzorda", "901112255", null)
   await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()
   const chilonzor = db.locations.find((l) => l.companyId === 2 && l.name === "Chilonzor")!
-  expect(db.tasks.at(-1)?.locationId).toBe(chilonzor.id)
+  expect(db.orders.at(-1)?.locationId).toBe(chilonzor.id)
   await signOut(page)
 
   // The restriction lifted, she sees both locations again.

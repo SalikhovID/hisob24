@@ -131,9 +131,9 @@ test("a section from the bar is switched to at once: a move taken before it, whi
   setLocation("/customers")
   const { user } = renderWithProviders(<TabBar />)
 
-  const tasks = await within(bar()).findByRole("link", { name: "Vazifalar" })
+  const orders = await within(bar()).findByRole("link", { name: "Vazifalar" })
   moveTo("forward")
-  await user.click(tasks)
+  await user.click(orders)
   expect(moved()).toBeUndefined()
 })
 

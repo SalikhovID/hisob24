@@ -10,17 +10,17 @@ import { Foot } from "@/components/kit/group"
 import { HomeHero } from "@/components/home/home-hero"
 import { Overview } from "@/components/home/overview"
 import { QuickTiles } from "@/components/home/quick-tiles"
-import { NewTask } from "@/components/tasks/new-task"
-import { UpcomingTasks } from "@/components/home/upcoming-tasks"
+import { NewOrder } from "@/components/orders/new-order"
+import { UpcomingOrders } from "@/components/home/upcoming-orders"
 import { LocationSwitcher } from "@/components/shell/location-switcher"
 import { Failed, Loading } from "@/components/states"
 import { formatDate } from "@/lib/format"
 import { useHomeScreenOffer } from "@/lib/home-screen"
 import { shortName } from "@/lib/initials"
 import { formatPhone } from "@/lib/phone"
-import { dashboardKey, useDashboard, useMe, useTaskStages } from "@/lib/queries"
+import { dashboardKey, useDashboard, useMe, useOrderStages } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
-import { todayISO } from "@/lib/tasks"
+import { todayISO } from "@/lib/orders"
 import { useLocation } from "@/lib/use-location"
 
 // Dashboard is the app's home, as the prototype's: who is signed in and
@@ -40,8 +40,8 @@ export function Dashboard() {
   const companyId = company?.id ?? null
   const locationId = location.current?.id ?? null
   const dashboard = useDashboard(companyId, locationId)
-  const stages = useTaskStages(dashboard.data?.orders ? companyId : null)
-  const [addingTask, setAddingTask] = useState(false)
+  const stages = useOrderStages(dashboard.data?.orders ? companyId : null)
+  const [addingOrder, setAddingOrder] = useState(false)
   const queryClient = useQueryClient()
   if (!data || !company) return null
   const user = data.user
@@ -86,21 +86,21 @@ export function Dashboard() {
         <>
           <Overview dashboard={dashboard.data} stages={stages.data ?? []} hasLocation={locationId !== null} month={MONTHS[Number(todayISO().slice(5, 7)) - 1]} />
           {dashboard.data.orders && (
-            <UpcomingTasks
-              tasks={dashboard.data.orders}
+            <UpcomingOrders
+              orders={dashboard.data.orders}
               stages={stages.data ?? []}
               hasLocation={locationId !== null}
               canAdd={data.permissions.includes("orders.create") && data.permissions.includes("customers.view")}
-              onAdd={() => setAddingTask(true)}
+              onAdd={() => setAddingOrder(true)}
             />
           )}
-          {addingTask && locationId !== null && (
-            <NewTask
+          {addingOrder && locationId !== null && (
+            <NewOrder
               companyId={company.id}
               locationId={locationId}
               canCreateCustomer={data.permissions.includes("customers.create")}
               onClose={() => {
-                setAddingTask(false)
+                setAddingOrder(false)
                 queryClient.invalidateQueries({ queryKey: dashboardKey(company.id) })
               }}
             />

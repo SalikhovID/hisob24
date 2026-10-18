@@ -13,7 +13,7 @@ import { api, ApiError, call } from "./api"
 import { leave } from "./navigate"
 import type { PageKey } from "./nav"
 import { clearSession, setAccessToken } from "./session"
-import type { FinanceKind, Location, ProductKind, Task, TaskPage } from "./types"
+import type { FinanceKind, Location, ProductKind, Order, OrderPage } from "./types"
 
 export const meKey = ["me"] as const
 
@@ -62,36 +62,36 @@ export function useCustomerDropdowns(companyId: number | null) {
   })
 }
 
-// taskStagesKey and taskTypesKey name what a company's owner set up for its
-// tasks in the cache, membersKey the company's members; per company like
+// orderStagesKey and orderTypesKey name what a company's owner set up for its
+// orders in the cache, membersKey the company's members; per company like
 // the customer settings.
-export const taskStagesKey = (companyId: number | null) => ["task-stages", companyId] as const
-export const taskTypesKey = (companyId: number | null) => ["task-types", companyId] as const
+export const orderStagesKey = (companyId: number | null) => ["order-stages", companyId] as const
+export const orderTypesKey = (companyId: number | null) => ["order-types", companyId] as const
 export const membersKey = (companyId: number | null) => ["members", companyId] as const
 
-// useTaskStages is the stages (the columns of the board) of the company the
+// useOrderStages is the stages (the columns of the board) of the company the
 // session works in, in their order; every member may ask. With companyId
 // null (not known yet) nothing is asked.
-export function useTaskStages(companyId: number | null) {
+export function useOrderStages(companyId: number | null) {
   return useQuery({
-    queryKey: taskStagesKey(companyId),
+    queryKey: orderStagesKey(companyId),
     queryFn: () => call(api.GET("/app/order-stages")),
     enabled: companyId !== null,
   })
 }
 
-// useTaskTypes is the task types of the company the session works in, each
+// useOrderTypes is the order types of the company the session works in, each
 // with its fields; every member may ask.
-export function useTaskTypes(companyId: number | null) {
+export function useOrderTypes(companyId: number | null) {
   return useQuery({
-    queryKey: taskTypesKey(companyId),
+    queryKey: orderTypesKey(companyId),
     queryFn: () => call(api.GET("/app/order-types")),
     enabled: companyId !== null,
   })
 }
 
 // useMembers is the members of the company the session works in, the owner
-// first; every member may ask: a task's assignee is chosen among them.
+// first; every member may ask: an order's assignee is chosen among them.
 export function useMembers(companyId: number | null) {
   return useQuery({
     queryKey: membersKey(companyId),
@@ -145,15 +145,15 @@ export function useCustomers(companyId: number | null, filter: CustomerFilter) {
   })
 }
 
-// tasksKey names a company's tasks in the cache, whatever the filter: every
+// ordersKey names a company's orders in the cache, whatever the filter: every
 // list of them begins with it, so one call drops them all.
-export const tasksKey = (companyId: number | null) => ["tasks", companyId] as const
+export const ordersKey = (companyId: number | null) => ["tasks", companyId] as const
 
-// TaskFilter narrows the tasks list: one location (null for every one the
+// OrderFilter narrows the orders list: one location (null for every one the
 // member works in: the customer's page), a search, one type, one stage, one
 // assignee (a phone; "" for every one), one customer (null for every one)
 // and the page.
-export interface TaskFilter {
+export interface OrderFilter {
   locationId: number | null
   search: string
   typeId: number | null
@@ -163,12 +163,12 @@ export interface TaskFilter {
   page: number
 }
 
-// useTasks is a page of the tasks of the company the session works in, the
+// useOrders is a page of the orders of the company the session works in, the
 // one due soonest first; every member may ask. With companyId null (not
 // known yet, or the list not on screen) nothing is asked.
-export function useTasks(companyId: number | null, filter: TaskFilter) {
+export function useOrders(companyId: number | null, filter: OrderFilter) {
   return useQuery({
-    queryKey: [...tasksKey(companyId), filter],
+    queryKey: [...ordersKey(companyId), filter],
     queryFn: () =>
       call(
         api.GET("/app/orders", {
@@ -193,18 +193,18 @@ export function useTasks(companyId: number | null, filter: TaskFilter) {
 
 // StageFilter narrows a stage's column of the board: the location, the
 // search, one type and one assignee; the stage is the column's own.
-export type StageFilter = Pick<TaskFilter, "locationId" | "search" | "typeId" | "assignee">
+export type StageFilter = Pick<OrderFilter, "locationId" | "search" | "typeId" | "assignee">
 
-// stageTasksKey names a stage's column in the cache: the tasks of the stage
+// stageOrdersKey names a stage's column in the cache: the orders of the stage
 // under the filter, page after page.
-export const stageTasksKey = (companyId: number | null, stageId: number, filter: StageFilter) =>
-  [...tasksKey(companyId), "stage", stageId, filter] as const
+export const stageOrdersKey = (companyId: number | null, stageId: number, filter: StageFilter) =>
+  [...ordersKey(companyId), "stage", stageId, filter] as const
 
-// useStageTasks is a stage's column of the board: the tasks of the stage,
+// useStageOrders is a stage's column of the board: the orders of the stage,
 // the one due soonest first, twenty at a time, with more to ask for.
-export function useStageTasks(companyId: number | null, stageId: number, filter: StageFilter) {
+export function useStageOrders(companyId: number | null, stageId: number, filter: StageFilter) {
   return useInfiniteQuery({
-    queryKey: stageTasksKey(companyId, stageId, filter),
+    queryKey: stageOrdersKey(companyId, stageId, filter),
     queryFn: ({ pageParam }) =>
       call(
         api.GET("/app/orders", {
@@ -227,14 +227,14 @@ export function useStageTasks(companyId: number | null, stageId: number, filter:
   })
 }
 
-// useAssignedCounts is how many tasks the member is assigned in each of
+// useAssignedCounts is how many orders the member is assigned in each of
 // the locations, by the location's id, for the owner's warning before
 // restricting them (logic/locations.md, section 5): one list request per
 // location, the total of each. With companyId null nothing is asked.
 export function useAssignedCounts(companyId: number | null, phone: string, locations: Location[]): Record<number, number> {
   const results = useQueries({
     queries: locations.map((location) => ({
-      queryKey: [...tasksKey(companyId), "assigned", phone, location.id],
+      queryKey: [...ordersKey(companyId), "assigned", phone, location.id],
       queryFn: () => call(api.GET("/app/orders", { params: { query: { assignee: phone, location_id: location.id, page: 1 } } })),
       enabled: companyId !== null,
     })),
@@ -246,61 +246,61 @@ export function useAssignedCounts(companyId: number | null, phone: string, locat
   return counts
 }
 
-// taskKey names one task of a company in the cache.
-export const taskKey = (companyId: number | null, id: number) => ["task", companyId, id] as const
+// orderKey names one order of a company in the cache.
+export const orderKey = (companyId: number | null, id: number) => ["order", companyId, id] as const
 
-// useTask is a task of the company the session works in, with its answers;
+// useOrder is an order of the company the session works in, with its answers;
 // every member may ask.
-export function useTask(companyId: number | null, id: number) {
+export function useOrder(companyId: number | null, id: number) {
   return useQuery({
-    queryKey: taskKey(companyId, id),
+    queryKey: orderKey(companyId, id),
     queryFn: () => call(api.GET("/app/orders/{id}", { params: { path: { id } } })),
     enabled: companyId !== null,
   })
 }
 
-// taskHistoryKey names a task's history in the cache.
-export const taskHistoryKey = (companyId: number | null, id: number) => ["task-history", companyId, id] as const
+// orderHistoryKey names an order's history in the cache.
+export const orderHistoryKey = (companyId: number | null, id: number) => ["order-history", companyId, id] as const
 
-// useTaskHistory is what happened to a task, the latest first. It is the
+// useOrderHistory is what happened to an order, the latest first. It is the
 // owner's to see: with companyId null (an employee, or not known yet)
 // nothing is asked.
-export function useTaskHistory(companyId: number | null, id: number) {
+export function useOrderHistory(companyId: number | null, id: number) {
   return useQuery({
-    queryKey: taskHistoryKey(companyId, id),
+    queryKey: orderHistoryKey(companyId, id),
     queryFn: () => call(api.GET("/app/orders/{id}/history", { params: { path: { id } } })),
     enabled: companyId !== null,
   })
 }
 
 // A stage's column as the cache holds it.
-type Column = InfiniteData<TaskPage, number>
+type Column = InfiniteData<OrderPage, number>
 
-// sooner is the API's order: the task due first, then the older of one day.
-const sooner = (a: Task, b: Task) => a.deadline.localeCompare(b.deadline) || a.id - b.id
+// sooner is the API's order: the order due first, then the older of one day.
+const sooner = (a: Order, b: Order) => a.deadline.localeCompare(b.deadline) || a.id - b.id
 
-// moveInColumns moves the task into the stage across every column of the
+// moveInColumns moves the order into the stage across every column of the
 // board in the cache: out of the column it stands in, into the new one at
 // its place by its deadline, the totals following; the pages keep their
 // size, so what is left to ask for stays right. The server's answer, asked
 // for after, settles anything a filter would have changed.
-function moveInColumns(queryClient: QueryClient, companyId: number, task: Task, stageId: number) {
-  for (const [key, column] of queryClient.getQueriesData<Column>({ queryKey: [...tasksKey(companyId), "stage"] })) {
+function moveInColumns(queryClient: QueryClient, companyId: number, order: Order, stageId: number) {
+  for (const [key, column] of queryClient.getQueriesData<Column>({ queryKey: [...ordersKey(companyId), "stage"] })) {
     const columnStage = key[3]
     if (!column || typeof columnStage !== "number") continue
     const items = column.pages.flatMap((page) => page.items)
-    const held = items.some((item) => item.id === task.id)
-    let next: Task[]
+    const held = items.some((item) => item.id === order.id)
+    let next: Order[]
     let total = column.pages[0]?.total ?? 0
     if (columnStage === stageId) {
-      next = [...items.filter((item) => item.id !== task.id), { ...task, stage_id: stageId }].sort(sooner)
+      next = [...items.filter((item) => item.id !== order.id), { ...order, stage_id: stageId }].sort(sooner)
       total += held ? 0 : 1
     } else if (held) {
-      next = items.filter((item) => item.id !== task.id)
+      next = items.filter((item) => item.id !== order.id)
       total -= 1
     } else continue
     const size = column.pages[0]?.page_size ?? 20
-    const pages: TaskPage[] = []
+    const pages: OrderPage[] = []
     for (let i = 0; i < Math.max(1, Math.ceil(next.length / size)); i += 1) {
       pages.push({ items: next.slice(i * size, (i + 1) * size), total, page: i + 1, page_size: size })
     }
@@ -308,28 +308,28 @@ function moveInColumns(queryClient: QueryClient, companyId: number, task: Task, 
   }
 }
 
-// useMoveTask puts a task into another stage. The board shows the move at
+// useMoveOrder puts an order into another stage. The board shows the move at
 // once and the lists ask again after; a refusal says why, puts things back
 // and, since the stage may be gone, asks for the stages again too.
-export function useMoveTask(companyId: number | null) {
+export function useMoveOrder(companyId: number | null) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ task, stageId }: { task: Task; stageId: number }) =>
-      call(api.PATCH("/app/orders/{id}/stage", { params: { path: { id: task.id } }, body: { stage_id: stageId } })),
-    onMutate: ({ task, stageId }) => {
-      if (companyId !== null) moveInColumns(queryClient, companyId, task, stageId)
+    mutationFn: ({ order, stageId }: { order: Order; stageId: number }) =>
+      call(api.PATCH("/app/orders/{id}/stage", { params: { path: { id: order.id } }, body: { stage_id: stageId } })),
+    onMutate: ({ order, stageId }) => {
+      if (companyId !== null) moveInColumns(queryClient, companyId, order, stageId)
     },
-    onSuccess: (moved) => queryClient.setQueryData(taskKey(companyId, moved.id), moved),
+    onSuccess: (moved) => queryClient.setQueryData(orderKey(companyId, moved.id), moved),
     onError: (error) => {
       toast.error(error.message)
-      if (error instanceof ApiError && error.status === 400) queryClient.invalidateQueries({ queryKey: taskStagesKey(companyId) })
+      if (error instanceof ApiError && error.status === 400) queryClient.invalidateQueries({ queryKey: orderStagesKey(companyId) })
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: tasksKey(companyId) }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ordersKey(companyId) }),
   })
 }
 
 // useCustomerSuggestions is the customers whose phones begin with the
-// digits typed (after 998), for the task form to pick one from; asked once
+// digits typed (after 998), for the order form to pick one from; asked once
 // three digits are there, and never for fewer.
 export function useCustomerSuggestions(companyId: number | null, digits: string) {
   return useQuery({

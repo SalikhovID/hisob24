@@ -12,8 +12,8 @@ import { api, call } from "@/lib/api"
 import { nameFieldOf } from "@/lib/customers"
 import { kindLabels } from "@/lib/fields"
 import { can } from "@/lib/permissions"
-import { customerTypesKey, taskTypesKey, useCustomerDropdowns, useCustomerTypes, useTaskTypes } from "@/lib/queries"
-import type { CustomerField, CustomerType, Permission, TaskField, TaskType } from "@/lib/types"
+import { customerTypesKey, orderTypesKey, useCustomerDropdowns, useCustomerTypes, useOrderTypes } from "@/lib/queries"
+import type { CustomerField, CustomerType, Permission, OrderField, OrderType } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteDialog } from "./delete-button"
@@ -21,8 +21,8 @@ import { AddFieldSheet, EditFieldSheet } from "./field-sheet"
 import { NameDialog } from "./name-dialog"
 import { moving } from "@/lib/moves"
 
-type Field = CustomerField | TaskField
-type Type = CustomerType | TaskType
+type Field = CustomerField | OrderField
+type Type = CustomerType | OrderType
 
 // The words of each kind of type, and where its page leads back to.
 const words = {
@@ -35,7 +35,7 @@ const words = {
     remove: { title: "Turni o'chirasizmi?", done: "Tur o'chirildi", stops: "Mijozi bor tur o'chirilmaydi." },
     fieldStops: "Mijozlarda to'ldirilgan maydon o'chirilmaydi.",
   },
-  task: {
+  order: {
     what: "Vazifa turi",
     back: { href: "/settings/task-types", label: "Vazifa turlari" },
     noFields: "Vazifa nomi, muddati, mijozi va mas'uli bilan qo'shiladi.",
@@ -50,7 +50,7 @@ const words = {
 // deleted, the type being renamed or deleted.
 type Sheet = { add: true } | { edit: Field } | { removeField: Field } | { rename: true } | { removeType: true }
 
-// TypePage is one type of the owner's company, a customer type or a task
+// TypePage is one type of the owner's company, a customer type or an order
 // type (logic/customers.md, logic/tasks.md), for whoever may see the
 // settings, as the prototype's page: its fields in their order, each a row
 // by name with its marks (the customer's name, required, unique) and its
@@ -58,17 +58,17 @@ type Sheet = { add: true } | { edit: Field } | { removeField: Field } | { rename
 // settings.delete: the way to delete it); the plus adds a field
 // (settings.create); the «Tartiblash» mode orders them (settings.edit); the
 // type itself is renamed and deleted from rows under them. The customer's
-// phone, the task's title, deadline, customer and assignee are not among
+// phone, the order's title, deadline, customer and assignee are not among
 // the fields: every one has them.
-export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }) {
+export function TypePage({ kind, id }: { kind: "customer" | "order"; id: number }) {
   const gate = usePermission("settings.view")
   const companyId = gate ? gate.company.id : null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const customerTypes = useCustomerTypes(kind === "customer" ? companyId : null)
-  const taskTypes = useTaskTypes(kind === "task" ? companyId : null)
-  const types = kind === "customer" ? customerTypes : taskTypes
+  const orderTypes = useOrderTypes(kind === "order" ? companyId : null)
+  const types = kind === "customer" ? customerTypes : orderTypes
   const dropdowns = useCustomerDropdowns(companyId)
-  const queryKey = kind === "customer" ? customerTypesKey(companyId) : taskTypesKey(companyId)
+  const queryKey = kind === "customer" ? customerTypesKey(companyId) : orderTypesKey(companyId)
   const queryClient = useQueryClient()
   const router = useRouter()
   const reorder = useReorder<Type[]>(
@@ -171,7 +171,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
           unique={kind === "customer"}
           add={async (field) => {
             if (kind === "customer") await call(api.POST("/app/customer-types/{id}/fields", { params: { path: { id: type.id } }, body: field }))
-            // A task field is never told not to repeat: the API takes no such mark.
+            // An order field is never told not to repeat: the API takes no such mark.
             else
               await call(
                 api.POST("/app/order-types/{id}/fields", {

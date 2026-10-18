@@ -162,7 +162,7 @@ test("the owner makes a stage with its color and the final mark, and puts the st
   await expect.poll(() => titles(stages)).toEqual(["Yangi", "Jarayonda", "Kutilmoqda", "Bajarildi"])
 })
 
-test("the owner makes a task type and gives it a choice field; the dropdown it uses is not deleted", async ({ page }) => {
+test("the owner makes an order type and gives it a choice field; the dropdown it uses is not deleted", async ({ page }) => {
   await openSettings(page)
   await openPart(page, "Vazifa turlari", /\/settings\/task-types$/)
   const types = page.getByRole("list", { name: "Vazifa turlari" })
@@ -193,7 +193,7 @@ test("the owner makes a task type and gives it a choice field; the dropdown it u
   await expect(page.getByText("Vazifa turi · 1 ta maydon")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  // A dropdown that a task field takes its options from is not deleted.
+  // A dropdown that an order field takes its options from is not deleted.
   await back(page, "Vazifa turlari")
   await expect(types.getByRole("link", { name: /^Buyurtma/ })).toBeVisible()
   await back(page, "Sozlamalar")

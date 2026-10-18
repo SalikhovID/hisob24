@@ -40,7 +40,7 @@ function liveType(companyId: number, id: unknown): TypeRow | undefined {
 const liveFields = (type: TypeRow) => type.fields.filter((f) => !f.deleted)
 
 // FormField is a field of a form the owner set up, of a customer type or of
-// a task type: what reading an answer needs of it.
+// an order type: what reading an answer needs of it.
 export type FormField = Pick<FieldRow, "id" | "label" | "kind" | "required" | "dropdownId">
 
 // offeredBy is the options of the field's dropdown, in their order.
@@ -91,7 +91,7 @@ function readAnswer(field: FormField, has: number[], raw: unknown): Answer | und
 // checkValues reads the answers a client sent for the fields of a type: the
 // answers as they are kept, or the first thing wrong with them, as the API
 // tells it (an answer to a field the type has not, then the fields in their
-// order). was is the record's answers before an edit. The tasks' answers
+// order). was is the record's answers before an edit. The orders' answers
 // are read the same way.
 export function checkValues(fields: FormField[], was: Record<number, Answer>, raw: unknown): Record<number, Answer> | Response {
   const sent = (raw ?? {}) as Record<string, unknown>
@@ -191,8 +191,8 @@ function diff(fields: FieldRow[], customer: CustomerRow, phone: string, values: 
 }
 
 // enterCustomer enters a customer as a member of the company, under the
-// customers' rules, or says what is wrong. The task form enters one with
-// a task the same way.
+// customers' rules, or says what is wrong. The order form enters one with
+// an order the same way.
 export function enterCustomer(
   member: { phone: string; companyId: number },
   body: { type_id?: unknown; phone?: unknown; values?: unknown },
@@ -254,7 +254,7 @@ export const customersHandlers = [
     if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
     const typeId = query.has("type_id") ? Number(query.get("type_id")) : null
     if (typeId !== null && (!Number.isInteger(typeId) || typeId < 1)) return invalid("Mijoz turi noto'g'ri")
-    // The digits a phone begins with, after 998: the task form's suggestions.
+    // The digits a phone begins with, after 998: the order form's suggestions.
     const prefix = query.get("phone") || null
     if (prefix !== null && !/^\d{1,9}$/.test(prefix)) return invalid("Telefon raqami noto'g'ri")
     const all = liveCustomers(member.companyId)
@@ -329,8 +329,8 @@ export const customersHandlers = [
     if (member instanceof Response) return member
     const customer = liveCustomers(member.companyId).find((c) => c.id === Number(params.id))
     if (!customer) return customerNotFound()
-    // A customer with a live task stays; then one with a live document.
-    const used = db.tasks.filter((t) => t.customerId === customer.id && !t.deleted).length
+    // A customer with a live order stays; then one with a live document.
+    const used = db.orders.filter((t) => t.customerId === customer.id && !t.deleted).length
     if (used > 0) return fail(409, "customer_in_use", `Bu mijozda ${used} ta vazifa bor`)
     const documents = customerDocumentsOf(customer.id)
     if (documents > 0) return fail(409, "customer_in_use", `Bu mijozda ${documents} ta hujjat bor`)

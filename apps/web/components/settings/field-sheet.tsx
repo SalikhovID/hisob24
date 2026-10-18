@@ -27,7 +27,7 @@ const empty: Input = { label: "", kind: "string", dropdown_id: "", required: fal
 const uniqueNote = "Takrorlanmas maydon qiymati ikki mijozda bir xil bo'lmaydi (masalan, INN)."
 
 // AddFieldSheet adds a field at the end of a type, a customer type or a
-// task type, as the prototype's sheet: the name a row, the kind picked in a
+// order type, as the prototype's sheet: the name a row, the kind picked in a
 // sheet and, for a choice, the dropdown it takes its options from; the
 // marks as switches (where the type's fields may be told not to repeat,
 // text and whole numbers get that one). The kind and the dropdown cannot be

@@ -44,7 +44,7 @@ const memberColumns: Column<Member>[] = [
   { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (m) => formatDate(m.created_at) },
 ]
 
-// locationColumns is the company's locations: the name, how many tasks
+// locationColumns is the company's locations: the name, how many orders
 // stand in it, when it was added, and what the admin may do with it.
 function locationColumns(companyId: number): Column<AdminLocation>[] {
   return [

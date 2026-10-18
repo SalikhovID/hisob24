@@ -474,7 +474,7 @@ test("when the activation fails the page says why, and the company stays blocked
   expect(within(screen.getByRole("region", { name: "Ma'lumot" })).getByText("Bloklangan")).toBeInTheDocument()
 })
 
-// locationsOf reads the locations table row by row: the name, the task
+// locationsOf reads the locations table row by row: the name, the order
 // count and the day it was added (the actions are left out).
 function locationsOf(table: HTMLElement) {
   return within(table)
@@ -489,7 +489,7 @@ function locationsOf(table: HTMLElement) {
     ])
 }
 
-test("the company page lists the locations with their task counts, the ready one first", async () => {
+test("the company page lists the locations with their order counts, the ready one first", async () => {
   db.locations[1].push({ id: 110, name: "Chilonzor", orders_count: 3, created_at: "2026-09-25T05:00:00Z" })
 
   renderWithProviders(<CompanyPage id={1} />)
@@ -575,7 +575,7 @@ test("the only location is not deleted; a second, empty one is, after asking", a
   expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toEqual([["Asosiy", "0", "20.09.2026"]])
 })
 
-test("a location with tasks is not deleted: the refusal says how many", async () => {
+test("a location with orders is not deleted: the refusal says how many", async () => {
   db.locations[1].push({ id: 110, name: "Chilonzor", orders_count: 2, created_at: "2026-09-25T05:00:00Z" })
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
@@ -588,7 +588,7 @@ test("a location with tasks is not deleted: the refusal says how many", async ()
   expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toHaveLength(2)
 })
 
-test("on a phone a location is a card: the task count and the day under its name, the actions beside it", async () => {
+test("on a phone a location is a card: the order count and the day under its name, the actions beside it", async () => {
   renderWithProviders(<CompanyPage id={1} />)
 
   const [asosiy] = within(await screen.findByRole("list", { name: "Lokatsiyalar" })).getAllByRole("listitem")

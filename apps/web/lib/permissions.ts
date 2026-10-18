@@ -51,7 +51,7 @@ export const allPermissions: Permission[] = [
 ]
 
 // defaultPermissions is what an employee without a role has: the customers
-// and the tasks, without their history (the rule from before roles), the
+// and the orders, without their history (the rule from before roles), the
 // products, the suppliers, the purchases, the sales, the stock documents
 // and the finance (logic/roles.md, 4.2); not the employees nor the
 // settings.
@@ -148,7 +148,7 @@ export function permissionOf(section: Section, action: Action): Permission {
 }
 
 // actionsOf is the actions a section has: every section has view, create,
-// edit and delete; the customers and the tasks have a history too.
+// edit and delete; the customers and the orders have a history too.
 export function actionsOf(section: Section): Action[] {
   return actions.filter((action) => (allPermissions as string[]).includes(`${section}.${action}`))
 }

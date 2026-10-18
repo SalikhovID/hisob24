@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { moveTo } from "@/lib/moves"
 import { barPages, type NavPage, pageGroups, pagesFor } from "@/lib/nav"
 import { can } from "@/lib/permissions"
-import { useCustomerDropdowns, useCustomerTypes, useMe, useRoles, useTaskStages, useTaskTypes } from "@/lib/queries"
+import { useCustomerDropdowns, useCustomerTypes, useMe, useRoles, useOrderStages, useOrderTypes } from "@/lib/queries"
 import { useGate } from "@/lib/use-gate"
 import { oldTabHref, settingsHref } from "./use-settings-tab"
 
@@ -25,7 +25,7 @@ const count = (items: unknown[] | undefined) => items && <span className="text-m
 // to it, those the tab bar holds marked on a phone; under them, on a phone,
 // the way to the choice of the bar's pages; then, for the owner or an
 // employee whose role holds settings.view, the settings: each part a tile
-// row with how many it holds (the customer and task types, the stages, the
+// row with how many it holds (the customer and order types, the stages, the
 // dropdowns; the currency rates and the finance categories), the roles,
 // the owner's alone, apart with what they are. An address of the old tabs
 // (/settings?tab=x) leads to the part's page.
@@ -36,8 +36,8 @@ export function SettingsPage() {
   const companyId = settings ? gate.company.id : null
   const isOwner = gate?.company.role === "owner"
   const customerTypes = useCustomerTypes(companyId)
-  const taskTypes = useTaskTypes(companyId)
-  const stages = useTaskStages(companyId)
+  const orderTypes = useOrderTypes(companyId)
+  const stages = useOrderStages(companyId)
   const dropdowns = useCustomerDropdowns(companyId)
   const roles = useRoles(isOwner ? companyId : null)
   const router = useRouter()
@@ -69,7 +69,7 @@ export function SettingsPage() {
           <SectionHeading>Mijozlar va vazifalar</SectionHeading>
           <Group label="Mijozlar va vazifalar" inset="tile">
             <Row href={settingsHref("customers")} media={<TileIcon icon={UserIcon} />} title="Mijoz turlari" end={count(customerTypes.data)} />
-            <Row href={settingsHref("tasks")} media={<TileIcon icon={TagIcon} />} title="Vazifa turlari" end={count(taskTypes.data)} />
+            <Row href={settingsHref("tasks")} media={<TileIcon icon={TagIcon} />} title="Vazifa turlari" end={count(orderTypes.data)} />
             <Row href={settingsHref("stages")} media={<TileIcon icon={LayersIcon} />} title="Bosqichlar" end={count(stages.data)} />
             <Row href={settingsHref("dropdowns")} media={<TileIcon icon={ListIcon} />} title="Dropdownlar" end={count(dropdowns.data)} />
           </Group>

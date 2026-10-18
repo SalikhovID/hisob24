@@ -7,7 +7,7 @@ import { useEffect, useState } from "react"
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog"
 import { Tile, Tiles } from "@/components/kit/detail-head"
 import { SearchPickerSheet } from "@/components/kit/picker-sheet"
-import { NewTask } from "@/components/tasks/new-task"
+import { NewOrder } from "@/components/orders/new-order"
 import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { formatPhone } from "@/lib/phone"
 import {
@@ -19,11 +19,11 @@ import {
 } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 
-type Open = null | "task" | "customer" | "payment"
+type Open = null | "order" | "customer" | "payment"
 
 // QuickTiles are the home's quick actions, as the prototype's tiles: the
 // first four of Vazifa, Mijoz, Sotuv, Xarid and To'lov the member may use
-// (what goes into a location wants one). A task, a customer and a payment
+// (what goes into a location wants one). An order, a customer and a payment
 // are entered right on the home; a sale and a purchase are a page each.
 // To'lov picks the supplier among the active ones first. Whatever is
 // entered shows on the home at once: the dashboard is asked again as a
@@ -36,7 +36,7 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
   const located = locationId !== null
   const payable = can("purchases.create") && can("suppliers.view")
   const tiles = [
-    can("orders.create") && can("customers.view") && located && <Tile key="task" icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setOpen("task")} />,
+    can("orders.create") && can("customers.view") && located && <Tile key="order" icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setOpen("order")} />,
     can("customers.create") && <Tile key="customer" icon={UserPlusIcon} label="Mijoz" onClick={() => setOpen("customer")} />,
     can("sales.create") && located && <Tile key="sale" icon={ShoppingBagIcon} label="Sotuv" href="/sales/new" />,
     payable && located && <Tile key="purchase" icon={PackagePlusIcon} label="Xarid" href="/purchases/new" />,
@@ -56,8 +56,8 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
       <Tiles label="Tezkor amallar" className="mb-6">
         {tiles}
       </Tiles>
-      {open === "task" && locationId !== null && (
-        <NewTask companyId={companyId} locationId={locationId} canCreateCustomer={can("customers.create")} onClose={close} />
+      {open === "order" && locationId !== null && (
+        <NewOrder companyId={companyId} locationId={locationId} canCreateCustomer={can("customers.create")} onClose={close} />
       )}
       {open === "customer" && <HomeAddCustomer companyId={companyId} onClose={close} />}
       {open === "payment" && (

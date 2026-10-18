@@ -44,7 +44,7 @@ export function Sparkline({ values, color = "var(--primary)", className }: { val
   )
 }
 
-// Bars are a few figures side by side (the active tasks per stage), each
+// Bars are a few figures side by side (the active orders per stage), each
 // in its own color with a light falling from its top and the figure over it
 // in the hint ink; the tallest is
 // the largest. Together they are one image, named with every figure; each

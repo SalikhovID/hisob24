@@ -1,10 +1,10 @@
 import { render, screen, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import type { Dashboard, TaskStage } from "@/lib/types"
+import type { Dashboard, OrderStage } from "@/lib/types"
 import { Overview } from "./overview"
 
 const none: Dashboard = { suppliers: null, customers: null, orders: null, purchases: null, sales: null }
-const stages: TaskStage[] = [
+const stages: OrderStage[] = [
   { id: 1, name: "Yangi", color: "blue", is_done: false },
   { id: 2, name: "Jarayonda", color: "amber", is_done: false },
   { id: 3, name: "Bajarildi", color: "green", is_done: true },
@@ -17,15 +17,15 @@ const full: Dashboard = {
   sales: { month_total: "750000.00", month_count: 2, by_day: ["0.00", "0.00", "750000.00"] },
 }
 
-test("the overview: the tasks by stage, this month's purchases and sales, each card leading to its section", () => {
+test("the overview: the orders by stage, this month's purchases and sales, each card leading to its section", () => {
   render(<Overview dashboard={full} stages={stages} hasLocation month="oktabr" />)
 
   expect(screen.getByRole("heading", { level: 2, name: "Umumiy holat" })).toBeInTheDocument()
-  const tasks = screen.getByRole("link", { name: /^Vazifalar/ })
-  expect(tasks).toHaveAttribute("href", "/tasks")
-  expect(tasks).toHaveTextContent("4 ta faol")
-  expect(tasks).toHaveTextContent("2 kechikkan")
-  expect(within(tasks).getByRole("img", { name: "Bosqichlar bo'yicha: Yangi 3, Jarayonda 1" })).toBeInTheDocument()
+  const orders = screen.getByRole("link", { name: /^Vazifalar/ })
+  expect(orders).toHaveAttribute("href", "/tasks")
+  expect(orders).toHaveTextContent("4 ta faol")
+  expect(orders).toHaveTextContent("2 kechikkan")
+  expect(within(orders).getByRole("img", { name: "Bosqichlar bo'yicha: Yangi 3, Jarayonda 1" })).toBeInTheDocument()
   const purchases = screen.getByRole("link", { name: /^Xaridlar/ })
   expect(purchases).toHaveAttribute("href", "/purchases")
   expect(purchases).toHaveTextContent("4,6 mln so'm")
@@ -39,7 +39,7 @@ test("the overview: the tasks by stage, this month's purchases and sales, each c
   expect(screen.queryByRole("link", { name: /^Mijozlar/ })).not.toBeInTheDocument()
 })
 
-test("tasks all in time say so", () => {
+test("orders all in time say so", () => {
   render(<Overview dashboard={{ ...full, orders: { ...full.orders!, late: 0 } }} stages={stages} hasLocation month="oktabr" />)
 
   expect(screen.getByRole("link", { name: /^Vazifalar/ })).toHaveTextContent("Vaqtida")
@@ -54,7 +54,7 @@ test("without the purchases, the customers: how many, how many came this month",
   expect(customers).toHaveTextContent("+3 oktabr")
 })
 
-test("with no location the tasks' and the documents' cards are out; with nothing to show there is no overview", () => {
+test("with no location the orders' and the documents' cards are out; with nothing to show there is no overview", () => {
   const { rerender } = render(<Overview dashboard={full} stages={stages} hasLocation={false} month="oktabr" />)
 
   expect(screen.queryByRole("link", { name: /^Vazifalar/ })).not.toBeInTheDocument()

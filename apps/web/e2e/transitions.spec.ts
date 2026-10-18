@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test"
-import { seedCatalog, seedCustomers, seedTasks, seedWarehouse } from "../mocks/data"
+import { seedCatalog, seedCustomers, seedOrders, seedWarehouse } from "../mocks/data"
 import { expect, test } from "./fixtures"
 import { back, onPhone, openSection, sections, signIn } from "./helpers"
 
@@ -192,7 +192,7 @@ test("a document opened from its list moves forward; deleted, it leads back to t
 })
 
 test("a page from the menu changes under the shell: while it changes, the screen is drawn as it is once changed, the page never over the tab bar", async ({ page }) => {
-  seedTasks()
+  seedOrders()
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   await expect(page.getByText("ta faol")).toBeVisible()

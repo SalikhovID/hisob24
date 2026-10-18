@@ -9,7 +9,7 @@ test("the owner may open every section, in the default order", () => {
   expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
 })
 
-test("an employee without a role sees the customers, the tasks, the products, the sales and the warehouse", () => {
+test("an employee without a role sees the customers, the orders, the products, the sales and the warehouse", () => {
   expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
 })
 

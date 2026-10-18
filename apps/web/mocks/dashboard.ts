@@ -1,7 +1,7 @@
 // The home's blocks of the mock API, under the Go API's rules
 // (backend/internal/dashboard; docs/superpowers/specs/2026-10-13-mini-app-ui-design.md):
 // each by its permission, money in so'm by each document's own rate, the
-// tasks, purchases and sales of the location asked for or of every one of
+// orders, purchases and sales of the location asked for or of every one of
 // the member's. The days are counted where the mock runs, as localToday
 // counts them.
 import { http, HttpResponse } from "msw"
@@ -9,7 +9,7 @@ import { liveCustomers } from "./customers"
 import { db, localToday, locationsOf, permissionsOf, type TransactionRow } from "./data"
 import { api, fail, forbidden, memberSession } from "./gate"
 import { asAmount, balanceOf, convertAmount, rateOf, round } from "./ledger"
-import { liveTasks, toTask } from "./tasks"
+import { liveOrders, toOrder } from "./orders"
 
 const pad = (n: number) => String(n).padStart(2, "0")
 
@@ -58,19 +58,19 @@ export const dashboardHandlers = [
       customers = { total, added_this_month: total - came.filter((c) => c < monthStart).length, by_day: byDay }
     }
 
-    let tasks = null
+    let orders = null
     if (may.includes("orders.view")) {
       const doneStages = new Set(db.stages.filter((s) => s.companyId === member.companyId && s.done).map((s) => s.id))
-      const active = liveTasks(member.companyId)
+      const active = liveOrders(member.companyId)
         .filter((t) => locations.includes(t.locationId) && !doneStages.has(t.stageId))
         .sort((a, b) => a.deadline.localeCompare(b.deadline) || a.id - b.id)
-      tasks = {
+      orders = {
         active: active.length,
         late: active.filter((t) => t.deadline < today).length,
         by_stage: db.stages
           .filter((s) => s.companyId === member.companyId && !s.deleted && !s.done)
           .map((s) => ({ stage_id: s.id, count: active.filter((t) => t.stageId === s.id).length })),
-        upcoming: active.slice(0, 5).map(toTask),
+        upcoming: active.slice(0, 5).map(toOrder),
       }
     }
 
@@ -89,7 +89,7 @@ export const dashboardHandlers = [
     return HttpResponse.json({
       suppliers,
       customers,
-      orders: tasks,
+      orders,
       purchases: may.includes("purchases.view") ? money("purchase") : null,
       sales: may.includes("sales.view") ? money("sale") : null,
     })

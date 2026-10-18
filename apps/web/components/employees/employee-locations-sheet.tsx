@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils"
 // lokatsiyalar» a switch, the locations rows to choose (turned off from
 // every one, every location is still chosen: the ones to leave out are
 // taken away). The employee works by it from their next request on; the
-// tasks they are assigned elsewhere stay theirs, and the sheet says how
+// orders they are assigned elsewhere stay theirs, and the sheet says how
 // many there are. The employee's sheet opens it.
 export function EmployeeLocationsSheet({
   companyId,
@@ -44,7 +44,7 @@ export function EmployeeLocationsSheet({
   const switchId = useId()
   const queryClient = useQueryClient()
   const chosen = all || ids === null ? locations.map((l) => l.id) : ids
-  // How many tasks the employee is assigned in each location, asked only while the sheet is open.
+  // How many orders the employee is assigned in each location, asked only while the sheet is open.
   const counts = useAssignedCounts(open ? companyId : null, employee.phone, locations)
   const elsewhere = locations.filter((l) => !chosen.includes(l.id)).reduce((n, l) => n + (counts[l.id] ?? 0), 0)
   const save = useMutation({
@@ -57,7 +57,7 @@ export function EmployeeLocationsSheet({
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeesKey(companyId) })
-      // The members tell their locations too: a task's assignee is chosen among them.
+      // The members tell their locations too: an order's assignee is chosen among them.
       queryClient.invalidateQueries({ queryKey: membersKey(companyId) })
       toast.success("Lokatsiyalar o'zgartirildi")
       onOpenChange(false)

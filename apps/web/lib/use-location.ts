@@ -16,7 +16,7 @@ export interface CurrentLocation {
 
 // useLocation is the session's current location: the one chosen last time
 // (kept in the browser, by company and member), as long as the member may
-// still work in it; otherwise the first one they may. The tasks the app
+// still work in it; otherwise the first one they may. The orders the app
 // shows and enters are the current location's.
 export function useLocation(): CurrentLocation {
   const me = useMe()

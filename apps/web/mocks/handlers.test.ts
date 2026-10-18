@@ -10,7 +10,7 @@ import { setAccessToken } from "@/lib/session"
 import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { giveRole as holdRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
-import { addDays, ALI, db, localToday, nameIn, nextId, type RateRow, SARDOR, seedCatalog, seedTasks, seedWarehouse, type SupplierRow, type TransactionRow, VALI, ZARINA } from "./data"
+import { addDays, ALI, db, localToday, nameIn, nextId, type RateRow, SARDOR, seedCatalog, seedOrders, seedWarehouse, type SupplierRow, type TransactionRow, VALI, ZARINA } from "./data"
 
 const list = () => call(api.GET("/app/employees"))
 const add = (phone: string, fullName: string) =>
@@ -824,7 +824,7 @@ test("what the customers use is not deleted from the settings; the deleted custo
   expect(await customerTypes()).toEqual([])
 })
 
-test("every company starts with the ready stages and task type; every member reads them", async () => {
+test("every company starts with the ready stages and order type; every member reads them", async () => {
   await signIn(VALI)
   await chooseCompany(1)
 
@@ -897,7 +897,7 @@ test("the owner makes, changes, orders and deletes stages; an employee does not"
   })
 })
 
-test("the owner makes, renames, orders and deletes task types, and adds, changes, orders and deletes their fields", async () => {
+test("the owner makes, renames, reorders and deletes order types, and adds, changes, reorders and deletes their fields", async () => {
   await signIn(ALI)
   const [manba] = db.dropdowns
   const nokManba = { id: 950, companyId: 2, name: "Begona", options: [] }
@@ -913,7 +913,7 @@ test("the owner makes, renames, orders and deletes task types, and adds, changes
   expect(await call(api.PATCH("/app/order-types/{id}", { params: { path: { id: buyurtma.id } }, body: { name: "Zakaz" } }))).toMatchObject({
     name: "Zakaz",
   })
-  const [vazifa] = db.taskTypes
+  const [vazifa] = db.orderTypes
   await call(api.PUT("/app/order-types/order", { body: { ids: [buyurtma.id, vazifa.id] } }))
   expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Zakaz", "Vazifa"])
   expect(await failure(call(api.PUT("/app/order-types/order", { body: { ids: [vazifa.id] } })))).toMatchObject({ status: 409, code: "order_changed" })
@@ -967,7 +967,7 @@ test("the owner makes, renames, orders and deletes task types, and adds, changes
 
   await call(api.DELETE("/app/order-types/{id}", path))
   expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Vazifa"])
-  expect(db.taskTypes.find((t) => t.id === buyurtma.id)?.fields.every((f) => f.deleted)).toBe(true)
+  expect(db.orderTypes.find((t) => t.id === buyurtma.id)?.fields.every((f) => f.deleted)).toBe(true)
   expect(await failure(call(api.DELETE("/app/order-types/{id}", path)))).toMatchObject({ status: 404, message: "Tur topilmadi" })
 
   await signIn(VALI)
@@ -975,10 +975,10 @@ test("the owner makes, renames, orders and deletes task types, and adds, changes
   expect(await failure(call(api.POST("/app/order-types", { body: { name: "Xodimniki" } })))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
-test("a dropdown a task field takes its options from is not deleted either", async () => {
+test("a dropdown an order field takes its options from is not deleted either", async () => {
   await signIn(ALI)
   const holat = await call(api.POST("/app/customer-dropdowns", { body: { name: "Holat" } }))
-  const [vazifa] = db.taskTypes
+  const [vazifa] = db.orderTypes
   const field = await call(
     api.POST("/app/order-types/{id}/fields", { params: { path: { id: vazifa.id } }, body: { label: "Holati", kind: "radio", dropdown_id: holat.id } }),
   )
@@ -1010,10 +1010,10 @@ test("every member reads the company's members, the owner first; managing them s
   expect(await failure(call(api.GET("/app/members")))).toMatchObject({ status: 403, code: "company_required" })
 })
 
-// The tasks (logic/tasks.md; backend/internal/app/orders_test.go).
-type TaskCreate = components["schemas"]["OrderCreate"]
-type TaskUpdate = components["schemas"]["OrderUpdate"]
-type TaskQuery = {
+// The orders (logic/tasks.md; backend/internal/app/orders_test.go).
+type OrderCreate = components["schemas"]["OrderCreate"]
+type OrderUpdate = components["schemas"]["OrderUpdate"]
+type OrderQuery = {
   search?: string
   location_id?: number
   type_id?: number
@@ -1022,23 +1022,23 @@ type TaskQuery = {
   customer_id?: number
   page?: number
 }
-const createTask = (body: TaskCreate) => call(api.POST("/app/orders", { body }))
-const getTask = (id: number) => call(api.GET("/app/orders/{id}", { params: { path: { id } } }))
-const listTasks = (query: TaskQuery = {}) => call(api.GET("/app/orders", { params: { query } }))
-const updateTask = (id: number, body: TaskUpdate) => call(api.PUT("/app/orders/{id}", { params: { path: { id } }, body }))
-const moveTask = (id: number, stageId: number) =>
+const createOrder = (body: OrderCreate) => call(api.POST("/app/orders", { body }))
+const getOrder = (id: number) => call(api.GET("/app/orders/{id}", { params: { path: { id } } }))
+const listOrders = (query: OrderQuery = {}) => call(api.GET("/app/orders", { params: { query } }))
+const updateOrder = (id: number, body: OrderUpdate) => call(api.PUT("/app/orders/{id}", { params: { path: { id } }, body }))
+const moveOrder = (id: number, stageId: number) =>
   call(api.PATCH("/app/orders/{id}/stage", { params: { path: { id } }, body: { stage_id: stageId } }))
-const deleteTask = (id: number) => call(api.DELETE("/app/orders/{id}", { params: { path: { id } } }))
-const taskHistory = (id: number) => call(api.GET("/app/orders/{id}/history", { params: { path: { id } } }))
+const deleteOrder = (id: number) => call(api.DELETE("/app/orders/{id}", { params: { path: { id } } }))
+const orderHistory = (id: number) => call(api.GET("/app/orders/{id}/history", { params: { path: { id } } }))
 const deleteStage = (id: number) => call(api.DELETE("/app/order-stages/{id}", { params: { path: { id } } }))
-const deleteTaskType = (id: number) => call(api.DELETE("/app/order-types/{id}", { params: { path: { id } } }))
-const deleteTaskField = (typeId: number, fieldId: number) =>
+const deleteOrderType = (id: number) => call(api.DELETE("/app/order-types/{id}", { params: { path: { id } } }))
+const deleteOrderField = (typeId: number, fieldId: number) =>
   call(api.DELETE("/app/order-types/{id}/fields/{fieldId}", { params: { path: { id: typeId, fieldId } } }))
 
-// taskSetup is what Olma Savdo's tasks are entered with, by its owner: the
+// orderSetup is what Olma Savdo's orders are entered with, by its owner: the
 // three ready stages, the ready type, a type Buyurtma with a required text
 // Izoh, a number Summa and a checkbox Kanal over Manba, and the customer Ali.
-async function taskSetup() {
+async function orderSetup() {
   const [yangi, jarayonda, bajarildi] = await call(api.GET("/app/order-stages"))
   const [vazifa] = await call(api.GET("/app/order-types"))
   const buyurtma = await call(api.POST("/app/order-types", { body: { name: "Buyurtma" } }))
@@ -1052,12 +1052,12 @@ async function taskSetup() {
   const ali = await createCustomer(customers.jismoniy.id, "998901112233", { [customers.fish.id]: "Ali Valiyev" })
   return { ...customers, dropdown, yangi, jarayonda, bajarildi, vazifa, buyurtma, izoh, summa, kanal, ali }
 }
-type TaskSetup = Awaited<ReturnType<typeof taskSetup>>
+type OrderSetup = Awaited<ReturnType<typeof orderSetup>>
 
-// taskBody is a task of the type Buyurtma for Ali, in Asosiy, due on
+// orderBody is an order of the type Buyurtma for Ali, in Asosiy, due on
 // 10.10.2026, in Yangi, with Izoh filled in; over changes what the test is
 // about.
-const taskBody = (s: TaskSetup, over: Partial<TaskCreate> = {}): TaskCreate => ({
+const orderBody = (s: OrderSetup, over: Partial<OrderCreate> = {}): OrderCreate => ({
   type_id: s.buyurtma.id,
   location_id: asosiyOf(1).id,
   title: "Qo'ng'iroq qilish",
@@ -1068,19 +1068,19 @@ const taskBody = (s: TaskSetup, over: Partial<TaskCreate> = {}): TaskCreate => (
   ...over,
 })
 
-// The tasks a member works with are those of the locations they may work
+// The orders a member works with are those of the locations they may work
 // in (logic/locations.md, section 6; backend/internal/app/orders_test.go
-// TestTasksAreTheLocationsTheMemberMayWorkIn).
-test("the tasks are those of the locations the member works in: the list, a task by its id, entering one, the assignee", async () => {
+// TestOrdersAreTheLocationsTheMemberMayWorkIn).
+test("the orders are those of the locations the member works in: the list, an order by its id, entering one, the assignee", async () => {
   db.cooldown = false
   await signIn(ALI)
-  const s = await taskSetup()
+  const s = await orderSetup()
   const asosiy = asosiyOf(1)
   const chilonzor = addLocation(1, "Chilonzor")
-  const inAsosiy = await createTask(taskBody(s, { title: "Asosiyda", location_id: asosiy.id }))
-  const inChilonzor = await createTask(taskBody(s, { title: "Chilonzorda", deadline: "2026-10-09", location_id: chilonzor.id }))
-  const titles = async (query?: TaskQuery) => (await listTasks(query)).items.map((t) => t.title)
-  const edit = (over: Partial<TaskUpdate> = {}): TaskUpdate => ({
+  const inAsosiy = await createOrder(orderBody(s, { title: "Asosiyda", location_id: asosiy.id }))
+  const inChilonzor = await createOrder(orderBody(s, { title: "Chilonzorda", deadline: "2026-10-09", location_id: chilonzor.id }))
+  const titles = async (query?: OrderQuery) => (await listOrders(query)).items.map((t) => t.title)
+  const edit = (over: Partial<OrderUpdate> = {}): OrderUpdate => ({
     title: "X",
     deadline: "2026-10-10",
     stage_id: s.yangi.id,
@@ -1090,22 +1090,22 @@ test("the tasks are those of the locations the member works in: the list, a task
 
   expect(await titles()).toEqual(["Chilonzorda", "Asosiyda"])
   expect(await titles({ location_id: asosiy.id })).toEqual(["Asosiyda"])
-  expect(await failure(listTasks({ location_id: 999999 }))).toMatchObject({ status: 403, code: "forbidden" })
-  expect(await failure(listTasks({ location_id: 0 }))).toMatchObject({ status: 400, message: "Lokatsiya noto'g'ri" })
+  expect(await failure(listOrders({ location_id: 999999 }))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(listOrders({ location_id: 0 }))).toMatchObject({ status: 400, message: "Lokatsiya noto'g'ri" })
 
-  // The assignee works in the task's location: Vali, restricted to
-  // Chilonzor, is not assigned a task in Asosiy; one assigned stays theirs
+  // The assignee works in the order's location: Vali, restricted to
+  // Chilonzor, is not assigned an order in Asosiy; one assigned stays theirs
   // while the edit keeps them, another has to work there.
   restrictTo(VALI, 1, [chilonzor.id])
-  expect(await failure(createTask(taskBody(s, { location_id: asosiy.id, assignee_phone: VALI })))).toMatchObject({
+  expect(await failure(createOrder(orderBody(s, { location_id: asosiy.id, assignee_phone: VALI })))).toMatchObject({
     status: 400,
     message: "Mas'ul bu lokatsiyada ishlamaydi",
   })
-  const valis = await createTask(taskBody(s, { title: "Valiga", location_id: chilonzor.id, assignee_phone: VALI }))
+  const valis = await createOrder(orderBody(s, { title: "Valiga", location_id: chilonzor.id, assignee_phone: VALI }))
   expect(valis.assignee?.phone).toBe(VALI)
   restrictTo(VALI, 1, [asosiy.id])
-  expect((await updateTask(valis.id, edit({ title: "Valiga", assignee_phone: VALI }))).assignee?.phone).toBe(VALI)
-  expect(await failure(updateTask(inChilonzor.id, edit({ assignee_phone: VALI })))).toMatchObject({
+  expect((await updateOrder(valis.id, edit({ title: "Valiga", assignee_phone: VALI }))).assignee?.phone).toBe(VALI)
+  expect(await failure(updateOrder(inChilonzor.id, edit({ assignee_phone: VALI })))).toMatchObject({
     status: 400,
     message: "Mas'ul bu lokatsiyada ishlamaydi",
   })
@@ -1114,39 +1114,39 @@ test("the tasks are those of the locations the member works in: the list, a task
   await signIn(VALI)
   await chooseCompany(1)
   expect(await titles()).toEqual(["Chilonzorda", "Valiga"])
-  expect(await failure(listTasks({ location_id: asosiy.id }))).toMatchObject({ status: 403, code: "forbidden" })
-  expect(await failure(getTask(inAsosiy.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
-  expect(await failure(updateTask(inAsosiy.id, edit()))).toMatchObject({ status: 404 })
-  expect(await failure(moveTask(inAsosiy.id, s.bajarildi.id))).toMatchObject({ status: 404 })
-  expect(await failure(deleteTask(inAsosiy.id))).toMatchObject({ status: 404 })
-  expect((await getTask(inChilonzor.id)).location_id).toBe(chilonzor.id)
-  expect(await failure(createTask(taskBody(s, { location_id: asosiy.id })))).toMatchObject({ status: 403, code: "forbidden" })
-  expect((await createTask(taskBody(s, { title: "Yangi", location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
-  expect(await failure(createTask({ ...taskBody(s, { title: "Nomsiz" }), location_id: undefined } as unknown as TaskCreate))).toMatchObject({
+  expect(await failure(listOrders({ location_id: asosiy.id }))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(getOrder(inAsosiy.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(updateOrder(inAsosiy.id, edit()))).toMatchObject({ status: 404 })
+  expect(await failure(moveOrder(inAsosiy.id, s.bajarildi.id))).toMatchObject({ status: 404 })
+  expect(await failure(deleteOrder(inAsosiy.id))).toMatchObject({ status: 404 })
+  expect((await getOrder(inChilonzor.id)).location_id).toBe(chilonzor.id)
+  expect(await failure(createOrder(orderBody(s, { location_id: asosiy.id })))).toMatchObject({ status: 403, code: "forbidden" })
+  expect((await createOrder(orderBody(s, { title: "Yangi", location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
+  expect(await failure(createOrder({ ...orderBody(s, { title: "Nomsiz" }), location_id: undefined } as unknown as OrderCreate))).toMatchObject({
     status: 400,
     message: "Lokatsiyani tanlang",
   })
   restrictTo(VALI, 1, null)
-  expect((await listTasks()).total).toBe(4)
+  expect((await listOrders()).total).toBe(4)
 })
 
-test("a member enters a task for a customer that is there, or with a new one; what is wrong is said in the API's words", async () => {
+test("a member enters an order for a customer that is there, or with a new one; what is wrong is said in the API's words", async () => {
   // The owner signs in twice: once to set up, once to read a history.
   db.cooldown = false
   await signIn(ALI)
-  const s = await taskSetup()
+  const s = await orderSetup()
   await signIn(VALI)
   await chooseCompany(1)
 
-  const task = await createTask(
-    taskBody(s, {
+  const order = await createOrder(
+    orderBody(s, {
       title: " Qo'ng'iroq qilish ",
       assignee_phone: "+998 90 123 45 67",
       values: { [s.izoh.id]: " Ertalab ", [s.summa.id]: 45000, [s.kanal.id]: [s.linkedin.id, s.instagram.id] },
     }),
   )
 
-  expect(task).toMatchObject({
+  expect(order).toMatchObject({
     type_id: s.buyurtma.id,
     stage_id: s.yangi.id,
     location_id: asosiyOf(1).id,
@@ -1157,13 +1157,13 @@ test("a member enters a task for a customer that is there, or with a new one; wh
     values: { [s.izoh.id]: "Ertalab", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id, s.linkedin.id] },
     created_by_name: "Vali Aliyev",
   })
-  expect(task.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
-  expect(task.updated_at).toBe(task.created_at)
-  expect(await getTask(task.id)).toEqual(task)
+  expect(order.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  expect(order.updated_at).toBe(order.created_at)
+  expect(await getOrder(order.id)).toEqual(order)
 
   // A new customer, in one request.
-  const withNew = await createTask(
-    taskBody(s, {
+  const withNew = await createOrder(
+    orderBody(s, {
       title: "Shartnoma",
       deadline: "2026-10-11",
       customer: { type_id: s.jismoniy.id, phone: "+998 90 111 22 44", values: { [s.fish.id]: " Zarina Karimova " } },
@@ -1183,15 +1183,15 @@ test("a member enters a task for a customer that is there, or with a new one; wh
   await chooseCompany(1)
 
   // The phone of a customer that is there: nothing is entered.
-  const before = [db.tasks.length, db.customers.length]
+  const before = [db.orders.length, db.customers.length]
   expect(
-    await failure(createTask(taskBody(s, { customer: { type_id: s.jismoniy.id, phone: "998901112233", values: { [s.fish.id]: "Ali" } } }))),
+    await failure(createOrder(orderBody(s, { customer: { type_id: s.jismoniy.id, phone: "998901112233", values: { [s.fish.id]: "Ali" } } }))),
   ).toMatchObject({ status: 409, code: "phone_taken", message: "Bu raqamli mijoz allaqachon bor", customerId: s.ali.id })
-  expect([db.tasks.length, db.customers.length]).toEqual(before)
+  expect([db.orders.length, db.customers.length]).toEqual(before)
 
   const invalid = { status: 400, code: "validation_error" }
   const nokStage = db.stages.find((stage) => stage.companyId === 2)!.id
-  const refusals: [Partial<TaskCreate>, string][] = [
+  const refusals: [Partial<OrderCreate>, string][] = [
     [{ title: " " }, "Vazifa nomini kiriting"],
     [{ title: "ў".repeat(201) }, "Vazifa nomi 200 belgidan oshmasin"],
     [{ deadline: "" }, "Muddatni kiriting"],
@@ -1214,37 +1214,37 @@ test("a member enters a task for a customer that is there, or with a new one; wh
     [{ values: {}, customer: {} }, "«Izoh» maydonini to'ldiring"],
   ]
   for (const [over, message] of refusals) {
-    expect(await failure(createTask(taskBody(s, over))), message).toMatchObject({ ...invalid, message })
+    expect(await failure(createOrder(orderBody(s, over))), message).toMatchObject({ ...invalid, message })
   }
   // A location that is not there is one the member may not work in: refused
   // the way a missing permission is, before anything else.
-  expect(await failure(createTask(taskBody(s, { title: "", location_id: 999999 })))).toMatchObject({ status: 403, code: "forbidden" })
-  expect(db.tasks).toHaveLength(2)
-  // The task stands in the location named; one has to be named
+  expect(await failure(createOrder(orderBody(s, { title: "", location_id: 999999 })))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(db.orders).toHaveLength(2)
+  // The order stands in the location named; one has to be named
   // (logic/locations.md, section 6).
   const chilonzor = addLocation(1, "Chilonzor")
-  expect((await createTask(taskBody(s, { location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
-  expect(await failure(createTask({ ...taskBody(s), location_id: undefined } as unknown as TaskCreate))).toMatchObject({
+  expect((await createOrder(orderBody(s, { location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
+  expect(await failure(createOrder({ ...orderBody(s), location_id: undefined } as unknown as OrderCreate))).toMatchObject({
     status: 400,
     message: "Lokatsiyani tanlang",
   })
 
-  expect(await failure(getTask(999))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
+  expect(await failure(getOrder(999))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
   await chooseCompany(2)
-  expect(await failure(getTask(task.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(getOrder(order.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
   await chooseCompany(null)
-  expect(await failure(createTask(taskBody(s)))).toMatchObject({ status: 403, code: "company_required" })
+  expect(await failure(createOrder(orderBody(s)))).toMatchObject({ status: 403, code: "company_required" })
 })
 
-test("the tasks list: the one due soonest first, twenty to a page, the filters and the search", async () => {
+test("the orders list: the one due soonest first, twenty to a page, the filters and the search", async () => {
   await signIn(ALI)
-  const s = await taskSetup()
+  const s = await orderSetup()
   const zarina = await createCustomer(s.jismoniy.id, "998905555555", { [s.fish.id]: "Zarina Karimova" })
-  const later = await createTask(
-    taskBody(s, { title: "Hisob yozish", deadline: "2026-10-12", values: { [s.izoh.id]: "Ertalab yozish", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }),
+  const later = await createOrder(
+    orderBody(s, { title: "Hisob yozish", deadline: "2026-10-12", values: { [s.izoh.id]: "Ertalab yozish", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }),
   )
-  const sooner = await createTask(taskBody(s, { title: "Qo'ng'iroq qilish", deadline: "2026-10-10", assignee_phone: VALI, values: { [s.izoh.id]: "X" } }))
-  const other = await createTask({
+  const sooner = await createOrder(orderBody(s, { title: "Qo'ng'iroq qilish", deadline: "2026-10-10", assignee_phone: VALI, values: { [s.izoh.id]: "X" } }))
+  const other = await createOrder({
     type_id: s.vazifa.id,
     location_id: asosiyOf(1).id,
     title: "Shikoyatni ko'rish",
@@ -1253,9 +1253,9 @@ test("the tasks list: the one due soonest first, twenty to a page, the filters a
     customer: { id: zarina.id },
   })
 
-  expect(await listTasks()).toEqual({ items: [sooner, other, later], total: 3, page: 1, page_size: 20 })
+  expect(await listOrders()).toEqual({ items: [sooner, other, later], total: 3, page: 1, page_size: 20 })
 
-  const found = async (query: TaskQuery) => (await listTasks(query)).items.map((t) => t.id)
+  const found = async (query: OrderQuery) => (await listOrders(query)).items.map((t) => t.id)
   expect(await found({ type_id: s.vazifa.id })).toEqual([other.id])
   expect(await found({ stage_id: s.yangi.id })).toEqual([sooner.id, later.id])
   expect(await found({ assignee: "+998 90 222 33 44" })).toEqual([sooner.id])
@@ -1268,22 +1268,22 @@ test("the tasks list: the one due soonest first, twenty to a page, the filters a
   // An option's name is not searched.
   expect(await found({ search: "Instagram" })).toEqual([])
   expect(await found({ stage_id: s.yangi.id, search: "karim" })).toEqual([])
-  expect((await listTasks({ search: "ali" })).total).toBe(2)
+  expect((await listOrders({ search: "ali" })).total).toBe(2)
   // A number is looked for in the customer's whole number answers too.
   const firma = await createCustomer(s.yuridik.id, "998907777777", { [s.nomi.id]: "Olma MChJ", [s.inn.id]: 301234567 })
-  const firmas = await createTask(taskBody(s, { title: "Hisob-faktura", deadline: "2026-10-13", customer: { id: firma.id } }))
+  const firmas = await createOrder(orderBody(s, { title: "Hisob-faktura", deadline: "2026-10-13", customer: { id: firma.id } }))
   expect(await found({ search: "3012" })).toEqual([firmas.id])
   expect(await found({ search: "7777" })).toEqual([firmas.id])
 
-  for (let i = 0; i < 20; i += 1) await createTask(taskBody(s, { title: `Vazifa ${i}`, deadline: "2026-11-01" }))
-  const first = await listTasks()
+  for (let i = 0; i < 20; i += 1) await createOrder(orderBody(s, { title: `Vazifa ${i}`, deadline: "2026-11-01" }))
+  const first = await listOrders()
   expect(first.items).toHaveLength(20)
   expect(first.total).toBe(24)
-  const second = await listTasks({ page: 2 })
+  const second = await listOrders({ page: 2 })
   expect(second.items.map((t) => t.title)).toEqual(["Vazifa 16", "Vazifa 17", "Vazifa 18", "Vazifa 19"])
   expect(second).toMatchObject({ total: 24, page: 2, page_size: 20 })
-  expect(await listTasks({ page: 3 })).toEqual({ items: [], total: 24, page: 3, page_size: 20 })
-  const bad: [TaskQuery, string][] = [
+  expect(await listOrders({ page: 3 })).toEqual({ items: [], total: 24, page: 3, page_size: 20 })
+  const bad: [OrderQuery, string][] = [
     [{ page: 0 }, "Sahifa raqami noto'g'ri"],
     [{ type_id: "abc" as unknown as number }, "Vazifa turi noto'g'ri"],
     [{ stage_id: 0 }, "Bosqich noto'g'ri"],
@@ -1291,21 +1291,21 @@ test("the tasks list: the one due soonest first, twenty to a page, the filters a
     [{ assignee: "vali" }, "Mas'ul noto'g'ri"],
   ]
   for (const [query, message] of bad) {
-    expect(await failure(listTasks(query)), message).toMatchObject({ status: 400, code: "validation_error", message })
+    expect(await failure(listOrders(query)), message).toMatchObject({ status: 400, code: "validation_error", message })
   }
 
-  // Each company has its own tasks.
+  // Each company has its own orders.
   await signIn(VALI)
-  expect(await failure(listTasks())).toMatchObject({ status: 403, code: "company_required" })
+  expect(await failure(listOrders())).toMatchObject({ status: 403, code: "company_required" })
   await chooseCompany(2)
-  expect(await listTasks()).toEqual({ items: [], total: 0, page: 1, page_size: 20 })
+  expect(await listOrders()).toEqual({ items: [], total: 0, page: 1, page_size: 20 })
 })
 
-test("an edit replaces the task's own fields and its answers and goes into the history, which is the owner's; the customer and the type stay", async () => {
+test("an edit replaces the order's own fields and its answers and goes into the history, which is the owner's; the customer and the type stay", async () => {
   await signIn(ALI)
-  const s = await taskSetup()
-  const task = await createTask(taskBody(s, { values: { [s.izoh.id]: "Ertalab", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }))
-  const same: TaskUpdate = {
+  const s = await orderSetup()
+  const order = await createOrder(orderBody(s, { values: { [s.izoh.id]: "Ertalab", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }))
+  const same: OrderUpdate = {
     title: "Qayta qo'ng'iroq",
     deadline: "2026-10-12",
     stage_id: s.jarayonda.id,
@@ -1313,7 +1313,7 @@ test("an edit replaces the task's own fields and its answers and goes into the h
     values: { [s.izoh.id]: "Kechqurun", [s.kanal.id]: [s.linkedin.id, s.instagram.id] },
   }
 
-  const edited = await updateTask(task.id, { ...same, title: " Qayta qo'ng'iroq " })
+  const edited = await updateOrder(order.id, { ...same, title: " Qayta qo'ng'iroq " })
 
   expect(edited).toMatchObject({
     title: "Qayta qo'ng'iroq",
@@ -1321,13 +1321,13 @@ test("an edit replaces the task's own fields and its answers and goes into the h
     stage_id: s.jarayonda.id,
     assignee: { phone: VALI, full_name: "Vali Aliyev" },
     values: { [s.izoh.id]: "Kechqurun", [s.kanal.id]: [s.instagram.id, s.linkedin.id] },
-    customer: task.customer,
-    type_id: task.type_id,
-    created_at: task.created_at,
+    customer: order.customer,
+    type_id: order.type_id,
+    created_at: order.created_at,
   })
-  expect(edited.updated_at).not.toBe(task.updated_at)
-  expect(await getTask(task.id)).toEqual(edited)
-  const history = await taskHistory(task.id)
+  expect(edited.updated_at).not.toBe(order.updated_at)
+  expect(await getOrder(order.id)).toEqual(edited)
+  const history = await orderHistory(order.id)
   expect(history.map((e) => [e.action, e.actor_name])).toEqual([
     ["updated", "Ali Valiyev"],
     ["created", "Ali Valiyev"],
@@ -1344,51 +1344,51 @@ test("an edit replaces the task's own fields and its answers and goes into the h
   expect(history[1].changes).toEqual([])
 
   // A save that changes nothing writes nothing.
-  expect(await updateTask(task.id, { ...same, assignee_phone: "+998 90 222 33 44" })).toEqual(edited)
-  expect(await taskHistory(task.id)).toHaveLength(2)
+  expect(await updateOrder(order.id, { ...same, assignee_phone: "+998 90 222 33 44" })).toEqual(edited)
+  expect(await orderHistory(order.id)).toHaveLength(2)
   // An assignee who left the company stays as long as the edit keeps them;
   // another one has to be a member.
   db.members[VALI] = db.members[VALI].filter((m) => m.companyId !== 1)
-  expect((await updateTask(task.id, { ...same, deadline: "2026-10-13" })).assignee).toEqual({ phone: VALI, full_name: "Vali Aliyev" })
-  expect(await failure(updateTask(task.id, { ...same, assignee_phone: ZARINA }))).toMatchObject({ status: 400, message: "Mas'ul kompaniya a'zosi emas" })
+  expect((await updateOrder(order.id, { ...same, deadline: "2026-10-13" })).assignee).toEqual({ phone: VALI, full_name: "Vali Aliyev" })
+  expect(await failure(updateOrder(order.id, { ...same, assignee_phone: ZARINA }))).toMatchObject({ status: 400, message: "Mas'ul kompaniya a'zosi emas" })
 
-  const refusals: [TaskUpdate, string][] = [
+  const refusals: [OrderUpdate, string][] = [
     [{ ...same, title: "" }, "Vazifa nomini kiriting"],
     [{ ...same, deadline: "soon" }, "Muddat noto'g'ri"],
     [{ ...same, stage_id: db.stages.find((stage) => stage.companyId === 2)!.id }, "Bosqichni tanlang"],
     [{ ...same, values: {} }, "«Izoh» maydonini to'ldiring"],
   ]
   for (const [body, message] of refusals) {
-    expect(await failure(updateTask(task.id, body)), message).toMatchObject({ status: 400, code: "validation_error", message })
+    expect(await failure(updateOrder(order.id, body)), message).toMatchObject({ status: 400, code: "validation_error", message })
   }
-  // A task that is not there is said first, whatever is sent.
-  expect(await failure(updateTask(999, { ...same, title: "" }))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  // An order that is not there is said first, whatever is sent.
+  expect(await failure(updateOrder(999, { ...same, title: "" }))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
 
   await signIn(SARDOR)
   await chooseCompany(1)
-  expect(await failure(taskHistory(task.id))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(orderHistory(order.id))).toMatchObject({ status: 403, code: "forbidden" })
 })
 
-test("moving a task changes its stage alone and goes into the history; the same stage changes nothing", async () => {
+test("moving an order changes its stage alone and goes into the history; the same stage changes nothing", async () => {
   db.cooldown = false
   await signIn(ALI)
-  const s = await taskSetup()
-  const task = await createTask(taskBody(s))
+  const s = await orderSetup()
+  const order = await createOrder(orderBody(s))
   await signIn(VALI)
   await chooseCompany(1)
 
-  const moved = await moveTask(task.id, s.bajarildi.id)
+  const moved = await moveOrder(order.id, s.bajarildi.id)
 
-  expect(moved).toMatchObject({ stage_id: s.bajarildi.id, title: task.title, values: task.values, customer: task.customer })
-  expect(await getTask(task.id)).toEqual(moved)
-  expect(await moveTask(task.id, s.bajarildi.id)).toEqual(moved)
+  expect(moved).toMatchObject({ stage_id: s.bajarildi.id, title: order.title, values: order.values, customer: order.customer })
+  expect(await getOrder(order.id)).toEqual(moved)
+  expect(await moveOrder(order.id, s.bajarildi.id)).toEqual(moved)
   for (const stageId of [0, 999, db.stages.find((stage) => stage.companyId === 2)!.id]) {
-    expect(await failure(moveTask(task.id, stageId)), String(stageId)).toMatchObject({ status: 400, message: "Bosqichni tanlang" })
+    expect(await failure(moveOrder(order.id, stageId)), String(stageId)).toMatchObject({ status: 400, message: "Bosqichni tanlang" })
   }
-  expect(await failure(moveTask(999, s.yangi.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(moveOrder(999, s.yangi.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
 
   await signIn(ALI)
-  const history = await taskHistory(task.id)
+  const history = await orderHistory(order.id)
   expect(history).toHaveLength(2)
   expect(history[0]).toMatchObject({
     action: "updated",
@@ -1397,40 +1397,40 @@ test("moving a task changes its stage alone and goes into the history; the same 
   })
 })
 
-test("a deleted task is gone from the app and its history is not shown; it stays in the database", async () => {
+test("a deleted order is gone from the app and its history is not shown; it stays in the database", async () => {
   db.cooldown = false
   await signIn(ALI)
-  const s = await taskSetup()
-  const task = await createTask(taskBody(s))
-  const another = await createTask(taskBody(s, { title: "Boshqa" }))
+  const s = await orderSetup()
+  const order = await createOrder(orderBody(s))
+  const another = await createOrder(orderBody(s, { title: "Boshqa" }))
   await signIn(VALI)
   await chooseCompany(1)
 
-  await deleteTask(task.id)
+  await deleteOrder(order.id)
 
-  expect(await failure(getTask(task.id))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
-  expect(await failure(deleteTask(task.id))).toMatchObject({ status: 404 })
-  expect((await listTasks()).items.map((t) => t.id)).toEqual([another.id])
-  expect(db.tasks).toHaveLength(2)
+  expect(await failure(getOrder(order.id))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
+  expect(await failure(deleteOrder(order.id))).toMatchObject({ status: 404 })
+  expect((await listOrders()).items.map((t) => t.id)).toEqual([another.id])
+  expect(db.orders).toHaveLength(2)
   await chooseCompany(2)
-  expect(await failure(deleteTask(another.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(deleteOrder(another.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
   await signIn(ALI)
-  expect(await failure(taskHistory(task.id))).toMatchObject({ status: 404 })
-  expect(db.taskHistory.filter((e) => e.taskId === task.id).map((e) => e.action)).toEqual(["created", "deleted"])
+  expect(await failure(orderHistory(order.id))).toMatchObject({ status: 404 })
+  expect(db.orderHistory.filter((e) => e.orderId === order.id).map((e) => e.action)).toEqual(["created", "deleted"])
 })
 
-test("what the tasks use is not deleted; the customers are suggested by the digits a phone begins with", async () => {
+test("what the orders use is not deleted; the customers are suggested by the digits a phone begins with", async () => {
   await signIn(ALI)
-  const s = await taskSetup()
-  const task = await createTask(taskBody(s, { values: { [s.izoh.id]: "X", [s.kanal.id]: [s.instagram.id] } }))
-  const gone = await createTask(taskBody(s, { title: "O'chirilgan", values: { [s.izoh.id]: "X", [s.summa.id]: 1 } }))
-  await deleteTask(gone.id)
+  const s = await orderSetup()
+  const order = await createOrder(orderBody(s, { values: { [s.izoh.id]: "X", [s.kanal.id]: [s.instagram.id] } }))
+  const gone = await createOrder(orderBody(s, { title: "O'chirilgan", values: { [s.izoh.id]: "X", [s.summa.id]: 1 } }))
+  await deleteOrder(gone.id)
   const inUse = { status: 409 }
 
   expect(await failure(deleteCustomer(s.ali.id))).toMatchObject({ ...inUse, code: "customer_in_use", message: "Bu mijozda 1 ta vazifa bor" })
   expect(await failure(deleteStage(s.yangi.id))).toMatchObject({ ...inUse, code: "stage_in_use", message: "Bu bosqichda 1 ta vazifa bor" })
-  expect(await failure(deleteTaskType(s.buyurtma.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 1 ta vazifa bor" })
-  expect(await failure(deleteTaskField(s.buyurtma.id, s.izoh.id))).toMatchObject({
+  expect(await failure(deleteOrderType(s.buyurtma.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 1 ta vazifa bor" })
+  expect(await failure(deleteOrderField(s.buyurtma.id, s.izoh.id))).toMatchObject({
     ...inUse,
     code: "field_in_use",
     message: "Bu maydon 1 ta vazifada to'ldirilgan",
@@ -1444,16 +1444,16 @@ test("what the tasks use is not deleted; the customers are suggested by the digi
   const vali = await createCustomer(s.jismoniy.id, "998905555555", { [s.fish.id]: "Vali", [s.manba.id]: s.instagram.id })
   expect(await failure(deleteOption(s.dropdown.id, s.instagram.id))).toMatchObject({ message: "Bu variant 1 ta mijozda tanlangan" })
 
-  // What nobody uses goes as before; a deleted task holds nothing.
+  // What nobody uses goes as before; a deleted order holds nothing.
   await deleteStage(s.jarayonda.id)
-  await deleteTaskType(s.vazifa.id)
-  await deleteTaskField(s.buyurtma.id, s.summa.id)
-  await deleteTask(task.id)
+  await deleteOrderType(s.vazifa.id)
+  await deleteOrderField(s.buyurtma.id, s.summa.id)
+  await deleteOrder(order.id)
   await deleteCustomer(s.ali.id)
   await deleteStage(s.yangi.id)
-  await deleteTaskType(s.buyurtma.id)
+  await deleteOrderType(s.buyurtma.id)
 
-  // The suggestions of the task form: the digits typed after 998.
+  // The suggestions of the order form: the digits typed after 998.
   const phones = async (phone: string) => (await listCustomers({ phone })).items.map((c) => c.phone)
   expect(await phones("9055")).toEqual([vali.phone])
   expect(await phones("90")).toEqual([vali.phone])
@@ -2559,7 +2559,7 @@ test("the cash documents go in and out of the accounts as the Go API keeps them:
 test("/app/dashboard answers the home's blocks as the Go API does: each by its permission, in so'm by each document's rate, of the location asked for or of every one of the member's", async () => {
   const today = localToday()
   const day = Number(today.slice(8, 10))
-  const { yangi, jarayonda } = seedTasks()
+  const { yangi, jarayonda } = seedOrders()
   const chilonzor = addLocation(1, "Chilonzor")
   const asosiy = asosiyOf(1)
   // The customers came last month, but one: today.
@@ -2604,7 +2604,7 @@ test("/app/dashboard answers the home's blocks as the Go API does: each by its p
   expect(one.orders?.active).toBe(0)
   expect(await failure(call(api.GET("/app/dashboard", { params: { query: { location_id: 999999 } } })))).toMatchObject({ status: 403, code: "forbidden" })
 
-  // A role that sees the tasks alone.
+  // A role that sees the orders alone.
   holdRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)

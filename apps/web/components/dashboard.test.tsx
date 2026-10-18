@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { formatDate } from "@/lib/format"
 import { setMiniApp } from "@/lib/telegram"
-import { ALI, db, seedCatalog, seedTasks, seedWarehouse, VALI } from "@/mocks/data"
+import { ALI, db, seedCatalog, seedOrders, seedWarehouse, VALI } from "@/mocks/data"
 import { addLocation } from "@/test/locations"
 import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
@@ -108,7 +108,7 @@ test("in a browser, or where the app is on the home screen already, there is no 
 })
 
 test("the home shows what the owner may see: what the suppliers are owed, the tiles, the overview, the nearest deadlines", async () => {
-  seedTasks()
+  seedOrders()
   seedWarehouse()
   await signIn(ALI)
   renderWithProviders(<Dashboard />)
@@ -119,8 +119,8 @@ test("the home shows what the owner may see: what the suppliers are owed, the ti
   expect(await screen.findByRole("link", { name: /^Hisob-faktura/ })).toHaveAttribute("href", expect.stringMatching(/^\/tasks\/\d+$/))
 })
 
-test("an employee whose role sees the tasks alone is headed by the tasks of the current location, and switching it switches them", async () => {
-  seedTasks()
+test("an employee whose role sees the orders alone is headed by the orders of the current location, and switching it switches them", async () => {
+  seedOrders()
   addLocation(1, "Chilonzor")
   giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
@@ -151,7 +151,7 @@ test("blocks that fail to load say why and can be asked for again; the head stay
   expect(await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })).toBeInTheDocument()
 })
 
-test("with no task open the nearest deadlines offer to add one, right on the home", async () => {
+test("with no order open the nearest deadlines offer to add one, right on the home", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<Dashboard />)
 

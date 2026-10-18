@@ -4,7 +4,7 @@ import { expect, test, vi } from "vitest"
 import { api, call } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import { keep } from "@/lib/use-kept"
-import { addDays, ALI, db, localToday, seedCatalog, seedCustomers, seedSixKinds, seedTasks, seedWarehouse, typesOf, VALI } from "@/mocks/data"
+import { addDays, ALI, db, localToday, seedCatalog, seedCustomers, seedSixKinds, seedOrders, seedWarehouse, typesOf, VALI } from "@/mocks/data"
 import { addLocation, asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
@@ -372,40 +372,40 @@ test("two changes of one name in an entry are both shown", async () => {
   errors.mockRestore()
 })
 
-// The customer's tasks, on its page (logic/tasks.md, 6).
-const tasksOf = () => screen.findByRole("region", { name: "Vazifalar" })
+// The customer's orders, on its page (logic/tasks.md, 6).
+const ordersOf = () => screen.findByRole("region", { name: "Vazifalar" })
 
-test("a customer's page lists its tasks, the one due soonest first, with their stage and deadline, and says how many", async () => {
+test("a customer's page lists its orders, the one due soonest first, with their stage and deadline, and says how many", async () => {
   await signIn(ALI)
-  const { dilshod, call, old } = seedTasks()
+  const { dilshod, call, old } = seedOrders()
   const today = localToday()
 
   open(dilshod.id)
 
-  const region = await tasksOf()
+  const region = await ordersOf()
   const rows = within(await within(region).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
   expect(rows.map((row) => rowParts(row).title)).toEqual(["Eski buyurtma", "Qo'ng'iroq qilish"])
   expect(rows[0]).toHaveAttribute("href", `/tasks/${old.id}`)
   expect(rows[1]).toHaveAttribute("href", `/tasks/${call.id}`)
-  // A done task says its stage where the others say how far their deadline is.
+  // A done order says its stage where the others say how far their deadline is.
   expect(rowParts(rows[0])).toMatchObject({ sub: "Bajarildi · Ali V.", end: `${formatDate(addDays(today, -5)).slice(0, 5)} Bajarildi` })
   expect(rowParts(rows[1])).toMatchObject({ sub: "Yangi · Vali A.", end: `${formatDate(addDays(today, 3)).slice(0, 5)} 3 kun qoldi` })
   expect(within(region).getByText("Jami: 2")).toBeInTheDocument()
 })
 
-test("a customer with no tasks says so", async () => {
+test("a customer with no orders says so", async () => {
   await signIn(ALI)
   const { anor } = seedCustomers()
 
   open(anor.id)
 
-  expect(await within(await tasksOf()).findByText("Bu mijozda vazifa yo'q")).toBeInTheDocument()
+  expect(await within(await ordersOf()).findByText("Bu mijozda vazifa yo'q")).toBeInTheDocument()
   expect(screen.queryByRole("list", { name: "Vazifalar" })).not.toBeInTheDocument()
 })
 
-test("a customer with tasks is not deleted: the API's reason is shown, and the customer stays", async () => {
+test("a customer with orders is not deleted: the API's reason is shown, and the customer stays", async () => {
   await signIn(ALI)
-  const { dilshod } = seedTasks()
+  const { dilshod } = seedOrders()
   const { user } = open(dilshod.id)
   await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })
 
@@ -417,7 +417,7 @@ test("a customer with tasks is not deleted: the API's reason is shown, and the c
   expect(db.customers.find((customer) => customer.id === dilshod.id)?.deleted).toBeUndefined()
 })
 
-test("an employee whose role holds customers.view alone sees the customer without a way to change it, its history or its tasks", async () => {
+test("an employee whose role holds customers.view alone sees the customer without a way to change it, its history or its orders", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
   await signIn(VALI)
   await chooseCompany(1)
@@ -503,11 +503,11 @@ test("a payment from the customer is entered from its «To'lov» tile: the sheet
   )
 })
 
-test("the customer's actions follow the role: editing, the history and the tasks here; not deleting", async () => {
+test("the customer's actions follow the role: editing, the history and the orders here; not deleting", async () => {
   giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.edit", "customers.history", "orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
-  const { dilshod } = seedTasks()
+  const { dilshod } = seedOrders()
   open(dilshod.id)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
@@ -518,18 +518,18 @@ test("the customer's actions follow the role: editing, the history and the tasks
   expect(screen.getByRole("heading", { name: "Vazifalar" })).toBeInTheDocument()
 })
 
-// A customer's tasks are those of every location the member works in,
+// A customer's orders are those of every location the member works in,
 // whatever the current one (logic/locations.md, section 6).
-test("a customer's tasks are of every location the member works in; with two or more locations each says its own", async () => {
+test("a customer's orders are of every location the member works in; with two or more locations each says its own", async () => {
   await signIn(ALI)
-  const { dilshod, call } = seedTasks()
+  const { dilshod, call } = seedOrders()
   const chilonzor = addLocation(1, "Chilonzor")
   call.locationId = chilonzor.id
   keep(`location:1:${ALI}`, String(asosiyOf(1).id))
 
   open(dilshod.id)
 
-  const rows = within(await within(await tasksOf()).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
+  const rows = within(await within(await ordersOf()).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
   expect(rows.map((row) => [rowParts(row).title, rowParts(row).sub])).toEqual([
     ["Eski buyurtma", "Bajarildi · Asosiy · Ali V."],
     ["Qo'ng'iroq qilish", "Yangi · Chilonzor · Vali A."],
@@ -546,9 +546,9 @@ test("the customer's tiles: editing for whoever may, and the call to its phone",
   expect(tiles.getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998911112233")
 })
 
-test("the customer's Vazifa tile enters a task for it: the sheet opens with the customer as its card", async () => {
+test("the customer's Vazifa tile enters an order for it: the sheet opens with the customer as its card", async () => {
   await signIn(ALI)
-  const { dilshod } = seedTasks()
+  const { dilshod } = seedOrders()
   const { user } = open(dilshod.id)
 
   await user.click(within(await screen.findByRole("group", { name: "Amallar" })).getByRole("button", { name: "Vazifa" }))
@@ -556,21 +556,21 @@ test("the customer's Vazifa tile enters a task for it: the sheet opens with the 
   const dialog = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
   const linked = within(dialog).getByRole("region", { name: "Mavjud mijoz" })
   expect(within(linked).getByText("Dilshod Karimov")).toBeInTheDocument()
-  const task = within(dialog).getByRole("group", { name: "Vazifa" })
-  await user.type(within(task).getByLabelText("Nomi"), "Mijoz sahifasidan")
-  fireEvent.change(within(task).getByLabelText("Muddat"), { target: { value: localToday() } })
+  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  await user.type(within(order).getByLabelText("Nomi"), "Mijoz sahifasidan")
+  fireEvent.change(within(order).getByLabelText("Muddat"), { target: { value: localToday() } })
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(db.tasks.at(-1)).toMatchObject({ title: "Mijoz sahifasidan", customerId: dilshod.id })
-  expect(await within(await tasksOf()).findByRole("link", { name: /^Mijoz sahifasidan/ })).toBeInTheDocument()
+  expect(db.orders.at(-1)).toMatchObject({ title: "Mijoz sahifasidan", customerId: dilshod.id })
+  expect(await within(await ordersOf()).findByRole("link", { name: /^Mijoz sahifasidan/ })).toBeInTheDocument()
 })
 
-test("the tile to enter a task is there for whoever may add tasks, in a location", async () => {
+test("the tile to enter an order is there for whoever may add orders, in a location", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["customers.view", "orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
-  const { dilshod } = seedTasks()
+  const { dilshod } = seedOrders()
   open(dilshod.id)
 
   expect(within(await screen.findByRole("group", { name: "Amallar" })).queryByRole("button", { name: "Vazifa" })).not.toBeInTheDocument()
