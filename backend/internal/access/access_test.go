@@ -53,7 +53,7 @@ func TestParse(t *testing.T) {
 		"in the catalog's order, once each":    {[]string{"orders.view", "customers.view", "customers.view"}, []access.Permission{"customers.view", "orders.view"}, ""},
 		"nothing":                              {[]string{}, []access.Permission{}, ""},
 		"an action without the view":           {[]string{"customers.create"}, nil, "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang"},
-		"the first section at fault":           {[]string{"settings.delete", "settings.view", "orders.edit"}, nil, "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang"},
+		"the first section at fault":           {[]string{"settings.delete", "settings.view", "orders.edit"}, nil, "«Buyurtmalar» bo'limida avval «Ko'rish» ni belgilang"},
 		"not in the catalog":                   {[]string{"customers.fly"}, nil, "Ruxsat noto'g'ri"},
 		"the owner's rights are no permission": {[]string{"roles.manage"}, nil, "Ruxsat noto'g'ri"},
 		"a warehouse action without the view":  {[]string{"purchases.create"}, nil, "«Xaridlar» bo'limida avval «Ko'rish» ni belgilang"},

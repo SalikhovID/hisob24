@@ -176,7 +176,7 @@ func (h *Handler) listOrders(w http.ResponseWriter, r *http.Request) {
 		name, message string
 		into          *int64
 	}{
-		{"type_id", "Vazifa turi noto'g'ri", &in.TypeID},
+		{"type_id", "Buyurtma turi noto'g'ri", &in.TypeID},
 		{"stage_id", "Bosqich noto'g'ri", &in.StageID},
 		{"customer_id", "Mijoz noto'g'ri", &in.CustomerID},
 	} {

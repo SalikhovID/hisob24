@@ -23,10 +23,10 @@ func TestOrderTitle(t *testing.T) {
 	assert.Equal(t, long, title)
 	for _, raw := range []string{"", "   "} {
 		_, err = orderTitle(raw)
-		refused(t, err, apperr.Invalid, "validation_error", "Vazifa nomini kiriting", "%q", raw)
+		refused(t, err, apperr.Invalid, "validation_error", "Buyurtma nomini kiriting", "%q", raw)
 	}
 	_, err = orderTitle(long + "a")
-	refused(t, err, apperr.Invalid, "validation_error", "Vazifa nomi 200 belgidan oshmasin")
+	refused(t, err, apperr.Invalid, "validation_error", "Buyurtma nomi 200 belgidan oshmasin")
 }
 
 func TestOrderDeadline(t *testing.T) {

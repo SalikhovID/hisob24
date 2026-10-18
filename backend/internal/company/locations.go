@@ -173,7 +173,7 @@ func (s *Service) DeleteLocation(ctx context.Context, companyID, id int64) error
 			return err
 		}
 		if orders > 0 {
-			return apperr.New(apperr.Conflict, "location_in_use", fmt.Sprintf("Bu lokatsiyada %d ta vazifa bor", orders))
+			return apperr.New(apperr.Conflict, "location_in_use", fmt.Sprintf("Bu lokatsiyada %d ta buyurtma bor", orders))
 		}
 		documents, err := q.CountLocationDocuments(ctx, id)
 		if err != nil {

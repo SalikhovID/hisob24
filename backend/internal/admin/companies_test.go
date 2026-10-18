@@ -243,7 +243,7 @@ func TestLocations(t *testing.T) {
 	api.addOrder(t, id, chilonzor["id"])
 	rec = api.do(t, http.MethodDelete, one, "", cookie)
 	assert.Equal(t, http.StatusConflict, rec.Code, "an order stands in it")
-	assert.JSONEq(t, `{"error":"location_in_use","message":"Bu lokatsiyada 1 ta vazifa bor"}`, rec.Body.String())
+	assert.JSONEq(t, `{"error":"location_in_use","message":"Bu lokatsiyada 1 ta buyurtma bor"}`, rec.Body.String())
 	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor filiali (1)"}, api.locationsOf(t, cookie, id), "the count on the list")
 	_, err := api.pool.Exec(t.Context(), "UPDATE orders SET deleted_at = now()")
 	require.NoError(t, err)

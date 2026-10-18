@@ -17,9 +17,9 @@ func orderTitle(raw string) (string, error) {
 	title := strings.TrimSpace(raw)
 	switch {
 	case title == "":
-		return "", invalid("Vazifa nomini kiriting")
+		return "", invalid("Buyurtma nomini kiriting")
 	case utf8.RuneCountInString(title) > maxTitle:
-		return "", invalid("Vazifa nomi 200 belgidan oshmasin")
+		return "", invalid("Buyurtma nomi 200 belgidan oshmasin")
 	}
 	return title, nil
 }

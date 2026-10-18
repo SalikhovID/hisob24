@@ -26,7 +26,7 @@ var (
 // but an order field is never told not to repeat.
 type Field = fields.Field
 
-// Type is a kind of order (Buyurtma, Shikoyat) with the fields its form asks
+// Type is a kind of order (Buyurtma, Montaj) with the fields its form asks
 // beside the title, the deadline, the customer and the assignee.
 type Type struct {
 	ID     int64
@@ -157,7 +157,7 @@ func (s *Service) DeleteType(ctx context.Context, companyID, id int64) error {
 			return err
 		}
 		if used > 0 {
-			return apperr.New(apperr.Conflict, "type_in_use", fmt.Sprintf("Bu turda %d ta vazifa bor", used))
+			return apperr.New(apperr.Conflict, "type_in_use", fmt.Sprintf("Bu turda %d ta buyurtma bor", used))
 		}
 		return q.DeleteOrderTypeFields(ctx, id)
 	})
@@ -269,7 +269,7 @@ func (s *Service) DeleteField(ctx context.Context, companyID, typeID, fieldID in
 			return err
 		}
 		if used > 0 {
-			return apperr.New(apperr.Conflict, "field_in_use", fmt.Sprintf("Bu maydon %d ta vazifada to'ldirilgan", used))
+			return apperr.New(apperr.Conflict, "field_in_use", fmt.Sprintf("Bu maydon %d ta buyurtmada to'ldirilgan", used))
 		}
 		return nil
 	})

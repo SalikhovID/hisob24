@@ -58,7 +58,7 @@ func (api testAPI) enterOrder(t *testing.T, token, body string) map[string]any {
 	return decode(t, rec)
 }
 
-const orderNotFound = `{"error":"not_found","message":"Vazifa topilmadi"}`
+const orderNotFound = `{"error":"not_found","message":"Buyurtma topilmadi"}`
 
 func TestCreateOrder(t *testing.T) {
 	api := newTestAPI(t)
@@ -116,11 +116,11 @@ func TestCreateOrder(t *testing.T) {
 
 	ok := fmt.Sprintf(`{"%d":"X"}`, sh.izoh)
 	for _, tt := range []struct{ name, body, message string }{
-		{"no title", orderBody(sh, " ", "2026-10-10", sh.yangi, ali["id"], ok, ""), "Vazifa nomini kiriting"},
+		{"no title", orderBody(sh, " ", "2026-10-10", sh.yangi, ali["id"], ok, ""), "Buyurtma nomini kiriting"},
 		{"no deadline", orderBody(sh, "X", "", sh.yangi, ali["id"], ok, ""), "Muddatni kiriting"},
 		{"a deadline that is no day", orderBody(sh, "X", "10.10.2026", sh.yangi, ali["id"], ok, ""), "Muddat noto'g'ri"},
 		{"no location", fmt.Sprintf(`{"type_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`, sh.buyurtma, sh.yangi, ok, ali["id"]), "Lokatsiyani tanlang"},
-		{"no type", fmt.Sprintf(`{"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`, sh.asosiy, sh.yangi, ali["id"]), "Vazifa turini tanlang"},
+		{"no type", fmt.Sprintf(`{"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`, sh.asosiy, sh.yangi, ali["id"]), "Buyurtma turini tanlang"},
 		{"no stage", orderBody(sh, "X", "2026-10-10", 0, ali["id"], ok, ""), "Bosqichni tanlang"},
 		{"an assignee who is no member", orderBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], ok, `,"assignee_phone":"998907777777"`), "Mas'ul kompaniya a'zosi emas"},
 		{"a required field left empty", orderBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], `{}`, ""), "«Izoh» maydonini to'ldiring"},
@@ -233,8 +233,8 @@ func TestListOrders(t *testing.T) {
 	for query, message := range map[string]string{
 		"page=abc":        "Sahifa raqami noto'g'ri",
 		"page=0":          "Sahifa raqami noto'g'ri",
-		"type_id=abc":     "Vazifa turi noto'g'ri",
-		"type_id=0":       "Vazifa turi noto'g'ri",
+		"type_id=abc":     "Buyurtma turi noto'g'ri",
+		"type_id=0":       "Buyurtma turi noto'g'ri",
 		"stage_id=abc":    "Bosqich noto'g'ri",
 		"customer_id=abc": "Mijoz noto'g'ri",
 		"assignee=vali":   "Mas'ul noto'g'ri",
@@ -284,7 +284,7 @@ func TestUpdateOrder(t *testing.T) {
 
 	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"title":"","deadline":"2026-10-12","stage_id":%d,"values":{"%d":"X"}}`, sh.jarayonda, sh.izoh), bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.JSONEq(t, `{"error":"validation_error","message":"Vazifa nomini kiriting"}`, rec.Body.String())
+	assert.JSONEq(t, `{"error":"validation_error","message":"Buyurtma nomini kiriting"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"title":"X","deadline":"2026-10-12","stage_id":%d,"values":{}}`, sh.jarayonda), bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"«Izoh» maydonini to'ldiring"}`, rec.Body.String())
@@ -347,7 +347,7 @@ func TestDeleteOrder(t *testing.T) {
 
 	rec := api.do(t, http.MethodDelete, customer, "", bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code, "a customer with an order is not deleted")
-	assert.JSONEq(t, `{"error":"customer_in_use","message":"Bu mijozda 1 ta vazifa bor"}`, rec.Body.String())
+	assert.JSONEq(t, `{"error":"customer_in_use","message":"Bu mijozda 1 ta buyurtma bor"}`, rec.Body.String())
 	rec = api.do(t, http.MethodDelete, path, "", bearer(stranger))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's order")
 	assert.JSONEq(t, orderNotFound, rec.Body.String())

@@ -113,7 +113,7 @@ func TestCreateRole(t *testing.T) {
 		"too long":                   {strings.Repeat("a", 61), nil, apperr.Invalid, "validation_error", "Nom 60 belgidan oshmasin"},
 		"taken, whatever the case":   {"sotuvchi", nil, apperr.Conflict, "name_taken", "Bu nomli rol allaqachon bor"},
 		"unknown permission":         {"Kassir", []string{"customers.fly"}, apperr.Invalid, "validation_error", "Ruxsat noto'g'ri"},
-		"an action without the view": {"Kassir", []string{"orders.create"}, apperr.Invalid, "validation_error", "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang"},
+		"an action without the view": {"Kassir", []string{"orders.create"}, apperr.Invalid, "validation_error", "«Buyurtmalar» bo'limida avval «Ko'rish» ni belgilang"},
 	} {
 		_, err := s.CreateRole(ctx, c.ID, tc.role, tc.perms)
 		var e *apperr.Error

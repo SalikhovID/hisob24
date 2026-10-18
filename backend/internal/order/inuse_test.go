@@ -23,7 +23,7 @@ func TestAStageWithOrdersIsNotDeleted(t *testing.T) {
 
 	err := s.DeleteStage(ctx, sh.id, sh.yangi.ID)
 
-	refused(t, err, apperr.Conflict, "stage_in_use", "Bu bosqichda 2 ta vazifa bor")
+	refused(t, err, apperr.Conflict, "stage_in_use", "Bu bosqichda 2 ta buyurtma bor")
 	stages, err := s.Stages(ctx, sh.id)
 	require.NoError(t, err)
 	assert.Len(t, stages, 3, "the stage stays")
@@ -31,7 +31,7 @@ func TestAStageWithOrdersIsNotDeleted(t *testing.T) {
 	assert.NoError(t, s.DeleteStage(ctx, sh.id, sh.bajarildi.ID), "a stage with no orders")
 	_, err = s.Move(ctx, sh.scope(), first.ID, owner, sh.jarayonda.ID)
 	require.NoError(t, err)
-	refused(t, s.DeleteStage(ctx, sh.id, sh.yangi.ID), apperr.Conflict, "stage_in_use", "Bu bosqichda 1 ta vazifa bor",
+	refused(t, s.DeleteStage(ctx, sh.id, sh.yangi.ID), apperr.Conflict, "stage_in_use", "Bu bosqichda 1 ta buyurtma bor",
 		"an order moved away does not hold the stage")
 	require.NoError(t, s.Delete(ctx, sh.scope(), second.ID, owner))
 	assert.NoError(t, s.DeleteStage(ctx, sh.id, sh.yangi.ID), "the deleted orders do not hold the stage")
@@ -47,7 +47,7 @@ func TestATypeWithOrdersIsNotDeleted(t *testing.T) {
 
 	err := s.DeleteType(ctx, sh.id, sh.buyurtma.ID)
 
-	refused(t, err, apperr.Conflict, "type_in_use", "Bu turda 2 ta vazifa bor")
+	refused(t, err, apperr.Conflict, "type_in_use", "Bu turda 2 ta buyurtma bor")
 	types, err := s.Types(ctx, sh.id)
 	require.NoError(t, err)
 	require.Len(t, types, 2, "the type stays")
@@ -55,7 +55,7 @@ func TestATypeWithOrdersIsNotDeleted(t *testing.T) {
 
 	assert.NoError(t, s.DeleteType(ctx, sh.id, shikoyat.ID), "a type with no orders")
 	require.NoError(t, s.Delete(ctx, sh.scope(), first.ID, owner))
-	refused(t, s.DeleteType(ctx, sh.id, sh.buyurtma.ID), apperr.Conflict, "type_in_use", "Bu turda 1 ta vazifa bor")
+	refused(t, s.DeleteType(ctx, sh.id, sh.buyurtma.ID), apperr.Conflict, "type_in_use", "Bu turda 1 ta buyurtma bor")
 	require.NoError(t, s.Delete(ctx, sh.scope(), second.ID, owner))
 	assert.NoError(t, s.DeleteType(ctx, sh.id, sh.buyurtma.ID), "the deleted orders do not hold the type")
 }
@@ -72,11 +72,11 @@ func TestAFieldOrdersFilledInIsNotDeleted(t *testing.T) {
 	gone := mustOrder(t, s, sh, "O'chirilgan", "2026-10-12", map[int64]any{sh.izoh.ID: "X", sh.summa.ID: 1})
 	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 
-	refused(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, sh.izoh.ID), apperr.Conflict, "field_in_use", "Bu maydon 2 ta vazifada to'ldirilgan")
+	refused(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, sh.izoh.ID), apperr.Conflict, "field_in_use", "Bu maydon 2 ta buyurtmada to'ldirilgan")
 	refused(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, sh.kanal.ID), apperr.Conflict, "field_in_use",
-		"Bu maydon 2 ta vazifada to'ldirilgan", "an order that chose two options counts once")
+		"Bu maydon 2 ta buyurtmada to'ldirilgan", "an order that chose two options counts once")
 	refused(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, sh.summa.ID), apperr.Conflict, "field_in_use",
-		"Bu maydon 1 ta vazifada to'ldirilgan", "a deleted order's answer does not hold the field")
+		"Bu maydon 1 ta buyurtmada to'ldirilgan", "a deleted order's answer does not hold the field")
 	types, err := s.Types(ctx, sh.id)
 	require.NoError(t, err)
 	assert.Len(t, types[0].Fields, 4, "the fields stay")

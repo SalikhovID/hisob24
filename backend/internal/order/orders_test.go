@@ -262,15 +262,15 @@ func TestCreateRefusals(t *testing.T) {
 		code     string
 		message  string
 	}{
-		{name: "no title", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Title = " " }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa nomini kiriting"},
+		{name: "no title", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Title = " " }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Buyurtma nomini kiriting"},
 		{name: "no deadline", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Deadline = "" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Muddatni kiriting"},
 		{name: "a deadline that is no day", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Deadline = "10.10.2026" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Muddat noto'g'ri"},
 		{name: "no location", typeID: sh.buyurtma.ID, location: noLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
 		{name: "a deleted location", typeID: sh.buyurtma.ID, location: &deletedLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
 		{name: "another company's location", typeID: sh.buyurtma.ID, location: &nok.asosiy, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
-		{name: "no type", in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa turini tanlang"},
-		{name: "a deleted type", typeID: gone.ID, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa turini tanlang"},
-		{name: "another company's type", typeID: nok.buyurtma.ID, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa turini tanlang"},
+		{name: "no type", in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Buyurtma turini tanlang"},
+		{name: "a deleted type", typeID: gone.ID, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Buyurtma turini tanlang"},
+		{name: "another company's type", typeID: nok.buyurtma.ID, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Buyurtma turini tanlang"},
 		{name: "no stage", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.StageID = 0 }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Bosqichni tanlang"},
 		{name: "a deleted stage", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.StageID = deletedStage.ID }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Bosqichni tanlang"},
 		{name: "another company's stage", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.StageID = nok.yangi.ID }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Bosqichni tanlang"},
@@ -283,7 +283,7 @@ func TestCreateRefusals(t *testing.T) {
 		{name: "a customer that is not there", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: ptr(sh.ali.ID + 1000)}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
 		{name: "another company's customer", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: &nok.ali.ID}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
 		{name: "a deleted customer", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: &hidden.ID}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
-		{name: "the title is told before the type", in: with(func(in *Input) { in.Title = "" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Vazifa nomini kiriting"},
+		{name: "the title is told before the type", in: with(func(in *Input) { in.Title = "" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Buyurtma nomini kiriting"},
 		{name: "the location is told before the type", location: noLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
 		{name: "the stage is told before the answers", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.StageID = 0; in.Values = nil }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Bosqichni tanlang"},
 		{name: "the answers are told before the customer", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Values = nil }), cust: CustomerInput{}, kind: apperr.Invalid, code: "validation_error", message: "«Izoh» maydonini to'ldiring"},
@@ -325,7 +325,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, &Member{Phone: staff, Name: ptr("Xurshid Xodim")}, got.Assignee, "an assignee who left the company keeps the name of then")
 	assert.Equal(t, ptr("Egamberdi Egasi"), got.CreatedByName)
 
-	const notFound = "Vazifa topilmadi"
+	const notFound = "Buyurtma topilmadi"
 	_, err = s.Get(ctx, nok.scope(), order.ID)
 	refused(t, err, apperr.NotFound, "not_found", notFound, "another company's order")
 	_, err = s.Get(ctx, sh.scope(), order.ID+1000)
@@ -408,17 +408,17 @@ func TestListPages(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	for i := range 21 {
-		mustOrder(t, s, sh, fmt.Sprintf("Vazifa %02d", i), fmt.Sprintf("2026-11-%02d", i+1), map[int64]any{sh.izoh.ID: "X"})
+		mustOrder(t, s, sh, fmt.Sprintf("Buyurtma %02d", i), fmt.Sprintf("2026-11-%02d", i+1), map[int64]any{sh.izoh.ID: "X"})
 	}
 
 	first, err := s.List(ctx, sh.scope(), ListInput{Page: 1})
 	require.NoError(t, err)
 	require.Len(t, first.Items, 20, "a page holds twenty")
-	assert.Equal(t, "Vazifa 00", first.Items[0].Title)
+	assert.Equal(t, "Buyurtma 00", first.Items[0].Title)
 	assert.EqualValues(t, 21, first.Total)
 	second, err := s.List(ctx, sh.scope(), ListInput{Page: 2})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Vazifa 20"}, titlesOf(second.Items), "the one due last is on the last page")
+	assert.Equal(t, []string{"Buyurtma 20"}, titlesOf(second.Items), "the one due last is on the last page")
 	assert.Equal(t, 2, second.Page)
 }
 
@@ -495,15 +495,15 @@ func TestUpdateRefusals(t *testing.T) {
 	ok := Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab"})}
 
 	_, err := s.Update(ctx, nok.scope(), order.ID, owner, ok)
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "another company's order")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "another company's order")
 	_, err = s.Update(ctx, sh.scope(), order.ID+1000, owner, Input{})
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "no such order: told before what is wrong with the input")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "no such order: told before what is wrong with the input")
 	for _, tt := range []struct {
 		name    string
 		change  func(in *Input)
 		message string
 	}{
-		{"no title", func(in *Input) { in.Title = "" }, "Vazifa nomini kiriting"},
+		{"no title", func(in *Input) { in.Title = "" }, "Buyurtma nomini kiriting"},
 		{"a bad deadline", func(in *Input) { in.Deadline = "soon" }, "Muddat noto'g'ri"},
 		{"another company's stage", func(in *Input) { in.StageID = nok.yangi.ID }, "Bosqichni tanlang"},
 		{"a required field left empty", func(in *Input) { in.Values = nil }, "«Izoh» maydonini to'ldiring"},
@@ -544,7 +544,7 @@ func TestMove(t *testing.T) {
 	_, err = s.Move(ctx, sh.scope(), order.ID, staff, nok.yangi.ID)
 	refused(t, err, apperr.Invalid, "validation_error", "Bosqichni tanlang", "another company's stage")
 	_, err = s.Move(ctx, nok.scope(), order.ID, staff, nok.yangi.ID)
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "another company's order")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "another company's order")
 }
 
 func TestDelete(t *testing.T) {
@@ -566,7 +566,7 @@ func TestDelete(t *testing.T) {
 		"deleted by 998902222222 (Xurshid Xodim): []",
 	}, storedHistory(t, pool, order.ID))
 
-	const notFound = "Vazifa topilmadi"
+	const notFound = "Buyurtma topilmadi"
 	refused(t, s.Delete(ctx, sh.scope(), order.ID, staff), apperr.NotFound, "not_found", notFound, "deleted already")
 	refused(t, s.Delete(ctx, nok.scope(), order.ID, staff), apperr.NotFound, "not_found", notFound, "another company's order")
 }
@@ -592,7 +592,7 @@ func TestHistory(t *testing.T) {
 
 	require.NoError(t, s.Delete(ctx, sh.scope(), order.ID, owner))
 	_, err = s.History(ctx, sh.scope(), order.ID)
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "a deleted order's history is kept, not shown")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "a deleted order's history is kept, not shown")
 }
 
 // The orders a member works with are those of the locations in their scope
@@ -638,15 +638,15 @@ func TestOrdersAreTheScopesLocations(t *testing.T) {
 	assert.Empty(t, page.Items, "a member with no location: nothing")
 
 	_, err = s.Get(ctx, onlyChilonzor, inAsosiy.ID)
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "an order standing elsewhere is not read")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "an order standing elsewhere is not read")
 	_, err = s.Update(ctx, onlyChilonzor, inAsosiy.ID, owner, sh.input(t, "X", "2026-10-10", of))
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor edited")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "nor edited")
 	_, err = s.Move(ctx, onlyChilonzor, inAsosiy.ID, owner, sh.bajarildi.ID)
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor moved")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "nor moved")
 	err = s.Delete(ctx, onlyChilonzor, inAsosiy.ID, owner)
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor deleted")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "nor deleted")
 	_, err = s.History(ctx, onlyChilonzor, inAsosiy.ID)
-	refused(t, err, apperr.NotFound, "not_found", "Vazifa topilmadi", "nor is its history")
+	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "nor is its history")
 	got, err := s.Get(ctx, both, inAsosiy.ID)
 	require.NoError(t, err, "within the scope")
 	assert.Equal(t, sh.asosiy, got.LocationID)

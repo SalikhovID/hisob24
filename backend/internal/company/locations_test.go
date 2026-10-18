@@ -328,7 +328,7 @@ func TestDeleteLocation(t *testing.T) {
 	require.ErrorAs(t, err, &e)
 	assert.Equal(t, apperr.Conflict, e.Kind)
 	assert.Equal(t, "location_in_use", e.Code, "a location with an order standing in it")
-	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the deleted order not counted")
+	assert.Equal(t, "Bu lokatsiyada 1 ta buyurtma bor", e.Message, "the deleted order not counted")
 
 	// A location with a purchase standing in it is kept too (checked after
 	// the orders).
@@ -347,7 +347,7 @@ func TestDeleteLocation(t *testing.T) {
 	addOrder(t, pool, c.ID, qoyliq, false)
 	err = s.DeleteLocation(ctx, c.ID, qoyliq)
 	require.ErrorAs(t, err, &e)
-	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the orders come first")
+	assert.Equal(t, "Bu lokatsiyada 1 ta buyurtma bor", e.Message, "the orders come first")
 
 	yunusobod := addLocation(t, pool, c.ID, "Yunusobod")
 	addEmployee(t, pool, c.ID, "998902223344", "Xodim")

@@ -348,8 +348,8 @@ paths:
       summary: Lokatsiyani o'chirish
       description: >
         Lokatsiya yashiriladi (bazadan o'chmaydi), nomi bo'shaydi.
-        Kompaniyaning yagona lokatsiyasi (last_location) va faol vazifasi
-        bor lokatsiya (location_in_use; o'chirilgan vazifalar sanalmaydi)
+        Kompaniyaning yagona lokatsiyasi (last_location) va faol buyurtmasi
+        bor lokatsiya (location_in_use; o'chirilgan buyurtmalar sanalmaydi)
         o'chirilmaydi, shu tartibda tekshiriladi. Xodimlarning cheklovlariga
         tegilmaydi (logic/locations.md, 5-bo'lim).
       security:
@@ -1068,7 +1068,7 @@ paths:
         (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): har blok
         o'z ruxsati bilan, ruxsatsizi null. Pul so'mda, har hujjat o'z kurs
         qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt
-        zonasida (standart Asia/Tashkent). Vazifalar, xaridlar va sotuvlar
+        zonasida (standart Asia/Tashkent). Buyurtmalar, xaridlar va sotuvlar
         location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403
         forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga
         ruxsatli hamma lokatsiyaniki; ta'minotchilar va mijozlar
@@ -1842,7 +1842,7 @@ paths:
             type: string
             pattern: "^[0-9]{1,9}$"
           description: >
-            Telefoni 998 va shu raqamlar bilan boshlanadigan mijozlar (vazifa
+            Telefoni 998 va shu raqamlar bilan boshlanadigan mijozlar (buyurtma
             formasidagi mijoz takliflari). Boshqa belgi 400 beradi.
         - name: page
           in: query
@@ -1939,7 +1939,7 @@ paths:
       description: >
         Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404
         beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo
-        o'chira oladi. Faol vazifasi bor mijoz o'chirilmaydi (409
+        o'chira oladi. Faol buyurtmasi bor mijoz o'chirilmaydi (409
         customer_in_use). O'chirish tarixga yoziladi.
       security:
         - appBearer: []
@@ -2540,10 +2540,10 @@ paths:
       operationId: setEmployeeLocations
       summary: Xodimni lokatsiyalar bilan cheklash yoki cheklovni olib tashlash (faqat owner)
       description: >
-        Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va
+        Xodim faqat belgilangan lokatsiyalarning buyurtmalarini ko'radi va
         qo'shadi (logic/locations.md, 5-bo'lim); null bilan yana hammasida.
         Keyingi so'rovidanoq amal qiladi. Boshqa lokatsiyalarda unga
-        biriktirilgan vazifalar o'zgarmaydi. Egasi cheklanmaydi. Cheklovni
+        biriktirilgan buyurtmalar o'zgarmaydi. Egasi cheklanmaydi. Cheklovni
         faqat egasi belgilaydi.
       security:
         - appBearer: []
@@ -2701,7 +2701,7 @@ paths:
       description: >
         Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin
         xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo
-        o'qiydi: vazifaga mas'ul shulardan tanlanadi. A'zolarni boshqarish
+        o'qiydi: buyurtmaga mas'ul shulardan tanlanadi. A'zolarni boshqarish
         /app/employees orqali, employees.view ruxsati bilan.
       security:
         - appBearer: []
@@ -2726,7 +2726,7 @@ paths:
       summary: Bosqichlar
       description: >
         Access token'dagi kompaniyaning bosqichlari (kanban ustunlari) o'z
-        tartibida. Har a'zo o'qiydi: kanban va vazifa formasi shundan quriladi.
+        tartibida. Har a'zo o'qiydi: kanban va buyurtma formasi shundan quriladi.
       security:
         - appBearer: []
       responses:
@@ -2750,7 +2750,7 @@ paths:
       description: >
         Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi
         (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor
-        rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi vazifa
+        rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi buyurtma
         bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.
       security:
         - appBearer: []
@@ -2850,7 +2850,7 @@ paths:
       operationId: deleteOrderStage
       summary: Bosqichni o'chirish (settings.delete ruxsati)
       description: >
-        Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi
+        Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol buyurtmasi
         bor bosqich o'chirilmaydi: 409 stage_in_use.
       security:
         - appBearer: []
@@ -2870,12 +2870,12 @@ paths:
   /app/order-types:
     get:
       operationId: listOrderTypes
-      summary: Vazifa turlari, maydonlari bilan
+      summary: Buyurtma turlari, maydonlari bilan
       description: >
-        Access token'dagi kompaniyaning vazifa turlari o'z tartibida, har
-        biri maydonlari bilan. Har a'zo o'qiydi: vazifa formasi va ro'yxat
+        Access token'dagi kompaniyaning buyurtma turlari o'z tartibida, har
+        biri maydonlari bilan. Har a'zo o'qiydi: buyurtma formasi va ro'yxat
         ustunlari shundan quriladi. Nomi, muddat, mijoz va mas'ul maydon
-        emas: ular har vazifada bor.
+        emas: ular har buyurtmada bor.
       security:
         - appBearer: []
       responses:
@@ -2895,7 +2895,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
     post:
       operationId: createOrderType
-      summary: Vazifa turini yaratish (settings.create ruxsati)
+      summary: Buyurtma turini yaratish (settings.create ruxsati)
       description: >
         Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi
         (katta-kichik harf farqsiz), 60 belgigacha.
@@ -2927,9 +2927,9 @@ paths:
   /app/order-types/order:
     put:
       operationId: reorderOrderTypes
-      summary: Vazifa turlari tartibini o'zgartirish (settings.edit ruxsati)
+      summary: Buyurtma turlari tartibini o'zgartirish (settings.edit ruxsati)
       description: >
-        ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini
+        ids kompaniyaning barcha buyurtma turlarini yangi tartibda, har birini
         bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409
         order_changed.
       security:
@@ -2963,7 +2963,7 @@ paths:
           format: int64
     patch:
       operationId: renameOrderType
-      summary: Vazifa turi nomini o'zgartirish (settings.edit ruxsati)
+      summary: Buyurtma turi nomini o'zgartirish (settings.edit ruxsati)
       security:
         - appBearer: []
       requestBody:
@@ -2993,10 +2993,10 @@ paths:
           $ref: "#/components/responses/OrderSettingConflict"
     delete:
       operationId: deleteOrderType
-      summary: Vazifa turini o'chirish (settings.delete ruxsati)
+      summary: Buyurtma turini o'chirish (settings.delete ruxsati)
       description: >
         Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi
-        bo'shaydi. Faol vazifasi bor tur o'chirilmaydi: 409 type_in_use.
+        bo'shaydi. Faol buyurtmasi bor tur o'chirilmaydi: 409 type_in_use.
       security:
         - appBearer: []
       responses:
@@ -3022,11 +3022,11 @@ paths:
           format: int64
     post:
       operationId: addOrderField
-      summary: Vazifa turiga maydon qo'shish (settings.create ruxsati)
+      summary: Buyurtma turiga maydon qo'shish (settings.create ruxsati)
       description: >
         Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown,
         multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va
-        son maydoniga dropdown ulanmaydi. Vazifa maydonida "Takrorlanmasin"
+        son maydoniga dropdown ulanmaydi. Buyurtma maydonida "Takrorlanmasin"
         yo'q. Maydonning turi va dropdowni keyin o'zgarmaydi.
       security:
         - appBearer: []
@@ -3071,7 +3071,7 @@ paths:
           format: int64
     patch:
       operationId: updateOrderField
-      summary: Vazifa maydonini o'zgartirish (settings.edit ruxsati)
+      summary: Buyurtma maydonini o'zgartirish (settings.edit ruxsati)
       description: Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
       security:
         - appBearer: []
@@ -3102,9 +3102,9 @@ paths:
           $ref: "#/components/responses/OrderSettingConflict"
     delete:
       operationId: deleteOrderField
-      summary: Vazifa maydonini o'chirish (settings.delete ruxsati)
+      summary: Buyurtma maydonini o'chirish (settings.delete ruxsati)
       description: >
-        Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon
+        Maydon yashiriladi, nomi bo'shaydi. Faol buyurtmada to'ldirilgan maydon
         o'chirilmaydi: 409 field_in_use.
       security:
         - appBearer: []
@@ -3131,7 +3131,7 @@ paths:
           format: int64
     put:
       operationId: reorderOrderFields
-      summary: Vazifa turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
+      summary: Buyurtma turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids turning barcha maydonlarini yangi tartibda, har birini bir marta
         nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
@@ -3205,13 +3205,13 @@ paths:
   /app/orders:
     get:
       operationId: listOrders
-      summary: Vazifalar ro'yxati
+      summary: Buyurtmalar ro'yxati
       description: >
-        Access token'dagi kompaniyaning vazifalari, a'zo ishlay oladigan
+        Access token'dagi kompaniyaning buyurtmalari, a'zo ishlay oladigan
         lokatsiyalardagilari (logic/locations.md, 6-bo'lim): location_id
         berilsa shu lokatsiyadagilar, berilmasa ruxsatli hammasi. Muddati
         yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta.
-        Har a'zo o'qiydi. O'chirilgan vazifalar chiqmaydi. Filtrlar birga
+        Har a'zo o'qiydi. O'chirilgan buyurtmalar chiqmaydi. Filtrlar birga
         ishlaydi.
       security:
         - appBearer: []
@@ -3222,7 +3222,7 @@ paths:
             type: integer
             format: int64
           description: >
-            Faqat shu lokatsiyadagi vazifalar (joriy lokatsiya); berilmasa
+            Faqat shu lokatsiyadagi buyurtmalar (joriy lokatsiya); berilmasa
             a'zoga ruxsatli hamma lokatsiya. A'zo ishlay olmaydigan lokatsiya
             (begona, o'chirilgan, cheklov bilan yopilgan): 403 forbidden.
             Son emas: 400 "Lokatsiya noto'g'ri".
@@ -3231,33 +3231,33 @@ paths:
           schema:
             type: string
           description: >
-            Nomida, vazifaning matn javoblarida va mijozning matn
+            Nomida, buyurtmaning matn javoblarida va mijozning matn
             javoblarida qidiriladi (katta-kichik harf farqsiz, harfma-harf).
-            Faqat raqamlardan iborat qidiruv mijoz telefonida va vazifaning
+            Faqat raqamlardan iborat qidiruv mijoz telefonida va buyurtmaning
             butun son javoblarida ham qidiriladi.
         - name: type_id
           in: query
           schema:
             type: integer
             format: int64
-          description: Faqat shu turdagi vazifalar
+          description: Faqat shu turdagi buyurtmalar
         - name: stage_id
           in: query
           schema:
             type: integer
             format: int64
-          description: Faqat shu bosqichdagi vazifalar (kanban ustuni)
+          description: Faqat shu bosqichdagi buyurtmalar (kanban ustuni)
         - name: assignee
           in: query
           schema:
             type: string
-          description: Faqat shu a'zoga biriktirilgan vazifalar (telefon)
+          description: Faqat shu a'zoga biriktirilgan buyurtmalar (telefon)
         - name: customer_id
           in: query
           schema:
             type: integer
             format: int64
-          description: Faqat shu mijozning vazifalari (mijoz sahifasi)
+          description: Faqat shu mijozning buyurtmalari (mijoz sahifasi)
         - name: page
           in: query
           schema:
@@ -3266,7 +3266,7 @@ paths:
             default: 1
       responses:
         "200":
-          description: Vazifalar sahifasi
+          description: Buyurtmalar sahifasi
           content:
             application/json:
               schema:
@@ -3281,22 +3281,22 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       operationId: createOrder
-      summary: Vazifa qo'shish
+      summary: Buyurtma qo'shish
       description: >
-        Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi.
+        Access token'dagi kompaniyaga buyurtma qo'shadi; har a'zo qo'sha oladi.
         Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi
         (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va
         mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning
         maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki,
         faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari
-        bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi:
+        bilan, buyurtma bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi:
         nom, muddat, lokatsiya, tur, bosqich, mas'ul (a'zo emas: "Mas'ul
-        kompaniya a'zosi emas"; vazifa lokatsiyasida ishlamaydi: "Mas'ul bu
+        kompaniya a'zosi emas"; buyurtma lokatsiyasida ishlamaydi: "Mas'ul bu
         lokatsiyada ishlamaydi"), maydonlar, mijoz; birinchi xato qaytadi
         (400 validation_error). A'zo ishlay olmaydigan lokatsiya: 403
         forbidden (hammasidan oldin). Yangi mijozning takror telefoni
         (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken)
-        409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham,
+        409 qaytaradi, javobda o'sha mijozning ID'si bilan; buyurtma ham,
         mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
       security:
         - appBearer: []
@@ -3308,7 +3308,7 @@ paths:
               $ref: "#/components/schemas/OrderCreate"
       responses:
         "201":
-          description: Qo'shilgan vazifa
+          description: Qo'shilgan buyurtma
           content:
             application/json:
               schema:
@@ -3333,16 +3333,16 @@ paths:
           format: int64
     get:
       operationId: getOrder
-      summary: Vazifa
+      summary: Buyurtma
       description: >
-        Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo
+        Access token'dagi kompaniyaning buyurtmasi, javoblari bilan. Har a'zo
         o'qiydi. Boshqa kompaniyaniki, o'chirilgani va a'zoga ruxsatsiz
         lokatsiyadagisi 404 (logic/locations.md, 6-bo'lim).
       security:
         - appBearer: []
       responses:
         "200":
-          description: Vazifa
+          description: Buyurtma
           content:
             application/json:
               schema:
@@ -3357,11 +3357,11 @@ paths:
           $ref: "#/components/responses/OrderNotFound"
     put:
       operationId: updateOrder
-      summary: Vazifani tahrirlash
+      summary: Buyurtmani tahrirlash
       description: >
         Nomi, muddati, bosqichi, mas'uli va javoblari to'liq qayta yoziladi;
         turi va mijozi o'zgarmaydi. Har a'zo tahrirlaydi. Tekshiruv
-        qo'shishdagi kabi. Berilmagan maydon javobi o'chadi. Vazifadagi
+        qo'shishdagi kabi. Berilmagan maydon javobi o'chadi. Buyurtmadagi
         chiqarilgan mas'ul o'zgartirilmasa qoladi; boshqasi a'zo bo'lishi
         kerak. O'zgargan maydonlar tarixga yoziladi; o'zgarishsiz saqlash
         yozilmaydi.
@@ -3375,7 +3375,7 @@ paths:
               $ref: "#/components/schemas/OrderUpdate"
       responses:
         "200":
-          description: Saqlangan vazifa
+          description: Saqlangan buyurtma
           content:
             application/json:
               schema:
@@ -3392,9 +3392,9 @@ paths:
           $ref: "#/components/responses/OrderNotFound"
     delete:
       operationId: deleteOrder
-      summary: Vazifani o'chirish
+      summary: Buyurtmani o'chirish
       description: >
-        Vazifa yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida
+        Buyurtma yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida
         ko'rinmaydi, sahifasi 404 beradi. Bazadan o'chmaydi; tiklash yo'q.
         Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
       security:
@@ -3420,7 +3420,7 @@ paths:
           format: int64
     patch:
       operationId: moveOrder
-      summary: Vazifani boshqa bosqichga o'tkazish
+      summary: Buyurtmani boshqa bosqichga o'tkazish
       description: >
         Kanbanda sudrab yoki menyudan ko'chirish: faqat bosqich o'zgaradi.
         Har a'zo ko'chiradi. O'sha bosqichning o'zi hech narsani
@@ -3436,7 +3436,7 @@ paths:
               $ref: "#/components/schemas/OrderMove"
       responses:
         "200":
-          description: Ko'chirilgan vazifa
+          description: Ko'chirilgan buyurtma
           content:
             application/json:
               schema:
@@ -3461,12 +3461,12 @@ paths:
           format: int64
     get:
       operationId: listOrderHistory
-      summary: Vazifaning o'zgarishlar tarixi (orders.history ruxsati)
+      summary: Buyurtmaning o'zgarishlar tarixi (orders.history ruxsati)
       description: >
-        Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har
-        tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan
+        Buyurtma bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har
+        tahriri va ko'chirilgani (o'chirilgan buyurtma 404 beradi). O'zgargan
         har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn
-        sifatida: avval vazifaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy,
+        sifatida: avval buyurtmaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy,
         Bosqich, Mas'ul), keyin turning maydonlari.
       security:
         - appBearer: []
@@ -5717,8 +5717,8 @@ components:
       description: >
         Bu nomli lokatsiya bor (name_taken, "Bu nomli lokatsiya allaqachon
         bor"); kompaniyaning yagona lokatsiyasi (last_location,
-        "Kompaniyaning yagona lokatsiyasi o'chirilmaydi"); faol vazifasi bor
-        lokatsiya (location_in_use, "Bu lokatsiyada N ta vazifa bor")
+        "Kompaniyaning yagona lokatsiyasi o'chirilmaydi"); faol buyurtmasi bor
+        lokatsiya (location_in_use, "Bu lokatsiyada N ta buyurtma bor")
       content:
         application/json:
           schema:
@@ -5817,7 +5817,7 @@ components:
       description: >
         Sessiya hali kompaniya tanlamagan (company_required) yoki a'zoning
         ruxsati bu amalni qamrab olmaydi (forbidden). Egasi hammasini qila
-        oladi; rolsiz xodim standart ruxsatga ega (mijozlar va vazifalar
+        oladi; rolsiz xodim standart ruxsatga ega (mijozlar va buyurtmalar
         tarixsiz, mahsulotlar, ta'minotchilar, xaridlar, sotuv, ombor
         hujjatlari, moliya); rolli xodim faqat rolidagi ruxsatlarga
         (logic/roles.md, 4-bo'lim)
@@ -5866,7 +5866,7 @@ components:
     CustomerSettingConflict:
       description: >
         Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use: mijoz
-        yoki vazifa maydoni ulangan, type_in_use, field_in_use,
+        yoki buyurtma maydoni ulangan, type_in_use, field_in_use,
         option_in_use); maydonda takror qiymatlar bor (duplicates_exist);
         ro'yxat boshqa joyda o'zgargan (order_changed)
       content:
@@ -5903,13 +5903,13 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     CustomerInUse:
-      description: Mijozda faol vazifa yoki jonli hujjat bor (customer_in_use)
+      description: Mijozda faol buyurtma yoki jonli hujjat bor (customer_in_use)
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
     OrderNotFound:
-      description: Vazifa topilmadi (not_found)
+      description: Buyurtma topilmadi (not_found)
       content:
         application/json:
           schema:
@@ -6225,14 +6225,14 @@ components:
         A'zolik roli. owner: kompaniyaning yagona egasi, uni admin panel
         qo'yadi, hamma narsani qila oladi. user: user app'dan qo'shilgan xodim;
         ruxsati egallagan kompaniya roli (role_id) bo'yicha, rolsiz bo'lsa
-        standart (mijozlar va vazifalar, tarixsiz).
+        standart (mijozlar va buyurtmalar, tarixsiz).
       enum: [owner, user]
     Permission:
       type: string
       description: >
         Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida
         (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), orders
-        (vazifalar), products (mahsulotlar va xizmatlar), suppliers
+        (buyurtmalar), products (mahsulotlar va xizmatlar), suppliers
         (ta'minotchilar), purchases (xaridlar, ta'minotchi to'lovlari va
         boshlang'ich qarz / avansi), sales (sotuvlar, mijoz to'lovlari va
         boshlang'ich qarz / avansi, mijoz balansi), stock (ombor hujjatlari:
@@ -6241,9 +6241,9 @@ components:
         konvertatsiya), employees (xodimlar), settings (sozlamalar: turlar,
         maydonlar, dropdownlar, bosqichlar, valyuta kurslari, moliya
         kategoriyalari). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar),
-        create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini
+        create (qo'shish), edit (tahrirlash, tartib, buyurtma bosqichini
         o'zgartirish, nofaol qilish), delete (o'chirish), history
-        (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning
+        (o'zgarishlar tarixi; faqat mijozlar va buyurtmalarda). Amal bo'limning
         view ruxsatisiz qabul qilinmaydi.
       enum:
         - customers.view
@@ -6344,7 +6344,7 @@ components:
         orders_count:
           type: integer
           format: int64
-          description: Shu lokatsiyada turgan faol vazifalar soni (o'chirilganlar sanalmaydi)
+          description: Shu lokatsiyada turgan faol buyurtmalar soni (o'chirilganlar sanalmaydi)
         created_at:
           type: string
           format: date-time
@@ -8291,7 +8291,7 @@ components:
         is_done:
           type: boolean
           description: >
-            Yakuniy bosqich: undagi vazifa bajarilgan hisoblanadi va muddati
+            Yakuniy bosqich: undagi buyurtma bajarilgan hisoblanadi va muddati
             o'tgan deb belgilanmaydi
     StageInput:
       type: object
@@ -8467,7 +8467,7 @@ components:
         active:
           type: integer
           format: int64
-          description: Yakuniy bo'lmagan bosqichdagi vazifalar
+          description: Yakuniy bo'lmagan bosqichdagi buyurtmalar
         late:
           type: integer
           format: int64
@@ -8479,7 +8479,7 @@ components:
             $ref: "#/components/schemas/DashboardStageCount"
         upcoming:
           type: array
-          description: Eng yaqin muddatli 5 ta faol vazifa (muddat, keyin ID bo'yicha)
+          description: Eng yaqin muddatli 5 ta faol buyurtma (muddat, keyin ID bo'yicha)
           items:
             $ref: "#/components/schemas/Order"
     DashboardStageCount:
@@ -8518,14 +8518,14 @@ components:
         type_id:
           type: integer
           format: int64
-          description: Vazifaning turi; o'zgarmaydi
+          description: Buyurtmaning turi; o'zgarmaydi
         stage_id:
           type: integer
           format: int64
         location_id:
           type: integer
           format: int64
-          description: Vazifa turadigan lokatsiya (logic/locations.md); o'zgarmaydi
+          description: Buyurtma turadigan lokatsiya (logic/locations.md); o'zgarmaydi
         title:
           type: string
         deadline:
@@ -8544,7 +8544,7 @@ components:
         created_by_name:
           type: [string, "null"]
           description: >
-            Vazifani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan
+            Buyurtmani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan
             chiqarilgan bo'lsa, qo'shgan paytdagi ismi
         created_at:
           type: string
@@ -8555,7 +8555,7 @@ components:
     OrderCustomerInput:
       type: object
       description: >
-        Vazifaning mijozi: mavjud mijoz (id) yoki vazifa bilan yoziladigan
+        Buyurtmaning mijozi: mavjud mijoz (id) yoki buyurtma bilan yoziladigan
         yangi mijoz (type_id, phone, values). Bo'sh bo'lsa "Mijozni tanlang".
       properties:
         id:
@@ -8582,7 +8582,7 @@ components:
           type: integer
           format: int64
           description: >
-            Vazifa tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya
+            Buyurtma tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya
             (joriy lokatsiya; logic/locations.md, 6-bo'lim). Berilmasa 400
             "Lokatsiyani tanlang", ruxsatsiz bo'lsa 403 forbidden.
         title:
@@ -8639,7 +8639,7 @@ components:
         total:
           type: integer
           format: int64
-          description: Filtrga mos vazifalar soni, hamma sahifalarda
+          description: Filtrga mos buyurtmalar soni, hamma sahifalarda
         page:
           type: integer
         page_size:

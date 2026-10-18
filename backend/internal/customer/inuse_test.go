@@ -182,7 +182,7 @@ func TestACustomerWithOrdersIsNotDeleted(t *testing.T) {
 
 	err := s.Delete(ctx, olma.id, ali.ID, owner)
 
-	refused(t, err, apperr.Conflict, "customer_in_use", "Bu mijozda 2 ta vazifa bor")
+	refused(t, err, apperr.Conflict, "customer_in_use", "Bu mijozda 2 ta buyurtma bor")
 	got, err := s.Get(ctx, olma.id, ali.ID)
 	require.NoError(t, err, "the customer stays")
 	assert.Equal(t, aliPhone, got.Phone)
@@ -190,7 +190,7 @@ func TestACustomerWithOrdersIsNotDeleted(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, history, 1, "and nothing is written down")
 
-	refused(t, s.Delete(ctx, olma.id, vali.ID, owner), apperr.Conflict, "customer_in_use", "Bu mijozda 1 ta vazifa bor")
+	refused(t, s.Delete(ctx, olma.id, vali.ID, owner), apperr.Conflict, "customer_in_use", "Bu mijozda 1 ta buyurtma bor")
 	assert.NoError(t, s.Delete(ctx, olma.id, soli.ID, owner), "a customer with no orders")
 	hideOrder(t, pool, valis)
 	assert.NoError(t, s.Delete(ctx, olma.id, vali.ID, owner), "the deleted orders do not hold the customer")
@@ -211,8 +211,8 @@ func TestAnOptionOrdersChoseIsNotDeleted(t *testing.T) {
 
 	err := s.DeleteOption(ctx, olma.id, manba, olma.instagram.ID)
 
-	refused(t, err, apperr.Conflict, "option_in_use", "Bu variant 2 ta vazifada tanlangan")
-	refused(t, s.DeleteOption(ctx, olma.id, manba, olma.linkedin.ID), apperr.Conflict, "option_in_use", "Bu variant 1 ta vazifada tanlangan")
+	refused(t, err, apperr.Conflict, "option_in_use", "Bu variant 2 ta buyurtmada tanlangan")
+	refused(t, s.DeleteOption(ctx, olma.id, manba, olma.linkedin.ID), apperr.Conflict, "option_in_use", "Bu variant 1 ta buyurtmada tanlangan")
 	dropdowns, err := s.Dropdowns(ctx, olma.id)
 	require.NoError(t, err)
 	assert.Len(t, dropdowns[0].Options, 3, "the options stay")

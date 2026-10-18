@@ -97,7 +97,7 @@ var Default = []Permission{
 // sectionNames are the sections' names in the app, for the messages.
 var sectionNames = map[string]string{
 	"customers": "Mijozlar",
-	"orders":    "Vazifalar",
+	"orders":    "Buyurtmalar",
 	"products":  "Mahsulotlar",
 	"suppliers": "Ta'minotchilar",
 	"purchases": "Xaridlar",

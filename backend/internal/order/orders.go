@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	errOrderNotFound = apperr.New(apperr.NotFound, "not_found", "Vazifa topilmadi")
-	errNoType        = invalid("Vazifa turini tanlang")
+	errOrderNotFound = apperr.New(apperr.NotFound, "not_found", "Buyurtma topilmadi")
+	errNoType        = invalid("Buyurtma turini tanlang")
 	errNoStage       = invalid("Bosqichni tanlang")
 	errNoLocation    = invalid("Lokatsiyani tanlang")
 	errNoCustomer    = invalid("Mijozni tanlang")

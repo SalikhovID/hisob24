@@ -203,7 +203,7 @@ func (s *Service) DeleteOption(ctx context.Context, companyID, dropdownID, optio
 			return err
 		}
 		if used > 0 {
-			return apperr.New(apperr.Conflict, "option_in_use", fmt.Sprintf("Bu variant %d ta vazifada tanlangan", used))
+			return apperr.New(apperr.Conflict, "option_in_use", fmt.Sprintf("Bu variant %d ta buyurtmada tanlangan", used))
 		}
 		return nil
 	})

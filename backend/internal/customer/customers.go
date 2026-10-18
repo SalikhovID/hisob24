@@ -218,7 +218,7 @@ func (s *Service) Delete(ctx context.Context, companyID, id int64, by string) er
 			return err
 		}
 		if used > 0 {
-			return apperr.New(apperr.Conflict, "customer_in_use", fmt.Sprintf("Bu mijozda %d ta vazifa bor", used))
+			return apperr.New(apperr.Conflict, "customer_in_use", fmt.Sprintf("Bu mijozda %d ta buyurtma bor", used))
 		}
 		// Then the documents of the sales section (logic/sales.md, section 7).
 		documents, err := q.CountCustomerDocuments(ctx, id)

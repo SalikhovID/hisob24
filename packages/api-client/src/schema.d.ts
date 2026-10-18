@@ -201,7 +201,7 @@ export interface paths {
         post?: never;
         /**
          * Lokatsiyani o'chirish
-         * @description Lokatsiya yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Kompaniyaning yagona lokatsiyasi (last_location) va faol vazifasi bor lokatsiya (location_in_use; o'chirilgan vazifalar sanalmaydi) o'chirilmaydi, shu tartibda tekshiriladi. Xodimlarning cheklovlariga tegilmaydi (logic/locations.md, 5-bo'lim).
+         * @description Lokatsiya yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Kompaniyaning yagona lokatsiyasi (last_location) va faol buyurtmasi bor lokatsiya (location_in_use; o'chirilgan buyurtmalar sanalmaydi) o'chirilmaydi, shu tartibda tekshiriladi. Xodimlarning cheklovlariga tegilmaydi (logic/locations.md, 5-bo'lim).
          */
         delete: operations["deleteLocation"];
         options?: never;
@@ -631,7 +631,7 @@ export interface paths {
         };
         /**
          * Bosh sahifa bloklari
-         * @description Bosh sahifaning bir qarashdagi ma'lumoti (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): har blok o'z ruxsati bilan, ruxsatsizi null. Pul so'mda, har hujjat o'z kurs qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt zonasida (standart Asia/Tashkent). Vazifalar, xaridlar va sotuvlar location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga ruxsatli hamma lokatsiyaniki; ta'minotchilar va mijozlar kompaniyaniki.
+         * @description Bosh sahifaning bir qarashdagi ma'lumoti (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): har blok o'z ruxsati bilan, ruxsatsizi null. Pul so'mda, har hujjat o'z kurs qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt zonasida (standart Asia/Tashkent). Buyurtmalar, xaridlar va sotuvlar location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga ruxsatli hamma lokatsiyaniki; ta'minotchilar va mijozlar kompaniyaniki.
          */
         get: operations["getDashboard"];
         put?: never;
@@ -995,7 +995,7 @@ export interface paths {
         post?: never;
         /**
          * Mijozni o'chirish
-         * @description Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. Faol vazifasi bor mijoz o'chirilmaydi (409 customer_in_use). O'chirish tarixga yoziladi.
+         * @description Mijoz yashiriladi: ro'yxatda va qidiruvda ko'rinmaydi, sahifasi 404 beradi, raqami bo'shaydi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. Faol buyurtmasi bor mijoz o'chirilmaydi (409 customer_in_use). O'chirish tarixga yoziladi.
          */
         delete: operations["deleteCustomer"];
         options?: never;
@@ -1243,7 +1243,7 @@ export interface paths {
         get?: never;
         /**
          * Xodimni lokatsiyalar bilan cheklash yoki cheklovni olib tashlash (faqat owner)
-         * @description Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi (logic/locations.md, 5-bo'lim); null bilan yana hammasida. Keyingi so'rovidanoq amal qiladi. Boshqa lokatsiyalarda unga biriktirilgan vazifalar o'zgarmaydi. Egasi cheklanmaydi. Cheklovni faqat egasi belgilaydi.
+         * @description Xodim faqat belgilangan lokatsiyalarning buyurtmalarini ko'radi va qo'shadi (logic/locations.md, 5-bo'lim); null bilan yana hammasida. Keyingi so'rovidanoq amal qiladi. Boshqa lokatsiyalarda unga biriktirilgan buyurtmalar o'zgarmaydi. Egasi cheklanmaydi. Cheklovni faqat egasi belgilaydi.
          */
         put: operations["setEmployeeLocations"];
         post?: never;
@@ -1312,7 +1312,7 @@ export interface paths {
         };
         /**
          * Kompaniya a'zolari (har a'zo)
-         * @description Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo o'qiydi: vazifaga mas'ul shulardan tanlanadi. A'zolarni boshqarish /app/employees orqali, employees.view ruxsati bilan.
+         * @description Access token'dagi kompaniyaning a'zolari: owner birinchi, keyin xodimlar qo'shilgan tartibda, ism shu kompaniyadagi ism. Har a'zo o'qiydi: buyurtmaga mas'ul shulardan tanlanadi. A'zolarni boshqarish /app/employees orqali, employees.view ruxsati bilan.
          */
         get: operations["listMembers"];
         put?: never;
@@ -1332,13 +1332,13 @@ export interface paths {
         };
         /**
          * Bosqichlar
-         * @description Access token'dagi kompaniyaning bosqichlari (kanban ustunlari) o'z tartibida. Har a'zo o'qiydi: kanban va vazifa formasi shundan quriladi.
+         * @description Access token'dagi kompaniyaning bosqichlari (kanban ustunlari) o'z tartibida. Har a'zo o'qiydi: kanban va buyurtma formasi shundan quriladi.
          */
         get: operations["listOrderStages"];
         put?: never;
         /**
          * Bosqich yaratish (settings.create ruxsati)
-         * @description Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi vazifa bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.
+         * @description Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi buyurtma bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.
          */
         post: operations["createOrderStage"];
         delete?: never;
@@ -1381,7 +1381,7 @@ export interface paths {
         post?: never;
         /**
          * Bosqichni o'chirish (settings.delete ruxsati)
-         * @description Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor bosqich o'chirilmaydi: 409 stage_in_use.
+         * @description Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol buyurtmasi bor bosqich o'chirilmaydi: 409 stage_in_use.
          */
         delete: operations["deleteOrderStage"];
         options?: never;
@@ -1401,13 +1401,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Vazifa turlari, maydonlari bilan
-         * @description Access token'dagi kompaniyaning vazifa turlari o'z tartibida, har biri maydonlari bilan. Har a'zo o'qiydi: vazifa formasi va ro'yxat ustunlari shundan quriladi. Nomi, muddat, mijoz va mas'ul maydon emas: ular har vazifada bor.
+         * Buyurtma turlari, maydonlari bilan
+         * @description Access token'dagi kompaniyaning buyurtma turlari o'z tartibida, har biri maydonlari bilan. Har a'zo o'qiydi: buyurtma formasi va ro'yxat ustunlari shundan quriladi. Nomi, muddat, mijoz va mas'ul maydon emas: ular har buyurtmada bor.
          */
         get: operations["listOrderTypes"];
         put?: never;
         /**
-         * Vazifa turini yaratish (settings.create ruxsati)
+         * Buyurtma turini yaratish (settings.create ruxsati)
          * @description Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
          */
         post: operations["createOrderType"];
@@ -1426,8 +1426,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * Vazifa turlari tartibini o'zgartirish (settings.edit ruxsati)
-         * @description ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
+         * Buyurtma turlari tartibini o'zgartirish (settings.edit ruxsati)
+         * @description ids kompaniyaning barcha buyurtma turlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
         put: operations["reorderOrderTypes"];
         post?: never;
@@ -1450,13 +1450,13 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Vazifa turini o'chirish (settings.delete ruxsati)
-         * @description Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor tur o'chirilmaydi: 409 type_in_use.
+         * Buyurtma turini o'chirish (settings.delete ruxsati)
+         * @description Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol buyurtmasi bor tur o'chirilmaydi: 409 type_in_use.
          */
         delete: operations["deleteOrderType"];
         options?: never;
         head?: never;
-        /** Vazifa turi nomini o'zgartirish (settings.edit ruxsati) */
+        /** Buyurtma turi nomini o'zgartirish (settings.edit ruxsati) */
         patch: operations["renameOrderType"];
         trace?: never;
     };
@@ -1472,8 +1472,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Vazifa turiga maydon qo'shish (settings.create ruxsati)
-         * @description Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown, multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va son maydoniga dropdown ulanmaydi. Vazifa maydonida "Takrorlanmasin" yo'q. Maydonning turi va dropdowni keyin o'zgarmaydi.
+         * Buyurtma turiga maydon qo'shish (settings.create ruxsati)
+         * @description Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown, multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va son maydoniga dropdown ulanmaydi. Buyurtma maydonida "Takrorlanmasin" yo'q. Maydonning turi va dropdowni keyin o'zgarmaydi.
          */
         post: operations["addOrderField"];
         delete?: never;
@@ -1496,14 +1496,14 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Vazifa maydonini o'chirish (settings.delete ruxsati)
-         * @description Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
+         * Buyurtma maydonini o'chirish (settings.delete ruxsati)
+         * @description Maydon yashiriladi, nomi bo'shaydi. Faol buyurtmada to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
          */
         delete: operations["deleteOrderField"];
         options?: never;
         head?: never;
         /**
-         * Vazifa maydonini o'zgartirish (settings.edit ruxsati)
+         * Buyurtma maydonini o'zgartirish (settings.edit ruxsati)
          * @description Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
          */
         patch: operations["updateOrderField"];
@@ -1520,7 +1520,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Vazifa turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
+         * Buyurtma turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids turning barcha maydonlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
         put: operations["reorderOrderFields"];
@@ -1579,14 +1579,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Vazifalar ro'yxati
-         * @description Access token'dagi kompaniyaning vazifalari, a'zo ishlay oladigan lokatsiyalardagilari (logic/locations.md, 6-bo'lim): location_id berilsa shu lokatsiyadagilar, berilmasa ruxsatli hammasi. Muddati yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan vazifalar chiqmaydi. Filtrlar birga ishlaydi.
+         * Buyurtmalar ro'yxati
+         * @description Access token'dagi kompaniyaning buyurtmalari, a'zo ishlay oladigan lokatsiyalardagilari (logic/locations.md, 6-bo'lim): location_id berilsa shu lokatsiyadagilar, berilmasa ruxsatli hammasi. Muddati yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan buyurtmalar chiqmaydi. Filtrlar birga ishlaydi.
          */
         get: operations["listOrders"];
         put?: never;
         /**
-         * Vazifa qo'shish
-         * @description Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, lokatsiya, tur, bosqich, mas'ul (a'zo emas: "Mas'ul kompaniya a'zosi emas"; vazifa lokatsiyasida ishlamaydi: "Mas'ul bu lokatsiyada ishlamaydi"), maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). A'zo ishlay olmaydigan lokatsiya: 403 forbidden (hammasidan oldin). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
+         * Buyurtma qo'shish
+         * @description Access token'dagi kompaniyaga buyurtma qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, buyurtma bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, lokatsiya, tur, bosqich, mas'ul (a'zo emas: "Mas'ul kompaniya a'zosi emas"; buyurtma lokatsiyasida ishlamaydi: "Mas'ul bu lokatsiyada ishlamaydi"), maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). A'zo ishlay olmaydigan lokatsiya: 403 forbidden (hammasidan oldin). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; buyurtma ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
          */
         post: operations["createOrder"];
         delete?: never;
@@ -1605,19 +1605,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Vazifa
-         * @description Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo o'qiydi. Boshqa kompaniyaniki, o'chirilgani va a'zoga ruxsatsiz lokatsiyadagisi 404 (logic/locations.md, 6-bo'lim).
+         * Buyurtma
+         * @description Access token'dagi kompaniyaning buyurtmasi, javoblari bilan. Har a'zo o'qiydi. Boshqa kompaniyaniki, o'chirilgani va a'zoga ruxsatsiz lokatsiyadagisi 404 (logic/locations.md, 6-bo'lim).
          */
         get: operations["getOrder"];
         /**
-         * Vazifani tahrirlash
-         * @description Nomi, muddati, bosqichi, mas'uli va javoblari to'liq qayta yoziladi; turi va mijozi o'zgarmaydi. Har a'zo tahrirlaydi. Tekshiruv qo'shishdagi kabi. Berilmagan maydon javobi o'chadi. Vazifadagi chiqarilgan mas'ul o'zgartirilmasa qoladi; boshqasi a'zo bo'lishi kerak. O'zgargan maydonlar tarixga yoziladi; o'zgarishsiz saqlash yozilmaydi.
+         * Buyurtmani tahrirlash
+         * @description Nomi, muddati, bosqichi, mas'uli va javoblari to'liq qayta yoziladi; turi va mijozi o'zgarmaydi. Har a'zo tahrirlaydi. Tekshiruv qo'shishdagi kabi. Berilmagan maydon javobi o'chadi. Buyurtmadagi chiqarilgan mas'ul o'zgartirilmasa qoladi; boshqasi a'zo bo'lishi kerak. O'zgargan maydonlar tarixga yoziladi; o'zgarishsiz saqlash yozilmaydi.
          */
         put: operations["updateOrder"];
         post?: never;
         /**
-         * Vazifani o'chirish
-         * @description Vazifa yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida ko'rinmaydi, sahifasi 404 beradi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
+         * Buyurtmani o'chirish
+         * @description Buyurtma yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida ko'rinmaydi, sahifasi 404 beradi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
          */
         delete: operations["deleteOrder"];
         options?: never;
@@ -1641,7 +1641,7 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Vazifani boshqa bosqichga o'tkazish
+         * Buyurtmani boshqa bosqichga o'tkazish
          * @description Kanbanda sudrab yoki menyudan ko'chirish: faqat bosqich o'zgaradi. Har a'zo ko'chiradi. O'sha bosqichning o'zi hech narsani o'zgartirmaydi va tarixga yozilmaydi; boshqasi "Bosqich" o'zgarishi sifatida yoziladi.
          */
         patch: operations["moveOrder"];
@@ -1657,8 +1657,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Vazifaning o'zgarishlar tarixi (orders.history ruxsati)
-         * @description Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida: avval vazifaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy, Bosqich, Mas'ul), keyin turning maydonlari.
+         * Buyurtmaning o'zgarishlar tarixi (orders.history ruxsati)
+         * @description Buyurtma bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har tahriri va ko'chirilgani (o'chirilgan buyurtma 404 beradi). O'zgargan har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida: avval buyurtmaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy, Bosqich, Mas'ul), keyin turning maydonlari.
          */
         get: operations["listOrderHistory"];
         put?: never;
@@ -2568,12 +2568,12 @@ export interface components {
             created_at: string;
         };
         /**
-         * @description A'zolik roli. owner: kompaniyaning yagona egasi, uni admin panel qo'yadi, hamma narsani qila oladi. user: user app'dan qo'shilgan xodim; ruxsati egallagan kompaniya roli (role_id) bo'yicha, rolsiz bo'lsa standart (mijozlar va vazifalar, tarixsiz).
+         * @description A'zolik roli. owner: kompaniyaning yagona egasi, uni admin panel qo'yadi, hamma narsani qila oladi. user: user app'dan qo'shilgan xodim; ruxsati egallagan kompaniya roli (role_id) bo'yicha, rolsiz bo'lsa standart (mijozlar va buyurtmalar, tarixsiz).
          * @enum {string}
          */
         Role: "owner" | "user";
         /**
-         * @description Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), orders (vazifalar), products (mahsulotlar va xizmatlar), suppliers (ta'minotchilar), purchases (xaridlar, ta'minotchi to'lovlari va boshlang'ich qarz / avansi), sales (sotuvlar, mijoz to'lovlari va boshlang'ich qarz / avansi, mijoz balansi), stock (ombor hujjatlari: ko'chirish, inventarizatsiya, boshlang'ich qoldiq, mahsulot harakatlari), finance (moliya: kassa, xarajat va kirim, o'tkazma, konvertatsiya), employees (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar, bosqichlar, valyuta kurslari, moliya kategoriyalari). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini o'zgartirish, nofaol qilish), delete (o'chirish), history (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning view ruxsatisiz qabul qilinmaydi.
+         * @description Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), orders (buyurtmalar), products (mahsulotlar va xizmatlar), suppliers (ta'minotchilar), purchases (xaridlar, ta'minotchi to'lovlari va boshlang'ich qarz / avansi), sales (sotuvlar, mijoz to'lovlari va boshlang'ich qarz / avansi, mijoz balansi), stock (ombor hujjatlari: ko'chirish, inventarizatsiya, boshlang'ich qoldiq, mahsulot harakatlari), finance (moliya: kassa, xarajat va kirim, o'tkazma, konvertatsiya), employees (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar, bosqichlar, valyuta kurslari, moliya kategoriyalari). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib, buyurtma bosqichini o'zgartirish, nofaol qilish), delete (o'chirish), history (o'zgarishlar tarixi; faqat mijozlar va buyurtmalarda). Amal bo'limning view ruxsatisiz qabul qilinmaydi.
          * @enum {string}
          */
         Permission: "customers.view" | "customers.create" | "customers.edit" | "customers.delete" | "customers.history" | "orders.view" | "orders.create" | "orders.edit" | "orders.delete" | "orders.history" | "products.view" | "products.create" | "products.edit" | "products.delete" | "suppliers.view" | "suppliers.create" | "suppliers.edit" | "suppliers.delete" | "purchases.view" | "purchases.create" | "purchases.edit" | "purchases.delete" | "sales.view" | "sales.create" | "sales.edit" | "sales.delete" | "stock.view" | "stock.create" | "stock.edit" | "stock.delete" | "finance.view" | "finance.create" | "finance.edit" | "finance.delete" | "employees.view" | "employees.create" | "employees.edit" | "employees.delete" | "settings.view" | "settings.create" | "settings.edit" | "settings.delete";
@@ -2610,7 +2610,7 @@ export interface components {
             name: string;
             /**
              * Format: int64
-             * @description Shu lokatsiyada turgan faol vazifalar soni (o'chirilganlar sanalmaydi)
+             * @description Shu lokatsiyada turgan faol buyurtmalar soni (o'chirilganlar sanalmaydi)
              */
             orders_count: number;
             /** Format: date-time */
@@ -3736,7 +3736,7 @@ export interface components {
             id: number;
             name: string;
             color: components["schemas"]["StageColor"];
-            /** @description Yakuniy bosqich: undagi vazifa bajarilgan hisoblanadi va muddati o'tgan deb belgilanmaydi */
+            /** @description Yakuniy bosqich: undagi buyurtma bajarilgan hisoblanadi va muddati o'tgan deb belgilanmaydi */
             is_done: boolean;
         };
         StageInput: {
@@ -3835,7 +3835,7 @@ export interface components {
         DashboardOrders: {
             /**
              * Format: int64
-             * @description Yakuniy bo'lmagan bosqichdagi vazifalar
+             * @description Yakuniy bo'lmagan bosqichdagi buyurtmalar
              */
             active: number;
             /**
@@ -3845,7 +3845,7 @@ export interface components {
             late: number;
             /** @description Har yakuniy bo'lmagan bosqich, tartibi bilan, 0 lilari ham */
             by_stage: components["schemas"]["DashboardStageCount"][];
-            /** @description Eng yaqin muddatli 5 ta faol vazifa (muddat, keyin ID bo'yicha) */
+            /** @description Eng yaqin muddatli 5 ta faol buyurtma (muddat, keyin ID bo'yicha) */
             upcoming: components["schemas"]["Order"][];
         };
         DashboardStageCount: {
@@ -3868,14 +3868,14 @@ export interface components {
             id: number;
             /**
              * Format: int64
-             * @description Vazifaning turi; o'zgarmaydi
+             * @description Buyurtmaning turi; o'zgarmaydi
              */
             type_id: number;
             /** Format: int64 */
             stage_id: number;
             /**
              * Format: int64
-             * @description Vazifa turadigan lokatsiya (logic/locations.md); o'zgarmaydi
+             * @description Buyurtma turadigan lokatsiya (logic/locations.md); o'zgarmaydi
              */
             location_id: number;
             title: string;
@@ -3888,14 +3888,14 @@ export interface components {
             /** @description Mas'ul; yo'q bo'lsa null */
             assignee: components["schemas"]["OrderAssignee"] | null;
             values: components["schemas"]["CustomerValues"];
-            /** @description Vazifani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, qo'shgan paytdagi ismi */
+            /** @description Buyurtmani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, qo'shgan paytdagi ismi */
             created_by_name: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
         };
-        /** @description Vazifaning mijozi: mavjud mijoz (id) yoki vazifa bilan yoziladigan yangi mijoz (type_id, phone, values). Bo'sh bo'lsa "Mijozni tanlang". */
+        /** @description Buyurtmaning mijozi: mavjud mijoz (id) yoki buyurtma bilan yoziladigan yangi mijoz (type_id, phone, values). Bo'sh bo'lsa "Mijozni tanlang". */
         OrderCustomerInput: {
             /**
              * Format: int64
@@ -3916,7 +3916,7 @@ export interface components {
             type_id: number;
             /**
              * Format: int64
-             * @description Vazifa tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya (joriy lokatsiya; logic/locations.md, 6-bo'lim). Berilmasa 400 "Lokatsiyani tanlang", ruxsatsiz bo'lsa 403 forbidden.
+             * @description Buyurtma tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya (joriy lokatsiya; logic/locations.md, 6-bo'lim). Berilmasa 400 "Lokatsiyani tanlang", ruxsatsiz bo'lsa 403 forbidden.
              */
             location_id: number;
             title: string;
@@ -3953,7 +3953,7 @@ export interface components {
             items: components["schemas"]["Order"][];
             /**
              * Format: int64
-             * @description Filtrga mos vazifalar soni, hamma sahifalarda
+             * @description Filtrga mos buyurtmalar soni, hamma sahifalarda
              */
             total: number;
             page: number;
@@ -4301,7 +4301,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Bu nomli lokatsiya bor (name_taken, "Bu nomli lokatsiya allaqachon bor"); kompaniyaning yagona lokatsiyasi (last_location, "Kompaniyaning yagona lokatsiyasi o'chirilmaydi"); faol vazifasi bor lokatsiya (location_in_use, "Bu lokatsiyada N ta vazifa bor") */
+        /** @description Bu nomli lokatsiya bor (name_taken, "Bu nomli lokatsiya allaqachon bor"); kompaniyaning yagona lokatsiyasi (last_location, "Kompaniyaning yagona lokatsiyasi o'chirilmaydi"); faol buyurtmasi bor lokatsiya (location_in_use, "Bu lokatsiyada N ta buyurtma bor") */
         LocationConflict: {
             headers: {
                 [name: string]: unknown;
@@ -4410,7 +4410,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki a'zoning ruxsati bu amalni qamrab olmaydi (forbidden). Egasi hammasini qila oladi; rolsiz xodim standart ruxsatga ega (mijozlar va vazifalar tarixsiz, mahsulotlar, ta'minotchilar, xaridlar, sotuv, ombor hujjatlari, moliya); rolli xodim faqat rolidagi ruxsatlarga (logic/roles.md, 4-bo'lim) */
+        /** @description Sessiya hali kompaniya tanlamagan (company_required) yoki a'zoning ruxsati bu amalni qamrab olmaydi (forbidden). Egasi hammasini qila oladi; rolsiz xodim standart ruxsatga ega (mijozlar va buyurtmalar tarixsiz, mahsulotlar, ta'minotchilar, xaridlar, sotuv, ombor hujjatlari, moliya); rolli xodim faqat rolidagi ruxsatlarga (logic/roles.md, 4-bo'lim) */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
@@ -4464,7 +4464,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use: mijoz yoki vazifa maydoni ulangan, type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed) */
+        /** @description Nom band (name_taken); narsa ishlatilmoqda (dropdown_in_use: mijoz yoki buyurtma maydoni ulangan, type_in_use, field_in_use, option_in_use); maydonda takror qiymatlar bor (duplicates_exist); ro'yxat boshqa joyda o'zgargan (order_changed) */
         CustomerSettingConflict: {
             headers: {
                 [name: string]: unknown;
@@ -4509,7 +4509,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Mijozda faol vazifa yoki jonli hujjat bor (customer_in_use) */
+        /** @description Mijozda faol buyurtma yoki jonli hujjat bor (customer_in_use) */
         CustomerInUse: {
             headers: {
                 [name: string]: unknown;
@@ -4518,7 +4518,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Vazifa topilmadi (not_found) */
+        /** @description Buyurtma topilmadi (not_found) */
         OrderNotFound: {
             headers: {
                 [name: string]: unknown;
@@ -6356,7 +6356,7 @@ export interface operations {
                 search?: string;
                 /** @description Faqat shu turdagi mijozlar */
                 type_id?: number;
-                /** @description Telefoni 998 va shu raqamlar bilan boshlanadigan mijozlar (vazifa formasidagi mijoz takliflari). Boshqa belgi 400 beradi. */
+                /** @description Telefoni 998 va shu raqamlar bilan boshlanadigan mijozlar (buyurtma formasidagi mijoz takliflari). Boshqa belgi 400 beradi. */
                 phone?: string;
                 page?: number;
             };
@@ -7567,17 +7567,17 @@ export interface operations {
     listOrders: {
         parameters: {
             query?: {
-                /** @description Faqat shu lokatsiyadagi vazifalar (joriy lokatsiya); berilmasa a'zoga ruxsatli hamma lokatsiya. A'zo ishlay olmaydigan lokatsiya (begona, o'chirilgan, cheklov bilan yopilgan): 403 forbidden. Son emas: 400 "Lokatsiya noto'g'ri". */
+                /** @description Faqat shu lokatsiyadagi buyurtmalar (joriy lokatsiya); berilmasa a'zoga ruxsatli hamma lokatsiya. A'zo ishlay olmaydigan lokatsiya (begona, o'chirilgan, cheklov bilan yopilgan): 403 forbidden. Son emas: 400 "Lokatsiya noto'g'ri". */
                 location_id?: number;
-                /** @description Nomida, vazifaning matn javoblarida va mijozning matn javoblarida qidiriladi (katta-kichik harf farqsiz, harfma-harf). Faqat raqamlardan iborat qidiruv mijoz telefonida va vazifaning butun son javoblarida ham qidiriladi. */
+                /** @description Nomida, buyurtmaning matn javoblarida va mijozning matn javoblarida qidiriladi (katta-kichik harf farqsiz, harfma-harf). Faqat raqamlardan iborat qidiruv mijoz telefonida va buyurtmaning butun son javoblarida ham qidiriladi. */
                 search?: string;
-                /** @description Faqat shu turdagi vazifalar */
+                /** @description Faqat shu turdagi buyurtmalar */
                 type_id?: number;
-                /** @description Faqat shu bosqichdagi vazifalar (kanban ustuni) */
+                /** @description Faqat shu bosqichdagi buyurtmalar (kanban ustuni) */
                 stage_id?: number;
-                /** @description Faqat shu a'zoga biriktirilgan vazifalar (telefon) */
+                /** @description Faqat shu a'zoga biriktirilgan buyurtmalar (telefon) */
                 assignee?: string;
-                /** @description Faqat shu mijozning vazifalari (mijoz sahifasi) */
+                /** @description Faqat shu mijozning buyurtmalari (mijoz sahifasi) */
                 customer_id?: number;
                 page?: number;
             };
@@ -7587,7 +7587,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Vazifalar sahifasi */
+            /** @description Buyurtmalar sahifasi */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7615,7 +7615,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Qo'shilgan vazifa */
+            /** @description Qo'shilgan buyurtma */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -7642,7 +7642,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Vazifa */
+            /** @description Buyurtma */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7672,7 +7672,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Saqlangan vazifa */
+            /** @description Saqlangan buyurtma */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7727,7 +7727,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Ko'chirilgan vazifa */
+            /** @description Ko'chirilgan buyurtma */
             200: {
                 headers: {
                     [name: string]: unknown;

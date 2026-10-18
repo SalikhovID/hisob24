@@ -136,7 +136,7 @@ func (s *Service) DeleteStage(ctx context.Context, companyID, id int64) error {
 			return err
 		}
 		if used > 0 {
-			return apperr.New(apperr.Conflict, "stage_in_use", fmt.Sprintf("Bu bosqichda %d ta vazifa bor", used))
+			return apperr.New(apperr.Conflict, "stage_in_use", fmt.Sprintf("Bu bosqichda %d ta buyurtma bor", used))
 		}
 		return nil
 	})
