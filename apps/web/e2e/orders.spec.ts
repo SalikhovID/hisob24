@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
-import { addDays, db, localToday, seedOrders } from "../mocks/data"
+import { addDays, db, localToday, seedCatalog, seedOrders, seedWarehouse } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, onPhone, openSection, sideScroll, signIn } from "./helpers"
+import { choose, days, onPhone, openSection, pick, press, settle, sideScroll, signIn } from "./helpers"
 
 const today = localToday()
 
@@ -46,7 +46,7 @@ test("an employee enters an order with a new customer; the board opens first, an
   await order.getByLabel("Muddat").fill(addDays(today, 2))
   await choose(order.getByLabel("Mas'ul"), "Vali Aliyev")
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
 
   const card = column(page, "Yangi").getByRole("listitem").filter({ hasText: "Shartnoma tuzish" })
@@ -95,7 +95,7 @@ test("a customer that is there is picked from the suggestions; the + of a column
 
   await order.getByLabel("Nomi").fill("Hisobni tekshirish")
   await order.getByLabel("Muddat").fill(today)
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
 
   const card = column(page, "Jarayonda").getByRole("listitem").filter({ hasText: "Hisobni tekshirish" })
@@ -200,6 +200,77 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await expect(page).toHaveURL(/\/orders$/)
   await expect(row(page, "Hisob-faktura")).toBeVisible()
   await expect(row(page, "Qayta qo'ng'iroq")).toHaveCount(0)
+})
+
+// An order's money (logic/orders.md, 4.3–4.4): the price, a product from
+// the stock and an advance entered with it; the card, the page, a payment
+// on its own and the customer's debt.
+test("the owner enters an order with a price, a product and an advance; the page says the money and the cost; a payment settles part; the customer's debt follows", async ({ page }) => {
+  test.setTimeout(120_000)
+  seedOrders()
+  // Asosiy holds 12,5 kg Olma bought at 1 000.
+  seedWarehouse(seedCatalog())
+  await openOrders(page)
+
+  await page.getByRole("button", { name: "Buyurtma qo'shish", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
+  const customer = dialog.getByRole("group", { name: "Mijoz" })
+  await customer.getByRole("combobox", { name: "Telefon raqami" }).fill("911")
+  await page.getByRole("option", { name: /Dilshod Karimov/ }).click()
+  const order = dialog.getByRole("group", { name: "Buyurtma" })
+  await order.getByLabel("Nomi").fill("Konditsioner")
+  await order.getByLabel("Muddat").fill(addDays(today, 3))
+  // The money: the price in so'm, a product without a price, the advance.
+  const money = dialog.getByRole("group", { name: "Narx" })
+  await money.getByLabel("Narx").fill("5000")
+  await dialog.getByRole("button", { name: "Qator qo'shish" }).click()
+  const line = dialog.getByRole("group", { name: "1-qator" })
+  await pick(page, line, "Mahsulot", "ol", /Olma/)
+  await line.getByLabel("Miqdor").fill("2")
+  await expect(line.getByLabel("Narx")).toHaveCount(0)
+  await dialog.getByRole("button", { name: "To'lov qo'shish" }).click()
+  await dialog.getByRole("group", { name: "1-to'lov" }).getByLabel("Summa").fill("400")
+  await expect(dialog.getByText("Qolgan: 4 600 so'm")).toBeVisible()
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+  await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
+  await expect(dialog).toBeHidden()
+
+  // The card says the price and what is left; the page says it all.
+  const card = column(page, "Yangi").getByRole("listitem").filter({ hasText: "Konditsioner" })
+  await expect(card).toContainText("5 000 so'm · qolgan 4 600 so'm")
+  await settle(page)
+  await card.getByRole("link").click()
+  await expect(page).toHaveURL(/\/orders\/\d+$/, { timeout: 15_000 })
+  await expect(page.getByRole("heading", { level: 1, name: "Konditsioner" })).toBeVisible()
+  const pul = page.getByRole("region", { name: "Pul" })
+  await expect(pul).toContainText("Narx5 000 so'm")
+  await expect(pul).toContainText("To'langan400 so'm")
+  await expect(pul).toContainText("Qolgan4 600 so'm")
+  const goods = page.getByRole("region", { name: "Mahsulotlar" })
+  await expect(goods).toContainText("Olma")
+  await expect(goods).toContainText("2 kg")
+  await expect(goods).toContainText("Tan narxi2 000 so'm")
+  await expect(goods).toContainText("Foyda3 000 so'm")
+  await expect(page.getByRole("region", { name: "To'lovlar" }).getByRole("listitem")).toHaveCount(1)
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+
+  // A payment on its own, from the page's tile: typed on the keypad.
+  await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "To'lov" }).click()
+  const paymentDialog = page.getByRole("dialog", { name: "To'lov qo'shish" })
+  await press(paymentDialog, "300")
+  await paymentDialog.getByRole("button", { name: "Qo'shish" }).click()
+  await expect(paymentDialog).toBeHidden()
+  await expect(pul).toContainText("Qolgan4 300 so'm")
+  await expect(page.getByRole("region", { name: "To'lovlar" }).getByRole("listitem")).toHaveCount(2)
+  await settle(page)
+
+  // The customer owes the rest; the statement names the order and its payments.
+  await page.getByRole("region", { name: "Mijoz" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Balans" }).locator("[data-slot=hero]")).toContainText(/Qarz\s*4\s300\s*so'm/)
+  const statement = days(page, "Hisob harakati")
+  await expect(statement.getByRole("link", { name: /^Buyurtma · Konditsioner/ })).toBeVisible()
+  await expect(statement.getByRole("link", { name: /^To'lov · Konditsioner/ })).toHaveCount(2)
 })
 
 test("the orders' old addresses lead to their pages, the query kept", async ({ page }) => {

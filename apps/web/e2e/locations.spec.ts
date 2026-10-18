@@ -42,7 +42,7 @@ test("the owner switches between the locations: the orders are the current one's
   const order = dialog.getByRole("group", { name: "Buyurtma" })
   await order.getByLabel("Nomi").fill("Chilonzorda")
   await order.getByLabel("Muddat").fill(addDays(today, 2))
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
   const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
   await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()
@@ -90,7 +90,7 @@ async function enterOrder(page: Page, title: string, phone: string, assignee: st
   await order.getByLabel("Nomi").fill(title)
   await order.getByLabel("Muddat").fill(addDays(today, 2))
   if (assignee) await choose(order.getByLabel("Mas'ul"), assignee)
-  await dialog.getByRole("button", { name: "Qo'shish" }).click()
+  await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
 }
 

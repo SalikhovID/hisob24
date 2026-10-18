@@ -20,6 +20,8 @@ test("the owner's home: what the suppliers are owed, the quick tiles, the overvi
   await expect(main.getByRole("group", { name: "Tezkor amallar" }).locator("a, button")).toHaveText(["Buyurtma", "Mijoz", "Sotuv", "Xarid"])
   await expect(main.getByRole("heading", { level: 2, name: "Umumiy holat" })).toBeVisible()
   await expect(main.getByRole("link", { name: /^Buyurtmalar/ })).toContainText("3 ta faol")
+  // The month's priced orders stand beside the orders' count: none yet.
+  await expect(main.getByRole("link", { name: /^Buyurtma summasi/ })).toContainText("0 so'm")
   const deadlines = main.getByRole("list", { name: "Yaqin muddatlar" })
   await expect(deadlines.getByRole("link")).toHaveCount(4)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
