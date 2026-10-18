@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
-import { seedCustomers } from "../mocks/data"
+import { db, nextId, seedCustomers } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { expectSignedIn, onPhone, openProfile, sections, signIn } from "./helpers"
+import { expectSignedIn, list, onPhone, openProfile, openSection, sections, signIn } from "./helpers"
 
 const width = (page: Page) => async () => (await page.getByRole("complementary", { name: "Menyu" }).boundingBox())?.width
 
@@ -262,3 +262,27 @@ test("the bar's names show whole on a phone of any width, clear of their buttons
   expect(parseFloat(sizes[3])).toBeGreaterThanOrEqual(8.5)
 })
 
+
+test("a modal frosts the rest of the screen, the page under the scrim's tint and a blur; a sheet over a sheet frosts the sheet under too", async ({ page }) => {
+  // Ijara is an expense category: the expense's sheet picks it in a sheet of its own.
+  db.financeCategories.push({ id: nextId(), companyId: 1, name: "Ijara", kind: "expense", position: 1, active: true })
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await openSection(page, "Moliya")
+  await list(page, "Akkauntlar").getByRole("link", { name: "Naqd" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Naqd" })).toBeVisible()
+
+  const scrims = page.locator('[data-slot="dialog-overlay"]')
+  const frost = (n: number) => scrims.nth(n).evaluate((scrim) => getComputedStyle(scrim).backdropFilter)
+  await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "Xarajat" }).click()
+  const expense = page.getByRole("dialog", { name: "Xarajat qo'shish" })
+  await expect(expense).toBeVisible()
+  await expect(scrims).toHaveCount(1)
+  expect(await frost(0)).toBe("blur(12px) saturate(1.6)")
+
+  // The category's sheet draws a scrim of its own over the expense's.
+  await expense.getByRole("button", { name: /^Kategoriya/ }).click()
+  await expect(page.getByRole("option", { name: "Ijara", exact: true })).toBeVisible()
+  await expect(scrims).toHaveCount(2)
+  expect(await frost(1)).toBe("blur(12px) saturate(1.6)")
+})
