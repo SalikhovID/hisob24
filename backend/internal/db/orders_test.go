@@ -528,10 +528,11 @@ func TestListOrdersFindsTheNumber(t *testing.T) {
 	s := newOrderShop(t, q, pool, "Olma")
 	// A phone with no digit a number could be mistaken for.
 	karim := createCustomer(t, q, s.company.ID, s.jismoniy.ID, "998900000000")
-	for _, deadline := range []string{"2026-10-10", "2026-10-11", "2026-10-12"} {
+	// Twelve orders: a number is matched whole, not as a part (2 is not 12).
+	for range 12 {
 		_, err := q.CreateOrder(ctx, gen.CreateOrderParams{
 			CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: karim.ID, LocationID: s.asosiy,
-			Number: nextNumber(t, q, s.company.ID), Deadline: day(deadline), CreatedBy: enteredBy,
+			Number: nextNumber(t, q, s.company.ID), Deadline: day("2026-10-10"), CreatedBy: enteredBy,
 		})
 		require.NoError(t, err)
 	}
@@ -541,8 +542,10 @@ func TestListOrdersFindsTheNumber(t *testing.T) {
 		return numbers(rows)
 	}
 
-	assert.Equal(t, []int32{2}, find("2"), "the order of the number")
-	assert.Equal(t, []int32{}, find("12"), "matched whole")
+	assert.Equal(t, []int32{2}, find("2"), "the order of the number, not the ones whose number holds the digit")
+	assert.Equal(t, []int32{12}, find("12"), "matched whole")
+	assert.Equal(t, []int32{1}, find("1"), "not 10, 11 or 12")
+	assert.Equal(t, []int32{}, find("13"), "none of that number")
 	count, err := q.CountOrders(ctx, gen.CountOrdersParams{CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Search: ptr("2"), Digits: ptr("2")})
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, count, "counted alike")
