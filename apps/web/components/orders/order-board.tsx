@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Foot } from "@/components/kit/group"
 import { Failed, Loading } from "@/components/states"
 import { Button } from "@/components/ui/button"
+import { orderName } from "@/lib/orders"
 import { type StageFilter, useMoveOrder, useStageOrders } from "@/lib/queries"
 import { colorValues } from "@/lib/stage-colors"
 import type { Order, OrderStage, OrderType } from "@/lib/types"
@@ -107,7 +108,7 @@ export function OrderBoard({
 
   const moveTo = (order: Order, stage: OrderStage) => {
     if (order.stage_id === stage.id) return
-    move.mutate({ order, stageId: stage.id }, { onSuccess: () => setAnnouncement(`«${order.title}» «${stage.name}» bosqichiga ko'chirildi`) })
+    move.mutate({ order, stageId: stage.id }, { onSuccess: () => setAnnouncement(`«${orderName(order.number)}» «${stage.name}» bosqichiga ko'chirildi`) })
   }
   const onDragStart = ({ active }: DragStartEvent) => setDragging((active.data.current?.order as Order | undefined) ?? null)
   const onDragEnd = ({ active, over }: DragEndEvent) => {

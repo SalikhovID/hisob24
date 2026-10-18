@@ -12,12 +12,12 @@ const stages: OrderStage[] = [
   { id: 1, name: "Yangi", color: "blue", is_done: false },
   { id: 2, name: "Jarayonda", color: "amber", is_done: false },
 ]
-const order = (id: number, title: string, deadline: string, stageId = 1, extra: Partial<Order> = {}): Order => ({
+const order = (id: number, number: number, deadline: string, stageId = 1, extra: Partial<Order> = {}): Order => ({
   id,
   type_id: 1,
   stage_id: stageId,
   location_id: 1,
-  title,
+  number,
   deadline,
   customer: { id: 7, phone: "998911112233", name: "Dilshod Karimov" },
   assignee: { phone: "998902223344", full_name: "Vali Aliyev" },
@@ -39,7 +39,7 @@ test("the orders due soonest, each a way to its page with its customer, assignee
     active: 7,
     late: 1,
     by_stage: [],
-    upcoming: [order(1, "Hisob-faktura", addDays(today, -2)), order(2, "Shartnoma yuborish", today, 2, { assignee: null }), order(3, "Qo'ng'iroq qilish", addDays(today, 3))],
+    upcoming: [order(1, 2, addDays(today, -2)), order(2, 3, today, 2, { assignee: null }), order(3, 4, addDays(today, 3))],
   }
   renderWithProviders(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
 
@@ -49,7 +49,7 @@ test("the orders due soonest, each a way to its page with its customer, assignee
   const list = screen.getByRole("list", { name: "Yaqin muddatlar" })
   const rows = within(list).getAllByRole("link")
   expect(rows.map((row) => row.getAttribute("href"))).toEqual(["/orders/1", "/orders/2", "/orders/3", "/orders?view=list"])
-  expect(rows[0]).toHaveAccessibleName(`Hisob-faktura Dilshod Karimov · Vali A. ${addDays(today, -2).slice(8, 10)}.${addDays(today, -2).slice(5, 7)} 2 kun kechikdi`)
+  expect(rows[0]).toHaveAccessibleName(`Buyurtma № 2 Dilshod Karimov · Vali A. ${addDays(today, -2).slice(8, 10)}.${addDays(today, -2).slice(5, 7)} 2 kun kechikdi`)
   expect(rows[1]).toHaveTextContent("Bugun")
   expect(rows[1]).not.toHaveTextContent("·")
   expect(rows[2]).toHaveTextContent("3 kun qoldi")
@@ -76,7 +76,7 @@ test("a member with no location is told so", () => {
 })
 
 test("the heading's way to every order is the prototype's: the heading's ink, 17px and bold, with a chevron after it", () => {
-  const orders: Orders = { active: 1, late: 0, by_stage: [], upcoming: [order(1, "Hisob-faktura", todayISO())] }
+  const orders: Orders = { active: 1, late: 0, by_stage: [], upcoming: [order(1, 2, todayISO())] }
   renderWithProviders(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
   const link = screen.getByRole("link", { name: "Yaqin muddatlar" })
   expect(link).toHaveClass("text-[17px]", "font-semibold", "text-heading")

@@ -26,18 +26,19 @@ import {
 import { checkLines, newDocument, writeGoods } from "./stock"
 import { checkPayment, pricingOf } from "./warehouse"
 import {
-  type Answer,
   customerNameOf,
   db,
   locationsOf,
   nameIn,
   nextId,
+  nextOrderNumber,
   now,
-  type StageRow,
+  permissionsOf,
+  type Answer,
   type OrderHistoryRow,
   type OrderRow,
   type OrderTypeRow,
-  permissionsOf,
+  type StageRow,
   type TransactionRow,
 } from "./data"
 import { api, fail, forbidden, isMember, normalizePhone, permittedSession } from "./gate"
@@ -96,7 +97,7 @@ export const toOrder = (t: OrderRow): Order => {
     type_id: t.typeId,
     stage_id: t.stageId,
     location_id: t.locationId,
-    title: t.title,
+    number: t.number,
     deadline: t.deadline,
     customer: { id: customer.id, phone: customer.phone, name: customerNameOf(customer) },
     assignee: t.assignee === null ? null : { phone: t.assignee, full_name: nameOf(t.assignee, t.companyId, t.assigneeName) },
@@ -205,15 +206,6 @@ function hideOrderDocument(order: OrderRow) {
   doc.deleted = true
 }
 
-// orderTitle is the API's rule for a title: trimmed, not empty, two hundred
-// characters at most.
-function orderTitle(raw: unknown): string | Response {
-  const title = typeof raw === "string" ? raw.trim() : ""
-  if (!title) return invalid("Buyurtma nomini kiriting")
-  if ([...title].length > 200) return invalid("Buyurtma nomi 200 belgidan oshmasin")
-  return title
-}
-
 // orderDeadline is a deadline as the API takes it: a day written YYYY-MM-DD,
 // one that exists; a day that is past is taken too.
 function orderDeadline(raw: unknown): string | Response {
@@ -270,11 +262,11 @@ function record(order: OrderRow, action: OrderHistoryRow["action"], by: string, 
   db.orderHistory.push({ id: nextId(), orderId: order.id, action, by, byName: nameIn(by, order.companyId), createdAt: at, changes })
 }
 
-// found tells whether a search finds the order: the text in its title, its
-// text answers and its customer's text answers, whatever the case; the
-// digits of a search written as a number or a phone is in the customer's
-// phone and in the order's and the customer's whole number answers too. The
-// names of the options are not searched.
+// found tells whether a search finds the order: the text in its text
+// answers and its customer's text answers, whatever the case; the digits
+// of a search written as a number or a phone are the order's number, or
+// are in the customer's phone and in the order's and the customer's whole
+// number answers. The names of the options are not searched.
 function found(order: OrderRow, search: string): boolean {
   const text = search.trim().toLowerCase()
   if (!text) return true
@@ -293,10 +285,9 @@ function found(order: OrderRow, search: string): boolean {
       return f.kind === "int" && typeof answer === "number" && String(answer).includes(digits)
     })
   return (
-    order.title.toLowerCase().includes(text) ||
     inTexts(orderFields, order.values) ||
     inTexts(customerFields, customer.values) ||
-    (digits !== "" && (customer.phone.includes(digits) || inNumbers(orderFields, order.values) || inNumbers(customerFields, customer.values)))
+    (digits !== "" && (String(order.number) === digits || customer.phone.includes(digits) || inNumbers(orderFields, order.values) || inNumbers(customerFields, customer.values)))
   )
 }
 
@@ -355,7 +346,6 @@ export const ordersHandlers = [
     const body = (await request.json()) as {
       type_id?: unknown
       location_id?: unknown
-      title?: unknown
       deadline?: unknown
       stage_id?: unknown
       assignee_phone?: unknown
@@ -371,10 +361,8 @@ export const ordersHandlers = [
     // else, the way a missing permission is.
     const scope = scopeOf(member)
     if (typeof body.location_id === "number" && body.location_id > 0 && !scope.includes(body.location_id)) return forbidden()
-    // What is wrong is said in this order: the title, the deadline, the
-    // location, the type, the stage, the assignee, the answers, the customer.
-    const title = orderTitle(body.title)
-    if (title instanceof Response) return title
+    // What is wrong is said in this order: the deadline, the location, the
+    // type, the stage, the assignee, the answers, the customer.
     const deadline = orderDeadline(body.deadline)
     if (deadline instanceof Response) return deadline
     const locationId = body.location_id
@@ -404,7 +392,7 @@ export const ordersHandlers = [
       stageId: stage.id,
       locationId,
       customerId,
-      title,
+      number: nextOrderNumber(member.companyId),
       deadline,
       assignee: assignee.phone,
       assigneeName: assignee.name,
@@ -437,12 +425,10 @@ export const ordersHandlers = [
   http.put(api("/app/orders/:id"), async ({ params, request }) => {
     const member = permittedSession(request, "orders.edit")
     if (member instanceof Response) return member
-    const body = (await request.json()) as { title?: unknown; deadline?: unknown; stage_id?: unknown; assignee_phone?: unknown; values?: unknown; amount?: unknown; currency_id?: unknown; rate?: unknown; items?: unknown }
+    const body = (await request.json()) as { deadline?: unknown; stage_id?: unknown; assignee_phone?: unknown; values?: unknown; amount?: unknown; currency_id?: unknown; rate?: unknown; items?: unknown }
     // An order that is not there is said first, whatever is sent.
     const order = visibleOrders(member).find((t) => t.id === Number(params.id))
     if (!order) return orderNotFound()
-    const title = orderTitle(body.title)
-    if (title instanceof Response) return title
     const deadline = orderDeadline(body.deadline)
     if (deadline instanceof Response) return deadline
     const stage = liveStage(member.companyId, body.stage_id)
@@ -465,7 +451,6 @@ export const ordersHandlers = [
     const nowDoc = orderDocumentOf(order.id)
     const nowMoney = { price: nowDoc ? priceText(nowDoc.total, nowDoc.currencyId) : "", lines: nowDoc ? linesText(itemsOf(nowDoc.id)) : "" }
     const changes: OrderHistoryRow["changes"] = []
-    if (order.title !== title) changes.push({ label: "Nomi", old: order.title, new: title })
     if (order.deadline !== deadline) changes.push({ label: "Muddat", old: formatDate(order.deadline), new: formatDate(deadline) })
     if (order.stageId !== stage.id) changes.push({ label: "Bosqich", old: stageName(order.stageId), new: stage.name })
     const wasAssignee = order.assignee === null ? "" : (nameOf(order.assignee, order.companyId, order.assigneeName) ?? "")
@@ -476,7 +461,6 @@ export const ordersHandlers = [
     // A save that changes nothing writes nothing.
     if (changes.length > 0) {
       const at = now()
-      order.title = title
       order.deadline = deadline
       order.stageId = stage.id
       order.assignee = assignee.phone

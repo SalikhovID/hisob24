@@ -43,7 +43,7 @@ function offered(field: FormField, dropdowns: CustomerDropdown[], values?: Recor
   return (dropdowns.find((dropdown) => dropdown.id === field.dropdown_id)?.options ?? []).filter((o) => o.is_active || has(o.id))
 }
 
-// OrderFields is the order's own part of the form: the title, the deadline,
+// OrderFields is the order's own part of the form: the deadline,
 // the stage, the assignee (a member who works in the order's location,
 // locationId), then the fields of its type in their order. order is the one
 // being edited, if any: its answers keep the options turned off since, and
@@ -67,7 +67,6 @@ export function OrderFields({
 }) {
   return (
     <Group>
-      <TextRow control={control} name="title" label="Nomi" autoComplete="off" placeholder="Masalan, qo'ng'iroq qilish" />
       {/* The phone's own calendar picks the day. */}
       <TextRow control={control} name="deadline" label="Muddat" type="date" />
       <SelectRow

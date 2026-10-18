@@ -207,7 +207,8 @@ export interface OrderRow {
   stageId: number
   locationId: number
   customerId: number
-  title: string
+  // number is the order's number in the company (logic/orders.md, 3.3).
+  number: number
   deadline: string
   assignee: string | null
   assigneeName: string | null
@@ -654,6 +655,12 @@ export function localToday(): string {
 }
 
 // nextId is the id of a new settings or customer row.
+// nextOrderNumber is the number the company's next order takes: one past
+// the highest so far, the deleted orders counted (logic/orders.md, 3.3).
+export function nextOrderNumber(companyId: number): number {
+  return db.orders.filter((o) => o.companyId === companyId).reduce((max, o) => Math.max(max, o.number), 0) + 1
+}
+
 export function nextId(): number {
   db.lastId += 1
   return db.lastId
@@ -851,7 +858,6 @@ export function seedOrders() {
     typeId: number,
     stageId: number,
     customerId: number,
-    title: string,
     deadline: string,
     assignee: string | null,
     values: Record<number, Answer>,
@@ -865,7 +871,7 @@ export function seedOrders() {
       stageId,
       locationId: asosiy.id,
       customerId,
-      title,
+      number: nextOrderNumber(1),
       deadline,
       assignee,
       assigneeName: assignee === null ? null : nameIn(assignee, 1),
@@ -886,14 +892,13 @@ export function seedOrders() {
     jarayonda,
     bajarildi,
     buyurtma,
-    old: enter(buyurtma.id, bajarildi.id, customers.dilshod.id, "Eski buyurtma", addDays(today, -5), ALI, {}, ALI),
-    invoice: enter(montajType.montaj.id, yangi.id, customers.malika.id, "Hisob-faktura", addDays(today, -2), null, { [montajType.izoh.id]: "Kechikkan" }, SARDOR),
-    contract: enter(buyurtma.id, jarayonda.id, customers.anor.id, "Shartnoma yuborish", today, null, {}, VALI),
+    old: enter(buyurtma.id, bajarildi.id, customers.dilshod.id, addDays(today, -5), ALI, {}, ALI),
+    invoice: enter(montajType.montaj.id, yangi.id, customers.malika.id, addDays(today, -2), null, { [montajType.izoh.id]: "Kechikkan" }, SARDOR),
+    contract: enter(buyurtma.id, jarayonda.id, customers.anor.id, today, null, {}, VALI),
     call: enter(
       montajType.montaj.id,
       yangi.id,
       customers.dilshod.id,
-      "Qo'ng'iroq qilish",
       addDays(today, 3),
       VALI,
       { [montajType.izoh.id]: "Ertalab qo'ng'iroq", [montajType.summa.id]: 45000, [montajType.kanal.id]: [instagram.id, linkedin.id] },

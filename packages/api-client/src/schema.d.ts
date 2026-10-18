@@ -3031,8 +3031,8 @@ export interface components {
              * @description Buyurtma hujjatida buyurtma; buyurtma uchun kiritilgan to'lovda shu buyurtma; boshqasida null
              */
             order_id: number | null;
-            /** @description Buyurtmaning nomi */
-            order_title: string | null;
+            /** @description Buyurtmaning raqami («Buyurtma № N») */
+            order_number: number | null;
             note: string | null;
             created_by_name: string | null;
         };
@@ -3260,8 +3260,8 @@ export interface components {
              * @description Buyurtmaga biriktirilgan tovarning chiqimida shu buyurtma; boshqasida null
              */
             order_id: number | null;
-            /** @description Buyurtmaning nomi */
-            order_title: string | null;
+            /** @description Buyurtmaning raqami («Buyurtma № N») */
+            order_number: number | null;
         };
         ProductMovePage: {
             items: components["schemas"]["ProductMove"][];
@@ -3951,7 +3951,8 @@ export interface components {
              * @description Buyurtma turadigan lokatsiya (logic/locations.md); o'zgarmaydi
              */
             location_id: number;
-            title: string;
+            /** @description Buyurtmaning kompaniya bo'yicha raqami, uning nomi («Buyurtma № N»); qo'shishda beriladi, o'zgarmaydi */
+            number: number;
             /**
              * Format: date
              * @description Muddat, YYYY-MM-DD
@@ -4054,7 +4055,6 @@ export interface components {
              * @description Buyurtma tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya (joriy lokatsiya; logic/locations.md, 6-bo'lim). Berilmasa 400 "Lokatsiyani tanlang", ruxsatsiz bo'lsa 403 forbidden.
              */
             location_id: number;
-            title: string;
             /**
              * Format: date
              * @description YYYY-MM-DD
@@ -4081,7 +4081,6 @@ export interface components {
             payments?: components["schemas"]["PaymentLine"][];
         };
         OrderUpdate: {
-            title: string;
             /**
              * Format: date
              * @description YYYY-MM-DD
@@ -4241,8 +4240,8 @@ export interface components {
              * @description Buyurtma uchun kiritilgan to'lovda shu buyurtma (logic/orders.md, 4.3); boshqasida null
              */
             order_id: number | null;
-            /** @description Buyurtmaning nomi */
-            order_title: string | null;
+            /** @description Buyurtmaning raqami («Buyurtma № N») */
+            order_number: number | null;
             /** @description Ta'minotchi yoki mijoz (nomi, bo'lmasa telefoni), kategoriya, boshqa akkaunt; kassa boshlang'ich qoldig'ida null */
             party_name: string | null;
             note: string | null;

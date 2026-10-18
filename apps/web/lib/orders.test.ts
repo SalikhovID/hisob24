@@ -1,7 +1,7 @@
 import { expect, test } from "vitest"
 import { som } from "./currencies"
 import type { CompanyCurrency, Customer, CustomerType, Order, OrderDetail, OrderType } from "./types"
-import { bucketLabels, deadlineBucket, deadlineOf, moneyLine, orderDefaults, orderSchema, todayISO } from "./orders"
+import { bucketLabels, deadlineBucket, deadlineOf, moneyLine, orderDefaults, orderName, orderSchema, todayISO } from "./orders"
 
 test("todayISO is the day where the browser stands, as YYYY-MM-DD", () => {
   const now = new Date()
@@ -44,7 +44,6 @@ const jismoniy: CustomerType = {
 
 // filled is a form filled in whole, for a new customer.
 const filled = {
-  title: " Qo'ng'iroq qilish ",
   deadline: "2026-10-10",
   stage_id: "12",
   assignee_phone: "998902223344",
@@ -68,7 +67,6 @@ test("the schema turns a form with a new customer into what the API takes", () =
   const schema = orderSchema(buyurtma, jismoniy, null)
 
   expect(schema.parse(filled)).toEqual({
-    title: "Qo'ng'iroq qilish",
     deadline: "2026-10-10",
     stage_id: 12,
     assignee_phone: "998902223344",
@@ -100,7 +98,6 @@ test("what is wrong with the form is said in the API's words, all at once", () =
 
   expect(
     issuesOf(schema, {
-      title: "  ",
       deadline: "",
       stage_id: "",
       assignee_phone: "",
@@ -113,7 +110,6 @@ test("what is wrong with the form is said in the API's words, all at once", () =
       payments: [],
     }),
   ).toEqual({
-    title: "Buyurtma nomini kiriting",
     deadline: "Muddatni kiriting",
     stage_id: "Bosqichni tanlang",
     "values.f71": "«Izoh» maydonini to'ldiring",
@@ -122,8 +118,6 @@ test("what is wrong with the form is said in the API's words, all at once", () =
     "customer.values.f51": "«F.I.Sh.» maydonini to'ldiring",
     "customer.values.f52": "«Yoshi» butun son bo'lishi kerak",
   })
-  expect(issuesOf(schema, { ...filled, title: "ў".repeat(201) })).toEqual({ title: "Buyurtma nomi 200 belgidan oshmasin" })
-  expect(issuesOf(schema, { ...filled, title: "ў".repeat(200) })).toEqual({})
 })
 
 test("with no customer type to enter a customer under, only a customer that is there will do", () => {
@@ -133,7 +127,6 @@ test("with no customer type to enter a customer under, only a customer that is t
 
 test("the form opens empty for a new order, in the stage it was opened for, and filled for one being edited", () => {
   expect(orderDefaults(buyurtma, jismoniy, 12)).toEqual({
-    title: "",
     deadline: "",
     stage_id: "12",
     assignee_phone: "",
@@ -152,7 +145,7 @@ test("the form opens empty for a new order, in the stage it was opened for, and 
     type_id: 7,
     stage_id: 13,
     location_id: 1,
-    title: "Qo'ng'iroq qilish",
+    number: 12,
     deadline: "2026-10-10",
     customer: { id: 42, phone: "998901112233", name: "Zarina Karimova" },
     assignee: { phone: "998902223344", full_name: "Vali Aliyev" },
@@ -167,7 +160,6 @@ test("the form opens empty for a new order, in the stage it was opened for, and 
     updated_at: "2026-10-02T06:01:00.000Z",
   }
   expect(orderDefaults(buyurtma, jismoniy, 12, order)).toEqual({
-    title: "Qo'ng'iroq qilish",
     deadline: "2026-10-10",
     stage_id: "13",
     assignee_phone: "998902223344",
@@ -250,3 +242,9 @@ test("moneyLine says an order's price and what is left of it, nothing for an ord
   expect(moneyLine(priced("0.00", "300.00"), currencies)).toBeNull()
 })
 
+
+// An order is called by its number (logic/orders.md, 3.3).
+test("an order's name is its number", () => {
+  expect(orderName(12)).toBe("Buyurtma № 12")
+  expect(orderName(1)).toBe("Buyurtma № 1")
+})

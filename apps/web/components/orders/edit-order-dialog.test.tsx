@@ -32,7 +32,8 @@ test("the edit dialog opens with the order as it is, its customer shown and not 
   expect(within(dialog).queryByRole("combobox", { name: "Telefon raqami" })).not.toBeInTheDocument()
   expect(within(dialog).queryByRole("button", { name: "Boshqa mijoz" })).not.toBeInTheDocument()
   expect(within(dialog).queryByRole("radiogroup", { name: "Buyurtma turi" })).not.toBeInTheDocument()
-  expect(within(dialog).getByLabelText("Nomi")).toHaveValue("Qo'ng'iroq qilish")
+  // An order has no name to edit: it is called by its number.
+  expect(within(dialog).queryByLabelText("Nomi")).not.toBeInTheDocument()
   expect(within(dialog).getByLabelText("Muddat")).toHaveValue(addDays(today, 3))
   expect(within(dialog).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
   expect(within(dialog).getByLabelText("Mas'ul")).toHaveTextContent("Vali Aliyev")
@@ -42,8 +43,6 @@ test("the edit dialog opens with the order as it is, its customer shown and not 
   expect(within(channels).getByRole("checkbox", { name: "Instagram" })).toBeChecked()
   expect(within(channels).getByRole("checkbox", { name: "LinkedIn" })).toBeChecked()
 
-  await user.clear(within(dialog).getByLabelText("Nomi"))
-  await user.type(within(dialog).getByLabelText("Nomi"), " Qayta qo'ng'iroq ")
   setDate(within(dialog).getByLabelText("Muddat"), addDays(today, 5))
   await choose(user, within(dialog).getByLabelText("Bosqich"), "Jarayonda")
   await choose(user, within(dialog).getByLabelText("Mas'ul"), "Tanlanmagan")
@@ -55,11 +54,11 @@ test("the edit dialog opens with the order as it is, its customer shown and not 
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(await screen.findByText("Buyurtma saqlandi")).toBeInTheDocument()
-  expect(await screen.findByRole("heading", { level: 1, name: "Qayta qo'ng'iroq" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeInTheDocument()
   // The page's track shows the stage it was saved in.
   expect(within(screen.getByRole("radiogroup", { name: "Bosqich" })).getByRole("radio", { name: "Jarayonda" })).toHaveAttribute("aria-checked", "true")
   expect(db.orders.find((order) => order.id === call.id)).toMatchObject({
-    title: "Qayta qo'ng'iroq",
+    number: 4,
     deadline: addDays(today, 5),
     stageId: jarayonda.id,
     assignee: null,
@@ -101,26 +100,24 @@ test("what is wrong with the edit is said in the API's words", async () => {
   const { call } = seedOrders()
   const { user, dialog } = await openDialog(call.id)
 
-  await user.clear(within(dialog).getByLabelText("Nomi"))
   await user.clear(within(dialog).getByLabelText("Izoh"))
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
-  expect(await within(dialog).findByText("Buyurtma nomini kiriting")).toBeInTheDocument()
-  expect(within(dialog).getByText("«Izoh» maydonini to'ldiring")).toBeInTheDocument()
-  expect(db.orders.find((order) => order.id === call.id)?.title).toBe("Qo'ng'iroq qilish")
+  expect(await within(dialog).findByText("«Izoh» maydonini to'ldiring")).toBeInTheDocument()
+  expect(db.orderHistory.filter((entry) => entry.orderId === call.id)).toHaveLength(1)
 })
 
 test("the dialog opens with the order as it is every time", async () => {
   await signIn(ALI)
   const { call } = seedOrders()
   const { user, dialog } = await openDialog(call.id)
-  await user.type(within(dialog).getByLabelText("Nomi"), " yarim")
+  await user.type(within(dialog).getByLabelText("Izoh"), " yarim")
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
   await user.click(screen.getByRole("button", { name: "Tahrirlash" }))
 
-  expect(within(await screen.findByRole("dialog", { name: "Buyurtmani tahrirlash" })).getByLabelText("Nomi")).toHaveValue("Qo'ng'iroq qilish")
+  expect(within(await screen.findByRole("dialog", { name: "Buyurtmani tahrirlash" })).getByLabelText("Izoh")).toHaveValue("Ertalab qo'ng'iroq")
 })
 
 // The assignee of an order in Asosiy who works in Chilonzor alone now

@@ -26,7 +26,7 @@ import { type OrderForm, type OrderOutput, orderDefaults, orderSchema } from "@/
 import type { CustomerDropdown, Member, OrderDetail, OrderStage, OrderType } from "@/lib/types"
 import { FormSection, LinkedCustomerCard, MoneySection, OrderFields } from "./order-form"
 
-// EditOrderDialog saves an order with another title, deadline, stage, assignee,
+// EditOrderDialog saves an order with another deadline, stage, assignee,
 // answers, price and goods (its payments are entered on their own). Its type and its customer were chosen when it was entered
 // and stay: the dialog says so, shows the customer and asks the fields of
 // that type. An answer left empty is taken away.
@@ -72,7 +72,6 @@ export function EditOrderDialog({
         api.PUT("/app/orders/{id}", {
           params: { path: { id: order.id } },
           body: {
-            title: edited.title,
             deadline: edited.deadline,
             stage_id: edited.stage_id,
             assignee_phone: edited.assignee_phone,

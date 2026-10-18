@@ -599,7 +599,7 @@ export const stockHandlers = [
           quantity: asQuantity(m.quantity),
           counterpart,
           order_id: order?.id ?? null,
-          order_title: order?.title ?? null,
+          order_number: order?.number ?? null,
         }
       })
     return HttpResponse.json(paged(rows, n))

@@ -1061,7 +1061,6 @@ type OrderSetup = Awaited<ReturnType<typeof orderSetup>>
 const orderBody = (s: OrderSetup, over: Partial<OrderCreate> = {}): OrderCreate => ({
   type_id: s.montaj.id,
   location_id: asosiyOf(1).id,
-  title: "Qo'ng'iroq qilish",
   deadline: "2026-10-10",
   stage_id: s.yangi.id,
   values: { [s.izoh.id]: "Ertalab" },
@@ -1078,19 +1077,18 @@ test("the orders are those of the locations the member works in: the list, an or
   const s = await orderSetup()
   const asosiy = asosiyOf(1)
   const chilonzor = addLocation(1, "Chilonzor")
-  const inAsosiy = await createOrder(orderBody(s, { title: "Asosiyda", location_id: asosiy.id }))
-  const inChilonzor = await createOrder(orderBody(s, { title: "Chilonzorda", deadline: "2026-10-09", location_id: chilonzor.id }))
-  const titles = async (query?: OrderQuery) => (await listOrders(query)).items.map((t) => t.title)
+  const inAsosiy = await createOrder(orderBody(s, { location_id: asosiy.id }))
+  const inChilonzor = await createOrder(orderBody(s, { deadline: "2026-10-09", location_id: chilonzor.id }))
+  const numbers = async (query?: OrderQuery) => (await listOrders(query)).items.map((t) => t.number)
   const edit = (over: Partial<OrderUpdate> = {}): OrderUpdate => ({
-    title: "X",
     deadline: "2026-10-10",
     stage_id: s.yangi.id,
     values: { [s.izoh.id]: "Ertalab" },
     ...over,
   })
 
-  expect(await titles()).toEqual(["Chilonzorda", "Asosiyda"])
-  expect(await titles({ location_id: asosiy.id })).toEqual(["Asosiyda"])
+  expect(await numbers()).toEqual([2, 1])
+  expect(await numbers({ location_id: asosiy.id })).toEqual([1])
   expect(await failure(listOrders({ location_id: 999999 }))).toMatchObject({ status: 403, code: "forbidden" })
   expect(await failure(listOrders({ location_id: 0 }))).toMatchObject({ status: 400, message: "Lokatsiya noto'g'ri" })
 
@@ -1102,10 +1100,10 @@ test("the orders are those of the locations the member works in: the list, an or
     status: 400,
     message: "Mas'ul bu lokatsiyada ishlamaydi",
   })
-  const valis = await createOrder(orderBody(s, { title: "Valiga", location_id: chilonzor.id, assignee_phone: VALI }))
+  const valis = await createOrder(orderBody(s, { location_id: chilonzor.id, assignee_phone: VALI }))
   expect(valis.assignee?.phone).toBe(VALI)
   restrictTo(VALI, 1, [asosiy.id])
-  expect((await updateOrder(valis.id, edit({ title: "Valiga", assignee_phone: VALI }))).assignee?.phone).toBe(VALI)
+  expect((await updateOrder(valis.id, edit({ assignee_phone: VALI }))).assignee?.phone).toBe(VALI)
   expect(await failure(updateOrder(inChilonzor.id, edit({ assignee_phone: VALI })))).toMatchObject({
     status: 400,
     message: "Mas'ul bu lokatsiyada ishlamaydi",
@@ -1114,7 +1112,7 @@ test("the orders are those of the locations the member works in: the list, an or
   restrictTo(VALI, 1, [chilonzor.id])
   await signIn(VALI)
   await chooseCompany(1)
-  expect(await titles()).toEqual(["Chilonzorda", "Valiga"])
+  expect(await numbers()).toEqual([2, 3])
   expect(await failure(listOrders({ location_id: asosiy.id }))).toMatchObject({ status: 403, code: "forbidden" })
   expect(await failure(getOrder(inAsosiy.id))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
   expect(await failure(updateOrder(inAsosiy.id, edit()))).toMatchObject({ status: 404 })
@@ -1122,8 +1120,8 @@ test("the orders are those of the locations the member works in: the list, an or
   expect(await failure(deleteOrder(inAsosiy.id))).toMatchObject({ status: 404 })
   expect((await getOrder(inChilonzor.id)).location_id).toBe(chilonzor.id)
   expect(await failure(createOrder(orderBody(s, { location_id: asosiy.id })))).toMatchObject({ status: 403, code: "forbidden" })
-  expect((await createOrder(orderBody(s, { title: "Yangi", location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
-  expect(await failure(createOrder({ ...orderBody(s, { title: "Nomsiz" }), location_id: undefined } as unknown as OrderCreate))).toMatchObject({
+  expect((await createOrder(orderBody(s, { location_id: chilonzor.id }))).location_id).toBe(chilonzor.id)
+  expect(await failure(createOrder({ ...orderBody(s), location_id: undefined } as unknown as OrderCreate))).toMatchObject({
     status: 400,
     message: "Lokatsiyani tanlang",
   })
@@ -1141,7 +1139,6 @@ test("a member enters an order for a customer that is there, or with a new one; 
 
   const order = await createOrder(
     orderBody(s, {
-      title: " Qo'ng'iroq qilish ",
       assignee_phone: "+998 90 123 45 67",
       values: { [s.izoh.id]: " Ertalab ", [s.summa.id]: 45000, [s.kanal.id]: [s.linkedin.id, s.instagram.id] },
     }),
@@ -1151,7 +1148,7 @@ test("a member enters an order for a customer that is there, or with a new one; 
     type_id: s.montaj.id,
     stage_id: s.yangi.id,
     location_id: asosiyOf(1).id,
-    title: "Qo'ng'iroq qilish",
+    number: 1,
     deadline: "2026-10-10",
     customer: { id: s.ali.id, phone: "998901112233", name: "Ali Valiyev" },
     assignee: { phone: ALI, full_name: "Ali Valiyev" },
@@ -1165,7 +1162,6 @@ test("a member enters an order for a customer that is there, or with a new one; 
   // A new customer, in one request.
   const withNew = await createOrder(
     orderBody(s, {
-      title: "Shartnoma",
       deadline: "2026-10-11",
       customer: { type_id: s.jismoniy.id, phone: "+998 90 111 22 44", values: { [s.fish.id]: " Zarina Karimova " } },
     }),
@@ -1193,8 +1189,6 @@ test("a member enters an order for a customer that is there, or with a new one; 
   const invalid = { status: 400, code: "validation_error" }
   const nokStage = db.stages.find((stage) => stage.companyId === 2)!.id
   const refusals: [Partial<OrderCreate>, string][] = [
-    [{ title: " " }, "Buyurtma nomini kiriting"],
-    [{ title: "ў".repeat(201) }, "Buyurtma nomi 200 belgidan oshmasin"],
     [{ deadline: "" }, "Muddatni kiriting"],
     [{ deadline: "10.10.2026" }, "Muddat noto'g'ri"],
     [{ deadline: "2026-02-30" }, "Muddat noto'g'ri"],
@@ -1208,9 +1202,7 @@ test("a member enters an order for a customer that is there, or with a new one; 
     [{ customer: {} }, "Mijozni tanlang"],
     [{ customer: { id: 999 } }, "Mijozni tanlang"],
     [{ customer: { type_id: s.jismoniy.id, phone: "998901112266" } }, "«F.I.Sh.» maydonini to'ldiring"],
-    // The title is told before the type, the stage before the answers, the
-    // answers before the customer.
-    [{ title: "", type_id: 999 }, "Buyurtma nomini kiriting"],
+    // The stage is told before the answers, the answers before the customer.
     [{ stage_id: 0, values: {} }, "Bosqichni tanlang"],
     [{ values: {}, customer: {} }, "«Izoh» maydonini to'ldiring"],
   ]
@@ -1219,7 +1211,7 @@ test("a member enters an order for a customer that is there, or with a new one; 
   }
   // A location that is not there is one the member may not work in: refused
   // the way a missing permission is, before anything else.
-  expect(await failure(createOrder(orderBody(s, { title: "", location_id: 999999 })))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(createOrder(orderBody(s, { location_id: 999999 })))).toMatchObject({ status: 403, code: "forbidden" })
   expect(db.orders).toHaveLength(2)
   // The order stands in the location named; one has to be named
   // (logic/locations.md, section 6).
@@ -1237,18 +1229,40 @@ test("a member enters an order for a customer that is there, or with a new one; 
   expect(await failure(createOrder(orderBody(s)))).toMatchObject({ status: 403, code: "company_required" })
 })
 
+// An order is numbered, not named (logic/orders.md, 3.3; backend/internal/app
+// TestOrdersAreNumbered).
+test("an order is numbered in its company: the next number on entry, kept by a deleted one, a title sent ignored; a search of the number finds it", async () => {
+  await signIn(ALI)
+  const s = await orderSetup()
+  // A phone with no digit a number could be mistaken for.
+  const karim = await createCustomer(s.jismoniy.id, "998900000000", { [s.fish.id]: "Karim Olimov" })
+  const found = async (search: string) => (await listOrders({ search })).items.map((t) => t.number)
+
+  const first = await createOrder(orderBody(s, { customer: { id: karim.id } }))
+  const second = await createOrder({ ...orderBody(s, { deadline: "2026-10-11", customer: { id: karim.id } }), title: "Nomsiz" } as unknown as OrderCreate)
+
+  expect(first.number).toBe(1)
+  expect(second.number).toBe(2)
+  expect(second).not.toHaveProperty("title")
+  await deleteOrder(second.id)
+  const third = await createOrder(orderBody(s, { deadline: "2026-10-12", customer: { id: karim.id } }))
+  expect(third.number).toBe(3)
+  expect(await found("3")).toEqual([3])
+  expect(await found("2")).toEqual([])
+  expect(await found("13")).toEqual([])
+})
+
 test("the orders list: the one due soonest first, twenty to a page, the filters and the search", async () => {
   await signIn(ALI)
   const s = await orderSetup()
   const zarina = await createCustomer(s.jismoniy.id, "998905555555", { [s.fish.id]: "Zarina Karimova" })
   const later = await createOrder(
-    orderBody(s, { title: "Hisob yozish", deadline: "2026-10-12", values: { [s.izoh.id]: "Ertalab yozish", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }),
+    orderBody(s, { deadline: "2026-10-12", values: { [s.izoh.id]: "Ertalab yozish", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }),
   )
-  const sooner = await createOrder(orderBody(s, { title: "Qo'ng'iroq qilish", deadline: "2026-10-10", assignee_phone: VALI, values: { [s.izoh.id]: "X" } }))
+  const sooner = await createOrder(orderBody(s, { deadline: "2026-10-10", assignee_phone: VALI, values: { [s.izoh.id]: "X" } }))
   const other = await createOrder({
     type_id: s.buyurtma.id,
     location_id: asosiyOf(1).id,
-    title: "Shikoyatni ko'rish",
     deadline: "2026-10-10",
     stage_id: s.bajarildi.id,
     customer: { id: zarina.id },
@@ -1263,7 +1277,6 @@ test("the orders list: the one due soonest first, twenty to a page, the filters 
   expect(await found({ stage_id: s.yangi.id })).toEqual([sooner.id, later.id])
   expect(await found({ assignee: "+998 90 222 33 44" })).toEqual([sooner.id])
   expect(await found({ customer_id: zarina.id })).toEqual([other.id])
-  expect(await found({ search: "qo'ng" })).toEqual([sooner.id])
   expect(await found({ search: "ERTALAB" })).toEqual([later.id])
   expect(await found({ search: "karim" })).toEqual([other.id])
   expect(await found({ search: "90 555" })).toEqual([other.id])
@@ -1274,16 +1287,16 @@ test("the orders list: the one due soonest first, twenty to a page, the filters 
   expect((await listOrders({ search: "ali" })).total).toBe(2)
   // A number is looked for in the customer's whole number answers too.
   const firma = await createCustomer(s.yuridik.id, "998907777777", { [s.nomi.id]: "Olma MChJ", [s.inn.id]: 301234567 })
-  const firmas = await createOrder(orderBody(s, { title: "Hisob-faktura", deadline: "2026-10-13", customer: { id: firma.id } }))
+  const firmas = await createOrder(orderBody(s, { deadline: "2026-10-13", customer: { id: firma.id } }))
   expect(await found({ search: "3012" })).toEqual([firmas.id])
   expect(await found({ search: "7777" })).toEqual([firmas.id])
 
-  for (let i = 0; i < 20; i += 1) await createOrder(orderBody(s, { title: `Buyurtma ${i}`, deadline: "2026-11-01" }))
+  for (let i = 0; i < 20; i += 1) await createOrder(orderBody(s, { deadline: "2026-11-01" }))
   const first = await listOrders()
   expect(first.items).toHaveLength(20)
   expect(first.total).toBe(24)
   const second = await listOrders({ page: 2 })
-  expect(second.items.map((t) => t.title)).toEqual(["Buyurtma 16", "Buyurtma 17", "Buyurtma 18", "Buyurtma 19"])
+  expect(second.items.map((t) => t.number)).toEqual([21, 22, 23, 24])
   expect(second).toMatchObject({ total: 24, page: 2, page_size: 20 })
   expect(await listOrders({ page: 3 })).toEqual({ items: [], total: 24, page: 3, page_size: 20 })
   const bad: [OrderQuery, string][] = [
@@ -1309,17 +1322,16 @@ test("an edit replaces the order's own fields and its answers and goes into the 
   const s = await orderSetup()
   const order = await createOrder(orderBody(s, { values: { [s.izoh.id]: "Ertalab", [s.summa.id]: 45000, [s.kanal.id]: [s.instagram.id] } }))
   const same: OrderUpdate = {
-    title: "Qayta qo'ng'iroq",
     deadline: "2026-10-12",
     stage_id: s.jarayonda.id,
     assignee_phone: VALI,
     values: { [s.izoh.id]: "Kechqurun", [s.kanal.id]: [s.linkedin.id, s.instagram.id] },
   }
 
-  const edited = await updateOrder(order.id, { ...same, title: " Qayta qo'ng'iroq " })
+  const edited = await updateOrder(order.id, same)
 
   expect(edited).toMatchObject({
-    title: "Qayta qo'ng'iroq",
+    number: 1,
     deadline: "2026-10-12",
     stage_id: s.jarayonda.id,
     assignee: { phone: VALI, full_name: "Vali Aliyev" },
@@ -1336,7 +1348,6 @@ test("an edit replaces the order's own fields and its answers and goes into the 
     ["created", "Ali Valiyev"],
   ])
   expect(history[0].changes).toEqual([
-    { label: "Nomi", old: "Qo'ng'iroq qilish", new: "Qayta qo'ng'iroq" },
     { label: "Muddat", old: "10.10.2026", new: "12.10.2026" },
     { label: "Bosqich", old: "Yangi", new: "Jarayonda" },
     { label: "Mas'ul", old: "", new: "Vali Aliyev" },
@@ -1356,7 +1367,6 @@ test("an edit replaces the order's own fields and its answers and goes into the 
   expect(await failure(updateOrder(order.id, { ...same, assignee_phone: ZARINA }))).toMatchObject({ status: 400, message: "Mas'ul kompaniya a'zosi emas" })
 
   const refusals: [OrderUpdate, string][] = [
-    [{ ...same, title: "" }, "Buyurtma nomini kiriting"],
     [{ ...same, deadline: "soon" }, "Muddat noto'g'ri"],
     [{ ...same, stage_id: db.stages.find((stage) => stage.companyId === 2)!.id }, "Bosqichni tanlang"],
     [{ ...same, values: {} }, "«Izoh» maydonini to'ldiring"],
@@ -1365,7 +1375,7 @@ test("an edit replaces the order's own fields and its answers and goes into the 
     expect(await failure(updateOrder(order.id, body)), message).toMatchObject({ status: 400, code: "validation_error", message })
   }
   // An order that is not there is said first, whatever is sent.
-  expect(await failure(updateOrder(999, { ...same, title: "" }))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
+  expect(await failure(updateOrder(999, same))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
 
   await signIn(SARDOR)
   await chooseCompany(1)
@@ -1382,7 +1392,7 @@ test("moving an order changes its stage alone and goes into the history; the sam
 
   const moved = await moveOrder(order.id, s.bajarildi.id)
 
-  expect(moved).toMatchObject({ stage_id: s.bajarildi.id, title: order.title, values: order.values, customer: order.customer })
+  expect(moved).toMatchObject({ stage_id: s.bajarildi.id, number: order.number, values: order.values, customer: order.customer })
   expect(await getOrder(order.id)).toEqual(moved)
   expect(await moveOrder(order.id, s.bajarildi.id)).toEqual(moved)
   for (const stageId of [0, 999, db.stages.find((stage) => stage.companyId === 2)!.id]) {
@@ -1425,7 +1435,7 @@ test("an order carries its price, its goods and its advance: the goods leave the
   expect(listed).toMatchObject({ amount: "5000.00", paid: "400.00" })
   expect(listed).not.toHaveProperty("items")
   expect((await call(api.GET("/app/customers/{id}", { params: { path: { id: s.ali.id } } }))).balance).toBe("4600.00")
-  const bare = await createOrder(orderBody(s, { title: "Hisob yozish" }))
+  const bare = await createOrder(orderBody(s))
   expect(bare).toMatchObject({ amount: "0.00", paid: "0.00", items: [], payments: [], cost_uzs: "0.00", profit_uzs: null })
 
   // A payment on its own, at its own moment; the order's page and the
@@ -1434,10 +1444,10 @@ test("an order carries its price, its goods and its advance: the goods leave the
   expect(payment).toMatchObject({ amount: "300.00", account_name: "Naqd", at: "2026-10-09T05:00:00Z", note: "Qolgani", created_by_name: "Ali Valiyev" })
   expect((await getOrder(order.id)).paid).toBe("700.00")
   const statement = await call(api.GET("/app/customers/{id}/statement", { params: { path: { id: s.ali.id } } }))
-  expect(statement.items.map((row) => [row.kind, row.order_id, row.order_title])).toEqual([
-    ["customer_payment", order.id, "Qo'ng'iroq qilish"],
-    ["customer_payment", order.id, "Qo'ng'iroq qilish"],
-    ["order", order.id, "Qo'ng'iroq qilish"],
+  expect(statement.items.map((row) => [row.kind, row.order_id, row.order_number])).toEqual([
+    ["customer_payment", order.id, 1],
+    ["customer_payment", order.id, 1],
+    ["order", order.id, 1],
   ])
   expect(statement.items[2]).toMatchObject({ amount: "5000.00", delta_uzs: "5000.00" })
   const payments = await call(api.GET("/app/customers/{id}/payments", { params: { path: { id: s.ali.id } } }))
@@ -1448,9 +1458,9 @@ test("an order carries its price, its goods and its advance: the goods leave the
     message: "Bu to'lov buyurtma bilan kiritilgan: buyurtmani oching",
   })
   const held = await call(api.GET("/app/accounts/{id}/statement", { params: { path: { id: cash } } }))
-  expect(held.items[0]).toMatchObject({ kind: "customer_payment", order_id: order.id, order_title: "Qo'ng'iroq qilish" })
+  expect(held.items[0]).toMatchObject({ kind: "customer_payment", order_id: order.id, order_number: 1 })
   const moves = await call(api.GET("/app/products/{id}/moves", { params: { path: { id: olma.id } } }))
-  expect(moves.items[0]).toMatchObject({ kind: "order", order_id: order.id, order_title: "Qo'ng'iroq qilish", counterpart: "Ali Valiyev", quantity: "-2.000" })
+  expect(moves.items[0]).toMatchObject({ kind: "order", order_id: order.id, order_number: 1, counterpart: "Ali Valiyev", quantity: "-2.000" })
   const saved = await call(api.PUT("/app/orders/{id}/payments/{paymentId}", { params: { path: { id: order.id, paymentId: payment.id } }, body: { bank_account_id: cash, amount: "350", at: "2026-10-09T10:00:00+05:00" } }))
   expect(saved).toMatchObject({ amount: "350.00", note: null })
   expect(await failure(payFor(order.id, { bank_account_id: cash, amount: "", at: "2026-10-09T10:00:00+05:00" }))).toMatchObject({ status: 400, message: "Summani kiriting" })
@@ -1459,7 +1469,7 @@ test("an order carries its price, its goods and its advance: the goods leave the
 
   // An edit replaces the price and the lines, leaves the payments alone and
   // goes into the history; the refused one changes nothing.
-  const same = { title: "Qo'ng'iroq qilish", deadline: "2026-10-10", stage_id: s.yangi.id, values: { [s.izoh.id]: "Ertalab" } }
+  const same = { deadline: "2026-10-10", stage_id: s.yangi.id, values: { [s.izoh.id]: "Ertalab" } }
   const edited = await updateOrder(order.id, { ...same, amount: "6000", items: [] })
   expect(edited).toMatchObject({ amount: "6000.00", paid: "750.00", items: [], profit_uzs: "6000.00" })
   expect(stockOf(olma.id, [asosiy])).toBe(12.5)
@@ -1480,7 +1490,7 @@ test("an order carries its price, its goods and its advance: the goods leave the
 
   // Deleting the order gives its goods back and hides its payments.
   await signIn(ALI)
-  const goods = await createOrder(orderBody(s, { title: "Yetkazish", items: [{ product_id: olma.id, quantity: "3" }], payments: [{ bank_account_id: cash, amount: "100" }] }))
+  const goods = await createOrder(orderBody(s, { items: [{ product_id: olma.id, quantity: "3" }], payments: [{ bank_account_id: cash, amount: "100" }] }))
   expect(stockOf(olma.id, [asosiy])).toBe(9.5)
   await deleteOrder(goods.id)
   expect(stockOf(olma.id, [asosiy])).toBe(12.5)
@@ -1492,7 +1502,7 @@ test("a deleted order is gone from the app and its history is not shown; it stay
   await signIn(ALI)
   const s = await orderSetup()
   const order = await createOrder(orderBody(s))
-  const another = await createOrder(orderBody(s, { title: "Boshqa" }))
+  const another = await createOrder(orderBody(s, { deadline: "2026-10-11" }))
   await signIn(VALI)
   await chooseCompany(1)
 
@@ -1513,7 +1523,7 @@ test("what the orders use is not deleted; the customers are suggested by the dig
   await signIn(ALI)
   const s = await orderSetup()
   const order = await createOrder(orderBody(s, { values: { [s.izoh.id]: "X", [s.kanal.id]: [s.instagram.id] } }))
-  const gone = await createOrder(orderBody(s, { title: "O'chirilgan", values: { [s.izoh.id]: "X", [s.summa.id]: 1 } }))
+  const gone = await createOrder(orderBody(s, { values: { [s.izoh.id]: "X", [s.summa.id]: 1 } }))
   await deleteOrder(gone.id)
   const inUse = { status: 409 }
 
@@ -2310,10 +2320,10 @@ test("an opening stock is a purchase without a supplier: in a currency, into the
   const page = await moves(olma.id)
   expect(page.total).toBe(4)
   expect(page.items).toEqual([
-    { id: expect.any(Number), transaction_id: transfer.id, kind: "transfer", number: 1, at: "2026-10-08T04:00:00Z", location_id: chilonzor, location_name: "Chilonzor", quantity: "2.000", counterpart: "Asosiy", order_id: null, order_title: null },
-    { id: expect.any(Number), transaction_id: transfer.id, kind: "transfer", number: 1, at: "2026-10-08T04:00:00Z", location_id: asosiy, location_name: "Asosiy", quantity: "-2.000", counterpart: "Chilonzor", order_id: null, order_title: null },
-    { id: expect.any(Number), transaction_id: expect.any(Number), kind: "purchase", number: 1, at: AT_UTC, location_id: asosiy, location_name: "Asosiy", quantity: "1.000", counterpart: "Bozor", order_id: null, order_title: null },
-    { id: expect.any(Number), transaction_id: first.id, kind: "opening_stock", number: 1, at: AT_UTC, location_id: asosiy, location_name: "Asosiy", quantity: "4.000", counterpart: null, order_id: null, order_title: null },
+    { id: expect.any(Number), transaction_id: transfer.id, kind: "transfer", number: 1, at: "2026-10-08T04:00:00Z", location_id: chilonzor, location_name: "Chilonzor", quantity: "2.000", counterpart: "Asosiy", order_id: null, order_number: null },
+    { id: expect.any(Number), transaction_id: transfer.id, kind: "transfer", number: 1, at: "2026-10-08T04:00:00Z", location_id: asosiy, location_name: "Asosiy", quantity: "-2.000", counterpart: "Chilonzor", order_id: null, order_number: null },
+    { id: expect.any(Number), transaction_id: expect.any(Number), kind: "purchase", number: 1, at: AT_UTC, location_id: asosiy, location_name: "Asosiy", quantity: "1.000", counterpart: "Bozor", order_id: null, order_number: null },
+    { id: expect.any(Number), transaction_id: first.id, kind: "opening_stock", number: 1, at: AT_UTC, location_id: asosiy, location_name: "Asosiy", quantity: "4.000", counterpart: null, order_id: null, order_number: null },
   ])
   expect((await moves(olma.id, { location_id: String(chilonzor) })).total).toBe(1)
   expect(await failure(moves(999))).toMatchObject({ status: 404, message: "Mahsulot topilmadi" })
@@ -2685,7 +2695,7 @@ test("/app/dashboard answers the home's blocks as the Go API does: each by its p
   expect(all.suppliers).toEqual({ debt: "178000.00", debtors: 1, advance: "30000.00" })
   expect(all.customers).toEqual({ total: 3, added_this_month: 1, by_day: [...Array.from({ length: day - 1 }, () => 2), 3] })
   expect(all.orders).toMatchObject({ active: 3, late: 1, by_stage: [{ stage_id: yangi.id, count: 2 }, { stage_id: jarayonda.id, count: 1 }] })
-  expect(all.orders?.upcoming.map((t) => t.title)).toEqual(["Hisob-faktura", "Shartnoma yuborish", "Qo'ng'iroq qilish"])
+  expect(all.orders?.upcoming.map((t) => t.number)).toEqual([2, 3, 4])
   expect(all.purchases).toEqual({ month_total: "228000.00", month_count: 2, by_day: [...before("0.00"), "228000.00"] })
   expect(all.sales).toEqual({ month_total: "7000.00", month_count: 1, by_day: [...before("0.00"), "7000.00"] })
 

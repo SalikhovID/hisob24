@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { useCurrencies } from "@/lib/currencies"
 import { shortName } from "@/lib/initials"
 import { formatPhone } from "@/lib/phone"
-import { deadlineOf, moneyLine } from "@/lib/orders"
+import { deadlineOf, moneyLine, orderName } from "@/lib/orders"
 import type { Order, OrderStage, OrderType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { StageMenu } from "./stage-menu"
@@ -25,7 +25,7 @@ export interface CardProps {
   onMove?: (order: Order, stage: OrderStage) => void
 }
 
-// CardContent is the card's face, as the prototype's: the title, the
+// CardContent is the card's face, as the prototype's: the order's name (its number), the
 // customer, and a line of the deadline (the day and how far it is, red once
 // past; «bajarildi» in a done stage), the assignee with their avatar and,
 // under every type, the type. The copy that follows the pointer during a
@@ -38,7 +38,7 @@ export function CardContent({ order, stage, type }: Pick<CardProps, "order" | "s
   return (
     <>
       <span data-slot="card-title" className="block text-base leading-tight font-semibold [overflow-wrap:anywhere]">
-        {order.title}
+        {orderName(order.number)}
       </span>{" "}
       <span className="mt-0.5 block text-md text-muted-foreground [overflow-wrap:anywhere]">{order.customer.name ?? formatPhone(order.customer.phone)}</span>{" "}
       {money && <span className="mt-0.5 block text-md font-medium tabular-nums [overflow-wrap:anywhere]">{money}</span>}{" "}

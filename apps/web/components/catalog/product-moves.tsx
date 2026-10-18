@@ -7,6 +7,7 @@ import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { Failed, ListLoading } from "@/components/states"
 import { formatDateTime } from "@/lib/format"
+import { orderName } from "@/lib/orders"
 import { useProductMoves } from "@/lib/queries"
 import { documentHref, kindTitle, signedQuantity } from "@/lib/stock"
 import type { GoodsKind } from "@/lib/types"
@@ -57,8 +58,8 @@ export function ProductMoves({ companyId, productId, unit }: { companyId: number
                   key={move.id}
                   href={move.kind === "order" ? documentHref("order", move.order_id ?? 0) : documentHref(move.kind, move.transaction_id)}
                   media={<SoftIcon icon={kindIcon[move.kind]} />}
-                  // An order's document goes by the order's title (logic/orders.md, 4.3).
-                  title={move.kind === "order" ? `Buyurtma · ${move.order_title ?? ""}` : `${kindTitle[move.kind]} № ${move.number}`}
+                  // An order's document goes by the order's name, its number (logic/orders.md, 4.3).
+                  title={move.kind === "order" ? (move.order_number === null ? "Buyurtma" : orderName(move.order_number)) : `${kindTitle[move.kind]} № ${move.number}`}
                   sub={sub.filter(Boolean).join(" · ")}
                   end={<span className={cn("tabular-nums", out ? "text-destructive" : "text-positive")}>{signedQuantity(move.quantity, unit, true)}</span>}
                   chevron={false}

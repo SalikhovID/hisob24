@@ -10,6 +10,7 @@ import { Pager } from "@/components/pager"
 import { Failed, ListLoading } from "@/components/states"
 import { type FinanceDocumentKind, financeKindTitle } from "@/lib/finance"
 import { formatAmount, formatMoney, formatTime } from "@/lib/format"
+import { orderName } from "@/lib/orders"
 import { useAccountStatement } from "@/lib/queries"
 import type { AccountBalance, AccountStatementRow, CashOpening, CompanyCurrency } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -42,8 +43,8 @@ function titleOf(row: AccountStatementRow): string {
   if (kind === "cash_opening") return "Boshlang'ich qoldiq"
   if (isPayment(kind)) {
     if (row.linked_id === null) return "To'lov"
-    // A payment entered for an order names the order by its title.
-    if (row.order_id !== null) return `To'lov · ${row.order_title ?? "Buyurtma"}`
+    // A payment entered for an order names the order by its number.
+    if (row.order_number !== null) return `To'lov · ${orderName(row.order_number)}`
     return `To'lov · ${kind === "supplier_payment" ? "Xarid" : "Sotuv"} № ${row.linked_number}`
   }
   return numbered(kind) ? `${financeKindTitle[kind]} № ${row.number}` : financeKindTitle[kind]

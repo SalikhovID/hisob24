@@ -42,7 +42,6 @@ export function deadlineOf(deadline: string, done: boolean, today = todayISO()):
 // currency (a select's value) and the rate, the lines of goods and, on
 // entry, the advance's payments.
 export type OrderForm = {
-  title: string
   deadline: string
   stage_id: string
   assignee_phone: string
@@ -60,7 +59,6 @@ export type OrderForm = {
 // (null for none), the currency, the rate with another currency than the
 // so'm, the lines and the advance.
 export type OrderOutput = {
-  title: string
   deadline: string
   stage_id: number
   assignee_phone: string | null
@@ -85,9 +83,6 @@ const amountSchema = z.string().transform((value, context) => {
   return text
 })
 
-// How long a title may be, in characters, as the API counts them.
-const MAX_TITLE = 200
-
 const entries = z.record(z.string(), z.union([z.string(), z.array(z.string())]))
 
 // orderSchema checks the order form in the API's words, all of it at once,
@@ -98,7 +93,6 @@ const entries = z.record(z.string(), z.union([z.string(), z.array(z.string())]))
 export function orderSchema(type: OrderType, customerType: CustomerType | null, linked: number | null) {
   return z
     .object({
-      title: z.string(),
       deadline: z.string(),
       stage_id: z.string(),
       assignee_phone: z.string(),
@@ -112,9 +106,6 @@ export function orderSchema(type: OrderType, customerType: CustomerType | null, 
     })
     .transform((form, context): OrderOutput => {
       const refuse = (path: string[], message: string) => context.addIssue({ code: "custom", message, path })
-      const title = form.title.trim()
-      if (title === "") refuse(["title"], "Buyurtma nomini kiriting")
-      else if ([...title].length > MAX_TITLE) refuse(["title"], "Buyurtma nomi 200 belgidan oshmasin")
       if (form.deadline === "") refuse(["deadline"], "Muddatni kiriting")
       if (form.stage_id === "") refuse(["stage_id"], "Bosqichni tanlang")
       const values = readAnswers(type.fields, form.values, (key, message) => refuse(["values", key], message))
@@ -134,7 +125,6 @@ export function orderSchema(type: OrderType, customerType: CustomerType | null, 
         customer = { type_id: customerType.id, phone: phone ?? "", values: answers }
       }
       return {
-        title,
         deadline: form.deadline,
         stage_id: Number(form.stage_id),
         assignee_phone: form.assignee_phone || null,
@@ -157,7 +147,6 @@ export function orderSchema(type: OrderType, customerType: CustomerType | null, 
 export function orderDefaults(type: OrderType, customerType: CustomerType | null, stageId: number | null, order?: Order & Partial<Pick<OrderDetail, "items">>): OrderForm {
   const priced = order !== undefined && Number(order.amount) > 0
   return {
-    title: order?.title ?? "",
     deadline: order?.deadline ?? "",
     stage_id: String(order?.stage_id ?? stageId ?? ""),
     assignee_phone: order?.assignee?.phone ?? "",
@@ -208,4 +197,10 @@ export function deadlineBucket(deadline: string, done: boolean, today = todayISO
   if (days < 0) return "late"
   if (days === 0) return "today"
   return days <= 7 ? "week" : "later"
+}
+
+// orderName is what an order is called (logic/orders.md, 3.3): its number
+// in the company, «Buyurtma № 12», the way a sale is «Sotuv № 1».
+export function orderName(number: number): string {
+  return `Buyurtma № ${number}`
 }

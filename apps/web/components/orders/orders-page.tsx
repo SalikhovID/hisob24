@@ -44,7 +44,7 @@ const buckets: DeadlineBucket[] = ["late", "today", "week", "later", "done"]
 // a board of the stages (the first time) or a list grouped by how far the
 // deadlines are (late, today, this week, later, done), a row each with its
 // stage, customer, assignee and deadline; a chip per type, the assignee and
-// (in the list) the stage chosen in sheets, a search by title, customer or
+// (in the list) the stage chosen in sheets, a search by number, customer or
 // phone. The heading says the location (with two or more) and how many
 // orders it has.
 export function OrdersPage() {
@@ -190,7 +190,7 @@ export function OrdersPage() {
                   { value: "list", label: "Ro'yxat" },
                 ]}
               />
-              <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder="Nomi, mijoz yoki telefon" />
+              <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder="Raqami, mijoz yoki telefon" />
               <Chips>
                 <ChoiceChips
                   bare

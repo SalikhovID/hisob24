@@ -384,7 +384,7 @@ test("a customer's page lists its orders, the one due soonest first, with their 
 
   const region = await ordersOf()
   const rows = within(await within(region).findByRole("list", { name: "Buyurtmalar" })).getAllByRole("link")
-  expect(rows.map((row) => rowParts(row).title)).toEqual(["Eski buyurtma", "Qo'ng'iroq qilish"])
+  expect(rows.map((row) => rowParts(row).title)).toEqual(["Buyurtma № 1", "Buyurtma № 4"])
   expect(rows[0]).toHaveAttribute("href", `/orders/${old.id}`)
   expect(rows[1]).toHaveAttribute("href", `/orders/${call.id}`)
   // A done order says its stage where the others say how far their deadline is.
@@ -531,8 +531,8 @@ test("a customer's orders are of every location the member works in; with two or
 
   const rows = within(await within(await ordersOf()).findByRole("list", { name: "Buyurtmalar" })).getAllByRole("link")
   expect(rows.map((row) => [rowParts(row).title, rowParts(row).sub])).toEqual([
-    ["Eski buyurtma", "Bajarildi · Asosiy · Ali V."],
-    ["Qo'ng'iroq qilish", "Yangi · Chilonzor · Vali A."],
+    ["Buyurtma № 1", "Bajarildi · Asosiy · Ali V."],
+    ["Buyurtma № 4", "Yangi · Chilonzor · Vali A."],
   ])
 })
 
@@ -557,13 +557,12 @@ test("the customer's Buyurtma tile enters an order for it: the sheet opens with 
   const linked = within(dialog).getByRole("region", { name: "Mavjud mijoz" })
   expect(within(linked).getByText("Dilshod Karimov")).toBeInTheDocument()
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
-  await user.type(within(order).getByLabelText("Nomi"), "Mijoz sahifasidan")
   fireEvent.change(within(order).getByLabelText("Muddat"), { target: { value: localToday() } })
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(db.orders.at(-1)).toMatchObject({ title: "Mijoz sahifasidan", customerId: dilshod.id })
-  expect(await within(await ordersOf()).findByRole("link", { name: /^Mijoz sahifasidan/ })).toBeInTheDocument()
+  expect(db.orders.at(-1)).toMatchObject({ number: 5, customerId: dilshod.id })
+  expect(await within(await ordersOf()).findByRole("link", { name: /^Buyurtma № 5/ })).toBeInTheDocument()
 })
 
 test("the tile to enter an order is there for whoever may add orders, in a location", async () => {

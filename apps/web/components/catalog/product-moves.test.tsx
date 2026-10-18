@@ -46,14 +46,14 @@ test("a product never moved says so", async () => {
   expect(await screen.findByText("Bu mahsulot hali harakat qilmagan")).toBeInTheDocument()
 })
 
-test("an order that took the product is named by its title, with the customer, and leads to the order", async () => {
+test("an order that took the product is named by its number, with the customer, and leads to the order", async () => {
   await signIn(ALI)
   const { order, olma } = await pricedOrder()
   renderWithProviders(<ProductMoves companyId={1} productId={olma.id} unit="kg" />)
 
   const moves = await screen.findByRole("list", { name: "Harakatlar" })
   const [taken] = within(moves).getAllByRole("link")
-  expect(parts(taken)).toMatchObject({ title: "Buyurtma · Montaj", end: "−2 kg" })
+  expect(parts(taken)).toMatchObject({ title: "Buyurtma № 5", end: "−2 kg" })
   expect(parts(taken).sub).toContain("Dilshod Karimov")
   expect(taken).toHaveAttribute("href", `/orders/${order.id}`)
 })

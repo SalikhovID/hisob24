@@ -9,6 +9,7 @@ import { DeletePaymentDialog } from "@/components/warehouse/delete-payment-butto
 import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
 import { formatDateTime, formatMoney } from "@/lib/format"
+import { orderName } from "@/lib/orders"
 import type { OrderDetail, OrderPayment } from "@/lib/types"
 import type { PaymentFields } from "@/lib/warehouse"
 
@@ -60,7 +61,7 @@ export function OrderPayments({ companyId, order, canEdit }: { companyId: number
             : []
         }
       />
-      {editing && <PaymentDialog {...dialog} partyName={order.title} payment={editing} open onOpenChange={(open) => !open && setEditing(null)} />}
+      {editing && <PaymentDialog {...dialog} partyName={orderName(order.number)} payment={editing} open onOpenChange={(open) => !open && setEditing(null)} />}
       {removing && <DeletePaymentDialog {...dialog} payment={removing} open onOpenChange={(open) => !open && setRemoving(null)} />}
     </section>
   )

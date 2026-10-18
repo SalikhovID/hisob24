@@ -34,8 +34,8 @@ test("the board shows a column per stage, in order, with the orders due soonest 
 
   const columns = within(await board()).getAllByRole("region")
   expect(columns.map((region) => region.getAttribute("aria-label"))).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
-  await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
-  expect(cards("Jarayonda")).toEqual(["Shartnoma yuborish"])
+  await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
+  expect(cards("Jarayonda")).toEqual(["Buyurtma № 3"])
   // The count of each column, and of the company.
   expect(within(column("Yangi")).getByText("2", { selector: "[data-slot=column-count]" })).toBeInTheDocument()
   expect(within(column("Jarayonda")).getByText("1", { selector: "[data-slot=column-count]" })).toBeInTheDocument()
@@ -55,7 +55,7 @@ test("the board shows a column per stage, in order, with the orders due soonest 
   expect(within(link).getByText(due(3, "3 kun qoldi"))).toBeInTheDocument()
   expect(within(link).getByText("Vali A.")).toBeInTheDocument()
   expect(within(link).getByText("Montaj")).toBeInTheDocument()
-  expect(within(card).getByRole("button", { name: "Bosqich: Qo'ng'iroq qilish" })).toBeInTheDocument()
+  expect(within(card).getByRole("button", { name: "Bosqich: Buyurtma № 4" })).toBeInTheDocument()
   expect(within(card).queryByText(String(dilshod.id))).not.toBeInTheDocument()
   // A late order's deadline is red.
   const [late] = within(column("Yangi")).getAllByRole("listitem")
@@ -76,7 +76,7 @@ test("the done column opens and folds, and stays as it was left", async () => {
 
   await user.click(within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (1)" }))
 
-  await waitFor(() => expect(cards("Bajarildi")).toEqual(["Eski buyurtma"]))
+  await waitFor(() => expect(cards("Bajarildi")).toEqual(["Buyurtma № 1"]))
   expect(within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (1)" })).toHaveAttribute("aria-expanded", "true")
   // In the done stage a deadline says it is done.
   expect(within(column("Bajarildi")).getByText(due(-5, "bajarildi"))).toBeInTheDocument()
@@ -86,7 +86,7 @@ test("the done column opens and folds, and stays as it was left", async () => {
   unmount()
   renderWithProviders(<OrdersPage />)
   await board()
-  await waitFor(() => expect(cards("Bajarildi")).toEqual(["Eski buyurtma"]))
+  await waitFor(() => expect(cards("Bajarildi")).toEqual(["Buyurtma № 1"]))
 
   await user.click(within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (1)" }))
   await waitFor(() => expect(cards("Bajarildi")).toEqual([]))
@@ -99,11 +99,11 @@ test("a card's stage menu moves the order to another column, where it takes its 
   setLocation("/orders")
   const { user } = renderWithProviders(<OrdersPage />)
   await board()
-  await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
 
-  await user.click(screen.getByRole("button", { name: "Bosqich: Hisob-faktura" }))
+  await user.click(screen.getByRole("button", { name: "Bosqich: Buyurtma № 2" }))
   // The stages, in a sheet named by the order.
-  expect(await screen.findByRole("dialog", { name: "«Hisob-faktura» bosqichi" })).toBeInTheDocument()
+  expect(await screen.findByRole("dialog", { name: "«Buyurtma № 2» bosqichi" })).toBeInTheDocument()
   const menu = await screen.findByRole("menu")
   expect(within(menu).getAllByRole("menuitemradio").map((item) => [item.textContent, item.getAttribute("aria-checked")])).toEqual([
     ["Yangi", "true"],
@@ -112,12 +112,12 @@ test("a card's stage menu moves the order to another column, where it takes its 
   ])
   await user.click(within(menu).getByRole("menuitemradio", { name: "Jarayonda" }))
 
-  await waitFor(() => expect(cards("Jarayonda")).toEqual(["Hisob-faktura", "Shartnoma yuborish"]))
-  expect(cards("Yangi")).toEqual(["Qo'ng'iroq qilish"])
+  await waitFor(() => expect(cards("Jarayonda")).toEqual(["Buyurtma № 2", "Buyurtma № 3"]))
+  expect(cards("Yangi")).toEqual(["Buyurtma № 4"])
   expect(within(column("Yangi")).getByText("Jami: 1")).toBeInTheDocument()
   expect(within(column("Jarayonda")).getByText("Jami: 2")).toBeInTheDocument()
   expect(db.orders.find((order) => order.id === invoice.id)?.stageId).toBe(jarayonda.id)
-  expect(screen.getByRole("status", { name: "Ko'chirishlar" })).toHaveTextContent("«Hisob-faktura» «Jarayonda» bosqichiga ko'chirildi")
+  expect(screen.getByRole("status", { name: "Ko'chirishlar" })).toHaveTextContent("«Buyurtma № 2» «Jarayonda» bosqichiga ko'chirildi")
   // The location still has four orders.
   expect(screen.getByText("4 ta")).toBeInTheDocument()
 })
@@ -138,14 +138,14 @@ test("a move the API refuses puts the card back and says why; the stages are ask
   )
   const { user } = renderWithProviders(<OrdersPage />)
   await board()
-  await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
   const askedBefore = stagesAsked
 
-  await user.click(screen.getByRole("button", { name: "Bosqich: Hisob-faktura" }))
+  await user.click(screen.getByRole("button", { name: "Bosqich: Buyurtma № 2" }))
   await user.click(within(await screen.findByRole("menu")).getByRole("menuitemradio", { name: "Bajarildi" }))
 
   expect(await screen.findByText("Bosqichni tanlang")).toBeInTheDocument()
-  await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
   expect(within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (1)" })).toBeInTheDocument()
   await waitFor(() => expect(stagesAsked).toBeGreaterThan(askedBefore))
 })
@@ -154,7 +154,7 @@ test("a move the API refuses puts the card back and says why; the stages are ask
 function many(n: number) {
   const { call } = seedOrders()
   for (let i = 0; i < n; i += 1) {
-    db.orders.push({ ...call, id: nextId(), title: `Buyurtma ${String(i).padStart(2, "0")}`, deadline: addDays(today, 10), values: { ...call.values } })
+    db.orders.push({ ...call, id: nextId(), number: 5 + i, deadline: addDays(today, 10), values: { ...call.values } })
   }
 }
 
@@ -167,13 +167,13 @@ test("a column shows twenty orders and offers more; Jami says how many there are
 
   await waitFor(() => expect(cards("Yangi")).toHaveLength(20))
   expect(within(column("Yangi")).getByText("Jami: 23")).toBeInTheDocument()
-  expect(cards("Yangi").slice(-2)).toEqual(["Buyurtma 16", "Buyurtma 17"])
+  expect(cards("Yangi").slice(-2)).toEqual(["Buyurtma № 21", "Buyurtma № 22"])
   expect(within(column("Jarayonda")).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
 
   await user.click(within(column("Yangi")).getByRole("button", { name: "Yana" }))
 
   await waitFor(() => expect(cards("Yangi")).toHaveLength(23))
-  expect(cards("Yangi").slice(-1)).toEqual(["Buyurtma 20"])
+  expect(cards("Yangi").slice(-1)).toEqual(["Buyurtma № 25"])
   expect(within(column("Yangi")).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
   expect(await screen.findByText("25 ta")).toBeInTheDocument()
 })
@@ -188,20 +188,20 @@ test("the type chip, the search and the assignee narrow every column", async () 
 
   await user.click(screen.getByRole("radio", { name: "Montaj" }))
   await waitFor(() => expect(cards("Jarayonda")).toEqual([]))
-  expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"])
+  expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"])
   expect(within(column("Jarayonda")).getByText("Kartani shu yerga suring")).toBeInTheDocument()
   // Under a type the type is not said on every card, and the count is not the location's.
   expect(within(column("Yangi")).queryByText("Montaj")).not.toBeInTheDocument()
   expect(screen.queryByText("4 ta")).not.toBeInTheDocument()
 
   await user.click(screen.getByRole("radio", { name: "Barchasi" }))
-  await user.type(screen.getByRole("searchbox", { name: "Qidirish" }), "shartnoma")
+  await user.type(screen.getByRole("searchbox", { name: "Qidirish" }), "anor")
   await waitFor(() => expect(cards("Yangi")).toEqual([]))
-  expect(cards("Jarayonda")).toEqual(["Shartnoma yuborish"])
+  expect(cards("Jarayonda")).toEqual(["Buyurtma № 3"])
 
   await user.clear(screen.getByRole("searchbox", { name: "Qidirish" }))
   await choose(user, await screen.findByRole("button", { name: "Barcha mas'ullar" }), "Vali Aliyev")
-  await waitFor(() => expect(cards("Yangi")).toEqual(["Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 4"]))
   expect(cards("Jarayonda")).toEqual([])
 })
 
@@ -228,7 +228,7 @@ test("an employee whose role holds orders.view alone sees the board without the 
   renderWithProviders(<OrdersPage />)
 
   await board()
-  await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
   expect(screen.queryByRole("button", { name: /^Bosqich: / })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: /^Buyurtma qo'shish/ })).not.toBeInTheDocument()
   expect(screen.queryByText(/Kartani bosib turing/)).not.toBeInTheDocument()

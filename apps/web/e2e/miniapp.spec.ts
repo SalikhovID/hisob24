@@ -187,17 +187,17 @@ test.describe("a linked user", () => {
 
     // A thumb lands on the row's body (its middle), not on the title: the
     // order opens all the same.
-    await rowOf(page, "Qo'ng'iroq qilish").click()
+    await rowOf(page, "Buyurtma № 4").click()
 
     await expect(page).toHaveURL(new RegExp(`/orders/${call.id}$`))
-    await expect(page.getByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeVisible()
+    await expect(page.getByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeVisible()
   })
 
   test("names an order's customer on its row without a link of its own", async ({ page }) => {
     seedOrders()
     await openList(page)
 
-    await expect(rowOf(page, "Qo'ng'iroq qilish")).toContainText("Dilshod Karimov")
+    await expect(rowOf(page, "Buyurtma № 4")).toContainText("Dilshod Karimov")
     await expect(orders(page).getByRole("link", { name: /^Dilshod Karimov/ })).toHaveCount(0)
   })
 })

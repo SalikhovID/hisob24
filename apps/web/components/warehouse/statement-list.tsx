@@ -10,6 +10,7 @@ import { Pager } from "@/components/pager"
 import { Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
 import { formatAmount, formatMoney, formatTime } from "@/lib/format"
+import { orderName } from "@/lib/orders"
 import type { Party } from "@/lib/party"
 import { useCustomerStatement, useStatement } from "@/lib/queries"
 import { type OpeningFields, openingOfRow } from "@/lib/stock"
@@ -34,13 +35,13 @@ function titleOf(row: StatementRow): string {
     case "sale":
       return `Sotuv № ${row.number}`
     case "order":
-      // An order's document goes by the order's title (logic/orders.md, 4.3).
-      return `Buyurtma · ${row.order_title ?? ""}`
+      // An order's document goes by the order's name, its number (logic/orders.md, 4.3).
+      return row.order_number === null ? "Buyurtma" : orderName(row.order_number)
     case "supplier_payment":
       return row.linked_id === null ? "To'lov" : `To'lov · Xarid № ${row.linked_number}`
     case "customer_payment":
       if (row.linked_id === null) return "To'lov"
-      return row.order_id !== null ? `To'lov · ${row.order_title ?? "Buyurtma"}` : `To'lov · Sotuv № ${row.linked_number}`
+      return row.order_number !== null ? `To'lov · ${orderName(row.order_number)}` : `To'lov · Sotuv № ${row.linked_number}`
     case "supplier_debt":
     case "customer_debt":
       return "Boshlang'ich qarz"

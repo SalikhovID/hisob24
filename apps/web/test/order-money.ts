@@ -19,7 +19,6 @@ export async function pricedOrder(over: Partial<OrderCreate> = {}): Promise<{ or
       body: {
         type_id: buyurtma.id,
         location_id: asosiyOf(1).id,
-        title: "Montaj",
         deadline: "2026-10-20",
         stage_id: yangi.id,
         values: {},

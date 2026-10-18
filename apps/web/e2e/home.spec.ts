@@ -26,8 +26,8 @@ test("the owner's home: what the suppliers are owed, the quick tiles, the overvi
   await expect(deadlines.getByRole("link")).toHaveCount(4)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  await deadlines.getByRole("link", { name: /^Hisob-faktura/ }).click()
-  await expect(page.getByRole("heading", { level: 1, name: "Hisob-faktura" })).toBeVisible()
+  await deadlines.getByRole("link", { name: /^Buyurtma № 2/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Buyurtma № 2" })).toBeVisible()
 })
 
 test("an employee who keeps the purchases pays a supplier from the home and sees the debt go down at once", async ({ page }) => {

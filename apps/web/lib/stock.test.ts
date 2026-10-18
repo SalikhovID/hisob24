@@ -190,7 +190,7 @@ describe("the opening balance dialog", () => {
       bank_account_id: null,
       account_name: null,
       order_id: null,
-      order_title: null,
+      order_number: null,
       note: null,
       created_by_name: null,
     } satisfies StatementRow

@@ -14,6 +14,7 @@ import { customerName } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
 import { UZS } from "@/lib/currencies"
 import { formatDate } from "@/lib/format"
+import { orderName } from "@/lib/orders"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import {
@@ -46,7 +47,7 @@ const back = { href: "/orders", label: "Buyurtmalar" }
 
 // OrderPage is one order of the company, for whoever may see the orders
 // (changing, moving, deleting and the history each take their permission),
-// as the prototype's page: what it is (its stage's tile, its title, its type
+// as the prototype's page: what it is (its stage's tile, its name (its number), its type
 // and customer), its stage on a track of all of them (moved right here), its
 // deadline, the tiles (editing, a payment, the customer, a call to the customer), its money, the
 // customer's row, its answer to every field of its type in the type's order
@@ -119,7 +120,7 @@ export function OrderPage({ id }: { id: number }) {
             <ClipboardListIcon strokeWidth={1.9} className="size-9" />
           </span>
         }
-        title={order.data.title}
+        title={orderName(order.data.number)}
         description={[type?.name, name ?? phone].filter(Boolean).join(" · ")}
       />
       <StageTrack
@@ -178,7 +179,7 @@ export function OrderPage({ id }: { id: number }) {
       <OrderPayments companyId={companyId} order={order.data} canEdit={allowed("orders.edit")} />
       {/* Who did what to the order takes its permission. */}
       {allowed("orders.history") && <OrderHistory companyId={companyId} id={order.data.id} />}
-      {allowed("orders.delete") && <DeleteOrderButton companyId={companyId} id={order.data.id} title={order.data.title} />}
+      {allowed("orders.delete") && <DeleteOrderButton companyId={companyId} id={order.data.id} title={orderName(order.data.number)} />}
       {editing && type && (
         <EditOrderDialog
           companyId={companyId}
@@ -199,7 +200,7 @@ export function OrderPage({ id }: { id: number }) {
           companyId={companyId}
           partyId={order.data.customer.id}
           orderId={order.data.id}
-          partyName={order.data.title}
+          partyName={orderName(order.data.number)}
           // What is left of the price is offered whole, in so'm.
           owed={order.data.currency_id === UZS && Number(order.data.amount) > 0 ? (Number(order.data.amount) - Number(order.data.paid)).toFixed(2) : null}
           open

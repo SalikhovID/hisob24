@@ -116,7 +116,7 @@ test("the home shows what the owner may see: what the suppliers are owed, the ti
   expect(await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })).toBeInTheDocument()
   expect(screen.getByRole("group", { name: "Tezkor amallar" })).toBeInTheDocument()
   expect(screen.getByRole("heading", { level: 2, name: "Umumiy holat" })).toBeInTheDocument()
-  expect(await screen.findByRole("link", { name: /^Hisob-faktura/ })).toHaveAttribute("href", expect.stringMatching(/^\/orders\/\d+$/))
+  expect(await screen.findByRole("link", { name: /^Buyurtma № 2/ })).toHaveAttribute("href", expect.stringMatching(/^\/orders\/\d+$/))
 })
 
 test("an employee whose role sees the orders alone is headed by the orders of the current location, and switching it switches them", async () => {

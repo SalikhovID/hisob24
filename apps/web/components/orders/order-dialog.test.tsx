@@ -49,7 +49,7 @@ test("the sheet: the type on top, the customer and then the order; it opens in t
   expect(within(customer).getByLabelText("F.I.Sh.")).toHaveValue("")
   expect(within(customer).getByLabelText("Manba")).toHaveTextContent("Tanlanmagan")
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
-  expect(within(order).getByLabelText("Nomi")).toHaveValue("")
+  expect(within(order).queryByLabelText("Nomi")).not.toBeInTheDocument()
   expect(within(order).getByLabelText("Muddat")).toHaveAttribute("type", "date")
   expect(within(order).getByLabelText("Muddat")).toHaveValue("")
   expect(within(order).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
@@ -88,7 +88,6 @@ test("an order with a new customer is entered in one go, and the list shows it a
   await user.type(within(customer).getByRole("combobox", { name: "Telefon raqami" }), "901112233")
   await user.type(within(customer).getByLabelText("F.I.Sh."), "Yangi Mijoz")
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
-  await user.type(within(order).getByLabelText("Nomi"), " Shartnoma imzolash ")
   setDate(within(order).getByLabelText("Muddat"), addDays(today, 7))
   await choose(user, within(order).getByLabelText("Bosqich"), "Jarayonda")
   await choose(user, within(order).getByLabelText("Mas'ul"), "Vali Aliyev")
@@ -98,12 +97,12 @@ test("an order with a new customer is entered in one go, and the list shows it a
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(await screen.findByText("Buyurtma qo'shildi")).toBeInTheDocument()
-  await waitFor(() => expect(titles()).toContain("Shartnoma imzolash"))
+  await waitFor(() => expect(titles()).toContain("Buyurtma № 5"))
   const entered = db.orders.at(-1)!
   expect(entered).toMatchObject({
     typeId: montaj.id,
     stageId: jarayonda.id,
-    title: "Shartnoma imzolash",
+    number: 5,
     deadline: addDays(today, 7),
     assignee: VALI,
     values: { [izoh.id]: "Ertalab", [summa.id]: 45000 },
@@ -138,12 +137,11 @@ test("a customer that is there is taken from the suggestions: it stands in a car
   expect(within(linked).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
 
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
-  await user.type(within(order).getByLabelText("Nomi"), "Qayta qo'ng'iroq")
   setDate(within(order).getByLabelText("Muddat"), today)
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(db.orders.at(-1)).toMatchObject({ title: "Qayta qo'ng'iroq", customerId: dilshod.id })
+  expect(db.orders.at(-1)).toMatchObject({ number: 5, customerId: dilshod.id })
   expect(db.customers.filter((c) => c.companyId === 1)).toHaveLength(3)
 })
 
@@ -175,7 +173,6 @@ test("what is wrong with the form is said in the API's words, all at once", asyn
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   for (const message of [
-    "Buyurtma nomini kiriting",
     "Muddatni kiriting",
     "Telefon raqamini to'liq kiriting",
     "«F.I.Sh.» maydonini to'ldiring",
@@ -200,7 +197,6 @@ test("a phone that another customer has leads to that customer: linked at a pres
   expect(screen.getByRole("dialog", { name: "Buyurtma qo'shish" })).toBeInTheDocument()
   await user.type(within(customer).getByLabelText("F.I.Sh."), "Boshqa Dilshod")
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
-  await user.type(within(order).getByLabelText("Nomi"), "Takror")
   setDate(within(order).getByLabelText("Muddat"), today)
 
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
@@ -217,7 +213,7 @@ test("a phone that another customer has leads to that customer: linked at a pres
   expect(within(dialog).queryByText("Bu raqamli mijoz allaqachon bor")).not.toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(db.orders.at(-1)).toMatchObject({ title: "Takror", customerId: dilshod.id })
+  expect(db.orders.at(-1)).toMatchObject({ number: 5, customerId: dilshod.id })
 })
 
 test("with no customer types only a customer that is there will do", async () => {
@@ -230,7 +226,6 @@ test("with no customer types only a customer that is there will do", async () =>
   expect(within(customer).getByText("Mijoz turlari yo'q: faqat mavjud mijozni biriktirish mumkin.")).toBeInTheDocument()
   expect(within(customer).queryByRole("radiogroup")).not.toBeInTheDocument()
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
-  await user.type(within(order).getByLabelText("Nomi"), "Mavjud mijozga")
   setDate(within(order).getByLabelText("Muddat"), today)
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   expect(await within(dialog).findByText("Mijozni tanlang")).toBeInTheDocument()
@@ -240,7 +235,7 @@ test("with no customer types only a customer that is there will do", async () =>
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(db.orders.at(-1)).toMatchObject({ title: "Mavjud mijozga", customerId: dilshod.id })
+  expect(db.orders.at(-1)).toMatchObject({ number: 5, customerId: dilshod.id })
 })
 
 test("the + of a column opens the dialog for that stage; under a tab it opens with that tab's type; it opens empty every time", async () => {
@@ -255,13 +250,13 @@ test("the + of a column opens the dialog for that stage; under a tab it opens wi
   const dialog = await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })
   expect(within(dialog).getByLabelText("Bosqich")).toHaveTextContent("Jarayonda")
   expect(within(dialog).getByRole("radio", { name: "Montaj" })).toHaveAttribute("aria-checked", "true")
-  await user.type(within(dialog).getByLabelText("Nomi"), "Yarim yozilgan")
+  setDate(within(dialog).getByLabelText("Muddat"), today)
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
   await user.click(screen.getByRole("button", { name: "Buyurtma qo'shish" }))
   const again = await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })
-  expect(within(again).getByLabelText("Nomi")).toHaveValue("")
+  expect(within(again).getByLabelText("Muddat")).toHaveValue("")
   expect(within(again).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
   expect(orderTypesOf(1)).toHaveLength(2)
   expect(typesOf(1)).toHaveLength(2)
@@ -297,10 +292,9 @@ test("an order is entered into the current location, and assigned among the memb
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   // Sardor works in Asosiy alone: not offered for an order in Chilonzor.
   expect(await optionsOf(user, within(order).getByLabelText("Mas'ul"))).toEqual(["Tanlanmagan", "Ali Valiyev", "Vali Aliyev"])
-  await user.type(within(order).getByLabelText("Nomi"), "Chilonzorda")
   setDate(within(order).getByLabelText("Muddat"), addDays(today, 2))
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(db.orders.at(-1)).toMatchObject({ title: "Chilonzorda", locationId: chilonzor.id })
+  expect(db.orders.at(-1)).toMatchObject({ number: 5, locationId: chilonzor.id })
 })

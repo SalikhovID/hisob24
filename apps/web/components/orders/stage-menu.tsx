@@ -3,6 +3,7 @@
 import { EllipsisIcon } from "lucide-react"
 import { useState } from "react"
 import { ActionSheet } from "@/components/kit/action-sheet"
+import { orderName } from "@/lib/orders"
 import { colorValues } from "@/lib/stage-colors"
 import type { Order, OrderStage } from "@/lib/types"
 
@@ -16,7 +17,7 @@ export function StageMenu({ order, stages, onMove }: { order: Order; stages: Ord
     <>
       <button
         type="button"
-        aria-label={`Bosqich: ${order.title}`}
+        aria-label={`Bosqich: ${orderName(order.number)}`}
         onClick={() => setOpen(true)}
         // The press is the button's own: it does not start a drag of the card.
         onPointerDown={(event) => event.stopPropagation()}
@@ -27,7 +28,7 @@ export function StageMenu({ order, stages, onMove }: { order: Order; stages: Ord
       <ActionSheet
         open={open}
         onOpenChange={setOpen}
-        title={`«${order.title}» bosqichi`}
+        title={`«${orderName(order.number)}» bosqichi`}
         items={stages.map((stage) => ({
           label: stage.name,
           dot: colorValues[stage.color],

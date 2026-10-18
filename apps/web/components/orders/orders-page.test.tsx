@@ -35,10 +35,10 @@ test("the orders list groups the orders by their deadline: the late, today's, th
   expect(await screen.findByRole("heading", { level: 1, name: "Buyurtmalar" })).toBeInTheDocument()
   const region = await list()
   expect(groupsOf(region)).toEqual([
-    ["Kechikkan", ["Hisob-faktura"]],
-    ["Bugun", ["Shartnoma yuborish"]],
-    ["Shu hafta", ["Qo'ng'iroq qilish"]],
-    ["Bajarilgan", ["Eski buyurtma"]],
+    ["Kechikkan", ["Buyurtma № 2"]],
+    ["Bugun", ["Buyurtma № 3"]],
+    ["Shu hafta", ["Buyurtma № 4"]],
+    ["Bajarilgan", ["Buyurtma № 1"]],
   ])
   const rows = rowsOf(region)
   expect(rows.map((row) => [rowParts(row).sub, rowParts(row).end])).toEqual([
@@ -81,11 +81,11 @@ test("a type chip keeps the orders of one type and stays in the address", async 
   expect(within(types).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Barchasi", "Buyurtma", "Montaj"])
   await user.click(within(types).getByRole("radio", { name: "Montaj" }))
 
-  await waitFor(() => expect(titles()).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
   expect(currentUrl()).toBe(`/orders?view=list&type=${montaj.id}`)
 
   await user.click(within(types).getByRole("radio", { name: "Buyurtma" }))
-  await waitFor(() => expect(titles()).toEqual(["Shartnoma yuborish", "Eski buyurtma"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 3", "Buyurtma № 1"]))
   expect(currentUrl()).toBe(`/orders?view=list&type=${buyurtma.id}`)
 
   await user.click(within(types).getByRole("radio", { name: "Barchasi" }))
@@ -103,7 +103,7 @@ test("the stage and the assignee are chosen in sheets, narrow the list and stay 
   const stage = screen.getByRole("button", { name: "Barcha bosqichlar" })
   expect(await optionsOf(user, stage)).toEqual(["Barcha bosqichlar", "Yangi", "Jarayonda", "Bajarildi"])
   await choose(user, stage, "Yangi")
-  await waitFor(() => expect(titles()).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
   expect(currentUrl()).toBe(`/orders?view=list&stage=${yangi.id}`)
   expect(screen.getByRole("button", { name: "Yangi" })).toHaveAttribute("aria-pressed", "true")
 
@@ -111,12 +111,12 @@ test("the stage and the assignee are chosen in sheets, narrow the list and stay 
   const assignee = await screen.findByRole("button", { name: "Barcha mas'ullar" })
   expect(await optionsOf(user, assignee)).toEqual(["Barcha mas'ullar", "Men", "Vali Aliyev", "Sardor Karimov"])
   await choose(user, assignee, "Vali Aliyev")
-  await waitFor(() => expect(titles()).toEqual(["Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 4"]))
   expect(currentUrl()).toBe(`/orders?view=list&stage=${yangi.id}&assignee=${VALI}`)
 
   await choose(user, screen.getByRole("button", { name: "Yangi" }), "Barcha bosqichlar")
   await choose(user, screen.getByRole("button", { name: "Vali A." }), "Men")
-  await waitFor(() => expect(titles()).toEqual(["Eski buyurtma"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 1"]))
   expect(currentUrl()).toBe(`/orders?view=list&assignee=${ALI}`)
   expect(screen.getByRole("button", { name: "Men" })).toHaveAttribute("aria-pressed", "true")
 })
@@ -129,7 +129,7 @@ test("the list opens under the filters the address names", async () => {
   renderWithProviders(<OrdersPage />)
 
   await list()
-  await waitFor(() => expect(titles()).toEqual(["Qo'ng'iroq qilish"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 4"]))
   expect(screen.getByRole("radio", { name: "Montaj" })).toBeChecked()
   expect(screen.getByRole("button", { name: "Yangi" })).toHaveAttribute("aria-pressed", "true")
   expect(await screen.findByRole("button", { name: "Vali A." })).toHaveAttribute("aria-pressed", "true")
@@ -142,19 +142,19 @@ test("a search narrows the list, starts from the first page and stays in the add
   setLocation("/orders?view=list&page=2")
   const { user } = renderWithProviders(<OrdersPage />)
   const box = await screen.findByRole("searchbox", { name: "Qidirish" })
-  expect(box).toHaveAttribute("placeholder", "Nomi, mijoz yoki telefon")
+  expect(box).toHaveAttribute("placeholder", "Raqami, mijoz yoki telefon")
 
-  await user.type(box, " hisob ")
+  await user.type(box, " dilshod ")
 
-  await waitFor(() => expect(currentUrl()).toBe("/orders?view=list&search=hisob"))
-  await waitFor(() => expect(titles()).toEqual(["Hisob-faktura"]))
+  await waitFor(() => expect(currentUrl()).toBe("/orders?view=list&search=dilshod"))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 4", "Buyurtma № 1"]))
   // The customer's name, and a phone as people write it.
   await user.clear(box)
   await user.type(box, "anor")
-  await waitFor(() => expect(titles()).toEqual(["Shartnoma yuborish"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 3"]))
   await user.clear(box)
   await user.type(box, "+998 95 555")
-  await waitFor(() => expect(titles()).toEqual(["Hisob-faktura"]))
+  await waitFor(() => expect(titles()).toEqual(["Buyurtma № 2"]))
 
   await user.clear(box)
   await user.type(box, "zzz")
@@ -167,7 +167,7 @@ test("a search narrows the list, starts from the first page and stays in the add
 function many(n: number) {
   const { call } = seedOrders()
   for (let i = 0; i < n; i += 1) {
-    db.orders.push({ ...call, id: nextId(), title: `Buyurtma ${i}`, deadline: addDays(today, 10), values: { ...call.values } })
+    db.orders.push({ ...call, id: nextId(), number: 5 + i, deadline: addDays(today, 10), values: { ...call.values } })
   }
 }
 
@@ -372,7 +372,7 @@ test("the list and the board show the current location's orders alone; another l
   const first = renderWithProviders(<OrdersPage />)
 
   await list()
-  expect(titles()).toEqual(["Hisob-faktura", "Shartnoma yuborish", "Eski buyurtma"])
+  expect(titles()).toEqual(["Buyurtma № 2", "Buyurtma № 3", "Buyurtma № 1"])
   expect(await screen.findByText("Asosiy · 3 ta")).toBeInTheDocument()
   first.unmount()
 
@@ -381,8 +381,8 @@ test("the list and the board show the current location's orders alone; another l
   renderWithProviders(<OrdersPage />)
   const board = await screen.findByRole("region", { name: "Kanban" })
   const yangi = within(board).getByRole("region", { name: "Yangi" })
-  await waitFor(() => expect(within(yangi).getByText("Qo'ng'iroq qilish")).toBeInTheDocument())
-  expect(within(yangi).queryByText("Hisob-faktura")).not.toBeInTheDocument()
+  await waitFor(() => expect(within(yangi).getByText("Buyurtma № 4")).toBeInTheDocument())
+  expect(within(yangi).queryByText("Buyurtma № 2")).not.toBeInTheDocument()
   expect(await screen.findByText("Chilonzor · 1 ta")).toBeInTheDocument()
 })
 

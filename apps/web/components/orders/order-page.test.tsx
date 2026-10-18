@@ -33,7 +33,7 @@ test("an order's page shows what it is, its stage among the stages, its deadline
 
   open(call.id)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeInTheDocument()
   expect(screen.getByText("Montaj · Dilshod Karimov")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Buyurtmalar" })).toHaveAttribute("href", "/orders")
   // The stages in their order, the order's one marked.
@@ -71,12 +71,12 @@ test("a late order's deadline is red on its page; one due today says so; an orde
   const { invoice, contract } = seedOrders()
   const { unmount } = open(invoice.id)
 
-  await screen.findByRole("heading", { level: 1, name: "Hisob-faktura" })
+  await screen.findByRole("heading", { level: 1, name: "Buyurtma № 2" })
   expect(within(await deadline()).getByText("2 kun kechikdi")).toHaveAttribute("data-variant", "red")
 
   unmount()
   open(contract.id)
-  await screen.findByRole("heading", { level: 1, name: "Shartnoma yuborish" })
+  await screen.findByRole("heading", { level: 1, name: "Buyurtma № 3" })
   expect(within(await deadline()).getByText("Bugun")).toHaveAttribute("data-variant", "warn")
   expect(pairsOf(await info())).toEqual([
     ["Turi", "Buyurtma"],
@@ -91,7 +91,7 @@ test("the stage is changed on the page's track at once", async () => {
   await signIn(ALI)
   const { call, bajarildi } = seedOrders()
   const { user } = open(call.id)
-  await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })
+  await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })
 
   await user.click(within(stageTrack()).getByRole("radio", { name: "Bajarildi" }))
 
@@ -111,7 +111,7 @@ test("an employee sees the order, but not its history", async () => {
 
   open(call.id)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeInTheDocument()
   await info()
   expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
 })
@@ -139,18 +139,18 @@ test("a page that did not load says why and offers to try again", async () => {
 
   server.resetHandlers()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
-  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeInTheDocument()
 })
 
 test("the order is deleted after asking, and the list is where one lands", async () => {
   await signIn(ALI)
   const { call } = seedOrders()
   const { user } = open(call.id)
-  await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })
+  await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })
 
   await user.click(screen.getByRole("button", { name: "Buyurtmani o'chirish" }))
   const confirm = await screen.findByRole("alertdialog", { name: "Buyurtmani o'chirasizmi?" })
-  expect(within(confirm).getByText("«Qo'ng'iroq qilish» buyurtmalar ro'yxatidan olib tashlanadi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
+  expect(within(confirm).getByText("«Buyurtma № 4» buyurtmalar ro'yxatidan olib tashlanadi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Buyurtma o'chirildi")).toBeInTheDocument()
@@ -164,7 +164,7 @@ test("a deletion the API refuses says why and keeps the order", async () => {
   const { call } = seedOrders()
   server.use(http.delete("*/api/app/orders/:id", () => HttpResponse.json({ error: "conflict", message: "Buyurtmani hozir o'chirib bo'lmaydi" }, { status: 409 })))
   const { user } = open(call.id)
-  await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })
+  await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })
 
   await user.click(screen.getByRole("button", { name: "Buyurtmani o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
@@ -181,7 +181,7 @@ test("an employee whose role holds orders.view alone sees the order without a wa
   const { call } = seedOrders()
   open(call.id)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeInTheDocument()
   await info()
   expect(screen.queryByRole("button", { name: "Tahrirlash" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Buyurtmani o'chirish" })).not.toBeInTheDocument()
@@ -198,7 +198,7 @@ test("the order's actions follow the role: editing and moving here, with the his
   const { call } = seedOrders()
   open(call.id)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeInTheDocument()
   await info()
   expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
   expect(within(stageTrack()).getByRole("radio", { name: "Jarayonda" })).toBeEnabled()

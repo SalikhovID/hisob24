@@ -285,11 +285,11 @@ export const orderDocumentOf = (orderId: number) => db.transactions.find((t) => 
 
 // orderOf is the order a document names: its own, or the one the document
 // it links to is of.
-function orderOf(t: TransactionRow): { id: number; title: string } | null {
+function orderOf(t: TransactionRow): { id: number; number: number } | null {
   const linked = t.linkedId === null ? undefined : db.transactions.find((x) => x.id === t.linkedId)
   const orderId = t.kind === "order" ? t.orderId : linked?.kind === "order" ? linked.orderId : null
   const order = orderId ? db.orders.find((o) => o.id === orderId) : undefined
-  return order ? { id: order.id, title: order.title } : null
+  return order ? { id: order.id, number: order.number } : null
 }
 
 // customerBalanceOf is what the customer owes in so'm by each document's
@@ -355,7 +355,7 @@ export function statementOf(party: Party, id: number): StatementRow[] {
       bank_account_id: t.bankAccountId,
       account_name: account?.name ?? null,
       order_id: orderOf(t)?.id ?? null,
-      order_title: orderOf(t)?.title ?? null,
+      order_number: orderOf(t)?.number ?? null,
       note: t.note,
       created_by_name: nameOf(t.by, t.companyId, t.byName),
     }

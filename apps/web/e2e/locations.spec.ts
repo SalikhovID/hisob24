@@ -40,18 +40,17 @@ test("the owner switches between the locations: the orders are the current one's
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill("901112233")
   await customer.getByLabel("F.I.Sh.").fill("Chilonzor Mijozi")
   const order = dialog.getByRole("group", { name: "Buyurtma" })
-  await order.getByLabel("Nomi").fill("Chilonzorda")
   await order.getByLabel("Muddat").fill(addDays(today, 2))
   await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
   const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
-  await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()
+  await expect(yangi.getByRole("listitem").filter({ hasText: "Buyurtma № 1" })).toBeVisible()
   const chilonzor = db.locations.find((l) => l.companyId === 2 && l.name === "Chilonzor")!
   expect(db.orders.at(-1)?.locationId).toBe(chilonzor.id)
 
   // In Asosiy the order is out of sight.
   await chooseLocation(page, "Asosiy")
-  await expect(yangi.getByText("Chilonzorda")).toHaveCount(0)
+  await expect(yangi.getByText("Buyurtma № 1")).toHaveCount(0)
   await expect(yangi.getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
@@ -60,11 +59,11 @@ test("the owner switches between the locations: the orders are the current one's
   await page.getByRole("link", { name: "Chilonzor Mijozi" }).click()
   await expect(page.getByRole("heading", { name: "Chilonzor Mijozi" })).toBeVisible()
   const orders = page.getByRole("region", { name: "Buyurtmalar" })
-  await expect(orders.getByRole("link", { name: /^Chilonzorda/ }).locator("[data-slot=row-sub]")).toHaveText("Yangi · Chilonzor")
+  await expect(orders.getByRole("link", { name: /^Buyurtma № 1/ }).locator("[data-slot=row-sub]")).toHaveText("Yangi · Chilonzor")
 
   // The order's page says its location; the current one stays where it was.
-  await orders.getByRole("link", { name: "Chilonzorda" }).click()
-  await expect(page.getByRole("heading", { level: 1, name: "Chilonzorda" })).toBeVisible()
+  await orders.getByRole("link", { name: /^Buyurtma № 1/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Buyurtma № 1" })).toBeVisible()
   const info = page.getByRole("region", { name: "Ma'lumot" })
   await expect(info.getByText("Lokatsiya", { exact: true })).toBeVisible()
   await expect(info.getByText("Chilonzor", { exact: true })).toBeVisible()
@@ -78,16 +77,15 @@ test("with one location there is nothing to switch", async ({ page }) => {
   await expect(locationSwitch(page)).toHaveCount(0)
 })
 
-// enterOrder enters an order with a new customer into the current location,
-// assigned to whoever is named.
-async function enterOrder(page: Page, title: string, phone: string, assignee: string | null) {
+// enterOrder enters an order with a new customer (named after the label)
+// into the current location, assigned to whoever is named.
+async function enterOrder(page: Page, label: string, phone: string, assignee: string | null) {
   await page.getByRole("button", { name: "Buyurtma qo'shish", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
   const customer = dialog.getByRole("group", { name: "Mijoz" })
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill(phone)
-  await customer.getByLabel("F.I.Sh.").fill(`Mijoz ${title}`)
+  await customer.getByLabel("F.I.Sh.").fill(`Mijoz ${label}`)
   const order = dialog.getByRole("group", { name: "Buyurtma" })
-  await order.getByLabel("Nomi").fill(title)
   await order.getByLabel("Muddat").fill(addDays(today, 2))
   if (assignee) await choose(order.getByLabel("Mas'ul"), assignee)
   await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
@@ -139,9 +137,9 @@ test("the owner restricts an employee to one location: they see its orders alone
   await openSection(page, "Buyurtmalar")
   const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
   await expect(yangi.getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
-  await expect(yangi.getByText("Asosiyda")).toHaveCount(0)
+  await expect(yangi.getByText("Buyurtma № 1")).toHaveCount(0)
   await enterOrder(page, "Chilonzorda", "901112255", null)
-  await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()
+  await expect(yangi.getByRole("listitem").filter({ hasText: "Buyurtma № 2" })).toBeVisible()
   const chilonzor = db.locations.find((l) => l.companyId === 2 && l.name === "Chilonzor")!
   expect(db.orders.at(-1)?.locationId).toBe(chilonzor.id)
   await signOut(page)
@@ -160,7 +158,7 @@ test("the owner restricts an employee to one location: they see its orders alone
   await signIn(page, "906667788")
   await expect(locationSwitch(page)).toHaveAccessibleName("Lokatsiya: Asosiy")
   await openSection(page, "Buyurtmalar")
-  await expect(yangi.getByRole("listitem").filter({ hasText: "Asosiyda" })).toBeVisible()
+  await expect(yangi.getByRole("listitem").filter({ hasText: "Buyurtma № 1" })).toBeVisible()
   await chooseLocation(page, "Chilonzor")
-  await expect(yangi.getByRole("listitem").filter({ hasText: "Chilonzorda" })).toBeVisible()
+  await expect(yangi.getByRole("listitem").filter({ hasText: "Buyurtma № 2" })).toBeVisible()
 })

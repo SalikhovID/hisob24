@@ -36,7 +36,6 @@ test("the order dialog takes a price, the goods and an advance; the row says wha
   await user.type(within(customer).getByRole("combobox", { name: "Telefon raqami" }), "911")
   await user.click(await screen.findByRole("option", { name: /91 111 22 33/ }))
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
-  await user.type(within(order).getByLabelText("Nomi"), "Montaj")
   setDate(within(order).getByLabelText("Muddat"), localToday())
   // The money: the price in so'm (the company has no other currency), the
   // lines of goods and the advance's payments.
@@ -59,7 +58,7 @@ test("the order dialog takes a price, the goods and an advance; the row says wha
   expect(document).toMatchObject({ total: 5000, customerId: entered.customerId, locationId: asosiyOf(1).id })
   expect(db.transactions.find((t) => t.kind === "customer_payment" && t.linkedId === document.id)).toMatchObject({ total: 400 })
   expect(stockOf(catalog.olma.id, [asosiyOf(1).id])).toBe(10.5)
-  const row = await within(screen.getByRole("region", { name: "Buyurtmalar" })).findByRole("link", { name: /^Montaj/ })
+  const row = await within(screen.getByRole("region", { name: "Buyurtmalar" })).findByRole("link", { name: /^Buyurtma № 5/ })
   expect(plain(rowParts(row).sub)).toContain("5 000 so'm · qolgan 4 600 so'm")
 })
 
@@ -128,11 +127,11 @@ test("without purchases.view the goods are listed without their cost; an order w
 
 test("an order entered without money shows none of it", async () => {
   await signIn(ALI)
-  const { order } = await pricedOrder({ title: "Qo'ng'iroq", amount: undefined, items: [], payments: [] })
+  const { order } = await pricedOrder({ amount: undefined, items: [], payments: [] })
   setLocation(`/orders/${order.id}`, { id: String(order.id) })
   renderWithProviders(<OrderPage id={order.id} />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 5" })).toBeInTheDocument()
   expect(screen.queryByRole("region", { name: "Pul" })).not.toBeInTheDocument()
   expect(screen.queryByRole("region", { name: "Mahsulotlar" })).not.toBeInTheDocument()
   expect(screen.queryByRole("region", { name: "To'lovlar" })).not.toBeInTheDocument()

@@ -47,3 +47,12 @@ Qarorlardan kelib chiqib belgilanganlar: «Nomi» tahrir formasidan ham ketadi (
 3. Web lib va mocklar: `orderName`, sxema nomsiz, `OrderRow.number`, `nextOrderNumber`, qidiruv, `order_number`.
 4. Web komponentlar va e2e: forma nomsiz, sarlavhalar `orderName`, statement / harakatlar matnlari, placeholder; testlar va e2e.
 5. Yakuniy ko'rik: lint, test, e2e, mutatsiya tekshiruvi, haqiqiy stack smoke (00022 lokal DB nusxasida), push.
+
+## Amalga oshirishda belgilangan qarorlar (2026-10-18)
+
+- **Bitta backend commit.** `title` ustuni ketgani uchun migratsiya, so'rovlar, `sqlc` va Go o'zgarishlari birga: oraliq holatda eski so'rovlar ishlamaydi. Ichida RED → GREEN sikllari: migratsiya testi (`TestTheOrderNumbersMigrationNumbersTheOrders`: raqam ustuni yo'q → bor, `id` tartibida, o'chirilganlar sanalgan, Down nomni bo'sh qaytaradi), servis (`TestNumbers`: raqam 0 → 1, 2; o'chirilgandan keyin 3; boshqa kompaniya 1), so'rov (`TestListOrdersFindsTheNumber`: raqam bo'yicha qidiruv bo'sh → topadi), API (`TestOrdersAreNumbered`: `number`, `title` yo'q, yuborilgan `title` e'tiborsiz — RED alohida ko'rsatilmadi: qo'shni test fayllarining kompilyatsiya xatolari uni yashirdi, servis va so'rov RED'lari ko'rsatildi).
+- **`title` yuborilsa e'tiborsiz**: handler `DisallowUnknownFields` ishlatmaydi, noma'lum maydon shunchaki tashlab yuboriladi.
+- **Qidiruv aynan**: `sqlc.narg('digits')::text <> '' AND t.number::text = digits` (`ListOrders` va `CountOrders`); mock'da `String(order.number) === digits`. Testda telefoni raqamlardan «toza» (998900000000) mijoz: seed mijozlarining telefonlarida hamma raqam bor, bitta raqamli qidiruv ularning buyurtmalariga ham mos keladi.
+- **Mavjud testlar**: nomga asoslangan kutilmalar raqamga o'tdi (seed: «Eski buyurtma» № 1, «Hisob-faktura» № 2, «Shartnoma yuborish» № 3, «Qo'ng'iroq qilish» № 4; yangi kiritilgan № 5); nom bo'yicha qidiruv testlari mijoz nomi bo'yicha qidiruvga aylandi; tahrir dialogining «Nomi» testlari «Izoh» bilan; xom `INSERT INTO orders` yozuvlari `number` bilan (`max + 1`); `dashboard`, `warehouse`, `db`, `admin`, `company`, `customer` paketlarida ham.
+- **Web**: `orderName(number)` (`lib/orders.ts`); forma sxemasida `title` yo'q; `OrderRow.number`, `nextOrderNumber(companyId)` (`mocks/data.ts`); `statement-list` buyurtma qatori «Buyurtma № N», to'lov «To'lov · Buyurtma № N»; `product-moves`, `account-statement-list` ham; qidiruv placeholder «Raqami, mijoz yoki telefon».
+
