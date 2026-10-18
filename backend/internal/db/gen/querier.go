@@ -221,6 +221,7 @@ type Querier interface {
 	// The company's live documents of the kind in the locations given on each
 	// day of the month up to today, the days counted in the zone: their total
 	// in so'm, each by its own rate row, and how many, both by the day's end.
+	// An order's document counts when it is priced (total above 0).
 	DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByDayParams) ([]DashboardMoneyByDayRow, error)
 	// The company's orders in the locations given not done yet, and how many of
 	// them are past their deadline (before today).
@@ -358,8 +359,9 @@ type Querier interface {
 	// it. created_by_name is the name the member who entered it goes by in the
 	// company now; once they have left it (or go by no name), the name of then.
 	// balance is what the customer owes, in so'm by each document's own rate
-	// row (logic/sales.md, section 5): its live sales and opening debts less
-	// its payments and opening advances; an advance when below zero.
+	// row (logic/sales.md, section 5): its live sales, orders' prices and
+	// opening debts less its payments and opening advances; an advance when
+	// below zero.
 	GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error)
 	// The company's customer with the number: a number is one customer's.
 	// pgx.ErrNoRows when it is free, as a deleted customer's is.
@@ -373,8 +375,9 @@ type Querier interface {
 	// its currency, its rate, and the amount in so'm. pgx.ErrNoRows when there
 	// is none such, or it is deleted.
 	GetCustomerOpening(ctx context.Context, arg GetCustomerOpeningParams) (GetCustomerOpeningRow, error)
-	// The customer's payment in the company: its account, the number of the
-	// sale it was entered with (NULL for one entered on its own), its rate (of
+	// The customer's payment in the company: its account, the sale it was
+	// entered with and its number, or the order it was entered for
+	// (logic/orders.md, 4.3), NULL for one entered on its own; its rate (of
 	// its currency) and what it comes to in so'm. pgx.ErrNoRows when there is
 	// none such, or it is deleted (logic/sales.md, section 5).
 	GetCustomerPayment(ctx context.Context, arg GetCustomerPaymentParams) (GetCustomerPaymentRow, error)
@@ -409,14 +412,29 @@ type Querier interface {
 	// is none such, or it is deleted.
 	GetOpening(ctx context.Context, arg GetOpeningParams) (GetOpeningRow, error)
 	// The company's order with its location, its customer's phone and name (the
-	// customer's answer to its type's first text field); pgx.ErrNoRows when the
-	// company has no such order, or deleted it. assignee_name and
-	// created_by_name are the names the members go by in the company now; once
-	// they have left it (or go by no name), the names of then.
+	// customer's answer to its type's first text field) and its money
+	// (logic/orders.md, 4.3): from its live document, the price (amount) in
+	// its currency by its rate and in so'm, what was paid for it (the live
+	// payments linked to the document, each turned into the order's currency
+	// by its own rate row) and the document (document_id); without a document
+	// nothing, in so'm. pgx.ErrNoRows when the company has no such order, or
+	// deleted it. assignee_name and created_by_name are the names the members
+	// go by in the company now; once they have left it (or go by no name), the
+	// names of then.
 	GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow, error)
+	// The order's live document (logic/orders.md, 4.3): its currency and rate
+	// (of its currency, in so'm), its price (total) in its currency and in
+	// so'm, what was paid for it (the live payments linked to it, each turned
+	// into its currency by its own rate row; 0 with none). pgx.ErrNoRows when
+	// the order has none, or it is hidden.
+	GetOrderDocument(ctx context.Context, arg GetOrderDocumentParams) (GetOrderDocumentRow, error)
 	// A field of the company's type; pgx.ErrNoRows when the type has none such,
 	// or it is deleted.
 	GetOrderField(ctx context.Context, arg GetOrderFieldParams) (OrderField, error)
+	// One of the live payments linked to the order's document, by its id. The
+	// columns are ListOrderPayments'. pgx.ErrNoRows when the document has none
+	// such, or it is hidden.
+	GetOrderPayment(ctx context.Context, arg GetOrderPaymentParams) (GetOrderPaymentRow, error)
 	// The company's stage; pgx.ErrNoRows when it has none such, or deleted it.
 	GetOrderStage(ctx context.Context, arg GetOrderStageParams) (OrderStage, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
@@ -506,7 +524,7 @@ type Querier interface {
 	// after it; the other side of each (the supplier, the customer by the
 	// first text answer of their type and their phone, the category, the
 	// other account: one of them is there); the document a payment was
-	// entered with.
+	// entered with, and the order when that document is an order's.
 	ListAccountStatement(ctx context.Context, arg ListAccountStatementParams) ([]ListAccountStatementRow, error)
 	// The company's orders in the locations given whose stage is not a done
 	// one, the one due soonest first (then the older order), as many as limit:
@@ -604,6 +622,11 @@ type Querier interface {
 	// member who did it goes by in the company now; once they have left it (or
 	// go by no name), the name of then.
 	ListOrderHistory(ctx context.Context, orderID int64) ([]ListOrderHistoryRow, error)
+	// The live payments linked to the order's document, the newest first
+	// (then the later entered): each with its account, its amount in the
+	// account's currency, its rate (of that currency) and what it comes to in
+	// so'm.
+	ListOrderPayments(ctx context.Context, linkedID int64) ([]ListOrderPaymentsRow, error)
 	// The company's stages in their order, without the deleted.
 	ListOrderStages(ctx context.Context, companyID int64) ([]OrderStage, error)
 	// The company's types in their order, without the deleted.
@@ -623,8 +646,9 @@ type Querier interface {
 	// The statement of a party: a supplier (logic/warehouse.md, section 6) or
 	// a customer (logic/sales.md, section 5). party is 'supplier' or
 	// 'customer', party_id the supplier's or the customer's id. A purchase, a
-	// sale or an opening debt adds to what is owed; a payment or an opening
-	// advance takes away: the sign rule is the same for both.
+	// sale, an order's document (its price; one priced at nothing is left out
+	// of the statement) or an opening debt adds to what is owed; a payment or
+	// an opening advance takes away: the sign rule is the same for both.
 	// What is owed in each currency the party's live documents are in, without
 	// turning anything into so'm; a currency that comes to 0 is left out.
 	ListPartyBalanceByCurrency(ctx context.Context, arg ListPartyBalanceByCurrencyParams) ([]ListPartyBalanceByCurrencyRow, error)
@@ -632,15 +656,24 @@ type Querier interface {
 	// (then the later entered), each with its amount in so'm by its own rate
 	// row and its rate, how it changed what is owed and what was owed after
 	// it; a payment names its account, one entered with a document names that
-	// document's number too.
+	// document's number too; an order's document, and a payment entered for
+	// an order, name the order (order_id, order_title).
 	ListPartyStatement(ctx context.Context, arg ListPartyStatementParams) ([]ListPartyStatementRow, error)
 	// A page of the supplier's live payments, the newest first (then the later
 	// entered). The columns are GetPayment's.
 	ListPayments(ctx context.Context, arg ListPaymentsParams) ([]ListPaymentsRow, error)
+	// The live moves of the products given, by product, then in time (the
+	// document's moment, the document, a document's move out before its move
+	// in, the move), each with the unit cost in so'm its document's line
+	// bought the product at (a purchase's or an opening stock's price, by the
+	// document's rate row; nothing for the other kinds): what the FIFO cost is
+	// replayed from (logic/warehouse.md, section 10).
+	ListProductCostMoves(ctx context.Context, arg ListProductCostMovesParams) ([]ListProductCostMovesRow, error)
 	// A page of the product's moves in the locations given, the newest
 	// document first (then the later entered): the document (kind, number,
-	// moment), the location, the quantity moved (in above zero, out below) and
-	// the counterpart (the supplier's name, or a transfer's other location; ""
+	// moment; an order's by its order and title), the location, the quantity
+	// moved (in above zero, out below) and the counterpart (the supplier's
+	// name, the customer's name or phone, or a transfer's other location; ""
 	// for none).
 	ListProductMoves(ctx context.Context, arg ListProductMovesParams) ([]ListProductMovesRow, error)
 	// A page of the live purchase lines of the product in the locations given,

@@ -120,13 +120,82 @@ func (q *Queries) ListLocationStock(ctx context.Context, arg ListLocationStockPa
 	return items, nil
 }
 
+const listProductCostMoves = `-- name: ListProductCostMoves :many
+SELECT sm.id, sm.transaction_id, sm.product_id, sm.location_id, t.kind, t.doc_at, sm.quantity,
+       convert_amount(i.price, t.currency_id, 1, cr)::numeric(14,2) AS unit_cost_uzs
+FROM stock_moves sm
+JOIN transactions t ON t.id = sm.transaction_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN transaction_items i ON i.transaction_id = sm.transaction_id AND i.product_id = sm.product_id AND t.kind IN ('purchase', 'opening_stock')
+WHERE sm.company_id = $1 AND sm.product_id = ANY($2::bigint[]) AND t.deleted_at IS NULL
+ORDER BY sm.product_id, t.doc_at, t.id, (sm.quantity < 0) DESC, sm.id
+`
+
+type ListProductCostMovesParams struct {
+	CompanyID  int64
+	ProductIds []int64
+}
+
+type ListProductCostMovesRow struct {
+	ID            int64
+	TransactionID int64
+	ProductID     int64
+	LocationID    int64
+	Kind          string
+	DocAt         time.Time
+	Quantity      pgtype.Numeric
+	UnitCostUzs   pgtype.Numeric
+}
+
+// The live moves of the products given, by product, then in time (the
+// document's moment, the document, a document's move out before its move
+// in, the move), each with the unit cost in so'm its document's line
+// bought the product at (a purchase's or an opening stock's price, by the
+// document's rate row; nothing for the other kinds): what the FIFO cost is
+// replayed from (logic/warehouse.md, section 10).
+func (q *Queries) ListProductCostMoves(ctx context.Context, arg ListProductCostMovesParams) ([]ListProductCostMovesRow, error) {
+	rows, err := q.db.Query(ctx, listProductCostMoves, arg.CompanyID, arg.ProductIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProductCostMovesRow{}
+	for rows.Next() {
+		var i ListProductCostMovesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TransactionID,
+			&i.ProductID,
+			&i.LocationID,
+			&i.Kind,
+			&i.DocAt,
+			&i.Quantity,
+			&i.UnitCostUzs,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProductMoves = `-- name: ListProductMoves :many
 SELECT sm.id, t.id AS transaction_id, t.kind, t.number, t.doc_at, l.id AS location_id, l.name AS location_name, sm.quantity,
-       COALESCE(s.name, CASE WHEN t.kind = 'transfer' AND sm.location_id = t.location_id THEN tl.name WHEN t.kind = 'transfer' THEN fl.name END, '')::text AS counterpart
+       COALESCE(s.name, cn.name, cu.phone, CASE WHEN t.kind = 'transfer' AND sm.location_id = t.location_id THEN tl.name WHEN t.kind = 'transfer' THEN fl.name END, '')::text AS counterpart,
+       o.id AS order_id, o.title AS order_title
 FROM stock_moves sm
 JOIN transactions t ON t.id = sm.transaction_id
 JOIN locations l ON l.id = sm.location_id
 LEFT JOIN suppliers s ON s.id = t.supplier_id
+LEFT JOIN customers cu ON cu.id = t.customer_id
+LEFT JOIN LATERAL (SELECT v.text_value AS name FROM customer_fields f
+                     LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = cu.id
+                   WHERE f.type_id = cu.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
+                   ORDER BY f.position, f.id LIMIT 1) cn ON cu.id IS NOT NULL
+LEFT JOIN orders o ON o.id = t.order_id
 LEFT JOIN locations tl ON tl.id = t.to_location_id
 LEFT JOIN locations fl ON fl.id = t.location_id
 WHERE sm.product_id = $1 AND sm.location_id = ANY($2::bigint[]) AND t.deleted_at IS NULL
@@ -151,12 +220,15 @@ type ListProductMovesRow struct {
 	LocationName  string
 	Quantity      pgtype.Numeric
 	Counterpart   string
+	OrderID       *int64
+	OrderTitle    *string
 }
 
 // A page of the product's moves in the locations given, the newest
 // document first (then the later entered): the document (kind, number,
-// moment), the location, the quantity moved (in above zero, out below) and
-// the counterpart (the supplier's name, or a transfer's other location; ""
+// moment; an order's by its order and title), the location, the quantity
+// moved (in above zero, out below) and the counterpart (the supplier's
+// name, the customer's name or phone, or a transfer's other location; ""
 // for none).
 func (q *Queries) ListProductMoves(ctx context.Context, arg ListProductMovesParams) ([]ListProductMovesRow, error) {
 	rows, err := q.db.Query(ctx, listProductMoves,
@@ -182,6 +254,8 @@ func (q *Queries) ListProductMoves(ctx context.Context, arg ListProductMovesPara
 			&i.LocationName,
 			&i.Quantity,
 			&i.Counterpart,
+			&i.OrderID,
+			&i.OrderTitle,
 		); err != nil {
 			return nil, err
 		}

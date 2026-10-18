@@ -11,10 +11,10 @@ SELECT (COALESCE(max(number), 0) + 1)::int AS number FROM transactions WHERE com
 -- for a goods document, whose lines set it). created_by_name is the name
 -- the member goes by in the company now: it stays when they leave.
 INSERT INTO transactions (company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id,
-                          category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name)
+                          category_id, linked_id, order_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name)
 VALUES (sqlc.arg('company_id'), sqlc.arg('kind'), sqlc.arg('number'), sqlc.arg('doc_at'), sqlc.narg('location_id'), sqlc.narg('to_location_id'),
         sqlc.narg('supplier_id'), sqlc.narg('customer_id'), sqlc.narg('bank_account_id'), sqlc.narg('to_bank_account_id'), sqlc.narg('category_id'),
-        sqlc.narg('linked_id'), sqlc.arg('currency_id'), sqlc.arg('currency_rate_id'), sqlc.arg('total'), sqlc.narg('to_total'), sqlc.narg('note'),
+        sqlc.narg('linked_id'), sqlc.narg('order_id'), sqlc.arg('currency_id'), sqlc.arg('currency_rate_id'), sqlc.arg('total'), sqlc.narg('to_total'), sqlc.narg('note'),
         sqlc.arg('created_by'), sqlc.narg('created_by_name'))
 RETURNING *;
 
@@ -362,12 +362,58 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.kind = 'sale' AND t.deleted_at
   AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
   AND (sqlc.narg('customer_id')::bigint IS NULL OR t.customer_id = sqlc.narg('customer_id')::bigint);
 
+-- name: GetOrderDocument :one
+-- The order's live document (logic/orders.md, 4.3): its currency and rate
+-- (of its currency, in so'm), its price (total) in its currency and in
+-- so'm, what was paid for it (the live payments linked to it, each turned
+-- into its currency by its own rate row; 0 with none). pgx.ErrNoRows when
+-- the order has none, or it is hidden.
+SELECT t.id, t.number, t.doc_at, t.currency_id, t.currency_rate_id, t.note,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       COALESCE((SELECT sum(convert_amount(p.total, p.currency_id, t.currency_id, pr)) FROM transactions p JOIN currency_rates pr ON pr.id = p.currency_rate_id
+                 WHERE p.linked_id = t.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS paid
+FROM transactions t
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+WHERE t.order_id = sqlc.arg('order_id')::bigint AND t.company_id = sqlc.arg('company_id') AND t.kind = 'order' AND t.deleted_at IS NULL;
+
+-- name: ListOrderPayments :many
+-- The live payments linked to the order's document, the newest first
+-- (then the later entered): each with its account, its amount in the
+-- account's currency, its rate (of that currency) and what it comes to in
+-- so'm.
+SELECT p.id, p.customer_id, b.id AS bank_account_id, b.name AS account_name, p.total AS amount, p.currency_id,
+       (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       p.doc_at, p.note, p.created_at, p.updated_at, COALESCE(m.full_name, p.created_by_name) AS created_by_name
+FROM transactions p
+JOIN bank_accounts b ON b.id = p.bank_account_id
+JOIN currency_rates cr ON cr.id = p.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+WHERE p.linked_id = sqlc.arg('linked_id')::bigint AND p.kind = 'customer_payment' AND p.deleted_at IS NULL
+ORDER BY p.doc_at DESC, p.id DESC;
+
+-- name: GetOrderPayment :one
+-- One of the live payments linked to the order's document, by its id. The
+-- columns are ListOrderPayments'. pgx.ErrNoRows when the document has none
+-- such, or it is hidden.
+SELECT p.id, p.customer_id, b.id AS bank_account_id, b.name AS account_name, p.total AS amount, p.currency_id,
+       (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       p.doc_at, p.note, p.created_at, p.updated_at, COALESCE(m.full_name, p.created_by_name) AS created_by_name
+FROM transactions p
+JOIN bank_accounts b ON b.id = p.bank_account_id
+JOIN currency_rates cr ON cr.id = p.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+WHERE p.id = sqlc.arg('id') AND p.linked_id = sqlc.arg('linked_id')::bigint AND p.kind = 'customer_payment' AND p.deleted_at IS NULL;
+
 -- name: GetCustomerPayment :one
--- The customer's payment in the company: its account, the number of the
--- sale it was entered with (NULL for one entered on its own), its rate (of
+-- The customer's payment in the company: its account, the sale it was
+-- entered with and its number, or the order it was entered for
+-- (logic/orders.md, 4.3), NULL for one entered on its own; its rate (of
 -- its currency) and what it comes to in so'm. pgx.ErrNoRows when there is
 -- none such, or it is deleted (logic/sales.md, section 5).
-SELECT p.id, c.id AS customer_id, p.linked_id AS sale_id, l.number AS sale_number, b.id AS bank_account_id, b.name AS account_name,
+SELECT p.id, c.id AS customer_id, l.id AS sale_id, l.number AS sale_number, o.id AS order_id, b.id AS bank_account_id, b.name AS account_name,
        p.total AS amount, p.currency_id,
        (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
        convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
@@ -376,7 +422,9 @@ FROM transactions p
 JOIN customers c ON c.id = p.customer_id
 JOIN bank_accounts b ON b.id = p.bank_account_id
 JOIN currency_rates cr ON cr.id = p.currency_rate_id
-LEFT JOIN transactions l ON l.id = p.linked_id
+LEFT JOIN transactions l ON l.id = p.linked_id AND l.kind = 'sale'
+LEFT JOIN transactions lo ON lo.id = p.linked_id AND lo.kind = 'order'
+LEFT JOIN orders o ON o.id = lo.order_id
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
 WHERE p.id = sqlc.arg('id') AND p.customer_id = sqlc.arg('customer_id')::bigint AND p.company_id = sqlc.arg('company_id')
   AND p.kind = 'customer_payment' AND p.deleted_at IS NULL;
@@ -384,7 +432,7 @@ WHERE p.id = sqlc.arg('id') AND p.customer_id = sqlc.arg('customer_id')::bigint 
 -- name: ListCustomerPayments :many
 -- A page of the customer's live payments, the newest first (then the later
 -- entered). The columns are GetCustomerPayment's.
-SELECT p.id, c.id AS customer_id, p.linked_id AS sale_id, l.number AS sale_number, b.id AS bank_account_id, b.name AS account_name,
+SELECT p.id, c.id AS customer_id, l.id AS sale_id, l.number AS sale_number, o.id AS order_id, b.id AS bank_account_id, b.name AS account_name,
        p.total AS amount, p.currency_id,
        (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
        convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
@@ -393,7 +441,9 @@ FROM transactions p
 JOIN customers c ON c.id = p.customer_id
 JOIN bank_accounts b ON b.id = p.bank_account_id
 JOIN currency_rates cr ON cr.id = p.currency_rate_id
-LEFT JOIN transactions l ON l.id = p.linked_id
+LEFT JOIN transactions l ON l.id = p.linked_id AND l.kind = 'sale'
+LEFT JOIN transactions lo ON lo.id = p.linked_id AND lo.kind = 'order'
+LEFT JOIN orders o ON o.id = lo.order_id
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
 WHERE p.customer_id = sqlc.arg('customer_id')::bigint AND p.company_id = sqlc.arg('company_id') AND p.kind = 'customer_payment' AND p.deleted_at IS NULL
 ORDER BY p.doc_at DESC, p.id DESC

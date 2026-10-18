@@ -282,7 +282,7 @@ WITH entries AS (
     SELECT e.id, e.kind, e.number, e.doc_at, e.note, e.linked_id, e.created_by, e.created_by_name, e.company_id, e.supplier_id, e.customer_id, e.category_id, e.other_account_id, e.delta, (sum(e.delta) OVER (ORDER BY e.doc_at, e.id))::numeric(14,2) AS balance
     FROM entries e
 )
-SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number,
+SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number, o.id AS order_id, o.title AS order_title,
        s.name AS supplier_name,
        (SELECT v.text_value FROM customer_fields f
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = cu.id
@@ -292,6 +292,7 @@ SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.numb
        r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
 FROM running r
 LEFT JOIN transactions l ON l.id = r.linked_id
+LEFT JOIN orders o ON o.id = l.order_id
 LEFT JOIN suppliers s ON s.id = r.supplier_id
 LEFT JOIN customers cu ON cu.id = r.customer_id
 LEFT JOIN finance_categories c ON c.id = r.category_id
@@ -317,6 +318,8 @@ type ListAccountStatementRow struct {
 	Balance          pgtype.Numeric
 	LinkedID         *int64
 	LinkedNumber     *int32
+	OrderID          *int64
+	OrderTitle       *string
 	SupplierName     *string
 	CustomerName     *string
 	CustomerPhone    *string
@@ -333,7 +336,7 @@ type ListAccountStatementRow struct {
 // after it; the other side of each (the supplier, the customer by the
 // first text answer of their type and their phone, the category, the
 // other account: one of them is there); the document a payment was
-// entered with.
+// entered with, and the order when that document is an order's.
 func (q *Queries) ListAccountStatement(ctx context.Context, arg ListAccountStatementParams) ([]ListAccountStatementRow, error) {
 	rows, err := q.db.Query(ctx, listAccountStatement,
 		arg.Offset,
@@ -357,6 +360,8 @@ func (q *Queries) ListAccountStatement(ctx context.Context, arg ListAccountState
 			&i.Balance,
 			&i.LinkedID,
 			&i.LinkedNumber,
+			&i.OrderID,
+			&i.OrderTitle,
 			&i.SupplierName,
 			&i.CustomerName,
 			&i.CustomerPhone,

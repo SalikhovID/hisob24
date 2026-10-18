@@ -362,6 +362,7 @@ type Transaction struct {
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	DeletedAt       *time.Time
+	OrderID         *int64
 }
 
 type TransactionItem struct {

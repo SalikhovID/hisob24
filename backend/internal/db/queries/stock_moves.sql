@@ -63,15 +63,23 @@ ORDER BY lower(p.name), p.id;
 -- name: ListProductMoves :many
 -- A page of the product's moves in the locations given, the newest
 -- document first (then the later entered): the document (kind, number,
--- moment), the location, the quantity moved (in above zero, out below) and
--- the counterpart (the supplier's name, or a transfer's other location; ""
+-- moment; an order's by its order and title), the location, the quantity
+-- moved (in above zero, out below) and the counterpart (the supplier's
+-- name, the customer's name or phone, or a transfer's other location; ""
 -- for none).
 SELECT sm.id, t.id AS transaction_id, t.kind, t.number, t.doc_at, l.id AS location_id, l.name AS location_name, sm.quantity,
-       COALESCE(s.name, CASE WHEN t.kind = 'transfer' AND sm.location_id = t.location_id THEN tl.name WHEN t.kind = 'transfer' THEN fl.name END, '')::text AS counterpart
+       COALESCE(s.name, cn.name, cu.phone, CASE WHEN t.kind = 'transfer' AND sm.location_id = t.location_id THEN tl.name WHEN t.kind = 'transfer' THEN fl.name END, '')::text AS counterpart,
+       o.id AS order_id, o.title AS order_title
 FROM stock_moves sm
 JOIN transactions t ON t.id = sm.transaction_id
 JOIN locations l ON l.id = sm.location_id
 LEFT JOIN suppliers s ON s.id = t.supplier_id
+LEFT JOIN customers cu ON cu.id = t.customer_id
+LEFT JOIN LATERAL (SELECT v.text_value AS name FROM customer_fields f
+                     LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = cu.id
+                   WHERE f.type_id = cu.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
+                   ORDER BY f.position, f.id LIMIT 1) cn ON cu.id IS NOT NULL
+LEFT JOIN orders o ON o.id = t.order_id
 LEFT JOIN locations tl ON tl.id = t.to_location_id
 LEFT JOIN locations fl ON fl.id = t.location_id
 WHERE sm.product_id = sqlc.arg('product_id') AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[]) AND t.deleted_at IS NULL
@@ -82,3 +90,19 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 -- How many rows ListProductMoves finds, on all of its pages.
 SELECT count(*) FROM stock_moves sm JOIN transactions t ON t.id = sm.transaction_id
 WHERE sm.product_id = sqlc.arg('product_id') AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[]) AND t.deleted_at IS NULL;
+
+-- name: ListProductCostMoves :many
+-- The live moves of the products given, by product, then in time (the
+-- document's moment, the document, a document's move out before its move
+-- in, the move), each with the unit cost in so'm its document's line
+-- bought the product at (a purchase's or an opening stock's price, by the
+-- document's rate row; nothing for the other kinds): what the FIFO cost is
+-- replayed from (logic/warehouse.md, section 10).
+SELECT sm.id, sm.transaction_id, sm.product_id, sm.location_id, t.kind, t.doc_at, sm.quantity,
+       convert_amount(i.price, t.currency_id, 1, cr)::numeric(14,2) AS unit_cost_uzs
+FROM stock_moves sm
+JOIN transactions t ON t.id = sm.transaction_id
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+LEFT JOIN transaction_items i ON i.transaction_id = sm.transaction_id AND i.product_id = sm.product_id AND t.kind IN ('purchase', 'opening_stock')
+WHERE sm.company_id = sqlc.arg('company_id') AND sm.product_id = ANY(sqlc.arg('product_ids')::bigint[]) AND t.deleted_at IS NULL
+ORDER BY sm.product_id, t.doc_at, t.id, (sm.quantity < 0) DESC, sm.id;

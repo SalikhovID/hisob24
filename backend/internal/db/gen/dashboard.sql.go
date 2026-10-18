@@ -83,6 +83,7 @@ LEFT JOIN (
     FROM transactions t
     JOIN currency_rates cr ON cr.id = t.currency_rate_id
     WHERE t.company_id = $4 AND t.kind = $5::text AND t.deleted_at IS NULL
+      AND (t.kind <> 'order' OR t.total > 0)
       AND t.location_id = ANY($6::bigint[])
       AND (t.doc_at AT TIME ZONE $3::text)::date BETWEEN $1::date AND $2::date
     GROUP BY 1
@@ -108,6 +109,7 @@ type DashboardMoneyByDayRow struct {
 // The company's live documents of the kind in the locations given on each
 // day of the month up to today, the days counted in the zone: their total
 // in so'm, each by its own rate row, and how many, both by the day's end.
+// An order's document counts when it is priced (total above 0).
 func (q *Queries) DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByDayParams) ([]DashboardMoneyByDayRow, error) {
 	rows, err := q.db.Query(ctx, dashboardMoneyByDay,
 		arg.MonthStart,

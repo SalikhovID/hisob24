@@ -1,19 +1,20 @@
 -- The statement of a party: a supplier (logic/warehouse.md, section 6) or
 -- a customer (logic/sales.md, section 5). party is 'supplier' or
 -- 'customer', party_id the supplier's or the customer's id. A purchase, a
--- sale or an opening debt adds to what is owed; a payment or an opening
--- advance takes away: the sign rule is the same for both.
+-- sale, an order's document (its price; one priced at nothing is left out
+-- of the statement) or an opening debt adds to what is owed; a payment or
+-- an opening advance takes away: the sign rule is the same for both.
 
 -- name: ListPartyBalanceByCurrency :many
 -- What is owed in each currency the party's live documents are in, without
 -- turning anything into so'm; a currency that comes to 0 is left out.
-SELECT t.currency_id, sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN t.total ELSE -t.total END)::numeric(14,2) AS amount
+SELECT t.currency_id, sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt', 'order') THEN t.total ELSE -t.total END)::numeric(14,2) AS amount
 FROM transactions t
 WHERE ((sqlc.arg('party')::text = 'supplier' AND t.supplier_id = sqlc.arg('party_id')::bigint)
        OR (sqlc.arg('party')::text = 'customer' AND t.customer_id = sqlc.arg('party_id')::bigint))
   AND t.deleted_at IS NULL
 GROUP BY t.currency_id
-HAVING sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN t.total ELSE -t.total END) <> 0
+HAVING sum(CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt', 'order') THEN t.total ELSE -t.total END) <> 0
 ORDER BY t.currency_id;
 
 -- name: ListPartyStatement :many
@@ -21,27 +22,29 @@ ORDER BY t.currency_id;
 -- (then the later entered), each with its amount in so'm by its own rate
 -- row and its rate, how it changed what is owed and what was owed after
 -- it; a payment names its account, one entered with a document names that
--- document's number too.
+-- document's number too; an order's document, and a payment entered for
+-- an order, name the order (order_id, order_title).
 WITH entries AS (
-    SELECT t.id, t.kind, t.number, t.doc_at, t.total, t.currency_id, t.note, t.linked_id, t.bank_account_id, t.created_by, t.created_by_name, t.company_id,
+    SELECT t.id, t.kind, t.number, t.doc_at, t.total, t.currency_id, t.note, t.linked_id, t.order_id, t.bank_account_id, t.created_by, t.created_by_name, t.company_id,
            (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
            convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
-           (CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt') THEN 1 ELSE -1 END)::numeric AS sign
+           (CASE WHEN t.kind IN ('purchase', 'supplier_debt', 'sale', 'customer_debt', 'order') THEN 1 ELSE -1 END)::numeric AS sign
     FROM transactions t
     JOIN currency_rates cr ON cr.id = t.currency_rate_id
     WHERE ((sqlc.arg('party')::text = 'supplier' AND t.supplier_id = sqlc.arg('party_id')::bigint)
            OR (sqlc.arg('party')::text = 'customer' AND t.customer_id = sqlc.arg('party_id')::bigint))
-      AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
+      AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL AND NOT (t.kind = 'order' AND t.total = 0)
 ), running AS (
-    SELECT e.id, e.kind, e.number, e.doc_at, e.total, e.currency_id, e.note, e.linked_id, e.bank_account_id, e.created_by, e.created_by_name, e.company_id, e.rate, e.amount_uzs,
+    SELECT e.id, e.kind, e.number, e.doc_at, e.total, e.currency_id, e.note, e.linked_id, e.order_id, e.bank_account_id, e.created_by, e.created_by_name, e.company_id, e.rate, e.amount_uzs,
            (e.sign * e.amount_uzs)::numeric(14,2) AS delta_uzs,
            (sum(e.sign * e.amount_uzs) OVER (ORDER BY e.doc_at, e.id))::numeric(14,2) AS balance_uzs
     FROM entries e
 )
 SELECT r.id, r.kind, r.number, r.doc_at, r.total AS amount, r.currency_id, r.rate, r.amount_uzs, r.delta_uzs, r.balance_uzs, r.linked_id,
-       l.number AS linked_number, r.bank_account_id, b.name AS account_name, r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
+       l.number AS linked_number, o.id AS order_id, o.title AS order_title, r.bank_account_id, b.name AS account_name, r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
 FROM running r
 LEFT JOIN transactions l ON l.id = r.linked_id
+LEFT JOIN orders o ON o.id = COALESCE(r.order_id, l.order_id)
 LEFT JOIN bank_accounts b ON b.id = r.bank_account_id
 LEFT JOIN user_companies m ON m.user_phone = r.created_by AND m.company_id = r.company_id
 ORDER BY r.doc_at DESC, r.id DESC
@@ -52,4 +55,4 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 SELECT count(*) FROM transactions t
 WHERE ((sqlc.arg('party')::text = 'supplier' AND t.supplier_id = sqlc.arg('party_id')::bigint)
        OR (sqlc.arg('party')::text = 'customer' AND t.customer_id = sqlc.arg('party_id')::bigint))
-  AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL;
+  AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL AND NOT (t.kind = 'order' AND t.total = 0);

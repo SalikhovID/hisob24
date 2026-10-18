@@ -9,10 +9,15 @@ RETURNING *;
 
 -- name: GetOrder :one
 -- The company's order with its location, its customer's phone and name (the
--- customer's answer to its type's first text field); pgx.ErrNoRows when the
--- company has no such order, or deleted it. assignee_name and
--- created_by_name are the names the members go by in the company now; once
--- they have left it (or go by no name), the names of then.
+-- customer's answer to its type's first text field) and its money
+-- (logic/orders.md, 4.3): from its live document, the price (amount) in
+-- its currency by its rate and in so'm, what was paid for it (the live
+-- payments linked to the document, each turned into the order's currency
+-- by its own rate row) and the document (document_id); without a document
+-- nothing, in so'm. pgx.ErrNoRows when the company has no such order, or
+-- deleted it. assignee_name and created_by_name are the names the members
+-- go by in the company now; once they have left it (or go by no name), the
+-- names of then.
 SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
@@ -21,11 +26,20 @@ SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.dea
        (SELECT v.text_value FROM customer_fields f
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
         WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
-        ORDER BY f.position, f.id LIMIT 1) AS customer_name
+        ORDER BY f.position, f.id LIMIT 1) AS customer_name,
+       COALESCE(od.total, 0)::numeric(14,2) AS amount,
+       COALESCE(od.currency_id, 1)::bigint AS currency_id,
+       COALESCE((CASE od.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END), 1)::numeric(14,4) AS rate,
+       COALESCE(convert_amount(od.total, od.currency_id, 1, cr), 0)::numeric(14,2) AS amount_uzs,
+       COALESCE((SELECT sum(convert_amount(p.total, p.currency_id, od.currency_id, pr)) FROM transactions p JOIN currency_rates pr ON pr.id = p.currency_rate_id
+                 WHERE p.linked_id = od.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS paid,
+       COALESCE(od.id, 0)::bigint AS document_id
 FROM orders t
 JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
+LEFT JOIN transactions od ON od.order_id = t.id AND od.kind = 'order' AND od.deleted_at IS NULL
+LEFT JOIN currency_rates cr ON cr.id = od.currency_rate_id
 WHERE t.id = sqlc.arg('id') AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
   AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
 
@@ -45,11 +59,20 @@ SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.dea
        (SELECT v.text_value FROM customer_fields f
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
         WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
-        ORDER BY f.position, f.id LIMIT 1) AS customer_name
+        ORDER BY f.position, f.id LIMIT 1) AS customer_name,
+       COALESCE(od.total, 0)::numeric(14,2) AS amount,
+       COALESCE(od.currency_id, 1)::bigint AS currency_id,
+       COALESCE((CASE od.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END), 1)::numeric(14,4) AS rate,
+       COALESCE(convert_amount(od.total, od.currency_id, 1, cr), 0)::numeric(14,2) AS amount_uzs,
+       COALESCE((SELECT sum(convert_amount(p.total, p.currency_id, od.currency_id, pr)) FROM transactions p JOIN currency_rates pr ON pr.id = p.currency_rate_id
+                 WHERE p.linked_id = od.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS paid,
+       COALESCE(od.id, 0)::bigint AS document_id
 FROM orders t
 JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
+LEFT JOIN transactions od ON od.order_id = t.id AND od.kind = 'order' AND od.deleted_at IS NULL
+LEFT JOIN currency_rates cr ON cr.id = od.currency_rate_id
 WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
   AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
   AND (sqlc.narg('type_id')::bigint IS NULL OR t.type_id = sqlc.narg('type_id')::bigint)
@@ -82,12 +105,21 @@ SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.dea
        (SELECT v.text_value FROM customer_fields f
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
         WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
-        ORDER BY f.position, f.id LIMIT 1) AS customer_name
+        ORDER BY f.position, f.id LIMIT 1) AS customer_name,
+       COALESCE(od.total, 0)::numeric(14,2) AS amount,
+       COALESCE(od.currency_id, 1)::bigint AS currency_id,
+       COALESCE((CASE od.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END), 1)::numeric(14,4) AS rate,
+       COALESCE(convert_amount(od.total, od.currency_id, 1, cr), 0)::numeric(14,2) AS amount_uzs,
+       COALESCE((SELECT sum(convert_amount(p.total, p.currency_id, od.currency_id, pr)) FROM transactions p JOIN currency_rates pr ON pr.id = p.currency_rate_id
+                 WHERE p.linked_id = od.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS paid,
+       COALESCE(od.id, 0)::bigint AS document_id
 FROM orders t
 JOIN order_stages s ON s.id = t.stage_id
 JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
+LEFT JOIN transactions od ON od.order_id = t.id AND od.kind = 'order' AND od.deleted_at IS NULL
+LEFT JOIN currency_rates cr ON cr.id = od.currency_rate_id
 WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL AND NOT s.is_done
   AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
 ORDER BY t.deadline, t.id

@@ -250,12 +250,12 @@ func (q *Queries) CountSupplierDocuments(ctx context.Context, supplierID int64) 
 
 const createTransaction = `-- name: CreateTransaction :one
 INSERT INTO transactions (company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id,
-                          category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name)
+                          category_id, linked_id, order_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5, $6,
         $7, $8, $9, $10, $11,
-        $12, $13, $14, $15, $16, $17,
-        $18, $19)
-RETURNING id, company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id, category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name, created_at, updated_at, deleted_at
+        $12, $13, $14, $15, $16, $17, $18,
+        $19, $20)
+RETURNING id, company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id, category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name, created_at, updated_at, deleted_at, order_id
 `
 
 type CreateTransactionParams struct {
@@ -271,6 +271,7 @@ type CreateTransactionParams struct {
 	ToBankAccountID *int64
 	CategoryID      *int64
 	LinkedID        *int64
+	OrderID         *int64
 	CurrencyID      int64
 	CurrencyRateID  int64
 	Total           pgtype.Numeric
@@ -298,6 +299,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		arg.ToBankAccountID,
 		arg.CategoryID,
 		arg.LinkedID,
+		arg.OrderID,
 		arg.CurrencyID,
 		arg.CurrencyRateID,
 		arg.Total,
@@ -331,6 +333,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.OrderID,
 	)
 	return i, err
 }
@@ -423,7 +426,7 @@ func (q *Queries) GetCustomerOpening(ctx context.Context, arg GetCustomerOpening
 }
 
 const getCustomerPayment = `-- name: GetCustomerPayment :one
-SELECT p.id, c.id AS customer_id, p.linked_id AS sale_id, l.number AS sale_number, b.id AS bank_account_id, b.name AS account_name,
+SELECT p.id, c.id AS customer_id, l.id AS sale_id, l.number AS sale_number, o.id AS order_id, b.id AS bank_account_id, b.name AS account_name,
        p.total AS amount, p.currency_id,
        (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
        convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
@@ -432,7 +435,9 @@ FROM transactions p
 JOIN customers c ON c.id = p.customer_id
 JOIN bank_accounts b ON b.id = p.bank_account_id
 JOIN currency_rates cr ON cr.id = p.currency_rate_id
-LEFT JOIN transactions l ON l.id = p.linked_id
+LEFT JOIN transactions l ON l.id = p.linked_id AND l.kind = 'sale'
+LEFT JOIN transactions lo ON lo.id = p.linked_id AND lo.kind = 'order'
+LEFT JOIN orders o ON o.id = lo.order_id
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
 WHERE p.id = $1 AND p.customer_id = $2::bigint AND p.company_id = $3
   AND p.kind = 'customer_payment' AND p.deleted_at IS NULL
@@ -449,6 +454,7 @@ type GetCustomerPaymentRow struct {
 	CustomerID    int64
 	SaleID        *int64
 	SaleNumber    *int32
+	OrderID       *int64
 	BankAccountID int64
 	AccountName   string
 	Amount        pgtype.Numeric
@@ -462,8 +468,9 @@ type GetCustomerPaymentRow struct {
 	CreatedByName *string
 }
 
-// The customer's payment in the company: its account, the number of the
-// sale it was entered with (NULL for one entered on its own), its rate (of
+// The customer's payment in the company: its account, the sale it was
+// entered with and its number, or the order it was entered for
+// (logic/orders.md, 4.3), NULL for one entered on its own; its rate (of
 // its currency) and what it comes to in so'm. pgx.ErrNoRows when there is
 // none such, or it is deleted (logic/sales.md, section 5).
 func (q *Queries) GetCustomerPayment(ctx context.Context, arg GetCustomerPaymentParams) (GetCustomerPaymentRow, error) {
@@ -474,6 +481,7 @@ func (q *Queries) GetCustomerPayment(ctx context.Context, arg GetCustomerPayment
 		&i.CustomerID,
 		&i.SaleID,
 		&i.SaleNumber,
+		&i.OrderID,
 		&i.BankAccountID,
 		&i.AccountName,
 		&i.Amount,
@@ -611,6 +619,115 @@ func (q *Queries) GetOpening(ctx context.Context, arg GetOpeningParams) (GetOpen
 		&i.ID,
 		&i.Kind,
 		&i.SupplierID,
+		&i.Amount,
+		&i.CurrencyID,
+		&i.Rate,
+		&i.AmountUzs,
+		&i.DocAt,
+		&i.Note,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedByName,
+	)
+	return i, err
+}
+
+const getOrderDocument = `-- name: GetOrderDocument :one
+SELECT t.id, t.number, t.doc_at, t.currency_id, t.currency_rate_id, t.note,
+       (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       t.total, convert_amount(t.total, t.currency_id, 1, cr)::numeric(14,2) AS total_uzs,
+       COALESCE((SELECT sum(convert_amount(p.total, p.currency_id, t.currency_id, pr)) FROM transactions p JOIN currency_rates pr ON pr.id = p.currency_rate_id
+                 WHERE p.linked_id = t.id AND p.deleted_at IS NULL), 0)::numeric(14,2) AS paid
+FROM transactions t
+JOIN currency_rates cr ON cr.id = t.currency_rate_id
+WHERE t.order_id = $1::bigint AND t.company_id = $2 AND t.kind = 'order' AND t.deleted_at IS NULL
+`
+
+type GetOrderDocumentParams struct {
+	OrderID   int64
+	CompanyID int64
+}
+
+type GetOrderDocumentRow struct {
+	ID             int64
+	Number         int32
+	DocAt          time.Time
+	CurrencyID     int64
+	CurrencyRateID int64
+	Note           *string
+	Rate           pgtype.Numeric
+	Total          pgtype.Numeric
+	TotalUzs       pgtype.Numeric
+	Paid           pgtype.Numeric
+}
+
+// The order's live document (logic/orders.md, 4.3): its currency and rate
+// (of its currency, in so'm), its price (total) in its currency and in
+// so'm, what was paid for it (the live payments linked to it, each turned
+// into its currency by its own rate row; 0 with none). pgx.ErrNoRows when
+// the order has none, or it is hidden.
+func (q *Queries) GetOrderDocument(ctx context.Context, arg GetOrderDocumentParams) (GetOrderDocumentRow, error) {
+	row := q.db.QueryRow(ctx, getOrderDocument, arg.OrderID, arg.CompanyID)
+	var i GetOrderDocumentRow
+	err := row.Scan(
+		&i.ID,
+		&i.Number,
+		&i.DocAt,
+		&i.CurrencyID,
+		&i.CurrencyRateID,
+		&i.Note,
+		&i.Rate,
+		&i.Total,
+		&i.TotalUzs,
+		&i.Paid,
+	)
+	return i, err
+}
+
+const getOrderPayment = `-- name: GetOrderPayment :one
+SELECT p.id, p.customer_id, b.id AS bank_account_id, b.name AS account_name, p.total AS amount, p.currency_id,
+       (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       p.doc_at, p.note, p.created_at, p.updated_at, COALESCE(m.full_name, p.created_by_name) AS created_by_name
+FROM transactions p
+JOIN bank_accounts b ON b.id = p.bank_account_id
+JOIN currency_rates cr ON cr.id = p.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+WHERE p.id = $1 AND p.linked_id = $2::bigint AND p.kind = 'customer_payment' AND p.deleted_at IS NULL
+`
+
+type GetOrderPaymentParams struct {
+	ID       int64
+	LinkedID int64
+}
+
+type GetOrderPaymentRow struct {
+	ID            int64
+	CustomerID    *int64
+	BankAccountID int64
+	AccountName   string
+	Amount        pgtype.Numeric
+	CurrencyID    int64
+	Rate          pgtype.Numeric
+	AmountUzs     pgtype.Numeric
+	DocAt         time.Time
+	Note          *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CreatedByName *string
+}
+
+// One of the live payments linked to the order's document, by its id. The
+// columns are ListOrderPayments'. pgx.ErrNoRows when the document has none
+// such, or it is hidden.
+func (q *Queries) GetOrderPayment(ctx context.Context, arg GetOrderPaymentParams) (GetOrderPaymentRow, error) {
+	row := q.db.QueryRow(ctx, getOrderPayment, arg.ID, arg.LinkedID)
+	var i GetOrderPaymentRow
+	err := row.Scan(
+		&i.ID,
+		&i.CustomerID,
+		&i.BankAccountID,
+		&i.AccountName,
 		&i.Amount,
 		&i.CurrencyID,
 		&i.Rate,
@@ -849,7 +966,7 @@ func (q *Queries) GetSale(ctx context.Context, arg GetSaleParams) (GetSaleRow, e
 }
 
 const getTransaction = `-- name: GetTransaction :one
-SELECT id, company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id, category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name, created_at, updated_at, deleted_at FROM transactions WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
+SELECT id, company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id, category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name, created_at, updated_at, deleted_at, order_id FROM transactions WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 `
 
 type GetTransactionParams struct {
@@ -886,6 +1003,7 @@ func (q *Queries) GetTransaction(ctx context.Context, arg GetTransactionParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.OrderID,
 	)
 	return i, err
 }
@@ -979,7 +1097,7 @@ func (q *Queries) ListCustomerOpenings(ctx context.Context, arg ListCustomerOpen
 }
 
 const listCustomerPayments = `-- name: ListCustomerPayments :many
-SELECT p.id, c.id AS customer_id, p.linked_id AS sale_id, l.number AS sale_number, b.id AS bank_account_id, b.name AS account_name,
+SELECT p.id, c.id AS customer_id, l.id AS sale_id, l.number AS sale_number, o.id AS order_id, b.id AS bank_account_id, b.name AS account_name,
        p.total AS amount, p.currency_id,
        (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
        convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
@@ -988,7 +1106,9 @@ FROM transactions p
 JOIN customers c ON c.id = p.customer_id
 JOIN bank_accounts b ON b.id = p.bank_account_id
 JOIN currency_rates cr ON cr.id = p.currency_rate_id
-LEFT JOIN transactions l ON l.id = p.linked_id
+LEFT JOIN transactions l ON l.id = p.linked_id AND l.kind = 'sale'
+LEFT JOIN transactions lo ON lo.id = p.linked_id AND lo.kind = 'order'
+LEFT JOIN orders o ON o.id = lo.order_id
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
 WHERE p.customer_id = $1::bigint AND p.company_id = $2 AND p.kind = 'customer_payment' AND p.deleted_at IS NULL
 ORDER BY p.doc_at DESC, p.id DESC
@@ -1007,6 +1127,7 @@ type ListCustomerPaymentsRow struct {
 	CustomerID    int64
 	SaleID        *int64
 	SaleNumber    *int32
+	OrderID       *int64
 	BankAccountID int64
 	AccountName   string
 	Amount        pgtype.Numeric
@@ -1041,6 +1162,7 @@ func (q *Queries) ListCustomerPayments(ctx context.Context, arg ListCustomerPaym
 			&i.CustomerID,
 			&i.SaleID,
 			&i.SaleNumber,
+			&i.OrderID,
 			&i.BankAccountID,
 			&i.AccountName,
 			&i.Amount,
@@ -1258,6 +1380,73 @@ func (q *Queries) ListOpenings(ctx context.Context, arg ListOpeningsParams) ([]L
 			&i.ID,
 			&i.Kind,
 			&i.SupplierID,
+			&i.Amount,
+			&i.CurrencyID,
+			&i.Rate,
+			&i.AmountUzs,
+			&i.DocAt,
+			&i.Note,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrderPayments = `-- name: ListOrderPayments :many
+SELECT p.id, p.customer_id, b.id AS bank_account_id, b.name AS account_name, p.total AS amount, p.currency_id,
+       (CASE p.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
+       convert_amount(p.total, p.currency_id, 1, cr)::numeric(14,2) AS amount_uzs,
+       p.doc_at, p.note, p.created_at, p.updated_at, COALESCE(m.full_name, p.created_by_name) AS created_by_name
+FROM transactions p
+JOIN bank_accounts b ON b.id = p.bank_account_id
+JOIN currency_rates cr ON cr.id = p.currency_rate_id
+LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+WHERE p.linked_id = $1::bigint AND p.kind = 'customer_payment' AND p.deleted_at IS NULL
+ORDER BY p.doc_at DESC, p.id DESC
+`
+
+type ListOrderPaymentsRow struct {
+	ID            int64
+	CustomerID    *int64
+	BankAccountID int64
+	AccountName   string
+	Amount        pgtype.Numeric
+	CurrencyID    int64
+	Rate          pgtype.Numeric
+	AmountUzs     pgtype.Numeric
+	DocAt         time.Time
+	Note          *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CreatedByName *string
+}
+
+// The live payments linked to the order's document, the newest first
+// (then the later entered): each with its account, its amount in the
+// account's currency, its rate (of that currency) and what it comes to in
+// so'm.
+func (q *Queries) ListOrderPayments(ctx context.Context, linkedID int64) ([]ListOrderPaymentsRow, error) {
+	rows, err := q.db.Query(ctx, listOrderPayments, linkedID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListOrderPaymentsRow{}
+	for rows.Next() {
+		var i ListOrderPaymentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.BankAccountID,
+			&i.AccountName,
 			&i.Amount,
 			&i.CurrencyID,
 			&i.Rate,
@@ -1741,7 +1930,7 @@ SET doc_at = $1, to_location_id = $2, supplier_id = $3, customer_id = $4,
     bank_account_id = $5, to_bank_account_id = $6, category_id = $7,
     currency_id = $8, currency_rate_id = $9, note = $10, updated_at = now()
 WHERE id = $11 AND company_id = $12 AND deleted_at IS NULL
-RETURNING id, company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id, category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name, created_at, updated_at, deleted_at
+RETURNING id, company_id, kind, number, doc_at, location_id, to_location_id, supplier_id, customer_id, bank_account_id, to_bank_account_id, category_id, linked_id, currency_id, currency_rate_id, total, to_total, note, created_by, created_by_name, created_at, updated_at, deleted_at, order_id
 `
 
 type UpdateTransactionParams struct {
@@ -1804,6 +1993,7 @@ func (q *Queries) UpdateTransaction(ctx context.Context, arg UpdateTransactionPa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.OrderID,
 	)
 	return i, err
 }

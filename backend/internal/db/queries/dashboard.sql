@@ -66,6 +66,7 @@ ORDER BY s.position, s.id;
 -- The company's live documents of the kind in the locations given on each
 -- day of the month up to today, the days counted in the zone: their total
 -- in so'm, each by its own rate row, and how many, both by the day's end.
+-- An order's document counts when it is priced (total above 0).
 SELECT d.day::date AS day,
        COALESCE(sum(x.total) OVER (ORDER BY d.day), 0)::numeric(14,2) AS total,
        COALESCE(sum(x.count) OVER (ORDER BY d.day), 0)::bigint AS count
@@ -76,6 +77,7 @@ LEFT JOIN (
     FROM transactions t
     JOIN currency_rates cr ON cr.id = t.currency_rate_id
     WHERE t.company_id = sqlc.arg('company_id') AND t.kind = sqlc.arg('kind')::text AND t.deleted_at IS NULL
+      AND (t.kind <> 'order' OR t.total > 0)
       AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
       AND (t.doc_at AT TIME ZONE sqlc.arg('zone')::text)::date BETWEEN sqlc.arg('month_start')::date AND sqlc.arg('today')::date
     GROUP BY 1

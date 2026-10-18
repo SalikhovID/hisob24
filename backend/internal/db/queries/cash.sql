@@ -47,7 +47,7 @@ GROUP BY b.id;
 -- after it; the other side of each (the supplier, the customer by the
 -- first text answer of their type and their phone, the category, the
 -- other account: one of them is there); the document a payment was
--- entered with.
+-- entered with, and the order when that document is an order's.
 WITH entries AS (
     SELECT t.id, t.kind, t.number, t.doc_at, t.note, t.linked_id, t.created_by, t.created_by_name, t.company_id,
            t.supplier_id, t.customer_id, t.category_id,
@@ -65,7 +65,7 @@ WITH entries AS (
     SELECT e.*, (sum(e.delta) OVER (ORDER BY e.doc_at, e.id))::numeric(14,2) AS balance
     FROM entries e
 )
-SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number,
+SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number, o.id AS order_id, o.title AS order_title,
        s.name AS supplier_name,
        (SELECT v.text_value FROM customer_fields f
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = cu.id
@@ -75,6 +75,7 @@ SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.numb
        r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
 FROM running r
 LEFT JOIN transactions l ON l.id = r.linked_id
+LEFT JOIN orders o ON o.id = l.order_id
 LEFT JOIN suppliers s ON s.id = r.supplier_id
 LEFT JOIN customers cu ON cu.id = r.customer_id
 LEFT JOIN finance_categories c ON c.id = r.category_id

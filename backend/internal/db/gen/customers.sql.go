@@ -286,7 +286,7 @@ SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
 FROM customers c
 LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
 CROSS JOIN LATERAL (
-    SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt') THEN convert_amount(d.total, d.currency_id, 1, cr)
+    SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt', 'order') THEN convert_amount(d.total, d.currency_id, 1, cr)
                              ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS balance
     FROM transactions d
     JOIN currency_rates cr ON cr.id = d.currency_rate_id
@@ -314,8 +314,9 @@ type GetCustomerRow struct {
 // it. created_by_name is the name the member who entered it goes by in the
 // company now; once they have left it (or go by no name), the name of then.
 // balance is what the customer owes, in so'm by each document's own rate
-// row (logic/sales.md, section 5): its live sales and opening debts less
-// its payments and opening advances; an advance when below zero.
+// row (logic/sales.md, section 5): its live sales, orders' prices and
+// opening debts less its payments and opening advances; an advance when
+// below zero.
 func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCustomerRow, error) {
 	row := q.db.QueryRow(ctx, getCustomer, arg.ID, arg.CompanyID)
 	var i GetCustomerRow
@@ -450,7 +451,7 @@ SELECT c.id, c.type_id, c.phone, c.created_at, c.updated_at,
 FROM customers c
 LEFT JOIN user_companies m ON m.user_phone = c.created_by AND m.company_id = c.company_id
 CROSS JOIN LATERAL (
-    SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt') THEN convert_amount(d.total, d.currency_id, 1, cr)
+    SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt', 'order') THEN convert_amount(d.total, d.currency_id, 1, cr)
                              ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0)::numeric(14,2) AS balance
     FROM transactions d
     JOIN currency_rates cr ON cr.id = d.currency_rate_id
