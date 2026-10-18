@@ -1644,7 +1644,9 @@ func TestTheOrdersMigrationDownBringsTheTasksTablesBack(t *testing.T) {
 	pool := pgtest.New(t)
 	ctx := t.Context()
 	provider := newProvider(t, pool)
-	_, err := provider.UpTo(ctx, 18)
+	// The names as they are at 18: the later migrations name things after
+	// the orders too (00021's order documents).
+	_, err := provider.DownTo(ctx, 18)
 	require.NoError(t, err)
 	before := namedAfter(t, pool, "order")
 
@@ -1819,4 +1821,104 @@ func TestTheOrderTypeMigrationDownKeepsTheNames(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"Buyurtma"}, orderTypesOf(t, pool, olma))
+}
+
+// addOrder inserts an order of the company for the customer in the location
+// and returns its id.
+func addOrder(t *testing.T, pool *pgxpool.Pool, companyID, typeID, stageID, customerID, locationID int64) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(), `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, 'Montaj', '2026-10-20', '998901111111') RETURNING id`, companyID, typeID, stageID, customerID, locationID).Scan(&id))
+	return id
+}
+
+// orderOf sets a company up for an order document: a customer, the order
+// settings and an order in the ledger fixture's location.
+func orderOf(t *testing.T, pool *pgxpool.Pool, f ledgerFixture, phone string) (customer, order int64) {
+	t.Helper()
+	customer = addCustomer(t, pool, f.company, addCustomerType(t, pool, f.company, "Jismoniy"), phone)
+	stage, typ := addOrderSettings(t, pool, f.company)
+	return customer, addOrder(t, pool, f.company, typ, stage, customer, f.location)
+}
+
+// An order's money and goods are a document of the journal (logic/orders.md,
+// 4.3): of the kind order, naming its order (one live document per order),
+// its customer and its location.
+func TestTheOrderDocumentsMigrationAddsTheOrderKind(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addLedgerFixture(t, pool, "Olma")
+	nok := addLedgerFixture(t, pool, "Nok")
+	customer, order := orderOf(t, pool, olma, "998901234567")
+	orderDoc := func(number int, orderID, customerID, locationID *int64) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, order_id, customer_id, location_id, currency_rate_id, total, created_by)
+			VALUES ($1, 'order', $2, '2026-10-07 09:00+05', $3, $4, $5, $6, 5000, '998901111111') RETURNING id`,
+			olma.company, number, orderID, customerID, locationID, olma.rate).Scan(&id)
+		return id, err
+	}
+
+	first, err := orderDoc(1, &order, &customer, &olma.location)
+	require.NoError(t, err, "an order document names its order, its customer and its location")
+	_, err = orderDoc(2, nil, &customer, &olma.location)
+	assert.Equal(t, "23514", sqlState(err), "its order")
+	_, err = orderDoc(2, &order, nil, &olma.location)
+	assert.Equal(t, "23514", sqlState(err), "its customer")
+	_, err = orderDoc(2, &order, &customer, nil)
+	assert.Equal(t, "23514", sqlState(err), "its location")
+	_, err = orderDoc(2, &order, &customer, &olma.location)
+	assert.Equal(t, "23505", sqlState(err), "one live document per order")
+	_, err = pool.Exec(ctx, "UPDATE transactions SET deleted_at = now() WHERE id = $1", first)
+	require.NoError(t, err)
+	_, err = orderDoc(2, &order, &customer, &olma.location)
+	require.NoError(t, err, "a hidden one makes way for another")
+	_, nokOrder := orderOf(t, pool, nok, "998907654321")
+	_, err = orderDoc(3, &nokOrder, &customer, &olma.location)
+	assert.Equal(t, "23503", sqlState(err), "the order is the company's")
+	_, err = addDocument(t, pool, olma, document{kind: "purchase", number: 1, location: &olma.location, supplier: &olma.supplier})
+	require.NoError(t, err, "the other kinds keep their rules")
+	_, err = addDocument(t, pool, olma, document{kind: "purchase", number: 2, location: &olma.location})
+	assert.Equal(t, "23514", sqlState(err), "a purchase still names its supplier")
+}
+
+func TestTheOrderDocumentsMigrationDownRemovesTheOrderDocuments(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	olma := addLedgerFixture(t, pool, "Olma")
+	customer, order := orderOf(t, pool, olma, "998901234567")
+	var doc, purchase int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, order_id, customer_id, location_id, currency_rate_id, total, created_by)
+		VALUES ($1, 'order', 1, '2026-10-07 09:00+05', $2, $3, $4, $5, 5000, '998901111111') RETURNING id`, olma.company, order, customer, olma.location, olma.rate).Scan(&doc))
+	purchase, err := addDocument(t, pool, olma, document{kind: "purchase", number: 1, location: &olma.location, supplier: &olma.supplier})
+	require.NoError(t, err)
+	for _, id := range []int64{doc, purchase} {
+		_, err = pool.Exec(ctx, "INSERT INTO transaction_items (transaction_id, product_id, quantity, position) VALUES ($1, $2, 1, 1)", id, olma.product)
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, "INSERT INTO stock_moves (transaction_id, company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4, 1)", id, olma.company, olma.location, olma.product)
+		require.NoError(t, err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, customer_id, bank_account_id, linked_id, currency_rate_id, total, created_by)
+		VALUES ($1, 'customer_payment', 1, '2026-10-07 09:00+05', $2, $3, $4, $5, 400, '998901111111')`, olma.company, customer, olma.cash, doc, olma.rate)
+	require.NoError(t, err)
+
+	_, err = provider.DownTo(ctx, 20)
+	require.NoError(t, err)
+
+	var has bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'order_id')").Scan(&has))
+	assert.False(t, has, "the column is gone")
+	require.NoError(t, pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_company_id_id_key')").Scan(&has))
+	assert.False(t, has, "so is the orders' key")
+	var documents, items, moves int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM transactions").Scan(&documents))
+	assert.Equal(t, 1, documents, "the order document and the payment linked to it are gone, the purchase stays")
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM transaction_items").Scan(&items))
+	assert.Equal(t, 1, items, "its lines went with it")
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM stock_moves").Scan(&moves))
+	assert.Equal(t, 1, moves, "its moves too")
+	_, err = pool.Exec(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, customer_id, location_id, currency_rate_id, total, created_by)
+		VALUES ($1, 'order', 9, '2026-10-07 09:00+05', $2, $3, $4, 1, '998901111111')`, olma.company, customer, olma.location, olma.rate)
+	assert.Equal(t, "23514", sqlState(err), "the kind is refused again")
 }
