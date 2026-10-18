@@ -46,13 +46,13 @@ export function StagesPage() {
     <>
       <PageTitle
         title="Bosqichlar"
-        description="Kanban ustunlari. Vazifa shulardan birida turadi."
+        description="Kanban ustunlari. Buyurtma shulardan birida turadi."
         back={{ href: "/settings", label: "Sozlamalar" }}
         action={allowed("settings.create") && <PlusButton label="Bosqich qo'shish" onClick={() => setSheet({ add: true })} />}
       />
       {stages.isPending && <ListLoading rows={3} mark="none" />}
       {stages.isError && <Failed error={stages.error} onRetry={() => stages.refetch()} />}
-      {stages.data?.length === 0 && <EmptyState icon={LayersIcon} title="Hali bosqich yo'q" description="Vazifa qo'shish uchun kamida bitta bosqich kerak." />}
+      {stages.data?.length === 0 && <EmptyState icon={LayersIcon} title="Hali bosqich yo'q" description="Buyurtma qo'shish uchun kamida bitta bosqich kerak." />}
       {stages.data && stages.data.length > 0 && (
         <>
           <OrderedRows
@@ -84,7 +84,7 @@ export function StagesPage() {
               )
             }}
           />
-          <Foot className="-mt-4">Yakuniy bosqichdagi vazifa bajarilgan hisoblanadi va kanbanda yig&apos;ilgan ustunda turadi.</Foot>
+          <Foot className="-mt-4">Yakuniy bosqichdagi buyurtma bajarilgan hisoblanadi va kanbanda yig&apos;ilgan ustunda turadi.</Foot>
         </>
       )}
       {sheet && "add" in sheet && (
@@ -104,7 +104,7 @@ export function StagesPage() {
       {sheet && "edit" in sheet && (
         <StageDialog
           title="Bosqichni tahrirlash"
-          description="Bu bosqichdagi vazifalar o'z joyida qoladi."
+          description="Bu bosqichdagi buyurtmalar o'z joyida qoladi."
           initial={{ name: sheet.edit.name, color: sheet.edit.color, is_done: sheet.edit.is_done }}
           submit="Saqlash"
           done="Bosqich saqlandi"
@@ -120,7 +120,7 @@ export function StagesPage() {
       {sheet && "remove" in sheet && (
         <DeleteDialog
           title="Bosqichni o'chirasizmi?"
-          description={`«${sheet.remove.name}» bosqichi o'chadi. Vazifasi bor bosqich o'chirilmaydi.`}
+          description={`«${sheet.remove.name}» bosqichi o'chadi. Buyurtmasi bor bosqich o'chirilmaydi.`}
           done="Bosqich o'chirildi"
           onDelete={async () => {
             await call(api.DELETE("/app/order-stages/{id}", { params: { path: { id: sheet.remove.id } } }))

@@ -32,7 +32,7 @@ export function DropdownsPage() {
     <>
       <PageTitle
         title="Dropdownlar"
-        description="Tanlov maydonlari variantlarni shu yerdan oladi. Mijoz va vazifa maydonlari uchun umumiy."
+        description="Tanlov maydonlari variantlarni shu yerdan oladi. Mijoz va buyurtma maydonlari uchun umumiy."
         back={{ href: "/settings", label: "Sozlamalar" }}
         action={allowed("settings.create") && <PlusButton label="Dropdown qo'shish" onClick={() => setAdding(true)} />}
       />

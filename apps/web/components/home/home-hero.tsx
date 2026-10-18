@@ -34,7 +34,7 @@ export function HomeHero({ dashboard, locationName }: { dashboard: Dashboard; lo
     return (
       <Hero
         href="/orders"
-        label="Faol vazifalar"
+        label="Faol buyurtmalar"
         value={String(orders.active)}
         unit="ta"
         badges={

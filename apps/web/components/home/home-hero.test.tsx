@@ -14,7 +14,7 @@ test("whoever sees the purchases is headed by what the suppliers are owed: how m
   expect(hero).toHaveTextContent("2 430 000 so'm")
   expect(hero).toHaveTextContent("2 ta ta'minotchi")
   expect(hero).toHaveTextContent("Avans 300 000")
-  expect(screen.queryByText("Faol vazifalar")).not.toBeInTheDocument()
+  expect(screen.queryByText("Faol buyurtmalar")).not.toBeInTheDocument()
 })
 
 test("with nothing owed it says so", () => {
@@ -28,14 +28,14 @@ test("with nothing owed it says so", () => {
 test("without the purchases, the orders: how many are open, how many are late, where", () => {
   const { rerender } = render(<HomeHero dashboard={{ ...none, orders: orders(4, 2) }} locationName="Chilonzor" />)
 
-  const hero = screen.getByRole("link", { name: /^Faol vazifalar/ })
+  const hero = screen.getByRole("link", { name: /^Faol buyurtmalar/ })
   expect(hero).toHaveAttribute("href", "/orders")
   expect(hero).toHaveTextContent("4 ta")
   expect(hero).toHaveTextContent("2 ta kechikkan")
   expect(hero).toHaveTextContent("Chilonzor")
 
   rerender(<HomeHero dashboard={{ ...none, orders: orders(3, 0) }} locationName="Chilonzor" />)
-  expect(screen.getByRole("link", { name: /^Faol vazifalar/ })).toHaveTextContent("Hammasi vaqtida")
+  expect(screen.getByRole("link", { name: /^Faol buyurtmalar/ })).toHaveTextContent("Hammasi vaqtida")
 })
 
 test("without the orders either, the customers; with nothing to see, no hero", () => {

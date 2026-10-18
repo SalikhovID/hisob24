@@ -25,7 +25,7 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
         key="tasks"
         href="/orders"
         icon={CheckIcon}
-        title="Vazifalar"
+        title="Buyurtmalar"
         value={String(orders.active)}
         unit="ta faol"
         meta={orders.late > 0 ? <Badge variant="red">{orders.late} kechikkan</Badge> : <Badge variant="green">Vaqtida</Badge>}

@@ -373,7 +373,7 @@ test("two changes of one name in an entry are both shown", async () => {
 })
 
 // The customer's orders, on its page (logic/tasks.md, 6).
-const ordersOf = () => screen.findByRole("region", { name: "Vazifalar" })
+const ordersOf = () => screen.findByRole("region", { name: "Buyurtmalar" })
 
 test("a customer's page lists its orders, the one due soonest first, with their stage and deadline, and says how many", async () => {
   await signIn(ALI)
@@ -383,7 +383,7 @@ test("a customer's page lists its orders, the one due soonest first, with their 
   open(dilshod.id)
 
   const region = await ordersOf()
-  const rows = within(await within(region).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
+  const rows = within(await within(region).findByRole("list", { name: "Buyurtmalar" })).getAllByRole("link")
   expect(rows.map((row) => rowParts(row).title)).toEqual(["Eski buyurtma", "Qo'ng'iroq qilish"])
   expect(rows[0]).toHaveAttribute("href", `/orders/${old.id}`)
   expect(rows[1]).toHaveAttribute("href", `/orders/${call.id}`)
@@ -399,8 +399,8 @@ test("a customer with no orders says so", async () => {
 
   open(anor.id)
 
-  expect(await within(await ordersOf()).findByText("Bu mijozda vazifa yo'q")).toBeInTheDocument()
-  expect(screen.queryByRole("list", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(await within(await ordersOf()).findByText("Bu mijozda buyurtma yo'q")).toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Buyurtmalar" })).not.toBeInTheDocument()
 })
 
 test("a customer with orders is not deleted: the API's reason is shown, and the customer stays", async () => {
@@ -429,7 +429,7 @@ test("an employee whose role holds customers.view alone sees the customer withou
   expect(screen.queryByRole("button", { name: "Tahrirlash" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Mijozni o'chirish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("heading", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { name: "Buyurtmalar" })).not.toBeInTheDocument()
   // What the customer owes is the sales' business (logic/sales.md, section 5).
   expect(screen.queryByRole("region", { name: "Balans" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Hisob harakati" })).not.toBeInTheDocument()
@@ -515,7 +515,7 @@ test("the customer's actions follow the role: editing, the history and the order
   expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Mijozni o'chirish" })).not.toBeInTheDocument()
   expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
-  expect(screen.getByRole("heading", { name: "Vazifalar" })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { name: "Buyurtmalar" })).toBeInTheDocument()
 })
 
 // A customer's orders are those of every location the member works in,
@@ -529,7 +529,7 @@ test("a customer's orders are of every location the member works in; with two or
 
   open(dilshod.id)
 
-  const rows = within(await within(await ordersOf()).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
+  const rows = within(await within(await ordersOf()).findByRole("list", { name: "Buyurtmalar" })).getAllByRole("link")
   expect(rows.map((row) => [rowParts(row).title, rowParts(row).sub])).toEqual([
     ["Eski buyurtma", "Bajarildi · Asosiy · Ali V."],
     ["Qo'ng'iroq qilish", "Yangi · Chilonzor · Vali A."],
@@ -546,17 +546,17 @@ test("the customer's tiles: editing for whoever may, and the call to its phone",
   expect(tiles.getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998911112233")
 })
 
-test("the customer's Vazifa tile enters an order for it: the sheet opens with the customer as its card", async () => {
+test("the customer's Buyurtma tile enters an order for it: the sheet opens with the customer as its card", async () => {
   await signIn(ALI)
   const { dilshod } = seedOrders()
   const { user } = open(dilshod.id)
 
-  await user.click(within(await screen.findByRole("group", { name: "Amallar" })).getByRole("button", { name: "Vazifa" }))
+  await user.click(within(await screen.findByRole("group", { name: "Amallar" })).getByRole("button", { name: "Buyurtma" }))
 
-  const dialog = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
+  const dialog = await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })
   const linked = within(dialog).getByRole("region", { name: "Mavjud mijoz" })
   expect(within(linked).getByText("Dilshod Karimov")).toBeInTheDocument()
-  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   await user.type(within(order).getByLabelText("Nomi"), "Mijoz sahifasidan")
   fireEvent.change(within(order).getByLabelText("Muddat"), { target: { value: localToday() } })
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
@@ -573,5 +573,5 @@ test("the tile to enter an order is there for whoever may add orders, in a locat
   const { dilshod } = seedOrders()
   open(dilshod.id)
 
-  expect(within(await screen.findByRole("group", { name: "Amallar" })).queryByRole("button", { name: "Vazifa" })).not.toBeInTheDocument()
+  expect(within(await screen.findByRole("group", { name: "Amallar" })).queryByRole("button", { name: "Buyurtma" })).not.toBeInTheDocument()
 })

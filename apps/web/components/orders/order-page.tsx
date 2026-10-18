@@ -37,7 +37,7 @@ import { StageBadge } from "./stage-badge"
 import { StageTrack } from "./stage-track"
 import { OrderHistory } from "./order-history"
 
-const back = { href: "/orders", label: "Vazifalar" }
+const back = { href: "/orders", label: "Buyurtmalar" }
 
 // OrderPage is one order of the company, for whoever may see the orders
 // (changing, moving, deleting and the history each take their permission),
@@ -72,7 +72,7 @@ export function OrderPage({ id }: { id: number }) {
     return (
       <>
         <BackLink {...back} />
-        <NotFound title="Vazifa topilmadi" description="Bu vazifa o'chirilgan yoki sizning kompaniyangizniki emas." />
+        <NotFound title="Buyurtma topilmadi" description="Bu buyurtma o'chirilgan yoki sizning kompaniyangizniki emas." />
       </>
     )
   }
@@ -83,7 +83,7 @@ export function OrderPage({ id }: { id: number }) {
   if (!order.data || !types.data || !stages.data || !dropdowns.data || companyId === null) {
     return (
       <>
-        <PageTitle title="Vazifa" back={back} />
+        <PageTitle title="Buyurtma" back={back} />
         {failed?.error ? (
           <Failed error={failed.error} onRetry={() => queries.forEach((query) => query.refetch())} />
         ) : (

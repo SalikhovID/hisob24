@@ -12,7 +12,7 @@ test("a stage is asked in the prototype's sheet, opened from outside: the name a
 
   const sheet = await screen.findByRole("dialog", { name: "Bosqich qo'shish" })
   expect(within(sheet).getByLabelText("Nomi")).toHaveAttribute("placeholder", "Masalan, Jarayonda")
-  expect(within(sheet).getByText("Bu bosqichdagi vazifa bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.")).toBeInTheDocument()
+  expect(within(sheet).getByText("Bu bosqichdagi buyurtma bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.")).toBeInTheDocument()
   await user.type(within(sheet).getByLabelText("Nomi"), "Kutilmoqda")
   await user.click(within(within(sheet).getByRole("radiogroup", { name: "Rangi" })).getByRole("radio", { name: "Moviy" }))
   expect(within(sheet).getByText("Rangi · Moviy")).toBeInTheDocument()
@@ -29,7 +29,7 @@ test("a stage being changed comes filled in, and may be deleted from its sheet: 
   const { user } = renderWithProviders(
     <StageDialog
       title="Bosqichni tahrirlash"
-      description="Bu bosqichdagi vazifalar o'z joyida qoladi."
+      description="Bu bosqichdagi buyurtmalar o'z joyida qoladi."
       initial={{ name: "Jarayonda", color: "amber", is_done: false }}
       submit="Saqlash"
       done="Bosqich saqlandi"

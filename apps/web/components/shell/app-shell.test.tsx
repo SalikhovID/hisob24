@@ -104,7 +104,7 @@ test("the tab bar names the member's pages under the page and «Sozlamalar», fo
   expect(bars).toHaveLength(2)
   const tabBar = bars[1]
   // The member's four pages, then «Sozlamalar», the way to the rest.
-  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
+  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
   expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
 })

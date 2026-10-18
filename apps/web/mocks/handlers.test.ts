@@ -1275,12 +1275,12 @@ test("the orders list: the one due soonest first, twenty to a page, the filters 
   expect(await found({ search: "3012" })).toEqual([firmas.id])
   expect(await found({ search: "7777" })).toEqual([firmas.id])
 
-  for (let i = 0; i < 20; i += 1) await createOrder(orderBody(s, { title: `Vazifa ${i}`, deadline: "2026-11-01" }))
+  for (let i = 0; i < 20; i += 1) await createOrder(orderBody(s, { title: `Buyurtma ${i}`, deadline: "2026-11-01" }))
   const first = await listOrders()
   expect(first.items).toHaveLength(20)
   expect(first.total).toBe(24)
   const second = await listOrders({ page: 2 })
-  expect(second.items.map((t) => t.title)).toEqual(["Vazifa 16", "Vazifa 17", "Vazifa 18", "Vazifa 19"])
+  expect(second.items.map((t) => t.title)).toEqual(["Buyurtma 16", "Buyurtma 17", "Buyurtma 18", "Buyurtma 19"])
   expect(second).toMatchObject({ total: 24, page: 2, page_size: 20 })
   expect(await listOrders({ page: 3 })).toEqual({ items: [], total: 24, page: 3, page_size: 20 })
   const bad: [OrderQuery, string][] = [
@@ -1496,7 +1496,7 @@ test("the owner makes, changes and deletes roles; the permissions come back in t
   })
   expect(await failure(updateRole(sotuvchi.id, { name: "Kassir", permissions: ["orders.create"] }))).toMatchObject({
     status: 400,
-    message: "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang",
+    message: "«Buyurtmalar» bo'limida avval «Ko'rish» ni belgilang",
   })
   expect(await failure(updateRole(999999, { name: "X", permissions: [] }))).toMatchObject({ status: 404, message: "Rol topilmadi" })
 

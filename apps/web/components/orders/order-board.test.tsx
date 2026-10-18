@@ -61,7 +61,7 @@ test("the board shows a column per stage, in order, with the orders due soonest 
   const [late] = within(column("Yangi")).getAllByRole("listitem")
   expect(within(late).getByText(due(-2, "2 kun kechikdi"))).toHaveClass("text-destructive")
   // Each column has a way to add an order into it; the board says how a card is moved.
-  expect(within(column("Jarayonda")).getByRole("button", { name: "Vazifa qo'shish: Jarayonda" })).toBeInTheDocument()
+  expect(within(column("Jarayonda")).getByRole("button", { name: "Buyurtma qo'shish: Jarayonda" })).toBeInTheDocument()
   expect(screen.getByText("Kartani bosib turing va boshqa ustunga suring yoki ⋯ orqali bosqichni almashtiring.")).toBeInTheDocument()
   expect(bajarildi.done).toBe(true)
 })
@@ -154,7 +154,7 @@ test("a move the API refuses puts the card back and says why; the stages are ask
 function many(n: number) {
   const { call } = seedOrders()
   for (let i = 0; i < n; i += 1) {
-    db.orders.push({ ...call, id: nextId(), title: `Vazifa ${String(i).padStart(2, "0")}`, deadline: addDays(today, 10), values: { ...call.values } })
+    db.orders.push({ ...call, id: nextId(), title: `Buyurtma ${String(i).padStart(2, "0")}`, deadline: addDays(today, 10), values: { ...call.values } })
   }
 }
 
@@ -167,13 +167,13 @@ test("a column shows twenty orders and offers more; Jami says how many there are
 
   await waitFor(() => expect(cards("Yangi")).toHaveLength(20))
   expect(within(column("Yangi")).getByText("Jami: 23")).toBeInTheDocument()
-  expect(cards("Yangi").slice(-2)).toEqual(["Vazifa 16", "Vazifa 17"])
+  expect(cards("Yangi").slice(-2)).toEqual(["Buyurtma 16", "Buyurtma 17"])
   expect(within(column("Jarayonda")).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
 
   await user.click(within(column("Yangi")).getByRole("button", { name: "Yana" }))
 
   await waitFor(() => expect(cards("Yangi")).toHaveLength(23))
-  expect(cards("Yangi").slice(-1)).toEqual(["Vazifa 20"])
+  expect(cards("Yangi").slice(-1)).toEqual(["Buyurtma 20"])
   expect(within(column("Yangi")).queryByRole("button", { name: "Yana" })).not.toBeInTheDocument()
   expect(await screen.findByText("25 ta")).toBeInTheDocument()
 })
@@ -230,7 +230,7 @@ test("an employee whose role holds orders.view alone sees the board without the 
   await board()
   await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
   expect(screen.queryByRole("button", { name: /^Bosqich: / })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /^Vazifa qo'shish/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: /^Buyurtma qo'shish/ })).not.toBeInTheDocument()
   expect(screen.queryByText(/Kartani bosib turing/)).not.toBeInTheDocument()
 })
 

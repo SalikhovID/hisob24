@@ -16,9 +16,9 @@ import { OrdersPage } from "./orders-page"
 
 // The list is the orders grouped by how far their deadline is, each group a
 // list of rows, each row the way into its order.
-const list = () => screen.findByRole("region", { name: "Vazifalar" })
+const list = () => screen.findByRole("region", { name: "Buyurtmalar" })
 const rowsOf = (region: HTMLElement) => within(region).queryAllByRole("link")
-const titles = () => rowsOf(screen.getByRole("region", { name: "Vazifalar" })).map((row) => rowParts(row).title)
+const titles = () => rowsOf(screen.getByRole("region", { name: "Buyurtmalar" })).map((row) => rowParts(row).title)
 const groupsOf = (region: HTMLElement) => within(region).getAllByRole("list").map((group) => [group.getAttribute("aria-label"), within(group).getAllByRole("link").map((row) => rowParts(row).title)])
 
 const today = localToday()
@@ -32,7 +32,7 @@ test("the orders list groups the orders by their deadline: the late, today's, th
 
   renderWithProviders(<OrdersPage />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Vazifalar" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtmalar" })).toBeInTheDocument()
   const region = await list()
   expect(groupsOf(region)).toEqual([
     ["Kechikkan", ["Hisob-faktura"]],
@@ -77,7 +77,7 @@ test("a type chip keeps the orders of one type and stays in the address", async 
   const { user } = renderWithProviders(<OrdersPage />)
   await list()
 
-  const types = screen.getByRole("radiogroup", { name: "Vazifa turi" })
+  const types = screen.getByRole("radiogroup", { name: "Buyurtma turi" })
   expect(within(types).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Barchasi", "Buyurtma", "Montaj"])
   await user.click(within(types).getByRole("radio", { name: "Montaj" }))
 
@@ -158,7 +158,7 @@ test("a search narrows the list, starts from the first page and stays in the add
 
   await user.clear(box)
   await user.type(box, "zzz")
-  expect(await screen.findByText("Vazifalar topilmadi")).toBeInTheDocument()
+  expect(await screen.findByText("Buyurtmalar topilmadi")).toBeInTheDocument()
   expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
 })
 
@@ -167,7 +167,7 @@ test("a search narrows the list, starts from the first page and stays in the add
 function many(n: number) {
   const { call } = seedOrders()
   for (let i = 0; i < n; i += 1) {
-    db.orders.push({ ...call, id: nextId(), title: `Vazifa ${i}`, deadline: addDays(today, 10), values: { ...call.values } })
+    db.orders.push({ ...call, id: nextId(), title: `Buyurtma ${i}`, deadline: addDays(today, 10), values: { ...call.values } })
   }
 }
 
@@ -183,7 +183,7 @@ test("the list goes page by page, twenty at a time", async () => {
 
   await user.click(screen.getByRole("button", { name: "Keyingi" }))
 
-  await waitFor(() => expect(rowsOf(screen.getByRole("region", { name: "Vazifalar" }))).toHaveLength(5))
+  await waitFor(() => expect(rowsOf(screen.getByRole("region", { name: "Buyurtmalar" }))).toHaveLength(5))
   expect(currentUrl()).toBe("/orders?view=list&page=2")
   expect(screen.getByText("25 tadan 5 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page")
@@ -241,13 +241,13 @@ test("a list that did not load says why and offers to try again", async () => {
   setLocation("/orders?view=list")
   server.use(
     http.get("*/api/app/orders", () =>
-      HttpResponse.json({ error: "internal_error", message: "Vazifalar yuklanmadi: ichki xatolik" }, { status: 500 }),
+      HttpResponse.json({ error: "internal_error", message: "Buyurtmalar yuklanmadi: ichki xatolik" }, { status: 500 }),
     ),
   )
   const { user } = renderWithProviders(<OrdersPage />)
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("Vazifalar yuklanmadi: ichki xatolik")
-  expect(screen.queryByRole("region", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(await screen.findByRole("alert")).toHaveTextContent("Buyurtmalar yuklanmadi: ichki xatolik")
+  expect(screen.queryByRole("region", { name: "Buyurtmalar" })).not.toBeInTheDocument()
 
   server.resetHandlers()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
@@ -261,13 +261,13 @@ test("a company with no orders says so, and offers to add the first", async () =
 
   const { user } = renderWithProviders(<OrdersPage />)
 
-  expect(await screen.findByText("Hali vazifa yo'q")).toBeInTheDocument()
-  expect(screen.queryByRole("region", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(await screen.findByText("Hali buyurtma yo'q")).toBeInTheDocument()
+  expect(screen.queryByRole("region", { name: "Buyurtmalar" })).not.toBeInTheDocument()
   expect(screen.getByText("0 ta")).toBeInTheDocument()
-  const buttons = screen.getAllByRole("button", { name: "Vazifa qo'shish" })
+  const buttons = screen.getAllByRole("button", { name: "Buyurtma qo'shish" })
   expect(buttons).toHaveLength(2)
   await user.click(buttons[1])
-  expect(await screen.findByRole("dialog", { name: "Vazifa qo'shish" })).toBeInTheDocument()
+  expect(await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })).toBeInTheDocument()
 })
 
 test("an employee sees the company's orders too", async () => {
@@ -296,8 +296,8 @@ test("with no stages the owner is led to the settings, and no order can be added
   expect(await screen.findByText("Sozlama yetishmaydi")).toBeInTheDocument()
   expect(screen.getByText("Avval bosqichlarni sozlang.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings/order-types")
-  expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("radiogroup", { name: "Vazifa turi" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Buyurtma qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("radiogroup", { name: "Buyurtma turi" })).not.toBeInTheDocument()
   expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
 })
 
@@ -316,8 +316,8 @@ test("with no stages, or no order types, an employee is told whose it is to set 
   noTypes()
   renderWithProviders(<OrdersPage />)
 
-  expect(await screen.findByText("Kompaniya egasi vazifa turlarini sozlashi kerak.")).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
+  expect(await screen.findByText("Kompaniya egasi buyurtma turlarini sozlashi kerak.")).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Buyurtma qo'shish" })).not.toBeInTheDocument()
 })
 
 test("with no order types the owner is led to the settings", async () => {
@@ -327,7 +327,7 @@ test("with no order types the owner is led to the settings", async () => {
 
   renderWithProviders(<OrdersPage />)
 
-  expect(await screen.findByText("Avval vazifa turlarini sozlang.")).toBeInTheDocument()
+  expect(await screen.findByText("Avval buyurtma turlarini sozlang.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings/order-types")
 })
 
@@ -344,8 +344,8 @@ test.each([
   renderWithProviders(<OrdersPage />)
 
   await list()
-  if (shown) expect(screen.getByRole("button", { name: "Vazifa qo'shish" })).toBeInTheDocument()
-  else expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
+  if (shown) expect(screen.getByRole("button", { name: "Buyurtma qo'shish" })).toBeInTheDocument()
+  else expect(screen.queryByRole("button", { name: "Buyurtma qo'shish" })).not.toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
 })
 
@@ -357,7 +357,7 @@ test("an employee whose role holds no orders.view is sent home", async () => {
   renderWithProviders(<OrdersPage />)
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
-  expect(screen.queryByRole("heading", { level: 1, name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("heading", { level: 1, name: "Buyurtmalar" })).not.toBeInTheDocument()
 })
 
 // The orders the page shows are the current location's (logic/locations.md,
@@ -392,7 +392,7 @@ test("a change of location takes the list back to its first page", async () => {
   const chilonzor = addLocation(1, "Chilonzor")
   setLocation("/orders?view=list&page=2")
   renderWithProviders(<OrdersPage />)
-  await screen.findByRole("heading", { level: 1, name: "Vazifalar" })
+  await screen.findByRole("heading", { level: 1, name: "Buyurtmalar" })
   await screen.findByRole("button", { name: "Barcha mas'ullar" })
   expect(currentUrl()).toBe("/orders?view=list&page=2")
 
@@ -413,8 +413,8 @@ test("a member with no location to work in is told so, and cannot add an order",
 
   expect(await screen.findByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
   expect(screen.getByText("Kompaniya egasi lokatsiya biriktirishi kerak.")).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("region", { name: "Vazifalar" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Buyurtma qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("region", { name: "Buyurtmalar" })).not.toBeInTheDocument()
   expect(screen.queryByRole("region", { name: "Kanban" })).not.toBeInTheDocument()
 })
 

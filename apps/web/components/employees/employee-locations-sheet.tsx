@@ -84,7 +84,7 @@ export function EmployeeLocationsSheet({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Lokatsiyalarni o&apos;zgartirish</DialogTitle>
-          <DialogDescription>Xodim faqat belgilangan lokatsiyalarning vazifalarini ko&apos;radi va qo&apos;shadi.</DialogDescription>
+          <DialogDescription>Xodim faqat belgilangan lokatsiyalarning buyurtmalarini ko&apos;radi va qo&apos;shadi.</DialogDescription>
         </DialogHeader>
         <SheetForm onSubmit={submit}>
           {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
@@ -125,7 +125,7 @@ export function EmployeeLocationsSheet({
           {elsewhere > 0 && (
             <p role="status" className="flex items-start gap-2.5 rounded-group bg-warning-soft px-4 py-3 text-md text-warning">
               <TriangleAlertIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-              Boshqa lokatsiyalarda {elsewhere} ta vazifaga mas&apos;ul. Saqlash baribir mumkin.
+              Boshqa lokatsiyalarda {elsewhere} ta buyurtmaga mas&apos;ul. Saqlash baribir mumkin.
             </p>
           )}
           <DialogFooter>

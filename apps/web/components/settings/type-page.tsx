@@ -36,13 +36,13 @@ const words = {
     fieldStops: "Mijozlarda to'ldirilgan maydon o'chirilmaydi.",
   },
   order: {
-    what: "Vazifa turi",
-    back: { href: "/settings/order-types", label: "Vazifa turlari" },
-    noFields: "Vazifa nomi, muddati, mijozi va mas'uli bilan qo'shiladi.",
-    foot: "Nomi, muddat va mijoz har vazifada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.",
-    rename: { title: "Vazifa turi nomini o'zgartirish", description: "Turning maydonlari va shu turdagi vazifalar o'zgarmaydi.", done: "Vazifa turi nomi o'zgartirildi" },
-    remove: { title: "Vazifa turini o'chirasizmi?", done: "Vazifa turi o'chirildi", stops: "Vazifasi bor tur o'chirilmaydi." },
-    fieldStops: "Vazifalarda to'ldirilgan maydon o'chirilmaydi.",
+    what: "Buyurtma turi",
+    back: { href: "/settings/order-types", label: "Buyurtma turlari" },
+    noFields: "Buyurtma nomi, muddati, mijozi va mas'uli bilan qo'shiladi.",
+    foot: "Nomi, muddat va mijoz har buyurtmada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.",
+    rename: { title: "Buyurtma turi nomini o'zgartirish", description: "Turning maydonlari va shu turdagi buyurtmalar o'zgarmaydi.", done: "Buyurtma turi nomi o'zgartirildi" },
+    remove: { title: "Buyurtma turini o'chirasizmi?", done: "Buyurtma turi o'chirildi", stops: "Buyurtmasi bor tur o'chirilmaydi." },
+    fieldStops: "Buyurtmalarda to'ldirilgan maydon o'chirilmaydi.",
   },
 } as const
 

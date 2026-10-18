@@ -12,11 +12,11 @@ import { QuickTiles } from "./quick-tiles"
 const tiles = () => within(screen.getByRole("group", { name: "Tezkor amallar" }))
 const names = () => Array.from(screen.getByRole("group", { name: "Tezkor amallar" }).querySelectorAll("a, button"), (tile) => tile.textContent)
 
-test("the tiles are the first four of Vazifa, Mijoz, Sotuv, Xarid, To'lov the member may use", async () => {
+test("the tiles are the first four of Buyurtma, Mijoz, Sotuv, Xarid, To'lov the member may use", async () => {
   await signIn(ALI)
   const { rerender } = renderWithProviders(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={allPermissions} />)
 
-  expect(names()).toEqual(["Vazifa", "Mijoz", "Sotuv", "Xarid"])
+  expect(names()).toEqual(["Buyurtma", "Mijoz", "Sotuv", "Xarid"])
 
   // With no location, nothing that goes into one.
   rerender(<QuickTiles companyId={1} locationId={null} permissions={allPermissions} />)
@@ -24,7 +24,7 @@ test("the tiles are the first four of Vazifa, Mijoz, Sotuv, Xarid, To'lov the me
 
   const role: Permission[] = ["orders.view", "orders.create", "customers.view", "purchases.view", "purchases.create", "suppliers.view"]
   rerender(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={role} />)
-  expect(names()).toEqual(["Vazifa", "Xarid", "To'lov"])
+  expect(names()).toEqual(["Buyurtma", "Xarid", "To'lov"])
 
   rerender(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={["orders.view"]} />)
   expect(screen.queryByRole("group", { name: "Tezkor amallar" })).not.toBeInTheDocument()
@@ -38,14 +38,14 @@ test("Sotuv and Xarid lead to their new documents", async () => {
   expect(tiles().getByRole("link", { name: "Xarid" })).toHaveAttribute("href", "/purchases/new")
 })
 
-test("Vazifa enters an order right from the home", async () => {
+test("Buyurtma enters an order right from the home", async () => {
   seedOrders()
   await signIn(ALI)
   const { user } = renderWithProviders(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={allPermissions} />)
 
-  await user.click(tiles().getByRole("button", { name: "Vazifa" }))
+  await user.click(tiles().getByRole("button", { name: "Buyurtma" }))
 
-  expect(await screen.findByRole("dialog", { name: "Vazifa qo'shish" })).toBeInTheDocument()
+  expect(await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })).toBeInTheDocument()
 })
 
 test("Mijoz enters a customer right from the home", async () => {

@@ -88,7 +88,7 @@ export function AddOrderDialog({
       queryClient.invalidateQueries({ queryKey: ordersKey(companyId) })
       // A new customer is among the customers now.
       queryClient.invalidateQueries({ queryKey: customersKey(companyId) })
-      toast.success("Vazifa qo'shildi")
+      toast.success("Buyurtma qo'shildi")
       onClose()
     },
   })
@@ -148,15 +148,15 @@ export function AddOrderDialog({
     >
       <DialogContent tall>
         <DialogHeader>
-          <DialogTitle>Vazifa qo&apos;shish</DialogTitle>
-          <DialogDescription>Turni tanlang, mijozni biriktiring va vazifani to&apos;ldiring.</DialogDescription>
+          <DialogTitle>Buyurtma qo&apos;shish</DialogTitle>
+          <DialogDescription>Turni tanlang, mijozni biriktiring va buyurtmani to&apos;ldiring.</DialogDescription>
         </DialogHeader>
         <SheetForm onSubmit={form.handleSubmit((order) => add.mutate(order))}>
           {add.isError && <OrderRefusal error={add.error} onLink={linkById} />}
           {/* With one type there is nothing to choose. */}
           {types.length > 1 && (
             <ChoiceChips
-              label="Vazifa turi"
+              label="Buyurtma turi"
               value={String(type.id)}
               onChange={(value) => changeType(Number(value))}
               options={types.map((candidate) => ({ value: String(candidate.id), label: candidate.name }))}
@@ -176,7 +176,7 @@ export function AddOrderDialog({
               onUnlink={unlink}
             />
           </FormSection>
-          <FormSection legend="Vazifa">
+          <FormSection legend="Buyurtma">
             <OrderFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} locationId={locationId} />
           </FormSection>
           <DialogFooter>

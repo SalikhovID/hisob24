@@ -25,10 +25,10 @@ test("the bar's editor shows the bar as it is: a picture of it with «Sozlamalar
   expect(await screen.findByRole("heading", { level: 1, name: "Pastki panel" })).toBeInTheDocument()
   expect(await screen.findByText("4 ta tugmani o'zingizga moslang. Sozlamalar doim oxirida.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
-  expect(names(preview())).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
+  expect(names(preview())).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
   expect(screen.getByRole("heading", { level: 2, name: "Paneldagi tugmalar" })).toBeInTheDocument()
   expect(screen.getByText("4 / 4")).toBeInTheDocument()
-  expect(names(pages())).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Kassa", "Xodimlar", ...rest])
+  expect(names(pages())).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sotuv", "Ombor", "Kassa", "Xodimlar", ...rest])
   // The first four go off the bar with ✓, the rest come on with +; a line
   // of words stands between them.
   expect(within(pages()).getByRole("button", { name: "Paneldan olib tashlash: Mahsulotlar" })).toBeInTheDocument()
@@ -43,11 +43,11 @@ test("✓ takes a page off the bar, the first page past it taking its place; + p
   await signIn(ALI)
   const { user } = renderWithProviders(<TabBarPage />)
 
-  await user.click(await screen.findByRole("button", { name: "Paneldan olib tashlash: Vazifalar" }))
+  await user.click(await screen.findByRole("button", { name: "Paneldan olib tashlash: Buyurtmalar" }))
   expect(names(preview())).toEqual(["Bosh sahifa", "Mijozlar", "Sotuv", "Mahsulotlar", "Sozlamalar"])
   await user.click(screen.getByRole("button", { name: "Panelga qo'shish: Xaridlar" }))
   expect(names(preview())).toEqual(["Bosh sahifa", "Mijozlar", "Sotuv", "Xaridlar", "Sozlamalar"])
-  expect(names(pages()).slice(0, 5)).toEqual(["Bosh sahifa", "Mijozlar", "Sotuv", "Xaridlar", "Vazifalar"])
+  expect(names(pages()).slice(0, 5)).toEqual(["Bosh sahifa", "Mijozlar", "Sotuv", "Xaridlar", "Buyurtmalar"])
   expect(screen.getByRole("button", { name: "Standart holat" })).toBeEnabled()
 })
 
@@ -59,9 +59,9 @@ test("with no page past the bar to take its place a page stays on it, and the ed
 
   expect(await screen.findByText("2 ta tugmani o'zingizga moslang. Sozlamalar doim oxirida.")).toBeInTheDocument()
   expect(screen.getByText("2 / 2")).toBeInTheDocument()
-  await user.click(screen.getByRole("button", { name: "Paneldan olib tashlash: Vazifalar" }))
+  await user.click(screen.getByRole("button", { name: "Paneldan olib tashlash: Buyurtmalar" }))
   expect(await screen.findByText("Almashtirish uchun boshqa sahifa yo'q")).toBeInTheDocument()
-  expect(names(preview())).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
+  expect(names(preview())).toEqual(["Bosh sahifa", "Buyurtmalar", "Sozlamalar"])
 })
 
 test("«Saqlash» keeps the bar's four pages, says so and goes back to the settings", async () => {
@@ -88,9 +88,9 @@ test("«Standart holat» puts the default bar back: kept so, no bar of the membe
   const { user } = renderWithProviders(<TabBarPage />)
 
   expect(await screen.findByRole("button", { name: "Paneldan olib tashlash: Xaridlar" })).toBeInTheDocument()
-  expect(names(preview())).toEqual(["Xaridlar", "Bosh sahifa", "Mijozlar", "Vazifalar", "Sozlamalar"])
+  expect(names(preview())).toEqual(["Xaridlar", "Bosh sahifa", "Mijozlar", "Buyurtmalar", "Sozlamalar"])
   await user.click(screen.getByRole("button", { name: "Standart holat" }))
-  expect(names(preview())).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
+  expect(names(preview())).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
   await waitFor(() => expect(sent).toEqual({ pages: null }))
 })

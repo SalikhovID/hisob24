@@ -66,10 +66,10 @@ export function SettingsPage() {
       <BarCard pins={pins} />
       {settings && (
         <>
-          <SectionHeading>Mijozlar va vazifalar</SectionHeading>
-          <Group label="Mijozlar va vazifalar" inset="tile">
+          <SectionHeading>Mijozlar va buyurtmalar</SectionHeading>
+          <Group label="Mijozlar va buyurtmalar" inset="tile">
             <Row href={settingsHref("customers")} media={<TileIcon icon={UserIcon} />} title="Mijoz turlari" end={count(customerTypes.data)} />
-            <Row href={settingsHref("orders")} media={<TileIcon icon={TagIcon} />} title="Vazifa turlari" end={count(orderTypes.data)} />
+            <Row href={settingsHref("orders")} media={<TileIcon icon={TagIcon} />} title="Buyurtma turlari" end={count(orderTypes.data)} />
             <Row href={settingsHref("stages")} media={<TileIcon icon={LayersIcon} />} title="Bosqichlar" end={count(stages.data)} />
             <Row href={settingsHref("dropdowns")} media={<TileIcon icon={ListIcon} />} title="Dropdownlar" end={count(dropdowns.data)} />
           </Group>

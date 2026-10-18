@@ -22,14 +22,14 @@ export function CustomerOrders({ companyId, customerId }: { companyId: number; c
   const failed = queries.find((query) => query.isError)
   const data = orders.data
   return (
-    <section aria-label="Vazifalar">
-      <SectionHeading>Vazifalar</SectionHeading>
+    <section aria-label="Buyurtmalar">
+      <SectionHeading>Buyurtmalar</SectionHeading>
       {!failed && queries.some((query) => query.isPending) && <ListLoading rows={2} mark="none" />}
       {failed?.error && <Failed error={failed.error} onRetry={() => queries.forEach((query) => query.refetch())} />}
-      {!failed && data?.total === 0 && <EmptyState title="Bu mijozda vazifa yo'q" />}
+      {!failed && data?.total === 0 && <EmptyState title="Bu mijozda buyurtma yo'q" />}
       {!failed && data && stages.data && data.total > 0 && (
         <>
-          <Group label="Vazifalar" inset="icon">
+          <Group label="Buyurtmalar" inset="icon">
             {data.items.map((order) => (
               <OrderRow
                 key={order.id}

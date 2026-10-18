@@ -6,7 +6,7 @@ import { Foot, Group, KeyValue, Row, SectionHeading } from "./group"
 test("a group with a label is a list, its rows the items; a row with a way in is a link named by its title", () => {
   render(
     <Group label="Mijozlar" inset="icon">
-      <Row href="/customers/1" media={<span>AV</span>} title="Ali Valiyev" sub="+998 90 123 45 67" end="2 vazifa" />
+      <Row href="/customers/1" media={<span>AV</span>} title="Ali Valiyev" sub="+998 90 123 45 67" end="2 buyurtma" />
       <Row href="/customers/2" title="Bahor Agro XK" />
     </Group>,
   )
@@ -16,7 +16,7 @@ test("a group with a label is a list, its rows the items; a row with a way in is
   const link = within(list).getByRole("link", { name: /Ali Valiyev/ })
   expect(link).toHaveAttribute("href", "/customers/1")
   expect(link).toHaveTextContent("+998 90 123 45 67")
-  expect(link).toHaveTextContent("2 vazifa")
+  expect(link).toHaveTextContent("2 buyurtma")
   // The chevron is decoration.
   expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
 })
@@ -39,11 +39,11 @@ test("a danger row is centered red text, a link row the accent, both buttons", (
   render(
     <Group>
       <Row variant="danger" onClick={() => {}} title="Mijozni o'chirish" />
-      <Row variant="link" onClick={() => {}} title="Barcha vazifalar" />
+      <Row variant="link" onClick={() => {}} title="Barcha buyurtmalar" />
     </Group>,
   )
   expect(screen.getByRole("button", { name: "Mijozni o'chirish" })).toHaveAttribute("data-variant", "danger")
-  expect(screen.getByRole("button", { name: "Barcha vazifalar" })).toHaveAttribute("data-variant", "link")
+  expect(screen.getByRole("button", { name: "Barcha buyurtmalar" })).toHaveAttribute("data-variant", "link")
 })
 
 test("a key-value row shows a dash for a value that is not there", () => {

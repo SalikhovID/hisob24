@@ -129,7 +129,7 @@ test("an employee finds no settings: «Sozlamalar» lists the pages they may ope
   await page.goto("/settings")
   await expect(page.getByRole("heading", { level: 1, name: "Sozlamalar" })).toBeVisible()
   await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toBeVisible()
-  await expect(page.getByRole("main").getByRole("list", { name: "Mijozlar va vazifalar" })).toHaveCount(0)
+  await expect(page.getByRole("main").getByRole("list", { name: "Mijozlar va buyurtmalar" })).toHaveCount(0)
 
   for (const address of ["/settings/customer-types", `/settings/customer-types/${typesOf(1)[0].id}`]) {
     await page.goto(address)
@@ -164,19 +164,19 @@ test("the owner makes a stage with its color and the final mark, and puts the st
 
 test("the owner makes an order type and gives it a choice field; the dropdown it uses is not deleted", async ({ page }) => {
   await openSettings(page)
-  await openPart(page, "Vazifa turlari", /\/settings\/order-types$/)
-  const types = page.getByRole("list", { name: "Vazifa turlari" })
+  await openPart(page, "Buyurtma turlari", /\/settings\/order-types$/)
+  const types = page.getByRole("list", { name: "Buyurtma turlari" })
   await expect(types.getByRole("link", { name: /^Buyurtma/ })).toBeVisible()
 
-  await page.getByRole("button", { name: "Vazifa turi qo'shish" }).click()
-  let sheet = page.getByRole("dialog", { name: "Vazifa turi qo'shish" })
+  await page.getByRole("button", { name: "Buyurtma turi qo'shish" }).click()
+  let sheet = page.getByRole("dialog", { name: "Buyurtma turi qo'shish" })
   await sheet.getByLabel("Nomi").fill("Montaj")
   await sheet.getByRole("button", { name: "Qo'shish" }).click()
   await expect(sheet).toBeHidden()
   await types.getByRole("link", { name: /^Montaj/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Montaj" })).toBeVisible()
   await expect(page.getByText("Bu turda maydon yo'q")).toBeVisible()
-  await expect(page.getByText("Vazifa turi · 0 ta maydon")).toBeVisible()
+  await expect(page.getByText("Buyurtma turi · 0 ta maydon")).toBeVisible()
 
   await page.getByRole("button", { name: "Maydon qo'shish" }).click()
   sheet = page.getByRole("dialog", { name: "Maydon qo'shish" })
@@ -190,11 +190,11 @@ test("the owner makes an order type and gives it a choice field; the dropdown it
   const fields = page.getByRole("list", { name: "Maydonlar" })
   await expect(fields.getByText("Radio (bitta tanlov) · Manba")).toBeVisible()
   await expect(fields.getByText("Majburiy")).toBeVisible()
-  await expect(page.getByText("Vazifa turi · 1 ta maydon")).toBeVisible()
+  await expect(page.getByText("Buyurtma turi · 1 ta maydon")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   // A dropdown that an order field takes its options from is not deleted.
-  await back(page, "Vazifa turlari")
+  await back(page, "Buyurtma turlari")
   await expect(types.getByRole("link", { name: /^Montaj/ })).toBeVisible()
   await back(page, "Sozlamalar")
   await openPart(page, "Dropdownlar", /\/settings\/dropdowns$/)

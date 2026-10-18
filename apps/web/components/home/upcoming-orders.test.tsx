@@ -47,19 +47,19 @@ test("the orders due soonest, each a way to its page with its customer, assignee
   expect(rows[1]).toHaveTextContent("Bugun")
   expect(rows[1]).not.toHaveTextContent("·")
   expect(rows[2]).toHaveTextContent("3 kun qoldi")
-  expect(rows[3]).toHaveAccessibleName("Barcha vazifalar")
+  expect(rows[3]).toHaveAccessibleName("Barcha buyurtmalar")
 })
 
 test("with no order open it says so, and offers to add one to whoever may", async () => {
   const onAdd = vi.fn()
   const { rerender } = render(<UpcomingOrders orders={{ active: 0, late: 0, by_stage: [], upcoming: [] }} stages={stages} hasLocation canAdd onAdd={onAdd} />)
 
-  expect(screen.getByText("Faol vazifa yo'q")).toBeInTheDocument()
-  await userEvent.click(screen.getByRole("button", { name: "Vazifa qo'shish" }))
+  expect(screen.getByText("Faol buyurtma yo'q")).toBeInTheDocument()
+  await userEvent.click(screen.getByRole("button", { name: "Buyurtma qo'shish" }))
   expect(onAdd).toHaveBeenCalledTimes(1)
 
   rerender(<UpcomingOrders orders={{ active: 0, late: 0, by_stage: [], upcoming: [] }} stages={stages} hasLocation canAdd={false} onAdd={onAdd} />)
-  expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Buyurtma qo'shish" })).not.toBeInTheDocument()
 })
 
 test("a member with no location is told so", () => {

@@ -8,14 +8,14 @@ test("a stat card is the way to its section, named by its title and figure", () 
     <StatCard
       href="/orders"
       icon={CheckIcon}
-      title="Vazifalar"
+      title="Buyurtmalar"
       value="12"
       unit="ta faol"
       meta={<span>2 kechikkan</span>}
       chart={<Sparkline values={[1, 3, 2]} />}
     />,
   )
-  const card = screen.getByRole("link", { name: /Vazifalar/ })
+  const card = screen.getByRole("link", { name: /Buyurtmalar/ })
   expect(card).toHaveAttribute("href", "/orders")
   expect(card).toHaveTextContent("12")
   expect(card).toHaveTextContent("ta faol")
@@ -46,8 +46,8 @@ test("a sparkline is one path over its values", () => {
 })
 
 test("a stat card is frosted glass, its section's mark the icon on the plain fill, in the text's ink", () => {
-  render(<StatCard href="/orders" icon={CheckIcon} title="Vazifalar" value="12" />)
-  const card = screen.getByRole("link", { name: /Vazifalar/ })
+  render(<StatCard href="/orders" icon={CheckIcon} title="Buyurtmalar" value="12" />)
+  const card = screen.getByRole("link", { name: /Buyurtmalar/ })
   expect(card).toHaveClass("surface", "rounded-group")
   expect(card).not.toHaveClass("bg-card")
   const mark = card.querySelector("[aria-hidden=true]") as HTMLElement

@@ -19,7 +19,7 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
     await expect(page.getByRole("banner")).toHaveCount(0)
     const bar = tabBar(page)
     // The default bar: four pages, «Sozlamalar» last, the way to the rest.
-    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
+    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
     // The bar floats over the page, clear of the bottom edge, and the page fits its width.
     const box = (await bar.boundingBox())!
@@ -167,7 +167,7 @@ test("on a phone the member chooses the bar's pages on «Pastki panel», under t
     await expect((await sections(page)).getByRole("link")).toHaveText([
       "Bosh sahifa",
       "Mijozlar",
-      "Vazifalar",
+      "Buyurtmalar",
       "Mahsulotlar",
       "Sotuv",
       "Ombor",
@@ -194,7 +194,7 @@ test("on a phone the member chooses the bar's pages on «Pastki panel», under t
   // The bar steps aside on its own editor, which pictures it.
   await expect(page.getByRole("navigation", { name: "Bo'limlar" })).toHaveCount(0)
   await expect(editor.getByText("4 / 4")).toBeVisible()
-  await editor.getByRole("button", { name: "Paneldan olib tashlash: Vazifalar" }).click()
+  await editor.getByRole("button", { name: "Paneldan olib tashlash: Buyurtmalar" }).click()
   await editor.getByRole("button", { name: "Panelga qo'shish: Xaridlar" }).click()
   await editor.getByRole("button", { name: "Xaridlar: tartibini o'zgartirish" }).focus()
   await page.keyboard.press("Home")
@@ -216,7 +216,7 @@ test("on a phone the member chooses the bar's pages on «Pastki panel», under t
   await editor.getByRole("button", { name: "Standart holat" }).click()
   await editor.getByRole("button", { name: "Saqlash" }).click()
   await expect(page).toHaveURL(/\/settings$/)
-  await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
+  await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
 })
 
 // namesOf reads the bar's names as the screen sets them: whether each shows

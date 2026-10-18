@@ -115,7 +115,7 @@ test("a divider may stand before an item: a line of words between the items, its
   render(
     <SortableList
       label="Panel"
-      items={["Bosh sahifa", "Mijozlar", "Vazifalar"]}
+      items={["Bosh sahifa", "Mijozlar", "Buyurtmalar"]}
       getId={(item) => item}
       getLabel={(item) => item}
       onReorder={() => {}}

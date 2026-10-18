@@ -48,11 +48,11 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await page.getByLabel("Rol nomi").fill("Sotuvchi")
   await tick(page, "Mijozlar", "Qo'shish")
   await expect(page.getByRole("group", { name: "Mijozlar" }).getByRole("switch", { name: "Ko'rish" })).toBeChecked()
-  await tick(page, "Vazifalar", "Ko'rish")
+  await tick(page, "Buyurtmalar", "Ko'rish")
   await page.getByRole("button", { name: "Yaratish" }).click()
   await expect(page).toHaveURL(/\/settings\/roles$/)
   const roles = page.getByRole("list", { name: "Rollar" })
-  await expect(roles.getByRole("link", { name: /^Sotuvchi/ })).toContainText("Mijozlar, Vazifalar")
+  await expect(roles.getByRole("link", { name: /^Sotuvchi/ })).toContainText("Mijozlar, Buyurtmalar")
   await expect(roles.getByRole("link", { name: /^Sotuvchi/ })).toContainText("Hech kimda")
 
   // The employee takes the role.
@@ -69,18 +69,18 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Sotuvchi" })
   const shown = await sections(page)
   // A phone's bar ends with «Sozlamalar», every member's way to their pages.
-  await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", ...(onPhone(page) ? ["Sozlamalar"] : [])])
+  await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", ...(onPhone(page) ? ["Sozlamalar"] : [])])
   await shown.getByRole("link", { name: "Mijozlar" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Mijoz qo'shish" }).first()).toBeVisible()
-  await openSection(page, "Vazifalar")
-  await expect(page.getByRole("heading", { level: 1, name: "Vazifalar" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Vazifa qo'shish" })).toHaveCount(0)
+  await openSection(page, "Buyurtmalar")
+  await expect(page.getByRole("heading", { level: 1, name: "Buyurtmalar" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Buyurtma qo'shish" })).toHaveCount(0)
   // The settings are not theirs: «Sozlamalar» lists their pages alone, and a
   // settings page's address leads home.
   await page.goto("/settings")
   await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toBeVisible()
-  await expect(page.getByRole("main").getByRole("list", { name: "Mijozlar va vazifalar" })).toHaveCount(0)
+  await expect(page.getByRole("main").getByRole("list", { name: "Mijozlar va buyurtmalar" })).toHaveCount(0)
   await page.goto("/settings/customer-types")
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()

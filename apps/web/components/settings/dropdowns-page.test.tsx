@@ -24,7 +24,7 @@ test("the dropdowns as the prototype's rows: each by name with its options under
   renderWithProviders(<DropdownsPage />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dropdownlar" })).toBeInTheDocument()
-  expect(screen.getByText("Tanlov maydonlari variantlarni shu yerdan oladi. Mijoz va vazifa maydonlari uchun umumiy.")).toBeInTheDocument()
+  expect(screen.getByText("Tanlov maydonlari variantlarni shu yerdan oladi. Mijoz va buyurtma maydonlari uchun umumiy.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
   const list = await dropdownList()
   expect(screen.getByRole("heading", { level: 2, name: "1 ta dropdown" })).toBeInTheDocument()

@@ -22,7 +22,7 @@ import { CustomerPicker } from "./customer-picker"
 export type FormControl = Control<OrderForm, unknown, OrderOutput>
 
 // FormSection is a part of a sheet's form, named by its legend, as the
-// prototype heads a group: «Mijoz», «Vazifa».
+// prototype heads a group: «Mijoz», «Buyurtma».
 export function FormSection({ legend, children }: { legend: string; children: ReactNode }) {
   return (
     <fieldset className="min-w-0">

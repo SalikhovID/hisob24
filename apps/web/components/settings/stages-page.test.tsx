@@ -27,7 +27,7 @@ test("the stages as the prototype's rows: each with its color's dot and name, th
   renderWithProviders(<StagesPage />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Bosqichlar" })).toBeInTheDocument()
-  expect(screen.getByText("Kanban ustunlari. Vazifa shulardan birida turadi.")).toBeInTheDocument()
+  expect(screen.getByText("Kanban ustunlari. Buyurtma shulardan birida turadi.")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
   expect(stagesIn(await stageList())).toEqual([
     ["Yangi", "Ko'k"],
@@ -35,7 +35,7 @@ test("the stages as the prototype's rows: each with its color's dot and name, th
     ["Bajarildi Yakuniy", "Yashil"],
   ])
   expect(screen.getByRole("heading", { level: 2, name: "3 ta bosqich" })).toBeInTheDocument()
-  expect(screen.getByText("Yakuniy bosqichdagi vazifa bajarilgan hisoblanadi va kanbanda yig'ilgan ustunda turadi.")).toBeInTheDocument()
+  expect(screen.getByText("Yakuniy bosqichdagi buyurtma bajarilgan hisoblanadi va kanbanda yig'ilgan ustunda turadi.")).toBeInTheDocument()
 })
 
 test("a stage is added from the plus's sheet with its color and the final mark; the sheet says what is missing, and why the API refused", async () => {
@@ -132,7 +132,7 @@ test("with none yet the stages say what they are for; a list that fails to load 
   db.stages.forEach((stage) => (stage.deleted = true))
   const { unmount } = renderWithProviders(<StagesPage />)
   expect(await screen.findByText("Hali bosqich yo'q")).toBeInTheDocument()
-  expect(screen.getByText("Vazifa qo'shish uchun kamida bitta bosqich kerak.")).toBeInTheDocument()
+  expect(screen.getByText("Buyurtma qo'shish uchun kamida bitta bosqich kerak.")).toBeInTheDocument()
   unmount()
 
   db.stages.forEach((stage) => (stage.deleted = false))

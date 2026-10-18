@@ -25,7 +25,7 @@ test("the owner restricts an employee to some locations in the prototype's sheet
   const { user, unmount } = renderWithProviders(<Opened companyId={1} employee={vali()} />)
 
   const sheet = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
-  expect(sheet).toHaveAccessibleDescription("Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi.")
+  expect(sheet).toHaveAccessibleDescription("Xodim faqat belgilangan lokatsiyalarning buyurtmalarini ko'radi va qo'shadi.")
   const all = within(sheet).getByRole("switch", { name: "Barcha lokatsiyalar" })
   expect(all).toBeChecked()
   const asosiy = await within(sheet).findByRole("checkbox", { name: "Asosiy" })
@@ -70,7 +70,7 @@ test("the sheet warns of the orders the employee is assigned in the locations le
   const sheet = await screen.findByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
   await user.click(within(sheet).getByRole("switch", { name: "Barcha lokatsiyalar" }))
   await user.click(await within(sheet).findByRole("checkbox", { name: "Asosiy" }))
-  expect(await within(sheet).findByText("Boshqa lokatsiyalarda 2 ta vazifaga mas'ul. Saqlash baribir mumkin.")).toBeInTheDocument()
+  expect(await within(sheet).findByText("Boshqa lokatsiyalarda 2 ta buyurtmaga mas'ul. Saqlash baribir mumkin.")).toBeInTheDocument()
 
   await user.click(within(sheet).getByRole("checkbox", { name: "Asosiy" }))
   await waitFor(() => expect(within(sheet).queryByText(/Boshqa lokatsiyalarda/)).not.toBeInTheDocument())

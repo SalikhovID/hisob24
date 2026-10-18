@@ -6,15 +6,15 @@ import type { Permission } from "./types"
 const labels = (permissions?: Permission[]) => navFor(permissions).map((item) => item.label)
 
 test("the owner may open every section, in the default order", () => {
-  expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(labels(allPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
 })
 
 test("an employee without a role sees the customers, the orders, the products, the sales and the warehouse", () => {
-  expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
+  expect(labels(defaultPermissions)).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
 })
 
 test("an employee with a role sees the sections the role lets them view; before the session is known, the home alone", () => {
-  expect(labels(["orders.view", "orders.create", "settings.view"])).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
+  expect(labels(["orders.view", "orders.create", "settings.view"])).toEqual(["Bosh sahifa", "Buyurtmalar", "Sozlamalar"])
   expect(labels(["employees.view"])).toEqual(["Bosh sahifa", "Xodimlar"])
   expect(labels(["suppliers.view"])).toEqual(["Bosh sahifa", "Ombor"])
   expect(labels(["sales.view"])).toEqual(["Bosh sahifa", "Sotuv"])
@@ -34,7 +34,7 @@ test("a section with tabs opens at the first tab the member may see", () => {
   expect(href(allPermissions, "Moliya")).toBe("/accounts")
   expect(href(["finance.view"], "Moliya")).toBe("/accounts")
   expect(href(defaultPermissions, "Mijozlar")).toBe("/customers")
-  expect(href(defaultPermissions, "Vazifalar")).toBe("/orders")
+  expect(href(defaultPermissions, "Buyurtmalar")).toBe("/orders")
 })
 
 test("the warehouse holds the purchases, the stock documents by kind and the suppliers, in that order", () => {
@@ -112,7 +112,7 @@ test("the pages of the menu, in its order, each of its section: the sections' ow
   expect(navPages.map((page) => [page.key, page.label, page.href, page.section])).toEqual([
     ["home", "Bosh sahifa", "/", "home"],
     ["customers", "Mijozlar", "/customers", "customers"],
-    ["orders", "Vazifalar", "/orders", "orders"],
+    ["orders", "Buyurtmalar", "/orders", "orders"],
     ["products", "Mahsulotlar", "/products", "products"],
     ["services", "Xizmatlar", "/services", "products"],
     ["sales", "Sotuv", "/sales", "sales"],

@@ -78,8 +78,8 @@ export function orderSchema(type: OrderType, customerType: CustomerType | null, 
     .transform((form, context): OrderOutput => {
       const refuse = (path: string[], message: string) => context.addIssue({ code: "custom", message, path })
       const title = form.title.trim()
-      if (title === "") refuse(["title"], "Vazifa nomini kiriting")
-      else if ([...title].length > MAX_TITLE) refuse(["title"], "Vazifa nomi 200 belgidan oshmasin")
+      if (title === "") refuse(["title"], "Buyurtma nomini kiriting")
+      else if ([...title].length > MAX_TITLE) refuse(["title"], "Buyurtma nomi 200 belgidan oshmasin")
       if (form.deadline === "") refuse(["deadline"], "Muddatni kiriting")
       if (form.stage_id === "") refuse(["stage_id"], "Bosqichni tanlang")
       const values = readAnswers(type.fields, form.values, (key, message) => refuse(["values", key], message))

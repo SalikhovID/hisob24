@@ -54,7 +54,7 @@ test("an employee without a role has everything but the history, the employees a
 test("the sections have their names in the app", () => {
   expect(sectionLabels).toEqual({
     customers: "Mijozlar",
-    orders: "Vazifalar",
+    orders: "Buyurtmalar",
     products: "Mahsulotlar",
     suppliers: "Ta'minotchilar",
     purchases: "Xaridlar",
@@ -74,8 +74,8 @@ test("can says whether the permissions hold one; none hold nothing", () => {
 })
 
 test("summaryOf names the sections a set of permissions reaches into, in order", () => {
-  expect(summaryOf(["orders.view", "customers.view", "customers.create"])).toBe("Mijozlar, Vazifalar")
-  expect(summaryOf(allPermissions)).toBe("Mijozlar, Vazifalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Sotuv, Ombor hujjatlari, Moliya, Xodimlar, Sozlamalar")
+  expect(summaryOf(["orders.view", "customers.view", "customers.create"])).toBe("Mijozlar, Buyurtmalar")
+  expect(summaryOf(allPermissions)).toBe("Mijozlar, Buyurtmalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Sotuv, Ombor hujjatlari, Moliya, Xodimlar, Sozlamalar")
   expect(summaryOf(["finance.view", "stock.view"])).toBe("Ombor hujjatlari, Moliya")
   expect(summaryOf(["purchases.view", "products.view"])).toBe("Mahsulotlar, Xaridlar")
   expect(summaryOf([])).toBe("Ruxsat yo'q")

@@ -50,12 +50,12 @@ export function UpcomingOrders({
         {heading}
         <EmptyState
           icon={CircleCheckIcon}
-          title="Faol vazifa yo'q"
+          title="Faol buyurtma yo'q"
           action={
             canAdd && (
               <MainButton onClick={onAdd} className="px-5">
                 <PlusIcon className="size-5" />
-                Vazifa qo&apos;shish
+                Buyurtma qo&apos;shish
               </MainButton>
             )
           }
@@ -70,7 +70,7 @@ export function UpcomingOrders({
         {orders.upcoming.map((order) => (
           <OrderRow key={order.id} order={order} stage={stages.find((s) => s.id === order.stage_id)} showCustomer />
         ))}
-        <Row variant="link" href="/orders?view=list" title="Barcha vazifalar" chevron />
+        <Row variant="link" href="/orders?view=list" title="Barcha buyurtmalar" chevron />
       </Group>
     </>
   )

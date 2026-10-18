@@ -127,7 +127,7 @@ test("an employee whose role sees the orders alone is headed by the orders of th
   await chooseCompany(1)
   const { user } = renderWithProviders(<Dashboard />)
 
-  const hero = await screen.findByRole("link", { name: /^Faol vazifalar/ })
+  const hero = await screen.findByRole("link", { name: /^Faol buyurtmalar/ })
   await waitFor(() => expect(hero).toHaveTextContent("3 ta"))
   expect(hero).toHaveTextContent("Asosiy")
   expect(screen.queryByRole("group", { name: "Tezkor amallar" })).not.toBeInTheDocument()
@@ -136,8 +136,8 @@ test("an employee whose role sees the orders alone is headed by the orders of th
   await user.click(screen.getByRole("button", { name: "Lokatsiya: Asosiy" }))
   await user.click(within(await screen.findByRole("dialog", { name: "Lokatsiya" })).getByRole("menuitemradio", { name: "Chilonzor" }))
 
-  await waitFor(() => expect(screen.getByRole("link", { name: /^Faol vazifalar/ })).toHaveTextContent("0 ta"))
-  expect(screen.getByRole("link", { name: /^Faol vazifalar/ })).toHaveTextContent("Chilonzor")
+  await waitFor(() => expect(screen.getByRole("link", { name: /^Faol buyurtmalar/ })).toHaveTextContent("0 ta"))
+  expect(screen.getByRole("link", { name: /^Faol buyurtmalar/ })).toHaveTextContent("Chilonzor")
 })
 
 test("blocks that fail to load say why and can be asked for again; the head stays", async () => {
@@ -155,10 +155,10 @@ test("with no order open the nearest deadlines offer to add one, right on the ho
   await signIn(ALI)
   const { user } = renderWithProviders(<Dashboard />)
 
-  expect(await screen.findByText("Faol vazifa yo'q")).toBeInTheDocument()
-  await user.click(screen.getByRole("button", { name: "Vazifa qo'shish" }))
+  expect(await screen.findByText("Faol buyurtma yo'q")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Buyurtma qo'shish" }))
 
-  expect(await screen.findByRole("dialog", { name: "Vazifa qo'shish" })).toBeInTheDocument()
+  expect(await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })).toBeInTheDocument()
 })
 
 test("a payment entered from the home shows in what the suppliers are owed at once", async () => {

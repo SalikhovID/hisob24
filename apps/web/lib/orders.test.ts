@@ -97,7 +97,7 @@ test("what is wrong with the form is said in the API's words, all at once", () =
       customer: { type_id: "5", phone: "90 111", values: { f51: "", f52: "1.5" } },
     }),
   ).toEqual({
-    title: "Vazifa nomini kiriting",
+    title: "Buyurtma nomini kiriting",
     deadline: "Muddatni kiriting",
     stage_id: "Bosqichni tanlang",
     "values.f71": "«Izoh» maydonini to'ldiring",
@@ -106,7 +106,7 @@ test("what is wrong with the form is said in the API's words, all at once", () =
     "customer.values.f51": "«F.I.Sh.» maydonini to'ldiring",
     "customer.values.f52": "«Yoshi» butun son bo'lishi kerak",
   })
-  expect(issuesOf(schema, { ...filled, title: "ў".repeat(201) })).toEqual({ title: "Vazifa nomi 200 belgidan oshmasin" })
+  expect(issuesOf(schema, { ...filled, title: "ў".repeat(201) })).toEqual({ title: "Buyurtma nomi 200 belgidan oshmasin" })
   expect(issuesOf(schema, { ...filled, title: "ў".repeat(200) })).toEqual({})
 })
 

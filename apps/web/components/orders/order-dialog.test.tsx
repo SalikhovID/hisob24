@@ -16,8 +16,8 @@ async function openDialog(href = "/orders?view=list") {
   setLocation(href)
   const rendered = renderWithProviders(<OrdersPage />)
   // The round + heads the page; an empty list offers one more below.
-  await rendered.user.click((await screen.findAllByRole("button", { name: "Vazifa qo'shish" }))[0])
-  return { ...rendered, dialog: await screen.findByRole("dialog", { name: "Vazifa qo'shish" }) }
+  await rendered.user.click((await screen.findAllByRole("button", { name: "Buyurtma qo'shish" }))[0])
+  return { ...rendered, dialog: await screen.findByRole("dialog", { name: "Buyurtma qo'shish" }) }
 }
 
 const today = localToday()
@@ -27,7 +27,7 @@ const setDate = (input: HTMLElement, value: string) => fireEvent.change(input, {
 
 // titles are the orders the list shows, in order.
 const titles = () =>
-  within(screen.getByRole("region", { name: "Vazifalar" }))
+  within(screen.getByRole("region", { name: "Buyurtmalar" }))
     .getAllByRole("link")
     .map((row) => rowParts(row).title)
 
@@ -37,8 +37,8 @@ test("the sheet: the type on top, the customer and then the order; it opens in t
   seedOrders()
   const { user, dialog } = await openDialog()
 
-  expect(within(dialog).getByText("Turni tanlang, mijozni biriktiring va vazifani to'ldiring.")).toBeInTheDocument()
-  const types = within(dialog).getByRole("radiogroup", { name: "Vazifa turi" })
+  expect(within(dialog).getByText("Turni tanlang, mijozni biriktiring va buyurtmani to'ldiring.")).toBeInTheDocument()
+  const types = within(dialog).getByRole("radiogroup", { name: "Buyurtma turi" })
   expect(within(types).getAllByRole("radio").map((radio) => [radio.textContent, radio.getAttribute("aria-checked")])).toEqual([
     ["Buyurtma", "true"],
     ["Montaj", "false"],
@@ -48,7 +48,7 @@ test("the sheet: the type on top, the customer and then the order; it opens in t
   expect(within(customer).getByRole("combobox", { name: "Telefon raqami" })).toHaveValue("")
   expect(within(customer).getByLabelText("F.I.Sh.")).toHaveValue("")
   expect(within(customer).getByLabelText("Manba")).toHaveTextContent("Tanlanmagan")
-  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   expect(within(order).getByLabelText("Nomi")).toHaveValue("")
   expect(within(order).getByLabelText("Muddat")).toHaveAttribute("type", "date")
   expect(within(order).getByLabelText("Muddat")).toHaveValue("")
@@ -87,7 +87,7 @@ test("an order with a new customer is entered in one go, and the list shows it a
   const customer = within(dialog).getByRole("group", { name: "Mijoz" })
   await user.type(within(customer).getByRole("combobox", { name: "Telefon raqami" }), "901112233")
   await user.type(within(customer).getByLabelText("F.I.Sh."), "Yangi Mijoz")
-  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   await user.type(within(order).getByLabelText("Nomi"), " Shartnoma imzolash ")
   setDate(within(order).getByLabelText("Muddat"), addDays(today, 7))
   await choose(user, within(order).getByLabelText("Bosqich"), "Jarayonda")
@@ -97,7 +97,7 @@ test("an order with a new customer is entered in one go, and the list shows it a
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(await screen.findByText("Vazifa qo'shildi")).toBeInTheDocument()
+  expect(await screen.findByText("Buyurtma qo'shildi")).toBeInTheDocument()
   await waitFor(() => expect(titles()).toContain("Shartnoma imzolash"))
   const entered = db.orders.at(-1)!
   expect(entered).toMatchObject({
@@ -137,7 +137,7 @@ test("a customer that is there is taken from the suggestions: it stands in a car
   expect(within(customer).queryByLabelText("F.I.Sh.")).not.toBeInTheDocument()
   expect(within(linked).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
 
-  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   await user.type(within(order).getByLabelText("Nomi"), "Qayta qo'ng'iroq")
   setDate(within(order).getByLabelText("Muddat"), today)
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
@@ -175,7 +175,7 @@ test("what is wrong with the form is said in the API's words, all at once", asyn
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   for (const message of [
-    "Vazifa nomini kiriting",
+    "Buyurtma nomini kiriting",
     "Muddatni kiriting",
     "Telefon raqamini to'liq kiriting",
     "«F.I.Sh.» maydonini to'ldiring",
@@ -197,9 +197,9 @@ test("a phone that another customer has leads to that customer: linked at a pres
   await screen.findByRole("listbox", { name: "Mijoz takliflari" })
   await user.keyboard("{Escape}")
   expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
-  expect(screen.getByRole("dialog", { name: "Vazifa qo'shish" })).toBeInTheDocument()
+  expect(screen.getByRole("dialog", { name: "Buyurtma qo'shish" })).toBeInTheDocument()
   await user.type(within(customer).getByLabelText("F.I.Sh."), "Boshqa Dilshod")
-  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   await user.type(within(order).getByLabelText("Nomi"), "Takror")
   setDate(within(order).getByLabelText("Muddat"), today)
 
@@ -229,7 +229,7 @@ test("with no customer types only a customer that is there will do", async () =>
 
   expect(within(customer).getByText("Mijoz turlari yo'q: faqat mavjud mijozni biriktirish mumkin.")).toBeInTheDocument()
   expect(within(customer).queryByRole("radiogroup")).not.toBeInTheDocument()
-  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   await user.type(within(order).getByLabelText("Nomi"), "Mavjud mijozga")
   setDate(within(order).getByLabelText("Muddat"), today)
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
@@ -250,17 +250,17 @@ test("the + of a column opens the dialog for that stage; under a tab it opens wi
   const { user } = renderWithProviders(<OrdersPage />)
   await screen.findByRole("region", { name: "Kanban" })
 
-  await user.click(await screen.findByRole("button", { name: "Vazifa qo'shish: Jarayonda" }))
+  await user.click(await screen.findByRole("button", { name: "Buyurtma qo'shish: Jarayonda" }))
 
-  const dialog = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
+  const dialog = await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })
   expect(within(dialog).getByLabelText("Bosqich")).toHaveTextContent("Jarayonda")
   expect(within(dialog).getByRole("radio", { name: "Montaj" })).toHaveAttribute("aria-checked", "true")
   await user.type(within(dialog).getByLabelText("Nomi"), "Yarim yozilgan")
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
-  await user.click(screen.getByRole("button", { name: "Vazifa qo'shish" }))
-  const again = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
+  await user.click(screen.getByRole("button", { name: "Buyurtma qo'shish" }))
+  const again = await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })
   expect(within(again).getByLabelText("Nomi")).toHaveValue("")
   expect(within(again).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
   expect(orderTypesOf(1)).toHaveLength(2)
@@ -294,7 +294,7 @@ test("an order is entered into the current location, and assigned among the memb
   const customer = within(dialog).getByRole("group", { name: "Mijoz" })
   await user.type(within(customer).getByRole("combobox", { name: "Telefon raqami" }), "901112233")
   await user.type(within(customer).getByLabelText("F.I.Sh."), "Yangi Mijoz")
-  const order = within(dialog).getByRole("group", { name: "Vazifa" })
+  const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   // Sardor works in Asosiy alone: not offered for an order in Chilonzor.
   expect(await optionsOf(user, within(order).getByLabelText("Mas'ul"))).toEqual(["Tanlanmagan", "Ali Valiyev", "Vali Aliyev"])
   await user.type(within(order).getByLabelText("Nomi"), "Chilonzorda")

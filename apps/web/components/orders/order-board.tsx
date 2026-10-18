@@ -258,7 +258,7 @@ function StageColumn({
               {onAdd && (
                 <button
                   type="button"
-                  aria-label={`Vazifa qo'shish: ${stage.name}`}
+                  aria-label={`Buyurtma qo'shish: ${stage.name}`}
                   onClick={onAdd}
                   className="grid size-9 place-items-center rounded-full text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
@@ -275,7 +275,7 @@ function StageColumn({
                 {onMove ? "Kartani shu yerga suring" : "Bo'sh"}
               </p>
             ) : (
-              <ul aria-label={`${stage.name}: vazifalar`} className="flex min-h-[60px] flex-col gap-1.5">
+              <ul aria-label={`${stage.name}: buyurtmalar`} className="flex min-h-[60px] flex-col gap-1.5">
                 {items.map((order) => (
                   <OrderCard
                     key={order.id}

@@ -79,7 +79,7 @@ export function EditOrderDialog({
       queryClient.setQueryData(orderKey(companyId, order.id), saved)
       queryClient.invalidateQueries({ queryKey: ordersKey(companyId) })
       queryClient.invalidateQueries({ queryKey: orderHistoryKey(companyId, order.id) })
-      toast.success("Vazifa saqlandi")
+      toast.success("Buyurtma saqlandi")
       setOpen(false)
     },
   })
@@ -103,7 +103,7 @@ export function EditOrderDialog({
       )}
       <DialogContent tall>
         <DialogHeader>
-          <DialogTitle>Vazifani tahrirlash</DialogTitle>
+          <DialogTitle>Buyurtmani tahrirlash</DialogTitle>
           <DialogDescription>{type.name} · mijoz va tur o&apos;zgarmaydi</DialogDescription>
         </DialogHeader>
         <SheetForm onSubmit={form.handleSubmit((edited) => save.mutate(edited))}>
@@ -111,7 +111,7 @@ export function EditOrderDialog({
           <FormSection legend="Mijoz">
             <LinkedCustomerCard name={order.customer.name} phone={order.customer.phone} href={`/customers/${order.customer.id}`} />
           </FormSection>
-          <FormSection legend="Vazifa">
+          <FormSection legend="Buyurtma">
             <OrderFields
               control={form.control}
               type={type}

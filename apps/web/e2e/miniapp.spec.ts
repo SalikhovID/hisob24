@@ -102,7 +102,7 @@ test.describe("a linked user", () => {
     // glass (the dark's): no fill of its own, the frost under its buttons.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
-      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sozlamalar"])
+      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
       await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
       expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toBe("rgba(24, 26, 30, 0.72)")
     }
@@ -126,8 +126,8 @@ test.describe("a linked user", () => {
     if (onPhone(page)) {
       // Measured where it stops, not on its way up.
       await page.emulateMedia({ reducedMotion: "reduce" })
-      await page.getByRole("main").getByRole("button", { name: "Vazifa", exact: true }).click()
-      const sheet = page.getByRole("dialog", { name: "Vazifa qo'shish" })
+      await page.getByRole("main").getByRole("button", { name: "Buyurtma", exact: true }).click()
+      const sheet = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
       await expect(sheet).toBeVisible()
       await page.waitForTimeout(100)
       expect((await sheet.boundingBox())?.y).toBeGreaterThanOrEqual(93)
@@ -174,11 +174,11 @@ test.describe("a linked user", () => {
   const openList = async (page: Page) => {
     await page.goto("/")
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-    await openSection(page, "Vazifalar")
+    await openSection(page, "Buyurtmalar")
     await page.getByRole("tablist", { name: "Ko'rinish" }).getByRole("tab", { name: "Ro'yxat" }).click()
     await expect(page).toHaveURL(/view=list/)
   }
-  const orders = (page: Page) => page.getByRole("region", { name: "Vazifalar" })
+  const orders = (page: Page) => page.getByRole("region", { name: "Buyurtmalar" })
   const rowOf = (page: Page, title: string) => orders(page).getByRole("link", { name: new RegExp(`^${title}`) })
 
   test("opens an order from anywhere on its row in the list", async ({ page }) => {

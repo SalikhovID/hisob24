@@ -44,7 +44,7 @@ test("the owner's bar is the default four pages, the page marked, and «Sozlamal
   expect(tabs()).toEqual([
     ["Bosh sahifa", "/"],
     ["Mijozlar", "/customers"],
-    ["Vazifalar", "/orders"],
+    ["Buyurtmalar", "/orders"],
     ["Mahsulotlar", "/products"],
   ])
   expect(within(bar()).getByRole("link", { name: "Mijozlar" })).toHaveAttribute("aria-current", "page")
@@ -97,8 +97,8 @@ test("an employee with a role sees the sections the role lets them view", async 
   await chooseCompany(1)
   renderWithProviders(<TabBar />)
 
-  expect(await within(bar()).findByRole("link", { name: "Vazifalar" })).toBeInTheDocument()
-  expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Vazifalar"])
+  expect(await within(bar()).findByRole("link", { name: "Buyurtmalar" })).toBeInTheDocument()
+  expect(tabs().map(([label]) => label)).toEqual(["Bosh sahifa", "Buyurtmalar"])
 })
 
 test("the bar holds the member's own pages in their order, filled up to four from the default order", async () => {
@@ -131,7 +131,7 @@ test("a section from the bar is switched to at once: a move taken before it, whi
   setLocation("/customers")
   const { user } = renderWithProviders(<TabBar />)
 
-  const orders = await within(bar()).findByRole("link", { name: "Vazifalar" })
+  const orders = await within(bar()).findByRole("link", { name: "Buyurtmalar" })
   moveTo("forward")
   await user.click(orders)
   expect(moved()).toBeUndefined()
@@ -159,7 +159,7 @@ test("the bar is the prototype's frosted pill: its own shadow (its frost is the 
   expect(bar()).toHaveClass("shadow-(--tb-shadow)")
   expect(bar().className).not.toMatch(/backdrop-/)
   const current = within(bar()).getByRole("link", { name: "Mijozlar" })
-  const other = within(bar()).getByRole("link", { name: "Vazifalar" })
+  const other = within(bar()).getByRole("link", { name: "Buyurtmalar" })
   expect(current).toHaveClass("text-foreground", "font-semibold")
   expect(other).toHaveClass("text-muted-foreground", "font-medium")
   expect(other).not.toHaveClass("text-foreground")
@@ -185,7 +185,7 @@ afterEach(() => {
 })
 
 // The default bar's names as wide as Geist sets them at 11px, the current one bolder.
-const NAMES = { "Bosh sahifa": 62, Mijozlar: 41, Vazifalar: 45, Mahsulotlar: 62, Sozlamalar: 58 }
+const NAMES = { "Bosh sahifa": 62, Mijozlar: 41, Buyurtmalar: 45, Mahsulotlar: 62, Sozlamalar: 58 }
 const names = () => [...bar().querySelectorAll<HTMLElement>('[data-slot="tab-name"]')]
 const nameScale = () => Number(bar().style.getPropertyValue("--name-k"))
 

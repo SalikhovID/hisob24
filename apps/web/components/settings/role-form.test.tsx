@@ -15,7 +15,7 @@ test("the matrix as the prototype's: a heading per section (how many it holds be
   await signIn(ALI)
   const { user } = renderWithProviders(<RoleForm companyId={1} />)
 
-  for (const section of ["Mijozlar", "Vazifalar", "Mahsulotlar", "Ta'minotchilar", "Xaridlar", "Sotuv", "Ombor hujjatlari", "Moliya", "Xodimlar", "Sozlamalar"]) {
+  for (const section of ["Mijozlar", "Buyurtmalar", "Mahsulotlar", "Ta'minotchilar", "Xaridlar", "Sotuv", "Ombor hujjatlari", "Moliya", "Xodimlar", "Sozlamalar"]) {
     expect(group(section)).toBeInTheDocument()
   }
   expect(within(group("Mijozlar")).getAllByRole("switch")).toHaveLength(5)
@@ -29,7 +29,7 @@ test("the matrix as the prototype's: a heading per section (how many it holds be
   await user.click(box("Mijozlar", "Qo'shish"))
   expect(box("Mijozlar", "Qo'shish")).toBeChecked()
   expect(box("Mijozlar", "Ko'rish")).toBeChecked()
-  expect(box("Vazifalar", "Ko'rish")).not.toBeChecked()
+  expect(box("Buyurtmalar", "Ko'rish")).not.toBeChecked()
   expect(screen.getByRole("heading", { level: 2, name: "Mijozlar" }).parentElement).toHaveTextContent("2 ta")
 
   await user.click(box("Mijozlar", "Ko'rish"))
@@ -42,7 +42,7 @@ test("a new role is made with its name and permissions, in the catalog's order, 
   const { user } = renderWithProviders(<RoleForm companyId={1} />)
 
   await user.type(screen.getByLabelText("Rol nomi"), " Sotuvchi ")
-  await user.click(box("Vazifalar", "Ko'rish"))
+  await user.click(box("Buyurtmalar", "Ko'rish"))
   await user.click(box("Mijozlar", "Tahrirlash"))
   await user.click(screen.getByRole("button", { name: "Yaratish" }))
 

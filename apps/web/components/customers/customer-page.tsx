@@ -91,7 +91,7 @@ export function CustomerPage({ id }: { id: number }) {
       />
       <Tiles>
         {type && allowed("customers.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
-        {allowed("orders.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setOrdering(true)} />}
+        {allowed("orders.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Buyurtma" onClick={() => setOrdering(true)} />}
         {allowed("sales.create") && <Tile icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
         <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${customer.data.phone}`} />
       </Tiles>

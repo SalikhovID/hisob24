@@ -152,13 +152,13 @@ export function OrdersPage() {
   // stranger is on their way home.
   if (!gate) return null
   const page = orders.data
-  const setupWhat = noStages ? "bosqichlar" : "vazifa turlari"
+  const setupWhat = noStages ? "bosqichlar" : "buyurtma turlari"
   return (
     <>
       <PageTitle
-        title="Vazifalar"
+        title="Buyurtmalar"
         description={description}
-        action={ready && canAdd && <PlusButton label="Vazifa qo'shish" onClick={() => setAdding({ stageId: null })} />}
+        action={ready && canAdd && <PlusButton label="Buyurtma qo'shish" onClick={() => setAdding({ stageId: null })} />}
       />
       {noLocation ? (
         <EmptyState icon={MapPinIcon} title="Sizga lokatsiya biriktirilmagan" description="Kompaniya egasi lokatsiya biriktirishi kerak." />
@@ -194,7 +194,7 @@ export function OrdersPage() {
               <Chips>
                 <ChoiceChips
                   bare
-                  label="Vazifa turi"
+                  label="Buyurtma turi"
                   value={filter.typeId === null ? "all" : String(filter.typeId)}
                   onChange={(value) => update({ typeId: value === "all" ? null : Number(value) })}
                   options={[{ value: "all", label: "Barchasi" }, ...types.data.map((type) => ({ value: String(type.id), label: type.name }))]}
@@ -247,21 +247,21 @@ export function OrdersPage() {
           {view === "list" && !loading && !failed && page?.total === 0 && (
             <EmptyState
               icon={unfiltered ? CircleCheckIcon : SearchIcon}
-              title={unfiltered ? "Hali vazifa yo'q" : "Vazifalar topilmadi"}
-              description={unfiltered ? "Birinchi vazifani «Vazifa qo'shish» tugmasi orqali qo'shing." : "Qidiruv yoki filtrni o'zgartirib ko'ring."}
+              title={unfiltered ? "Hali buyurtma yo'q" : "Buyurtmalar topilmadi"}
+              description={unfiltered ? "Birinchi buyurtmani «Buyurtma qo'shish» tugmasi orqali qo'shing." : "Qidiruv yoki filtrni o'zgartirib ko'ring."}
               action={
                 unfiltered &&
                 ready &&
                 canAdd && (
                   <MainButton onClick={() => setAdding({ stageId: null })} className="px-5">
-                    Vazifa qo&apos;shish
+                    Buyurtma qo&apos;shish
                   </MainButton>
                 )
               }
             />
           )}
           {view === "list" && !loading && !failed && page && page.total > 0 && (
-            <section aria-label="Vazifalar" className={cn(orders.isPlaceholderData && "opacity-60")}>
+            <section aria-label="Buyurtmalar" className={cn(orders.isPlaceholderData && "opacity-60")}>
               {buckets.map((bucket) => {
                 const items = page.items.filter((order) => deadlineBucket(order.deadline, stageOf(order)?.is_done ?? false) === bucket)
                 if (items.length === 0) return null

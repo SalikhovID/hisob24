@@ -10,7 +10,7 @@ const today = localToday()
 async function openOrders(page: Page) {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await openSection(page, "Vazifalar")
+  await openSection(page, "Buyurtmalar")
   await expect(page).toHaveURL(/\/orders$/)
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
 }
@@ -21,7 +21,7 @@ const cards = (page: Page, name: string) => column(page, name).getByRole("listit
 
 // The list is the orders' rows, grouped by how far their deadlines are, on
 // any screen; a row is named by its title first.
-const list = (page: Page) => page.getByRole("region", { name: "Vazifalar" })
+const list = (page: Page) => page.getByRole("region", { name: "Buyurtmalar" })
 const row = (page: Page, title: string) => list(page).getByRole("link", { name: new RegExp(`^${title}`) })
 // view picks Kanban or Ro'yxat.
 const view = (page: Page, name: "Kanban" | "Ro'yxat") => page.getByRole("tablist", { name: "Ko'rinish" }).getByRole("tab", { name }).click()
@@ -30,18 +30,18 @@ test("an employee enters an order with a new customer; the board opens first, an
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
-  await openSection(page, "Vazifalar")
+  await openSection(page, "Buyurtmalar")
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
   await expect(column(page, "Yangi").getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
-  await page.getByRole("button", { name: "Vazifa qo'shish", exact: true }).click()
-  const dialog = page.getByRole("dialog", { name: "Vazifa qo'shish" })
+  await page.getByRole("button", { name: "Buyurtma qo'shish", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
   const customer = dialog.getByRole("group", { name: "Mijoz" })
   await customer.getByRole("combobox", { name: "Telefon raqami" }).fill("901112233")
   await customer.getByLabel("F.I.Sh.").fill("Yangi Mijoz")
   await choose(customer.getByLabel("Manba"), "LinkedIn")
-  const order = dialog.getByRole("group", { name: "Vazifa" })
+  const order = dialog.getByRole("group", { name: "Buyurtma" })
   await order.getByLabel("Nomi").fill("Shartnoma tuzish")
   await order.getByLabel("Muddat").fill(addDays(today, 2))
   await choose(order.getByLabel("Mas'ul"), "Vali Aliyev")
@@ -76,9 +76,9 @@ test("a customer that is there is picked from the suggestions; the + of a column
   await openOrders(page)
   await expect(cards(page, "Yangi")).toHaveText(["Hisob-faktura", "Qo'ng'iroq qilish"])
 
-  await column(page, "Jarayonda").getByRole("button", { name: "Vazifa qo'shish: Jarayonda" }).click()
-  const dialog = page.getByRole("dialog", { name: "Vazifa qo'shish" })
-  const order = dialog.getByRole("group", { name: "Vazifa" })
+  await column(page, "Jarayonda").getByRole("button", { name: "Buyurtma qo'shish: Jarayonda" }).click()
+  const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
+  const order = dialog.getByRole("group", { name: "Buyurtma" })
   await expect(order.getByLabel("Bosqich")).toContainText("Jarayonda")
 
   const customer = dialog.getByRole("group", { name: "Mijoz" })
@@ -158,7 +158,7 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await expect(page.getByText("Bosqich o'zgartirildi")).toBeVisible()
 
   await page.getByRole("button", { name: "Tahrirlash" }).click()
-  const dialog = page.getByRole("dialog", { name: "Vazifani tahrirlash" })
+  const dialog = page.getByRole("dialog", { name: "Buyurtmani tahrirlash" })
   await expect(dialog.getByRole("region", { name: "Mavjud mijoz" })).toContainText("Dilshod Karimov")
   await dialog.getByLabel("Nomi").fill("Qayta qo'ng'iroq")
   await dialog.getByRole("button", { name: "Saqlash" }).click()
@@ -176,7 +176,7 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   // The customer's page shows the order; the customer is not deleted while it has one.
   await page.getByRole("region", { name: "Mijoz" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
-  const orders = page.getByRole("region", { name: "Vazifalar" })
+  const orders = page.getByRole("region", { name: "Buyurtmalar" })
   await expect(orders.getByRole("link", { name: /^Qayta qo'ng'iroq/ })).toBeVisible()
   await expect(orders.getByRole("link")).toHaveCount(2)
   await page.getByRole("button", { name: "Mijozni o'chirish" }).click()
@@ -195,8 +195,8 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
 
   await page.goto(`/orders/${call.id}`)
   await expect(page.getByRole("heading", { level: 1, name: "Qayta qo'ng'iroq" })).toBeVisible()
-  await page.getByRole("button", { name: "Vazifani o'chirish" }).click()
-  await page.getByRole("alertdialog", { name: "Vazifani o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
+  await page.getByRole("button", { name: "Buyurtmani o'chirish" }).click()
+  await page.getByRole("alertdialog", { name: "Buyurtmani o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page).toHaveURL(/\/orders$/)
   await expect(row(page, "Hisob-faktura")).toBeVisible()
   await expect(row(page, "Qayta qo'ng'iroq")).toHaveCount(0)

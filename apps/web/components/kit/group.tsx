@@ -69,7 +69,7 @@ export interface RowProps {
   href?: string
   onClick?: () => void
   // link is the title alone in the accent color, at the left ("Barcha
-  // vazifalar", "Qo'shish"); accent and danger are centered accent or red
+  // buyurtmalar", "Qo'shish"); accent and danger are centered accent or red
   // text: the rows that do one thing ("Standart holat", "Mijozni o'chirish").
   variant?: "default" | "link" | "accent" | "danger"
   compact?: boolean

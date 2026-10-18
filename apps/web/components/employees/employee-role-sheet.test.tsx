@@ -26,9 +26,9 @@ test("the owner gives an employee a role in the prototype's picker: «Rolsiz» f
   const { user } = renderWithProviders(<Opened companyId={1} employee={vali()} />)
 
   const sheet = await screen.findByRole("dialog", { name: "Rolni o'zgartirish" })
-  await waitFor(() => expect(options(sheet)).toEqual(["Rolsiz", "Sotuvchi Mijozlar, Vazifalar"]))
+  await waitFor(() => expect(options(sheet)).toEqual(["Rolsiz", "Sotuvchi Mijozlar, Buyurtmalar"]))
   expect(within(sheet).getByRole("option", { name: "Rolsiz" })).toHaveAttribute("aria-selected", "true")
-  expect(within(sheet).getByText("Rolsiz xodim mijozlar va vazifalar bilan ishlaydi.")).toBeInTheDocument()
+  expect(within(sheet).getByText("Rolsiz xodim mijozlar va buyurtmalar bilan ishlaydi.")).toBeInTheDocument()
   await user.click(within(sheet).getByRole("option", { name: /^Sotuvchi/ }))
 
   await waitFor(() => expect(db.members[VALI].find((m) => m.companyId === 1)?.roleId).toBe(sotuvchi.id))

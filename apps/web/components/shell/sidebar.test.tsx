@@ -41,7 +41,7 @@ test("the owner sees every section, under the company's name", async () => {
   renderWithProviders(<Sidebar {...props()} />)
 
   expect(await within(sidebar()).findByRole("link", { name: "Xodimlar" })).toHaveAttribute("href", "/employees")
-  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
   expect(within(sidebar()).getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
   expect(within(sidebar()).getByRole("link", { name: "Ombor" })).toHaveAttribute("href", "/warehouse")
   expect(within(sidebar()).getByText("Olma Savdo")).toBeInTheDocument()
@@ -53,7 +53,7 @@ test("an employee sees no section of the owner's", async () => {
   renderWithProviders(<Sidebar {...props()} />)
 
   expect(await within(sidebar()).findByText("Olma Savdo")).toBeInTheDocument()
-  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya"])
 })
 
 test("the sidebar keeps the default order whatever the member's tab bar holds", async () => {
@@ -62,7 +62,7 @@ test("the sidebar keeps the default order whatever the member's tab bar holds", 
   renderWithProviders(<Sidebar {...props()} />)
 
   await within(sidebar()).findByRole("link", { name: "Xodimlar" })
-  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Vazifalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sotuv", "Ombor", "Moliya", "Xodimlar", "Sozlamalar"])
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {
@@ -72,7 +72,7 @@ test("an employee with a role sees the sections the role lets them view", async 
   renderWithProviders(<Sidebar {...props()} />)
 
   expect(await within(sidebar()).findByRole("link", { name: "Sozlamalar" })).toBeInTheDocument()
-  expect(sections()).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
+  expect(sections()).toEqual(["Bosh sahifa", "Buyurtmalar", "Sozlamalar"])
 })
 
 test("the section the page belongs to is marked", async () => {
@@ -163,7 +163,7 @@ test("a section from the sidebar is switched to at once: a move taken before it,
   await signIn(ALI)
   const { user } = renderWithProviders(<Sidebar {...props()} />)
 
-  const orders = await within(sidebar()).findByRole("link", { name: "Vazifalar" })
+  const orders = await within(sidebar()).findByRole("link", { name: "Buyurtmalar" })
   moveTo("forward")
   await user.click(orders)
   expect(moved()).toBeUndefined()
@@ -205,7 +205,7 @@ test("the current section is the glossy accent, the others the heading's ink; a 
   renderWithProviders(<Sidebar {...props()} />)
 
   const current = await within(sidebar()).findByRole("link", { name: "Xodimlar" })
-  const other = within(sidebar()).getByRole("link", { name: "Vazifalar" })
+  const other = within(sidebar()).getByRole("link", { name: "Buyurtmalar" })
   expect(current).toHaveClass("glossy", "min-h-12", "rounded-2xl")
   expect(current).not.toHaveClass("text-heading")
   expect(other).toHaveClass("text-heading", "hover:bg-muted")

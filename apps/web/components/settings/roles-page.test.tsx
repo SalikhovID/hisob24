@@ -27,8 +27,8 @@ test("the owner's roles as the prototype's rows: each by name, the sections it o
   expect(screen.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("href", "/settings")
   const roles = await screen.findByRole("list", { name: "Rollar" })
   expect(rowsOf(roles)).toEqual([
-    ["Kuzatuvchi", "Vazifalar", "Hech kimda"],
-    ["Sotuvchi", "Mijozlar, Vazifalar", "1 ta xodim"],
+    ["Kuzatuvchi", "Buyurtmalar", "Hech kimda"],
+    ["Sotuvchi", "Mijozlar, Buyurtmalar", "1 ta xodim"],
   ])
   const sotuvchi = db.roles.find((role) => role.name === "Sotuvchi")!
   expect(within(roles).getAllByRole("link")[1]).toHaveAttribute("href", `/settings/roles/${sotuvchi.id}`)

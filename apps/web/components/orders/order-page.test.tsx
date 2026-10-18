@@ -35,7 +35,7 @@ test("an order's page shows what it is, its stage among the stages, its deadline
 
   expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
   expect(screen.getByText("Montaj · Dilshod Karimov")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Vazifalar" })).toHaveAttribute("href", "/orders")
+  expect(screen.getByRole("link", { name: "Buyurtmalar" })).toHaveAttribute("href", "/orders")
   // The stages in their order, the order's one marked.
   expect(within(stageTrack()).getAllByRole("radio").map((radio) => [radio.textContent, radio.getAttribute("aria-checked")])).toEqual([
     ["Yangi", "true"],
@@ -122,20 +122,20 @@ test("an order that is gone is not found", async () => {
 
   open(999)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Vazifa topilmadi" })).toBeInTheDocument()
-  expect(screen.getByText("Bu vazifa o'chirilgan yoki sizning kompaniyangizniki emas.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Vazifalar" })).toHaveAttribute("href", "/orders")
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma topilmadi" })).toBeInTheDocument()
+  expect(screen.getByText("Bu buyurtma o'chirilgan yoki sizning kompaniyangizniki emas.")).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Buyurtmalar" })).toHaveAttribute("href", "/orders")
 })
 
 test("a page that did not load says why and offers to try again", async () => {
   await signIn(ALI)
   const { call } = seedOrders()
   server.use(
-    http.get("*/api/app/orders/:id", () => HttpResponse.json({ error: "internal_error", message: "Vazifa yuklanmadi: ichki xatolik" }, { status: 500 })),
+    http.get("*/api/app/orders/:id", () => HttpResponse.json({ error: "internal_error", message: "Buyurtma yuklanmadi: ichki xatolik" }, { status: 500 })),
   )
   const { user } = open(call.id)
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("Vazifa yuklanmadi: ichki xatolik")
+  expect(await screen.findByRole("alert")).toHaveTextContent("Buyurtma yuklanmadi: ichki xatolik")
 
   server.resetHandlers()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
@@ -148,12 +148,12 @@ test("the order is deleted after asking, and the list is where one lands", async
   const { user } = open(call.id)
   await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })
 
-  await user.click(screen.getByRole("button", { name: "Vazifani o'chirish" }))
-  const confirm = await screen.findByRole("alertdialog", { name: "Vazifani o'chirasizmi?" })
-  expect(within(confirm).getByText("«Qo'ng'iroq qilish» vazifalar ro'yxatidan olib tashlanadi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
+  await user.click(screen.getByRole("button", { name: "Buyurtmani o'chirish" }))
+  const confirm = await screen.findByRole("alertdialog", { name: "Buyurtmani o'chirasizmi?" })
+  expect(within(confirm).getByText("«Qo'ng'iroq qilish» buyurtmalar ro'yxatidan olib tashlanadi. Qayta tiklab bo'lmaydi.")).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
-  expect(await screen.findByText("Vazifa o'chirildi")).toBeInTheDocument()
+  expect(await screen.findByText("Buyurtma o'chirildi")).toBeInTheDocument()
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/orders"))
   expect(moved()).toBe("back")
   expect(db.orders.find((order) => order.id === call.id)?.deleted).toBe(true)
@@ -162,14 +162,14 @@ test("the order is deleted after asking, and the list is where one lands", async
 test("a deletion the API refuses says why and keeps the order", async () => {
   await signIn(ALI)
   const { call } = seedOrders()
-  server.use(http.delete("*/api/app/orders/:id", () => HttpResponse.json({ error: "conflict", message: "Vazifani hozir o'chirib bo'lmaydi" }, { status: 409 })))
+  server.use(http.delete("*/api/app/orders/:id", () => HttpResponse.json({ error: "conflict", message: "Buyurtmani hozir o'chirib bo'lmaydi" }, { status: 409 })))
   const { user } = open(call.id)
   await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })
 
-  await user.click(screen.getByRole("button", { name: "Vazifani o'chirish" }))
+  await user.click(screen.getByRole("button", { name: "Buyurtmani o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
 
-  expect(await screen.findByText("Vazifani hozir o'chirib bo'lmaydi")).toBeInTheDocument()
+  expect(await screen.findByText("Buyurtmani hozir o'chirib bo'lmaydi")).toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
   expect(db.orders.find((order) => order.id === call.id)?.deleted).toBeUndefined()
 })
@@ -184,7 +184,7 @@ test("an employee whose role holds orders.view alone sees the order without a wa
   expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
   await info()
   expect(screen.queryByRole("button", { name: "Tahrirlash" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Vazifani o'chirish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Buyurtmani o'chirish" })).not.toBeInTheDocument()
   // The stages are shown, not changed.
   expect(within(stageTrack()).getAllByRole("radio").every((radio) => (radio as HTMLButtonElement).disabled)).toBe(true)
   expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
@@ -202,7 +202,7 @@ test("the order's actions follow the role: editing and moving here, with the his
   await info()
   expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
   expect(within(stageTrack()).getByRole("radio", { name: "Jarayonda" })).toBeEnabled()
-  expect(screen.queryByRole("button", { name: "Vazifani o'chirish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Buyurtmani o'chirish" })).not.toBeInTheDocument()
   expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
 })
 

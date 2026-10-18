@@ -6,7 +6,7 @@ import { MultiPickerSheet, PickerSheet, SearchPickerSheet, SelectRow } from "./p
 
 const stages = [
   { value: "1", label: "Yangi" },
-  { value: "2", label: "Jarayonda", sub: "3 ta vazifa" },
+  { value: "2", label: "Jarayonda", sub: "3 ta buyurtma" },
   { value: "3", label: "Bajarildi" },
 ]
 

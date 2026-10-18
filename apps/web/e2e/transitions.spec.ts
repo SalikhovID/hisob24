@@ -196,8 +196,8 @@ test("a page from the menu changes under the shell: while it changes, the screen
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   await expect(page.getByText("ta faol")).toBeVisible()
-  await openSection(page, "Vazifalar")
-  await expect(page.getByRole("heading", { level: 1, name: "Vazifalar" })).toBeVisible()
+  await openSection(page, "Buyurtmalar")
+  await expect(page.getByRole("heading", { level: 1, name: "Buyurtmalar" })).toBeVisible()
   await holdTransitions(page)
 
   await (await sections(page)).getByRole("link", { name: "Bosh sahifa", exact: true }).click()

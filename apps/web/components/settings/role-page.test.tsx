@@ -28,11 +28,11 @@ test("a role's page opens with its name and permissions; saving replaces them an
   expect(screen.getByLabelText("Rol nomi")).toHaveValue("Sotuvchi")
   expect(box("Mijozlar", "Qo'shish")).toBeChecked()
   expect(box("Mijozlar", "Ko'rish")).toBeChecked()
-  expect(box("Vazifalar", "Ko'rish")).not.toBeChecked()
+  expect(box("Buyurtmalar", "Ko'rish")).not.toBeChecked()
 
   await user.clear(screen.getByLabelText("Rol nomi"))
   await user.type(screen.getByLabelText("Rol nomi"), "Katta sotuvchi")
-  await user.click(box("Vazifalar", "Ko'rish"))
+  await user.click(box("Buyurtmalar", "Ko'rish"))
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))

@@ -32,29 +32,29 @@ test("the owner sees the type's fields as the prototype's rows, the order's own 
   renderWithProviders(<OrderTypePage id={buyurtma.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma" })).toBeInTheDocument()
-  expect(screen.getByText("Vazifa turi · 2 ta maydon")).toBeInTheDocument()
+  expect(screen.getByText("Buyurtma turi · 2 ta maydon")).toBeInTheDocument()
   await waitFor(async () =>
     expect(fieldsOf(await fieldList())).toEqual([
       { label: "Izoh", kind: "Matn", marks: ["Majburiy"] },
       { label: "Manba", kind: "Dropdown (bitta tanlov) · Manba", marks: [] },
     ]),
   )
-  expect(screen.getByRole("link", { name: "Vazifa turlari" })).toHaveAttribute("href", "/settings/order-types")
-  expect(screen.getByText("Nomi, muddat va mijoz har vazifada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.")).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Buyurtma turlari" })).toHaveAttribute("href", "/settings/order-types")
+  expect(screen.getByText("Nomi, muddat va mijoz har buyurtmada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.")).toBeInTheDocument()
 })
 
 test("a type that is not there, or with no fields, says so; one that fails to load can be asked for again", async () => {
   await signIn(ALI)
   const { unmount } = renderWithProviders(<OrderTypePage id={999} />)
   expect(await screen.findByRole("heading", { level: 1, name: "Tur topilmadi" })).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Vazifa turlari" })).toHaveAttribute("href", "/settings/order-types")
+  expect(screen.getByRole("link", { name: "Buyurtma turlari" })).toHaveAttribute("href", "/settings/order-types")
   unmount()
 
   const [buyurtma] = orderTypesOf(1)
   const empty = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
   expect(await screen.findByText("Bu turda maydon yo'q")).toBeInTheDocument()
-  expect(screen.getByText("Vazifa nomi, muddati, mijozi va mas'uli bilan qo'shiladi.")).toBeInTheDocument()
-  expect(screen.getByText("Vazifa turi · 0 ta maydon")).toBeInTheDocument()
+  expect(screen.getByText("Buyurtma nomi, muddati, mijozi va mas'uli bilan qo'shiladi.")).toBeInTheDocument()
+  expect(screen.getByText("Buyurtma turi · 0 ta maydon")).toBeInTheDocument()
   empty.unmount()
 
   server.use(http.get("*/api/app/order-types", () => HttpResponse.error(), { once: true }))
@@ -90,7 +90,7 @@ test("a field is added from the plus's sheet: a choice asks for its dropdown, an
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   await waitFor(async () => expect(fieldsOf(await fieldList())).toEqual([{ label: "Manba", kind: "Checkbox (bir nechta tanlov) · Manba", marks: ["Majburiy"] }]))
-  expect(screen.getByText("Vazifa turi · 1 ta maydon")).toBeInTheDocument()
+  expect(screen.getByText("Buyurtma turi · 1 ta maydon")).toBeInTheDocument()
   expect(db.orderTypes[0].fields[0]).not.toHaveProperty("unique")
 })
 
@@ -148,15 +148,15 @@ test("the order type is renamed from its page, and deleted from it after asking:
   const { user } = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
 
   await user.click(await screen.findByRole("button", { name: "Nomini o'zgartirish" }))
-  const sheet = await screen.findByRole("dialog", { name: "Vazifa turi nomini o'zgartirish" })
+  const sheet = await screen.findByRole("dialog", { name: "Buyurtma turi nomini o'zgartirish" })
   await user.clear(within(sheet).getByLabelText("Nomi"))
   await user.type(within(sheet).getByLabelText("Nomi"), "Umumiy")
   await user.click(within(sheet).getByRole("button", { name: "Saqlash" }))
-  expect((await screen.findAllByText("Vazifa turi nomi o'zgartirildi")).length).toBeGreaterThan(0)
+  expect((await screen.findAllByText("Buyurtma turi nomi o'zgartirildi")).length).toBeGreaterThan(0)
   expect(await screen.findByRole("heading", { level: 1, name: "Umumiy" })).toBeInTheDocument()
 
   await user.click(screen.getByRole("button", { name: "Turni o'chirish" }))
-  const confirm = await screen.findByRole("alertdialog", { name: "Vazifa turini o'chirasizmi?" })
+  const confirm = await screen.findByRole("alertdialog", { name: "Buyurtma turini o'chirasizmi?" })
   expect(within(confirm).getByText(/«Umumiy» turi va uning maydonlari o'chadi/)).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/order-types"))

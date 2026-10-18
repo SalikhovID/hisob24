@@ -15,7 +15,7 @@ async function openDialog(id: number) {
   setLocation(`/orders/${id}`, { id: String(id) })
   const rendered = renderWithProviders(<OrderPage id={id} />)
   await rendered.user.click(await screen.findByRole("button", { name: "Tahrirlash" }))
-  return { ...rendered, dialog: await screen.findByRole("dialog", { name: "Vazifani tahrirlash" }) }
+  return { ...rendered, dialog: await screen.findByRole("dialog", { name: "Buyurtmani tahrirlash" }) }
 }
 
 const setDate = (input: HTMLElement, value: string) => fireEvent.change(input, { target: { value } })
@@ -31,7 +31,7 @@ test("the edit dialog opens with the order as it is, its customer shown and not 
   expect(within(customer).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
   expect(within(dialog).queryByRole("combobox", { name: "Telefon raqami" })).not.toBeInTheDocument()
   expect(within(dialog).queryByRole("button", { name: "Boshqa mijoz" })).not.toBeInTheDocument()
-  expect(within(dialog).queryByRole("radiogroup", { name: "Vazifa turi" })).not.toBeInTheDocument()
+  expect(within(dialog).queryByRole("radiogroup", { name: "Buyurtma turi" })).not.toBeInTheDocument()
   expect(within(dialog).getByLabelText("Nomi")).toHaveValue("Qo'ng'iroq qilish")
   expect(within(dialog).getByLabelText("Muddat")).toHaveValue(addDays(today, 3))
   expect(within(dialog).getByLabelText("Bosqich")).toHaveTextContent("Yangi")
@@ -54,7 +54,7 @@ test("the edit dialog opens with the order as it is, its customer shown and not 
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  expect(await screen.findByText("Vazifa saqlandi")).toBeInTheDocument()
+  expect(await screen.findByText("Buyurtma saqlandi")).toBeInTheDocument()
   expect(await screen.findByRole("heading", { level: 1, name: "Qayta qo'ng'iroq" })).toBeInTheDocument()
   // The page's track shows the stage it was saved in.
   expect(within(screen.getByRole("radiogroup", { name: "Bosqich" })).getByRole("radio", { name: "Jarayonda" })).toHaveAttribute("aria-checked", "true")
@@ -105,7 +105,7 @@ test("what is wrong with the edit is said in the API's words", async () => {
   await user.clear(within(dialog).getByLabelText("Izoh"))
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
-  expect(await within(dialog).findByText("Vazifa nomini kiriting")).toBeInTheDocument()
+  expect(await within(dialog).findByText("Buyurtma nomini kiriting")).toBeInTheDocument()
   expect(within(dialog).getByText("«Izoh» maydonini to'ldiring")).toBeInTheDocument()
   expect(db.orders.find((order) => order.id === call.id)?.title).toBe("Qo'ng'iroq qilish")
 })
@@ -120,7 +120,7 @@ test("the dialog opens with the order as it is every time", async () => {
 
   await user.click(screen.getByRole("button", { name: "Tahrirlash" }))
 
-  expect(within(await screen.findByRole("dialog", { name: "Vazifani tahrirlash" })).getByLabelText("Nomi")).toHaveValue("Qo'ng'iroq qilish")
+  expect(within(await screen.findByRole("dialog", { name: "Buyurtmani tahrirlash" })).getByLabelText("Nomi")).toHaveValue("Qo'ng'iroq qilish")
 })
 
 // The assignee of an order in Asosiy who works in Chilonzor alone now

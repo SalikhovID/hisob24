@@ -62,7 +62,7 @@ export function EmployeeRoleSheet({
             </Link>
           </>
         ) : (
-          "Rolsiz xodim mijozlar va vazifalar bilan ishlaydi."
+          "Rolsiz xodim mijozlar va buyurtmalar bilan ishlaydi."
         )
       }
     />

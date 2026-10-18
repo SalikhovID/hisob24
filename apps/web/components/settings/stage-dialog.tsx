@@ -118,7 +118,7 @@ export function StageDialog({
           <Group>
             <SwitchRow control={form.control} name="is_done" label="Yakuniy bosqich" />
           </Group>
-          <Foot className="-mt-4">Bu bosqichdagi vazifa bajarilgan hisoblanadi: muddati o&apos;tgan deb belgilanmaydi.</Foot>
+          <Foot className="-mt-4">Bu bosqichdagi buyurtma bajarilgan hisoblanadi: muddati o&apos;tgan deb belgilanmaydi.</Foot>
           {onDelete && (
             <Group>
               <Row variant="danger" onClick={onDelete} title="Bosqichni o'chirish" />

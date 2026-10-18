@@ -96,7 +96,7 @@ export type Section = "customers" | "orders" | "products" | "suppliers" | "purch
 // sectionLabels are the sections' names in the app (logic/roles.md, 4.1).
 export const sectionLabels: Record<Section, string> = {
   customers: "Mijozlar",
-  orders: "Vazifalar",
+  orders: "Buyurtmalar",
   products: "Mahsulotlar",
   suppliers: "Ta'minotchilar",
   purchases: "Xaridlar",

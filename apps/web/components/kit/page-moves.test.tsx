@@ -35,7 +35,7 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
     <>
       <Group label="Mijozlar">
         <Row href="/customers/12" title="Dilshod Karimov" />
-        <Row href="/orders" title="Barcha vazifalar" />
+        <Row href="/orders" title="Barcha buyurtmalar" />
       </Group>
       <PlusButton label="Sotuv qo'shish" href="/sales/new" />
       <DetailHead title="Sotuv № 4" />
@@ -44,7 +44,7 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
       </Tiles>
       <Hero href="/customers" label="Mijozlar" value="3" unit="ta" />
       <StatCard href="/purchases" icon={ReceiptIcon} title="Xaridlar" value="12" />
-      <StatCard href="/orders" icon={ReceiptIcon} title="Vazifalar" value="4" />
+      <StatCard href="/orders" icon={ReceiptIcon} title="Buyurtmalar" value="4" />
     </>,
   )
 
@@ -52,9 +52,9 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
   expect(await moveOf("Sotuv qo'shish")).toBe("forward")
   expect(await moveOf("Tahrirlash")).toBe("forward")
   expect(await moveOf(/^Xaridlar/)).toBe("forward")
-  expect(await moveOf(/^Barcha vazifalar/)).toBeUndefined()
+  expect(await moveOf(/^Barcha buyurtmalar/)).toBeUndefined()
   expect(await moveOf(/^Mijozlar/)).toBeUndefined()
-  expect(await moveOf(/^Vazifalar/)).toBeUndefined()
+  expect(await moveOf(/^Buyurtmalar/)).toBeUndefined()
 })
 
 test("the way back moves the page back, as the prototype's pop", async () => {

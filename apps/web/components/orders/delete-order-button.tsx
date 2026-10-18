@@ -30,7 +30,7 @@ export function DeleteOrderButton({ companyId, id, title }: { companyId: number;
     mutationFn: () => call(api.DELETE("/app/orders/{id}", { params: { path: { id } } })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ordersKey(companyId) })
-      toast.success("Vazifa o'chirildi")
+      toast.success("Buyurtma o'chirildi")
       moving("back", () => router.replace("/orders"))
     },
     onError: (error) => {
@@ -42,14 +42,14 @@ export function DeleteOrderButton({ companyId, id, title }: { companyId: number;
   return (
     <>
       <Group>
-        <Row variant="danger" onClick={() => setConfirming(true)} title="Vazifani o'chirish" />
+        <Row variant="danger" onClick={() => setConfirming(true)} title="Buyurtmani o'chirish" />
       </Group>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Vazifani o&apos;chirasizmi?</AlertDialogTitle>
+          <AlertDialogTitle>Buyurtmani o&apos;chirasizmi?</AlertDialogTitle>
           <AlertDialogDescription>
-            «{title}» vazifalar ro&apos;yxatidan olib tashlanadi. Qayta tiklab bo&apos;lmaydi.
+            «{title}» buyurtmalar ro&apos;yxatidan olib tashlanadi. Qayta tiklab bo&apos;lmaydi.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -21,7 +21,7 @@ test("the overview: the orders by stage, this month's purchases and sales, each 
   render(<Overview dashboard={full} stages={stages} hasLocation month="oktabr" />)
 
   expect(screen.getByRole("heading", { level: 2, name: "Umumiy holat" })).toBeInTheDocument()
-  const orders = screen.getByRole("link", { name: /^Vazifalar/ })
+  const orders = screen.getByRole("link", { name: /^Buyurtmalar/ })
   expect(orders).toHaveAttribute("href", "/orders")
   expect(orders).toHaveTextContent("4 ta faol")
   expect(orders).toHaveTextContent("2 kechikkan")
@@ -42,7 +42,7 @@ test("the overview: the orders by stage, this month's purchases and sales, each 
 test("orders all in time say so", () => {
   render(<Overview dashboard={{ ...full, orders: { ...full.orders!, late: 0 } }} stages={stages} hasLocation month="oktabr" />)
 
-  expect(screen.getByRole("link", { name: /^Vazifalar/ })).toHaveTextContent("Vaqtida")
+  expect(screen.getByRole("link", { name: /^Buyurtmalar/ })).toHaveTextContent("Vaqtida")
 })
 
 test("without the purchases, the customers: how many, how many came this month", () => {
@@ -57,7 +57,7 @@ test("without the purchases, the customers: how many, how many came this month",
 test("with no location the orders' and the documents' cards are out; with nothing to show there is no overview", () => {
   const { rerender } = render(<Overview dashboard={full} stages={stages} hasLocation={false} month="oktabr" />)
 
-  expect(screen.queryByRole("link", { name: /^Vazifalar/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole("link", { name: /^Buyurtmalar/ })).not.toBeInTheDocument()
   expect(screen.queryByRole("link", { name: /^Xaridlar/ })).not.toBeInTheDocument()
   expect(screen.queryByRole("link", { name: /^Sotuv/ })).not.toBeInTheDocument()
   expect(screen.getByRole("link", { name: /^Mijozlar/ })).toBeInTheDocument()
@@ -68,7 +68,7 @@ test("with no location the orders' and the documents' cards are out; with nothin
 
 test("the cards stand two to a row on a phone; on a wide screen as many as fit, 300px at least each", () => {
   render(<Overview dashboard={full} stages={stages} hasLocation month="oktabr" />)
-  const grid = screen.getByRole("link", { name: /^Vazifalar/ }).parentElement
+  const grid = screen.getByRole("link", { name: /^Buyurtmalar/ }).parentElement
   expect(grid).toHaveClass("grid-cols-2", "md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]")
   expect(grid).not.toHaveClass("md:grid-cols-4")
 })
