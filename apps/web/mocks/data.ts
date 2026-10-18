@@ -475,7 +475,7 @@ function seedSettings(companies: Company[]): Pick<Db, "locations" | "dropdowns" 
     { id: next(), companyId: company.id, name: "Jarayonda", color: "amber", done: false },
     { id: next(), companyId: company.id, name: "Bajarildi", color: "green", done: true },
   ])
-  const orderTypes = companies.map((company): OrderTypeRow => ({ id: next(), companyId: company.id, name: "Vazifa", fields: [] }))
+  const orderTypes = companies.map((company): OrderTypeRow => ({ id: next(), companyId: company.id, name: "Buyurtma", fields: [] }))
   return { locations, dropdowns: [manba], types, stages, orderTypes, lastId }
 }
 
@@ -840,7 +840,7 @@ export function seedOrders() {
   const customers = seedCustomers()
   const montajType = seedMontajType()
   const [yangi, jarayonda, bajarildi] = db.stages.filter((s) => s.companyId === 1)
-  const [vazifa] = db.orderTypes.filter((t) => t.companyId === 1)
+  const [buyurtma] = db.orderTypes.filter((t) => t.companyId === 1)
   const [asosiy] = liveLocations(1)
   const [instagram, linkedin] = db.dropdowns[0].options
   const today = localToday()
@@ -882,10 +882,10 @@ export function seedOrders() {
     yangi,
     jarayonda,
     bajarildi,
-    vazifa,
-    old: enter(vazifa.id, bajarildi.id, customers.dilshod.id, "Eski buyurtma", addDays(today, -5), ALI, {}, ALI),
+    buyurtma,
+    old: enter(buyurtma.id, bajarildi.id, customers.dilshod.id, "Eski buyurtma", addDays(today, -5), ALI, {}, ALI),
     invoice: enter(montajType.montaj.id, yangi.id, customers.malika.id, "Hisob-faktura", addDays(today, -2), null, { [montajType.izoh.id]: "Kechikkan" }, SARDOR),
-    contract: enter(vazifa.id, jarayonda.id, customers.anor.id, "Shartnoma yuborish", today, null, {}, VALI),
+    contract: enter(buyurtma.id, jarayonda.id, customers.anor.id, "Shartnoma yuborish", today, null, {}, VALI),
     call: enter(
       montajType.montaj.id,
       yangi.id,

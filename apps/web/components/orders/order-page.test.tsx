@@ -79,7 +79,7 @@ test("a late order's deadline is red on its page; one due today says so; an orde
   await screen.findByRole("heading", { level: 1, name: "Shartnoma yuborish" })
   expect(within(await deadline()).getByText("Bugun")).toHaveAttribute("data-variant", "warn")
   expect(pairsOf(await info())).toEqual([
-    ["Turi", "Vazifa"],
+    ["Turi", "Buyurtma"],
     ["Bosqich", "Jarayonda"],
     ["Mas'ul", "—"],
     ["Qo'shgan", "Vali Aliyev"],

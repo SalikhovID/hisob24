@@ -72,21 +72,21 @@ test("a customer with no name goes by its phone", async () => {
 
 test("a type chip keeps the orders of one type and stays in the address", async () => {
   await signIn(ALI)
-  const { montaj, vazifa } = seedOrders()
+  const { montaj, buyurtma } = seedOrders()
   setLocation("/tasks?view=list")
   const { user } = renderWithProviders(<OrdersPage />)
   await list()
 
   const types = screen.getByRole("radiogroup", { name: "Vazifa turi" })
-  expect(within(types).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Barchasi", "Vazifa", "Montaj"])
+  expect(within(types).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Barchasi", "Buyurtma", "Montaj"])
   await user.click(within(types).getByRole("radio", { name: "Montaj" }))
 
   await waitFor(() => expect(titles()).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
   expect(currentUrl()).toBe(`/tasks?view=list&type=${montaj.id}`)
 
-  await user.click(within(types).getByRole("radio", { name: "Vazifa" }))
+  await user.click(within(types).getByRole("radio", { name: "Buyurtma" }))
   await waitFor(() => expect(titles()).toEqual(["Shartnoma yuborish", "Eski buyurtma"]))
-  expect(currentUrl()).toBe(`/tasks?view=list&type=${vazifa.id}`)
+  expect(currentUrl()).toBe(`/tasks?view=list&type=${buyurtma.id}`)
 
   await user.click(within(types).getByRole("radio", { name: "Barchasi" }))
   await waitFor(() => expect(titles()).toHaveLength(4))

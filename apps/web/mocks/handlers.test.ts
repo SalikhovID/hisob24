@@ -835,7 +835,7 @@ test("every company starts with the ready stages and order type; every member re
     ["Bajarildi", "green", true],
   ])
   const types = await call(api.GET("/app/order-types"))
-  expect(types.map((t) => [t.name, t.fields])).toEqual([["Vazifa", []]])
+  expect(types.map((t) => [t.name, t.fields])).toEqual([["Buyurtma", []]])
 
   await chooseCompany(2)
   expect((await call(api.GET("/app/order-stages"))).map((s) => s.name)).toEqual(["Yangi", "Jarayonda", "Bajarildi"])
@@ -905,7 +905,7 @@ test("the owner makes, renames, reorders and deletes order types, and adds, chan
 
   const montaj = await call(api.POST("/app/order-types", { body: { name: " Montaj " } }))
   expect(montaj).toMatchObject({ name: "Montaj", fields: [] })
-  expect(await failure(call(api.POST("/app/order-types", { body: { name: "vazifa" } })))).toMatchObject({
+  expect(await failure(call(api.POST("/app/order-types", { body: { name: "buyurtma" } })))).toMatchObject({
     status: 409,
     code: "name_taken",
     message: "Bu nomli tur allaqachon bor",
@@ -913,10 +913,10 @@ test("the owner makes, renames, reorders and deletes order types, and adds, chan
   expect(await call(api.PATCH("/app/order-types/{id}", { params: { path: { id: montaj.id } }, body: { name: "Zakaz" } }))).toMatchObject({
     name: "Zakaz",
   })
-  const [vazifa] = db.orderTypes
-  await call(api.PUT("/app/order-types/order", { body: { ids: [montaj.id, vazifa.id] } }))
-  expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Zakaz", "Vazifa"])
-  expect(await failure(call(api.PUT("/app/order-types/order", { body: { ids: [vazifa.id] } })))).toMatchObject({ status: 409, code: "order_changed" })
+  const [buyurtma] = db.orderTypes
+  await call(api.PUT("/app/order-types/order", { body: { ids: [montaj.id, buyurtma.id] } }))
+  expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Zakaz", "Buyurtma"])
+  expect(await failure(call(api.PUT("/app/order-types/order", { body: { ids: [buyurtma.id] } })))).toMatchObject({ status: 409, code: "order_changed" })
 
   const path = { params: { path: { id: montaj.id } } }
   const izoh = await call(api.POST("/app/order-types/{id}/fields", { ...path, body: { label: " Izoh ", kind: "string", required: true } }))
@@ -966,7 +966,7 @@ test("the owner makes, renames, reorders and deletes order types, and adds, chan
   })
 
   await call(api.DELETE("/app/order-types/{id}", path))
-  expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Vazifa"])
+  expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Buyurtma"])
   expect(db.orderTypes.find((t) => t.id === montaj.id)?.fields.every((f) => f.deleted)).toBe(true)
   expect(await failure(call(api.DELETE("/app/order-types/{id}", path)))).toMatchObject({ status: 404, message: "Tur topilmadi" })
 
@@ -978,9 +978,9 @@ test("the owner makes, renames, reorders and deletes order types, and adds, chan
 test("a dropdown an order field takes its options from is not deleted either", async () => {
   await signIn(ALI)
   const holat = await call(api.POST("/app/customer-dropdowns", { body: { name: "Holat" } }))
-  const [vazifa] = db.orderTypes
+  const [buyurtma] = db.orderTypes
   const field = await call(
-    api.POST("/app/order-types/{id}/fields", { params: { path: { id: vazifa.id } }, body: { label: "Holati", kind: "radio", dropdown_id: holat.id } }),
+    api.POST("/app/order-types/{id}/fields", { params: { path: { id: buyurtma.id } }, body: { label: "Holati", kind: "radio", dropdown_id: holat.id } }),
   )
 
   expect(await failure(call(api.DELETE("/app/customer-dropdowns/{id}", { params: { path: { id: holat.id } } })))).toMatchObject({
@@ -989,7 +989,7 @@ test("a dropdown an order field takes its options from is not deleted either", a
     message: "Bu dropdown 1 ta maydonda ishlatilgan",
   })
 
-  await call(api.DELETE("/app/order-types/{id}/fields/{fieldId}", { params: { path: { id: vazifa.id, fieldId: field.id } } }))
+  await call(api.DELETE("/app/order-types/{id}/fields/{fieldId}", { params: { path: { id: buyurtma.id, fieldId: field.id } } }))
   await call(api.DELETE("/app/customer-dropdowns/{id}", { params: { path: { id: holat.id } } }))
   expect((await call(api.GET("/app/customer-dropdowns"))).map((d) => d.name)).toEqual(["Manba"])
 })
@@ -1040,7 +1040,7 @@ const deleteOrderField = (typeId: number, fieldId: number) =>
 // Izoh, a number Summa and a checkbox Kanal over Manba, and the customer Ali.
 async function orderSetup() {
   const [yangi, jarayonda, bajarildi] = await call(api.GET("/app/order-stages"))
-  const [vazifa] = await call(api.GET("/app/order-types"))
+  const [buyurtma] = await call(api.GET("/app/order-types"))
   const montaj = await call(api.POST("/app/order-types", { body: { name: "Montaj" } }))
   const field = (body: components["schemas"]["OrderFieldInput"]) =>
     call(api.POST("/app/order-types/{id}/fields", { params: { path: { id: montaj.id } }, body }))
@@ -1050,7 +1050,7 @@ async function orderSetup() {
   const summa = await field({ label: "Summa", kind: "int" })
   const kanal = await field({ label: "Kanal", kind: "checkbox", dropdown_id: dropdown.id })
   const ali = await createCustomer(customers.jismoniy.id, "998901112233", { [customers.fish.id]: "Ali Valiyev" })
-  return { ...customers, dropdown, yangi, jarayonda, bajarildi, vazifa, montaj, izoh, summa, kanal, ali }
+  return { ...customers, dropdown, yangi, jarayonda, bajarildi, buyurtma, montaj, izoh, summa, kanal, ali }
 }
 type OrderSetup = Awaited<ReturnType<typeof orderSetup>>
 
@@ -1245,7 +1245,7 @@ test("the orders list: the one due soonest first, twenty to a page, the filters 
   )
   const sooner = await createOrder(orderBody(s, { title: "Qo'ng'iroq qilish", deadline: "2026-10-10", assignee_phone: VALI, values: { [s.izoh.id]: "X" } }))
   const other = await createOrder({
-    type_id: s.vazifa.id,
+    type_id: s.buyurtma.id,
     location_id: asosiyOf(1).id,
     title: "Shikoyatni ko'rish",
     deadline: "2026-10-10",
@@ -1256,7 +1256,7 @@ test("the orders list: the one due soonest first, twenty to a page, the filters 
   expect(await listOrders()).toEqual({ items: [sooner, other, later], total: 3, page: 1, page_size: 20 })
 
   const found = async (query: OrderQuery) => (await listOrders(query)).items.map((t) => t.id)
-  expect(await found({ type_id: s.vazifa.id })).toEqual([other.id])
+  expect(await found({ type_id: s.buyurtma.id })).toEqual([other.id])
   expect(await found({ stage_id: s.yangi.id })).toEqual([sooner.id, later.id])
   expect(await found({ assignee: "+998 90 222 33 44" })).toEqual([sooner.id])
   expect(await found({ customer_id: zarina.id })).toEqual([other.id])
@@ -1446,7 +1446,7 @@ test("what the orders use is not deleted; the customers are suggested by the dig
 
   // What nobody uses goes as before; a deleted order holds nothing.
   await deleteStage(s.jarayonda.id)
-  await deleteOrderType(s.vazifa.id)
+  await deleteOrderType(s.buyurtma.id)
   await deleteOrderField(s.montaj.id, s.summa.id)
   await deleteOrder(order.id)
   await deleteCustomer(s.ali.id)

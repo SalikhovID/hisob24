@@ -40,7 +40,7 @@ test("the sheet: the type on top, the customer and then the order; it opens in t
   expect(within(dialog).getByText("Turni tanlang, mijozni biriktiring va vazifani to'ldiring.")).toBeInTheDocument()
   const types = within(dialog).getByRole("radiogroup", { name: "Vazifa turi" })
   expect(within(types).getAllByRole("radio").map((radio) => [radio.textContent, radio.getAttribute("aria-checked")])).toEqual([
-    ["Vazifa", "true"],
+    ["Buyurtma", "true"],
     ["Montaj", "false"],
   ])
   const customer = within(dialog).getByRole("group", { name: "Mijoz" })

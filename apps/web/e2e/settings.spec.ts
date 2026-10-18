@@ -166,7 +166,7 @@ test("the owner makes an order type and gives it a choice field; the dropdown it
   await openSettings(page)
   await openPart(page, "Vazifa turlari", /\/settings\/task-types$/)
   const types = page.getByRole("list", { name: "Vazifa turlari" })
-  await expect(types.getByRole("link", { name: /^Vazifa/ })).toBeVisible()
+  await expect(types.getByRole("link", { name: /^Buyurtma/ })).toBeVisible()
 
   await page.getByRole("button", { name: "Vazifa turi qo'shish" }).click()
   let sheet = page.getByRole("dialog", { name: "Vazifa turi qo'shish" })

@@ -18,20 +18,20 @@ const fieldRow = async (label: string) => within(await fieldList()).getByRole("b
 // withFields gives Olma Savdo's ready type a text field and a choice over
 // Manba, and returns the type.
 function withFields() {
-  const [vazifa] = db.orderTypes
-  vazifa.fields.push(
+  const [buyurtma] = db.orderTypes
+  buyurtma.fields.push(
     { id: 901, label: "Izoh", kind: "string", required: true, dropdownId: null },
     { id: 902, label: "Manba", kind: "dropdown", required: false, dropdownId: db.dropdowns[0].id },
   )
-  return vazifa
+  return buyurtma
 }
 
 test("the owner sees the type's fields as the prototype's rows, the order's own words under them, and the way back to the order types", async () => {
   await signIn(ALI)
-  const vazifa = withFields()
-  renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  const buyurtma = withFields()
+  renderWithProviders(<OrderTypePage id={buyurtma.id} />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Vazifa" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma" })).toBeInTheDocument()
   expect(screen.getByText("Vazifa turi · 2 ta maydon")).toBeInTheDocument()
   await waitFor(async () =>
     expect(fieldsOf(await fieldList())).toEqual([
@@ -50,18 +50,18 @@ test("a type that is not there, or with no fields, says so; one that fails to lo
   expect(screen.getByRole("link", { name: "Vazifa turlari" })).toHaveAttribute("href", "/settings/task-types")
   unmount()
 
-  const [vazifa] = orderTypesOf(1)
-  const empty = renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  const [buyurtma] = orderTypesOf(1)
+  const empty = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
   expect(await screen.findByText("Bu turda maydon yo'q")).toBeInTheDocument()
   expect(screen.getByText("Vazifa nomi, muddati, mijozi va mas'uli bilan qo'shiladi.")).toBeInTheDocument()
   expect(screen.getByText("Vazifa turi · 0 ta maydon")).toBeInTheDocument()
   empty.unmount()
 
   server.use(http.get("*/api/app/order-types", () => HttpResponse.error(), { once: true }))
-  const { user } = renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  const { user } = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
   expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
-  expect(await screen.findByRole("heading", { level: 1, name: "Vazifa" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma" })).toBeInTheDocument()
 })
 
 test("an employee is sent home: a type's page is the owner's", async () => {
@@ -75,8 +75,8 @@ test("an employee is sent home: a type's page is the owner's", async () => {
 
 test("a field is added from the plus's sheet: a choice asks for its dropdown, and an order field is never told not to repeat", async () => {
   await signIn(ALI)
-  const [vazifa] = orderTypesOf(1)
-  const { user } = renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  const [buyurtma] = orderTypesOf(1)
+  const { user } = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
   await screen.findByText("Bu turda maydon yo'q")
 
   await user.click(screen.getByRole("button", { name: "Maydon qo'shish" }))
@@ -96,8 +96,8 @@ test("a field is added from the plus's sheet: a choice asks for its dropdown, an
 
 test("a field's row opens its sheet: the name and the mark change, the kind is said and stays; deleted from it after asking, a refusal with its reason", async () => {
   await signIn(ALI)
-  const vazifa = withFields()
-  const { user } = renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  const buyurtma = withFields()
+  const { user } = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
 
   await user.click(await fieldRow("Izoh"))
   let sheet = await screen.findByRole("dialog", { name: "Maydonni tahrirlash" })
@@ -130,8 +130,8 @@ test("a field's row opens its sheet: the name and the mark change, the kind is s
 
 test("the fields are put in order in the «Tartiblash» mode, and the order is saved", async () => {
   await signIn(ALI)
-  const vazifa = withFields()
-  const { user } = renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  const buyurtma = withFields()
+  const { user } = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
   expect(fieldsOf(await fieldList()).map((field) => field.label)).toEqual(["Izoh", "Manba"])
 
   await user.click(screen.getByRole("button", { name: "Tartiblash" }))
@@ -144,8 +144,8 @@ test("the fields are put in order in the «Tartiblash» mode, and the order is s
 
 test("the order type is renamed from its page, and deleted from it after asking: back to the order types", async () => {
   await signIn(ALI)
-  const [vazifa] = orderTypesOf(1)
-  const { user } = renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  const [buyurtma] = orderTypesOf(1)
+  const { user } = renderWithProviders(<OrderTypePage id={buyurtma.id} />)
 
   await user.click(await screen.findByRole("button", { name: "Nomini o'zgartirish" }))
   const sheet = await screen.findByRole("dialog", { name: "Vazifa turi nomini o'zgartirish" })
@@ -166,12 +166,12 @@ test("the order type is renamed from its page, and deleted from it after asking:
 
 test("an employee whose role holds settings.view alone sees the fields without a way to change them", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["settings.view"])
-  const vazifa = withFields()
+  const buyurtma = withFields()
   await signIn(VALI)
   await chooseCompany(1)
-  renderWithProviders(<OrderTypePage id={vazifa.id} />)
+  renderWithProviders(<OrderTypePage id={buyurtma.id} />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Vazifa" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma" })).toBeInTheDocument()
   const list = await fieldList()
   expect(fieldsOf(list)).toHaveLength(2)
   expect(within(list).queryAllByRole("button")).toHaveLength(0)
