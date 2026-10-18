@@ -54,7 +54,7 @@ test("the board shows a column per stage, in order, with the orders due soonest 
   expect(within(link).getByText("Dilshod Karimov")).toBeInTheDocument()
   expect(within(link).getByText(due(3, "3 kun qoldi"))).toBeInTheDocument()
   expect(within(link).getByText("Vali A.")).toBeInTheDocument()
-  expect(within(link).getByText("Buyurtma")).toBeInTheDocument()
+  expect(within(link).getByText("Montaj")).toBeInTheDocument()
   expect(within(card).getByRole("button", { name: "Bosqich: Qo'ng'iroq qilish" })).toBeInTheDocument()
   expect(within(card).queryByText(String(dilshod.id))).not.toBeInTheDocument()
   // A late order's deadline is red.
@@ -186,12 +186,12 @@ test("the type chip, the search and the assignee narrow every column", async () 
   await board()
   await waitFor(() => expect(cards("Yangi")).toHaveLength(2))
 
-  await user.click(screen.getByRole("radio", { name: "Buyurtma" }))
+  await user.click(screen.getByRole("radio", { name: "Montaj" }))
   await waitFor(() => expect(cards("Jarayonda")).toEqual([]))
   expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"])
   expect(within(column("Jarayonda")).getByText("Kartani shu yerga suring")).toBeInTheDocument()
   // Under a type the type is not said on every card, and the count is not the location's.
-  expect(within(column("Yangi")).queryByText("Buyurtma")).not.toBeInTheDocument()
+  expect(within(column("Yangi")).queryByText("Montaj")).not.toBeInTheDocument()
   expect(screen.queryByText("4 ta")).not.toBeInTheDocument()
 
   await user.click(screen.getByRole("radio", { name: "Barchasi" }))

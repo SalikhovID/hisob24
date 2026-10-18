@@ -72,17 +72,17 @@ test("a customer with no name goes by its phone", async () => {
 
 test("a type chip keeps the orders of one type and stays in the address", async () => {
   await signIn(ALI)
-  const { buyurtma, vazifa } = seedOrders()
+  const { montaj, vazifa } = seedOrders()
   setLocation("/tasks?view=list")
   const { user } = renderWithProviders(<OrdersPage />)
   await list()
 
   const types = screen.getByRole("radiogroup", { name: "Vazifa turi" })
-  expect(within(types).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Barchasi", "Vazifa", "Buyurtma"])
-  await user.click(within(types).getByRole("radio", { name: "Buyurtma" }))
+  expect(within(types).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Barchasi", "Vazifa", "Montaj"])
+  await user.click(within(types).getByRole("radio", { name: "Montaj" }))
 
   await waitFor(() => expect(titles()).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
-  expect(currentUrl()).toBe(`/tasks?view=list&type=${buyurtma.id}`)
+  expect(currentUrl()).toBe(`/tasks?view=list&type=${montaj.id}`)
 
   await user.click(within(types).getByRole("radio", { name: "Vazifa" }))
   await waitFor(() => expect(titles()).toEqual(["Shartnoma yuborish", "Eski buyurtma"]))
@@ -123,14 +123,14 @@ test("the stage and the assignee are chosen in sheets, narrow the list and stay 
 
 test("the list opens under the filters the address names", async () => {
   await signIn(ALI)
-  const { buyurtma, yangi } = seedOrders()
-  setLocation(`/tasks?view=list&type=${buyurtma.id}&stage=${yangi.id}&assignee=${VALI}&search=qo`)
+  const { montaj, yangi } = seedOrders()
+  setLocation(`/tasks?view=list&type=${montaj.id}&stage=${yangi.id}&assignee=${VALI}&search=qo`)
 
   renderWithProviders(<OrdersPage />)
 
   await list()
   await waitFor(() => expect(titles()).toEqual(["Qo'ng'iroq qilish"]))
-  expect(screen.getByRole("radio", { name: "Buyurtma" })).toBeChecked()
+  expect(screen.getByRole("radio", { name: "Montaj" })).toBeChecked()
   expect(screen.getByRole("button", { name: "Yangi" })).toHaveAttribute("aria-pressed", "true")
   expect(await screen.findByRole("button", { name: "Vali A." })).toHaveAttribute("aria-pressed", "true")
   expect(screen.getByRole("searchbox", { name: "Qidirish" })).toHaveValue("qo")

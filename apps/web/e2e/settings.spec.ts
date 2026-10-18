@@ -170,11 +170,11 @@ test("the owner makes an order type and gives it a choice field; the dropdown it
 
   await page.getByRole("button", { name: "Vazifa turi qo'shish" }).click()
   let sheet = page.getByRole("dialog", { name: "Vazifa turi qo'shish" })
-  await sheet.getByLabel("Nomi").fill("Buyurtma")
+  await sheet.getByLabel("Nomi").fill("Montaj")
   await sheet.getByRole("button", { name: "Qo'shish" }).click()
   await expect(sheet).toBeHidden()
-  await types.getByRole("link", { name: /^Buyurtma/ }).click()
-  await expect(page.getByRole("heading", { level: 1, name: "Buyurtma" })).toBeVisible()
+  await types.getByRole("link", { name: /^Montaj/ }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Montaj" })).toBeVisible()
   await expect(page.getByText("Bu turda maydon yo'q")).toBeVisible()
   await expect(page.getByText("Vazifa turi · 0 ta maydon")).toBeVisible()
 
@@ -195,7 +195,7 @@ test("the owner makes an order type and gives it a choice field; the dropdown it
 
   // A dropdown that an order field takes its options from is not deleted.
   await back(page, "Vazifa turlari")
-  await expect(types.getByRole("link", { name: /^Buyurtma/ })).toBeVisible()
+  await expect(types.getByRole("link", { name: /^Montaj/ })).toBeVisible()
   await back(page, "Sozlamalar")
   await openPart(page, "Dropdownlar", /\/settings\/dropdowns$/)
   await page.getByRole("list", { name: "Dropdownlar" }).getByRole("link", { name: /^Manba/ }).click()

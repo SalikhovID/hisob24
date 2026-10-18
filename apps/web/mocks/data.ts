@@ -804,9 +804,9 @@ export function seedSixKinds() {
   }
 }
 
-// seedOrderType gives Olma Savdo an order type Buyurtma with a required text
+// seedMontajType gives Olma Savdo an order type Montaj with a required text
 // Izoh, a number Summa and a checkbox Kanal over Manba. A test asks for it.
-export function seedOrderType() {
+export function seedMontajType() {
   const manba = db.dropdowns[0]
   const field = (label: string, kind: CustomerFieldKind, required = false, dropdownId: number | null = null): OrderFieldRow => ({
     id: nextId(),
@@ -815,30 +815,30 @@ export function seedOrderType() {
     required,
     dropdownId,
   })
-  const buyurtma: OrderTypeRow = {
+  const montaj: OrderTypeRow = {
     id: nextId(),
     companyId: 1,
-    name: "Buyurtma",
+    name: "Montaj",
     fields: [field("Izoh", "string", true), field("Summa", "int"), field("Kanal", "checkbox", false, manba.id)],
   }
-  db.orderTypes.push(buyurtma)
-  const [izoh, summa, kanal] = buyurtma.fields
-  return { buyurtma, izoh, summa, kanal }
+  db.orderTypes.push(montaj)
+  const [izoh, summa, kanal] = montaj.fields
+  return { montaj, izoh, summa, kanal }
 }
 
-// seedOrders enters the customers of seedCustomers, the type of seedOrderType
+// seedOrders enters the customers of seedCustomers, the type of seedMontajType
 // and the orders the pages are tested with into Olma Savdo, in its ready
 // location Asosiy, with deadlines
 // measured from the browser's day: "Eski buyurtma" (a Vazifa for Dilshod,
 // Bajarildi, five days late, assigned to Ali, entered by Ali), "Hisob-
-// faktura" (a Buyurtma for Malika, Yangi, two days late, nobody's, by
+// faktura" (a Montaj for Malika, Yangi, two days late, nobody's, by
 // Sardor), "Shartnoma yuborish" (a Vazifa for Anor Tekstil, Jarayonda,
-// today, nobody's, by Vali) and "Qo'ng'iroq qilish" (a Buyurtma for
+// today, nobody's, by Vali) and "Qo'ng'iroq qilish" (a Montaj for
 // Dilshod, Yangi, three days off, assigned to Vali, by Ali): in that order
 // they are due. The company starts with none: a test asks for them.
 export function seedOrders() {
   const customers = seedCustomers()
-  const orderType = seedOrderType()
+  const montajType = seedMontajType()
   const [yangi, jarayonda, bajarildi] = db.stages.filter((s) => s.companyId === 1)
   const [vazifa] = db.orderTypes.filter((t) => t.companyId === 1)
   const [asosiy] = liveLocations(1)
@@ -878,22 +878,22 @@ export function seedOrders() {
   }
   return {
     ...customers,
-    ...orderType,
+    ...montajType,
     yangi,
     jarayonda,
     bajarildi,
     vazifa,
     old: enter(vazifa.id, bajarildi.id, customers.dilshod.id, "Eski buyurtma", addDays(today, -5), ALI, {}, ALI),
-    invoice: enter(orderType.buyurtma.id, yangi.id, customers.malika.id, "Hisob-faktura", addDays(today, -2), null, { [orderType.izoh.id]: "Kechikkan" }, SARDOR),
+    invoice: enter(montajType.montaj.id, yangi.id, customers.malika.id, "Hisob-faktura", addDays(today, -2), null, { [montajType.izoh.id]: "Kechikkan" }, SARDOR),
     contract: enter(vazifa.id, jarayonda.id, customers.anor.id, "Shartnoma yuborish", today, null, {}, VALI),
     call: enter(
-      orderType.buyurtma.id,
+      montajType.montaj.id,
       yangi.id,
       customers.dilshod.id,
       "Qo'ng'iroq qilish",
       addDays(today, 3),
       VALI,
-      { [orderType.izoh.id]: "Ertalab qo'ng'iroq", [orderType.summa.id]: 45000, [orderType.kanal.id]: [instagram.id, linkedin.id] },
+      { [montajType.izoh.id]: "Ertalab qo'ng'iroq", [montajType.summa.id]: 45000, [montajType.kanal.id]: [instagram.id, linkedin.id] },
       ALI,
     ),
   }

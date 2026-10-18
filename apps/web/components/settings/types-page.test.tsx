@@ -146,10 +146,10 @@ test("the order types: the same rows and sheet, in their own words; with none ye
   expect(within(types).getByRole("link")).toHaveAttribute("href", `/settings/task-types/${vazifa.id}`)
   await user.click(screen.getByRole("button", { name: "Vazifa turi qo'shish" }))
   const sheet = await screen.findByRole("dialog", { name: "Vazifa turi qo'shish" })
-  await user.type(within(sheet).getByLabelText("Nomi"), "Buyurtma")
+  await user.type(within(sheet).getByLabelText("Nomi"), "Montaj")
   await user.click(within(sheet).getByRole("button", { name: "Qo'shish" }))
   expect((await screen.findAllByText("Vazifa turi qo'shildi")).length).toBeGreaterThan(0)
-  await waitFor(async () => expect(names(await screen.findByRole("list", { name: "Vazifa turlari" }))).toEqual(["Vazifa", "Buyurtma"]))
+  await waitFor(async () => expect(names(await screen.findByRole("list", { name: "Vazifa turlari" }))).toEqual(["Vazifa", "Montaj"]))
   unmount()
 
   db.orderTypes.forEach((type) => (type.deleted = true))

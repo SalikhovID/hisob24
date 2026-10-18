@@ -25,7 +25,7 @@ test("the edit dialog opens with the order as it is, its customer shown and not 
   const { call, dilshod, jarayonda, izoh, summa, kanal } = seedOrders()
   const { user, dialog } = await openDialog(call.id)
 
-  expect(within(dialog).getByText("Buyurtma · mijoz va tur o'zgarmaydi")).toBeInTheDocument()
+  expect(within(dialog).getByText("Montaj · mijoz va tur o'zgarmaydi")).toBeInTheDocument()
   const customer = within(dialog).getByRole("region", { name: "Mavjud mijoz" })
   expect(within(customer).getByText("Dilshod Karimov")).toBeInTheDocument()
   expect(within(customer).getByRole("link", { name: "Mijozni ochish" })).toHaveAttribute("href", `/customers/${dilshod.id}`)

@@ -34,7 +34,7 @@ test("an order's page shows what it is, its stage among the stages, its deadline
   open(call.id)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
-  expect(screen.getByText("Buyurtma · Dilshod Karimov")).toBeInTheDocument()
+  expect(screen.getByText("Montaj · Dilshod Karimov")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Vazifalar" })).toHaveAttribute("href", "/tasks")
   // The stages in their order, the order's one marked.
   expect(within(stageTrack()).getAllByRole("radio").map((radio) => [radio.textContent, radio.getAttribute("aria-checked")])).toEqual([
@@ -52,7 +52,7 @@ test("an order's page shows what it is, its stage among the stages, its deadline
   expect(within(customer).getByRole("link", { name: /^Dilshod Karimov/ })).toHaveAttribute("href", `/customers/${dilshod.id}`)
   await waitFor(() => expect(within(customer).getByText("Jismoniy · +998 91 111 22 33")).toBeInTheDocument())
   expect(pairsOf(await info())).toEqual([
-    ["Turi", "Buyurtma"],
+    ["Turi", "Montaj"],
     ["Bosqich", "Yangi"],
     ["Mas'ul", "Vali Aliyev"],
     ["Izoh", "Ertalab qo'ng'iroq"],

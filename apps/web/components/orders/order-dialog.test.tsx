@@ -41,7 +41,7 @@ test("the sheet: the type on top, the customer and then the order; it opens in t
   const types = within(dialog).getByRole("radiogroup", { name: "Vazifa turi" })
   expect(within(types).getAllByRole("radio").map((radio) => [radio.textContent, radio.getAttribute("aria-checked")])).toEqual([
     ["Vazifa", "true"],
-    ["Buyurtma", "false"],
+    ["Montaj", "false"],
   ])
   const customer = within(dialog).getByRole("group", { name: "Mijoz" })
   expect(within(customer).getAllByRole("radio").map((radio) => radio.textContent)).toEqual(["Jismoniy", "Yuridik"])
@@ -69,7 +69,7 @@ test("the sheet: the type on top, the customer and then the order; it opens in t
   await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
   // The type's fields are the form's, under the order's own.
   expect(within(order).queryByLabelText("Izoh")).not.toBeInTheDocument()
-  await user.click(within(types).getByRole("radio", { name: "Buyurtma" }))
+  await user.click(within(types).getByRole("radio", { name: "Montaj" }))
   expect(within(order).getByLabelText("Izoh")).toHaveValue("")
   expect(within(order).getByLabelText("Summa")).toHaveValue("")
   expect(within(order).getByRole("group", { name: "Kanal" })).toBeInTheDocument()
@@ -78,12 +78,12 @@ test("the sheet: the type on top, the customer and then the order; it opens in t
 test("an order with a new customer is entered in one go, and the list shows it at once", async () => {
   await signIn(VALI)
   await chooseCompany(1)
-  const { buyurtma, izoh, summa, jarayonda } = seedOrders()
+  const { montaj, izoh, summa, jarayonda } = seedOrders()
   const [jismoniy] = typesOf(1)
   const [fish] = jismoniy.fields
   const { user, dialog } = await openDialog()
 
-  await user.click(within(dialog).getByRole("radio", { name: "Buyurtma" }))
+  await user.click(within(dialog).getByRole("radio", { name: "Montaj" }))
   const customer = within(dialog).getByRole("group", { name: "Mijoz" })
   await user.type(within(customer).getByRole("combobox", { name: "Telefon raqami" }), "901112233")
   await user.type(within(customer).getByLabelText("F.I.Sh."), "Yangi Mijoz")
@@ -101,7 +101,7 @@ test("an order with a new customer is entered in one go, and the list shows it a
   await waitFor(() => expect(titles()).toContain("Shartnoma imzolash"))
   const entered = db.orders.at(-1)!
   expect(entered).toMatchObject({
-    typeId: buyurtma.id,
+    typeId: montaj.id,
     stageId: jarayonda.id,
     title: "Shartnoma imzolash",
     deadline: addDays(today, 7),
@@ -169,7 +169,7 @@ test("what is wrong with the form is said in the API's words, all at once", asyn
   await signIn(ALI)
   seedOrders()
   const { user, dialog } = await openDialog()
-  await user.click(within(dialog).getByRole("radio", { name: "Buyurtma" }))
+  await user.click(within(dialog).getByRole("radio", { name: "Montaj" }))
   await user.type(within(dialog).getByRole("combobox", { name: "Telefon raqami" }), "90 111")
 
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
@@ -245,8 +245,8 @@ test("with no customer types only a customer that is there will do", async () =>
 
 test("the + of a column opens the dialog for that stage; under a tab it opens with that tab's type; it opens empty every time", async () => {
   await signIn(ALI)
-  const { buyurtma } = seedOrders()
-  setLocation(`/tasks?type=${buyurtma.id}`)
+  const { montaj } = seedOrders()
+  setLocation(`/tasks?type=${montaj.id}`)
   const { user } = renderWithProviders(<OrdersPage />)
   await screen.findByRole("region", { name: "Kanban" })
 
@@ -254,7 +254,7 @@ test("the + of a column opens the dialog for that stage; under a tab it opens wi
 
   const dialog = await screen.findByRole("dialog", { name: "Vazifa qo'shish" })
   expect(within(dialog).getByLabelText("Bosqich")).toHaveTextContent("Jarayonda")
-  expect(within(dialog).getByRole("radio", { name: "Buyurtma" })).toHaveAttribute("aria-checked", "true")
+  expect(within(dialog).getByRole("radio", { name: "Montaj" })).toHaveAttribute("aria-checked", "true")
   await user.type(within(dialog).getByLabelText("Nomi"), "Yarim yozilgan")
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())

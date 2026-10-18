@@ -903,22 +903,22 @@ test("the owner makes, renames, reorders and deletes order types, and adds, chan
   const nokManba = { id: 950, companyId: 2, name: "Begona", options: [] }
   db.dropdowns.push(nokManba)
 
-  const buyurtma = await call(api.POST("/app/order-types", { body: { name: " Buyurtma " } }))
-  expect(buyurtma).toMatchObject({ name: "Buyurtma", fields: [] })
+  const montaj = await call(api.POST("/app/order-types", { body: { name: " Montaj " } }))
+  expect(montaj).toMatchObject({ name: "Montaj", fields: [] })
   expect(await failure(call(api.POST("/app/order-types", { body: { name: "vazifa" } })))).toMatchObject({
     status: 409,
     code: "name_taken",
     message: "Bu nomli tur allaqachon bor",
   })
-  expect(await call(api.PATCH("/app/order-types/{id}", { params: { path: { id: buyurtma.id } }, body: { name: "Zakaz" } }))).toMatchObject({
+  expect(await call(api.PATCH("/app/order-types/{id}", { params: { path: { id: montaj.id } }, body: { name: "Zakaz" } }))).toMatchObject({
     name: "Zakaz",
   })
   const [vazifa] = db.orderTypes
-  await call(api.PUT("/app/order-types/order", { body: { ids: [buyurtma.id, vazifa.id] } }))
+  await call(api.PUT("/app/order-types/order", { body: { ids: [montaj.id, vazifa.id] } }))
   expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Zakaz", "Vazifa"])
   expect(await failure(call(api.PUT("/app/order-types/order", { body: { ids: [vazifa.id] } })))).toMatchObject({ status: 409, code: "order_changed" })
 
-  const path = { params: { path: { id: buyurtma.id } } }
+  const path = { params: { path: { id: montaj.id } } }
   const izoh = await call(api.POST("/app/order-types/{id}/fields", { ...path, body: { label: " Izoh ", kind: "string", required: true } }))
   expect(izoh).toEqual({ id: izoh.id, label: "Izoh", kind: "string", required: true, dropdown_id: null })
   const source = await call(api.POST("/app/order-types/{id}/fields", { ...path, body: { label: "Manba", kind: "dropdown", dropdown_id: manba.id } }))
@@ -943,7 +943,7 @@ test("the owner makes, renames, reorders and deletes order types, and adds, chan
     await failure(call(api.POST("/app/order-types/{id}/fields", { params: { path: { id: 9999 } }, body: { label: "Izoh", kind: "string" } }))),
   ).toMatchObject({ status: 404, message: "Tur topilmadi" })
 
-  const fieldPath = { params: { path: { id: buyurtma.id, fieldId: izoh.id } } }
+  const fieldPath = { params: { path: { id: montaj.id, fieldId: izoh.id } } }
   expect(await call(api.PATCH("/app/order-types/{id}/fields/{fieldId}", { ...fieldPath, body: { label: "Tavsif" } }))).toMatchObject({
     label: "Tavsif",
     required: true,
@@ -967,7 +967,7 @@ test("the owner makes, renames, reorders and deletes order types, and adds, chan
 
   await call(api.DELETE("/app/order-types/{id}", path))
   expect((await call(api.GET("/app/order-types"))).map((t) => t.name)).toEqual(["Vazifa"])
-  expect(db.orderTypes.find((t) => t.id === buyurtma.id)?.fields.every((f) => f.deleted)).toBe(true)
+  expect(db.orderTypes.find((t) => t.id === montaj.id)?.fields.every((f) => f.deleted)).toBe(true)
   expect(await failure(call(api.DELETE("/app/order-types/{id}", path)))).toMatchObject({ status: 404, message: "Tur topilmadi" })
 
   await signIn(VALI)
@@ -1036,29 +1036,29 @@ const deleteOrderField = (typeId: number, fieldId: number) =>
   call(api.DELETE("/app/order-types/{id}/fields/{fieldId}", { params: { path: { id: typeId, fieldId } } }))
 
 // orderSetup is what Olma Savdo's orders are entered with, by its owner: the
-// three ready stages, the ready type, a type Buyurtma with a required text
+// three ready stages, the ready type, a type Montaj with a required text
 // Izoh, a number Summa and a checkbox Kanal over Manba, and the customer Ali.
 async function orderSetup() {
   const [yangi, jarayonda, bajarildi] = await call(api.GET("/app/order-stages"))
   const [vazifa] = await call(api.GET("/app/order-types"))
-  const buyurtma = await call(api.POST("/app/order-types", { body: { name: "Buyurtma" } }))
+  const montaj = await call(api.POST("/app/order-types", { body: { name: "Montaj" } }))
   const field = (body: components["schemas"]["OrderFieldInput"]) =>
-    call(api.POST("/app/order-types/{id}/fields", { params: { path: { id: buyurtma.id } }, body }))
+    call(api.POST("/app/order-types/{id}/fields", { params: { path: { id: montaj.id } }, body }))
   const customers = await setup()
   const dropdown = (await customerDropdowns())[0]
   const izoh = await field({ label: "Izoh", kind: "string", required: true })
   const summa = await field({ label: "Summa", kind: "int" })
   const kanal = await field({ label: "Kanal", kind: "checkbox", dropdown_id: dropdown.id })
   const ali = await createCustomer(customers.jismoniy.id, "998901112233", { [customers.fish.id]: "Ali Valiyev" })
-  return { ...customers, dropdown, yangi, jarayonda, bajarildi, vazifa, buyurtma, izoh, summa, kanal, ali }
+  return { ...customers, dropdown, yangi, jarayonda, bajarildi, vazifa, montaj, izoh, summa, kanal, ali }
 }
 type OrderSetup = Awaited<ReturnType<typeof orderSetup>>
 
-// orderBody is an order of the type Buyurtma for Ali, in Asosiy, due on
+// orderBody is an order of the type Montaj for Ali, in Asosiy, due on
 // 10.10.2026, in Yangi, with Izoh filled in; over changes what the test is
 // about.
 const orderBody = (s: OrderSetup, over: Partial<OrderCreate> = {}): OrderCreate => ({
-  type_id: s.buyurtma.id,
+  type_id: s.montaj.id,
   location_id: asosiyOf(1).id,
   title: "Qo'ng'iroq qilish",
   deadline: "2026-10-10",
@@ -1147,7 +1147,7 @@ test("a member enters an order for a customer that is there, or with a new one; 
   )
 
   expect(order).toMatchObject({
-    type_id: s.buyurtma.id,
+    type_id: s.montaj.id,
     stage_id: s.yangi.id,
     location_id: asosiyOf(1).id,
     title: "Qo'ng'iroq qilish",
@@ -1429,8 +1429,8 @@ test("what the orders use is not deleted; the customers are suggested by the dig
 
   expect(await failure(deleteCustomer(s.ali.id))).toMatchObject({ ...inUse, code: "customer_in_use", message: "Bu mijozda 1 ta vazifa bor" })
   expect(await failure(deleteStage(s.yangi.id))).toMatchObject({ ...inUse, code: "stage_in_use", message: "Bu bosqichda 1 ta vazifa bor" })
-  expect(await failure(deleteOrderType(s.buyurtma.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 1 ta vazifa bor" })
-  expect(await failure(deleteOrderField(s.buyurtma.id, s.izoh.id))).toMatchObject({
+  expect(await failure(deleteOrderType(s.montaj.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 1 ta vazifa bor" })
+  expect(await failure(deleteOrderField(s.montaj.id, s.izoh.id))).toMatchObject({
     ...inUse,
     code: "field_in_use",
     message: "Bu maydon 1 ta vazifada to'ldirilgan",
@@ -1447,11 +1447,11 @@ test("what the orders use is not deleted; the customers are suggested by the dig
   // What nobody uses goes as before; a deleted order holds nothing.
   await deleteStage(s.jarayonda.id)
   await deleteOrderType(s.vazifa.id)
-  await deleteOrderField(s.buyurtma.id, s.summa.id)
+  await deleteOrderField(s.montaj.id, s.summa.id)
   await deleteOrder(order.id)
   await deleteCustomer(s.ali.id)
   await deleteStage(s.yangi.id)
-  await deleteOrderType(s.buyurtma.id)
+  await deleteOrderType(s.montaj.id)
 
   // The suggestions of the order form: the digits typed after 998.
   const phones = async (phone: string) => (await listCustomers({ phone })).items.map((c) => c.phone)
