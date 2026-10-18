@@ -49,7 +49,7 @@ const memberColumns: Column<Member>[] = [
 function locationColumns(companyId: number): Column<AdminLocation>[] {
   return [
     { header: "Lokatsiya", primary: true, cell: (l) => l.name },
-    { header: "Vazifalar", card: "inline", align: "end", cell: (l) => l.orders_count },
+    { header: "Buyurtmalar", card: "inline", align: "end", cell: (l) => l.orders_count },
     { header: "Qo'shilgan", card: "inline", className: "text-muted-foreground", cell: (l) => formatDate(l.created_at) },
     {
       header: "Amallar",

@@ -181,7 +181,7 @@ export function DeleteLocationButton({ companyId, location }: { companyId: numbe
         <AlertDialogHeader>
           <AlertDialogTitle>Lokatsiyani o&apos;chirasizmi?</AlertDialogTitle>
           <AlertDialogDescription>
-            «{location.name}» lokatsiyasi o&apos;chadi. Vazifasi bor yoki yagona lokatsiya o&apos;chirilmaydi.
+            «{location.name}» lokatsiyasi o&apos;chadi. Buyurtmasi bor yoki yagona lokatsiya o&apos;chirilmaydi.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

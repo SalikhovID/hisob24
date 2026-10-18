@@ -497,7 +497,7 @@ test("the company page lists the locations with their order counts, the ready on
   const locations = await screen.findByRole("table", { name: "Lokatsiyalar" })
   expect(within(locations).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
     "Lokatsiya",
-    "Vazifalar",
+    "Buyurtmalar",
     "Qo'shilgan",
     "Amallar",
   ])
@@ -562,7 +562,7 @@ test("the only location is not deleted; a second, empty one is, after asking", a
   const table = await screen.findByRole("table", { name: "Lokatsiyalar" })
   await user.click(within(table).getByRole("button", { name: "O'chirish: Chilonzor" }))
   let confirm = await screen.findByRole("alertdialog", { name: "Lokatsiyani o'chirasizmi?" })
-  expect(within(confirm).getByText(/«Chilonzor» lokatsiyasi o'chadi/)).toBeInTheDocument()
+  expect(within(confirm).getByText(/«Chilonzor» lokatsiyasi o'chadi/)).toHaveTextContent("Buyurtmasi bor yoki yagona lokatsiya o'chirilmaydi.")
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
   expect(await screen.findByText("Lokatsiya o'chirildi")).toBeInTheDocument()
   await waitFor(() => expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toEqual([["Asosiy", "0", "20.09.2026"]]))
@@ -599,7 +599,7 @@ test("on a phone a location is a card: the order count and the day under its nam
     pair.querySelector("dd")?.textContent,
   ])
   expect(line).toEqual([
-    ["Vazifalar", "0"],
+    ["Buyurtmalar", "0"],
     ["Qo'shilgan", "20.09.2026"],
   ])
   expect(within(asosiy).getByRole("button", { name: "Nomini o'zgartirish: Asosiy" })).toBeInTheDocument()
