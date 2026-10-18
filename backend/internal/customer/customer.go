@@ -13,7 +13,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
 
-// What a form of fields is made of is shared with the tasks
+// What a form of fields is made of is shared with the orders
 // (internal/fields); these names keep the customer API as it was.
 type (
 	Field  = fields.Field

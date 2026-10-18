@@ -16,15 +16,15 @@ func (api testAPI) addStage(t *testing.T, companyID int64, name, color string, d
 		companyID, name, color, done, position)
 }
 
-// addTaskType inserts a task type of the company at a place and returns its id.
-func (api testAPI) addTaskType(t *testing.T, companyID int64, name string, position int) int64 {
+// addOrderType inserts an order type of the company at a place and returns its id.
+func (api testAPI) addOrderType(t *testing.T, companyID int64, name string, position int) int64 {
 	t.Helper()
 	return api.id(t, "INSERT INTO order_types (company_id, name, position) VALUES ($1, $2, $3) RETURNING id", companyID, name, position)
 }
 
 const stageNotFound = `{"error":"not_found","message":"Bosqich topilmadi"}`
 
-func TestListTaskStages(t *testing.T) {
+func TestListOrderStages(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
@@ -50,7 +50,7 @@ func TestListTaskStages(t *testing.T) {
 	assert.Equal(t, http.StatusPaymentRequired, api.do(t, http.MethodGet, "/app/task-stages", "", bearer(owner)).Code, "an expired company")
 }
 
-func TestCreateTaskStage(t *testing.T) {
+func TestCreateOrderStage(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
@@ -62,7 +62,7 @@ func TestCreateTaskStage(t *testing.T) {
 	created := decode(t, rec)
 	assert.Equal(t, "Kutilmoqda", created["name"])
 	assert.Equal(t, "amber", created["color"])
-	assert.Equal(t, false, created["is_done"], "a stage holds unfinished tasks unless said otherwise")
+	assert.Equal(t, false, created["is_done"], "a stage holds unfinished orders unless said otherwise")
 	assert.NotEmpty(t, created["id"])
 	rec = api.do(t, http.MethodPost, "/app/task-stages", `{"name":"Bajarildi","color":"green","is_done":true}`, bearer(owner))
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
@@ -83,7 +83,7 @@ func TestCreateTaskStage(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestUpdateTaskStage(t *testing.T) {
+func TestUpdateOrderStage(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
@@ -112,7 +112,7 @@ func TestUpdateTaskStage(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestDeleteTaskStage(t *testing.T) {
+func TestDeleteOrderStage(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
@@ -134,7 +134,7 @@ func TestDeleteTaskStage(t *testing.T) {
 	assert.JSONEq(t, stageNotFound, rec.Body.String())
 }
 
-func TestOrderTaskStages(t *testing.T) {
+func TestReorderOrderStages(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
@@ -157,7 +157,7 @@ func TestOrderTaskStages(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestListTaskTypes(t *testing.T) {
+func TestListOrderTypes(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
@@ -165,12 +165,12 @@ func TestListTaskTypes(t *testing.T) {
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
 	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	summa := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, required, position)
 		VALUES ($1, $2, 'Summa', 'int', true, 1) RETURNING id`, olma, buyurtma)
 	source := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, dropdown_id, position)
 		VALUES ($1, $2, 'Manba', 'dropdown', $3, 2) RETURNING id`, olma, buyurtma, manba)
-	api.addTaskType(t, nok, "Begona", 1)
+	api.addOrderType(t, nok, "Begona", 1)
 
 	rec := api.do(t, http.MethodGet, "/app/task-types", "", bearer(employee))
 
@@ -179,7 +179,7 @@ func TestListTaskTypes(t *testing.T) {
 			{"id":%d,"label":"Summa","kind":"int","required":true,"dropdown_id":null},
 			{"id":%d,"label":"Manba","kind":"dropdown","required":false,"dropdown_id":%d}]}]`,
 		buyurtma, summa, source, manba), rec.Body.String(), "an employee reads the types of the company they work in, with their fields")
-	assert.NotContains(t, rec.Body.String(), "is_unique", "a task field is never told not to repeat")
+	assert.NotContains(t, rec.Body.String(), "is_unique", "an order field is never told not to repeat")
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner)).Code, "the owner")
 
 	rec = api.do(t, http.MethodGet, "/app/task-types", "", bearer(undecided))
@@ -188,7 +188,7 @@ func TestListTaskTypes(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/task-types", "").Code, "no access token")
 }
 
-func TestCreateTaskType(t *testing.T) {
+func TestCreateOrderType(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
@@ -214,13 +214,13 @@ func TestCreateTaskType(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestOrderTaskTypes(t *testing.T) {
+func TestReorderOrderTypes(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	shikoyat := api.addTaskType(t, olma, "Shikoyat", 2)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
+	shikoyat := api.addOrderType(t, olma, "Shikoyat", 2)
 
 	rec := api.do(t, http.MethodPut, "/app/task-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, shikoyat, buyurtma), bearer(owner))
 
@@ -237,14 +237,14 @@ func TestOrderTaskTypes(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestRenameTaskType(t *testing.T) {
+func TestRenameOrderType(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	begona := api.addTaskType(t, nok, "Begona", 1)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
+	begona := api.addOrderType(t, nok, "Begona", 1)
 
 	rec := api.do(t, http.MethodPatch, fmt.Sprintf("/app/task-types/%d", buyurtma), `{"name":" Zakaz "}`, bearer(owner))
 
@@ -259,13 +259,13 @@ func TestRenameTaskType(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestDeleteTaskType(t *testing.T) {
+func TestDeleteOrderType(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	api.addTaskType(t, olma, "Shikoyat", 2)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
+	api.addOrderType(t, olma, "Shikoyat", 2)
 	api.exec(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1)`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d", buyurtma)
 
@@ -285,15 +285,15 @@ func TestDeleteTaskType(t *testing.T) {
 	assert.JSONEq(t, `{"error":"not_found","message":"Tur topilmadi"}`, rec.Body.String())
 }
 
-func TestAddTaskField(t *testing.T) {
+func TestAddOrderField(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	nok := api.addCompany(t, "Nok", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	begona := api.addTaskType(t, nok, "Begona", 1)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
+	begona := api.addOrderType(t, nok, "Begona", 1)
 	path := fmt.Sprintf("/app/task-types/%d/fields", buyurtma)
 
 	rec := api.do(t, http.MethodPost, path, `{"label":" Izoh ","kind":"string","required":true}`, bearer(owner))
@@ -304,7 +304,7 @@ func TestAddTaskField(t *testing.T) {
 	assert.Equal(t, "string", created["kind"])
 	assert.Equal(t, true, created["required"])
 	assert.Nil(t, created["dropdown_id"])
-	assert.NotContains(t, created, "is_unique", "a task field is never told not to repeat")
+	assert.NotContains(t, created, "is_unique", "an order field is never told not to repeat")
 	rec = api.do(t, http.MethodPost, path, fmt.Sprintf(`{"label":"Manba","kind":"radio","dropdown_id":%d}`, manba), bearer(owner))
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	assert.EqualValues(t, manba, decode(t, rec)["dropdown_id"], "a choice takes its options from the dropdown")
@@ -328,13 +328,13 @@ func TestAddTaskField(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestUpdateTaskField(t *testing.T) {
+func TestUpdateOrderField(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	shikoyat := api.addTaskType(t, olma, "Shikoyat", 2)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
+	shikoyat := api.addOrderType(t, olma, "Shikoyat", 2)
 	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d/fields/%d", buyurtma, izoh)
 
@@ -355,12 +355,12 @@ func TestUpdateTaskField(t *testing.T) {
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
 
-func TestDeleteTaskField(t *testing.T) {
+func TestDeleteOrderField(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d/fields/%d", buyurtma, izoh)
 
@@ -376,12 +376,12 @@ func TestDeleteTaskField(t *testing.T) {
 	assert.JSONEq(t, `{"error":"not_found","message":"Maydon topilmadi"}`, rec.Body.String())
 }
 
-func TestOrderTaskFields(t *testing.T) {
+func TestReorderOrderFields(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
+	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
 	summa := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Summa', 'int', 2) RETURNING id`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d/fields/order", buyurtma)

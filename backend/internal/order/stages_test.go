@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ func TestCreateStage(t *testing.T) {
 	assert.Equal(t, Stage{ID: st.ID, Name: "Yangi", Color: "blue"}, st, "the name is trimmed")
 	done, err := s.CreateStage(ctx, olma, StageInput{Name: "Bajarildi", Color: "green", Done: true})
 	require.NoError(t, err)
-	assert.True(t, done.Done, "a stage may be made for finished tasks")
+	assert.True(t, done.Done, "a stage may be made for finished orders")
 
 	const noColor = "Rangni tanlang"
 	_, err = s.CreateStage(ctx, olma, StageInput{Name: " ", Color: "blue"})
@@ -131,7 +131,7 @@ func TestDeleteStage(t *testing.T) {
 	refused(t, s.DeleteStage(ctx, nok, again.ID), apperr.NotFound, "not_found", notFound, "another company's stage")
 }
 
-func TestOrderStages(t *testing.T) {
+func TestReorderStages(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
@@ -140,7 +140,7 @@ func TestOrderStages(t *testing.T) {
 	bajarildi := mustStage(t, s, olma, "Bajarildi", "green")
 	begona := mustStage(t, s, nok, "Begona", "blue")
 
-	require.NoError(t, s.OrderStages(ctx, olma, []int64{bajarildi.ID, yangi.ID, jarayonda.ID}))
+	require.NoError(t, s.ReorderStages(ctx, olma, []int64{bajarildi.ID, yangi.ID, jarayonda.ID}))
 
 	assert.Equal(t, []string{"Bajarildi", "Yangi", "Jarayonda"}, stageNames(t, s, olma))
 
@@ -152,7 +152,7 @@ func TestOrderStages(t *testing.T) {
 		"more stages than there are": {yangi.ID, jarayonda.ID, bajarildi.ID, begona.ID},
 		"nothing at all":             {},
 	} {
-		refused(t, s.OrderStages(ctx, olma, ids), apperr.Conflict, "order_changed", changed, about)
+		refused(t, s.ReorderStages(ctx, olma, ids), apperr.Conflict, "order_changed", changed, about)
 	}
 	assert.Equal(t, []string{"Bajarildi", "Yangi", "Jarayonda"}, stageNames(t, s, olma), "a refusal moves nothing")
 

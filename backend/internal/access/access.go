@@ -15,7 +15,7 @@ import (
 type Permission string
 
 // The sections and their actions (logic/roles.md, 4.1). Every section has
-// view, create, edit and delete; the customers and the tasks have a history
+// view, create, edit and delete; the customers and the orders have a history
 // too. The sales are the sales and the customers' money; the stock is the
 // stock documents (transfers, inventories, opening stock); the finance is
 // the accounts and the money documents.
@@ -25,11 +25,11 @@ const (
 	CustomersEdit    Permission = "customers.edit"
 	CustomersDelete  Permission = "customers.delete"
 	CustomersHistory Permission = "customers.history"
-	TasksView        Permission = "tasks.view"
-	TasksCreate      Permission = "tasks.create"
-	TasksEdit        Permission = "tasks.edit"
-	TasksDelete      Permission = "tasks.delete"
-	TasksHistory     Permission = "tasks.history"
+	OrdersView       Permission = "tasks.view"
+	OrdersCreate     Permission = "tasks.create"
+	OrdersEdit       Permission = "tasks.edit"
+	OrdersDelete     Permission = "tasks.delete"
+	OrdersHistory    Permission = "tasks.history"
 	ProductsView     Permission = "products.view"
 	ProductsCreate   Permission = "products.create"
 	ProductsEdit     Permission = "products.edit"
@@ -67,7 +67,7 @@ const (
 // All is the catalog in its order: what the owner has.
 var All = []Permission{
 	CustomersView, CustomersCreate, CustomersEdit, CustomersDelete, CustomersHistory,
-	TasksView, TasksCreate, TasksEdit, TasksDelete, TasksHistory,
+	OrdersView, OrdersCreate, OrdersEdit, OrdersDelete, OrdersHistory,
 	ProductsView, ProductsCreate, ProductsEdit, ProductsDelete,
 	SuppliersView, SuppliersCreate, SuppliersEdit, SuppliersDelete,
 	PurchasesView, PurchasesCreate, PurchasesEdit, PurchasesDelete,
@@ -78,14 +78,14 @@ var All = []Permission{
 	SettingsView, SettingsCreate, SettingsEdit, SettingsDelete,
 }
 
-// Default is what a user with no role has: the customers and the tasks,
+// Default is what a user with no role has: the customers and the orders,
 // without their history (the rule from before roles existed), and the
 // products, the suppliers, the purchases, the sales, the stock documents
 // and the finance (logic/roles.md, 4.2); not the employees nor the
 // settings.
 var Default = []Permission{
 	CustomersView, CustomersCreate, CustomersEdit, CustomersDelete,
-	TasksView, TasksCreate, TasksEdit, TasksDelete,
+	OrdersView, OrdersCreate, OrdersEdit, OrdersDelete,
 	ProductsView, ProductsCreate, ProductsEdit, ProductsDelete,
 	SuppliersView, SuppliersCreate, SuppliersEdit, SuppliersDelete,
 	PurchasesView, PurchasesCreate, PurchasesEdit, PurchasesDelete,

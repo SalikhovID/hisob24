@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"strings"
@@ -12,34 +12,34 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
 
-func TestTaskTitle(t *testing.T) {
-	title, err := taskTitle("  Qo'ng'iroq qilish ")
+func TestOrderTitle(t *testing.T) {
+	title, err := orderTitle("  Qo'ng'iroq qilish ")
 	require.NoError(t, err)
 	assert.Equal(t, "Qo'ng'iroq qilish", title, "without the spaces around it")
 
 	long := strings.Repeat("ў", 200)
-	title, err = taskTitle(long)
+	title, err = orderTitle(long)
 	require.NoError(t, err, "200 characters are allowed, counted as characters")
 	assert.Equal(t, long, title)
 	for _, raw := range []string{"", "   "} {
-		_, err = taskTitle(raw)
+		_, err = orderTitle(raw)
 		refused(t, err, apperr.Invalid, "validation_error", "Vazifa nomini kiriting", "%q", raw)
 	}
-	_, err = taskTitle(long + "a")
+	_, err = orderTitle(long + "a")
 	refused(t, err, apperr.Invalid, "validation_error", "Vazifa nomi 200 belgidan oshmasin")
 }
 
-func TestTaskDeadline(t *testing.T) {
-	day, err := taskDeadline("2026-10-10")
+func TestOrderDeadline(t *testing.T) {
+	day, err := orderDeadline("2026-10-10")
 	require.NoError(t, err)
 	assert.Equal(t, time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), day)
 
-	_, err = taskDeadline("")
+	_, err = orderDeadline("")
 	refused(t, err, apperr.Invalid, "validation_error", "Muddatni kiriting")
-	_, err = taskDeadline("   ")
+	_, err = orderDeadline("   ")
 	refused(t, err, apperr.Invalid, "validation_error", "Muddatni kiriting", "spaces alone")
 	for _, raw := range []string{"10.10.2026", "2026-13-01", "2026-02-30", "2026-1-5", "2026-10-10T00:00:00Z", "bugun"} {
-		_, err = taskDeadline(raw)
+		_, err = orderDeadline(raw)
 		refused(t, err, apperr.Invalid, "validation_error", "Muddat noto'g'ri", "%q", raw)
 	}
 }

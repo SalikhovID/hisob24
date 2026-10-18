@@ -135,6 +135,75 @@ func (q *Queries) DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByD
 	return items, nil
 }
 
+const dashboardOrders = `-- name: DashboardOrders :one
+SELECT count(*) AS active, count(*) FILTER (WHERE t.deadline < $1::date) AS late
+FROM orders t
+JOIN order_stages s ON s.id = t.stage_id
+WHERE t.company_id = $2 AND t.deleted_at IS NULL AND NOT s.is_done
+  AND t.location_id = ANY($3::bigint[])
+`
+
+type DashboardOrdersParams struct {
+	Today       time.Time
+	CompanyID   int64
+	LocationIds []int64
+}
+
+type DashboardOrdersRow struct {
+	Active int64
+	Late   int64
+}
+
+// The company's orders in the locations given not done yet, and how many of
+// them are past their deadline (before today).
+func (q *Queries) DashboardOrders(ctx context.Context, arg DashboardOrdersParams) (DashboardOrdersRow, error) {
+	row := q.db.QueryRow(ctx, dashboardOrders, arg.Today, arg.CompanyID, arg.LocationIds)
+	var i DashboardOrdersRow
+	err := row.Scan(&i.Active, &i.Late)
+	return i, err
+}
+
+const dashboardOrdersByStage = `-- name: DashboardOrdersByStage :many
+SELECT s.id AS stage_id, count(t.id) AS count
+FROM order_stages s
+LEFT JOIN orders t ON t.stage_id = s.id AND t.deleted_at IS NULL AND t.location_id = ANY($1::bigint[])
+WHERE s.company_id = $2 AND s.deleted_at IS NULL AND NOT s.is_done
+GROUP BY s.id, s.position
+ORDER BY s.position, s.id
+`
+
+type DashboardOrdersByStageParams struct {
+	LocationIds []int64
+	CompanyID   int64
+}
+
+type DashboardOrdersByStageRow struct {
+	StageID int64
+	Count   int64
+}
+
+// How many of the company's orders in the locations given stand in each of
+// its stages not done, in the stages' order, the empty ones too.
+func (q *Queries) DashboardOrdersByStage(ctx context.Context, arg DashboardOrdersByStageParams) ([]DashboardOrdersByStageRow, error) {
+	rows, err := q.db.Query(ctx, dashboardOrdersByStage, arg.LocationIds, arg.CompanyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DashboardOrdersByStageRow{}
+	for rows.Next() {
+		var i DashboardOrdersByStageRow
+		if err := rows.Scan(&i.StageID, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const dashboardSuppliers = `-- name: DashboardSuppliers :one
 
 WITH balances AS (
@@ -171,73 +240,4 @@ func (q *Queries) DashboardSuppliers(ctx context.Context, companyID int64) (Dash
 	var i DashboardSuppliersRow
 	err := row.Scan(&i.Debt, &i.Debtors, &i.Advance)
 	return i, err
-}
-
-const dashboardTasks = `-- name: DashboardTasks :one
-SELECT count(*) AS active, count(*) FILTER (WHERE t.deadline < $1::date) AS late
-FROM orders t
-JOIN order_stages s ON s.id = t.stage_id
-WHERE t.company_id = $2 AND t.deleted_at IS NULL AND NOT s.is_done
-  AND t.location_id = ANY($3::bigint[])
-`
-
-type DashboardTasksParams struct {
-	Today       time.Time
-	CompanyID   int64
-	LocationIds []int64
-}
-
-type DashboardTasksRow struct {
-	Active int64
-	Late   int64
-}
-
-// The company's tasks in the locations given not done yet, and how many of
-// them are past their deadline (before today).
-func (q *Queries) DashboardTasks(ctx context.Context, arg DashboardTasksParams) (DashboardTasksRow, error) {
-	row := q.db.QueryRow(ctx, dashboardTasks, arg.Today, arg.CompanyID, arg.LocationIds)
-	var i DashboardTasksRow
-	err := row.Scan(&i.Active, &i.Late)
-	return i, err
-}
-
-const dashboardTasksByStage = `-- name: DashboardTasksByStage :many
-SELECT s.id AS stage_id, count(t.id) AS count
-FROM order_stages s
-LEFT JOIN orders t ON t.stage_id = s.id AND t.deleted_at IS NULL AND t.location_id = ANY($1::bigint[])
-WHERE s.company_id = $2 AND s.deleted_at IS NULL AND NOT s.is_done
-GROUP BY s.id, s.position
-ORDER BY s.position, s.id
-`
-
-type DashboardTasksByStageParams struct {
-	LocationIds []int64
-	CompanyID   int64
-}
-
-type DashboardTasksByStageRow struct {
-	StageID int64
-	Count   int64
-}
-
-// How many of the company's tasks in the locations given stand in each of
-// its stages not done, in the stages' order, the empty ones too.
-func (q *Queries) DashboardTasksByStage(ctx context.Context, arg DashboardTasksByStageParams) ([]DashboardTasksByStageRow, error) {
-	rows, err := q.db.Query(ctx, dashboardTasksByStage, arg.LocationIds, arg.CompanyID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []DashboardTasksByStageRow{}
-	for rows.Next() {
-		var i DashboardTasksByStageRow
-		if err := rows.Scan(&i.StageID, &i.Count); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

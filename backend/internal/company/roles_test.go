@@ -99,7 +99,7 @@ func TestCreateRole(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "Sotuvchi", r.Name, "trimmed")
-	assert.Equal(t, []access.Permission{access.CustomersView, access.TasksView}, r.Permissions, "in the catalog's order, once each")
+	assert.Equal(t, []access.Permission{access.CustomersView, access.OrdersView}, r.Permissions, "in the catalog's order, once each")
 	assert.EqualValues(t, 0, r.MembersCount)
 	assert.NotZero(t, r.ID)
 

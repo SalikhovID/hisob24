@@ -12,18 +12,18 @@ import (
 
 func createStage(t *testing.T, q *gen.Queries, companyID int64, name, color string) gen.OrderStage {
 	t.Helper()
-	st, err := q.CreateTaskStage(t.Context(), gen.CreateTaskStageParams{CompanyID: companyID, Name: name, Color: color})
+	st, err := q.CreateOrderStage(t.Context(), gen.CreateOrderStageParams{CompanyID: companyID, Name: name, Color: color})
 	require.NoError(t, err)
 	return st
 }
 
-func TestCreateTaskStage(t *testing.T) {
+func TestCreateOrderStage(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	olma := createCompany(t, q, "Olma", today(t, pool))
 	nok := createCompany(t, q, "Nok", today(t, pool))
 
-	first, err := q.CreateTaskStage(ctx, gen.CreateTaskStageParams{CompanyID: olma.ID, Name: "Yangi", Color: "blue"})
+	first, err := q.CreateOrderStage(ctx, gen.CreateOrderStageParams{CompanyID: olma.ID, Name: "Yangi", Color: "blue"})
 
 	require.NoError(t, err)
 	assert.Equal(t, olma.ID, first.CompanyID)
@@ -34,14 +34,14 @@ func TestCreateTaskStage(t *testing.T) {
 	assert.Nil(t, first.DeletedAt)
 	assert.EqualValues(t, 2, createStage(t, q, olma.ID, "Jarayonda", "amber").Position, "a new stage goes last")
 	assert.EqualValues(t, 1, createStage(t, q, nok.ID, "Yangi", "blue").Position, "each company orders its own")
-	done, err := q.CreateTaskStage(ctx, gen.CreateTaskStageParams{CompanyID: olma.ID, Name: "Bajarildi", Color: "green", IsDone: true})
+	done, err := q.CreateOrderStage(ctx, gen.CreateOrderStageParams{CompanyID: olma.ID, Name: "Bajarildi", Color: "green", IsDone: true})
 	require.NoError(t, err)
-	assert.True(t, done.IsDone, "a stage may be made for finished tasks")
-	_, err = q.CreateTaskStage(ctx, gen.CreateTaskStageParams{CompanyID: olma.ID, Name: "yangi", Color: "red"})
+	assert.True(t, done.IsDone, "a stage may be made for finished orders")
+	_, err = q.CreateOrderStage(ctx, gen.CreateOrderStageParams{CompanyID: olma.ID, Name: "yangi", Color: "red"})
 	assert.Equal(t, "23505", sqlState(err), "the name is taken in the company") // unique_violation
 }
 
-func TestListTaskStages(t *testing.T) {
+func TestListOrderStages(t *testing.T) {
 	q, pool := setup(t)
 	olma := createCompany(t, q, "Olma", today(t, pool))
 	nok := createCompany(t, q, "Nok", today(t, pool))
@@ -52,43 +52,43 @@ func TestListTaskStages(t *testing.T) {
 	mustExec(t, pool, "UPDATE order_stages SET position = 0 WHERE id = $1", bajarildi.ID)
 	mustExec(t, pool, "UPDATE order_stages SET deleted_at = now() WHERE id = $1", eski.ID)
 
-	list, err := q.ListTaskStages(t.Context(), olma.ID)
+	list, err := q.ListOrderStages(t.Context(), olma.ID)
 
 	require.NoError(t, err)
 	require.Len(t, list, 2, "the company's own, without the deleted one")
 	assert.Equal(t, []int64{bajarildi.ID, yangi.ID}, []int64{list[0].ID, list[1].ID}, "in their order")
 }
 
-func TestGetTaskStage(t *testing.T) {
+func TestGetOrderStage(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	olma := createCompany(t, q, "Olma", today(t, pool))
 	nok := createCompany(t, q, "Nok", today(t, pool))
 	yangi := createStage(t, q, olma.ID, "Yangi", "blue")
 
-	st, err := q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: yangi.ID, CompanyID: olma.ID})
+	st, err := q.GetOrderStage(ctx, gen.GetOrderStageParams{ID: yangi.ID, CompanyID: olma.ID})
 	require.NoError(t, err)
 	assert.Equal(t, "Yangi", st.Name)
 
-	_, err = q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: yangi.ID, CompanyID: nok.ID})
+	_, err = q.GetOrderStage(ctx, gen.GetOrderStageParams{ID: yangi.ID, CompanyID: nok.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's stage")
 	mustExec(t, pool, "UPDATE order_stages SET deleted_at = now() WHERE id = $1", yangi.ID)
-	_, err = q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: yangi.ID, CompanyID: olma.ID})
+	_, err = q.GetOrderStage(ctx, gen.GetOrderStageParams{ID: yangi.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted stage")
 }
 
-func TestUpdateTaskStage(t *testing.T) {
+func TestUpdateOrderStage(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	olma := createCompany(t, q, "Olma", today(t, pool))
 	nok := createCompany(t, q, "Nok", today(t, pool))
 	yangi := createStage(t, q, olma.ID, "Yangi", "blue")
 	createStage(t, q, olma.ID, "Jarayonda", "amber")
-	its := gen.UpdateTaskStageParams{ID: yangi.ID, CompanyID: olma.ID}
+	its := gen.UpdateOrderStageParams{ID: yangi.ID, CompanyID: olma.ID}
 
 	renamed := its
 	renamed.Name = ptr("Ochiq")
-	st, err := q.UpdateTaskStage(ctx, renamed)
+	st, err := q.UpdateOrderStage(ctx, renamed)
 	require.NoError(t, err)
 	assert.Equal(t, "Ochiq", st.Name)
 	assert.Equal(t, "blue", st.Color, "what is not given stays")
@@ -97,57 +97,57 @@ func TestUpdateTaskStage(t *testing.T) {
 
 	recolored := its
 	recolored.Color = ptr("teal")
-	st, err = q.UpdateTaskStage(ctx, recolored)
+	st, err = q.UpdateOrderStage(ctx, recolored)
 	require.NoError(t, err)
 	assert.Equal(t, "teal", st.Color)
 	assert.Equal(t, "Ochiq", st.Name, "what is not given stays")
 
 	finished := its
 	finished.IsDone = ptr(true)
-	st, err = q.UpdateTaskStage(ctx, finished)
+	st, err = q.UpdateOrderStage(ctx, finished)
 	require.NoError(t, err)
 	assert.True(t, st.IsDone)
 	assert.Equal(t, "teal", st.Color, "what is not given stays")
-	st, err = q.UpdateTaskStage(ctx, its)
+	st, err = q.UpdateOrderStage(ctx, its)
 	require.NoError(t, err)
 	assert.True(t, st.IsDone, "nothing given changes nothing")
 
 	taken := its
 	taken.Name = ptr("jarayonda")
-	_, err = q.UpdateTaskStage(ctx, taken)
+	_, err = q.UpdateOrderStage(ctx, taken)
 	assert.Equal(t, "23505", sqlState(err), "another stage's name")
 	begona := renamed
 	begona.CompanyID = nok.ID
-	_, err = q.UpdateTaskStage(ctx, begona)
+	_, err = q.UpdateOrderStage(ctx, begona)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's stage")
 	mustExec(t, pool, "UPDATE order_stages SET deleted_at = now() WHERE id = $1", yangi.ID)
-	_, err = q.UpdateTaskStage(ctx, renamed)
+	_, err = q.UpdateOrderStage(ctx, renamed)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted stage")
 }
 
-func TestDeleteTaskStage(t *testing.T) {
+func TestDeleteOrderStage(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	olma := createCompany(t, q, "Olma", today(t, pool))
 	nok := createCompany(t, q, "Nok", today(t, pool))
 	yangi := createStage(t, q, olma.ID, "Yangi", "blue")
 
-	_, err := q.DeleteTaskStage(ctx, gen.DeleteTaskStageParams{ID: yangi.ID, CompanyID: nok.ID})
+	_, err := q.DeleteOrderStage(ctx, gen.DeleteOrderStageParams{ID: yangi.ID, CompanyID: nok.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's stage")
-	id, err := q.DeleteTaskStage(ctx, gen.DeleteTaskStageParams{ID: yangi.ID, CompanyID: olma.ID})
+	id, err := q.DeleteOrderStage(ctx, gen.DeleteOrderStageParams{ID: yangi.ID, CompanyID: olma.ID})
 	require.NoError(t, err)
 	assert.Equal(t, yangi.ID, id)
 
 	var hidden bool
 	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM order_stages WHERE id = $1", yangi.ID).Scan(&hidden))
 	assert.True(t, hidden, "the row stays, marked deleted")
-	_, err = q.DeleteTaskStage(ctx, gen.DeleteTaskStageParams{ID: yangi.ID, CompanyID: olma.ID})
+	_, err = q.DeleteOrderStage(ctx, gen.DeleteOrderStageParams{ID: yangi.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
 }
 
 func stageIDs(t *testing.T, q *gen.Queries, companyID int64) []int64 {
 	t.Helper()
-	list, err := q.ListTaskStages(t.Context(), companyID)
+	list, err := q.ListOrderStages(t.Context(), companyID)
 	require.NoError(t, err)
 	ids := make([]int64, 0, len(list))
 	for _, st := range list {
@@ -156,7 +156,7 @@ func stageIDs(t *testing.T, q *gen.Queries, companyID int64) []int64 {
 	return ids
 }
 
-func TestOrderTaskStages(t *testing.T) {
+func TestReorderOrderStages(t *testing.T) {
 	q, pool := setup(t)
 	olma := createCompany(t, q, "Olma", today(t, pool))
 	nok := createCompany(t, q, "Nok", today(t, pool))
@@ -166,7 +166,7 @@ func TestOrderTaskStages(t *testing.T) {
 	begona := createStage(t, q, nok.ID, "Begona", "blue")
 	createStage(t, q, nok.ID, "Ikkinchi", "red")
 
-	err := q.OrderTaskStages(t.Context(), gen.OrderTaskStagesParams{
+	err := q.ReorderOrderStages(t.Context(), gen.ReorderOrderStagesParams{
 		CompanyID: olma.ID,
 		Ids:       []int64{bajarildi.ID, yangi.ID, jarayonda.ID, begona.ID},
 	})

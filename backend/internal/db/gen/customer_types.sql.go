@@ -67,7 +67,7 @@ SELECT count(*) FROM (
 ) AS used
 `
 
-// How many fields, of the customer types and of the task types, take their
+// How many fields, of the customer types and of the order types, take their
 // options from the dropdown: one in use is not deleted. Deleted fields do
 // not count.
 func (q *Queries) CountDropdownFields(ctx context.Context, dropdownID *int64) (int64, error) {

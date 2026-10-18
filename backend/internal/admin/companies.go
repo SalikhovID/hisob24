@@ -163,7 +163,7 @@ func (h *Handler) renameLocation(w http.ResponseWriter, r *http.Request) {
 }
 
 // deleteLocation hides a location of the company: neither its last one nor
-// one a task stands in.
+// one an order stands in.
 func (h *Handler) deleteLocation(w http.ResponseWriter, r *http.Request) {
 	id, ok := companyID(w, r)
 	if !ok {

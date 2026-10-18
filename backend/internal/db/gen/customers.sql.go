@@ -65,14 +65,14 @@ func (q *Queries) AddCustomerValue(ctx context.Context, arg AddCustomerValuePara
 	return err
 }
 
-const countCustomerTasks = `-- name: CountCustomerTasks :one
+const countCustomerOrders = `-- name: CountCustomerOrders :one
 SELECT count(*) FROM orders WHERE customer_id = $1 AND deleted_at IS NULL
 `
 
-// How many tasks the customer has: one with any is not deleted. Deleted
-// tasks do not count.
-func (q *Queries) CountCustomerTasks(ctx context.Context, customerID int64) (int64, error) {
-	row := q.db.QueryRow(ctx, countCustomerTasks, customerID)
+// How many orders the customer has: one with any is not deleted. Deleted
+// orders do not count.
+func (q *Queries) CountCustomerOrders(ctx context.Context, customerID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countCustomerOrders, customerID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err

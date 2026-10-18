@@ -69,7 +69,7 @@ func TestDashboard(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "another company's location, as the lists answer it (logic/locations.md)")
 	assert.JSONEq(t, `{"error":"forbidden","message":"Bu amal uchun ruxsatingiz yo'q"}`, rec.Body.String())
 
-	// An employee whose role sees the tasks alone, restricted to Asosiy.
+	// An employee whose role sees the orders alone, restricted to Asosiy.
 	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "tasks.view")
 	vali, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	api.giveRole(t, valisPhone, olma, &kuzatuvchi)

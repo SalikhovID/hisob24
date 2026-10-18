@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"context"
@@ -23,8 +23,8 @@ var (
 // names for.
 var Colors = []string{"slate", "red", "orange", "amber", "green", "teal", "blue", "violet", "pink"}
 
-// Stage is a column of the board: the state a task is in. A stage that is
-// done holds finished tasks, which are never overdue.
+// Stage is a column of the board: the state an order is in. A stage that is
+// done holds finished orders, which are never overdue.
 type Stage struct {
 	ID    int64
 	Name  string
@@ -61,7 +61,7 @@ func (s *Service) CreateStage(ctx context.Context, companyID int64, in StageInpu
 	}
 	var st gen.OrderStage
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
-		st, err = q.CreateTaskStage(ctx, gen.CreateTaskStageParams{CompanyID: companyID, Name: name, Color: in.Color, IsDone: in.Done})
+		st, err = q.CreateOrderStage(ctx, gen.CreateOrderStageParams{CompanyID: companyID, Name: name, Color: in.Color, IsDone: in.Done})
 		if fields.Taken(err) {
 			return errStageNameTaken
 		}
@@ -75,7 +75,7 @@ func (s *Service) CreateStage(ctx context.Context, companyID int64, in StageInpu
 
 // Stages lists the company's stages in their order.
 func (s *Service) Stages(ctx context.Context, companyID int64) ([]Stage, error) {
-	rows, err := s.q.ListTaskStages(ctx, companyID)
+	rows, err := s.q.ListOrderStages(ctx, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (s *Service) UpdateStage(ctx context.Context, companyID, id int64, patch St
 	var st gen.OrderStage
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
 		var err error
-		st, err = q.UpdateTaskStage(ctx, gen.UpdateTaskStageParams{
+		st, err = q.UpdateOrderStage(ctx, gen.UpdateOrderStageParams{
 			ID: id, CompanyID: companyID, Name: patch.Name, Color: patch.Color, IsDone: patch.Done,
 		})
 		switch {
@@ -122,7 +122,7 @@ func (s *Service) UpdateStage(ctx context.Context, companyID, id int64, patch St
 // DeleteStage hides the company's stage; its name is free again.
 func (s *Service) DeleteStage(ctx context.Context, companyID, id int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteTaskStage(ctx, gen.DeleteTaskStageParams{ID: id, CompanyID: companyID})
+		_, err := q.DeleteOrderStage(ctx, gen.DeleteOrderStageParams{ID: id, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errStageNotFound
 		}
@@ -131,7 +131,7 @@ func (s *Service) DeleteStage(ctx context.Context, companyID, id int64) error {
 		}
 		// The stage is the company's own, so its count may be told. The
 		// refusal undoes the delete: the write is one transaction.
-		used, err := q.CountStageTasks(ctx, id)
+		used, err := q.CountStageOrders(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -142,11 +142,11 @@ func (s *Service) DeleteStage(ctx context.Context, companyID, id int64) error {
 	})
 }
 
-// OrderStages puts the company's stages in the order of ids, which has to
+// ReorderStages puts the company's stages in the order of ids, which has to
 // name each of them once and nothing else.
-func (s *Service) OrderStages(ctx context.Context, companyID int64, ids []int64) error {
+func (s *Service) ReorderStages(ctx context.Context, companyID int64, ids []int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		rows, err := q.ListTaskStages(ctx, companyID)
+		rows, err := q.ListOrderStages(ctx, companyID)
 		if err != nil {
 			return err
 		}
@@ -157,6 +157,6 @@ func (s *Service) OrderStages(ctx context.Context, companyID int64, ids []int64)
 		if !fields.SameIDs(ids, live) {
 			return fields.ErrOrderChanged
 		}
-		return q.OrderTaskStages(ctx, gen.OrderTaskStagesParams{CompanyID: companyID, Ids: ids})
+		return q.ReorderOrderStages(ctx, gen.ReorderOrderStagesParams{CompanyID: companyID, Ids: ids})
 	})
 }

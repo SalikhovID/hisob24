@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"testing"
@@ -121,7 +121,7 @@ func typeNames(t *testing.T, s *Service, companyID int64) []string {
 	return names
 }
 
-func TestOrderTypes(t *testing.T) {
+func TestReorderTypes(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
@@ -130,7 +130,7 @@ func TestOrderTypes(t *testing.T) {
 	qongiroq := mustType(t, s, olma, "Qo'ng'iroq")
 	begona := mustType(t, s, nok, "Begona")
 
-	require.NoError(t, s.OrderTypes(ctx, olma, []int64{qongiroq.ID, buyurtma.ID, shikoyat.ID}))
+	require.NoError(t, s.ReorderTypes(ctx, olma, []int64{qongiroq.ID, buyurtma.ID, shikoyat.ID}))
 
 	assert.Equal(t, []string{"Qo'ng'iroq", "Buyurtma", "Shikoyat"}, typeNames(t, s, olma))
 
@@ -142,7 +142,7 @@ func TestOrderTypes(t *testing.T) {
 		"more types than there are": {buyurtma.ID, shikoyat.ID, qongiroq.ID, begona.ID},
 		"nothing at all":            {},
 	} {
-		refused(t, s.OrderTypes(ctx, olma, ids), apperr.Conflict, "order_changed", changed, about)
+		refused(t, s.ReorderTypes(ctx, olma, ids), apperr.Conflict, "order_changed", changed, about)
 	}
 	assert.Equal(t, []string{"Qo'ng'iroq", "Buyurtma", "Shikoyat"}, typeNames(t, s, olma), "a refusal moves nothing")
 
@@ -316,7 +316,7 @@ func TestDeleteField(t *testing.T) {
 	refused(t, s.DeleteField(ctx, olma, shikoyat.ID, summa.ID), apperr.NotFound, "not_found", notFound, "a field of another type")
 }
 
-func TestOrderFields(t *testing.T) {
+func TestReorderFields(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma, nok := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok")
@@ -336,7 +336,7 @@ func TestOrderFields(t *testing.T) {
 		return names
 	}
 
-	require.NoError(t, s.OrderFields(ctx, olma, buyurtma.ID, []int64{manzil.ID, izoh.ID, summa.ID}))
+	require.NoError(t, s.ReorderFields(ctx, olma, buyurtma.ID, []int64{manzil.ID, izoh.ID, summa.ID}))
 
 	assert.Equal(t, []string{"Manzil", "Izoh", "Summa"}, labels())
 
@@ -347,9 +347,9 @@ func TestOrderFields(t *testing.T) {
 		"a field named twice":        {izoh.ID, izoh.ID, summa.ID},
 		"more fields than there are": {izoh.ID, summa.ID, manzil.ID, sabab.ID},
 	} {
-		refused(t, s.OrderFields(ctx, olma, buyurtma.ID, ids), apperr.Conflict, "order_changed", changed, about)
+		refused(t, s.ReorderFields(ctx, olma, buyurtma.ID, ids), apperr.Conflict, "order_changed", changed, about)
 	}
-	refused(t, s.OrderFields(ctx, nok, buyurtma.ID, []int64{izoh.ID, summa.ID, manzil.ID}),
+	refused(t, s.ReorderFields(ctx, nok, buyurtma.ID, []int64{izoh.ID, summa.ID, manzil.ID}),
 		apperr.NotFound, "not_found", "Tur topilmadi", "another company's type")
 	assert.Equal(t, []string{"Manzil", "Izoh", "Summa"}, labels(), "a refusal moves nothing")
 

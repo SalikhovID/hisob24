@@ -10,7 +10,7 @@ import (
 
 	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
-	"github.com/SalikhovID/hisob24/backend/internal/task"
+	"github.com/SalikhovID/hisob24/backend/internal/order"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 )
 
@@ -20,7 +20,7 @@ func newService(t *testing.T) (*Service, *pgxpool.Pool) {
 	t.Helper()
 	t.Parallel()
 	pool := pgtest.New(t)
-	return NewService(pool, task.NewService(pool, customer.NewService(pool))), pool
+	return NewService(pool, order.NewService(pool, customer.NewService(pool))), pool
 }
 
 // shop is a company with Ali (the owner), two locations, the so'm and the
@@ -194,8 +194,8 @@ func TestCustomers(t *testing.T) {
 		"by each day's end of the month up to today: the one of September, two on the 1st, one on the 5th; the deleted and another company's are out")
 }
 
-// stages is a company's stages of the tasks: Yangi, Jarayonda and the
-// done Bajarildi, with a task type.
+// stages is a company's stages of the orders: Yangi, Jarayonda and the
+// done Bajarildi, with an order type.
 type stages struct{ yangi, jarayonda, bajarildi, buyurtma int64 }
 
 func addStages(t *testing.T, pool *pgxpool.Pool, companyID int64) stages {
@@ -215,9 +215,9 @@ func addStages(t *testing.T, pool *pgxpool.Pool, companyID int64) stages {
 	return st
 }
 
-// addTask enters a task of the company in the stage and the location, due
+// addOrder enters an order of the company in the stage and the location, due
 // on the day, for the customer; deleted hides it.
-func addTask(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, title, deadline string, deleted bool) {
+func addOrder(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, title, deadline string, deleted bool) {
 	t.Helper()
 	_, err := pool.Exec(t.Context(),
 		"INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END)",
@@ -225,26 +225,26 @@ func addTask(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stage
 	require.NoError(t, err)
 }
 
-func TestTasks(t *testing.T) {
+func TestOrders(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, pool, "Olma")
 	st := addStages(t, pool, sh.company)
 	karim := addCustomer(t, pool, sh.company, "998900000001", "2026-09-20T12:00:00+05:00", false)
-	addTask(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Kechikkan", "2026-10-10", false)
-	addTask(t, pool, sh.company, st, st.jarayonda, sh.asosiy, karim, "Bugun", "2026-10-13", false)
-	addTask(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Ertaga", "2026-10-14", false)
-	addTask(t, pool, sh.company, st, st.bajarildi, sh.asosiy, karim, "Bajarilgan", "2026-10-01", false)
-	addTask(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "O'chirilgan", "2026-10-01", true)
-	addTask(t, pool, sh.company, st, st.jarayonda, sh.chilonzor, karim, "Chilonzorda", "2026-10-11", false)
+	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Kechikkan", "2026-10-10", false)
+	addOrder(t, pool, sh.company, st, st.jarayonda, sh.asosiy, karim, "Bugun", "2026-10-13", false)
+	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Ertaga", "2026-10-14", false)
+	addOrder(t, pool, sh.company, st, st.bajarildi, sh.asosiy, karim, "Bajarilgan", "2026-10-01", false)
+	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "O'chirilgan", "2026-10-01", true)
+	addOrder(t, pool, sh.company, st, st.jarayonda, sh.chilonzor, karim, "Chilonzorda", "2026-10-11", false)
 	nok := newShop(t, pool, "Nok")
 	nst := addStages(t, pool, nok.company)
 	begona := addCustomer(t, pool, nok.company, "998900000002", "2026-09-20T12:00:00+05:00", false)
-	addTask(t, pool, nok.company, nst, nst.yangi, nok.asosiy, begona, "Begona", "2026-10-01", false)
+	addOrder(t, pool, nok.company, nst, nst.yangi, nok.asosiy, begona, "Begona", "2026-10-01", false)
 
-	titles := func(tasks []task.Task) []string {
+	titles := func(orders []order.Order) []string {
 		out := []string{}
-		for _, t := range tasks {
+		for _, t := range orders {
 			out = append(out, t.Title)
 		}
 		return out
@@ -262,15 +262,15 @@ func TestTasks(t *testing.T) {
 		"a location outside the scope": {sh.scope(sh.asosiy), sh.chilonzor, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []string{}},
 		"a member with no location":    {sh.scope([]int64{}...), 0, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []string{}},
 	} {
-		in := input(access.TasksView)
+		in := input(access.OrdersView)
 		in.LocationID = tc.location
 		got, err := s.Get(ctx, tc.scope, in)
 		require.NoError(t, err, about)
-		require.NotNil(t, got.Tasks, about)
-		assert.Equal(t, tc.active, got.Tasks.Active, about+": not done yet; the done, the deleted and another company's are out")
-		assert.Equal(t, tc.late, got.Tasks.Late, about+": due before today")
-		assert.Equal(t, tc.stages, got.Tasks.ByStage, about+": each stage not done, in its order, the empty ones too")
-		assert.Equal(t, tc.upcoming, titles(got.Tasks.Upcoming), about+": the soonest due first")
+		require.NotNil(t, got.Orders, about)
+		assert.Equal(t, tc.active, got.Orders.Active, about+": not done yet; the done, the deleted and another company's are out")
+		assert.Equal(t, tc.late, got.Orders.Late, about+": due before today")
+		assert.Equal(t, tc.stages, got.Orders.ByStage, about+": each stage not done, in its order, the empty ones too")
+		assert.Equal(t, tc.upcoming, titles(got.Orders.Upcoming), about+": the soonest due first")
 	}
 }
 
@@ -330,13 +330,13 @@ func TestEachBlockIsItsPermissions(t *testing.T) {
 	addStages(t, pool, sh.company)
 
 	for about, tc := range map[string]struct {
-		perms                                         []access.Permission
-		suppliers, customers, tasks, purchases, sales bool
+		perms                                          []access.Permission
+		suppliers, customers, orders, purchases, sales bool
 	}{
 		"nothing to see":     {nil, false, false, false, false, false},
 		"the purchases":      {[]access.Permission{access.PurchasesView}, true, false, false, true, false},
 		"the customers":      {[]access.Permission{access.CustomersView}, false, true, false, false, false},
-		"the tasks":          {[]access.Permission{access.TasksView}, false, false, true, false, false},
+		"the orders":         {[]access.Permission{access.OrdersView}, false, false, true, false, false},
 		"the sales":          {[]access.Permission{access.SalesView}, false, false, false, false, true},
 		"the suppliers only": {[]access.Permission{access.SuppliersView}, false, false, false, false, false},
 		"everything":         {access.All, true, true, true, true, true},
@@ -345,7 +345,7 @@ func TestEachBlockIsItsPermissions(t *testing.T) {
 		require.NoError(t, err, about)
 		assert.Equal(t, tc.suppliers, got.Suppliers != nil, about+": suppliers")
 		assert.Equal(t, tc.customers, got.Customers != nil, about+": customers")
-		assert.Equal(t, tc.tasks, got.Tasks != nil, about+": tasks")
+		assert.Equal(t, tc.orders, got.Orders != nil, about+": orders")
 		assert.Equal(t, tc.purchases, got.Purchases != nil, about+": purchases")
 		assert.Equal(t, tc.sales, got.Sales != nil, about+": sales")
 	}

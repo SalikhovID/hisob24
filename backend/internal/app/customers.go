@@ -119,7 +119,7 @@ type customerPageJSON struct {
 // listCustomers is a page of the customers of the company the session
 // works in, the newest first: ?search= looks in the phones and in the text
 // and number answers, ?type_id= keeps one type, ?phone= keeps the phones
-// that begin with 998 and the digits (the task form's suggestions), ?page=
+// that begin with 998 and the digits (the order form's suggestions), ?page=
 // starts at 1.
 func (h *Handler) listCustomers(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()

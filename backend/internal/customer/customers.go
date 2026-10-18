@@ -81,7 +81,7 @@ func (s *Service) Create(ctx context.Context, companyID int64, by string, typeID
 }
 
 // CreateIn enters a customer inside the caller's transaction, which has to
-// hold the company (LockCompanyCustomers): a task is entered with its new
+// hold the company (LockCompanyCustomers): an order is entered with its new
 // customer this way. by is the phone of the member who enters it.
 func (s *Service) CreateIn(ctx context.Context, q *gen.Queries, companyID int64, by string, typeID int64, in Input) (Customer, error) {
 	phone, err := customerPhone(in.Phone)
@@ -213,7 +213,7 @@ func (s *Service) Delete(ctx context.Context, companyID, id int64, by string) er
 		}
 		// The customer is the company's own, so its count may be told. The
 		// refusal undoes the delete: the write is one transaction.
-		used, err := q.CountCustomerTasks(ctx, id)
+		used, err := q.CountCustomerOrders(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -417,7 +417,7 @@ func phonePrefix(raw string) (*string, error) {
 // SearchOf is a search as the list queries take it: the text escaped for
 // ILIKE, and its digits when it is written the way a number or a phone is
 // (digits, spaces, "+", "-", parentheses). Neither when there is no search.
-// The tasks' list searches the same way.
+// The orders' list searches the same way.
 func SearchOf(raw string) (search, digits *string) {
 	text := strings.TrimSpace(raw)
 	if text == "" {

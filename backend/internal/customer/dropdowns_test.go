@@ -294,9 +294,9 @@ func TestADropdownAFieldUsesIsNotDeleted(t *testing.T) {
 	assert.NoError(t, s.DeleteDropdown(ctx, olma, manba.ID), "the fields that used it are deleted: so may it be")
 }
 
-// A task field takes its options from the customers' dropdowns too: such a
+// An order field takes its options from the customers' dropdowns too: such a
 // dropdown is not deleted either.
-func TestADropdownATaskFieldUsesIsNotDeleted(t *testing.T) {
+func TestADropdownAOrderFieldUsesIsNotDeleted(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma := addCompany(t, pool, "Olma")
@@ -308,9 +308,9 @@ func TestADropdownATaskFieldUsesIsNotDeleted(t *testing.T) {
 		VALUES ($1, $2, 'Manba', 'radio', $3, 1) RETURNING id`, olma, buyurtma, manba.ID).Scan(&source))
 
 	refused(t, s.DeleteDropdown(ctx, olma, manba.ID),
-		apperr.Conflict, "dropdown_in_use", "Bu dropdown 1 ta maydonda ishlatilgan", "a task field takes its options from it")
+		apperr.Conflict, "dropdown_in_use", "Bu dropdown 1 ta maydonda ishlatilgan", "an order field takes its options from it")
 
 	_, err := pool.Exec(ctx, "UPDATE order_fields SET deleted_at = now() WHERE id = $1", source)
 	require.NoError(t, err)
-	assert.NoError(t, s.DeleteDropdown(ctx, olma, manba.ID), "the task field that used it is deleted: so may it be")
+	assert.NoError(t, s.DeleteDropdown(ctx, olma, manba.ID), "the order field that used it is deleted: so may it be")
 }

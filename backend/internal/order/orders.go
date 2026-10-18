@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	errTaskNotFound  = apperr.New(apperr.NotFound, "not_found", "Vazifa topilmadi")
+	errOrderNotFound = apperr.New(apperr.NotFound, "not_found", "Vazifa topilmadi")
 	errNoType        = invalid("Vazifa turini tanlang")
 	errNoStage       = invalid("Bosqichni tanlang")
 	errNoLocation    = invalid("Lokatsiyani tanlang")
@@ -26,7 +26,7 @@ var (
 	errNotInLocation = invalid("Mas'ul bu lokatsiyada ishlamaydi")
 )
 
-// Customer is the customer a task is of, as the task shows it: its phone
+// Customer is the customer an order is of, as the order shows it: its phone
 // and the name it goes by (its answer to its type's first text field), nil
 // when it has none.
 type Customer struct {
@@ -35,7 +35,7 @@ type Customer struct {
 	Name  *string
 }
 
-// Member is a member of the company a task is assigned to: the phone and
+// Member is a member of the company an order is assigned to: the phone and
 // the name they go by in the company now; once they have left it, the name
 // of then.
 type Member struct {
@@ -43,13 +43,13 @@ type Member struct {
 	Name  *string
 }
 
-// Task is a task of a company: what every task has, its customer, its
+// Order is an order of a company: what every order has, its customer, its
 // assignee if any, and its answers to the fields of its type.
-type Task struct {
+type Order struct {
 	ID      int64
 	TypeID  int64
 	StageID int64
-	// LocationID is the location the task stands in (logic/locations.md):
+	// LocationID is the location the order stands in (logic/locations.md):
 	// the one it was entered in, for good.
 	LocationID int64
 	Title      string
@@ -57,7 +57,7 @@ type Task struct {
 	Customer   Customer
 	Assignee   *Member
 	Values     fields.Values
-	// CreatedByName is the name the member who entered the task goes by in
+	// CreatedByName is the name the member who entered the order goes by in
 	// the company; nil when they go by none.
 	CreatedByName *string
 	CreatedAt     time.Time
@@ -65,7 +65,7 @@ type Task struct {
 }
 
 // Scope is where a member works (logic/locations.md): the company, and the
-// locations of it they may work in. The tasks a member reads, enters and
+// locations of it they may work in. The orders a member reads, enters and
 // changes are those of these locations alone.
 type Scope struct {
 	CompanyID   int64
@@ -82,7 +82,7 @@ func (sc Scope) has(locationID int64) bool {
 	return false
 }
 
-// Input is what a task is saved with, as the client sent it: the title, the
+// Input is what an order is saved with, as the client sent it: the title, the
 // deadline as YYYY-MM-DD, the stage, the assignee's phone if any, and the
 // answers by the id of the field.
 type Input struct {
@@ -93,7 +93,7 @@ type Input struct {
 	Values        map[string]json.RawMessage
 }
 
-// NewCustomer is a customer entered together with a task: its type, its
+// NewCustomer is a customer entered together with an order: its type, its
 // phone and its answers.
 type NewCustomer struct {
 	TypeID int64
@@ -101,37 +101,37 @@ type NewCustomer struct {
 	Values map[string]json.RawMessage
 }
 
-// CustomerInput names a task's customer: one that is there (ID), or one to
-// enter with the task (New).
+// CustomerInput names an order's customer: one that is there (ID), or one to
+// enter with the order (New).
 type CustomerInput struct {
 	ID  *int64
 	New *NewCustomer
 }
 
-// Create enters a task of the company's type for a customer, in a location
+// Create enters an order of the company's type for a customer, in a location
 // of the scope, with the answers to the type's fields; a new customer is
 // entered with it, in the same transaction. by is the phone of the member
 // who enters it. What is wrong is told in this order: the title, the
 // deadline, the location, the type, the stage, the assignee, the answers,
 // the customer.
-func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, locationID int64, in Input, cust CustomerInput) (Task, error) {
+func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, locationID int64, in Input, cust CustomerInput) (Order, error) {
 	companyID := scope.CompanyID
-	title, err := taskTitle(in.Title)
+	title, err := orderTitle(in.Title)
 	if err != nil {
-		return Task{}, err
+		return Order{}, err
 	}
-	deadline, err := taskDeadline(in.Deadline)
+	deadline, err := orderDeadline(in.Deadline)
 	if err != nil {
-		return Task{}, err
+		return Order{}, err
 	}
 	// The location is one the member works in: the scope's are the
 	// company's live ones, every one of them or the restriction's.
 	if !scope.has(locationID) {
-		return Task{}, errNoLocation
+		return Order{}, errNoLocation
 	}
-	var t Task
+	var t Order
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.GetTaskType(ctx, gen.GetTaskTypeParams{ID: typeID, CompanyID: companyID})
+		_, err := q.GetOrderType(ctx, gen.GetOrderTypeParams{ID: typeID, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errNoType
 		}
@@ -161,7 +161,7 @@ func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, lo
 		if err != nil {
 			return err
 		}
-		row, err := q.CreateTask(ctx, gen.CreateTaskParams{
+		row, err := q.CreateOrder(ctx, gen.CreateOrderParams{
 			CompanyID: companyID, TypeID: typeID, StageID: in.StageID, CustomerID: customerID, LocationID: locationID, Title: title, Deadline: deadline,
 			AssigneePhone: who.phone, AssigneeName: who.name, CreatedBy: by, CreatedByName: name,
 		})
@@ -171,29 +171,29 @@ func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, lo
 		if err := store(ctx, q, row.ID, form, values); err != nil {
 			return err
 		}
-		err = q.AddTaskHistory(ctx, gen.AddTaskHistoryParams{
-			TaskID: row.ID, Action: "created", ActorPhone: by, ActorName: name, Changes: []byte("[]"),
+		err = q.AddOrderHistory(ctx, gen.AddOrderHistoryParams{
+			OrderID: row.ID, Action: "created", ActorPhone: by, ActorName: name, Changes: []byte("[]"),
 		})
 		if err != nil {
 			return err
 		}
-		t, err = taskOf(ctx, q, scope, row.ID)
+		t, err = orderOf(ctx, q, scope, row.ID)
 		return err
 	})
 	if err != nil {
-		return Task{}, err
+		return Order{}, err
 	}
 	return t, nil
 }
 
-// assignee is who a task is assigned to, as it is kept: the phone and the
-// name they go by now; none when the task is assigned to nobody.
+// assignee is who an order is assigned to, as it is kept: the phone and the
+// name they go by now; none when the order is assigned to nobody.
 type assignee struct {
 	phone, name *string
 }
 
 // assigneeOf reads the phone a client sent as the assignee: nil or empty for
-// nobody, otherwise a member of the company who works in the task's
+// nobody, otherwise a member of the company who works in the order's
 // location (logic/locations.md, section 6).
 func assigneeOf(ctx context.Context, q *gen.Queries, companyID, locationID int64, raw *string) (assignee, error) {
 	if raw == nil || strings.TrimSpace(*raw) == "" {
@@ -221,7 +221,7 @@ func assigneeOf(ctx context.Context, q *gen.Queries, companyID, locationID int64
 }
 
 // sameAssignee tells whether the phone a client sent names the member the
-// task is assigned to already (or nobody, when it is assigned to nobody).
+// order is assigned to already (or nobody, when it is assigned to nobody).
 func sameAssignee(raw *string, was *Member) bool {
 	if raw == nil || strings.TrimSpace(*raw) == "" {
 		return was == nil
@@ -240,25 +240,25 @@ func nameOf(name *string) string {
 
 // stageOf is the company's stage, or the refusal to take one that is not.
 func stageOf(ctx context.Context, q *gen.Queries, companyID, id int64) (gen.OrderStage, error) {
-	st, err := q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: id, CompanyID: companyID})
+	st, err := q.GetOrderStage(ctx, gen.GetOrderStageParams{ID: id, CompanyID: companyID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return gen.OrderStage{}, errNoStage
 	}
 	return st, err
 }
 
-// stageName is the name of the stage a task stands in, "" once the stage is
+// stageName is the name of the stage an order stands in, "" once the stage is
 // gone.
 func stageName(ctx context.Context, q *gen.Queries, companyID, id int64) (string, error) {
-	st, err := q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: id, CompanyID: companyID})
+	st, err := q.GetOrderStage(ctx, gen.GetOrderStageParams{ID: id, CompanyID: companyID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", nil
 	}
 	return st.Name, err
 }
 
-// customerOf is the task's customer: the one named, which has to be the
-// company's own and not deleted, or the new one entered with the task.
+// customerOf is the order's customer: the one named, which has to be the
+// company's own and not deleted, or the new one entered with the order.
 func (s *Service) customerOf(ctx context.Context, q *gen.Queries, companyID int64, by string, cust CustomerInput) (int64, error) {
 	switch {
 	case cust.ID != nil:
@@ -278,7 +278,7 @@ func (s *Service) customerOf(ctx context.Context, q *gen.Queries, companyID int6
 }
 
 // memberName is the name the user goes by in the company now: what is kept
-// beside what they do to its tasks. None for a member without a name, and
+// beside what they do to its orders. None for a member without a name, and
 // for a user the company has let go meanwhile.
 func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone string) (*string, error) {
 	name, err := q.GetMemberName(ctx, gen.GetMemberNameParams{UserPhone: phone, CompanyID: companyID})
@@ -292,7 +292,7 @@ func memberName(ctx context.Context, q *gen.Queries, companyID int64, phone stri
 // their order, and the options of the company's dropdowns, each dropdown's
 // in its order.
 func formOf(ctx context.Context, q *gen.Queries, companyID, typeID int64) ([]Field, map[int64][]fields.Option, error) {
-	all, err := q.ListTaskFields(ctx, companyID)
+	all, err := q.ListOrderFields(ctx, companyID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -313,12 +313,12 @@ func formOf(ctx context.Context, q *gen.Queries, companyID, typeID int64) ([]Fie
 	return form, options, nil
 }
 
-// store writes a task's answers to the fields.
-func store(ctx context.Context, q *gen.Queries, taskID int64, form []Field, values fields.Values) error {
+// store writes an order's answers to the fields.
+func store(ctx context.Context, q *gen.Queries, orderID int64, form []Field, values fields.Values) error {
 	for _, f := range form {
 		for _, row := range valueRows(f, values[f.ID]) {
-			row.TaskID = taskID
-			if err := q.AddTaskValue(ctx, row); err != nil {
+			row.OrderID = orderID
+			if err := q.AddOrderValue(ctx, row); err != nil {
 				return err
 			}
 		}
@@ -328,29 +328,29 @@ func store(ctx context.Context, q *gen.Queries, taskID int64, form []Field, valu
 
 // valueRows is an answer as it is stored: a row for a text or a number, a
 // row for each option chosen, none for no answer.
-func valueRows(f Field, answer any) []gen.AddTaskValueParams {
+func valueRows(f Field, answer any) []gen.AddOrderValueParams {
 	switch a := answer.(type) {
 	case string:
-		return []gen.AddTaskValueParams{{FieldID: f.ID, TextValue: &a}}
+		return []gen.AddOrderValueParams{{FieldID: f.ID, TextValue: &a}}
 	case int64:
 		if choice, _ := fields.KindOf(f.Kind); choice {
-			return []gen.AddTaskValueParams{{FieldID: f.ID, OptionID: &a}}
+			return []gen.AddOrderValueParams{{FieldID: f.ID, OptionID: &a}}
 		}
-		return []gen.AddTaskValueParams{{FieldID: f.ID, IntValue: &a}}
+		return []gen.AddOrderValueParams{{FieldID: f.ID, IntValue: &a}}
 	case []int64:
-		rows := make([]gen.AddTaskValueParams, 0, len(a))
+		rows := make([]gen.AddOrderValueParams, 0, len(a))
 		for _, id := range a {
-			rows = append(rows, gen.AddTaskValueParams{FieldID: f.ID, OptionID: &id})
+			rows = append(rows, gen.AddOrderValueParams{FieldID: f.ID, OptionID: &id})
 		}
 		return rows
 	}
 	return nil
 }
 
-// answersOf reads the answers of the tasks named; a task with none gets an
+// answersOf reads the answers of the orders named; an order with none gets an
 // empty set.
 func answersOf(ctx context.Context, q *gen.Queries, ids []int64) (map[int64]fields.Values, error) {
-	rows, err := q.ListTaskValues(ctx, ids)
+	rows, err := q.ListOrderValues(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -375,26 +375,26 @@ func answersOf(ctx context.Context, q *gen.Queries, ids []int64) (map[int64]fiel
 	return of, nil
 }
 
-// taskOf reads the task with its answers, within the scope: a task standing
+// orderOf reads the order with its answers, within the scope: an order standing
 // in a location outside it is not found.
-func taskOf(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Task, error) {
-	row, err := q.GetTask(ctx, gen.GetTaskParams{ID: id, CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs})
+func orderOf(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Order, error) {
+	row, err := q.GetOrder(ctx, gen.GetOrderParams{ID: id, CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Task{}, errTaskNotFound
+		return Order{}, errOrderNotFound
 	}
 	if err != nil {
-		return Task{}, err
+		return Order{}, err
 	}
 	answers, err := answersOf(ctx, q, []int64{id})
 	if err != nil {
-		return Task{}, err
+		return Order{}, err
 	}
-	return toTask(row, answers[id]), nil
+	return toOrder(row, answers[id]), nil
 }
 
-// toTask is a task as the queries read it, with its answers.
-func toTask(row gen.GetTaskRow, values fields.Values) Task {
-	t := Task{
+// toOrder is an order as the queries read it, with its answers.
+func toOrder(row gen.GetOrderRow, values fields.Values) Order {
+	t := Order{
 		ID: row.ID, TypeID: row.TypeID, StageID: row.StageID, LocationID: row.LocationID, Title: row.Title, Deadline: row.Deadline,
 		Customer:      Customer{ID: row.CustomerID, Phone: row.CustomerPhone, Name: row.CustomerName},
 		Values:        values,
@@ -406,19 +406,19 @@ func toTask(row gen.GetTaskRow, values fields.Values) Task {
 	return t
 }
 
-// Get is the task with its answers, within the scope.
-func (s *Service) Get(ctx context.Context, scope Scope, id int64) (Task, error) {
-	return taskOf(ctx, s.q, scope, id)
+// Get is the order with its answers, within the scope.
+func (s *Service) Get(ctx context.Context, scope Scope, id int64) (Order, error) {
+	return orderOf(ctx, s.q, scope, id)
 }
 
-// PageSize is how many tasks a page of the list holds.
+// PageSize is how many orders a page of the list holds.
 const PageSize = 20
 
 // maxPage keeps the offset inside int32.
 const maxPage = 1_000_000
 
-// ListInput narrows the list of tasks: Search is looked for in the titles,
-// in the text answers of the tasks and of their customers, and (as a number)
+// ListInput narrows the list of orders: Search is looked for in the titles,
+// in the text answers of the orders and of their customers, and (as a number)
 // in the customers' phones and the whole number answers; LocationID, TypeID,
 // StageID, CustomerID and Assignee (a phone) each keep one, 0 or "" leaves
 // the filter out (every location of the scope). Page starts at 1.
@@ -432,15 +432,15 @@ type ListInput struct {
 	Page       int
 }
 
-// Page is one page of tasks and how many there are on all of them.
+// Page is one page of orders and how many there are on all of them.
 type Page struct {
-	Items    []Task
+	Items    []Order
 	Total    int64
 	Page     int
 	PageSize int
 }
 
-// List is a page of the tasks of the scope's locations (of the one named
+// List is a page of the orders of the scope's locations (of the one named
 // alone, when one is; one outside the scope has none), the one due soonest
 // first.
 func (s *Service) List(ctx context.Context, scope Scope, in ListInput) (Page, error) {
@@ -470,14 +470,14 @@ func (s *Service) List(ctx context.Context, scope Scope, in ListInput) (Page, er
 		assignee = &phone
 	}
 	search, digits := customer.SearchOf(in.Search)
-	total, err := s.q.CountTasks(ctx, gen.CountTasksParams{
+	total, err := s.q.CountOrders(ctx, gen.CountOrdersParams{
 		CompanyID: companyID, LocationIds: locations, TypeID: only(in.TypeID), StageID: only(in.StageID), AssigneePhone: assignee, CustomerID: only(in.CustomerID),
 		Search: search, Digits: digits,
 	})
 	if err != nil {
 		return Page{}, err
 	}
-	rows, err := s.q.ListTasks(ctx, gen.ListTasksParams{
+	rows, err := s.q.ListOrders(ctx, gen.ListOrdersParams{
 		CompanyID: companyID, LocationIds: locations, TypeID: only(in.TypeID), StageID: only(in.StageID), AssigneePhone: assignee, CustomerID: only(in.CustomerID),
 		Search: search, Digits: digits, Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
 	})
@@ -492,31 +492,31 @@ func (s *Service) List(ctx context.Context, scope Scope, in ListInput) (Page, er
 	if err != nil {
 		return Page{}, err
 	}
-	items := make([]Task, 0, len(rows))
+	items := make([]Order, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, toTask(gen.GetTaskRow(row), answers[row.ID]))
+		items = append(items, toOrder(gen.GetOrderRow(row), answers[row.ID]))
 	}
 	return Page{Items: items, Total: total, Page: in.Page, PageSize: PageSize}, nil
 }
 
-// Update saves the task (within the scope) with another title, deadline,
+// Update saves the order (within the scope) with another title, deadline,
 // stage, assignee and answers; its type, customer and location stay. The
 // assignee it has stays as they are, a member no more too; another one has
-// to be a member who works in the task's location. by is the phone of the
+// to be a member who works in the order's location. by is the phone of the
 // member who edits it.
-func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, in Input) (Task, error) {
+func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, in Input) (Order, error) {
 	companyID := scope.CompanyID
-	var t Task
+	var t Order
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
-		was, err := taskOf(ctx, q, scope, id)
+		was, err := orderOf(ctx, q, scope, id)
 		if err != nil {
 			return err
 		}
-		title, err := taskTitle(in.Title)
+		title, err := orderTitle(in.Title)
 		if err != nil {
 			return err
 		}
-		deadline, err := taskDeadline(in.Deadline)
+		deadline, err := orderDeadline(in.Deadline)
 		if err != nil {
 			return err
 		}
@@ -558,14 +558,14 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, 
 			t = was
 			return nil
 		}
-		_, err = q.UpdateTask(ctx, gen.UpdateTaskParams{
+		_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{
 			ID: id, CompanyID: companyID, LocationIds: scope.LocationIDs, Title: title, Deadline: deadline, StageID: stage.ID,
 			AssigneePhone: who.phone, AssigneeName: who.name,
 		})
 		if err != nil {
 			return err
 		}
-		if err := q.DeleteTaskValues(ctx, id); err != nil {
+		if err := q.DeleteOrderValues(ctx, id); err != nil {
 			return err
 		}
 		if err := store(ctx, q, id, form, values); err != nil {
@@ -574,17 +574,17 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, 
 		if err := s.record(ctx, q, companyID, id, "updated", by, changed); err != nil {
 			return err
 		}
-		t, err = taskOf(ctx, q, scope, id)
+		t, err = orderOf(ctx, q, scope, id)
 		return err
 	})
 	if err != nil {
-		return Task{}, err
+		return Order{}, err
 	}
 	return t, nil
 }
 
-// record writes down what a member did to a task.
-func (s *Service) record(ctx context.Context, q *gen.Queries, companyID, taskID int64, action, by string, changed []fields.Change) error {
+// record writes down what a member did to an order.
+func (s *Service) record(ctx context.Context, q *gen.Queries, companyID, orderID int64, action, by string, changed []fields.Change) error {
 	if changed == nil {
 		changed = []fields.Change{}
 	}
@@ -596,18 +596,18 @@ func (s *Service) record(ctx context.Context, q *gen.Queries, companyID, taskID 
 	if err != nil {
 		return err
 	}
-	return q.AddTaskHistory(ctx, gen.AddTaskHistoryParams{
-		TaskID: taskID, Action: action, ActorPhone: by, ActorName: name, Changes: changes,
+	return q.AddOrderHistory(ctx, gen.AddOrderHistoryParams{
+		OrderID: orderID, Action: action, ActorPhone: by, ActorName: name, Changes: changes,
 	})
 }
 
-// Move puts the task (within the scope) in another stage; the same stage
+// Move puts the order (within the scope) in another stage; the same stage
 // changes nothing. by is the phone of the member who moves it.
-func (s *Service) Move(ctx context.Context, scope Scope, id int64, by string, stageID int64) (Task, error) {
+func (s *Service) Move(ctx context.Context, scope Scope, id int64, by string, stageID int64) (Order, error) {
 	companyID := scope.CompanyID
-	var t Task
+	var t Order
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
-		was, err := taskOf(ctx, q, scope, id)
+		was, err := orderOf(ctx, q, scope, id)
 		if err != nil {
 			return err
 		}
@@ -623,30 +623,30 @@ func (s *Service) Move(ctx context.Context, scope Scope, id int64, by string, st
 		if err != nil {
 			return err
 		}
-		if _, err := q.MoveTask(ctx, gen.MoveTaskParams{ID: id, CompanyID: companyID, LocationIds: scope.LocationIDs, StageID: stageID}); err != nil {
+		if _, err := q.MoveOrder(ctx, gen.MoveOrderParams{ID: id, CompanyID: companyID, LocationIds: scope.LocationIDs, StageID: stageID}); err != nil {
 			return err
 		}
 		changed := []fields.Change{{Label: "Bosqich", Old: wasStage, New: stage.Name}}
 		if err := s.record(ctx, q, companyID, id, "updated", by, changed); err != nil {
 			return err
 		}
-		t, err = taskOf(ctx, q, scope, id)
+		t, err = orderOf(ctx, q, scope, id)
 		return err
 	})
 	if err != nil {
-		return Task{}, err
+		return Order{}, err
 	}
 	return t, nil
 }
 
-// Delete hides the task (within the scope): it is gone from the app, and
+// Delete hides the order (within the scope): it is gone from the app, and
 // nothing is removed. by is the phone of the member who deletes it.
 func (s *Service) Delete(ctx context.Context, scope Scope, id int64, by string) error {
 	companyID := scope.CompanyID
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteTask(ctx, gen.DeleteTaskParams{ID: id, CompanyID: companyID, LocationIds: scope.LocationIDs})
+		_, err := q.DeleteOrder(ctx, gen.DeleteOrderParams{ID: id, CompanyID: companyID, LocationIds: scope.LocationIDs})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return errTaskNotFound
+			return errOrderNotFound
 		}
 		if err != nil {
 			return err
@@ -655,7 +655,7 @@ func (s *Service) Delete(ctx context.Context, scope Scope, id int64, by string) 
 	})
 }
 
-// HistoryEntry is one thing that happened to a task: it was created, updated
+// HistoryEntry is one thing that happened to an order: it was created, updated
 // (moved too) or deleted, by whom and when. Changes is what an edit changed.
 type HistoryEntry struct {
 	ID     int64
@@ -667,16 +667,16 @@ type HistoryEntry struct {
 	Changes   []fields.Change
 }
 
-// History is what happened to the task (within the scope), the latest first.
+// History is what happened to the order (within the scope), the latest first.
 func (s *Service) History(ctx context.Context, scope Scope, id int64) ([]HistoryEntry, error) {
-	_, err := s.q.GetTask(ctx, gen.GetTaskParams{ID: id, CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs})
+	_, err := s.q.GetOrder(ctx, gen.GetOrderParams{ID: id, CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, errTaskNotFound
+		return nil, errOrderNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.q.ListTaskHistory(ctx, id)
+	rows, err := s.q.ListOrderHistory(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -691,11 +691,11 @@ func (s *Service) History(ctx context.Context, scope Scope, id int64) ([]History
 	return history, nil
 }
 
-// Upcoming is the tasks of the scope's locations (of the one named alone,
+// Upcoming is the orders of the scope's locations (of the one named alone,
 // when one is; one outside the scope has none) in a stage not done yet,
 // the one due soonest first, as many as limit: the home's «Yaqin
 // muddatlar».
-func (s *Service) Upcoming(ctx context.Context, scope Scope, locationID int64, limit int) ([]Task, error) {
+func (s *Service) Upcoming(ctx context.Context, scope Scope, locationID int64, limit int) ([]Order, error) {
 	locations := scope.LocationIDs
 	if locationID != 0 {
 		locations = []int64{}
@@ -703,7 +703,7 @@ func (s *Service) Upcoming(ctx context.Context, scope Scope, locationID int64, l
 			locations = []int64{locationID}
 		}
 	}
-	rows, err := s.q.ListActiveTasks(ctx, gen.ListActiveTasksParams{CompanyID: scope.CompanyID, LocationIds: locations, Limit: int32(limit)})
+	rows, err := s.q.ListActiveOrders(ctx, gen.ListActiveOrdersParams{CompanyID: scope.CompanyID, LocationIds: locations, Limit: int32(limit)})
 	if err != nil {
 		return nil, err
 	}
@@ -715,9 +715,9 @@ func (s *Service) Upcoming(ctx context.Context, scope Scope, locationID int64, l
 	if err != nil {
 		return nil, err
 	}
-	items := make([]Task, 0, len(rows))
+	items := make([]Order, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, toTask(gen.GetTaskRow(row), answers[row.ID]))
+		items = append(items, toOrder(gen.GetOrderRow(row), answers[row.ID]))
 	}
 	return items, nil
 }

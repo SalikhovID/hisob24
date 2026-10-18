@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"context"
@@ -22,11 +22,11 @@ var (
 	errNoDropdown     = invalid("Dropdownni tanlang")
 )
 
-// Field is one question of a task type: the shape the customer fields have,
-// but a task field is never told not to repeat.
+// Field is one question of an order type: the shape the customer fields have,
+// but an order field is never told not to repeat.
 type Field = fields.Field
 
-// Type is a kind of task (Buyurtma, Shikoyat) with the fields its form asks
+// Type is a kind of order (Buyurtma, Shikoyat) with the fields its form asks
 // beside the title, the deadline, the customer and the assignee.
 type Type struct {
 	ID     int64
@@ -42,7 +42,7 @@ func (s *Service) CreateType(ctx context.Context, companyID int64, name string) 
 	}
 	var tt gen.OrderType
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
-		tt, err = q.CreateTaskType(ctx, gen.CreateTaskTypeParams{CompanyID: companyID, Name: name})
+		tt, err = q.CreateOrderType(ctx, gen.CreateOrderTypeParams{CompanyID: companyID, Name: name})
 		if fields.Taken(err) {
 			return errTypeNameTaken
 		}
@@ -57,11 +57,11 @@ func (s *Service) CreateType(ctx context.Context, companyID int64, name string) 
 // Types lists the company's types in their order, each with its fields in
 // theirs.
 func (s *Service) Types(ctx context.Context, companyID int64) ([]Type, error) {
-	rows, err := s.q.ListTaskTypes(ctx, companyID)
+	rows, err := s.q.ListOrderTypes(ctx, companyID)
 	if err != nil {
 		return nil, err
 	}
-	all, err := s.q.ListTaskFields(ctx, companyID)
+	all, err := s.q.ListOrderFields(ctx, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (s *Service) RenameType(ctx context.Context, companyID, id int64, name stri
 		return Type{}, err
 	}
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.RenameTaskType(ctx, gen.RenameTaskTypeParams{ID: id, CompanyID: companyID, Name: name})
+		_, err := q.RenameOrderType(ctx, gen.RenameOrderTypeParams{ID: id, CompanyID: companyID, Name: name})
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
 			return errTypeNotFound
@@ -103,11 +103,11 @@ func (s *Service) RenameType(ctx context.Context, companyID, id int64, name stri
 	if err != nil {
 		return Type{}, err
 	}
-	return s.taskType(ctx, companyID, id)
+	return s.orderType(ctx, companyID, id)
 }
 
-// taskType is the company's type with its fields.
-func (s *Service) taskType(ctx context.Context, companyID, id int64) (Type, error) {
+// orderType is the company's type with its fields.
+func (s *Service) orderType(ctx context.Context, companyID, id int64) (Type, error) {
 	list, err := s.Types(ctx, companyID)
 	if err != nil {
 		return Type{}, err
@@ -120,11 +120,11 @@ func (s *Service) taskType(ctx context.Context, companyID, id int64) (Type, erro
 	return Type{}, errTypeNotFound
 }
 
-// OrderTypes puts the company's types in the order of ids, which has to
+// ReorderTypes puts the company's types in the order of ids, which has to
 // name each of them once and nothing else.
-func (s *Service) OrderTypes(ctx context.Context, companyID int64, ids []int64) error {
+func (s *Service) ReorderTypes(ctx context.Context, companyID int64, ids []int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		rows, err := q.ListTaskTypes(ctx, companyID)
+		rows, err := q.ListOrderTypes(ctx, companyID)
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func (s *Service) OrderTypes(ctx context.Context, companyID int64, ids []int64) 
 		if !fields.SameIDs(ids, live) {
 			return fields.ErrOrderChanged
 		}
-		return q.OrderTaskTypes(ctx, gen.OrderTaskTypesParams{CompanyID: companyID, Ids: ids})
+		return q.ReorderOrderTypes(ctx, gen.ReorderOrderTypesParams{CompanyID: companyID, Ids: ids})
 	})
 }
 
@@ -143,7 +143,7 @@ func (s *Service) OrderTypes(ctx context.Context, companyID int64, ids []int64) 
 // name is free again.
 func (s *Service) DeleteType(ctx context.Context, companyID, id int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteTaskType(ctx, gen.DeleteTaskTypeParams{ID: id, CompanyID: companyID})
+		_, err := q.DeleteOrderType(ctx, gen.DeleteOrderTypeParams{ID: id, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errTypeNotFound
 		}
@@ -152,14 +152,14 @@ func (s *Service) DeleteType(ctx context.Context, companyID, id int64) error {
 		}
 		// The type is the company's own, so its count may be told. The
 		// refusal undoes the delete: the write is one transaction.
-		used, err := q.CountTypeTasks(ctx, id)
+		used, err := q.CountTypeOrders(ctx, id)
 		if err != nil {
 			return err
 		}
 		if used > 0 {
 			return apperr.New(apperr.Conflict, "type_in_use", fmt.Sprintf("Bu turda %d ta vazifa bor", used))
 		}
-		return q.DeleteTaskTypeFields(ctx, id)
+		return q.DeleteOrderTypeFields(ctx, id)
 	})
 }
 
@@ -200,7 +200,7 @@ func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in Fiel
 				return err
 			}
 		}
-		f, err = q.AddTaskField(ctx, gen.AddTaskFieldParams{
+		f, err = q.AddOrderField(ctx, gen.AddOrderFieldParams{
 			CompanyID: companyID, TypeID: typeID, Label: label, Kind: in.Kind, DropdownID: in.DropdownID, Required: in.Required,
 		})
 		switch {
@@ -237,7 +237,7 @@ func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID in
 	var f gen.OrderField
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
 		var err error
-		f, err = q.UpdateTaskField(ctx, gen.UpdateTaskFieldParams{
+		f, err = q.UpdateOrderField(ctx, gen.UpdateOrderFieldParams{
 			ID: fieldID, TypeID: typeID, CompanyID: companyID, Label: patch.Label, Required: patch.Required,
 		})
 		switch {
@@ -257,14 +257,14 @@ func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID in
 // DeleteField hides a field of the company's type; its name is free again.
 func (s *Service) DeleteField(ctx context.Context, companyID, typeID, fieldID int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.DeleteTaskField(ctx, gen.DeleteTaskFieldParams{ID: fieldID, TypeID: typeID, CompanyID: companyID})
+		_, err := q.DeleteOrderField(ctx, gen.DeleteOrderFieldParams{ID: fieldID, TypeID: typeID, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errFieldNotFound
 		}
 		if err != nil {
 			return err
 		}
-		used, err := q.CountTaskFieldTasks(ctx, fieldID)
+		used, err := q.CountOrderFieldOrders(ctx, fieldID)
 		if err != nil {
 			return err
 		}
@@ -275,18 +275,18 @@ func (s *Service) DeleteField(ctx context.Context, companyID, typeID, fieldID in
 	})
 }
 
-// OrderFields puts the fields of the company's type in the order of ids,
+// ReorderFields puts the fields of the company's type in the order of ids,
 // which has to name each of them once and nothing else.
-func (s *Service) OrderFields(ctx context.Context, companyID, typeID int64, ids []int64) error {
+func (s *Service) ReorderFields(ctx context.Context, companyID, typeID int64, ids []int64) error {
 	return s.write(ctx, companyID, func(q *gen.Queries) error {
-		_, err := q.GetTaskType(ctx, gen.GetTaskTypeParams{ID: typeID, CompanyID: companyID})
+		_, err := q.GetOrderType(ctx, gen.GetOrderTypeParams{ID: typeID, CompanyID: companyID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errTypeNotFound
 		}
 		if err != nil {
 			return err
 		}
-		all, err := q.ListTaskFields(ctx, companyID)
+		all, err := q.ListOrderFields(ctx, companyID)
 		if err != nil {
 			return err
 		}
@@ -299,6 +299,6 @@ func (s *Service) OrderFields(ctx context.Context, companyID, typeID int64, ids 
 		if !fields.SameIDs(ids, live) {
 			return fields.ErrOrderChanged
 		}
-		return q.OrderTaskFields(ctx, gen.OrderTaskFieldsParams{TypeID: typeID, Ids: ids})
+		return q.ReorderOrderFields(ctx, gen.ReorderOrderFieldsParams{TypeID: typeID, Ids: ids})
 	})
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
-	"github.com/SalikhovID/hisob24/backend/internal/task"
+	"github.com/SalikhovID/hisob24/backend/internal/order"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
@@ -178,11 +178,11 @@ func currentPermissions(ctx context.Context) access.Set {
 	return currentAccess(ctx).Permissions
 }
 
-// taskScope is where the request's member works, for the tasks: the
+// orderScope is where the request's member works, for the orders: the
 // session's company and the locations of it the member may work in, as
 // requireAccess read them (logic/locations.md).
-func taskScope(r *http.Request) task.Scope {
-	return task.Scope{CompanyID: sessionCompany(r), LocationIDs: currentAccess(r.Context()).LocationIDs}
+func orderScope(r *http.Request) order.Scope {
+	return order.Scope{CompanyID: sessionCompany(r), LocationIDs: currentAccess(r.Context()).LocationIDs}
 }
 
 // catalogScope is the request's member's reach in the company for the

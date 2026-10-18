@@ -38,9 +38,9 @@ DELETE FROM member_locations WHERE user_phone = $1 AND company_id = $2;
 
 -- name: ListLocations :many
 -- The company's live locations for the admin, in the order they were
--- added, each with how many tasks stand in it (the deleted not counted).
+-- added, each with how many orders stand in it (the deleted not counted).
 SELECT l.id, l.name, l.created_at,
-       (SELECT count(*) FROM orders t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS tasks_count
+       (SELECT count(*) FROM orders t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS orders_count
 FROM locations l
 WHERE l.company_id = $1 AND l.deleted_at IS NULL
 ORDER BY l.id;
@@ -69,9 +69,9 @@ RETURNING id;
 -- How many live locations the company has: the last one is not deleted.
 SELECT count(*) FROM locations WHERE company_id = $1 AND deleted_at IS NULL;
 
--- name: CountLocationTasks :one
--- How many tasks stand in the location: one in use is not deleted. Deleted
--- tasks do not count.
+-- name: CountLocationOrders :one
+-- How many orders stand in the location: one in use is not deleted. Deleted
+-- orders do not count.
 SELECT count(*) FROM orders WHERE location_id = $1 AND deleted_at IS NULL;
 
 -- name: MemberInLocation :one

@@ -122,17 +122,17 @@ func TestAFieldWithRepeatedAnswersCannotBeToldNotToRepeat(t *testing.T) {
 	assert.True(t, ism.Unique)
 }
 
-// taskSetup is what a task of the company needs: a location, a stage, a
+// orderSetup is what an order of the company needs: a location, a stage, a
 // type, and a checkbox field Kanal of the type over the dropdown Manba.
-type taskSetup struct {
+type orderSetup struct {
 	companyID, locationID, stageID, typeID, fieldID int64
 }
 
-// setupTasks makes the company ready for tasks.
-func setupTasks(t *testing.T, pool *pgxpool.Pool, sh shop) taskSetup {
+// setupOrders makes the company ready for orders.
+func setupOrders(t *testing.T, pool *pgxpool.Pool, sh shop) orderSetup {
 	t.Helper()
 	ctx := t.Context()
-	ts := taskSetup{companyID: sh.id}
+	ts := orderSetup{companyID: sh.id}
 	require.NoError(t, pool.QueryRow(ctx,
 		"INSERT INTO locations (company_id, name) VALUES ($1, 'Asosiy') RETURNING id", sh.id).Scan(&ts.locationID))
 	require.NoError(t, pool.QueryRow(ctx,
@@ -144,41 +144,41 @@ func setupTasks(t *testing.T, pool *pgxpool.Pool, sh shop) taskSetup {
 	return ts
 }
 
-// addTask enters a task for the customer the way the task service does
+// addOrder enters an order for the customer the way the order service does
 // (that package is built on this one, so it cannot be called here), with
 // the options chosen in Kanal.
-func addTask(t *testing.T, pool *pgxpool.Pool, ts taskSetup, customerID int64, chosen ...int64) int64 {
+func addOrder(t *testing.T, pool *pgxpool.Pool, ts orderSetup, customerID int64, chosen ...int64) int64 {
 	t.Helper()
 	ctx := t.Context()
-	var taskID int64
+	var orderID int64
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, $6, 'Qo''ng''iroq', CURRENT_DATE, $5) RETURNING id`, ts.companyID, ts.typeID, ts.stageID, customerID, owner, ts.locationID).Scan(&taskID))
+		VALUES ($1, $2, $3, $4, $6, 'Qo''ng''iroq', CURRENT_DATE, $5) RETURNING id`, ts.companyID, ts.typeID, ts.stageID, customerID, owner, ts.locationID).Scan(&orderID))
 	for _, optionID := range chosen {
-		_, err := pool.Exec(ctx, "INSERT INTO order_values (order_id, field_id, option_id) VALUES ($1, $2, $3)", taskID, ts.fieldID, optionID)
+		_, err := pool.Exec(ctx, "INSERT INTO order_values (order_id, field_id, option_id) VALUES ($1, $2, $3)", orderID, ts.fieldID, optionID)
 		require.NoError(t, err)
 	}
-	return taskID
+	return orderID
 }
 
-// hideTask deletes a task the way the task service does.
-func hideTask(t *testing.T, pool *pgxpool.Pool, taskID int64) {
+// hideOrder deletes an order the way the order service does.
+func hideOrder(t *testing.T, pool *pgxpool.Pool, orderID int64) {
 	t.Helper()
-	_, err := pool.Exec(t.Context(), "UPDATE orders SET deleted_at = now() WHERE id = $1", taskID)
+	_, err := pool.Exec(t.Context(), "UPDATE orders SET deleted_at = now() WHERE id = $1", orderID)
 	require.NoError(t, err)
 }
 
-func TestACustomerWithTasksIsNotDeleted(t *testing.T) {
+func TestACustomerWithOrdersIsNotDeleted(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma := newShop(t, s, pool, "Olma")
-	ts := setupTasks(t, pool, olma)
+	ts := setupOrders(t, pool, olma)
 	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{olma.fish.ID: "Ali"})
 	vali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, valiPhone, map[int64]any{olma.fish.ID: "Vali"})
 	soli := mustCustomer(t, s, olma.id, olma.jismoniy.ID, "998900000001", map[int64]any{olma.fish.ID: "Soli"})
-	addTask(t, pool, ts, ali.ID)
-	addTask(t, pool, ts, ali.ID)
-	hideTask(t, pool, addTask(t, pool, ts, ali.ID))
-	valis := addTask(t, pool, ts, vali.ID)
+	addOrder(t, pool, ts, ali.ID)
+	addOrder(t, pool, ts, ali.ID)
+	hideOrder(t, pool, addOrder(t, pool, ts, ali.ID))
+	valis := addOrder(t, pool, ts, vali.ID)
 
 	err := s.Delete(ctx, olma.id, ali.ID, owner)
 
@@ -191,23 +191,23 @@ func TestACustomerWithTasksIsNotDeleted(t *testing.T) {
 	assert.Len(t, history, 1, "and nothing is written down")
 
 	refused(t, s.Delete(ctx, olma.id, vali.ID, owner), apperr.Conflict, "customer_in_use", "Bu mijozda 1 ta vazifa bor")
-	assert.NoError(t, s.Delete(ctx, olma.id, soli.ID, owner), "a customer with no tasks")
-	hideTask(t, pool, valis)
-	assert.NoError(t, s.Delete(ctx, olma.id, vali.ID, owner), "the deleted tasks do not hold the customer")
+	assert.NoError(t, s.Delete(ctx, olma.id, soli.ID, owner), "a customer with no orders")
+	hideOrder(t, pool, valis)
+	assert.NoError(t, s.Delete(ctx, olma.id, vali.ID, owner), "the deleted orders do not hold the customer")
 }
 
-func TestAnOptionTasksChoseIsNotDeleted(t *testing.T) {
+func TestAnOptionOrdersChoseIsNotDeleted(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma := newShop(t, s, pool, "Olma")
-	ts := setupTasks(t, pool, olma)
+	ts := setupOrders(t, pool, olma)
 	manba := *olma.manba.DropdownID
 	ali := mustCustomer(t, s, olma.id, olma.jismoniy.ID, aliPhone, map[int64]any{olma.fish.ID: "Ali"})
-	// Two tasks chose Instagram, one of them LinkedIn too; a deleted task
+	// Two orders chose Instagram, one of them LinkedIn too; a deleted order
 	// chose YouTube.
-	addTask(t, pool, ts, ali.ID, olma.instagram.ID, olma.linkedin.ID)
-	addTask(t, pool, ts, ali.ID, olma.instagram.ID)
-	hideTask(t, pool, addTask(t, pool, ts, ali.ID, olma.youtube.ID))
+	addOrder(t, pool, ts, ali.ID, olma.instagram.ID, olma.linkedin.ID)
+	addOrder(t, pool, ts, ali.ID, olma.instagram.ID)
+	hideOrder(t, pool, addOrder(t, pool, ts, ali.ID, olma.youtube.ID))
 
 	err := s.DeleteOption(ctx, olma.id, manba, olma.instagram.ID)
 
@@ -217,7 +217,7 @@ func TestAnOptionTasksChoseIsNotDeleted(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, dropdowns[0].Options, 3, "the options stay")
 
-	assert.NoError(t, s.DeleteOption(ctx, olma.id, manba, olma.youtube.ID), "a deleted task's choice does not hold the option")
+	assert.NoError(t, s.DeleteOption(ctx, olma.id, manba, olma.youtube.ID), "a deleted order's choice does not hold the option")
 	// The customers are told first.
 	_, err = s.Update(ctx, olma.id, ali.ID, owner, Input{Phone: aliPhone, Values: answers(t, map[int64]any{olma.fish.ID: "Ali", olma.manba.ID: olma.instagram.ID})})
 	require.NoError(t, err)

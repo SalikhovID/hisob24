@@ -27,14 +27,14 @@ func (q *Queries) AddMemberLocation(ctx context.Context, arg AddMemberLocationPa
 	return err
 }
 
-const countLocationTasks = `-- name: CountLocationTasks :one
+const countLocationOrders = `-- name: CountLocationOrders :one
 SELECT count(*) FROM orders WHERE location_id = $1 AND deleted_at IS NULL
 `
 
-// How many tasks stand in the location: one in use is not deleted. Deleted
-// tasks do not count.
-func (q *Queries) CountLocationTasks(ctx context.Context, locationID int64) (int64, error) {
-	row := q.db.QueryRow(ctx, countLocationTasks, locationID)
+// How many orders stand in the location: one in use is not deleted. Deleted
+// orders do not count.
+func (q *Queries) CountLocationOrders(ctx context.Context, locationID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countLocationOrders, locationID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -176,21 +176,21 @@ func (q *Queries) ListCompanyMemberLocations(ctx context.Context, companyID int6
 
 const listLocations = `-- name: ListLocations :many
 SELECT l.id, l.name, l.created_at,
-       (SELECT count(*) FROM orders t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS tasks_count
+       (SELECT count(*) FROM orders t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS orders_count
 FROM locations l
 WHERE l.company_id = $1 AND l.deleted_at IS NULL
 ORDER BY l.id
 `
 
 type ListLocationsRow struct {
-	ID         int64
-	Name       string
-	CreatedAt  time.Time
-	TasksCount int64
+	ID          int64
+	Name        string
+	CreatedAt   time.Time
+	OrdersCount int64
 }
 
 // The company's live locations for the admin, in the order they were
-// added, each with how many tasks stand in it (the deleted not counted).
+// added, each with how many orders stand in it (the deleted not counted).
 func (q *Queries) ListLocations(ctx context.Context, companyID int64) ([]ListLocationsRow, error) {
 	rows, err := q.db.Query(ctx, listLocations, companyID)
 	if err != nil {
@@ -204,7 +204,7 @@ func (q *Queries) ListLocations(ctx context.Context, companyID int64) ([]ListLoc
 			&i.ID,
 			&i.Name,
 			&i.CreatedAt,
-			&i.TasksCount,
+			&i.OrdersCount,
 		); err != nil {
 			return nil, err
 		}

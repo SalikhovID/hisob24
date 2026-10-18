@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"context"
@@ -51,7 +51,7 @@ func count(t *testing.T, pool *pgxpool.Pool, sql string, args ...any) int {
 	return n
 }
 
-// holdCompany holds the company the way a write of its customers, tasks or
+// holdCompany holds the company the way a write of its customers, orders or
 // their settings does, until release is called: a write made meanwhile has
 // to wait.
 func holdCompany(t *testing.T, pool *pgxpool.Pool, companyID int64) (release func()) {
@@ -81,7 +81,7 @@ func waits(t *testing.T, pool *pgxpool.Pool, companyID int64, write func() error
 	require.NoError(t, <-done, "the write goes on once the company is free")
 }
 
-// The writes of a company's task settings take turns with each other and
+// The writes of a company's order settings take turns with each other and
 // with the customer writes (the same lock), so what one of them checks (a
 // name, an order) cannot change under it.
 func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
@@ -112,17 +112,17 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	}{
 		// A new order names what is there now: the orders go before what
 		// adds a stage, a type or a field.
-		{"OrderStages", func() error { return s.OrderStages(ctx, olma, []int64{bajarildi.ID, yangi.ID, spare.ID}) }},
+		{"ReorderStages", func() error { return s.ReorderStages(ctx, olma, []int64{bajarildi.ID, yangi.ID, spare.ID}) }},
 		{"CreateStage", func() error {
 			_, err := s.CreateStage(ctx, olma, StageInput{Name: "Kutilmoqda", Color: "amber"})
 			return err
 		}},
 		{"UpdateStage", func() error { _, err := s.UpdateStage(ctx, olma, yangi.ID, StagePatch{Name: ptr("Ochiq")}); return err }},
 		{"DeleteStage", func() error { return s.DeleteStage(ctx, olma, spare.ID) }},
-		{"OrderTypes", func() error { return s.OrderTypes(ctx, olma, []int64{shikoyat.ID, buyurtma.ID}) }},
+		{"ReorderTypes", func() error { return s.ReorderTypes(ctx, olma, []int64{shikoyat.ID, buyurtma.ID}) }},
 		{"CreateType", func() error { _, err := s.CreateType(ctx, olma, "Qo'ng'iroq"); return err }},
 		{"RenameType", func() error { _, err := s.RenameType(ctx, olma, shikoyat.ID, "Arz"); return err }},
-		{"OrderFields", func() error { return s.OrderFields(ctx, olma, buyurtma.ID, []int64{summa.ID, izoh.ID}) }},
+		{"ReorderFields", func() error { return s.ReorderFields(ctx, olma, buyurtma.ID, []int64{summa.ID, izoh.ID}) }},
 		{"AddField", func() error {
 			_, err := s.AddField(ctx, olma, buyurtma.ID, FieldInput{Label: "Manzil", Kind: "string"})
 			return err

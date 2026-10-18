@@ -1,5 +1,5 @@
 // Package fields is what a form of fields the owner sets up shares between
-// the customers and the tasks: the kinds a field may be of, the rules of a
+// the customers and the orders: the kinds a field may be of, the rules of a
 // name, and the checking and the history of the answers to the fields.
 package fields
 

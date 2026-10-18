@@ -43,8 +43,8 @@ LEFT JOIN (
 ) x ON x.day = d.day::date
 ORDER BY d.day;
 
--- name: DashboardTasks :one
--- The company's tasks in the locations given not done yet, and how many of
+-- name: DashboardOrders :one
+-- The company's orders in the locations given not done yet, and how many of
 -- them are past their deadline (before today).
 SELECT count(*) AS active, count(*) FILTER (WHERE t.deadline < sqlc.arg('today')::date) AS late
 FROM orders t
@@ -52,8 +52,8 @@ JOIN order_stages s ON s.id = t.stage_id
 WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL AND NOT s.is_done
   AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
 
--- name: DashboardTasksByStage :many
--- How many of the company's tasks in the locations given stand in each of
+-- name: DashboardOrdersByStage :many
+-- How many of the company's orders in the locations given stand in each of
 -- its stages not done, in the stages' order, the empty ones too.
 SELECT s.id AS stage_id, count(t.id) AS count
 FROM order_stages s

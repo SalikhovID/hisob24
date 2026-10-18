@@ -65,15 +65,15 @@ func restrictedTo(allLocations bool, locations []Location) []Location {
 }
 
 // AdminLocation is a location as the admin panel lists it: with how many
-// tasks stand in it and when it was added.
+// orders stand in it and when it was added.
 type AdminLocation struct {
 	Location
-	TasksCount int64
-	CreatedAt  time.Time
+	OrdersCount int64
+	CreatedAt   time.Time
 }
 
 // Locations lists the company's live locations for the admin, in the order
-// they were added, each with how many tasks stand in it.
+// they were added, each with how many orders stand in it.
 func (s *Service) Locations(ctx context.Context, companyID int64) ([]AdminLocation, error) {
 	rows, err := s.q.ListLocations(ctx, companyID)
 	if err != nil {
@@ -81,7 +81,7 @@ func (s *Service) Locations(ctx context.Context, companyID int64) ([]AdminLocati
 	}
 	locations := make([]AdminLocation, 0, len(rows))
 	for _, r := range rows {
-		locations = append(locations, AdminLocation{Location: Location{ID: r.ID, Name: r.Name}, TasksCount: r.TasksCount, CreatedAt: r.CreatedAt})
+		locations = append(locations, AdminLocation{Location: Location{ID: r.ID, Name: r.Name}, OrdersCount: r.OrdersCount, CreatedAt: r.CreatedAt})
 	}
 	return locations, nil
 }
@@ -134,17 +134,17 @@ func (s *Service) RenameLocation(ctx context.Context, companyID, id int64, name 
 	if err != nil {
 		return AdminLocation{}, err
 	}
-	count, err := s.q.CountLocationTasks(ctx, l.ID)
+	count, err := s.q.CountLocationOrders(ctx, l.ID)
 	if err != nil {
 		return AdminLocation{}, err
 	}
-	return AdminLocation{Location: Location{ID: l.ID, Name: l.Name}, TasksCount: count, CreatedAt: l.CreatedAt}, nil
+	return AdminLocation{Location: Location{ID: l.ID, Name: l.Name}, OrdersCount: count, CreatedAt: l.CreatedAt}, nil
 }
 
 // DeleteLocation hides the company's location: neither its last one, nor
-// one a task stands in, nor one a document stands in (a transfer's other
+// one an order stands in, nor one a document stands in (a transfer's other
 // end too); the deleted do not count. It holds the company the way a write
-// of its tasks does, so the counts cannot change under it. A member's
+// of its orders does, so the counts cannot change under it. A member's
 // restriction keeps naming the location; its name is free again.
 func (s *Service) DeleteLocation(ctx context.Context, companyID, id int64) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
@@ -168,12 +168,12 @@ func (s *Service) DeleteLocation(ctx context.Context, companyID, id int64) error
 		if left <= 1 {
 			return errLastLocation
 		}
-		tasks, err := q.CountLocationTasks(ctx, id)
+		orders, err := q.CountLocationOrders(ctx, id)
 		if err != nil {
 			return err
 		}
-		if tasks > 0 {
-			return apperr.New(apperr.Conflict, "location_in_use", fmt.Sprintf("Bu lokatsiyada %d ta vazifa bor", tasks))
+		if orders > 0 {
+			return apperr.New(apperr.Conflict, "location_in_use", fmt.Sprintf("Bu lokatsiyada %d ta vazifa bor", orders))
 		}
 		documents, err := q.CountLocationDocuments(ctx, id)
 		if err != nil {

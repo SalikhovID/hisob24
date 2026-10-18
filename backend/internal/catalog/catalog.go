@@ -74,7 +74,7 @@ func NewService(pool *pgxpool.Pool) *Service {
 
 // write runs fn in one transaction that holds the company the way a write of
 // its customers does (LockCompanyCustomers): the writes of a company's
-// catalog, customers, tasks and, later, purchases take turns, so what one of
+// catalog, customers, orders and, later, purchases take turns, so what one of
 // them checks cannot change under it.
 func (s *Service) write(ctx context.Context, companyID int64, fn func(q *gen.Queries) error) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {

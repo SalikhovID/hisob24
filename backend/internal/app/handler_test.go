@@ -25,7 +25,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/dashboard"
 	"github.com/SalikhovID/hisob24/backend/internal/finance"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
-	"github.com/SalikhovID/hisob24/backend/internal/task"
+	"github.com/SalikhovID/hisob24/backend/internal/order"
 	"github.com/SalikhovID/hisob24/backend/internal/testutil/pgtest"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
@@ -122,12 +122,12 @@ func newTestAPIWith(t *testing.T, cookieSecure bool) testAPI {
 			Profiles:   user.NewProfiles(pool),
 			Companies:  company.NewService(pool),
 			Customers:  customer.NewService(pool),
-			Tasks:      task.NewService(pool, customer.NewService(pool)),
+			Orders:     order.NewService(pool, customer.NewService(pool)),
 			Catalog:    catalog.NewService(pool),
 			Warehouse:  warehouse.NewService(pool),
 			Currencies: currency.NewService(pool),
 			Finance:    finance.NewService(pool),
-			Dashboard:  dashboard.NewService(pool, task.NewService(pool, customer.NewService(pool))),
+			Dashboard:  dashboard.NewService(pool, order.NewService(pool, customer.NewService(pool))),
 		},
 		cookieSecure,
 		httpx.NewRateLimiter(5, time.Minute),

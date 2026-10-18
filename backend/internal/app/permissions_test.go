@@ -39,7 +39,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	// What the role holds.
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/customers", "", bearer(employee)).Code, "the customers may be seen")
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, customerPath, "", bearer(employee)).Code)
-	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/tasks", "", bearer(employee)).Code, "the tasks may be seen")
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/tasks", "", bearer(employee)).Code, "the orders may be seen")
 	// What every member has.
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/customer-types", "", bearer(employee)).Code, "the types are every member's")
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/members", "", bearer(employee)).Code, "the members are every member's")
@@ -50,7 +50,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 		"editing a customer":      {http.MethodPut, customerPath, `{"phone":"998911112233","values":{}}`},
 		"deleting a customer":     {http.MethodDelete, customerPath, ""},
 		"the customer's history":  {http.MethodGet, customerPath + "/history", ""},
-		"moving a task":           {http.MethodPatch, "/app/tasks/1/stage", `{"stage_id":1}`},
+		"moving an order":         {http.MethodPatch, "/app/tasks/1/stage", `{"stage_id":1}`},
 		"the employees":           {http.MethodGet, "/app/employees", ""},
 		"adding a type":           {http.MethodPost, "/app/customer-types", `{"name":"Yuridik"}`},
 		"the products":            {http.MethodGet, "/app/products", ""},
@@ -101,7 +101,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 
 	// Without a role the employee is back to the default: the customers and
-	// the tasks, not the employees.
+	// the orders, not the employees.
 	api.giveRole(t, valisPhone, olma, nil)
 	rec = api.do(t, http.MethodDelete, customerPath, "", bearer(employee))
 	assert.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
@@ -133,10 +133,10 @@ func TestPermissionRoutesNeedACompany(t *testing.T) {
 	}
 }
 
-func TestATaskWithANewCustomerNeedsCustomersCreate(t *testing.T) {
+func TestAOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
-	sh := api.taskShop(t, olma)
+	sh := api.orderShop(t, olma)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	operator := api.addRole(t, olma, "Operator", "tasks.view", "tasks.create", "customers.view")
@@ -148,16 +148,16 @@ func TestATaskWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 
 	rec := api.do(t, http.MethodPost, "/app/tasks", withNew, bearer(employee))
 
-	assert.Equal(t, http.StatusForbidden, rec.Code, "entering a customer with the task needs customers.create")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "entering a customer with the order needs customers.create")
 	assert.JSONEq(t, noPermission, rec.Body.String())
-	var tasks, customers int
-	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT (SELECT count(*) FROM orders), (SELECT count(*) FROM customers)").Scan(&tasks, &customers))
-	assert.Equal(t, 0, tasks, "no task")
+	var orders, customers int
+	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT (SELECT count(*) FROM orders), (SELECT count(*) FROM customers)").Scan(&orders, &customers))
+	assert.Equal(t, 0, orders, "no order")
 	assert.Equal(t, 1, customers, "no customer beside the one that was there")
 
-	withExisting := taskBody(sh, "Mavjud mijozga", "2026-10-20", sh.yangi, customer["id"], fmt.Sprintf(`{"%s":"Izoh"}`, key(sh.izoh)), "")
+	withExisting := orderBody(sh, "Mavjud mijozga", "2026-10-20", sh.yangi, customer["id"], fmt.Sprintf(`{"%s":"Izoh"}`, key(sh.izoh)), "")
 	rec = api.do(t, http.MethodPost, "/app/tasks", withExisting, bearer(employee))
-	assert.Equal(t, http.StatusCreated, rec.Code, "a task for a customer that is there needs tasks.create alone: %s", rec.Body.String())
+	assert.Equal(t, http.StatusCreated, rec.Code, "an order for a customer that is there needs tasks.create alone: %s", rec.Body.String())
 }
 
 // permissionsOf is the permissions /app/me tells, as strings.

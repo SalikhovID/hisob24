@@ -1,5 +1,5 @@
--- name: CreateTask :one
--- Enters a task, in a location of the company. assignee_name and
+-- name: CreateOrder :one
+-- Enters an order, in a location of the company. assignee_name and
 -- created_by_name are the names the members go by in the company now: they
 -- stay when the members leave the company.
 INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
@@ -7,10 +7,10 @@ VALUES (sqlc.arg('company_id'), sqlc.arg('type_id'), sqlc.arg('stage_id'), sqlc.
         sqlc.narg('assignee_phone'), sqlc.narg('assignee_name'), sqlc.arg('created_by'), sqlc.narg('created_by_name'))
 RETURNING *;
 
--- name: GetTask :one
--- The company's task with its location, its customer's phone and name (the
+-- name: GetOrder :one
+-- The company's order with its location, its customer's phone and name (the
 -- customer's answer to its type's first text field); pgx.ErrNoRows when the
--- company has no such task, or deleted it. assignee_name and
+-- company has no such order, or deleted it. assignee_name and
 -- created_by_name are the names the members go by in the company now; once
 -- they have left it (or go by no name), the names of then.
 SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
@@ -29,13 +29,13 @@ LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id =
 WHERE t.id = sqlc.arg('id') AND t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
   AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
 
--- name: ListTasks :many
--- A page of the company's tasks, the one due soonest first (then the older
--- task), without the deleted. type_id, stage_id, assignee_phone and
+-- name: ListOrders :many
+-- A page of the company's orders, the one due soonest first (then the older
+-- order), without the deleted. type_id, stage_id, assignee_phone and
 -- customer_id each keep one; search, escaped for ILIKE, is looked for in the
--- title, in the task's text answers and in the customer's text answers;
+-- title, in the order's text answers and in the customer's text answers;
 -- digits, the digits of a search that is a number, in the customer's phone
--- and in the task's and the customer's whole number answers. A NULL argument
+-- and in the order's and the customer's whole number answers. A NULL argument
 -- leaves its filter out.
 SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
@@ -70,10 +70,10 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
 ORDER BY t.deadline, t.id
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
--- name: ListActiveTasks :many
--- The company's tasks in the locations given whose stage is not a done
--- one, the one due soonest first (then the older task), as many as limit:
--- the home's nearest deadlines. The columns are ListTasks'.
+-- name: ListActiveOrders :many
+-- The company's orders in the locations given whose stage is not a done
+-- one, the one due soonest first (then the older order), as many as limit:
+-- the home's nearest deadlines. The columns are ListOrders'.
 SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
@@ -93,8 +93,8 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL AND NOT s.i
 ORDER BY t.deadline, t.id
 LIMIT sqlc.arg('limit');
 
--- name: CountTasks :one
--- How many tasks ListTasks finds under the same filter, on all of its pages.
+-- name: CountOrders :one
+-- How many orders ListOrders finds under the same filter, on all of its pages.
 SELECT count(*) FROM orders t
 JOIN customers c ON c.id = t.customer_id
 WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
@@ -115,10 +115,10 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
                     AND (v.text_value ILIKE '%' || sqlc.narg('search')::text || '%'
                          OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')));
 
--- name: UpdateTask :one
--- An edit: the task's title, deadline, stage and assignee as they are now,
+-- name: UpdateOrder :one
+-- An edit: the order's title, deadline, stage and assignee as they are now,
 -- and the moment of the edit. pgx.ErrNoRows when the company has no such
--- task, or deleted it.
+-- order, or deleted it.
 UPDATE orders
 SET title = sqlc.arg('title'), deadline = sqlc.arg('deadline'), stage_id = sqlc.arg('stage_id'),
     assignee_phone = sqlc.narg('assignee_phone'), assignee_name = sqlc.narg('assignee_name'), updated_at = now()
@@ -126,74 +126,74 @@ WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at
   AND location_id = ANY(sqlc.arg('location_ids')::bigint[])
 RETURNING updated_at;
 
--- name: MoveTask :one
--- Puts the task in another stage. pgx.ErrNoRows when the company has no such
--- task, or deleted it.
+-- name: MoveOrder :one
+-- Puts the order in another stage. pgx.ErrNoRows when the company has no such
+-- order, or deleted it.
 UPDATE orders SET stage_id = sqlc.arg('stage_id'), updated_at = now()
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
   AND location_id = ANY(sqlc.arg('location_ids')::bigint[])
 RETURNING updated_at;
 
--- name: DeleteTask :one
--- Hides the task: nothing is removed. pgx.ErrNoRows when the company has no
--- such task, or deleted it already.
+-- name: DeleteOrder :one
+-- Hides the order: nothing is removed. pgx.ErrNoRows when the company has no
+-- such order, or deleted it already.
 UPDATE orders SET deleted_at = now()
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
   AND location_id = ANY(sqlc.arg('location_ids')::bigint[])
 RETURNING id;
 
--- name: AddTaskValue :exec
--- One row of a task's answers: a text, a whole number, or an option chosen.
+-- name: AddOrderValue :exec
+-- One row of an order's answers: a text, a whole number, or an option chosen.
 INSERT INTO order_values (order_id, field_id, option_id, text_value, int_value)
-VALUES (sqlc.arg('task_id'), sqlc.arg('field_id'), sqlc.narg('option_id'), sqlc.narg('text_value'), sqlc.narg('int_value'));
+VALUES (sqlc.arg('order_id'), sqlc.arg('field_id'), sqlc.narg('option_id'), sqlc.narg('text_value'), sqlc.narg('int_value'));
 
--- name: DeleteTaskValues :exec
--- Clears a task's answers: an edit writes them anew. What they were stays in
--- the task's history.
+-- name: DeleteOrderValues :exec
+-- Clears an order's answers: an edit writes them anew. What they were stays in
+-- the order's history.
 DELETE FROM order_values WHERE order_id = $1;
 
--- name: ListTaskValues :many
--- The answers of the tasks named: each task's in the order of its type's
+-- name: ListOrderValues :many
+-- The answers of the orders named: each order's in the order of its type's
 -- fields, the options of one field in the order of their dropdown. kind
 -- tells how a field's rows are read.
 SELECT v.order_id, v.field_id, f.kind, v.option_id, v.text_value, v.int_value
 FROM order_values v
 JOIN order_fields f ON f.id = v.field_id
 LEFT JOIN customer_dropdown_options o ON o.id = v.option_id
-WHERE v.order_id = ANY(sqlc.arg('task_ids')::bigint[])
+WHERE v.order_id = ANY(sqlc.arg('order_ids')::bigint[])
 ORDER BY v.order_id, f.position, f.id, o.position, o.id;
 
--- name: CountStageTasks :one
--- How many tasks stand in the stage: one in use is not deleted. Deleted
--- tasks do not count.
+-- name: CountStageOrders :one
+-- How many orders stand in the stage: one in use is not deleted. Deleted
+-- orders do not count.
 SELECT count(*) FROM orders WHERE stage_id = $1 AND deleted_at IS NULL;
 
--- name: CountTypeTasks :one
--- How many tasks are of the type: one in use is not deleted.
+-- name: CountTypeOrders :one
+-- How many orders are of the type: one in use is not deleted.
 SELECT count(*) FROM orders WHERE type_id = $1 AND deleted_at IS NULL;
 
--- name: CountTaskFieldTasks :one
--- How many tasks filled the field in: one in use is not deleted.
+-- name: CountOrderFieldOrders :one
+-- How many orders filled the field in: one in use is not deleted.
 SELECT count(DISTINCT v.order_id) FROM order_values v
 JOIN orders t ON t.id = v.order_id
 WHERE v.field_id = $1 AND t.deleted_at IS NULL;
 
--- name: CountOptionTasks :one
--- How many tasks chose the option, in any field: one in use is not deleted.
+-- name: CountOptionOrders :one
+-- How many orders chose the option, in any field: one in use is not deleted.
 SELECT count(DISTINCT v.order_id) FROM order_values v
 JOIN orders t ON t.id = v.order_id
 WHERE v.option_id = $1 AND t.deleted_at IS NULL;
 
--- name: AddTaskHistory :exec
--- Writes down what a member did to a task: created, updated (a move too) or
+-- name: AddOrderHistory :exec
+-- Writes down what a member did to an order: created, updated (a move too) or
 -- deleted. changes is what an edit changed, each thing as text under the
 -- names of that time; actor_name is the name the member goes by in the
 -- company now.
 INSERT INTO order_history (order_id, action, actor_phone, actor_name, changes)
-VALUES (sqlc.arg('task_id'), sqlc.arg('action'), sqlc.arg('actor_phone'), sqlc.narg('actor_name'), sqlc.arg('changes'));
+VALUES (sqlc.arg('order_id'), sqlc.arg('action'), sqlc.arg('actor_phone'), sqlc.narg('actor_name'), sqlc.arg('changes'));
 
--- name: ListTaskHistory :many
--- What happened to the task, the latest first. actor_name is the name the
+-- name: ListOrderHistory :many
+-- What happened to the order, the latest first. actor_name is the name the
 -- member who did it goes by in the company now; once they have left it (or
 -- go by no name), the name of then.
 SELECT h.id, h.action, COALESCE(m.full_name, h.actor_name) AS actor_name, h.changes, h.created_at

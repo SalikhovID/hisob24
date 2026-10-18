@@ -34,19 +34,19 @@ type Querier interface {
 	// Names a location in a member's restriction. The location has to be the
 	// company's own (23503), and is named once (23505).
 	AddMemberLocation(ctx context.Context, arg AddMemberLocationParams) error
-	// Writes a move of the document: the product's quantity into (above zero)
-	// or out of (below) the location. 23514 on a move of nothing.
-	AddStockMove(ctx context.Context, arg AddStockMoveParams) error
 	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
 	// company has no such type, or deleted it.
-	AddTaskField(ctx context.Context, arg AddTaskFieldParams) (OrderField, error)
-	// Writes down what a member did to a task: created, updated (a move too) or
+	AddOrderField(ctx context.Context, arg AddOrderFieldParams) (OrderField, error)
+	// Writes down what a member did to an order: created, updated (a move too) or
 	// deleted. changes is what an edit changed, each thing as text under the
 	// names of that time; actor_name is the name the member goes by in the
 	// company now.
-	AddTaskHistory(ctx context.Context, arg AddTaskHistoryParams) error
-	// One row of a task's answers: a text, a whole number, or an option chosen.
-	AddTaskValue(ctx context.Context, arg AddTaskValueParams) error
+	AddOrderHistory(ctx context.Context, arg AddOrderHistoryParams) error
+	// One row of an order's answers: a text, a whole number, or an option chosen.
+	AddOrderValue(ctx context.Context, arg AddOrderValueParams) error
+	// Writes a move of the document: the product's quantity into (above zero)
+	// or out of (below) the location. 23514 on a move of nothing.
+	AddStockMove(ctx context.Context, arg AddStockMoveParams) error
 	// Enters a line of a goods document: a product once per document (23505),
 	// a quantity not below zero and a price not below it (23514); expected is
 	// an inventory's stock at its moment.
@@ -83,15 +83,15 @@ type Querier interface {
 	CountCustomerDocuments(ctx context.Context, customerID int64) (int64, error)
 	// How many rows ListCustomerOpenings finds, on all of its pages.
 	CountCustomerOpenings(ctx context.Context, arg CountCustomerOpeningsParams) (int64, error)
+	// How many orders the customer has: one with any is not deleted. Deleted
+	// orders do not count.
+	CountCustomerOrders(ctx context.Context, customerID int64) (int64, error)
 	// How many rows ListCustomerPayments finds, on all of its pages.
 	CountCustomerPayments(ctx context.Context, arg CountCustomerPaymentsParams) (int64, error)
-	// How many tasks the customer has: one with any is not deleted. Deleted
-	// tasks do not count.
-	CountCustomerTasks(ctx context.Context, customerID int64) (int64, error)
 	// How many customers ListCustomers finds under the same filter, on all of
 	// its pages.
 	CountCustomers(ctx context.Context, arg CountCustomersParams) (int64, error)
-	// How many fields, of the customer types and of the task types, take their
+	// How many fields, of the customer types and of the order types, take their
 	// options from the dropdown: one in use is not deleted. Deleted fields do
 	// not count.
 	CountDropdownFields(ctx context.Context, dropdownID *int64) (int64, error)
@@ -103,9 +103,9 @@ type Querier interface {
 	// How many live documents stand in the location, a transfer's other end
 	// counted too: one with any is not deleted (logic/locations.md, section 7).
 	CountLocationDocuments(ctx context.Context, locationID int64) (int64, error)
-	// How many tasks stand in the location: one in use is not deleted. Deleted
-	// tasks do not count.
-	CountLocationTasks(ctx context.Context, locationID int64) (int64, error)
+	// How many orders stand in the location: one in use is not deleted. Deleted
+	// orders do not count.
+	CountLocationOrders(ctx context.Context, locationID int64) (int64, error)
 	// How many live locations the company has: the last one is not deleted.
 	CountLocations(ctx context.Context, companyID int64) (int64, error)
 	// How many rows ListOpenings finds, on all of its pages.
@@ -113,8 +113,12 @@ type Querier interface {
 	// How many customers chose the option, in any field: one in use is not
 	// deleted. Deleted customers do not count.
 	CountOptionCustomers(ctx context.Context, optionID *int64) (int64, error)
-	// How many tasks chose the option, in any field: one in use is not deleted.
-	CountOptionTasks(ctx context.Context, optionID *int64) (int64, error)
+	// How many orders chose the option, in any field: one in use is not deleted.
+	CountOptionOrders(ctx context.Context, optionID *int64) (int64, error)
+	// How many orders filled the field in: one in use is not deleted.
+	CountOrderFieldOrders(ctx context.Context, fieldID int64) (int64, error)
+	// How many orders ListOrders finds under the same filter, on all of its pages.
+	CountOrders(ctx context.Context, arg CountOrdersParams) (int64, error)
 	// How many rows ListPartyStatement finds, on all of its pages.
 	CountPartyStatement(ctx context.Context, arg CountPartyStatementParams) (int64, error)
 	// How many rows ListPayments finds, on all of its pages.
@@ -136,22 +140,18 @@ type Querier interface {
 	CountRoleMembers(ctx context.Context, roleID *int64) (int64, error)
 	// How many rows ListSales finds under the same filter, on all of its pages.
 	CountSales(ctx context.Context, arg CountSalesParams) (int64, error)
-	// How many tasks stand in the stage: one in use is not deleted. Deleted
-	// tasks do not count.
-	CountStageTasks(ctx context.Context, stageID int64) (int64, error)
+	// How many orders stand in the stage: one in use is not deleted. Deleted
+	// orders do not count.
+	CountStageOrders(ctx context.Context, stageID int64) (int64, error)
 	// How many live documents name the supplier: one with any is not deleted.
 	CountSupplierDocuments(ctx context.Context, supplierID int64) (int64, error)
 	// How many rows ListSuppliers finds under the same filter, on all of its pages.
 	CountSuppliers(ctx context.Context, arg CountSuppliersParams) (int64, error)
-	// How many tasks filled the field in: one in use is not deleted.
-	CountTaskFieldTasks(ctx context.Context, fieldID int64) (int64, error)
-	// How many tasks ListTasks finds under the same filter, on all of its pages.
-	CountTasks(ctx context.Context, arg CountTasksParams) (int64, error)
 	// How many customers are of the type: one in use is not deleted. Deleted
 	// customers do not count.
 	CountTypeCustomers(ctx context.Context, typeID int64) (int64, error)
-	// How many tasks are of the type: one in use is not deleted.
-	CountTypeTasks(ctx context.Context, typeID int64) (int64, error)
+	// How many orders are of the type: one in use is not deleted.
+	CountTypeOrders(ctx context.Context, typeID int64) (int64, error)
 	// A unique violation (23505) means the hash of another unused code: the
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)
@@ -176,6 +176,14 @@ type Querier interface {
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
+	// Enters an order, in a location of the company. assignee_name and
+	// created_by_name are the names the members go by in the company now: they
+	// stay when the members leave the company.
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
+	// A new stage goes last among the company's.
+	CreateOrderStage(ctx context.Context, arg CreateOrderStageParams) (OrderStage, error)
+	// A new type goes last among the company's.
+	CreateOrderType(ctx context.Context, arg CreateOrderTypeParams) (OrderType, error)
 	// Enters a product (unit set) or a service (unit NULL). created_by_name is
 	// the name the member who enters it goes by in the company now: it stays
 	// when they leave. The name is one row's among the company's rows of the
@@ -195,14 +203,6 @@ type Querier interface {
 	// goes by in the company now: it stays when they leave. The name is one
 	// live supplier's in the company (23505, whatever the case).
 	CreateSupplier(ctx context.Context, arg CreateSupplierParams) (Supplier, error)
-	// Enters a task, in a location of the company. assignee_name and
-	// created_by_name are the names the members go by in the company now: they
-	// stay when the members leave the company.
-	CreateTask(ctx context.Context, arg CreateTaskParams) (Order, error)
-	// A new stage goes last among the company's.
-	CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (OrderStage, error)
-	// A new type goes last among the company's.
-	CreateTaskType(ctx context.Context, arg CreateTaskTypeParams) (OrderType, error)
 	// Enters a document's head: its kind, number and moment, whichever of the
 	// references the kind names, its currency and rate row, and its amount (0
 	// for a goods document, whose lines set it). created_by_name is the name
@@ -222,6 +222,12 @@ type Querier interface {
 	// day of the month up to today, the days counted in the zone: their total
 	// in so'm, each by its own rate row, and how many, both by the day's end.
 	DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByDayParams) ([]DashboardMoneyByDayRow, error)
+	// The company's orders in the locations given not done yet, and how many of
+	// them are past their deadline (before today).
+	DashboardOrders(ctx context.Context, arg DashboardOrdersParams) (DashboardOrdersRow, error)
+	// How many of the company's orders in the locations given stand in each of
+	// its stages not done, in the stages' order, the empty ones too.
+	DashboardOrdersByStage(ctx context.Context, arg DashboardOrdersByStageParams) ([]DashboardOrdersByStageRow, error)
 	// The home's blocks at a glance
 	// (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md). Money is in
 	// so'm, each document turned by its own rate row (logic/currencies.md,
@@ -231,12 +237,6 @@ type Querier interface {
 	// positive amount. A balance is the supplier list's: purchases and opening
 	// debts add, payments and opening advances take away.
 	DashboardSuppliers(ctx context.Context, companyID int64) (DashboardSuppliersRow, error)
-	// The company's tasks in the locations given not done yet, and how many of
-	// them are past their deadline (before today).
-	DashboardTasks(ctx context.Context, arg DashboardTasksParams) (DashboardTasksRow, error)
-	// How many of the company's tasks in the locations given stand in each of
-	// its stages not done, in the stages' order, the empty ones too.
-	DashboardTasksByStage(ctx context.Context, arg DashboardTasksByStageParams) ([]DashboardTasksByStageRow, error)
 	DeactivateAdmin(ctx context.Context, telegramID int64) (int64, error)
 	// Drops a code the bot could not deliver.
 	DeleteAdminLoginCode(ctx context.Context, id int64) error
@@ -277,6 +277,23 @@ type Querier interface {
 	// Drops a member's restriction: the locations it named. The member works in
 	// every location once all_locations is raised with it.
 	DeleteMemberLocations(ctx context.Context, arg DeleteMemberLocationsParams) error
+	// Hides the order: nothing is removed. pgx.ErrNoRows when the company has no
+	// such order, or deleted it already.
+	DeleteOrder(ctx context.Context, arg DeleteOrderParams) (int64, error)
+	// Hides a field of the company's type. pgx.ErrNoRows when the type has no
+	// such field, or it is deleted already.
+	DeleteOrderField(ctx context.Context, arg DeleteOrderFieldParams) (int64, error)
+	// Hides the stage: nothing is removed. pgx.ErrNoRows when the company has
+	// no such stage, or deleted it already.
+	DeleteOrderStage(ctx context.Context, arg DeleteOrderStageParams) (int64, error)
+	// Hides the type: nothing is removed. pgx.ErrNoRows when the company has no
+	// such type, or deleted it already.
+	DeleteOrderType(ctx context.Context, arg DeleteOrderTypeParams) (int64, error)
+	// Hides every field of a type: they go with it when it is deleted.
+	DeleteOrderTypeFields(ctx context.Context, typeID int64) error
+	// Clears an order's answers: an edit writes them anew. What they were stays in
+	// the order's history.
+	DeleteOrderValues(ctx context.Context, orderID int64) error
 	// Hides the product or the service: nothing is removed, and its name and SKU
 	// are free again. pgx.ErrNoRows when the company has no such row, or
 	// deleted it already.
@@ -294,23 +311,6 @@ type Querier interface {
 	// Hides the supplier: nothing is removed, and its name is free again.
 	// pgx.ErrNoRows when the company has no such supplier, or deleted it already.
 	DeleteSupplier(ctx context.Context, arg DeleteSupplierParams) (int64, error)
-	// Hides the task: nothing is removed. pgx.ErrNoRows when the company has no
-	// such task, or deleted it already.
-	DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error)
-	// Hides a field of the company's type. pgx.ErrNoRows when the type has no
-	// such field, or it is deleted already.
-	DeleteTaskField(ctx context.Context, arg DeleteTaskFieldParams) (int64, error)
-	// Hides the stage: nothing is removed. pgx.ErrNoRows when the company has
-	// no such stage, or deleted it already.
-	DeleteTaskStage(ctx context.Context, arg DeleteTaskStageParams) (int64, error)
-	// Hides the type: nothing is removed. pgx.ErrNoRows when the company has no
-	// such type, or deleted it already.
-	DeleteTaskType(ctx context.Context, arg DeleteTaskTypeParams) (int64, error)
-	// Hides every field of a type: they go with it when it is deleted.
-	DeleteTaskTypeFields(ctx context.Context, typeID int64) error
-	// Clears a task's answers: an edit writes them anew. What they were stays in
-	// the task's history.
-	DeleteTaskValues(ctx context.Context, orderID int64) error
 	// Hides the document: nothing is removed, its number is never given again.
 	// pgx.ErrNoRows when the company has no such document, or deleted it already.
 	DeleteTransaction(ctx context.Context, arg DeleteTransactionParams) (int64, error)
@@ -408,6 +408,19 @@ type Querier interface {
 	// its currency, its rate, and the amount in so'm. pgx.ErrNoRows when there
 	// is none such, or it is deleted.
 	GetOpening(ctx context.Context, arg GetOpeningParams) (GetOpeningRow, error)
+	// The company's order with its location, its customer's phone and name (the
+	// customer's answer to its type's first text field); pgx.ErrNoRows when the
+	// company has no such order, or deleted it. assignee_name and
+	// created_by_name are the names the members go by in the company now; once
+	// they have left it (or go by no name), the names of then.
+	GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow, error)
+	// A field of the company's type; pgx.ErrNoRows when the type has none such,
+	// or it is deleted.
+	GetOrderField(ctx context.Context, arg GetOrderFieldParams) (OrderField, error)
+	// The company's stage; pgx.ErrNoRows when it has none such, or deleted it.
+	GetOrderStage(ctx context.Context, arg GetOrderStageParams) (OrderStage, error)
+	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
+	GetOrderType(ctx context.Context, arg GetOrderTypeParams) (OrderType, error)
 	// The supplier's payment in the company: its account, the number of the
 	// purchase it was entered with (NULL for one entered on its own), its rate
 	// (of its currency) and what it comes to in so'm. pgx.ErrNoRows when there
@@ -453,19 +466,6 @@ type Querier interface {
 	// when below zero). pgx.ErrNoRows when the company has none such, or
 	// deleted it.
 	GetSupplier(ctx context.Context, arg GetSupplierParams) (GetSupplierRow, error)
-	// The company's task with its location, its customer's phone and name (the
-	// customer's answer to its type's first text field); pgx.ErrNoRows when the
-	// company has no such task, or deleted it. assignee_name and
-	// created_by_name are the names the members go by in the company now; once
-	// they have left it (or go by no name), the names of then.
-	GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, error)
-	// A field of the company's type; pgx.ErrNoRows when the type has none such,
-	// or it is deleted.
-	GetTaskField(ctx context.Context, arg GetTaskFieldParams) (OrderField, error)
-	// The company's stage; pgx.ErrNoRows when it has none such, or deleted it.
-	GetTaskStage(ctx context.Context, arg GetTaskStageParams) (OrderStage, error)
-	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
-	GetTaskType(ctx context.Context, arg GetTaskTypeParams) (OrderType, error)
 	// The chat that shared the phone last, where a login code goes instead of an
 	// SMS; pgx.ErrNoRows when no Telegram account shared it. A phone lives in
 	// one Telegram account at a time, so the latest contact is its owner.
@@ -508,10 +508,10 @@ type Querier interface {
 	// other account: one of them is there); the document a payment was
 	// entered with.
 	ListAccountStatement(ctx context.Context, arg ListAccountStatementParams) ([]ListAccountStatementRow, error)
-	// The company's tasks in the locations given whose stage is not a done
-	// one, the one due soonest first (then the older task), as many as limit:
-	// the home's nearest deadlines. The columns are ListTasks'.
-	ListActiveTasks(ctx context.Context, arg ListActiveTasksParams) ([]ListActiveTasksRow, error)
+	// The company's orders in the locations given whose stage is not a done
+	// one, the one due soonest first (then the older order), as many as limit:
+	// the home's nearest deadlines. The columns are ListOrders'.
+	ListActiveOrders(ctx context.Context, arg ListActiveOrdersParams) ([]ListActiveOrdersRow, error)
 	ListAdmins(ctx context.Context) ([]Admin, error)
 	// The company's live accounts, in the order they were added.
 	ListBankAccounts(ctx context.Context, companyID int64) ([]BankAccount, error)
@@ -587,7 +587,7 @@ type Querier interface {
 	// (logic/warehouse.md, section 5).
 	ListLocationStock(ctx context.Context, arg ListLocationStockParams) ([]ListLocationStockRow, error)
 	// The company's live locations for the admin, in the order they were
-	// added, each with how many tasks stand in it (the deleted not counted).
+	// added, each with how many orders stand in it (the deleted not counted).
 	ListLocations(ctx context.Context, companyID int64) ([]ListLocationsRow, error)
 	// The locations a member may work in (logic/locations.md, section 5): every
 	// live one of the company's for the owner and for a member without a
@@ -597,6 +597,29 @@ type Querier interface {
 	// A page of the supplier's live opening balances, the newest first (then
 	// the later entered). The columns are GetOpening's.
 	ListOpenings(ctx context.Context, arg ListOpeningsParams) ([]ListOpeningsRow, error)
+	// Every field of the company's types, each type's in its order, without the
+	// deleted ones (a deleted type's fields are deleted with it).
+	ListOrderFields(ctx context.Context, companyID int64) ([]OrderField, error)
+	// What happened to the order, the latest first. actor_name is the name the
+	// member who did it goes by in the company now; once they have left it (or
+	// go by no name), the name of then.
+	ListOrderHistory(ctx context.Context, orderID int64) ([]ListOrderHistoryRow, error)
+	// The company's stages in their order, without the deleted.
+	ListOrderStages(ctx context.Context, companyID int64) ([]OrderStage, error)
+	// The company's types in their order, without the deleted.
+	ListOrderTypes(ctx context.Context, companyID int64) ([]OrderType, error)
+	// The answers of the orders named: each order's in the order of its type's
+	// fields, the options of one field in the order of their dropdown. kind
+	// tells how a field's rows are read.
+	ListOrderValues(ctx context.Context, orderIds []int64) ([]ListOrderValuesRow, error)
+	// A page of the company's orders, the one due soonest first (then the older
+	// order), without the deleted. type_id, stage_id, assignee_phone and
+	// customer_id each keep one; search, escaped for ILIKE, is looked for in the
+	// title, in the order's text answers and in the customer's text answers;
+	// digits, the digits of a search that is a number, in the customer's phone
+	// and in the order's and the customer's whole number answers. A NULL argument
+	// leaves its filter out.
+	ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error)
 	// The statement of a party: a supplier (logic/warehouse.md, section 6) or
 	// a customer (logic/sales.md, section 5). party is 'supplier' or
 	// 'customer', party_id the supplier's or the customer's id. A purchase, a
@@ -659,29 +682,6 @@ type Querier interface {
 	// of a search that is a number (always with search), in the phone too. A
 	// NULL search leaves the filter out.
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]ListSuppliersRow, error)
-	// Every field of the company's types, each type's in its order, without the
-	// deleted ones (a deleted type's fields are deleted with it).
-	ListTaskFields(ctx context.Context, companyID int64) ([]OrderField, error)
-	// What happened to the task, the latest first. actor_name is the name the
-	// member who did it goes by in the company now; once they have left it (or
-	// go by no name), the name of then.
-	ListTaskHistory(ctx context.Context, orderID int64) ([]ListTaskHistoryRow, error)
-	// The company's stages in their order, without the deleted.
-	ListTaskStages(ctx context.Context, companyID int64) ([]OrderStage, error)
-	// The company's types in their order, without the deleted.
-	ListTaskTypes(ctx context.Context, companyID int64) ([]OrderType, error)
-	// The answers of the tasks named: each task's in the order of its type's
-	// fields, the options of one field in the order of their dropdown. kind
-	// tells how a field's rows are read.
-	ListTaskValues(ctx context.Context, taskIds []int64) ([]ListTaskValuesRow, error)
-	// A page of the company's tasks, the one due soonest first (then the older
-	// task), without the deleted. type_id, stage_id, assignee_phone and
-	// customer_id each keep one; search, escaped for ILIKE, is looked for in the
-	// title, in the task's text answers and in the customer's text answers;
-	// digits, the digits of a search that is a number, in the customer's phone
-	// and in the task's and the customer's whole number answers. A NULL argument
-	// leaves its filter out.
-	ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTasksRow, error)
 	// The lines of the document in the order entered, each with its product's
 	// name and unit and what it comes to (0 without a price).
 	ListTransactionItems(ctx context.Context, transactionID int64) ([]ListTransactionItemsRow, error)
@@ -709,9 +709,9 @@ type Querier interface {
 	// company's, a restricted member in the restriction's. False for someone
 	// who is not a member, and for another company's location.
 	MemberInLocation(ctx context.Context, arg MemberInLocationParams) (bool, error)
-	// Puts the task in another stage. pgx.ErrNoRows when the company has no such
-	// task, or deleted it.
-	MoveTask(ctx context.Context, arg MoveTaskParams) (time.Time, error)
+	// Puts the order in another stage. pgx.ErrNoRows when the company has no such
+	// order, or deleted it.
+	MoveOrder(ctx context.Context, arg MoveOrderParams) (time.Time, error)
 	// The products among those given whose stock in one of the locations given
 	// is below zero, by name: what a write is refused for (logic/warehouse.md,
 	// section 5).
@@ -734,15 +734,6 @@ type Querier interface {
 	// gets position 1. An id that is not a live category of the kind is passed
 	// over.
 	OrderFinanceCategories(ctx context.Context, arg OrderFinanceCategoriesParams) error
-	// Puts the type's fields in the order of ids: the first gets position 1. An
-	// id that is not a live field of the type is passed over.
-	OrderTaskFields(ctx context.Context, arg OrderTaskFieldsParams) error
-	// Puts the company's stages in the order of ids: the first gets position 1.
-	// An id that is not a live stage of the company is passed over.
-	OrderTaskStages(ctx context.Context, arg OrderTaskStagesParams) error
-	// Puts the company's types in the order of ids: the first gets position 1.
-	// An id that is not a live type of the company is passed over.
-	OrderTaskTypes(ctx context.Context, arg OrderTaskTypesParams) error
 	// The company's live product or service: its kind, name and whether it is
 	// active (what a purchase line may name). pgx.ErrNoRows when the company
 	// has none such, or deleted it.
@@ -764,7 +755,16 @@ type Querier interface {
 	// such location, or deleted it.
 	RenameLocation(ctx context.Context, arg RenameLocationParams) (Location, error)
 	// pgx.ErrNoRows when the company has no such type, or deleted it.
-	RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) (OrderType, error)
+	RenameOrderType(ctx context.Context, arg RenameOrderTypeParams) (OrderType, error)
+	// Puts the type's fields in the order of ids: the first gets position 1. An
+	// id that is not a live field of the type is passed over.
+	ReorderOrderFields(ctx context.Context, arg ReorderOrderFieldsParams) error
+	// Puts the company's stages in the order of ids: the first gets position 1.
+	// An id that is not a live stage of the company is passed over.
+	ReorderOrderStages(ctx context.Context, arg ReorderOrderStagesParams) error
+	// Puts the company's types in the order of ids: the first gets position 1.
+	// An id that is not a live type of the company is passed over.
+	ReorderOrderTypes(ctx context.Context, arg ReorderOrderTypesParams) error
 	// Revokes a live token and returns its owner, company and source: the first
 	// step of rotation and of logout. A revoked, expired or unknown token gives
 	// pgx.ErrNoRows.
@@ -778,7 +778,7 @@ type Querier interface {
 	// Gives a new company the ready stages (Yangi, Jarayonda, Bajarildi) and the
 	// ready type (Vazifa). The companies that were there before got them from
 	// migration 00007.
-	SeedTaskSettings(ctx context.Context, companyID int64) error
+	SeedOrderSettings(ctx context.Context, companyID int64) error
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// Makes the user the company's owner under full_name, a member or not. The
 	// owner before has to be demoted first: a company has one owner. A role the
@@ -837,6 +837,18 @@ type Querier interface {
 	// as it is. The kind never changes. pgx.ErrNoRows when the company has no
 	// such category, or deleted it; 23505 when the name is another's.
 	UpdateFinanceCategory(ctx context.Context, arg UpdateFinanceCategoryParams) (FinanceCategory, error)
+	// An edit: the order's title, deadline, stage and assignee as they are now,
+	// and the moment of the edit. pgx.ErrNoRows when the company has no such
+	// order, or deleted it.
+	UpdateOrder(ctx context.Context, arg UpdateOrderParams) (time.Time, error)
+	// Changes a field's name and required mark; a NULL argument leaves its
+	// column as it is. The kind and the dropdown are never changed.
+	// pgx.ErrNoRows when the type has no such field, or it is deleted.
+	UpdateOrderField(ctx context.Context, arg UpdateOrderFieldParams) (OrderField, error)
+	// Changes a stage's name, color and done mark; a NULL argument leaves its
+	// column as it is. pgx.ErrNoRows when the company has no such stage, or
+	// deleted it.
+	UpdateOrderStage(ctx context.Context, arg UpdateOrderStageParams) (OrderStage, error)
 	// An edit: every field as it is now (NULL clears an optional one), and the
 	// moment of the edit. The kind stays. pgx.ErrNoRows when the company has no
 	// such row, or deleted it; 23505 when the name or the SKU is another's.
@@ -848,18 +860,6 @@ type Querier interface {
 	// moment of the edit. pgx.ErrNoRows when the company has no such supplier,
 	// or deleted it; 23505 when the name is another's.
 	UpdateSupplier(ctx context.Context, arg UpdateSupplierParams) (Supplier, error)
-	// An edit: the task's title, deadline, stage and assignee as they are now,
-	// and the moment of the edit. pgx.ErrNoRows when the company has no such
-	// task, or deleted it.
-	UpdateTask(ctx context.Context, arg UpdateTaskParams) (time.Time, error)
-	// Changes a field's name and required mark; a NULL argument leaves its
-	// column as it is. The kind and the dropdown are never changed.
-	// pgx.ErrNoRows when the type has no such field, or it is deleted.
-	UpdateTaskField(ctx context.Context, arg UpdateTaskFieldParams) (OrderField, error)
-	// Changes a stage's name, color and done mark; a NULL argument leaves its
-	// column as it is. pgx.ErrNoRows when the company has no such stage, or
-	// deleted it.
-	UpdateTaskStage(ctx context.Context, arg UpdateTaskStageParams) (OrderStage, error)
 	// An edit of a document's head: its moment, whichever references the kind
 	// lets change (the location of a goods document stays), its currency and
 	// rate row, its note (NULL clears it), and the moment of the edit. The

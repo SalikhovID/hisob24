@@ -191,15 +191,15 @@ func (h *Handler) deleteCustomerDropdownOption(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// orderBody is a new order: the ids of every record of a list, each once.
-type orderBody struct {
+// reorderBody is a new order of a list: the ids of every record, each once.
+type reorderBody struct {
 	IDs []int64 `json:"ids"`
 }
 
 // orderCustomerDropdownOptions puts the options of a dropdown of the owner's
 // company in a new order.
 func (h *Handler) orderCustomerDropdownOptions(w http.ResponseWriter, r *http.Request) {
-	var body orderBody
+	var body reorderBody
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
@@ -229,7 +229,7 @@ func (h *Handler) createCustomerType(w http.ResponseWriter, r *http.Request) {
 // orderCustomerTypes puts the customer types of the owner's company in a
 // new order.
 func (h *Handler) orderCustomerTypes(w http.ResponseWriter, r *http.Request) {
-	var body orderBody
+	var body reorderBody
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}
@@ -324,7 +324,7 @@ func (h *Handler) deleteCustomerField(w http.ResponseWriter, r *http.Request) {
 // orderCustomerFields puts the fields of a customer type of the owner's
 // company in a new order.
 func (h *Handler) orderCustomerFields(w http.ResponseWriter, r *http.Request) {
-	var body orderBody
+	var body reorderBody
 	if !httpx.DecodeJSON(w, r, &body) {
 		return
 	}

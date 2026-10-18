@@ -96,7 +96,7 @@ FROM unnest(sqlc.arg('ids')::bigint[]) WITH ORDINALITY AS n(id, ord)
 WHERE f.id = n.id AND f.type_id = sqlc.arg('type_id') AND f.deleted_at IS NULL;
 
 -- name: CountDropdownFields :one
--- How many fields, of the customer types and of the task types, take their
+-- How many fields, of the customer types and of the order types, take their
 -- options from the dropdown: one in use is not deleted. Deleted fields do
 -- not count.
 SELECT count(*) FROM (

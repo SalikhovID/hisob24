@@ -23,7 +23,7 @@ type CreateInput struct {
 // Create adds a company with its owner in one transaction: the company row,
 // the owner's user row (an existing user is reused unchanged), the owner
 // membership, under the name the owner goes by in this company, and what
-// every company starts with: the customer types, the task settings and the
+// every company starts with: the customer types, the order settings and the
 // location "Asosiy".
 func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Company, error) {
 	name := strings.TrimSpace(in.Name)
@@ -53,14 +53,14 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 			return err
 		}
 		// Every company starts with the ready customer types (logic/customers.md)
-		// and the ready task stages and type (logic/tasks.md).
+		// and the ready order stages and type (logic/tasks.md).
 		if err := q.SeedCustomerTypes(ctx, c.ID); err != nil {
 			return err
 		}
-		if err := q.SeedTaskSettings(ctx, c.ID); err != nil {
+		if err := q.SeedOrderSettings(ctx, c.ID); err != nil {
 			return err
 		}
-		// And the location its tasks stand in (logic/locations.md).
+		// And the location its orders stand in (logic/locations.md).
 		if _, err := q.SeedLocation(ctx, c.ID); err != nil {
 			return err
 		}

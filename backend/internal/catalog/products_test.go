@@ -381,7 +381,7 @@ func waits(t *testing.T, pool *pgxpool.Pool, companyID int64, write func() error
 }
 
 // The writes of a company's catalog take turns with each other and with the
-// writes of its customers and tasks (the same lock), so what one of them
+// writes of its customers and orders (the same lock), so what one of them
 // checks cannot change under it.
 func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	s, pool := newService(t)

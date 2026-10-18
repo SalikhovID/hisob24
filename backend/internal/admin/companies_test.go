@@ -104,7 +104,7 @@ func TestGetCompany(t *testing.T) {
 	asosiy, _ := locations[0].(map[string]any)
 	assert.NotEmpty(t, asosiy["id"])
 	assert.Equal(t, "Asosiy", asosiy["name"])
-	assert.EqualValues(t, 0, asosiy["tasks_count"], "with how many tasks stand in it")
+	assert.EqualValues(t, 0, asosiy["tasks_count"], "with how many orders stand in it")
 	assert.NotEmpty(t, asosiy["created_at"])
 
 	rec = api.do(t, http.MethodGet, "/admin/companies/999999", "", cookie)
@@ -185,10 +185,10 @@ func (api testAPI) locationsOf(t *testing.T, cookie *http.Cookie, id string) []s
 	return list
 }
 
-// addTask enters a task of the company in the location, as the user app
+// addOrder enters an order of the company in the location, as the user app
 // would, for a customer entered with it; the company's ready settings are
 // used.
-func (api testAPI) addTask(t *testing.T, companyID string, locationID any) {
+func (api testAPI) addOrder(t *testing.T, companyID string, locationID any) {
 	t.Helper()
 	_, err := api.pool.Exec(t.Context(), `WITH c AS (
 		INSERT INTO customers (company_id, type_id, phone, created_by)
@@ -240,15 +240,15 @@ func TestLocations(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPatch, path+"/abc", `{"name":"X"}`, cookie).Code, "an id that is no number")
 
 	asosiy := fmt.Sprintf("%s/%.0f", path, decode(t, api.do(t, http.MethodGet, "/admin/companies/"+id, "", cookie))["locations"].([]any)[0].(map[string]any)["id"])
-	api.addTask(t, id, chilonzor["id"])
+	api.addOrder(t, id, chilonzor["id"])
 	rec = api.do(t, http.MethodDelete, one, "", cookie)
-	assert.Equal(t, http.StatusConflict, rec.Code, "a task stands in it")
+	assert.Equal(t, http.StatusConflict, rec.Code, "an order stands in it")
 	assert.JSONEq(t, `{"error":"location_in_use","message":"Bu lokatsiyada 1 ta vazifa bor"}`, rec.Body.String())
 	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor filiali (1)"}, api.locationsOf(t, cookie, id), "the count on the list")
 	_, err := api.pool.Exec(t.Context(), "UPDATE orders SET deleted_at = now()")
 	require.NoError(t, err)
 	rec = api.do(t, http.MethodDelete, one, "", cookie)
-	assert.Equal(t, http.StatusNoContent, rec.Code, "the deleted task does not hold it: %s", rec.Body.String())
+	assert.Equal(t, http.StatusNoContent, rec.Code, "the deleted order does not hold it: %s", rec.Body.String())
 	assert.Equal(t, []string{"Asosiy (0)"}, api.locationsOf(t, cookie, id), "hidden")
 	rec = api.do(t, http.MethodDelete, asosiy, "", cookie)
 	assert.Equal(t, http.StatusConflict, rec.Code, "the company's only location")

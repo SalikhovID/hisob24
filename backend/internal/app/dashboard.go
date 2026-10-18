@@ -13,7 +13,7 @@ import (
 type dashboardJSON struct {
 	Suppliers *dashboardSuppliersJSON `json:"suppliers"`
 	Customers *dashboardCustomersJSON `json:"customers"`
-	Tasks     *dashboardTasksJSON     `json:"tasks"`
+	Orders    *dashboardOrdersJSON    `json:"tasks"`
 	Purchases *dashboardMoneyJSON     `json:"purchases"`
 	Sales     *dashboardMoneyJSON     `json:"sales"`
 }
@@ -30,11 +30,11 @@ type dashboardCustomersJSON struct {
 	ByDay          []int64 `json:"by_day"`
 }
 
-type dashboardTasksJSON struct {
+type dashboardOrdersJSON struct {
 	Active   int64                `json:"active"`
 	Late     int64                `json:"late"`
 	ByStage  []dashboardStageJSON `json:"by_stage"`
-	Upcoming []taskJSON           `json:"upcoming"`
+	Upcoming []orderJSON          `json:"upcoming"`
 }
 
 type dashboardStageJSON struct {
@@ -96,15 +96,15 @@ func toDashboardJSON(d dashboard.Dashboard) dashboardJSON {
 	if c := d.Customers; c != nil {
 		out.Customers = &dashboardCustomersJSON{Total: c.Total, AddedThisMonth: c.AddedThisMonth, ByDay: c.ByDay}
 	}
-	if t := d.Tasks; t != nil {
-		tasks := &dashboardTasksJSON{Active: t.Active, Late: t.Late, ByStage: make([]dashboardStageJSON, 0, len(t.ByStage)), Upcoming: make([]taskJSON, 0, len(t.Upcoming))}
+	if t := d.Orders; t != nil {
+		orders := &dashboardOrdersJSON{Active: t.Active, Late: t.Late, ByStage: make([]dashboardStageJSON, 0, len(t.ByStage)), Upcoming: make([]orderJSON, 0, len(t.Upcoming))}
 		for _, s := range t.ByStage {
-			tasks.ByStage = append(tasks.ByStage, dashboardStageJSON{StageID: s.StageID, Count: s.Count})
+			orders.ByStage = append(orders.ByStage, dashboardStageJSON{StageID: s.StageID, Count: s.Count})
 		}
-		for _, task := range t.Upcoming {
-			tasks.Upcoming = append(tasks.Upcoming, toTaskJSON(task))
+		for _, order := range t.Upcoming {
+			orders.Upcoming = append(orders.Upcoming, toOrderJSON(order))
 		}
-		out.Tasks = tasks
+		out.Orders = orders
 	}
 	money := func(m *dashboard.Money) *dashboardMoneyJSON {
 		if m == nil {

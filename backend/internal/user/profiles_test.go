@@ -107,7 +107,7 @@ func TestAccess(t *testing.T) {
 	require.NoError(t, err)
 	got, err := profiles.Access(ctx, "998901234567", withRole)
 	require.NoError(t, err)
-	assert.Equal(t, Access{Role: "user", Permissions: access.NewSet([]access.Permission{access.CustomersView, access.TasksView}), LocationIDs: none, Active: true, Timezone: "Asia/Tashkent"}, got,
+	assert.Equal(t, Access{Role: "user", Permissions: access.NewSet([]access.Permission{access.CustomersView, access.OrdersView}), LocationIDs: none, Active: true, Timezone: "Asia/Tashkent"}, got,
 		"a user with a role has what the role holds, nothing of the default")
 
 	// The locations a member may work in (logic/locations.md, section 5):

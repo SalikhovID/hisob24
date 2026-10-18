@@ -18,7 +18,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/dashboard"
 	"github.com/SalikhovID/hisob24/backend/internal/finance"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
-	"github.com/SalikhovID/hisob24/backend/internal/task"
+	"github.com/SalikhovID/hisob24/backend/internal/order"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
 	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
@@ -29,7 +29,7 @@ type Services struct {
 	Profiles   *user.Profiles
 	Companies  *company.Service
 	Customers  *customer.Service
-	Tasks      *task.Service
+	Orders     *order.Service
 	Catalog    *catalog.Service
 	Warehouse  *warehouse.Service
 	Currencies *currency.Service
@@ -43,7 +43,7 @@ type Handler struct {
 	profiles      *user.Profiles
 	companies     *company.Service
 	customers     *customer.Service
-	tasks         *task.Service
+	orders        *order.Service
 	catalog       *catalog.Service
 	warehouse     *warehouse.Service
 	currencies    *currency.Service
@@ -58,7 +58,7 @@ type Handler struct {
 // attempts per IP.
 func NewHandler(s Services, cookieSecure bool, sendLimiter, verifyLimiter *httpx.RateLimiter) *Handler {
 	return &Handler{
-		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, tasks: s.Tasks, catalog: s.Catalog, warehouse: s.Warehouse, currencies: s.Currencies, finance: s.Finance, dashboard: s.Dashboard,
+		auth: s.Auth, profiles: s.Profiles, companies: s.Companies, customers: s.Customers, orders: s.Orders, catalog: s.Catalog, warehouse: s.Warehouse, currencies: s.Currencies, finance: s.Finance, dashboard: s.Dashboard,
 		cookieSecure: cookieSecure, sendLimiter: sendLimiter, verifyLimiter: verifyLimiter,
 	}
 }
@@ -100,8 +100,8 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Get("/members", h.listMembers)
 				r.Get("/customer-dropdowns", h.listCustomerDropdowns)
 				r.Get("/customer-types", h.listCustomerTypes)
-				r.Get("/task-stages", h.listTaskStages)
-				r.Get("/task-types", h.listTaskTypes)
+				r.Get("/task-stages", h.listOrderStages)
+				r.Get("/task-types", h.listOrderTypes)
 				r.Get("/finance-categories", h.listFinanceCategories)
 
 				allowed := func(p access.Permission) chi.Router { return r.With(h.requirePermission(p)) }
@@ -115,17 +115,17 @@ func (h *Handler) Routes(r chi.Router) {
 				allowed(access.EmployeesEdit).Patch("/employees/{phone}", h.renameEmployee)
 				allowed(access.EmployeesDelete).Delete("/employees/{phone}", h.removeEmployee)
 
-				// The settings: what the customers and the tasks are asked,
-				// and the stages the tasks go through.
+				// The settings: what the customers and the orders are asked,
+				// and the stages the orders go through.
 				r.Group(func(r chi.Router) {
 					r.Use(h.requirePermission(access.SettingsCreate))
 					r.Post("/customer-dropdowns", h.createCustomerDropdown)
 					r.Post("/customer-dropdowns/{id}/options", h.addCustomerDropdownOption)
 					r.Post("/customer-types", h.createCustomerType)
 					r.Post("/customer-types/{id}/fields", h.addCustomerField)
-					r.Post("/task-stages", h.createTaskStage)
-					r.Post("/task-types", h.createTaskType)
-					r.Post("/task-types/{id}/fields", h.addTaskField)
+					r.Post("/task-stages", h.createOrderStage)
+					r.Post("/task-types", h.createOrderType)
+					r.Post("/task-types/{id}/fields", h.addOrderField)
 					r.Post("/finance-categories", h.createFinanceCategory)
 				})
 				r.Group(func(r chi.Router) {
@@ -137,12 +137,12 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Patch("/customer-types/{id}", h.renameCustomerType)
 					r.Patch("/customer-types/{id}/fields/{fieldId}", h.updateCustomerField)
 					r.Put("/customer-types/{id}/fields/order", h.orderCustomerFields)
-					r.Put("/task-stages/order", h.orderTaskStages)
-					r.Patch("/task-stages/{id}", h.updateTaskStage)
-					r.Put("/task-types/order", h.orderTaskTypes)
-					r.Patch("/task-types/{id}", h.renameTaskType)
-					r.Patch("/task-types/{id}/fields/{fieldId}", h.updateTaskField)
-					r.Put("/task-types/{id}/fields/order", h.orderTaskFields)
+					r.Put("/task-stages/order", h.reorderOrderStages)
+					r.Patch("/task-stages/{id}", h.updateOrderStage)
+					r.Put("/task-types/order", h.reorderOrderTypes)
+					r.Patch("/task-types/{id}", h.renameOrderType)
+					r.Patch("/task-types/{id}/fields/{fieldId}", h.updateOrderField)
+					r.Put("/task-types/{id}/fields/order", h.reorderOrderFields)
 					r.Put("/finance-categories/order", h.orderFinanceCategories)
 					r.Patch("/finance-categories/{id}", h.updateFinanceCategory)
 				})
@@ -152,9 +152,9 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Delete("/customer-dropdowns/{id}/options/{optionId}", h.deleteCustomerDropdownOption)
 					r.Delete("/customer-types/{id}", h.deleteCustomerType)
 					r.Delete("/customer-types/{id}/fields/{fieldId}", h.deleteCustomerField)
-					r.Delete("/task-stages/{id}", h.deleteTaskStage)
-					r.Delete("/task-types/{id}", h.deleteTaskType)
-					r.Delete("/task-types/{id}/fields/{fieldId}", h.deleteTaskField)
+					r.Delete("/task-stages/{id}", h.deleteOrderStage)
+					r.Delete("/task-types/{id}", h.deleteOrderType)
+					r.Delete("/task-types/{id}/fields/{fieldId}", h.deleteOrderField)
 					r.Delete("/finance-categories/{id}", h.deleteFinanceCategory)
 				})
 
@@ -165,13 +165,13 @@ func (h *Handler) Routes(r chi.Router) {
 				allowed(access.CustomersDelete).Delete("/customers/{id}", h.deleteCustomer)
 				allowed(access.CustomersHistory).Get("/customers/{id}/history", h.customerHistory)
 
-				allowed(access.TasksView).Get("/tasks", h.listTasks)
-				allowed(access.TasksCreate).Post("/tasks", h.createTask)
-				allowed(access.TasksView).Get("/tasks/{id}", h.getTask)
-				allowed(access.TasksEdit).Put("/tasks/{id}", h.updateTask)
-				allowed(access.TasksDelete).Delete("/tasks/{id}", h.deleteTask)
-				allowed(access.TasksEdit).Patch("/tasks/{id}/stage", h.moveTask)
-				allowed(access.TasksHistory).Get("/tasks/{id}/history", h.taskHistory)
+				allowed(access.OrdersView).Get("/tasks", h.listOrders)
+				allowed(access.OrdersCreate).Post("/tasks", h.createOrder)
+				allowed(access.OrdersView).Get("/tasks/{id}", h.getOrder)
+				allowed(access.OrdersEdit).Put("/tasks/{id}", h.updateOrder)
+				allowed(access.OrdersDelete).Delete("/tasks/{id}", h.deleteOrder)
+				allowed(access.OrdersEdit).Patch("/tasks/{id}/stage", h.moveOrder)
+				allowed(access.OrdersHistory).Get("/tasks/{id}/history", h.orderHistory)
 
 				// The catalog: the products the company buys into its stock
 				// and the services it offers (logic/products.md).

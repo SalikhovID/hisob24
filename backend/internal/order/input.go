@@ -1,4 +1,4 @@
-package task
+package order
 
 import (
 	"strings"
@@ -8,12 +8,12 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
 
-// maxTitle is how long a task's title may be, in characters.
+// maxTitle is how long an order's title may be, in characters.
 const maxTitle = 200
 
-// taskTitle is a task's title as it is kept: without the spaces around it,
+// orderTitle is an order's title as it is kept: without the spaces around it,
 // not empty and not longer than maxTitle.
-func taskTitle(raw string) (string, error) {
+func orderTitle(raw string) (string, error) {
 	title := strings.TrimSpace(raw)
 	switch {
 	case title == "":
@@ -24,9 +24,9 @@ func taskTitle(raw string) (string, error) {
 	return title, nil
 }
 
-// taskDeadline is a task's deadline as a client sends it: a day written as
-// YYYY-MM-DD. A day that is past is taken too: a task may be late already.
-func taskDeadline(raw string) (time.Time, error) {
+// orderDeadline is an order's deadline as a client sends it: a day written as
+// YYYY-MM-DD. A day that is past is taken too: an order may be late already.
+func orderDeadline(raw string) (time.Time, error) {
 	if strings.TrimSpace(raw) == "" {
 		return time.Time{}, invalid("Muddatni kiriting")
 	}
@@ -42,7 +42,7 @@ func formatDay(day time.Time) string {
 	return day.Format("02.01.2006")
 }
 
-// head is what every task has beside the answers to its type's fields, as
+// head is what every order has beside the answers to its type's fields, as
 // the history writes it: the stage and the assignee by their names.
 type head struct {
 	Title    string
@@ -51,7 +51,7 @@ type head struct {
 	Assignee string
 }
 
-// diffHead tells what an edit changed in a task's own fields, in this order:
+// diffHead tells what an edit changed in an order's own fields, in this order:
 // the title, the deadline, the stage, the assignee. Nothing when the edit
 // changed none of them.
 func diffHead(was, now head) []fields.Change {

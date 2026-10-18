@@ -7,7 +7,7 @@ import (
 )
 
 // listMembers is the members of the company the session works in, for every
-// member of it: a task's assignee is chosen among them. Managing them is the
+// member of it: an order's assignee is chosen among them. Managing them is the
 // owner's (/app/employees).
 func (h *Handler) listMembers(w http.ResponseWriter, r *http.Request) {
 	members, err := h.companies.Members(r.Context(), sessionCompany(r))

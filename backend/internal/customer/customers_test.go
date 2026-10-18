@@ -863,7 +863,7 @@ func TestHistory(t *testing.T) {
 	refused(t, err, apperr.NotFound, "not_found", customerNotFound, "a deleted customer")
 }
 
-// CreateIn enters a customer inside a transaction the caller runs (a task
+// CreateIn enters a customer inside a transaction the caller runs (an order
 // is entered with its new customer this way): the caller's rollback takes
 // the customer with it, the commit keeps it.
 func TestCreateInEntersACustomerInsideTheCallersTransaction(t *testing.T) {

@@ -1,6 +1,6 @@
 // Package dashboard is what the home shows at a glance
 // (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): what is owed
-// to the suppliers, the customers, the tasks, the month's purchases and
+// to the suppliers, the customers, the orders, the month's purchases and
 // sales, each block to whoever may see it.
 package dashboard
 
@@ -14,19 +14,19 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/access"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/numtext"
-	"github.com/SalikhovID/hisob24/backend/internal/task"
+	"github.com/SalikhovID/hisob24/backend/internal/order"
 )
 
 // Service reads the dashboard.
 type Service struct {
-	q     *gen.Queries
-	tasks *task.Service
+	q      *gen.Queries
+	orders *order.Service
 }
 
-// NewService is the dashboard over the database; the tasks service gives
-// the upcoming tasks as the lists have them.
-func NewService(pool *pgxpool.Pool, tasks *task.Service) *Service {
-	return &Service{q: gen.New(pool), tasks: tasks}
+// NewService is the dashboard over the database; the orders service gives
+// the upcoming orders as the lists have them.
+func NewService(pool *pgxpool.Pool, orders *order.Service) *Service {
+	return &Service{q: gen.New(pool), orders: orders}
 }
 
 // Scope is the member's reach: the company and the locations of it they
@@ -50,7 +50,7 @@ type Input struct {
 type Dashboard struct {
 	Suppliers *Suppliers
 	Customers *Customers
-	Tasks     *Tasks
+	Orders    *Orders
 	Purchases *Money
 	Sales     *Money
 }
@@ -74,15 +74,15 @@ type Customers struct {
 	ByDay          []int64
 }
 
-// Tasks is the tasks of the location (or of every one of the scope) not
+// Orders is the orders of the location (or of every one of the scope) not
 // done yet: how many, how many of them are past their deadline, how many
 // stand in each stage not done (in the stages' order, the empty ones too)
 // and the five due soonest.
-type Tasks struct {
+type Orders struct {
 	Active   int64
 	Late     int64
 	ByStage  []StageCount
-	Upcoming []task.Task
+	Upcoming []order.Order
 }
 
 // Money is a kind of goods documents (the purchases, the sales) of the
@@ -95,7 +95,7 @@ type Money struct {
 	ByDay      []string
 }
 
-// StageCount is how many tasks stand in a stage.
+// StageCount is how many orders stand in a stage.
 type StageCount struct {
 	StageID int64
 	Count   int64
@@ -126,25 +126,25 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 		}
 		d.Customers = c
 	}
-	if in.Permissions.Has(access.TasksView) {
+	if in.Permissions.Has(access.OrdersView) {
 		locations := scope.locations(in.LocationID)
-		counts, err := s.q.DashboardTasks(ctx, gen.DashboardTasksParams{CompanyID: scope.CompanyID, LocationIds: locations, Today: in.Today})
+		counts, err := s.q.DashboardOrders(ctx, gen.DashboardOrdersParams{CompanyID: scope.CompanyID, LocationIds: locations, Today: in.Today})
 		if err != nil {
 			return Dashboard{}, err
 		}
-		rows, err := s.q.DashboardTasksByStage(ctx, gen.DashboardTasksByStageParams{CompanyID: scope.CompanyID, LocationIds: locations})
+		rows, err := s.q.DashboardOrdersByStage(ctx, gen.DashboardOrdersByStageParams{CompanyID: scope.CompanyID, LocationIds: locations})
 		if err != nil {
 			return Dashboard{}, err
 		}
-		upcoming, err := s.tasks.Upcoming(ctx, task.Scope{CompanyID: scope.CompanyID, LocationIDs: scope.LocationIDs}, in.LocationID, upcomingCount)
+		upcoming, err := s.orders.Upcoming(ctx, order.Scope{CompanyID: scope.CompanyID, LocationIDs: scope.LocationIDs}, in.LocationID, upcomingCount)
 		if err != nil {
 			return Dashboard{}, err
 		}
-		tasks := &Tasks{Active: counts.Active, Late: counts.Late, ByStage: make([]StageCount, 0, len(rows)), Upcoming: upcoming}
+		orders := &Orders{Active: counts.Active, Late: counts.Late, ByStage: make([]StageCount, 0, len(rows)), Upcoming: upcoming}
 		for _, row := range rows {
-			tasks.ByStage = append(tasks.ByStage, StageCount{StageID: row.StageID, Count: row.Count})
+			orders.ByStage = append(orders.ByStage, StageCount{StageID: row.StageID, Count: row.Count})
 		}
-		d.Tasks = tasks
+		d.Orders = orders
 	}
 	for _, block := range []struct {
 		permission access.Permission
@@ -171,7 +171,7 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 	return d, nil
 }
 
-// upcomingCount is how many of the tasks due soonest the home shows.
+// upcomingCount is how many of the orders due soonest the home shows.
 const upcomingCount = 5
 
 // locations is where the dashboard counts: the location named, when it is

@@ -144,21 +144,21 @@ func TestReplaceOwnerLiftsTheRestriction(t *testing.T) {
 	}
 }
 
-// addTask enters a task of the company in the location, for a customer
-// entered with it, as the task service would (that package is built on this
+// addOrder enters an order of the company in the location, for a customer
+// entered with it, as the order service would (that package is built on this
 // one, so it cannot be called here). The company's ready settings are used.
-func addTask(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, deleted bool) int64 {
+func addOrder(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, deleted bool) int64 {
 	t.Helper()
 	ctx := context.Background()
-	var customer, task int64
+	var customer, order int64
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO customers (company_id, type_id, phone, created_by)
 		SELECT $1, id, '99890' || lpad((random() * 9999999)::int::text, 7, '0'), '998900000001' FROM customer_types WHERE company_id = $1 LIMIT 1
 		RETURNING id`, companyID).Scan(&customer))
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at)
 		SELECT $1, (SELECT id FROM order_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM order_stages WHERE company_id = $1 LIMIT 1), $2, $3,
 		       'Qo''ng''iroq', CURRENT_DATE, '998900000001', CASE WHEN $4 THEN now() END
-		RETURNING id`, companyID, customer, locationID, deleted).Scan(&task))
-	return task
+		RETURNING id`, companyID, customer, locationID, deleted).Scan(&order))
+	return order
 }
 
 // addPurchaseIn enters a purchase standing in the location, from a supplier
@@ -196,7 +196,7 @@ func addTransferInto(t *testing.T, pool *pgxpool.Pool, companyID, fromID, locati
 func describe(locations []AdminLocation) []string {
 	list := make([]string, 0, len(locations))
 	for _, l := range locations {
-		list = append(list, fmt.Sprintf("%s (%d)", l.Name, l.TasksCount))
+		list = append(list, fmt.Sprintf("%s (%d)", l.Name, l.OrdersCount))
 	}
 	return list
 }
@@ -209,15 +209,15 @@ func TestLocations(t *testing.T) {
 	asosiy := addLocation(t, pool, nok.ID, "Chilonzor") // Nok's: not Olma's
 	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
 	hideLocation(t, pool, addLocation(t, pool, c.ID, "Yopilgan"))
-	addTask(t, pool, c.ID, chilonzor, false)
-	addTask(t, pool, c.ID, chilonzor, false)
-	addTask(t, pool, c.ID, chilonzor, true)
+	addOrder(t, pool, c.ID, chilonzor, false)
+	addOrder(t, pool, c.ID, chilonzor, false)
+	addOrder(t, pool, c.ID, chilonzor, true)
 	_ = asosiy
 
 	locations, err := s.Locations(ctx, c.ID)
 
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (2)"}, describe(locations), "the live locations in the order they were added, each with its tasks (the deleted not counted)")
+	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (2)"}, describe(locations), "the live locations in the order they were added, each with its orders (the deleted not counted)")
 	assert.Equal(t, chilonzor, locations[1].ID)
 	assert.False(t, locations[1].CreatedAt.IsZero())
 }
@@ -232,7 +232,7 @@ func TestAddLocation(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Chilonzor", l.Name, "the name without the spaces around it")
 	assert.Positive(t, l.ID)
-	assert.Zero(t, l.TasksCount)
+	assert.Zero(t, l.OrdersCount)
 	assert.False(t, l.CreatedAt.IsZero())
 	locations, err := s.Locations(ctx, c.ID)
 	require.NoError(t, err)
@@ -322,16 +322,16 @@ func TestDeleteLocation(t *testing.T) {
 	assert.Equal(t, "Kompaniyaning yagona lokatsiyasi o'chirilmaydi", e.Message)
 
 	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
-	addTask(t, pool, c.ID, chilonzor, false)
-	addTask(t, pool, c.ID, chilonzor, true)
+	addOrder(t, pool, c.ID, chilonzor, false)
+	addOrder(t, pool, c.ID, chilonzor, true)
 	err = s.DeleteLocation(ctx, c.ID, chilonzor)
 	require.ErrorAs(t, err, &e)
 	assert.Equal(t, apperr.Conflict, e.Kind)
-	assert.Equal(t, "location_in_use", e.Code, "a location with a task standing in it")
-	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the deleted task not counted")
+	assert.Equal(t, "location_in_use", e.Code, "a location with an order standing in it")
+	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the deleted order not counted")
 
 	// A location with a purchase standing in it is kept too (checked after
-	// the tasks).
+	// the orders).
 	qoyliq := addLocation(t, pool, c.ID, "Qo'yliq")
 	addPurchaseIn(t, pool, c.ID, qoyliq, false)
 	addPurchaseIn(t, pool, c.ID, qoyliq, true)
@@ -344,15 +344,15 @@ func TestDeleteLocation(t *testing.T) {
 	err = s.DeleteLocation(ctx, c.ID, qoyliq)
 	require.ErrorAs(t, err, &e)
 	assert.Equal(t, "Bu lokatsiyada 2 ta hujjat bor", e.Message, "a transfer into it counts too")
-	addTask(t, pool, c.ID, qoyliq, false)
+	addOrder(t, pool, c.ID, qoyliq, false)
 	err = s.DeleteLocation(ctx, c.ID, qoyliq)
 	require.ErrorAs(t, err, &e)
-	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the tasks come first")
+	assert.Equal(t, "Bu lokatsiyada 1 ta vazifa bor", e.Message, "the orders come first")
 
 	yunusobod := addLocation(t, pool, c.ID, "Yunusobod")
 	addEmployee(t, pool, c.ID, "998902223344", "Xodim")
 	restrictTo(t, pool, "998902223344", c.ID, yunusobod)
-	require.NoError(t, s.DeleteLocation(ctx, c.ID, yunusobod), "a location with no task")
+	require.NoError(t, s.DeleteLocation(ctx, c.ID, yunusobod), "a location with no order")
 	locations, err := s.Locations(ctx, c.ID)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (1)", "Qo'yliq (1)"}, describe(locations), "hidden")
@@ -374,15 +374,15 @@ func TestDeleteLocation(t *testing.T) {
 	assert.Equal(t, "Lokatsiya topilmadi", e.Message, "another company's location")
 }
 
-// A location is deleted while no task is being entered into it: the delete
-// holds the company the way a write of its tasks does, so the count it
+// A location is deleted while no order is being entered into it: the delete
+// holds the company the way a write of its orders does, so the count it
 // checks cannot change under it.
 func TestDeleteLocationWaitsForAWriteOfTheSameCompany(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	c := mustCreate(t, s, "Olma", dbToday(t, pool))
 	chilonzor := addLocation(t, pool, c.ID, "Chilonzor")
-	// A task is being entered: it holds the company, not committed yet.
+	// An order is being entered: it holds the company, not committed yet.
 	other, err := pool.Begin(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = other.Rollback(context.Background()) })
