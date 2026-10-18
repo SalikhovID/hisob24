@@ -22,7 +22,7 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
     })
     cards.push(
       <StatCard
-        key="tasks"
+        key="orders"
         href="/orders"
         icon={CheckIcon}
         title="Buyurtmalar"

@@ -147,7 +147,7 @@ export function useCustomers(companyId: number | null, filter: CustomerFilter) {
 
 // ordersKey names a company's orders in the cache, whatever the filter: every
 // list of them begins with it, so one call drops them all.
-export const ordersKey = (companyId: number | null) => ["tasks", companyId] as const
+export const ordersKey = (companyId: number | null) => ["orders", companyId] as const
 
 // OrderFilter narrows the orders list: one location (null for every one the
 // member works in: the customer's page), a search, one type, one stage, one
