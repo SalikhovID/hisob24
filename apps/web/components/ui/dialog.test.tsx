@@ -73,6 +73,33 @@ test("behind a sheet the rest of the screen is frosted: the scrim's tint over a 
   expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass("scrim")
 })
 
+test("a sheet over a sheet draws a scrim of its own over the sheet under; pressing that scrim closes the top sheet only", async () => {
+  const under = vi.fn()
+  const over = vi.fn()
+  render(
+    <Dialog open onOpenChange={under}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Xarajat qo&apos;shish</DialogTitle>
+        </DialogHeader>
+        <Dialog open onOpenChange={over}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Kategoriya</DialogTitle>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      </DialogContent>
+    </Dialog>,
+  )
+  await screen.findByRole("dialog", { name: "Kategoriya" })
+  const scrims = document.querySelectorAll('[data-slot="dialog-overlay"]')
+  expect(scrims).toHaveLength(2)
+  await userEvent.click(scrims[1])
+  expect(over).toHaveBeenCalledWith(false, expect.anything())
+  expect(under).not.toHaveBeenCalled()
+})
+
 test("a sheet's head and its main button's bar wear the sheet's own color, so what scrolls under them is hidden; the color is opaque, so it does not show twice", async () => {
   render(
     <Dialog open>
