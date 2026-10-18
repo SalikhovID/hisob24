@@ -59,6 +59,20 @@ test("a sheet is the prototype's: its own color, 40px round, a white edge; its c
   expect(close).not.toHaveClass("bg-muted")
 })
 
+test("behind a sheet the rest of the screen is frosted: the scrim's tint over a blur of the page", async () => {
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mijoz</DialogTitle>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>,
+  )
+  await screen.findByRole("dialog", { name: "Mijoz" })
+  expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass("scrim")
+})
+
 test("a sheet's head and its main button's bar wear the sheet's own color, so what scrolls under them is hidden; the color is opaque, so it does not show twice", async () => {
   render(
     <Dialog open>
