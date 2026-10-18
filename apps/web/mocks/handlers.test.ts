@@ -1255,7 +1255,7 @@ test("the orders list: the one due soonest first, twenty to a page, the filters 
   })
 
   // The list's rows carry the order alone, not its page's lines, payments and cost.
-  const row = ({ items: _items, payments: _payments, cost_uzs: _cost, profit_uzs: _profit, ...order }: typeof sooner) => order
+  const row = (o: typeof sooner) => Object.fromEntries(Object.entries(o).filter(([key]) => !["items", "payments", "cost_uzs", "profit_uzs"].includes(key)))
   expect(await listOrders()).toEqual({ items: [row(sooner), row(other), row(later)], total: 3, page: 1, page_size: 20 })
 
   const found = async (query: OrderQuery) => (await listOrders(query)).items.map((t) => t.id)
