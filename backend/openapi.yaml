@@ -8398,7 +8398,7 @@ components:
             bo'lsa, biriktirilgan paytdagi ismi
     Dashboard:
       type: object
-      required: [suppliers, customers, tasks, purchases, sales]
+      required: [suppliers, customers, orders, purchases, sales]
       properties:
         suppliers:
           description: purchases.view bo'lganga, aks holda null
@@ -8410,7 +8410,7 @@ components:
           oneOf:
             - $ref: "#/components/schemas/DashboardCustomers"
             - type: "null"
-        tasks:
+        orders:
           description: orders.view bo'lganga, aks holda null
           oneOf:
             - $ref: "#/components/schemas/DashboardTasks"

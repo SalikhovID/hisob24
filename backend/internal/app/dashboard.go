@@ -13,7 +13,7 @@ import (
 type dashboardJSON struct {
 	Suppliers *dashboardSuppliersJSON `json:"suppliers"`
 	Customers *dashboardCustomersJSON `json:"customers"`
-	Orders    *dashboardOrdersJSON    `json:"tasks"`
+	Orders    *dashboardOrdersJSON    `json:"orders"`
 	Purchases *dashboardMoneyJSON     `json:"purchases"`
 	Sales     *dashboardMoneyJSON     `json:"sales"`
 }

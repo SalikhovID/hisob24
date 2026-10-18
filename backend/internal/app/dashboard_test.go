@@ -50,7 +50,7 @@ func TestDashboard(t *testing.T) {
 	}
 	assert.Equal(t, map[string]any{"debt": "25000.00", "debtors": float64(1), "advance": "0.00"}, body["suppliers"])
 	assert.Equal(t, map[string]any{"total": float64(0), "added_this_month": float64(0), "by_day": zeros(float64(0))}, body["customers"])
-	assert.Equal(t, map[string]any{"active": float64(0), "late": float64(0), "by_stage": []any{}, "upcoming": []any{}}, body["tasks"])
+	assert.Equal(t, map[string]any{"active": float64(0), "late": float64(0), "by_stage": []any{}, "upcoming": []any{}}, body["orders"])
 	purchases := body["purchases"].(map[string]any)
 	assert.Equal(t, "25000.00", purchases["month_total"], "every location of the member's")
 	assert.Equal(t, float64(1), purchases["month_count"])
@@ -77,7 +77,7 @@ func TestDashboard(t *testing.T) {
 	rec = api.do(t, http.MethodGet, "/app/dashboard", "", bearer(vali))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	body = decode(t, rec)
-	assert.NotNil(t, body["tasks"])
+	assert.NotNil(t, body["orders"])
 	for _, block := range []string{"suppliers", "customers", "purchases", "sales"} {
 		assert.Contains(t, body, block)
 		assert.Nil(t, body[block], block+" is not the role's")
