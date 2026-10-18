@@ -44,8 +44,8 @@ Amalga oshirishda belgilanganlar (foydalanuvchi rejani tasdiqlagan): hujjat kera
 - **Tekshiruv tartibi** (qo'shish): nom → muddat → lokatsiya → tur → bosqich → mas'ul → maydonlar → mijoz → narx → valyuta / kurs → qatorlar → to'lovlar → qoldiq (409). Tahrirda: buyurtmaning o'zi (404) → shu tartib to'lovsiz.
 - **O'chirish**: hujjat yashiriladi, harakatlari o'chiriladi, bog'langan to'lovlari yashiriladi (sotuvdagidek).
 - **Tarix**: «Narx» (matn «5 000 $», «1 200 000 so'm», bo'shi "") va «Mahsulotlar» («Kabel × 2 m, Montaj × 1», bo'shi ""); to'lovlar yozilmaydi.
-- **Mijoz balansi**: `sale + order + customer_debt − customer_payment − customer_prepay`. Hisob harakati: `order` qatori «Buyurtma · nomi» → `/orders/{order_id}`; bog'langan to'lov «To'lov · nomi» → `/orders/{order_id}`; narxi 0 hujjat ko'rinmaydi (`count` ham).
-- **Akkaunt hisob harakati**: buyurtmaga bog'langan to'lovda buyurtma nomi, havola. **Mahsulot harakatlari**: `kind: order`, «Buyurtma · nomi», `counterpart` mijoz nomi (sotuvda ham).
+- **Mijoz balansi**: `sale + order + customer_debt − customer_payment − customer_prepay`. Hisob harakati: `order` qatori «Buyurtma · nomi» (2026-10-18 kechqurundan «Buyurtma № N», `2026-10-18-order-number-design.md`) → `/orders/{order_id}`; bog'langan to'lov «To'lov · nomi» (endi «To'lov · Buyurtma № N») → `/orders/{order_id}`; narxi 0 hujjat ko'rinmaydi (`count` ham).
+- **Akkaunt hisob harakati**: buyurtmaga bog'langan to'lovda buyurtma nomi (endi raqami), havola. **Mahsulot harakatlari**: `kind: order`, «Buyurtma · nomi» (endi «Buyurtma № N»), `counterpart` mijoz nomi (sotuvda ham).
 - **Ruxsat**: hamma narsa `orders.*`; `cost_uzs` / `profit_uzs` faqat `purchases.view` (aks holda `null`).
 
 ### FIFO tan narxi (`internal/costing`)
@@ -68,7 +68,7 @@ Migratsiya `00021_order_documents.sql`: `orders` `UNIQUE (company_id, id)`; `tra
 - `Order` += `amount`, `currency_id`, `rate`, `amount_uzs`, `paid`. Yangi `OrderDetail` = `Order` + `items: OrderLine[]` (`product_id`, `name`, `kind`, `unit`, `quantity`, `cost_uzs`), `payments: OrderPayment[]`, `cost_uzs`, `profit_uzs`. `GET/POST/PUT /app/orders/{id}` va `PATCH …/stage` `OrderDetail` qaytaradi; ro'yxat `Order`.
 - `OrderCreate` += `amount?`, `currency_id?`, `rate?`, `items?: OrderLineInput[]`, `payments?: PaymentLine[]`. `OrderUpdate` += `amount?`, `currency_id?`, `rate?`, `items?`.
 - `POST /app/orders/{id}/payments` (201 `OrderPayment`), `PUT/DELETE /app/orders/{id}/payments/{paymentId}` — `orders.edit`.
-- `StatementRow.kind` += `order`; += `order_id`, `order_title`. `CustomerPayment.sale_id/sale_number` faqat sotuvga bog'langanda; += `order_id`. `AccountStatementRow` += `order_id`, `order_title`. `ProductMove.kind` += `order`; += `order_id`. `Dashboard` += `orders_money`.
+- `StatementRow.kind` += `order`; += `order_id`, `order_title` (2026-10-18 kechqurundan `order_number`). `CustomerPayment.sale_id/sale_number` faqat sotuvga bog'langanda; += `order_id`. `AccountStatementRow` += `order_id`, `order_title`. `ProductMove.kind` += `order`; += `order_id`. `Dashboard` += `orders_money`.
 
 ## Backend
 
