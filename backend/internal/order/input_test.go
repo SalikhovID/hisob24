@@ -1,7 +1,6 @@
 package order
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -11,23 +10,6 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
-
-func TestOrderTitle(t *testing.T) {
-	title, err := orderTitle("  Qo'ng'iroq qilish ")
-	require.NoError(t, err)
-	assert.Equal(t, "Qo'ng'iroq qilish", title, "without the spaces around it")
-
-	long := strings.Repeat("ў", 200)
-	title, err = orderTitle(long)
-	require.NoError(t, err, "200 characters are allowed, counted as characters")
-	assert.Equal(t, long, title)
-	for _, raw := range []string{"", "   "} {
-		_, err = orderTitle(raw)
-		refused(t, err, apperr.Invalid, "validation_error", "Buyurtma nomini kiriting", "%q", raw)
-	}
-	_, err = orderTitle(long + "a")
-	refused(t, err, apperr.Invalid, "validation_error", "Buyurtma nomi 200 belgidan oshmasin")
-}
 
 func TestOrderDeadline(t *testing.T) {
 	day, err := orderDeadline("2026-10-10")
@@ -45,24 +27,21 @@ func TestOrderDeadline(t *testing.T) {
 }
 
 func TestDiffHead(t *testing.T) {
-	was := head{Title: "Qo'ng'iroq", Deadline: time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), Stage: "Yangi", Assignee: ""}
+	was := head{Deadline: time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), Stage: "Yangi", Assignee: ""}
 	for _, tt := range []struct {
 		name string
 		now  head
 		want []fields.Change
 	}{
 		{name: "nothing", now: was, want: nil},
-		{name: "the title", now: head{Title: "Qayta qo'ng'iroq", Deadline: was.Deadline, Stage: "Yangi"},
-			want: []fields.Change{{Label: "Nomi", Old: "Qo'ng'iroq", New: "Qayta qo'ng'iroq"}}},
-		{name: "the deadline, as people write it", now: head{Title: "Qo'ng'iroq", Deadline: time.Date(2026, 10, 12, 0, 0, 0, 0, time.UTC), Stage: "Yangi"},
+		{name: "the deadline, as people write it", now: head{Deadline: time.Date(2026, 10, 12, 0, 0, 0, 0, time.UTC), Stage: "Yangi"},
 			want: []fields.Change{{Label: "Muddat", Old: "10.10.2026", New: "12.10.2026"}}},
-		{name: "the stage", now: head{Title: "Qo'ng'iroq", Deadline: was.Deadline, Stage: "Bajarildi"},
+		{name: "the stage", now: head{Deadline: was.Deadline, Stage: "Bajarildi"},
 			want: []fields.Change{{Label: "Bosqich", Old: "Yangi", New: "Bajarildi"}}},
-		{name: "an assignee where there was none", now: head{Title: "Qo'ng'iroq", Deadline: was.Deadline, Stage: "Yangi", Assignee: "Vali Aliyev"},
+		{name: "an assignee where there was none", now: head{Deadline: was.Deadline, Stage: "Yangi", Assignee: "Vali Aliyev"},
 			want: []fields.Change{{Label: "Mas'ul", Old: "", New: "Vali Aliyev"}}},
-		{name: "everything, in this order", now: head{Title: "Hisob", Deadline: time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC), Stage: "Bajarildi", Assignee: "Vali Aliyev"},
+		{name: "everything, in this order", now: head{Deadline: time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC), Stage: "Bajarildi", Assignee: "Vali Aliyev"},
 			want: []fields.Change{
-				{Label: "Nomi", Old: "Qo'ng'iroq", New: "Hisob"},
 				{Label: "Muddat", Old: "10.10.2026", New: "01.11.2026"},
 				{Label: "Bosqich", Old: "Yangi", New: "Bajarildi"},
 				{Label: "Mas'ul", Old: "", New: "Vali Aliyev"},
@@ -72,6 +51,6 @@ func TestDiffHead(t *testing.T) {
 			assert.Equal(t, tt.want, diffHead(was, tt.now))
 		})
 	}
-	assigned := head{Title: "Qo'ng'iroq", Deadline: was.Deadline, Stage: "Yangi", Assignee: "Vali Aliyev"}
+	assigned := head{Deadline: was.Deadline, Stage: "Yangi", Assignee: "Vali Aliyev"}
 	assert.Equal(t, []fields.Change{{Label: "Mas'ul", Old: "Vali Aliyev", New: ""}}, diffHead(assigned, was), "an assignee taken away")
 }

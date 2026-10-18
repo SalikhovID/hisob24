@@ -23,7 +23,7 @@ ORDER BY t.currency_id;
 -- row and its rate, how it changed what is owed and what was owed after
 -- it; a payment names its account, one entered with a document names that
 -- document's number too; an order's document, and a payment entered for
--- an order, name the order (order_id, order_title).
+-- an order, name the order (order_id, order_number).
 WITH entries AS (
     SELECT t.id, t.kind, t.number, t.doc_at, t.total, t.currency_id, t.note, t.linked_id, t.order_id, t.bank_account_id, t.created_by, t.created_by_name, t.company_id,
            (CASE t.currency_id WHEN 1 THEN cr.uzs WHEN 2 THEN cr.usd WHEN 3 THEN cr.eur WHEN 4 THEN cr.rub END)::numeric(14,4) AS rate,
@@ -41,7 +41,7 @@ WITH entries AS (
     FROM entries e
 )
 SELECT r.id, r.kind, r.number, r.doc_at, r.total AS amount, r.currency_id, r.rate, r.amount_uzs, r.delta_uzs, r.balance_uzs, r.linked_id,
-       l.number AS linked_number, o.id AS order_id, o.title AS order_title, r.bank_account_id, b.name AS account_name, r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
+       l.number AS linked_number, o.id AS order_id, o.number AS order_number, r.bank_account_id, b.name AS account_name, r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
 FROM running r
 LEFT JOIN transactions l ON l.id = r.linked_id
 LEFT JOIN orders o ON o.id = COALESCE(r.order_id, l.order_id)

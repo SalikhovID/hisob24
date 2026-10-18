@@ -34,7 +34,7 @@ type StatementRow struct {
 	LinkedID      *int64
 	LinkedNumber  *int32
 	OrderID       *int64
-	OrderTitle    *string
+	OrderNumber   *int32
 	PartyName     *string
 	Note          *string
 	CreatedByName *string
@@ -104,7 +104,7 @@ func (s *Service) AccountStatement(ctx context.Context, companyID, accountID int
 	for _, r := range rows {
 		items = append(items, StatementRow{
 			ID: r.ID, Kind: ledger.Kind(r.Kind), Number: r.Number, At: r.DocAt.UTC(), Delta: amountOf(r.Delta), Balance: amountOf(r.Balance),
-			LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber, OrderID: r.OrderID, OrderTitle: r.OrderTitle, PartyName: partyOf(r), Note: r.Note, CreatedByName: r.CreatedByName,
+			LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber, OrderID: r.OrderID, OrderNumber: r.OrderNumber, PartyName: partyOf(r), Note: r.Note, CreatedByName: r.CreatedByName,
 		})
 	}
 	return StatementPage{Items: items, Total: total, Page: page, PageSize: ledger.PageSize}, nil

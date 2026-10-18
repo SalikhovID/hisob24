@@ -193,9 +193,9 @@ func (api testAPI) addOrder(t *testing.T, companyID string, locationID any) {
 	_, err := api.pool.Exec(t.Context(), `WITH c AS (
 		INSERT INTO customers (company_id, type_id, phone, created_by)
 		SELECT $1, id, '998901234567', '998901234567' FROM customer_types WHERE company_id = $1 LIMIT 1 RETURNING id)
-		INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
 		SELECT $1, (SELECT id FROM order_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM order_stages WHERE company_id = $1 LIMIT 1),
-		       c.id, $2, 'Qo''ng''iroq', CURRENT_DATE, '998901234567' FROM c`, companyID, locationID)
+		       c.id, $2, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), CURRENT_DATE, '998901234567' FROM c`, companyID, locationID)
 	require.NoError(t, err)
 }
 

@@ -120,17 +120,17 @@ func (sh shop) existing() CustomerInput { return CustomerInput{ID: &sh.ali.ID} }
 // Asosiy.
 func (sh shop) scope() Scope { return Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy}} }
 
-// input is an order of the shop's type: the title, due on the day, in the
-// first stage, with the answers given.
-func (sh shop) input(t *testing.T, title, day string, of map[int64]any) Input {
+// input is an order of the shop's type, due on the day, in the first
+// stage, with the answers given.
+func (sh shop) input(t *testing.T, day string, of map[int64]any) Input {
 	t.Helper()
-	return Input{Title: title, Deadline: day, StageID: sh.yangi.ID, Values: answers(t, of)}
+	return Input{Deadline: day, StageID: sh.yangi.ID, Values: answers(t, of)}
 }
 
 // mustOrder enters an order for Ali, as the owner.
-func mustOrder(t *testing.T, s *Service, sh shop, title, day string, of map[int64]any) Order {
+func mustOrder(t *testing.T, s *Service, sh shop, day string, of map[int64]any) Order {
 	t.Helper()
-	order, err := s.Create(t.Context(), sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, title, day, of), sh.existing())
+	order, err := s.Create(t.Context(), sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, day, of), sh.existing())
 	require.NoError(t, err)
 	return order
 }
@@ -159,7 +159,7 @@ func TestCreate(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
-	in := sh.input(t, " Qo'ng'iroq qilish ", "2026-10-10", map[int64]any{sh.izoh.ID: " Ertalab ", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.linkedin.ID, sh.instagram.ID}})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: " Ertalab ", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.linkedin.ID, sh.instagram.ID}})
 	in.AssigneePhone = ptr("+998 90 222 22 22")
 
 	order, err := s.Create(ctx, sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
@@ -167,20 +167,20 @@ func TestCreate(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotZero(t, order.ID)
 	assert.Equal(t, Order{
-		ID: order.ID, TypeID: sh.buyurtma.ID, StageID: sh.yangi.ID, LocationID: sh.asosiy, Title: "Qo'ng'iroq qilish", Deadline: day("2026-10-10"),
+		ID: order.ID, TypeID: sh.buyurtma.ID, StageID: sh.yangi.ID, LocationID: sh.asosiy, Number: 1, Deadline: day("2026-10-10"),
 		Customer: Customer{ID: sh.ali.ID, Phone: "998901234567", Name: ptr("Ali Valiyev")},
 		Assignee: &Member{Phone: staff, Name: ptr("Xurshid Xodim")},
 		Values:   fields.Values{sh.izoh.ID: "Ertalab", sh.summa.ID: int64(45000), sh.kanal.ID: []int64{sh.instagram.ID, sh.linkedin.ID}},
 		Amount:   "0.00", CurrencyID: 1, Rate: "1.0000", AmountUZS: "0.00", Paid: "0.00",
 		CreatedByName: ptr("Xurshid Xodim"), CreatedAt: order.CreatedAt, UpdatedAt: order.UpdatedAt,
-	}, order, "the order as it was entered: the title trimmed, the assignee's phone as kept, the options in their order; no money")
+	}, order, "the order as it was entered: numbered 1, the assignee's phone as kept, the options in their order; no money")
 	assert.Equal(t, order.CreatedAt, order.UpdatedAt)
 	got, err := s.Get(ctx, sh.scope(), order.ID)
 	require.NoError(t, err)
 	assert.Equal(t, order, got)
 	assert.Equal(t, []string{"created by 998902222222 (Xurshid Xodim): []"}, storedHistory(t, pool, order.ID))
 
-	unassigned := mustOrder(t, s, sh, "Hisob yozish", "2026-10-11", map[int64]any{sh.izoh.ID: "Kech"})
+	unassigned := mustOrder(t, s, sh, "2026-10-11", map[int64]any{sh.izoh.ID: "Kech"})
 	assert.Nil(t, unassigned.Assignee)
 	assert.Equal(t, fields.Values{sh.izoh.ID: "Kech"}, unassigned.Values, "an empty answer has no entry")
 }
@@ -189,7 +189,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
-	in := sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "Yangi mijoz bilan"})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Yangi mijoz bilan"})
 	fresh := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "+998 90 555 55 55", Values: answers(t, map[int64]any{sh.fish.ID: " Vali Aliyev "})}}
 
 	order, err := s.Create(ctx, sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, in, fresh)
@@ -245,7 +245,7 @@ func TestCreateRefusals(t *testing.T) {
 	hidden, err := sh.customers.Create(ctx, sh.id, owner, sh.jismoniy.ID, customer.Input{Phone: "998907777777", Values: answers(t, map[int64]any{sh.fish.ID: "Yo'q"})})
 	require.NoError(t, err)
 	require.NoError(t, sh.customers.Delete(ctx, sh.id, hidden.ID, owner))
-	ok := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	ok := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	noLocation := ptr(int64(0))
 	with := func(change func(in *Input)) Input {
 		in := ok
@@ -263,7 +263,6 @@ func TestCreateRefusals(t *testing.T) {
 		code     string
 		message  string
 	}{
-		{name: "no title", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Title = " " }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Buyurtma nomini kiriting"},
 		{name: "no deadline", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Deadline = "" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Muddatni kiriting"},
 		{name: "a deadline that is no day", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Deadline = "10.10.2026" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Muddat noto'g'ri"},
 		{name: "no location", typeID: sh.buyurtma.ID, location: noLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
@@ -284,7 +283,6 @@ func TestCreateRefusals(t *testing.T) {
 		{name: "a customer that is not there", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: ptr(sh.ali.ID + 1000)}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
 		{name: "another company's customer", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: &nok.ali.ID}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
 		{name: "a deleted customer", typeID: sh.buyurtma.ID, in: ok, cust: CustomerInput{ID: &hidden.ID}, kind: apperr.Invalid, code: "validation_error", message: "Mijozni tanlang"},
-		{name: "the title is told before the type", in: with(func(in *Input) { in.Title = "" }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Buyurtma nomini kiriting"},
 		{name: "the location is told before the type", location: noLocation, in: ok, cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Lokatsiyani tanlang"},
 		{name: "the stage is told before the answers", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.StageID = 0; in.Values = nil }), cust: sh.existing(), kind: apperr.Invalid, code: "validation_error", message: "Bosqichni tanlang"},
 		{name: "the answers are told before the customer", typeID: sh.buyurtma.ID, in: with(func(in *Input) { in.Values = nil }), cust: CustomerInput{}, kind: apperr.Invalid, code: "validation_error", message: "«Izoh» maydonini to'ldiring"},
@@ -302,7 +300,7 @@ func TestCreateEntersAnOrderWhollyOrNotAtAll(t *testing.T) {
 	pgtest.FailInserts(t, pool, "orders")
 	fresh := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Vali"})}}
 
-	_, err := s.Create(t.Context(), sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "X"}), fresh)
+	_, err := s.Create(t.Context(), sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "X"}), fresh)
 
 	require.Error(t, err)
 	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM customers"), "no new customer without its order")
@@ -314,7 +312,7 @@ func TestGet(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	nok := newShop(t, s, pool, "Nok")
-	in := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	in.AssigneePhone = ptr(staff)
 	order, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
@@ -336,11 +334,11 @@ func TestGet(t *testing.T) {
 	refused(t, err, apperr.NotFound, "not_found", notFound, "a deleted order")
 }
 
-// titlesOf is the titles of the orders, in their order.
-func titlesOf(orders []Order) []string {
-	list := make([]string, 0, len(orders))
+// numbersOf is the numbers of the orders, in their order.
+func numbersOf(orders []Order) []int32 {
+	list := make([]int32, 0, len(orders))
 	for _, order := range orders {
-		list = append(list, order.Title)
+		list = append(list, order.Number)
 	}
 	return list
 }
@@ -350,24 +348,24 @@ func TestList(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	nok := newShop(t, s, pool, "Nok")
-	mustOrder(t, s, nok, "Begona", "2026-10-01", map[int64]any{nok.izoh.ID: "X"})
-	later := mustOrder(t, s, sh, "Hisob yozish", "2026-10-12", map[int64]any{sh.izoh.ID: "Ertalab yozish", sh.summa.ID: 45000})
-	in := sh.input(t, "Qo'ng'iroq qilish", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
+	mustOrder(t, s, nok, "2026-10-01", map[int64]any{nok.izoh.ID: "X"})
+	later := mustOrder(t, s, sh, "2026-10-12", map[int64]any{sh.izoh.ID: "Ertalab yozish", sh.summa.ID: 45000})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
 	in.AssigneePhone = ptr(staff)
 	sooner, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
-	soonest := mustOrder(t, s, sh, "Shartnoma", "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
+	soonest := mustOrder(t, s, sh, "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
 	shikoyat := mustType(t, s, sh.id, "Shikoyat")
-	other, err := s.Create(ctx, sh.scope(), owner, shikoyat.ID, sh.asosiy, Input{Title: "Shikoyatni ko'rish", Deadline: "2026-10-10", StageID: sh.bajarildi.ID},
+	other, err := s.Create(ctx, sh.scope(), owner, shikoyat.ID, sh.asosiy, Input{Deadline: "2026-10-10", StageID: sh.bajarildi.ID},
 		CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Zarina Karimova", sh.yosh.ID: 37})}})
 	require.NoError(t, err)
-	gone := mustOrder(t, s, sh, "O'chirilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
+	gone := mustOrder(t, s, sh, "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
 	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 
 	page, err := s.List(ctx, sh.scope(), ListInput{Page: 1})
 
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Shartnoma", "Qo'ng'iroq qilish", "Shikoyatni ko'rish", "Hisob yozish"}, titlesOf(page.Items),
+	assert.Equal(t, []int32{3, 2, 4, 1}, numbersOf(page.Items),
 		"the one due soonest first, the older order before the newer of one day; the deleted one and another company's are out")
 	assert.Equal(t, []Order{soonest, sooner, other, later}, page.Items, "each with its answers, customer and assignee")
 	assert.EqualValues(t, 4, page.Total)
@@ -376,25 +374,24 @@ func TestList(t *testing.T) {
 
 	for about, tc := range map[string]struct {
 		in   ListInput
-		want []string
+		want []int32
 	}{
-		"of one type":                               {ListInput{TypeID: shikoyat.ID, Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"in one stage":                              {ListInput{StageID: sh.yangi.ID, Page: 1}, []string{"Shartnoma", "Qo'ng'iroq qilish", "Hisob yozish"}},
-		"of one assignee":                           {ListInput{Assignee: "+998 90 222 22 22", Page: 1}, []string{"Qo'ng'iroq qilish"}},
-		"of one customer":                           {ListInput{CustomerID: other.Customer.ID, Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"a search in the title":                     {ListInput{Search: "qo'ng", Page: 1}, []string{"Qo'ng'iroq qilish"}},
-		"a search in the order's answers":           {ListInput{Search: "ERTALAB", Page: 1}, []string{"Hisob yozish"}},
-		"a search in the customer's name":           {ListInput{Search: "karim", Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"a number in the customer's phone":          {ListInput{Search: "90 555", Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"a number in the customer's number answers": {ListInput{Search: "37", Page: 1}, []string{"Shikoyatni ko'rish"}},
-		"a number in the order's answers":           {ListInput{Search: "450", Page: 1}, []string{"Hisob yozish"}},
-		"a search that finds nothing":               {ListInput{Search: "yo'q", Page: 1}, []string{}},
-		"a stage and a search together":             {ListInput{StageID: sh.yangi.ID, Search: "karim", Page: 1}, []string{}},
-		"a page past the last":                      {ListInput{Page: 2}, []string{}},
+		"of one type":                               {ListInput{TypeID: shikoyat.ID, Page: 1}, []int32{4}},
+		"in one stage":                              {ListInput{StageID: sh.yangi.ID, Page: 1}, []int32{3, 2, 1}},
+		"of one assignee":                           {ListInput{Assignee: "+998 90 222 22 22", Page: 1}, []int32{2}},
+		"of one customer":                           {ListInput{CustomerID: other.Customer.ID, Page: 1}, []int32{4}},
+		"a search in the order's answers":           {ListInput{Search: "ERTALAB", Page: 1}, []int32{1}},
+		"a search in the customer's name":           {ListInput{Search: "karim", Page: 1}, []int32{4}},
+		"a number in the customer's phone":          {ListInput{Search: "90 555", Page: 1}, []int32{4}},
+		"a number in the customer's number answers": {ListInput{Search: "37", Page: 1}, []int32{4}},
+		"a number in the order's answers":           {ListInput{Search: "450", Page: 1}, []int32{1}},
+		"a search that finds nothing":               {ListInput{Search: "yo'q", Page: 1}, []int32{}},
+		"a stage and a search together":             {ListInput{StageID: sh.yangi.ID, Search: "karim", Page: 1}, []int32{}},
+		"a page past the last":                      {ListInput{Page: 2}, []int32{}},
 	} {
 		page, err := s.List(ctx, sh.scope(), tc.in)
 		require.NoError(t, err, about)
-		assert.Equal(t, tc.want, titlesOf(page.Items), about)
+		assert.Equal(t, tc.want, numbersOf(page.Items), about)
 	}
 	for _, page := range []int{0, -1, 1_000_001} {
 		_, err = s.List(ctx, sh.scope(), ListInput{Page: page})
@@ -409,17 +406,17 @@ func TestListPages(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	for i := range 21 {
-		mustOrder(t, s, sh, fmt.Sprintf("Buyurtma %02d", i), fmt.Sprintf("2026-11-%02d", i+1), map[int64]any{sh.izoh.ID: "X"})
+		mustOrder(t, s, sh, fmt.Sprintf("2026-11-%02d", i+1), map[int64]any{sh.izoh.ID: "X"})
 	}
 
 	first, err := s.List(ctx, sh.scope(), ListInput{Page: 1})
 	require.NoError(t, err)
 	require.Len(t, first.Items, 20, "a page holds twenty")
-	assert.Equal(t, "Buyurtma 00", first.Items[0].Title)
+	assert.EqualValues(t, 1, first.Items[0].Number)
 	assert.EqualValues(t, 21, first.Total)
 	second, err := s.List(ctx, sh.scope(), ListInput{Page: 2})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Buyurtma 20"}, titlesOf(second.Items), "the one due last is on the last page")
+	assert.Equal(t, []int32{21}, numbersOf(second.Items), "the one due last is on the last page")
 	assert.Equal(t, 2, second.Page)
 }
 
@@ -427,17 +424,17 @@ func TestUpdate(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
-	order := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.instagram.ID}})
+	order := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.instagram.ID}})
 	_, err := pool.Exec(ctx, "UPDATE orders SET updated_at = created_at - interval '1 hour' WHERE id = $1", order.ID)
 	require.NoError(t, err)
 
 	edited, err := s.Update(ctx, sh.scope(), order.ID, staff, Input{
-		Title: " Qayta qo'ng'iroq ", Deadline: "2026-10-12", StageID: sh.jarayonda.ID, AssigneePhone: ptr(staff),
+		Deadline: "2026-10-12", StageID: sh.jarayonda.ID, AssigneePhone: ptr(staff),
 		Values: answers(t, map[int64]any{sh.izoh.ID: "Kechqurun", sh.kanal.ID: []int64{sh.linkedin.ID, sh.instagram.ID}}),
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, "Qayta qo'ng'iroq", edited.Title)
+	assert.EqualValues(t, 1, edited.Number, "the number stays")
 	assert.Equal(t, day("2026-10-12"), edited.Deadline)
 	assert.Equal(t, sh.jarayonda.ID, edited.StageID)
 	assert.Equal(t, &Member{Phone: staff, Name: ptr("Xurshid Xodim")}, edited.Assignee)
@@ -449,8 +446,7 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, edited, got)
 	assert.Equal(t, []string{
 		"created by 998901111111 (Egamberdi Egasi): []",
-		`updated by 998902222222 (Xurshid Xodim): [{"new": "Qayta qo'ng'iroq", "old": "Qo'ng'iroq", "label": "Nomi"}, ` +
-			`{"new": "12.10.2026", "old": "10.10.2026", "label": "Muddat"}, {"new": "Jarayonda", "old": "Yangi", "label": "Bosqich"}, ` +
+		`updated by 998902222222 (Xurshid Xodim): [{"new": "12.10.2026", "old": "10.10.2026", "label": "Muddat"}, {"new": "Jarayonda", "old": "Yangi", "label": "Bosqich"}, ` +
 			`{"new": "Xurshid Xodim", "old": "", "label": "Mas'ul"}, {"new": "Kechqurun", "old": "Ertalab", "label": "Izoh"}, ` +
 			`{"new": "", "old": "45000", "label": "Summa"}, {"new": "Instagram, LinkedIn", "old": "Instagram", "label": "Kanal"}]`,
 	}, storedHistory(t, pool, order.ID), "what changed, in order: the order's own fields, then the type's")
@@ -460,7 +456,7 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
-	in := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab", sh.kanal.ID: []int64{sh.youtube.ID, sh.instagram.ID}})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab", sh.kanal.ID: []int64{sh.youtube.ID, sh.instagram.ID}})
 	in.AssigneePhone = ptr(staff)
 	// The owner turns YouTube back on for a moment to enter the order with it.
 	_, err := sh.customers.UpdateOption(ctx, sh.id, sh.manba.ID, sh.youtube.ID, customer.OptionPatch{Active: ptr(true)})
@@ -474,7 +470,7 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	require.NoError(t, err)
 
 	same, err := s.Update(ctx, sh.scope(), order.ID, owner, Input{
-		Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, AssigneePhone: ptr(staff),
+		Deadline: "2026-10-10", StageID: sh.yangi.ID, AssigneePhone: ptr(staff),
 		Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab", sh.kanal.ID: []int64{sh.instagram.ID, sh.youtube.ID}}),
 	})
 
@@ -482,7 +478,7 @@ func TestUpdateThatChangesNothingWritesNothing(t *testing.T) {
 	assert.Equal(t, order, same, "the order as it was: the option turned off stays, the assignee who left stays")
 	assert.Len(t, storedHistory(t, pool, order.ID), 1, "nothing to write down")
 
-	_, err = s.Update(ctx, sh.scope(), order.ID, owner, Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, AssigneePhone: ptr(outsider),
+	_, err = s.Update(ctx, sh.scope(), order.ID, owner, Input{Deadline: "2026-10-10", StageID: sh.yangi.ID, AssigneePhone: ptr(outsider),
 		Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab"})})
 	refused(t, err, apperr.Invalid, "validation_error", "Mas'ul kompaniya a'zosi emas", "another assignee has to be a member")
 }
@@ -492,8 +488,8 @@ func TestUpdateRefusals(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	nok := newShop(t, s, pool, "Nok")
-	order := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
-	ok := Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID, Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab"})}
+	order := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	ok := Input{Deadline: "2026-10-10", StageID: sh.yangi.ID, Values: answers(t, map[int64]any{sh.izoh.ID: "Ertalab"})}
 
 	_, err := s.Update(ctx, nok.scope(), order.ID, owner, ok)
 	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "another company's order")
@@ -504,7 +500,6 @@ func TestUpdateRefusals(t *testing.T) {
 		change  func(in *Input)
 		message string
 	}{
-		{"no title", func(in *Input) { in.Title = "" }, "Buyurtma nomini kiriting"},
 		{"a bad deadline", func(in *Input) { in.Deadline = "soon" }, "Muddat noto'g'ri"},
 		{"another company's stage", func(in *Input) { in.StageID = nok.yangi.ID }, "Bosqichni tanlang"},
 		{"a required field left empty", func(in *Input) { in.Values = nil }, "«Izoh» maydonini to'ldiring"},
@@ -524,13 +519,13 @@ func TestMove(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	nok := newShop(t, s, pool, "Nok")
-	order := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	order := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 
 	moved, err := s.Move(ctx, sh.scope(), order.ID, staff, sh.bajarildi.ID)
 
 	require.NoError(t, err)
 	assert.Equal(t, sh.bajarildi.ID, moved.StageID)
-	assert.Equal(t, order.Title, moved.Title, "nothing else changes")
+	assert.Equal(t, order.Number, moved.Number, "nothing else changes")
 	assert.Equal(t, order.Values, moved.Values)
 	assert.Equal(t, []string{
 		"created by 998901111111 (Egamberdi Egasi): []",
@@ -553,7 +548,7 @@ func TestDelete(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	nok := newShop(t, s, pool, "Nok")
-	order := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	order := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 
 	require.NoError(t, s.Delete(ctx, sh.scope(), order.ID, staff))
 
@@ -576,7 +571,7 @@ func TestHistory(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
-	order := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	order := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	_, err := s.Move(ctx, sh.scope(), order.ID, staff, sh.jarayonda.ID)
 	require.NoError(t, err)
 
@@ -607,28 +602,21 @@ func TestOrdersAreTheScopesLocations(t *testing.T) {
 	both := Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy, chilonzor}}
 	onlyChilonzor := Scope{CompanyID: sh.id, LocationIDs: []int64{chilonzor}}
 	of := map[int64]any{sh.izoh.ID: "X"}
-	inAsosiy := mustOrder(t, s, sh, "Asosiyda", "2026-10-10", of)
-	inChilonzor, err := s.Create(ctx, both, owner, sh.buyurtma.ID, chilonzor, sh.input(t, "Chilonzorda", "2026-10-09", of), sh.existing())
+	inAsosiy := mustOrder(t, s, sh, "2026-10-10", of)
+	inChilonzor, err := s.Create(ctx, both, owner, sh.buyurtma.ID, chilonzor, sh.input(t, "2026-10-09", of), sh.existing())
 	require.NoError(t, err)
 	assert.Equal(t, chilonzor, inChilonzor.LocationID, "entered into the location named")
-	titlesOf := func(page Page) []string {
-		titles := make([]string, 0, len(page.Items))
-		for _, order := range page.Items {
-			titles = append(titles, order.Title)
-		}
-		return titles
-	}
 
 	page, err := s.List(ctx, both, ListInput{Page: 1})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Chilonzorda", "Asosiyda"}, titlesOf(page), "every location of the scope")
+	assert.Equal(t, []int32{2, 1}, numbersOf(page.Items), "every location of the scope")
 	assert.EqualValues(t, 2, page.Total)
 	page, err = s.List(ctx, onlyChilonzor, ListInput{Page: 1})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Chilonzorda"}, titlesOf(page), "a narrower scope")
+	assert.Equal(t, []int32{2}, numbersOf(page.Items), "a narrower scope")
 	page, err = s.List(ctx, both, ListInput{Page: 1, LocationID: sh.asosiy})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Asosiyda"}, titlesOf(page), "one location of the scope")
+	assert.Equal(t, []int32{1}, numbersOf(page.Items), "one location of the scope")
 	assert.EqualValues(t, 1, page.Total)
 	page, err = s.List(ctx, onlyChilonzor, ListInput{Page: 1, LocationID: sh.asosiy})
 	require.NoError(t, err)
@@ -640,7 +628,7 @@ func TestOrdersAreTheScopesLocations(t *testing.T) {
 
 	_, err = s.Get(ctx, onlyChilonzor, inAsosiy.ID)
 	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "an order standing elsewhere is not read")
-	_, err = s.Update(ctx, onlyChilonzor, inAsosiy.ID, owner, sh.input(t, "X", "2026-10-10", of))
+	_, err = s.Update(ctx, onlyChilonzor, inAsosiy.ID, owner, sh.input(t, "2026-10-10", of))
 	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "nor edited")
 	_, err = s.Move(ctx, onlyChilonzor, inAsosiy.ID, owner, sh.bajarildi.ID)
 	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "nor moved")
@@ -652,7 +640,7 @@ func TestOrdersAreTheScopesLocations(t *testing.T) {
 	require.NoError(t, err, "within the scope")
 	assert.Equal(t, sh.asosiy, got.LocationID)
 
-	_, err = s.Create(ctx, onlyChilonzor, owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, "X", "2026-10-10", of), sh.existing())
+	_, err = s.Create(ctx, onlyChilonzor, owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, "2026-10-10", of), sh.existing())
 	refused(t, err, apperr.Invalid, "validation_error", "Lokatsiyani tanlang", "a location outside the scope")
 	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM orders"))
 }
@@ -667,7 +655,7 @@ func TestTheAssigneeWorksInTheOrdersLocation(t *testing.T) {
 	chilonzor := addLocation(t, pool, sh.id, "Chilonzor")
 	both := Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy, chilonzor}}
 	restrictTo(t, pool, staff, sh.id, chilonzor)
-	in := sh.input(t, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
 	in.AssigneePhone = ptr(staff)
 
 	_, err := s.Create(ctx, both, owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
@@ -681,7 +669,7 @@ func TestTheAssigneeWorksInTheOrdersLocation(t *testing.T) {
 	// Restricted elsewhere after being assigned: the order stays theirs as
 	// long as the edit keeps them (as with a member who left the company).
 	restrictTo(t, pool, staff, sh.id, sh.asosiy)
-	edit := sh.input(t, "Qayta qo'ng'iroq", "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
+	edit := sh.input(t, "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
 	edit.AssigneePhone = ptr(staff)
 	got, err := s.Update(ctx, both, order.ID, owner, edit)
 	require.NoError(t, err, "the assignee is not checked again while unchanged")
@@ -702,19 +690,19 @@ func TestUpcoming(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	nok := newShop(t, s, pool, "Nok")
-	mustOrder(t, s, nok, "Begona", "2026-10-01", map[int64]any{nok.izoh.ID: "X"})
-	later := mustOrder(t, s, sh, "Hisob yozish", "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
-	sooner := mustOrder(t, s, sh, "Qo'ng'iroq qilish", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
-	soonest := mustOrder(t, s, sh, "Shartnoma", "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
-	done := sh.input(t, "Bajarilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
+	mustOrder(t, s, nok, "2026-10-01", map[int64]any{nok.izoh.ID: "X"})
+	later := mustOrder(t, s, sh, "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
+	sooner := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
+	soonest := mustOrder(t, s, sh, "2026-10-09", map[int64]any{sh.izoh.ID: "X"})
+	done := sh.input(t, "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
 	done.StageID = sh.bajarildi.ID
 	_, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, done, sh.existing())
 	require.NoError(t, err)
-	gone := mustOrder(t, s, sh, "O'chirilgan", "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
+	gone := mustOrder(t, s, sh, "2026-10-01", map[int64]any{sh.izoh.ID: "X"})
 	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 	chilonzor := addLocation(t, pool, sh.id, "Chilonzor")
 	both := Scope{CompanyID: sh.id, LocationIDs: []int64{sh.asosiy, chilonzor}}
-	there, err := s.Create(ctx, both, owner, sh.buyurtma.ID, chilonzor, sh.input(t, "Chilonzorda", "2026-10-02", map[int64]any{sh.izoh.ID: "X"}), sh.existing())
+	there, err := s.Create(ctx, both, owner, sh.buyurtma.ID, chilonzor, sh.input(t, "2026-10-02", map[int64]any{sh.izoh.ID: "X"}), sh.existing())
 	require.NoError(t, err)
 
 	got, err := s.Upcoming(ctx, sh.scope(), 0, 5)
@@ -727,17 +715,59 @@ func TestUpcoming(t *testing.T) {
 		scope    Scope
 		location int64
 		limit    int
-		want     []string
+		want     []int32
 	}{
-		"as many as asked":             {sh.scope(), 0, 2, []string{"Shartnoma", "Qo'ng'iroq qilish"}},
-		"every location of the scope":  {both, 0, 5, []string{"Chilonzorda", "Shartnoma", "Qo'ng'iroq qilish", "Hisob yozish"}},
-		"one location of the scope":    {both, chilonzor, 5, []string{"Chilonzorda"}},
-		"a location outside the scope": {sh.scope(), chilonzor, 5, []string{}},
-		"a member with no location":    {Scope{CompanyID: sh.id, LocationIDs: []int64{}}, 0, 5, []string{}},
+		"as many as asked":             {sh.scope(), 0, 2, []int32{3, 2}},
+		"every location of the scope":  {both, 0, 5, []int32{6, 3, 2, 1}},
+		"one location of the scope":    {both, chilonzor, 5, []int32{6}},
+		"a location outside the scope": {sh.scope(), chilonzor, 5, []int32{}},
+		"a member with no location":    {Scope{CompanyID: sh.id, LocationIDs: []int64{}}, 0, 5, []int32{}},
 	} {
 		got, err := s.Upcoming(ctx, tc.scope, tc.location, tc.limit)
 		require.NoError(t, err, about)
-		assert.Equal(t, tc.want, titlesOf(got), about)
+		assert.Equal(t, tc.want, numbersOf(got), about)
 	}
 	assert.Equal(t, chilonzor, there.LocationID)
+}
+
+// An order is numbered in its company (logic/orders.md, 3.3): the next
+// number on entry, never given twice (a deleted order keeps its number
+// taken), from 1 in every company; the number is the order's name, and a
+// search of just that number finds it.
+func TestNumbers(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, s, pool, "Olma")
+	nok := newShop(t, s, pool, "Nok")
+	// Karim's phone has no digit a number could be mistaken for.
+	karim, err := sh.customers.Create(ctx, sh.id, owner, sh.jismoniy.ID, customer.Input{Phone: "998900000000", Values: answers(t, map[int64]any{sh.fish.ID: "Karim Olimov"})})
+	require.NoError(t, err)
+	enter := func(sh shop, customerID int64, day string) Order {
+		order, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, day, map[int64]any{sh.izoh.ID: "X"}), CustomerInput{ID: &customerID})
+		require.NoError(t, err)
+		return order
+	}
+
+	first := enter(sh, karim.ID, "2026-10-10")
+	second := enter(sh, karim.ID, "2026-10-11")
+
+	assert.EqualValues(t, 1, first.Number, "the company's first order")
+	assert.EqualValues(t, 2, second.Number, "the next")
+	require.NoError(t, s.Delete(ctx, sh.scope(), second.ID, owner))
+	third := enter(sh, karim.ID, "2026-10-12")
+	assert.EqualValues(t, 3, third.Number, "a deleted order keeps its number taken")
+	assert.EqualValues(t, 1, enter(nok, nok.ali.ID, "2026-10-10").Number, "another company counts on its own")
+	got, err := s.Get(ctx, sh.scope(), third.ID)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, got.Number)
+
+	page, err := s.List(ctx, sh.scope(), ListInput{Search: "3", Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []int32{3}, numbersOf(page.Items), "a search of a number finds the order")
+	page, err = s.List(ctx, sh.scope(), ListInput{Search: "2", Page: 1})
+	require.NoError(t, err)
+	assert.Empty(t, page.Items, "the deleted one is not found")
+	page, err = s.List(ctx, sh.scope(), ListInput{Search: "13", Page: 1})
+	require.NoError(t, err)
+	assert.Empty(t, page.Items, "the number is matched whole")
 }

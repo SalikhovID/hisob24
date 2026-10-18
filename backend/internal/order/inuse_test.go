@@ -16,9 +16,9 @@ func TestAStageWithOrdersIsNotDeleted(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
-	first := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
-	second := mustOrder(t, s, sh, "Hisob", "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
-	gone := mustOrder(t, s, sh, "O'chirilgan", "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
+	first := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
+	second := mustOrder(t, s, sh, "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
+	gone := mustOrder(t, s, sh, "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
 	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 
 	err := s.DeleteStage(ctx, sh.id, sh.yangi.ID)
@@ -41,8 +41,8 @@ func TestATypeWithOrdersIsNotDeleted(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
-	first := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
-	second := mustOrder(t, s, sh, "Hisob", "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
+	first := mustOrder(t, s, sh, "2026-10-10", map[int64]any{sh.izoh.ID: "X"})
+	second := mustOrder(t, s, sh, "2026-10-11", map[int64]any{sh.izoh.ID: "X"})
 	shikoyat := mustType(t, s, sh.id, "Shikoyat")
 
 	err := s.DeleteType(ctx, sh.id, sh.buyurtma.ID)
@@ -65,11 +65,11 @@ func TestAFieldOrdersFilledInIsNotDeleted(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	manzil := mustField(t, s, sh.id, sh.buyurtma.ID, FieldInput{Label: "Manzil", Kind: "string"})
-	first := mustOrder(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{
+	first := mustOrder(t, s, sh, "2026-10-10", map[int64]any{
 		sh.izoh.ID: "X", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.instagram.ID, sh.linkedin.ID},
 	})
-	mustOrder(t, s, sh, "Hisob", "2026-10-11", map[int64]any{sh.izoh.ID: "X", sh.kanal.ID: []int64{sh.linkedin.ID}})
-	gone := mustOrder(t, s, sh, "O'chirilgan", "2026-10-12", map[int64]any{sh.izoh.ID: "X", sh.summa.ID: 1})
+	mustOrder(t, s, sh, "2026-10-11", map[int64]any{sh.izoh.ID: "X", sh.kanal.ID: []int64{sh.linkedin.ID}})
+	gone := mustOrder(t, s, sh, "2026-10-12", map[int64]any{sh.izoh.ID: "X", sh.summa.ID: 1})
 	require.NoError(t, s.Delete(ctx, sh.scope(), gone.ID, owner))
 
 	refused(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, sh.izoh.ID), apperr.Conflict, "field_in_use", "Bu maydon 2 ta buyurtmada to'ldirilgan")
@@ -84,7 +84,7 @@ func TestAFieldOrdersFilledInIsNotDeleted(t *testing.T) {
 	assert.NoError(t, s.DeleteField(ctx, sh.id, sh.buyurtma.ID, manzil.ID), "a field nobody filled in")
 	// An edit that empties the field frees it.
 	_, err = s.Update(ctx, sh.scope(), first.ID, owner, Input{
-		Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: sh.yangi.ID,
+		Deadline: "2026-10-10", StageID: sh.yangi.ID,
 		Values: answers(t, map[int64]any{sh.izoh.ID: "X", sh.kanal.ID: []int64{sh.instagram.ID}}),
 	})
 	require.NoError(t, err)

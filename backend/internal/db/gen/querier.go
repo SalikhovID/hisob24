@@ -176,9 +176,10 @@ type Querier interface {
 	// Adds an admin or reactivates a deactivated one. An admin who is already
 	// active is left as is and no row comes back (pgx.ErrNoRows -> 409).
 	CreateOrReactivateAdmin(ctx context.Context, arg CreateOrReactivateAdminParams) (Admin, error)
-	// Enters an order, in a location of the company. assignee_name and
-	// created_by_name are the names the members go by in the company now: they
-	// stay when the members leave the company.
+	// Enters an order, in a location of the company, under its number
+	// (NextOrderNumber). assignee_name and created_by_name are the names the
+	// members go by in the company now: they stay when the members leave the
+	// company.
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	// A new stage goes last among the company's.
 	CreateOrderStage(ctx context.Context, arg CreateOrderStageParams) (OrderStage, error)
@@ -637,11 +638,12 @@ type Querier interface {
 	ListOrderValues(ctx context.Context, orderIds []int64) ([]ListOrderValuesRow, error)
 	// A page of the company's orders, the one due soonest first (then the older
 	// order), without the deleted. type_id, stage_id, assignee_phone and
-	// customer_id each keep one; search, escaped for ILIKE, is looked for in the
-	// title, in the order's text answers and in the customer's text answers;
-	// digits, the digits of a search that is a number, in the customer's phone
-	// and in the order's and the customer's whole number answers. A NULL argument
-	// leaves its filter out.
+	// customer_id each keep one; search, escaped for ILIKE, is looked for in
+	// the order's text answers and in the customer's text answers; digits, the
+	// digits of a search that is a number, in the customer's phone and in the
+	// order's and the customer's whole number answers, and an order whose
+	// number is just those digits is found (logic/orders.md, section 6). A
+	// NULL argument leaves its filter out.
 	ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error)
 	// The statement of a party: a supplier (logic/warehouse.md, section 6) or
 	// a customer (logic/sales.md, section 5). party is 'supplier' or
@@ -657,7 +659,7 @@ type Querier interface {
 	// row and its rate, how it changed what is owed and what was owed after
 	// it; a payment names its account, one entered with a document names that
 	// document's number too; an order's document, and a payment entered for
-	// an order, name the order (order_id, order_title).
+	// an order, name the order (order_id, order_number).
 	ListPartyStatement(ctx context.Context, arg ListPartyStatementParams) ([]ListPartyStatementRow, error)
 	// A page of the supplier's live payments, the newest first (then the later
 	// entered). The columns are GetPayment's.
@@ -671,7 +673,7 @@ type Querier interface {
 	ListProductCostMoves(ctx context.Context, arg ListProductCostMovesParams) ([]ListProductCostMovesRow, error)
 	// A page of the product's moves in the locations given, the newest
 	// document first (then the later entered): the document (kind, number,
-	// moment; an order's by its order and title), the location, the quantity
+	// moment; an order's by its order and its number), the location, the quantity
 	// moved (in above zero, out below) and the counterpart (the supplier's
 	// name, the customer's name or phone, or a transfer's other location; ""
 	// for none).
@@ -754,6 +756,11 @@ type Querier interface {
 	// twice). Run under the company's lock (LockCompanyCustomers), so two
 	// documents entered at once take two numbers.
 	NextNumber(ctx context.Context, arg NextNumberParams) (int32, error)
+	// The number the company's next order takes: one past the highest so far,
+	// the deleted orders counted (a number is never given twice). Run under
+	// the company's lock (LockCompanyCustomers), so two orders entered at
+	// once take two numbers.
+	NextOrderNumber(ctx context.Context, companyID int64) (int32, error)
 	// Puts the dropdown's options in the order of ids: the first gets position
 	// 1. An id that is not a live option of the dropdown is passed over.
 	OrderCustomerDropdownOptions(ctx context.Context, arg OrderCustomerDropdownOptionsParams) error
@@ -870,8 +877,8 @@ type Querier interface {
 	// as it is. The kind never changes. pgx.ErrNoRows when the company has no
 	// such category, or deleted it; 23505 when the name is another's.
 	UpdateFinanceCategory(ctx context.Context, arg UpdateFinanceCategoryParams) (FinanceCategory, error)
-	// An edit: the order's title, deadline, stage and assignee as they are now,
-	// and the moment of the edit. pgx.ErrNoRows when the company has no such
+	// An edit: the order's deadline, stage and assignee as they are now, and
+	// the moment of the edit. pgx.ErrNoRows when the company has no such
 	// order, or deleted it.
 	UpdateOrder(ctx context.Context, arg UpdateOrderParams) (time.Time, error)
 	// Changes a field's name and required mark; a NULL argument leaves its

@@ -101,7 +101,7 @@ WITH entries AS (
     FROM entries e
 )
 SELECT r.id, r.kind, r.number, r.doc_at, r.total AS amount, r.currency_id, r.rate, r.amount_uzs, r.delta_uzs, r.balance_uzs, r.linked_id,
-       l.number AS linked_number, o.id AS order_id, o.title AS order_title, r.bank_account_id, b.name AS account_name, r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
+       l.number AS linked_number, o.id AS order_id, o.number AS order_number, r.bank_account_id, b.name AS account_name, r.note, COALESCE(m.full_name, r.created_by_name) AS created_by_name
 FROM running r
 LEFT JOIN transactions l ON l.id = r.linked_id
 LEFT JOIN orders o ON o.id = COALESCE(r.order_id, l.order_id)
@@ -133,7 +133,7 @@ type ListPartyStatementRow struct {
 	LinkedID      *int64
 	LinkedNumber  *int32
 	OrderID       *int64
-	OrderTitle    *string
+	OrderNumber   *int32
 	BankAccountID *int64
 	AccountName   *string
 	Note          *string
@@ -145,7 +145,7 @@ type ListPartyStatementRow struct {
 // row and its rate, how it changed what is owed and what was owed after
 // it; a payment names its account, one entered with a document names that
 // document's number too; an order's document, and a payment entered for
-// an order, name the order (order_id, order_title).
+// an order, name the order (order_id, order_number).
 func (q *Queries) ListPartyStatement(ctx context.Context, arg ListPartyStatementParams) ([]ListPartyStatementRow, error) {
 	rows, err := q.db.Query(ctx, listPartyStatement,
 		arg.Offset,
@@ -175,7 +175,7 @@ func (q *Queries) ListPartyStatement(ctx context.Context, arg ListPartyStatement
 			&i.LinkedID,
 			&i.LinkedNumber,
 			&i.OrderID,
-			&i.OrderTitle,
+			&i.OrderNumber,
 			&i.BankAccountID,
 			&i.AccountName,
 			&i.Note,

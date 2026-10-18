@@ -60,7 +60,7 @@ type ProductMove struct {
 	Quantity      string
 	Counterpart   *string
 	OrderID       *int64
-	OrderTitle    *string
+	OrderNumber   *int32
 }
 
 // ProductMovePage is one page of a product's moves.
@@ -95,7 +95,7 @@ func (s *Service) ProductMoves(ctx context.Context, scope Scope, productID, loca
 	}
 	items := make([]ProductMove, 0, len(rows))
 	for _, r := range rows {
-		m := ProductMove{ID: r.ID, TransactionID: r.TransactionID, Kind: r.Kind, Number: r.Number, At: r.DocAt.UTC(), LocationID: r.LocationID, LocationName: r.LocationName, Quantity: quantity(r.Quantity), OrderID: r.OrderID, OrderTitle: r.OrderTitle}
+		m := ProductMove{ID: r.ID, TransactionID: r.TransactionID, Kind: r.Kind, Number: r.Number, At: r.DocAt.UTC(), LocationID: r.LocationID, LocationName: r.LocationName, Quantity: quantity(r.Quantity), OrderID: r.OrderID, OrderNumber: r.OrderNumber}
 		if r.Counterpart != "" {
 			counterpart := r.Counterpart
 			m.Counterpart = &counterpart

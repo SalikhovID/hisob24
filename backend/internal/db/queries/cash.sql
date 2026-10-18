@@ -65,7 +65,7 @@ WITH entries AS (
     SELECT e.*, (sum(e.delta) OVER (ORDER BY e.doc_at, e.id))::numeric(14,2) AS balance
     FROM entries e
 )
-SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number, o.id AS order_id, o.title AS order_title,
+SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number, o.id AS order_id, o.number AS order_number,
        s.name AS supplier_name,
        (SELECT v.text_value FROM customer_fields f
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = cu.id

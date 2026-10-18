@@ -7098,7 +7098,7 @@ components:
         6-bo'lim): hujjat, summasi valyutasida va so'mda (o'z kursi bilan),
         qarz o'zgarishi (xarid va boshlang'ich qarz +, to'lov va boshlang'ich
         avans −) va shu hujjatdan keyingi qarz, so'mda.
-      required: [id, kind, number, at, amount, currency_id, rate, amount_uzs, delta_uzs, balance_uzs, linked_id, linked_number, bank_account_id, account_name, order_id, order_title, note, created_by_name]
+      required: [id, kind, number, at, amount, currency_id, rate, amount_uzs, delta_uzs, balance_uzs, linked_id, linked_number, bank_account_id, account_name, order_id, order_number, note, created_by_name]
       properties:
         id:
           type: integer
@@ -7143,9 +7143,9 @@ components:
           type: [integer, "null"]
           format: int64
           description: Buyurtma hujjatida buyurtma; buyurtma uchun kiritilgan to'lovda shu buyurtma; boshqasida null
-        order_title:
-          type: [string, "null"]
-          description: Buyurtmaning nomi
+        order_number:
+          type: [integer, "null"]
+          description: Buyurtmaning raqami («Buyurtma № N»)
         note:
           type: [string, "null"]
         created_by_name:
@@ -7468,7 +7468,7 @@ components:
     ProductMove:
       type: object
       description: Mahsulotning ombor jurnalidagi bitta harakati (logic/products.md, 6-bo'lim)
-      required: [id, transaction_id, kind, number, at, location_id, location_name, quantity, counterpart, order_id, order_title]
+      required: [id, transaction_id, kind, number, at, location_id, location_name, quantity, counterpart, order_id, order_number]
       properties:
         id:
           type: integer
@@ -7501,9 +7501,9 @@ components:
           type: [integer, "null"]
           format: int64
           description: Buyurtmaga biriktirilgan tovarning chiqimida shu buyurtma; boshqasida null
-        order_title:
-          type: [string, "null"]
-          description: Buyurtmaning nomi
+        order_number:
+          type: [integer, "null"]
+          description: Buyurtmaning raqami («Buyurtma № N»)
     ProductMovePage:
       type: object
       required: [items, total, page, page_size]
@@ -8645,7 +8645,7 @@ components:
             type: string
     Order:
       type: object
-      required: [id, type_id, stage_id, location_id, title, deadline, customer, assignee, values, amount, currency_id, rate, amount_uzs, paid, created_by_name, created_at, updated_at]
+      required: [id, type_id, stage_id, location_id, number, deadline, customer, assignee, values, amount, currency_id, rate, amount_uzs, paid, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -8661,8 +8661,9 @@ components:
           type: integer
           format: int64
           description: Buyurtma turadigan lokatsiya (logic/locations.md); o'zgarmaydi
-        title:
-          type: string
+        number:
+          type: integer
+          description: Buyurtmaning kompaniya bo'yicha raqami, uning nomi («Buyurtma № N»); qo'shishda beriladi, o'zgarmaydi
         deadline:
           type: string
           format: date
@@ -8818,7 +8819,7 @@ components:
           $ref: "#/components/schemas/CustomerAnswers"
     OrderCreate:
       type: object
-      required: [type_id, location_id, title, deadline, stage_id, customer]
+      required: [type_id, location_id, deadline, stage_id, customer]
       properties:
         type_id:
           type: integer
@@ -8830,9 +8831,6 @@ components:
             Buyurtma tushadigan lokatsiya: a'zo ishlay oladigan jonli lokatsiya
             (joriy lokatsiya; logic/locations.md, 6-bo'lim). Berilmasa 400
             "Lokatsiyani tanlang", ruxsatsiz bo'lsa 403 forbidden.
-        title:
-          type: string
-          maxLength: 200
         deadline:
           type: string
           format: date
@@ -8876,11 +8874,8 @@ components:
             $ref: "#/components/schemas/PaymentLine"
     OrderUpdate:
       type: object
-      required: [title, deadline, stage_id]
+      required: [deadline, stage_id]
       properties:
-        title:
-          type: string
-          maxLength: 200
         deadline:
           type: string
           format: date
@@ -9119,7 +9114,7 @@ components:
         qoldig'ini qanday o'zgartirgani (akkaunt valyutasida, ishorasi
         bilan) va shu hujjatdan keyingi qoldiq; qarshi tomon; to'lov
         kiritilgan hujjat.
-      required: [id, kind, number, at, delta, balance, linked_id, linked_number, order_id, order_title, party_name, note, created_by_name]
+      required: [id, kind, number, at, delta, balance, linked_id, linked_number, order_id, order_number, party_name, note, created_by_name]
       properties:
         id:
           type: integer
@@ -9149,9 +9144,9 @@ components:
           type: [integer, "null"]
           format: int64
           description: Buyurtma uchun kiritilgan to'lovda shu buyurtma (logic/orders.md, 4.3); boshqasida null
-        order_title:
-          type: [string, "null"]
-          description: Buyurtmaning nomi
+        order_number:
+          type: [integer, "null"]
+          description: Buyurtmaning raqami («Buyurtma № N»)
         party_name:
           type: [string, "null"]
           description: Ta'minotchi yoki mijoz (nomi, bo'lmasa telefoni), kategoriya, boshqa akkaunt; kassa boshlang'ich qoldig'ida null

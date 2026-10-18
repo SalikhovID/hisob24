@@ -102,7 +102,7 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 	require.NoError(t, err)
 	ali, err := s.customers.Create(ctx, olma, owner, jismoniy.ID, customer.Input{Phone: "998901234567"})
 	require.NoError(t, err)
-	in := Input{Title: "Qo'ng'iroq", Deadline: "2026-10-10", StageID: yangi.ID, Values: answers(t, map[int64]any{izoh.ID: "Ertalab"})}
+	in := Input{Deadline: "2026-10-10", StageID: yangi.ID, Values: answers(t, map[int64]any{izoh.ID: "Ertalab"})}
 	entered, err := s.Create(ctx, scope, owner, buyurtma.ID, asosiy, in, CustomerInput{ID: &ali.ID})
 	require.NoError(t, err)
 
@@ -138,7 +138,7 @@ func TestAWriteWaitsForAnotherWriteOfTheSameCompany(t *testing.T) {
 			return err
 		}},
 		{"Update", func() error {
-			_, err := s.Update(ctx, scope, entered.ID, owner, Input{Title: "Qayta qo'ng'iroq", Deadline: "2026-10-11", StageID: yangi.ID, Values: in.Values})
+			_, err := s.Update(ctx, scope, entered.ID, owner, Input{Deadline: "2026-10-11", StageID: yangi.ID, Values: in.Values})
 			return err
 		}},
 		{"Move", func() error { _, err := s.Move(ctx, scope, entered.ID, owner, bajarildi.ID); return err }},

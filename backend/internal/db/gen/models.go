@@ -198,7 +198,6 @@ type Order struct {
 	TypeID        int64
 	StageID       int64
 	CustomerID    int64
-	Title         string
 	Deadline      time.Time
 	AssigneePhone *string
 	AssigneeName  *string
@@ -208,6 +207,7 @@ type Order struct {
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
 	LocationID    int64
+	Number        int32
 }
 
 type OrderField struct {

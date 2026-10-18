@@ -185,7 +185,7 @@ func (q *Queries) ListProductCostMoves(ctx context.Context, arg ListProductCostM
 const listProductMoves = `-- name: ListProductMoves :many
 SELECT sm.id, t.id AS transaction_id, t.kind, t.number, t.doc_at, l.id AS location_id, l.name AS location_name, sm.quantity,
        COALESCE(s.name, cn.name, cu.phone, CASE WHEN t.kind = 'transfer' AND sm.location_id = t.location_id THEN tl.name WHEN t.kind = 'transfer' THEN fl.name END, '')::text AS counterpart,
-       o.id AS order_id, o.title AS order_title
+       o.id AS order_id, o.number AS order_number
 FROM stock_moves sm
 JOIN transactions t ON t.id = sm.transaction_id
 JOIN locations l ON l.id = sm.location_id
@@ -221,12 +221,12 @@ type ListProductMovesRow struct {
 	Quantity      pgtype.Numeric
 	Counterpart   string
 	OrderID       *int64
-	OrderTitle    *string
+	OrderNumber   *int32
 }
 
 // A page of the product's moves in the locations given, the newest
 // document first (then the later entered): the document (kind, number,
-// moment; an order's by its order and title), the location, the quantity
+// moment; an order's by its order and its number), the location, the quantity
 // moved (in above zero, out below) and the counterpart (the supplier's
 // name, the customer's name or phone, or a transfer's other location; ""
 // for none).
@@ -255,7 +255,7 @@ func (q *Queries) ListProductMoves(ctx context.Context, arg ListProductMovesPara
 			&i.Quantity,
 			&i.Counterpart,
 			&i.OrderID,
-			&i.OrderTitle,
+			&i.OrderNumber,
 		); err != nil {
 			return nil, err
 		}

@@ -32,8 +32,8 @@ func (api testAPI) orderedShop(t *testing.T) orderedShop {
 
 // order is the body of an order for the customer in Asosiy, with the money
 // given (",amount":…).
-func (s orderedShop) order(title string, money string) string {
-	return orderBody(s.orders, title, "2026-10-20", s.orders.yangi, s.customer["id"], "{}", money)
+func (s orderedShop) order(money string) string {
+	return orderBody(s.orders, "2026-10-20", s.orders.yangi, s.customer["id"], "{}", money)
 }
 
 // row is an order as a list's row shows it: without what its page alone
@@ -58,7 +58,7 @@ func TestOrdersCarryTheirMoney(t *testing.T) {
 	s := api.orderedShop(t)
 	money := fmt.Sprintf(`,"amount":"5000","items":[{"product_id":%v,"quantity":"2"}],"payments":[%s]`, s.product["id"], s.paid("400"))
 
-	order := api.enterOrder(t, s.owner, s.order("Montaj", money))
+	order := api.enterOrder(t, s.owner, s.order(money))
 
 	assert.Equal(t, "5000.00", order["amount"])
 	assert.EqualValues(t, 1, order["currency_id"])
@@ -104,7 +104,7 @@ func TestOrdersCarryTheirMoney(t *testing.T) {
 	product := decode(t, api.do(t, http.MethodGet, fmt.Sprintf("/app/products/%v", s.product["id"]), "", bearer(s.owner)))
 	assert.Equal(t, "8.000", product["quantity"], "the product left the stock")
 
-	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"title":"Montaj","deadline":"2026-10-20","stage_id":%d,"values":{},"amount":"6000","items":[]}`, s.orders.yangi), bearer(s.owner))
+	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"deadline":"2026-10-20","stage_id":%d,"values":{},"amount":"6000","items":[]}`, s.orders.yangi), bearer(s.owner))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	edited := decode(t, rec)
 	assert.Equal(t, "6000.00", edited["amount"])
@@ -119,16 +119,16 @@ func TestOrdersCarryTheirMoney(t *testing.T) {
 	history := api.do(t, http.MethodGet, path+"/history", "", bearer(s.owner))
 	assert.Contains(t, history.Body.String(), `"label":"Narx"`, "the price in the history")
 
-	bare := api.enterOrder(t, s.owner, s.order("Qo'ng'iroq", ""))
+	bare := api.enterOrder(t, s.owner, s.order(""))
 	assert.Equal(t, "0.00", bare["amount"], "no money: nothing")
 	assert.Equal(t, "0.00", bare["paid"])
 	assert.Empty(t, bare["items"])
 	assert.Empty(t, bare["payments"])
 
-	rec = api.do(t, http.MethodPost, "/app/orders", s.order("Katta", fmt.Sprintf(`,"items":[{"product_id":%v,"quantity":"99"}]`, s.product["id"])), bearer(s.owner))
+	rec = api.do(t, http.MethodPost, "/app/orders", s.order(fmt.Sprintf(`,"items":[{"product_id":%v,"quantity":"99"}]`, s.product["id"])), bearer(s.owner))
 	assert.Equal(t, http.StatusConflict, rec.Code, "more than the stock")
 	assert.JSONEq(t, `{"error":"stock_insufficient","message":"«Olma» uchun omborda yetarli qoldiq yo'q"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/orders", s.order("Katta", `,"amount":"abc"`), bearer(s.owner))
+	rec = api.do(t, http.MethodPost, "/app/orders", s.order(`,"amount":"abc"`), bearer(s.owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Narx noto'g'ri"}`, rec.Body.String())
 }
@@ -141,7 +141,7 @@ func TestOrderPaymentsAPI(t *testing.T) {
 	api := newTestAPI(t)
 	s := api.orderedShop(t)
 	api.exec(t, "UPDATE user_companies SET full_name = 'Ali Valiyev' WHERE user_phone = $1", alisPhone)
-	order := api.enterOrder(t, s.owner, s.order("Montaj", fmt.Sprintf(`,"amount":"5000","items":[{"product_id":%v,"quantity":"2"}],"payments":[%s]`, s.product["id"], s.paid("400"))))
+	order := api.enterOrder(t, s.owner, s.order(fmt.Sprintf(`,"amount":"5000","items":[{"product_id":%v,"quantity":"2"}],"payments":[%s]`, s.product["id"], s.paid("400"))))
 	path := fmt.Sprintf("/app/orders/%v", order["id"])
 
 	rec := api.do(t, http.MethodPost, path+"/payments", fmt.Sprintf(`{"bank_account_id":%d,"amount":"300","at":"%s","note":" Qolgani "}`, s.cash, at), bearer(s.owner))
@@ -185,7 +185,7 @@ func TestOrderPaymentsAPI(t *testing.T) {
 		row := item.(map[string]any)
 		kinds[row["kind"].(string)] = row
 		assert.Equal(t, order["id"], row["order_id"], "every row names the order")
-		assert.Equal(t, "Montaj", row["order_title"])
+		assert.EqualValues(t, 1, row["order_number"])
 	}
 	assert.Equal(t, "5000.00", kinds["order"]["amount"], "the order's document by its price")
 	assert.Contains(t, kinds, "customer_payment")
@@ -196,12 +196,12 @@ func TestOrderPaymentsAPI(t *testing.T) {
 	received := cash[0].(map[string]any)
 	assert.Equal(t, "customer_payment", received["kind"])
 	assert.Equal(t, order["id"], received["order_id"], "the account's statement names the order")
-	assert.Equal(t, "Montaj", received["order_title"])
+	assert.EqualValues(t, 1, received["order_number"])
 	moves := decode(t, api.do(t, http.MethodGet, fmt.Sprintf("/app/products/%v/moves", s.product["id"]), "", bearer(s.owner)))["items"].([]any)
 	out := moves[0].(map[string]any)
 	assert.Equal(t, "order", out["kind"])
 	assert.Equal(t, order["id"], out["order_id"])
-	assert.Equal(t, "Montaj", out["order_title"])
+	assert.EqualValues(t, 1, out["order_number"])
 	assert.Equal(t, "Dilshod", out["counterpart"])
 
 	rec = api.do(t, http.MethodDelete, own, "", bearer(s.owner))

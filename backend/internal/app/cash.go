@@ -33,7 +33,7 @@ type accountStatementRowJSON struct {
 	LinkedID      *int64    `json:"linked_id"`
 	LinkedNumber  *int32    `json:"linked_number"`
 	OrderID       *int64    `json:"order_id"`
-	OrderTitle    *string   `json:"order_title"`
+	OrderNumber   *int32    `json:"order_number"`
 	PartyName     *string   `json:"party_name"`
 	Note          *string   `json:"note"`
 	CreatedByName *string   `json:"created_by_name"`
@@ -254,7 +254,7 @@ func (h *Handler) getAccountStatement(w http.ResponseWriter, r *http.Request) {
 	for _, row := range result.Items {
 		items = append(items, accountStatementRowJSON{
 			ID: row.ID, Kind: string(row.Kind), Number: row.Number, At: row.At, Delta: row.Delta, Balance: row.Balance,
-			LinkedID: row.LinkedID, LinkedNumber: row.LinkedNumber, OrderID: row.OrderID, OrderTitle: row.OrderTitle, PartyName: row.PartyName, Note: row.Note, CreatedByName: row.CreatedByName,
+			LinkedID: row.LinkedID, LinkedNumber: row.LinkedNumber, OrderID: row.OrderID, OrderNumber: row.OrderNumber, PartyName: row.PartyName, Note: row.Note, CreatedByName: row.CreatedByName,
 		})
 	}
 	httpx.JSON(w, http.StatusOK, accountStatementPageJSON{Items: items, Total: result.Total, Page: result.Page, PageSize: result.PageSize})

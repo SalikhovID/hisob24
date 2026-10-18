@@ -218,12 +218,12 @@ func addStages(t *testing.T, pool *pgxpool.Pool, companyID int64) stages {
 
 // addOrder enters an order of the company in the stage and the location, due
 // on the day, for the customer; deleted hides it.
-func addOrder(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, title, deadline string, deleted bool) int64 {
+func addOrder(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, deadline string, deleted bool) int64 {
 	t.Helper()
 	var id int64
 	require.NoError(t, pool.QueryRow(t.Context(),
-		"INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END) RETURNING id",
-		companyID, st.buyurtma, stageID, customerID, locationID, title, deadline, ali, deleted).Scan(&id))
+		"INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), $6, $7, CASE WHEN $8 THEN now() END) RETURNING id",
+		companyID, st.buyurtma, stageID, customerID, locationID, deadline, ali, deleted).Scan(&id))
 	return id
 }
 
@@ -236,11 +236,11 @@ func TestOrdersMoney(t *testing.T) {
 	sh := newShop(t, pool, "Olma")
 	st := addStages(t, pool, sh.company)
 	ali := addCustomer(t, pool, sh.company, "998901234567", "2026-10-01T10:00:00+05:00", false)
-	priced := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Montaj", "2026-10-20", false)
-	free := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Yetkazish", "2026-10-20", false)
-	gone := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Eski", "2026-10-20", true)
-	elsewhere := addOrder(t, pool, sh.company, st, st.yangi, sh.chilonzor, ali, "Ta'mir", "2026-10-20", false)
-	dollars := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Import", "2026-10-20", false)
+	priced := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", false)
+	free := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", false)
+	gone := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", true)
+	elsewhere := addOrder(t, pool, sh.company, st, st.yangi, sh.chilonzor, ali, "2026-10-20", false)
+	dollars := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", false)
 	sh.add(t, pool, doc{kind: "order", at: "2026-10-02T10:00:00+05:00", location: sh.asosiy, customer: ali, order: priced, total: "5000"})
 	sh.add(t, pool, doc{kind: "order", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, customer: ali, order: free, total: "0"})
 	sh.add(t, pool, doc{kind: "order", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, customer: ali, order: gone, total: "999", deleted: true})
@@ -271,21 +271,21 @@ func TestOrders(t *testing.T) {
 	sh := newShop(t, pool, "Olma")
 	st := addStages(t, pool, sh.company)
 	karim := addCustomer(t, pool, sh.company, "998900000001", "2026-09-20T12:00:00+05:00", false)
-	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Kechikkan", "2026-10-10", false)
-	addOrder(t, pool, sh.company, st, st.jarayonda, sh.asosiy, karim, "Bugun", "2026-10-13", false)
-	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "Ertaga", "2026-10-14", false)
-	addOrder(t, pool, sh.company, st, st.bajarildi, sh.asosiy, karim, "Bajarilgan", "2026-10-01", false)
-	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "O'chirilgan", "2026-10-01", true)
-	addOrder(t, pool, sh.company, st, st.jarayonda, sh.chilonzor, karim, "Chilonzorda", "2026-10-11", false)
+	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "2026-10-10", false)
+	addOrder(t, pool, sh.company, st, st.jarayonda, sh.asosiy, karim, "2026-10-13", false)
+	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "2026-10-14", false)
+	addOrder(t, pool, sh.company, st, st.bajarildi, sh.asosiy, karim, "2026-10-01", false)
+	addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, karim, "2026-10-01", true)
+	addOrder(t, pool, sh.company, st, st.jarayonda, sh.chilonzor, karim, "2026-10-11", false)
 	nok := newShop(t, pool, "Nok")
 	nst := addStages(t, pool, nok.company)
 	begona := addCustomer(t, pool, nok.company, "998900000002", "2026-09-20T12:00:00+05:00", false)
-	addOrder(t, pool, nok.company, nst, nst.yangi, nok.asosiy, begona, "Begona", "2026-10-01", false)
+	addOrder(t, pool, nok.company, nst, nst.yangi, nok.asosiy, begona, "2026-10-01", false)
 
-	titles := func(orders []order.Order) []string {
-		out := []string{}
+	numbers := func(orders []order.Order) []int32 {
+		out := []int32{}
 		for _, t := range orders {
-			out = append(out, t.Title)
+			out = append(out, t.Number)
 		}
 		return out
 	}
@@ -295,12 +295,12 @@ func TestOrders(t *testing.T) {
 		active   int64
 		late     int64
 		stages   []StageCount
-		upcoming []string
+		upcoming []int32
 	}{
-		"every location of the scope":  {sh.scope(), 0, 4, 2, []StageCount{{st.yangi, 2}, {st.jarayonda, 2}}, []string{"Kechikkan", "Chilonzorda", "Bugun", "Ertaga"}},
-		"one location":                 {sh.scope(), sh.asosiy, 3, 1, []StageCount{{st.yangi, 2}, {st.jarayonda, 1}}, []string{"Kechikkan", "Bugun", "Ertaga"}},
-		"a location outside the scope": {sh.scope(sh.asosiy), sh.chilonzor, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []string{}},
-		"a member with no location":    {sh.scope([]int64{}...), 0, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []string{}},
+		"every location of the scope":  {sh.scope(), 0, 4, 2, []StageCount{{st.yangi, 2}, {st.jarayonda, 2}}, []int32{1, 6, 2, 3}},
+		"one location":                 {sh.scope(), sh.asosiy, 3, 1, []StageCount{{st.yangi, 2}, {st.jarayonda, 1}}, []int32{1, 2, 3}},
+		"a location outside the scope": {sh.scope(sh.asosiy), sh.chilonzor, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []int32{}},
+		"a member with no location":    {sh.scope([]int64{}...), 0, 0, 0, []StageCount{{st.yangi, 0}, {st.jarayonda, 0}}, []int32{}},
 	} {
 		in := input(access.OrdersView)
 		in.LocationID = tc.location
@@ -310,7 +310,7 @@ func TestOrders(t *testing.T) {
 		assert.Equal(t, tc.active, got.Orders.Active, about+": not done yet; the done, the deleted and another company's are out")
 		assert.Equal(t, tc.late, got.Orders.Late, about+": due before today")
 		assert.Equal(t, tc.stages, got.Orders.ByStage, about+": each stage not done, in its order, the empty ones too")
-		assert.Equal(t, tc.upcoming, titles(got.Orders.Upcoming), about+": the soonest due first")
+		assert.Equal(t, tc.upcoming, numbers(got.Orders.Upcoming), about+": the soonest due first")
 	}
 }
 

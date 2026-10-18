@@ -30,16 +30,16 @@ func newOrderBooks(t *testing.T, q *gen.Queries, pool *pgxpool.Pool) orderBooks 
 	b.cash = cashOf(t, pool, b.w.company)
 	b.stage = createStage(t, q, b.w.company, "Yangi", "blue")
 	b.typ = createOrderType(t, q, b.w.company, "Buyurtma")
-	b.order = b.newOrder(t, q, "Montaj")
+	b.order = b.newOrder(t, q)
 	return b
 }
 
 // newOrder enters an order of Ali's in Asosiy, in the first stage.
-func (b orderBooks) newOrder(t *testing.T, q *gen.Queries, title string) gen.Order {
+func (b orderBooks) newOrder(t *testing.T, q *gen.Queries) gen.Order {
 	t.Helper()
 	order, err := q.CreateOrder(t.Context(), gen.CreateOrderParams{
 		CompanyID: b.w.company, TypeID: b.typ.ID, StageID: b.stage.ID, CustomerID: b.ali, LocationID: b.w.asosiy,
-		Title: title, Deadline: day("2026-10-20"), CreatedBy: enteredBy, CreatedByName: ptr("Ali aka"),
+		Number: nextNumber(t, q, b.w.company), Deadline: day("2026-10-20"), CreatedBy: enteredBy, CreatedByName: ptr("Ali aka"),
 	})
 	require.NoError(t, err)
 	return order
@@ -137,7 +137,7 @@ func TestAnOrderIsReadWithItsPriceAndWhatWasPaid(t *testing.T) {
 	_, err = q.GetOrderPayment(ctx, gen.GetOrderPaymentParams{ID: advance, LinkedID: document + 1})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a payment linked to another document")
 
-	other := b.newOrder(t, q, "Yetkazish")
+	other := b.newOrder(t, q)
 	created, err := q.CreateTransaction(ctx, gen.CreateTransactionParams{
 		CompanyID: b.w.company, Kind: "order", Number: 3, DocAt: at(t, "2026-10-08 10:00+05"), LocationID: &b.w.asosiy, CustomerID: &b.ali, OrderID: &other.ID,
 		CurrencyID: 1, CurrencyRateID: rate, Total: numeric(t, "0"), CreatedBy: enteredBy,
@@ -191,7 +191,7 @@ func TestAnOrderCountsInTheCustomersBalanceAndStatement(t *testing.T) {
 	// order with goods alone (priced at nothing). The 7th: 300 USD paid.
 	document := b.document(t, pool, b.order.ID, 1, "2026-10-05 10:00+05", 2, rate, "5000", false)
 	advance := addDocument(t, pool, b.w.company, doc{kind: "customer_payment", number: 1, at: "2026-10-05 10:00+05", customer: &b.ali, account: &card, linked: &document, currency: 2, rate: rate, total: "400"})
-	goods := b.newOrder(t, q, "Yetkazish")
+	goods := b.newOrder(t, q)
 	b.document(t, pool, goods.ID, 2, "2026-10-06 10:00+05", 1, rate, "0", false)
 	later := addDocument(t, pool, b.w.company, doc{kind: "customer_payment", number: 2, at: "2026-10-07 10:00+05", customer: &b.ali, account: &card, linked: &document, currency: 2, rate: rate, total: "300"})
 
@@ -215,12 +215,12 @@ func TestAnOrderCountsInTheCustomersBalanceAndStatement(t *testing.T) {
 	assert.Equal(t, "customer_payment", rows[0].Kind)
 	assert.Equal(t, &document, rows[0].LinkedID)
 	assert.Equal(t, &b.order.ID, rows[0].OrderID, "the order the payment was entered for")
-	assert.Equal(t, ptr("Montaj"), rows[0].OrderTitle)
+	assert.Equal(t, ptr(int32(1)), rows[0].OrderNumber)
 	assert.Equal(t, "-3840000.00", numericText(t, rows[0].DeltaUzs))
 	assert.Equal(t, "55040000.00", numericText(t, rows[0].BalanceUzs))
 	assert.Equal(t, "order", rows[2].Kind)
 	assert.Equal(t, &b.order.ID, rows[2].OrderID)
-	assert.Equal(t, ptr("Montaj"), rows[2].OrderTitle)
+	assert.Equal(t, ptr(int32(1)), rows[2].OrderNumber)
 	assert.Equal(t, "5000.00", numericText(t, rows[2].Amount))
 	assert.Equal(t, "64000000.00", numericText(t, rows[2].DeltaUzs), "an order adds")
 	assert.Equal(t, "64000000.00", numericText(t, rows[2].BalanceUzs))
@@ -248,7 +248,7 @@ func TestAccountStatementNamesTheOrderOfALinkedPayment(t *testing.T) {
 	assert.Equal(t, payment, rows[0].ID)
 	assert.Equal(t, &document, rows[0].LinkedID)
 	assert.Equal(t, &b.order.ID, rows[0].OrderID)
-	assert.Equal(t, ptr("Montaj"), rows[0].OrderTitle)
+	assert.Equal(t, ptr(int32(1)), rows[0].OrderNumber)
 	assert.Equal(t, ptr("Ali Karimov"), rows[0].CustomerName)
 }
 
@@ -273,11 +273,11 @@ func TestProductMovesNameTheOrderAndTheCustomer(t *testing.T) {
 	assert.Nil(t, rows[0].OrderID)
 	assert.Equal(t, "order", rows[1].Kind)
 	assert.Equal(t, &b.order.ID, rows[1].OrderID)
-	assert.Equal(t, ptr("Montaj"), rows[1].OrderTitle)
+	assert.Equal(t, ptr(int32(1)), rows[1].OrderNumber)
 	assert.Equal(t, "Ali Karimov", rows[1].Counterpart, "an order names its customer")
 	assert.Equal(t, "-2.000", numericText(t, rows[1].Quantity))
 	assert.Equal(t, "Bozor", rows[2].Counterpart)
-	assert.Nil(t, rows[2].OrderTitle)
+	assert.Nil(t, rows[2].OrderNumber)
 }
 
 // The moves of the products, in time, each with the unit cost in so'm its

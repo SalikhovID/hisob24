@@ -103,7 +103,7 @@ WHERE t.company_id = $1 AND t.deleted_at IS NULL
   AND ($5::text IS NULL OR t.assignee_phone = $5::text)
   AND ($6::bigint IS NULL OR t.customer_id = $6::bigint)
   AND ($7::text IS NULL
-       OR t.title ILIKE '%' || $7::text || '%'
+       OR ($8::text <> '' AND t.number::text = $8::text)
        OR c.phone LIKE '%' || $8::text || '%'
        OR EXISTS (SELECT 1 FROM order_values v
                   WHERE v.order_id = t.id AND v.option_id IS NULL
@@ -169,10 +169,10 @@ func (q *Queries) CountTypeOrders(ctx context.Context, typeID int64) (int64, err
 }
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
+INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, assignee_phone, assignee_name, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, $11)
-RETURNING id, company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name, created_at, updated_at, deleted_at, location_id
+RETURNING id, company_id, type_id, stage_id, customer_id, deadline, assignee_phone, assignee_name, created_by, created_by_name, created_at, updated_at, deleted_at, location_id, number
 `
 
 type CreateOrderParams struct {
@@ -181,7 +181,7 @@ type CreateOrderParams struct {
 	StageID       int64
 	CustomerID    int64
 	LocationID    int64
-	Title         string
+	Number        int32
 	Deadline      time.Time
 	AssigneePhone *string
 	AssigneeName  *string
@@ -189,9 +189,10 @@ type CreateOrderParams struct {
 	CreatedByName *string
 }
 
-// Enters an order, in a location of the company. assignee_name and
-// created_by_name are the names the members go by in the company now: they
-// stay when the members leave the company.
+// Enters an order, in a location of the company, under its number
+// (NextOrderNumber). assignee_name and created_by_name are the names the
+// members go by in the company now: they stay when the members leave the
+// company.
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
 	row := q.db.QueryRow(ctx, createOrder,
 		arg.CompanyID,
@@ -199,7 +200,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		arg.StageID,
 		arg.CustomerID,
 		arg.LocationID,
-		arg.Title,
+		arg.Number,
 		arg.Deadline,
 		arg.AssigneePhone,
 		arg.AssigneeName,
@@ -213,7 +214,6 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.TypeID,
 		&i.StageID,
 		&i.CustomerID,
-		&i.Title,
 		&i.Deadline,
 		&i.AssigneePhone,
 		&i.AssigneeName,
@@ -223,6 +223,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.LocationID,
+		&i.Number,
 	)
 	return i, err
 }
@@ -261,7 +262,7 @@ func (q *Queries) DeleteOrderValues(ctx context.Context, orderID int64) error {
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.number, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -299,7 +300,7 @@ type GetOrderRow struct {
 	StageID       int64
 	CustomerID    int64
 	LocationID    int64
-	Title         string
+	Number        int32
 	Deadline      time.Time
 	AssigneePhone *string
 	AssigneeName  *string
@@ -335,7 +336,7 @@ func (q *Queries) GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow
 		&i.StageID,
 		&i.CustomerID,
 		&i.LocationID,
-		&i.Title,
+		&i.Number,
 		&i.Deadline,
 		&i.AssigneePhone,
 		&i.AssigneeName,
@@ -355,7 +356,7 @@ func (q *Queries) GetOrder(ctx context.Context, arg GetOrderParams) (GetOrderRow
 }
 
 const listActiveOrders = `-- name: ListActiveOrders :many
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.number, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -396,7 +397,7 @@ type ListActiveOrdersRow struct {
 	StageID       int64
 	CustomerID    int64
 	LocationID    int64
-	Title         string
+	Number        int32
 	Deadline      time.Time
 	AssigneePhone *string
 	AssigneeName  *string
@@ -431,7 +432,7 @@ func (q *Queries) ListActiveOrders(ctx context.Context, arg ListActiveOrdersPara
 			&i.StageID,
 			&i.CustomerID,
 			&i.LocationID,
-			&i.Title,
+			&i.Number,
 			&i.Deadline,
 			&i.AssigneePhone,
 			&i.AssigneeName,
@@ -552,7 +553,7 @@ func (q *Queries) ListOrderValues(ctx context.Context, orderIds []int64) ([]List
 }
 
 const listOrders = `-- name: ListOrders :many
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.number, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -581,7 +582,7 @@ WHERE t.company_id = $1 AND t.deleted_at IS NULL
   AND ($5::text IS NULL OR t.assignee_phone = $5::text)
   AND ($6::bigint IS NULL OR t.customer_id = $6::bigint)
   AND ($7::text IS NULL
-       OR t.title ILIKE '%' || $7::text || '%'
+       OR ($8::text <> '' AND t.number::text = $8::text)
        OR c.phone LIKE '%' || $8::text || '%'
        OR EXISTS (SELECT 1 FROM order_values v
                   WHERE v.order_id = t.id AND v.option_id IS NULL
@@ -614,7 +615,7 @@ type ListOrdersRow struct {
 	StageID       int64
 	CustomerID    int64
 	LocationID    int64
-	Title         string
+	Number        int32
 	Deadline      time.Time
 	AssigneePhone *string
 	AssigneeName  *string
@@ -633,11 +634,12 @@ type ListOrdersRow struct {
 
 // A page of the company's orders, the one due soonest first (then the older
 // order), without the deleted. type_id, stage_id, assignee_phone and
-// customer_id each keep one; search, escaped for ILIKE, is looked for in the
-// title, in the order's text answers and in the customer's text answers;
-// digits, the digits of a search that is a number, in the customer's phone
-// and in the order's and the customer's whole number answers. A NULL argument
-// leaves its filter out.
+// customer_id each keep one; search, escaped for ILIKE, is looked for in
+// the order's text answers and in the customer's text answers; digits, the
+// digits of a search that is a number, in the customer's phone and in the
+// order's and the customer's whole number answers, and an order whose
+// number is just those digits is found (logic/orders.md, section 6). A
+// NULL argument leaves its filter out.
 func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error) {
 	rows, err := q.db.Query(ctx, listOrders,
 		arg.CompanyID,
@@ -664,7 +666,7 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListO
 			&i.StageID,
 			&i.CustomerID,
 			&i.LocationID,
-			&i.Title,
+			&i.Number,
 			&i.Deadline,
 			&i.AssigneePhone,
 			&i.AssigneeName,
@@ -718,17 +720,31 @@ func (q *Queries) MoveOrder(ctx context.Context, arg MoveOrderParams) (time.Time
 	return updated_at, err
 }
 
+const nextOrderNumber = `-- name: NextOrderNumber :one
+SELECT (COALESCE(max(number), 0) + 1)::int AS number FROM orders WHERE company_id = $1
+`
+
+// The number the company's next order takes: one past the highest so far,
+// the deleted orders counted (a number is never given twice). Run under
+// the company's lock (LockCompanyCustomers), so two orders entered at
+// once take two numbers.
+func (q *Queries) NextOrderNumber(ctx context.Context, companyID int64) (int32, error) {
+	row := q.db.QueryRow(ctx, nextOrderNumber, companyID)
+	var number int32
+	err := row.Scan(&number)
+	return number, err
+}
+
 const updateOrder = `-- name: UpdateOrder :one
 UPDATE orders
-SET title = $1, deadline = $2, stage_id = $3,
-    assignee_phone = $4, assignee_name = $5, updated_at = now()
-WHERE id = $6 AND company_id = $7 AND deleted_at IS NULL
-  AND location_id = ANY($8::bigint[])
+SET deadline = $1, stage_id = $2,
+    assignee_phone = $3, assignee_name = $4, updated_at = now()
+WHERE id = $5 AND company_id = $6 AND deleted_at IS NULL
+  AND location_id = ANY($7::bigint[])
 RETURNING updated_at
 `
 
 type UpdateOrderParams struct {
-	Title         string
 	Deadline      time.Time
 	StageID       int64
 	AssigneePhone *string
@@ -738,12 +754,11 @@ type UpdateOrderParams struct {
 	LocationIds   []int64
 }
 
-// An edit: the order's title, deadline, stage and assignee as they are now,
-// and the moment of the edit. pgx.ErrNoRows when the company has no such
+// An edit: the order's deadline, stage and assignee as they are now, and
+// the moment of the edit. pgx.ErrNoRows when the company has no such
 // order, or deleted it.
 func (q *Queries) UpdateOrder(ctx context.Context, arg UpdateOrderParams) (time.Time, error) {
 	row := q.db.QueryRow(ctx, updateOrder,
-		arg.Title,
 		arg.Deadline,
 		arg.StageID,
 		arg.AssigneePhone,

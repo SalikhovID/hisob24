@@ -282,7 +282,7 @@ WITH entries AS (
     SELECT e.id, e.kind, e.number, e.doc_at, e.note, e.linked_id, e.created_by, e.created_by_name, e.company_id, e.supplier_id, e.customer_id, e.category_id, e.other_account_id, e.delta, (sum(e.delta) OVER (ORDER BY e.doc_at, e.id))::numeric(14,2) AS balance
     FROM entries e
 )
-SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number, o.id AS order_id, o.title AS order_title,
+SELECT r.id, r.kind, r.number, r.doc_at, r.delta, r.balance, r.linked_id, l.number AS linked_number, o.id AS order_id, o.number AS order_number,
        s.name AS supplier_name,
        (SELECT v.text_value FROM customer_fields f
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = cu.id
@@ -319,7 +319,7 @@ type ListAccountStatementRow struct {
 	LinkedID         *int64
 	LinkedNumber     *int32
 	OrderID          *int64
-	OrderTitle       *string
+	OrderNumber      *int32
 	SupplierName     *string
 	CustomerName     *string
 	CustomerPhone    *string
@@ -361,7 +361,7 @@ func (q *Queries) ListAccountStatement(ctx context.Context, arg ListAccountState
 			&i.LinkedID,
 			&i.LinkedNumber,
 			&i.OrderID,
-			&i.OrderTitle,
+			&i.OrderNumber,
 			&i.SupplierName,
 			&i.CustomerName,
 			&i.CustomerPhone,

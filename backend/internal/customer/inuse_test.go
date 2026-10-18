@@ -151,8 +151,8 @@ func addOrder(t *testing.T, pool *pgxpool.Pool, ts orderSetup, customerID int64,
 	t.Helper()
 	ctx := t.Context()
 	var orderID int64
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, $6, 'Qo''ng''iroq', CURRENT_DATE, $5) RETURNING id`, ts.companyID, ts.typeID, ts.stageID, customerID, owner, ts.locationID).Scan(&orderID))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $6, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), CURRENT_DATE, $5) RETURNING id`, ts.companyID, ts.typeID, ts.stageID, customerID, owner, ts.locationID).Scan(&orderID))
 	for _, optionID := range chosen {
 		_, err := pool.Exec(ctx, "INSERT INTO order_values (order_id, field_id, option_id) VALUES ($1, $2, $3)", orderID, ts.fieldID, optionID)
 		require.NoError(t, err)

@@ -30,8 +30,9 @@ type orderJSON struct {
 	TypeID  int64 `json:"type_id"`
 	StageID int64 `json:"stage_id"`
 	// LocationID is the location the order stands in, for good.
-	LocationID int64  `json:"location_id"`
-	Title      string `json:"title"`
+	LocationID int64 `json:"location_id"`
+	// Number is the order's number in the company, its name («Buyurtma № N»).
+	Number int32 `json:"number"`
 	// Deadline is a day, YYYY-MM-DD.
 	Deadline string             `json:"deadline"`
 	Customer orderCustomerJSON  `json:"customer"`
@@ -52,7 +53,7 @@ type orderJSON struct {
 
 func toOrderJSON(t order.Order) orderJSON {
 	body := orderJSON{
-		ID: t.ID, TypeID: t.TypeID, StageID: t.StageID, LocationID: t.LocationID, Title: t.Title, Deadline: t.Deadline.Format(time.DateOnly),
+		ID: t.ID, TypeID: t.TypeID, StageID: t.StageID, LocationID: t.LocationID, Number: t.Number, Deadline: t.Deadline.Format(time.DateOnly),
 		Customer: orderCustomerJSON{ID: t.Customer.ID, Phone: t.Customer.Phone, Name: t.Customer.Name},
 		Values:   t.Values, Amount: t.Amount, CurrencyID: t.CurrencyID, Rate: t.Rate, AmountUZS: t.AmountUZS, Paid: t.Paid,
 		CreatedByName: t.CreatedByName, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
@@ -178,7 +179,6 @@ type orderLineInputJSON struct {
 // of an edit: its own fields, and its money (the advance on entry alone;
 // an edit's payments are ignored).
 type orderInputJSON struct {
-	Title         string                     `json:"title"`
 	Deadline      string                     `json:"deadline"`
 	StageID       int64                      `json:"stage_id"`
 	AssigneePhone *string                    `json:"assignee_phone"`
@@ -198,7 +198,7 @@ func (in orderInputJSON) input() order.Input {
 	for _, l := range in.Payments {
 		money.Payments = append(money.Payments, ledger.PaymentLine{BankAccountID: l.BankAccountID, Amount: l.Amount})
 	}
-	return order.Input{Title: in.Title, Deadline: in.Deadline, StageID: in.StageID, AssigneePhone: in.AssigneePhone, Values: in.Values, Money: money}
+	return order.Input{Deadline: in.Deadline, StageID: in.StageID, AssigneePhone: in.AssigneePhone, Values: in.Values, Money: money}
 }
 
 // orderCustomerInputJSON names a new order's customer: one that is there, by

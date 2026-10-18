@@ -66,9 +66,18 @@ func newOrderShop(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, name string)
 	return s
 }
 
+// nextNumber is the number the company's next order takes.
+func nextNumber(t *testing.T, q *gen.Queries, companyID int64) int32 {
+	t.Helper()
+	n, err := q.NextOrderNumber(t.Context(), companyID)
+	require.NoError(t, err)
+	return n
+}
+
 // order enters an order of the shop's type for Ali, in the first stage and in
-// Asosiy, as enteredBy; assignee is the member it is assigned to, if any.
-func (s orderShop) order(t *testing.T, q *gen.Queries, title, deadline string, assignee *string) gen.Order {
+// Asosiy, as enteredBy, under the next number; assignee is the member it
+// is assigned to, if any.
+func (s orderShop) order(t *testing.T, q *gen.Queries, deadline string, assignee *string) gen.Order {
 	t.Helper()
 	var assigneeName *string
 	if assignee != nil {
@@ -76,7 +85,7 @@ func (s orderShop) order(t *testing.T, q *gen.Queries, title, deadline string, a
 	}
 	order, err := q.CreateOrder(t.Context(), gen.CreateOrderParams{
 		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: s.ali.ID, LocationID: s.asosiy,
-		Title: title, Deadline: day(deadline), AssigneePhone: assignee, AssigneeName: assigneeName,
+		Number: nextNumber(t, q, s.company.ID), Deadline: day(deadline), AssigneePhone: assignee, AssigneeName: assigneeName,
 		CreatedBy: enteredBy, CreatedByName: ptr("Ali Valiyev"),
 	})
 	require.NoError(t, err)
@@ -89,7 +98,7 @@ func TestCreateOrder(t *testing.T) {
 
 	order, err := q.CreateOrder(t.Context(), gen.CreateOrderParams{
 		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: s.ali.ID, LocationID: s.asosiy,
-		Title: "Qo'ng'iroq qilish", Deadline: day("2026-10-10"), AssigneePhone: ptr(assignedTo), AssigneeName: ptr("Vali aka"),
+		Number: 7, Deadline: day("2026-10-10"), AssigneePhone: ptr(assignedTo), AssigneeName: ptr("Vali aka"),
 		CreatedBy: enteredBy, CreatedByName: ptr("Ali aka"),
 	})
 
@@ -100,14 +109,14 @@ func TestCreateOrder(t *testing.T) {
 	assert.Equal(t, s.yangi.ID, order.StageID)
 	assert.Equal(t, s.ali.ID, order.CustomerID)
 	assert.Equal(t, s.asosiy, order.LocationID, "the location the order stands in")
-	assert.Equal(t, "Qo'ng'iroq qilish", order.Title)
+	assert.EqualValues(t, 7, order.Number, "the number given")
 	assert.True(t, order.Deadline.Equal(day("2026-10-10")), "deadline %s", order.Deadline)
 	assert.Equal(t, ptr(assignedTo), order.AssigneePhone)
 	assert.Equal(t, ptr("Vali aka"), order.AssigneeName, "the name the assignee went by then")
 	assert.Equal(t, ptr("Ali aka"), order.CreatedByName, "the name the member went by then")
 	assert.Equal(t, order.CreatedAt, order.UpdatedAt, "not edited yet")
 	assert.Nil(t, order.DeletedAt)
-	unassigned := s.order(t, q, "Hisob yozish", "2026-10-11", nil)
+	unassigned := s.order(t, q, "2026-10-11", nil)
 	assert.Nil(t, unassigned.AssigneePhone)
 	assert.Nil(t, unassigned.AssigneeName)
 }
@@ -117,12 +126,12 @@ func TestGetOrder(t *testing.T) {
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
 	nok := createCompany(t, q, "Nok", today(t, pool))
-	order := s.order(t, q, "Qo'ng'iroq", "2026-10-10", ptr(assignedTo))
+	order := s.order(t, q, "2026-10-10", ptr(assignedTo))
 
 	got, err := q.GetOrder(ctx, gen.GetOrderParams{ID: order.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}})
 
 	require.NoError(t, err)
-	assert.Equal(t, "Qo'ng'iroq", got.Title)
+	assert.EqualValues(t, 1, got.Number)
 	assert.Equal(t, s.asosiy, got.LocationID, "the location the order stands in")
 	assert.Equal(t, "998901234567", got.CustomerPhone)
 	assert.Equal(t, ptr("Ali Valiyev"), got.CustomerName, "the customer's answer to its type's first text field")
@@ -141,7 +150,7 @@ func TestGetOrder(t *testing.T) {
 	nameless := createCustomer(t, q, s.company.ID, s.jismoniy.ID, "998907654321")
 	other, err := q.CreateOrder(ctx, gen.CreateOrderParams{
 		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: nameless.ID, LocationID: s.asosiy,
-		Title: "X", Deadline: day("2026-10-10"), CreatedBy: enteredBy,
+		Number: nextNumber(t, q, s.company.ID), Deadline: day("2026-10-10"), CreatedBy: enteredBy,
 	})
 	require.NoError(t, err)
 	got, err = q.GetOrder(ctx, gen.GetOrderParams{ID: other.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}})
@@ -155,11 +164,11 @@ func TestGetOrder(t *testing.T) {
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted order")
 }
 
-// titles is the titles of the orders listed, in their order.
-func titles(rows []gen.ListOrdersRow) []string {
-	list := make([]string, 0, len(rows))
+// numbers is the numbers of the orders listed, in their order.
+func numbers(rows []gen.ListOrdersRow) []int32 {
+	list := make([]int32, 0, len(rows))
 	for _, r := range rows {
-		list = append(list, r.Title)
+		list = append(list, r.Number)
 	}
 	return list
 }
@@ -169,9 +178,9 @@ func titles(rows []gen.ListOrdersRow) []string {
 // deleted. It returns the orders that stay.
 func seedOrders(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s orderShop) (later, sooner, soonest, other gen.Order) {
 	t.Helper()
-	later = s.order(t, q, "Hisob yozish", "2026-10-12", nil)
-	sooner = s.order(t, q, "Qo'ng'iroq qilish", "2026-10-10", ptr(assignedTo))
-	soonest = s.order(t, q, "Shartnoma", "2026-10-09", nil)
+	later = s.order(t, q, "2026-10-12", nil)
+	sooner = s.order(t, q, "2026-10-10", ptr(assignedTo))
+	soonest = s.order(t, q, "2026-10-09", nil)
 	vali := createCustomer(t, q, s.company.ID, s.jismoniy.ID, "998905555555")
 	answer(t, q, vali.ID, s.fish.ID, "Zarina Karimova")
 	inn := addField(t, q, s.company.ID, s.jismoniy.ID, "INN", "int", nil)
@@ -181,10 +190,10 @@ func seedOrders(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s orderShop) (
 	var err error
 	other, err = q.CreateOrder(t.Context(), gen.CreateOrderParams{
 		CompanyID: s.company.ID, TypeID: shikoyat.ID, StageID: done.ID, CustomerID: vali.ID, LocationID: s.asosiy,
-		Title: "Shikoyatni ko'rish", Deadline: day("2026-10-10"), CreatedBy: enteredBy,
+		Number: nextNumber(t, q, s.company.ID), Deadline: day("2026-10-10"), CreatedBy: enteredBy,
 	})
 	require.NoError(t, err)
-	gone := s.order(t, q, "O'chirilgan", "2026-10-01", nil)
+	gone := s.order(t, q, "2026-10-01", nil)
 	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", gone.ID)
 	return later, sooner, soonest, other
 }
@@ -194,7 +203,7 @@ func TestListOrders(t *testing.T) {
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
 	nok := newOrderShop(t, q, pool, "Nok")
-	nok.order(t, q, "Begona", "2026-10-01", nil)
+	nok.order(t, q, "2026-10-01", nil)
 	later, sooner, soonest, other := seedOrders(t, q, pool, s)
 	require.NoError(t, q.AddOrderValue(ctx, gen.AddOrderValueParams{OrderID: later.ID, FieldID: s.izoh.ID, TextValue: ptr("Ertalab yozish")}))
 	require.NoError(t, q.AddOrderValue(ctx, gen.AddOrderValueParams{OrderID: later.ID, FieldID: s.summa.ID, IntValue: ptr(int64(45000))}))
@@ -203,7 +212,7 @@ func TestListOrders(t *testing.T) {
 	rows, err := q.ListOrders(ctx, all)
 
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Shartnoma", "Qo'ng'iroq qilish", "Shikoyatni ko'rish", "Hisob yozish"}, titles(rows),
+	assert.Equal(t, []int32{3, 2, 4, 1}, numbers(rows),
 		"the one due soonest first, the older order before the newer of one day; the deleted one and another company's are out")
 	assert.Equal(t, "998901234567", rows[0].CustomerPhone)
 	assert.Equal(t, ptr("Ali Valiyev"), rows[0].CustomerName)
@@ -214,40 +223,39 @@ func TestListOrders(t *testing.T) {
 	page.Limit, page.Offset = 2, 2
 	rows, err = q.ListOrders(ctx, page)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Shikoyatni ko'rish", "Hisob yozish"}, titles(rows), "the second page of two")
+	assert.Equal(t, []int32{4, 1}, numbers(rows), "the second page of two")
 
 	for about, tc := range map[string]struct {
 		params func(p gen.ListOrdersParams) gen.ListOrdersParams
-		want   []string
+		want   []int32
 	}{
-		"of one type":                          {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.TypeID = &other.TypeID; return p }, []string{"Shikoyatni ko'rish"}},
-		"in one stage":                         {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.StageID = &s.yangi.ID; return p }, []string{"Shartnoma", "Qo'ng'iroq qilish", "Hisob yozish"}},
-		"of one assignee":                      {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.AssigneePhone = ptr(assignedTo); return p }, []string{"Qo'ng'iroq qilish"}},
-		"of one customer":                      {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.CustomerID = &other.CustomerID; return p }, []string{"Shikoyatni ko'rish"}},
-		"a search in the title":                {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.Search = ptr("qo'ng"); return p }, []string{"Qo'ng'iroq qilish"}},
-		"a search in the order's text answers": {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.Search = ptr("ertalab"); return p }, []string{"Hisob yozish"}},
-		"a search in the customer's name":      {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.Search = ptr("karim"); return p }, []string{"Shikoyatni ko'rish"}},
+		"of one type":                          {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.TypeID = &other.TypeID; return p }, []int32{4}},
+		"in one stage":                         {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.StageID = &s.yangi.ID; return p }, []int32{3, 2, 1}},
+		"of one assignee":                      {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.AssigneePhone = ptr(assignedTo); return p }, []int32{2}},
+		"of one customer":                      {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.CustomerID = &other.CustomerID; return p }, []int32{4}},
+		"a search in the order's text answers": {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.Search = ptr("ertalab"); return p }, []int32{1}},
+		"a search in the customer's name":      {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.Search = ptr("karim"); return p }, []int32{4}},
 		"a number in the customer's phone": {func(p gen.ListOrdersParams) gen.ListOrdersParams {
 			p.Search, p.Digits = ptr("5555"), ptr("5555")
 			return p
-		}, []string{"Shikoyatni ko'rish"}},
+		}, []int32{4}},
 		"a number in the order's answers": {func(p gen.ListOrdersParams) gen.ListOrdersParams {
 			p.Search, p.Digits = ptr("450"), ptr("450")
 			return p
-		}, []string{"Hisob yozish"}},
+		}, []int32{1}},
 		"a number in the customer's number answers": {func(p gen.ListOrdersParams) gen.ListOrdersParams {
 			p.Search, p.Digits = ptr("3012"), ptr("3012")
 			return p
-		}, []string{"Shikoyatni ko'rish"}},
-		"a search that finds nothing": {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.Search = ptr("yo'q"); return p }, []string{}},
+		}, []int32{4}},
+		"a search that finds nothing": {func(p gen.ListOrdersParams) gen.ListOrdersParams { p.Search = ptr("yo'q"); return p }, []int32{}},
 		"a stage and a search together": {func(p gen.ListOrdersParams) gen.ListOrdersParams {
 			p.StageID, p.Search = &s.yangi.ID, ptr("karim")
 			return p
-		}, []string{}},
+		}, []int32{}},
 	} {
 		rows, err := q.ListOrders(ctx, tc.params(all))
 		require.NoError(t, err, about)
-		assert.Equal(t, tc.want, titles(rows), about)
+		assert.Equal(t, tc.want, numbers(rows), about)
 		p := tc.params(all)
 		count, err := q.CountOrders(ctx, gen.CountOrdersParams{
 			CompanyID: p.CompanyID, LocationIds: p.LocationIds, TypeID: p.TypeID, StageID: p.StageID, AssigneePhone: p.AssigneePhone,
@@ -265,11 +273,11 @@ func TestUpdateOrder(t *testing.T) {
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
 	nok := createCompany(t, q, "Nok", today(t, pool))
-	order := s.order(t, q, "Qo'ng'iroq", "2026-10-10", nil)
+	order := s.order(t, q, "2026-10-10", nil)
 	mustExec(t, pool, "UPDATE orders SET updated_at = created_at - interval '1 hour' WHERE id = $1", order.ID)
 
 	updatedAt, err := q.UpdateOrder(ctx, gen.UpdateOrderParams{
-		ID: order.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Title: "Qayta qo'ng'iroq", Deadline: day("2026-10-12"), StageID: s.bajarildi.ID,
+		ID: order.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Deadline: day("2026-10-12"), StageID: s.bajarildi.ID,
 		AssigneePhone: ptr(assignedTo), AssigneeName: ptr("Vali Aliyev"),
 	})
 
@@ -277,17 +285,17 @@ func TestUpdateOrder(t *testing.T) {
 	assert.True(t, updatedAt.After(order.CreatedAt), "the moment of the edit")
 	got, err := q.GetOrder(ctx, gen.GetOrderParams{ID: order.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}})
 	require.NoError(t, err)
-	assert.Equal(t, "Qayta qo'ng'iroq", got.Title)
+	assert.EqualValues(t, 1, got.Number, "the number stays")
 	assert.True(t, got.Deadline.Equal(day("2026-10-12")))
 	assert.Equal(t, s.bajarildi.ID, got.StageID)
 	assert.Equal(t, ptr(assignedTo), got.AssigneePhone)
 	assert.Equal(t, s.ali.ID, got.CustomerID, "the customer stays")
 	assert.Equal(t, s.buyurtma.ID, got.TypeID, "the type stays")
 
-	_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{ID: order.ID, CompanyID: nok.ID, LocationIds: []int64{s.asosiy}, Title: "X", Deadline: day("2026-10-12"), StageID: s.yangi.ID})
+	_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{ID: order.ID, CompanyID: nok.ID, LocationIds: []int64{s.asosiy}, Deadline: day("2026-10-12"), StageID: s.yangi.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's order")
 	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", order.ID)
-	_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{ID: order.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Title: "X", Deadline: day("2026-10-12"), StageID: s.yangi.ID})
+	_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{ID: order.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Deadline: day("2026-10-12"), StageID: s.yangi.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted order")
 }
 
@@ -296,7 +304,7 @@ func TestMoveOrder(t *testing.T) {
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
 	nok := createCompany(t, q, "Nok", today(t, pool))
-	order := s.order(t, q, "Qo'ng'iroq", "2026-10-10", ptr(assignedTo))
+	order := s.order(t, q, "2026-10-10", ptr(assignedTo))
 	mustExec(t, pool, "UPDATE orders SET updated_at = created_at - interval '1 hour' WHERE id = $1", order.ID)
 
 	updatedAt, err := q.MoveOrder(ctx, gen.MoveOrderParams{ID: order.ID, CompanyID: s.company.ID, StageID: s.bajarildi.ID, LocationIds: []int64{s.asosiy}})
@@ -306,7 +314,7 @@ func TestMoveOrder(t *testing.T) {
 	got, err := q.GetOrder(ctx, gen.GetOrderParams{ID: order.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}})
 	require.NoError(t, err)
 	assert.Equal(t, s.bajarildi.ID, got.StageID)
-	assert.Equal(t, "Qo'ng'iroq", got.Title, "nothing else changes")
+	assert.EqualValues(t, 1, got.Number, "nothing else changes")
 	assert.Equal(t, ptr(assignedTo), got.AssigneePhone)
 
 	_, err = q.MoveOrder(ctx, gen.MoveOrderParams{ID: order.ID, CompanyID: nok.ID, StageID: s.yangi.ID, LocationIds: []int64{s.asosiy}})
@@ -321,7 +329,7 @@ func TestDeleteOrder(t *testing.T) {
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
 	nok := createCompany(t, q, "Nok", today(t, pool))
-	order := s.order(t, q, "Qo'ng'iroq", "2026-10-10", nil)
+	order := s.order(t, q, "2026-10-10", nil)
 
 	_, err := q.DeleteOrder(ctx, gen.DeleteOrderParams{ID: order.ID, CompanyID: nok.ID, LocationIds: []int64{s.asosiy}})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's order")
@@ -355,8 +363,8 @@ func TestOrderValues(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
-	first := s.order(t, q, "Qo'ng'iroq", "2026-10-10", nil)
-	second := s.order(t, q, "Hisob", "2026-10-11", nil)
+	first := s.order(t, q, "2026-10-10", nil)
+	second := s.order(t, q, "2026-10-11", nil)
 	mustExec(t, pool, "UPDATE order_fields SET position = 0 WHERE id = $1", s.summa.ID)
 	mustExec(t, pool, "UPDATE customer_dropdown_options SET position = 0 WHERE id = $1", s.linkedin.ID)
 
@@ -391,9 +399,9 @@ func TestCountOrdersInUse(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
-	first := s.order(t, q, "Qo'ng'iroq", "2026-10-10", nil)
-	second := s.order(t, q, "Hisob", "2026-10-11", nil)
-	gone := s.order(t, q, "O'chirilgan", "2026-10-12", nil)
+	first := s.order(t, q, "2026-10-10", nil)
+	second := s.order(t, q, "2026-10-11", nil)
+	gone := s.order(t, q, "2026-10-12", nil)
 	for _, id := range []int64{first.ID, second.ID, gone.ID} {
 		require.NoError(t, q.AddOrderValue(ctx, gen.AddOrderValueParams{OrderID: id, FieldID: s.izoh.ID, TextValue: ptr("Izoh")}))
 		require.NoError(t, q.AddOrderValue(ctx, gen.AddOrderValueParams{OrderID: id, FieldID: s.kanal.ID, OptionID: &s.instagram.ID}))
@@ -427,8 +435,8 @@ func TestOrderHistoryQueries(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
-	order := s.order(t, q, "Qo'ng'iroq", "2026-10-10", nil)
-	other := s.order(t, q, "Hisob", "2026-10-11", nil)
+	order := s.order(t, q, "2026-10-10", nil)
+	other := s.order(t, q, "2026-10-11", nil)
 
 	require.NoError(t, q.AddOrderHistory(ctx, gen.AddOrderHistoryParams{OrderID: order.ID, Action: "created", ActorPhone: enteredBy, ActorName: ptr("Ali aka"), Changes: []byte("[]")}))
 	require.NoError(t, q.AddOrderHistory(ctx, gen.AddOrderHistoryParams{
@@ -459,10 +467,10 @@ func TestOrdersAreReadWithinTheLocations(t *testing.T) {
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
 	chilonzor := addLocation(t, pool, s.company.ID, "Chilonzor")
-	inAsosiy := s.order(t, q, "Asosiyda", "2026-10-10", nil)
+	inAsosiy := s.order(t, q, "2026-10-10", nil)
 	inChilonzor, err := q.CreateOrder(ctx, gen.CreateOrderParams{
 		CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: s.ali.ID, LocationID: chilonzor,
-		Title: "Chilonzorda", Deadline: day("2026-10-09"), CreatedBy: enteredBy,
+		Number: nextNumber(t, q, s.company.ID), Deadline: day("2026-10-09"), CreatedBy: enteredBy,
 	})
 	require.NoError(t, err)
 	only := []int64{chilonzor}
@@ -470,10 +478,10 @@ func TestOrdersAreReadWithinTheLocations(t *testing.T) {
 
 	rows, err := q.ListOrders(ctx, gen.ListOrdersParams{CompanyID: s.company.ID, LocationIds: both, Limit: 20})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Chilonzorda", "Asosiyda"}, titles(rows), "both locations")
+	assert.Equal(t, []int32{2, 1}, numbers(rows), "both locations")
 	rows, err = q.ListOrders(ctx, gen.ListOrdersParams{CompanyID: s.company.ID, LocationIds: only, Limit: 20})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Chilonzorda"}, titles(rows), "one location")
+	assert.Equal(t, []int32{2}, numbers(rows), "one location")
 	rows, err = q.ListOrders(ctx, gen.ListOrdersParams{CompanyID: s.company.ID, LocationIds: []int64{}, Limit: 20})
 	require.NoError(t, err)
 	assert.Empty(t, rows, "no location: nothing")
@@ -486,13 +494,56 @@ func TestOrdersAreReadWithinTheLocations(t *testing.T) {
 	got, err := q.GetOrder(ctx, gen.GetOrderParams{ID: inChilonzor.ID, CompanyID: s.company.ID, LocationIds: only})
 	require.NoError(t, err)
 	assert.Equal(t, chilonzor, got.LocationID)
-	_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{ID: inAsosiy.ID, CompanyID: s.company.ID, LocationIds: only, Title: "X", Deadline: day("2026-10-12"), StageID: s.yangi.ID})
+	_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{ID: inAsosiy.ID, CompanyID: s.company.ID, LocationIds: only, Deadline: day("2026-10-12"), StageID: s.yangi.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "nor edited")
 	_, err = q.MoveOrder(ctx, gen.MoveOrderParams{ID: inAsosiy.ID, CompanyID: s.company.ID, LocationIds: only, StageID: s.bajarildi.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "nor moved")
 	_, err = q.DeleteOrder(ctx, gen.DeleteOrderParams{ID: inAsosiy.ID, CompanyID: s.company.ID, LocationIds: only})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "nor deleted")
-	var title string
-	require.NoError(t, pool.QueryRow(ctx, "SELECT title FROM orders WHERE id = $1 AND deleted_at IS NULL", inAsosiy.ID).Scan(&title))
-	assert.Equal(t, "Asosiyda", title, "untouched")
+	var number int32
+	require.NoError(t, pool.QueryRow(ctx, "SELECT number FROM orders WHERE id = $1 AND deleted_at IS NULL", inAsosiy.ID).Scan(&number))
+	assert.EqualValues(t, 1, number, "untouched")
+}
+
+// The company's next order number: one past the highest, the deleted
+// orders counted; every company counts on its own.
+func TestNextOrderNumber(t *testing.T) {
+	q, pool := setup(t)
+	s := newOrderShop(t, q, pool, "Olma")
+	nok := newOrderShop(t, q, pool, "Nok")
+	assert.EqualValues(t, 1, nextNumber(t, q, s.company.ID), "the first")
+	s.order(t, q, "2026-10-10", nil)
+	gone := s.order(t, q, "2026-10-11", nil)
+	assert.EqualValues(t, 3, nextNumber(t, q, s.company.ID), "one past the highest")
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", gone.ID)
+	assert.EqualValues(t, 3, nextNumber(t, q, s.company.ID), "a deleted order keeps its number taken")
+	assert.EqualValues(t, 1, nextNumber(t, q, nok.company.ID), "another company counts on its own")
+}
+
+// A search of a number alone finds the order of that number
+// (logic/orders.md, section 6), the number matched whole.
+func TestListOrdersFindsTheNumber(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	s := newOrderShop(t, q, pool, "Olma")
+	// A phone with no digit a number could be mistaken for.
+	karim := createCustomer(t, q, s.company.ID, s.jismoniy.ID, "998900000000")
+	for _, deadline := range []string{"2026-10-10", "2026-10-11", "2026-10-12"} {
+		_, err := q.CreateOrder(ctx, gen.CreateOrderParams{
+			CompanyID: s.company.ID, TypeID: s.buyurtma.ID, StageID: s.yangi.ID, CustomerID: karim.ID, LocationID: s.asosiy,
+			Number: nextNumber(t, q, s.company.ID), Deadline: day(deadline), CreatedBy: enteredBy,
+		})
+		require.NoError(t, err)
+	}
+	find := func(digits string) []int32 {
+		rows, err := q.ListOrders(ctx, gen.ListOrdersParams{CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Search: ptr(digits), Digits: ptr(digits), Limit: 20})
+		require.NoError(t, err)
+		return numbers(rows)
+	}
+
+	assert.Equal(t, []int32{2}, find("2"), "the order of the number")
+	assert.Equal(t, []int32{}, find("12"), "matched whole")
+	count, err := q.CountOrders(ctx, gen.CountOrdersParams{CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Search: ptr("2"), Digits: ptr("2")})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, count, "counted alike")
 }

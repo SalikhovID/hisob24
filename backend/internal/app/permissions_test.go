@@ -143,7 +143,7 @@ func TestAnOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	api.giveRole(t, valisPhone, olma, &operator)
 	customer := api.enter(t, owner, sh.jismoniy, "998911112233", fmt.Sprintf(`{"%s":"Dilshod"}`, key(sh.fish)))
 	newCustomer := fmt.Sprintf(`{"type_id":%d,"phone":"998911112244","values":{"%s":"Malika"}}`, sh.jismoniy, key(sh.fish))
-	withNew := fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Yangi mijozga","deadline":"2026-10-20","stage_id":%d,"values":{"%s":"Izoh"},"customer":%s}`,
+	withNew := fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":"2026-10-20","stage_id":%d,"values":{"%s":"Izoh"},"customer":%s}`,
 		sh.buyurtma, sh.asosiy, sh.yangi, key(sh.izoh), newCustomer)
 
 	rec := api.do(t, http.MethodPost, "/app/orders", withNew, bearer(employee))
@@ -155,7 +155,7 @@ func TestAnOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	assert.Equal(t, 0, orders, "no order")
 	assert.Equal(t, 1, customers, "no customer beside the one that was there")
 
-	withExisting := orderBody(sh, "Mavjud mijozga", "2026-10-20", sh.yangi, customer["id"], fmt.Sprintf(`{"%s":"Izoh"}`, key(sh.izoh)), "")
+	withExisting := orderBody(sh, "2026-10-20", sh.yangi, customer["id"], fmt.Sprintf(`{"%s":"Izoh"}`, key(sh.izoh)), "")
 	rec = api.do(t, http.MethodPost, "/app/orders", withExisting, bearer(employee))
 	assert.Equal(t, http.StatusCreated, rec.Code, "an order for a customer that is there needs orders.create alone: %s", rec.Body.String())
 }

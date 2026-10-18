@@ -146,8 +146,8 @@ func TestListLocations(t *testing.T) {
 	gone := addLocation(t, pool, s.company.ID, "Yopilgan")
 	mustExec(t, pool, "UPDATE locations SET deleted_at = now() WHERE id = $1", gone)
 	addLocation(t, pool, createCompany(t, q, "Nok", today(t, pool)).ID, "Begona")
-	s.order(t, q, "Qo'ng'iroq", "2026-10-10", nil)
-	deleted := s.order(t, q, "O'chirilgan", "2026-10-11", nil)
+	s.order(t, q, "2026-10-10", nil)
+	deleted := s.order(t, q, "2026-10-11", nil)
 	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", deleted.ID)
 
 	rows, err := q.ListLocations(ctx, s.company.ID)
@@ -236,9 +236,9 @@ func TestCountLocationOrders(t *testing.T) {
 	q, pool := setup(t)
 	ctx := t.Context()
 	s := newOrderShop(t, q, pool, "Olma")
-	s.order(t, q, "Qo'ng'iroq", "2026-10-10", nil)
-	s.order(t, q, "Shartnoma", "2026-10-11", nil)
-	deleted := s.order(t, q, "O'chirilgan", "2026-10-12", nil)
+	s.order(t, q, "2026-10-10", nil)
+	s.order(t, q, "2026-10-11", nil)
+	deleted := s.order(t, q, "2026-10-12", nil)
 	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", deleted.ID)
 
 	n, err := q.CountLocationOrders(ctx, s.asosiy)

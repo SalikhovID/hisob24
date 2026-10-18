@@ -15,7 +15,7 @@ import (
 
 // addOrder enters an order of the company for the customer in the
 // location, under a stage and a type made on the first ask.
-func addOrder(t *testing.T, pool *pgxpool.Pool, companyID, customerID, locationID int64, title string) OrderHead {
+func addOrder(t *testing.T, pool *pgxpool.Pool, companyID, customerID, locationID int64) OrderHead {
 	t.Helper()
 	ctx := t.Context()
 	var stage, typ int64
@@ -26,8 +26,8 @@ func addOrder(t *testing.T, pool *pgxpool.Pool, companyID, customerID, locationI
 		require.NoError(t, pool.QueryRow(ctx, "INSERT INTO order_types (company_id, name, position) VALUES ($1, 'Buyurtma', 1) RETURNING id", companyID).Scan(&typ))
 	}
 	head := OrderHead{CustomerID: customerID, LocationID: locationID}
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, '2026-10-20', $7) RETURNING id`, companyID, typ, stage, customerID, locationID, title, ali).Scan(&head.ID))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), '2026-10-20', $6) RETURNING id`, companyID, typ, stage, customerID, locationID, ali).Scan(&head.ID))
 	return head
 }
 
@@ -70,7 +70,7 @@ func readMoney(t *testing.T, s *Service, companyID, orderID int64) OrderMoney {
 func TestWriteOrderDocumentWhenNeeded(t *testing.T) {
 	s, pool := newService(t)
 	m := newStockedMarket(t, s, pool)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
 
 	money, err := write(t, s, m, order, OrderMoneyInput{}, true)
 	require.NoError(t, err)
@@ -96,12 +96,12 @@ func TestWriteOrderDocumentWhenNeeded(t *testing.T) {
 	assert.Equal(t, []string{"order:1:0.00:false"}, documentsOf(t, pool, order.ID), "the price taken away: the document stays, priced at nothing")
 	assert.Equal(t, money.DocumentID, readMoney(t, s, m.company, order.ID).DocumentID)
 
-	goods := addOrder(t, pool, m.company, m.karim, m.asosiy, "Yetkazish")
+	goods := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	money, err = write(t, s, m, goods, OrderMoneyInput{Items: []ItemInput{move(m.olma, "2")}}, true)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"order:2:0.00:false"}, documentsOf(t, pool, goods.ID), "goods alone: a document priced at nothing")
 	assert.Equal(t, "8.000", stockOf(t, pool, m.asosiy, m.olma), "out of the stock")
-	paid := addOrder(t, pool, m.company, m.karim, m.asosiy, "Ta'mir")
+	paid := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	money, err = write(t, s, m, paid, OrderMoneyInput{Payments: []ledger.PaymentLine{pay(m.cash, "1000")}}, true)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"order:3:0.00:false"}, documentsOf(t, pool, paid.ID), "an advance alone: a document for it to link to")
@@ -116,7 +116,7 @@ func TestWriteOrderDocumentPriceLinesAndAdvance(t *testing.T) {
 	m := newStockedMarket(t, s, pool)
 	standardRate(t, pool, m.company, "12800", "2026-10-01T00:00:00+05:00")
 	card := addAccount(t, pool, m.company, "Karta", 2, true)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
 
 	money, err := write(t, s, m, order, OrderMoneyInput{
 		Amount: ptr("5000"), CurrencyID: ptr(int64(2)),
@@ -153,7 +153,7 @@ func TestWriteOrderDocumentPriceLinesAndAdvance(t *testing.T) {
 	assert.Equal(t, money, readMoney(t, s, m.company, order.ID))
 
 	// Another rate typed: the document's own rate row.
-	own := addOrder(t, pool, m.company, m.karim, m.asosiy, "Ta'mir")
+	own := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	money, err = write(t, s, m, own, OrderMoneyInput{Amount: ptr("100"), CurrencyID: ptr(int64(2)), Rate: ptr("13000")}, true)
 	require.NoError(t, err)
 	assert.Equal(t, "13000.0000", money.Rate)
@@ -169,7 +169,7 @@ func TestWriteOrderDocumentRefusals(t *testing.T) {
 	other := newShop(t, pool, "Nok")
 	foreign := addProduct(t, pool, other.company, "Anor", ptr("kg"), true)
 	off := addProduct(t, pool, m.company, "Eski", ptr("kg"), false)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	for name, tc := range map[string]struct {
 		in      OrderMoneyInput
 		kind    apperr.Kind
@@ -209,7 +209,7 @@ func TestWriteOrderDocumentAgain(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newStockedMarket(t, s, pool)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	first, err := write(t, s, m, order, OrderMoneyInput{Amount: ptr("5000"), Items: []ItemInput{move(m.olma, "4")}, Payments: []ledger.PaymentLine{pay(m.cash, "400")}}, true)
 	require.NoError(t, err)
 	var docAt time.Time
@@ -248,8 +248,8 @@ func TestDeleteOrderDocument(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newStockedMarket(t, s, pool)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
-	bare := addOrder(t, pool, m.company, m.karim, m.asosiy, "Yetkazish")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
+	bare := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	money, err := write(t, s, m, order, OrderMoneyInput{Amount: ptr("5000"), Items: []ItemInput{move(m.olma, "4")}, Payments: []ledger.PaymentLine{pay(m.cash, "400")}}, true)
 	require.NoError(t, err)
 
@@ -290,7 +290,7 @@ func TestOrderDocumentIsDatedToTheMinute(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newStockedMarket(t, s, pool)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	_, err := write(t, s, m, order, OrderMoneyInput{Amount: ptr("5000")}, true)
 	require.NoError(t, err)
 

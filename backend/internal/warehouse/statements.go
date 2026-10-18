@@ -13,7 +13,7 @@ import (
 // currency (with its rate) and in so'm, how it changed what is owed and
 // what was owed after it; a payment names its account, one entered with a
 // purchase names the purchase too; an order's document, and a payment
-// entered for an order, name the order (OrderID, OrderTitle).
+// entered for an order, name the order (OrderID, OrderNumber).
 type StatementRow struct {
 	ID            int64
 	Kind          string
@@ -30,7 +30,7 @@ type StatementRow struct {
 	BankAccountID *int64
 	AccountName   *string
 	OrderID       *int64
-	OrderTitle    *string
+	OrderNumber   *int32
 	Note          *string
 	CreatedByName *string
 }
@@ -71,7 +71,7 @@ func partyStatement(ctx context.Context, q *gen.Queries, party string, companyID
 		items = append(items, StatementRow{
 			ID: r.ID, Kind: r.Kind, Number: r.Number, At: r.DocAt.UTC(), Amount: amount(r.Amount), CurrencyID: r.CurrencyID, Rate: currency.RateText(r.Rate),
 			AmountUZS: amount(r.AmountUzs), DeltaUZS: amount(r.DeltaUzs), BalanceUZS: amount(r.BalanceUzs), LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber,
-			BankAccountID: r.BankAccountID, AccountName: r.AccountName, OrderID: r.OrderID, OrderTitle: r.OrderTitle, Note: r.Note, CreatedByName: r.CreatedByName,
+			BankAccountID: r.BankAccountID, AccountName: r.AccountName, OrderID: r.OrderID, OrderNumber: r.OrderNumber, Note: r.Note, CreatedByName: r.CreatedByName,
 		})
 	}
 	return StatementPage{Items: items, Total: total, Page: page, PageSize: PageSize}, nil

@@ -59,11 +59,13 @@ type Order struct {
 	// LocationID is the location the order stands in (logic/locations.md):
 	// the one it was entered in, for good.
 	LocationID int64
-	Title      string
-	Deadline   time.Time
-	Customer   Customer
-	Assignee   *Member
-	Values     fields.Values
+	// Number is the order's number in the company (logic/orders.md, 3.3):
+	// given on entry, never given twice, the order's name («Buyurtma № N»).
+	Number   int32
+	Deadline time.Time
+	Customer Customer
+	Assignee *Member
+	Values   fields.Values
 	// Amount is the order's price in its currency (CurrencyID, by Rate),
 	// AmountUZS the price in so'm, Paid what was paid for the order in its
 	// currency; "0.00" in so'm for an order without a document
@@ -165,7 +167,6 @@ func (sc Scope) has(locationID int64) bool {
 // deadline as YYYY-MM-DD, the stage, the assignee's phone if any, and the
 // answers by the id of the field.
 type Input struct {
-	Title         string
 	Deadline      string
 	StageID       int64
 	AssigneePhone *string
@@ -195,14 +196,10 @@ type CustomerInput struct {
 // entered with it, in the same transaction, and so is the order's money
 // (its price, its goods out of the stock, its advance) as its document. by
 // is the phone of the member who enters it. What is wrong is told in this
-// order: the title, the deadline, the location, the type, the stage, the
+// order: the deadline, the location, the type, the stage, the
 // assignee, the answers, the customer, the money, the stock.
 func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, locationID int64, in Input, cust CustomerInput) (Order, error) {
 	companyID := scope.CompanyID
-	title, err := orderTitle(in.Title)
-	if err != nil {
-		return Order{}, err
-	}
 	deadline, err := orderDeadline(in.Deadline)
 	if err != nil {
 		return Order{}, err
@@ -244,8 +241,13 @@ func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, lo
 		if err != nil {
 			return err
 		}
+		// The company's next number, under its lock (logic/orders.md, 3.3).
+		number, err := q.NextOrderNumber(ctx, companyID)
+		if err != nil {
+			return err
+		}
 		row, err := q.CreateOrder(ctx, gen.CreateOrderParams{
-			CompanyID: companyID, TypeID: typeID, StageID: in.StageID, CustomerID: customerID, LocationID: locationID, Title: title, Deadline: deadline,
+			CompanyID: companyID, TypeID: typeID, StageID: in.StageID, CustomerID: customerID, LocationID: locationID, Number: number, Deadline: deadline,
 			AssigneePhone: who.phone, AssigneeName: who.name, CreatedBy: by, CreatedByName: name,
 		})
 		if err != nil {
@@ -484,7 +486,7 @@ func orderOf(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Order,
 // toOrder is an order as the queries read it, with its answers.
 func toOrder(row gen.GetOrderRow, values fields.Values) Order {
 	t := Order{
-		ID: row.ID, TypeID: row.TypeID, StageID: row.StageID, LocationID: row.LocationID, Title: row.Title, Deadline: row.Deadline,
+		ID: row.ID, TypeID: row.TypeID, StageID: row.StageID, LocationID: row.LocationID, Number: row.Number, Deadline: row.Deadline,
 		Customer: Customer{ID: row.CustomerID, Phone: row.CustomerPhone, Name: row.CustomerName},
 		Values:   values,
 		Amount:   money(row.Amount), CurrencyID: row.CurrencyID, Rate: currency.RateText(row.Rate), AmountUZS: money(row.AmountUzs), Paid: money(row.Paid),
@@ -612,10 +614,6 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, 
 		if err != nil {
 			return err
 		}
-		title, err := orderTitle(in.Title)
-		if err != nil {
-			return err
-		}
 		deadline, err := orderDeadline(in.Deadline)
 		if err != nil {
 			return err
@@ -663,8 +661,8 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, 
 			wasAssignee = nameOf(was.Assignee.Name)
 		}
 		changed := diffHead(
-			head{Title: was.Title, Deadline: was.Deadline, Stage: wasStage, Assignee: wasAssignee},
-			head{Title: title, Deadline: deadline, Stage: stage.Name, Assignee: nameOf(who.name)},
+			head{Deadline: was.Deadline, Stage: wasStage, Assignee: wasAssignee},
+			head{Deadline: deadline, Stage: stage.Name, Assignee: nameOf(who.name)},
 		)
 		changed = append(changed, fields.DiffValues(form, options, was.Values, values)...)
 		changed = append(changed, diffMoney(wasMoney, nowMoney)...)
@@ -674,7 +672,7 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, 
 			return nil
 		}
 		_, err = q.UpdateOrder(ctx, gen.UpdateOrderParams{
-			ID: id, CompanyID: companyID, LocationIds: scope.LocationIDs, Title: title, Deadline: deadline, StageID: stage.ID,
+			ID: id, CompanyID: companyID, LocationIds: scope.LocationIDs, Deadline: deadline, StageID: stage.ID,
 			AssigneePhone: who.phone, AssigneeName: who.name,
 		})
 		if err != nil {

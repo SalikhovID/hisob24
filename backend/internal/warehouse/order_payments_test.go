@@ -19,7 +19,7 @@ func TestAnOrdersPayments(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newStockedMarket(t, s, pool)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
 
 	first, err := s.AddOrderPayment(ctx, m.scope(), ali, order.ID, PaymentInput{BankAccountID: m.cash, Amount: ptr("300"), At: on, Note: ptr(" Qolgani ")})
 
@@ -76,7 +76,7 @@ func TestAnOrdersPayments(t *testing.T) {
 
 	// What is refused: an order out of the scope, a payment of another
 	// order, a payment gone, the payment's own rules.
-	other := addOrder(t, pool, m.company, m.karim, m.chilonzor, "Yetkazish")
+	other := addOrder(t, pool, m.company, m.karim, m.chilonzor)
 	_, err = s.AddOrderPayment(ctx, m.scope(m.asosiy), ali, other.ID, PaymentInput{BankAccountID: m.cash, Amount: ptr("1"), At: on})
 	refused(t, err, apperr.NotFound, "not_found", "Buyurtma topilmadi", "an order outside the member's locations")
 	_, err = s.AddOrderPayment(ctx, m.scope(), ali, order.ID+1000, PaymentInput{BankAccountID: m.cash, Amount: ptr("1"), At: on})
@@ -104,7 +104,7 @@ func TestTheStatementAndTheMovesNameTheOrder(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	m := newStockedMarket(t, s, pool)
-	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy)
 	_, err := write(t, s, m, order, OrderMoneyInput{Amount: ptr("5000"), Items: []ItemInput{move(m.olma, "2")}, Payments: []ledger.PaymentLine{pay(m.cash, "400")}}, true)
 	require.NoError(t, err)
 
@@ -113,10 +113,10 @@ func TestTheStatementAndTheMovesNameTheOrder(t *testing.T) {
 	require.Len(t, statement.Items, 2)
 	assert.Equal(t, "customer_payment", statement.Items[0].Kind)
 	assert.Equal(t, &order.ID, statement.Items[0].OrderID, "the payment names the order it was entered for")
-	assert.Equal(t, ptr("Montaj"), statement.Items[0].OrderTitle)
+	assert.Equal(t, ptr(int32(1)), statement.Items[0].OrderNumber)
 	assert.Equal(t, "order", statement.Items[1].Kind)
 	assert.Equal(t, &order.ID, statement.Items[1].OrderID)
-	assert.Equal(t, ptr("Montaj"), statement.Items[1].OrderTitle)
+	assert.Equal(t, ptr(int32(1)), statement.Items[1].OrderNumber)
 	assert.Equal(t, "5000.00", statement.Items[1].Amount)
 
 	moves, err := s.ProductMoves(ctx, m.scope(), m.olma, 0, 1)
@@ -124,7 +124,7 @@ func TestTheStatementAndTheMovesNameTheOrder(t *testing.T) {
 	require.Len(t, moves.Items, 2)
 	assert.Equal(t, "order", moves.Items[0].Kind)
 	assert.Equal(t, &order.ID, moves.Items[0].OrderID)
-	assert.Equal(t, ptr("Montaj"), moves.Items[0].OrderTitle)
+	assert.Equal(t, ptr(int32(1)), moves.Items[0].OrderNumber)
 	assert.Equal(t, ptr("Karim aka"), moves.Items[0].Counterpart, "the customer")
 	assert.Equal(t, "-2.000", moves.Items[0].Quantity)
 	assert.Nil(t, moves.Items[1].OrderID, "a purchase names no order")

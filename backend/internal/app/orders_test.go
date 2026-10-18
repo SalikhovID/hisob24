@@ -41,12 +41,11 @@ func (api testAPI) orderShop(t *testing.T, companyID int64) orderShop {
 }
 
 // orderBody is a body for POST /app/orders: an order of the type Buyurtma in
-// Asosiy with the title, due on the day, in the stage, for the customer that
-// is there, with the answers (JSON) and whatever else the caller adds
-// (",key":value).
-func orderBody(sh orderShop, title, deadline string, stageID int64, customerID any, values, extra string) string {
-	return fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":%q,"deadline":%q,"stage_id":%d,"values":%s,"customer":{"id":%v}%s}`,
-		sh.buyurtma, sh.asosiy, title, deadline, stageID, values, customerID, extra)
+// Asosiy, due on the day, in the stage, for the customer that is there,
+// with the answers (JSON) and whatever else the caller adds (",key":value).
+func orderBody(sh orderShop, deadline string, stageID int64, customerID any, values, extra string) string {
+	return fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":%q,"stage_id":%d,"values":%s,"customer":{"id":%v}%s}`,
+		sh.buyurtma, sh.asosiy, deadline, stageID, values, customerID, extra)
 }
 
 // enterOrder enters an order through the API, as the member the token is of,
@@ -71,7 +70,7 @@ func TestCreateOrder(t *testing.T) {
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 
-	rec := api.do(t, http.MethodPost, "/app/orders", orderBody(sh, " Qo'ng'iroq qilish ", "2026-10-10", sh.yangi, ali["id"],
+	rec := api.do(t, http.MethodPost, "/app/orders", orderBody(sh, "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":" Ertalab ","%d":45000,"%d":[%d,%d]}`, sh.izoh, sh.summa, sh.kanal, sh.linkedin, sh.instagram),
 		`,"assignee_phone":"+998 90 123 45 67"`), bearer(employee))
 
@@ -81,7 +80,8 @@ func TestCreateOrder(t *testing.T) {
 	assert.EqualValues(t, sh.buyurtma, order["type_id"])
 	assert.EqualValues(t, sh.yangi, order["stage_id"])
 	assert.EqualValues(t, sh.asosiy, order["location_id"], "the location the order stands in")
-	assert.Equal(t, "Qo'ng'iroq qilish", order["title"], "an employee enters an order; the title without the spaces around it")
+	assert.EqualValues(t, 1, order["number"], "an employee enters an order; it takes the company's first number")
+	assert.NotContains(t, order, "title", "an order has no name")
 	assert.Equal(t, "2026-10-10", order["deadline"], "a day, as it was sent")
 	assert.Equal(t, map[string]any{"id": ali["id"], "phone": "998901112233", "name": "Ali Valiyev"}, order["customer"], "the customer by its name")
 	assert.Equal(t, map[string]any{"phone": alisPhone, "full_name": nil}, order["assignee"], "the assignee's phone as kept, by the name they go by")
@@ -93,7 +93,7 @@ func TestCreateOrder(t *testing.T) {
 	assert.Equal(t, order["created_at"], order["updated_at"])
 
 	rec = api.do(t, http.MethodPost, "/app/orders", fmt.Sprintf(
-		`{"type_id":%d,"location_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"Yangi mijoz bilan"},`+
+		`{"type_id":%d,"location_id":%d,"deadline":"2026-10-11","stage_id":%d,"values":{"%d":"Yangi mijoz bilan"},`+
 			`"customer":{"type_id":%d,"phone":"+998 90 111 22 44","values":{"%d":" Vali Aliyev "}}}`,
 		sh.buyurtma, sh.asosiy, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
 	require.Equal(t, http.StatusCreated, rec.Code, "with a new customer: %s", rec.Body.String())
@@ -107,7 +107,7 @@ func TestCreateOrder(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code, "and is there to read: %s", rec.Body.String())
 
 	rec = api.do(t, http.MethodPost, "/app/orders", fmt.Sprintf(
-		`{"type_id":%d,"location_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"X"},`+
+		`{"type_id":%d,"location_id":%d,"deadline":"2026-10-11","stage_id":%d,"values":{"%d":"X"},`+
 			`"customer":{"type_id":%d,"phone":"998901112233","values":{"%d":"Ali"}}}`,
 		sh.buyurtma, sh.asosiy, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code)
@@ -116,18 +116,17 @@ func TestCreateOrder(t *testing.T) {
 
 	ok := fmt.Sprintf(`{"%d":"X"}`, sh.izoh)
 	for _, tt := range []struct{ name, body, message string }{
-		{"no title", orderBody(sh, " ", "2026-10-10", sh.yangi, ali["id"], ok, ""), "Buyurtma nomini kiriting"},
-		{"no deadline", orderBody(sh, "X", "", sh.yangi, ali["id"], ok, ""), "Muddatni kiriting"},
-		{"a deadline that is no day", orderBody(sh, "X", "10.10.2026", sh.yangi, ali["id"], ok, ""), "Muddat noto'g'ri"},
-		{"no location", fmt.Sprintf(`{"type_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`, sh.buyurtma, sh.yangi, ok, ali["id"]), "Lokatsiyani tanlang"},
-		{"no type", fmt.Sprintf(`{"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`, sh.asosiy, sh.yangi, ali["id"]), "Buyurtma turini tanlang"},
-		{"no stage", orderBody(sh, "X", "2026-10-10", 0, ali["id"], ok, ""), "Bosqichni tanlang"},
-		{"an assignee who is no member", orderBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], ok, `,"assignee_phone":"998907777777"`), "Mas'ul kompaniya a'zosi emas"},
-		{"a required field left empty", orderBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], `{}`, ""), "«Izoh» maydonini to'ldiring"},
-		{"no customer", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.buyurtma, sh.asosiy, sh.yangi, ok), "Mijozni tanlang"},
-		{"an empty customer", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{}}`, sh.buyurtma, sh.asosiy, sh.yangi, ok), "Mijozni tanlang"},
-		{"a customer that is not there", orderBody(sh, "X", "2026-10-10", sh.yangi, 999999, ok, ""), "Mijozni tanlang"},
-		{"a new customer with no name", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,`+
+		{"no deadline", orderBody(sh, "", sh.yangi, ali["id"], ok, ""), "Muddatni kiriting"},
+		{"a deadline that is no day", orderBody(sh, "10.10.2026", sh.yangi, ali["id"], ok, ""), "Muddat noto'g'ri"},
+		{"no location", fmt.Sprintf(`{"type_id":%d,"deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`, sh.buyurtma, sh.yangi, ok, ali["id"]), "Lokatsiyani tanlang"},
+		{"no type", fmt.Sprintf(`{"location_id":%d,"deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`, sh.asosiy, sh.yangi, ali["id"]), "Buyurtma turini tanlang"},
+		{"no stage", orderBody(sh, "2026-10-10", 0, ali["id"], ok, ""), "Bosqichni tanlang"},
+		{"an assignee who is no member", orderBody(sh, "2026-10-10", sh.yangi, ali["id"], ok, `,"assignee_phone":"998907777777"`), "Mas'ul kompaniya a'zosi emas"},
+		{"a required field left empty", orderBody(sh, "2026-10-10", sh.yangi, ali["id"], `{}`, ""), "«Izoh» maydonini to'ldiring"},
+		{"no customer", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.buyurtma, sh.asosiy, sh.yangi, ok), "Mijozni tanlang"},
+		{"an empty customer", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{}}`, sh.buyurtma, sh.asosiy, sh.yangi, ok), "Mijozni tanlang"},
+		{"a customer that is not there", orderBody(sh, "2026-10-10", sh.yangi, 999999, ok, ""), "Mijozni tanlang"},
+		{"a new customer with no name", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":"2026-10-10","stage_id":%d,"values":%s,`+
 			`"customer":{"type_id":%d,"phone":"998901112266"}}`, sh.buyurtma, sh.asosiy, sh.yangi, ok, sh.jismoniy), "«F.I.Sh.» maydonini to'ldiring"},
 	} {
 		rec := api.do(t, http.MethodPost, "/app/orders", tt.body, bearer(owner))
@@ -136,7 +135,7 @@ func TestCreateOrder(t *testing.T) {
 	}
 	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPost, "/app/orders", `{"type_id":`, bearer(owner)).Code, "not JSON")
 	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPost, "/app/orders",
-		orderBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], `["X"]`, ""), bearer(owner)).Code, "values that are no object")
+		orderBody(sh, "2026-10-10", sh.yangi, ali["id"], `["X"]`, ""), bearer(owner)).Code, "values that are no object")
 
 	rec = api.do(t, http.MethodPost, "/app/orders", `{}`, bearer(undecided))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
@@ -154,7 +153,7 @@ func TestGetOrder(t *testing.T) {
 	stranger, _ := api.signIn(t, "998907777777", map[int64]string{nok: "user"})
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
-	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"],
+	order := api.enterOrder(t, owner, orderBody(sh, "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":"Ertalab","%d":[%d]}`, sh.izoh, sh.kanal, sh.linkedin), fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)))
 	path := fmt.Sprintf("/app/orders/%v", order["id"])
 
@@ -188,17 +187,17 @@ func TestListOrders(t *testing.T) {
 	shikoyat := api.addOrderType(t, olma, "Shikoyat", 2)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 	zarina := api.enter(t, owner, sh.jismoniy, "998905555555", fmt.Sprintf(`{"%d":"Zarina Karimova"}`, sh.fish))
-	later := api.enterOrder(t, owner, orderBody(sh, "Hisob yozish", "2026-10-12", sh.yangi, ali["id"],
+	later := api.enterOrder(t, owner, orderBody(sh, "2026-10-12", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":"Ertalab yozish","%d":45000}`, sh.izoh, sh.summa), ""))
-	sooner := api.enterOrder(t, employee, orderBody(sh, "Qo'ng'iroq qilish", "2026-10-10", sh.yangi, ali["id"],
+	sooner := api.enterOrder(t, employee, orderBody(sh, "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":"X"}`, sh.izoh), fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)))
-	other := api.enterOrder(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Shikoyatni ko'rish","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`,
+	other := api.enterOrder(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`,
 		shikoyat, sh.asosiy, sh.bajarildi, zarina["id"]))
 	// The list's rows carry the order alone, not its page's lines and payments.
 	later, sooner, other = row(later), row(sooner), row(other)
 	begona := api.orderShop(t, nok)
 	strangers := api.enter(t, stranger, begona.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Begona"}`, begona.fish))
-	api.enterOrder(t, stranger, orderBody(begona, "Begona", "2026-10-01", begona.yangi, strangers["id"], fmt.Sprintf(`{"%d":"X"}`, begona.izoh), ""))
+	api.enterOrder(t, stranger, orderBody(begona, "2026-10-01", begona.yangi, strangers["id"], fmt.Sprintf(`{"%d":"X"}`, begona.izoh), ""))
 	// get reads a page of Olma's orders as its employee.
 	get := func(query url.Values) map[string]any {
 		t.Helper()
@@ -221,7 +220,6 @@ func TestListOrders(t *testing.T) {
 	found := get(url.Values{"customer_id": {fmt.Sprint(zarina["id"])}})
 	assert.Equal(t, []any{other}, found["items"], "one customer")
 	assert.EqualValues(t, 1, found["total"])
-	assert.Equal(t, []any{sooner}, get(url.Values{"search": {"qo'ng"}})["items"], "a search in the titles")
 	assert.Equal(t, []any{later}, get(url.Values{"search": {"ERTALAB"}})["items"], "in the orders' text answers")
 	assert.Equal(t, []any{other}, get(url.Values{"search": {"karim"}})["items"], "in the customers' names")
 	assert.Equal(t, []any{other}, get(url.Values{"search": {"90 555"}})["items"], "a number in the customers' phones")
@@ -261,17 +259,17 @@ func TestUpdateOrder(t *testing.T) {
 	api.exec(t, "UPDATE user_companies SET full_name = 'Vali Aliyev' WHERE user_phone = $1", valisPhone)
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
-	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"],
+	order := api.enterOrder(t, owner, orderBody(sh, "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":"Ertalab","%d":45000}`, sh.izoh, sh.summa), ""))
 	path := fmt.Sprintf("/app/orders/%v", order["id"])
-	body := fmt.Sprintf(`{"title":" Qayta qo'ng'iroq ","deadline":"2026-10-12","stage_id":%d,"assignee_phone":%q,"values":{"%d":"Kechqurun"}}`,
+	body := fmt.Sprintf(`{"deadline":"2026-10-12","stage_id":%d,"assignee_phone":%q,"values":{"%d":"Kechqurun"}}`,
 		sh.jarayonda, valisPhone, sh.izoh)
 
 	rec := api.do(t, http.MethodPut, path, body, bearer(employee))
 
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	edited := decode(t, rec)
-	assert.Equal(t, "Qayta qo'ng'iroq", edited["title"], "any member edits an order")
+	assert.Equal(t, order["number"], edited["number"], "any member edits an order; the number stays")
 	assert.Equal(t, "2026-10-12", edited["deadline"])
 	assert.EqualValues(t, sh.jarayonda, edited["stage_id"])
 	assert.Equal(t, map[string]any{"phone": valisPhone, "full_name": "Vali Aliyev"}, edited["assignee"])
@@ -284,13 +282,10 @@ func TestUpdateOrder(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, edited, decode(t, rec))
 
-	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"title":"","deadline":"2026-10-12","stage_id":%d,"values":{"%d":"X"}}`, sh.jarayonda, sh.izoh), bearer(owner))
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.JSONEq(t, `{"error":"validation_error","message":"Buyurtma nomini kiriting"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"title":"X","deadline":"2026-10-12","stage_id":%d,"values":{}}`, sh.jarayonda), bearer(owner))
+	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"deadline":"2026-10-12","stage_id":%d,"values":{}}`, sh.jarayonda), bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"«Izoh» maydonini to'ldiring"}`, rec.Body.String())
-	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPut, path, `{"title":`, bearer(owner)).Code, "not JSON")
+	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPut, path, `{"deadline":`, bearer(owner)).Code, "not JSON")
 	rec = api.do(t, http.MethodPut, path, body, bearer(stranger))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's order")
 	assert.JSONEq(t, orderNotFound, rec.Body.String())
@@ -308,7 +303,7 @@ func TestMoveOrder(t *testing.T) {
 	sh := api.orderShop(t, olma)
 	begona := api.addStage(t, nok, "Begona", "red", false, 1)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
-	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
+	order := api.enterOrder(t, owner, orderBody(sh, "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
 	path := fmt.Sprintf("/app/orders/%v/stage", order["id"])
 
 	rec := api.do(t, http.MethodPatch, path, fmt.Sprintf(`{"stage_id":%d}`, sh.bajarildi), bearer(employee))
@@ -316,7 +311,7 @@ func TestMoveOrder(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	moved := decode(t, rec)
 	assert.EqualValues(t, sh.bajarildi, moved["stage_id"], "any member moves an order to another stage")
-	assert.Equal(t, order["title"], moved["title"], "nothing else changes")
+	assert.Equal(t, order["number"], moved["number"], "nothing else changes")
 	assert.Equal(t, order["values"], moved["values"])
 	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/orders/%v", order["id"]), "", bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code)
@@ -343,7 +338,7 @@ func TestDeleteOrder(t *testing.T) {
 	stranger, _ := api.signIn(t, "998907777777", map[int64]string{nok: "user"})
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
-	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
+	order := api.enterOrder(t, owner, orderBody(sh, "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
 	path := fmt.Sprintf("/app/orders/%v", order["id"])
 	customer := fmt.Sprintf("/app/customers/%v", ali["id"])
 
@@ -377,9 +372,9 @@ func TestOrderHistory(t *testing.T) {
 	api.exec(t, "UPDATE user_companies SET full_name = 'Vali Xodim' WHERE user_phone = $1", valisPhone)
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
-	order := api.enterOrder(t, employee, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
+	order := api.enterOrder(t, employee, orderBody(sh, "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
 	rec := api.do(t, http.MethodPut, fmt.Sprintf("/app/orders/%v", order["id"]),
-		fmt.Sprintf(`{"title":"Qo'ng'iroq","deadline":"2026-10-12","stage_id":%d,"assignee_phone":%q,"values":{"%d":"Kechqurun"}}`, sh.jarayonda, valisPhone, sh.izoh), bearer(owner))
+		fmt.Sprintf(`{"deadline":"2026-10-12","stage_id":%d,"assignee_phone":%q,"values":{"%d":"Kechqurun"}}`, sh.jarayonda, valisPhone, sh.izoh), bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	path := fmt.Sprintf("/app/orders/%v/history", order["id"])
 
@@ -432,25 +427,25 @@ func TestOrdersAreTheLocationsTheMemberMayWorkIn(t *testing.T) {
 	api.restrictTo(t, valisPhone, olma, chilonzor)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 	ok := fmt.Sprintf(`{"%d":"X"}`, sh.izoh)
-	inAsosiy := api.enterOrder(t, owner, orderBody(sh, "Asosiyda", "2026-10-10", sh.yangi, ali["id"], ok, ""))
-	inChilonzor := api.enterOrder(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Chilonzorda","deadline":"2026-10-09","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
+	inAsosiy := api.enterOrder(t, owner, orderBody(sh, "2026-10-10", sh.yangi, ali["id"], ok, ""))
+	inChilonzor := api.enterOrder(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":"2026-10-09","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
 		sh.buyurtma, chilonzor, sh.yangi, ok, ali["id"]))
-	titles := func(token string, query string) []any {
+	numbers := func(token string, query string) []any {
 		rec := api.do(t, http.MethodGet, "/app/orders"+query, "", bearer(token))
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 		items, _ := decode(t, rec)["items"].([]any)
 		list := make([]any, 0, len(items))
 		for _, item := range items {
 			order, _ := item.(map[string]any)
-			list = append(list, order["title"])
+			list = append(list, order["number"])
 		}
 		return list
 	}
 
-	assert.Equal(t, []any{"Chilonzorda", "Asosiyda"}, titles(owner, ""), "the owner: every location")
-	assert.Equal(t, []any{"Asosiyda"}, titles(owner, fmt.Sprintf("?location_id=%d", sh.asosiy)), "one location")
-	assert.Equal(t, []any{"Chilonzorda"}, titles(employee, ""), "a restricted employee: the restriction's locations")
-	assert.Equal(t, []any{"Chilonzorda"}, titles(employee, fmt.Sprintf("?location_id=%d", chilonzor)))
+	assert.Equal(t, []any{2.0, 1.0}, numbers(owner, ""), "the owner: every location")
+	assert.Equal(t, []any{1.0}, numbers(owner, fmt.Sprintf("?location_id=%d", sh.asosiy)), "one location")
+	assert.Equal(t, []any{2.0}, numbers(employee, ""), "a restricted employee: the restriction's locations")
+	assert.Equal(t, []any{2.0}, numbers(employee, fmt.Sprintf("?location_id=%d", chilonzor)))
 	rec := api.do(t, http.MethodGet, fmt.Sprintf("/app/orders?location_id=%d", sh.asosiy), "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a location the employee may not work in")
 	assert.JSONEq(t, noPermission, rec.Body.String())
@@ -463,7 +458,7 @@ func TestOrdersAreTheLocationsTheMemberMayWorkIn(t *testing.T) {
 	id := fmt.Sprintf("%.0f", inAsosiy["id"])
 	for _, r := range []struct{ method, path, body string }{
 		{http.MethodGet, "/app/orders/" + id, ""},
-		{http.MethodPut, "/app/orders/" + id, fmt.Sprintf(`{"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.yangi, ok)},
+		{http.MethodPut, "/app/orders/" + id, fmt.Sprintf(`{"deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.yangi, ok)},
 		{http.MethodPatch, "/app/orders/" + id + "/stage", fmt.Sprintf(`{"stage_id":%d}`, sh.bajarildi)},
 		{http.MethodDelete, "/app/orders/" + id, ""},
 	} {
@@ -473,18 +468,18 @@ func TestOrdersAreTheLocationsTheMemberMayWorkIn(t *testing.T) {
 	}
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, fmt.Sprintf("/app/orders/%.0f", inChilonzor["id"]), "", bearer(employee)).Code, "one in the restriction's location")
 
-	rec = api.do(t, http.MethodPost, "/app/orders", orderBody(sh, "Yangi", "2026-10-10", sh.yangi, ali["id"], ok, ""), bearer(employee))
+	rec = api.do(t, http.MethodPost, "/app/orders", orderBody(sh, "2026-10-10", sh.yangi, ali["id"], ok, ""), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "entered into a location the employee may not work in")
 	assert.JSONEq(t, noPermission, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/orders", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Yangi","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
+	rec = api.do(t, http.MethodPost, "/app/orders", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
 		sh.buyurtma, chilonzor, sh.yangi, ok, ali["id"]), bearer(employee))
 	assert.Equal(t, http.StatusCreated, rec.Code, "into one of theirs: %s", rec.Body.String())
 
-	rec = api.do(t, http.MethodPost, "/app/orders", orderBody(sh, "Valiga", "2026-10-10", sh.yangi, ali["id"], ok, fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)), bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/orders", orderBody(sh, "2026-10-10", sh.yangi, ali["id"], ok, fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)), bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code, "assigned, in Asosiy, to an employee who works in Chilonzor alone")
 	assert.JSONEq(t, `{"error":"validation_error","message":"Mas'ul bu lokatsiyada ishlamaydi"}`, rec.Body.String())
 
 	// The restriction is read afresh on every request.
 	api.exec(t, "UPDATE user_companies SET all_locations = true WHERE user_phone = $1", valisPhone)
-	assert.Equal(t, []any{"Chilonzorda", "Asosiyda", "Yangi"}, titles(employee, ""), "lifted: every location at once")
+	assert.Equal(t, []any{2.0, 1.0, 3.0}, numbers(employee, ""), "lifted: every location at once")
 }

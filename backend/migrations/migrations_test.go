@@ -654,8 +654,8 @@ func TestOrders(t *testing.T) {
 	// addOrder adds an order the user 998901111111 enters, in Olma's location.
 	addOrder := func(typeID, stageID, customerID int64, deadline *string, assignee *string) (int64, error) {
 		var id int64
-		err := pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, created_by)
-			VALUES ($1, $2, $3, $4, $7, 'Qo''ng''iroq qilish', $5::date, $6, '998901111111') RETURNING id`,
+		err := pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, assignee_phone, created_by)
+			VALUES ($1, $2, $3, $4, $7, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), $5::date, $6, '998901111111') RETURNING id`,
 			olma, typeID, stageID, customerID, deadline, assignee, asosiy).Scan(&id)
 		return id, err
 	}
@@ -675,8 +675,8 @@ func TestOrders(t *testing.T) {
 	assert.Equal(t, "23503", sqlState(err), "another company's customer")
 	_, err = addOrder(typ, stage, ali, &day, &stranger)
 	assert.Equal(t, "23503", sqlState(err), "assigned to someone who is no user")
-	_, err = pool.Exec(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, $5, 'X', '2026-10-10', '998909999999')`, olma, typ, stage, ali, asosiy)
+	_, err = pool.Exec(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), '2026-10-10', '998909999999')`, olma, typ, stage, ali, asosiy)
 	assert.Equal(t, "23503", sqlState(err), "entered by someone who is no user")
 
 	_, err = pool.Exec(ctx, "UPDATE orders SET deleted_at = now() WHERE id = $1", first)
@@ -711,8 +711,8 @@ func TestOrderValues(t *testing.T) {
 	}
 	izoh, summa, manzil, kanal := addField("Izoh", "string", nil), addField("Summa", "int", nil),
 		addField("Manzil", "string", nil), addField("Kanal", "checkbox", &manba)
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, $5, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`,
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), '2026-10-10', '998901111111') RETURNING id`,
 		olma, typ, stage, ali, addLocation(t, pool, olma, "Asosiy")).Scan(&order))
 	// answer writes one row of the order's answers.
 	answer := func(fieldID int64, optionID *int64, text *string, number *int64) error {
@@ -746,8 +746,8 @@ func TestOrderHistory(t *testing.T) {
 	ali := addCustomer(t, pool, olma, addCustomerType(t, pool, olma, "Jismoniy"), "998901234567")
 	stage, typ := addOrderSettings(t, pool, olma)
 	var order int64
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, $5, 'Qo''ng''iroq', '2026-10-10', '998901111111') RETURNING id`,
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), '2026-10-10', '998901111111') RETURNING id`,
 		olma, typ, stage, ali, addLocation(t, pool, olma, "Asosiy")).Scan(&order))
 	// record writes down what the user did to the order.
 	record := func(orderID int64, action, actor string) error {
@@ -870,8 +870,8 @@ func TestLocations(t *testing.T) {
 
 	// addOrder adds an order of Olma's in the location, entered by the user.
 	addOrder := func(locationID *int64) error {
-		_, err := pool.Exec(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-			VALUES ($1, $2, $3, $4, $5, 'Qo''ng''iroq', '2026-10-10', '998901111111')`, olma, typ, stage, ali, locationID)
+		_, err := pool.Exec(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
+			VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), '2026-10-10', '998901111111')`, olma, typ, stage, ali, locationID)
 		return err
 	}
 	assert.NoError(t, addOrder(&asosiy), "an order stands in a location of its company")
@@ -1825,11 +1825,13 @@ func TestTheOrderTypeMigrationDownKeepsTheNames(t *testing.T) {
 
 // addOrder inserts an order of the company for the customer in the location
 // and returns its id.
+// addOrder enters an order as the orders are now (00022): numbered in
+// its company, with no name.
 func addOrder(t *testing.T, pool *pgxpool.Pool, companyID, typeID, stageID, customerID, locationID int64) int64 {
 	t.Helper()
 	var id int64
-	require.NoError(t, pool.QueryRow(t.Context(), `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		VALUES ($1, $2, $3, $4, $5, 'Montaj', '2026-10-20', '998901111111') RETURNING id`, companyID, typeID, stageID, customerID, locationID).Scan(&id))
+	require.NoError(t, pool.QueryRow(t.Context(), `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by)
+		VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(max(number), 0) + 1 FROM orders WHERE company_id = $1), '2026-10-20', '998901111111') RETURNING id`, companyID, typeID, stageID, customerID, locationID).Scan(&id))
 	return id
 }
 
@@ -1921,4 +1923,64 @@ func TestTheOrderDocumentsMigrationDownRemovesTheOrderDocuments(t *testing.T) {
 	_, err = pool.Exec(ctx, `INSERT INTO transactions (company_id, kind, number, doc_at, customer_id, location_id, currency_rate_id, total, created_by)
 		VALUES ($1, 'order', 9, '2026-10-07 09:00+05', $2, $3, $4, 1, '998901111111')`, olma.company, customer, olma.location, olma.rate)
 	assert.Equal(t, "23514", sqlState(err), "the kind is refused again")
+}
+
+// An order is numbered in its company, not named (logic/orders.md, 3.3):
+// the migration numbers the orders there are in the order they were
+// entered, the deleted among them, and drops their names.
+func TestTheOrderNumbersMigrationNumbersTheOrders(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 21)
+	require.NoError(t, err)
+	olma := addLedgerFixture(t, pool, "Olma")
+	nok := addLedgerFixture(t, pool, "Nok")
+	// named enters an order as the orders were before: with a title.
+	named := func(f ledgerFixture, customer int64, title string) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+			SELECT $1, (SELECT id FROM order_types WHERE company_id = $1), (SELECT id FROM order_stages WHERE company_id = $1), $2, $3, $4, '2026-10-20', '998901111111' RETURNING id`,
+			f.company, customer, f.location, title).Scan(&id))
+		return id
+	}
+	karim := addCustomer(t, pool, olma.company, addCustomerType(t, pool, olma.company, "Jismoniy"), "998901234567")
+	addOrderSettings(t, pool, olma.company)
+	first := named(olma, karim, "Montaj")
+	second := named(olma, karim, "Ta'mir")
+	_, err = pool.Exec(ctx, "UPDATE orders SET deleted_at = now() WHERE id = $1", second)
+	require.NoError(t, err)
+	third := named(olma, karim, "Yetkazish")
+	vali := addCustomer(t, pool, nok.company, addCustomerType(t, pool, nok.company, "Jismoniy"), "998907654321")
+	addOrderSettings(t, pool, nok.company)
+	other := named(nok, vali, "Nok buyurtmasi")
+
+	_, err = provider.Up(ctx)
+	require.NoError(t, err)
+
+	var has bool
+	require.NoError(t, pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'number')").Scan(&has))
+	require.True(t, has, "the orders are numbered")
+	numbers := map[int64]int{}
+	rows, err := pool.Query(ctx, "SELECT id, number FROM orders")
+	require.NoError(t, err)
+	for rows.Next() {
+		var id int64
+		var n int
+		require.NoError(t, rows.Scan(&id, &n))
+		numbers[id] = n
+	}
+	rows.Close()
+	assert.Equal(t, map[int64]int{first: 1, second: 2, third: 3, other: 1}, numbers, "numbered in the order entered, in each company, the deleted counted")
+	require.NoError(t, pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'title')").Scan(&has))
+	assert.False(t, has, "the names are gone")
+	_, err = pool.Exec(ctx, "INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, created_by) SELECT company_id, type_id, stage_id, customer_id, location_id, 1, deadline, created_by FROM orders WHERE id = $1", first)
+	assert.Equal(t, "23505", sqlState(err), "a number is given once in a company")
+
+	_, err = provider.DownTo(ctx, 21)
+	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'title')").Scan(&has))
+	assert.True(t, has, "down brings the name column back")
+	require.NoError(t, pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'number')").Scan(&has))
+	assert.False(t, has, "and takes the numbers away")
 }

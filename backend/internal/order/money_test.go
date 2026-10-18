@@ -80,7 +80,7 @@ func TestCreateWithMoney(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := stock(t, pool, newShop(t, s, pool, "Olma"))
-	in := sh.input(t, "Montaj", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	in.Money = moneyOf("5000", []warehouse.ItemInput{take(sh.olma, "2")}, ledger.PaymentLine{BankAccountID: sh.cash, Amount: ptr("400")})
 
 	order, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
@@ -104,7 +104,7 @@ func TestCreateWithMoney(t *testing.T) {
 	assert.Equal(t, []string{"order:5000.00", "customer_payment:400.00"}, documentsOf(t, pool, order.ID))
 	assert.Equal(t, []string{"created by 998901111111 (Egamberdi Egasi): []"}, storedHistory(t, pool, order.ID))
 
-	bare := mustOrder(t, s, sh.shop, "Qo'ng'iroq", "2026-10-11", map[int64]any{sh.izoh.ID: "Kech"})
+	bare := mustOrder(t, s, sh.shop, "2026-10-11", map[int64]any{sh.izoh.ID: "Kech"})
 	assert.Equal(t, "0.00", bare.Amount, "no money: nothing")
 	assert.Equal(t, "0.00", bare.Paid)
 	assert.Empty(t, documentsOf(t, pool, bare.ID), "and no document")
@@ -119,7 +119,7 @@ func TestCreateRefusesBadMoneyAfterTheCustomer(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := stock(t, pool, newShop(t, s, pool, "Olma"))
-	ok := sh.input(t, "Montaj", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	ok := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	for _, tt := range []struct {
 		name    string
 		money   warehouse.OrderMoneyInput
@@ -151,11 +151,11 @@ func TestUpdateMoney(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := stock(t, pool, newShop(t, s, pool, "Olma"))
-	in := sh.input(t, "Montaj", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	in.Money = moneyOf("5000", []warehouse.ItemInput{take(sh.olma, "2")}, ledger.PaymentLine{BankAccountID: sh.cash, Amount: ptr("400")})
 	order, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
-	same := Input{Title: "Montaj", Deadline: "2026-10-10", StageID: sh.yangi.ID, Values: in.Values}
+	same := Input{Deadline: "2026-10-10", StageID: sh.yangi.ID, Values: in.Values}
 
 	edited := same
 	edited.Money = moneyOf("6000", []warehouse.ItemInput{take(sh.nok, "1")}, ledger.PaymentLine{BankAccountID: sh.cash, Amount: ptr("999")})
@@ -196,7 +196,7 @@ func TestDeleteHidesTheDocument(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := stock(t, pool, newShop(t, s, pool, "Olma"))
-	in := sh.input(t, "Montaj", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	in.Money = moneyOf("5000", []warehouse.ItemInput{take(sh.olma, "2")}, ledger.PaymentLine{BankAccountID: sh.cash, Amount: ptr("400")})
 	order, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
@@ -217,7 +217,7 @@ func TestDetailCostsTheGoods(t *testing.T) {
 	sh := stock(t, pool, newShop(t, s, pool, "Olma"))
 	var yetkazish int64
 	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO products (company_id, kind, name, created_by) VALUES ($1, 'service', 'Yetkazish', $2) RETURNING id", sh.id, owner).Scan(&yetkazish))
-	in := sh.input(t, "Montaj", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	in := sh.input(t, "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
 	in.Money = moneyOf("5000", []warehouse.ItemInput{take(sh.olma, "2"), take(yetkazish, "1")})
 	order, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
 	require.NoError(t, err)
@@ -235,7 +235,7 @@ func TestDetailCostsTheGoods(t *testing.T) {
 	assert.Nil(t, plain.CostUZS)
 	assert.Nil(t, plain.ProfitUZS)
 
-	free := sh.input(t, "Yetkazish", "2026-10-11", map[int64]any{sh.izoh.ID: "Kech"})
+	free := sh.input(t, "2026-10-11", map[int64]any{sh.izoh.ID: "Kech"})
 	free.Money = moneyOf("", []warehouse.ItemInput{take(sh.nok, "1")})
 	goods, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, free, sh.existing())
 	require.NoError(t, err)
@@ -243,7 +243,7 @@ func TestDetailCostsTheGoods(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, ptr("2000.00"), detail.CostUZS)
 	assert.Nil(t, detail.ProfitUZS, "no price: no profit to tell")
-	bare := mustOrder(t, s, sh.shop, "Qo'ng'iroq", "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
+	bare := mustOrder(t, s, sh.shop, "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
 	detail, err = s.Detail(ctx, sh.scope(), bare.ID, true)
 	require.NoError(t, err)
 	assert.Equal(t, ptr("0.00"), detail.CostUZS, "no goods: nothing")

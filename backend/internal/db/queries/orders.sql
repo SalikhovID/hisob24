@@ -1,9 +1,17 @@
+-- name: NextOrderNumber :one
+-- The number the company's next order takes: one past the highest so far,
+-- the deleted orders counted (a number is never given twice). Run under
+-- the company's lock (LockCompanyCustomers), so two orders entered at
+-- once take two numbers.
+SELECT (COALESCE(max(number), 0) + 1)::int AS number FROM orders WHERE company_id = $1;
+
 -- name: CreateOrder :one
--- Enters an order, in a location of the company. assignee_name and
--- created_by_name are the names the members go by in the company now: they
--- stay when the members leave the company.
-INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
-VALUES (sqlc.arg('company_id'), sqlc.arg('type_id'), sqlc.arg('stage_id'), sqlc.arg('customer_id'), sqlc.arg('location_id'), sqlc.arg('title'), sqlc.arg('deadline'),
+-- Enters an order, in a location of the company, under its number
+-- (NextOrderNumber). assignee_name and created_by_name are the names the
+-- members go by in the company now: they stay when the members leave the
+-- company.
+INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, number, deadline, assignee_phone, assignee_name, created_by, created_by_name)
+VALUES (sqlc.arg('company_id'), sqlc.arg('type_id'), sqlc.arg('stage_id'), sqlc.arg('customer_id'), sqlc.arg('location_id'), sqlc.arg('number'), sqlc.arg('deadline'),
         sqlc.narg('assignee_phone'), sqlc.narg('assignee_name'), sqlc.arg('created_by'), sqlc.narg('created_by_name'))
 RETURNING *;
 
@@ -18,7 +26,7 @@ RETURNING *;
 -- deleted it. assignee_name and created_by_name are the names the members
 -- go by in the company now; once they have left it (or go by no name), the
 -- names of then.
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.number, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -46,12 +54,13 @@ WHERE t.id = sqlc.arg('id') AND t.company_id = sqlc.arg('company_id') AND t.dele
 -- name: ListOrders :many
 -- A page of the company's orders, the one due soonest first (then the older
 -- order), without the deleted. type_id, stage_id, assignee_phone and
--- customer_id each keep one; search, escaped for ILIKE, is looked for in the
--- title, in the order's text answers and in the customer's text answers;
--- digits, the digits of a search that is a number, in the customer's phone
--- and in the order's and the customer's whole number answers. A NULL argument
--- leaves its filter out.
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
+-- customer_id each keep one; search, escaped for ILIKE, is looked for in
+-- the order's text answers and in the customer's text answers; digits, the
+-- digits of a search that is a number, in the customer's phone and in the
+-- order's and the customer's whole number answers, and an order whose
+-- number is just those digits is found (logic/orders.md, section 6). A
+-- NULL argument leaves its filter out.
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.number, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -80,7 +89,7 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
   AND (sqlc.narg('assignee_phone')::text IS NULL OR t.assignee_phone = sqlc.narg('assignee_phone')::text)
   AND (sqlc.narg('customer_id')::bigint IS NULL OR t.customer_id = sqlc.narg('customer_id')::bigint)
   AND (sqlc.narg('search')::text IS NULL
-       OR t.title ILIKE '%' || sqlc.narg('search')::text || '%'
+       OR (sqlc.narg('digits')::text <> '' AND t.number::text = sqlc.narg('digits')::text)
        OR c.phone LIKE '%' || sqlc.narg('digits')::text || '%'
        OR EXISTS (SELECT 1 FROM order_values v
                   WHERE v.order_id = t.id AND v.option_id IS NULL
@@ -97,7 +106,7 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 -- The company's orders in the locations given whose stage is not a done
 -- one, the one due soonest first (then the older order), as many as limit:
 -- the home's nearest deadlines. The columns are ListOrders'.
-SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.deadline, t.assignee_phone,
+SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.number, t.deadline, t.assignee_phone,
        COALESCE(a.full_name, t.assignee_name) AS assignee_name,
        COALESCE(m.full_name, t.created_by_name) AS created_by_name,
        t.created_at, t.updated_at,
@@ -136,7 +145,7 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
   AND (sqlc.narg('assignee_phone')::text IS NULL OR t.assignee_phone = sqlc.narg('assignee_phone')::text)
   AND (sqlc.narg('customer_id')::bigint IS NULL OR t.customer_id = sqlc.narg('customer_id')::bigint)
   AND (sqlc.narg('search')::text IS NULL
-       OR t.title ILIKE '%' || sqlc.narg('search')::text || '%'
+       OR (sqlc.narg('digits')::text <> '' AND t.number::text = sqlc.narg('digits')::text)
        OR c.phone LIKE '%' || sqlc.narg('digits')::text || '%'
        OR EXISTS (SELECT 1 FROM order_values v
                   WHERE v.order_id = t.id AND v.option_id IS NULL
@@ -148,11 +157,11 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL
                          OR v.int_value::text LIKE '%' || sqlc.narg('digits')::text || '%')));
 
 -- name: UpdateOrder :one
--- An edit: the order's title, deadline, stage and assignee as they are now,
--- and the moment of the edit. pgx.ErrNoRows when the company has no such
+-- An edit: the order's deadline, stage and assignee as they are now, and
+-- the moment of the edit. pgx.ErrNoRows when the company has no such
 -- order, or deleted it.
 UPDATE orders
-SET title = sqlc.arg('title'), deadline = sqlc.arg('deadline'), stage_id = sqlc.arg('stage_id'),
+SET deadline = sqlc.arg('deadline'), stage_id = sqlc.arg('stage_id'),
     assignee_phone = sqlc.narg('assignee_phone'), assignee_name = sqlc.narg('assignee_name'), updated_at = now()
 WHERE id = sqlc.arg('id') AND company_id = sqlc.arg('company_id') AND deleted_at IS NULL
   AND location_id = ANY(sqlc.arg('location_ids')::bigint[])
