@@ -29,6 +29,7 @@ function AlertDialogOverlay({
   return (
     <AlertDialogPrimitive.Backdrop
       data-slot="alert-dialog-overlay"
+      forceRender
       className={cn(
         "fixed inset-0 isolate z-50 scrim transition-opacity duration-200 data-starting-style:opacity-0 data-ending-style:opacity-0",
         className

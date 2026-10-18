@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./alert-dialog"
+import { Dialog, DialogContent, DialogTitle } from "./dialog"
 
 test("an alert dialog asks its question in the middle of the screen, its two buttons side by side", async () => {
   render(
@@ -59,4 +60,23 @@ test("behind an alert the rest of the screen is frosted: the scrim's tint over a
   )
   await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
   expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toHaveClass("scrim")
+})
+
+test("an alert over a sheet draws a scrim of its own over the sheet", async () => {
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogTitle>Xodim</DialogTitle>
+        <AlertDialog open>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xodimni o&apos;chirasizmi?</AlertDialogTitle>
+            </AlertDialogHeader>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DialogContent>
+    </Dialog>,
+  )
+  await screen.findByRole("alertdialog", { name: "Xodimni o'chirasizmi?" })
+  expect(document.querySelectorAll('[data-slot="alert-dialog-overlay"]')).toHaveLength(1)
 })
