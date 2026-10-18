@@ -54,7 +54,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { key: "home", label: "Bosh sahifa", href: "/", icon: HouseIcon },
   { key: "customers", label: "Mijozlar", href: "/customers", icon: ContactIcon, permission: "customers.view" },
-  { key: "orders", label: "Vazifalar", href: "/tasks", icon: ListTodoIcon, permission: "orders.view" },
+  { key: "orders", label: "Vazifalar", href: "/orders", icon: ListTodoIcon, permission: "orders.view" },
   {
     key: "products",
     label: "Mahsulotlar",
@@ -247,7 +247,7 @@ export function currentPin(pins: readonly NavPage[], pathname: string): number {
 // of the menu (the tab bar stands on them), never in the bar itself.
 export const settingsPages: { label: string; href: string }[] = [
   { label: "Mijoz turlari", href: "/settings/customer-types" },
-  { label: "Vazifa turlari", href: "/settings/task-types" },
+  { label: "Vazifa turlari", href: "/settings/order-types" },
   { label: "Bosqichlar", href: "/settings/stages" },
   { label: "Dropdownlar", href: "/settings/dropdowns" },
   { label: "Valyuta kurslari", href: "/settings/currencies" },

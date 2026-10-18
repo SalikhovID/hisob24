@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${apiUrl}/:path*` }]
   },
+  // The orders' pages were the tasks' until 2026-10-18: an address kept from
+  // then (a bookmark, the history) leads to the page it meant, its query kept.
+  async redirects() {
+    return [
+      { source: "/tasks/:path*", destination: "/orders/:path*", permanent: true },
+      { source: "/settings/task-types/:path*", destination: "/settings/order-types/:path*", permanent: true },
+    ]
+  },
 }
 
 export default nextConfig

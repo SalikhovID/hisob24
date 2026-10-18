@@ -385,8 +385,8 @@ test("a customer's page lists its orders, the one due soonest first, with their 
   const region = await ordersOf()
   const rows = within(await within(region).findByRole("list", { name: "Vazifalar" })).getAllByRole("link")
   expect(rows.map((row) => rowParts(row).title)).toEqual(["Eski buyurtma", "Qo'ng'iroq qilish"])
-  expect(rows[0]).toHaveAttribute("href", `/tasks/${old.id}`)
-  expect(rows[1]).toHaveAttribute("href", `/tasks/${call.id}`)
+  expect(rows[0]).toHaveAttribute("href", `/orders/${old.id}`)
+  expect(rows[1]).toHaveAttribute("href", `/orders/${call.id}`)
   // A done order says its stage where the others say how far their deadline is.
   expect(rowParts(rows[0])).toMatchObject({ sub: "Bajarildi · Ali V.", end: `${formatDate(addDays(today, -5)).slice(0, 5)} Bajarildi` })
   expect(rowParts(rows[1])).toMatchObject({ sub: "Yangi · Vali A.", end: `${formatDate(addDays(today, 3)).slice(0, 5)} 3 kun qoldi` })

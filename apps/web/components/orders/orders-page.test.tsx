@@ -28,7 +28,7 @@ const day = (days: number) => formatDate(addDays(today, days)).slice(0, 5)
 test("the orders list groups the orders by their deadline: the late, today's, this week's, the later and the done, each row with its stage, customer, assignee and deadline", async () => {
   await signIn(ALI)
   const seeded = seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
 
   renderWithProviders(<OrdersPage />)
 
@@ -48,7 +48,7 @@ test("the orders list groups the orders by their deadline: the late, today's, th
     // A done order says the stage it was done in where the others say how far their deadline is.
     ["Bajarildi · Dilshod Karimov · Ali V.", `${day(-5)} Bajarildi`],
   ])
-  expect(rows[3]).toHaveAttribute("href", `/tasks/${seeded.old.id}`)
+  expect(rows[3]).toHaveAttribute("href", `/orders/${seeded.old.id}`)
   // A row is the order's link alone: the customer is named, not linked.
   expect(within(rows[2]).queryAllByRole("link")).toHaveLength(0)
   // A late order's deadline is red; a done one's is not.
@@ -62,7 +62,7 @@ test("a customer with no name goes by its phone", async () => {
   await signIn(ALI)
   const seeded = seedOrders()
   seeded.dilshod.values = {}
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
 
   renderWithProviders(<OrdersPage />)
 
@@ -73,7 +73,7 @@ test("a customer with no name goes by its phone", async () => {
 test("a type chip keeps the orders of one type and stays in the address", async () => {
   await signIn(ALI)
   const { montaj, buyurtma } = seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   const { user } = renderWithProviders(<OrdersPage />)
   await list()
 
@@ -82,21 +82,21 @@ test("a type chip keeps the orders of one type and stays in the address", async 
   await user.click(within(types).getByRole("radio", { name: "Montaj" }))
 
   await waitFor(() => expect(titles()).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
-  expect(currentUrl()).toBe(`/tasks?view=list&type=${montaj.id}`)
+  expect(currentUrl()).toBe(`/orders?view=list&type=${montaj.id}`)
 
   await user.click(within(types).getByRole("radio", { name: "Buyurtma" }))
   await waitFor(() => expect(titles()).toEqual(["Shartnoma yuborish", "Eski buyurtma"]))
-  expect(currentUrl()).toBe(`/tasks?view=list&type=${buyurtma.id}`)
+  expect(currentUrl()).toBe(`/orders?view=list&type=${buyurtma.id}`)
 
   await user.click(within(types).getByRole("radio", { name: "Barchasi" }))
   await waitFor(() => expect(titles()).toHaveLength(4))
-  expect(currentUrl()).toBe("/tasks?view=list")
+  expect(currentUrl()).toBe("/orders?view=list")
 })
 
 test("the stage and the assignee are chosen in sheets, narrow the list and stay in the address", async () => {
   await signIn(ALI)
   const { yangi } = seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   const { user } = renderWithProviders(<OrdersPage />)
   await list()
 
@@ -104,7 +104,7 @@ test("the stage and the assignee are chosen in sheets, narrow the list and stay 
   expect(await optionsOf(user, stage)).toEqual(["Barcha bosqichlar", "Yangi", "Jarayonda", "Bajarildi"])
   await choose(user, stage, "Yangi")
   await waitFor(() => expect(titles()).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
-  expect(currentUrl()).toBe(`/tasks?view=list&stage=${yangi.id}`)
+  expect(currentUrl()).toBe(`/orders?view=list&stage=${yangi.id}`)
   expect(screen.getByRole("button", { name: "Yangi" })).toHaveAttribute("aria-pressed", "true")
 
   // The assignees are the company's members now, the signed-in one as "Men".
@@ -112,19 +112,19 @@ test("the stage and the assignee are chosen in sheets, narrow the list and stay 
   expect(await optionsOf(user, assignee)).toEqual(["Barcha mas'ullar", "Men", "Vali Aliyev", "Sardor Karimov"])
   await choose(user, assignee, "Vali Aliyev")
   await waitFor(() => expect(titles()).toEqual(["Qo'ng'iroq qilish"]))
-  expect(currentUrl()).toBe(`/tasks?view=list&stage=${yangi.id}&assignee=${VALI}`)
+  expect(currentUrl()).toBe(`/orders?view=list&stage=${yangi.id}&assignee=${VALI}`)
 
   await choose(user, screen.getByRole("button", { name: "Yangi" }), "Barcha bosqichlar")
   await choose(user, screen.getByRole("button", { name: "Vali A." }), "Men")
   await waitFor(() => expect(titles()).toEqual(["Eski buyurtma"]))
-  expect(currentUrl()).toBe(`/tasks?view=list&assignee=${ALI}`)
+  expect(currentUrl()).toBe(`/orders?view=list&assignee=${ALI}`)
   expect(screen.getByRole("button", { name: "Men" })).toHaveAttribute("aria-pressed", "true")
 })
 
 test("the list opens under the filters the address names", async () => {
   await signIn(ALI)
   const { montaj, yangi } = seedOrders()
-  setLocation(`/tasks?view=list&type=${montaj.id}&stage=${yangi.id}&assignee=${VALI}&search=qo`)
+  setLocation(`/orders?view=list&type=${montaj.id}&stage=${yangi.id}&assignee=${VALI}&search=qo`)
 
   renderWithProviders(<OrdersPage />)
 
@@ -139,14 +139,14 @@ test("the list opens under the filters the address names", async () => {
 test("a search narrows the list, starts from the first page and stays in the address", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks?view=list&page=2")
+  setLocation("/orders?view=list&page=2")
   const { user } = renderWithProviders(<OrdersPage />)
   const box = await screen.findByRole("searchbox", { name: "Qidirish" })
   expect(box).toHaveAttribute("placeholder", "Nomi, mijoz yoki telefon")
 
   await user.type(box, " hisob ")
 
-  await waitFor(() => expect(currentUrl()).toBe("/tasks?view=list&search=hisob"))
+  await waitFor(() => expect(currentUrl()).toBe("/orders?view=list&search=hisob"))
   await waitFor(() => expect(titles()).toEqual(["Hisob-faktura"]))
   // The customer's name, and a phone as people write it.
   await user.clear(box)
@@ -174,7 +174,7 @@ function many(n: number) {
 test("the list goes page by page, twenty at a time", async () => {
   await signIn(ALI)
   many(21)
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   const { user } = renderWithProviders(<OrdersPage />)
 
   expect(rowsOf(await list())).toHaveLength(20)
@@ -184,7 +184,7 @@ test("the list goes page by page, twenty at a time", async () => {
   await user.click(screen.getByRole("button", { name: "Keyingi" }))
 
   await waitFor(() => expect(rowsOf(screen.getByRole("region", { name: "Vazifalar" }))).toHaveLength(5))
-  expect(currentUrl()).toBe("/tasks?view=list&page=2")
+  expect(currentUrl()).toBe("/orders?view=list&page=2")
   expect(screen.getByText("25 tadan 5 ta ko'rsatilmoqda")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page")
   expect(screen.getByRole("button", { name: "Keyingi" })).toBeDisabled()
@@ -194,7 +194,7 @@ test("the list goes page by page, twenty at a time", async () => {
 test("the board opens unless the list was chosen; the choice stays in the address and is kept for the next visit", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
   const { user, unmount } = renderWithProviders(<OrdersPage />)
 
   expect(await screen.findByRole("region", { name: "Kanban" })).toBeInTheDocument()
@@ -206,27 +206,27 @@ test("the board opens unless the list was chosen; the choice stays in the addres
   await user.click(within(views).getByRole("tab", { name: "Ro'yxat" }))
 
   await list()
-  expect(currentUrl()).toBe("/tasks?view=list")
+  expect(currentUrl()).toBe("/orders?view=list")
   expect(screen.queryByRole("region", { name: "Kanban" })).not.toBeInTheDocument()
   expect(localStorage.getItem(`tasks_view:1:${ALI}`)).toBe("list")
 
   // The next visit opens the list, with no view in the address.
   unmount()
-  setLocation("/tasks")
+  setLocation("/orders")
   renderWithProviders(<OrdersPage />)
   await list()
-  expect(currentUrl()).toBe("/tasks")
+  expect(currentUrl()).toBe("/orders")
 
   await user.click(within(screen.getByRole("tablist", { name: "Ko'rinish" })).getByRole("tab", { name: "Kanban" }))
   expect(await screen.findByRole("region", { name: "Kanban" })).toBeInTheDocument()
-  expect(currentUrl()).toBe("/tasks?view=board")
+  expect(currentUrl()).toBe("/orders?view=board")
   expect(localStorage.getItem(`tasks_view:1:${ALI}`)).toBe("board")
 })
 
 test("the page says how many orders the location has; while they load, the list's shape holds their place", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
 
   renderWithProviders(<OrdersPage />)
 
@@ -238,7 +238,7 @@ test("the page says how many orders the location has; while they load, the list'
 test("a list that did not load says why and offers to try again", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   server.use(
     http.get("*/api/app/orders", () =>
       HttpResponse.json({ error: "internal_error", message: "Vazifalar yuklanmadi: ichki xatolik" }, { status: 500 }),
@@ -257,7 +257,7 @@ test("a list that did not load says why and offers to try again", async () => {
 
 test("a company with no orders says so, and offers to add the first", async () => {
   await signIn(ALI)
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
 
   const { user } = renderWithProviders(<OrdersPage />)
 
@@ -274,7 +274,7 @@ test("an employee sees the company's orders too", async () => {
   await signIn(VALI)
   await chooseCompany(1)
   seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
 
   renderWithProviders(<OrdersPage />)
 
@@ -289,13 +289,13 @@ const noTypes = () => db.orderTypes.filter((type) => type.companyId === 1).forEa
 test("with no stages the owner is led to the settings, and no order can be added", async () => {
   await signIn(ALI)
   noStages()
-  setLocation("/tasks")
+  setLocation("/orders")
 
   renderWithProviders(<OrdersPage />)
 
   expect(await screen.findByText("Sozlama yetishmaydi")).toBeInTheDocument()
   expect(screen.getByText("Avval bosqichlarni sozlang.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings/task-types")
+  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings/order-types")
   expect(screen.queryByRole("button", { name: "Vazifa qo'shish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("radiogroup", { name: "Vazifa turi" })).not.toBeInTheDocument()
   expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
@@ -305,7 +305,7 @@ test("with no stages, or no order types, an employee is told whose it is to set 
   await signIn(VALI)
   await chooseCompany(1)
   noStages()
-  setLocation("/tasks")
+  setLocation("/orders")
   const { unmount } = renderWithProviders(<OrdersPage />)
 
   expect(await screen.findByText("Kompaniya egasi bosqichlarni sozlashi kerak.")).toBeInTheDocument()
@@ -323,12 +323,12 @@ test("with no stages, or no order types, an employee is told whose it is to set 
 test("with no order types the owner is led to the settings", async () => {
   await signIn(ALI)
   noTypes()
-  setLocation("/tasks")
+  setLocation("/orders")
 
   renderWithProviders(<OrdersPage />)
 
   expect(await screen.findByText("Avval vazifa turlarini sozlang.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings/task-types")
+  expect(screen.getByRole("link", { name: "Sozlamalarni ochish" })).toHaveAttribute("href", "/settings/order-types")
 })
 
 test.each([
@@ -340,7 +340,7 @@ test.each([
   await signIn(VALI)
   await chooseCompany(1)
   seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   renderWithProviders(<OrdersPage />)
 
   await list()
@@ -353,7 +353,7 @@ test("an employee whose role holds no orders.view is sent home", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
   await signIn(VALI)
   await chooseCompany(1)
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   renderWithProviders(<OrdersPage />)
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
@@ -368,7 +368,7 @@ test("the list and the board show the current location's orders alone; another l
   const seeded = seedOrders()
   const chilonzor = addLocation(1, "Chilonzor")
   seeded.call.locationId = chilonzor.id
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   const first = renderWithProviders(<OrdersPage />)
 
   await list()
@@ -377,7 +377,7 @@ test("the list and the board show the current location's orders alone; another l
   first.unmount()
 
   keep(`location:1:${ALI}`, String(chilonzor.id))
-  setLocation("/tasks?view=board")
+  setLocation("/orders?view=board")
   renderWithProviders(<OrdersPage />)
   const board = await screen.findByRole("region", { name: "Kanban" })
   const yangi = within(board).getByRole("region", { name: "Yangi" })
@@ -390,15 +390,15 @@ test("a change of location takes the list back to its first page", async () => {
   await signIn(ALI)
   seedOrders()
   const chilonzor = addLocation(1, "Chilonzor")
-  setLocation("/tasks?view=list&page=2")
+  setLocation("/orders?view=list&page=2")
   renderWithProviders(<OrdersPage />)
   await screen.findByRole("heading", { level: 1, name: "Vazifalar" })
   await screen.findByRole("button", { name: "Barcha mas'ullar" })
-  expect(currentUrl()).toBe("/tasks?view=list&page=2")
+  expect(currentUrl()).toBe("/orders?view=list&page=2")
 
   act(() => keep(`location:1:${ALI}`, String(chilonzor.id)))
 
-  await waitFor(() => expect(currentUrl()).toBe("/tasks?view=list"))
+  await waitFor(() => expect(currentUrl()).toBe("/orders?view=list"))
 })
 
 test("a member with no location to work in is told so, and cannot add an order", async () => {
@@ -408,7 +408,7 @@ test("a member with no location to work in is told so, and cannot add an order",
   await signIn(VALI)
   await chooseCompany(1)
   seedOrders()
-  setLocation("/tasks?view=list")
+  setLocation("/orders?view=list")
   renderWithProviders(<OrdersPage />)
 
   expect(await screen.findByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
@@ -421,7 +421,7 @@ test("a member with no location to work in is told so, and cannot add an order",
 test("the way to the settings is the empty state's glossy capsule", async () => {
   await signIn(ALI)
   noStages()
-  setLocation("/tasks")
+  setLocation("/orders")
 
   renderWithProviders(<OrdersPage />)
 

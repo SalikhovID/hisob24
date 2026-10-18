@@ -44,7 +44,7 @@ test("the owner's bar is the default four pages, the page marked, and «Sozlamal
   expect(tabs()).toEqual([
     ["Bosh sahifa", "/"],
     ["Mijozlar", "/customers"],
-    ["Vazifalar", "/tasks"],
+    ["Vazifalar", "/orders"],
     ["Mahsulotlar", "/products"],
   ])
   expect(within(bar()).getByRole("link", { name: "Mijozlar" })).toHaveAttribute("aria-current", "page")

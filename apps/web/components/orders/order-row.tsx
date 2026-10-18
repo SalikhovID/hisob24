@@ -40,7 +40,7 @@ export function OrderRow({
   const late = deadline.overdue
   return (
     <Row
-      href={`/tasks/${order.id}`}
+      href={`/orders/${order.id}`}
       media={<SoftIcon icon={ClipboardListIcon} color={stage ? colorValues[stage.color] : "var(--muted-foreground)"} />}
       title={order.title}
       sub={sub || undefined}

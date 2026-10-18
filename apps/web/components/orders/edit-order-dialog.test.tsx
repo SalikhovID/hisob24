@@ -12,7 +12,7 @@ const today = localToday()
 
 // openDialog puts the test on an order's page and opens the dialog to edit it.
 async function openDialog(id: number) {
-  setLocation(`/tasks/${id}`, { id: String(id) })
+  setLocation(`/orders/${id}`, { id: String(id) })
   const rendered = renderWithProviders(<OrderPage id={id} />)
   await rendered.user.click(await screen.findByRole("button", { name: "Tahrirlash" }))
   return { ...rendered, dialog: await screen.findByRole("dialog", { name: "Vazifani tahrirlash" }) }

@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/kit/page-transition"
 // type's own name is its heading).
 export const metadata: Metadata = { title: "Vazifa turi — Hisob24" }
 
-export default async function OrderTypeRoute({ params }: PageProps<"/settings/task-types/[id]">) {
+export default async function OrderTypeRoute({ params }: PageProps<"/settings/order-types/[id]">) {
   const { id } = await params
   return (
     <PageTransition>

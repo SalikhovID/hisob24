@@ -28,7 +28,7 @@ const due = (days: number, relative: string) => `${formatDate(addDays(today, day
 test("the board shows a column per stage, in order, with the orders due soonest first; the done column is folded", async () => {
   await signIn(ALI)
   const { bajarildi, call, dilshod } = seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
 
   renderWithProviders(<OrdersPage />)
 
@@ -50,7 +50,7 @@ test("the board shows a column per stage, in order, with the orders due soonest 
   // the assignee and, under every type, the type.
   const [, card] = within(column("Yangi")).getAllByRole("listitem")
   const link = within(card).getByRole("link")
-  expect(link).toHaveAttribute("href", `/tasks/${call.id}`)
+  expect(link).toHaveAttribute("href", `/orders/${call.id}`)
   expect(within(link).getByText("Dilshod Karimov")).toBeInTheDocument()
   expect(within(link).getByText(due(3, "3 kun qoldi"))).toBeInTheDocument()
   expect(within(link).getByText("Vali A.")).toBeInTheDocument()
@@ -69,7 +69,7 @@ test("the board shows a column per stage, in order, with the orders due soonest 
 test("the done column opens and folds, and stays as it was left", async () => {
   await signIn(ALI)
   const { bajarildi } = seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
   const { user, unmount } = renderWithProviders(<OrdersPage />)
   await board()
   await waitFor(() => expect(cards("Yangi")).toHaveLength(2))
@@ -96,7 +96,7 @@ test("the done column opens and folds, and stays as it was left", async () => {
 test("a card's stage menu moves the order to another column, where it takes its place by its deadline", async () => {
   await signIn(ALI)
   const { invoice, jarayonda } = seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
   const { user } = renderWithProviders(<OrdersPage />)
   await board()
   await waitFor(() => expect(cards("Yangi")).toEqual(["Hisob-faktura", "Qo'ng'iroq qilish"]))
@@ -125,7 +125,7 @@ test("a card's stage menu moves the order to another column, where it takes its 
 test("a move the API refuses puts the card back and says why; the stages are asked for again", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
   let stagesAsked = 0
   server.use(
     http.get("*/api/app/order-stages", () => {
@@ -161,7 +161,7 @@ function many(n: number) {
 test("a column shows twenty orders and offers more; Jami says how many there are", async () => {
   await signIn(ALI)
   many(21)
-  setLocation("/tasks")
+  setLocation("/orders")
   const { user } = renderWithProviders(<OrdersPage />)
   await board()
 
@@ -181,7 +181,7 @@ test("a column shows twenty orders and offers more; Jami says how many there are
 test("the type chip, the search and the assignee narrow every column", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
   const { user } = renderWithProviders(<OrdersPage />)
   await board()
   await waitFor(() => expect(cards("Yangi")).toHaveLength(2))
@@ -207,7 +207,7 @@ test("the type chip, the search and the assignee narrow every column", async () 
 
 test("a board with no orders says so in every column", async () => {
   await signIn(ALI)
-  setLocation("/tasks")
+  setLocation("/orders")
 
   renderWithProviders(<OrdersPage />)
 
@@ -224,7 +224,7 @@ test("an employee whose role holds orders.view alone sees the board without the 
   await signIn(VALI)
   await chooseCompany(1)
   seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
   renderWithProviders(<OrdersPage />)
 
   await board()
@@ -237,7 +237,7 @@ test("an employee whose role holds orders.view alone sees the board without the 
 test("the board is the prototype's glass: a column a faint glass with a white rim, a card frosted glass, the dragged copy a sheet's glass lifted high", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
 
   renderWithProviders(<OrdersPage />)
 
@@ -254,7 +254,7 @@ test("the board is the prototype's glass: a column a faint glass with a white ri
 test("on a wide screen the board stays in the page's column, its columns 300px wide, as the prototype's web view", async () => {
   await signIn(ALI)
   seedOrders()
-  setLocation("/tasks")
+  setLocation("/orders")
 
   renderWithProviders(<OrdersPage />)
 

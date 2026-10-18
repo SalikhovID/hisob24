@@ -22,7 +22,7 @@ test("the overview: the orders by stage, this month's purchases and sales, each 
 
   expect(screen.getByRole("heading", { level: 2, name: "Umumiy holat" })).toBeInTheDocument()
   const orders = screen.getByRole("link", { name: /^Vazifalar/ })
-  expect(orders).toHaveAttribute("href", "/tasks")
+  expect(orders).toHaveAttribute("href", "/orders")
   expect(orders).toHaveTextContent("4 ta faol")
   expect(orders).toHaveTextContent("2 kechikkan")
   expect(within(orders).getByRole("img", { name: "Bosqichlar bo'yicha: Yangi 3, Jarayonda 1" })).toBeInTheDocument()

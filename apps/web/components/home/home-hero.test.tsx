@@ -29,7 +29,7 @@ test("without the purchases, the orders: how many are open, how many are late, w
   const { rerender } = render(<HomeHero dashboard={{ ...none, orders: orders(4, 2) }} locationName="Chilonzor" />)
 
   const hero = screen.getByRole("link", { name: /^Faol vazifalar/ })
-  expect(hero).toHaveAttribute("href", "/tasks")
+  expect(hero).toHaveAttribute("href", "/orders")
   expect(hero).toHaveTextContent("4 ta")
   expect(hero).toHaveTextContent("2 ta kechikkan")
   expect(hero).toHaveTextContent("Chilonzor")

@@ -35,7 +35,7 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
     <>
       <Group label="Mijozlar">
         <Row href="/customers/12" title="Dilshod Karimov" />
-        <Row href="/tasks" title="Barcha vazifalar" />
+        <Row href="/orders" title="Barcha vazifalar" />
       </Group>
       <PlusButton label="Sotuv qo'shish" href="/sales/new" />
       <DetailHead title="Sotuv № 4" />
@@ -44,7 +44,7 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
       </Tiles>
       <Hero href="/customers" label="Mijozlar" value="3" unit="ta" />
       <StatCard href="/purchases" icon={ReceiptIcon} title="Xaridlar" value="12" />
-      <StatCard href="/tasks" icon={ReceiptIcon} title="Vazifalar" value="4" />
+      <StatCard href="/orders" icon={ReceiptIcon} title="Vazifalar" value="4" />
     </>,
   )
 

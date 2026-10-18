@@ -164,7 +164,7 @@ test("the owner makes a stage with its color and the final mark, and puts the st
 
 test("the owner makes an order type and gives it a choice field; the dropdown it uses is not deleted", async ({ page }) => {
   await openSettings(page)
-  await openPart(page, "Vazifa turlari", /\/settings\/task-types$/)
+  await openPart(page, "Vazifa turlari", /\/settings\/order-types$/)
   const types = page.getByRole("list", { name: "Vazifa turlari" })
   await expect(types.getByRole("link", { name: /^Buyurtma/ })).toBeVisible()
 

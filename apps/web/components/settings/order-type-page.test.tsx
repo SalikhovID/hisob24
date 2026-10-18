@@ -39,7 +39,7 @@ test("the owner sees the type's fields as the prototype's rows, the order's own 
       { label: "Manba", kind: "Dropdown (bitta tanlov) · Manba", marks: [] },
     ]),
   )
-  expect(screen.getByRole("link", { name: "Vazifa turlari" })).toHaveAttribute("href", "/settings/task-types")
+  expect(screen.getByRole("link", { name: "Vazifa turlari" })).toHaveAttribute("href", "/settings/order-types")
   expect(screen.getByText("Nomi, muddat va mijoz har vazifada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.")).toBeInTheDocument()
 })
 
@@ -47,7 +47,7 @@ test("a type that is not there, or with no fields, says so; one that fails to lo
   await signIn(ALI)
   const { unmount } = renderWithProviders(<OrderTypePage id={999} />)
   expect(await screen.findByRole("heading", { level: 1, name: "Tur topilmadi" })).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Vazifa turlari" })).toHaveAttribute("href", "/settings/task-types")
+  expect(screen.getByRole("link", { name: "Vazifa turlari" })).toHaveAttribute("href", "/settings/order-types")
   unmount()
 
   const [buyurtma] = orderTypesOf(1)
@@ -159,7 +159,7 @@ test("the order type is renamed from its page, and deleted from it after asking:
   const confirm = await screen.findByRole("alertdialog", { name: "Vazifa turini o'chirasizmi?" })
   expect(within(confirm).getByText(/«Umumiy» turi va uning maydonlari o'chadi/)).toBeInTheDocument()
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/task-types"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/settings/order-types"))
   expect(moved()).toBe("back")
   expect(orderTypesOf(1)).toHaveLength(0)
 })

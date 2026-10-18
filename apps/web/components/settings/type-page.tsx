@@ -37,7 +37,7 @@ const words = {
   },
   order: {
     what: "Vazifa turi",
-    back: { href: "/settings/task-types", label: "Vazifa turlari" },
+    back: { href: "/settings/order-types", label: "Vazifa turlari" },
     noFields: "Vazifa nomi, muddati, mijozi va mas'uli bilan qo'shiladi.",
     foot: "Nomi, muddat va mijoz har vazifada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.",
     rename: { title: "Vazifa turi nomini o'zgartirish", description: "Turning maydonlari va shu turdagi vazifalar o'zgarmaydi.", done: "Vazifa turi nomi o'zgartirildi" },

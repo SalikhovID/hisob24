@@ -68,7 +68,7 @@ export function OrderCard({ order, stage, stages, type, onMove }: CardProps) {
   return (
     <li ref={setNodeRef} {...listeners} data-slot="order-card" className={cn(cardClass, "touch-manipulation select-none", isDragging && "opacity-35")}>
       <Link
-        href={`/tasks/${order.id}`}
+        href={`/orders/${order.id}`}
         draggable={false}
         className={cn("block rounded-[20px] py-3 pl-3.5 outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50", onMove ? "pr-11" : "pr-3.5")}
       >

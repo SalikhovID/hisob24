@@ -33,7 +33,7 @@ export function HomeHero({ dashboard, locationName }: { dashboard: Dashboard; lo
   if (orders) {
     return (
       <Hero
-        href="/tasks"
+        href="/orders"
         label="Faol vazifalar"
         value={String(orders.active)}
         unit="ta"

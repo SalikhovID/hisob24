@@ -28,7 +28,7 @@ export function UpcomingOrders({
   const heading = (
     <SectionHeading hint={hasLocation ? `Jami: ${orders.active}` : undefined}>
       <Link
-        href="/tasks?view=list"
+        href="/orders?view=list"
         className="inline-flex items-center gap-0.5 rounded text-[17px] font-semibold text-heading outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         Yaqin muddatlar
@@ -70,7 +70,7 @@ export function UpcomingOrders({
         {orders.upcoming.map((order) => (
           <OrderRow key={order.id} order={order} stage={stages.find((s) => s.id === order.stage_id)} showCustomer />
         ))}
-        <Row variant="link" href="/tasks?view=list" title="Barcha vazifalar" chevron />
+        <Row variant="link" href="/orders?view=list" title="Barcha vazifalar" chevron />
       </Group>
     </>
   )

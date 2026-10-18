@@ -14,7 +14,7 @@ import { moved } from "@/test/moves"
 
 // open puts the test on an order's page.
 function open(id: number) {
-  setLocation(`/tasks/${id}`, { id: String(id) })
+  setLocation(`/orders/${id}`, { id: String(id) })
   return renderWithProviders(<OrderPage id={id} />)
 }
 
@@ -35,7 +35,7 @@ test("an order's page shows what it is, its stage among the stages, its deadline
 
   expect(await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeInTheDocument()
   expect(screen.getByText("Montaj · Dilshod Karimov")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Vazifalar" })).toHaveAttribute("href", "/tasks")
+  expect(screen.getByRole("link", { name: "Vazifalar" })).toHaveAttribute("href", "/orders")
   // The stages in their order, the order's one marked.
   expect(within(stageTrack()).getAllByRole("radio").map((radio) => [radio.textContent, radio.getAttribute("aria-checked")])).toEqual([
     ["Yangi", "true"],
@@ -124,7 +124,7 @@ test("an order that is gone is not found", async () => {
 
   expect(await screen.findByRole("heading", { level: 1, name: "Vazifa topilmadi" })).toBeInTheDocument()
   expect(screen.getByText("Bu vazifa o'chirilgan yoki sizning kompaniyangizniki emas.")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Vazifalar" })).toHaveAttribute("href", "/tasks")
+  expect(screen.getByRole("link", { name: "Vazifalar" })).toHaveAttribute("href", "/orders")
 })
 
 test("a page that did not load says why and offers to try again", async () => {
@@ -154,7 +154,7 @@ test("the order is deleted after asking, and the list is where one lands", async
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
   expect(await screen.findByText("Vazifa o'chirildi")).toBeInTheDocument()
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/tasks"))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/orders"))
   expect(moved()).toBe("back")
   expect(db.orders.find((order) => order.id === call.id)?.deleted).toBe(true)
 })

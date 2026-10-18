@@ -27,7 +27,7 @@ test("the owner's settings page lists every page in its block, each a way to it,
     expect(pages("Bo'limlar")).toEqual([
       ["Bosh sahifa", "/"],
       ["Mijozlar", "/customers"],
-      ["Vazifalar", "/tasks"],
+      ["Vazifalar", "/orders"],
       ["Sotuv", "/sales"],
       ["Xodimlar", "/employees"],
     ]),
@@ -56,7 +56,7 @@ test("the owner's settings page lists every page in its block, each a way to it,
   await waitFor(() =>
     expect(partsOf(main)).toEqual([
       ["Mijoz turlari", "/settings/customer-types", "2"],
-      ["Vazifa turlari", "/settings/task-types", "1"],
+      ["Vazifa turlari", "/settings/order-types", "1"],
       ["Bosqichlar", "/settings/stages", "3"],
       ["Dropdownlar", "/settings/dropdowns", "1"],
     ]),
@@ -124,7 +124,7 @@ test("an employee without the settings finds the pages they may open and the way
 
 test.each([
   ["customers", "/settings/customer-types"],
-  ["tasks", "/settings/task-types"],
+  ["tasks", "/settings/order-types"],
   ["dropdowns", "/settings/dropdowns"],
   ["currencies", "/settings/currencies"],
   ["finance", "/settings/finance-categories"],

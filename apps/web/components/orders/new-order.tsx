@@ -32,7 +32,7 @@ export function NewOrder({
   const ready = types.data && stages.data && customerTypes.data && dropdowns.data && members.data
   const unset = ready && (types.data!.length === 0 || stages.data!.length === 0)
   useEffect(() => {
-    if (unset) router.push("/tasks")
+    if (unset) router.push("/orders")
   }, [unset, router])
   if (!ready || unset) return null
   return (

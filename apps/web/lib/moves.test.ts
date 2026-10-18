@@ -13,7 +13,7 @@ test.each([
   ["/settings/customer-types", "forward"],
   ["/profile", "forward"],
   ["/customers", undefined],
-  ["/tasks?view=list", undefined],
+  ["/orders?view=list", undefined],
   ["/warehouse", undefined],
   ["/expenses", undefined],
   ["/", undefined],

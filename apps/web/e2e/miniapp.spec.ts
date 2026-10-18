@@ -189,7 +189,7 @@ test.describe("a linked user", () => {
     // order opens all the same.
     await rowOf(page, "Qo'ng'iroq qilish").click()
 
-    await expect(page).toHaveURL(new RegExp(`/tasks/${call.id}$`))
+    await expect(page).toHaveURL(new RegExp(`/orders/${call.id}$`))
     await expect(page.getByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeVisible()
   })
 

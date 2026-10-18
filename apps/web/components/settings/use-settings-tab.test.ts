@@ -3,7 +3,7 @@ import { oldTabHref, settingsHref } from "./use-settings-tab"
 
 test.each([
   ["customers", "/settings/customer-types"],
-  ["tasks", "/settings/task-types"],
+  ["orders", "/settings/order-types"],
   ["stages", "/settings/stages"],
   ["dropdowns", "/settings/dropdowns"],
   ["currencies", "/settings/currencies"],
@@ -14,7 +14,7 @@ test.each([
 })
 
 test("an old tab's address leads to the part's page; none, or one not there, leads nowhere", () => {
-  expect(oldTabHref("tasks")).toBe("/settings/task-types")
+  expect(oldTabHref("tasks")).toBe("/settings/order-types")
   expect(oldTabHref("roles")).toBe("/settings/roles")
   expect(oldTabHref("x")).toBeNull()
   expect(oldTabHref(null)).toBeNull()

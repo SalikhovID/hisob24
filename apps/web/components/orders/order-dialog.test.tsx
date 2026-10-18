@@ -12,7 +12,7 @@ import { chooseCompany, signIn } from "@/test/session"
 import { OrdersPage } from "./orders-page"
 
 // openDialog opens the page and its dialog for a new order.
-async function openDialog(href = "/tasks?view=list") {
+async function openDialog(href = "/orders?view=list") {
   setLocation(href)
   const rendered = renderWithProviders(<OrdersPage />)
   // The round + heads the page; an empty list offers one more below.
@@ -246,7 +246,7 @@ test("with no customer types only a customer that is there will do", async () =>
 test("the + of a column opens the dialog for that stage; under a tab it opens with that tab's type; it opens empty every time", async () => {
   await signIn(ALI)
   const { montaj } = seedOrders()
-  setLocation(`/tasks?type=${montaj.id}`)
+  setLocation(`/orders?type=${montaj.id}`)
   const { user } = renderWithProviders(<OrdersPage />)
   await screen.findByRole("region", { name: "Kanban" })
 

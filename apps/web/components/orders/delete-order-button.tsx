@@ -31,7 +31,7 @@ export function DeleteOrderButton({ companyId, id, title }: { companyId: number;
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ordersKey(companyId) })
       toast.success("Vazifa o'chirildi")
-      moving("back", () => router.replace("/tasks"))
+      moving("back", () => router.replace("/orders"))
     },
     onError: (error) => {
       toast.error(error.message)

@@ -37,7 +37,7 @@ import { StageBadge } from "./stage-badge"
 import { StageTrack } from "./stage-track"
 import { OrderHistory } from "./order-history"
 
-const back = { href: "/tasks", label: "Vazifalar" }
+const back = { href: "/orders", label: "Vazifalar" }
 
 // OrderPage is one order of the company, for whoever may see the orders
 // (changing, moving, deleting and the history each take their permission),

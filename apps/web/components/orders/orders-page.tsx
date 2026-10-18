@@ -171,7 +171,7 @@ export function OrdersPage() {
           description={settingsAllowed ? `Avval ${setupWhat}ni sozlang.` : `Kompaniya egasi ${setupWhat}ni sozlashi kerak.`}
           action={
             settingsAllowed && (
-              <Link href={settingsHref("tasks")} className="inline-flex h-[46px] items-center rounded-full glossy px-[22px] text-[16px] font-semibold">
+              <Link href={settingsHref("orders")} className="inline-flex h-[46px] items-center rounded-full glossy px-[22px] text-[16px] font-semibold">
                 Sozlamalarni ochish
               </Link>
             )

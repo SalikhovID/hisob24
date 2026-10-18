@@ -6,7 +6,7 @@ import { Bars, Sparkline, StatCard } from "./stat-card"
 test("a stat card is the way to its section, named by its title and figure", () => {
   render(
     <StatCard
-      href="/tasks"
+      href="/orders"
       icon={CheckIcon}
       title="Vazifalar"
       value="12"
@@ -16,7 +16,7 @@ test("a stat card is the way to its section, named by its title and figure", () 
     />,
   )
   const card = screen.getByRole("link", { name: /Vazifalar/ })
-  expect(card).toHaveAttribute("href", "/tasks")
+  expect(card).toHaveAttribute("href", "/orders")
   expect(card).toHaveTextContent("12")
   expect(card).toHaveTextContent("ta faol")
   expect(card.querySelector('[data-slot="sparkline"]')).toHaveAttribute("aria-hidden", "true")
@@ -46,7 +46,7 @@ test("a sparkline is one path over its values", () => {
 })
 
 test("a stat card is frosted glass, its section's mark the icon on the plain fill, in the text's ink", () => {
-  render(<StatCard href="/tasks" icon={CheckIcon} title="Vazifalar" value="12" />)
+  render(<StatCard href="/orders" icon={CheckIcon} title="Vazifalar" value="12" />)
   const card = screen.getByRole("link", { name: /Vazifalar/ })
   expect(card).toHaveClass("surface", "rounded-group")
   expect(card).not.toHaveClass("bg-card")

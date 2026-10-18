@@ -37,7 +37,7 @@ const words = {
     added: "Vazifa turi qo'shildi",
     none: "Hali vazifa turi yo'q",
     needed: "Vazifa qo'shish uchun kamida bitta tur kerak.",
-    href: (id: number) => `/settings/task-types/${id}`,
+    href: (id: number) => `/settings/order-types/${id}`,
   },
 } as const
 

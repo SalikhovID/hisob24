@@ -38,11 +38,11 @@ test("the orders due soonest, each a way to its page with its customer, assignee
   render(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
 
   expect(screen.getByRole("heading", { level: 2, name: "Yaqin muddatlar" })).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Yaqin muddatlar" })).toHaveAttribute("href", "/tasks?view=list")
+  expect(screen.getByRole("link", { name: "Yaqin muddatlar" })).toHaveAttribute("href", "/orders?view=list")
   expect(screen.getByText("Jami: 7")).toBeInTheDocument()
   const list = screen.getByRole("list", { name: "Yaqin muddatlar" })
   const rows = within(list).getAllByRole("link")
-  expect(rows.map((row) => row.getAttribute("href"))).toEqual(["/tasks/1", "/tasks/2", "/tasks/3", "/tasks?view=list"])
+  expect(rows.map((row) => row.getAttribute("href"))).toEqual(["/orders/1", "/orders/2", "/orders/3", "/orders?view=list"])
   expect(rows[0]).toHaveAccessibleName(`Hisob-faktura Dilshod Karimov · Vali A. ${addDays(today, -2).slice(8, 10)}.${addDays(today, -2).slice(5, 7)} 2 kun kechikdi`)
   expect(rows[1]).toHaveTextContent("Bugun")
   expect(rows[1]).not.toHaveTextContent("·")

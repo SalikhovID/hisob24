@@ -23,7 +23,7 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
     cards.push(
       <StatCard
         key="tasks"
-        href="/tasks"
+        href="/orders"
         icon={CheckIcon}
         title="Vazifalar"
         value={String(orders.active)}

@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/kit/page-transition"
 // order's own title is its heading).
 export const metadata: Metadata = { title: "Vazifa — Hisob24" }
 
-export default async function OrderRoute({ params }: PageProps<"/tasks/[id]">) {
+export default async function OrderRoute({ params }: PageProps<"/orders/[id]">) {
   const { id } = await params
   return (
     <PageTransition>

@@ -143,7 +143,7 @@ test("the order types: the same rows and sheet, in their own words; with none ye
   const types = await screen.findByRole("list", { name: "Vazifa turlari" })
   const [buyurtma] = orderTypesOf(1)
   expect(rowsOf(types)).toEqual([["Buyurtma", buyurtma.fields.map((field) => field.label).join(", ") || "Maydon yo'q"]])
-  expect(within(types).getByRole("link")).toHaveAttribute("href", `/settings/task-types/${buyurtma.id}`)
+  expect(within(types).getByRole("link")).toHaveAttribute("href", `/settings/order-types/${buyurtma.id}`)
   await user.click(screen.getByRole("button", { name: "Vazifa turi qo'shish" }))
   const sheet = await screen.findByRole("dialog", { name: "Vazifa turi qo'shish" })
   await user.type(within(sheet).getByLabelText("Nomi"), "Montaj")

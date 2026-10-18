@@ -34,7 +34,7 @@ test("a section with tabs opens at the first tab the member may see", () => {
   expect(href(allPermissions, "Moliya")).toBe("/accounts")
   expect(href(["finance.view"], "Moliya")).toBe("/accounts")
   expect(href(defaultPermissions, "Mijozlar")).toBe("/customers")
-  expect(href(defaultPermissions, "Vazifalar")).toBe("/tasks")
+  expect(href(defaultPermissions, "Vazifalar")).toBe("/orders")
 })
 
 test("the warehouse holds the purchases, the stock documents by kind and the suppliers, in that order", () => {
@@ -49,10 +49,10 @@ test("the warehouse holds the purchases, the stock documents by kind and the sup
 })
 
 test("a section's root pages are where the tab bar shows; a record, a form or the profile are inside one", () => {
-  for (const path of ["/", "/customers", "/tasks", "/products", "/services", "/sales", "/warehouse", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings"]) {
+  for (const path of ["/", "/customers", "/orders", "/products", "/services", "/sales", "/warehouse", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings"]) {
     expect(isRootPath(path), path).toBe(true)
   }
-  for (const path of ["/customers/7", "/tasks/3", "/purchases", "/purchases/new", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/accounts/4"]) {
+  for (const path of ["/customers/7", "/orders/3", "/purchases", "/purchases/new", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/accounts/4"]) {
     expect(isRootPath(path), path).toBe(false)
   }
 })
@@ -74,7 +74,7 @@ test.each([
   ["/employees", "/", false],
   ["/settings", "/settings/customer-types/7", true],
   ["/customers", "/customers/7", true],
-  ["/tasks", "/tasks/7", true],
+  ["/orders", "/orders/7", true],
 ])("the section at %s holds the page %s: %s", (href, pathname, current) => {
   expect(isCurrent(href, pathname)).toBe(current)
 })
@@ -112,7 +112,7 @@ test("the pages of the menu, in its order, each of its section: the sections' ow
   expect(navPages.map((page) => [page.key, page.label, page.href, page.section])).toEqual([
     ["home", "Bosh sahifa", "/", "home"],
     ["customers", "Mijozlar", "/customers", "customers"],
-    ["orders", "Vazifalar", "/tasks", "orders"],
+    ["orders", "Vazifalar", "/orders", "orders"],
     ["products", "Mahsulotlar", "/products", "products"],
     ["services", "Xizmatlar", "/services", "products"],
     ["sales", "Sotuv", "/sales", "sales"],
@@ -188,10 +188,10 @@ test("the bar's current page is the page itself, or the warehouse on one of its 
 })
 
 test("the tab bar shows on every page of the menu: the sections' own, the tabs, the hubs and their pages; a record, a form or the profile are inside one", () => {
-  for (const path of ["/", "/customers", "/tasks", "/products", "/services", "/sales", "/warehouse", "/purchases", "/transfers", "/inventories", "/opening-stock", "/suppliers", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings", "/settings/customer-types", "/settings/roles"]) {
+  for (const path of ["/", "/customers", "/orders", "/products", "/services", "/sales", "/warehouse", "/purchases", "/transfers", "/inventories", "/opening-stock", "/suppliers", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings", "/settings/customer-types", "/settings/roles"]) {
     expect(isMenuPath(path), path).toBe(true)
   }
-  for (const path of ["/customers/7", "/purchases/new", "/purchases/3", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/settings/task-types/4", "/settings/tab-bar", "/accounts/4", "/select-company"]) {
+  for (const path of ["/customers/7", "/purchases/new", "/purchases/3", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/settings/order-types/4", "/settings/tab-bar", "/accounts/4", "/select-company"]) {
     expect(isMenuPath(path), path).toBe(false)
   }
 })

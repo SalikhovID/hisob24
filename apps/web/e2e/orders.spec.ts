@@ -11,7 +11,7 @@ async function openOrders(page: Page) {
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   await openSection(page, "Vazifalar")
-  await expect(page).toHaveURL(/\/tasks$/)
+  await expect(page).toHaveURL(/\/orders$/)
   await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
 }
 
@@ -66,7 +66,7 @@ test("an employee enters an order with a new customer; the board opens first, an
   await expect(row(page, "Shartnoma tuzish")).toContainText("Yangi Mijoz")
   await expect(list(page).getByRole("link", { name: /^Yangi Mijoz/ })).toHaveCount(0)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
-  await page.goto("/tasks")
+  await page.goto("/orders")
   await expect(row(page, "Shartnoma tuzish")).toBeVisible()
   await expect(page.getByRole("region", { name: "Kanban" })).toHaveCount(0)
 })
@@ -148,7 +148,7 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await openOrders(page)
   await view(page, "Ro'yxat")
   await row(page, "Qo'ng'iroq qilish").click()
-  await expect(page).toHaveURL(new RegExp(`/tasks/${call.id}$`))
+  await expect(page).toHaveURL(new RegExp(`/orders/${call.id}$`))
   await expect(page.getByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })).toBeVisible()
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("Ertalab qo'ng'iroq")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
@@ -193,11 +193,27 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await expect(page.getByText("Bu bosqichda 2 ta buyurtma bor")).toBeVisible()
   await page.keyboard.press("Escape")
 
-  await page.goto(`/tasks/${call.id}`)
+  await page.goto(`/orders/${call.id}`)
   await expect(page.getByRole("heading", { level: 1, name: "Qayta qo'ng'iroq" })).toBeVisible()
   await page.getByRole("button", { name: "Vazifani o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Vazifani o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
-  await expect(page).toHaveURL(/\/tasks$/)
+  await expect(page).toHaveURL(/\/orders$/)
   await expect(row(page, "Hisob-faktura")).toBeVisible()
   await expect(row(page, "Qayta qo'ng'iroq")).toHaveCount(0)
+})
+
+test("the orders' old addresses lead to their pages, the query kept", async ({ page }) => {
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+
+  for (const [old, now] of [
+    ["/tasks", "/orders"],
+    ["/tasks?view=list", "/orders?view=list"],
+    ["/tasks/5", "/orders/5"],
+    ["/settings/task-types", "/settings/order-types"],
+    ["/settings/task-types/7", "/settings/order-types/7"],
+  ]) {
+    await page.goto(old)
+    await expect(page, old).toHaveURL((url) => url.pathname + url.search === now)
+  }
 })
