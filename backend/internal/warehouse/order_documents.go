@@ -193,7 +193,9 @@ func WriteOrderDocument(ctx context.Context, q *gen.Queries, companyID int64, by
 	if !exists && catalog.Zero(amount) && len(in.Items) == 0 && (!withPayments || len(in.Payments) == 0) {
 		return noMoney(), nil
 	}
-	at := time.Now()
+	// Dated to the minute, as the forms date every other document: a payment
+	// the page enters within the same minute then follows it.
+	at := time.Now().Truncate(time.Minute)
 	var held map[int64]bool
 	var current *ledger.Pricing
 	var old []gen.ListTransactionItemsRow
@@ -323,7 +325,9 @@ func ensureOrderDocument(ctx context.Context, q *gen.Queries, companyID int64, b
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return 0, err
 	}
-	at := time.Now()
+	// Dated to the minute, as the forms date every other document: a payment
+	// the page enters within the same minute then follows it.
+	at := time.Now().Truncate(time.Minute)
 	pricing, err := ledger.PriceIn(ctx, q, companyID, ledger.PriceInput{}, at, by, nil)
 	if err != nil {
 		return 0, err

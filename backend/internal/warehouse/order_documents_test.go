@@ -281,3 +281,30 @@ func TestOrderMoneyTexts(t *testing.T) {
 		assert.Equal(t, tc.lines, tc.money.LinesText(), name)
 	}
 }
+
+// The document is dated to the minute, as the forms date every other
+// document (their field holds minutes): a payment the order's page enters
+// within the same minute then follows the order in the statement instead
+// of preceding it.
+func TestOrderDocumentIsDatedToTheMinute(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	m := newStockedMarket(t, s, pool)
+	order := addOrder(t, pool, m.company, m.karim, m.asosiy, "Montaj")
+	_, err := write(t, s, m, order, OrderMoneyInput{Amount: ptr("5000")}, true)
+	require.NoError(t, err)
+
+	doc, err := s.q.GetOrderDocument(ctx, gen.GetOrderDocumentParams{OrderID: order.ID, CompanyID: m.company})
+	require.NoError(t, err)
+	assert.Zero(t, doc.DocAt.Second(), "dated to the minute")
+	assert.Zero(t, doc.DocAt.Nanosecond(), "dated to the minute")
+
+	// The page's payment, at the minute its field holds.
+	minute := time.Now().Truncate(time.Minute).Format(time.RFC3339)
+	_, err = s.AddOrderPayment(ctx, Scope{CompanyID: m.company, LocationIDs: []int64{m.asosiy}}, ali, order.ID, PaymentInput{BankAccountID: m.cash, Amount: ptr("300"), At: minute})
+	require.NoError(t, err)
+	page, err := s.CustomerStatement(ctx, m.company, m.karim, 1)
+	require.NoError(t, err)
+	require.Len(t, page.Items, 2)
+	assert.Equal(t, []string{"customer_payment", "order"}, []string{page.Items[0].Kind, page.Items[1].Kind}, "newest first: the payment follows the order")
+}
