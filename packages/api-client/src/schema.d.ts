@@ -3888,12 +3888,74 @@ export interface components {
             /** @description Mas'ul; yo'q bo'lsa null */
             assignee: components["schemas"]["OrderAssignee"] | null;
             values: components["schemas"]["CustomerValues"];
+            /** @description Buyurtma narxi, hujjat valyutasida, ikki kasr xonasi bilan (logic/orders.md, 4.3); narxsiz buyurtmada "0.00" */
+            amount: string;
+            /**
+             * Format: int64
+             * @description Narx valyutasi; hujjatsiz buyurtmada 1 (UZS)
+             */
+            currency_id: number;
+            /** @description Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000") */
+            rate: string;
+            /** @description Narx so'mda, hujjat kursi bilan */
+            amount_uzs: string;
+            /** @description Buyurtma uchun to'langan summa, hujjat valyutasida: hujjatga bog'langan jonli to'lovlar yig'indisi, har biri o'z kursi bilan */
+            paid: string;
             /** @description Buyurtmani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, qo'shgan paytdagi ismi */
             created_by_name: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        /** @description Buyurtmaga biriktirilgan mahsulot yoki xizmat qatori (logic/orders.md, 4.3) */
+        OrderLine: {
+            /** Format: int64 */
+            product_id: number;
+            name: string;
+            kind: components["schemas"]["ProductKind"];
+            /** @description Mahsulotning birligi; xizmatda null */
+            unit: string | null;
+            /** @description Uch kasr xonasi bilan ("2.000") */
+            quantity: string;
+            /** @description Qatorning FIFO tan narxi so'mda (logic/orders.md, 4.4); faqat purchases.view bo'lganga, xizmatda "0.00"; aks holda null */
+            cost_uzs: string | null;
+        };
+        OrderLineInput: {
+            /**
+             * Format: int64
+             * @description Kompaniyaning jonli mahsuloti yoki xizmati ("Mahsulotni tanlang"); yangi qo'shilgani faol ("Mahsulot nofaol"); bir buyurtmada bir marta
+             */
+            product_id: number;
+            /** @description > 0, 9 xonagacha butun va 3 kasr ("2.5") */
+            quantity: string;
+        };
+        /** @description Buyurtma uchun kiritilgan mijoz to'lovi (logic/orders.md, 4.3) */
+        OrderPayment: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            bank_account_id: number;
+            account_name: string;
+            /** @description Akkaunt valyutasida, ikki kasr xonasi bilan */
+            amount: string;
+            /** Format: int64 */
+            currency_id: number;
+            rate: string;
+            amount_uzs: string;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+            created_by_name: string | null;
+        };
+        /** @description Buyurtma o'z sahifasida: hujjatining qatorlari, buyurtma uchun kiritilgan to'lovlar (yangisi birinchi) va, purchases.view bilan, tovarlarining FIFO tan narxi va foydasi so'mda (logic/orders.md, 4.4) */
+        OrderDetail: components["schemas"]["Order"] & {
+            items: components["schemas"]["OrderLine"][];
+            payments: components["schemas"]["OrderPayment"][];
+            /** @description Mahsulot qatorlarining FIFO tan narxi yig'indisi so'mda; purchases.view bo'lmaganga null */
+            cost_uzs: string | null;
+            /** @description Foyda so'mda (amount_uzs − cost_uzs); narxsiz buyurtmada yoki purchases.view bo'lmaganga null */
+            profit_uzs: string | null;
         };
         /** @description Buyurtmaning mijozi: mavjud mijoz (id) yoki buyurtma bilan yoziladigan yangi mijoz (type_id, phone, values). Bo'sh bo'lsa "Mijozni tanlang". */
         OrderCustomerInput: {
@@ -3931,6 +3993,19 @@ export interface components {
             assignee_phone?: string | null;
             values?: components["schemas"]["CustomerAnswers"];
             customer: components["schemas"]["OrderCustomerInput"];
+            /** @description Narx, hujjat valyutasida: ≥ 0, 12 xonagacha butun va 2 kasr ("Narx noto'g'ri"); yo'q yoki 0 bo'lsa narxsiz (logic/orders.md, 4.3) */
+            amount?: string | null;
+            /**
+             * Format: int64
+             * @description Narx valyutasi; berilmasa UZS; kompaniyada yoqilgan bo'lishi shart (currency_not_allowed)
+             */
+            currency_id?: number | null;
+            /** @description Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            rate?: string | null;
+            /** @description Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin */
+            items?: components["schemas"]["OrderLineInput"][];
+            /** @description Avans: buyurtma hujjatiga bog'langan mijoz to'lovlari, vaqti hujjatniki (logic/orders.md, 4.3) */
+            payments?: components["schemas"]["PaymentLine"][];
         };
         OrderUpdate: {
             title: string;
@@ -3944,6 +4019,17 @@ export interface components {
             /** @description Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q */
             assignee_phone?: string | null;
             values?: components["schemas"]["CustomerAnswers"];
+            /** @description Narx, hujjat valyutasida: ≥ 0, 12 xonagacha butun va 2 kasr ("Narx noto'g'ri"); yo'q yoki 0 bo'lsa narxsiz (logic/orders.md, 4.3) */
+            amount?: string | null;
+            /**
+             * Format: int64
+             * @description Narx valyutasi; berilmasa UZS; kompaniyada yoqilgan bo'lishi shart (currency_not_allowed)
+             */
+            currency_id?: number | null;
+            /** @description Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            rate?: string | null;
+            /** @description Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin */
+            items?: components["schemas"]["OrderLineInput"][];
         };
         OrderMove: {
             /** Format: int64 */
@@ -7621,7 +7707,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Order"];
+                    "application/json": components["schemas"]["OrderDetail"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -7648,7 +7734,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Order"];
+                    "application/json": components["schemas"]["OrderDetail"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -7678,7 +7764,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Order"];
+                    "application/json": components["schemas"]["OrderDetail"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -7733,7 +7819,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Order"];
+                    "application/json": components["schemas"]["OrderDetail"];
                 };
             };
             400: components["responses"]["BadRequest"];

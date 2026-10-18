@@ -194,6 +194,8 @@ func TestListOrders(t *testing.T) {
 		fmt.Sprintf(`{"%d":"X"}`, sh.izoh), fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)))
 	other := api.enterOrder(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Shikoyatni ko'rish","deadline":"2026-10-10","stage_id":%d,"customer":{"id":%v}}`,
 		shikoyat, sh.asosiy, sh.bajarildi, zarina["id"]))
+	// The list's rows carry the order alone, not its page's lines and payments.
+	later, sooner, other = row(later), row(sooner), row(other)
 	begona := api.orderShop(t, nok)
 	strangers := api.enter(t, stranger, begona.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Begona"}`, begona.fish))
 	api.enterOrder(t, stranger, orderBody(begona, "Begona", "2026-10-01", begona.yangi, strangers["id"], fmt.Sprintf(`{"%d":"X"}`, begona.izoh), ""))

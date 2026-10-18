@@ -3312,7 +3312,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/OrderDetail"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3346,7 +3346,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/OrderDetail"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "402":
@@ -3379,7 +3379,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/OrderDetail"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3440,7 +3440,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/OrderDetail"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -8510,7 +8510,7 @@ components:
             type: string
     Order:
       type: object
-      required: [id, type_id, stage_id, location_id, title, deadline, customer, assignee, values, created_by_name, created_at, updated_at]
+      required: [id, type_id, stage_id, location_id, title, deadline, customer, assignee, values, amount, currency_id, rate, amount_uzs, paid, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -8541,6 +8541,26 @@ components:
           description: Mas'ul; yo'q bo'lsa null
         values:
           $ref: "#/components/schemas/CustomerValues"
+        amount:
+          type: string
+          description: >
+            Buyurtma narxi, hujjat valyutasida, ikki kasr xonasi bilan
+            (logic/orders.md, 4.3); narxsiz buyurtmada "0.00"
+        currency_id:
+          type: integer
+          format: int64
+          description: Narx valyutasi; hujjatsiz buyurtmada 1 (UZS)
+        rate:
+          type: string
+          description: Hujjat kursi, to'rt kasr ("12800.0000"; so'mda "1.0000")
+        amount_uzs:
+          type: string
+          description: Narx so'mda, hujjat kursi bilan
+        paid:
+          type: string
+          description: >
+            Buyurtma uchun to'langan summa, hujjat valyutasida: hujjatga
+            bog'langan jonli to'lovlar yig'indisi, har biri o'z kursi bilan
         created_by_name:
           type: [string, "null"]
           description: >
@@ -8552,6 +8572,94 @@ components:
         updated_at:
           type: string
           format: date-time
+    OrderLine:
+      type: object
+      description: Buyurtmaga biriktirilgan mahsulot yoki xizmat qatori (logic/orders.md, 4.3)
+      required: [product_id, name, kind, unit, quantity, cost_uzs]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/ProductKind"
+        unit:
+          type: [string, "null"]
+          description: Mahsulotning birligi; xizmatda null
+        quantity:
+          type: string
+          description: Uch kasr xonasi bilan ("2.000")
+        cost_uzs:
+          type: [string, "null"]
+          description: >
+            Qatorning FIFO tan narxi so'mda (logic/orders.md, 4.4); faqat
+            purchases.view bo'lganga, xizmatda "0.00"; aks holda null
+    OrderLineInput:
+      type: object
+      required: [product_id, quantity]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+          description: Kompaniyaning jonli mahsuloti yoki xizmati ("Mahsulotni tanlang"); yangi qo'shilgani faol ("Mahsulot nofaol"); bir buyurtmada bir marta
+        quantity:
+          type: string
+          description: "> 0, 9 xonagacha butun va 3 kasr (\"2.5\")"
+    OrderPayment:
+      type: object
+      description: Buyurtma uchun kiritilgan mijoz to'lovi (logic/orders.md, 4.3)
+      required: [id, bank_account_id, account_name, amount, currency_id, rate, amount_uzs, at, note, created_by_name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        bank_account_id:
+          type: integer
+          format: int64
+        account_name:
+          type: string
+        amount:
+          type: string
+          description: Akkaunt valyutasida, ikki kasr xonasi bilan
+        currency_id:
+          type: integer
+          format: int64
+        rate:
+          type: string
+        amount_uzs:
+          type: string
+        at:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+        created_by_name:
+          type: [string, "null"]
+    OrderDetail:
+      description: >
+        Buyurtma o'z sahifasida: hujjatining qatorlari, buyurtma uchun
+        kiritilgan to'lovlar (yangisi birinchi) va, purchases.view bilan,
+        tovarlarining FIFO tan narxi va foydasi so'mda (logic/orders.md, 4.4)
+      allOf:
+        - $ref: "#/components/schemas/Order"
+        - type: object
+          required: [items, payments, cost_uzs, profit_uzs]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrderLine"
+            payments:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrderPayment"
+            cost_uzs:
+              type: [string, "null"]
+              description: Mahsulot qatorlarining FIFO tan narxi yig'indisi so'mda; purchases.view bo'lmaganga null
+            profit_uzs:
+              type: [string, "null"]
+              description: Foyda so'mda (amount_uzs − cost_uzs); narxsiz buyurtmada yoki purchases.view bo'lmaganga null
     OrderCustomerInput:
       type: object
       description: >
@@ -8602,6 +8710,33 @@ components:
           $ref: "#/components/schemas/CustomerAnswers"
         customer:
           $ref: "#/components/schemas/OrderCustomerInput"
+        amount:
+          type: [string, "null"]
+          description: >
+            Narx, hujjat valyutasida: ≥ 0, 12 xonagacha butun va 2 kasr
+            ("Narx noto'g'ri"); yo'q yoki 0 bo'lsa narxsiz (logic/orders.md, 4.3)
+        currency_id:
+          type: [integer, "null"]
+          format: int64
+          description: Narx valyutasi; berilmasa UZS; kompaniyada yoqilgan bo'lishi shart (currency_not_allowed)
+        rate:
+          type: [string, "null"]
+          description: >
+            Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q
+            bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa
+            hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+        items:
+          type: array
+          description: Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin
+          items:
+            $ref: "#/components/schemas/OrderLineInput"
+        payments:
+          type: array
+          description: >
+            Avans: buyurtma hujjatiga bog'langan mijoz to'lovlari, vaqti
+            hujjatniki (logic/orders.md, 4.3)
+          items:
+            $ref: "#/components/schemas/PaymentLine"
     OrderUpdate:
       type: object
       required: [title, deadline, stage_id]
@@ -8621,6 +8756,26 @@ components:
           description: Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q
         values:
           $ref: "#/components/schemas/CustomerAnswers"
+        amount:
+          type: [string, "null"]
+          description: >
+            Narx, hujjat valyutasida: ≥ 0, 12 xonagacha butun va 2 kasr
+            ("Narx noto'g'ri"); yo'q yoki 0 bo'lsa narxsiz (logic/orders.md, 4.3)
+        currency_id:
+          type: [integer, "null"]
+          format: int64
+          description: Narx valyutasi; berilmasa UZS; kompaniyada yoqilgan bo'lishi shart (currency_not_allowed)
+        rate:
+          type: [string, "null"]
+          description: >
+            Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q
+            bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa
+            hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+        items:
+          type: array
+          description: Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin
+          items:
+            $ref: "#/components/schemas/OrderLineInput"
     OrderMove:
       type: object
       required: [stage_id]
