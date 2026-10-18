@@ -45,7 +45,7 @@ export function ActionSheet({
         <DialogPrimitive.Backdrop
           data-slot="action-sheet-overlay"
           forceRender
-          className="fixed inset-0 z-50 bg-scrim transition-opacity duration-250 data-starting-style:opacity-0 data-ending-style:opacity-0"
+          className="fixed inset-0 z-50 scrim transition-opacity duration-250 data-starting-style:opacity-0 data-ending-style:opacity-0"
         />
         <DialogPrimitive.Popup
           data-slot="action-sheet"

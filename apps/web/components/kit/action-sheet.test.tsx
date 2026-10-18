@@ -63,3 +63,9 @@ test("an action sheet over a sheet draws a scrim of its own over the sheet", asy
   await screen.findByRole("menu")
   expect(document.querySelectorAll('[data-slot="action-sheet-overlay"]')).toHaveLength(1)
 })
+
+test("behind an action sheet the rest of the screen is frosted: the scrim's tint over a blur of the page", async () => {
+  render(<ActionSheet open onOpenChange={() => {}} items={[{ label: "Tahrirlash", onSelect: () => {} }]} />)
+  await screen.findByRole("menu")
+  expect(document.querySelector('[data-slot="action-sheet-overlay"]')).toHaveClass("scrim")
+})
