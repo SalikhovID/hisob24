@@ -104,7 +104,7 @@ func TestGetCompany(t *testing.T) {
 	asosiy, _ := locations[0].(map[string]any)
 	assert.NotEmpty(t, asosiy["id"])
 	assert.Equal(t, "Asosiy", asosiy["name"])
-	assert.EqualValues(t, 0, asosiy["tasks_count"], "with how many orders stand in it")
+	assert.EqualValues(t, 0, asosiy["orders_count"], "with how many orders stand in it")
 	assert.NotEmpty(t, asosiy["created_at"])
 
 	rec = api.do(t, http.MethodGet, "/admin/companies/999999", "", cookie)
@@ -180,7 +180,7 @@ func (api testAPI) locationsOf(t *testing.T, cookie *http.Cookie, id string) []s
 	list := make([]string, 0, len(raw))
 	for _, l := range raw {
 		location, _ := l.(map[string]any)
-		list = append(list, fmt.Sprintf("%s (%.0f)", location["name"], location["tasks_count"]))
+		list = append(list, fmt.Sprintf("%s (%.0f)", location["name"], location["orders_count"]))
 	}
 	return list
 }
@@ -211,7 +211,7 @@ func TestLocations(t *testing.T) {
 	chilonzor := decode(t, rec)
 	assert.Equal(t, "Chilonzor", chilonzor["name"], "the name without the spaces around it")
 	assert.NotEmpty(t, chilonzor["id"])
-	assert.EqualValues(t, 0, chilonzor["tasks_count"])
+	assert.EqualValues(t, 0, chilonzor["orders_count"])
 	assert.NotEmpty(t, chilonzor["created_at"])
 	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor (0)"}, api.locationsOf(t, cookie, id), "in the order they were added")
 

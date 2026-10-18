@@ -74,7 +74,7 @@ func toMemberJSON(m company.Member) memberJSON {
 type adminLocationJSON struct {
 	ID          int64     `json:"id"`
 	Name        string    `json:"name"`
-	OrdersCount int64     `json:"tasks_count"`
+	OrdersCount int64     `json:"orders_count"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

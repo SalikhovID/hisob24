@@ -6334,14 +6334,14 @@ components:
     AdminLocation:
       type: object
       description: Lokatsiya, admin panel ko'radigan ko'rinishda
-      required: [id, name, tasks_count, created_at]
+      required: [id, name, orders_count, created_at]
       properties:
         id:
           type: integer
           format: int64
         name:
           type: string
-        tasks_count:
+        orders_count:
           type: integer
           format: int64
           description: Shu lokatsiyada turgan faol vazifalar soni (o'chirilganlar sanalmaydi)
