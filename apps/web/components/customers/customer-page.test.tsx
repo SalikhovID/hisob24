@@ -504,7 +504,7 @@ test("a payment from the customer is entered from its «To'lov» tile: the sheet
 })
 
 test("the customer's actions follow the role: editing, the history and the tasks here; not deleting", async () => {
-  giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.edit", "customers.history", "tasks.view"])
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.edit", "customers.history", "orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   const { dilshod } = seedTasks()
@@ -567,7 +567,7 @@ test("the customer's Vazifa tile enters a task for it: the sheet opens with the 
 })
 
 test("the tile to enter a task is there for whoever may add tasks, in a location", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view", "tasks.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view", "orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   const { dilshod } = seedTasks()

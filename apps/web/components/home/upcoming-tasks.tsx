@@ -19,7 +19,7 @@ export function UpcomingTasks({
   canAdd,
   onAdd,
 }: {
-  tasks: NonNullable<Dashboard["tasks"]>
+  tasks: NonNullable<Dashboard["orders"]>
   stages: TaskStage[]
   hasLocation: boolean
   canAdd: boolean

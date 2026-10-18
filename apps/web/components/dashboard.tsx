@@ -40,7 +40,7 @@ export function Dashboard() {
   const companyId = company?.id ?? null
   const locationId = location.current?.id ?? null
   const dashboard = useDashboard(companyId, locationId)
-  const stages = useTaskStages(dashboard.data?.tasks ? companyId : null)
+  const stages = useTaskStages(dashboard.data?.orders ? companyId : null)
   const [addingTask, setAddingTask] = useState(false)
   const queryClient = useQueryClient()
   if (!data || !company) return null
@@ -85,12 +85,12 @@ export function Dashboard() {
       {dashboard.data && (
         <>
           <Overview dashboard={dashboard.data} stages={stages.data ?? []} hasLocation={locationId !== null} month={MONTHS[Number(todayISO().slice(5, 7)) - 1]} />
-          {dashboard.data.tasks && (
+          {dashboard.data.orders && (
             <UpcomingTasks
-              tasks={dashboard.data.tasks}
+              tasks={dashboard.data.orders}
               stages={stages.data ?? []}
               hasLocation={locationId !== null}
-              canAdd={data.permissions.includes("tasks.create") && data.permissions.includes("customers.view")}
+              canAdd={data.permissions.includes("orders.create") && data.permissions.includes("customers.view")}
               onAdd={() => setAddingTask(true)}
             />
           )}

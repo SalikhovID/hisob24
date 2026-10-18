@@ -22,11 +22,11 @@ test("the tiles are the first four of Vazifa, Mijoz, Sotuv, Xarid, To'lov the me
   rerender(<QuickTiles companyId={1} locationId={null} permissions={allPermissions} />)
   expect(names()).toEqual(["Mijoz", "To'lov"])
 
-  const role: Permission[] = ["tasks.view", "tasks.create", "customers.view", "purchases.view", "purchases.create", "suppliers.view"]
+  const role: Permission[] = ["orders.view", "orders.create", "customers.view", "purchases.view", "purchases.create", "suppliers.view"]
   rerender(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={role} />)
   expect(names()).toEqual(["Vazifa", "Xarid", "To'lov"])
 
-  rerender(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={["tasks.view"]} />)
+  rerender(<QuickTiles companyId={1} locationId={asosiyOf(1).id} permissions={["orders.view"]} />)
   expect(screen.queryByRole("group", { name: "Tezkor amallar" })).not.toBeInTheDocument()
 })
 

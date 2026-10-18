@@ -91,7 +91,7 @@ test("an empty list says what it is for; a list that fails to load says why and 
   expect(screen.queryByRole("list", { name: "Mijoz turlari" })).not.toBeInTheDocument()
   unmount()
 
-  server.use(http.get("*/api/app/task-types", () => HttpResponse.error(), { once: true }))
+  server.use(http.get("*/api/app/order-types", () => HttpResponse.error(), { once: true }))
   const { user } = renderWithProviders(<TypesPage kind="task" />)
   expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))

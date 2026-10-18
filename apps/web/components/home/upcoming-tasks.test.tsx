@@ -6,7 +6,7 @@ import { todayISO } from "@/lib/tasks"
 import type { Dashboard, Task, TaskStage } from "@/lib/types"
 import { UpcomingTasks } from "./upcoming-tasks"
 
-type Tasks = NonNullable<Dashboard["tasks"]>
+type Tasks = NonNullable<Dashboard["orders"]>
 const stages: TaskStage[] = [
   { id: 1, name: "Yangi", color: "blue", is_done: false },
   { id: 2, name: "Jarayonda", color: "amber", is_done: false },

@@ -17,8 +17,8 @@ const rowsOf = (list: HTMLElement) =>
     })
 
 test("the owner's roles as the prototype's rows: each by name, the sections it opens under it, who holds it at its end; the plus leads to a new one", async () => {
-  giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.create", "tasks.view"])
-  db.roles.push({ id: nextId(), companyId: 1, name: "Kuzatuvchi", permissions: ["tasks.view"] })
+  giveRole(VALI, 1, "Sotuvchi", ["customers.view", "customers.create", "orders.view"])
+  db.roles.push({ id: nextId(), companyId: 1, name: "Kuzatuvchi", permissions: ["orders.view"] })
   await signIn(ALI)
   renderWithProviders(<RolesPage />)
 

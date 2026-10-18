@@ -20,7 +20,7 @@ const options = (sheet: HTMLElement) => within(sheet).getAllByRole("option").map
 afterEach(() => server.events.removeAllListeners())
 
 test("the owner gives an employee a role in the prototype's picker: «Rolsiz» first, each role with the sections it opens; a press saves it", async () => {
-  const sotuvchi = { id: nextId(), companyId: 1, name: "Sotuvchi", permissions: ["customers.view" as const, "tasks.view" as const] }
+  const sotuvchi = { id: nextId(), companyId: 1, name: "Sotuvchi", permissions: ["customers.view" as const, "orders.view" as const] }
   db.roles.push(sotuvchi)
   await signIn(ALI)
   const { user } = renderWithProviders(<Opened companyId={1} employee={vali()} />)

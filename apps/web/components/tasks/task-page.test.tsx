@@ -131,7 +131,7 @@ test("a page that did not load says why and offers to try again", async () => {
   await signIn(ALI)
   const { call } = seedTasks()
   server.use(
-    http.get("*/api/app/tasks/:id", () => HttpResponse.json({ error: "internal_error", message: "Vazifa yuklanmadi: ichki xatolik" }, { status: 500 })),
+    http.get("*/api/app/orders/:id", () => HttpResponse.json({ error: "internal_error", message: "Vazifa yuklanmadi: ichki xatolik" }, { status: 500 })),
   )
   const { user } = open(call.id)
 
@@ -162,7 +162,7 @@ test("the task is deleted after asking, and the list is where one lands", async 
 test("a deletion the API refuses says why and keeps the task", async () => {
   await signIn(ALI)
   const { call } = seedTasks()
-  server.use(http.delete("*/api/app/tasks/:id", () => HttpResponse.json({ error: "conflict", message: "Vazifani hozir o'chirib bo'lmaydi" }, { status: 409 })))
+  server.use(http.delete("*/api/app/orders/:id", () => HttpResponse.json({ error: "conflict", message: "Vazifani hozir o'chirib bo'lmaydi" }, { status: 409 })))
   const { user } = open(call.id)
   await screen.findByRole("heading", { level: 1, name: "Qo'ng'iroq qilish" })
 
@@ -174,8 +174,8 @@ test("a deletion the API refuses says why and keeps the task", async () => {
   expect(db.tasks.find((task) => task.id === call.id)?.deleted).toBeUndefined()
 })
 
-test("an employee whose role holds tasks.view alone sees the task without a way to change it, move it or see its history", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view", "customers.view"])
+test("an employee whose role holds orders.view alone sees the task without a way to change it, move it or see its history", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view", "customers.view"])
   await signIn(VALI)
   await chooseCompany(1)
   const { call } = seedTasks()
@@ -192,7 +192,7 @@ test("an employee whose role holds tasks.view alone sees the task without a way 
 })
 
 test("the task's actions follow the role: editing and moving here, with the history; not deleting", async () => {
-  giveRole(VALI, 1, "Operator", ["tasks.view", "tasks.edit", "tasks.history"])
+  giveRole(VALI, 1, "Operator", ["orders.view", "orders.edit", "orders.history"])
   await signIn(VALI)
   await chooseCompany(1)
   const { call } = seedTasks()

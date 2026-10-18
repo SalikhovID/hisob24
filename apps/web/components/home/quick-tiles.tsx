@@ -36,7 +36,7 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
   const located = locationId !== null
   const payable = can("purchases.create") && can("suppliers.view")
   const tiles = [
-    can("tasks.create") && can("customers.view") && located && <Tile key="task" icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setOpen("task")} />,
+    can("orders.create") && can("customers.view") && located && <Tile key="task" icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setOpen("task")} />,
     can("customers.create") && <Tile key="customer" icon={UserPlusIcon} label="Mijoz" onClick={() => setOpen("customer")} />,
     can("sales.create") && located && <Tile key="sale" icon={ShoppingBagIcon} label="Sotuv" href="/sales/new" />,
     payable && located && <Tile key="purchase" icon={PackagePlusIcon} label="Xarid" href="/purchases/new" />,

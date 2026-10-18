@@ -36,7 +36,7 @@ test("an employee sees the warehouse's pages their role opens", async () => {
 })
 
 test("someone with no page of the warehouse is sent home", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   renderWithProviders(<WarehouseHub />)

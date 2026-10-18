@@ -48,7 +48,7 @@ const back = { href: "/tasks", label: "Vazifalar" }
 // with who entered it and when, its history, and at the foot the way to
 // delete it.
 export function TaskPage({ id }: { id: number }) {
-  const gate = usePermission("tasks.view")
+  const gate = usePermission("orders.view")
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const task = useTask(companyId, id)
@@ -120,7 +120,7 @@ export function TaskPage({ id }: { id: number }) {
         stages={stages.data}
         value={task.data.stage_id}
         // The stage is changed right here, as on the board, by whoever may move tasks.
-        disabled={!allowed("tasks.edit") || move.isPending}
+        disabled={!allowed("orders.edit") || move.isPending}
         onChange={(stageId) =>
           move.mutate(
             { task: task.data, stageId },
@@ -135,7 +135,7 @@ export function TaskPage({ id }: { id: number }) {
       />
       <DeadlineCard deadline={task.data.deadline} done={done} />
       <Tiles>
-        {type && allowed("tasks.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
+        {type && allowed("orders.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
         {customerHref && <Tile icon={UserIcon} label="Mijoz" href={customerHref} />}
         <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${task.data.customer.phone}`} />
       </Tiles>
@@ -166,8 +166,8 @@ export function TaskPage({ id }: { id: number }) {
         </Group>
       </section>
       {/* Who did what to the task takes its permission. */}
-      {allowed("tasks.history") && <TaskHistory companyId={companyId} id={task.data.id} />}
-      {allowed("tasks.delete") && <DeleteTaskButton companyId={companyId} id={task.data.id} title={task.data.title} />}
+      {allowed("orders.history") && <TaskHistory companyId={companyId} id={task.data.id} />}
+      {allowed("orders.delete") && <DeleteTaskButton companyId={companyId} id={task.data.id} title={task.data.title} />}
       {editing && type && (
         <EditTaskDialog
           companyId={companyId}

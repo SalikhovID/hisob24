@@ -75,7 +75,7 @@ export const membersKey = (companyId: number | null) => ["members", companyId] a
 export function useTaskStages(companyId: number | null) {
   return useQuery({
     queryKey: taskStagesKey(companyId),
-    queryFn: () => call(api.GET("/app/task-stages")),
+    queryFn: () => call(api.GET("/app/order-stages")),
     enabled: companyId !== null,
   })
 }
@@ -85,7 +85,7 @@ export function useTaskStages(companyId: number | null) {
 export function useTaskTypes(companyId: number | null) {
   return useQuery({
     queryKey: taskTypesKey(companyId),
-    queryFn: () => call(api.GET("/app/task-types")),
+    queryFn: () => call(api.GET("/app/order-types")),
     enabled: companyId !== null,
   })
 }
@@ -171,7 +171,7 @@ export function useTasks(companyId: number | null, filter: TaskFilter) {
     queryKey: [...tasksKey(companyId), filter],
     queryFn: () =>
       call(
-        api.GET("/app/tasks", {
+        api.GET("/app/orders", {
           params: {
             query: {
               location_id: filter.locationId ?? undefined,
@@ -207,7 +207,7 @@ export function useStageTasks(companyId: number | null, stageId: number, filter:
     queryKey: stageTasksKey(companyId, stageId, filter),
     queryFn: ({ pageParam }) =>
       call(
-        api.GET("/app/tasks", {
+        api.GET("/app/orders", {
           params: {
             query: {
               location_id: filter.locationId ?? undefined,
@@ -235,7 +235,7 @@ export function useAssignedCounts(companyId: number | null, phone: string, locat
   const results = useQueries({
     queries: locations.map((location) => ({
       queryKey: [...tasksKey(companyId), "assigned", phone, location.id],
-      queryFn: () => call(api.GET("/app/tasks", { params: { query: { assignee: phone, location_id: location.id, page: 1 } } })),
+      queryFn: () => call(api.GET("/app/orders", { params: { query: { assignee: phone, location_id: location.id, page: 1 } } })),
       enabled: companyId !== null,
     })),
   })
@@ -254,7 +254,7 @@ export const taskKey = (companyId: number | null, id: number) => ["task", compan
 export function useTask(companyId: number | null, id: number) {
   return useQuery({
     queryKey: taskKey(companyId, id),
-    queryFn: () => call(api.GET("/app/tasks/{id}", { params: { path: { id } } })),
+    queryFn: () => call(api.GET("/app/orders/{id}", { params: { path: { id } } })),
     enabled: companyId !== null,
   })
 }
@@ -268,7 +268,7 @@ export const taskHistoryKey = (companyId: number | null, id: number) => ["task-h
 export function useTaskHistory(companyId: number | null, id: number) {
   return useQuery({
     queryKey: taskHistoryKey(companyId, id),
-    queryFn: () => call(api.GET("/app/tasks/{id}/history", { params: { path: { id } } })),
+    queryFn: () => call(api.GET("/app/orders/{id}/history", { params: { path: { id } } })),
     enabled: companyId !== null,
   })
 }
@@ -315,7 +315,7 @@ export function useMoveTask(companyId: number | null) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ task, stageId }: { task: Task; stageId: number }) =>
-      call(api.PATCH("/app/tasks/{id}/stage", { params: { path: { id: task.id } }, body: { stage_id: stageId } })),
+      call(api.PATCH("/app/orders/{id}/stage", { params: { path: { id: task.id } }, body: { stage_id: stageId } })),
     onMutate: ({ task, stageId }) => {
       if (companyId !== null) moveInColumns(queryClient, companyId, task, stageId)
     },

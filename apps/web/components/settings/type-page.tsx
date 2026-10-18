@@ -77,7 +77,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
     (ids) =>
       kind === "customer"
         ? call(api.PUT("/app/customer-types/{id}/fields/order", { params: { path: { id } }, body: { ids } }))
-        : call(api.PUT("/app/task-types/{id}/fields/order", { params: { path: { id } }, body: { ids } })),
+        : call(api.PUT("/app/order-types/{id}/fields/order", { params: { path: { id } }, body: { ids } })),
   )
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const w = words[kind]
@@ -174,7 +174,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
             // A task field is never told not to repeat: the API takes no such mark.
             else
               await call(
-                api.POST("/app/task-types/{id}/fields", {
+                api.POST("/app/order-types/{id}/fields", {
                   params: { path: { id: type.id } },
                   body: { label: field.label, kind: field.kind, required: field.required, dropdown_id: field.dropdown_id },
                 }),
@@ -192,7 +192,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
           unique={kind === "customer"}
           save={async (patch) => {
             if (kind === "customer") await call(api.PATCH("/app/customer-types/{id}/fields/{fieldId}", { ...fieldPath(sheet.edit), body: patch }))
-            else await call(api.PATCH("/app/task-types/{id}/fields/{fieldId}", { ...fieldPath(sheet.edit), body: { label: patch.label, required: patch.required } }))
+            else await call(api.PATCH("/app/order-types/{id}/fields/{fieldId}", { ...fieldPath(sheet.edit), body: { label: patch.label, required: patch.required } }))
             await refresh()
           }}
           onDelete={allowed("settings.delete") ? () => setSheet({ removeField: sheet.edit }) : undefined}
@@ -207,7 +207,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
           done="Maydon o'chirildi"
           onDelete={async () => {
             if (kind === "customer") await call(api.DELETE("/app/customer-types/{id}/fields/{fieldId}", fieldPath(removing)))
-            else await call(api.DELETE("/app/task-types/{id}/fields/{fieldId}", fieldPath(removing)))
+            else await call(api.DELETE("/app/order-types/{id}/fields/{fieldId}", fieldPath(removing)))
             await refresh()
           }}
           open
@@ -225,7 +225,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
           onOpenChange={close}
           onSubmit={async (name) => {
             if (kind === "customer") await call(api.PATCH("/app/customer-types/{id}", { params: { path: { id: type.id } }, body: { name } }))
-            else await call(api.PATCH("/app/task-types/{id}", { params: { path: { id: type.id } }, body: { name } }))
+            else await call(api.PATCH("/app/order-types/{id}", { params: { path: { id: type.id } }, body: { name } }))
             await refresh()
           }}
         />
@@ -237,7 +237,7 @@ export function TypePage({ kind, id }: { kind: "customer" | "task"; id: number }
           done={w.remove.done}
           onDelete={async () => {
             if (kind === "customer") await call(api.DELETE("/app/customer-types/{id}", { params: { path: { id: type.id } } }))
-            else await call(api.DELETE("/app/task-types/{id}", { params: { path: { id: type.id } } }))
+            else await call(api.DELETE("/app/order-types/{id}", { params: { path: { id: type.id } } }))
           }}
           onDone={() => {
             moving("back", () => router.replace(w.back.href))

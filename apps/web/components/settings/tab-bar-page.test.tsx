@@ -52,7 +52,7 @@ test("✓ takes a page off the bar, the first page past it taking its place; + p
 })
 
 test("with no page past the bar to take its place a page stays on it, and the editor says so", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   const { user } = renderWithProviders(<TabBarPage />)
@@ -71,7 +71,7 @@ test("«Saqlash» keeps the bar's four pages, says so and goes back to the setti
   await user.click(await screen.findByRole("button", { name: "Panelga qo'shish: Xaridlar" }))
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
   expect(await screen.findByText("Pastki panel saqlandi")).toBeInTheDocument()
-  expect(db.members[ALI][0].tabBar).toEqual(["home", "customers", "tasks", "purchases"])
+  expect(db.members[ALI][0].tabBar).toEqual(["home", "customers", "orders", "purchases"])
   await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings"))
 })
 

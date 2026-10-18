@@ -165,8 +165,8 @@ function found(task: TaskRow, search: string): boolean {
 }
 
 export const tasksHandlers = [
-  http.get(api("/app/tasks"), ({ request }) => {
-    const member = permittedSession(request, "tasks.view")
+  http.get(api("/app/orders"), ({ request }) => {
+    const member = permittedSession(request, "orders.view")
     if (member instanceof Response) return member
     const query = new URL(request.url).searchParams
     const page = query.has("page") ? Number(query.get("page")) : 1
@@ -213,8 +213,8 @@ export const tasksHandlers = [
     })
   }),
 
-  http.post(api("/app/tasks"), async ({ request }) => {
-    const member = permittedSession(request, "tasks.create")
+  http.post(api("/app/orders"), async ({ request }) => {
+    const member = permittedSession(request, "orders.create")
     if (member instanceof Response) return member
     const body = (await request.json()) as {
       type_id?: unknown
@@ -278,15 +278,15 @@ export const tasksHandlers = [
     return HttpResponse.json(toTask(task), { status: 201 })
   }),
 
-  http.get(api("/app/tasks/:id"), ({ params, request }) => {
-    const member = permittedSession(request, "tasks.view")
+  http.get(api("/app/orders/:id"), ({ params, request }) => {
+    const member = permittedSession(request, "orders.view")
     if (member instanceof Response) return member
     const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     return task ? HttpResponse.json(toTask(task)) : taskNotFound()
   }),
 
-  http.put(api("/app/tasks/:id"), async ({ params, request }) => {
-    const member = permittedSession(request, "tasks.edit")
+  http.put(api("/app/orders/:id"), async ({ params, request }) => {
+    const member = permittedSession(request, "orders.edit")
     if (member instanceof Response) return member
     const body = (await request.json()) as { title?: unknown; deadline?: unknown; stage_id?: unknown; assignee_phone?: unknown; values?: unknown }
     // A task that is not there is said first, whatever is sent.
@@ -329,8 +329,8 @@ export const tasksHandlers = [
     return HttpResponse.json(toTask(task))
   }),
 
-  http.patch(api("/app/tasks/:id/stage"), async ({ params, request }) => {
-    const member = permittedSession(request, "tasks.edit")
+  http.patch(api("/app/orders/:id/stage"), async ({ params, request }) => {
+    const member = permittedSession(request, "orders.edit")
     if (member instanceof Response) return member
     const { stage_id: stageId } = (await request.json()) as { stage_id?: unknown }
     const task = visibleTasks(member).find((t) => t.id === Number(params.id))
@@ -347,8 +347,8 @@ export const tasksHandlers = [
     return HttpResponse.json(toTask(task))
   }),
 
-  http.delete(api("/app/tasks/:id"), ({ params, request }) => {
-    const member = permittedSession(request, "tasks.delete")
+  http.delete(api("/app/orders/:id"), ({ params, request }) => {
+    const member = permittedSession(request, "orders.delete")
     if (member instanceof Response) return member
     const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()
@@ -358,8 +358,8 @@ export const tasksHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.get(api("/app/tasks/:id/history"), ({ params, request }) => {
-    const member = permittedSession(request, "tasks.history")
+  http.get(api("/app/orders/:id/history"), ({ params, request }) => {
+    const member = permittedSession(request, "orders.history")
     if (member instanceof Response) return member
     const task = visibleTasks(member).find((t) => t.id === Number(params.id))
     if (!task) return taskNotFound()

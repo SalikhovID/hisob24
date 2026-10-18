@@ -36,7 +36,7 @@ export function StagesPage() {
   const queryClient = useQueryClient()
   const queryKey = taskStagesKey(companyId)
   const refresh = () => queryClient.invalidateQueries({ queryKey })
-  const reorder = useReorder<TaskStage[]>(queryKey, inOrder, (ids) => call(api.PUT("/app/task-stages/order", { body: { ids } })))
+  const reorder = useReorder<TaskStage[]>(queryKey, inOrder, (ids) => call(api.PUT("/app/order-stages/order", { body: { ids } })))
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const close = (open: boolean) => !open && setSheet(null)
 
@@ -96,7 +96,7 @@ export function StagesPage() {
           open
           onOpenChange={close}
           onSubmit={async (stage) => {
-            await call(api.POST("/app/task-stages", { body: stage }))
+            await call(api.POST("/app/order-stages", { body: stage }))
             await refresh()
           }}
         />
@@ -112,7 +112,7 @@ export function StagesPage() {
           onOpenChange={close}
           onDelete={allowed("settings.delete") ? () => setSheet({ remove: sheet.edit }) : undefined}
           onSubmit={async (edited) => {
-            await call(api.PATCH("/app/task-stages/{id}", { params: { path: { id: sheet.edit.id } }, body: edited }))
+            await call(api.PATCH("/app/order-stages/{id}", { params: { path: { id: sheet.edit.id } }, body: edited }))
             await refresh()
           }}
         />
@@ -123,7 +123,7 @@ export function StagesPage() {
           description={`«${sheet.remove.name}» bosqichi o'chadi. Vazifasi bor bosqich o'chirilmaydi.`}
           done="Bosqich o'chirildi"
           onDelete={async () => {
-            await call(api.DELETE("/app/task-stages/{id}", { params: { path: { id: sheet.remove.id } } }))
+            await call(api.DELETE("/app/order-stages/{id}", { params: { path: { id: sheet.remove.id } } }))
             await refresh()
           }}
           open

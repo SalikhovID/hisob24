@@ -12,7 +12,7 @@ const whole = (amount: string) => groupDigits(amount.split(".")[0])
 // (how many are late, in which location), else how many customers there
 // are. Each leads to its section. With none of them to see, there is none.
 export function HomeHero({ dashboard, locationName }: { dashboard: Dashboard; locationName: string | null }) {
-  const { suppliers, tasks, customers } = dashboard
+  const { suppliers, orders: tasks, customers } = dashboard
   if (suppliers) {
     const owed = suppliers.debtors > 0
     return (

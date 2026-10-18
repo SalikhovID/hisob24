@@ -102,7 +102,7 @@ test("a stage is deleted from its sheet after asking; one the API will not delet
   await waitFor(async () => expect(names(await stageList())).toEqual(["Jarayonda", "Bajarildi"]))
 
   server.use(
-    http.delete("*/api/app/task-stages/:id", () => HttpResponse.json({ error: "stage_in_use", message: "Bu bosqichda 2 ta vazifa bor" }, { status: 409 })),
+    http.delete("*/api/app/order-stages/:id", () => HttpResponse.json({ error: "stage_in_use", message: "Bu bosqichda 2 ta vazifa bor" }, { status: 409 })),
   )
   await user.click(await stageRow("Jarayonda"))
   await user.click(within(await screen.findByRole("dialog", { name: "Bosqichni tahrirlash" })).getByRole("button", { name: "Bosqichni o'chirish" }))
@@ -136,7 +136,7 @@ test("with none yet the stages say what they are for; a list that fails to load 
   unmount()
 
   db.stages.forEach((stage) => (stage.deleted = false))
-  server.use(http.get("*/api/app/task-stages", () => HttpResponse.error(), { once: true }))
+  server.use(http.get("*/api/app/order-stages", () => HttpResponse.error(), { once: true }))
   const { user } = renderWithProviders(<StagesPage />)
   expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))

@@ -57,7 +57,7 @@ test("a type that is not there, or with no fields, says so; one that fails to lo
   expect(screen.getByText("Vazifa turi · 0 ta maydon")).toBeInTheDocument()
   empty.unmount()
 
-  server.use(http.get("*/api/app/task-types", () => HttpResponse.error(), { once: true }))
+  server.use(http.get("*/api/app/order-types", () => HttpResponse.error(), { once: true }))
   const { user } = renderWithProviders(<TaskTypePage id={vazifa.id} />)
   expect(await screen.findByText("Tarmoq xatosi. Internetni tekshirib, qayta urinib ko'ring")).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
@@ -118,7 +118,7 @@ test("a field's row opens its sheet: the name and the mark change, the kind is s
   await waitFor(async () => expect(fieldsOf(await fieldList()).map((field) => field.label)).toEqual(["Tavsif"]))
 
   server.use(
-    http.delete("*/api/app/task-types/:id/fields/:fieldId", () =>
+    http.delete("*/api/app/order-types/:id/fields/:fieldId", () =>
       HttpResponse.json({ error: "field_in_use", message: "Bu maydon 4 ta vazifada to'ldirilgan" }, { status: 409 }),
     ),
   )

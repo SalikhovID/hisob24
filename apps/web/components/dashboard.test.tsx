@@ -35,7 +35,7 @@ test("without a name the greeting and the head use the phone number", async () =
 })
 
 test("an employee with a role sees the role's name in the head", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   renderWithProviders(<Dashboard />)
@@ -122,7 +122,7 @@ test("the home shows what the owner may see: what the suppliers are owed, the ti
 test("an employee whose role sees the tasks alone is headed by the tasks of the current location, and switching it switches them", async () => {
   seedTasks()
   addLocation(1, "Chilonzor")
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   const { user } = renderWithProviders(<Dashboard />)

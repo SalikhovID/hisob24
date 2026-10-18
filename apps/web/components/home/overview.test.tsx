@@ -3,7 +3,7 @@ import { expect, test } from "vitest"
 import type { Dashboard, TaskStage } from "@/lib/types"
 import { Overview } from "./overview"
 
-const none: Dashboard = { suppliers: null, customers: null, tasks: null, purchases: null, sales: null }
+const none: Dashboard = { suppliers: null, customers: null, orders: null, purchases: null, sales: null }
 const stages: TaskStage[] = [
   { id: 1, name: "Yangi", color: "blue", is_done: false },
   { id: 2, name: "Jarayonda", color: "amber", is_done: false },
@@ -12,7 +12,7 @@ const stages: TaskStage[] = [
 const full: Dashboard = {
   ...none,
   customers: { total: 12, added_this_month: 3, by_day: [9, 10, 12] },
-  tasks: { active: 4, late: 2, by_stage: [{ stage_id: 1, count: 3 }, { stage_id: 2, count: 1 }], upcoming: [] },
+  orders: { active: 4, late: 2, by_stage: [{ stage_id: 1, count: 3 }, { stage_id: 2, count: 1 }], upcoming: [] },
   purchases: { month_total: "4600000.00", month_count: 6, by_day: ["0.00", "1200000.00", "4600000.00"] },
   sales: { month_total: "750000.00", month_count: 2, by_day: ["0.00", "0.00", "750000.00"] },
 }
@@ -40,7 +40,7 @@ test("the overview: the tasks by stage, this month's purchases and sales, each c
 })
 
 test("tasks all in time say so", () => {
-  render(<Overview dashboard={{ ...full, tasks: { ...full.tasks!, late: 0 } }} stages={stages} hasLocation month="oktabr" />)
+  render(<Overview dashboard={{ ...full, orders: { ...full.orders!, late: 0 } }} stages={stages} hasLocation month="oktabr" />)
 
   expect(screen.getByRole("link", { name: /^Vazifalar/ })).toHaveTextContent("Vaqtida")
 })

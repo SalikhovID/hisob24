@@ -92,7 +92,7 @@ test("inside a section (a record, a form, the profile) the bar steps away", asyn
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   renderWithProviders(<TabBar />)
@@ -209,7 +209,7 @@ test("the names keep 4px clear of their buttons' edges: on a bar too narrow for 
 })
 
 test("the names are set no smaller than 9px: there a name may take its button's whole width, and one longer still ends in an ellipsis", async () => {
-  db.members[ALI][0].tabBar = ["inventories", "home", "customers", "tasks"]
+  db.members[ALI][0].tabBar = ["inventories", "home", "customers", "orders"]
   await signIn(ALI)
   setLocation("/customers")
   layout({ button: 59, names: { ...NAMES, Inventarizatsiya: 86 } })

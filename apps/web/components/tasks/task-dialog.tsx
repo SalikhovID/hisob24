@@ -83,7 +83,7 @@ export function AddTaskDialog({
     defaultValues: linkedDefaults(),
   })
   const add = useMutation({
-    mutationFn: (task: TaskOutput) => call(api.POST("/app/tasks", { body: { type_id: type.id, location_id: locationId, ...task } })),
+    mutationFn: (task: TaskOutput) => call(api.POST("/app/orders", { body: { type_id: type.id, location_id: locationId, ...task } })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tasksKey(companyId) })
       // A new customer is among the customers now.

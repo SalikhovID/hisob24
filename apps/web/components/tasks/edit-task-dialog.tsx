@@ -63,7 +63,7 @@ export function EditTaskDialog({
   const save = useMutation({
     mutationFn: (edited: TaskOutput) =>
       call(
-        api.PUT("/app/tasks/{id}", {
+        api.PUT("/app/orders/{id}", {
           params: { path: { id: task.id } },
           body: {
             title: edited.title,

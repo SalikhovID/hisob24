@@ -369,7 +369,7 @@ test("with no customer type the way to the settings is for whoever may open them
 })
 
 test("an employee whose role holds no customers.view is sent home", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   setLocation("/customers")

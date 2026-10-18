@@ -128,11 +128,11 @@ test("a move the API refuses puts the card back and says why; the stages are ask
   setLocation("/tasks")
   let stagesAsked = 0
   server.use(
-    http.get("*/api/app/task-stages", () => {
+    http.get("*/api/app/order-stages", () => {
       stagesAsked += 1
       return HttpResponse.json(stagesOf(1))
     }),
-    http.patch("*/api/app/tasks/:id/stage", () =>
+    http.patch("*/api/app/orders/:id/stage", () =>
       HttpResponse.json({ error: "validation_error", message: "Bosqichni tanlang" }, { status: 400 }),
     ),
   )
@@ -219,8 +219,8 @@ test("a board with no tasks says so in every column", async () => {
   expect(await screen.findByText("0 ta")).toBeInTheDocument()
 })
 
-test("an employee whose role holds tasks.view alone sees the board without the stage menus or a way to add", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view"])
+test("an employee whose role holds orders.view alone sees the board without the stage menus or a way to add", async () => {
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
   seedTasks()

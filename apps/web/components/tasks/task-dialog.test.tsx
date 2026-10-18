@@ -268,7 +268,7 @@ test("the + of a column opens the dialog for that stage; under a tab it opens wi
 })
 
 test("without customers.create the dialog takes a customer that is there alone: no type, no fields, a word on why", async () => {
-  giveRole(VALI, 1, "Operator", ["tasks.view", "tasks.create", "customers.view"])
+  giveRole(VALI, 1, "Operator", ["orders.view", "orders.create", "customers.view"])
   await signIn(VALI)
   await chooseCompany(1)
   seedTasks()

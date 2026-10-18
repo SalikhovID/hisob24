@@ -43,7 +43,7 @@ interface Db {
   companies: Company[]
   members: Record<number, Member[]>
   // locations: each company's live locations, in the order they were added
-  // (logic/locations.md); tasks_count is what the API counts for them.
+  // (logic/locations.md); orders_count is what the API counts for them.
   locations: Record<number, AdminLocation[]>
   billings: Record<number, Billing[]>
   admins: AdminAccount[]
@@ -85,9 +85,9 @@ function seed(): Db {
     },
     // Every company starts with the ready location.
     locations: {
-      1: [{ id: 101, name: "Asosiy", tasks_count: 0, created_at: "2026-09-20T05:00:00Z" }],
-      2: [{ id: 102, name: "Asosiy", tasks_count: 0, created_at: "2026-09-20T05:00:00Z" }],
-      3: [{ id: 103, name: "Asosiy", tasks_count: 0, created_at: "2026-09-20T05:00:00Z" }],
+      1: [{ id: 101, name: "Asosiy", orders_count: 0, created_at: "2026-09-20T05:00:00Z" }],
+      2: [{ id: 102, name: "Asosiy", orders_count: 0, created_at: "2026-09-20T05:00:00Z" }],
+      3: [{ id: 103, name: "Asosiy", orders_count: 0, created_at: "2026-09-20T05:00:00Z" }],
     },
     billings: { 1: [], 2: [], 3: [] },
     admins: [{ telegram_id: OWNER_ID, full_name: "Owner", is_active: true, created_at: "2026-10-01T04:00:00Z" }],

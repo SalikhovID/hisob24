@@ -240,7 +240,7 @@ test("a list that did not load says why and offers to try again", async () => {
   seedTasks()
   setLocation("/tasks?view=list")
   server.use(
-    http.get("*/api/app/tasks", () =>
+    http.get("*/api/app/orders", () =>
       HttpResponse.json({ error: "internal_error", message: "Vazifalar yuklanmadi: ichki xatolik" }, { status: 500 }),
     ),
   )
@@ -332,9 +332,9 @@ test("with no task types the owner is led to the settings", async () => {
 })
 
 test.each([
-  ["tasks.view alone", ["tasks.view"], false],
-  ["tasks.create without a way to a customer", ["tasks.view", "tasks.create"], false],
-  ["tasks.create with customers.view", ["tasks.view", "tasks.create", "customers.view"], true],
+  ["orders.view alone", ["orders.view"], false],
+  ["orders.create without a way to a customer", ["orders.view", "orders.create"], false],
+  ["orders.create with customers.view", ["orders.view", "orders.create", "customers.view"], true],
 ])("the way to add a task is there with %s: %s", async (_, permissions, shown) => {
   giveRole(VALI, 1, "Rol", permissions as Parameters<typeof giveRole>[3])
   await signIn(VALI)
@@ -349,7 +349,7 @@ test.each([
   expect(router.replace).not.toHaveBeenCalled()
 })
 
-test("an employee whose role holds no tasks.view is sent home", async () => {
+test("an employee whose role holds no orders.view is sent home", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
   await signIn(VALI)
   await chooseCompany(1)

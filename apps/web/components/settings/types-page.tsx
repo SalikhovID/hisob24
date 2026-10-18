@@ -57,7 +57,7 @@ export function TypesPage({ kind }: { kind: "customer" | "task" }) {
   const queryKey = kind === "customer" ? customerTypesKey(companyId) : taskTypesKey(companyId)
   const queryClient = useQueryClient()
   const reorder = useReorder<(CustomerType | TaskType)[]>(queryKey, inOrder, (ids) =>
-    kind === "customer" ? call(api.PUT("/app/customer-types/order", { body: { ids } })) : call(api.PUT("/app/task-types/order", { body: { ids } })),
+    kind === "customer" ? call(api.PUT("/app/customer-types/order", { body: { ids } })) : call(api.PUT("/app/order-types/order", { body: { ids } })),
   )
   const [adding, setAdding] = useState(false)
   const w = words[kind]
@@ -101,7 +101,7 @@ export function TypesPage({ kind }: { kind: "customer" | "task" }) {
           onOpenChange={(open) => !open && setAdding(false)}
           onSubmit={async (name) => {
             if (kind === "customer") await call(api.POST("/app/customer-types", { body: { name } }))
-            else await call(api.POST("/app/task-types", { body: { name } }))
+            else await call(api.POST("/app/order-types", { body: { name } }))
             await queryClient.invalidateQueries({ queryKey })
           }}
         />

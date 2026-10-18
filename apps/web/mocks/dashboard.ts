@@ -59,7 +59,7 @@ export const dashboardHandlers = [
     }
 
     let tasks = null
-    if (may.includes("tasks.view")) {
+    if (may.includes("orders.view")) {
       const doneStages = new Set(db.stages.filter((s) => s.companyId === member.companyId && s.done).map((s) => s.id))
       const active = liveTasks(member.companyId)
         .filter((t) => locations.includes(t.locationId) && !doneStages.has(t.stageId))
@@ -89,7 +89,7 @@ export const dashboardHandlers = [
     return HttpResponse.json({
       suppliers,
       customers,
-      tasks,
+      orders: tasks,
       purchases: may.includes("purchases.view") ? money("purchase") : null,
       sales: may.includes("sales.view") ? money("sale") : null,
     })

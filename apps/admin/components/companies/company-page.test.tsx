@@ -490,7 +490,7 @@ function locationsOf(table: HTMLElement) {
 }
 
 test("the company page lists the locations with their task counts, the ready one first", async () => {
-  db.locations[1].push({ id: 110, name: "Chilonzor", tasks_count: 3, created_at: "2026-09-25T05:00:00Z" })
+  db.locations[1].push({ id: 110, name: "Chilonzor", orders_count: 3, created_at: "2026-09-25T05:00:00Z" })
 
   renderWithProviders(<CompanyPage id={1} />)
 
@@ -556,7 +556,7 @@ test("a location is renamed from its row", async () => {
 })
 
 test("the only location is not deleted; a second, empty one is, after asking", async () => {
-  db.locations[1].push({ id: 110, name: "Chilonzor", tasks_count: 0, created_at: "2026-09-25T05:00:00Z" })
+  db.locations[1].push({ id: 110, name: "Chilonzor", orders_count: 0, created_at: "2026-09-25T05:00:00Z" })
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
   const table = await screen.findByRole("table", { name: "Lokatsiyalar" })
@@ -576,7 +576,7 @@ test("the only location is not deleted; a second, empty one is, after asking", a
 })
 
 test("a location with tasks is not deleted: the refusal says how many", async () => {
-  db.locations[1].push({ id: 110, name: "Chilonzor", tasks_count: 2, created_at: "2026-09-25T05:00:00Z" })
+  db.locations[1].push({ id: 110, name: "Chilonzor", orders_count: 2, created_at: "2026-09-25T05:00:00Z" })
   const { user } = renderWithProviders(<CompanyPage id={1} />)
 
   const table = await screen.findByRole("table", { name: "Lokatsiyalar" })

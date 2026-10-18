@@ -39,7 +39,7 @@ test("a role's page opens with its name and permissions; saving replaces them an
   expect(moved()).toBe("back")
   expect(db.roles.find((candidate) => candidate.id === role.id)).toMatchObject({
     name: "Katta sotuvchi",
-    permissions: ["customers.view", "customers.create", "tasks.view"],
+    permissions: ["customers.view", "customers.create", "orders.view"],
   })
   expect(await screen.findByText("Rol saqlandi")).toBeInTheDocument()
 })

@@ -14,7 +14,7 @@ test("an employee without a role sees the customers, the tasks, the products, th
 })
 
 test("an employee with a role sees the sections the role lets them view; before the session is known, the home alone", () => {
-  expect(labels(["tasks.view", "tasks.create", "settings.view"])).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
+  expect(labels(["orders.view", "orders.create", "settings.view"])).toEqual(["Bosh sahifa", "Vazifalar", "Sozlamalar"])
   expect(labels(["employees.view"])).toEqual(["Bosh sahifa", "Xodimlar"])
   expect(labels(["suppliers.view"])).toEqual(["Bosh sahifa", "Ombor"])
   expect(labels(["sales.view"])).toEqual(["Bosh sahifa", "Sotuv"])
@@ -112,7 +112,7 @@ test("the pages of the menu, in its order, each of its section: the sections' ow
   expect(navPages.map((page) => [page.key, page.label, page.href, page.section])).toEqual([
     ["home", "Bosh sahifa", "/", "home"],
     ["customers", "Mijozlar", "/customers", "customers"],
-    ["tasks", "Vazifalar", "/tasks", "tasks"],
+    ["orders", "Vazifalar", "/tasks", "orders"],
     ["products", "Mahsulotlar", "/products", "products"],
     ["services", "Xizmatlar", "/services", "products"],
     ["sales", "Sotuv", "/sales", "sales"],
@@ -143,12 +143,12 @@ test("someone may open the pages their permissions open, the warehouse with any 
 test("the bar's order is the member's own pages they may open, then the rest by the default bar's order and the menu's", () => {
   const order = (permissions: Permission[] | undefined, tabBar?: string[] | null) => barOrder(permissions, tabBar).map((page) => page.key)
   const rest = ["services", "purchases", "transfers", "inventories", "opening_stock", "suppliers", "expenses", "money_transfers"]
-  expect(order(allPermissions, null)).toEqual(["home", "customers", "tasks", "products", "sales", "warehouse", "accounts", "employees", ...rest])
+  expect(order(allPermissions, null)).toEqual(["home", "customers", "orders", "products", "sales", "warehouse", "accounts", "employees", ...rest])
   expect(order(allPermissions, ["purchases"])).toEqual([
     "purchases",
     "home",
     "customers",
-    "tasks",
+    "orders",
     "products",
     "sales",
     "warehouse",
@@ -162,14 +162,14 @@ test("the bar's order is the member's own pages they may open, then the rest by 
 
 test("the tab bar is the first four of the bar's order: always full, unless the member may open fewer pages", () => {
   const bar = (permissions: Permission[] | undefined, tabBar?: string[] | null) => barPages(permissions, tabBar).map((page) => page.key)
-  expect(bar(allPermissions)).toEqual(["home", "customers", "tasks", "products"])
-  expect(bar(allPermissions, null)).toEqual(["home", "customers", "tasks", "products"])
+  expect(bar(allPermissions)).toEqual(["home", "customers", "orders", "products"])
+  expect(bar(allPermissions, null)).toEqual(["home", "customers", "orders", "products"])
   expect(bar(["employees.view"], null)).toEqual(["home", "employees"])
   expect(bar(allPermissions, ["purchases", "home", "money_transfers"]), "a short bar is filled up").toEqual(["purchases", "home", "money_transfers", "customers"])
   expect(bar(["sales.view"], ["purchases", "sales", "home"]), "a page they may not open drops out").toEqual(["sales", "home"])
-  expect(bar(allPermissions, []), "an empty bar of before is filled").toEqual(["home", "customers", "tasks", "products"])
-  expect(bar(allPermissions, ["bogus", "tasks"])).toEqual(["tasks", "home", "customers", "products"])
-  expect(bar(allPermissions, ["home", "customers", "tasks", "products", "sales"])).toEqual(["home", "customers", "tasks", "products"])
+  expect(bar(allPermissions, []), "an empty bar of before is filled").toEqual(["home", "customers", "orders", "products"])
+  expect(bar(allPermissions, ["bogus", "orders"])).toEqual(["orders", "home", "customers", "products"])
+  expect(bar(allPermissions, ["home", "customers", "orders", "products", "sales"])).toEqual(["home", "customers", "orders", "products"])
 })
 
 test("the bar's current page is the page itself, or the warehouse on one of its pages that is not in the bar; elsewhere none (then «Sozlamalar» is)", () => {

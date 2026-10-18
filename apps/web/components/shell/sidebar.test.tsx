@@ -57,7 +57,7 @@ test("an employee sees no section of the owner's", async () => {
 })
 
 test("the sidebar keeps the default order whatever the member's tab bar holds", async () => {
-  db.members[ALI][0].tabBar = ["employees", "tasks"]
+  db.members[ALI][0].tabBar = ["employees", "orders"]
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
 
@@ -66,7 +66,7 @@ test("the sidebar keeps the default order whatever the member's tab bar holds", 
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {
-  giveRole(VALI, 1, "Kuzatuvchi", ["tasks.view", "settings.view"])
+  giveRole(VALI, 1, "Kuzatuvchi", ["orders.view", "settings.view"])
   await signIn(VALI)
   await chooseCompany(1)
   renderWithProviders(<Sidebar {...props()} />)

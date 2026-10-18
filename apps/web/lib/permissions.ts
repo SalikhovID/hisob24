@@ -11,11 +11,11 @@ export const allPermissions: Permission[] = [
   "customers.edit",
   "customers.delete",
   "customers.history",
-  "tasks.view",
-  "tasks.create",
-  "tasks.edit",
-  "tasks.delete",
-  "tasks.history",
+  "orders.view",
+  "orders.create",
+  "orders.edit",
+  "orders.delete",
+  "orders.history",
   "products.view",
   "products.create",
   "products.edit",
@@ -60,10 +60,10 @@ export const defaultPermissions: Permission[] = [
   "customers.create",
   "customers.edit",
   "customers.delete",
-  "tasks.view",
-  "tasks.create",
-  "tasks.edit",
-  "tasks.delete",
+  "orders.view",
+  "orders.create",
+  "orders.edit",
+  "orders.delete",
   "products.view",
   "products.create",
   "products.edit",
@@ -91,12 +91,12 @@ export const defaultPermissions: Permission[] = [
 ]
 
 // Section is the part of a permission before the dot.
-export type Section = "customers" | "tasks" | "products" | "suppliers" | "purchases" | "sales" | "stock" | "finance" | "employees" | "settings"
+export type Section = "customers" | "orders" | "products" | "suppliers" | "purchases" | "sales" | "stock" | "finance" | "employees" | "settings"
 
 // sectionLabels are the sections' names in the app (logic/roles.md, 4.1).
 export const sectionLabels: Record<Section, string> = {
   customers: "Mijozlar",
-  tasks: "Vazifalar",
+  orders: "Vazifalar",
   products: "Mahsulotlar",
   suppliers: "Ta'minotchilar",
   purchases: "Xaridlar",
@@ -119,7 +119,7 @@ export function can(permissions: readonly Permission[] | undefined, permission: 
 }
 
 // sections are the sections in the catalog's order.
-export const sections: Section[] = ["customers", "tasks", "products", "suppliers", "purchases", "sales", "stock", "finance", "employees", "settings"]
+export const sections: Section[] = ["customers", "orders", "products", "suppliers", "purchases", "sales", "stock", "finance", "employees", "settings"]
 
 // summaryOf names the sections permissions reach into, in the catalog's
 // order: what a role is about, in a line. "Ruxsat yo'q" for none.

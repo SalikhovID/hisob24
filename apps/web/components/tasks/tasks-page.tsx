@@ -39,8 +39,8 @@ import { type TaskView, useTaskFilter } from "./use-task-filter"
 const buckets: DeadlineBucket[] = ["late", "today", "week", "later", "done"]
 
 // TasksPage is the tasks of the current location (logic/locations.md,
-// section 6), for whoever may see them (tasks.view; adding takes
-// tasks.create and customers.view, moving tasks.edit), as the prototype's:
+// section 6), for whoever may see them (orders.view; adding takes
+// orders.create and customers.view, moving orders.edit), as the prototype's:
 // a board of the stages (the first time) or a list grouped by how far the
 // deadlines are (late, today, this week, later, done), a row each with its
 // stage, customer, assignee and deadline; a chip per type, the assignee and
@@ -48,7 +48,7 @@ const buckets: DeadlineBucket[] = ["late", "today", "week", "later", "done"]
 // phone. The heading says the location (with two or more) and how many
 // tasks it has.
 export function TasksPage() {
-  const gate = usePermission("tasks.view")
+  const gate = usePermission("orders.view")
   const companyId = gate?.company.id ?? null
   const phone = gate?.user.phone ?? ""
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
@@ -126,7 +126,7 @@ export function TasksPage() {
   const ready = companyId !== null && types.data && stages.data && dropdowns.data && types.data.length > 0 && stages.data.length > 0
   // A task is for a customer: adding one takes a way to the customers too,
   // and a location to enter it into.
-  const canAdd = allowed("tasks.create") && allowed("customers.view") && locationId !== null
+  const canAdd = allowed("orders.create") && allowed("customers.view") && locationId !== null
   // A member with no location to work in sees no tasks: the owner has to
   // give them one (logic/locations.md, section 5).
   const noLocation = location.ready && locationId === null
@@ -239,7 +239,7 @@ export function TasksPage() {
               onTotal={onTotal}
               onAdd={(stageId) => setAdding({ stageId })}
               canAdd={canAdd}
-              canMove={allowed("tasks.edit")}
+              canMove={allowed("orders.edit")}
             />
           )}
           {view === "list" && loading && <ListLoading rows={6} mark="none" />}

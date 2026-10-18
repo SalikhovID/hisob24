@@ -48,7 +48,7 @@ test("a new role is made with its name and permissions, in the catalog's order, 
 
   await waitFor(() => expect(router.push).toHaveBeenCalledWith("/settings/roles"))
   expect(moved()).toBe("back")
-  expect(db.roles.map((role) => [role.name, role.permissions])).toEqual([["Sotuvchi", ["customers.view", "customers.edit", "tasks.view"]]])
+  expect(db.roles.map((role) => [role.name, role.permissions])).toEqual([["Sotuvchi", ["customers.view", "customers.edit", "orders.view"]]])
   expect(await screen.findByText("Rol yaratildi")).toBeInTheDocument()
 })
 

@@ -16,7 +16,7 @@ import type { Permission, TabBarPage } from "./types"
 // NavKey names a section, as the API keeps a member's own order of the menu
 // (logic/roles.md, section 8). The finance is a key the API knows already;
 // its section comes with its pages.
-export type NavKey = "home" | "customers" | "tasks" | "products" | "sales" | "warehouse" | "finance" | "employees" | "settings"
+export type NavKey = "home" | "customers" | "orders" | "products" | "sales" | "warehouse" | "finance" | "employees" | "settings"
 
 // PageKey names a page of the menu that may stand in the tab bar (the
 // API's tab bar page): a section's own page, a tab, the warehouse or one
@@ -54,7 +54,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { key: "home", label: "Bosh sahifa", href: "/", icon: HouseIcon },
   { key: "customers", label: "Mijozlar", href: "/customers", icon: ContactIcon, permission: "customers.view" },
-  { key: "tasks", label: "Vazifalar", href: "/tasks", icon: ListTodoIcon, permission: "tasks.view" },
+  { key: "orders", label: "Vazifalar", href: "/tasks", icon: ListTodoIcon, permission: "orders.view" },
   {
     key: "products",
     label: "Mahsulotlar",
@@ -207,7 +207,7 @@ export const BAR_LIMIT = 4
 
 // DEFAULT_BAR is the order the default bar takes its pages in: each
 // section's first page, in the default order of the menu.
-const DEFAULT_BAR: PageKey[] = ["home", "customers", "tasks", "products", "sales", "warehouse", "accounts", "employees"]
+const DEFAULT_BAR: PageKey[] = ["home", "customers", "orders", "products", "sales", "warehouse", "accounts", "employees"]
 
 // barOrder is the pages someone with permissions may open in the order the
 // bar takes them (the bar's editor lists them so): their own first (tabBar,

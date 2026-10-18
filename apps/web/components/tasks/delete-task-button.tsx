@@ -27,7 +27,7 @@ export function DeleteTaskButton({ companyId, id, title }: { companyId: number; 
   const queryClient = useQueryClient()
   const router = useRouter()
   const remove = useMutation({
-    mutationFn: () => call(api.DELETE("/app/tasks/{id}", { params: { path: { id } } })),
+    mutationFn: () => call(api.DELETE("/app/orders/{id}", { params: { path: { id } } })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tasksKey(companyId) })
       toast.success("Vazifa o'chirildi")

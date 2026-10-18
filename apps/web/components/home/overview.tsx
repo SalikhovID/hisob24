@@ -13,7 +13,7 @@ import type { Dashboard, TaskStage } from "@/lib/types"
 // The tasks and the documents are the current location's: with none, they
 // are out. month is the month's name, for the cards' line ("oktabr").
 export function Overview({ dashboard, stages, hasLocation, month }: { dashboard: Dashboard; stages: TaskStage[]; hasLocation: boolean; month: string }) {
-  const { tasks, purchases, sales, customers } = dashboard
+  const { orders: tasks, purchases, sales, customers } = dashboard
   const cards = []
   if (tasks && hasLocation) {
     const bars = tasks.by_stage.flatMap((count) => {

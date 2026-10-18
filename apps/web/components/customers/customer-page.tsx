@@ -91,7 +91,7 @@ export function CustomerPage({ id }: { id: number }) {
       />
       <Tiles>
         {type && allowed("customers.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
-        {allowed("tasks.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setTasking(true)} />}
+        {allowed("orders.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Vazifa" onClick={() => setTasking(true)} />}
         {allowed("sales.create") && <Tile icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
         <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${customer.data.phone}`} />
       </Tiles>
@@ -121,7 +121,7 @@ export function CustomerPage({ id }: { id: number }) {
         />
       )}
       {/* The tasks the customer has (for whoever may see the tasks): a customer with one is not deleted. */}
-      {companyId !== null && allowed("tasks.view") && <CustomerTasks companyId={companyId} customerId={customer.data.id} />}
+      {companyId !== null && allowed("orders.view") && <CustomerTasks companyId={companyId} customerId={customer.data.id} />}
       {/* Who did what to the customer takes its permission. */}
       {companyId !== null && allowed("customers.history") && <CustomerHistory companyId={companyId} id={customer.data.id} />}
       {companyId !== null && allowed("customers.delete") && <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />}

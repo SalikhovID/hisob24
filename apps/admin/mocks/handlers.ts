@@ -146,7 +146,7 @@ export const handlers = [
     db.companies.push(created)
     db.members[created.id] = [member(phone, ownerName, "owner")]
     // A new company starts with the ready location.
-    db.locations[created.id] = [{ id: db.nextId++, name: "Asosiy", tasks_count: 0, created_at: new Date().toISOString() }]
+    db.locations[created.id] = [{ id: db.nextId++, name: "Asosiy", orders_count: 0, created_at: new Date().toISOString() }]
     db.billings[created.id] = []
     db.currencies[created.id] = [1]
     db.accounts[created.id] = [cash(db.nextId++)]
@@ -245,7 +245,7 @@ export const handlers = [
     if (!c) return notFound()
     const locations = (db.locations[c.id] ??= [])
     if (locations.some((l) => sameName(l.name, name))) return nameTaken()
-    const location: AdminLocation = { id: db.nextId++, name, tasks_count: 0, created_at: new Date().toISOString() }
+    const location: AdminLocation = { id: db.nextId++, name, orders_count: 0, created_at: new Date().toISOString() }
     locations.push(location)
     return HttpResponse.json(location, { status: 201 })
   }),
@@ -268,7 +268,7 @@ export const handlers = [
     const location = locations.find((l) => l.id === Number(params.locationId))
     if (!c || !location) return locationNotFound()
     if (locations.length <= 1) return fail(409, "last_location", "Kompaniyaning yagona lokatsiyasi o'chirilmaydi")
-    if (location.tasks_count > 0) return fail(409, "location_in_use", `Bu lokatsiyada ${location.tasks_count} ta vazifa bor`)
+    if (location.orders_count > 0) return fail(409, "location_in_use", `Bu lokatsiyada ${location.orders_count} ta vazifa bor`)
     db.locations[c.id] = locations.filter((l) => l !== location)
     return new HttpResponse(null, { status: 204 })
   }),

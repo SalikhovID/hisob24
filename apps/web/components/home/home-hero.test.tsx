@@ -3,11 +3,11 @@ import { expect, test } from "vitest"
 import type { Dashboard } from "@/lib/types"
 import { HomeHero } from "./home-hero"
 
-const none: Dashboard = { suppliers: null, customers: null, tasks: null, purchases: null, sales: null }
-const tasks = (active: number, late: number): Dashboard["tasks"] => ({ active, late, by_stage: [], upcoming: [] })
+const none: Dashboard = { suppliers: null, customers: null, orders: null, purchases: null, sales: null }
+const tasks = (active: number, late: number): Dashboard["orders"] => ({ active, late, by_stage: [], upcoming: [] })
 
 test("whoever sees the purchases is headed by what the suppliers are owed: how many owe, the advance, the way to them", () => {
-  render(<HomeHero dashboard={{ ...none, suppliers: { debt: "2430000.00", debtors: 2, advance: "300000.00" }, tasks: tasks(4, 2) }} locationName="Asosiy" />)
+  render(<HomeHero dashboard={{ ...none, suppliers: { debt: "2430000.00", debtors: 2, advance: "300000.00" }, orders: tasks(4, 2) }} locationName="Asosiy" />)
 
   const hero = screen.getByRole("link", { name: /^Ta'minotchilarga qarz/ })
   expect(hero).toHaveAttribute("href", "/suppliers")
@@ -26,7 +26,7 @@ test("with nothing owed it says so", () => {
 })
 
 test("without the purchases, the tasks: how many are open, how many are late, where", () => {
-  const { rerender } = render(<HomeHero dashboard={{ ...none, tasks: tasks(4, 2) }} locationName="Chilonzor" />)
+  const { rerender } = render(<HomeHero dashboard={{ ...none, orders: tasks(4, 2) }} locationName="Chilonzor" />)
 
   const hero = screen.getByRole("link", { name: /^Faol vazifalar/ })
   expect(hero).toHaveAttribute("href", "/tasks")
@@ -34,7 +34,7 @@ test("without the purchases, the tasks: how many are open, how many are late, wh
   expect(hero).toHaveTextContent("2 ta kechikkan")
   expect(hero).toHaveTextContent("Chilonzor")
 
-  rerender(<HomeHero dashboard={{ ...none, tasks: tasks(3, 0) }} locationName="Chilonzor" />)
+  rerender(<HomeHero dashboard={{ ...none, orders: tasks(3, 0) }} locationName="Chilonzor" />)
   expect(screen.getByRole("link", { name: /^Faol vazifalar/ })).toHaveTextContent("Hammasi vaqtida")
 })
 

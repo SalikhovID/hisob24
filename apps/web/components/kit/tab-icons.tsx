@@ -91,7 +91,7 @@ const Settings: FC<Props> = (props) => (
 export const tabIcons: Record<NavKey, FC<Props>> = {
   home: Home,
   customers: Customers,
-  tasks: Tasks,
+  orders: Tasks,
   products: Products,
   sales: Sales,
   warehouse: Warehouse,
@@ -146,7 +146,7 @@ const MoneyTransfers: FC<Props> = (props) => (
 export const pageIcons: Record<PageKey, FC<Props>> = {
   home: Home,
   customers: Customers,
-  tasks: Tasks,
+  orders: Tasks,
   products: Products,
   services: Services,
   sales: Sales,

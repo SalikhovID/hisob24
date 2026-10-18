@@ -80,13 +80,13 @@ const liveDropdown = (companyId: number, id: number) =>
 const liveTasks = () => db.tasks.filter((t) => !t.deleted)
 
 export const taskSettingsHandlers = [
-  http.get(api("/app/task-stages"), ({ request }) => {
+  http.get(api("/app/order-stages"), ({ request }) => {
     const member = memberSession(request)
     if (member instanceof Response) return member
     return HttpResponse.json(stagesOf(member.companyId))
   }),
 
-  http.post(api("/app/task-stages"), async ({ request }) => {
+  http.post(api("/app/order-stages"), async ({ request }) => {
     const member = permittedSession(request, "settings.create")
     if (member instanceof Response) return member
     const body = (await request.json()) as { name?: unknown; color?: unknown; is_done?: boolean }
@@ -99,7 +99,7 @@ export const taskSettingsHandlers = [
     return HttpResponse.json(toStage(stage), { status: 201 })
   }),
 
-  http.put(api("/app/task-stages/order"), async ({ request }) => {
+  http.put(api("/app/order-stages/order"), async ({ request }) => {
     const member = permittedSession(request, "settings.edit")
     if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
@@ -110,7 +110,7 @@ export const taskSettingsHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.patch(api("/app/task-stages/:id"), async ({ params, request }) => {
+  http.patch(api("/app/order-stages/:id"), async ({ params, request }) => {
     const member = permittedSession(request, "settings.edit")
     if (member instanceof Response) return member
     const body = (await request.json()) as { name?: unknown; color?: unknown; is_done?: boolean }
@@ -128,7 +128,7 @@ export const taskSettingsHandlers = [
     return HttpResponse.json(toStage(stage))
   }),
 
-  http.delete(api("/app/task-stages/:id"), ({ params, request }) => {
+  http.delete(api("/app/order-stages/:id"), ({ params, request }) => {
     const member = permittedSession(request, "settings.delete")
     if (member instanceof Response) return member
     const stage = liveStage(member.companyId, Number(params.id))
@@ -139,13 +139,13 @@ export const taskSettingsHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.get(api("/app/task-types"), ({ request }) => {
+  http.get(api("/app/order-types"), ({ request }) => {
     const member = memberSession(request)
     if (member instanceof Response) return member
     return HttpResponse.json(taskTypesOf(member.companyId))
   }),
 
-  http.post(api("/app/task-types"), async ({ request }) => {
+  http.post(api("/app/order-types"), async ({ request }) => {
     const member = permittedSession(request, "settings.create")
     if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
@@ -156,7 +156,7 @@ export const taskSettingsHandlers = [
     return HttpResponse.json(toTaskType(type), { status: 201 })
   }),
 
-  http.put(api("/app/task-types/order"), async ({ request }) => {
+  http.put(api("/app/order-types/order"), async ({ request }) => {
     const member = permittedSession(request, "settings.edit")
     if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
@@ -167,7 +167,7 @@ export const taskSettingsHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.patch(api("/app/task-types/:id"), async ({ params, request }) => {
+  http.patch(api("/app/order-types/:id"), async ({ params, request }) => {
     const member = permittedSession(request, "settings.edit")
     if (member instanceof Response) return member
     const name = cleanName(((await request.json()) as { name?: unknown }).name)
@@ -179,7 +179,7 @@ export const taskSettingsHandlers = [
     return HttpResponse.json(toTaskType(type))
   }),
 
-  http.delete(api("/app/task-types/:id"), ({ params, request }) => {
+  http.delete(api("/app/order-types/:id"), ({ params, request }) => {
     const member = permittedSession(request, "settings.delete")
     if (member instanceof Response) return member
     const type = liveType(member.companyId, Number(params.id))
@@ -192,7 +192,7 @@ export const taskSettingsHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.post(api("/app/task-types/:id/fields"), async ({ params, request }) => {
+  http.post(api("/app/order-types/:id/fields"), async ({ params, request }) => {
     const member = permittedSession(request, "settings.create")
     if (member instanceof Response) return member
     const body = (await request.json()) as { label?: unknown; kind?: string; required?: boolean; dropdown_id?: number | null }
@@ -212,7 +212,7 @@ export const taskSettingsHandlers = [
     return HttpResponse.json(toTaskField(field), { status: 201 })
   }),
 
-  http.put(api("/app/task-types/:id/fields/order"), async ({ params, request }) => {
+  http.put(api("/app/order-types/:id/fields/order"), async ({ params, request }) => {
     const member = permittedSession(request, "settings.edit")
     if (member instanceof Response) return member
     const { ids } = (await request.json()) as { ids?: unknown }
@@ -224,7 +224,7 @@ export const taskSettingsHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  http.patch(api("/app/task-types/:id/fields/:fieldId"), async ({ params, request }) => {
+  http.patch(api("/app/order-types/:id/fields/:fieldId"), async ({ params, request }) => {
     const member = permittedSession(request, "settings.edit")
     if (member instanceof Response) return member
     const body = (await request.json()) as { label?: unknown; required?: boolean }
@@ -241,7 +241,7 @@ export const taskSettingsHandlers = [
     return HttpResponse.json(toTaskField(field))
   }),
 
-  http.delete(api("/app/task-types/:id/fields/:fieldId"), ({ params, request }) => {
+  http.delete(api("/app/order-types/:id/fields/:fieldId"), ({ params, request }) => {
     const member = permittedSession(request, "settings.delete")
     if (member instanceof Response) return member
     const field = liveType(member.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)

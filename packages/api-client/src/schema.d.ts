@@ -1323,7 +1323,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/app/task-stages": {
+    "/app/order-stages": {
         parameters: {
             query?: never;
             header?: never;
@@ -1334,20 +1334,20 @@ export interface paths {
          * Bosqichlar
          * @description Access token'dagi kompaniyaning bosqichlari (kanban ustunlari) o'z tartibida. Har a'zo o'qiydi: kanban va vazifa formasi shundan quriladi.
          */
-        get: operations["listTaskStages"];
+        get: operations["listOrderStages"];
         put?: never;
         /**
          * Bosqich yaratish (settings.create ruxsati)
          * @description Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha; rang to'qqiz tayyor rangdan biri (400 "Rangni tanlang"). Yakuniy bosqichdagi vazifa bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.
          */
-        post: operations["createTaskStage"];
+        post: operations["createOrderStage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/app/task-stages/order": {
+    "/app/order-stages/order": {
         parameters: {
             query?: never;
             header?: never;
@@ -1359,7 +1359,7 @@ export interface paths {
          * Bosqichlar tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids kompaniyaning barcha bosqichlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
-        put: operations["orderTaskStages"];
+        put: operations["reorderOrderStages"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1367,7 +1367,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/app/task-stages/{id}": {
+    "/app/order-stages/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1383,17 +1383,17 @@ export interface paths {
          * Bosqichni o'chirish (settings.delete ruxsati)
          * @description Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor bosqich o'chirilmaydi: 409 stage_in_use.
          */
-        delete: operations["deleteTaskStage"];
+        delete: operations["deleteOrderStage"];
         options?: never;
         head?: never;
         /**
          * Bosqichni o'zgartirish (settings.edit ruxsati)
          * @description Nomi, rangi va "Yakuniy" belgisi; berilmagani o'zgarmaydi.
          */
-        patch: operations["updateTaskStage"];
+        patch: operations["updateOrderStage"];
         trace?: never;
     };
-    "/app/task-types": {
+    "/app/order-types": {
         parameters: {
             query?: never;
             header?: never;
@@ -1404,20 +1404,20 @@ export interface paths {
          * Vazifa turlari, maydonlari bilan
          * @description Access token'dagi kompaniyaning vazifa turlari o'z tartibida, har biri maydonlari bilan. Har a'zo o'qiydi: vazifa formasi va ro'yxat ustunlari shundan quriladi. Nomi, muddat, mijoz va mas'ul maydon emas: ular har vazifada bor.
          */
-        get: operations["listTaskTypes"];
+        get: operations["listOrderTypes"];
         put?: never;
         /**
          * Vazifa turini yaratish (settings.create ruxsati)
          * @description Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi (katta-kichik harf farqsiz), 60 belgigacha.
          */
-        post: operations["createTaskType"];
+        post: operations["createOrderType"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/app/task-types/order": {
+    "/app/order-types/order": {
         parameters: {
             query?: never;
             header?: never;
@@ -1429,7 +1429,7 @@ export interface paths {
          * Vazifa turlari tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
-        put: operations["orderTaskTypes"];
+        put: operations["reorderOrderTypes"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1437,7 +1437,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/app/task-types/{id}": {
+    "/app/order-types/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1453,14 +1453,14 @@ export interface paths {
          * Vazifa turini o'chirish (settings.delete ruxsati)
          * @description Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi bor tur o'chirilmaydi: 409 type_in_use.
          */
-        delete: operations["deleteTaskType"];
+        delete: operations["deleteOrderType"];
         options?: never;
         head?: never;
         /** Vazifa turi nomini o'zgartirish (settings.edit ruxsati) */
-        patch: operations["renameTaskType"];
+        patch: operations["renameOrderType"];
         trace?: never;
     };
-    "/app/task-types/{id}/fields": {
+    "/app/order-types/{id}/fields": {
         parameters: {
             query?: never;
             header?: never;
@@ -1475,14 +1475,14 @@ export interface paths {
          * Vazifa turiga maydon qo'shish (settings.create ruxsati)
          * @description Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown, multi_dropdown, radio, checkbox) dropdown_id talab qiladi, matn va son maydoniga dropdown ulanmaydi. Vazifa maydonida "Takrorlanmasin" yo'q. Maydonning turi va dropdowni keyin o'zgarmaydi.
          */
-        post: operations["addTaskField"];
+        post: operations["addOrderField"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/app/task-types/{id}/fields/{fieldId}": {
+    "/app/order-types/{id}/fields/{fieldId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1499,17 +1499,17 @@ export interface paths {
          * Vazifa maydonini o'chirish (settings.delete ruxsati)
          * @description Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon o'chirilmaydi: 409 field_in_use.
          */
-        delete: operations["deleteTaskField"];
+        delete: operations["deleteOrderField"];
         options?: never;
         head?: never;
         /**
          * Vazifa maydonini o'zgartirish (settings.edit ruxsati)
          * @description Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
          */
-        patch: operations["updateTaskField"];
+        patch: operations["updateOrderField"];
         trace?: never;
     };
-    "/app/task-types/{id}/fields/order": {
+    "/app/order-types/{id}/fields/order": {
         parameters: {
             query?: never;
             header?: never;
@@ -1523,7 +1523,7 @@ export interface paths {
          * Vazifa turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
          * @description ids turning barcha maydonlarini yangi tartibda, har birini bir marta nomlaydi. Ro'yxat boshqa joyda o'zgargan bo'lsa: 409 order_changed.
          */
-        put: operations["orderTaskFields"];
+        put: operations["reorderOrderFields"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1571,7 +1571,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/app/tasks": {
+    "/app/orders": {
         parameters: {
             query?: never;
             header?: never;
@@ -1582,20 +1582,20 @@ export interface paths {
          * Vazifalar ro'yxati
          * @description Access token'dagi kompaniyaning vazifalari, a'zo ishlay oladigan lokatsiyalardagilari (logic/locations.md, 6-bo'lim): location_id berilsa shu lokatsiyadagilar, berilmasa ruxsatli hammasi. Muddati yaqini birinchi (bir kunlilar qo'shilgan tartibda), sahifada 20 ta. Har a'zo o'qiydi. O'chirilgan vazifalar chiqmaydi. Filtrlar birga ishlaydi.
          */
-        get: operations["listTasks"];
+        get: operations["listOrders"];
         put?: never;
         /**
          * Vazifa qo'shish
          * @description Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi. Nomi, muddati (YYYY-MM-DD, o'tgan sana ham bo'ladi), lokatsiyasi (location_id, kompaniyaning jonli lokatsiyasi), turi, bosqichi va mijozi majburiy, mas'ul ixtiyoriy (kompaniya a'zosi). values turning maydonlariga javoblar. customer yo mavjud mijoz ({id}: kompaniyaniki, faol) yo yangi mijoz ({type_id, phone, values}: mijoz qoidalari bilan, vazifa bilan bitta tranzaksiyada yoziladi). Tekshiruv tartibi: nom, muddat, lokatsiya, tur, bosqich, mas'ul (a'zo emas: "Mas'ul kompaniya a'zosi emas"; vazifa lokatsiyasida ishlamaydi: "Mas'ul bu lokatsiyada ishlamaydi"), maydonlar, mijoz; birinchi xato qaytadi (400 validation_error). A'zo ishlay olmaydigan lokatsiya: 403 forbidden (hammasidan oldin). Yangi mijozning takror telefoni (phone_taken) va takrorlanmas maydondagi takror javobi (value_taken) 409 qaytaradi, javobda o'sha mijozning ID'si bilan; vazifa ham, mijoz ham yozilmaydi. Kim qo'shgani saqlanadi.
          */
-        post: operations["createTask"];
+        post: operations["createOrder"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/app/tasks/{id}": {
+    "/app/orders/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1608,24 +1608,24 @@ export interface paths {
          * Vazifa
          * @description Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo o'qiydi. Boshqa kompaniyaniki, o'chirilgani va a'zoga ruxsatsiz lokatsiyadagisi 404 (logic/locations.md, 6-bo'lim).
          */
-        get: operations["getTask"];
+        get: operations["getOrder"];
         /**
          * Vazifani tahrirlash
          * @description Nomi, muddati, bosqichi, mas'uli va javoblari to'liq qayta yoziladi; turi va mijozi o'zgarmaydi. Har a'zo tahrirlaydi. Tekshiruv qo'shishdagi kabi. Berilmagan maydon javobi o'chadi. Vazifadagi chiqarilgan mas'ul o'zgartirilmasa qoladi; boshqasi a'zo bo'lishi kerak. O'zgargan maydonlar tarixga yoziladi; o'zgarishsiz saqlash yozilmaydi.
          */
-        put: operations["updateTask"];
+        put: operations["updateOrder"];
         post?: never;
         /**
          * Vazifani o'chirish
          * @description Vazifa yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida ko'rinmaydi, sahifasi 404 beradi. Bazadan o'chmaydi; tiklash yo'q. Har a'zo o'chira oladi. O'chirish tarixga yoziladi.
          */
-        delete: operations["deleteTask"];
+        delete: operations["deleteOrder"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/app/tasks/{id}/stage": {
+    "/app/orders/{id}/stage": {
         parameters: {
             query?: never;
             header?: never;
@@ -1644,10 +1644,10 @@ export interface paths {
          * Vazifani boshqa bosqichga o'tkazish
          * @description Kanbanda sudrab yoki menyudan ko'chirish: faqat bosqich o'zgaradi. Har a'zo ko'chiradi. O'sha bosqichning o'zi hech narsani o'zgartirmaydi va tarixga yozilmaydi; boshqasi "Bosqich" o'zgarishi sifatida yoziladi.
          */
-        patch: operations["moveTask"];
+        patch: operations["moveOrder"];
         trace?: never;
     };
-    "/app/tasks/{id}/history": {
+    "/app/orders/{id}/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -1657,10 +1657,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Vazifaning o'zgarishlar tarixi (tasks.history ruxsati)
+         * Vazifaning o'zgarishlar tarixi (orders.history ruxsati)
          * @description Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan har maydon eski va yangi qiymati bilan, o'sha paytdagi nomlarda matn sifatida: avval vazifaning o'z maydonlari (Nomi, Muddat dd.mm.yyyy, Bosqich, Mas'ul), keyin turning maydonlari.
          */
-        get: operations["listTaskHistory"];
+        get: operations["listOrderHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2573,10 +2573,10 @@ export interface components {
          */
         Role: "owner" | "user";
         /**
-         * @description Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), tasks (vazifalar), products (mahsulotlar va xizmatlar), suppliers (ta'minotchilar), purchases (xaridlar, ta'minotchi to'lovlari va boshlang'ich qarz / avansi), sales (sotuvlar, mijoz to'lovlari va boshlang'ich qarz / avansi, mijoz balansi), stock (ombor hujjatlari: ko'chirish, inventarizatsiya, boshlang'ich qoldiq, mahsulot harakatlari), finance (moliya: kassa, xarajat va kirim, o'tkazma, konvertatsiya), employees (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar, bosqichlar, valyuta kurslari, moliya kategoriyalari). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini o'zgartirish, nofaol qilish), delete (o'chirish), history (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning view ruxsatisiz qabul qilinmaydi.
+         * @description Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), orders (vazifalar), products (mahsulotlar va xizmatlar), suppliers (ta'minotchilar), purchases (xaridlar, ta'minotchi to'lovlari va boshlang'ich qarz / avansi), sales (sotuvlar, mijoz to'lovlari va boshlang'ich qarz / avansi, mijoz balansi), stock (ombor hujjatlari: ko'chirish, inventarizatsiya, boshlang'ich qoldiq, mahsulot harakatlari), finance (moliya: kassa, xarajat va kirim, o'tkazma, konvertatsiya), employees (xodimlar), settings (sozlamalar: turlar, maydonlar, dropdownlar, bosqichlar, valyuta kurslari, moliya kategoriyalari). Amallar: view (bo'limni ko'rish, ro'yxat va sahifalar), create (qo'shish), edit (tahrirlash, tartib, vazifa bosqichini o'zgartirish, nofaol qilish), delete (o'chirish), history (o'zgarishlar tarixi; faqat mijozlar va vazifalarda). Amal bo'limning view ruxsatisiz qabul qilinmaydi.
          * @enum {string}
          */
-        Permission: "customers.view" | "customers.create" | "customers.edit" | "customers.delete" | "customers.history" | "tasks.view" | "tasks.create" | "tasks.edit" | "tasks.delete" | "tasks.history" | "products.view" | "products.create" | "products.edit" | "products.delete" | "suppliers.view" | "suppliers.create" | "suppliers.edit" | "suppliers.delete" | "purchases.view" | "purchases.create" | "purchases.edit" | "purchases.delete" | "sales.view" | "sales.create" | "sales.edit" | "sales.delete" | "stock.view" | "stock.create" | "stock.edit" | "stock.delete" | "finance.view" | "finance.create" | "finance.edit" | "finance.delete" | "employees.view" | "employees.create" | "employees.edit" | "employees.delete" | "settings.view" | "settings.create" | "settings.edit" | "settings.delete";
+        Permission: "customers.view" | "customers.create" | "customers.edit" | "customers.delete" | "customers.history" | "orders.view" | "orders.create" | "orders.edit" | "orders.delete" | "orders.history" | "products.view" | "products.create" | "products.edit" | "products.delete" | "suppliers.view" | "suppliers.create" | "suppliers.edit" | "suppliers.delete" | "purchases.view" | "purchases.create" | "purchases.edit" | "purchases.delete" | "sales.view" | "sales.create" | "sales.edit" | "sales.delete" | "stock.view" | "stock.create" | "stock.edit" | "stock.delete" | "finance.view" | "finance.create" | "finance.edit" | "finance.delete" | "employees.view" | "employees.create" | "employees.edit" | "employees.delete" | "settings.view" | "settings.create" | "settings.edit" | "settings.delete";
         Billing: {
             /** Format: int64 */
             id: number;
@@ -2612,7 +2612,7 @@ export interface components {
              * Format: int64
              * @description Shu lokatsiyada turgan faol vazifalar soni (o'chirilganlar sanalmaydi)
              */
-            tasks_count: number;
+            orders_count: number;
             /** Format: date-time */
             created_at: string;
         };
@@ -3566,7 +3566,7 @@ export interface components {
          * @description Pastki panelga qo'yiladigan sahifa kaliti, menyu tartibida
          * @enum {string}
          */
-        TabBarPage: "home" | "customers" | "tasks" | "products" | "services" | "sales" | "warehouse" | "purchases" | "transfers" | "inventories" | "opening_stock" | "suppliers" | "accounts" | "expenses" | "money_transfers" | "employees";
+        TabBarPage: "home" | "customers" | "orders" | "products" | "services" | "sales" | "warehouse" | "purchases" | "transfers" | "inventories" | "opening_stock" | "suppliers" | "accounts" | "expenses" | "money_transfers" | "employees";
         TabBarInput: {
             /** @description Panel sahifalari o'z tartibida (takror kalit bir marta, ko'pi bilan 4 ta); null standart panelga qaytaradi */
             pages: components["schemas"]["TabBarPage"][] | null;
@@ -3731,7 +3731,7 @@ export interface components {
          * @enum {string}
          */
         StageColor: "slate" | "red" | "orange" | "amber" | "green" | "teal" | "blue" | "violet" | "pink";
-        TaskStage: {
+        OrderStage: {
             /** Format: int64 */
             id: number;
             name: string;
@@ -3750,7 +3750,7 @@ export interface components {
             color?: components["schemas"]["StageColor"];
             is_done?: boolean;
         };
-        TaskField: {
+        OrderField: {
             /** Format: int64 */
             id: number;
             label: string;
@@ -3762,14 +3762,14 @@ export interface components {
              */
             dropdown_id: number | null;
         };
-        TaskType: {
+        OrderType: {
             /** Format: int64 */
             id: number;
             name: string;
             /** @description Maydonlar o'z tartibida */
-            fields: components["schemas"]["TaskField"][];
+            fields: components["schemas"]["OrderField"][];
         };
-        TaskFieldInput: {
+        OrderFieldInput: {
             label: string;
             kind: components["schemas"]["CustomerFieldKind"];
             /** @description Berilmasa false */
@@ -3780,11 +3780,11 @@ export interface components {
              */
             dropdown_id?: number | null;
         };
-        TaskFieldPatch: {
+        OrderFieldPatch: {
             label?: string;
             required?: boolean;
         };
-        TaskCustomer: {
+        OrderCustomer: {
             /** Format: int64 */
             id: number;
             /** @description Faqat raqamlar, masalan 998901234567 */
@@ -3792,7 +3792,7 @@ export interface components {
             /** @description Mijozning nomi: turining tartib bo'yicha birinchi matn maydonidagi javob; yo'q bo'lsa null */
             name: string | null;
         };
-        TaskAssignee: {
+        OrderAssignee: {
             phone: string;
             /** @description Mas'ulning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, biriktirilgan paytdagi ismi */
             full_name: string | null;
@@ -3802,8 +3802,8 @@ export interface components {
             suppliers: components["schemas"]["DashboardSuppliers"] | null;
             /** @description customers.view bo'lganga, aks holda null */
             customers: components["schemas"]["DashboardCustomers"] | null;
-            /** @description tasks.view bo'lganga, aks holda null */
-            tasks: components["schemas"]["DashboardTasks"] | null;
+            /** @description orders.view bo'lganga, aks holda null */
+            orders: components["schemas"]["DashboardOrders"] | null;
             /** @description Xaridlar; purchases.view bo'lganga, aks holda null */
             purchases: components["schemas"]["DashboardMoney"] | null;
             /** @description Sotuvlar; sales.view bo'lganga, aks holda null */
@@ -3832,7 +3832,7 @@ export interface components {
             /** @description Oyning har kuni oxirigacha jonli mijozlar soni, 1-kundan bugungacha */
             by_day: number[];
         };
-        DashboardTasks: {
+        DashboardOrders: {
             /**
              * Format: int64
              * @description Yakuniy bo'lmagan bosqichdagi vazifalar
@@ -3846,7 +3846,7 @@ export interface components {
             /** @description Har yakuniy bo'lmagan bosqich, tartibi bilan, 0 lilari ham */
             by_stage: components["schemas"]["DashboardStageCount"][];
             /** @description Eng yaqin muddatli 5 ta faol vazifa (muddat, keyin ID bo'yicha) */
-            upcoming: components["schemas"]["Task"][];
+            upcoming: components["schemas"]["Order"][];
         };
         DashboardStageCount: {
             /** Format: int64 */
@@ -3863,7 +3863,7 @@ export interface components {
             /** @description Oyning har kuni oxirigacha yig'ilgan so'm, 1-kundan bugungacha */
             by_day: string[];
         };
-        Task: {
+        Order: {
             /** Format: int64 */
             id: number;
             /**
@@ -3884,9 +3884,9 @@ export interface components {
              * @description Muddat, YYYY-MM-DD
              */
             deadline: string;
-            customer: components["schemas"]["TaskCustomer"];
+            customer: components["schemas"]["OrderCustomer"];
             /** @description Mas'ul; yo'q bo'lsa null */
-            assignee: components["schemas"]["TaskAssignee"] | null;
+            assignee: components["schemas"]["OrderAssignee"] | null;
             values: components["schemas"]["CustomerValues"];
             /** @description Vazifani qo'shgan a'zoning kompaniyadagi hozirgi ismi; a'zolikdan chiqarilgan bo'lsa, qo'shgan paytdagi ismi */
             created_by_name: string | null;
@@ -3896,7 +3896,7 @@ export interface components {
             updated_at: string;
         };
         /** @description Vazifaning mijozi: mavjud mijoz (id) yoki vazifa bilan yoziladigan yangi mijoz (type_id, phone, values). Bo'sh bo'lsa "Mijozni tanlang". */
-        TaskCustomerInput: {
+        OrderCustomerInput: {
             /**
              * Format: int64
              * @description Mavjud mijoz; berilsa qolganlari e'tiborga olinmaydi
@@ -3911,7 +3911,7 @@ export interface components {
             phone?: string;
             values?: components["schemas"]["CustomerAnswers"];
         };
-        TaskCreate: {
+        OrderCreate: {
             /** Format: int64 */
             type_id: number;
             /**
@@ -3930,9 +3930,9 @@ export interface components {
             /** @description Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q */
             assignee_phone?: string | null;
             values?: components["schemas"]["CustomerAnswers"];
-            customer: components["schemas"]["TaskCustomerInput"];
+            customer: components["schemas"]["OrderCustomerInput"];
         };
-        TaskUpdate: {
+        OrderUpdate: {
             title: string;
             /**
              * Format: date
@@ -3945,12 +3945,12 @@ export interface components {
             assignee_phone?: string | null;
             values?: components["schemas"]["CustomerAnswers"];
         };
-        TaskMove: {
+        OrderMove: {
             /** Format: int64 */
             stage_id: number;
         };
-        TaskPage: {
-            items: components["schemas"]["Task"][];
+        OrderPage: {
+            items: components["schemas"]["Order"][];
             /**
              * Format: int64
              * @description Filtrga mos vazifalar soni, hamma sahifalarda
@@ -3959,7 +3959,7 @@ export interface components {
             page: number;
             page_size: number;
         };
-        TaskHistoryEntry: {
+        OrderHistoryEntry: {
             /** Format: int64 */
             id: number;
             /** @enum {string} */
@@ -4492,7 +4492,7 @@ export interface components {
             };
         };
         /** @description Bosqich, tur yoki maydon topilmadi (not_found) */
-        TaskSettingNotFound: {
+        OrderSettingNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -4501,7 +4501,7 @@ export interface components {
             };
         };
         /** @description Nom band (name_taken); narsa ishlatilmoqda (stage_in_use, type_in_use, field_in_use); ro'yxat boshqa joyda o'zgargan (order_changed) */
-        TaskSettingConflict: {
+        OrderSettingConflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -4519,7 +4519,7 @@ export interface components {
             };
         };
         /** @description Vazifa topilmadi (not_found) */
-        TaskNotFound: {
+        OrderNotFound: {
             headers: {
                 [name: string]: unknown;
             };
@@ -7121,7 +7121,7 @@ export interface operations {
             403: components["responses"]["CompanyRequired"];
         };
     };
-    listTaskStages: {
+    listOrderStages: {
         parameters: {
             query?: never;
             header?: never;
@@ -7136,7 +7136,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskStage"][];
+                    "application/json": components["schemas"]["OrderStage"][];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -7144,7 +7144,7 @@ export interface operations {
             403: components["responses"]["CompanyRequired"];
         };
     };
-    createTaskStage: {
+    createOrderStage: {
         parameters: {
             query?: never;
             header?: never;
@@ -7163,17 +7163,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskStage"];
+                    "application/json": components["schemas"]["OrderStage"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            409: components["responses"]["TaskSettingConflict"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    orderTaskStages: {
+    reorderOrderStages: {
         parameters: {
             query?: never;
             header?: never;
@@ -7197,10 +7197,10 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            409: components["responses"]["TaskSettingConflict"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    deleteTaskStage: {
+    deleteOrderStage: {
         parameters: {
             query?: never;
             header?: never;
@@ -7221,11 +7221,11 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    updateTaskStage: {
+    updateOrderStage: {
         parameters: {
             query?: never;
             header?: never;
@@ -7246,18 +7246,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskStage"];
+                    "application/json": components["schemas"]["OrderStage"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    listTaskTypes: {
+    listOrderTypes: {
         parameters: {
             query?: never;
             header?: never;
@@ -7272,7 +7272,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskType"][];
+                    "application/json": components["schemas"]["OrderType"][];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -7280,7 +7280,7 @@ export interface operations {
             403: components["responses"]["CompanyRequired"];
         };
     };
-    createTaskType: {
+    createOrderType: {
         parameters: {
             query?: never;
             header?: never;
@@ -7299,17 +7299,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskType"];
+                    "application/json": components["schemas"]["OrderType"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            409: components["responses"]["TaskSettingConflict"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    orderTaskTypes: {
+    reorderOrderTypes: {
         parameters: {
             query?: never;
             header?: never;
@@ -7333,10 +7333,10 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            409: components["responses"]["TaskSettingConflict"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    deleteTaskType: {
+    deleteOrderType: {
         parameters: {
             query?: never;
             header?: never;
@@ -7357,11 +7357,11 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    renameTaskType: {
+    renameOrderType: {
         parameters: {
             query?: never;
             header?: never;
@@ -7382,18 +7382,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskType"];
+                    "application/json": components["schemas"]["OrderType"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    addTaskField: {
+    addOrderField: {
         parameters: {
             query?: never;
             header?: never;
@@ -7404,7 +7404,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TaskFieldInput"];
+                "application/json": components["schemas"]["OrderFieldInput"];
             };
         };
         responses: {
@@ -7414,18 +7414,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskField"];
+                    "application/json": components["schemas"]["OrderField"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    deleteTaskField: {
+    deleteOrderField: {
         parameters: {
             query?: never;
             header?: never;
@@ -7447,11 +7447,11 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    updateTaskField: {
+    updateOrderField: {
         parameters: {
             query?: never;
             header?: never;
@@ -7463,7 +7463,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TaskFieldPatch"];
+                "application/json": components["schemas"]["OrderFieldPatch"];
             };
         };
         responses: {
@@ -7473,18 +7473,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskField"];
+                    "application/json": components["schemas"]["OrderField"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
-    orderTaskFields: {
+    reorderOrderFields: {
         parameters: {
             query?: never;
             header?: never;
@@ -7510,8 +7510,8 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskSettingNotFound"];
-            409: components["responses"]["TaskSettingConflict"];
+            404: components["responses"]["OrderSettingNotFound"];
+            409: components["responses"]["OrderSettingConflict"];
         };
     };
     adminBotWebhook: {
@@ -7564,7 +7564,7 @@ export interface operations {
             401: components["responses"]["InvalidSecretToken"];
         };
     };
-    listTasks: {
+    listOrders: {
         parameters: {
             query?: {
                 /** @description Faqat shu lokatsiyadagi vazifalar (joriy lokatsiya); berilmasa a'zoga ruxsatli hamma lokatsiya. A'zo ishlay olmaydigan lokatsiya (begona, o'chirilgan, cheklov bilan yopilgan): 403 forbidden. Son emas: 400 "Lokatsiya noto'g'ri". */
@@ -7593,7 +7593,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskPage"];
+                    "application/json": components["schemas"]["OrderPage"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -7602,7 +7602,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
-    createTask: {
+    createOrder: {
         parameters: {
             query?: never;
             header?: never;
@@ -7611,7 +7611,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TaskCreate"];
+                "application/json": components["schemas"]["OrderCreate"];
             };
         };
         responses: {
@@ -7621,7 +7621,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Task"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -7631,7 +7631,7 @@ export interface operations {
             409: components["responses"]["CustomerTaken"];
         };
     };
-    getTask: {
+    getOrder: {
         parameters: {
             query?: never;
             header?: never;
@@ -7648,16 +7648,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Task"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["CompanyRequired"];
-            404: components["responses"]["TaskNotFound"];
+            404: components["responses"]["OrderNotFound"];
         };
     };
-    updateTask: {
+    updateOrder: {
         parameters: {
             query?: never;
             header?: never;
@@ -7668,7 +7668,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TaskUpdate"];
+                "application/json": components["schemas"]["OrderUpdate"];
             };
         };
         responses: {
@@ -7678,17 +7678,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Task"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["CompanyRequired"];
-            404: components["responses"]["TaskNotFound"];
+            404: components["responses"]["OrderNotFound"];
         };
     };
-    deleteTask: {
+    deleteOrder: {
         parameters: {
             query?: never;
             header?: never;
@@ -7709,10 +7709,10 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["CompanyRequired"];
-            404: components["responses"]["TaskNotFound"];
+            404: components["responses"]["OrderNotFound"];
         };
     };
-    moveTask: {
+    moveOrder: {
         parameters: {
             query?: never;
             header?: never;
@@ -7723,7 +7723,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TaskMove"];
+                "application/json": components["schemas"]["OrderMove"];
             };
         };
         responses: {
@@ -7733,17 +7733,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Task"];
+                    "application/json": components["schemas"]["Order"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["CompanyRequired"];
-            404: components["responses"]["TaskNotFound"];
+            404: components["responses"]["OrderNotFound"];
         };
     };
-    listTaskHistory: {
+    listOrderHistory: {
         parameters: {
             query?: never;
             header?: never;
@@ -7760,13 +7760,13 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskHistoryEntry"][];
+                    "application/json": components["schemas"]["OrderHistoryEntry"][];
                 };
             };
             401: components["responses"]["Unauthorized"];
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["TaskNotFound"];
+            404: components["responses"]["OrderNotFound"];
         };
     };
     listProducts: {
