@@ -178,9 +178,8 @@ func ReadOrderMoney(ctx context.Context, q *gen.Queries, companyID, orderID int6
 // order's customer and location at this moment, or saved anew with its
 // moment and number kept. Its price and lines are replaced, its moves
 // written anew, the advance's payments entered (withPayments: on entry
-// alone; an edit leaves the payments alone), then the stock of the
-// products of the old and the new lines is checked (409). Nothing is
-// written after a refusal.
+// alone; an edit leaves the payments alone), then the stock of the new
+// lines' products is checked (409). Nothing is written after a refusal.
 func WriteOrderDocument(ctx context.Context, q *gen.Queries, companyID int64, by string, name *string, order OrderHead, in OrderMoneyInput, withPayments bool) (OrderMoney, error) {
 	amount, err := orderAmount(in.Amount)
 	if err != nil {
@@ -246,7 +245,9 @@ func WriteOrderDocument(ctx context.Context, q *gen.Queries, companyID int64, by
 			return OrderMoney{}, err
 		}
 	}
-	if err := ledger.CheckStock(ctx, q, []int64{order.LocationID}, append(productsOf(c.Items), productsOfRows(old)...)); err != nil {
+	// The stock of the new lines' products: a line taken away only gives
+	// its product back.
+	if err := ledger.CheckStock(ctx, q, []int64{order.LocationID}, productsOf(c.Items)); err != nil {
 		return OrderMoney{}, err
 	}
 	return ReadOrderMoney(ctx, q, companyID, order.ID)
