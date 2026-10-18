@@ -1761,3 +1761,62 @@ func TestTheOrderKeysMigrationDownBringsTheTasksPageBack(t *testing.T) {
 
 	assert.Equal(t, map[string][]string{"998901111111": {"tasks", "home"}}, tabBarsOf(t, pool, olma))
 }
+
+// orderTypesOf is the company's order types in their order, a deleted one
+// marked so.
+func orderTypesOf(t *testing.T, pool *pgxpool.Pool, companyID int64) []string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), `SELECT name || CASE WHEN deleted_at IS NOT NULL THEN ' (deleted)' ELSE '' END
+		FROM order_types WHERE company_id = $1 ORDER BY position, id`, companyID)
+	require.NoError(t, err)
+	types, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	require.NoError(t, err)
+	return types
+}
+
+// The ready type every company got is «Buyurtma», as the section is: a live
+// «Vazifa» takes the name unless the company has a «Buyurtma» already, in
+// any case; a deleted one stays as it was.
+func TestTheOrderTypeMigrationRenamesTheReadyType(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 19)
+	require.NoError(t, err)
+	olma, nok, anor := addCompany(t, pool, "Olma"), addCompany(t, pool, "Nok"), addCompany(t, pool, "Anor")
+	addType := func(companyID int64, name string, position int, deleted bool) {
+		_, err := pool.Exec(ctx, `INSERT INTO order_types (company_id, name, position, deleted_at)
+			VALUES ($1, $2, $3, CASE WHEN $4::bool THEN now() END)`, companyID, name, position, deleted)
+		require.NoError(t, err)
+	}
+	addType(olma, "Vazifa", 1, false)
+	addType(olma, "Shikoyat", 2, false)
+	addType(nok, "Vazifa", 1, false)
+	addType(nok, "BUYURTMA", 2, false)
+	addType(anor, "Vazifa", 1, true)
+	addType(anor, "Vazifa", 2, false)
+
+	_, err = provider.UpTo(ctx, 20)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"Buyurtma", "Shikoyat"}, orderTypesOf(t, pool, olma))
+	assert.Equal(t, []string{"Vazifa", "BUYURTMA"}, orderTypesOf(t, pool, nok), "the name is the company's other type's")
+	assert.Equal(t, []string{"Vazifa (deleted)", "Buyurtma"}, orderTypesOf(t, pool, anor))
+}
+
+// Which «Buyurtma» was a «Vazifa» is not kept, so nothing goes back.
+func TestTheOrderTypeMigrationDownKeepsTheNames(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.UpTo(ctx, 20)
+	require.NoError(t, err)
+	olma := addCompany(t, pool, "Olma")
+	_, err = pool.Exec(ctx, "INSERT INTO order_types (company_id, name, position) VALUES ($1, 'Buyurtma', 1)", olma)
+	require.NoError(t, err)
+
+	_, err = provider.DownTo(ctx, 19)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"Buyurtma"}, orderTypesOf(t, pool, olma))
+}

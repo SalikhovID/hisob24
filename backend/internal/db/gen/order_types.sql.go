@@ -338,12 +338,12 @@ WITH stages AS (
            ($1, 'Bajarildi', 'green', true, 3)
 )
 INSERT INTO order_types (company_id, name, position)
-VALUES ($1, 'Vazifa', 1)
+VALUES ($1, 'Buyurtma', 1)
 `
 
 // Gives a new company the ready stages (Yangi, Jarayonda, Bajarildi) and the
-// ready type (Vazifa). The companies that were there before got them from
-// migration 00007.
+// ready type (Buyurtma). The companies that were there before got them from
+// migration 00007, the type as «Vazifa», which migration 00020 renamed.
 func (q *Queries) SeedOrderSettings(ctx context.Context, companyID int64) error {
 	_, err := q.db.Exec(ctx, seedOrderSettings, companyID)
 	return err

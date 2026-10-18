@@ -96,8 +96,8 @@ WHERE f.id = n.id AND f.type_id = sqlc.arg('type_id') AND f.deleted_at IS NULL;
 
 -- name: SeedOrderSettings :exec
 -- Gives a new company the ready stages (Yangi, Jarayonda, Bajarildi) and the
--- ready type (Vazifa). The companies that were there before got them from
--- migration 00007.
+-- ready type (Buyurtma). The companies that were there before got them from
+-- migration 00007, the type as «Vazifa», which migration 00020 renamed.
 WITH stages AS (
     INSERT INTO order_stages (company_id, name, color, is_done, position)
     VALUES (sqlc.arg('company_id'), 'Yangi', 'blue', false, 1),
@@ -105,4 +105,4 @@ WITH stages AS (
            (sqlc.arg('company_id'), 'Bajarildi', 'green', true, 3)
 )
 INSERT INTO order_types (company_id, name, position)
-VALUES (sqlc.arg('company_id'), 'Vazifa', 1);
+VALUES (sqlc.arg('company_id'), 'Buyurtma', 1);

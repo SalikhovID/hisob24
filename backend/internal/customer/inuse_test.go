@@ -138,7 +138,7 @@ func setupOrders(t *testing.T, pool *pgxpool.Pool, sh shop) orderSetup {
 	require.NoError(t, pool.QueryRow(ctx,
 		"INSERT INTO order_stages (company_id, name, color, position) VALUES ($1, 'Yangi', 'blue', 1) RETURNING id", sh.id).Scan(&ts.stageID))
 	require.NoError(t, pool.QueryRow(ctx,
-		"INSERT INTO order_types (company_id, name, position) VALUES ($1, 'Vazifa', 1) RETURNING id", sh.id).Scan(&ts.typeID))
+		"INSERT INTO order_types (company_id, name, position) VALUES ($1, 'Buyurtma', 1) RETURNING id", sh.id).Scan(&ts.typeID))
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO order_fields (company_id, type_id, label, kind, dropdown_id, position)
 		VALUES ($1, $2, 'Kanal', 'checkbox', $3, 1) RETURNING id`, sh.id, ts.typeID, *sh.manba.DropdownID).Scan(&ts.fieldID))
 	return ts

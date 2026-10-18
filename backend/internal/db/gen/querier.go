@@ -776,8 +776,8 @@ type Querier interface {
 	// were there before got theirs from migration 00010.
 	SeedLocation(ctx context.Context, companyID int64) (Location, error)
 	// Gives a new company the ready stages (Yangi, Jarayonda, Bajarildi) and the
-	// ready type (Vazifa). The companies that were there before got them from
-	// migration 00007.
+	// ready type (Buyurtma). The companies that were there before got them from
+	// migration 00007, the type as «Vazifa», which migration 00020 renamed.
 	SeedOrderSettings(ctx context.Context, companyID int64) error
 	SetCompanyEndDate(ctx context.Context, arg SetCompanyEndDateParams) error
 	// Makes the user the company's owner under full_name, a member or not. The

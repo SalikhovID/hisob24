@@ -463,7 +463,7 @@ func TestCreateGivesTheReadyOrderSettings(t *testing.T) {
 	require.NoError(t, err)
 	types, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Vazifa: 0"}, types, "one type with no fields")
+	assert.Equal(t, []string{"Buyurtma: 0"}, types, "one type with no fields")
 }
 
 func ptr[T any](v T) *T { return &v }

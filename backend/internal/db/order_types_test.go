@@ -364,7 +364,7 @@ func TestSeedOrderSettings(t *testing.T) {
 	types, err := q.ListOrderTypes(ctx, olma.ID)
 	require.NoError(t, err)
 	require.Len(t, types, 1)
-	assert.Equal(t, "Vazifa", types[0].Name)
+	assert.Equal(t, "Buyurtma", types[0].Name)
 	fields, err := q.ListOrderFields(ctx, olma.ID)
 	require.NoError(t, err)
 	assert.Empty(t, fields, "the ready type has no fields")
