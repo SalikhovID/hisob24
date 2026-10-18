@@ -2722,7 +2722,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
   /app/order-stages:
     get:
-      operationId: listTaskStages
+      operationId: listOrderStages
       summary: Bosqichlar
       description: >
         Access token'dagi kompaniyaning bosqichlari (kanban ustunlari) o'z
@@ -2737,7 +2737,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TaskStage"
+                  $ref: "#/components/schemas/OrderStage"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "402":
@@ -2745,7 +2745,7 @@ paths:
         "403":
           $ref: "#/components/responses/CompanyRequired"
     post:
-      operationId: createTaskStage
+      operationId: createOrderStage
       summary: Bosqich yaratish (settings.create ruxsati)
       description: >
         Yangi bosqich, bosqichlar oxiriga. Nomi kompaniyada takrorlanmaydi
@@ -2766,7 +2766,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskStage"
+                $ref: "#/components/schemas/OrderStage"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2776,10 +2776,10 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-stages/order:
     put:
-      operationId: orderTaskStages
+      operationId: reorderOrderStages
       summary: Bosqichlar tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids kompaniyaning barcha bosqichlarini yangi tartibda, har birini
@@ -2805,7 +2805,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-stages/{id}:
     parameters:
       - name: id
@@ -2815,7 +2815,7 @@ paths:
           type: integer
           format: int64
     patch:
-      operationId: updateTaskStage
+      operationId: updateOrderStage
       summary: Bosqichni o'zgartirish (settings.edit ruxsati)
       description: >
         Nomi, rangi va "Yakuniy" belgisi; berilmagani o'zgarmaydi.
@@ -2833,7 +2833,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskStage"
+                $ref: "#/components/schemas/OrderStage"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2843,11 +2843,11 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
     delete:
-      operationId: deleteTaskStage
+      operationId: deleteOrderStage
       summary: Bosqichni o'chirish (settings.delete ruxsati)
       description: >
         Bosqich yashiriladi (bazadan o'chmaydi), nomi bo'shaydi. Faol vazifasi
@@ -2864,12 +2864,12 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-types:
     get:
-      operationId: listTaskTypes
+      operationId: listOrderTypes
       summary: Vazifa turlari, maydonlari bilan
       description: >
         Access token'dagi kompaniyaning vazifa turlari o'z tartibida, har
@@ -2886,7 +2886,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TaskType"
+                  $ref: "#/components/schemas/OrderType"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "402":
@@ -2894,7 +2894,7 @@ paths:
         "403":
           $ref: "#/components/responses/CompanyRequired"
     post:
-      operationId: createTaskType
+      operationId: createOrderType
       summary: Vazifa turini yaratish (settings.create ruxsati)
       description: >
         Maydonsiz yangi tur, turlar oxiriga. Nomi kompaniyada takrorlanmaydi
@@ -2913,7 +2913,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskType"
+                $ref: "#/components/schemas/OrderType"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2923,10 +2923,10 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-types/order:
     put:
-      operationId: orderTaskTypes
+      operationId: reorderOrderTypes
       summary: Vazifa turlari tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids kompaniyaning barcha vazifa turlarini yangi tartibda, har birini
@@ -2952,7 +2952,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-types/{id}:
     parameters:
       - name: id
@@ -2962,7 +2962,7 @@ paths:
           type: integer
           format: int64
     patch:
-      operationId: renameTaskType
+      operationId: renameOrderType
       summary: Vazifa turi nomini o'zgartirish (settings.edit ruxsati)
       security:
         - appBearer: []
@@ -2978,7 +2978,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskType"
+                $ref: "#/components/schemas/OrderType"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2988,11 +2988,11 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
     delete:
-      operationId: deleteTaskType
+      operationId: deleteOrderType
       summary: Vazifa turini o'chirish (settings.delete ruxsati)
       description: >
         Tur va uning maydonlari yashiriladi (bazadan o'chmaydi), nomi
@@ -3009,9 +3009,9 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-types/{id}/fields:
     parameters:
       - name: id
@@ -3021,7 +3021,7 @@ paths:
           type: integer
           format: int64
     post:
-      operationId: addTaskField
+      operationId: addOrderField
       summary: Vazifa turiga maydon qo'shish (settings.create ruxsati)
       description: >
         Maydon turning oxiriga qo'shiladi. Tanlov turlari (dropdown,
@@ -3035,14 +3035,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskFieldInput"
+              $ref: "#/components/schemas/OrderFieldInput"
       responses:
         "201":
           description: Qo'shilgan maydon
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskField"
+                $ref: "#/components/schemas/OrderField"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3052,9 +3052,9 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-types/{id}/fields/{fieldId}:
     parameters:
       - name: id
@@ -3070,7 +3070,7 @@ paths:
           type: integer
           format: int64
     patch:
-      operationId: updateTaskField
+      operationId: updateOrderField
       summary: Vazifa maydonini o'zgartirish (settings.edit ruxsati)
       description: Nomi va "Majburiy" belgisi; berilmagani o'zgarmaydi.
       security:
@@ -3080,14 +3080,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskFieldPatch"
+              $ref: "#/components/schemas/OrderFieldPatch"
       responses:
         "200":
           description: O'zgartirilgan maydon
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskField"
+                $ref: "#/components/schemas/OrderField"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3097,11 +3097,11 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
     delete:
-      operationId: deleteTaskField
+      operationId: deleteOrderField
       summary: Vazifa maydonini o'chirish (settings.delete ruxsati)
       description: >
         Maydon yashiriladi, nomi bo'shaydi. Faol vazifada to'ldirilgan maydon
@@ -3118,9 +3118,9 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /app/order-types/{id}/fields/order:
     parameters:
       - name: id
@@ -3130,7 +3130,7 @@ paths:
           type: integer
           format: int64
     put:
-      operationId: orderTaskFields
+      operationId: reorderOrderFields
       summary: Vazifa turi maydonlari tartibini o'zgartirish (settings.edit ruxsati)
       description: >
         ids turning barcha maydonlarini yangi tartibda, har birini bir marta
@@ -3155,9 +3155,9 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskSettingNotFound"
+          $ref: "#/components/responses/OrderSettingNotFound"
         "409":
-          $ref: "#/components/responses/TaskSettingConflict"
+          $ref: "#/components/responses/OrderSettingConflict"
   /webhooks/admin-bot:
     post:
       operationId: adminBotWebhook
@@ -3204,7 +3204,7 @@ paths:
           $ref: "#/components/responses/InvalidSecretToken"
   /app/orders:
     get:
-      operationId: listTasks
+      operationId: listOrders
       summary: Vazifalar ro'yxati
       description: >
         Access token'dagi kompaniyaning vazifalari, a'zo ishlay oladigan
@@ -3270,7 +3270,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskPage"
+                $ref: "#/components/schemas/OrderPage"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3280,7 +3280,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
-      operationId: createTask
+      operationId: createOrder
       summary: Vazifa qo'shish
       description: >
         Access token'dagi kompaniyaga vazifa qo'shadi; har a'zo qo'sha oladi.
@@ -3305,14 +3305,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskCreate"
+              $ref: "#/components/schemas/OrderCreate"
       responses:
         "201":
           description: Qo'shilgan vazifa
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/Order"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3332,7 +3332,7 @@ paths:
           type: integer
           format: int64
     get:
-      operationId: getTask
+      operationId: getOrder
       summary: Vazifa
       description: >
         Access token'dagi kompaniyaning vazifasi, javoblari bilan. Har a'zo
@@ -3346,7 +3346,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/Order"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "402":
@@ -3354,9 +3354,9 @@ paths:
         "403":
           $ref: "#/components/responses/CompanyRequired"
         "404":
-          $ref: "#/components/responses/TaskNotFound"
+          $ref: "#/components/responses/OrderNotFound"
     put:
-      operationId: updateTask
+      operationId: updateOrder
       summary: Vazifani tahrirlash
       description: >
         Nomi, muddati, bosqichi, mas'uli va javoblari to'liq qayta yoziladi;
@@ -3372,14 +3372,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskUpdate"
+              $ref: "#/components/schemas/OrderUpdate"
       responses:
         "200":
           description: Saqlangan vazifa
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/Order"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3389,9 +3389,9 @@ paths:
         "403":
           $ref: "#/components/responses/CompanyRequired"
         "404":
-          $ref: "#/components/responses/TaskNotFound"
+          $ref: "#/components/responses/OrderNotFound"
     delete:
-      operationId: deleteTask
+      operationId: deleteOrder
       summary: Vazifani o'chirish
       description: >
         Vazifa yashiriladi: ro'yxatda, kanbanda va mijoz sahifasida
@@ -3409,7 +3409,7 @@ paths:
         "403":
           $ref: "#/components/responses/CompanyRequired"
         "404":
-          $ref: "#/components/responses/TaskNotFound"
+          $ref: "#/components/responses/OrderNotFound"
   /app/orders/{id}/stage:
     parameters:
       - name: id
@@ -3419,7 +3419,7 @@ paths:
           type: integer
           format: int64
     patch:
-      operationId: moveTask
+      operationId: moveOrder
       summary: Vazifani boshqa bosqichga o'tkazish
       description: >
         Kanbanda sudrab yoki menyudan ko'chirish: faqat bosqich o'zgaradi.
@@ -3433,14 +3433,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskMove"
+              $ref: "#/components/schemas/OrderMove"
       responses:
         "200":
           description: Ko'chirilgan vazifa
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/Order"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -3450,7 +3450,7 @@ paths:
         "403":
           $ref: "#/components/responses/CompanyRequired"
         "404":
-          $ref: "#/components/responses/TaskNotFound"
+          $ref: "#/components/responses/OrderNotFound"
   /app/orders/{id}/history:
     parameters:
       - name: id
@@ -3460,7 +3460,7 @@ paths:
           type: integer
           format: int64
     get:
-      operationId: listTaskHistory
+      operationId: listOrderHistory
       summary: Vazifaning o'zgarishlar tarixi (orders.history ruxsati)
       description: >
         Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har
@@ -3478,7 +3478,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TaskHistoryEntry"
+                  $ref: "#/components/schemas/OrderHistoryEntry"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "402":
@@ -3486,7 +3486,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/TaskNotFound"
+          $ref: "#/components/responses/OrderNotFound"
   /app/products:
     get:
       operationId: listProducts
@@ -5887,13 +5887,13 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
-    TaskSettingNotFound:
+    OrderSettingNotFound:
       description: Bosqich, tur yoki maydon topilmadi (not_found)
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
-    TaskSettingConflict:
+    OrderSettingConflict:
       description: >
         Nom band (name_taken); narsa ishlatilmoqda (stage_in_use,
         type_in_use, field_in_use); ro'yxat boshqa joyda o'zgargan
@@ -5908,7 +5908,7 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
-    TaskNotFound:
+    OrderNotFound:
       description: Vazifa topilmadi (not_found)
       content:
         application/json:
@@ -8277,7 +8277,7 @@ components:
       type: string
       description: Bosqich rangi, interfeys shu nomdagi tusda ko'rsatadi
       enum: [slate, red, orange, amber, green, teal, blue, violet, pink]
-    TaskStage:
+    OrderStage:
       type: object
       required: [id, name, color, is_done]
       properties:
@@ -8315,7 +8315,7 @@ components:
           $ref: "#/components/schemas/StageColor"
         is_done:
           type: boolean
-    TaskField:
+    OrderField:
       type: object
       required: [id, label, kind, required, dropdown_id]
       properties:
@@ -8332,7 +8332,7 @@ components:
           type: [integer, "null"]
           format: int64
           description: Tanlov turlarida variantlar olinadigan dropdown (mijozlar dropdownlari)
-    TaskType:
+    OrderType:
       type: object
       required: [id, name, fields]
       properties:
@@ -8345,8 +8345,8 @@ components:
           type: array
           description: Maydonlar o'z tartibida
           items:
-            $ref: "#/components/schemas/TaskField"
-    TaskFieldInput:
+            $ref: "#/components/schemas/OrderField"
+    OrderFieldInput:
       type: object
       required: [label, kind]
       properties:
@@ -8362,7 +8362,7 @@ components:
           type: [integer, "null"]
           format: int64
           description: Tanlov turlarida majburiy, matn va sonda bo'lmaydi
-    TaskFieldPatch:
+    OrderFieldPatch:
       type: object
       properties:
         label:
@@ -8370,7 +8370,7 @@ components:
           maxLength: 60
         required:
           type: boolean
-    TaskCustomer:
+    OrderCustomer:
       type: object
       required: [id, phone, name]
       properties:
@@ -8385,7 +8385,7 @@ components:
           description: >
             Mijozning nomi: turining tartib bo'yicha birinchi matn maydonidagi
             javob; yo'q bo'lsa null
-    TaskAssignee:
+    OrderAssignee:
       type: object
       required: [phone, full_name]
       properties:
@@ -8413,7 +8413,7 @@ components:
         orders:
           description: orders.view bo'lganga, aks holda null
           oneOf:
-            - $ref: "#/components/schemas/DashboardTasks"
+            - $ref: "#/components/schemas/DashboardOrders"
             - type: "null"
         purchases:
           description: Xaridlar; purchases.view bo'lganga, aks holda null
@@ -8460,7 +8460,7 @@ components:
           items:
             type: integer
             format: int64
-    DashboardTasks:
+    DashboardOrders:
       type: object
       required: [active, late, by_stage, upcoming]
       properties:
@@ -8481,7 +8481,7 @@ components:
           type: array
           description: Eng yaqin muddatli 5 ta faol vazifa (muddat, keyin ID bo'yicha)
           items:
-            $ref: "#/components/schemas/Task"
+            $ref: "#/components/schemas/Order"
     DashboardStageCount:
       type: object
       required: [stage_id, count]
@@ -8508,7 +8508,7 @@ components:
           description: Oyning har kuni oxirigacha yig'ilgan so'm, 1-kundan bugungacha
           items:
             type: string
-    Task:
+    Order:
       type: object
       required: [id, type_id, stage_id, location_id, title, deadline, customer, assignee, values, created_by_name, created_at, updated_at]
       properties:
@@ -8533,10 +8533,10 @@ components:
           format: date
           description: Muddat, YYYY-MM-DD
         customer:
-          $ref: "#/components/schemas/TaskCustomer"
+          $ref: "#/components/schemas/OrderCustomer"
         assignee:
           oneOf:
-            - $ref: "#/components/schemas/TaskAssignee"
+            - $ref: "#/components/schemas/OrderAssignee"
             - type: "null"
           description: Mas'ul; yo'q bo'lsa null
         values:
@@ -8552,7 +8552,7 @@ components:
         updated_at:
           type: string
           format: date-time
-    TaskCustomerInput:
+    OrderCustomerInput:
       type: object
       description: >
         Vazifaning mijozi: mavjud mijoz (id) yoki vazifa bilan yoziladigan
@@ -8571,7 +8571,7 @@ components:
           description: Yangi mijozning telefoni, masalan +998 90 123 45 67
         values:
           $ref: "#/components/schemas/CustomerAnswers"
-    TaskCreate:
+    OrderCreate:
       type: object
       required: [type_id, location_id, title, deadline, stage_id, customer]
       properties:
@@ -8601,8 +8601,8 @@ components:
         values:
           $ref: "#/components/schemas/CustomerAnswers"
         customer:
-          $ref: "#/components/schemas/TaskCustomerInput"
-    TaskUpdate:
+          $ref: "#/components/schemas/OrderCustomerInput"
+    OrderUpdate:
       type: object
       required: [title, deadline, stage_id]
       properties:
@@ -8621,21 +8621,21 @@ components:
           description: Mas'ul a'zoning telefoni; bo'sh yoki null bo'lsa mas'ul yo'q
         values:
           $ref: "#/components/schemas/CustomerAnswers"
-    TaskMove:
+    OrderMove:
       type: object
       required: [stage_id]
       properties:
         stage_id:
           type: integer
           format: int64
-    TaskPage:
+    OrderPage:
       type: object
       required: [items, total, page, page_size]
       properties:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/Task"
+            $ref: "#/components/schemas/Order"
         total:
           type: integer
           format: int64
@@ -8644,7 +8644,7 @@ components:
           type: integer
         page_size:
           type: integer
-    TaskHistoryEntry:
+    OrderHistoryEntry:
       type: object
       required: [id, action, actor_name, created_at, changes]
       properties:
