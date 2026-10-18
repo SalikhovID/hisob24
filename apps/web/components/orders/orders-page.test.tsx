@@ -208,7 +208,7 @@ test("the board opens unless the list was chosen; the choice stays in the addres
   await list()
   expect(currentUrl()).toBe("/orders?view=list")
   expect(screen.queryByRole("region", { name: "Kanban" })).not.toBeInTheDocument()
-  expect(localStorage.getItem(`tasks_view:1:${ALI}`)).toBe("list")
+  expect(localStorage.getItem(`orders_view:1:${ALI}`)).toBe("list")
 
   // The next visit opens the list, with no view in the address.
   unmount()
@@ -220,7 +220,7 @@ test("the board opens unless the list was chosen; the choice stays in the addres
   await user.click(within(screen.getByRole("tablist", { name: "Ko'rinish" })).getByRole("tab", { name: "Kanban" }))
   expect(await screen.findByRole("region", { name: "Kanban" })).toBeInTheDocument()
   expect(currentUrl()).toBe("/orders?view=board")
-  expect(localStorage.getItem(`tasks_view:1:${ALI}`)).toBe("board")
+  expect(localStorage.getItem(`orders_view:1:${ALI}`)).toBe("board")
 })
 
 test("the page says how many orders the location has; while they load, the list's shape holds their place", async () => {

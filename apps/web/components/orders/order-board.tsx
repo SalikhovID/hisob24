@@ -86,7 +86,7 @@ export function OrderBoard({
   )
 
   // The done columns the user opened, kept in the browser.
-  const [kept, keep] = useKept(`tasks_board_open:${companyId}:${phone}`)
+  const [kept, keep] = useKept(`orders_board_open:${companyId}:${phone}`)
   const opened = useMemo(() => new Set(ids(kept)), [kept])
   const toggle = (stage: OrderStage) => {
     const id = String(stage.id)

@@ -81,7 +81,7 @@ test("the done column opens and folds, and stays as it was left", async () => {
   // In the done stage a deadline says it is done.
   expect(within(column("Bajarildi")).getByText(due(-5, "bajarildi"))).toBeInTheDocument()
   expect(within(column("Bajarildi")).queryByText(/kechikdi/)).not.toBeInTheDocument()
-  expect(JSON.parse(localStorage.getItem(`tasks_board_open:1:${ALI}`)!)).toEqual([String(bajarildi.id)])
+  expect(JSON.parse(localStorage.getItem(`orders_board_open:1:${ALI}`)!)).toEqual([String(bajarildi.id)])
 
   unmount()
   renderWithProviders(<OrdersPage />)
@@ -90,7 +90,7 @@ test("the done column opens and folds, and stays as it was left", async () => {
 
   await user.click(within(column("Bajarildi")).getByRole("button", { name: "Bajarildi (1)" }))
   await waitFor(() => expect(cards("Bajarildi")).toEqual([]))
-  expect(JSON.parse(localStorage.getItem(`tasks_board_open:1:${ALI}`)!)).toEqual([])
+  expect(JSON.parse(localStorage.getItem(`orders_board_open:1:${ALI}`)!)).toEqual([])
 })
 
 test("a card's stage menu moves the order to another column, where it takes its place by its deadline", async () => {

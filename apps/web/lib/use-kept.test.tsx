@@ -4,7 +4,7 @@ import { useKept } from "./use-kept"
 
 afterEach(() => vi.restoreAllMocks())
 
-const KEY = "tasks_view:1:998901234567"
+const KEY = "orders_view:1:998901234567"
 
 test("nothing is kept until something is; what is kept is there for the next visit", () => {
   const { result } = renderHook(() => useKept(KEY))

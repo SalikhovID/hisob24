@@ -67,7 +67,7 @@ export function OrdersPage() {
 
   // The view is the address's; without one, the view chosen last time; the
   // first time, the board.
-  const [kept, keep] = useKept(`tasks_view:${companyId ?? 0}:${phone}`)
+  const [kept, keep] = useKept(`orders_view:${companyId ?? 0}:${phone}`)
   const view: OrderView = filter.view ?? (kept === "list" ? "list" : "board")
   const changeView = (next: OrderView) => {
     keep(next)
