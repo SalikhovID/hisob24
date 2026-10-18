@@ -296,7 +296,7 @@ func TestADropdownAFieldUsesIsNotDeleted(t *testing.T) {
 
 // An order field takes its options from the customers' dropdowns too: such a
 // dropdown is not deleted either.
-func TestADropdownAOrderFieldUsesIsNotDeleted(t *testing.T) {
+func TestADropdownAnOrderFieldUsesIsNotDeleted(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	olma := addCompany(t, pool, "Olma")

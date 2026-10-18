@@ -133,7 +133,7 @@ func TestPermissionRoutesNeedACompany(t *testing.T) {
 	}
 }
 
-func TestAOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
+func TestAnOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	api := newTestAPI(t)
 	olma := api.addCompany(t, "Olma", 30)
 	sh := api.orderShop(t, olma)

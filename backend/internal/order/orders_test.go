@@ -295,7 +295,7 @@ func TestCreateRefusals(t *testing.T) {
 	assert.Equal(t, 3, count(t, pool, "SELECT count(*) FROM customers"), "no customer is entered either")
 }
 
-func TestCreateEntersAOrderWhollyOrNotAtAll(t *testing.T) {
+func TestCreateEntersAnOrderWhollyOrNotAtAll(t *testing.T) {
 	s, pool := newService(t)
 	sh := newShop(t, s, pool, "Olma")
 	pgtest.FailInserts(t, pool, "orders")
