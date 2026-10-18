@@ -124,3 +124,82 @@ func TestOrdersCarryTheirMoney(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Narx noto'g'ri"}`, rec.Body.String())
 }
+
+// A payment for an order on its own (logic/orders.md, 4.3): entered,
+// saved and deleted through the order; seen, not changed, through the
+// customer; named on the customer's statement, the account's statement
+// and the product's moves.
+func TestOrderPaymentsAPI(t *testing.T) {
+	api := newTestAPI(t)
+	s := api.orderedShop(t)
+	api.exec(t, "UPDATE user_companies SET full_name = 'Ali Valiyev' WHERE user_phone = $1", alisPhone)
+	order := api.enterOrder(t, s.owner, s.order("Montaj", fmt.Sprintf(`,"amount":"5000","items":[{"product_id":%v,"quantity":"2"}],"payments":[%s]`, s.product["id"], s.paid("400"))))
+	path := fmt.Sprintf("/app/orders/%v", order["id"])
+
+	rec := api.do(t, http.MethodPost, path+"/payments", fmt.Sprintf(`{"bank_account_id":%d,"amount":"300","at":"%s","note":" Qolgani "}`, s.cash, at), bearer(s.owner))
+
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	payment := decode(t, rec)
+	assert.Equal(t, "300.00", payment["amount"])
+	assert.Equal(t, "Naqd", payment["account_name"])
+	assert.Equal(t, atUTC, payment["at"])
+	assert.Equal(t, "Qolgani", payment["note"])
+	assert.Equal(t, "Ali Valiyev", payment["created_by_name"])
+	detail := decode(t, api.do(t, http.MethodGet, path, "", bearer(s.owner)))
+	assert.Equal(t, "700.00", detail["paid"], "the advance and the payment")
+	assert.Len(t, detail["payments"], 2)
+	own := fmt.Sprintf("%s/payments/%v", path, payment["id"])
+	rec = api.do(t, http.MethodPut, own, fmt.Sprintf(`{"bank_account_id":%d,"amount":"350","at":"%s"}`, s.cash, at), bearer(s.owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "350.00", decode(t, rec)["amount"])
+	rec = api.do(t, http.MethodPost, path+"/payments", fmt.Sprintf(`{"bank_account_id":%d,"at":"%s"}`, s.cash, at), bearer(s.owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"Summani kiriting"}`, rec.Body.String())
+	rec = api.do(t, http.MethodPost, "/app/orders/999999/payments", fmt.Sprintf(`{"bank_account_id":%d,"amount":"1","at":"%s"}`, s.cash, at), bearer(s.owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, orderNotFound, rec.Body.String())
+	rec = api.do(t, http.MethodPost, path+"/payments", fmt.Sprintf(`{"bank_account_id":%d,"amount":"1","at":"%s"}`, s.cash, at), bearer(s.employee))
+	assert.Equal(t, http.StatusNotFound, rec.Code, "an order outside the member's locations")
+
+	// Through the customer: seen with the order, changed through it alone.
+	customerPath := fmt.Sprintf("/app/customers/%v", s.customer["id"])
+	payments := decode(t, api.do(t, http.MethodGet, customerPath+"/payments", "", bearer(s.owner)))["items"].([]any)
+	require.Len(t, payments, 2)
+	assert.Equal(t, order["id"], payments[0].(map[string]any)["order_id"])
+	assert.Nil(t, payments[0].(map[string]any)["sale_id"])
+	rec = api.do(t, http.MethodDelete, fmt.Sprintf("%s/payments/%v", customerPath, payment["id"]), "", bearer(s.owner))
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.JSONEq(t, `{"error":"payment_linked","message":"Bu to'lov buyurtma bilan kiritilgan: buyurtmani oching"}`, rec.Body.String())
+	statement := decode(t, api.do(t, http.MethodGet, customerPath+"/statement", "", bearer(s.owner)))["items"].([]any)
+	require.Len(t, statement, 3, "the order's document and its two payments")
+	kinds := map[string]map[string]any{}
+	for _, item := range statement {
+		row := item.(map[string]any)
+		kinds[row["kind"].(string)] = row
+		assert.Equal(t, order["id"], row["order_id"], "every row names the order")
+		assert.Equal(t, "Montaj", row["order_title"])
+	}
+	assert.Equal(t, "5000.00", kinds["order"]["amount"], "the order's document by its price")
+	assert.Contains(t, kinds, "customer_payment")
+	customer := decode(t, api.do(t, http.MethodGet, customerPath, "", bearer(s.owner)))
+	assert.Equal(t, "4250.00", customer["balance"], "5 000 − 400 − 350")
+
+	cash := decode(t, api.do(t, http.MethodGet, fmt.Sprintf("/app/accounts/%d/statement", s.cash), "", bearer(s.owner)))["items"].([]any)
+	received := cash[0].(map[string]any)
+	assert.Equal(t, "customer_payment", received["kind"])
+	assert.Equal(t, order["id"], received["order_id"], "the account's statement names the order")
+	assert.Equal(t, "Montaj", received["order_title"])
+	moves := decode(t, api.do(t, http.MethodGet, fmt.Sprintf("/app/products/%v/moves", s.product["id"]), "", bearer(s.owner)))["items"].([]any)
+	out := moves[0].(map[string]any)
+	assert.Equal(t, "order", out["kind"])
+	assert.Equal(t, order["id"], out["order_id"])
+	assert.Equal(t, "Montaj", out["order_title"])
+	assert.Equal(t, "Dilshod", out["counterpart"])
+
+	rec = api.do(t, http.MethodDelete, own, "", bearer(s.owner))
+	assert.Equal(t, http.StatusNoContent, rec.Code)
+	rec = api.do(t, http.MethodDelete, own, "", bearer(s.owner))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, `{"error":"not_found","message":"To'lov topilmadi"}`, rec.Body.String())
+	assert.Equal(t, "400.00", decode(t, api.do(t, http.MethodGet, path, "", bearer(s.owner)))["paid"])
+}

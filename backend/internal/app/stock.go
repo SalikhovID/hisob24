@@ -207,6 +207,8 @@ type productMoveJSON struct {
 	LocationName  string    `json:"location_name"`
 	Quantity      string    `json:"quantity"`
 	Counterpart   *string   `json:"counterpart"`
+	OrderID       *int64    `json:"order_id"`
+	OrderTitle    *string   `json:"order_title"`
 }
 
 type openingJSON struct {
@@ -547,6 +549,7 @@ func (h *Handler) listProductMoves(w http.ResponseWriter, r *http.Request) {
 	for _, m := range result.Items {
 		items = append(items, productMoveJSON{
 			ID: m.ID, TransactionID: m.TransactionID, Kind: m.Kind, Number: m.Number, At: m.At, LocationID: m.LocationID, LocationName: m.LocationName, Quantity: m.Quantity, Counterpart: m.Counterpart,
+			OrderID: m.OrderID, OrderTitle: m.OrderTitle,
 		})
 	}
 	httpx.JSON(w, http.StatusOK, pageJSON[productMoveJSON]{Items: items, Total: result.Total, Page: result.Page, PageSize: result.PageSize})

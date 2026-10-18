@@ -3451,6 +3451,112 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "404":
           $ref: "#/components/responses/OrderNotFound"
+  /app/orders/{id}/payments:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    post:
+      operationId: addOrderPayment
+      summary: Buyurtma uchun to'lov qo'shish (orders.edit ruxsati)
+      description: >
+        Buyurtma uchun mijozdan akkauntga kelgan pul, o'z vaqti bilan
+        (logic/orders.md, 4.3): buyurtma mijozining to'lovi, buyurtma
+        hujjatiga bog'lanadi (hujjat yo'q bo'lsa yaratiladi). Tekshiruv
+        tartibi: buyurtma (a'zoga ruxsatli lokatsiyada, 404), akkaunt
+        ("Akkauntni tanlang" / "Akkaunt nofaol"), summa ("Summani
+        kiriting" / "Summa noto'g'ri"), vaqt, kurs, izoh.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Kiritilgan to'lov
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderPayment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/OrderNotFound"
+  /app/orders/{id}/payments/{paymentId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: paymentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      operationId: updateOrderPayment
+      summary: Buyurtma to'lovini tahrirlash (orders.edit ruxsati)
+      description: >
+        Faqat shu buyurtmaga bog'langan to'lov (boshqasi 404 "To'lov
+        topilmadi"). To'lovda avvaldan bor akkaunt nofaol bo'lsa ham
+        qoladi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "200":
+          description: Saqlangan to'lov
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderPayment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PaymentNotFound"
+    delete:
+      operationId: deleteOrderPayment
+      summary: Buyurtma to'lovini o'chirish (orders.edit ruxsati)
+      description: Faqat shu buyurtmaga bog'langan to'lov yashiriladi.
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/PaymentNotFound"
   /app/orders/{id}/history:
     parameters:
       - name: id
@@ -6004,7 +6110,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     CustomerPaymentConflict:
-      description: To'lov sotuv bilan kiritilgan (payment_linked)
+      description: To'lov sotuv yoki buyurtma bilan kiritilgan (payment_linked)
       content:
         application/json:
           schema:
@@ -6992,14 +7098,15 @@ components:
         6-bo'lim): hujjat, summasi valyutasida va so'mda (o'z kursi bilan),
         qarz o'zgarishi (xarid va boshlang'ich qarz +, to'lov va boshlang'ich
         avans −) va shu hujjatdan keyingi qarz, so'mda.
-      required: [id, kind, number, at, amount, currency_id, rate, amount_uzs, delta_uzs, balance_uzs, linked_id, linked_number, bank_account_id, account_name, note, created_by_name]
+      required: [id, kind, number, at, amount, currency_id, rate, amount_uzs, delta_uzs, balance_uzs, linked_id, linked_number, bank_account_id, account_name, order_id, order_title, note, created_by_name]
       properties:
         id:
           type: integer
           format: int64
         kind:
           type: string
-          enum: [purchase, supplier_payment, supplier_debt, supplier_prepay, sale, customer_payment, customer_debt, customer_prepay]
+          enum: [purchase, supplier_payment, supplier_debt, supplier_prepay, sale, order, customer_payment, customer_debt, customer_prepay]
+          description: order — buyurtma hujjati (narxi; logic/orders.md, 4.3)
         number:
           type: integer
         at:
@@ -7032,6 +7139,13 @@ components:
           description: To'lovning akkaunti; boshqa hujjatda null
         account_name:
           type: [string, "null"]
+        order_id:
+          type: [integer, "null"]
+          format: int64
+          description: Buyurtma hujjatida buyurtma; buyurtma uchun kiritilgan to'lovda shu buyurtma; boshqasida null
+        order_title:
+          type: [string, "null"]
+          description: Buyurtmaning nomi
         note:
           type: [string, "null"]
         created_by_name:
@@ -7349,12 +7463,12 @@ components:
           description: Lahzadagi qoldiq, uch kasr xonasi bilan; qoldig'i 0 bo'lganlar ro'yxatda yo'q
     GoodsKind:
       type: string
-      enum: [purchase, sale, transfer, inventory, opening_stock]
-      description: Tovar harakati yozadigan hujjat turi
+      enum: [purchase, sale, order, transfer, inventory, opening_stock]
+      description: Tovar harakati yozadigan hujjat turi (order — buyurtmaga biriktirilgan tovar)
     ProductMove:
       type: object
       description: Mahsulotning ombor jurnalidagi bitta harakati (logic/products.md, 6-bo'lim)
-      required: [id, transaction_id, kind, number, at, location_id, location_name, quantity, counterpart]
+      required: [id, transaction_id, kind, number, at, location_id, location_name, quantity, counterpart, order_id, order_title]
       properties:
         id:
           type: integer
@@ -7383,6 +7497,13 @@ components:
         counterpart:
           type: [string, "null"]
           description: Xaridda ta'minotchi nomi, ko'chirishda ikkinchi lokatsiya nomi; boshqasida null
+        order_id:
+          type: [integer, "null"]
+          format: int64
+          description: Buyurtmaga biriktirilgan tovarning chiqimida shu buyurtma; boshqasida null
+        order_title:
+          type: [string, "null"]
+          description: Buyurtmaning nomi
     ProductMovePage:
       type: object
       required: [items, total, page, page_size]
@@ -7875,7 +7996,7 @@ components:
     CustomerPayment:
       type: object
       description: Mijozdan akkauntga kelgan to'lov (logic/sales.md, 5-bo'lim)
-      required: [id, customer_id, sale_id, sale_number, bank_account_id, account_name, amount, currency_id, rate, amount_uzs, at, note, created_by_name, created_at, updated_at]
+      required: [id, customer_id, sale_id, sale_number, order_id, bank_account_id, account_name, amount, currency_id, rate, amount_uzs, at, note, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -7886,9 +8007,16 @@ components:
         sale_id:
           type: [integer, "null"]
           format: int64
-          description: Sotuv bilan kiritilgan bo'lsa shu sotuv; o'zi kiritilgani null
+          description: Sotuv bilan kiritilgan bo'lsa shu sotuv; o'zi kiritilgani va buyurtmaniki null
         sale_number:
           type: [integer, "null"]
+        order_id:
+          type: [integer, "null"]
+          format: int64
+          description: >
+            Buyurtma uchun kiritilgan bo'lsa shu buyurtma (logic/orders.md,
+            4.3): buyurtma sahifasida o'zgartiriladi, mijoz sahifasidan 409
+            payment_linked
         bank_account_id:
           type: integer
           format: int64
@@ -8982,7 +9110,7 @@ components:
         qoldig'ini qanday o'zgartirgani (akkaunt valyutasida, ishorasi
         bilan) va shu hujjatdan keyingi qoldiq; qarshi tomon; to'lov
         kiritilgan hujjat.
-      required: [id, kind, number, at, delta, balance, linked_id, linked_number, party_name, note, created_by_name]
+      required: [id, kind, number, at, delta, balance, linked_id, linked_number, order_id, order_title, party_name, note, created_by_name]
       properties:
         id:
           type: integer
@@ -9008,6 +9136,13 @@ components:
         linked_number:
           type: [integer, "null"]
           description: O'sha hujjatning raqami
+        order_id:
+          type: [integer, "null"]
+          format: int64
+          description: Buyurtma uchun kiritilgan to'lovda shu buyurtma (logic/orders.md, 4.3); boshqasida null
+        order_title:
+          type: [string, "null"]
+          description: Buyurtmaning nomi
         party_name:
           type: [string, "null"]
           description: Ta'minotchi yoki mijoz (nomi, bo'lmasa telefoni), kategoriya, boshqa akkaunt; kassa boshlang'ich qoldig'ida null

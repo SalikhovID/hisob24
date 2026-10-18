@@ -105,12 +105,55 @@ func toOrderDetailJSON(d order.Detail) orderDetailJSON {
 		body.Items = append(body.Items, orderLineJSON{ProductID: l.ProductID, Name: l.Name, Kind: l.Kind, Unit: l.Unit, Quantity: l.Quantity})
 	}
 	for _, p := range d.Payments {
-		body.Payments = append(body.Payments, orderPaymentJSON{
-			ID: p.ID, BankAccountID: p.BankAccountID, AccountName: p.AccountName, Amount: p.Amount, CurrencyID: p.CurrencyID, Rate: p.Rate, AmountUZS: p.AmountUZS,
-			At: p.At, Note: p.Note, CreatedByName: p.CreatedByName,
-		})
+		body.Payments = append(body.Payments, toOrderPaymentJSON(p))
 	}
 	return body
+}
+
+// toOrderPaymentJSON is a payment entered for an order as the API shows it.
+func toOrderPaymentJSON(p warehouse.OrderPayment) orderPaymentJSON {
+	return orderPaymentJSON{
+		ID: p.ID, BankAccountID: p.BankAccountID, AccountName: p.AccountName, Amount: p.Amount, CurrencyID: p.CurrencyID, Rate: p.Rate, AmountUZS: p.AmountUZS,
+		At: p.At, Note: p.Note, CreatedByName: p.CreatedByName,
+	}
+}
+
+// addOrderPayment enters a payment for an order of the company the session
+// works in, as the member the session is of (logic/orders.md, 4.3).
+func (h *Handler) addOrderPayment(w http.ResponseWriter, r *http.Request) {
+	var body paymentInputJSON
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	p, err := h.warehouse.AddOrderPayment(r.Context(), warehouseScope(r), currentUser(r.Context()).Phone, pathID(r, "id"), body.input())
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, toOrderPaymentJSON(p))
+}
+
+// updateOrderPayment saves a payment entered for an order with other fields.
+func (h *Handler) updateOrderPayment(w http.ResponseWriter, r *http.Request) {
+	var body paymentInputJSON
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	p, err := h.warehouse.UpdateOrderPayment(r.Context(), warehouseScope(r), currentUser(r.Context()).Phone, pathID(r, "id"), pathID(r, "paymentId"), body.input())
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, toOrderPaymentJSON(p))
+}
+
+// deleteOrderPayment hides a payment entered for an order.
+func (h *Handler) deleteOrderPayment(w http.ResponseWriter, r *http.Request) {
+	if err := h.warehouse.DeleteOrderPayment(r.Context(), warehouseScope(r), pathID(r, "id"), pathID(r, "paymentId")); err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // detail answers with the order as its page shows it, within the scope.

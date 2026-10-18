@@ -22,7 +22,8 @@ type AccountBalance struct {
 // named the account, how it changed what the account holds (in the
 // account's currency) and what the account held after it; the other side
 // (the supplier or the customer, the category, the other account); the
-// document a payment was entered with.
+// document a payment was entered with, and the order when that document
+// is an order's (logic/orders.md, 4.3).
 type StatementRow struct {
 	ID            int64
 	Kind          ledger.Kind
@@ -32,6 +33,8 @@ type StatementRow struct {
 	Balance       string
 	LinkedID      *int64
 	LinkedNumber  *int32
+	OrderID       *int64
+	OrderTitle    *string
 	PartyName     *string
 	Note          *string
 	CreatedByName *string
@@ -101,7 +104,7 @@ func (s *Service) AccountStatement(ctx context.Context, companyID, accountID int
 	for _, r := range rows {
 		items = append(items, StatementRow{
 			ID: r.ID, Kind: ledger.Kind(r.Kind), Number: r.Number, At: r.DocAt.UTC(), Delta: amountOf(r.Delta), Balance: amountOf(r.Balance),
-			LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber, PartyName: partyOf(r), Note: r.Note, CreatedByName: r.CreatedByName,
+			LinkedID: r.LinkedID, LinkedNumber: r.LinkedNumber, OrderID: r.OrderID, OrderTitle: r.OrderTitle, PartyName: partyOf(r), Note: r.Note, CreatedByName: r.CreatedByName,
 		})
 	}
 	return StatementPage{Items: items, Total: total, Page: page, PageSize: ledger.PageSize}, nil

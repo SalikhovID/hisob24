@@ -22,18 +22,22 @@ import (
 var (
 	errCustomerNotFound        = apperr.New(apperr.NotFound, "not_found", "Mijoz topilmadi")
 	errCustomerPaymentLinked   = apperr.New(apperr.Conflict, "payment_linked", "Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang")
+	errCustomerPaymentForOrder = apperr.New(apperr.Conflict, "payment_linked", "Bu to'lov buyurtma bilan kiritilgan: buyurtmani oching")
 	errCustomerOpeningNotFound = apperr.New(apperr.NotFound, "not_found", "Hujjat topilmadi")
 )
 
 // CustomerPayment is a payment from a customer, as the API shows it: into
 // an account, in the account's currency, by the document's rate; what it
 // comes to in so'm. One entered with a sale names it (SaleID, SaleNumber)
-// and is changed through the sale alone.
+// and is changed through the sale alone; one entered for an order names
+// the order (OrderID) and is changed through the order alone
+// (logic/orders.md, 4.3).
 type CustomerPayment struct {
 	ID            int64
 	CustomerID    int64
 	SaleID        *int64
 	SaleNumber    *int32
+	OrderID       *int64
 	BankAccountID int64
 	AccountName   string
 	Amount        string
@@ -93,7 +97,7 @@ func customerExists(ctx context.Context, q *gen.Queries, companyID, customerID i
 
 func toCustomerPayment(r gen.GetCustomerPaymentRow) CustomerPayment {
 	return CustomerPayment{
-		ID: r.ID, CustomerID: r.CustomerID, SaleID: r.SaleID, SaleNumber: r.SaleNumber, BankAccountID: r.BankAccountID, AccountName: r.AccountName,
+		ID: r.ID, CustomerID: r.CustomerID, SaleID: r.SaleID, SaleNumber: r.SaleNumber, OrderID: r.OrderID, BankAccountID: r.BankAccountID, AccountName: r.AccountName,
 		Amount: amount(r.Amount), CurrencyID: r.CurrencyID, Rate: currency.RateText(r.Rate), AmountUZS: amount(r.AmountUzs), At: r.DocAt.UTC(), Note: r.Note,
 		CreatedByName: r.CreatedByName, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}
@@ -180,6 +184,9 @@ func (s *Service) UpdateCustomerPayment(ctx context.Context, companyID int64, by
 		if err != nil {
 			return err
 		}
+		if was.OrderID != nil {
+			return errCustomerPaymentForOrder
+		}
 		if was.SaleID != nil {
 			return errCustomerPaymentLinked
 		}
@@ -217,6 +224,9 @@ func (s *Service) DeleteCustomerPayment(ctx context.Context, companyID, customer
 		was, err := getCustomerPayment(ctx, q, companyID, customerID, paymentID)
 		if err != nil {
 			return err
+		}
+		if was.OrderID != nil {
+			return errCustomerPaymentForOrder
 		}
 		if was.SaleID != nil {
 			return errCustomerPaymentLinked

@@ -1647,6 +1647,55 @@ export interface paths {
         patch: operations["moveOrder"];
         trace?: never;
     };
+    "/app/orders/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Buyurtma uchun to'lov qo'shish (orders.edit ruxsati)
+         * @description Buyurtma uchun mijozdan akkauntga kelgan pul, o'z vaqti bilan (logic/orders.md, 4.3): buyurtma mijozining to'lovi, buyurtma hujjatiga bog'lanadi (hujjat yo'q bo'lsa yaratiladi). Tekshiruv tartibi: buyurtma (a'zoga ruxsatli lokatsiyada, 404), akkaunt ("Akkauntni tanlang" / "Akkaunt nofaol"), summa ("Summani kiriting" / "Summa noto'g'ri"), vaqt, kurs, izoh.
+         */
+        post: operations["addOrderPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/orders/{id}/payments/{paymentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Buyurtma to'lovini tahrirlash (orders.edit ruxsati)
+         * @description Faqat shu buyurtmaga bog'langan to'lov (boshqasi 404 "To'lov topilmadi"). To'lovda avvaldan bor akkaunt nofaol bo'lsa ham qoladi.
+         */
+        put: operations["updateOrderPayment"];
+        post?: never;
+        /**
+         * Buyurtma to'lovini o'chirish (orders.edit ruxsati)
+         * @description Faqat shu buyurtmaga bog'langan to'lov yashiriladi.
+         */
+        delete: operations["deleteOrderPayment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/orders/{id}/history": {
         parameters: {
             query?: never;
@@ -2948,8 +2997,11 @@ export interface components {
         StatementRow: {
             /** Format: int64 */
             id: number;
-            /** @enum {string} */
-            kind: "purchase" | "supplier_payment" | "supplier_debt" | "supplier_prepay" | "sale" | "customer_payment" | "customer_debt" | "customer_prepay";
+            /**
+             * @description order — buyurtma hujjati (narxi; logic/orders.md, 4.3)
+             * @enum {string}
+             */
+            kind: "purchase" | "supplier_payment" | "supplier_debt" | "supplier_prepay" | "sale" | "order" | "customer_payment" | "customer_debt" | "customer_prepay";
             number: number;
             /** Format: date-time */
             at: string;
@@ -2974,6 +3026,13 @@ export interface components {
              */
             bank_account_id: number | null;
             account_name: string | null;
+            /**
+             * Format: int64
+             * @description Buyurtma hujjatida buyurtma; buyurtma uchun kiritilgan to'lovda shu buyurtma; boshqasida null
+             */
+            order_id: number | null;
+            /** @description Buyurtmaning nomi */
+            order_title: string | null;
             note: string | null;
             created_by_name: string | null;
         };
@@ -3168,10 +3227,10 @@ export interface components {
             quantity: string;
         };
         /**
-         * @description Tovar harakati yozadigan hujjat turi
+         * @description Tovar harakati yozadigan hujjat turi (order — buyurtmaga biriktirilgan tovar)
          * @enum {string}
          */
-        GoodsKind: "purchase" | "sale" | "transfer" | "inventory" | "opening_stock";
+        GoodsKind: "purchase" | "sale" | "order" | "transfer" | "inventory" | "opening_stock";
         /** @description Mahsulotning ombor jurnalidagi bitta harakati (logic/products.md, 6-bo'lim) */
         ProductMove: {
             /** Format: int64 */
@@ -3196,6 +3255,13 @@ export interface components {
             quantity: string;
             /** @description Xaridda ta'minotchi nomi, ko'chirishda ikkinchi lokatsiya nomi; boshqasida null */
             counterpart: string | null;
+            /**
+             * Format: int64
+             * @description Buyurtmaga biriktirilgan tovarning chiqimida shu buyurtma; boshqasida null
+             */
+            order_id: number | null;
+            /** @description Buyurtmaning nomi */
+            order_title: string | null;
         };
         ProductMovePage: {
             items: components["schemas"]["ProductMove"][];
@@ -3506,10 +3572,15 @@ export interface components {
             customer_id: number;
             /**
              * Format: int64
-             * @description Sotuv bilan kiritilgan bo'lsa shu sotuv; o'zi kiritilgani null
+             * @description Sotuv bilan kiritilgan bo'lsa shu sotuv; o'zi kiritilgani va buyurtmaniki null
              */
             sale_id: number | null;
             sale_number: number | null;
+            /**
+             * Format: int64
+             * @description Buyurtma uchun kiritilgan bo'lsa shu buyurtma (logic/orders.md, 4.3): buyurtma sahifasida o'zgartiriladi, mijoz sahifasidan 409 payment_linked
+             */
+            order_id: number | null;
             /** Format: int64 */
             bank_account_id: number;
             account_name: string;
@@ -4163,6 +4234,13 @@ export interface components {
             linked_id: number | null;
             /** @description O'sha hujjatning raqami */
             linked_number: number | null;
+            /**
+             * Format: int64
+             * @description Buyurtma uchun kiritilgan to'lovda shu buyurtma (logic/orders.md, 4.3); boshqasida null
+             */
+            order_id: number | null;
+            /** @description Buyurtmaning nomi */
+            order_title: string | null;
             /** @description Ta'minotchi yoki mijoz (nomi, bo'lmasa telefoni), kategoriya, boshqa akkaunt; kassa boshlang'ich qoldig'ida null */
             party_name: string | null;
             note: string | null;
@@ -4739,7 +4817,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description To'lov sotuv bilan kiritilgan (payment_linked) */
+        /** @description To'lov sotuv yoki buyurtma bilan kiritilgan (payment_linked) */
         CustomerPaymentConflict: {
             headers: {
                 [name: string]: unknown;
@@ -7827,6 +7905,94 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["CompanyRequired"];
             404: components["responses"]["OrderNotFound"];
+        };
+    };
+    addOrderPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description Kiritilgan to'lov */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderPayment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["OrderNotFound"];
+        };
+    };
+    updateOrderPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description Saqlangan to'lov */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderPayment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PaymentNotFound"];
+        };
+    };
+    deleteOrderPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                paymentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["PaymentNotFound"];
         };
     };
     listOrderHistory: {

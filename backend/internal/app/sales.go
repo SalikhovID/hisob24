@@ -93,6 +93,7 @@ type customerPaymentJSON struct {
 	CustomerID    int64     `json:"customer_id"`
 	SaleID        *int64    `json:"sale_id"`
 	SaleNumber    *int32    `json:"sale_number"`
+	OrderID       *int64    `json:"order_id"`
 	BankAccountID int64     `json:"bank_account_id"`
 	AccountName   string    `json:"account_name"`
 	Amount        string    `json:"amount"`
@@ -108,7 +109,7 @@ type customerPaymentJSON struct {
 
 func toCustomerPaymentJSON(p warehouse.CustomerPayment) customerPaymentJSON {
 	return customerPaymentJSON{
-		ID: p.ID, CustomerID: p.CustomerID, SaleID: p.SaleID, SaleNumber: p.SaleNumber, BankAccountID: p.BankAccountID, AccountName: p.AccountName,
+		ID: p.ID, CustomerID: p.CustomerID, SaleID: p.SaleID, SaleNumber: p.SaleNumber, OrderID: p.OrderID, BankAccountID: p.BankAccountID, AccountName: p.AccountName,
 		Amount: p.Amount, CurrencyID: p.CurrencyID, Rate: p.Rate, AmountUZS: p.AmountUZS, At: p.At, Note: p.Note, CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
 }

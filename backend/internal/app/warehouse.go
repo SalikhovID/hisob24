@@ -144,6 +144,8 @@ type statementRowJSON struct {
 	LinkedNumber  *int32    `json:"linked_number"`
 	BankAccountID *int64    `json:"bank_account_id"`
 	AccountName   *string   `json:"account_name"`
+	OrderID       *int64    `json:"order_id"`
+	OrderTitle    *string   `json:"order_title"`
 	Note          *string   `json:"note"`
 	CreatedByName *string   `json:"created_by_name"`
 }
@@ -540,7 +542,7 @@ func toStatementRowsJSON(rows []warehouse.StatementRow) []statementRowJSON {
 		items = append(items, statementRowJSON{
 			ID: row.ID, Kind: row.Kind, Number: row.Number, At: row.At, Amount: row.Amount, CurrencyID: row.CurrencyID, Rate: row.Rate, AmountUZS: row.AmountUZS,
 			DeltaUZS: row.DeltaUZS, BalanceUZS: row.BalanceUZS, LinkedID: row.LinkedID, LinkedNumber: row.LinkedNumber, BankAccountID: row.BankAccountID,
-			AccountName: row.AccountName, Note: row.Note, CreatedByName: row.CreatedByName,
+			AccountName: row.AccountName, OrderID: row.OrderID, OrderTitle: row.OrderTitle, Note: row.Note, CreatedByName: row.CreatedByName,
 		})
 	}
 	return items

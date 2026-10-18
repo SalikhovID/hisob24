@@ -261,7 +261,7 @@ func TestPaymentsAPI(t *testing.T) {
 	assert.Equal(t, map[string]any{
 		"id": linked["id"], "kind": "supplier_payment", "number": 1.0, "at": atUTC, "amount": "500.00", "currency_id": 1.0, "rate": "1.0000",
 		"amount_uzs": "500.00", "delta_uzs": "-500.00", "balance_uzs": "9500.00", "linked_id": purchase["id"], "linked_number": 1.0,
-		"bank_account_id": float64(s.cash), "account_name": "Naqd", "note": nil, "created_by_name": nil,
+		"bank_account_id": float64(s.cash), "account_name": "Naqd", "order_id": nil, "order_title": nil, "note": nil, "created_by_name": nil,
 	}, rows[0], "the payment, entered with the purchase, after it, with its account")
 	assert.Nil(t, rows[1].(map[string]any)["bank_account_id"], "a purchase names no account")
 	assert.Equal(t, "purchase", rows[1].(map[string]any)["kind"])

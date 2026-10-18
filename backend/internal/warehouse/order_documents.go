@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
@@ -290,4 +291,169 @@ func (m OrderMoney) LinesText() string {
 		parts = append(parts, part)
 	}
 	return strings.Join(parts, ", ")
+}
+
+// errOrderNotFound: the order is not one of the scope's.
+var errOrderNotFound = apperr.New(apperr.NotFound, "not_found", "Buyurtma topilmadi")
+
+// orderHeadOf is the live order in the scope's locations; one outside them
+// is not found.
+func orderHeadOf(ctx context.Context, q *gen.Queries, scope Scope, orderID int64) (OrderHead, error) {
+	row, err := q.GetOrder(ctx, gen.GetOrderParams{ID: orderID, CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return OrderHead{}, errOrderNotFound
+	}
+	if err != nil {
+		return OrderHead{}, err
+	}
+	return OrderHead{ID: row.ID, CustomerID: row.CustomerID, LocationID: row.LocationID}, nil
+}
+
+// ensureOrderDocument is the order's live document, made now (priced at
+// nothing, in so'm) when the order has none yet: a payment has to link to
+// one.
+func ensureOrderDocument(ctx context.Context, q *gen.Queries, companyID int64, by string, name *string, order OrderHead) (int64, error) {
+	d, err := q.GetOrderDocument(ctx, gen.GetOrderDocumentParams{OrderID: order.ID, CompanyID: companyID})
+	if err == nil {
+		return d.ID, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return 0, err
+	}
+	at := time.Now()
+	pricing, err := ledger.PriceIn(ctx, q, companyID, ledger.PriceInput{}, at, by, nil)
+	if err != nil {
+		return 0, err
+	}
+	number, err := ledger.NextNumber(ctx, q, companyID, ledger.Order)
+	if err != nil {
+		return 0, err
+	}
+	row, err := q.CreateTransaction(ctx, gen.CreateTransactionParams{
+		CompanyID: companyID, Kind: string(ledger.Order), Number: number, DocAt: at, LocationID: &order.LocationID, CustomerID: &order.CustomerID, OrderID: &order.ID,
+		CurrencyID: pricing.CurrencyID, CurrencyRateID: pricing.RateID, Total: zero(), CreatedBy: by, CreatedByName: name,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return row.ID, nil
+}
+
+func getOrderPayment(ctx context.Context, q *gen.Queries, documentID, id int64) (OrderPayment, error) {
+	r, err := q.GetOrderPayment(ctx, gen.GetOrderPaymentParams{ID: id, LinkedID: documentID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return OrderPayment{}, errPaymentNotFound
+	}
+	if err != nil {
+		return OrderPayment{}, err
+	}
+	return toOrderPayment(gen.ListOrderPaymentsRow(r)), nil
+}
+
+// AddOrderPayment enters a payment for the order (one of the scope's) on
+// its own, as the member with phone by (logic/orders.md, 4.3): the
+// customer's payment at its own moment, linked to the order's document,
+// made for it when the order has none. The order comes first (404), then
+// what is wrong with the payment, in the order of checkPayment.
+func (s *Service) AddOrderPayment(ctx context.Context, scope Scope, by string, orderID int64, in PaymentInput) (OrderPayment, error) {
+	var p OrderPayment
+	err := s.write(ctx, scope.CompanyID, func(q *gen.Queries) error {
+		order, err := orderHeadOf(ctx, q, scope, orderID)
+		if err != nil {
+			return err
+		}
+		c, err := checkPayment(ctx, q, scope.CompanyID, by, in, 0, nil)
+		if err != nil {
+			return err
+		}
+		name, err := memberName(ctx, q, scope.CompanyID, by)
+		if err != nil {
+			return err
+		}
+		documentID, err := ensureOrderDocument(ctx, q, scope.CompanyID, by, name, order)
+		if err != nil {
+			return err
+		}
+		number, err := ledger.NextNumber(ctx, q, scope.CompanyID, ledger.CustomerPayment)
+		if err != nil {
+			return err
+		}
+		row, err := q.CreateTransaction(ctx, gen.CreateTransactionParams{
+			CompanyID: scope.CompanyID, Kind: string(ledger.CustomerPayment), Number: number, DocAt: c.At, CustomerID: &order.CustomerID, BankAccountID: &c.Account.ID,
+			LinkedID: &documentID, CurrencyID: c.Pricing.CurrencyID, CurrencyRateID: c.Pricing.RateID, Total: c.Amount, Note: c.Note, CreatedBy: by, CreatedByName: name,
+		})
+		if err != nil {
+			return err
+		}
+		p, err = getOrderPayment(ctx, q, documentID, row.ID)
+		return err
+	})
+	return p, err
+}
+
+// orderPaymentOf is the order's document and the payment linked to it: the
+// order comes first (404), then the payment (404 "To'lov topilmadi"; an
+// order with no document has none).
+func orderPaymentOf(ctx context.Context, q *gen.Queries, scope Scope, orderID, paymentID int64) (int64, OrderPayment, error) {
+	order, err := orderHeadOf(ctx, q, scope, orderID)
+	if err != nil {
+		return 0, OrderPayment{}, err
+	}
+	d, err := q.GetOrderDocument(ctx, gen.GetOrderDocumentParams{OrderID: order.ID, CompanyID: scope.CompanyID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, OrderPayment{}, errPaymentNotFound
+	}
+	if err != nil {
+		return 0, OrderPayment{}, err
+	}
+	was, err := getOrderPayment(ctx, q, d.ID, paymentID)
+	return d.ID, was, err
+}
+
+// UpdateOrderPayment saves a payment entered for the order with other
+// fields, as the member with phone by. The account it already names is
+// kept even when inactive.
+func (s *Service) UpdateOrderPayment(ctx context.Context, scope Scope, by string, orderID, paymentID int64, in PaymentInput) (OrderPayment, error) {
+	var p OrderPayment
+	err := s.write(ctx, scope.CompanyID, func(q *gen.Queries) error {
+		documentID, was, err := orderPaymentOf(ctx, q, scope, orderID, paymentID)
+		if err != nil {
+			return err
+		}
+		head, err := q.GetTransaction(ctx, gen.GetTransactionParams{ID: paymentID, CompanyID: scope.CompanyID})
+		if err != nil {
+			return err
+		}
+		current, err := pricingOf(ctx, q, head)
+		if err != nil {
+			return err
+		}
+		c, err := checkPayment(ctx, q, scope.CompanyID, by, in, was.BankAccountID, &current)
+		if err != nil {
+			return err
+		}
+		if _, err := q.UpdateTransaction(ctx, gen.UpdateTransactionParams{
+			ID: paymentID, CompanyID: scope.CompanyID, DocAt: c.At, CustomerID: head.CustomerID, BankAccountID: &c.Account.ID,
+			CurrencyID: c.Pricing.CurrencyID, CurrencyRateID: c.Pricing.RateID, Note: c.Note,
+		}); err != nil {
+			return err
+		}
+		if err := q.SetTransactionAmount(ctx, gen.SetTransactionAmountParams{ID: paymentID, Total: c.Amount}); err != nil {
+			return err
+		}
+		p, err = getOrderPayment(ctx, q, documentID, paymentID)
+		return err
+	})
+	return p, err
+}
+
+// DeleteOrderPayment hides a payment entered for the order.
+func (s *Service) DeleteOrderPayment(ctx context.Context, scope Scope, orderID, paymentID int64) error {
+	return s.write(ctx, scope.CompanyID, func(q *gen.Queries) error {
+		if _, _, err := orderPaymentOf(ctx, q, scope, orderID, paymentID); err != nil {
+			return err
+		}
+		_, err := q.DeleteTransaction(ctx, gen.DeleteTransactionParams{ID: paymentID, CompanyID: scope.CompanyID})
+		return err
+	})
 }

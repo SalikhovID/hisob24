@@ -172,6 +172,10 @@ func (h *Handler) Routes(r chi.Router) {
 				allowed(access.OrdersDelete).Delete("/orders/{id}", h.deleteOrder)
 				allowed(access.OrdersEdit).Patch("/orders/{id}/stage", h.moveOrder)
 				allowed(access.OrdersHistory).Get("/orders/{id}/history", h.orderHistory)
+				// The payments for an order (logic/orders.md, 4.3).
+				allowed(access.OrdersEdit).Post("/orders/{id}/payments", h.addOrderPayment)
+				allowed(access.OrdersEdit).Put("/orders/{id}/payments/{paymentId}", h.updateOrderPayment)
+				allowed(access.OrdersEdit).Delete("/orders/{id}/payments/{paymentId}", h.deleteOrderPayment)
 
 				// The catalog: the products the company buys into its stock
 				// and the services it offers (logic/products.md).
