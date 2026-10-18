@@ -12,6 +12,9 @@ import { XIcon } from "lucide-react"
 // prototype's dialog, 540px wide in the middle, 40px from the top, 32px
 // round. The close button stands at the top left, the title centered, the
 // body scrolling under a sticky head, the main button in a sticky footer.
+// The rest of the screen is frosted behind it (the scrim utility), a sheet
+// under it too: each sheet draws its own scrim, as the prototype's do
+// (Base UI leaves a nested dialog's backdrop out unless forced).
 // Inside a sheet the page's surfaces are the sheet's own (as the
 // prototype's .sheet redefines --cell and --bg): a group is a sheet cell.
 // The API is the one from before (Dialog, DialogContent, DialogHeader,
