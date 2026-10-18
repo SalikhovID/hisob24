@@ -1701,3 +1701,63 @@ func TestTheOrderKeysMigrationDownBringsTheTasksPermissionsBack(t *testing.T) {
 
 	assert.Equal(t, []string{"customers.view", "tasks.view", "tasks.history"}, permissionsOf(t, pool, sotuvchi))
 }
+
+// tabBarsOf is each member's tab bar in the company, by phone; nil is the
+// default bar.
+func tabBarsOf(t *testing.T, pool *pgxpool.Pool, companyID int64) map[string][]string {
+	t.Helper()
+	rows, err := pool.Query(t.Context(), "SELECT user_phone, tab_bar FROM user_companies WHERE company_id = $1", companyID)
+	require.NoError(t, err)
+	bars := map[string][]string{}
+	var phone string
+	var pages []string
+	_, err = pgx.ForEachRow(rows, []any{&phone, &pages}, func() error {
+		bars[phone] = pages
+		return nil
+	})
+	require.NoError(t, err)
+	return bars
+}
+
+// So is the orders' page in a member's tab bar: a bar chosen before keeps
+// its pages in their order.
+func TestTheOrderKeysMigrationRenamesTheTabBarsPage(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 18)
+	require.NoError(t, err)
+	olma := addCompany(t, pool, "Olma")
+	_, err = pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222'), ('998903333333')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `INSERT INTO user_companies (user_phone, company_id, role, tab_bar) VALUES
+		('998901111111', $1, 'owner', '{home,tasks,sales}'), ('998902222222', $1, 'user', '{customers}'), ('998903333333', $1, 'user', NULL)`, olma)
+	require.NoError(t, err)
+
+	_, err = provider.UpTo(ctx, 19)
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string][]string{
+		"998901111111": {"home", "orders", "sales"},
+		"998902222222": {"customers"},
+		"998903333333": nil,
+	}, tabBarsOf(t, pool, olma), "a bar without the orders and the default one stay as they were")
+}
+
+func TestTheOrderKeysMigrationDownBringsTheTasksPageBack(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.UpTo(ctx, 19)
+	require.NoError(t, err)
+	olma := addCompany(t, pool, "Olma")
+	_, err = pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role, tab_bar) VALUES ('998901111111', $1, 'owner', '{orders,home}')", olma)
+	require.NoError(t, err)
+
+	_, err = provider.DownTo(ctx, 18)
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string][]string{"998901111111": {"tasks", "home"}}, tabBarsOf(t, pool, olma))
+}

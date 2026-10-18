@@ -7,7 +7,7 @@ import "github.com/SalikhovID/hisob24/backend/internal/apperr"
 // pages, the tabs, the warehouse and its pages. The settings are none of
 // them: they stand under «Sozlama».
 var TabBarPages = []string{
-	"home", "customers", "tasks", "products", "services", "sales",
+	"home", "customers", "orders", "products", "services", "sales",
 	"warehouse", "purchases", "transfers", "inventories", "opening_stock", "suppliers",
 	"accounts", "expenses", "money_transfers", "employees",
 }

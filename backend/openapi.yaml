@@ -7984,7 +7984,7 @@ components:
     TabBarPage:
       type: string
       description: Pastki panelga qo'yiladigan sahifa kaliti, menyu tartibida
-      enum: [home, customers, tasks, products, services, sales, warehouse, purchases, transfers, inventories, opening_stock, suppliers, accounts, expenses, money_transfers, employees]
+      enum: [home, customers, orders, products, services, sales, warehouse, purchases, transfers, inventories, opening_stock, suppliers, accounts, expenses, money_transfers, employees]
     TabBarInput:
       type: object
       required: [pages]

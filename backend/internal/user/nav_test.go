@@ -12,7 +12,7 @@ import (
 func TestTabBarPages(t *testing.T) {
 	t.Parallel()
 	assert.Equal(t, []string{
-		"home", "customers", "tasks", "products", "services", "sales",
+		"home", "customers", "orders", "products", "services", "sales",
 		"warehouse", "purchases", "transfers", "inventories", "opening_stock", "suppliers",
 		"accounts", "expenses", "money_transfers", "employees",
 	}, TabBarPages)
@@ -27,13 +27,13 @@ func TestParseTabBar(t *testing.T) {
 		err  string
 	}{
 		"a bar":                          {[]string{"sales", "home", "purchases"}, []string{"sales", "home", "purchases"}, ""},
-		"four pages":                     {[]string{"home", "customers", "tasks", "money_transfers"}, []string{"home", "customers", "tasks", "money_transfers"}, ""},
-		"a repeated key once":            {[]string{"tasks", "tasks", "home"}, []string{"tasks", "home"}, ""},
-		"five with a repeat are four":    {[]string{"home", "customers", "tasks", "products", "home"}, []string{"home", "customers", "tasks", "products"}, ""},
+		"four pages":                     {[]string{"home", "customers", "orders", "money_transfers"}, []string{"home", "customers", "orders", "money_transfers"}, ""},
+		"a repeated key once":            {[]string{"orders", "orders", "home"}, []string{"orders", "home"}, ""},
+		"five with a repeat are four":    {[]string{"home", "customers", "orders", "products", "home"}, []string{"home", "customers", "orders", "products"}, ""},
 		"nothing is a bar too":           {[]string{}, []string{}, ""},
-		"a key not in the list":          {[]string{"tasks", "reports"}, nil, "Sahifa noto'g'ri"},
+		"a key not in the list":          {[]string{"orders", "reports"}, nil, "Sahifa noto'g'ri"},
 		"the settings are not the bar's": {[]string{"settings"}, nil, "Sahifa noto'g'ri"},
-		"five pages":                     {[]string{"home", "customers", "tasks", "products", "sales"}, nil, "Panelda ko'pi bilan 4 ta sahifa"},
+		"five pages":                     {[]string{"home", "customers", "orders", "products", "sales"}, nil, "Panelda ko'pi bilan 4 ta sahifa"},
 	} {
 		got, err := ParseTabBar(tc.raw)
 		if tc.err != "" {

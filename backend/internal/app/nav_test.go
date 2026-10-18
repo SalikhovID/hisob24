@@ -31,10 +31,10 @@ func TestSetTabBar(t *testing.T) {
 	rec = api.do(t, http.MethodGet, "/app/me", "", bearer(owner))
 	assert.Equal(t, []any{"sales", "purchases", "home"}, decode(t, rec)["tab_bar"], "kept")
 
-	rec = api.do(t, http.MethodPut, "/app/me/tab-bar", `{"pages":["tasks","settings"]}`, bearer(owner))
+	rec = api.do(t, http.MethodPut, "/app/me/tab-bar", `{"pages":["orders","settings"]}`, bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Sahifa noto'g'ri"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPut, "/app/me/tab-bar", `{"pages":["home","customers","tasks","products","sales"]}`, bearer(owner))
+	rec = api.do(t, http.MethodPut, "/app/me/tab-bar", `{"pages":["home","customers","orders","products","sales"]}`, bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Panelda ko'pi bilan 4 ta sahifa"}`, rec.Body.String())
 	rec = api.do(t, http.MethodGet, "/app/me", "", bearer(owner))
