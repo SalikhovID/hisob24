@@ -154,8 +154,8 @@ func addTask(t *testing.T, pool *pgxpool.Pool, companyID, locationID int64, dele
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO customers (company_id, type_id, phone, created_by)
 		SELECT $1, id, '99890' || lpad((random() * 9999999)::int::text, 7, '0'), '998900000001' FROM customer_types WHERE company_id = $1 LIMIT 1
 		RETURNING id`, companyID).Scan(&customer))
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at)
-		SELECT $1, (SELECT id FROM task_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM task_stages WHERE company_id = $1 LIMIT 1), $2, $3,
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at)
+		SELECT $1, (SELECT id FROM order_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM order_stages WHERE company_id = $1 LIMIT 1), $2, $3,
 		       'Qo''ng''iroq', CURRENT_DATE, '998900000001', CASE WHEN $4 THEN now() END
 		RETURNING id`, companyID, customer, locationID, deleted).Scan(&task))
 	return task

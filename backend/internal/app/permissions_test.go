@@ -151,7 +151,7 @@ func TestATaskWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code, "entering a customer with the task needs customers.create")
 	assert.JSONEq(t, noPermission, rec.Body.String())
 	var tasks, customers int
-	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT (SELECT count(*) FROM tasks), (SELECT count(*) FROM customers)").Scan(&tasks, &customers))
+	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT (SELECT count(*) FROM orders), (SELECT count(*) FROM customers)").Scan(&tasks, &customers))
 	assert.Equal(t, 0, tasks, "no task")
 	assert.Equal(t, 1, customers, "no customer beside the one that was there")
 

@@ -47,8 +47,8 @@ ORDER BY d.day;
 -- The company's tasks in the locations given not done yet, and how many of
 -- them are past their deadline (before today).
 SELECT count(*) AS active, count(*) FILTER (WHERE t.deadline < sqlc.arg('today')::date) AS late
-FROM tasks t
-JOIN task_stages s ON s.id = t.stage_id
+FROM orders t
+JOIN order_stages s ON s.id = t.stage_id
 WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL AND NOT s.is_done
   AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[]);
 
@@ -56,8 +56,8 @@ WHERE t.company_id = sqlc.arg('company_id') AND t.deleted_at IS NULL AND NOT s.i
 -- How many of the company's tasks in the locations given stand in each of
 -- its stages not done, in the stages' order, the empty ones too.
 SELECT s.id AS stage_id, count(t.id) AS count
-FROM task_stages s
-LEFT JOIN tasks t ON t.stage_id = s.id AND t.deleted_at IS NULL AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
+FROM order_stages s
+LEFT JOIN orders t ON t.stage_id = s.id AND t.deleted_at IS NULL AND t.location_id = ANY(sqlc.arg('location_ids')::bigint[])
 WHERE s.company_id = sqlc.arg('company_id') AND s.deleted_at IS NULL AND NOT s.is_done
 GROUP BY s.id, s.position
 ORDER BY s.position, s.id;

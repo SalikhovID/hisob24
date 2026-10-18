@@ -66,7 +66,7 @@ func (q *Queries) AddCustomerValue(ctx context.Context, arg AddCustomerValuePara
 }
 
 const countCustomerTasks = `-- name: CountCustomerTasks :one
-SELECT count(*) FROM tasks WHERE customer_id = $1 AND deleted_at IS NULL
+SELECT count(*) FROM orders WHERE customer_id = $1 AND deleted_at IS NULL
 `
 
 // How many tasks the customer has: one with any is not deleted. Deleted

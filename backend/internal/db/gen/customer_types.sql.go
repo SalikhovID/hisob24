@@ -63,7 +63,7 @@ const countDropdownFields = `-- name: CountDropdownFields :one
 SELECT count(*) FROM (
     SELECT cf.id FROM customer_fields cf WHERE cf.dropdown_id = $1 AND cf.deleted_at IS NULL
     UNION ALL
-    SELECT tf.id FROM task_fields tf WHERE tf.dropdown_id = $1 AND tf.deleted_at IS NULL
+    SELECT tf.id FROM order_fields tf WHERE tf.dropdown_id = $1 AND tf.deleted_at IS NULL
 ) AS used
 `
 

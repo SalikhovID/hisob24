@@ -184,4 +184,4 @@ SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE;
 -- name: CountCustomerTasks :one
 -- How many tasks the customer has: one with any is not deleted. Deleted
 -- tasks do not count.
-SELECT count(*) FROM tasks WHERE customer_id = $1 AND deleted_at IS NULL;
+SELECT count(*) FROM orders WHERE customer_id = $1 AND deleted_at IS NULL;

@@ -148,7 +148,7 @@ func day(s string) time.Time {
 func storedHistory(t *testing.T, pool *pgxpool.Pool, taskID int64) []string {
 	t.Helper()
 	rows, err := pool.Query(t.Context(), `SELECT action || ' by ' || actor_phone || ' (' || COALESCE(actor_name, '-') || '): ' || changes::text
-		FROM task_history WHERE task_id = $1 ORDER BY id`, taskID)
+		FROM order_history WHERE order_id = $1 ORDER BY id`, taskID)
 	require.NoError(t, err)
 	history, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	require.NoError(t, err)
@@ -212,7 +212,7 @@ func TestCreateWithANewCustomer(t *testing.T) {
 	if assert.ErrorAs(t, err, &e) {
 		assert.Equal(t, sh.ali.ID, e.CustomerID, "the refusal names the customer who has the phone")
 	}
-	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM tasks"), "no task without its customer")
+	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM orders"), "no task without its customer")
 	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM customers"))
 	_, err = s.Create(ctx, sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, in, CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998906666666"}})
 	refused(t, err, apperr.Invalid, "validation_error", "«F.I.Sh.» maydonini to'ldiring", "the new customer's rules hold")
@@ -291,21 +291,21 @@ func TestCreateRefusals(t *testing.T) {
 		_, err := s.Create(ctx, sh.scope(), owner, tt.typeID, locationOf(tt.location), tt.in, tt.cust)
 		refused(t, err, tt.kind, tt.code, tt.message, tt.name)
 	}
-	assert.Zero(t, count(t, pool, "SELECT count(*) FROM tasks"), "nothing is entered")
+	assert.Zero(t, count(t, pool, "SELECT count(*) FROM orders"), "nothing is entered")
 	assert.Equal(t, 3, count(t, pool, "SELECT count(*) FROM customers"), "no customer is entered either")
 }
 
 func TestCreateEntersATaskWhollyOrNotAtAll(t *testing.T) {
 	s, pool := newService(t)
 	sh := newShop(t, s, pool, "Olma")
-	pgtest.FailInserts(t, pool, "tasks")
+	pgtest.FailInserts(t, pool, "orders")
 	fresh := CustomerInput{New: &NewCustomer{TypeID: sh.jismoniy.ID, Phone: "998905555555", Values: answers(t, map[int64]any{sh.fish.ID: "Vali"})}}
 
 	_, err := s.Create(t.Context(), sh.scope(), staff, sh.buyurtma.ID, sh.asosiy, sh.input(t, "Shartnoma", "2026-10-10", map[int64]any{sh.izoh.ID: "X"}), fresh)
 
 	require.Error(t, err)
 	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM customers"), "no new customer without its task")
-	assert.Zero(t, count(t, pool, "SELECT count(*) FROM task_history"))
+	assert.Zero(t, count(t, pool, "SELECT count(*) FROM order_history"))
 }
 
 func TestGet(t *testing.T) {
@@ -427,7 +427,7 @@ func TestUpdate(t *testing.T) {
 	ctx := t.Context()
 	sh := newShop(t, s, pool, "Olma")
 	task := mustTask(t, s, sh, "Qo'ng'iroq", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab", sh.summa.ID: 45000, sh.kanal.ID: []int64{sh.instagram.ID}})
-	_, err := pool.Exec(ctx, "UPDATE tasks SET updated_at = created_at - interval '1 hour' WHERE id = $1", task.ID)
+	_, err := pool.Exec(ctx, "UPDATE orders SET updated_at = created_at - interval '1 hour' WHERE id = $1", task.ID)
 	require.NoError(t, err)
 
 	edited, err := s.Update(ctx, sh.scope(), task.ID, staff, Input{
@@ -559,8 +559,8 @@ func TestDelete(t *testing.T) {
 	page, err := s.List(ctx, sh.scope(), ListInput{Page: 1})
 	require.NoError(t, err)
 	assert.Empty(t, page.Items, "the task is gone from the list")
-	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM tasks"), "nothing leaves the database")
-	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM task_values"), "its answers stay")
+	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM orders"), "nothing leaves the database")
+	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM order_values"), "its answers stay")
 	assert.Equal(t, []string{
 		"created by 998901111111 (Egamberdi Egasi): []",
 		"deleted by 998902222222 (Xurshid Xodim): []",
@@ -653,7 +653,7 @@ func TestTasksAreTheScopesLocations(t *testing.T) {
 
 	_, err = s.Create(ctx, onlyChilonzor, owner, sh.buyurtma.ID, sh.asosiy, sh.input(t, "X", "2026-10-10", of), sh.existing())
 	refused(t, err, apperr.Invalid, "validation_error", "Lokatsiyani tanlang", "a location outside the scope")
-	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM tasks"))
+	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM orders"))
 }
 
 // A task's assignee works in the task's location (logic/locations.md,

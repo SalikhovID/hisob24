@@ -208,10 +208,10 @@ func addStages(t *testing.T, pool *pgxpool.Pool, companyID int64) stages {
 		into *int64
 	}{{"Yangi", false, &st.yangi}, {"Jarayonda", false, &st.jarayonda}, {"Bajarildi", true, &st.bajarildi}} {
 		require.NoError(t, pool.QueryRow(ctx,
-			"INSERT INTO task_stages (company_id, name, color, is_done, position) VALUES ($1, $2, 'blue', $3, (SELECT count(*) + 1 FROM task_stages WHERE company_id = $1)) RETURNING id",
+			"INSERT INTO order_stages (company_id, name, color, is_done, position) VALUES ($1, $2, 'blue', $3, (SELECT count(*) + 1 FROM order_stages WHERE company_id = $1)) RETURNING id",
 			companyID, s.name, s.done).Scan(s.into))
 	}
-	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO task_types (company_id, name, position) VALUES ($1, 'Buyurtma', 1) RETURNING id", companyID).Scan(&st.buyurtma))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO order_types (company_id, name, position) VALUES ($1, 'Buyurtma', 1) RETURNING id", companyID).Scan(&st.buyurtma))
 	return st
 }
 
@@ -220,7 +220,7 @@ func addStages(t *testing.T, pool *pgxpool.Pool, companyID int64) stages {
 func addTask(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, title, deadline string, deleted bool) {
 	t.Helper()
 	_, err := pool.Exec(t.Context(),
-		"INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END)",
+		"INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END)",
 		companyID, st.buyurtma, stageID, customerID, locationID, title, deadline, ali, deleted)
 	require.NoError(t, err)
 }

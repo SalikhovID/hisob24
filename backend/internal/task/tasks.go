@@ -239,10 +239,10 @@ func nameOf(name *string) string {
 }
 
 // stageOf is the company's stage, or the refusal to take one that is not.
-func stageOf(ctx context.Context, q *gen.Queries, companyID, id int64) (gen.TaskStage, error) {
+func stageOf(ctx context.Context, q *gen.Queries, companyID, id int64) (gen.OrderStage, error) {
 	st, err := q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: id, CompanyID: companyID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return gen.TaskStage{}, errNoStage
+		return gen.OrderStage{}, errNoStage
 	}
 	return st, err
 }
@@ -359,7 +359,7 @@ func answersOf(ctx context.Context, q *gen.Queries, ids []int64) (map[int64]fiel
 		of[id] = fields.Values{}
 	}
 	for _, r := range rows {
-		values := of[r.TaskID]
+		values := of[r.OrderID]
 		switch {
 		case r.TextValue != nil:
 			values[r.FieldID] = *r.TextValue

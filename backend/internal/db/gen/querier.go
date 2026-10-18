@@ -39,7 +39,7 @@ type Querier interface {
 	AddStockMove(ctx context.Context, arg AddStockMoveParams) error
 	// Adds a field at the end of the company's type. pgx.ErrNoRows when the
 	// company has no such type, or deleted it.
-	AddTaskField(ctx context.Context, arg AddTaskFieldParams) (TaskField, error)
+	AddTaskField(ctx context.Context, arg AddTaskFieldParams) (OrderField, error)
 	// Writes down what a member did to a task: created, updated (a move too) or
 	// deleted. changes is what an edit changed, each thing as text under the
 	// names of that time; actor_name is the name the member goes by in the
@@ -198,11 +198,11 @@ type Querier interface {
 	// Enters a task, in a location of the company. assignee_name and
 	// created_by_name are the names the members go by in the company now: they
 	// stay when the members leave the company.
-	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
+	CreateTask(ctx context.Context, arg CreateTaskParams) (Order, error)
 	// A new stage goes last among the company's.
-	CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (TaskStage, error)
+	CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (OrderStage, error)
 	// A new type goes last among the company's.
-	CreateTaskType(ctx context.Context, arg CreateTaskTypeParams) (TaskType, error)
+	CreateTaskType(ctx context.Context, arg CreateTaskTypeParams) (OrderType, error)
 	// Enters a document's head: its kind, number and moment, whichever of the
 	// references the kind names, its currency and rate row, and its amount (0
 	// for a goods document, whose lines set it). created_by_name is the name
@@ -310,7 +310,7 @@ type Querier interface {
 	DeleteTaskTypeFields(ctx context.Context, typeID int64) error
 	// Clears a task's answers: an edit writes them anew. What they were stays in
 	// the task's history.
-	DeleteTaskValues(ctx context.Context, taskID int64) error
+	DeleteTaskValues(ctx context.Context, orderID int64) error
 	// Hides the document: nothing is removed, its number is never given again.
 	// pgx.ErrNoRows when the company has no such document, or deleted it already.
 	DeleteTransaction(ctx context.Context, arg DeleteTransactionParams) (int64, error)
@@ -461,11 +461,11 @@ type Querier interface {
 	GetTask(ctx context.Context, arg GetTaskParams) (GetTaskRow, error)
 	// A field of the company's type; pgx.ErrNoRows when the type has none such,
 	// or it is deleted.
-	GetTaskField(ctx context.Context, arg GetTaskFieldParams) (TaskField, error)
+	GetTaskField(ctx context.Context, arg GetTaskFieldParams) (OrderField, error)
 	// The company's stage; pgx.ErrNoRows when it has none such, or deleted it.
-	GetTaskStage(ctx context.Context, arg GetTaskStageParams) (TaskStage, error)
+	GetTaskStage(ctx context.Context, arg GetTaskStageParams) (OrderStage, error)
 	// The company's type; pgx.ErrNoRows when it has none such, or deleted it.
-	GetTaskType(ctx context.Context, arg GetTaskTypeParams) (TaskType, error)
+	GetTaskType(ctx context.Context, arg GetTaskTypeParams) (OrderType, error)
 	// The chat that shared the phone last, where a login code goes instead of an
 	// SMS; pgx.ErrNoRows when no Telegram account shared it. A phone lives in
 	// one Telegram account at a time, so the latest contact is its owner.
@@ -661,15 +661,15 @@ type Querier interface {
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]ListSuppliersRow, error)
 	// Every field of the company's types, each type's in its order, without the
 	// deleted ones (a deleted type's fields are deleted with it).
-	ListTaskFields(ctx context.Context, companyID int64) ([]TaskField, error)
+	ListTaskFields(ctx context.Context, companyID int64) ([]OrderField, error)
 	// What happened to the task, the latest first. actor_name is the name the
 	// member who did it goes by in the company now; once they have left it (or
 	// go by no name), the name of then.
-	ListTaskHistory(ctx context.Context, taskID int64) ([]ListTaskHistoryRow, error)
+	ListTaskHistory(ctx context.Context, orderID int64) ([]ListTaskHistoryRow, error)
 	// The company's stages in their order, without the deleted.
-	ListTaskStages(ctx context.Context, companyID int64) ([]TaskStage, error)
+	ListTaskStages(ctx context.Context, companyID int64) ([]OrderStage, error)
 	// The company's types in their order, without the deleted.
-	ListTaskTypes(ctx context.Context, companyID int64) ([]TaskType, error)
+	ListTaskTypes(ctx context.Context, companyID int64) ([]OrderType, error)
 	// The answers of the tasks named: each task's in the order of its type's
 	// fields, the options of one field in the order of their dropdown. kind
 	// tells how a field's rows are read.
@@ -764,7 +764,7 @@ type Querier interface {
 	// such location, or deleted it.
 	RenameLocation(ctx context.Context, arg RenameLocationParams) (Location, error)
 	// pgx.ErrNoRows when the company has no such type, or deleted it.
-	RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) (TaskType, error)
+	RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) (OrderType, error)
 	// Revokes a live token and returns its owner, company and source: the first
 	// step of rotation and of logout. A revoked, expired or unknown token gives
 	// pgx.ErrNoRows.
@@ -855,11 +855,11 @@ type Querier interface {
 	// Changes a field's name and required mark; a NULL argument leaves its
 	// column as it is. The kind and the dropdown are never changed.
 	// pgx.ErrNoRows when the type has no such field, or it is deleted.
-	UpdateTaskField(ctx context.Context, arg UpdateTaskFieldParams) (TaskField, error)
+	UpdateTaskField(ctx context.Context, arg UpdateTaskFieldParams) (OrderField, error)
 	// Changes a stage's name, color and done mark; a NULL argument leaves its
 	// column as it is. pgx.ErrNoRows when the company has no such stage, or
 	// deleted it.
-	UpdateTaskStage(ctx context.Context, arg UpdateTaskStageParams) (TaskStage, error)
+	UpdateTaskStage(ctx context.Context, arg UpdateTaskStageParams) (OrderStage, error)
 	// An edit of a document's head: its moment, whichever references the kind
 	// lets change (the location of a goods document stays), its currency and
 	// rate row, its note (NULL clears it), and the moment of the edit. The

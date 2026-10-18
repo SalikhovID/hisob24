@@ -364,7 +364,7 @@ func TestCountDropdownFields(t *testing.T) {
 	mustExec(t, pool, "UPDATE customer_fields SET deleted_at = now() WHERE id = $1", eski.ID)
 	addTaskField(t, q, olma.ID, buyurtma.ID, "Manba", "radio", &manba.ID)
 	gone := addTaskField(t, q, olma.ID, buyurtma.ID, "Eski", "dropdown", &manba.ID)
-	mustExec(t, pool, "UPDATE task_fields SET deleted_at = now() WHERE id = $1", gone.ID)
+	mustExec(t, pool, "UPDATE order_fields SET deleted_at = now() WHERE id = $1", gone.ID)
 
 	used, err := q.CountDropdownFields(ctx, &manba.ID)
 	require.NoError(t, err)

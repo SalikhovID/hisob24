@@ -175,8 +175,8 @@ func (q *Queries) DashboardSuppliers(ctx context.Context, companyID int64) (Dash
 
 const dashboardTasks = `-- name: DashboardTasks :one
 SELECT count(*) AS active, count(*) FILTER (WHERE t.deadline < $1::date) AS late
-FROM tasks t
-JOIN task_stages s ON s.id = t.stage_id
+FROM orders t
+JOIN order_stages s ON s.id = t.stage_id
 WHERE t.company_id = $2 AND t.deleted_at IS NULL AND NOT s.is_done
   AND t.location_id = ANY($3::bigint[])
 `
@@ -203,8 +203,8 @@ func (q *Queries) DashboardTasks(ctx context.Context, arg DashboardTasksParams) 
 
 const dashboardTasksByStage = `-- name: DashboardTasksByStage :many
 SELECT s.id AS stage_id, count(t.id) AS count
-FROM task_stages s
-LEFT JOIN tasks t ON t.stage_id = s.id AND t.deleted_at IS NULL AND t.location_id = ANY($1::bigint[])
+FROM order_stages s
+LEFT JOIN orders t ON t.stage_id = s.id AND t.deleted_at IS NULL AND t.location_id = ANY($1::bigint[])
 WHERE s.company_id = $2 AND s.deleted_at IS NULL AND NOT s.is_done
 GROUP BY s.id, s.position
 ORDER BY s.position, s.id

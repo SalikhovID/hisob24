@@ -40,7 +40,7 @@ func (s *Service) CreateType(ctx context.Context, companyID int64, name string) 
 	if err != nil {
 		return Type{}, err
 	}
-	var tt gen.TaskType
+	var tt gen.OrderType
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
 		tt, err = q.CreateTaskType(ctx, gen.CreateTaskTypeParams{CompanyID: companyID, Name: name})
 		if fields.Taken(err) {
@@ -80,7 +80,7 @@ func (s *Service) Types(ctx context.Context, companyID int64) ([]Type, error) {
 	return list, nil
 }
 
-func toField(f gen.TaskField) Field {
+func toField(f gen.OrderField) Field {
 	return Field{ID: f.ID, Label: f.Label, Kind: f.Kind, Required: f.Required, DropdownID: f.DropdownID}
 }
 
@@ -188,7 +188,7 @@ func (s *Service) AddField(ctx context.Context, companyID, typeID int64, in Fiel
 	case !choice && in.DropdownID != nil:
 		return Field{}, invalid("Matn va son maydoniga dropdown ulanmaydi")
 	}
-	var f gen.TaskField
+	var f gen.OrderField
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
 		if in.DropdownID != nil {
 			// The dropdown has to be the company's own and not deleted.
@@ -234,7 +234,7 @@ func (s *Service) UpdateField(ctx context.Context, companyID, typeID, fieldID in
 		}
 		patch.Label = &label
 	}
-	var f gen.TaskField
+	var f gen.OrderField
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
 		var err error
 		f, err = q.UpdateTaskField(ctx, gen.UpdateTaskFieldParams{

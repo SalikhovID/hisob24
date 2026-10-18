@@ -148,7 +148,7 @@ func TestListLocations(t *testing.T) {
 	addLocation(t, pool, createCompany(t, q, "Nok", today(t, pool)).ID, "Begona")
 	s.task(t, q, "Qo'ng'iroq", "2026-10-10", nil)
 	deleted := s.task(t, q, "O'chirilgan", "2026-10-11", nil)
-	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", deleted.ID)
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", deleted.ID)
 
 	rows, err := q.ListLocations(ctx, s.company.ID)
 
@@ -239,7 +239,7 @@ func TestCountLocationTasks(t *testing.T) {
 	s.task(t, q, "Qo'ng'iroq", "2026-10-10", nil)
 	s.task(t, q, "Shartnoma", "2026-10-11", nil)
 	deleted := s.task(t, q, "O'chirilgan", "2026-10-12", nil)
-	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", deleted.ID)
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", deleted.ID)
 
 	n, err := q.CountLocationTasks(ctx, s.asosiy)
 

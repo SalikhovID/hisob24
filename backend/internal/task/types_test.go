@@ -38,7 +38,7 @@ func TestCreateType(t *testing.T) {
 	refused(t, err, apperr.Conflict, "name_taken", "Bu nomli tur allaqachon bor", "the name in another case")
 	_, err = s.CreateType(ctx, nok, "Buyurtma")
 	assert.NoError(t, err, "another company may take the name")
-	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM task_types WHERE company_id = $1", olma), "a refusal adds nothing")
+	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM order_types WHERE company_id = $1", olma), "a refusal adds nothing")
 }
 
 func mustType(t *testing.T, s *Service, companyID int64, name string) Type {
@@ -53,7 +53,7 @@ func mustType(t *testing.T, s *Service, companyID int64, name string) Type {
 func fieldRow(t *testing.T, pool *pgxpool.Pool, companyID, typeID int64, f Field, position int) int64 {
 	t.Helper()
 	var id int64
-	require.NoError(t, pool.QueryRow(t.Context(), `INSERT INTO task_fields
+	require.NoError(t, pool.QueryRow(t.Context(), `INSERT INTO order_fields
 			(company_id, type_id, label, kind, dropdown_id, required, position)
 		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
 		companyID, typeID, f.Label, f.Kind, f.DropdownID, f.Required, position).Scan(&id))
@@ -168,7 +168,7 @@ func TestDeleteType(t *testing.T) {
 	assert.Equal(t, []Type{{ID: shikoyat.ID, Name: "Shikoyat", Fields: []Field{sabab}}}, list, "the type is gone from the company's")
 	var live, rows int
 	require.NoError(t, pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE deleted_at IS NULL), count(*)
-		FROM task_fields WHERE type_id = $1`, buyurtma.ID).Scan(&live, &rows))
+		FROM order_fields WHERE type_id = $1`, buyurtma.ID).Scan(&live, &rows))
 	assert.Zero(t, live, "its fields are deleted with it")
 	assert.Equal(t, 2, rows, "nothing leaves the database")
 	again, err := s.CreateType(ctx, olma, "Buyurtma")
@@ -248,7 +248,7 @@ func TestAddFieldRefusals(t *testing.T) {
 	}
 	_, err = s.AddField(ctx, nok, buyurtma.ID, FieldInput{Label: "Sabab", Kind: "string"})
 	refused(t, err, apperr.NotFound, "not_found", "Tur topilmadi", "another company's type")
-	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM task_fields WHERE type_id = $1", buyurtma.ID), "a refusal adds nothing")
+	assert.Equal(t, 1, count(t, pool, "SELECT count(*) FROM order_fields WHERE type_id = $1", buyurtma.ID), "a refusal adds nothing")
 }
 
 func mustField(t *testing.T, s *Service, companyID, typeID int64, in FieldInput) Field {
@@ -306,7 +306,7 @@ func TestDeleteField(t *testing.T) {
 	list, err := s.Types(ctx, olma)
 	require.NoError(t, err)
 	assert.Equal(t, []Field{summa}, list[0].Fields, "the field is gone from the type")
-	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM task_fields WHERE type_id = $1", buyurtma.ID), "nothing leaves the database")
+	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM order_fields WHERE type_id = $1", buyurtma.ID), "nothing leaves the database")
 	again := mustField(t, s, olma, buyurtma.ID, FieldInput{Label: "Izoh", Kind: "string"})
 	assert.NotEqual(t, izoh.ID, again.ID, "the deleted field's name is free again")
 

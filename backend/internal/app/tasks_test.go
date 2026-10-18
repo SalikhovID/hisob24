@@ -31,11 +31,11 @@ func (api testAPI) taskShop(t *testing.T, companyID int64) taskShop {
 	sh.bajarildi = api.addStage(t, companyID, "Bajarildi", "green", true, 3)
 	sh.buyurtma = api.addTaskType(t, companyID, "Buyurtma", 1)
 	manba := api.id(t, "SELECT dropdown_id FROM customer_fields WHERE id = $1", sh.manba)
-	sh.izoh = api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, required, position)
+	sh.izoh = api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, required, position)
 		VALUES ($1, $2, 'Izoh', 'string', true, 1) RETURNING id`, companyID, sh.buyurtma)
-	sh.summa = api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, position)
+	sh.summa = api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position)
 		VALUES ($1, $2, 'Summa', 'int', 2) RETURNING id`, companyID, sh.buyurtma)
-	sh.kanal = api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, dropdown_id, position)
+	sh.kanal = api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, dropdown_id, position)
 		VALUES ($1, $2, 'Kanal', 'checkbox', $3, 3) RETURNING id`, companyID, sh.buyurtma, manba)
 	return sh
 }

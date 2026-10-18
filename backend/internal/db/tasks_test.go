@@ -35,9 +35,9 @@ type taskShop struct {
 	jismoniy            gen.CustomerType
 	fish                gen.CustomerField
 	ali                 gen.Customer
-	yangi, bajarildi    gen.TaskStage
-	buyurtma            gen.TaskType
-	izoh, summa, kanal  gen.TaskField
+	yangi, bajarildi    gen.OrderStage
+	buyurtma            gen.OrderType
+	izoh, summa, kanal  gen.OrderField
 	manba               gen.CustomerDropdown
 	instagram, linkedin gen.CustomerDropdownOption
 }
@@ -68,7 +68,7 @@ func newTaskShop(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, name string) 
 
 // task enters a task of the shop's type for Ali, in the first stage and in
 // Asosiy, as enteredBy; assignee is the member it is assigned to, if any.
-func (s taskShop) task(t *testing.T, q *gen.Queries, title, deadline string, assignee *string) gen.Task {
+func (s taskShop) task(t *testing.T, q *gen.Queries, title, deadline string, assignee *string) gen.Order {
 	t.Helper()
 	var assigneeName *string
 	if assignee != nil {
@@ -150,7 +150,7 @@ func TestGetTask(t *testing.T) {
 
 	_, err = q.GetTask(ctx, gen.GetTaskParams{ID: task.ID, CompanyID: nok.ID, LocationIds: []int64{s.asosiy}})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's task")
-	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", task.ID)
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", task.ID)
 	_, err = q.GetTask(ctx, gen.GetTaskParams{ID: task.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted task")
 }
@@ -167,7 +167,7 @@ func titles(rows []gen.ListTasksRow) []string {
 // seedTasks enters five tasks into the shop: three due on different days,
 // one of them assigned, one of another type for another customer, and one
 // deleted. It returns the tasks that stay.
-func seedTasks(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s taskShop) (later, sooner, soonest, other gen.Task) {
+func seedTasks(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s taskShop) (later, sooner, soonest, other gen.Order) {
 	t.Helper()
 	later = s.task(t, q, "Hisob yozish", "2026-10-12", nil)
 	sooner = s.task(t, q, "Qo'ng'iroq qilish", "2026-10-10", ptr(assignedTo))
@@ -185,7 +185,7 @@ func seedTasks(t *testing.T, q *gen.Queries, pool *pgxpool.Pool, s taskShop) (la
 	})
 	require.NoError(t, err)
 	gone := s.task(t, q, "O'chirilgan", "2026-10-01", nil)
-	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", gone.ID)
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", gone.ID)
 	return later, sooner, soonest, other
 }
 
@@ -263,7 +263,7 @@ func TestUpdateTask(t *testing.T) {
 	s := newTaskShop(t, q, pool, "Olma")
 	nok := createCompany(t, q, "Nok", today(t, pool))
 	task := s.task(t, q, "Qo'ng'iroq", "2026-10-10", nil)
-	mustExec(t, pool, "UPDATE tasks SET updated_at = created_at - interval '1 hour' WHERE id = $1", task.ID)
+	mustExec(t, pool, "UPDATE orders SET updated_at = created_at - interval '1 hour' WHERE id = $1", task.ID)
 
 	updatedAt, err := q.UpdateTask(ctx, gen.UpdateTaskParams{
 		ID: task.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Title: "Qayta qo'ng'iroq", Deadline: day("2026-10-12"), StageID: s.bajarildi.ID,
@@ -283,7 +283,7 @@ func TestUpdateTask(t *testing.T) {
 
 	_, err = q.UpdateTask(ctx, gen.UpdateTaskParams{ID: task.ID, CompanyID: nok.ID, LocationIds: []int64{s.asosiy}, Title: "X", Deadline: day("2026-10-12"), StageID: s.yangi.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's task")
-	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", task.ID)
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", task.ID)
 	_, err = q.UpdateTask(ctx, gen.UpdateTaskParams{ID: task.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}, Title: "X", Deadline: day("2026-10-12"), StageID: s.yangi.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted task")
 }
@@ -294,7 +294,7 @@ func TestMoveTask(t *testing.T) {
 	s := newTaskShop(t, q, pool, "Olma")
 	nok := createCompany(t, q, "Nok", today(t, pool))
 	task := s.task(t, q, "Qo'ng'iroq", "2026-10-10", ptr(assignedTo))
-	mustExec(t, pool, "UPDATE tasks SET updated_at = created_at - interval '1 hour' WHERE id = $1", task.ID)
+	mustExec(t, pool, "UPDATE orders SET updated_at = created_at - interval '1 hour' WHERE id = $1", task.ID)
 
 	updatedAt, err := q.MoveTask(ctx, gen.MoveTaskParams{ID: task.ID, CompanyID: s.company.ID, StageID: s.bajarildi.ID, LocationIds: []int64{s.asosiy}})
 
@@ -308,7 +308,7 @@ func TestMoveTask(t *testing.T) {
 
 	_, err = q.MoveTask(ctx, gen.MoveTaskParams{ID: task.ID, CompanyID: nok.ID, StageID: s.yangi.ID, LocationIds: []int64{s.asosiy}})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's task")
-	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", task.ID)
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", task.ID)
 	_, err = q.MoveTask(ctx, gen.MoveTaskParams{ID: task.ID, CompanyID: s.company.ID, StageID: s.yangi.ID, LocationIds: []int64{s.asosiy}})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted task")
 }
@@ -327,7 +327,7 @@ func TestDeleteTask(t *testing.T) {
 	assert.Equal(t, task.ID, id)
 
 	var hidden bool
-	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM tasks WHERE id = $1", task.ID).Scan(&hidden))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM orders WHERE id = $1", task.ID).Scan(&hidden))
 	assert.True(t, hidden, "the row stays, marked deleted")
 	_, err = q.DeleteTask(ctx, gen.DeleteTaskParams{ID: task.ID, CompanyID: s.company.ID, LocationIds: []int64{s.asosiy}})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
@@ -338,10 +338,10 @@ func TestDeleteTask(t *testing.T) {
 func storedTaskValues(t *testing.T, pool *pgxpool.Pool, taskID int64) []string {
 	t.Helper()
 	rows, err := pool.Query(t.Context(), `SELECT f.label || ': ' || COALESCE(v.text_value, v.int_value::text, o.label)
-		FROM task_values v
-		JOIN task_fields f ON f.id = v.field_id
+		FROM order_values v
+		JOIN order_fields f ON f.id = v.field_id
 		LEFT JOIN customer_dropdown_options o ON o.id = v.option_id
-		WHERE v.task_id = $1 ORDER BY f.position, o.position`, taskID)
+		WHERE v.order_id = $1 ORDER BY f.position, o.position`, taskID)
 	require.NoError(t, err)
 	stored, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	require.NoError(t, err)
@@ -354,7 +354,7 @@ func TestTaskValues(t *testing.T) {
 	s := newTaskShop(t, q, pool, "Olma")
 	first := s.task(t, q, "Qo'ng'iroq", "2026-10-10", nil)
 	second := s.task(t, q, "Hisob", "2026-10-11", nil)
-	mustExec(t, pool, "UPDATE task_fields SET position = 0 WHERE id = $1", s.summa.ID)
+	mustExec(t, pool, "UPDATE order_fields SET position = 0 WHERE id = $1", s.summa.ID)
 	mustExec(t, pool, "UPDATE customer_dropdown_options SET position = 0 WHERE id = $1", s.linkedin.ID)
 
 	require.NoError(t, q.AddTaskValue(ctx, gen.AddTaskValueParams{TaskID: first.ID, FieldID: s.izoh.ID, TextValue: ptr("Ertalab")}))
@@ -368,7 +368,7 @@ func TestTaskValues(t *testing.T) {
 	require.NoError(t, err)
 	described := make([]string, 0, len(rows))
 	for _, r := range rows {
-		described = append(described, fmt.Sprintf("%d %s %v %v %v", r.TaskID, r.Kind, r.OptionID != nil, r.TextValue != nil, r.IntValue != nil))
+		described = append(described, fmt.Sprintf("%d %s %v %v %v", r.OrderID, r.Kind, r.OptionID != nil, r.TextValue != nil, r.IntValue != nil))
 	}
 	assert.Equal(t, []string{
 		fmt.Sprintf("%d int false false true", first.ID),
@@ -395,7 +395,7 @@ func TestCountTasksInUse(t *testing.T) {
 		require.NoError(t, q.AddTaskValue(ctx, gen.AddTaskValueParams{TaskID: id, FieldID: s.izoh.ID, TextValue: ptr("Izoh")}))
 		require.NoError(t, q.AddTaskValue(ctx, gen.AddTaskValueParams{TaskID: id, FieldID: s.kanal.ID, OptionID: &s.instagram.ID}))
 	}
-	mustExec(t, pool, "UPDATE tasks SET deleted_at = now() WHERE id = $1", gone.ID)
+	mustExec(t, pool, "UPDATE orders SET deleted_at = now() WHERE id = $1", gone.ID)
 
 	stage, err := q.CountStageTasks(ctx, s.yangi.ID)
 	require.NoError(t, err)
@@ -490,6 +490,6 @@ func TestTasksAreReadWithinTheLocations(t *testing.T) {
 	_, err = q.DeleteTask(ctx, gen.DeleteTaskParams{ID: inAsosiy.ID, CompanyID: s.company.ID, LocationIds: only})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "nor deleted")
 	var title string
-	require.NoError(t, pool.QueryRow(ctx, "SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL", inAsosiy.ID).Scan(&title))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT title FROM orders WHERE id = $1 AND deleted_at IS NULL", inAsosiy.ID).Scan(&title))
 	assert.Equal(t, "Asosiyda", title, "untouched")
 }

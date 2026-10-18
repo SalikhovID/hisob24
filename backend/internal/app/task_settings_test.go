@@ -12,14 +12,14 @@ import (
 // addStage inserts a stage of the company at a place and returns its id.
 func (api testAPI) addStage(t *testing.T, companyID int64, name, color string, done bool, position int) int64 {
 	t.Helper()
-	return api.id(t, "INSERT INTO task_stages (company_id, name, color, is_done, position) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+	return api.id(t, "INSERT INTO order_stages (company_id, name, color, is_done, position) VALUES ($1, $2, $3, $4, $5) RETURNING id",
 		companyID, name, color, done, position)
 }
 
 // addTaskType inserts a task type of the company at a place and returns its id.
 func (api testAPI) addTaskType(t *testing.T, companyID int64, name string, position int) int64 {
 	t.Helper()
-	return api.id(t, "INSERT INTO task_types (company_id, name, position) VALUES ($1, $2, $3) RETURNING id", companyID, name, position)
+	return api.id(t, "INSERT INTO order_types (company_id, name, position) VALUES ($1, $2, $3) RETURNING id", companyID, name, position)
 }
 
 const stageNotFound = `{"error":"not_found","message":"Bosqich topilmadi"}`
@@ -166,9 +166,9 @@ func TestListTaskTypes(t *testing.T) {
 	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
 	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
 	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	summa := api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, required, position)
+	summa := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, required, position)
 		VALUES ($1, $2, 'Summa', 'int', true, 1) RETURNING id`, olma, buyurtma)
-	source := api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, dropdown_id, position)
+	source := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, dropdown_id, position)
 		VALUES ($1, $2, 'Manba', 'dropdown', $3, 2) RETURNING id`, olma, buyurtma, manba)
 	api.addTaskType(t, nok, "Begona", 1)
 
@@ -266,7 +266,7 @@ func TestDeleteTaskType(t *testing.T) {
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
 	api.addTaskType(t, olma, "Shikoyat", 2)
-	api.exec(t, `INSERT INTO task_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1)`, olma, buyurtma)
+	api.exec(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1)`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d", buyurtma)
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
@@ -278,7 +278,7 @@ func TestDeleteTaskType(t *testing.T) {
 	require.Len(t, types, 1, "the type is gone from the company's")
 	assert.Equal(t, "Shikoyat", types[0]["name"])
 	var live int
-	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT count(*) FROM task_fields WHERE type_id = $1 AND deleted_at IS NULL", buyurtma).Scan(&live))
+	require.NoError(t, api.pool.QueryRow(t.Context(), "SELECT count(*) FROM order_fields WHERE type_id = $1 AND deleted_at IS NULL", buyurtma).Scan(&live))
 	assert.Zero(t, live, "its fields go with it")
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
@@ -335,7 +335,7 @@ func TestUpdateTaskField(t *testing.T) {
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
 	shikoyat := api.addTaskType(t, olma, "Shikoyat", 2)
-	izoh := api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
+	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d/fields/%d", buyurtma, izoh)
 
 	rec := api.do(t, http.MethodPatch, path, `{"label":" Tavsif "}`, bearer(owner))
@@ -361,7 +361,7 @@ func TestDeleteTaskField(t *testing.T) {
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	izoh := api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
+	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d/fields/%d", buyurtma, izoh)
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
@@ -382,8 +382,8 @@ func TestOrderTaskFields(t *testing.T) {
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	buyurtma := api.addTaskType(t, olma, "Buyurtma", 1)
-	izoh := api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
-	summa := api.id(t, `INSERT INTO task_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Summa', 'int', 2) RETURNING id`, olma, buyurtma)
+	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
+	summa := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Summa', 'int', 2) RETURNING id`, olma, buyurtma)
 	path := fmt.Sprintf("/app/task-types/%d/fields/order", buyurtma)
 
 	rec := api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, summa, izoh), bearer(owner))

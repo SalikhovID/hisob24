@@ -11,7 +11,7 @@ import (
 )
 
 const addTaskHistory = `-- name: AddTaskHistory :exec
-INSERT INTO task_history (task_id, action, actor_phone, actor_name, changes)
+INSERT INTO order_history (order_id, action, actor_phone, actor_name, changes)
 VALUES ($1, $2, $3, $4, $5)
 `
 
@@ -39,7 +39,7 @@ func (q *Queries) AddTaskHistory(ctx context.Context, arg AddTaskHistoryParams) 
 }
 
 const addTaskValue = `-- name: AddTaskValue :exec
-INSERT INTO task_values (task_id, field_id, option_id, text_value, int_value)
+INSERT INTO order_values (order_id, field_id, option_id, text_value, int_value)
 VALUES ($1, $2, $3, $4, $5)
 `
 
@@ -64,8 +64,8 @@ func (q *Queries) AddTaskValue(ctx context.Context, arg AddTaskValueParams) erro
 }
 
 const countOptionTasks = `-- name: CountOptionTasks :one
-SELECT count(DISTINCT v.task_id) FROM task_values v
-JOIN tasks t ON t.id = v.task_id
+SELECT count(DISTINCT v.order_id) FROM order_values v
+JOIN orders t ON t.id = v.order_id
 WHERE v.option_id = $1 AND t.deleted_at IS NULL
 `
 
@@ -78,7 +78,7 @@ func (q *Queries) CountOptionTasks(ctx context.Context, optionID *int64) (int64,
 }
 
 const countStageTasks = `-- name: CountStageTasks :one
-SELECT count(*) FROM tasks WHERE stage_id = $1 AND deleted_at IS NULL
+SELECT count(*) FROM orders WHERE stage_id = $1 AND deleted_at IS NULL
 `
 
 // How many tasks stand in the stage: one in use is not deleted. Deleted
@@ -91,8 +91,8 @@ func (q *Queries) CountStageTasks(ctx context.Context, stageID int64) (int64, er
 }
 
 const countTaskFieldTasks = `-- name: CountTaskFieldTasks :one
-SELECT count(DISTINCT v.task_id) FROM task_values v
-JOIN tasks t ON t.id = v.task_id
+SELECT count(DISTINCT v.order_id) FROM order_values v
+JOIN orders t ON t.id = v.order_id
 WHERE v.field_id = $1 AND t.deleted_at IS NULL
 `
 
@@ -105,7 +105,7 @@ func (q *Queries) CountTaskFieldTasks(ctx context.Context, fieldID int64) (int64
 }
 
 const countTasks = `-- name: CountTasks :one
-SELECT count(*) FROM tasks t
+SELECT count(*) FROM orders t
 JOIN customers c ON c.id = t.customer_id
 WHERE t.company_id = $1 AND t.deleted_at IS NULL
   AND t.location_id = ANY($2::bigint[])
@@ -116,8 +116,8 @@ WHERE t.company_id = $1 AND t.deleted_at IS NULL
   AND ($7::text IS NULL
        OR t.title ILIKE '%' || $7::text || '%'
        OR c.phone LIKE '%' || $8::text || '%'
-       OR EXISTS (SELECT 1 FROM task_values v
-                  WHERE v.task_id = t.id AND v.option_id IS NULL
+       OR EXISTS (SELECT 1 FROM order_values v
+                  WHERE v.order_id = t.id AND v.option_id IS NULL
                     AND (v.text_value ILIKE '%' || $7::text || '%'
                          OR v.int_value::text LIKE '%' || $8::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
@@ -155,7 +155,7 @@ func (q *Queries) CountTasks(ctx context.Context, arg CountTasksParams) (int64, 
 }
 
 const countTypeTasks = `-- name: CountTypeTasks :one
-SELECT count(*) FROM tasks WHERE type_id = $1 AND deleted_at IS NULL
+SELECT count(*) FROM orders WHERE type_id = $1 AND deleted_at IS NULL
 `
 
 // How many tasks are of the type: one in use is not deleted.
@@ -167,7 +167,7 @@ func (q *Queries) CountTypeTasks(ctx context.Context, typeID int64) (int64, erro
 }
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
+INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, $11)
 RETURNING id, company_id, type_id, stage_id, customer_id, title, deadline, assignee_phone, assignee_name, created_by, created_by_name, created_at, updated_at, deleted_at, location_id
@@ -190,7 +190,7 @@ type CreateTaskParams struct {
 // Enters a task, in a location of the company. assignee_name and
 // created_by_name are the names the members go by in the company now: they
 // stay when the members leave the company.
-func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
+func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Order, error) {
 	row := q.db.QueryRow(ctx, createTask,
 		arg.CompanyID,
 		arg.TypeID,
@@ -204,7 +204,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		arg.CreatedBy,
 		arg.CreatedByName,
 	)
-	var i Task
+	var i Order
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -226,7 +226,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 }
 
 const deleteTask = `-- name: DeleteTask :one
-UPDATE tasks SET deleted_at = now()
+UPDATE orders SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
   AND location_id = ANY($3::bigint[])
 RETURNING id
@@ -248,13 +248,13 @@ func (q *Queries) DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, 
 }
 
 const deleteTaskValues = `-- name: DeleteTaskValues :exec
-DELETE FROM task_values WHERE task_id = $1
+DELETE FROM order_values WHERE order_id = $1
 `
 
 // Clears a task's answers: an edit writes them anew. What they were stays in
 // the task's history.
-func (q *Queries) DeleteTaskValues(ctx context.Context, taskID int64) error {
-	_, err := q.db.Exec(ctx, deleteTaskValues, taskID)
+func (q *Queries) DeleteTaskValues(ctx context.Context, orderID int64) error {
+	_, err := q.db.Exec(ctx, deleteTaskValues, orderID)
 	return err
 }
 
@@ -268,7 +268,7 @@ SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.dea
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
         WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
         ORDER BY f.position, f.id LIMIT 1) AS customer_name
-FROM tasks t
+FROM orders t
 JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
@@ -336,8 +336,8 @@ SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.dea
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
         WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
         ORDER BY f.position, f.id LIMIT 1) AS customer_name
-FROM tasks t
-JOIN task_stages s ON s.id = t.stage_id
+FROM orders t
+JOIN order_stages s ON s.id = t.stage_id
 JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
@@ -410,10 +410,10 @@ func (q *Queries) ListActiveTasks(ctx context.Context, arg ListActiveTasksParams
 
 const listTaskHistory = `-- name: ListTaskHistory :many
 SELECT h.id, h.action, COALESCE(m.full_name, h.actor_name) AS actor_name, h.changes, h.created_at
-FROM task_history h
-JOIN tasks t ON t.id = h.task_id
+FROM order_history h
+JOIN orders t ON t.id = h.order_id
 LEFT JOIN user_companies m ON m.user_phone = h.actor_phone AND m.company_id = t.company_id
-WHERE h.task_id = $1
+WHERE h.order_id = $1
 ORDER BY h.id DESC
 `
 
@@ -428,8 +428,8 @@ type ListTaskHistoryRow struct {
 // What happened to the task, the latest first. actor_name is the name the
 // member who did it goes by in the company now; once they have left it (or
 // go by no name), the name of then.
-func (q *Queries) ListTaskHistory(ctx context.Context, taskID int64) ([]ListTaskHistoryRow, error) {
-	rows, err := q.db.Query(ctx, listTaskHistory, taskID)
+func (q *Queries) ListTaskHistory(ctx context.Context, orderID int64) ([]ListTaskHistoryRow, error) {
+	rows, err := q.db.Query(ctx, listTaskHistory, orderID)
 	if err != nil {
 		return nil, err
 	}
@@ -455,16 +455,16 @@ func (q *Queries) ListTaskHistory(ctx context.Context, taskID int64) ([]ListTask
 }
 
 const listTaskValues = `-- name: ListTaskValues :many
-SELECT v.task_id, v.field_id, f.kind, v.option_id, v.text_value, v.int_value
-FROM task_values v
-JOIN task_fields f ON f.id = v.field_id
+SELECT v.order_id, v.field_id, f.kind, v.option_id, v.text_value, v.int_value
+FROM order_values v
+JOIN order_fields f ON f.id = v.field_id
 LEFT JOIN customer_dropdown_options o ON o.id = v.option_id
-WHERE v.task_id = ANY($1::bigint[])
-ORDER BY v.task_id, f.position, f.id, o.position, o.id
+WHERE v.order_id = ANY($1::bigint[])
+ORDER BY v.order_id, f.position, f.id, o.position, o.id
 `
 
 type ListTaskValuesRow struct {
-	TaskID    int64
+	OrderID   int64
 	FieldID   int64
 	Kind      string
 	OptionID  *int64
@@ -485,7 +485,7 @@ func (q *Queries) ListTaskValues(ctx context.Context, taskIds []int64) ([]ListTa
 	for rows.Next() {
 		var i ListTaskValuesRow
 		if err := rows.Scan(
-			&i.TaskID,
+			&i.OrderID,
 			&i.FieldID,
 			&i.Kind,
 			&i.OptionID,
@@ -512,7 +512,7 @@ SELECT t.id, t.type_id, t.stage_id, t.customer_id, t.location_id, t.title, t.dea
           LEFT JOIN customer_values v ON v.field_id = f.id AND v.customer_id = c.id
         WHERE f.type_id = c.type_id AND f.kind = 'string' AND f.deleted_at IS NULL
         ORDER BY f.position, f.id LIMIT 1) AS customer_name
-FROM tasks t
+FROM orders t
 JOIN customers c ON c.id = t.customer_id
 LEFT JOIN user_companies m ON m.user_phone = t.created_by AND m.company_id = t.company_id
 LEFT JOIN user_companies a ON a.user_phone = t.assignee_phone AND a.company_id = t.company_id
@@ -525,8 +525,8 @@ WHERE t.company_id = $1 AND t.deleted_at IS NULL
   AND ($7::text IS NULL
        OR t.title ILIKE '%' || $7::text || '%'
        OR c.phone LIKE '%' || $8::text || '%'
-       OR EXISTS (SELECT 1 FROM task_values v
-                  WHERE v.task_id = t.id AND v.option_id IS NULL
+       OR EXISTS (SELECT 1 FROM order_values v
+                  WHERE v.order_id = t.id AND v.option_id IS NULL
                     AND (v.text_value ILIKE '%' || $7::text || '%'
                          OR v.int_value::text LIKE '%' || $8::text || '%'))
        OR EXISTS (SELECT 1 FROM customer_values v
@@ -621,7 +621,7 @@ func (q *Queries) ListTasks(ctx context.Context, arg ListTasksParams) ([]ListTas
 }
 
 const moveTask = `-- name: MoveTask :one
-UPDATE tasks SET stage_id = $1, updated_at = now()
+UPDATE orders SET stage_id = $1, updated_at = now()
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
   AND location_id = ANY($4::bigint[])
 RETURNING updated_at
@@ -649,7 +649,7 @@ func (q *Queries) MoveTask(ctx context.Context, arg MoveTaskParams) (time.Time, 
 }
 
 const updateTask = `-- name: UpdateTask :one
-UPDATE tasks
+UPDATE orders
 SET title = $1, deadline = $2, stage_id = $3,
     assignee_phone = $4, assignee_name = $5, updated_at = now()
 WHERE id = $6 AND company_id = $7 AND deleted_at IS NULL

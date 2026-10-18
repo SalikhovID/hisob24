@@ -36,7 +36,7 @@ func TestCreateStage(t *testing.T) {
 	refused(t, err, apperr.Conflict, "name_taken", "Bu nomli bosqich allaqachon bor", "the name in another case")
 	_, err = s.CreateStage(ctx, nok, StageInput{Name: "Yangi", Color: "blue"})
 	assert.NoError(t, err, "another company may take the name")
-	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM task_stages WHERE company_id = $1", olma), "a refusal adds nothing")
+	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM order_stages WHERE company_id = $1", olma), "a refusal adds nothing")
 }
 
 func mustStage(t *testing.T, s *Service, companyID int64, name, color string) Stage {
@@ -122,7 +122,7 @@ func TestDeleteStage(t *testing.T) {
 	require.NoError(t, s.DeleteStage(ctx, olma, yangi.ID))
 
 	assert.Equal(t, []string{"Jarayonda"}, stageNames(t, s, olma), "the stage is gone from the company's")
-	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM task_stages WHERE company_id = $1", olma), "nothing leaves the database")
+	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM order_stages WHERE company_id = $1", olma), "nothing leaves the database")
 	again := mustStage(t, s, olma, "Yangi", "blue")
 	assert.NotEqual(t, yangi.ID, again.ID, "the deleted stage's name is free again")
 

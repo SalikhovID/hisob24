@@ -46,7 +46,7 @@ type StagePatch struct {
 	Done  *bool
 }
 
-func toStage(st gen.TaskStage) Stage {
+func toStage(st gen.OrderStage) Stage {
 	return Stage{ID: st.ID, Name: st.Name, Color: st.Color, Done: st.IsDone}
 }
 
@@ -59,7 +59,7 @@ func (s *Service) CreateStage(ctx context.Context, companyID int64, in StageInpu
 	if !slices.Contains(Colors, in.Color) {
 		return Stage{}, errNoColor
 	}
-	var st gen.TaskStage
+	var st gen.OrderStage
 	err = s.write(ctx, companyID, func(q *gen.Queries) error {
 		st, err = q.CreateTaskStage(ctx, gen.CreateTaskStageParams{CompanyID: companyID, Name: name, Color: in.Color, IsDone: in.Done})
 		if fields.Taken(err) {
@@ -99,7 +99,7 @@ func (s *Service) UpdateStage(ctx context.Context, companyID, id int64, patch St
 	if patch.Color != nil && !slices.Contains(Colors, *patch.Color) {
 		return Stage{}, errNoColor
 	}
-	var st gen.TaskStage
+	var st gen.OrderStage
 	err := s.write(ctx, companyID, func(q *gen.Queries) error {
 		var err error
 		st, err = q.UpdateTaskStage(ctx, gen.UpdateTaskStageParams{

@@ -10,9 +10,9 @@ import (
 )
 
 const createTaskStage = `-- name: CreateTaskStage :one
-INSERT INTO task_stages (company_id, name, color, is_done, position)
+INSERT INTO order_stages (company_id, name, color, is_done, position)
 VALUES ($1, $2, $3, $4,
-        COALESCE((SELECT max(s.position) FROM task_stages s
+        COALESCE((SELECT max(s.position) FROM order_stages s
                   WHERE s.company_id = $1 AND s.deleted_at IS NULL), 0) + 1)
 RETURNING id, company_id, name, color, is_done, position, created_at, deleted_at
 `
@@ -25,14 +25,14 @@ type CreateTaskStageParams struct {
 }
 
 // A new stage goes last among the company's.
-func (q *Queries) CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (TaskStage, error) {
+func (q *Queries) CreateTaskStage(ctx context.Context, arg CreateTaskStageParams) (OrderStage, error) {
 	row := q.db.QueryRow(ctx, createTaskStage,
 		arg.CompanyID,
 		arg.Name,
 		arg.Color,
 		arg.IsDone,
 	)
-	var i TaskStage
+	var i OrderStage
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -47,7 +47,7 @@ func (q *Queries) CreateTaskStage(ctx context.Context, arg CreateTaskStageParams
 }
 
 const deleteTaskStage = `-- name: DeleteTaskStage :one
-UPDATE task_stages SET deleted_at = now()
+UPDATE order_stages SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 RETURNING id
 `
@@ -67,7 +67,7 @@ func (q *Queries) DeleteTaskStage(ctx context.Context, arg DeleteTaskStageParams
 }
 
 const getTaskStage = `-- name: GetTaskStage :one
-SELECT id, company_id, name, color, is_done, position, created_at, deleted_at FROM task_stages
+SELECT id, company_id, name, color, is_done, position, created_at, deleted_at FROM order_stages
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 `
 
@@ -77,9 +77,9 @@ type GetTaskStageParams struct {
 }
 
 // The company's stage; pgx.ErrNoRows when it has none such, or deleted it.
-func (q *Queries) GetTaskStage(ctx context.Context, arg GetTaskStageParams) (TaskStage, error) {
+func (q *Queries) GetTaskStage(ctx context.Context, arg GetTaskStageParams) (OrderStage, error) {
 	row := q.db.QueryRow(ctx, getTaskStage, arg.ID, arg.CompanyID)
-	var i TaskStage
+	var i OrderStage
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -94,21 +94,21 @@ func (q *Queries) GetTaskStage(ctx context.Context, arg GetTaskStageParams) (Tas
 }
 
 const listTaskStages = `-- name: ListTaskStages :many
-SELECT id, company_id, name, color, is_done, position, created_at, deleted_at FROM task_stages
+SELECT id, company_id, name, color, is_done, position, created_at, deleted_at FROM order_stages
 WHERE company_id = $1 AND deleted_at IS NULL
 ORDER BY position, id
 `
 
 // The company's stages in their order, without the deleted.
-func (q *Queries) ListTaskStages(ctx context.Context, companyID int64) ([]TaskStage, error) {
+func (q *Queries) ListTaskStages(ctx context.Context, companyID int64) ([]OrderStage, error) {
 	rows, err := q.db.Query(ctx, listTaskStages, companyID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []TaskStage{}
+	items := []OrderStage{}
 	for rows.Next() {
-		var i TaskStage
+		var i OrderStage
 		if err := rows.Scan(
 			&i.ID,
 			&i.CompanyID,
@@ -130,7 +130,7 @@ func (q *Queries) ListTaskStages(ctx context.Context, companyID int64) ([]TaskSt
 }
 
 const orderTaskStages = `-- name: OrderTaskStages :exec
-UPDATE task_stages t SET position = n.ord::int
+UPDATE order_stages t SET position = n.ord::int
 FROM unnest($2::bigint[]) WITH ORDINALITY AS n(id, ord)
 WHERE t.id = n.id AND t.company_id = $1 AND t.deleted_at IS NULL
 `
@@ -148,7 +148,7 @@ func (q *Queries) OrderTaskStages(ctx context.Context, arg OrderTaskStagesParams
 }
 
 const updateTaskStage = `-- name: UpdateTaskStage :one
-UPDATE task_stages
+UPDATE order_stages
 SET name = COALESCE($1, name),
     color = COALESCE($2, color),
     is_done = COALESCE($3, is_done)
@@ -167,7 +167,7 @@ type UpdateTaskStageParams struct {
 // Changes a stage's name, color and done mark; a NULL argument leaves its
 // column as it is. pgx.ErrNoRows when the company has no such stage, or
 // deleted it.
-func (q *Queries) UpdateTaskStage(ctx context.Context, arg UpdateTaskStageParams) (TaskStage, error) {
+func (q *Queries) UpdateTaskStage(ctx context.Context, arg UpdateTaskStageParams) (OrderStage, error) {
 	row := q.db.QueryRow(ctx, updateTaskStage,
 		arg.Name,
 		arg.Color,
@@ -175,7 +175,7 @@ func (q *Queries) UpdateTaskStage(ctx context.Context, arg UpdateTaskStageParams
 		arg.ID,
 		arg.CompanyID,
 	)
-	var i TaskStage
+	var i OrderStage
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,

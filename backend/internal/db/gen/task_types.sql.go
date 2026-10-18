@@ -10,12 +10,12 @@ import (
 )
 
 const addTaskField = `-- name: AddTaskField :one
-INSERT INTO task_fields (company_id, type_id, label, kind, dropdown_id, required, position)
+INSERT INTO order_fields (company_id, type_id, label, kind, dropdown_id, required, position)
 SELECT t.company_id, t.id, $1::text, $2::text, $3::bigint,
        $4::boolean,
-       COALESCE((SELECT max(f.position) FROM task_fields f
+       COALESCE((SELECT max(f.position) FROM order_fields f
                  WHERE f.type_id = t.id AND f.deleted_at IS NULL), 0) + 1
-FROM task_types t
+FROM order_types t
 WHERE t.id = $5 AND t.company_id = $6 AND t.deleted_at IS NULL
 RETURNING id, company_id, type_id, label, kind, dropdown_id, required, position, created_at, deleted_at
 `
@@ -31,7 +31,7 @@ type AddTaskFieldParams struct {
 
 // Adds a field at the end of the company's type. pgx.ErrNoRows when the
 // company has no such type, or deleted it.
-func (q *Queries) AddTaskField(ctx context.Context, arg AddTaskFieldParams) (TaskField, error) {
+func (q *Queries) AddTaskField(ctx context.Context, arg AddTaskFieldParams) (OrderField, error) {
 	row := q.db.QueryRow(ctx, addTaskField,
 		arg.Label,
 		arg.Kind,
@@ -40,7 +40,7 @@ func (q *Queries) AddTaskField(ctx context.Context, arg AddTaskFieldParams) (Tas
 		arg.TypeID,
 		arg.CompanyID,
 	)
-	var i TaskField
+	var i OrderField
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -57,9 +57,9 @@ func (q *Queries) AddTaskField(ctx context.Context, arg AddTaskFieldParams) (Tas
 }
 
 const createTaskType = `-- name: CreateTaskType :one
-INSERT INTO task_types (company_id, name, position)
+INSERT INTO order_types (company_id, name, position)
 VALUES ($1, $2,
-        COALESCE((SELECT max(t.position) FROM task_types t
+        COALESCE((SELECT max(t.position) FROM order_types t
                   WHERE t.company_id = $1 AND t.deleted_at IS NULL), 0) + 1)
 RETURNING id, company_id, name, position, created_at, deleted_at
 `
@@ -70,9 +70,9 @@ type CreateTaskTypeParams struct {
 }
 
 // A new type goes last among the company's.
-func (q *Queries) CreateTaskType(ctx context.Context, arg CreateTaskTypeParams) (TaskType, error) {
+func (q *Queries) CreateTaskType(ctx context.Context, arg CreateTaskTypeParams) (OrderType, error) {
 	row := q.db.QueryRow(ctx, createTaskType, arg.CompanyID, arg.Name)
-	var i TaskType
+	var i OrderType
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -85,7 +85,7 @@ func (q *Queries) CreateTaskType(ctx context.Context, arg CreateTaskTypeParams) 
 }
 
 const deleteTaskField = `-- name: DeleteTaskField :one
-UPDATE task_fields SET deleted_at = now()
+UPDATE order_fields SET deleted_at = now()
 WHERE id = $1 AND type_id = $2 AND company_id = $3
   AND deleted_at IS NULL
 RETURNING id
@@ -107,7 +107,7 @@ func (q *Queries) DeleteTaskField(ctx context.Context, arg DeleteTaskFieldParams
 }
 
 const deleteTaskType = `-- name: DeleteTaskType :one
-UPDATE task_types SET deleted_at = now()
+UPDATE order_types SET deleted_at = now()
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 RETURNING id
 `
@@ -127,7 +127,7 @@ func (q *Queries) DeleteTaskType(ctx context.Context, arg DeleteTaskTypeParams) 
 }
 
 const deleteTaskTypeFields = `-- name: DeleteTaskTypeFields :exec
-UPDATE task_fields SET deleted_at = now()
+UPDATE order_fields SET deleted_at = now()
 WHERE type_id = $1 AND deleted_at IS NULL
 `
 
@@ -138,7 +138,7 @@ func (q *Queries) DeleteTaskTypeFields(ctx context.Context, typeID int64) error 
 }
 
 const getTaskField = `-- name: GetTaskField :one
-SELECT id, company_id, type_id, label, kind, dropdown_id, required, position, created_at, deleted_at FROM task_fields
+SELECT id, company_id, type_id, label, kind, dropdown_id, required, position, created_at, deleted_at FROM order_fields
 WHERE id = $1 AND type_id = $2 AND company_id = $3
   AND deleted_at IS NULL
 `
@@ -151,9 +151,9 @@ type GetTaskFieldParams struct {
 
 // A field of the company's type; pgx.ErrNoRows when the type has none such,
 // or it is deleted.
-func (q *Queries) GetTaskField(ctx context.Context, arg GetTaskFieldParams) (TaskField, error) {
+func (q *Queries) GetTaskField(ctx context.Context, arg GetTaskFieldParams) (OrderField, error) {
 	row := q.db.QueryRow(ctx, getTaskField, arg.ID, arg.TypeID, arg.CompanyID)
-	var i TaskField
+	var i OrderField
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -170,7 +170,7 @@ func (q *Queries) GetTaskField(ctx context.Context, arg GetTaskFieldParams) (Tas
 }
 
 const getTaskType = `-- name: GetTaskType :one
-SELECT id, company_id, name, position, created_at, deleted_at FROM task_types
+SELECT id, company_id, name, position, created_at, deleted_at FROM order_types
 WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL
 `
 
@@ -180,9 +180,9 @@ type GetTaskTypeParams struct {
 }
 
 // The company's type; pgx.ErrNoRows when it has none such, or deleted it.
-func (q *Queries) GetTaskType(ctx context.Context, arg GetTaskTypeParams) (TaskType, error) {
+func (q *Queries) GetTaskType(ctx context.Context, arg GetTaskTypeParams) (OrderType, error) {
 	row := q.db.QueryRow(ctx, getTaskType, arg.ID, arg.CompanyID)
-	var i TaskType
+	var i OrderType
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -195,22 +195,22 @@ func (q *Queries) GetTaskType(ctx context.Context, arg GetTaskTypeParams) (TaskT
 }
 
 const listTaskFields = `-- name: ListTaskFields :many
-SELECT id, company_id, type_id, label, kind, dropdown_id, required, position, created_at, deleted_at FROM task_fields
+SELECT id, company_id, type_id, label, kind, dropdown_id, required, position, created_at, deleted_at FROM order_fields
 WHERE company_id = $1 AND deleted_at IS NULL
 ORDER BY type_id, position, id
 `
 
 // Every field of the company's types, each type's in its order, without the
 // deleted ones (a deleted type's fields are deleted with it).
-func (q *Queries) ListTaskFields(ctx context.Context, companyID int64) ([]TaskField, error) {
+func (q *Queries) ListTaskFields(ctx context.Context, companyID int64) ([]OrderField, error) {
 	rows, err := q.db.Query(ctx, listTaskFields, companyID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []TaskField{}
+	items := []OrderField{}
 	for rows.Next() {
-		var i TaskField
+		var i OrderField
 		if err := rows.Scan(
 			&i.ID,
 			&i.CompanyID,
@@ -234,21 +234,21 @@ func (q *Queries) ListTaskFields(ctx context.Context, companyID int64) ([]TaskFi
 }
 
 const listTaskTypes = `-- name: ListTaskTypes :many
-SELECT id, company_id, name, position, created_at, deleted_at FROM task_types
+SELECT id, company_id, name, position, created_at, deleted_at FROM order_types
 WHERE company_id = $1 AND deleted_at IS NULL
 ORDER BY position, id
 `
 
 // The company's types in their order, without the deleted.
-func (q *Queries) ListTaskTypes(ctx context.Context, companyID int64) ([]TaskType, error) {
+func (q *Queries) ListTaskTypes(ctx context.Context, companyID int64) ([]OrderType, error) {
 	rows, err := q.db.Query(ctx, listTaskTypes, companyID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []TaskType{}
+	items := []OrderType{}
 	for rows.Next() {
-		var i TaskType
+		var i OrderType
 		if err := rows.Scan(
 			&i.ID,
 			&i.CompanyID,
@@ -268,7 +268,7 @@ func (q *Queries) ListTaskTypes(ctx context.Context, companyID int64) ([]TaskTyp
 }
 
 const orderTaskFields = `-- name: OrderTaskFields :exec
-UPDATE task_fields f SET position = n.ord::int
+UPDATE order_fields f SET position = n.ord::int
 FROM unnest($2::bigint[]) WITH ORDINALITY AS n(id, ord)
 WHERE f.id = n.id AND f.type_id = $1 AND f.deleted_at IS NULL
 `
@@ -286,7 +286,7 @@ func (q *Queries) OrderTaskFields(ctx context.Context, arg OrderTaskFieldsParams
 }
 
 const orderTaskTypes = `-- name: OrderTaskTypes :exec
-UPDATE task_types t SET position = n.ord::int
+UPDATE order_types t SET position = n.ord::int
 FROM unnest($2::bigint[]) WITH ORDINALITY AS n(id, ord)
 WHERE t.id = n.id AND t.company_id = $1 AND t.deleted_at IS NULL
 `
@@ -304,7 +304,7 @@ func (q *Queries) OrderTaskTypes(ctx context.Context, arg OrderTaskTypesParams) 
 }
 
 const renameTaskType = `-- name: RenameTaskType :one
-UPDATE task_types SET name = $1
+UPDATE order_types SET name = $1
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
 RETURNING id, company_id, name, position, created_at, deleted_at
 `
@@ -316,9 +316,9 @@ type RenameTaskTypeParams struct {
 }
 
 // pgx.ErrNoRows when the company has no such type, or deleted it.
-func (q *Queries) RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) (TaskType, error) {
+func (q *Queries) RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) (OrderType, error) {
 	row := q.db.QueryRow(ctx, renameTaskType, arg.Name, arg.ID, arg.CompanyID)
-	var i TaskType
+	var i OrderType
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,
@@ -332,12 +332,12 @@ func (q *Queries) RenameTaskType(ctx context.Context, arg RenameTaskTypeParams) 
 
 const seedTaskSettings = `-- name: SeedTaskSettings :exec
 WITH stages AS (
-    INSERT INTO task_stages (company_id, name, color, is_done, position)
+    INSERT INTO order_stages (company_id, name, color, is_done, position)
     VALUES ($1, 'Yangi', 'blue', false, 1),
            ($1, 'Jarayonda', 'amber', false, 2),
            ($1, 'Bajarildi', 'green', true, 3)
 )
-INSERT INTO task_types (company_id, name, position)
+INSERT INTO order_types (company_id, name, position)
 VALUES ($1, 'Vazifa', 1)
 `
 
@@ -350,7 +350,7 @@ func (q *Queries) SeedTaskSettings(ctx context.Context, companyID int64) error {
 }
 
 const updateTaskField = `-- name: UpdateTaskField :one
-UPDATE task_fields
+UPDATE order_fields
 SET label = COALESCE($1, label),
     required = COALESCE($2, required)
 WHERE id = $3 AND type_id = $4 AND company_id = $5
@@ -369,7 +369,7 @@ type UpdateTaskFieldParams struct {
 // Changes a field's name and required mark; a NULL argument leaves its
 // column as it is. The kind and the dropdown are never changed.
 // pgx.ErrNoRows when the type has no such field, or it is deleted.
-func (q *Queries) UpdateTaskField(ctx context.Context, arg UpdateTaskFieldParams) (TaskField, error) {
+func (q *Queries) UpdateTaskField(ctx context.Context, arg UpdateTaskFieldParams) (OrderField, error) {
 	row := q.db.QueryRow(ctx, updateTaskField,
 		arg.Label,
 		arg.Required,
@@ -377,7 +377,7 @@ func (q *Queries) UpdateTaskField(ctx context.Context, arg UpdateTaskFieldParams
 		arg.TypeID,
 		arg.CompanyID,
 	)
-	var i TaskField
+	var i OrderField
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyID,

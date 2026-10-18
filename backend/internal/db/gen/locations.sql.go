@@ -28,7 +28,7 @@ func (q *Queries) AddMemberLocation(ctx context.Context, arg AddMemberLocationPa
 }
 
 const countLocationTasks = `-- name: CountLocationTasks :one
-SELECT count(*) FROM tasks WHERE location_id = $1 AND deleted_at IS NULL
+SELECT count(*) FROM orders WHERE location_id = $1 AND deleted_at IS NULL
 `
 
 // How many tasks stand in the location: one in use is not deleted. Deleted
@@ -176,7 +176,7 @@ func (q *Queries) ListCompanyMemberLocations(ctx context.Context, companyID int6
 
 const listLocations = `-- name: ListLocations :many
 SELECT l.id, l.name, l.created_at,
-       (SELECT count(*) FROM tasks t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS tasks_count
+       (SELECT count(*) FROM orders t WHERE t.location_id = l.id AND t.deleted_at IS NULL) AS tasks_count
 FROM locations l
 WHERE l.company_id = $1 AND l.deleted_at IS NULL
 ORDER BY l.id

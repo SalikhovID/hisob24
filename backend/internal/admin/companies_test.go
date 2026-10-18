@@ -193,8 +193,8 @@ func (api testAPI) addTask(t *testing.T, companyID string, locationID any) {
 	_, err := api.pool.Exec(t.Context(), `WITH c AS (
 		INSERT INTO customers (company_id, type_id, phone, created_by)
 		SELECT $1, id, '998901234567', '998901234567' FROM customer_types WHERE company_id = $1 LIMIT 1 RETURNING id)
-		INSERT INTO tasks (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
-		SELECT $1, (SELECT id FROM task_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM task_stages WHERE company_id = $1 LIMIT 1),
+		INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by)
+		SELECT $1, (SELECT id FROM order_types WHERE company_id = $1 LIMIT 1), (SELECT id FROM order_stages WHERE company_id = $1 LIMIT 1),
 		       c.id, $2, 'Qo''ng''iroq', CURRENT_DATE, '998901234567' FROM c`, companyID, locationID)
 	require.NoError(t, err)
 }
@@ -245,7 +245,7 @@ func TestLocations(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, rec.Code, "a task stands in it")
 	assert.JSONEq(t, `{"error":"location_in_use","message":"Bu lokatsiyada 1 ta vazifa bor"}`, rec.Body.String())
 	assert.Equal(t, []string{"Asosiy (0)", "Chilonzor filiali (1)"}, api.locationsOf(t, cookie, id), "the count on the list")
-	_, err := api.pool.Exec(t.Context(), "UPDATE tasks SET deleted_at = now()")
+	_, err := api.pool.Exec(t.Context(), "UPDATE orders SET deleted_at = now()")
 	require.NoError(t, err)
 	rec = api.do(t, http.MethodDelete, one, "", cookie)
 	assert.Equal(t, http.StatusNoContent, rec.Code, "the deleted task does not hold it: %s", rec.Body.String())

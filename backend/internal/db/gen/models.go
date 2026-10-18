@@ -192,6 +192,75 @@ type MemberLocation struct {
 	LocationID int64
 }
 
+type Order struct {
+	ID            int64
+	CompanyID     int64
+	TypeID        int64
+	StageID       int64
+	CustomerID    int64
+	Title         string
+	Deadline      time.Time
+	AssigneePhone *string
+	AssigneeName  *string
+	CreatedBy     string
+	CreatedByName *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	DeletedAt     *time.Time
+	LocationID    int64
+}
+
+type OrderField struct {
+	ID         int64
+	CompanyID  int64
+	TypeID     int64
+	Label      string
+	Kind       string
+	DropdownID *int64
+	Required   bool
+	Position   int32
+	CreatedAt  time.Time
+	DeletedAt  *time.Time
+}
+
+type OrderHistory struct {
+	ID         int64
+	OrderID    int64
+	Action     string
+	ActorPhone string
+	ActorName  *string
+	Changes    []byte
+	CreatedAt  time.Time
+}
+
+type OrderStage struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	Color     string
+	IsDone    bool
+	Position  int32
+	CreatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type OrderType struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	Position  int32
+	CreatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type OrderValue struct {
+	OrderID   int64
+	FieldID   int64
+	OptionID  *int64
+	TextValue *string
+	IntValue  *int64
+}
+
 type Product struct {
 	ID            int64
 	CompanyID     int64
@@ -258,75 +327,6 @@ type Supplier struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
-}
-
-type Task struct {
-	ID            int64
-	CompanyID     int64
-	TypeID        int64
-	StageID       int64
-	CustomerID    int64
-	Title         string
-	Deadline      time.Time
-	AssigneePhone *string
-	AssigneeName  *string
-	CreatedBy     string
-	CreatedByName *string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	DeletedAt     *time.Time
-	LocationID    int64
-}
-
-type TaskField struct {
-	ID         int64
-	CompanyID  int64
-	TypeID     int64
-	Label      string
-	Kind       string
-	DropdownID *int64
-	Required   bool
-	Position   int32
-	CreatedAt  time.Time
-	DeletedAt  *time.Time
-}
-
-type TaskHistory struct {
-	ID         int64
-	TaskID     int64
-	Action     string
-	ActorPhone string
-	ActorName  *string
-	Changes    []byte
-	CreatedAt  time.Time
-}
-
-type TaskStage struct {
-	ID        int64
-	CompanyID int64
-	Name      string
-	Color     string
-	IsDone    bool
-	Position  int32
-	CreatedAt time.Time
-	DeletedAt *time.Time
-}
-
-type TaskType struct {
-	ID        int64
-	CompanyID int64
-	Name      string
-	Position  int32
-	CreatedAt time.Time
-	DeletedAt *time.Time
-}
-
-type TaskValue struct {
-	TaskID    int64
-	FieldID   int64
-	OptionID  *int64
-	TextValue *string
-	IntValue  *int64
 }
 
 type TelegramContact struct {

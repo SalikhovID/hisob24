@@ -11,7 +11,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-func createTaskType(t *testing.T, q *gen.Queries, companyID int64, name string) gen.TaskType {
+func createTaskType(t *testing.T, q *gen.Queries, companyID int64, name string) gen.OrderType {
 	t.Helper()
 	tt, err := q.CreateTaskType(t.Context(), gen.CreateTaskTypeParams{CompanyID: companyID, Name: name})
 	require.NoError(t, err)
@@ -45,8 +45,8 @@ func TestListTaskTypes(t *testing.T) {
 	shikoyat := createTaskType(t, q, olma.ID, "Shikoyat")
 	eski := createTaskType(t, q, olma.ID, "Eski")
 	createTaskType(t, q, nok.ID, "Begona")
-	mustExec(t, pool, "UPDATE task_types SET position = 0 WHERE id = $1", shikoyat.ID)
-	mustExec(t, pool, "UPDATE task_types SET deleted_at = now() WHERE id = $1", eski.ID)
+	mustExec(t, pool, "UPDATE order_types SET position = 0 WHERE id = $1", shikoyat.ID)
+	mustExec(t, pool, "UPDATE order_types SET deleted_at = now() WHERE id = $1", eski.ID)
 
 	list, err := q.ListTaskTypes(t.Context(), olma.ID)
 
@@ -68,7 +68,7 @@ func TestGetTaskType(t *testing.T) {
 
 	_, err = q.GetTaskType(ctx, gen.GetTaskTypeParams{ID: buyurtma.ID, CompanyID: nok.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's type")
-	mustExec(t, pool, "UPDATE task_types SET deleted_at = now() WHERE id = $1", buyurtma.ID)
+	mustExec(t, pool, "UPDATE order_types SET deleted_at = now() WHERE id = $1", buyurtma.ID)
 	_, err = q.GetTaskType(ctx, gen.GetTaskTypeParams{ID: buyurtma.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted type")
 }
@@ -106,7 +106,7 @@ func TestDeleteTaskType(t *testing.T) {
 	assert.Equal(t, buyurtma.ID, id)
 
 	var hidden bool
-	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM task_types WHERE id = $1", buyurtma.ID).Scan(&hidden))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM order_types WHERE id = $1", buyurtma.ID).Scan(&hidden))
 	assert.True(t, hidden, "the row stays, marked deleted")
 	_, err = q.DeleteTaskType(ctx, gen.DeleteTaskTypeParams{ID: buyurtma.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
@@ -145,7 +145,7 @@ func TestOrderTaskTypes(t *testing.T) {
 
 // addTaskField adds a field to the company's task type; a choice kind takes
 // its options from the dropdown.
-func addTaskField(t *testing.T, q *gen.Queries, companyID, typeID int64, label, kind string, dropdownID *int64) gen.TaskField {
+func addTaskField(t *testing.T, q *gen.Queries, companyID, typeID int64, label, kind string, dropdownID *int64) gen.OrderField {
 	t.Helper()
 	f, err := q.AddTaskField(t.Context(), gen.AddTaskFieldParams{
 		CompanyID: companyID, TypeID: typeID, Label: label, Kind: kind, DropdownID: dropdownID,
@@ -196,8 +196,8 @@ func TestListTaskFields(t *testing.T) {
 	eski := addTaskField(t, q, olma.ID, buyurtma.ID, "Eski", "string", nil)
 	sabab := addTaskField(t, q, olma.ID, shikoyat.ID, "Sabab", "string", nil)
 	addTaskField(t, q, nok.ID, createTaskType(t, q, nok.ID, "Begona").ID, "Izoh", "string", nil)
-	mustExec(t, pool, "UPDATE task_fields SET position = 0 WHERE id = $1", summa.ID)
-	mustExec(t, pool, "UPDATE task_fields SET deleted_at = now() WHERE id = $1", eski.ID)
+	mustExec(t, pool, "UPDATE order_fields SET position = 0 WHERE id = $1", summa.ID)
+	mustExec(t, pool, "UPDATE order_fields SET deleted_at = now() WHERE id = $1", eski.ID)
 
 	list, err := q.ListTaskFields(t.Context(), olma.ID)
 
@@ -231,7 +231,7 @@ func TestGetTaskField(t *testing.T) {
 	elsewhere.TypeID = shikoyat.ID
 	_, err = q.GetTaskField(ctx, elsewhere)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a field of another type")
-	mustExec(t, pool, "UPDATE task_fields SET deleted_at = now() WHERE id = $1", izoh.ID)
+	mustExec(t, pool, "UPDATE order_fields SET deleted_at = now() WHERE id = $1", izoh.ID)
 	_, err = q.GetTaskField(ctx, its)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted field")
 }
@@ -269,7 +269,7 @@ func TestUpdateTaskField(t *testing.T) {
 	begona.CompanyID = nok.ID
 	_, err = q.UpdateTaskField(ctx, begona)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's field")
-	mustExec(t, pool, "UPDATE task_fields SET deleted_at = now() WHERE id = $1", izoh.ID)
+	mustExec(t, pool, "UPDATE order_fields SET deleted_at = now() WHERE id = $1", izoh.ID)
 	_, err = q.UpdateTaskField(ctx, renamed)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted field")
 }
@@ -292,7 +292,7 @@ func TestDeleteTaskField(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, izoh.ID, id)
 	var hidden bool
-	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM task_fields WHERE id = $1", izoh.ID).Scan(&hidden))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM order_fields WHERE id = $1", izoh.ID).Scan(&hidden))
 	assert.True(t, hidden, "the row stays, marked deleted")
 	_, err = q.DeleteTaskField(ctx, its)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
@@ -315,7 +315,7 @@ func TestDeleteTaskTypeFields(t *testing.T) {
 	require.Len(t, left, 1, "the type's fields are deleted, the other type's are not")
 	assert.Equal(t, sabab.ID, left[0].ID)
 	var rows int
-	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM task_fields WHERE type_id = $1", buyurtma.ID).Scan(&rows))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM order_fields WHERE type_id = $1", buyurtma.ID).Scan(&rows))
 	assert.Equal(t, 2, rows, "the rows stay")
 }
 

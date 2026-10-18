@@ -10,7 +10,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
 
-func createStage(t *testing.T, q *gen.Queries, companyID int64, name, color string) gen.TaskStage {
+func createStage(t *testing.T, q *gen.Queries, companyID int64, name, color string) gen.OrderStage {
 	t.Helper()
 	st, err := q.CreateTaskStage(t.Context(), gen.CreateTaskStageParams{CompanyID: companyID, Name: name, Color: color})
 	require.NoError(t, err)
@@ -49,8 +49,8 @@ func TestListTaskStages(t *testing.T) {
 	bajarildi := createStage(t, q, olma.ID, "Bajarildi", "green")
 	eski := createStage(t, q, olma.ID, "Eski", "slate")
 	createStage(t, q, nok.ID, "Begona", "blue")
-	mustExec(t, pool, "UPDATE task_stages SET position = 0 WHERE id = $1", bajarildi.ID)
-	mustExec(t, pool, "UPDATE task_stages SET deleted_at = now() WHERE id = $1", eski.ID)
+	mustExec(t, pool, "UPDATE order_stages SET position = 0 WHERE id = $1", bajarildi.ID)
+	mustExec(t, pool, "UPDATE order_stages SET deleted_at = now() WHERE id = $1", eski.ID)
 
 	list, err := q.ListTaskStages(t.Context(), olma.ID)
 
@@ -72,7 +72,7 @@ func TestGetTaskStage(t *testing.T) {
 
 	_, err = q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: yangi.ID, CompanyID: nok.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's stage")
-	mustExec(t, pool, "UPDATE task_stages SET deleted_at = now() WHERE id = $1", yangi.ID)
+	mustExec(t, pool, "UPDATE order_stages SET deleted_at = now() WHERE id = $1", yangi.ID)
 	_, err = q.GetTaskStage(ctx, gen.GetTaskStageParams{ID: yangi.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted stage")
 }
@@ -120,7 +120,7 @@ func TestUpdateTaskStage(t *testing.T) {
 	begona.CompanyID = nok.ID
 	_, err = q.UpdateTaskStage(ctx, begona)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "another company's stage")
-	mustExec(t, pool, "UPDATE task_stages SET deleted_at = now() WHERE id = $1", yangi.ID)
+	mustExec(t, pool, "UPDATE order_stages SET deleted_at = now() WHERE id = $1", yangi.ID)
 	_, err = q.UpdateTaskStage(ctx, renamed)
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "a deleted stage")
 }
@@ -139,7 +139,7 @@ func TestDeleteTaskStage(t *testing.T) {
 	assert.Equal(t, yangi.ID, id)
 
 	var hidden bool
-	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM task_stages WHERE id = $1", yangi.ID).Scan(&hidden))
+	require.NoError(t, pool.QueryRow(ctx, "SELECT deleted_at IS NOT NULL FROM order_stages WHERE id = $1", yangi.ID).Scan(&hidden))
 	assert.True(t, hidden, "the row stays, marked deleted")
 	_, err = q.DeleteTaskStage(ctx, gen.DeleteTaskStageParams{ID: yangi.ID, CompanyID: olma.ID})
 	assert.ErrorIs(t, err, pgx.ErrNoRows, "deleted already")
