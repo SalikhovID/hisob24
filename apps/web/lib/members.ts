@@ -19,7 +19,7 @@ export interface MemberOption {
 
 // assigneeOptions is who an order in the location may be assigned to: the
 // members who work there. The assignee an order has stays offered as long as
-// the edit keeps them (logic/tasks.md, 4.2): one who works elsewhere now,
+// the edit keeps them (logic/orders.md, 4.2): one who works elsewhere now,
 // and one who left the company, each said so.
 export function assigneeOptions(members: Member[], locationId: number, order?: Order): MemberOption[] {
   const options = members.filter((member) => worksIn(member, locationId)).map((member) => ({ value: member.phone, label: nameOf(member) }))

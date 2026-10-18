@@ -60,10 +60,10 @@ User app prototipning 2026-10-16 dagi ikkinchi versiyasi (`1792163353`) bo'yicha
 | Mijoz qo'shish (varaq; keng ekranda o'rtadagi dialog) | [21-customer-sheet-phone](screens-v2/21-customer-sheet-phone.png) | [21-customer-dialog-wide](screens-v2/21-customer-dialog-wide.png) |
 | Mijoz sahifasi | [22-customer-page-phone](screens-v2/22-customer-page-phone.png) | [22-customer-page-desktop](screens-v2/22-customer-page-desktop.png) |
 | O'chirish savoli | [23-delete-alert-phone](screens-v2/23-delete-alert-phone.png) | — |
-| Vazifalar: kanban | [30-tasks-kanban-phone](screens-v2/30-tasks-kanban-phone.png) | [30-tasks-kanban-desktop](screens-v2/30-tasks-kanban-desktop.png) |
+| Buyurtmalar: kanban | [30-tasks-kanban-phone](screens-v2/30-tasks-kanban-phone.png) | [30-tasks-kanban-desktop](screens-v2/30-tasks-kanban-desktop.png) |
 | Bosqich tanlash (action sheet) | [31-stage-action-sheet-phone](screens-v2/31-stage-action-sheet-phone.png) | — |
-| Vazifalar: ro'yxat | [32-tasks-list-phone](screens-v2/32-tasks-list-phone.png) | [32-tasks-list-desktop](screens-v2/32-tasks-list-desktop.png) |
-| Vazifa sahifasi | [33-task-page-phone](screens-v2/33-task-page-phone.png) | [33-task-page-desktop](screens-v2/33-task-page-desktop.png) |
+| Buyurtmalar: ro'yxat | [32-tasks-list-phone](screens-v2/32-tasks-list-phone.png) | [32-tasks-list-desktop](screens-v2/32-tasks-list-desktop.png) |
+| Buyurtma sahifasi | [33-task-page-phone](screens-v2/33-task-page-phone.png) | [33-task-page-desktop](screens-v2/33-task-page-desktop.png) |
 | Mahsulotlar | [40-products-phone](screens-v2/40-products-phone.png) | [40-products-desktop](screens-v2/40-products-desktop.png) |
 | Mahsulot sahifasi | [41-product-page-phone](screens-v2/41-product-page-phone.png) | [41-product-page-desktop](screens-v2/41-product-page-desktop.png) |
 | Ombor (`/warehouse`) | [50-warehouse-phone](screens-v2/50-warehouse-phone.png) | [50-warehouse-desktop](screens-v2/50-warehouse-desktop.png) |
@@ -92,11 +92,11 @@ Hisob24 kompaniyalar uchun hisob tizimi (multi-tenant SaaS). Har kompaniya o'z m
 | Bo'lim | Nima qiladi |
 |---|---|
 | Mijozlar | Mijozlar bazasi: telefon, turi (masalan Jismoniy, Yuridik) va shu turning maydonlari. |
-| Vazifalar | Mijozga bog'langan ishlar: kanban (bosqichlar bo'yicha) yoki ro'yxat, muddat, mas'ul xodim. |
+| Buyurtmalar | Mijozga bog'langan ishlar: kanban (bosqichlar bo'yicha) yoki ro'yxat, muddat, mas'ul xodim. |
 | Mahsulotlar | Mahsulotlar (birlik, narx, artikul, qoldiq) va xizmatlar. |
 | Ombor | Ta'minotchidan xaridlar, lokatsiya bo'yicha qoldiq, ta'minotchiga to'lovlar va qarz. |
 | Xodimlar | Kompaniya a'zolari, ularning roli va ishlaydigan lokatsiyalari. |
-| Sozlamalar | Mijoz va vazifa turlari, ularning maydonlari, dropdownlar, bosqichlar, rollar. |
+| Sozlamalar | Mijoz va buyurtma turlari, ularning maydonlari, dropdownlar, bosqichlar, rollar. |
 
 Tizim qismlari:
 
@@ -143,7 +143,7 @@ Ruxsat «bo'lim + amal» ko'rinishida beriladi. Rol formasida u shu jadval shakl
 | Bo'lim | Ko'rish | Qo'shish | Tahrirlash | O'chirish | Tarix |
 |---|---|---|---|---|---|
 | Mijozlar | ro'yxat, mijoz sahifasi, telefon takliflari | mijoz qo'shish | tahrirlash | o'chirish | o'zgarishlar tarixi |
-| Vazifalar | ro'yxat, kanban, vazifa sahifasi | vazifa qo'shish | tahrirlash, bosqichni o'zgartirish (sudrash ham) | o'chirish | o'zgarishlar tarixi |
+| Buyurtmalar | ro'yxat, kanban, buyurtma sahifasi | buyurtma qo'shish | tahrirlash, bosqichni o'zgartirish (sudrash ham) | o'chirish | o'zgarishlar tarixi |
 | Mahsulotlar | mahsulotlar va xizmatlar, mahsulot sahifasi | qo'shish | tahrirlash, nofaol qilish | o'chirish | — |
 | Ta'minotchilar | ro'yxat, ta'minotchi sahifasi | qo'shish | tahrirlash, nofaol qilish | o'chirish | — |
 | Xaridlar | xaridlar, xarid sahifasi, ta'minotchi balansi va to'lovlari | xarid va to'lov qo'shish | xarid va to'lovni tahrirlash | xarid va to'lovni o'chirish | — |
@@ -159,8 +159,8 @@ Qoida: biror amal belgilansa, shu bo'limning «Ko'rish»i ham belgilanadi. «Ko'
 | Kirish, Bosh sahifa, kompaniyani almashtirish, menyu tartibi | ✓ | ✓ | ✓ |
 | Mijozlar: ko'rish, qo'shish, tahrirlash, o'chirish | ✓ | ✓ | rol bo'yicha |
 | Mijoz tarixini ko'rish | ✓ | ✗ | rol bo'yicha |
-| Vazifalar: ko'rish, qo'shish, tahrirlash, ko'chirish, o'chirish | ✓ | ✓ | rol bo'yicha |
-| Vazifa tarixini ko'rish | ✓ | ✗ | rol bo'yicha |
+| Buyurtmalar: ko'rish, qo'shish, tahrirlash, ko'chirish, o'chirish | ✓ | ✓ | rol bo'yicha |
+| Buyurtma tarixini ko'rish | ✓ | ✗ | rol bo'yicha |
 | Mahsulotlar, Ta'minotchilar, Xaridlar (hamma amal) | ✓ | ✓ | rol bo'yicha |
 | Xodimlar | ✓ | ✗ | rol bo'yicha |
 | Sozlamalar (turlar, maydonlar, dropdownlar, bosqichlar) | ✓ | ✗ | rol bo'yicha |
@@ -174,13 +174,13 @@ Qoida: biror amal belgilansa, shu bo'limning «Ko'rish»i ham belgilanadi. «Ko'
 - **Qo'lda ochilgan manzil.** Ruxsatsiz bo'limga havola bilan kirilsa, bosh sahifaga qaytariladi.
 - **Sessiya ichidagi o'zgarish.** Rol sessiya ochiq paytda o'zgarsa, keyingi rad etilgan so'rovdan keyin menyu yangilanadi.
 - **Ikki bo'limga tegadigan joylar:**
-  - «Vazifa qo'shish» uchun Vazifalar «Qo'shish» va Mijozlar «Ko'rish» kerak. Formadagi «yangi mijoz» qismi Mijozlar «Qo'shish» bilan chiqadi.
+  - «Buyurtma qo'shish» uchun Buyurtmalar «Qo'shish» va Mijozlar «Ko'rish» kerak. Formadagi «yangi mijoz» qismi Mijozlar «Qo'shish» bilan chiqadi.
   - «Xarid qo'shish» uchun Xaridlar «Qo'shish», Ta'minotchilar «Ko'rish» va Mahsulotlar «Ko'rish» kerak.
-  - Mijoz sahifasidagi «Vazifalar» bo'limi Vazifalar «Ko'rish» bilan chiqadi.
+  - Mijoz sahifasidagi «Buyurtmalar» bo'limi Buyurtmalar «Ko'rish» bilan chiqadi.
   - Ta'minotchi sahifasidagi balans, xaridlar va to'lovlar, mahsulot sahifasidagi xaridlar Xaridlar «Ko'rish» bilan chiqadi.
 - **Faqat egasiga:** Sozlamalardagi «Rollar» tabi, xodim qatoridagi rol va lokatsiya tugmalari.
 
-Rolli xodim: «Sotuvchi» roli bilan faqat Bosh sahifa, Mijozlar va Vazifalar ko'rinadi.
+Rolli xodim: «Sotuvchi» roli bilan faqat Bosh sahifa, Mijozlar va Buyurtmalar ko'rinadi.
 
 <table>
 <tr><th>Telefon</th><th>Desktop</th></tr>
@@ -213,7 +213,7 @@ Balandligi 56 px, pastida chiziq.
 | Nom va profil orasida | lokatsiya tanlovchisi (o'ngga yaqin) | — |
 | O'ngda | mavzu tugmasi (oy / quyosh), profil tugmasi | mavzu tugmasi, ism va profil tugmasi |
 
-- **Lokatsiya tanlovchisi** faqat a'zoga 2 va undan ko'p lokatsiya ruxsat etilganda chiqadi. Tanlov vazifalar, xaridlar va mahsulotlardagi «Qoldiq» ustuniga ta'sir qiladi.
+- **Lokatsiya tanlovchisi** faqat a'zoga 2 va undan ko'p lokatsiya ruxsat etilganda chiqadi. Tanlov buyurtmalar, xaridlar va mahsulotlardagi «Qoldiq» ustuniga ta'sir qiladi.
 - **Mavzu tugmasi** Telegram ichida yo'q: u yerda rangni chat beradi.
 - **Profil menyusi** tarkibi:
   - ism va telefon;
@@ -256,7 +256,7 @@ Kimda nechta tugma: egasida 7 bo'lim, demak 4 ta va «Yana» (Ombor, Xodimlar, S
 
 ### 3.5. Menyu tartibi
 
-Standart tartib: Bosh sahifa, Mijozlar, Vazifalar, Mahsulotlar, Ombor, Xodimlar, Sozlamalar. Har a'zo uni o'zi o'zgartiradi:
+Standart tartib: Bosh sahifa, Mijozlar, Buyurtmalar, Mahsulotlar, Ombor, Xodimlar, Sozlamalar. Har a'zo uni o'zi o'zgartiradi:
 
 - «Menyuni sozlash» dialogi «Yana» varag'i pastida va profil menyusida ochiladi.
 - Bo'limlar sudrab tartiblanadi. Tugmalar: «Saqlash» va «Standart holat».
@@ -293,7 +293,7 @@ Qobiq ichidagi sahifalar menyu tartibida. Kirish ekranlari (`/login`, `/select-c
 flowchart LR
   shell(["Ilova qobig'i"]) --> home["/<br/>Bosh sahifa"]
   shell --> customers["/customers<br/>Mijozlar"] --> customer["/customers/[id]<br/>Mijoz"]
-  shell --> tasks["/tasks<br/>Vazifalar"] --> task["/tasks/[id]<br/>Vazifa"]
+  shell --> tasks["/orders<br/>Buyurtmalar"] --> task["/orders/[id]<br/>Buyurtma"]
   shell --> catalog(["Mahsulotlar"])
   catalog --> products["/products<br/>Mahsulotlar"] --> product["/products/[id]<br/>Mahsulot"]
   catalog --> services["/services<br/>Xizmatlar"]
@@ -306,7 +306,7 @@ flowchart LR
   shell --> employees["/employees<br/>Xodimlar"]
   shell --> settings["/settings<br/>Sozlamalar: 4 tab"]
   settings --> ctype["/settings/customer-types/[id]<br/>Mijoz turi"]
-  settings --> ttype["/settings/task-types/[id]<br/>Vazifa turi"]
+  settings --> ttype["/settings/order-types/[id]<br/>Buyurtma turi"]
   settings --> ddown["/settings/dropdowns/[id]<br/>Dropdown"]
   settings --> role["/settings/roles/new<br/>/settings/roles/[id]<br/>Rol"]
 ```
@@ -319,8 +319,8 @@ flowchart LR
 | `/` | Bosh sahifa | hamma a'zo | sahifa |
 | `/customers` | Mijozlar | Mijozlar «Ko'rish» | ro'yxat |
 | `/customers/[id]` | Mijoz | Mijozlar «Ko'rish» | yozuv sahifasi |
-| `/tasks` | Vazifalar: kanban yoki ro'yxat (`?view=list`) | Vazifalar «Ko'rish» | ro'yxat |
-| `/tasks/[id]` | Vazifa | Vazifalar «Ko'rish» | yozuv sahifasi |
+| `/orders` | Buyurtmalar: kanban yoki ro'yxat (`?view=list`) | Buyurtmalar «Ko'rish» | ro'yxat |
+| `/orders/[id]` | Buyurtma | Buyurtmalar «Ko'rish» | yozuv sahifasi |
 | `/products` | Mahsulotlar | Mahsulotlar «Ko'rish» | ro'yxat (tab) |
 | `/products/[id]` | Mahsulot | Mahsulotlar «Ko'rish» | yozuv sahifasi |
 | `/services` | Xizmatlar | Mahsulotlar «Ko'rish» | ro'yxat (tab) |
@@ -331,9 +331,9 @@ flowchart LR
 | `/suppliers` | Ta'minotchilar | Ta'minotchilar «Ko'rish» | ro'yxat (tab) |
 | `/suppliers/[id]` | Ta'minotchi | Ta'minotchilar «Ko'rish»; balans va to'lovlar Xaridlar «Ko'rish» bilan | yozuv sahifasi |
 | `/employees` | Xodimlar | Xodimlar «Ko'rish» | ro'yxat |
-| `/settings` | Sozlamalar: Mijozlar, Vazifalar, Dropdownlar, Rollar tablari (`?tab=`) | Sozlamalar «Ko'rish»; «Rollar» faqat egasi | tablar |
+| `/settings` | Sozlamalar: Mijozlar, Buyurtmalar, Dropdownlar, Rollar tablari (`?tab=`) | Sozlamalar «Ko'rish»; «Rollar» faqat egasi | tablar |
 | `/settings/customer-types/[id]` | Mijoz turi va uning maydonlari | Sozlamalar «Ko'rish» | yozuv sahifasi |
-| `/settings/task-types/[id]` | Vazifa turi va uning maydonlari | Sozlamalar «Ko'rish» | yozuv sahifasi |
+| `/settings/order-types/[id]` | Buyurtma turi va uning maydonlari | Sozlamalar «Ko'rish» | yozuv sahifasi |
 | `/settings/dropdowns/[id]` | Dropdown va uning variantlari | Sozlamalar «Ko'rish» | yozuv sahifasi |
 | `/settings/roles/new`, `/settings/roles/[id]` | Rol: nom va ruxsat matritsasi | faqat egasi | forma sahifasi |
 
@@ -342,11 +342,11 @@ Filtrlar, tab va sahifa raqami manzilda turadi (masalan `/customers?type=3&searc
 **Dialoglar** (alohida sahifa emas):
 
 - Mijoz: qo'shish, tahrirlash.
-- Vazifa: qo'shish, tahrirlash.
+- Buyurtma: qo'shish, tahrirlash.
 - Mahsulot: qo'shish, tahrirlash. Xizmat: qo'shish, tahrirlash.
 - Ta'minotchi: qo'shish, tahrirlash. To'lov: qo'shish, tahrirlash.
 - Xodim: qo'shish, ismni o'zgartirish, rolni o'zgartirish, lokatsiyalarni o'zgartirish.
-- Sozlamalar: tur, vazifa turi, dropdown qo'shish va nomini o'zgartirish; maydon qo'shish va tahrirlash; bosqich qo'shish va tahrirlash.
+- Sozlamalar: tur, buyurtma turi, dropdown qo'shish va nomini o'zgartirish; maydon qo'shish va tahrirlash; bosqich qo'shish va tahrirlash.
 - Qobiq: «Menyuni sozlash», «Yana» varag'i.
 - O'chirish tasdiqlari («…ni o'chirasizmi?»).
 
@@ -412,25 +412,25 @@ Mini App'da login formasi ko'rinmaydi: kirish avtomatik. Telegram'da «Chiqish»
 4. «Qo'shish» bosiladi. Xato bo'lsa, maydon ostida matn chiqadi. Takror telefon yoki takrorlanmas qiymat bo'lsa, dialog ichida rad javobi va «Mijozni ochish» havolasi chiqadi.
 5. Saqlangach dialog yopiladi, toast «Mijoz qo'shildi», yangi mijoz ro'yxat boshida.
 
-### 5.5. Vazifa qo'shish va kanban'da ko'chirish
+### 5.5. Buyurtma qo'shish va kanban'da ko'chirish
 
 ```mermaid
 flowchart TD
-  A["Vazifalar: «Vazifa qo'shish» yoki ustundagi «+»"] --> B["Dialog: vazifa turi"]
+  A["Buyurtmalar: «Buyurtma qo'shish» yoki ustundagi «+»"] --> B["Dialog: buyurtma turi"]
   B --> C["Mijoz: telefon yoziladi"]
   C -->|"3+ raqam"| D{"Takliflarda bormi?"}
   D -->|"ha, tanlandi"| E["«Mavjud mijoz» kartasi, mijoz maydonlari qulflangan"]
   D -->|yo'q| F["Yangi mijoz: turi va maydonlari"]
-  E --> G["Vazifa: nomi, muddat, bosqich, mas'ul, turning maydonlari"]
+  E --> G["Buyurtma: nomi, muddat, bosqich, mas'ul, turning maydonlari"]
   F --> G
   G -->|"«Qo'shish»"| H{"Tekshiruv"}
   H -->|xato| I["Maydon ostida xato yoki rad javobi"]
   H -->|"telefon boshqa mijozniki"| J["«Shu mijozni biriktirish» yoki «Mijozni ochish»"]
   J --> E
-  H -->|ok| K["Toast «Vazifa qo'shildi»; vazifa joriy lokatsiyada"]
+  H -->|ok| K["Toast «Buyurtma qo'shildi»; buyurtma joriy lokatsiyada"]
 ```
 
-- Lokatsiya formada so'ralmaydi: vazifa topbar'dagi joriy lokatsiyaga tushadi va keyin o'zgarmaydi.
+- Lokatsiya formada so'ralmaydi: buyurtma topbar'dagi joriy lokatsiyaga tushadi va keyin o'zgarmaydi.
 - «Mas'ul» ro'yxatida faqat shu lokatsiyada ishlaydigan a'zolar bor.
 - Kanban'da karta boshqa ustunga sudrab tashlanadi (sichqoncha yoki barmoq) yoki kartadagi «⋮» bosqich menyusidan ko'chiriladi. Rad etilsa, karta joyiga qaytadi va sababi toast'da chiqadi.
 
@@ -473,8 +473,8 @@ Xarid formasidagi «To'langan» summasi ham to'lov bo'lib yoziladi. U ta'minotch
 
 1. Xodimlar → xodim qatoridagi pin ikonkasi → «Lokatsiyalarni o'zgartirish».
 2. «Barcha lokatsiyalar» belgisi yoki aniq lokatsiyalar. Kamida bittasi tanlanishi shart.
-3. Xodim boshqa lokatsiyalarda vazifalarga mas'ul bo'lsa, dialog ogohlantiradi: «Boshqa lokatsiyalarda N ta vazifaga mas'ul». Saqlash baribir mumkin.
-4. Toast «Lokatsiyalar o'zgartirildi». Xodim endi faqat shu lokatsiyalarning vazifa va xaridlarini ko'radi.
+3. Xodim boshqa lokatsiyalarda buyurtmalarga mas'ul bo'lsa, dialog ogohlantiradi: «Boshqa lokatsiyalarda N ta buyurtmaga mas'ul». Saqlash baribir mumkin.
+4. Toast «Lokatsiyalar o'zgartirildi». Xodim endi faqat shu lokatsiyalarning buyurtma va xaridlarini ko'radi.
 
 ### 5.10. Menyu tartibini sozlash
 
@@ -495,7 +495,7 @@ Tepadan pastga:
 
 Kartochka tuzilishi: tepada nom (va ikkinchi qator); o'ngda asosiy raqam (masalan summa); ostida belgilar va «Qo'shilgan dd.mm.yyyy»; keyin «nom — qiymat» qatorlari. Bo'sh qiymat kartada joy olmaydi, jadvalda xira «—» bo'ladi. Havolali kartaning istalgan joyi bosiladi.
 
-Har a'zo «Ustunlar» menyusida jadval ustunlarini o'ziga yashiradi (Mijozlar va Vazifalar ro'yxatida). Tanlov brauzerda saqlanadi, birinchi ustun yashirilmaydi.
+Har a'zo «Ustunlar» menyusida jadval ustunlarini o'ziga yashiradi (Mijozlar va Buyurtmalar ro'yxatida). Tanlov brauzerda saqlanadi, birinchi ustun yashirilmaydi.
 
 ### 6.2. Yozuv sahifasi
 
@@ -505,8 +505,8 @@ Tepadan pastga:
 2. Sarlavha: kerak joyda avatar bilan; ostida xira izoh («Jismoniy · +998 91 111 22 33»).
 3. Amallar: asosiy «Tahrirlash» (to'liq rangli), «O'chirish» va boshqalari konturli. Telefonda ular sarlavha ostida.
 4. «Ma'lumot» bo'limi: bitta ramkada «nom — qiymat» qatorlari. Bo'sh qiymat «—».
-5. Bog'liq ro'yxatlar: mijozning vazifalari, mahsulotning xaridlari va h.k.
-6. «Tarix» (Mijoz va Vazifada, ruxsat bo'lsa): kim, qachon, nima o'zgardi (eski → yangi).
+5. Bog'liq ro'yxatlar: mijozning buyurtmalari, mahsulotning xaridlari va h.k.
+6. «Tarix» (Mijoz va Buyurtmada, ruxsat bo'lsa): kim, qachon, nima o'zgardi (eski → yangi).
 
 ### 6.3. Formalar
 
@@ -526,7 +526,7 @@ Tepadan pastga:
 | Yuklash xatosi | xato paneli va «Qayta urinish» | «Mijozlar yuklanmadi: ichki xatolik» |
 | Yozuv topilmadi | sarlavha va izoh | «Mijoz topilmadi» / «Bu mijoz o'chirilgan yoki sizning kompaniyangizniki emas.» |
 | Muvaffaqiyat | toast, ekran tepasining o'rtasida | «Mijoz qo'shildi» |
-| O'chirish rad etildi | toast | «Bu mijozda 2 ta vazifa bor» |
+| O'chirish rad etildi | toast | «Bu mijozda 2 ta buyurtma bor» |
 | Ruxsat yo'q | tugma yo'q; bo'lim menyuda yo'q; manzil bosh sahifaga qaytaradi | — |
 | Lokatsiya yo'q | karta, qo'shish tugmasi yo'q | «Sizga lokatsiya biriktirilmagan» / «Kompaniya egasi lokatsiya biriktirishi kerak.» |
 | Sozlama yo'q (tur, bosqich) | egasiga «Sozlamalarni ochish» havolasi; xodimga matn | «Kompaniya egasi bosqichlarni sozlashi kerak.» |
@@ -541,7 +541,7 @@ Bo'sh holatlar:
 <tr>
 <td valign="top"><img src="screens/24-customers-empty-phone.png" width="240" alt="Bo'sh mijozlar ro'yxati, telefon"></td>
 <td valign="top"><img src="screens/57-purchases-empty-phone.png" width="240" alt="Bo'sh xaridlar ro'yxati, telefon"></td>
-<td valign="top"><img src="screens/35-tasks-no-location-phone.png" width="240" alt="Lokatsiyasiz xodimning vazifalari, telefon"></td>
+<td valign="top"><img src="screens/35-tasks-no-location-phone.png" width="240" alt="Lokatsiyasiz xodimning buyurtmalari, telefon"></td>
 </tr>
 </table>
 
@@ -557,10 +557,10 @@ Bo'sh holatlar:
 | 7.6 | [Mijozlar ro'yxati](#76-mijozlar-royxati) | `/customers` |
 | 7.7 | [Mijoz qo'shish va tahrirlash](#77-mijoz-qoshish-va-tahrirlash) | dialog |
 | 7.8 | [Mijoz sahifasi](#78-mijoz-sahifasi) | `/customers/[id]` |
-| 7.9 | [Vazifalar: kanban](#79-vazifalar-kanban) | `/tasks` |
-| 7.10 | [Vazifalar: ro'yxat](#710-vazifalar-royxat) | `/tasks?view=list` |
-| 7.11 | [Vazifa qo'shish va tahrirlash](#711-vazifa-qoshish-va-tahrirlash) | dialog |
-| 7.12 | [Vazifa sahifasi](#712-vazifa-sahifasi) | `/tasks/[id]` |
+| 7.9 | [Buyurtmalar: kanban](#79-buyurtmalar-kanban) | `/orders` |
+| 7.10 | [Buyurtmalar: ro'yxat](#710-buyurtmalar-royxat) | `/orders?view=list` |
+| 7.11 | [Buyurtma qo'shish va tahrirlash](#711-buyurtma-qoshish-va-tahrirlash) | dialog |
+| 7.12 | [Buyurtma sahifasi](#712-buyurtma-sahifasi) | `/orders/[id]` |
 | 7.13 | [Mahsulotlar](#713-mahsulotlar) | `/products` |
 | 7.14 | [Xizmatlar](#714-xizmatlar) | `/services` |
 | 7.15 | [Mahsulot sahifasi](#715-mahsulot-sahifasi) | `/products/[id]` |
@@ -571,7 +571,7 @@ Bo'sh holatlar:
 | 7.20 | [Ta'minotchi sahifasi](#720-taminotchi-sahifasi) | `/suppliers/[id]` |
 | 7.21 | [Xodimlar](#721-xodimlar) | `/employees` |
 | 7.22 | [Sozlamalar](#722-sozlamalar) | `/settings` |
-| 7.23 | [Mijoz turi va vazifa turi](#723-mijoz-turi-va-vazifa-turi) | `/settings/customer-types/[id]`, `/settings/task-types/[id]` |
+| 7.23 | [Mijoz turi va buyurtma turi](#723-mijoz-turi-va-buyurtma-turi) | `/settings/customer-types/[id]`, `/settings/order-types/[id]` |
 | 7.24 | [Dropdown sahifasi](#724-dropdown-sahifasi) | `/settings/dropdowns/[id]` |
 | 7.25 | [Rol sahifasi](#725-rol-sahifasi) | `/settings/roles/new`, `/settings/roles/[id]` |
 
@@ -764,16 +764,16 @@ Ekrandagi turda olti xil maydonning hammasi bor (F.I.Sh., Manba, Yoshi, Jinsi, T
 - **Sarlavha.** «← Mijozlar»; avatar va nom; izoh «Jismoniy · +998 91 111 22 33».
 - **Amallar.** «Tahrirlash» (asosiy) va «O'chirish» (konturli, tasdiq «Mijozni o'chirasizmi?»).
 - **«Ma'lumot».** Telefon, turning hamma maydonlari tartibda (bo'shi «—»), «Qo'shgan», «Qo'shilgan».
-- **«Vazifalar»** (Vazifalar «Ko'rish» bilan):
-  - mijozning ruxsatli hamma lokatsiyadagi vazifalari;
-  - ustunlar «Vazifa», «Bosqich» (rangli belgi), «Lokatsiya» (2+ lokatsiyada), «Muddat»;
+- **«Buyurtmalar»** (Buyurtmalar «Ko'rish» bilan):
+  - mijozning ruxsatli hamma lokatsiyadagi buyurtmalari;
+  - ustunlar «Buyurtma», «Bosqich» (rangli belgi), «Lokatsiya» (2+ lokatsiyada), «Muddat»;
   - footer «Jami: N»;
-  - bo'sh: «Bu mijozda vazifa yo'q».
+  - bo'sh: «Bu mijozda buyurtma yo'q».
 - **«Tarix»** (egasi va Mijozlar «Tarix» ruxsati):
   - yozuvlar yangisi birinchi;
   - har yozuvda amal («Qo'shildi» yoki «Tahrirlandi»), kim va qachon;
   - tahrirda har o'zgargan maydon: nomi va «eski → yangi».
-- **O'chirish.** Vazifasi bor mijoz o'chirilmaydi: toast «Bu mijozda N ta vazifa bor».
+- **O'chirish.** Buyurtmasi bor mijoz o'chirilmaydi: toast «Bu mijozda N ta buyurtma bor».
 - **Topilmasa:** «Mijoz topilmadi».
 
 <table>
@@ -784,14 +784,14 @@ Ekrandagi turda olti xil maydonning hammasi bor (F.I.Sh., Manba, Yoshi, Jinsi, T
 </tr>
 </table>
 
-### 7.9. Vazifalar: kanban
+### 7.9. Buyurtmalar: kanban
 
-`/tasks` · Vazifalar «Ko'rish». Birinchi kirishda kanban ochiladi, keyin oxirgi tanlangan ko'rinish eslanadi.
+`/orders` · Buyurtmalar «Ko'rish». Birinchi kirishda kanban ochiladi, keyin oxirgi tanlangan ko'rinish eslanadi.
 
-- **Sarlavha.** «Vazifalar», «Kompaniyangiz vazifalari · N ta», «Vazifa qo'shish».
+- **Sarlavha.** «Buyurtmalar», «Kompaniyangiz buyurtmalari · N ta», «Buyurtma qo'shish».
 - **Asboblar.**
-  - tur tablari («Barchasi», «Vazifa», «Buyurtma» va h.k.);
-  - qidiruv «Nomi, mijoz yoki telefon»: vazifa nomi, vazifa va mijoz maydonlari, mijoz telefoni bo'yicha;
+  - tur tablari («Barchasi», «Buyurtma», «Buyurtma» va h.k.);
+  - qidiruv «Nomi, mijoz yoki telefon»: buyurtma nomi, buyurtma va mijoz maydonlari, mijoz telefoni bo'yicha;
   - mas'ul select'i: «Barcha mas'ullar», «Men» va a'zolar;
   - «Ro'yxat | Kanban» almashtirgichi.
 - **Ustunlar.** Bosqichlar sozlamadagi tartibda yonma-yon. Ustun sarlavhasida rang nuqtasi, nom, soni va «+» (shu bosqich tanlangan qo'shish dialogi).
@@ -805,7 +805,7 @@ Ekrandagi turda olti xil maydonning hammasi bor (F.I.Sh., Manba, Yoshi, Jinsi, T
 - **Yakuniy bosqich** («Bajarildi») ustuni yig'ilgan turadi: tor ustun, vertikal nom va soni. Bosilsa ochiladi, holati eslanadi. Unga ham tashlash mumkin.
 - **Ustun ostida** «Jami: N» va keyingi 20 ta uchun «Yana».
 - **Telefonda** bitta ustun ekran enining ~85 % ini oladi, qolganlari yonga suriladi (snap).
-- **Lokatsiya.** Faqat joriy lokatsiya vazifalari ko'rinadi.
+- **Lokatsiya.** Faqat joriy lokatsiya buyurtmalari ko'rinadi.
 
 <table>
 <tr><th>Telefon</th><th>Desktop</th></tr>
@@ -824,19 +824,19 @@ Ekrandagi turda olti xil maydonning hammasi bor (F.I.Sh., Manba, Yoshi, Jinsi, T
 </tr>
 </table>
 
-### 7.10. Vazifalar: ro'yxat
+### 7.10. Buyurtmalar: ro'yxat
 
-`/tasks?view=list` · Vazifalar «Ko'rish».
+`/orders?view=list` · Buyurtmalar «Ko'rish».
 
 - **Asboblar.** Kanban'dagidek, qo'shimcha «Barcha bosqichlar» select va «Ustunlar» menyusi.
 - **Jadval ustunlari:**
-  - «Vazifa» (havola);
+  - «Buyurtma» (havola);
   - «Mijoz» (nom va telefon, mijoz sahifasiga havola);
   - «Turi», «Bosqich» (rangli belgi), «Muddat», «Mas'ul»;
   - turlarning maydonlari;
   - «Qo'shgan», «Qo'shilgan».
 - **Tartib:** muddati yaqini birinchi, 20 tadan.
-- **Kartochka (telefon).** Nom; tur va bosqich belgilari; «Muddat …», «Qo'shilgan»; «Mijoz» (matn), «Mas'ul», maydonlar, «Qo'shgan». Butun karta vazifani ochadi.
+- **Kartochka (telefon).** Nom; tur va bosqich belgilari; «Muddat …», «Qo'shilgan»; «Mijoz» (matn), «Mas'ul», maydonlar, «Qo'shgan». Butun karta buyurtmani ochadi.
 - **Holatlar:**
   - lokatsiyasiz xodimga «Sizga lokatsiya biriktirilmagan» kartasi, qo'shish tugmasi yo'q;
   - bosqich yoki tur qolmasa: egasiga «Sozlamalarni ochish», xodimga «Kompaniya egasi bosqichlarni sozlashi kerak.»
@@ -844,60 +844,60 @@ Ekrandagi turda olti xil maydonning hammasi bor (F.I.Sh., Manba, Yoshi, Jinsi, T
 <table>
 <tr><th>Telefon</th><th>Desktop</th></tr>
 <tr>
-<td valign="top"><img src="screens/31-tasks-list-phone.png" width="250" alt="Vazifalar ro'yxati, telefon"></td>
-<td valign="top"><img src="screens/31-tasks-list-desktop.png" width="560" alt="Vazifalar ro'yxati, desktop"></td>
+<td valign="top"><img src="screens/31-tasks-list-phone.png" width="250" alt="Buyurtmalar ro'yxati, telefon"></td>
+<td valign="top"><img src="screens/31-tasks-list-desktop.png" width="560" alt="Buyurtmalar ro'yxati, desktop"></td>
 </tr>
 </table>
 
-### 7.11. Vazifa qo'shish va tahrirlash
+### 7.11. Buyurtma qo'shish va tahrirlash
 
-Keng dialog (768 px gacha) · Vazifalar «Qo'shish» / «Tahrirlash».
+Keng dialog (768 px gacha) · Buyurtmalar «Qo'shish» / «Tahrirlash».
 
-- **Sarlavha** «Vazifa qo'shish», izoh «Turni tanlang, mijozni biriktiring va vazifani to'ldiring.»
-- **Tepada vazifa turi tugmalari.** Tur bitta bo'lsa, ular chiqmaydi.
-- **768 px dan ikki ustun:** chapda «Mijoz», o'ngda «Vazifa». Telefonda ketma-ket: tur, mijoz, vazifa.
+- **Sarlavha** «Buyurtma qo'shish», izoh «Turni tanlang, mijozni biriktiring va buyurtmani to'ldiring.»
+- **Tepada buyurtma turi tugmalari.** Tur bitta bo'lsa, ular chiqmaydi.
+- **768 px dan ikki ustun:** chapda «Mijoz», o'ngda «Buyurtma». Telefonda ketma-ket: tur, mijoz, buyurtma.
 - **«Mijoz» qismi:**
   - mijoz turi tugmalari, «Telefon raqami», mijoz turining maydonlari;
   - 3+ raqam yozilganda telefon ostida takliflar chiqadi (5 tagacha: nom, telefon, tur);
   - mavjud mijoz tanlansa, «Mavjud mijoz» kartasi (havola) va «Boshqa mijoz» tugmasi chiqadi, mijoz maydonlari qulflanadi;
   - Mijozlar «Qo'shish» ruxsati bo'lmasa: «Yangi mijoz qo'shish ruxsatingiz yo'q: mavjud mijozni biriktiring.»
-- **«Vazifa» qismi:**
+- **«Buyurtma» qismi:**
   - «Nomi»;
   - «Muddat» (sana, bo'sh boshlanadi);
   - «Bosqich» (birinchi bosqich yoki «+» bosilgan ustun);
   - «Mas'ul» («Tanlanmagan» va shu lokatsiyada ishlaydigan a'zolar);
-  - vazifa turining maydonlari.
+  - buyurtma turining maydonlari.
 - **Rad javobi.** Telefon boshqa mijozniki bo'lsa, «Shu mijozni biriktirish» va «Mijozni ochish».
-- **Tahrirda** («Vazifani tahrirlash», izoh «{tur} · mijoz va tur o'zgarmaydi»):
+- **Tahrirda** («Buyurtmani tahrirlash», izoh «{tur} · mijoz va tur o'zgarmaydi»):
   - chapda faqat «Mavjud mijoz» kartasi;
   - mas'ul ro'yxatida «Ism (chiqarilgan)» va «Ism (bu lokatsiyada ishlamaydi)» variantlari ham bo'lishi mumkin.
 
 <table>
 <tr><th>Telefon</th><th>Desktop</th></tr>
 <tr>
-<td valign="top"><img src="screens/32-task-dialog-phone.png" width="250" alt="Vazifa qo'shish dialogi, telefon"></td>
-<td valign="top"><img src="screens/32-task-dialog-desktop.png" width="560" alt="Vazifa qo'shish dialogi, desktop"></td>
+<td valign="top"><img src="screens/32-task-dialog-phone.png" width="250" alt="Buyurtma qo'shish dialogi, telefon"></td>
+<td valign="top"><img src="screens/32-task-dialog-desktop.png" width="560" alt="Buyurtma qo'shish dialogi, desktop"></td>
 </tr>
 </table>
 
-### 7.12. Vazifa sahifasi
+### 7.12. Buyurtma sahifasi
 
-`/tasks/[id]` · Vazifalar «Ko'rish».
+`/orders/[id]` · Buyurtmalar «Ko'rish».
 
-- **Sarlavha.** «← Vazifalar»; vazifa nomi; izoh «Buyurtma · Yangi · 11.10.2026 · 3 kun qoldi» (kechikkan bo'lsa qizil).
+- **Sarlavha.** «← Buyurtmalar»; buyurtma nomi; izoh «Buyurtma · Yangi · 11.10.2026 · 3 kun qoldi» (kechikkan bo'lsa qizil).
 - **Amallar.**
   - «Tahrirlash» (asosiy);
-  - «O'chirish» (tasdiq «Vazifani o'chirasizmi?»);
+  - «O'chirish» (tasdiq «Buyurtmani o'chirasizmi?»);
   - «Bosqich» select: darhol o'zgaradi, toast «Bosqich o'zgartirildi».
 - **«Mijoz».** Avatar, nom, «tur · telefon»; mijoz sahifasiga havola.
 - **«Ma'lumot».** Nomi, Muddat, Bosqich, Lokatsiya (2+ lokatsiyada), Mas'ul, turning maydonlari, Qo'shgan, Qo'shilgan.
-- **«Tarix»** (egasi va Vazifalar «Tarix» ruxsati). Bosqich o'zgarishi, muddat, mas'ul va maydonlar eski → yangi bo'lib yoziladi.
+- **«Tarix»** (egasi va Buyurtmalar «Tarix» ruxsati). Bosqich o'zgarishi, muddat, mas'ul va maydonlar eski → yangi bo'lib yoziladi.
 
 <table>
 <tr><th>Telefon</th><th>Desktop</th></tr>
 <tr>
-<td valign="top"><img src="screens/33-task-page-phone.png" width="250" alt="Vazifa sahifasi, telefon"></td>
-<td valign="top"><img src="screens/33-task-page-desktop.png" width="560" alt="Vazifa sahifasi, desktop"></td>
+<td valign="top"><img src="screens/33-task-page-phone.png" width="250" alt="Buyurtma sahifasi, telefon"></td>
+<td valign="top"><img src="screens/33-task-page-desktop.png" width="560" alt="Buyurtma sahifasi, desktop"></td>
 </tr>
 </table>
 
@@ -1109,8 +1109,8 @@ Keng dialog (768 px gacha) · Vazifalar «Qo'shish» / «Tahrirlash».
 - **Dialoglar:**
   - «Xodim qo'shish»: «Telefon raqami», «Ism»; izoh «Xodim shu raqam bilan tizimga kiradi: SMS kod yoki Telegram bot orqali.»;
   - «Ismni o'zgartirish»;
-  - «Rolni o'zgartirish»: «Rol» select, «Rolsiz» varianti bilan; izoh «Rolsiz xodim mijozlar va vazifalar bilan ishlaydi.»;
-  - «Lokatsiyalarni o'zgartirish»: «Barcha lokatsiyalar» checkbox yoki lokatsiyalar ro'yxati; izoh «Xodim faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi.»;
+  - «Rolni o'zgartirish»: «Rol» select, «Rolsiz» varianti bilan; izoh «Rolsiz xodim mijozlar va buyurtmalar bilan ishlaydi.»;
+  - «Lokatsiyalarni o'zgartirish»: «Barcha lokatsiyalar» checkbox yoki lokatsiyalar ro'yxati; izoh «Xodim faqat belgilangan lokatsiyalarning buyurtmalarini ko'radi va qo'shadi.»;
   - tasdiq «Xodimni o'chirasizmi?».
 
 <table>
@@ -1136,56 +1136,56 @@ Keng dialog (768 px gacha) · Vazifalar «Qo'shish» / «Tahrirlash».
 
 ### 7.22. Sozlamalar
 
-`/settings` · Sozlamalar «Ko'rish». Sarlavha «Sozlamalar», izoh «Mijozlar va vazifalar sozlamalari». Ostida tablar; tab manzilda (`?tab=`).
+`/settings` · Sozlamalar «Ko'rish». Sarlavha «Sozlamalar», izoh «Mijozlar va buyurtmalar sozlamalari». Ostida tablar; tab manzilda (`?tab=`).
 
 | Tab | Bo'limlar | Qator tarkibi |
 |---|---|---|
 | Mijozlar | «Mijoz turlari» | sudrash tutqichi, nom (tur sahifasiga havola), ostida maydonlari; nomni o'zgartirish, o'chirish |
-| Vazifalar | «Vazifa turlari», «Bosqichlar» | tur: nom va maydonlari; bosqich: rang nuqtasi, nom, «Yakuniy» belgisi |
+| Buyurtmalar | «Buyurtma turlari», «Bosqichlar» | tur: nom va maydonlari; bosqich: rang nuqtasi, nom, «Yakuniy» belgisi |
 | Dropdownlar | «Dropdownlar» | nom (sahifaga havola), ostida variantlari |
 | Rollar (faqat egasi) | «Rollar» | nom (rol sahifasiga havola), ostida bo'limlari va «N ta xodim» yoki «Hech kimda» |
 
-- **Har bo'limda** sarlavha, izoh va qo'shish tugmasi: «Tur qo'shish», «Vazifa turi qo'shish», «Bosqich qo'shish», «Dropdown qo'shish», «Rol qo'shish».
+- **Har bo'limda** sarlavha, izoh va qo'shish tugmasi: «Tur qo'shish», «Buyurtma turi qo'shish», «Bosqich qo'shish», «Dropdown qo'shish», «Rol qo'shish».
 - **Tartib** sudrab o'zgartiriladi (tutqich, sichqoncha, barmoq yoki klaviatura strelkalari).
-- **Nom dialogi** (tur, vazifa turi, dropdown): bitta «Nomi» maydoni va izoh («Masalan: Jismoniy, Yuridik. Maydonlari tur sahifasida qo'shiladi.»).
+- **Nom dialogi** (tur, buyurtma turi, dropdown): bitta «Nomi» maydoni va izoh («Masalan: Jismoniy, Yuridik. Maydonlari tur sahifasida qo'shiladi.»).
 - **Bosqich dialogi:**
   - «Nomi»;
   - «Rangi»: 9 ta rang doirasi;
-  - «Yakuniy bosqich» checkbox, izohi «Bu bosqichdagi vazifa bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.»
-- **O'chirish rad javoblari** toast'da: «Bu turda N ta mijoz bor», «Bu bosqichda N ta vazifa bor», «Bu rol N ta xodimga biriktirilgan» va h.k.
+  - «Yakuniy bosqich» checkbox, izohi «Bu bosqichdagi buyurtma bajarilgan hisoblanadi: muddati o'tgan deb belgilanmaydi.»
+- **O'chirish rad javoblari** toast'da: «Bu turda N ta mijoz bor», «Bu bosqichda N ta buyurtma bor», «Bu rol N ta xodimga biriktirilgan» va h.k.
 
 <table>
-<tr><th>Mijozlar</th><th>Vazifalar</th><th>Dropdownlar</th><th>Rollar</th></tr>
+<tr><th>Mijozlar</th><th>Buyurtmalar</th><th>Dropdownlar</th><th>Rollar</th></tr>
 <tr>
 <td valign="top"><img src="screens/70-settings-customers-phone.png" width="190" alt="Sozlamalar, Mijozlar tabi, telefon"></td>
-<td valign="top"><img src="screens/71-settings-tasks-phone.png" width="190" alt="Sozlamalar, Vazifalar tabi, telefon"></td>
+<td valign="top"><img src="screens/71-settings-tasks-phone.png" width="190" alt="Sozlamalar, Buyurtmalar tabi, telefon"></td>
 <td valign="top"><img src="screens/72-settings-dropdowns-phone.png" width="190" alt="Sozlamalar, Dropdownlar tabi, telefon"></td>
 <td valign="top"><img src="screens/73-settings-roles-phone.png" width="190" alt="Sozlamalar, Rollar tabi, telefon"></td>
 </tr>
 </table>
 
 <table>
-<tr><th>Bosqich qo'shish</th><th>Desktop: Vazifalar tabi</th></tr>
+<tr><th>Bosqich qo'shish</th><th>Desktop: Buyurtmalar tabi</th></tr>
 <tr>
 <td valign="top"><img src="screens/78-stage-dialog-phone.png" width="250" alt="Bosqich qo'shish dialogi, telefon"></td>
-<td valign="top"><img src="screens/71-settings-tasks-desktop.png" width="560" alt="Sozlamalar, Vazifalar tabi, desktop"></td>
+<td valign="top"><img src="screens/71-settings-tasks-desktop.png" width="560" alt="Sozlamalar, Buyurtmalar tabi, desktop"></td>
 </tr>
 </table>
 
 Qolgan desktop tablari: [Mijozlar](screens/70-settings-customers-desktop.png), [Dropdownlar](screens/72-settings-dropdowns-desktop.png), [Rollar](screens/73-settings-roles-desktop.png).
 
-### 7.23. Mijoz turi va vazifa turi
+### 7.23. Mijoz turi va buyurtma turi
 
-`/settings/customer-types/[id]`, `/settings/task-types/[id]` · Sozlamalar «Ko'rish».
+`/settings/customer-types/[id]`, `/settings/order-types/[id]` · Sozlamalar «Ko'rish».
 
-- **Sarlavha.** «← Sozlamalar»; tur nomi; izoh «Mijoz turi · N ta maydon» yoki «Vazifa turi · N ta maydon»; «Maydon qo'shish».
+- **Sarlavha.** «← Sozlamalar»; tur nomi; izoh «Mijoz turi · N ta maydon» yoki «Buyurtma turi · N ta maydon»; «Maydon qo'shish».
 - **Maydonlar ro'yxati** (sudraladi). Qatorda:
   - nom va belgilar: «Majburiy»; «Takrorlanmas» (faqat mijoz maydonida); turning birinchi matn maydonida «Mijoz nomi»;
   - ostida maydon turi va dropdowni («Checkbox (bir nechta tanlov) · Manba»);
   - tahrirlash va o'chirish.
 - **Izoh:**
   - mijoz turida: telefon har mijozda bor;
-  - vazifa turida: «Nomi, muddat va mijoz har vazifada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.»
+  - buyurtma turida: «Nomi, muddat va mijoz har buyurtmada bor va majburiy, mas'ul ixtiyoriy: ularni maydon qilib qo'shish shart emas.»
 - **Maydon dialogi** («Maydon qo'shish» / «Maydonni tahrirlash»):
   - «Nomi»;
   - «Turi» (6 tur; yaratilgandan keyin o'zgarmaydi);
@@ -1203,10 +1203,10 @@ Qolgan desktop tablari: [Mijozlar](screens/70-settings-customers-desktop.png), [
 </table>
 
 <table>
-<tr><th>Vazifa turi, telefon</th><th>Vazifa turi, desktop</th></tr>
+<tr><th>Buyurtma turi, telefon</th><th>Buyurtma turi, desktop</th></tr>
 <tr>
-<td valign="top"><img src="screens/77-task-type-phone.png" width="250" alt="Vazifa turi sahifasi, telefon"></td>
-<td valign="top"><img src="screens/77-task-type-desktop.png" width="560" alt="Vazifa turi sahifasi, desktop"></td>
+<td valign="top"><img src="screens/77-task-type-phone.png" width="250" alt="Buyurtma turi sahifasi, telefon"></td>
+<td valign="top"><img src="screens/77-task-type-desktop.png" width="560" alt="Buyurtma turi sahifasi, desktop"></td>
 </tr>
 </table>
 
@@ -1237,7 +1237,7 @@ Qolgan desktop tablari: [Mijozlar](screens/70-settings-customers-desktop.png), [
 - **Sarlavha.** «← Sozlamalar»; rol nomi; izoh «Rol · N ta xodim»; o'chirish ikonkasi.
 - **«Rol nomi».**
 - **Ruxsat matritsasi:**
-  - 768 px dan jadval: qatorlarda 7 bo'lim, ustunlarda «Ko'rish», «Qo'shish», «Tahrirlash», «O'chirish», «Tarix». Tarix faqat Mijozlar va Vazifalarda, qolganida katak bo'sh;
+  - 768 px dan jadval: qatorlarda 7 bo'lim, ustunlarda «Ko'rish», «Qo'shish», «Tahrirlash», «O'chirish», «Tarix». Tarix faqat Mijozlar va Buyurtmalarda, qolganida katak bo'sh;
   - telefonda har bo'lim alohida checkbox guruhi.
 - **Qoidalar.** Amal belgilansa «Ko'rish» o'zi belgilanadi. «Ko'rish» olib tashlansa, bo'lim tozalanadi.
 - **«Saqlash».** Toast «Rol yaratildi» / «Rol saqlandi», keyin Rollar tabiga qaytadi.
@@ -1259,7 +1259,7 @@ Formalar va jadvallar uchun: har obyektning maydonlari, cheklovlari va qayerda k
 
 | Maydon | Majburiy | Qoida | Qayerda ko'rinadi |
 |---|---|---|---|
-| Telefon | ha | faqat +998 va 9 raqam; faol mijozlar ichida takrorlanmaydi | ro'yxat (nom ostida), sahifa, vazifa |
+| Telefon | ha | faqat +998 va 9 raqam; faol mijozlar ichida takrorlanmaydi | ro'yxat (nom ostida), sahifa, buyurtma |
 | Turi | ha | tanlanadi, keyin o'zgarmaydi | ro'yxat, sahifa izohi |
 | Turning maydonlari | sozlamaga qarab | 8.2-bo'lim | ro'yxat ustunlari, sahifa «Ma'lumot» |
 | Qo'shgan, Qo'shilgan | avtomatik | a'zoning hozirgi ismi; sana | ro'yxat, sahifa |
@@ -1269,7 +1269,7 @@ Mijoz nomi alohida maydon emas: turning birinchi matn maydoni (Jismoniyda «F.I.
 - Jismoniy: «F.I.Sh.»;
 - Yuridik: «Nomi», «INN» (takrorlanmas).
 
-### 8.2. Maydon turlari (mijoz va vazifa turlarida)
+### 8.2. Maydon turlari (mijoz va buyurtma turlarida)
 
 | Tur | Interfeysda | Formada | Cheklov |
 |---|---|---|---|
@@ -1283,10 +1283,10 @@ Mijoz nomi alohida maydon emas: turning birinchi matn maydoni (Jismoniyda «F.I.
 - Maydon belgilari:
   - «Majburiy»;
   - «Takrorlanmasin»: faqat mijoz turida, matn va son maydonida.
-- Tanlov maydonlari variantlarni «Dropdown»dan oladi. Dropdownlar mijoz va vazifa maydonlari uchun umumiy.
+- Tanlov maydonlari variantlarni «Dropdown»dan oladi. Dropdownlar mijoz va buyurtma maydonlari uchun umumiy.
 - Nom: 60 belgigacha. Tur nomi kompaniyada, maydon nomi tur ichida, variant nomi dropdown ichida takrorlanmaydi.
 
-### 8.3. Vazifa
+### 8.3. Buyurtma
 
 | Maydon | Majburiy | Qoida |
 |---|---|---|
@@ -1302,14 +1302,14 @@ Mijoz nomi alohida maydon emas: turning birinchi matn maydoni (Jismoniyda «F.I.
 Muddat ko'rinishi:
 
 - sana va nisbiy matn: «Bugun», «3 kun qoldi», «2 kun kechikdi»;
-- kechikkan va yakuniy bo'lmagan vazifa qizil;
+- kechikkan va yakuniy bo'lmagan buyurtma qizil;
 - yakuniy bosqichda faqat sana.
 
 ### 8.4. Bosqich
 
 - **Nom:** 60 belgigacha.
 - **Rang:** 9 tadan biri. Kulrang, Qizil, To'q sariq, Sariq, Yashil, Moviy, Ko'k, Binafsha, Pushti.
-- **«Yakuniy» belgisi:** shu bosqichdagi vazifa bajarilgan hisoblanadi.
+- **«Yakuniy» belgisi:** shu bosqichdagi buyurtma bajarilgan hisoblanadi.
 - **Tartib** egasiniki. Tayyor bosqichlar: Yangi (ko'k), Jarayonda (sariq), Bajarildi (yashil, yakuniy).
 
 ### 8.5. Mahsulot va xizmat
@@ -1381,7 +1381,7 @@ Kompaniya a'zolari uchun. Vazifasi: Telegram akkauntni telefon raqamiga bog'lash
 
 - **Menyu tugmasi** (chat pastidagi): «Hisob24», Mini App'ni ochadi.
 - **Buyruqlar menyusi** (BotFather'da, ixtiyoriy): `start — Raqamni ulash`.
-- **Xabarnoma yuborilmaydi.** Bot vazifa, muddat yoki boshqa voqea haqida xabar yubormaydi: hozircha bunday funksiya yo'q.
+- **Xabarnoma yuborilmaydi.** Bot buyurtma, muddat yoki boshqa voqea haqida xabar yubormaydi: hozircha bunday funksiya yo'q.
 
 ### 9.3. Admin bot (qisqacha)
 
@@ -1482,7 +1482,7 @@ Kontrast (WCAG, hisoblangan):
 | Bosiladigan nishon (telefon) | kamida 44 px |
 | Login maydoni va tugmasi | 48 px; kod katagi 56 px |
 | Kanban ustuni | 288 px (desktop), ekranning ~85 % i (telefon); yig'ilgan 48 px |
-| Dialog eni | 384 px (nom, maydon, bosqich, rol, lokatsiya, xodim); 448 px (mijoz, mahsulot, xizmat, ta'minotchi, to'lov); 768 px (vazifa). Telefonda ekran eni minus 32 px |
+| Dialog eni | 384 px (nom, maydon, bosqich, rol, lokatsiya, xodim); 448 px (mijoz, mahsulot, xizmat, ta'minotchi, to'lov); 768 px (buyurtma). Telefonda ekran eni minus 32 px |
 
 ### 10.5. Ikonkalar va logotip
 
@@ -1492,7 +1492,7 @@ Kontrast (WCAG, hisoblangan):
 |---|---|
 | Bosh sahifa | `House` |
 | Mijozlar | `Contact` |
-| Vazifalar | `ListTodo` |
+| Buyurtmalar | `ListTodo` |
 | Mahsulotlar | `Package` |
 | Ombor | `Warehouse` |
 | Xodimlar | `Users` |
@@ -1563,9 +1563,9 @@ Kontrast (WCAG, hisoblangan):
 
 ### 11.2. Hozirgi ko'rinishda e'tibor talab qiladigan joylar
 
-- **Bosh sahifa** deyarli bo'sh: salom va kompaniya kartasi. Unda nima bo'lishi hali belgilanmagan («Mening vazifalarim», xulosalar va h.k. qilinmagan).
-- **Telefondagi kartochkalar uzun.** Ayniqsa Mijozlar va Vazifalar ro'yxatida: hamma to'ldirilgan maydon kartada turadi.
-- **Desktop'dagi vazifalar jadvali keng.** Ustunlar ko'p, yon scroll bilan.
+- **Bosh sahifa** deyarli bo'sh: salom va kompaniya kartasi. Unda nima bo'lishi hali belgilanmagan («Mening buyurtmalarim», xulosalar va h.k. qilinmagan).
+- **Telefondagi kartochkalar uzun.** Ayniqsa Mijozlar va Buyurtmalar ro'yxatida: hamma to'ldirilgan maydon kartada turadi.
+- **Desktop'dagi buyurtmalar jadvali keng.** Ustunlar ko'p, yon scroll bilan.
 - **Kanban telefonda** bitta ustunni ko'rsatadi, qolganlari yonga suriladi.
 - **Xarid tahririda** miqdor va narx xom ko'rinishda: «20.000», «15000.00».
 - **Sana maydoni** brauzerning o'z date input'i: ko'rinishi brauzer tiliga bog'liq («08/10/2026»).
@@ -1582,8 +1582,8 @@ Ular uchun ekran yo'q. Dizaynda ular uchun joy qoldirish mumkin, lekin ishlashi 
 - **Savdo va ombor.** Sotuv, chek; qoldiqni qo'lda tuzatish (inventarizatsiya); lokatsiyalar orasida ko'chirish; minimal qoldiq ogohlantirishi.
 - **Mahsulot.** Kategoriyalar, rasm, shtrix-kod skaneri, narx tarixi.
 - **Hisobot va eksport.** Hisobotlar va statistika; Excel import / eksport.
-- **Bildirishnomalar.** Bot orqali eslatmalar; vazifa izohlari, fayllar, takrorlanuvchi vazifalar, muddatda vaqt.
-- **Tiklash va almashtirish.** O'chirilgan yozuvlarni tiklash; mijoz yoki vazifa turini almashtirish; vazifani boshqa lokatsiyaga ko'chirish.
+- **Bildirishnomalar.** Bot orqali eslatmalar; buyurtma izohlari, fayllar, takrorlanuvchi buyurtmalar, muddatda vaqt.
+- **Tiklash va almashtirish.** O'chirilgan yozuvlarni tiklash; mijoz yoki buyurtma turini almashtirish; buyurtmani boshqa lokatsiyaga ko'chirish.
 - **Boshqalar.** Global qidiruv; bir nechta valyuta.
 - **Lokatsiya.** Egasining user app'dan lokatsiya qo'shishi: hozir faqat admin panelda.
 
@@ -1594,11 +1594,11 @@ Ular uchun ekran yo'q. Dizaynda ular uchun joy qoldirish mumkin, lekin ishlashi 
 | Bo'lim | Matnlar |
 |---|---|
 | Mijozlar | «Mijoz qo'shildi», «Mijoz saqlandi», «Mijoz o'chirildi» |
-| Vazifalar | «Vazifa qo'shildi», «Vazifa saqlandi», «Vazifa o'chirildi», «Bosqich o'zgartirildi» |
+| Buyurtmalar | «Buyurtma qo'shildi», «Buyurtma saqlandi», «Buyurtma o'chirildi», «Bosqich o'zgartirildi» |
 | Mahsulotlar | «Mahsulot qo'shildi», «Mahsulot saqlandi», «Mahsulot nofaol qilindi», «Mahsulot faollashtirildi», «Mahsulot o'chirildi»; xizmatda xuddi shunday («Xizmat qo'shildi» va h.k.) |
 | Ombor | «Xarid qo'shildi», «Xarid saqlandi», «Xarid o'chirildi»; «Ta'minotchi qo'shildi», «Ta'minotchi saqlandi», «Ta'minotchi nofaol qilindi», «Ta'minotchi faollashtirildi», «Ta'minotchi o'chirildi»; «To'lov qo'shildi», «To'lov saqlandi», «To'lov o'chirildi» |
 | Xodimlar | «Xodim qo'shildi», «Ism o'zgartirildi», «Xodim o'chirildi», «Rol o'zgartirildi», «Lokatsiyalar o'zgartirildi» |
-| Sozlamalar | «Tur qo'shildi», «Tur nomi o'zgartirildi», «Tur o'chirildi»; «Vazifa turi qo'shildi», «Vazifa turi nomi o'zgartirildi», «Vazifa turi o'chirildi»; «Maydon qo'shildi», «Maydon saqlandi», «Maydon o'chirildi»; «Bosqich qo'shildi», «Bosqich saqlandi», «Bosqich o'chirildi»; «Dropdown qo'shildi», «Dropdown nomi o'zgartirildi», «Dropdown o'chirildi»; «Variant nomi o'zgartirildi», «Variant nofaol qilindi», «Variant faollashtirildi», «Variant o'chirildi»; «Rol yaratildi», «Rol saqlandi», «Rol o'chirildi» |
+| Sozlamalar | «Tur qo'shildi», «Tur nomi o'zgartirildi», «Tur o'chirildi»; «Buyurtma turi qo'shildi», «Buyurtma turi nomi o'zgartirildi», «Buyurtma turi o'chirildi»; «Maydon qo'shildi», «Maydon saqlandi», «Maydon o'chirildi»; «Bosqich qo'shildi», «Bosqich saqlandi», «Bosqich o'chirildi»; «Dropdown qo'shildi», «Dropdown nomi o'zgartirildi», «Dropdown o'chirildi»; «Variant nomi o'zgartirildi», «Variant nofaol qilindi», «Variant faollashtirildi», «Variant o'chirildi»; «Rol yaratildi», «Rol saqlandi», «Rol o'chirildi» |
 | Qobiq | «Menyu tartibi saqlandi» |
 
 ### 12.2. Bo'sh holatlar
@@ -1606,18 +1606,18 @@ Ular uchun ekran yo'q. Dizaynda ular uchun joy qoldirish mumkin, lekin ishlashi 
 | Joy | Sarlavha / izoh |
 |---|---|
 | Mijozlar | «Hali mijoz yo'q» / «Birinchi mijozni «Mijoz qo'shish» tugmasi orqali qo'shing.» |
-| Vazifalar | «Hali vazifa yo'q» |
+| Buyurtmalar | «Hali buyurtma yo'q» |
 | Xaridlar | «Hali xarid yo'q» / «Birinchi xaridni «Xarid qo'shish» tugmasi orqali kiriting.» |
 | Ta'minotchilar | «Hali ta'minotchi yo'q» / «Birinchi ta'minotchini «Ta'minotchi qo'shish» tugmasi orqali qo'shing.» |
-| Filtr bilan | «Mijozlar topilmadi», «Vazifalar topilmadi», «Ta'minotchilar topilmadi» / «Qidiruv yoki filtrni o'zgartirib ko'ring.» |
-| Mijoz sahifasi | «Bu mijozda vazifa yo'q» |
+| Filtr bilan | «Mijozlar topilmadi», «Buyurtmalar topilmadi», «Ta'minotchilar topilmadi» / «Qidiruv yoki filtrni o'zgartirib ko'ring.» |
+| Mijoz sahifasi | «Bu mijozda buyurtma yo'q» |
 | Mahsulot sahifasi | «Bu mahsulot hali xarid qilinmagan» |
 | Ta'minotchi sahifasi | «Bu ta'minotchida xarid yo'q», «Bu ta'minotchida to'lov yo'q» |
-| Sozlamalar | «Hali tur yo'q» / «Mijoz qo'shish uchun kamida bitta tur kerak.»; «Hali vazifa turi yo'q»; «Hali bosqich yo'q» / «Vazifa qo'shish uchun kamida bitta bosqich kerak.»; «Hali dropdown yo'q»; «Hali rol yo'q» / «Rol xodimga qaysi bo'limlarda nima qilishi mumkinligini belgilaydi.»; «Bu turda maydon yo'q»; «Hali variant yo'q» |
+| Sozlamalar | «Hali tur yo'q» / «Mijoz qo'shish uchun kamida bitta tur kerak.»; «Hali buyurtma turi yo'q»; «Hali bosqich yo'q» / «Buyurtma qo'shish uchun kamida bitta bosqich kerak.»; «Hali dropdown yo'q»; «Hali rol yo'q» / «Rol xodimga qaysi bo'limlarda nima qilishi mumkinligini belgilaydi.»; «Bu turda maydon yo'q»; «Hali variant yo'q» |
 
 ### 12.3. O'chirish tasdiqlari
 
-«Mijozni o'chirasizmi?», «Vazifani o'chirasizmi?», «Mahsulotni o'chirasizmi?», «Xizmatni o'chirasizmi?», «Ta'minotchini o'chirasizmi?», «Xaridni o'chirasizmi?», «To'lovni o'chirasizmi?», «Xodimni o'chirasizmi?», «Turni o'chirasizmi?», «Vazifa turini o'chirasizmi?», «Maydonni o'chirasizmi?», «Dropdownni o'chirasizmi?», «Variantni o'chirasizmi?», «Bosqichni o'chirasizmi?», «Rolni o'chirasizmi?». Tugmalar: «Bekor qilish» va «O'chirish».
+«Mijozni o'chirasizmi?», «Buyurtmani o'chirasizmi?», «Mahsulotni o'chirasizmi?», «Xizmatni o'chirasizmi?», «Ta'minotchini o'chirasizmi?», «Xaridni o'chirasizmi?», «To'lovni o'chirasizmi?», «Xodimni o'chirasizmi?», «Turni o'chirasizmi?», «Buyurtma turini o'chirasizmi?», «Maydonni o'chirasizmi?», «Dropdownni o'chirasizmi?», «Variantni o'chirasizmi?», «Bosqichni o'chirasizmi?», «Rolni o'chirasizmi?». Tugmalar: «Bekor qilish» va «O'chirish».
 
 ### 12.4. Rad javoblari («ishlatilmoqda»)
 
@@ -1625,13 +1625,13 @@ Ishlatilayotgan narsa o'chirilmaydi; xabar toast'da yoki dialog ichida:
 
 | Nima | Xabar |
 |---|---|
-| Mijoz | «Bu mijozda N ta vazifa bor» |
+| Mijoz | «Bu mijozda N ta buyurtma bor» |
 | Mijoz turi | «Bu turda N ta mijoz bor» |
-| Vazifa turi | «Bu turda N ta vazifa bor» |
-| Maydon | «Bu maydon N ta mijozda to'ldirilgan», «Bu maydon N ta vazifada to'ldirilgan» |
-| Variant | «Bu variant N ta mijozda tanlangan», «Bu variant N ta vazifada tanlangan» |
+| Buyurtma turi | «Bu turda N ta buyurtma bor» |
+| Maydon | «Bu maydon N ta mijozda to'ldirilgan», «Bu maydon N ta buyurtmada to'ldirilgan» |
+| Variant | «Bu variant N ta mijozda tanlangan», «Bu variant N ta buyurtmada tanlangan» |
 | Dropdown | «Bu dropdown N ta maydonda ishlatilgan» |
-| Bosqich | «Bu bosqichda N ta vazifa bor» |
+| Bosqich | «Bu bosqichda N ta buyurtma bor» |
 | Mahsulot | «Bu mahsulot N ta xaridda bor» |
 | Ta'minotchi | «Bu ta'minotchida N ta xarid bor», «Bu ta'minotchida N ta to'lov bor» |
 | Bog'langan to'lov | «Bu to'lov xarid bilan kiritilgan: xaridni tahrirlang» |
@@ -1646,7 +1646,7 @@ Ishlatilayotgan narsa o'chirilmaydi; xabar toast'da yoki dialog ichida:
 | Telefon | «Telefon raqami noto'g'ri», «Bu raqamli mijoz allaqachon bor», «Bu raqam kompaniyangizga allaqachon qo'shilgan» (xodim) |
 | Nom | «Nomni kiriting», «Nom 60 belgidan oshmasin» (mahsulot va ta'minotchida 120), «Bu nomli … allaqachon bor» |
 | Maydonlar | ««INN» maydonini to'ldiring», ««Manba» ni tanlang», ««INN» butun son bo'lishi kerak», ««Nomi» 500 belgidan oshmasin», «Bu «INN» boshqa mijozda bor» |
-| Vazifa | «Vazifa nomini kiriting», «Vazifa nomi 200 belgidan oshmasin», «Muddatni kiriting», «Muddat noto'g'ri», «Bosqichni tanlang», «Mijozni tanlang», «Mas'ul bu lokatsiyada ishlamaydi» |
+| Buyurtma | «Buyurtma nomini kiriting», «Buyurtma nomi 200 belgidan oshmasin», «Muddatni kiriting», «Muddat noto'g'ri», «Bosqichni tanlang», «Mijozni tanlang», «Mas'ul bu lokatsiyada ishlamaydi» |
 | Mahsulot | «Birlikni tanlang», «Narx noto'g'ri», «Bu artikulli mahsulot allaqachon bor» |
 | Xarid | «Ta'minotchini tanlang», «Ta'minotchi nofaol», «Sanani kiriting», «Kamida bitta mahsulot qo'shing», «Mahsulotni tanlang», «Mahsulot nofaol», ««X» ikki marta kiritilgan», ««X» miqdori noto'g'ri», ««X» narxi noto'g'ri», «To'langan summa noto'g'ri» |
 | To'lov | «Summani kiriting», «Summa noto'g'ri», «Sanani kiriting» |
@@ -1654,4 +1654,4 @@ Ishlatilayotgan narsa o'chirilmaydi; xabar toast'da yoki dialog ichida:
 | Lokatsiya | «Kamida bitta lokatsiyani tanlang» |
 | Ruxsat | «Bu amal uchun ruxsatingiz yo'q», «Bu bo'lim faqat kompaniya egasi uchun», «Avval kompaniyani tanlang» |
 
-To'liq qoidalar va hamma xabarlar: [`logic/`](../../logic/) papkasidagi hujjatlar (`customers.md`, `tasks.md`, `products.md`, `warehouse.md`, `roles.md`, `user.md`, `locations.md`).
+To'liq qoidalar va hamma xabarlar: [`logic/`](../../logic/) papkasidagi hujjatlar (`customers.md`, `orders.md`, `products.md`, `warehouse.md`, `roles.md`, `user.md`, `locations.md`).

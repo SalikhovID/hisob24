@@ -67,7 +67,7 @@ Umumiy maydonlar: akkaunt (kompaniyaning faol akkaunti; nofaol / yo'q / begona: 
 
 ## 6. Kategoriyalar (Sozlamalar)
 
-- `GET /app/finance-categories?kind=` (hamma a'zoga, forma uchun), `POST /app/finance-categories {name, kind}`, `PUT …/{id} {name}`, `PATCH …/{id} {is_active}`, `DELETE …/{id}`, `PUT /app/finance-categories/order {ids}` (vazifa turlari naqshi: `settings.*`).
+- `GET /app/finance-categories?kind=` (hamma a'zoga, forma uchun), `POST /app/finance-categories {name, kind}`, `PUT …/{id} {name}`, `PATCH …/{id} {is_active}`, `DELETE …/{id}`, `PUT /app/finance-categories/order {ids}` (buyurtma turlari naqshi: `settings.*`).
 - Nom 1–60 belgi, tur ichida takrorlanmaydi (harf farqsiz): 409 `name_taken` «Bu nomli kategoriya allaqachon bor». Tur (xarajat / kirim) keyin o'zgarmaydi.
 - **Nofaol** kategoriya formada taklif qilinmaydi, hujjatlarida qoladi. **O'chirish** yashirish; jonli hujjati bor kategoriya o'chirilmaydi: 409 `category_in_use` «Bu kategoriyada N ta hujjat bor».
 - Tayyor kategoriya yo'q: har kompaniya bo'sh boshlaydi; kategoriyasiz xarajat kiritib bo'lmaydi (forma Sozlamalarga yo'naltiradi).

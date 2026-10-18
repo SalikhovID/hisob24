@@ -444,7 +444,7 @@ func TestCreateGivesTheCompanyTheReadyCustomerTypes(t *testing.T) {
 		"a new company starts with the two types every company has")
 }
 
-// Every company starts with the ready stages and order type (logic/tasks.md,
+// Every company starts with the ready stages and order type (logic/orders.md,
 // 3.4), the same ones migration 00007 gave the companies there were.
 func TestCreateGivesTheReadyOrderSettings(t *testing.T) {
 	s, pool := newService(t)

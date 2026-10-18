@@ -6,7 +6,7 @@ Multi-tenant SaaS. Platforma adminlari company yaratadi, obunasini uzaytiradi va
 |---|---|---|
 | Go API (`backend/`) | http://localhost:8080 | HTTP API va ikkala Telegram bot, bitta jarayonda |
 | Admin panel (`apps/admin`) | http://localhost:3001 | Company'lar, billing va adminlar. Admin botda Mini App sifatida ham ochiladi |
-| User app (`apps/web`) | http://localhost:3000 | Kod bilan kirish (SMS yoki, raqam botga ulangan bo'lsa, Telegram), company tanlash, bosh sahifa (dashboard), mijozlar, vazifalar, mahsulotlar, sotuv, ombor, moliya, xodimlar va sozlamalar. Telegram Wallet uslubidagi UI; user botda Mini App sifatida ham ochiladi |
+| User app (`apps/web`) | http://localhost:3000 | Kod bilan kirish (SMS yoki, raqam botga ulangan bo'lsa, Telegram), company tanlash, bosh sahifa (dashboard), mijozlar, buyurtmalar, mahsulotlar, sotuv, ombor, moliya, xodimlar va sozlamalar. Telegram Wallet uslubidagi UI; user botda Mini App sifatida ham ochiladi |
 | Admin bot | Telegram | `/login` → panelga kirish kodi |
 | User bot | Telegram | Telefon raqamini `chat_id` bilan bog'laydi; ulangan raqamning kirish kodlari SMS o'rniga shu chatga keladi; menu tugmasi user app'ni Mini App sifatida ochadi (login'siz) |
 
@@ -112,8 +112,8 @@ pnpm --filter @hisob24/web dev
 
 iOS guruhli ro'yxat uslubi, iOS «liquid glass» ko'rinishida, telefonda ham, keng ekranda ham bir xil: «Yorug' shisha» (kulrang-oq fon, oq shisha kartalar, qora urg'u) va «Tungi shisha» (binafsha nurli tun, lavanda urg'u), qurilma yoki Telegram rejimiga qarab. Dizayn: [`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`](docs/superpowers/specs/2026-10-13-mini-app-ui-design.md) (sahifalar va naqshlar), [`docs/superpowers/specs/2026-10-16-liquid-glass-design.md`](docs/superpowers/specs/2026-10-16-liquid-glass-design.md) (ranglar va shisha); to'plam: `apps/web/components/kit/`, shisha utility'lari (`surface`, `glossy`, `glass-chip`, `bg-ambient`) `apps/web/app/globals.css` da.
 
-- **Qobiq:** telefonda suzuvchi tab-bar: a'zo tanlagan 4 tagacha sahifa (standart: Bosh sahifa, Mijozlar, Vazifalar, Mahsulotlar) va oxirida doim **«Sozlama»** ⚙; panel menyuning sahifalarida (ombor va sozlamalar qismlari ham), ichki sahifada tepada ota sahifaga havola («‹ Mijozlar»). «Sozlama» varag'ida hamma sahifa bo'limlari ostida plitkalarda (qidiruv bilan, sozlamalar qismlari ham) va **«Pastki panelni sozlash»** (sahifani olib tashlash, qo'shish, sudrab tartiblash, «Standart»). Keng ekranda chapda sidebar (yig'iladi; pastida lokatsiya va profil). Kompaniya, lokatsiya, mavzu va chiqish — **Profil** sahifasida (`/profile`, bosh sahifadagi ism tugmasi).
-- **Bosh sahifa** (`/`): asosiy raqam (ruxsatga qarab ta'minotchilarga qarz, faol vazifalar yoki mijozlar soni), tezkor plitkalar (Vazifa, Mijoz, Sotuv, Xarid, To'lov ichidan ruxsatli 4 tasi), «Umumiy holat» kartalari, yaqin muddatlar. Ma'lumot bitta so'rovda: `GET /app/dashboard` (har blok o'z `*.view` ruxsati bilan, ruxsatsizi `null`; vazifa, xarid va sotuv joriy lokatsiyaniki).
+- **Qobiq:** telefonda suzuvchi tab-bar: a'zo tanlagan 4 tagacha sahifa (standart: Bosh sahifa, Mijozlar, Buyurtmalar, Mahsulotlar) va oxirida doim **«Sozlama»** ⚙; panel menyuning sahifalarida (ombor va sozlamalar qismlari ham), ichki sahifada tepada ota sahifaga havola («‹ Mijozlar»). «Sozlama» varag'ida hamma sahifa bo'limlari ostida plitkalarda (qidiruv bilan, sozlamalar qismlari ham) va **«Pastki panelni sozlash»** (sahifani olib tashlash, qo'shish, sudrab tartiblash, «Standart»). Keng ekranda chapda sidebar (yig'iladi; pastida lokatsiya va profil). Kompaniya, lokatsiya, mavzu va chiqish — **Profil** sahifasida (`/profile`, bosh sahifadagi ism tugmasi).
+- **Bosh sahifa** (`/`): asosiy raqam (ruxsatga qarab ta'minotchilarga qarz, faol buyurtmalar yoki mijozlar soni), tezkor plitkalar (Buyurtma, Mijoz, Sotuv, Xarid, To'lov ichidan ruxsatli 4 tasi), «Umumiy holat» kartalari, yaqin muddatlar. Ma'lumot bitta so'rovda: `GET /app/dashboard` (har blok o'z `*.view` ruxsati bilan, ruxsatsizi `null`; buyurtma, xarid va sotuv joriy lokatsiyaniki).
 - **Sahifalar:** ro'yxat — katta sarlavha va `+`, qidiruv, chiplar, guruhli qatorlar (hujjatlar kun bo'yicha); yozuv — sarlavha, tezkor plitkalar (Tahrirlash, Qo'ng'iroq `tel:` va boshqalar), «Ma'lumot», pastda o'chirish qatori. Kichik formalar pastdan chiqadigan varaqda; tanlov, kun (kalendar) va summa (klaviatura) ham varaqda. Ko'p qatorli hujjat formasi alohida sahifa.
 - **Sozlamalar** (`/settings`) va **Ombor** (`/warehouse`) — hub sahifalar: har qism o'z sahifasida. Eski `/settings?tab=…` manzillari qism sahifasiga yo'naltiriladi.
 - **O'tishlar:** yozuvga, formaga yoki hub ichiga o'tish yangi sahifani o'ngdan suradi; orqaga qaytish («‹ …» havolasi, Telegram'ning Back tugmasi, saqlangan tahrir) teskari. Bo'lim almashganda, filtr va segmentlarda, brauzerning o'z orqaga tugmasida sahifa darhol almashadi; «kamroq harakat» sozlamasida animatsiya yo'q.
@@ -123,14 +123,14 @@ iOS guruhli ro'yxat uslubi, iOS «liquid glass» ko'rinishida, telefonda ham, ke
 
 | Rol | Interfeysda | Qayerdan qo'shiladi | User app'da |
 |---|---|---|---|
-| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Vazifalar**, **Mahsulotlar** (mahsulotlar va xizmatlar), **Sotuv**, **Ombor** (xaridlar, ko'chirishlar, inventarizatsiya, boshlang'ich qoldiq, ta'minotchilar), **Moliya** (kassa, xarajatlar, o'tkazmalar), **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va vazifa turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
-| `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**, **Vazifalar**, **Mahsulotlar**, **Sotuv**, **Ombor** va **Moliya** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
-| `user`, rolli | rol nomi (masalan, Sotuvchi) egasi **Xodimlar** da xodim varag'idagi **Rol** qatorida biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Vazifalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Sotuv, Ombor hujjatlari, Moliya, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va vazifada tarix) |
+| `owner` | Egasi | admin panel: company yaratish yoki **Egasini almashtirish** | hammasi: **Mijozlar**, **Buyurtmalar**, **Mahsulotlar** (mahsulotlar va xizmatlar), **Sotuv**, **Ombor** (xaridlar, ko'chirishlar, inventarizatsiya, boshlang'ich qoldiq, ta'minotchilar), **Moliya** (kassa, xarajatlar, o'tkazmalar), **Xodimlar** (xodim qo'shadi, ismini o'zgartiradi, o'chiradi, rol biriktiradi), **Sozlamalar** (mijoz va buyurtma turlari, maydonlar, dropdownlar, bosqichlar, **Rollar**) |
+| `user`, rolsiz | Xodim | user app: egasi yoki `employees.create` ruxsatli xodim **Xodimlar → Xodim qo'shish** orqali | **Mijozlar**, **Buyurtmalar**, **Mahsulotlar**, **Sotuv**, **Ombor** va **Moliya** (ko'rish, qo'shish, tahrirlash, o'chirish; tarix yo'q). Boshqa bo'limlar ko'rinmaydi, manzili bosh sahifaga qaytaradi |
+| `user`, rolli | rol nomi (masalan, Sotuvchi) egasi **Xodimlar** da xodim varag'idagi **Rol** qatorida biriktiradi | faqat rol ruxsatlari: bo'lim (Mijozlar, Buyurtmalar, Mahsulotlar, Ta'minotchilar, Xaridlar, Sotuv, Ombor hujjatlari, Moliya, Xodimlar, Sozlamalar) × amal (ko'rish, qo'shish, tahrirlash, o'chirish; mijoz va buyurtmada tarix) |
 
 - **Kompaniya rollari** egasi **Sozlamalar → Rollar** da tuzadi: nom va ruxsat matritsasi. Amal bo'limning "Ko'rish" ruxsatisiz qabul qilinmaydi. Xodimlarga biriktirilgan rol o'chirilmaydi. Rollarni faqat egasi boshqaradi va biriktiradi.
 - Ruxsat har so'rovda bazadan o'qiladi: rol o'zgarsa, xodim keyingi so'rovdanoq yangi ruxsat bilan ishlaydi. Ruxsati yo'q amal API'da 403 `forbidden`; rollar API xodimga 403 `owner_only`.
 - Har company'da aynan bitta egasi bor. Admin egasini almashtirsa, oldingisi rolsiz xodim bo'lib qoladi; yangi egasining roli olib tashlanadi.
-- Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar (standart tartibda), tor ekranda (telefon brauzeri va Telegram Mini App) suzuvchi tab-bar: a'zo tanlagan 4 tagacha sahifa (bo'lim yoki ichki sahifa: Xaridlar, Kassa, Xizmatlar…; Bosh sahifa ham) va **«Sozlama»**: qolgan sahifalar va panelni sozlash. Tanlov serverda, har company'da alohida saqlanadi (`tab_bar`, `PUT /app/me/tab-bar`); tanlanmagan bo'lsa ruxsatli birinchi 4 tasi (Bosh sahifa, Mijozlar, Vazifalar, Mahsulotlar, Sotuv, Ombor, Kassa, Xodimlar tartibida).
+- Bo'limlar menyusi ruxsat bo'yicha: keng ekranda chapdagi sidebar (standart tartibda), tor ekranda (telefon brauzeri va Telegram Mini App) suzuvchi tab-bar: a'zo tanlagan 4 tagacha sahifa (bo'lim yoki ichki sahifa: Xaridlar, Kassa, Xizmatlar…; Bosh sahifa ham) va **«Sozlama»**: qolgan sahifalar va panelni sozlash. Tanlov serverda, har company'da alohida saqlanadi (`tab_bar`, `PUT /app/me/tab-bar`); tanlanmagan bo'lsa ruxsatli birinchi 4 tasi (Bosh sahifa, Mijozlar, Buyurtmalar, Mahsulotlar, Sotuv, Ombor, Kassa, Xodimlar tartibida).
 - Boshqa company'da bor raqam qo'shilsa, o'sha user ikkala company'da ishlaydi (multi-user): login'da company tanlaydi, roli va ismi har company'da alohida.
 - Tizimga kamida bitta company'ga a'zo raqam kira oladi. O'chirilgan xodim keyingi so'rovdayoq chiqariladi; boshqa company'si bo'lmasa, unga kod ham ketmaydi (SMS ham, Telegram ham).
 - Qo'shilgan xodimga xabar yuborilmaydi: egasi unga o'zi aytadi.
@@ -156,28 +156,29 @@ Company o'z mijozlarini user app'da yuritadi. Mijozning **turi** bor, tur esa fo
 
 To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/customers.md`](logic/customers.md).
 
-## Vazifalar
+## Buyurtmalar
 
-Company xodimlari bajaradigan ishlar. Har vazifa bitta mijozga biriktiriladi, **turi** bor (tur maydonlari mijoz turlaridagidek sozlanadi) va **bosqichda** (kanban ustunida) turadi.
+Company xodimlari bajaradigan ishlar. Har buyurtma bitta mijozga biriktiriladi, **turi** bor (tur maydonlari mijoz turlaridagidek sozlanadi) va **bosqichda** (kanban ustunida) turadi.
 
 | Bo'lim | Kim | Nima qiladi |
 |---|---|---|
-| **Vazifalar** (`/tasks`) | egasi va xodim | kanban (birinchi marta) yoki ro'yxat (muddat bo'yicha guruhlar); tur chiplari, qidiruv, bosqich va mas'ul filtrlari; vazifa qo'shish (mavjud mijozni telefon takliflaridan tanlab yoki yangi mijoz bilan); vazifa sahifasi (`/tasks/[id]`), tahrirlash, bosqichni o'zgartirish, o'chirish |
-| **Sozlamalar** (`/settings/stages`, `/settings/task-types`) | faqat egasi | bosqichlar (nom, rang, "Yakuniy", tartib), vazifa turlari va maydonlari |
+| **Buyurtmalar** (`/orders`) | egasi va xodim | kanban (birinchi marta) yoki ro'yxat (muddat bo'yicha guruhlar); tur chiplari, qidiruv, bosqich va mas'ul filtrlari; buyurtma qo'shish (mavjud mijozni telefon takliflaridan tanlab yoki yangi mijoz bilan); buyurtma sahifasi (`/orders/[id]`), tahrirlash, bosqichni o'zgartirish, o'chirish |
+| **Sozlamalar** (`/settings/stages`, `/settings/order-types`) | faqat egasi | bosqichlar (nom, rang, "Yakuniy", tartib), buyurtma turlari va maydonlari |
 
 - **Doimiy maydonlar:** nomi, muddat (sana), mijoz va bosqich majburiy; mas'ul (kompaniya a'zosi) ixtiyoriy. Mijoz va tur keyin o'zgarmaydi.
-- **Bosqichlar:** har yangi company "Yangi", "Jarayonda", "Bajarildi" (yakuniy) bosqichlari va "Vazifa" turi bilan boshlaydi. Yakuniy bosqichdagi vazifa muddati o'tgan deb belgilanmaydi; kanban'da yakuniy ustun yig'ilgan turadi.
-- **Kanban:** karta sudrab (telefonda bosib turib) yoki `⋯` varag'idan boshqa bosqichga o'tkaziladi; har ustunda 20 tadan, "Yana" bilan davomi; ustun sarlavhasidagi "+" shu bosqichga vazifa qo'shadi.
-- **Muddat:** `dd.mm.yyyy` va "Bugun" / "N kun qoldi" / "N kun kechikdi" (brauzerning sanasidan); kechikkan vazifa qizil.
-- **Mijoz takliflari:** telefonning 3 raqami yozilganda mavjud mijozlar taklif qilinadi (`GET /app/customers?phone=`); tanlangach mijoz maydonlari to'ldirilib, qulflanadi. Yangi mijoz vazifa bilan bitta so'rovda yoziladi; takror telefon rad etiladi va o'sha mijozni biriktirish taklif qilinadi.
-- **O'chirish:** vazifa yashiriladi (`deleted_at`). Vazifasi bor mijoz, bosqich, tur, maydon va variant o'chirilmaydi.
-- **Tarix:** vazifaning har o'zgarishi (qo'shilgani, tahriri, ko'chirilgani, o'chirilgani) yoziladi; vazifa sahifasida faqat egasi ko'radi. Mijoz sahifasida uning vazifalari ko'rinadi.
+- **Bosqichlar:** har yangi company "Yangi", "Jarayonda", "Bajarildi" (yakuniy) bosqichlari va "Buyurtma" turi bilan boshlaydi. Yakuniy bosqichdagi buyurtma muddati o'tgan deb belgilanmaydi; kanban'da yakuniy ustun yig'ilgan turadi.
+- **Kanban:** karta sudrab (telefonda bosib turib) yoki `⋯` varag'idan boshqa bosqichga o'tkaziladi; har ustunda 20 tadan, "Yana" bilan davomi; ustun sarlavhasidagi "+" shu bosqichga buyurtma qo'shadi.
+- **Muddat:** `dd.mm.yyyy` va "Bugun" / "N kun qoldi" / "N kun kechikdi" (brauzerning sanasidan); kechikkan buyurtma qizil.
+- **Mijoz takliflari:** telefonning 3 raqami yozilganda mavjud mijozlar taklif qilinadi (`GET /app/customers?phone=`); tanlangach mijoz maydonlari to'ldirilib, qulflanadi. Yangi mijoz buyurtma bilan bitta so'rovda yoziladi; takror telefon rad etiladi va o'sha mijozni biriktirish taklif qilinadi.
+- **O'chirish:** buyurtma yashiriladi (`deleted_at`). Buyurtmasi bor mijoz, bosqich, tur, maydon va variant o'chirilmaydi.
+- **Tarix:** buyurtmaning har o'zgarishi (qo'shilgani, tahriri, ko'chirilgani, o'chirilgani) yoziladi; buyurtma sahifasida faqat egasi ko'radi. Mijoz sahifasida uning buyurtmalari ko'rinadi.
+- **Eski manzillar:** 2026-10-18 gacha bo'lim «Vazifalar» edi; `/tasks…` va `/settings/task-types…` manzillari `/orders…` va `/settings/order-types…` ga doimiy yo'naltiriladi (308).
 
-To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/tasks.md`](logic/tasks.md).
+To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/orders.md`](logic/orders.md).
 
 ## Lokatsiyalar
 
-Company'ning filiallari. Har vazifa bitta lokatsiyada turadi; mijozlar, xodimlar, rollar va sozlamalar lokatsiyaga bog'liq emas, company bo'yicha umumiy.
+Company'ning filiallari. Har buyurtma bitta lokatsiyada turadi; mijozlar, xodimlar, rollar va sozlamalar lokatsiyaga bog'liq emas, company bo'yicha umumiy.
 
 | Kim | Qayerda | Nima qiladi |
 |---|---|---|
@@ -185,11 +186,11 @@ Company'ning filiallari. Har vazifa bitta lokatsiyada turadi; mijozlar, xodimlar
 | egasi | user app → **Xodimlar** → xodim varag'i → **Lokatsiyalar** | xodimni ayrim lokatsiyalar bilan cheklaydi yoki cheklovni olib tashlaydi |
 | egasi va xodim | user app → bosh sahifa tepasidagi lokatsiya tugmasi, sidebar pastidagi tanlovchi yoki **Profil → Lokatsiya** | joriy lokatsiyani almashtiradi (2+ ruxsatli lokatsiya bo'lsa) |
 
-- Har company **"Asosiy"** lokatsiya bilan boshlaydi (mavjud company'larning vazifalari unga tushgan); keyingilarini admin qo'shadi. Vazifasi bor lokatsiya va yagona lokatsiya o'chirilmaydi.
-- **Joriy lokatsiya** brauzerda eslanadi (company va user bo'yicha). Vazifalar ro'yxati va kanban joriy lokatsiyaniki, yangi vazifa unga tushadi va keyin o'zgarmaydi. Tanlovchi faqat 2+ ruxsatli lokatsiyada ko'rinadi; 1 ta bo'lsa hech narsa ko'rinmaydi.
-- **Mijoz sahifasi** mijozning hamma ruxsatli lokatsiyadagi vazifalarini ko'rsatadi (2+ lokatsiyada belgisi bilan); vazifa sahifasida "Lokatsiya" fakti.
-- **Mas'ul** vazifa lokatsiyasida ishlaydigan a'zo bo'lishi shart: formada faqat shular taklif qilinadi, API 400 "Mas'ul bu lokatsiyada ishlamaydi".
-- **Xodim cheklovi** faqat egasiniki (rollar kabi): standart holat hammasi; cheklanganda faqat belgilangan lokatsiyalarning vazifalarini ko'radi va qo'shadi, keyingi so'rovdanoq. Boshqa lokatsiyalarda unga biriktirilgan vazifalar qoladi (varaq ogohlantiradi). Ruxsatsiz lokatsiya bilan so'rov 403 `forbidden`; ruxsatsiz lokatsiyadagi vazifa 404. Lokatsiyasi qolmagan xodim "Sizga lokatsiya biriktirilmagan" ko'radi.
+- Har company **"Asosiy"** lokatsiya bilan boshlaydi (mavjud company'larning buyurtmalari unga tushgan); keyingilarini admin qo'shadi. Buyurtmasi bor lokatsiya va yagona lokatsiya o'chirilmaydi.
+- **Joriy lokatsiya** brauzerda eslanadi (company va user bo'yicha). Buyurtmalar ro'yxati va kanban joriy lokatsiyaniki, yangi buyurtma unga tushadi va keyin o'zgarmaydi. Tanlovchi faqat 2+ ruxsatli lokatsiyada ko'rinadi; 1 ta bo'lsa hech narsa ko'rinmaydi.
+- **Mijoz sahifasi** mijozning hamma ruxsatli lokatsiyadagi buyurtmalarini ko'rsatadi (2+ lokatsiyada belgisi bilan); buyurtma sahifasida "Lokatsiya" fakti.
+- **Mas'ul** buyurtma lokatsiyasida ishlaydigan a'zo bo'lishi shart: formada faqat shular taklif qilinadi, API 400 "Mas'ul bu lokatsiyada ishlamaydi".
+- **Xodim cheklovi** faqat egasiniki (rollar kabi): standart holat hammasi; cheklanganda faqat belgilangan lokatsiyalarning buyurtmalarini ko'radi va qo'shadi, keyingi so'rovdanoq. Boshqa lokatsiyalarda unga biriktirilgan buyurtmalar qoladi (varaq ogohlantiradi). Ruxsatsiz lokatsiya bilan so'rov 403 `forbidden`; ruxsatsiz lokatsiyadagi buyurtma 404. Lokatsiyasi qolmagan xodim "Sizga lokatsiya biriktirilmagan" ko'radi.
 
 To'liq qoidalar, chekka holatlar va xato kodlari: [`logic/locations.md`](logic/locations.md).
 

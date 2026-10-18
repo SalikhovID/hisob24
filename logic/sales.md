@@ -83,7 +83,7 @@ Sotuv lokatsiya qoldig'ini kamaytiradi: saqlashda, tahrirda farq bilan, o'chiris
 
 ## 7. O'chirish qoidalari
 
-- Jonli sotuvi, to'lovi yoki boshlang'ich qarz / avansi bor mijoz o'chirilmaydi: 409 `customer_in_use` «Bu mijozda N ta hujjat bor» (vazifa tekshiruvidan keyin; [customers.md](customers.md), 5-bo'lim).
+- Jonli sotuvi, to'lovi yoki boshlang'ich qarz / avansi bor mijoz o'chirilmaydi: 409 `customer_in_use` «Bu mijozda N ta hujjat bor» (buyurtma tekshiruvidan keyin; [customers.md](customers.md), 5-bo'lim).
 - Jonli sotuv qatorida bor mahsulot yoki xizmat o'chirilmaydi: 409 `product_in_use` «Bu mahsulot N ta hujjatda bor» ([products.md](products.md)).
 
 ## 8. Chekka holatlar

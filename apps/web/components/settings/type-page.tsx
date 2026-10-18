@@ -51,7 +51,7 @@ const words = {
 type Sheet = { add: true } | { edit: Field } | { removeField: Field } | { rename: true } | { removeType: true }
 
 // TypePage is one type of the owner's company, a customer type or an order
-// type (logic/customers.md, logic/tasks.md), for whoever may see the
+// type (logic/customers.md, logic/orders.md), for whoever may see the
 // settings, as the prototype's page: its fields in their order, each a row
 // by name with its marks (the customer's name, required, unique) and its
 // kind under it, opening its sheet (settings.edit: the name and the marks;

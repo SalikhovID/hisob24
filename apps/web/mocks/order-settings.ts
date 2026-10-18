@@ -1,6 +1,6 @@
 // The order settings of the mock API: the stages (the columns of the board)
 // and the order types with their fields, under the Go API's rules
-// (logic/tasks.md; backend/internal/order).
+// (logic/orders.md; backend/internal/order).
 import { http, HttpResponse } from "msw"
 import type { CustomerFieldKind, StageColor } from "@/lib/types"
 import {

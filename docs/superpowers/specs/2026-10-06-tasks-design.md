@@ -2,6 +2,8 @@
 
 Sana: 2026-10-06. Holat: foydalanuvchi tasdiqlagan (reja tasdig'i va `/interview` bilan); amalga oshirilmoqda. Qoidalar: `logic/tasks.md`. Har bosqichga alohida reja: `docs/superpowers/plans/2026-10-06-tasks-stage<N>-*.md`.
 
+> **2026-10-18 dan bo'lim «Buyurtmalar» deb ataladi:** `2026-10-18-orders-rename-design.md`. Qoidalar `logic/orders.md` da; kodda `task` o'rnida `order` (jadvallar `orders`, `order_*`; API `/app/orders`, ruxsatlar `orders.*`; sahifalar `/orders`, `/settings/order-types`). Bu hujjatdagi nomlar o'sha paytniki.
+
 ## Maqsad
 
 Foydalanuvchining so'zlari: "tasklar bo'limini qilish kerak, sozlamalarda column lar yaratib olinadi, va tasklar qo'shiladi, tasklarni type bo'ladi va huddi client kabi type'lar yaratilinadi va type larga input turlari biriktiriladi, title, deadline va client biriktirish majburiy bo'ladi va bu o'zgarmaydigan inputlar bo'ladi … client phone number yozayotganda bazada bor client bo'lsa … recomendatsiyalar … bor clientni tanlasa … inputlar disabled … task view, list va list sahifasida kanban".

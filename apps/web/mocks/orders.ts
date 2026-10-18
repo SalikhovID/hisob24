@@ -1,4 +1,4 @@
-// The orders of the mock API, under the Go API's rules (logic/tasks.md;
+// The orders of the mock API, under the Go API's rules (logic/orders.md;
 // backend/internal/order).
 import { http, HttpResponse } from "msw"
 import { formatDate } from "@/lib/format"

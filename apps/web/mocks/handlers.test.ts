@@ -1010,7 +1010,7 @@ test("every member reads the company's members, the owner first; managing them s
   expect(await failure(call(api.GET("/app/members")))).toMatchObject({ status: 403, code: "company_required" })
 })
 
-// The orders (logic/tasks.md; backend/internal/app/orders_test.go).
+// The orders (logic/orders.md; backend/internal/app/orders_test.go).
 type OrderCreate = components["schemas"]["OrderCreate"]
 type OrderUpdate = components["schemas"]["OrderUpdate"]
 type OrderQuery = {

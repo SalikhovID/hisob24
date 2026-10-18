@@ -29,7 +29,7 @@ Hamma narsa kompaniyaga tegishli; kompaniya so'rovdan emas, access token'dan oli
 - **Raqam** har kompaniyada har tur bo'yicha 1 dan ketma-ket (`number`, `UNIQUE (company_id, kind, number)`), yozuv paytida beriladi, o'chirilganniki bo'shamaydi, o'zgarmaydi. Sarlavhada: «Xarid № 12», «Ko'chirish № 2», «Inventarizatsiya № 1», «Boshlang'ich qoldiq № 1»; to'lov va boshlang'ich qarz / avans raqami ko'rsatilmaydi.
 - **Vaqt** (`at`): sana va vaqt, formada standart hozir, har qanday vaqt (o'tgan ham, kelgusi ham). Bazada UTC, ko'rsatish va kun filtrlari userning timezone'i bilan (standart Asia/Tashkent, +5; [user.md](user.md)). Ro'yxatlar yangi birinchi (`at`, keyin `id`).
 - **Valyuta va kurs**: [currencies.md](currencies.md). Qatorlar va jami hujjat valyutasida; so'mdagi qiymat hujjat kurs qatori bilan.
-- **Yozuv** bitta tranzaksiyada, kompaniya qulfi ostida (mijoz, vazifa, katalog yozuvlari bilan bir navbat): raqam, qoldiq va balanslar poygasiz. Hammasi yoziladi yoki hech biri.
+- **Yozuv** bitta tranzaksiyada, kompaniya qulfi ostida (mijoz, buyurtma, katalog yozuvlari bilan bir navbat): raqam, qoldiq va balanslar poygasiz. Hammasi yoziladi yoki hech biri.
 - **Tahrir**: raqam va lokatsiya o'zgarmaydi; qatorlar va to'lovlar yuborilganiga butunlay almashadi; harakatlar qayta yoziladi. Ikki kishi bir vaqtda tahrirlasa, oxirgi saqlagan qoladi. Tarix yo'q.
 - **O'chirish** yashirish (`deleted_at`): hujjat harakatlari o'chiriladi (qoldiq qaytadi), bog'langan to'lovlari yashirinadi, qatorlari qoladi, raqam bo'shamaydi. Tiklash yo'q.
 - **Kim qo'shgani** saqlanadi (mijozlardagi kabi).
@@ -170,7 +170,7 @@ Qatorlar o'z tartibida tekshiriladi; «X» mahsulot nomi.
 
 - Xarid, boshlang'ich qoldiq va inventarizatsiya joriy lokatsiyaga tushadi, ko'chirish joriy lokatsiyadan chiqadi; keyin o'zgarmaydi. Ro'yxatlar joriy lokatsiyaniki (ko'chirishda maqsad ham); ta'minotchi va mahsulot sahifalaridagi hujjatlar a'zoga ruxsatli hamma lokatsiyaniki (2+ da lokatsiya belgisi).
 - Cheklangan xodim boshqa lokatsiyaning hujjatlarini ko'rmaydi (ro'yxatda yo'q, ID bo'yicha 404) va u yerga hujjat kirita olmaydi (403); maqsadi uning lokatsiyasi bo'lgan ko'chirishni ko'radi, tahrirlay olmaydi; balans esa kompaniya bo'yicha to'liq ko'rinadi.
-- Admin jonli hujjati bor lokatsiyani o'chira olmaydi: 409 `location_in_use` «Bu lokatsiyada N ta hujjat bor» (vazifa tekshiruvidan keyin; ko'chirishda manba yoki maqsad). Hujjatlari o'chirilgan lokatsiya o'chiriladi.
+- Admin jonli hujjati bor lokatsiyani o'chira olmaydi: 409 `location_in_use` «Bu lokatsiyada N ta hujjat bor» (buyurtma tekshiruvidan keyin; ko'chirishda manba yoki maqsad). Hujjatlari o'chirilgan lokatsiya o'chiriladi.
 - Ta'minotchilar va akkauntlar lokatsiyaga bog'liq emas.
 
 ## 8. Chekka holatlar

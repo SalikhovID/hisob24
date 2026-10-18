@@ -372,7 +372,7 @@ test("two changes of one name in an entry are both shown", async () => {
   errors.mockRestore()
 })
 
-// The customer's orders, on its page (logic/tasks.md, 6).
+// The customer's orders, on its page (logic/orders.md, 6).
 const ordersOf = () => screen.findByRole("region", { name: "Buyurtmalar" })
 
 test("a customer's page lists its orders, the one due soonest first, with their stage and deadline, and says how many", async () => {

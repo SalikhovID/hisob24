@@ -1,6 +1,6 @@
 // Package order runs a company's orders and what its owner sets up for them:
 // the stages (the columns of the board) and the order types with their fields
-// (logic/tasks.md).
+// (logic/orders.md).
 package order
 
 import (

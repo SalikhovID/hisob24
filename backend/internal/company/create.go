@@ -53,7 +53,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput, adminID int64) (Co
 			return err
 		}
 		// Every company starts with the ready customer types (logic/customers.md)
-		// and the ready order stages and type (logic/tasks.md).
+		// and the ready order stages and type (logic/orders.md).
 		if err := q.SeedCustomerTypes(ctx, c.ID); err != nil {
 			return err
 		}
