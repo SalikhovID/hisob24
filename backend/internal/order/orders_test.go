@@ -171,8 +171,9 @@ func TestCreate(t *testing.T) {
 		Customer:      Customer{ID: sh.ali.ID, Phone: "998901234567", Name: ptr("Ali Valiyev")},
 		Assignee:      &Member{Phone: staff, Name: ptr("Xurshid Xodim")},
 		Values:        fields.Values{sh.izoh.ID: "Ertalab", sh.summa.ID: int64(45000), sh.kanal.ID: []int64{sh.instagram.ID, sh.linkedin.ID}},
+		Amount:        "0.00", CurrencyID: 1, Rate: "1.0000", AmountUZS: "0.00", Paid: "0.00",
 		CreatedByName: ptr("Xurshid Xodim"), CreatedAt: order.CreatedAt, UpdatedAt: order.UpdatedAt,
-	}, order, "the order as it was entered: the title trimmed, the assignee's phone as kept, the options in their order")
+	}, order, "the order as it was entered: the title trimmed, the assignee's phone as kept, the options in their order; no money")
 	assert.Equal(t, order.CreatedAt, order.UpdatedAt)
 	got, err := s.Get(ctx, sh.scope(), order.ID)
 	require.NoError(t, err)

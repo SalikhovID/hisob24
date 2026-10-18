@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
+	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
 
 // maxTitle is how long an order's title may be, in characters.
@@ -67,6 +68,20 @@ func diffHead(was, now head) []fields.Change {
 	}
 	if was.Assignee != now.Assignee {
 		changes = append(changes, fields.Change{Label: "Mas'ul", Old: was.Assignee, New: now.Assignee})
+	}
+	return changes
+}
+
+// diffMoney tells what an edit changed in an order's money, after the
+// fields: the price and the lines, as the history writes them
+// (logic/orders.md, section 7).
+func diffMoney(was, now warehouse.OrderMoney) []fields.Change {
+	var changes []fields.Change
+	if was.PriceText() != now.PriceText() {
+		changes = append(changes, fields.Change{Label: "Narx", Old: was.PriceText(), New: now.PriceText()})
+	}
+	if was.LinesText() != now.LinesText() {
+		changes = append(changes, fields.Change{Label: "Mahsulotlar", Old: was.LinesText(), New: now.LinesText()})
 	}
 	return changes
 }

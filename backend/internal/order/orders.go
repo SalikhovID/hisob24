@@ -8,12 +8,16 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
+	"github.com/SalikhovID/hisob24/backend/internal/numtext"
 	"github.com/SalikhovID/hisob24/backend/internal/user"
+	"github.com/SalikhovID/hisob24/backend/internal/warehouse"
 )
 
 var (
@@ -57,11 +61,49 @@ type Order struct {
 	Customer   Customer
 	Assignee   *Member
 	Values     fields.Values
+	// Amount is the order's price in its currency (CurrencyID, by Rate),
+	// AmountUZS the price in so'm, Paid what was paid for the order in its
+	// currency; "0.00" in so'm for an order without a document
+	// (logic/orders.md, 4.3).
+	Amount     string
+	CurrencyID int64
+	Rate       string
+	AmountUZS  string
+	Paid       string
 	// CreatedByName is the name the member who entered the order goes by in
 	// the company; nil when they go by none.
 	CreatedByName *string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+// Detail is an order on its own page: with the lines of its document, the
+// payments entered for it and, when asked for, the FIFO cost of its goods
+// in so'm and the profit (logic/orders.md, 4.4).
+type Detail struct {
+	Order
+	Items     []warehouse.OrderLine
+	Payments  []warehouse.OrderPayment
+	CostUZS   *string
+	ProfitUZS *string
+}
+
+// Detail is the order with its lines and its payments, within the scope.
+func (s *Service) Detail(ctx context.Context, scope Scope, id int64) (Detail, error) {
+	return detailOf(ctx, s.q, scope, id)
+}
+
+// detailOf reads the order with its answers and its money, within the scope.
+func detailOf(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Detail, error) {
+	order, err := orderOf(ctx, q, scope, id)
+	if err != nil {
+		return Detail{}, err
+	}
+	money, err := warehouse.ReadOrderMoney(ctx, q, scope.CompanyID, id)
+	if err != nil {
+		return Detail{}, err
+	}
+	return Detail{Order: order, Items: money.Items, Payments: money.Payments}, nil
 }
 
 // Scope is where a member works (logic/locations.md): the company, and the
@@ -91,6 +133,9 @@ type Input struct {
 	StageID       int64
 	AssigneePhone *string
 	Values        map[string]json.RawMessage
+	// Money is the order's price, its lines of goods and (on entry) its
+	// advance (logic/orders.md, 4.3).
+	Money warehouse.OrderMoneyInput
 }
 
 // NewCustomer is a customer entered together with an order: its type, its
@@ -110,10 +155,11 @@ type CustomerInput struct {
 
 // Create enters an order of the company's type for a customer, in a location
 // of the scope, with the answers to the type's fields; a new customer is
-// entered with it, in the same transaction. by is the phone of the member
-// who enters it. What is wrong is told in this order: the title, the
-// deadline, the location, the type, the stage, the assignee, the answers,
-// the customer.
+// entered with it, in the same transaction, and so is the order's money
+// (its price, its goods out of the stock, its advance) as its document. by
+// is the phone of the member who enters it. What is wrong is told in this
+// order: the title, the deadline, the location, the type, the stage, the
+// assignee, the answers, the customer, the money, the stock.
 func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, locationID int64, in Input, cust CustomerInput) (Order, error) {
 	companyID := scope.CompanyID
 	title, err := orderTitle(in.Title)
@@ -175,6 +221,12 @@ func (s *Service) Create(ctx context.Context, scope Scope, by string, typeID, lo
 			OrderID: row.ID, Action: "created", ActorPhone: by, ActorName: name, Changes: []byte("[]"),
 		})
 		if err != nil {
+			return err
+		}
+		// The money last (logic/orders.md, 4.1): the price, the lines out of
+		// the location's stock and the advance, as the order's document.
+		head := warehouse.OrderHead{ID: row.ID, CustomerID: customerID, LocationID: locationID}
+		if _, err := warehouse.WriteOrderDocument(ctx, q, companyID, by, name, head, in.Money, true); err != nil {
 			return err
 		}
 		t, err = orderOf(ctx, q, scope, row.ID)
@@ -398,12 +450,21 @@ func toOrder(row gen.GetOrderRow, values fields.Values) Order {
 		ID: row.ID, TypeID: row.TypeID, StageID: row.StageID, LocationID: row.LocationID, Title: row.Title, Deadline: row.Deadline,
 		Customer:      Customer{ID: row.CustomerID, Phone: row.CustomerPhone, Name: row.CustomerName},
 		Values:        values,
+		Amount:        money(row.Amount), CurrencyID: row.CurrencyID, Rate: currency.RateText(row.Rate), AmountUZS: money(row.AmountUzs), Paid: money(row.Paid),
 		CreatedByName: row.CreatedByName, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
 	if row.AssigneePhone != nil {
 		t.Assignee = &Member{Phone: *row.AssigneePhone, Name: row.AssigneeName}
 	}
 	return t
+}
+
+// money is a stored amount as the API shows it, "0.00" for none.
+func money(n pgtype.Numeric) string {
+	if s := numtext.Amount(n); s != nil {
+		return *s
+	}
+	return "0.00"
 }
 
 // Get is the order with its answers, within the scope.
@@ -500,7 +561,9 @@ func (s *Service) List(ctx context.Context, scope Scope, in ListInput) (Page, er
 }
 
 // Update saves the order (within the scope) with another title, deadline,
-// stage, assignee and answers; its type, customer and location stay. The
+// stage, assignee, answers, price and lines (its payments are left alone:
+// they are entered on their own, logic/orders.md, 4.3); its type, customer
+// and location stay. The
 // assignee it has stays as they are, a member no more too; another one has
 // to be a member who works in the order's location. by is the phone of the
 // member who edits it.
@@ -540,6 +603,20 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, 
 		if err != nil {
 			return err
 		}
+		// The money after the order's own fields (logic/orders.md, 4.1): the
+		// document is saved anew, its payments left alone.
+		wasMoney, err := warehouse.ReadOrderMoney(ctx, q, companyID, id)
+		if err != nil {
+			return err
+		}
+		name, err := memberName(ctx, q, companyID, by)
+		if err != nil {
+			return err
+		}
+		nowMoney, err := warehouse.WriteOrderDocument(ctx, q, companyID, by, name, warehouse.OrderHead{ID: id, CustomerID: was.Customer.ID, LocationID: was.LocationID}, in.Money, false)
+		if err != nil {
+			return err
+		}
 		wasStage, err := stageName(ctx, q, companyID, was.StageID)
 		if err != nil {
 			return err
@@ -553,6 +630,7 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, by string, 
 			head{Title: title, Deadline: deadline, Stage: stage.Name, Assignee: nameOf(who.name)},
 		)
 		changed = append(changed, fields.DiffValues(form, options, was.Values, values)...)
+		changed = append(changed, diffMoney(wasMoney, nowMoney)...)
 		if len(changed) == 0 {
 			// Nothing to save, and nothing for the history.
 			t = was
@@ -639,7 +717,8 @@ func (s *Service) Move(ctx context.Context, scope Scope, id int64, by string, st
 	return t, nil
 }
 
-// Delete hides the order (within the scope): it is gone from the app, and
+// Delete hides the order (within the scope) and its document (its goods
+// come back to the stock, its payments go): it is gone from the app, and
 // nothing is removed. by is the phone of the member who deletes it.
 func (s *Service) Delete(ctx context.Context, scope Scope, id int64, by string) error {
 	companyID := scope.CompanyID
@@ -649,6 +728,9 @@ func (s *Service) Delete(ctx context.Context, scope Scope, id int64, by string) 
 			return errOrderNotFound
 		}
 		if err != nil {
+			return err
+		}
+		if err := warehouse.DeleteOrderDocument(ctx, q, companyID, id); err != nil {
 			return err
 		}
 		return s.record(ctx, q, companyID, id, "deleted", by, nil)
