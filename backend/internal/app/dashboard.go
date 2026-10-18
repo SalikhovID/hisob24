@@ -11,11 +11,12 @@ import (
 
 // dashboardJSON is the home's blocks; one the member may not see is null.
 type dashboardJSON struct {
-	Suppliers *dashboardSuppliersJSON `json:"suppliers"`
-	Customers *dashboardCustomersJSON `json:"customers"`
-	Orders    *dashboardOrdersJSON    `json:"orders"`
-	Purchases *dashboardMoneyJSON     `json:"purchases"`
-	Sales     *dashboardMoneyJSON     `json:"sales"`
+	Suppliers   *dashboardSuppliersJSON `json:"suppliers"`
+	Customers   *dashboardCustomersJSON `json:"customers"`
+	Orders      *dashboardOrdersJSON    `json:"orders"`
+	Purchases   *dashboardMoneyJSON     `json:"purchases"`
+	Sales       *dashboardMoneyJSON     `json:"sales"`
+	OrdersMoney *dashboardMoneyJSON     `json:"orders_money"`
 }
 
 type dashboardSuppliersJSON struct {
@@ -112,6 +113,6 @@ func toDashboardJSON(d dashboard.Dashboard) dashboardJSON {
 		}
 		return &dashboardMoneyJSON{MonthTotal: m.MonthTotal, MonthCount: m.MonthCount, ByDay: m.ByDay}
 	}
-	out.Purchases, out.Sales = money(d.Purchases), money(d.Sales)
+	out.Purchases, out.Sales, out.OrdersMoney = money(d.Purchases), money(d.Sales), money(d.OrdersMoney)
 	return out
 }

@@ -77,7 +77,7 @@ func TestWriteOrderDocumentWhenNeeded(t *testing.T) {
 	assert.Equal(t, OrderMoney{Amount: "0.00", CurrencyID: 1, Rate: "1.0000", AmountUZS: "0.00", Paid: "0.00", Items: []OrderLine{}, Payments: []OrderPayment{}}, money, "nothing to write: no document")
 	assert.Empty(t, documentsOf(t, pool, order.ID))
 	assert.Equal(t, money, readMoney(t, s, m.company, order.ID))
-	money, err = write(t, s, m, order, OrderMoneyInput{Amount: ptr("0")}, true)
+	_, err = write(t, s, m, order, OrderMoneyInput{Amount: ptr("0")}, true)
 	require.NoError(t, err)
 	assert.Empty(t, documentsOf(t, pool, order.ID), "a price of nothing is no price")
 
@@ -176,22 +176,22 @@ func TestWriteOrderDocumentRefusals(t *testing.T) {
 		code    string
 		message string
 	}{
-		"a bad price":           {OrderMoneyInput{Amount: ptr("5 000")}, apperr.Invalid, "validation_error", "Narx noto'g'ri"},
-		"a price below zero":    {OrderMoneyInput{Amount: ptr("-1")}, apperr.Invalid, "validation_error", "Narx noto'g'ri"},
-		"a currency not on":     {OrderMoneyInput{Amount: ptr("1"), CurrencyID: ptr(int64(3))}, apperr.Invalid, "currency_not_allowed", "Bu valyuta kompaniyada yoqilmagan"},
-		"a currency with no rate": {OrderMoneyInput{Amount: ptr("1"), CurrencyID: ptr(int64(2))}, apperr.Invalid, "validation_error", "Kursni kiriting"},
-		"a bad rate":            {OrderMoneyInput{Amount: ptr("1"), CurrencyID: ptr(int64(2)), Rate: ptr("abc")}, apperr.Invalid, "validation_error", "Kurs noto'g'ri"},
-		"a line of no product":  {OrderMoneyInput{Items: []ItemInput{move(0, "1")}}, apperr.Invalid, "validation_error", "Mahsulotni tanlang"},
-		"another's product":     {OrderMoneyInput{Items: []ItemInput{move(foreign, "1")}}, apperr.Invalid, "validation_error", "Mahsulotni tanlang"},
-		"a product turned off":  {OrderMoneyInput{Items: []ItemInput{move(off, "1")}}, apperr.Invalid, "validation_error", "Mahsulot nofaol"},
-		"a product twice":       {OrderMoneyInput{Items: []ItemInput{move(m.olma, "1"), move(m.olma, "2")}}, apperr.Invalid, "validation_error", "«Olma» ikki marta kiritilgan"},
-		"a bad quantity":        {OrderMoneyInput{Items: []ItemInput{move(m.olma, "0")}}, apperr.Invalid, "validation_error", "«Olma» miqdori noto'g'ri"},
-		"an advance of nothing": {OrderMoneyInput{Payments: []ledger.PaymentLine{pay(m.cash, "0")}}, apperr.Invalid, "validation_error", "To'lov summasi noto'g'ri"},
-		"an advance of nowhere": {OrderMoneyInput{Payments: []ledger.PaymentLine{{Amount: ptr("1")}}}, apperr.Invalid, "validation_error", "Akkauntni tanlang"},
-		"the price before the lines": {OrderMoneyInput{Amount: ptr("x"), Items: []ItemInput{move(0, "1")}}, apperr.Invalid, "validation_error", "Narx noto'g'ri"},
+		"a bad price":                  {OrderMoneyInput{Amount: ptr("5 000")}, apperr.Invalid, "validation_error", "Narx noto'g'ri"},
+		"a price below zero":           {OrderMoneyInput{Amount: ptr("-1")}, apperr.Invalid, "validation_error", "Narx noto'g'ri"},
+		"a currency not on":            {OrderMoneyInput{Amount: ptr("1"), CurrencyID: ptr(int64(3))}, apperr.Invalid, "currency_not_allowed", "Bu valyuta kompaniyada yoqilmagan"},
+		"a currency with no rate":      {OrderMoneyInput{Amount: ptr("1"), CurrencyID: ptr(int64(2))}, apperr.Invalid, "validation_error", "Kursni kiriting"},
+		"a bad rate":                   {OrderMoneyInput{Amount: ptr("1"), CurrencyID: ptr(int64(2)), Rate: ptr("abc")}, apperr.Invalid, "validation_error", "Kurs noto'g'ri"},
+		"a line of no product":         {OrderMoneyInput{Items: []ItemInput{move(0, "1")}}, apperr.Invalid, "validation_error", "Mahsulotni tanlang"},
+		"another's product":            {OrderMoneyInput{Items: []ItemInput{move(foreign, "1")}}, apperr.Invalid, "validation_error", "Mahsulotni tanlang"},
+		"a product turned off":         {OrderMoneyInput{Items: []ItemInput{move(off, "1")}}, apperr.Invalid, "validation_error", "Mahsulot nofaol"},
+		"a product twice":              {OrderMoneyInput{Items: []ItemInput{move(m.olma, "1"), move(m.olma, "2")}}, apperr.Invalid, "validation_error", "«Olma» ikki marta kiritilgan"},
+		"a bad quantity":               {OrderMoneyInput{Items: []ItemInput{move(m.olma, "0")}}, apperr.Invalid, "validation_error", "«Olma» miqdori noto'g'ri"},
+		"an advance of nothing":        {OrderMoneyInput{Payments: []ledger.PaymentLine{pay(m.cash, "0")}}, apperr.Invalid, "validation_error", "To'lov summasi noto'g'ri"},
+		"an advance of nowhere":        {OrderMoneyInput{Payments: []ledger.PaymentLine{{Amount: ptr("1")}}}, apperr.Invalid, "validation_error", "Akkauntni tanlang"},
+		"the price before the lines":   {OrderMoneyInput{Amount: ptr("x"), Items: []ItemInput{move(0, "1")}}, apperr.Invalid, "validation_error", "Narx noto'g'ri"},
 		"the lines before the advance": {OrderMoneyInput{Items: []ItemInput{move(0, "1")}, Payments: []ledger.PaymentLine{pay(m.cash, "0")}}, apperr.Invalid, "validation_error", "Mahsulotni tanlang"},
 		"the advance before the stock": {OrderMoneyInput{Items: []ItemInput{move(m.olma, "11")}, Payments: []ledger.PaymentLine{pay(m.cash, "0")}}, apperr.Invalid, "validation_error", "To'lov summasi noto'g'ri"},
-		"more than the stock":   {OrderMoneyInput{Items: []ItemInput{move(m.olma, "11")}}, apperr.Conflict, "stock_insufficient", "«Olma» uchun omborda yetarli qoldiq yo'q"},
+		"more than the stock":          {OrderMoneyInput{Items: []ItemInput{move(m.olma, "11")}}, apperr.Conflict, "stock_insufficient", "«Olma» uchun omborda yetarli qoldiq yo'q"},
 	} {
 		turnOn(t, pool, m.company, 2)
 		_, err := write(t, s, m, order, tc.in, true)
@@ -271,11 +271,11 @@ func TestOrderMoneyTexts(t *testing.T) {
 		price string
 		lines string
 	}{
-		"so'm":      {OrderMoney{Amount: "1200000.00", CurrencyID: 1}, "1 200 000 so'm", ""},
-		"dollars":   {OrderMoney{Amount: "5000.00", CurrencyID: 2}, "5 000 $", ""},
-		"decimals":  {OrderMoney{Amount: "12.50", CurrencyID: 2}, "12,5 $", ""},
-		"no price":  {OrderMoney{Amount: "0.00", CurrencyID: 1}, "", ""},
-		"lines":     {OrderMoney{Amount: "0.00", CurrencyID: 1, Items: []OrderLine{{Name: "Kabel", Unit: ptr("m"), Quantity: "2.000"}, {Name: "Montaj", Quantity: "1.000"}, {Name: "Olma", Unit: ptr("kg"), Quantity: "1.500"}}}, "", "Kabel × 2 m, Montaj × 1, Olma × 1,5 kg"},
+		"so'm":     {OrderMoney{Amount: "1200000.00", CurrencyID: 1}, "1 200 000 so'm", ""},
+		"dollars":  {OrderMoney{Amount: "5000.00", CurrencyID: 2}, "5 000 $", ""},
+		"decimals": {OrderMoney{Amount: "12.50", CurrencyID: 2}, "12,5 $", ""},
+		"no price": {OrderMoney{Amount: "0.00", CurrencyID: 1}, "", ""},
+		"lines":    {OrderMoney{Amount: "0.00", CurrencyID: 1, Items: []OrderLine{{Name: "Kabel", Unit: ptr("m"), Quantity: "2.000"}, {Name: "Montaj", Quantity: "1.000"}, {Name: "Olma", Unit: ptr("kg"), Quantity: "1.500"}}}, "", "Kabel × 2 m, Montaj × 1, Olma × 1,5 kg"},
 	} {
 		assert.Equal(t, tc.price, tc.money.PriceText(), name)
 		assert.Equal(t, tc.lines, tc.money.LinesText(), name)

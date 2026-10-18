@@ -77,6 +77,7 @@ type doc struct {
 	kind                                  string
 	at                                    string
 	location, supplier, customer, account int64
+	order                                 int64
 	currency, rate                        int64
 	total                                 string
 	deleted                               bool
@@ -100,10 +101,10 @@ func (s shop) add(t *testing.T, pool *pgxpool.Pool, d doc) int64 {
 	}
 	var id int64
 	require.NoError(t, pool.QueryRow(t.Context(), `
-		INSERT INTO transactions (company_id, kind, number, doc_at, location_id, supplier_id, customer_id, bank_account_id, currency_id, currency_rate_id, total, created_by, deleted_at)
-		VALUES ($1, $2, (SELECT COALESCE(max(number), 0) + 1 FROM transactions WHERE company_id = $1 AND kind = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, CASE WHEN $12 THEN now() END)
+		INSERT INTO transactions (company_id, kind, number, doc_at, location_id, supplier_id, customer_id, bank_account_id, currency_id, currency_rate_id, total, created_by, deleted_at, order_id)
+		VALUES ($1, $2, (SELECT COALESCE(max(number), 0) + 1 FROM transactions WHERE company_id = $1 AND kind = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, CASE WHEN $12 THEN now() END, $13)
 		RETURNING id`,
-		s.company, d.kind, d.at, none(d.location), none(d.supplier), none(d.customer), none(d.account), d.currency, d.rate, d.total, ali, d.deleted).Scan(&id))
+		s.company, d.kind, d.at, none(d.location), none(d.supplier), none(d.customer), none(d.account), d.currency, d.rate, d.total, ali, d.deleted, none(d.order)).Scan(&id))
 	return id
 }
 
@@ -217,12 +218,51 @@ func addStages(t *testing.T, pool *pgxpool.Pool, companyID int64) stages {
 
 // addOrder enters an order of the company in the stage and the location, due
 // on the day, for the customer; deleted hides it.
-func addOrder(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, title, deadline string, deleted bool) {
+func addOrder(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stageID, locationID, customerID int64, title, deadline string, deleted bool) int64 {
 	t.Helper()
-	_, err := pool.Exec(t.Context(),
-		"INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END)",
-		companyID, st.buyurtma, stageID, customerID, locationID, title, deadline, ali, deleted)
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO orders (company_id, type_id, stage_id, customer_id, location_id, title, deadline, created_by, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $9 THEN now() END) RETURNING id",
+		companyID, st.buyurtma, stageID, customerID, locationID, title, deadline, ali, deleted).Scan(&id))
+	return id
+}
+
+// The month's priced orders: their documents' prices in so'm, by each
+// day's end, for whoever sees the orders; one priced at nothing, a hidden
+// document and another company's are out.
+func TestOrdersMoney(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, pool, "Olma")
+	st := addStages(t, pool, sh.company)
+	ali := addCustomer(t, pool, sh.company, "998901234567", "2026-10-01T10:00:00+05:00", false)
+	priced := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Montaj", "2026-10-20", false)
+	free := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Yetkazish", "2026-10-20", false)
+	gone := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Eski", "2026-10-20", true)
+	elsewhere := addOrder(t, pool, sh.company, st, st.yangi, sh.chilonzor, ali, "Ta'mir", "2026-10-20", false)
+	dollars := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "Import", "2026-10-20", false)
+	sh.add(t, pool, doc{kind: "order", at: "2026-10-02T10:00:00+05:00", location: sh.asosiy, customer: ali, order: priced, total: "5000"})
+	sh.add(t, pool, doc{kind: "order", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, customer: ali, order: free, total: "0"})
+	sh.add(t, pool, doc{kind: "order", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, customer: ali, order: gone, total: "999", deleted: true})
+	sh.add(t, pool, doc{kind: "order", at: "2026-10-04T10:00:00+05:00", location: sh.chilonzor, customer: ali, order: elsewhere, total: "1000"})
+	// 10 $ by the standard rate: 128 000.
+	sh.add(t, pool, doc{kind: "order", at: "2026-10-05T10:00:00+05:00", location: sh.asosiy, customer: ali, order: dollars, currency: 2, total: "10"})
+
+	got, err := s.Get(ctx, sh.scope(), input(access.OrdersView))
+
 	require.NoError(t, err)
+	assert.Equal(t, &Money{
+		MonthTotal: "134000.00", MonthCount: 3,
+		ByDay: append([]string{"0.00", "5000.00", "5000.00", "6000.00"}, repeat("134000.00", 9)...),
+	}, got.OrdersMoney, "the priced orders, in so'm, by each day's end")
+	in := input(access.OrdersView)
+	in.LocationID = sh.asosiy
+	one, err := s.Get(ctx, sh.scope(), in)
+	require.NoError(t, err)
+	assert.Equal(t, "133000.00", one.OrdersMoney.MonthTotal, "one location's")
+	none, err := s.Get(ctx, sh.scope(), input(access.SalesView))
+	require.NoError(t, err)
+	assert.Nil(t, none.OrdersMoney, "without orders.view")
 }
 
 func TestOrders(t *testing.T) {
@@ -348,5 +388,6 @@ func TestEachBlockIsItsPermissions(t *testing.T) {
 		assert.Equal(t, tc.orders, got.Orders != nil, about+": orders")
 		assert.Equal(t, tc.purchases, got.Purchases != nil, about+": purchases")
 		assert.Equal(t, tc.sales, got.Sales != nil, about+": sales")
+		assert.Equal(t, tc.orders, got.OrdersMoney != nil, about+": the orders' money goes with the orders")
 	}
 }

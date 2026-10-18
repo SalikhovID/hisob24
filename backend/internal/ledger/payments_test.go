@@ -114,4 +114,3 @@ func TestWriteLinkedPaymentsOfAnOrderAreTheCustomers(t *testing.T) {
 	assert.Equal(t, customer, paidBy)
 	assert.Equal(t, document.ID, linked)
 }
-

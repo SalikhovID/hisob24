@@ -53,6 +53,9 @@ type Dashboard struct {
 	Orders    *Orders
 	Purchases *Money
 	Sales     *Money
+	// OrdersMoney is the month's priced orders (their documents), for
+	// whoever sees the orders (logic/orders.md, 4.3).
+	OrdersMoney *Money
 }
 
 // Suppliers is what the company's suppliers are owed, in so'm, each
@@ -85,7 +88,7 @@ type Orders struct {
 	Upcoming []order.Order
 }
 
-// Money is a kind of goods documents (the purchases, the sales) of the
+// Money is a kind of documents (the purchases, the sales, the priced orders) of the
 // location (or of every one of the scope) this month up to today: their
 // total in so'm, each by its own rate row, how many, and the total by the
 // end of each day of the month (the member's days).
@@ -150,7 +153,7 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 		permission access.Permission
 		kind       string
 		into       **Money
-	}{{access.PurchasesView, "purchase", &d.Purchases}, {access.SalesView, "sale", &d.Sales}} {
+	}{{access.PurchasesView, "purchase", &d.Purchases}, {access.SalesView, "sale", &d.Sales}, {access.OrdersView, "order", &d.OrdersMoney}} {
 		if !in.Permissions.Has(block.permission) {
 			continue
 		}

@@ -107,3 +107,7 @@ func Grouped(s string) string {
 	}
 	return sign + grouped.String() + "," + decimals
 }
+
+// Rat is the stored number as a rational, nil when it is none or not
+// finite: what the costing counts with.
+func Rat(n pgtype.Numeric) *big.Rat { return ratOf(n) }

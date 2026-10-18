@@ -57,6 +57,7 @@ func TestDashboard(t *testing.T) {
 	assert.Len(t, purchases["by_day"], days)
 	assert.Equal(t, "25000.00", purchases["by_day"].([]any)[days-1])
 	assert.Equal(t, map[string]any{"month_total": "0.00", "month_count": float64(0), "by_day": zeros("0.00")}, body["sales"])
+	assert.Equal(t, map[string]any{"month_total": "0.00", "month_count": float64(0), "by_day": zeros("0.00")}, body["orders_money"], "the priced orders of the month")
 
 	rec = api.do(t, http.MethodGet, "/app/dashboard?location_id="+strconv.FormatInt(asosiy, 10), "", bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
@@ -78,6 +79,7 @@ func TestDashboard(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	body = decode(t, rec)
 	assert.NotNil(t, body["orders"])
+	assert.NotNil(t, body["orders_money"], "the orders' money goes with the orders")
 	for _, block := range []string{"suppliers", "customers", "purchases", "sales"} {
 		assert.Contains(t, body, block)
 		assert.Nil(t, body[block], block+" is not the role's")

@@ -43,13 +43,15 @@ type OrderMoneyInput struct {
 }
 
 // OrderLine is a line of an order: a product (out of the stock) or a
-// service, and its quantity.
+// service, and its quantity; CostUZS its FIFO cost in so'm when asked
+// for (logic/orders.md, 4.4), nil otherwise.
 type OrderLine struct {
 	ProductID int64
 	Name      string
 	Kind      string
 	Unit      *string
 	Quantity  string
+	CostUZS   *string
 }
 
 // OrderPayment is a payment entered for an order: into an account, in the

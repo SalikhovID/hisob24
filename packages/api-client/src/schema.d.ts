@@ -3879,6 +3879,8 @@ export interface components {
             purchases: components["schemas"]["DashboardMoney"] | null;
             /** @description Sotuvlar; sales.view bo'lganga, aks holda null */
             sales: components["schemas"]["DashboardMoney"] | null;
+            /** @description Shu oyda yaratilgan narxli buyurtmalar (hujjatlari, narxi > 0; logic/orders.md, 4.3); orders.view bo'lganga, aks holda null */
+            orders_money: components["schemas"]["DashboardMoney"] | null;
         };
         /** @description Kompaniyaning jonli ta'minotchilari so'mdagi balanslari (ro'yxatdagi balance): musbatlari yig'indisi va soni, manfiylari yig'indisi musbat son sifatida */
         DashboardSuppliers: {
@@ -3925,7 +3927,7 @@ export interface components {
             /** Format: int64 */
             count: number;
         };
-        /** @description Shu oyning bugungacha jonli hujjatlari (xarid yoki sotuv) */
+        /** @description Shu oyning bugungacha jonli hujjatlari (xarid, sotuv yoki narxli buyurtma) */
         DashboardMoney: {
             /** @description Jami, so'mda, ikki kasr xonasi bilan */
             month_total: string;

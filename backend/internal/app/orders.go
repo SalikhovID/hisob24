@@ -102,7 +102,7 @@ type orderDetailJSON struct {
 func toOrderDetailJSON(d order.Detail) orderDetailJSON {
 	body := orderDetailJSON{orderJSON: toOrderJSON(d.Order), Items: make([]orderLineJSON, 0, len(d.Items)), Payments: make([]orderPaymentJSON, 0, len(d.Payments)), CostUZS: d.CostUZS, ProfitUZS: d.ProfitUZS}
 	for _, l := range d.Items {
-		body.Items = append(body.Items, orderLineJSON{ProductID: l.ProductID, Name: l.Name, Kind: l.Kind, Unit: l.Unit, Quantity: l.Quantity})
+		body.Items = append(body.Items, orderLineJSON{ProductID: l.ProductID, Name: l.Name, Kind: l.Kind, Unit: l.Unit, Quantity: l.Quantity, CostUZS: l.CostUZS})
 	}
 	for _, p := range d.Payments {
 		body.Payments = append(body.Payments, toOrderPaymentJSON(p))
@@ -156,9 +156,10 @@ func (h *Handler) deleteOrderPayment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// detail answers with the order as its page shows it, within the scope.
+// detail answers with the order as its page shows it, within the scope:
+// with the cost of its goods for whoever may see the purchases.
 func (h *Handler) detail(w http.ResponseWriter, r *http.Request, id int64, status int) {
-	d, err := h.orders.Detail(r.Context(), orderScope(r), id)
+	d, err := h.orders.Detail(r.Context(), orderScope(r), id, currentPermissions(r.Context()).Has(access.PurchasesView))
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return

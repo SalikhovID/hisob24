@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"strings"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/catalog"
+	"github.com/SalikhovID/hisob24/backend/internal/costing"
 	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
@@ -78,8 +81,10 @@ type Order struct {
 }
 
 // Detail is an order on its own page: with the lines of its document, the
-// payments entered for it and, when asked for, the FIFO cost of its goods
-// in so'm and the profit (logic/orders.md, 4.4).
+// payments entered for it and, when asked for (withCost), the FIFO cost
+// of its goods in so'm (on each line and in all) and the profit: the
+// price in so'm less the cost, nil for an order priced at nothing
+// (logic/orders.md, 4.4).
 type Detail struct {
 	Order
 	Items     []warehouse.OrderLine
@@ -88,13 +93,15 @@ type Detail struct {
 	ProfitUZS *string
 }
 
-// Detail is the order with its lines and its payments, within the scope.
-func (s *Service) Detail(ctx context.Context, scope Scope, id int64) (Detail, error) {
-	return detailOf(ctx, s.q, scope, id)
+// Detail is the order with its lines and its payments, within the scope,
+// with the cost of its goods when asked for.
+func (s *Service) Detail(ctx context.Context, scope Scope, id int64, withCost bool) (Detail, error) {
+	return detailOf(ctx, s.q, scope, id, withCost)
 }
 
-// detailOf reads the order with its answers and its money, within the scope.
-func detailOf(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Detail, error) {
+// detailOf reads the order with its answers and its money, within the
+// scope, costing its goods when asked.
+func detailOf(ctx context.Context, q *gen.Queries, scope Scope, id int64, withCost bool) (Detail, error) {
 	order, err := orderOf(ctx, q, scope, id)
 	if err != nil {
 		return Detail{}, err
@@ -103,8 +110,38 @@ func detailOf(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Detai
 	if err != nil {
 		return Detail{}, err
 	}
-	return Detail{Order: order, Items: money.Items, Payments: money.Payments}, nil
+	d := Detail{Order: order, Items: money.Items, Payments: money.Payments}
+	if !withCost {
+		return d, nil
+	}
+	var products []int64
+	for _, l := range d.Items {
+		if l.Kind == catalog.KindProduct {
+			products = append(products, l.ProductID)
+		}
+	}
+	costs, err := costing.Lines(ctx, q, scope.CompanyID, money.DocumentID, products)
+	if err != nil {
+		return Detail{}, err
+	}
+	total := new(big.Rat)
+	for i, l := range d.Items {
+		cost := new(big.Rat)
+		if c, ok := costs[l.ProductID]; ok && l.Kind == catalog.KindProduct {
+			cost = c
+		}
+		total.Add(total, cost)
+		d.Items[i].CostUZS = text(cost.FloatString(2))
+	}
+	d.CostUZS = text(total.FloatString(2))
+	if amount, ok := new(big.Rat).SetString(order.AmountUZS); ok && amount.Sign() > 0 {
+		d.ProfitUZS = text(new(big.Rat).Sub(amount, total).FloatString(2))
+	}
+	return d, nil
 }
+
+// text is a string as a nullable field holds it.
+func text(s string) *string { return &s }
 
 // Scope is where a member works (logic/locations.md): the company, and the
 // locations of it they may work in. The orders a member reads, enters and
@@ -448,9 +485,9 @@ func orderOf(ctx context.Context, q *gen.Queries, scope Scope, id int64) (Order,
 func toOrder(row gen.GetOrderRow, values fields.Values) Order {
 	t := Order{
 		ID: row.ID, TypeID: row.TypeID, StageID: row.StageID, LocationID: row.LocationID, Title: row.Title, Deadline: row.Deadline,
-		Customer:      Customer{ID: row.CustomerID, Phone: row.CustomerPhone, Name: row.CustomerName},
-		Values:        values,
-		Amount:        money(row.Amount), CurrencyID: row.CurrencyID, Rate: currency.RateText(row.Rate), AmountUZS: money(row.AmountUzs), Paid: money(row.Paid),
+		Customer: Customer{ID: row.CustomerID, Phone: row.CustomerPhone, Name: row.CustomerName},
+		Values:   values,
+		Amount:   money(row.Amount), CurrencyID: row.CurrencyID, Rate: currency.RateText(row.Rate), AmountUZS: money(row.AmountUzs), Paid: money(row.Paid),
 		CreatedByName: row.CreatedByName, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
 	if row.AssigneePhone != nil {

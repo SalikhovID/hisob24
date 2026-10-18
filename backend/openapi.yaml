@@ -8526,7 +8526,7 @@ components:
             bo'lsa, biriktirilgan paytdagi ismi
     Dashboard:
       type: object
-      required: [suppliers, customers, orders, purchases, sales]
+      required: [suppliers, customers, orders, purchases, sales, orders_money]
       properties:
         suppliers:
           description: purchases.view bo'lganga, aks holda null
@@ -8550,6 +8550,13 @@ components:
             - type: "null"
         sales:
           description: Sotuvlar; sales.view bo'lganga, aks holda null
+          oneOf:
+            - $ref: "#/components/schemas/DashboardMoney"
+            - type: "null"
+        orders_money:
+          description: >
+            Shu oyda yaratilgan narxli buyurtmalar (hujjatlari, narxi > 0;
+            logic/orders.md, 4.3); orders.view bo'lganga, aks holda null
           oneOf:
             - $ref: "#/components/schemas/DashboardMoney"
             - type: "null"
@@ -8622,7 +8629,7 @@ components:
           format: int64
     DashboardMoney:
       type: object
-      description: Shu oyning bugungacha jonli hujjatlari (xarid yoki sotuv)
+      description: Shu oyning bugungacha jonli hujjatlari (xarid, sotuv yoki narxli buyurtma)
       required: [month_total, month_count, by_day]
       properties:
         month_total:

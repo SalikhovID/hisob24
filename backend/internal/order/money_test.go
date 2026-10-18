@@ -91,7 +91,7 @@ func TestCreateWithMoney(t *testing.T) {
 	assert.Equal(t, "1.0000", order.Rate)
 	assert.Equal(t, "5000.00", order.AmountUZS)
 	assert.Equal(t, "400.00", order.Paid)
-	detail, err := s.Detail(ctx, sh.scope(), order.ID)
+	detail, err := s.Detail(ctx, sh.scope(), order.ID, false)
 	require.NoError(t, err)
 	assert.Equal(t, order, detail.Order)
 	assert.Equal(t, []warehouse.OrderLine{{ProductID: sh.olma, Name: "Olma", Kind: "product", Unit: ptr("kg"), Quantity: "2.000"}}, detail.Items)
@@ -206,4 +206,46 @@ func TestDeleteHidesTheDocument(t *testing.T) {
 	assert.Equal(t, "10.000", stockOf(t, pool, sh.asosiy, sh.olma))
 	assert.Empty(t, documentsOf(t, pool, order.ID), "the document and its payment are hidden")
 	assert.Equal(t, 2, count(t, pool, "SELECT count(*) FROM transactions WHERE deleted_at IS NOT NULL"), "not removed")
+}
+
+// The goods of an order are costed by FIFO when asked for (logic/orders.md,
+// 4.4): each product line, all of them, and the profit against the price
+// in so'm; a service costs nothing; not asked for, nothing is told.
+func TestDetailCostsTheGoods(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := stock(t, pool, newShop(t, s, pool, "Olma"))
+	var yetkazish int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO products (company_id, kind, name, created_by) VALUES ($1, 'service', 'Yetkazish', $2) RETURNING id", sh.id, owner).Scan(&yetkazish))
+	in := sh.input(t, "Montaj", "2026-10-10", map[int64]any{sh.izoh.ID: "Ertalab"})
+	in.Money = moneyOf("5000", []warehouse.ItemInput{take(sh.olma, "2"), take(yetkazish, "1")})
+	order, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, in, sh.existing())
+	require.NoError(t, err)
+
+	detail, err := s.Detail(ctx, sh.scope(), order.ID, true)
+
+	require.NoError(t, err)
+	assert.Equal(t, ptr("2000.00"), detail.Items[0].CostUZS, "2 Olma bought at 1 000")
+	assert.Equal(t, ptr("0.00"), detail.Items[1].CostUZS, "a service costs nothing")
+	assert.Equal(t, ptr("2000.00"), detail.CostUZS)
+	assert.Equal(t, ptr("3000.00"), detail.ProfitUZS, "5 000 less the cost")
+	plain, err := s.Detail(ctx, sh.scope(), order.ID, false)
+	require.NoError(t, err)
+	assert.Nil(t, plain.Items[0].CostUZS, "not asked for")
+	assert.Nil(t, plain.CostUZS)
+	assert.Nil(t, plain.ProfitUZS)
+
+	free := sh.input(t, "Yetkazish", "2026-10-11", map[int64]any{sh.izoh.ID: "Kech"})
+	free.Money = moneyOf("", []warehouse.ItemInput{take(sh.nok, "1")})
+	goods, err := s.Create(ctx, sh.scope(), owner, sh.buyurtma.ID, sh.asosiy, free, sh.existing())
+	require.NoError(t, err)
+	detail, err = s.Detail(ctx, sh.scope(), goods.ID, true)
+	require.NoError(t, err)
+	assert.Equal(t, ptr("2000.00"), detail.CostUZS)
+	assert.Nil(t, detail.ProfitUZS, "no price: no profit to tell")
+	bare := mustOrder(t, s, sh.shop, "Qo'ng'iroq", "2026-10-12", map[int64]any{sh.izoh.ID: "X"})
+	detail, err = s.Detail(ctx, sh.scope(), bare.ID, true)
+	require.NoError(t, err)
+	assert.Equal(t, ptr("0.00"), detail.CostUZS, "no goods: nothing")
+	assert.Nil(t, detail.ProfitUZS)
 }
