@@ -32,7 +32,7 @@ func TestDefaultIsEverythingButTheHistoryTheEmployeesAndTheSettings(t *testing.T
 	t.Parallel()
 	assert.Equal(t, []access.Permission{
 		"customers.view", "customers.create", "customers.edit", "customers.delete",
-		"tasks.view", "tasks.create", "tasks.edit", "tasks.delete",
+		"orders.view", "orders.create", "orders.edit", "orders.delete",
 		"products.view", "products.create", "products.edit", "products.delete",
 		"suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete",
 		"purchases.view", "purchases.create", "purchases.edit", "purchases.delete",
@@ -50,10 +50,10 @@ func TestParse(t *testing.T) {
 		err  string
 	}{
 		"a section with its view":              {[]string{"customers.view", "customers.create"}, []access.Permission{"customers.view", "customers.create"}, ""},
-		"in the catalog's order, once each":    {[]string{"tasks.view", "customers.view", "customers.view"}, []access.Permission{"customers.view", "tasks.view"}, ""},
+		"in the catalog's order, once each":    {[]string{"orders.view", "customers.view", "customers.view"}, []access.Permission{"customers.view", "orders.view"}, ""},
 		"nothing":                              {[]string{}, []access.Permission{}, ""},
 		"an action without the view":           {[]string{"customers.create"}, nil, "«Mijozlar» bo'limida avval «Ko'rish» ni belgilang"},
-		"the first section at fault":           {[]string{"settings.delete", "settings.view", "tasks.edit"}, nil, "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang"},
+		"the first section at fault":           {[]string{"settings.delete", "settings.view", "orders.edit"}, nil, "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang"},
 		"not in the catalog":                   {[]string{"customers.fly"}, nil, "Ruxsat noto'g'ri"},
 		"the owner's rights are no permission": {[]string{"roles.manage"}, nil, "Ruxsat noto'g'ri"},
 		"a warehouse action without the view":  {[]string{"purchases.create"}, nil, "«Xaridlar» bo'limida avval «Ko'rish» ni belgilang"},
@@ -82,12 +82,12 @@ func TestEffective(t *testing.T) {
 	t.Parallel()
 	assert.Equal(t, access.NewSet(access.All), access.Effective("owner", false, nil), "the owner has everything")
 	assert.Equal(t, access.NewSet(access.Default), access.Effective("user", false, nil), "a user with no role has the default")
-	withRole := access.Effective("user", true, []string{"tasks.view"})
+	withRole := access.Effective("user", true, []string{"orders.view"})
 	assert.True(t, withRole.Has(access.OrdersView))
 	assert.False(t, withRole.Has(access.CustomersView), "only what the role holds")
 	assert.Equal(t, []access.Permission{access.OrdersView}, withRole.List())
 	assert.Empty(t, access.Effective("user", true, []string{}).List(), "a role with nothing")
-	assert.Equal(t, access.NewSet(access.All), access.Effective("owner", true, []string{"tasks.view"}), "the owner's rights do not depend on a role")
+	assert.Equal(t, access.NewSet(access.All), access.Effective("owner", true, []string{"orders.view"}), "the owner's rights do not depend on a role")
 }
 
 func TestSetListsInTheCatalogsOrder(t *testing.T) {

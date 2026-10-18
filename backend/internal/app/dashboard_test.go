@@ -70,7 +70,7 @@ func TestDashboard(t *testing.T) {
 	assert.JSONEq(t, `{"error":"forbidden","message":"Bu amal uchun ruxsatingiz yo'q"}`, rec.Body.String())
 
 	// An employee whose role sees the orders alone, restricted to Asosiy.
-	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "tasks.view")
+	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "orders.view")
 	vali, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	api.giveRole(t, valisPhone, olma, &kuzatuvchi)
 	api.restrictTo(t, valisPhone, olma, asosiy)

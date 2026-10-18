@@ -30,7 +30,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	sh := api.customerShop(t, olma)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "customers.view", "tasks.view")
+	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "customers.view", "orders.view")
 	api.giveRole(t, valisPhone, olma, &kuzatuvchi)
 	customer := api.enter(t, owner, sh.jismoniy, "998911112233", fmt.Sprintf(`{"%s":"Dilshod"}`, key(sh.fish)))
 	customerPath := fmt.Sprintf("/app/customers/%v", customer["id"])
@@ -96,7 +96,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, customerPath, "", bearer(owner)).Code, "nothing was changed: the customer is there")
 
 	// The role grows: the next request counts it, no new sign-in needed.
-	api.exec(t, "UPDATE roles SET permissions = '{customers.view,customers.create,tasks.view}' WHERE id = $1", kuzatuvchi)
+	api.exec(t, "UPDATE roles SET permissions = '{customers.view,customers.create,orders.view}' WHERE id = $1", kuzatuvchi)
 	rec := api.do(t, http.MethodPost, "/app/customers", newCustomer, bearer(employee))
 	assert.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 
@@ -139,7 +139,7 @@ func TestAOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	sh := api.orderShop(t, olma)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	operator := api.addRole(t, olma, "Operator", "tasks.view", "tasks.create", "customers.view")
+	operator := api.addRole(t, olma, "Operator", "orders.view", "orders.create", "customers.view")
 	api.giveRole(t, valisPhone, olma, &operator)
 	customer := api.enter(t, owner, sh.jismoniy, "998911112233", fmt.Sprintf(`{"%s":"Dilshod"}`, key(sh.fish)))
 	newCustomer := fmt.Sprintf(`{"type_id":%d,"phone":"998911112244","values":{"%s":"Malika"}}`, sh.jismoniy, key(sh.fish))
@@ -157,7 +157,7 @@ func TestAOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 
 	withExisting := orderBody(sh, "Mavjud mijozga", "2026-10-20", sh.yangi, customer["id"], fmt.Sprintf(`{"%s":"Izoh"}`, key(sh.izoh)), "")
 	rec = api.do(t, http.MethodPost, "/app/orders", withExisting, bearer(employee))
-	assert.Equal(t, http.StatusCreated, rec.Code, "an order for a customer that is there needs tasks.create alone: %s", rec.Body.String())
+	assert.Equal(t, http.StatusCreated, rec.Code, "an order for a customer that is there needs orders.create alone: %s", rec.Body.String())
 }
 
 // permissionsOf is the permissions /app/me tells, as strings.
@@ -178,13 +178,13 @@ func TestMeTellsThePermissionsAndTheRole(t *testing.T) {
 	nok := api.addCompany(t, "Nok", 30)
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "user", nok: "owner"})
-	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "tasks.view", "customers.view", "customers.history")
+	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "orders.view", "customers.view", "customers.history")
 	api.giveRole(t, valisPhone, olma, &kuzatuvchi)
 
 	rec := api.do(t, http.MethodGet, "/app/me", "", bearer(employee))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	body := decode(t, rec)
-	assert.Equal(t, []string{"customers.view", "customers.history", "tasks.view"}, permissionsOf(t, body),
+	assert.Equal(t, []string{"customers.view", "customers.history", "orders.view"}, permissionsOf(t, body),
 		"what the role holds, in the catalog's order")
 	company, _ := body["company"].(map[string]any)
 	assert.Equal(t, "Kuzatuvchi", company["role_name"], "the role the member holds, by name")

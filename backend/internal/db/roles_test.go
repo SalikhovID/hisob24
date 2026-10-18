@@ -81,12 +81,12 @@ func TestUpdateRole(t *testing.T) {
 	d := today(t, pool)
 	olma, nok := createCompany(t, q, "Olma", d), createCompany(t, q, "Nok", d)
 	sotuvchi := addRole(t, pool, olma.ID, "Sotuvchi", "customers.view")
-	addRole(t, pool, olma.ID, "Kassir", "tasks.view")
+	addRole(t, pool, olma.ID, "Kassir", "orders.view")
 
-	r, err := q.UpdateRole(ctx, gen.UpdateRoleParams{ID: sotuvchi, CompanyID: olma.ID, Name: "Katta sotuvchi", Permissions: []string{"customers.view", "tasks.view"}})
+	r, err := q.UpdateRole(ctx, gen.UpdateRoleParams{ID: sotuvchi, CompanyID: olma.ID, Name: "Katta sotuvchi", Permissions: []string{"customers.view", "orders.view"}})
 	require.NoError(t, err)
 	assert.Equal(t, "Katta sotuvchi", r.Name)
-	assert.Equal(t, []string{"customers.view", "tasks.view"}, r.Permissions, "the permissions are replaced")
+	assert.Equal(t, []string{"customers.view", "orders.view"}, r.Permissions, "the permissions are replaced")
 	assert.True(t, r.UpdatedAt.After(r.CreatedAt), "updated_at moves")
 
 	_, err = q.UpdateRole(ctx, gen.UpdateRoleParams{ID: sotuvchi, CompanyID: nok.ID, Name: "Begona", Permissions: []string{}})

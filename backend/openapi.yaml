@@ -3461,7 +3461,7 @@ paths:
           format: int64
     get:
       operationId: listTaskHistory
-      summary: Vazifaning o'zgarishlar tarixi (tasks.history ruxsati)
+      summary: Vazifaning o'zgarishlar tarixi (orders.history ruxsati)
       description: >
         Vazifa bilan nima bo'lgani, oxirgisi birinchi: qo'shilgani, har
         tahriri va ko'chirilgani (o'chirilgan vazifa 404 beradi). O'zgargan
@@ -6231,7 +6231,7 @@ components:
       type: string
       description: >
         Kompaniya roli tarkibidagi bitta ruxsat, "bo'lim.amal" ko'rinishida
-        (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), tasks
+        (logic/roles.md, 4-bo'lim). Bo'limlar: customers (mijozlar), orders
         (vazifalar), products (mahsulotlar va xizmatlar), suppliers
         (ta'minotchilar), purchases (xaridlar, ta'minotchi to'lovlari va
         boshlang'ich qarz / avansi), sales (sotuvlar, mijoz to'lovlari va
@@ -6251,11 +6251,11 @@ components:
         - customers.edit
         - customers.delete
         - customers.history
-        - tasks.view
-        - tasks.create
-        - tasks.edit
-        - tasks.delete
-        - tasks.history
+        - orders.view
+        - orders.create
+        - orders.edit
+        - orders.delete
+        - orders.history
         - products.view
         - products.create
         - products.edit
@@ -8411,7 +8411,7 @@ components:
             - $ref: "#/components/schemas/DashboardCustomers"
             - type: "null"
         tasks:
-          description: tasks.view bo'lganga, aks holda null
+          description: orders.view bo'lganga, aks holda null
           oneOf:
             - $ref: "#/components/schemas/DashboardTasks"
             - type: "null"

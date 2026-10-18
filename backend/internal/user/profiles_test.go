@@ -102,7 +102,7 @@ func TestAccess(t *testing.T) {
 	}
 
 	withRole := company("CURRENT_DATE + 30", true, "user")
-	_, err = pool.Exec(ctx, `WITH r AS (INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Kuzatuvchi', '{tasks.view,customers.view}') RETURNING id)
+	_, err = pool.Exec(ctx, `WITH r AS (INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Kuzatuvchi', '{orders.view,customers.view}') RETURNING id)
 		UPDATE user_companies SET role_id = r.id FROM r WHERE user_phone = '998901234567' AND company_id = $1`, withRole)
 	require.NoError(t, err)
 	got, err := profiles.Access(ctx, "998901234567", withRole)

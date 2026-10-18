@@ -25,11 +25,11 @@ const (
 	CustomersEdit    Permission = "customers.edit"
 	CustomersDelete  Permission = "customers.delete"
 	CustomersHistory Permission = "customers.history"
-	OrdersView       Permission = "tasks.view"
-	OrdersCreate     Permission = "tasks.create"
-	OrdersEdit       Permission = "tasks.edit"
-	OrdersDelete     Permission = "tasks.delete"
-	OrdersHistory    Permission = "tasks.history"
+	OrdersView       Permission = "orders.view"
+	OrdersCreate     Permission = "orders.create"
+	OrdersEdit       Permission = "orders.edit"
+	OrdersDelete     Permission = "orders.delete"
+	OrdersHistory    Permission = "orders.history"
 	ProductsView     Permission = "products.view"
 	ProductsCreate   Permission = "products.create"
 	ProductsEdit     Permission = "products.edit"
@@ -97,7 +97,7 @@ var Default = []Permission{
 // sectionNames are the sections' names in the app, for the messages.
 var sectionNames = map[string]string{
 	"customers": "Mijozlar",
-	"tasks":     "Vazifalar",
+	"orders":    "Vazifalar",
 	"products":  "Mahsulotlar",
 	"suppliers": "Ta'minotchilar",
 	"purchases": "Xaridlar",

@@ -38,7 +38,7 @@ func TestRolesAreTheOwners(t *testing.T) {
 
 	for name, req := range map[string]struct{ method, path, body string }{
 		"listing the roles": {http.MethodGet, "/app/roles", ""},
-		"making a role":     {http.MethodPost, "/app/roles", roleBody("Kassir", "tasks.view")},
+		"making a role":     {http.MethodPost, "/app/roles", roleBody("Kassir", "orders.view")},
 		"changing a role":   {http.MethodPut, fmt.Sprintf("/app/roles/%d", hr), roleBody("HR", "employees.view")},
 		"deleting a role":   {http.MethodDelete, fmt.Sprintf("/app/roles/%d", hr), ""},
 		"giving a role":     {http.MethodPut, "/app/employees/" + sardorsPhone + "/role", fmt.Sprintf(`{"role_id":%d}`, hr)},
@@ -59,11 +59,11 @@ func TestRolesCRUD(t *testing.T) {
 	olma := api.addCompany(t, "Olma", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 
-	rec := api.do(t, http.MethodPost, "/app/roles", roleBody(" Sotuvchi ", "tasks.view", "customers.view", "customers.view"), bearer(owner))
+	rec := api.do(t, http.MethodPost, "/app/roles", roleBody(" Sotuvchi ", "orders.view", "customers.view", "customers.view"), bearer(owner))
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	created := decode(t, rec)
 	assert.Equal(t, "Sotuvchi", created["name"], "trimmed")
-	assert.Equal(t, []any{"customers.view", "tasks.view"}, created["permissions"], "in the catalog's order, once each")
+	assert.Equal(t, []any{"customers.view", "orders.view"}, created["permissions"], "in the catalog's order, once each")
 	assert.EqualValues(t, 0, created["members_count"])
 	assert.NotEmpty(t, created["id"])
 	path := fmt.Sprintf("/app/roles/%v", created["id"])
@@ -135,7 +135,7 @@ func TestSetEmployeeRole(t *testing.T) {
 	nok := api.addCompany(t, "Nok", 30)
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
-	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "tasks.view")
+	kuzatuvchi := api.addRole(t, olma, "Kuzatuvchi", "orders.view")
 	begona := api.addRole(t, nok, "Begona")
 	path := "/app/employees/" + valisPhone + "/role"
 
@@ -147,7 +147,7 @@ func TestSetEmployeeRole(t *testing.T) {
 	assert.Equal(t, "Kuzatuvchi", body["role_name"])
 	assert.Equal(t, "user", body["role"])
 	me := decode(t, api.do(t, http.MethodGet, "/app/me", "", bearer(employee)))
-	assert.Equal(t, []string{"tasks.view"}, permissionsOf(t, me), "the employee works by the role from the next request on")
+	assert.Equal(t, []string{"orders.view"}, permissionsOf(t, me), "the employee works by the role from the next request on")
 	assert.Equal(t, http.StatusForbidden, api.do(t, http.MethodGet, "/app/customers", "", bearer(employee)).Code)
 
 	rec = api.do(t, http.MethodPut, path, `{"role_id":null}`, bearer(owner))

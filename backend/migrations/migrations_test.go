@@ -1654,3 +1654,50 @@ func TestTheOrdersMigrationDownBringsTheTasksTablesBack(t *testing.T) {
 	assert.Empty(t, namedAfter(t, pool, "order"), "nothing is named after the orders")
 	assert.Equal(t, renamed(before, "order", "task"), namedAfter(t, pool, "task"), "each name is the tasks' again")
 }
+
+// permissionsOf is the role's permissions as they are kept, in their order.
+func permissionsOf(t *testing.T, pool *pgxpool.Pool, roleID int64) []string {
+	t.Helper()
+	var permissions []string
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT permissions FROM roles WHERE id = $1", roleID).Scan(&permissions))
+	return permissions
+}
+
+// The permissions on the orders are named after them (orders.view and the
+// rest, internal/access): a role made before allows what it allowed.
+func TestTheOrderKeysMigrationRenamesTheRolesPermissions(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 18)
+	require.NoError(t, err)
+	olma := addCompany(t, pool, "Olma")
+	var sotuvchi, kassir int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO roles (company_id, name, permissions)
+		VALUES ($1, 'Sotuvchi', '{customers.view,tasks.view,tasks.create,tasks.edit,tasks.delete,tasks.history}') RETURNING id`, olma).Scan(&sotuvchi))
+	require.NoError(t, pool.QueryRow(ctx,
+		"INSERT INTO roles (company_id, name, permissions) VALUES ($1, 'Kassir', '{finance.view}') RETURNING id", olma).Scan(&kassir))
+
+	_, err = provider.UpTo(ctx, 19)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"customers.view", "orders.view", "orders.create", "orders.edit", "orders.delete", "orders.history"},
+		permissionsOf(t, pool, sotuvchi), "each in its place")
+	assert.Equal(t, []string{"finance.view"}, permissionsOf(t, pool, kassir), "a role that allows nothing of the orders stays as it was")
+}
+
+func TestTheOrderKeysMigrationDownBringsTheTasksPermissionsBack(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.UpTo(ctx, 19)
+	require.NoError(t, err)
+	var sotuvchi int64
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO roles (company_id, name, permissions)
+		VALUES ($1, 'Sotuvchi', '{customers.view,orders.view,orders.history}') RETURNING id`, addCompany(t, pool, "Olma")).Scan(&sotuvchi))
+
+	_, err = provider.DownTo(ctx, 18)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"customers.view", "tasks.view", "tasks.history"}, permissionsOf(t, pool, sotuvchi))
+}

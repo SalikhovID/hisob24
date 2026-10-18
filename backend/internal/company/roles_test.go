@@ -95,7 +95,7 @@ func TestCreateRole(t *testing.T) {
 	ctx := t.Context()
 	c := mustCreate(t, s, "Olma", dbToday(t, pool))
 
-	r, err := s.CreateRole(ctx, c.ID, "  Sotuvchi ", []string{"tasks.view", "customers.view", "customers.view"})
+	r, err := s.CreateRole(ctx, c.ID, "  Sotuvchi ", []string{"orders.view", "customers.view", "customers.view"})
 
 	require.NoError(t, err)
 	assert.Equal(t, "Sotuvchi", r.Name, "trimmed")
@@ -113,7 +113,7 @@ func TestCreateRole(t *testing.T) {
 		"too long":                   {strings.Repeat("a", 61), nil, apperr.Invalid, "validation_error", "Nom 60 belgidan oshmasin"},
 		"taken, whatever the case":   {"sotuvchi", nil, apperr.Conflict, "name_taken", "Bu nomli rol allaqachon bor"},
 		"unknown permission":         {"Kassir", []string{"customers.fly"}, apperr.Invalid, "validation_error", "Ruxsat noto'g'ri"},
-		"an action without the view": {"Kassir", []string{"tasks.create"}, apperr.Invalid, "validation_error", "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang"},
+		"an action without the view": {"Kassir", []string{"orders.create"}, apperr.Invalid, "validation_error", "«Vazifalar» bo'limida avval «Ko'rish» ni belgilang"},
 	} {
 		_, err := s.CreateRole(ctx, c.ID, tc.role, tc.perms)
 		var e *apperr.Error
@@ -136,7 +136,7 @@ func TestUpdateRole(t *testing.T) {
 	nok, err := s.Create(ctx, CreateInput{Name: "Nok", EndDate: d, OwnerPhone: "998909999999", OwnerFullName: "Begona"}, ownerID)
 	require.NoError(t, err)
 	sotuvchi := addRole(t, pool, c.ID, "Sotuvchi", "customers.view")
-	addRole(t, pool, c.ID, "Kassir", "tasks.view")
+	addRole(t, pool, c.ID, "Kassir", "orders.view")
 
 	r, err := s.UpdateRole(ctx, c.ID, sotuvchi, " Katta sotuvchi ", []string{"customers.create", "customers.view"})
 	require.NoError(t, err)

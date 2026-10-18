@@ -171,7 +171,7 @@ func TestSetCompanyOwner(t *testing.T) {
 
 	nok := createCompany(t, q, "Nok", d)
 	addMember(t, q, nok.ID, "998902222222", "Vali", "user")
-	kassir := addRole(t, pool, nok.ID, "Kassir", "tasks.view")
+	kassir := addRole(t, pool, nok.ID, "Kassir", "orders.view")
 	mustExec(t, pool, "UPDATE user_companies SET role_id = $1 WHERE company_id = $2", kassir, nok.ID)
 	restrictTo(t, pool, "998902222222", nok.ID, addLocation(t, pool, nok.ID, "Asosiy"))
 	var joined time.Time
