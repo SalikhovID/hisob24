@@ -100,7 +100,7 @@ test("a customer's statement names an order by its number and leads to it, its a
   const [advance, priced] = rows(statement)
   expect(parts(priced)).toMatchObject({ title: "Buyurtma № 5", end: "+5 000 balans 5 000" })
   expect(priced).toHaveAttribute("href", `/orders/${order.id}`)
-  expect(parts(advance)).toMatchObject({ title: "To'lov · Buyurtma № 5", end: "−400 balans 4 600" })
+  expect(parts(advance)).toMatchObject({ title: "To'lov · № 5", end: "−400 balans 4 600" })
   expect(advance).toHaveAttribute("href", `/orders/${order.id}`)
 })
 

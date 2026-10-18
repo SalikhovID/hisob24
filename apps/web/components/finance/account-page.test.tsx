@@ -6,6 +6,7 @@ import { rowParts } from "@/test/rows"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterCashOpening, enterConversion, enterExpense, enterMoneyTransfer } from "@/test/finance"
+import { pricedOrder } from "@/test/order-money"
 import { AccountPage } from "./account-page"
 
 // books is the cash of Olma Savdo in October: opened with 1 000 000, 150 000
@@ -171,4 +172,17 @@ test("whoever may see the finance alone sees the account without a way to change
   renderWithProviders(<AccountPage id={9102} />)
   expect(await screen.findByRole("heading", { level: 1, name: "Akkaunt topilmadi" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Kassa" })).toHaveAttribute("href", "/accounts")
+})
+
+// A payment entered for an order is named by the order's number alone
+// (logic/orders.md, 4.3), short enough for a phone, and leads to the order.
+test("a payment for an order reads «To'lov · № N» and leads to the order", async () => {
+  await signIn(ALI)
+  const { order, cash } = await pricedOrder()
+  renderWithProviders(<AccountPage id={cash} />)
+
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
+  const [advance] = await within(statement).findAllByRole("link")
+  expect(rowParts(advance).title).toBe("To'lov · № 5")
+  expect(advance).toHaveAttribute("href", `/orders/${order.id}`)
 })

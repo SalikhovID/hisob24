@@ -41,7 +41,8 @@ function titleOf(row: StatementRow): string {
       return row.linked_id === null ? "To'lov" : `To'lov · Xarid № ${row.linked_number}`
     case "customer_payment":
       if (row.linked_id === null) return "To'lov"
-      return row.order_number !== null ? `To'lov · ${orderName(row.order_number)}` : `To'lov · Sotuv № ${row.linked_number}`
+      // A payment for an order names it by its number alone: short on a phone.
+      return row.order_number !== null ? `To'lov · № ${row.order_number}` : `To'lov · Sotuv № ${row.linked_number}`
     case "supplier_debt":
     case "customer_debt":
       return "Boshlang'ich qarz"

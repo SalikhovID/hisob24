@@ -267,7 +267,7 @@ test("the owner enters an order with a price, a product and an advance; the page
   await expect(page.getByRole("region", { name: "Balans" }).locator("[data-slot=hero]")).toContainText(/Qarz\s*4\s300\s*so'm/)
   const statement = days(page, "Hisob harakati")
   await expect(statement.getByRole("link", { name: /^Buyurtma № 5/ })).toBeVisible()
-  await expect(statement.getByRole("link", { name: /^To'lov · Buyurtma № 5/ })).toHaveCount(2)
+  await expect(statement.getByRole("link", { name: /^To'lov · № 5/ })).toHaveCount(2)
 })
 
 test("the orders' old addresses lead to their pages, the query kept", async ({ page }) => {
