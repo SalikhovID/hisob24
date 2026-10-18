@@ -42,7 +42,11 @@ export function ActionSheet({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-scrim transition-opacity duration-250 data-starting-style:opacity-0 data-ending-style:opacity-0" />
+        <DialogPrimitive.Backdrop
+          data-slot="action-sheet-overlay"
+          forceRender
+          className="fixed inset-0 z-50 bg-scrim transition-opacity duration-250 data-starting-style:opacity-0 data-ending-style:opacity-0"
+        />
         <DialogPrimitive.Popup
           data-slot="action-sheet"
           aria-label={title === undefined ? "Amallar" : undefined}

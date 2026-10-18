@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ActionSheet } from "./action-sheet"
 
 test("an action sheet lists what can be done; a choice does it and closes the sheet", async () => {
@@ -48,4 +49,17 @@ test("an action sheet's lists are the prototype's glass menus: 26px corners, a w
   const menu = await screen.findByRole("menu")
   expect(menu).toHaveClass("rounded-[26px]", "shadow-[var(--shadow),inset_0_0_0_1px_var(--glass-edge),inset_0_1px_0_var(--glass-edge)]")
   expect(screen.getByRole("button", { name: "Bekor qilish" }).parentElement).toHaveClass("rounded-[26px]")
+})
+
+test("an action sheet over a sheet draws a scrim of its own over the sheet", async () => {
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogTitle>Buyurtma</DialogTitle>
+        <ActionSheet open onOpenChange={() => {}} items={[{ label: "Tahrirlash", onSelect: () => {} }]} />
+      </DialogContent>
+    </Dialog>,
+  )
+  await screen.findByRole("menu")
+  expect(document.querySelectorAll('[data-slot="action-sheet-overlay"]')).toHaveLength(1)
 })
