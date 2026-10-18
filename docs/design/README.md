@@ -41,6 +41,7 @@ User app prototipning 2026-10-16 dagi ikkinchi versiyasi (`1792163353`) bo'yicha
 - Mock ma'lumotlar bilan, «Olma Savdo» egasi (Ali Valiyev) ko'zi bilan; ikki lokatsiya («Asosiy», «Chilonzor»), xaridlar, sotuvlar, kassa hujjatlari, «Sotuvchi» roli.
 - Telefon: 375×812 pt, @2x. Keng ekran: 1280×800 px, @1x (web ko'rinishi: suzuvchi sidebar, tepa panel, 1120px ustun); `*-wide` — 1600×1000 px, ustun o'rtada. Uzun sahifalar to'liq bo'yi bilan.
 - «Yorug' shisha» mavzusida (kulrang-oq fon, oq kartalar, qora urg'u); «Qorong'i shisha» (deyarli qora fon, oq urg'u) va Telegram Mini App (to'liq ekran; Telegram'da ham ilovaning o'z ranglari) alohida ko'rsatilgan.
+- Modal (varaq, tasdiq oynasi, amallar menyusi) ortida ekranning qolgan qismi muzlagan shisha: `--scrim` rangi ostida 12px blur. Varaq ustida ochilgan varaq pastdagi varaqni ham xiralashtiradi. Bu 2026-10-18 dan, glass-v2 hujjatidagi 25–30-qarorlar. 21, 23, 31, 55 va 81-skrinshotlar shu holatda olingan.
 
 | Ekran | Telefon | Keng ekran |
 |---|---|---|

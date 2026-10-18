@@ -240,3 +240,50 @@ Foydalanuvchi Mini App'da ikki narsani ko'rdi: tab almashganda sahifa bo'limlari
       - e2e qatlam testida ekranda turmagan bar (`display: none`, desktop) «chizilmagan» deb o'qiladi.
       - Yozuv o'tishning boshida qo'shiladi, shunda menyudan almashishning kech `ready` si keyingi sanoqqa tushmaydi.
     - Tekshiruv: `make lint`, unit (web 1153, admin 244), Go, `make e2e` (admin 46, web 150). Production build CSS'ida `:active-view-transition`, `view-transition-name:none!important` va `::view-transition-group(tab-bar)` saqlangan.
+
+### Modal ortidagi muzlagan fon (2026-10-18)
+
+Foydalanuvchining so'zlari: "modallar ochilganda qolgan joylar glassy blur bo'lib turishi kerak". Avval modal (varaq, tasdiq oynasi, amallar menyusi) ortidagi ekran faqat `--scrim` rangi bilan qoraytirilardi. Prototipning `.scrim` i ham faqat rang, shuning uchun blur foydalanuvchi talabi bilan prototipdan ataylab chetlanish.
+
+25. **Foydalanuvchi qarorlari** (savol-javob):
+    - Faqat user app. Admin paneldagi shadcn fonlarining 4px `backdrop-blur-xs` i qoladi.
+    - Kuch: `blur(12px) saturate(1.6)`, tepadagi fade bilan bir xil qiymat.
+    - `--scrim` rangi o'zgarmaydi: yorug'da `rgba(10,12,16,.2)`, qorong'ida `rgba(0,0,0,.55)`.
+    - Har modal o'z fonini chizadi: varaq ustida varaq ochilsa, pastdagisi ham xiralashadi. Prototipda ham har `.sheet-wrap` ning o'z `.scrim` i bor.
+    - Rad etilgan variantlar: 6px va 20px blur, yengilroq scrim, ichki varaqni fonsiz qoldirish.
+26. **`scrim` utility** (`globals.css`, `surface` yonida): `background-color: var(--scrim)`, `-webkit-backdrop-filter` va `backdrop-filter: blur(12px) saturate(1.6)`.
+    - Uchta fon `bg-scrim` o'rniga shuni oladi:
+      - `DialogOverlay`: hamma varaq, jumladan `PickerSheet`, `DateSheet`, `AmountSheet`;
+      - `AlertDialogOverlay`;
+      - `ActionSheet` foni (`data-slot="action-sheet-overlay"`).
+    - Class almashtiriladi, ikkalasi birga qo'yilmaydi (2-qaror).
+    - `--color-scrim` olib tashlandi, shuning uchun blur'siz `bg-scrim` endi yo'q.
+    - Animatsiya o'zgarmadi: fon opacity bilan chiqadi (300 / 200 / 250ms), blur ham shu bilan birga.
+    - Varaq rangi (`--sheet`, noshaffof, 1-qaror) o'zgarmadi.
+27. **Ichma-ich modal.**
+    - Base UI ichma-ich dialogning `Backdrop` ini chizmaydi: `enabled: forceRender || !nested`. Ichma-ich degani bitta `Dialog.Root` boshqasining React daraxti ichida turadi.
+    - Shuning uchun forma varag'idan ochilgan tanlov varag'i ortida forma varag'i tiniq va qoraytirilmagan qolardi (masalan «Xarajat qo'shish» → «Kategoriya»).
+    - Uchala fonga `forceRender` berildi. Ustki fon bosilsa, faqat ustki varaq yopiladi.
+    - Natijada sahifa ikki qavat qoraytiriladi: yorug'da ~36%, qorong'ida ~80%. Bu prototipdagi kabi.
+28. **Qatlamlar.** Fon `z-50` da turadi. Tab-bar (`z-20`), tepa panel (`z-15`), tepadagi fade (`z-10`) va sidebar blur ostida qoladi. Sonner toast'lari fon ustida turadi.
+29. **Testlar (RED → GREEN):**
+    - e2e `shell.spec.ts` «a modal frosts the rest of the screen…»:
+      - oqim: «Naqd» → «Xarajat» varag'i;
+      - tekshiruv: fonning computed `backdropFilter` i, «Kategoriya» ochilgach fonlar 2 ta;
+      - RED: telefon va desktopda `none`; varaq sikllaridan keyin GREEN.
+    - `globals.test.ts`: utility bloki va o'zgarmagan rang. RED: `@utility scrim {` yo'q edi.
+    - `dialog.test.tsx`:
+      - fon `scrim` (RED: faqat `bg-scrim`);
+      - varaq ustida varaq: 2 ta fon, ustkisi bosilsa faqat ustki varaq yopiladi (RED: 1 ta fon).
+    - `alert-dialog.test.tsx`:
+      - fon `scrim` (RED: `bg-scrim`);
+      - varaq ichidagi tasdiq oynasi o'z fonini chizadi (RED: 0 ta).
+    - `action-sheet.test.tsx`:
+      - varaq ichida o'z foni bor (RED: 0 ta);
+      - fon `scrim` (RED: `bg-scrim`).
+30. **Tekshiruv:**
+    - `make lint`, `make test` (web 1153 → 1160, admin 244, Go), `make e2e` (admin 46, web 154).
+    - Production `next build` CSS'ida `.scrim{background-color:var(--scrim);-webkit-backdrop-filter:blur(12px)saturate(1.6);backdrop-filter:blur(12px)saturate(1.6)}` bor, `bg-scrim` 0.
+    - Oldin/keyin skrinshotlar olindi: yorug' va qorong'i, 375px @2x va 1280px.
+    - `docs/design/screens-v2/` da 6 ta modal skrinshoti yangilandi: `21-customer-sheet`, `21-customer-dialog-wide`, `23-delete-alert`, `31-stage-action-sheet`, `55-payment-sheet`, `81-employee-sheet`.
+    - Lokalda faqat Chromium bor. iOS Telegram (WebKit) va arzon Android'dagi ko'rinish va silliqlikni foydalanuvchi haqiqiy qurilmada tekshiradi.
