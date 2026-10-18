@@ -40,7 +40,7 @@ func TestSetEmployeeLocations(t *testing.T) {
 	assert.Equal(t, []any{location(asosiy, "Asosiy"), location(chilonzor, "Chilonzor")}, me["locations"], "the employee works by the restriction from the next request on")
 	rec = api.do(t, http.MethodPut, path, fmt.Sprintf(`{"location_ids":[%d]}`, chilonzor), bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/tasks?location_id=%d", asosiy), "", bearer(employee))
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/orders?location_id=%d", asosiy), "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a location outside the restriction, at once")
 	assert.JSONEq(t, noPermission, rec.Body.String())
 
@@ -48,7 +48,7 @@ func TestSetEmployeeLocations(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.Contains(t, decode(t, rec), "locations")
 	assert.Nil(t, decode(t, rec)["locations"], "every location again")
-	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, fmt.Sprintf("/app/tasks?location_id=%d", asosiy), "", bearer(employee)).Code)
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, fmt.Sprintf("/app/orders?location_id=%d", asosiy), "", bearer(employee)).Code)
 
 	for name, tc := range map[string]struct {
 		path, body string

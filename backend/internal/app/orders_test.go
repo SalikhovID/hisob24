@@ -40,7 +40,7 @@ func (api testAPI) orderShop(t *testing.T, companyID int64) orderShop {
 	return sh
 }
 
-// orderBody is a body for POST /app/tasks: an order of the type Buyurtma in
+// orderBody is a body for POST /app/orders: an order of the type Buyurtma in
 // Asosiy with the title, due on the day, in the stage, for the customer that
 // is there, with the answers (JSON) and whatever else the caller adds
 // (",key":value).
@@ -53,7 +53,7 @@ func orderBody(sh orderShop, title, deadline string, stageID int64, customerID a
 // and returns it as the API answers.
 func (api testAPI) enterOrder(t *testing.T, token, body string) map[string]any {
 	t.Helper()
-	rec := api.do(t, http.MethodPost, "/app/tasks", body, bearer(token))
+	rec := api.do(t, http.MethodPost, "/app/orders", body, bearer(token))
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	return decode(t, rec)
 }
@@ -71,7 +71,7 @@ func TestCreateOrder(t *testing.T) {
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 
-	rec := api.do(t, http.MethodPost, "/app/tasks", orderBody(sh, " Qo'ng'iroq qilish ", "2026-10-10", sh.yangi, ali["id"],
+	rec := api.do(t, http.MethodPost, "/app/orders", orderBody(sh, " Qo'ng'iroq qilish ", "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":" Ertalab ","%d":45000,"%d":[%d,%d]}`, sh.izoh, sh.summa, sh.kanal, sh.linkedin, sh.instagram),
 		`,"assignee_phone":"+998 90 123 45 67"`), bearer(employee))
 
@@ -92,7 +92,7 @@ func TestCreateOrder(t *testing.T) {
 	assert.NotEmpty(t, order["created_at"])
 	assert.Equal(t, order["created_at"], order["updated_at"])
 
-	rec = api.do(t, http.MethodPost, "/app/tasks", fmt.Sprintf(
+	rec = api.do(t, http.MethodPost, "/app/orders", fmt.Sprintf(
 		`{"type_id":%d,"location_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"Yangi mijoz bilan"},`+
 			`"customer":{"type_id":%d,"phone":"+998 90 111 22 44","values":{"%d":" Vali Aliyev "}}}`,
 		sh.buyurtma, sh.asosiy, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
@@ -106,7 +106,7 @@ func TestCreateOrder(t *testing.T) {
 	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/customers/%v", vali["id"]), "", bearer(owner))
 	assert.Equal(t, http.StatusOK, rec.Code, "and is there to read: %s", rec.Body.String())
 
-	rec = api.do(t, http.MethodPost, "/app/tasks", fmt.Sprintf(
+	rec = api.do(t, http.MethodPost, "/app/orders", fmt.Sprintf(
 		`{"type_id":%d,"location_id":%d,"title":"Shartnoma","deadline":"2026-10-11","stage_id":%d,"values":{"%d":"X"},`+
 			`"customer":{"type_id":%d,"phone":"998901112233","values":{"%d":"Ali"}}}`,
 		sh.buyurtma, sh.asosiy, sh.yangi, sh.izoh, sh.jismoniy, sh.fish), bearer(owner))
@@ -130,18 +130,18 @@ func TestCreateOrder(t *testing.T) {
 		{"a new customer with no name", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s,`+
 			`"customer":{"type_id":%d,"phone":"998901112266"}}`, sh.buyurtma, sh.asosiy, sh.yangi, ok, sh.jismoniy), "«F.I.Sh.» maydonini to'ldiring"},
 	} {
-		rec := api.do(t, http.MethodPost, "/app/tasks", tt.body, bearer(owner))
+		rec := api.do(t, http.MethodPost, "/app/orders", tt.body, bearer(owner))
 		assert.Equal(t, http.StatusBadRequest, rec.Code, tt.name)
 		assert.JSONEq(t, fmt.Sprintf(`{"error":"validation_error","message":%q}`, tt.message), rec.Body.String(), tt.name)
 	}
-	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPost, "/app/tasks", `{"type_id":`, bearer(owner)).Code, "not JSON")
-	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPost, "/app/tasks",
+	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPost, "/app/orders", `{"type_id":`, bearer(owner)).Code, "not JSON")
+	assert.Equal(t, http.StatusBadRequest, api.do(t, http.MethodPost, "/app/orders",
 		orderBody(sh, "X", "2026-10-10", sh.yangi, ali["id"], `["X"]`, ""), bearer(owner)).Code, "values that are no object")
 
-	rec = api.do(t, http.MethodPost, "/app/tasks", `{}`, bearer(undecided))
+	rec = api.do(t, http.MethodPost, "/app/orders", `{}`, bearer(undecided))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
 	assert.JSONEq(t, companyRequired, rec.Body.String())
-	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPost, "/app/tasks", `{}`).Code, "no access token")
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPost, "/app/orders", `{}`).Code, "no access token")
 }
 
 func TestGetOrder(t *testing.T) {
@@ -156,7 +156,7 @@ func TestGetOrder(t *testing.T) {
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":"Ertalab","%d":[%d]}`, sh.izoh, sh.kanal, sh.linkedin), fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)))
-	path := fmt.Sprintf("/app/tasks/%v", order["id"])
+	path := fmt.Sprintf("/app/orders/%v", order["id"])
 
 	rec := api.do(t, http.MethodGet, path, "", bearer(employee))
 
@@ -166,8 +166,8 @@ func TestGetOrder(t *testing.T) {
 	rec = api.do(t, http.MethodGet, path, "", bearer(stranger))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's order")
 	assert.JSONEq(t, orderNotFound, rec.Body.String())
-	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/app/tasks/999999", "", bearer(owner)).Code, "an order that is not there")
-	rec = api.do(t, http.MethodGet, "/app/tasks/abc", "", bearer(owner))
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/app/orders/999999", "", bearer(owner)).Code, "an order that is not there")
+	rec = api.do(t, http.MethodGet, "/app/orders/abc", "", bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "an id that is no number")
 	assert.JSONEq(t, orderNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodGet, path, "", bearer(undecided))
@@ -200,7 +200,7 @@ func TestListOrders(t *testing.T) {
 	// get reads a page of Olma's orders as its employee.
 	get := func(query url.Values) map[string]any {
 		t.Helper()
-		rec := api.do(t, http.MethodGet, "/app/tasks?"+query.Encode(), "", bearer(employee))
+		rec := api.do(t, http.MethodGet, "/app/orders?"+query.Encode(), "", bearer(employee))
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 		return decode(t, rec)
 	}
@@ -239,14 +239,14 @@ func TestListOrders(t *testing.T) {
 		"customer_id=abc": "Mijoz noto'g'ri",
 		"assignee=vali":   "Mas'ul noto'g'ri",
 	} {
-		rec := api.do(t, http.MethodGet, "/app/tasks?"+query, "", bearer(owner))
+		rec := api.do(t, http.MethodGet, "/app/orders?"+query, "", bearer(owner))
 		assert.Equal(t, http.StatusBadRequest, rec.Code, query)
 		assert.JSONEq(t, fmt.Sprintf(`{"error":"validation_error","message":%q}`, message), rec.Body.String(), query)
 	}
-	rec := api.do(t, http.MethodGet, "/app/tasks", "", bearer(undecided))
+	rec := api.do(t, http.MethodGet, "/app/orders", "", bearer(undecided))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
 	assert.JSONEq(t, companyRequired, rec.Body.String())
-	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/tasks", "").Code, "no access token")
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/orders", "").Code, "no access token")
 }
 
 func TestUpdateOrder(t *testing.T) {
@@ -261,7 +261,7 @@ func TestUpdateOrder(t *testing.T) {
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"],
 		fmt.Sprintf(`{"%d":"Ertalab","%d":45000}`, sh.izoh, sh.summa), ""))
-	path := fmt.Sprintf("/app/tasks/%v", order["id"])
+	path := fmt.Sprintf("/app/orders/%v", order["id"])
 	body := fmt.Sprintf(`{"title":" Qayta qo'ng'iroq ","deadline":"2026-10-12","stage_id":%d,"assignee_phone":%q,"values":{"%d":"Kechqurun"}}`,
 		sh.jarayonda, valisPhone, sh.izoh)
 
@@ -292,7 +292,7 @@ func TestUpdateOrder(t *testing.T) {
 	rec = api.do(t, http.MethodPut, path, body, bearer(stranger))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's order")
 	assert.JSONEq(t, orderNotFound, rec.Body.String())
-	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPut, "/app/tasks/abc", body, bearer(owner)).Code, "an id that is no number")
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodPut, "/app/orders/abc", body, bearer(owner)).Code, "an id that is no number")
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPut, path, body).Code, "no access token")
 }
 
@@ -307,7 +307,7 @@ func TestMoveOrder(t *testing.T) {
 	begona := api.addStage(t, nok, "Begona", "red", false, 1)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
-	path := fmt.Sprintf("/app/tasks/%v/stage", order["id"])
+	path := fmt.Sprintf("/app/orders/%v/stage", order["id"])
 
 	rec := api.do(t, http.MethodPatch, path, fmt.Sprintf(`{"stage_id":%d}`, sh.bajarildi), bearer(employee))
 
@@ -316,7 +316,7 @@ func TestMoveOrder(t *testing.T) {
 	assert.EqualValues(t, sh.bajarildi, moved["stage_id"], "any member moves an order to another stage")
 	assert.Equal(t, order["title"], moved["title"], "nothing else changes")
 	assert.Equal(t, order["values"], moved["values"])
-	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/tasks/%v", order["id"]), "", bearer(owner))
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/orders/%v", order["id"]), "", bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, moved, decode(t, rec))
 
@@ -342,7 +342,7 @@ func TestDeleteOrder(t *testing.T) {
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 	order := api.enterOrder(t, owner, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
-	path := fmt.Sprintf("/app/tasks/%v", order["id"])
+	path := fmt.Sprintf("/app/orders/%v", order["id"])
 	customer := fmt.Sprintf("/app/customers/%v", ali["id"])
 
 	rec := api.do(t, http.MethodDelete, customer, "", bearer(owner))
@@ -357,9 +357,9 @@ func TestDeleteOrder(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, rec.Code, "any member deletes an order: %s", rec.Body.String())
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, path, "", bearer(owner)).Code, "the order is gone")
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodDelete, path, "", bearer(owner)).Code, "deleted already")
-	assert.Equal(t, []any{}, decode(t, api.do(t, http.MethodGet, "/app/tasks", "", bearer(owner)))["items"], "and out of the list")
+	assert.Equal(t, []any{}, decode(t, api.do(t, http.MethodGet, "/app/orders", "", bearer(owner)))["items"], "and out of the list")
 	assert.Equal(t, http.StatusNoContent, api.do(t, http.MethodDelete, customer, "", bearer(owner)).Code, "once its orders are deleted, the customer goes")
-	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodDelete, "/app/tasks/abc", "", bearer(owner)).Code, "an id that is no number")
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodDelete, "/app/orders/abc", "", bearer(owner)).Code, "an id that is no number")
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodDelete, path, "").Code, "no access token")
 }
 
@@ -376,10 +376,10 @@ func TestOrderHistory(t *testing.T) {
 	sh := api.orderShop(t, olma)
 	ali := api.enter(t, owner, sh.jismoniy, "998901112233", fmt.Sprintf(`{"%d":"Ali Valiyev"}`, sh.fish))
 	order := api.enterOrder(t, employee, orderBody(sh, "Qo'ng'iroq", "2026-10-10", sh.yangi, ali["id"], fmt.Sprintf(`{"%d":"Ertalab"}`, sh.izoh), ""))
-	rec := api.do(t, http.MethodPut, fmt.Sprintf("/app/tasks/%v", order["id"]),
+	rec := api.do(t, http.MethodPut, fmt.Sprintf("/app/orders/%v", order["id"]),
 		fmt.Sprintf(`{"title":"Qo'ng'iroq","deadline":"2026-10-12","stage_id":%d,"assignee_phone":%q,"values":{"%d":"Kechqurun"}}`, sh.jarayonda, valisPhone, sh.izoh), bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	path := fmt.Sprintf("/app/tasks/%v/history", order["id"])
+	path := fmt.Sprintf("/app/orders/%v/history", order["id"])
 
 	rec = api.do(t, http.MethodGet, path, "", bearer(owner))
 
@@ -407,12 +407,12 @@ func TestOrderHistory(t *testing.T) {
 	rec = api.do(t, http.MethodGet, path, "", bearer(stranger))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "the owner of another company")
 	assert.JSONEq(t, orderNotFound, rec.Body.String())
-	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/app/tasks/abc/history", "", bearer(owner)).Code, "an id that is no number")
+	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, "/app/orders/abc/history", "", bearer(owner)).Code, "an id that is no number")
 	rec = api.do(t, http.MethodGet, path, "", bearer(undecided))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
 	assert.JSONEq(t, companyRequired, rec.Body.String())
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, path, "").Code, "no access token")
-	require.Equal(t, http.StatusNoContent, api.do(t, http.MethodDelete, fmt.Sprintf("/app/tasks/%v", order["id"]), "", bearer(owner)).Code)
+	require.Equal(t, http.StatusNoContent, api.do(t, http.MethodDelete, fmt.Sprintf("/app/orders/%v", order["id"]), "", bearer(owner)).Code)
 	assert.Equal(t, http.StatusNotFound, api.do(t, http.MethodGet, path, "", bearer(owner)).Code, "a deleted order's history is kept, not shown")
 }
 
@@ -434,7 +434,7 @@ func TestOrdersAreTheLocationsTheMemberMayWorkIn(t *testing.T) {
 	inChilonzor := api.enterOrder(t, owner, fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Chilonzorda","deadline":"2026-10-09","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
 		sh.buyurtma, chilonzor, sh.yangi, ok, ali["id"]))
 	titles := func(token string, query string) []any {
-		rec := api.do(t, http.MethodGet, "/app/tasks"+query, "", bearer(token))
+		rec := api.do(t, http.MethodGet, "/app/orders"+query, "", bearer(token))
 		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 		items, _ := decode(t, rec)["items"].([]any)
 		list := make([]any, 0, len(items))
@@ -449,36 +449,36 @@ func TestOrdersAreTheLocationsTheMemberMayWorkIn(t *testing.T) {
 	assert.Equal(t, []any{"Asosiyda"}, titles(owner, fmt.Sprintf("?location_id=%d", sh.asosiy)), "one location")
 	assert.Equal(t, []any{"Chilonzorda"}, titles(employee, ""), "a restricted employee: the restriction's locations")
 	assert.Equal(t, []any{"Chilonzorda"}, titles(employee, fmt.Sprintf("?location_id=%d", chilonzor)))
-	rec := api.do(t, http.MethodGet, fmt.Sprintf("/app/tasks?location_id=%d", sh.asosiy), "", bearer(employee))
+	rec := api.do(t, http.MethodGet, fmt.Sprintf("/app/orders?location_id=%d", sh.asosiy), "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a location the employee may not work in")
 	assert.JSONEq(t, noPermission, rec.Body.String())
-	rec = api.do(t, http.MethodGet, "/app/tasks?location_id=999999", "", bearer(owner))
+	rec = api.do(t, http.MethodGet, "/app/orders?location_id=999999", "", bearer(owner))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a location that is not there: the same")
-	rec = api.do(t, http.MethodGet, "/app/tasks?location_id=abc", "", bearer(owner))
+	rec = api.do(t, http.MethodGet, "/app/orders?location_id=abc", "", bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Lokatsiya noto'g'ri"}`, rec.Body.String())
 
 	id := fmt.Sprintf("%.0f", inAsosiy["id"])
 	for _, r := range []struct{ method, path, body string }{
-		{http.MethodGet, "/app/tasks/" + id, ""},
-		{http.MethodPut, "/app/tasks/" + id, fmt.Sprintf(`{"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.yangi, ok)},
-		{http.MethodPatch, "/app/tasks/" + id + "/stage", fmt.Sprintf(`{"stage_id":%d}`, sh.bajarildi)},
-		{http.MethodDelete, "/app/tasks/" + id, ""},
+		{http.MethodGet, "/app/orders/" + id, ""},
+		{http.MethodPut, "/app/orders/" + id, fmt.Sprintf(`{"title":"X","deadline":"2026-10-10","stage_id":%d,"values":%s}`, sh.yangi, ok)},
+		{http.MethodPatch, "/app/orders/" + id + "/stage", fmt.Sprintf(`{"stage_id":%d}`, sh.bajarildi)},
+		{http.MethodDelete, "/app/orders/" + id, ""},
 	} {
 		rec := api.do(t, r.method, r.path, r.body, bearer(employee))
 		assert.Equal(t, http.StatusNotFound, rec.Code, "%s %s: an order standing where the employee may not work", r.method, r.path)
 		assert.JSONEq(t, orderNotFound, rec.Body.String(), r.method)
 	}
-	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, fmt.Sprintf("/app/tasks/%.0f", inChilonzor["id"]), "", bearer(employee)).Code, "one in the restriction's location")
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, fmt.Sprintf("/app/orders/%.0f", inChilonzor["id"]), "", bearer(employee)).Code, "one in the restriction's location")
 
-	rec = api.do(t, http.MethodPost, "/app/tasks", orderBody(sh, "Yangi", "2026-10-10", sh.yangi, ali["id"], ok, ""), bearer(employee))
+	rec = api.do(t, http.MethodPost, "/app/orders", orderBody(sh, "Yangi", "2026-10-10", sh.yangi, ali["id"], ok, ""), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "entered into a location the employee may not work in")
 	assert.JSONEq(t, noPermission, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/tasks", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Yangi","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
+	rec = api.do(t, http.MethodPost, "/app/orders", fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Yangi","deadline":"2026-10-10","stage_id":%d,"values":%s,"customer":{"id":%v}}`,
 		sh.buyurtma, chilonzor, sh.yangi, ok, ali["id"]), bearer(employee))
 	assert.Equal(t, http.StatusCreated, rec.Code, "into one of theirs: %s", rec.Body.String())
 
-	rec = api.do(t, http.MethodPost, "/app/tasks", orderBody(sh, "Valiga", "2026-10-10", sh.yangi, ali["id"], ok, fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)), bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/orders", orderBody(sh, "Valiga", "2026-10-10", sh.yangi, ali["id"], ok, fmt.Sprintf(`,"assignee_phone":%q`, valisPhone)), bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code, "assigned, in Asosiy, to an employee who works in Chilonzor alone")
 	assert.JSONEq(t, `{"error":"validation_error","message":"Mas'ul bu lokatsiyada ishlamaydi"}`, rec.Body.String())
 

@@ -39,7 +39,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 	// What the role holds.
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/customers", "", bearer(employee)).Code, "the customers may be seen")
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, customerPath, "", bearer(employee)).Code)
-	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/tasks", "", bearer(employee)).Code, "the orders may be seen")
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/orders", "", bearer(employee)).Code, "the orders may be seen")
 	// What every member has.
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/customer-types", "", bearer(employee)).Code, "the types are every member's")
 	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/members", "", bearer(employee)).Code, "the members are every member's")
@@ -50,7 +50,7 @@ func TestARoleLimitsWhatAnEmployeeMayDo(t *testing.T) {
 		"editing a customer":      {http.MethodPut, customerPath, `{"phone":"998911112233","values":{}}`},
 		"deleting a customer":     {http.MethodDelete, customerPath, ""},
 		"the customer's history":  {http.MethodGet, customerPath + "/history", ""},
-		"moving an order":         {http.MethodPatch, "/app/tasks/1/stage", `{"stage_id":1}`},
+		"moving an order":         {http.MethodPatch, "/app/orders/1/stage", `{"stage_id":1}`},
 		"the employees":           {http.MethodGet, "/app/employees", ""},
 		"adding a type":           {http.MethodPost, "/app/customer-types", `{"name":"Yuridik"}`},
 		"the products":            {http.MethodGet, "/app/products", ""},
@@ -126,7 +126,7 @@ func TestPermissionRoutesNeedACompany(t *testing.T) {
 	nok := api.addCompany(t, "Nok", 30)
 	undecided, _ := api.signIn(t, sardorsPhone, map[int64]string{olma: "owner", nok: "owner"})
 
-	for _, path := range []string{"/app/employees", "/app/customers", "/app/tasks"} {
+	for _, path := range []string{"/app/employees", "/app/customers", "/app/orders"} {
 		rec := api.do(t, http.MethodGet, path, "", bearer(undecided))
 		require.Equal(t, http.StatusForbidden, rec.Code, path)
 		assert.JSONEq(t, companyRequired, rec.Body.String(), path)
@@ -146,7 +146,7 @@ func TestAOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	withNew := fmt.Sprintf(`{"type_id":%d,"location_id":%d,"title":"Yangi mijozga","deadline":"2026-10-20","stage_id":%d,"values":{"%s":"Izoh"},"customer":%s}`,
 		sh.buyurtma, sh.asosiy, sh.yangi, key(sh.izoh), newCustomer)
 
-	rec := api.do(t, http.MethodPost, "/app/tasks", withNew, bearer(employee))
+	rec := api.do(t, http.MethodPost, "/app/orders", withNew, bearer(employee))
 
 	assert.Equal(t, http.StatusForbidden, rec.Code, "entering a customer with the order needs customers.create")
 	assert.JSONEq(t, noPermission, rec.Body.String())
@@ -156,7 +156,7 @@ func TestAOrderWithANewCustomerNeedsCustomersCreate(t *testing.T) {
 	assert.Equal(t, 1, customers, "no customer beside the one that was there")
 
 	withExisting := orderBody(sh, "Mavjud mijozga", "2026-10-20", sh.yangi, customer["id"], fmt.Sprintf(`{"%s":"Izoh"}`, key(sh.izoh)), "")
-	rec = api.do(t, http.MethodPost, "/app/tasks", withExisting, bearer(employee))
+	rec = api.do(t, http.MethodPost, "/app/orders", withExisting, bearer(employee))
 	assert.Equal(t, http.StatusCreated, rec.Code, "an order for a customer that is there needs tasks.create alone: %s", rec.Body.String())
 }
 

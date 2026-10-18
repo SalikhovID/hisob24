@@ -35,19 +35,19 @@ func TestListOrderStages(t *testing.T) {
 	bajarildi := api.addStage(t, olma, "Bajarildi", "green", true, 1)
 	api.addStage(t, nok, "Begona", "red", false, 1)
 
-	rec := api.do(t, http.MethodGet, "/app/task-stages", "", bearer(employee))
+	rec := api.do(t, http.MethodGet, "/app/order-stages", "", bearer(employee))
 
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.JSONEq(t, fmt.Sprintf(`[{"id":%d,"name":"Bajarildi","color":"green","is_done":true},{"id":%d,"name":"Yangi","color":"blue","is_done":false}]`,
 		bajarildi, yangi), rec.Body.String(), "an employee reads the stages of the company they work in, in their order, nobody else's")
-	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/task-stages", "", bearer(owner)).Code, "the owner")
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/order-stages", "", bearer(owner)).Code, "the owner")
 
-	rec = api.do(t, http.MethodGet, "/app/task-stages", "", bearer(undecided))
+	rec = api.do(t, http.MethodGet, "/app/order-stages", "", bearer(undecided))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
 	assert.JSONEq(t, companyRequired, rec.Body.String())
-	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/task-stages", "").Code, "no access token")
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/order-stages", "").Code, "no access token")
 	api.exec(t, "UPDATE companies SET end_date = CURRENT_DATE - 1 WHERE id = $1", olma)
-	assert.Equal(t, http.StatusPaymentRequired, api.do(t, http.MethodGet, "/app/task-stages", "", bearer(owner)).Code, "an expired company")
+	assert.Equal(t, http.StatusPaymentRequired, api.do(t, http.MethodGet, "/app/order-stages", "", bearer(owner)).Code, "an expired company")
 }
 
 func TestCreateOrderStage(t *testing.T) {
@@ -56,7 +56,7 @@ func TestCreateOrderStage(t *testing.T) {
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 
-	rec := api.do(t, http.MethodPost, "/app/task-stages", `{"name":" Kutilmoqda ","color":"amber"}`, bearer(owner))
+	rec := api.do(t, http.MethodPost, "/app/order-stages", `{"name":" Kutilmoqda ","color":"amber"}`, bearer(owner))
 
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	created := decode(t, rec)
@@ -64,21 +64,21 @@ func TestCreateOrderStage(t *testing.T) {
 	assert.Equal(t, "amber", created["color"])
 	assert.Equal(t, false, created["is_done"], "a stage holds unfinished orders unless said otherwise")
 	assert.NotEmpty(t, created["id"])
-	rec = api.do(t, http.MethodPost, "/app/task-stages", `{"name":"Bajarildi","color":"green","is_done":true}`, bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/order-stages", `{"name":"Bajarildi","color":"green","is_done":true}`, bearer(owner))
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	assert.Equal(t, true, decode(t, rec)["is_done"])
-	assert.Len(t, list(t, api.do(t, http.MethodGet, "/app/task-stages", "", bearer(owner))), 2, "they join the company's stages")
+	assert.Len(t, list(t, api.do(t, http.MethodGet, "/app/order-stages", "", bearer(owner))), 2, "they join the company's stages")
 
-	rec = api.do(t, http.MethodPost, "/app/task-stages", `{"name":"kutilmoqda","color":"red"}`, bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/order-stages", `{"name":"kutilmoqda","color":"red"}`, bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code)
 	assert.JSONEq(t, `{"error":"name_taken","message":"Bu nomli bosqich allaqachon bor"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/task-stages", `{"name":"Oltin","color":"gold"}`, bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/order-stages", `{"name":"Oltin","color":"gold"}`, bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Rangni tanlang"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/task-stages", `{"name":" ","color":"blue"}`, bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/order-stages", `{"name":" ","color":"blue"}`, bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Nomni kiriting"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/task-stages", `{"name":"Yangi","color":"blue"}`, bearer(employee))
+	rec = api.do(t, http.MethodPost, "/app/order-stages", `{"name":"Yangi","color":"blue"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
@@ -91,7 +91,7 @@ func TestUpdateOrderStage(t *testing.T) {
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	yangi := api.addStage(t, olma, "Yangi", "blue", false, 1)
 	begona := api.addStage(t, nok, "Begona", "red", false, 1)
-	path := fmt.Sprintf("/app/task-stages/%d", yangi)
+	path := fmt.Sprintf("/app/order-stages/%d", yangi)
 
 	rec := api.do(t, http.MethodPatch, path, `{"name":" Ochiq "}`, bearer(owner))
 
@@ -104,7 +104,7 @@ func TestUpdateOrderStage(t *testing.T) {
 	rec = api.do(t, http.MethodPatch, path, `{"color":"gold"}`, bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Rangni tanlang"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/task-stages/%d", begona), `{"name":"Meniki"}`, bearer(owner))
+	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/order-stages/%d", begona), `{"name":"Meniki"}`, bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's stage")
 	assert.JSONEq(t, stageNotFound, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"name":"Yopiq"}`, bearer(employee))
@@ -119,14 +119,14 @@ func TestDeleteOrderStage(t *testing.T) {
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	yangi := api.addStage(t, olma, "Yangi", "blue", false, 1)
 	api.addStage(t, olma, "Jarayonda", "amber", false, 2)
-	path := fmt.Sprintf("/app/task-stages/%d", yangi)
+	path := fmt.Sprintf("/app/order-stages/%d", yangi)
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
-	stages := list(t, api.do(t, http.MethodGet, "/app/task-stages", "", bearer(owner)))
+	stages := list(t, api.do(t, http.MethodGet, "/app/order-stages", "", bearer(owner)))
 	require.Len(t, stages, 1, "the stage is gone from the company's")
 	assert.Equal(t, "Jarayonda", stages[0]["name"])
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
@@ -142,17 +142,17 @@ func TestReorderOrderStages(t *testing.T) {
 	yangi := api.addStage(t, olma, "Yangi", "blue", false, 1)
 	bajarildi := api.addStage(t, olma, "Bajarildi", "green", true, 2)
 
-	rec := api.do(t, http.MethodPut, "/app/task-stages/order", fmt.Sprintf(`{"ids":[%d,%d]}`, bajarildi, yangi), bearer(owner))
+	rec := api.do(t, http.MethodPut, "/app/order-stages/order", fmt.Sprintf(`{"ids":[%d,%d]}`, bajarildi, yangi), bearer(owner))
 
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
-	stages := list(t, api.do(t, http.MethodGet, "/app/task-stages", "", bearer(owner)))
+	stages := list(t, api.do(t, http.MethodGet, "/app/order-stages", "", bearer(owner)))
 	require.Len(t, stages, 2)
 	assert.Equal(t, "Bajarildi", stages[0]["name"], "the stages stand in the new order")
 
-	rec = api.do(t, http.MethodPut, "/app/task-stages/order", fmt.Sprintf(`{"ids":[%d]}`, yangi), bearer(owner))
+	rec = api.do(t, http.MethodPut, "/app/order-stages/order", fmt.Sprintf(`{"ids":[%d]}`, yangi), bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code, "a stage is missing")
 	assert.JSONEq(t, orderChanged, rec.Body.String())
-	rec = api.do(t, http.MethodPut, "/app/task-stages/order", fmt.Sprintf(`{"ids":[%d,%d]}`, yangi, bajarildi), bearer(employee))
+	rec = api.do(t, http.MethodPut, "/app/order-stages/order", fmt.Sprintf(`{"ids":[%d,%d]}`, yangi, bajarildi), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
@@ -172,7 +172,7 @@ func TestListOrderTypes(t *testing.T) {
 		VALUES ($1, $2, 'Manba', 'dropdown', $3, 2) RETURNING id`, olma, buyurtma, manba)
 	api.addOrderType(t, nok, "Begona", 1)
 
-	rec := api.do(t, http.MethodGet, "/app/task-types", "", bearer(employee))
+	rec := api.do(t, http.MethodGet, "/app/order-types", "", bearer(employee))
 
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.JSONEq(t, fmt.Sprintf(`[{"id":%d,"name":"Buyurtma","fields":[
@@ -180,12 +180,12 @@ func TestListOrderTypes(t *testing.T) {
 			{"id":%d,"label":"Manba","kind":"dropdown","required":false,"dropdown_id":%d}]}]`,
 		buyurtma, summa, source, manba), rec.Body.String(), "an employee reads the types of the company they work in, with their fields")
 	assert.NotContains(t, rec.Body.String(), "is_unique", "an order field is never told not to repeat")
-	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner)).Code, "the owner")
+	assert.Equal(t, http.StatusOK, api.do(t, http.MethodGet, "/app/order-types", "", bearer(owner)).Code, "the owner")
 
-	rec = api.do(t, http.MethodGet, "/app/task-types", "", bearer(undecided))
+	rec = api.do(t, http.MethodGet, "/app/order-types", "", bearer(undecided))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "a session that has not chosen a company yet")
 	assert.JSONEq(t, companyRequired, rec.Body.String())
-	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/task-types", "").Code, "no access token")
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodGet, "/app/order-types", "").Code, "no access token")
 }
 
 func TestCreateOrderType(t *testing.T) {
@@ -194,22 +194,22 @@ func TestCreateOrderType(t *testing.T) {
 	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 
-	rec := api.do(t, http.MethodPost, "/app/task-types", `{"name":" Buyurtma "}`, bearer(owner))
+	rec := api.do(t, http.MethodPost, "/app/order-types", `{"name":" Buyurtma "}`, bearer(owner))
 
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	created := decode(t, rec)
 	assert.Equal(t, "Buyurtma", created["name"])
 	assert.Equal(t, []any{}, created["fields"])
 	assert.NotEmpty(t, created["id"])
-	assert.Len(t, list(t, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner))), 1, "it joins the company's types")
+	assert.Len(t, list(t, api.do(t, http.MethodGet, "/app/order-types", "", bearer(owner))), 1, "it joins the company's types")
 
-	rec = api.do(t, http.MethodPost, "/app/task-types", `{"name":"buyurtma"}`, bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/order-types", `{"name":"buyurtma"}`, bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code)
 	assert.JSONEq(t, `{"error":"name_taken","message":"Bu nomli tur allaqachon bor"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/task-types", `{"name":" "}`, bearer(owner))
+	rec = api.do(t, http.MethodPost, "/app/order-types", `{"name":" "}`, bearer(owner))
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Nomni kiriting"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPost, "/app/task-types", `{"name":"Shikoyat"}`, bearer(employee))
+	rec = api.do(t, http.MethodPost, "/app/order-types", `{"name":"Shikoyat"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
@@ -222,17 +222,17 @@ func TestReorderOrderTypes(t *testing.T) {
 	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	shikoyat := api.addOrderType(t, olma, "Shikoyat", 2)
 
-	rec := api.do(t, http.MethodPut, "/app/task-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, shikoyat, buyurtma), bearer(owner))
+	rec := api.do(t, http.MethodPut, "/app/order-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, shikoyat, buyurtma), bearer(owner))
 
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
-	types := list(t, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner)))
+	types := list(t, api.do(t, http.MethodGet, "/app/order-types", "", bearer(owner)))
 	require.Len(t, types, 2)
 	assert.Equal(t, "Shikoyat", types[0]["name"], "the types stand in the new order")
 
-	rec = api.do(t, http.MethodPut, "/app/task-types/order", fmt.Sprintf(`{"ids":[%d]}`, buyurtma), bearer(owner))
+	rec = api.do(t, http.MethodPut, "/app/order-types/order", fmt.Sprintf(`{"ids":[%d]}`, buyurtma), bearer(owner))
 	assert.Equal(t, http.StatusConflict, rec.Code, "a type is missing")
 	assert.JSONEq(t, orderChanged, rec.Body.String())
-	rec = api.do(t, http.MethodPut, "/app/task-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, buyurtma, shikoyat), bearer(employee))
+	rec = api.do(t, http.MethodPut, "/app/order-types/order", fmt.Sprintf(`{"ids":[%d,%d]}`, buyurtma, shikoyat), bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
@@ -246,15 +246,15 @@ func TestRenameOrderType(t *testing.T) {
 	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	begona := api.addOrderType(t, nok, "Begona", 1)
 
-	rec := api.do(t, http.MethodPatch, fmt.Sprintf("/app/task-types/%d", buyurtma), `{"name":" Zakaz "}`, bearer(owner))
+	rec := api.do(t, http.MethodPatch, fmt.Sprintf("/app/order-types/%d", buyurtma), `{"name":" Zakaz "}`, bearer(owner))
 
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.JSONEq(t, fmt.Sprintf(`{"id":%d,"name":"Zakaz","fields":[]}`, buyurtma), rec.Body.String())
 
-	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/task-types/%d", begona), `{"name":"Meniki"}`, bearer(owner))
+	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/order-types/%d", begona), `{"name":"Meniki"}`, bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's type")
 	assert.JSONEq(t, `{"error":"not_found","message":"Tur topilmadi"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/task-types/%d", buyurtma), `{"name":"Xodimniki"}`, bearer(employee))
+	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/order-types/%d", buyurtma), `{"name":"Xodimniki"}`, bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	assert.JSONEq(t, noPermission, rec.Body.String())
 }
@@ -267,14 +267,14 @@ func TestDeleteOrderType(t *testing.T) {
 	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	api.addOrderType(t, olma, "Shikoyat", 2)
 	api.exec(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1)`, olma, buyurtma)
-	path := fmt.Sprintf("/app/task-types/%d", buyurtma)
+	path := fmt.Sprintf("/app/order-types/%d", buyurtma)
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
-	types := list(t, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner)))
+	types := list(t, api.do(t, http.MethodGet, "/app/order-types", "", bearer(owner)))
 	require.Len(t, types, 1, "the type is gone from the company's")
 	assert.Equal(t, "Shikoyat", types[0]["name"])
 	var live int
@@ -294,7 +294,7 @@ func TestAddOrderField(t *testing.T) {
 	manba := api.id(t, "INSERT INTO customer_dropdowns (company_id, name) VALUES ($1, 'Manba') RETURNING id", olma)
 	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	begona := api.addOrderType(t, nok, "Begona", 1)
-	path := fmt.Sprintf("/app/task-types/%d/fields", buyurtma)
+	path := fmt.Sprintf("/app/order-types/%d/fields", buyurtma)
 
 	rec := api.do(t, http.MethodPost, path, `{"label":" Izoh ","kind":"string","required":true}`, bearer(owner))
 
@@ -308,7 +308,7 @@ func TestAddOrderField(t *testing.T) {
 	rec = api.do(t, http.MethodPost, path, fmt.Sprintf(`{"label":"Manba","kind":"radio","dropdown_id":%d}`, manba), bearer(owner))
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	assert.EqualValues(t, manba, decode(t, rec)["dropdown_id"], "a choice takes its options from the dropdown")
-	types := list(t, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner)))
+	types := list(t, api.do(t, http.MethodGet, "/app/order-types", "", bearer(owner)))
 	assert.Len(t, types[0]["fields"], 2, "the fields join the type")
 
 	for body, want := range map[string]string{
@@ -320,7 +320,7 @@ func TestAddOrderField(t *testing.T) {
 		rec = api.do(t, http.MethodPost, path, body, bearer(owner))
 		assert.JSONEq(t, want, rec.Body.String(), body)
 	}
-	rec = api.do(t, http.MethodPost, fmt.Sprintf("/app/task-types/%d/fields", begona), `{"label":"Izoh","kind":"string"}`, bearer(owner))
+	rec = api.do(t, http.MethodPost, fmt.Sprintf("/app/order-types/%d/fields", begona), `{"label":"Izoh","kind":"string"}`, bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "another company's type")
 	assert.JSONEq(t, `{"error":"not_found","message":"Tur topilmadi"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPost, path, `{"label":"Summa","kind":"int"}`, bearer(employee))
@@ -336,7 +336,7 @@ func TestUpdateOrderField(t *testing.T) {
 	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	shikoyat := api.addOrderType(t, olma, "Shikoyat", 2)
 	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
-	path := fmt.Sprintf("/app/task-types/%d/fields/%d", buyurtma, izoh)
+	path := fmt.Sprintf("/app/order-types/%d/fields/%d", buyurtma, izoh)
 
 	rec := api.do(t, http.MethodPatch, path, `{"label":" Tavsif "}`, bearer(owner))
 
@@ -347,7 +347,7 @@ func TestUpdateOrderField(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.Equal(t, true, decode(t, rec)["required"])
 
-	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/task-types/%d/fields/%d", shikoyat, izoh), `{"label":"Sabab"}`, bearer(owner))
+	rec = api.do(t, http.MethodPatch, fmt.Sprintf("/app/order-types/%d/fields/%d", shikoyat, izoh), `{"label":"Sabab"}`, bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "a field of another type")
 	assert.JSONEq(t, `{"error":"not_found","message":"Maydon topilmadi"}`, rec.Body.String())
 	rec = api.do(t, http.MethodPatch, path, `{"label":"Xodimniki"}`, bearer(employee))
@@ -362,14 +362,14 @@ func TestDeleteOrderField(t *testing.T) {
 	employee, _ := api.signIn(t, valisPhone, map[int64]string{olma: "user"})
 	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
-	path := fmt.Sprintf("/app/task-types/%d/fields/%d", buyurtma, izoh)
+	path := fmt.Sprintf("/app/order-types/%d/fields/%d", buyurtma, izoh)
 
 	rec := api.do(t, http.MethodDelete, path, "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "an employee sets nothing up")
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
-	types := list(t, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner)))
+	types := list(t, api.do(t, http.MethodGet, "/app/order-types", "", bearer(owner)))
 	assert.Equal(t, []any{}, types[0]["fields"], "the field is gone from the type")
 	rec = api.do(t, http.MethodDelete, path, "", bearer(owner))
 	assert.Equal(t, http.StatusNotFound, rec.Code, "deleted already")
@@ -384,12 +384,12 @@ func TestReorderOrderFields(t *testing.T) {
 	buyurtma := api.addOrderType(t, olma, "Buyurtma", 1)
 	izoh := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Izoh', 'string', 1) RETURNING id`, olma, buyurtma)
 	summa := api.id(t, `INSERT INTO order_fields (company_id, type_id, label, kind, position) VALUES ($1, $2, 'Summa', 'int', 2) RETURNING id`, olma, buyurtma)
-	path := fmt.Sprintf("/app/task-types/%d/fields/order", buyurtma)
+	path := fmt.Sprintf("/app/order-types/%d/fields/order", buyurtma)
 
 	rec := api.do(t, http.MethodPut, path, fmt.Sprintf(`{"ids":[%d,%d]}`, summa, izoh), bearer(owner))
 
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
-	types := list(t, api.do(t, http.MethodGet, "/app/task-types", "", bearer(owner)))
+	types := list(t, api.do(t, http.MethodGet, "/app/order-types", "", bearer(owner)))
 	fields, _ := types[0]["fields"].([]any)
 	require.Len(t, fields, 2)
 	first, _ := fields[0].(map[string]any)

@@ -2720,7 +2720,7 @@ paths:
           $ref: "#/components/responses/SubscriptionExpired"
         "403":
           $ref: "#/components/responses/CompanyRequired"
-  /app/task-stages:
+  /app/order-stages:
     get:
       operationId: listTaskStages
       summary: Bosqichlar
@@ -2777,7 +2777,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-stages/order:
+  /app/order-stages/order:
     put:
       operationId: orderTaskStages
       summary: Bosqichlar tartibini o'zgartirish (settings.edit ruxsati)
@@ -2806,7 +2806,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-stages/{id}:
+  /app/order-stages/{id}:
     parameters:
       - name: id
         in: path
@@ -2867,7 +2867,7 @@ paths:
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-types:
+  /app/order-types:
     get:
       operationId: listTaskTypes
       summary: Vazifa turlari, maydonlari bilan
@@ -2924,7 +2924,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-types/order:
+  /app/order-types/order:
     put:
       operationId: orderTaskTypes
       summary: Vazifa turlari tartibini o'zgartirish (settings.edit ruxsati)
@@ -2953,7 +2953,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-types/{id}:
+  /app/order-types/{id}:
     parameters:
       - name: id
         in: path
@@ -3012,7 +3012,7 @@ paths:
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-types/{id}/fields:
+  /app/order-types/{id}/fields:
     parameters:
       - name: id
         in: path
@@ -3055,7 +3055,7 @@ paths:
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-types/{id}/fields/{fieldId}:
+  /app/order-types/{id}/fields/{fieldId}:
     parameters:
       - name: id
         in: path
@@ -3121,7 +3121,7 @@ paths:
           $ref: "#/components/responses/TaskSettingNotFound"
         "409":
           $ref: "#/components/responses/TaskSettingConflict"
-  /app/task-types/{id}/fields/order:
+  /app/order-types/{id}/fields/order:
     parameters:
       - name: id
         in: path
@@ -3202,7 +3202,7 @@ paths:
           description: Update qabul qilindi
         "401":
           $ref: "#/components/responses/InvalidSecretToken"
-  /app/tasks:
+  /app/orders:
     get:
       operationId: listTasks
       summary: Vazifalar ro'yxati
@@ -3323,7 +3323,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "409":
           $ref: "#/components/responses/CustomerTaken"
-  /app/tasks/{id}:
+  /app/orders/{id}:
     parameters:
       - name: id
         in: path
@@ -3410,7 +3410,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "404":
           $ref: "#/components/responses/TaskNotFound"
-  /app/tasks/{id}/stage:
+  /app/orders/{id}/stage:
     parameters:
       - name: id
         in: path
@@ -3451,7 +3451,7 @@ paths:
           $ref: "#/components/responses/CompanyRequired"
         "404":
           $ref: "#/components/responses/TaskNotFound"
-  /app/tasks/{id}/history:
+  /app/orders/{id}/history:
     parameters:
       - name: id
         in: path
