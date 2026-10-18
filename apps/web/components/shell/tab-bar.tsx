@@ -21,12 +21,12 @@ const tab =
 // A button's name is 11px times the names' scale and keeps 4px clear of
 // the button's edges either side. On a bar too narrow for the names at 11px
 // (a 360px or a 320px phone, a larger text size) they are all set smaller
-// together, down to 9px; there a name may take its button's whole width,
+// together, down to 8.5px; there a name may take its button's whole width,
 // and one longer still ends in an ellipsis.
 const tabName = "max-w-full truncate"
 const tabNameSize = { fontSize: "calc(11px * var(--name-k))" }
 const NAME_CLEAR = 8
-const NAME_LEAST = 9 / 11
+const NAME_LEAST = 8.5 / 11
 
 const SettingsMark = tabIcons.settings
 

@@ -208,7 +208,7 @@ test("the names keep 4px clear of their buttons' edges: on a bar too narrow for 
   await waitFor(() => expect(nameScale()).toBe(1))
 })
 
-test("the names are set no smaller than 9px: there a name may take its button's whole width, and one longer still ends in an ellipsis", async () => {
+test("the names are set no smaller than 8.5px: there a name may take its button's whole width, and one longer still ends in an ellipsis", async () => {
   db.members[ALI][0].tabBar = ["inventories", "home", "customers", "orders"]
   await signIn(ALI)
   setLocation("/customers")
@@ -216,7 +216,7 @@ test("the names are set no smaller than 9px: there a name may take its button's 
   renderWithProviders(<TabBar />)
   const long = await within(bar()).findByRole("link", { name: "Inventarizatsiya" })
 
-  await waitFor(() => expect(nameScale()).toBeCloseTo(9 / 11, 3))
+  await waitFor(() => expect(nameScale()).toBeCloseTo(8.5 / 11, 3))
   expect(long.querySelector('[data-slot="tab-name"]')).toHaveClass("max-w-full", "truncate")
 })
 

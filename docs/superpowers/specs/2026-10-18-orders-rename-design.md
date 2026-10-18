@@ -51,4 +51,5 @@ Ruxsatlar har so'rovda bazadan o'qiladi (`requireAccess`), shuning uchun eski ac
 - **Buyurtma turlari varag'idagi misollar** «Masalan: Ta'mir, Yetkazib berish», placeholder «Masalan, Ta'mir» (ilgari «Buyurtma, Shikoyat»).
 - **Eski manzillar:** `next.config.ts` dagi `redirects()`: `/tasks/:path*` → `/orders/:path*`, `/settings/task-types/:path*` → `/settings/order-types/:path*` (308, so'rov parametrlari bilan). Sozlamalarning eski `?tab=tasks` manzili ham buyurtma turlarini ochadi (`oldTabHref`).
 - **Brauzerdagi tanlov:** kalitlar o'zgargani uchun kanban/ro'yxat tanlovi va yakuniy ustun holati bir marta standartga qaytadi.
+- **Pastki panel nomlari** (foydalanuvchi qarori): «Buyurtmalar» «Vazifalar» dan uzun. 320px telefonda 9px da ham tugma chetidan 2.7px qolardi (qoida: 4px). Nomlar 4px chetni saqlab birga kichrayadi, pastki chegara 9px → 8.5px (`NAME_LEAST`). Panel eng keng telefonda ham kengaymaydi, shuning uchun u yerda nomlar ~10.9px (11px emas); e2e `shell.spec.ts` shu kutilmalar bilan.
 - **Generatsiya qilingan kod** (`db/gen`, `packages/api-client`) qo'lda tahrirlanmadi: `make sqlc` va `make api-client` bilan qayta yaratildi.

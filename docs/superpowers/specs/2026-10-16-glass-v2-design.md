@@ -227,7 +227,7 @@ Foydalanuvchi Mini App'da ikki narsani ko'rdi: tab almashganda sahifa bo'limlari
     - Faqat surilishda nomlanadi: tinch holatda va surilishsiz almashishda bar ildiz suratida qoladi, muzi ostidagi sahifani xiralashtiradi. Alohida suratda blur ko'rinmaydi, chunki bar orqasida hech narsa bo'lmaydi.
     - Kuzatuv: Telegram'ning native Back tugmasi (`router.back()` → `popstate`) o'tish boshlamaydi, sahifa darhol almashadi. Sahifadagi «‹ …» havolasi esa suriladi. Bu o'zgartirilmadi.
 23. **Yozuvlar.** Tugma eni `min(72px, (100vw − 24px) / 5)`, yozuv esa doim 11px edi. 360px da «Bosh sahifa» (joriy, 600) va «Mahsulotlar» tugma chetiga 2.5px gacha yaqinlashardi, 320px da uchtasi kesilardi.
-    - Endi har yozuv chetdan 4px uzoqda turadi. Tor barda hammasi birga kichrayadi (`--name-k`, `calc(11px * var(--name-k))`), eng kichigi 9px. U yerda yozuv tugmaning butun enini olishi mumkin, undan uzuni ellipsis bilan tugaydi.
+    - Endi har yozuv chetdan 4px uzoqda turadi. Tor barda hammasi birga kichrayadi (`--name-k`, `calc(11px * var(--name-k))`), eng kichigi 9px. (2026-10-18 dan 8.5px: «Buyurtmalar» uzunroq, `2026-10-18-orders-rename-design.md`.) U yerda yozuv tugmaning butun enini olishi mumkin, undan uzuni ellipsis bilan tugaydi.
     - O'lchov kasrli (`getBoundingClientRect`), yozuv cheklovsiz o'lchanadi. Shrift eni o'lchamga aniq proporsional emas (9px da ~2% kengroq), shuning uchun masshtab o'z o'lchamida qayta tekshiriladi (3 o'tish).
     - Qayta sig'diriladi: bar eni o'zgarganda (`ResizeObserver`), joriy sahifa o'zgarganda va shrift yuklanganda (`document.fonts.ready`).
     - Natija: 414 va 375px da 11px, 360px da ~10.3px, 320px da 9px.
