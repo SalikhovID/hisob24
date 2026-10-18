@@ -147,10 +147,12 @@ func TestTitleAndNumbered(t *testing.T) {
 	assert.Equal(t, "Boshlang'ich qoldiq", Title(OpeningStock))
 	assert.Equal(t, "To'lov", Title(SupplierPayment))
 	assert.Equal(t, "Konvertatsiya", Title(Conversion))
+	assert.Equal(t, "Buyurtma", Title(Order))
 	assert.Equal(t, "Hujjat", Title(Kind("refund")), "a kind the journal does not know")
 	assert.True(t, Numbered(Purchase))
 	assert.True(t, Numbered(Expense))
 	assert.False(t, Numbered(SupplierPayment), "a payment's number is not shown")
+	assert.False(t, Numbered(Order), "an order document goes by the order's title")
 	assert.False(t, Numbered(CashOpening))
 }
 

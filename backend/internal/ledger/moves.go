@@ -30,7 +30,7 @@ type Move struct {
 
 // MovesOf is what a document of the kind moves (logic/warehouse.md, section
 // 5): a purchase and an opening stock add their lines to the location, a
-// sale takes them out, a transfer takes them out of the location and adds
+// sale or an order takes them out, a transfer takes them out of the location and adds
 // them to the other, an inventory moves the difference between what was
 // counted and what was expected. A move of nothing is left out; a money
 // document moves nothing.
@@ -47,7 +47,7 @@ func MovesOf(kind Kind, locationID, toLocationID int64, lines []Line) []Move {
 		switch kind {
 		case Purchase, OpeningStock:
 			add(locationID, l.ProductID, quantity)
-		case Sale:
+		case Sale, Order:
 			add(locationID, l.ProductID, quantity.Neg(quantity))
 		case Transfer:
 			add(locationID, l.ProductID, new(big.Rat).Neg(quantity))

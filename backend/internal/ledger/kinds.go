@@ -14,6 +14,7 @@ const (
 	Transfer        Kind = "transfer"
 	Inventory       Kind = "inventory"
 	OpeningStock    Kind = "opening_stock"
+	Order           Kind = "order"
 	SupplierPayment Kind = "supplier_payment"
 	SupplierDebt    Kind = "supplier_debt"
 	SupplierPrepay  Kind = "supplier_prepay"
@@ -34,6 +35,7 @@ var titles = map[Kind]string{
 	Transfer:        "Ko'chirish",
 	Inventory:       "Inventarizatsiya",
 	OpeningStock:    "Boshlang'ich qoldiq",
+	Order:           "Buyurtma",
 	SupplierPayment: "To'lov",
 	SupplierDebt:    "Boshlang'ich qarz",
 	SupplierPrepay:  "Boshlang'ich avans",
@@ -58,7 +60,8 @@ func Title(k Kind) string {
 
 // Numbered tells whether a document of the kind is headed with its number
 // («Xarid № 12»): the goods documents and the finance documents are, the
-// payments and the opening balances are not (logic/warehouse.md, 1.1).
+// payments, the opening balances and an order's document (it goes by the
+// order's title) are not (logic/warehouse.md, 1.1).
 func Numbered(k Kind) bool {
 	switch k {
 	case Purchase, Sale, Transfer, Inventory, OpeningStock, Expense, Income, MoneyTransfer, Conversion:

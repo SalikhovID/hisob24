@@ -90,3 +90,28 @@ func TestWriteLinkedPayments(t *testing.T) {
 	refused(t, err, apperr.Invalid, "validation_error", "Kursni kiriting", "an account in a currency without a rate")
 	_ = gen.Transaction{}
 }
+
+// The payments entered with an order (its advance) are the customer's,
+// linked to the order's document (logic/orders.md, 4.3).
+func TestWriteLinkedPaymentsOfAnOrderAreTheCustomers(t *testing.T) {
+	q, pool := newQueries(t)
+	ctx := t.Context()
+	s := newShop(t, pool, "Olma")
+	var typ, customer int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO customer_types (company_id, name, position) VALUES ($1, 'Jismoniy', 1) RETURNING id", s.company).Scan(&typ))
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO customers (company_id, type_id, phone, created_by) VALUES ($1, $2, '998901234567', $3) RETURNING id", s.company, typ, ali).Scan(&customer))
+	// The head is any document of the journal: the kind the head names
+	// decides what the payments are.
+	document := addDocument(t, q, pool, s, Sale, 1)
+	head := Head{ID: document.ID, Kind: Order, CompanyID: s.company, CustomerID: &customer, At: document.DocAt}
+
+	require.NoError(t, WriteLinkedPayments(ctx, q, head, []PaymentLine{{BankAccountID: s.cash, Amount: ptr("400")}}, ali, ptr("Ali aka")))
+
+	var kind string
+	var paidBy, linked int64
+	require.NoError(t, pool.QueryRow(ctx, "SELECT kind, customer_id, linked_id FROM transactions WHERE linked_id = $1 AND deleted_at IS NULL", document.ID).Scan(&kind, &paidBy, &linked))
+	assert.Equal(t, "customer_payment", kind, "the customer pays")
+	assert.Equal(t, customer, paidBy)
+	assert.Equal(t, document.ID, linked)
+}
+

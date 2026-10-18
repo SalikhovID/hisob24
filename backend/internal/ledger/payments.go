@@ -14,8 +14,9 @@ import (
 )
 
 // Head is the document the payments are entered with: a purchase (its
-// supplier is paid) or a sale (its customer pays, or nobody for a retail
-// sale), at its moment.
+// supplier is paid), a sale (its customer pays, or nobody for a retail
+// sale) or an order's document (its customer pays an advance), at its
+// moment.
 type Head struct {
 	ID         int64
 	Kind       Kind
@@ -54,7 +55,7 @@ func WriteLinkedPayments(ctx context.Context, q *gen.Queries, head Head, lines [
 		return err
 	}
 	kind := SupplierPayment
-	if head.Kind == Sale {
+	if head.Kind == Sale || head.Kind == Order {
 		kind = CustomerPayment
 	}
 	for _, l := range lines {

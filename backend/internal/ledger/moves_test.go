@@ -23,6 +23,7 @@ func TestMovesOf(t *testing.T) {
 		"a purchase adds":                   {Purchase, []Line{line(1, "12.5"), line(2, "3")}, []string{"10:1:12.500", "10:2:3.000"}},
 		"an opening stock adds":             {OpeningStock, []Line{line(1, "1")}, []string{"10:1:1.000"}},
 		"a sale takes":                      {Sale, []Line{line(1, "2.5")}, []string{"10:1:-2.500"}},
+		"an order takes":                    {Order, []Line{line(1, "2"), line(2, "0.5")}, []string{"10:1:-2.000", "10:2:-0.500"}},
 		"a transfer takes and adds":         {Transfer, []Line{line(1, "2"), line(2, "1")}, []string{"10:1:-2.000", "20:1:2.000", "10:2:-1.000", "20:2:1.000"}},
 		"an inventory moves the difference": {Inventory, []Line{counted(1, "9", "10"), counted(2, "5", "5"), counted(3, "7.25", "0")}, []string{"10:1:-1.000", "10:3:7.250"}},
 		"a line of nothing moves nothing":   {Purchase, []Line{line(1, "0")}, nil},
