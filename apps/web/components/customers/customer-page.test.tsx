@@ -412,7 +412,7 @@ test("a customer with orders is not deleted: the API's reason is shown, and the 
   await user.click(screen.getByRole("button", { name: "Mijozni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
 
-  expect(await screen.findByText("Bu mijozda 2 ta vazifa bor")).toBeInTheDocument()
+  expect(await screen.findByText("Bu mijozda 2 ta buyurtma bor")).toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
   expect(db.customers.find((customer) => customer.id === dilshod.id)?.deleted).toBeUndefined()
 })

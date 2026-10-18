@@ -102,12 +102,12 @@ test("a stage is deleted from its sheet after asking; one the API will not delet
   await waitFor(async () => expect(names(await stageList())).toEqual(["Jarayonda", "Bajarildi"]))
 
   server.use(
-    http.delete("*/api/app/order-stages/:id", () => HttpResponse.json({ error: "stage_in_use", message: "Bu bosqichda 2 ta vazifa bor" }, { status: 409 })),
+    http.delete("*/api/app/order-stages/:id", () => HttpResponse.json({ error: "stage_in_use", message: "Bu bosqichda 2 ta buyurtma bor" }, { status: 409 })),
   )
   await user.click(await stageRow("Jarayonda"))
   await user.click(within(await screen.findByRole("dialog", { name: "Bosqichni tahrirlash" })).getByRole("button", { name: "Bosqichni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "O'chirish" }))
-  expect((await screen.findAllByText("Bu bosqichda 2 ta vazifa bor")).length).toBeGreaterThan(0)
+  expect((await screen.findAllByText("Bu bosqichda 2 ta buyurtma bor")).length).toBeGreaterThan(0)
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(names(await stageList())).toEqual(["Jarayonda", "Bajarildi"])

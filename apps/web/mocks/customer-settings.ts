@@ -214,7 +214,7 @@ export const customerSettingsHandlers = [
     if (used > 0) return fail(409, "option_in_use", `Bu variant ${used} ta mijozda tanlangan`)
     // The orders hold it too, and are told after the customers.
     const inOrders = choseInOrders(dropdown, option.id)
-    if (inOrders > 0) return fail(409, "option_in_use", `Bu variant ${inOrders} ta vazifada tanlangan`)
+    if (inOrders > 0) return fail(409, "option_in_use", `Bu variant ${inOrders} ta buyurtmada tanlangan`)
     option.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

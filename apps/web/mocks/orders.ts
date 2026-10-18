@@ -21,7 +21,7 @@ import {
 import { api, fail, forbidden, isMember, normalizePhone, permittedSession } from "./gate"
 
 const invalid = (message: string) => fail(400, "validation_error", message)
-const orderNotFound = () => fail(404, "not_found", "Vazifa topilmadi")
+const orderNotFound = () => fail(404, "not_found", "Buyurtma topilmadi")
 
 // liveOrders is a company's orders, without the deleted.
 export const liveOrders = (companyId: number) => db.orders.filter((t) => t.companyId === companyId && !t.deleted)
@@ -73,8 +73,8 @@ export const toOrder = (t: OrderRow): Order => {
 // characters at most.
 function orderTitle(raw: unknown): string | Response {
   const title = typeof raw === "string" ? raw.trim() : ""
-  if (!title) return invalid("Vazifa nomini kiriting")
-  if ([...title].length > 200) return invalid("Vazifa nomi 200 belgidan oshmasin")
+  if (!title) return invalid("Buyurtma nomini kiriting")
+  if ([...title].length > 200) return invalid("Buyurtma nomi 200 belgidan oshmasin")
   return title
 }
 
@@ -177,7 +177,7 @@ export const ordersHandlers = [
       const id = Number(query.get(name))
       return Number.isInteger(id) && id >= 1 ? id : invalid(message)
     }
-    const typeId = one("type_id", "Vazifa turi noto'g'ri")
+    const typeId = one("type_id", "Buyurtma turi noto'g'ri")
     if (typeId instanceof Response) return typeId
     const stageId = one("stage_id", "Bosqich noto'g'ri")
     if (stageId instanceof Response) return stageId
@@ -239,7 +239,7 @@ export const ordersHandlers = [
     const locationId = body.location_id
     if (typeof locationId !== "number" || !scope.includes(locationId)) return invalid("Lokatsiyani tanlang")
     const type = liveOrderType(member.companyId, body.type_id)
-    if (!type) return invalid("Vazifa turini tanlang")
+    if (!type) return invalid("Buyurtma turini tanlang")
     const stage = liveStage(member.companyId, body.stage_id)
     if (!stage) return invalid("Bosqichni tanlang")
     const assignee = assigneeOf(member.companyId, locationId, body.assignee_phone)

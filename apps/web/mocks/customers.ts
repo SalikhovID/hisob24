@@ -331,7 +331,7 @@ export const customersHandlers = [
     if (!customer) return customerNotFound()
     // A customer with a live order stays; then one with a live document.
     const used = db.orders.filter((t) => t.customerId === customer.id && !t.deleted).length
-    if (used > 0) return fail(409, "customer_in_use", `Bu mijozda ${used} ta vazifa bor`)
+    if (used > 0) return fail(409, "customer_in_use", `Bu mijozda ${used} ta buyurtma bor`)
     const documents = customerDocumentsOf(customer.id)
     if (documents > 0) return fail(409, "customer_in_use", `Bu mijozda ${documents} ta hujjat bor`)
     // Hidden, not removed: its answers and its history stay.

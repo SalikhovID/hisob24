@@ -1115,7 +1115,7 @@ test("the orders are those of the locations the member works in: the list, an or
   await chooseCompany(1)
   expect(await titles()).toEqual(["Chilonzorda", "Valiga"])
   expect(await failure(listOrders({ location_id: asosiy.id }))).toMatchObject({ status: 403, code: "forbidden" })
-  expect(await failure(getOrder(inAsosiy.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(getOrder(inAsosiy.id))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
   expect(await failure(updateOrder(inAsosiy.id, edit()))).toMatchObject({ status: 404 })
   expect(await failure(moveOrder(inAsosiy.id, s.bajarildi.id))).toMatchObject({ status: 404 })
   expect(await failure(deleteOrder(inAsosiy.id))).toMatchObject({ status: 404 })
@@ -1192,12 +1192,12 @@ test("a member enters an order for a customer that is there, or with a new one; 
   const invalid = { status: 400, code: "validation_error" }
   const nokStage = db.stages.find((stage) => stage.companyId === 2)!.id
   const refusals: [Partial<OrderCreate>, string][] = [
-    [{ title: " " }, "Vazifa nomini kiriting"],
-    [{ title: "ў".repeat(201) }, "Vazifa nomi 200 belgidan oshmasin"],
+    [{ title: " " }, "Buyurtma nomini kiriting"],
+    [{ title: "ў".repeat(201) }, "Buyurtma nomi 200 belgidan oshmasin"],
     [{ deadline: "" }, "Muddatni kiriting"],
     [{ deadline: "10.10.2026" }, "Muddat noto'g'ri"],
     [{ deadline: "2026-02-30" }, "Muddat noto'g'ri"],
-    [{ type_id: 999 }, "Vazifa turini tanlang"],
+    [{ type_id: 999 }, "Buyurtma turini tanlang"],
     [{ stage_id: 999 }, "Bosqichni tanlang"],
     [{ stage_id: nokStage }, "Bosqichni tanlang"],
     [{ assignee_phone: "998907777777" }, "Mas'ul kompaniya a'zosi emas"],
@@ -1209,7 +1209,7 @@ test("a member enters an order for a customer that is there, or with a new one; 
     [{ customer: { type_id: s.jismoniy.id, phone: "998901112266" } }, "«F.I.Sh.» maydonini to'ldiring"],
     // The title is told before the type, the stage before the answers, the
     // answers before the customer.
-    [{ title: "", type_id: 999 }, "Vazifa nomini kiriting"],
+    [{ title: "", type_id: 999 }, "Buyurtma nomini kiriting"],
     [{ stage_id: 0, values: {} }, "Bosqichni tanlang"],
     [{ values: {}, customer: {} }, "«Izoh» maydonini to'ldiring"],
   ]
@@ -1229,9 +1229,9 @@ test("a member enters an order for a customer that is there, or with a new one; 
     message: "Lokatsiyani tanlang",
   })
 
-  expect(await failure(getOrder(999))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
+  expect(await failure(getOrder(999))).toMatchObject({ status: 404, code: "not_found", message: "Buyurtma topilmadi" })
   await chooseCompany(2)
-  expect(await failure(getOrder(order.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(getOrder(order.id))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
   await chooseCompany(null)
   expect(await failure(createOrder(orderBody(s)))).toMatchObject({ status: 403, code: "company_required" })
 })
@@ -1285,7 +1285,7 @@ test("the orders list: the one due soonest first, twenty to a page, the filters 
   expect(await listOrders({ page: 3 })).toEqual({ items: [], total: 24, page: 3, page_size: 20 })
   const bad: [OrderQuery, string][] = [
     [{ page: 0 }, "Sahifa raqami noto'g'ri"],
-    [{ type_id: "abc" as unknown as number }, "Vazifa turi noto'g'ri"],
+    [{ type_id: "abc" as unknown as number }, "Buyurtma turi noto'g'ri"],
     [{ stage_id: 0 }, "Bosqich noto'g'ri"],
     [{ customer_id: "abc" as unknown as number }, "Mijoz noto'g'ri"],
     [{ assignee: "vali" }, "Mas'ul noto'g'ri"],
@@ -1353,7 +1353,7 @@ test("an edit replaces the order's own fields and its answers and goes into the 
   expect(await failure(updateOrder(order.id, { ...same, assignee_phone: ZARINA }))).toMatchObject({ status: 400, message: "Mas'ul kompaniya a'zosi emas" })
 
   const refusals: [OrderUpdate, string][] = [
-    [{ ...same, title: "" }, "Vazifa nomini kiriting"],
+    [{ ...same, title: "" }, "Buyurtma nomini kiriting"],
     [{ ...same, deadline: "soon" }, "Muddat noto'g'ri"],
     [{ ...same, stage_id: db.stages.find((stage) => stage.companyId === 2)!.id }, "Bosqichni tanlang"],
     [{ ...same, values: {} }, "«Izoh» maydonini to'ldiring"],
@@ -1362,7 +1362,7 @@ test("an edit replaces the order's own fields and its answers and goes into the 
     expect(await failure(updateOrder(order.id, body)), message).toMatchObject({ status: 400, code: "validation_error", message })
   }
   // An order that is not there is said first, whatever is sent.
-  expect(await failure(updateOrder(999, { ...same, title: "" }))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(updateOrder(999, { ...same, title: "" }))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
 
   await signIn(SARDOR)
   await chooseCompany(1)
@@ -1385,7 +1385,7 @@ test("moving an order changes its stage alone and goes into the history; the sam
   for (const stageId of [0, 999, db.stages.find((stage) => stage.companyId === 2)!.id]) {
     expect(await failure(moveOrder(order.id, stageId)), String(stageId)).toMatchObject({ status: 400, message: "Bosqichni tanlang" })
   }
-  expect(await failure(moveOrder(999, s.yangi.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(moveOrder(999, s.yangi.id))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
 
   await signIn(ALI)
   const history = await orderHistory(order.id)
@@ -1408,12 +1408,12 @@ test("a deleted order is gone from the app and its history is not shown; it stay
 
   await deleteOrder(order.id)
 
-  expect(await failure(getOrder(order.id))).toMatchObject({ status: 404, code: "not_found", message: "Vazifa topilmadi" })
+  expect(await failure(getOrder(order.id))).toMatchObject({ status: 404, code: "not_found", message: "Buyurtma topilmadi" })
   expect(await failure(deleteOrder(order.id))).toMatchObject({ status: 404 })
   expect((await listOrders()).items.map((t) => t.id)).toEqual([another.id])
   expect(db.orders).toHaveLength(2)
   await chooseCompany(2)
-  expect(await failure(deleteOrder(another.id))).toMatchObject({ status: 404, message: "Vazifa topilmadi" })
+  expect(await failure(deleteOrder(another.id))).toMatchObject({ status: 404, message: "Buyurtma topilmadi" })
   await signIn(ALI)
   expect(await failure(orderHistory(order.id))).toMatchObject({ status: 404 })
   expect(db.orderHistory.filter((e) => e.orderId === order.id).map((e) => e.action)).toEqual(["created", "deleted"])
@@ -1427,18 +1427,18 @@ test("what the orders use is not deleted; the customers are suggested by the dig
   await deleteOrder(gone.id)
   const inUse = { status: 409 }
 
-  expect(await failure(deleteCustomer(s.ali.id))).toMatchObject({ ...inUse, code: "customer_in_use", message: "Bu mijozda 1 ta vazifa bor" })
-  expect(await failure(deleteStage(s.yangi.id))).toMatchObject({ ...inUse, code: "stage_in_use", message: "Bu bosqichda 1 ta vazifa bor" })
-  expect(await failure(deleteOrderType(s.montaj.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 1 ta vazifa bor" })
+  expect(await failure(deleteCustomer(s.ali.id))).toMatchObject({ ...inUse, code: "customer_in_use", message: "Bu mijozda 1 ta buyurtma bor" })
+  expect(await failure(deleteStage(s.yangi.id))).toMatchObject({ ...inUse, code: "stage_in_use", message: "Bu bosqichda 1 ta buyurtma bor" })
+  expect(await failure(deleteOrderType(s.montaj.id))).toMatchObject({ ...inUse, code: "type_in_use", message: "Bu turda 1 ta buyurtma bor" })
   expect(await failure(deleteOrderField(s.montaj.id, s.izoh.id))).toMatchObject({
     ...inUse,
     code: "field_in_use",
-    message: "Bu maydon 1 ta vazifada to'ldirilgan",
+    message: "Bu maydon 1 ta buyurtmada to'ldirilgan",
   })
   expect(await failure(deleteOption(s.dropdown.id, s.instagram.id))).toMatchObject({
     ...inUse,
     code: "option_in_use",
-    message: "Bu variant 1 ta vazifada tanlangan",
+    message: "Bu variant 1 ta buyurtmada tanlangan",
   })
   // The customers are told first.
   const vali = await createCustomer(s.jismoniy.id, "998905555555", { [s.fish.id]: "Vali", [s.manba.id]: s.instagram.id })

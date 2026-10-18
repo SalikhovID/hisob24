@@ -268,7 +268,7 @@ export const handlers = [
     const location = locations.find((l) => l.id === Number(params.locationId))
     if (!c || !location) return locationNotFound()
     if (locations.length <= 1) return fail(409, "last_location", "Kompaniyaning yagona lokatsiyasi o'chirilmaydi")
-    if (location.orders_count > 0) return fail(409, "location_in_use", `Bu lokatsiyada ${location.orders_count} ta vazifa bor`)
+    if (location.orders_count > 0) return fail(409, "location_in_use", `Bu lokatsiyada ${location.orders_count} ta buyurtma bor`)
     db.locations[c.id] = locations.filter((l) => l !== location)
     return new HttpResponse(null, { status: 204 })
   }),

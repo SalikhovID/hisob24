@@ -119,13 +119,13 @@ test("a field's row opens its sheet: the name and the mark change, the kind is s
 
   server.use(
     http.delete("*/api/app/order-types/:id/fields/:fieldId", () =>
-      HttpResponse.json({ error: "field_in_use", message: "Bu maydon 4 ta vazifada to'ldirilgan" }, { status: 409 }),
+      HttpResponse.json({ error: "field_in_use", message: "Bu maydon 4 ta buyurtmada to'ldirilgan" }, { status: 409 }),
     ),
   )
   await user.click(await fieldRow("Tavsif"))
   await user.click(within(await screen.findByRole("dialog", { name: "Maydonni tahrirlash" })).getByRole("button", { name: "Maydonni o'chirish" }))
   await user.click(within(await screen.findByRole("alertdialog", { name: "Maydonni o'chirasizmi?" })).getByRole("button", { name: "O'chirish" }))
-  expect((await screen.findAllByText("Bu maydon 4 ta vazifada to'ldirilgan")).length).toBeGreaterThan(0)
+  expect((await screen.findAllByText("Bu maydon 4 ta buyurtmada to'ldirilgan")).length).toBeGreaterThan(0)
 })
 
 test("the fields are put in order in the «Tartiblash» mode, and the order is saved", async () => {

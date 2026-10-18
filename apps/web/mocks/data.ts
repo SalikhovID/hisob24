@@ -829,10 +829,10 @@ export function seedMontajType() {
 // seedOrders enters the customers of seedCustomers, the type of seedMontajType
 // and the orders the pages are tested with into Olma Savdo, in its ready
 // location Asosiy, with deadlines
-// measured from the browser's day: "Eski buyurtma" (a Vazifa for Dilshod,
+// measured from the browser's day: "Eski buyurtma" (a Buyurtma for Dilshod,
 // Bajarildi, five days late, assigned to Ali, entered by Ali), "Hisob-
 // faktura" (a Montaj for Malika, Yangi, two days late, nobody's, by
-// Sardor), "Shartnoma yuborish" (a Vazifa for Anor Tekstil, Jarayonda,
+// Sardor), "Shartnoma yuborish" (a Buyurtma for Anor Tekstil, Jarayonda,
 // today, nobody's, by Vali) and "Qo'ng'iroq qilish" (a Montaj for
 // Dilshod, Yangi, three days off, assigned to Vali, by Ali): in that order
 // they are due. The company starts with none: a test asks for them.

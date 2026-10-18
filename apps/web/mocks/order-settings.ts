@@ -134,7 +134,7 @@ export const orderSettingsHandlers = [
     const stage = liveStage(member.companyId, Number(params.id))
     if (!stage) return stageNotFound()
     const used = liveOrders().filter((t) => t.stageId === stage.id).length
-    if (used > 0) return fail(409, "stage_in_use", `Bu bosqichda ${used} ta vazifa bor`)
+    if (used > 0) return fail(409, "stage_in_use", `Bu bosqichda ${used} ta buyurtma bor`)
     stage.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
@@ -185,7 +185,7 @@ export const orderSettingsHandlers = [
     const type = liveType(member.companyId, Number(params.id))
     if (!type) return typeNotFound()
     const used = liveOrders().filter((t) => t.typeId === type.id).length
-    if (used > 0) return fail(409, "type_in_use", `Bu turda ${used} ta vazifa bor`)
+    if (used > 0) return fail(409, "type_in_use", `Bu turda ${used} ta buyurtma bor`)
     // Its fields go with it.
     type.deleted = true
     type.fields.forEach((f) => (f.deleted = true))
@@ -247,7 +247,7 @@ export const orderSettingsHandlers = [
     const field = liveType(member.companyId, Number(params.id))?.fields.find((f) => f.id === Number(params.fieldId) && !f.deleted)
     if (!field) return fieldNotFound()
     const used = liveOrders().filter((t) => t.values[field.id] !== undefined).length
-    if (used > 0) return fail(409, "field_in_use", `Bu maydon ${used} ta vazifada to'ldirilgan`)
+    if (used > 0) return fail(409, "field_in_use", `Bu maydon ${used} ta buyurtmada to'ldirilgan`)
     field.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

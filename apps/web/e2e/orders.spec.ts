@@ -181,7 +181,7 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await expect(orders.getByRole("link")).toHaveCount(2)
   await page.getByRole("button", { name: "Mijozni o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Mijozni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
-  await expect(page.getByText("Bu mijozda 2 ta vazifa bor")).toBeVisible()
+  await expect(page.getByText("Bu mijozda 2 ta buyurtma bor")).toBeVisible()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
 
   // Nor is a stage with an order in it (the stages are a part of the settings).
@@ -190,7 +190,7 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await page.getByRole("list", { name: "Bosqichlar" }).getByRole("button", { name: /^Jarayonda/ }).click()
   await page.getByRole("dialog", { name: "Bosqichni tahrirlash" }).getByRole("button", { name: "Bosqichni o'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Bosqichni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
-  await expect(page.getByText("Bu bosqichda 2 ta vazifa bor")).toBeVisible()
+  await expect(page.getByText("Bu bosqichda 2 ta buyurtma bor")).toBeVisible()
   await page.keyboard.press("Escape")
 
   await page.goto(`/tasks/${call.id}`)

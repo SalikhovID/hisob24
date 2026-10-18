@@ -584,7 +584,7 @@ test("a location with orders is not deleted: the refusal says how many", async (
   const confirm = await screen.findByRole("alertdialog", { name: "Lokatsiyani o'chirasizmi?" })
   await user.click(within(confirm).getByRole("button", { name: "O'chirish" }))
 
-  expect(await screen.findByText("Bu lokatsiyada 2 ta vazifa bor")).toBeInTheDocument()
+  expect(await screen.findByText("Bu lokatsiyada 2 ta buyurtma bor")).toBeInTheDocument()
   expect(locationsOf(screen.getByRole("table", { name: "Lokatsiyalar" }))).toHaveLength(2)
 })
 
