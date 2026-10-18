@@ -78,6 +78,16 @@ test("a surface is the prototype's frosted glass: the cell, a sheen over its top
   expect(block(".dark {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.1)")
 })
 
+test("the scrim behind a modal is the rest of the screen frosted: the scrim's tint over a 12px blur of the page", () => {
+  const scrim = block("@utility scrim {")
+  expect(scrim).toContain("background-color: var(--scrim)")
+  expect(scrim).toContain("-webkit-backdrop-filter: blur(12px) saturate(1.6)")
+  expect(scrim).toContain("backdrop-filter: blur(12px) saturate(1.6)")
+  // The tint is the prototype's, as before the blur.
+  expect(block(":root {")).toContain("--scrim: rgba(10, 12, 16, 0.2)")
+  expect(block(".dark {")).toContain("--scrim: rgba(0, 0, 0, 0.55)")
+})
+
 test("glossy is the prototype's capsule fill of an accent control: the accent as a gradient with a glow", () => {
   const glossy = block("@utility glossy {")
   expect(glossy).toContain("background-image: var(--btn)")

@@ -355,6 +355,15 @@
   backdrop-filter: blur(18px) saturate(1.6);
 }
 
+/* scrim is what a modal (a sheet, an alert, an action sheet) leaves of the
+   screen: the page dimmed by the scrim's tint under a blur, frosted glass
+   round the modal. */
+@utility scrim {
+  background-color: var(--scrim);
+  -webkit-backdrop-filter: blur(12px) saturate(1.6);
+  backdrop-filter: blur(12px) saturate(1.6);
+}
+
 /* glossy is the prototype's capsule fill of an accent control (the main
    button, the plus, a tile's icon, a chosen option, a picked day): the
    accent as a gradient with a glow under it, the accent's ink on it. */
