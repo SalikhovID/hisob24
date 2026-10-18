@@ -3,7 +3,7 @@ import { expect, test } from "vitest"
 import type { Dashboard } from "@/lib/types"
 import { HomeHero } from "./home-hero"
 
-const none: Dashboard = { suppliers: null, customers: null, orders: null, purchases: null, sales: null }
+const none: Dashboard = { suppliers: null, customers: null, orders: null, purchases: null, sales: null, orders_money: null }
 const orders = (active: number, late: number): Dashboard["orders"] => ({ active, late, by_stage: [], upcoming: [] })
 
 test("whoever sees the purchases is headed by what the suppliers are owed: how many owe, the advance, the way to them", () => {

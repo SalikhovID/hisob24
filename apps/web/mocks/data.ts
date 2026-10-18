@@ -268,6 +268,7 @@ export interface SupplierRow {
 export type DocumentKind =
   | "purchase"
   | "sale"
+  | "order"
   | "transfer"
   | "inventory"
   | "opening_stock"
@@ -297,6 +298,8 @@ export interface TransactionRow {
   toBankAccountId: number | null
   categoryId: number | null
   linkedId: number | null
+  // orderId is the order an order's document is of (logic/orders.md, 4.3).
+  orderId?: number | null
   currencyId: number
   rateId: number
   total: number

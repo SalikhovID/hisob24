@@ -5,6 +5,7 @@
 // with a document, and what a supplier is owed.
 import type { BalanceLine, LastPrice, StatementRow } from "@/lib/types"
 import { nameOf } from "./customers"
+import { CATALOG } from "./data"
 import { db, type DocumentKind, type ItemRow, type MoveRow, nextId, now, type RateRow, type TransactionRow, zeroRateOf } from "./data"
 import { fail } from "./gate"
 
@@ -134,6 +135,7 @@ export function movesOf(kind: DocumentKind, companyId: number, transactionId: nu
         add(locationId, l.productId, l.quantity)
         break
       case "sale":
+      case "order":
         add(locationId, l.productId, -l.quantity)
         break
       case "transfer":
@@ -206,7 +208,7 @@ export function writeLinkedPayments(head: TransactionRow, lines: unknown, by: st
   const was = linkedPaymentsOf(head.id)
   const held = new Set(was.map((p) => p.bankAccountId))
   for (const p of was) p.deleted = true
-  const kind: DocumentKind = head.kind === "sale" ? "customer_payment" : "supplier_payment"
+  const kind: DocumentKind = head.kind === "sale" || head.kind === "order" ? "customer_payment" : "supplier_payment"
   const list = Array.isArray(lines) ? (lines as Record<string, unknown>[]) : []
   const written: TransactionRow[] = []
   const undo = (refusal: Response) => {
@@ -266,7 +268,7 @@ export function paidOf(doc: TransactionRow): number {
 // signOf says how a document changes what is owed: a purchase, a sale or
 // an opening debt adds, a payment or an opening advance takes away. The
 // rule is the same for a supplier and a customer.
-const signOf = (kind: DocumentKind) => (kind === "purchase" || kind === "supplier_debt" || kind === "sale" || kind === "customer_debt" ? 1 : -1)
+const signOf = (kind: DocumentKind) => (kind === "purchase" || kind === "supplier_debt" || kind === "sale" || kind === "order" || kind === "customer_debt" ? 1 : -1)
 
 // Party is whose statement is read: a supplier's or a customer's.
 export type Party = "supplier" | "customer"
@@ -277,6 +279,18 @@ const supplierDocuments = (supplierId: number) => db.transactions.filter((t) => 
 // payment name no customer and are nobody's.
 const partyDocuments = (party: Party, id: number) =>
   db.transactions.filter((t) => (party === "supplier" ? t.supplierId === id : t.customerId === id) && !t.deleted)
+
+// orderDocumentOf is the order's live document, if it has one.
+export const orderDocumentOf = (orderId: number) => db.transactions.find((t) => t.kind === "order" && t.orderId === orderId && !t.deleted)
+
+// orderOf is the order a document names: its own, or the one the document
+// it links to is of.
+function orderOf(t: TransactionRow): { id: number; title: string } | null {
+  const linked = t.linkedId === null ? undefined : db.transactions.find((x) => x.id === t.linkedId)
+  const orderId = t.kind === "order" ? t.orderId : linked?.kind === "order" ? linked.orderId : null
+  const order = orderId ? db.orders.find((o) => o.id === orderId) : undefined
+  return order ? { id: order.id, title: order.title } : null
+}
 
 // customerBalanceOf is what the customer owes in so'm by each document's
 // own rate, and in each currency apart (null for none, as a list shows it).
@@ -313,7 +327,10 @@ export function balanceOf(supplierId: number): { purchases: number; payments: nu
 // statementOf is the party's statement: its live documents in time, each
 // with what was owed after it, the newest first.
 export function statementOf(party: Party, id: number): StatementRow[] {
-  const docs = partyDocuments(party, id).sort((a, b) => a.at.localeCompare(b.at) || a.id - b.id)
+  // An order priced at nothing is not shown.
+  const docs = partyDocuments(party, id)
+    .filter((t) => !(t.kind === "order" && t.total === 0))
+    .sort((a, b) => a.at.localeCompare(b.at) || a.id - b.id)
   let balance = 0
   const rows = docs.map((t): StatementRow => {
     const rate = rateOf(t.rateId)
@@ -337,11 +354,92 @@ export function statementOf(party: Party, id: number): StatementRow[] {
       linked_number: linked?.number ?? null,
       bank_account_id: t.bankAccountId,
       account_name: account?.name ?? null,
+      order_id: orderOf(t)?.id ?? null,
+      order_title: orderOf(t)?.title ?? null,
       note: t.note,
       created_by_name: nameOf(t.by, t.companyId, t.byName),
     }
   })
   return rows.reverse()
+}
+
+// The FIFO cost (logic/warehouse.md, section 10; backend/internal/costing):
+// fifoCostOf is what the document's moves out of each of the products
+// cost in so'm, the product's live moves in every location replayed in
+// time: a purchase's or an opening stock's move in is a lot at its unit
+// cost (the last known one from then on), a transfer carries the cost it
+// took to the other location, an inventory's surplus is a lot at the last
+// known cost, and a move out takes from the oldest lots of its location,
+// the rest at the last known cost.
+export function fifoCostOf(companyId: number, transactionId: number, productIds: number[]): Map<number, number> {
+  const costs = new Map<number, number>()
+  for (const productId of productIds) {
+    costs.set(productId, 0)
+    const moves = db.moves
+      .filter((m) => m.productId === productId && m.companyId === companyId)
+      .map((m) => ({ m, t: db.transactions.find((t) => t.id === m.transactionId)! }))
+      .filter(({ t }) => !t.deleted)
+      .sort((a, b) => a.t.at.localeCompare(b.t.at) || a.t.id - b.t.id || Number(b.m.quantity < 0) - Number(a.m.quantity < 0) || a.m.id - b.m.id)
+    const lots = new Map<number, { quantity: number; unitCost: number }[]>()
+    const carried = new Map<number, number>()
+    let lastKnown: number | null = null
+    for (const { m, t } of moves) {
+      if (m.quantity < 0) {
+        let left = -m.quantity
+        let cost = 0
+        const queue = lots.get(m.locationId) ?? []
+        while (left > 0 && queue.length > 0) {
+          const taken = Math.min(queue[0].quantity, left)
+          cost += taken * queue[0].unitCost
+          left = round(left - taken, 3)
+          queue[0].quantity = round(queue[0].quantity - taken, 3)
+          if (queue[0].quantity === 0) queue.shift()
+        }
+        lots.set(m.locationId, queue)
+        if (left > 0 && lastKnown !== null) cost += left * lastKnown
+        if (t.kind === "transfer") carried.set(t.id, cost / -m.quantity)
+        if (t.id === transactionId) costs.set(productId, round((costs.get(productId) ?? 0) + cost, 2))
+        continue
+      }
+      let unitCost: number | null = null
+      if (t.kind === "transfer") unitCost = carried.get(t.id) ?? null
+      else if (t.kind === "purchase" || t.kind === "opening_stock") {
+        const line = db.items.find((i) => i.transactionId === t.id && i.productId === productId)
+        if (line && line.price !== null) {
+          unitCost = convertAmount(line.price, t.currencyId, 1, rateOf(t.rateId))
+          lastKnown = unitCost
+        }
+      }
+      if (unitCost === null) unitCost = lastKnown ?? 0
+      lots.set(m.locationId, [...(lots.get(m.locationId) ?? []), { quantity: m.quantity, unitCost }])
+    }
+  }
+  return costs
+}
+
+// grouped writes a number the way the Go history does: the thousands apart
+// by a space, the decimals after a comma without the trailing zeros.
+export function grouped(amount: number): string {
+  const [whole, decimals = ""] = amount.toFixed(2).split(".")
+  const spaced = whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+  const trimmed = decimals.replace(/0+$/, "")
+  return trimmed ? `${spaced},${trimmed}` : spaced
+}
+
+// priceText is an order's price as the history writes it ("5 000 so'm"), "" for none.
+export function priceText(amount: number, currencyId: number): string {
+  return amount > 0 ? `${grouped(amount)} ${CATALOG.find((c) => c.id === currencyId)?.symbol ?? ""}` : ""
+}
+
+// linesText is an order's lines as the history writes them ("Olma × 2 kg, Montaj × 1").
+export function linesText(items: ItemRow[]): string {
+  return items
+    .map((i) => {
+      const product = db.products.find((p) => p.id === i.productId)
+      const quantity = grouped(i.quantity).replace(/,(\d)$/, ",$1")
+      return `${product?.name ?? ""} × ${quantity}${product?.unit ? ` ${product.unit}` : ""}`
+    })
+    .join(", ")
 }
 
 // What an account holds (logic/finance.md, section 4): accountDeltaOf is

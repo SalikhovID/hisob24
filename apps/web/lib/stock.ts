@@ -21,7 +21,7 @@ export const onceEach = (items: { product_id: number }[], context: z.RefinementC
 // moveLineSchema checks a line of a document without prices (the shared
 // lines field holds a price all the same, unused here): a product chosen,
 // a quantity above zero.
-const moveLineSchema = z
+export const moveLineSchema = z
   .object({
     product_id: z.number().int().positive("Mahsulotni tanlang"),
     product_name: z.string(),
@@ -209,6 +209,7 @@ export function differenceOf(expected: string, counted: string): string | null {
 export const kindTitle: Record<GoodsKind, string> = {
   purchase: "Xarid",
   sale: "Sotuv",
+  order: "Buyurtma",
   transfer: "Ko'chirish",
   inventory: "Inventarizatsiya",
   opening_stock: "Boshlang'ich qoldiq",
@@ -221,6 +222,9 @@ export function documentHref(kind: GoodsKind, id: number): string {
       return `/purchases/${id}`
     case "sale":
       return `/sales/${id}`
+    case "order":
+      // An order's document leads to the order (its id, not the document's).
+      return `/orders/${id}`
     case "transfer":
       return `/transfers/${id}`
     case "inventory":

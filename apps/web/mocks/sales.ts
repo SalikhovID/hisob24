@@ -17,6 +17,9 @@ const customerNotFound = () => fail(404, "not_found", "Mijoz topilmadi")
 const paymentNotFound = () => fail(404, "not_found", "To'lov topilmadi")
 const documentNotFound = () => fail(404, "not_found", "Hujjat topilmadi")
 const paymentLinked = () => fail(409, "payment_linked", "Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang")
+const paymentForOrder = () => fail(409, "payment_linked", "Bu to'lov buyurtma bilan kiritilgan: buyurtmani oching")
+// linkedRefusal is why a payment entered with a document is not changed here.
+const linkedRefusal = (p: TransactionRow) => (db.transactions.find((x) => x.id === p.linkedId)?.kind === "order" ? paymentForOrder() : paymentLinked())
 
 const liveCustomer = (companyId: number, id: unknown) => liveCustomers(companyId).find((c) => c.id === Number(id))
 
@@ -78,13 +81,15 @@ function checkSale(companyId: number, body: Record<string, unknown>, by: string,
 const paidInFull = (doc: TransactionRow): Response | null => (doc.customerId === null && paidOf(doc) !== doc.total ? invalid("Mijozsiz sotuv to'liq to'langan bo'lsin") : null)
 
 function toCustomerPayment(p: TransactionRow): CustomerPayment {
-  const sale = p.linkedId === null ? undefined : db.transactions.find((x) => x.id === p.linkedId)
+  const linked = p.linkedId === null ? undefined : db.transactions.find((x) => x.id === p.linkedId)
+  const sale = linked?.kind === "sale" ? linked : undefined
   const rate = rateOf(p.rateId)
   return {
     id: p.id,
     customer_id: p.customerId!,
-    sale_id: p.linkedId,
+    sale_id: sale?.id ?? null,
     sale_number: sale?.number ?? null,
+    order_id: linked?.kind === "order" ? (linked.orderId ?? null) : null,
     bank_account_id: p.bankAccountId!,
     account_name: (db.accounts[p.companyId] ?? []).find((a) => a.id === p.bankAccountId)?.name ?? "",
     amount: asAmount(p.total),
@@ -227,7 +232,7 @@ export const salesHandlers = [
     if (member instanceof Response) return member
     const p = customerPaymentsOf(member.companyId, Number(params.id)).find((x) => x.id === Number(params.paymentId))
     if (!p) return paymentNotFound()
-    if (p.linkedId !== null) return paymentLinked()
+    if (p.linkedId !== null) return linkedRefusal(p)
     const c = checkPayment(member.companyId, (await request.json()) as Record<string, unknown>, member.phone, p.bankAccountId!, pricingOf(p))
     if (c instanceof Response) return c
     Object.assign(p, { bankAccountId: c.accountId, total: c.amount, at: c.at, currencyId: c.pricing.currencyId, rateId: c.pricing.rateId, note: c.note, updatedAt: now() })
@@ -239,7 +244,7 @@ export const salesHandlers = [
     if (member instanceof Response) return member
     const p = customerPaymentsOf(member.companyId, Number(params.id)).find((x) => x.id === Number(params.paymentId))
     if (!p) return paymentNotFound()
-    if (p.linkedId !== null) return paymentLinked()
+    if (p.linkedId !== null) return linkedRefusal(p)
     p.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),

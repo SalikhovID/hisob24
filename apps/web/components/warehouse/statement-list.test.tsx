@@ -6,6 +6,7 @@ import { asosiyOf } from "@/test/locations"
 import { renderWithProviders } from "@/test/render"
 import { rowParts } from "@/test/rows"
 import { signIn } from "@/test/session"
+import { pricedOrder } from "@/test/order-money"
 import { StatementList } from "./statement-list"
 
 // A customer's statement: Dilshod bought 4 Olma at 3 000 and paid 5 000
@@ -89,3 +90,17 @@ test("the actions follow the permissions: a reader sees the rows alone", async (
   expect(within(statement).queryAllByRole("button")).toHaveLength(0)
   expect(screen.queryByRole("button", { name: "Boshlang'ich" })).not.toBeInTheDocument()
 })
+
+test("a customer's statement names an order by its title and leads to it, its advance too", async () => {
+  await signIn(ALI)
+  const { order, dilshod } = await pricedOrder()
+  renderWithProviders(<StatementList party="customer" companyId={1} partyId={dilshod.id} canAdd canEdit canDelete />)
+
+  const statement = await screen.findByRole("region", { name: "Hisob harakati" })
+  const [advance, priced] = rows(statement)
+  expect(parts(priced)).toMatchObject({ title: "Buyurtma · Montaj", end: "+5 000 balans 5 000" })
+  expect(priced).toHaveAttribute("href", `/orders/${order.id}`)
+  expect(parts(advance)).toMatchObject({ title: "To'lov · Montaj", end: "−400 balans 4 600" })
+  expect(advance).toHaveAttribute("href", `/orders/${order.id}`)
+})
+

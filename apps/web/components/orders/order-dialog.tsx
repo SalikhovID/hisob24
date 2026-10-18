@@ -12,14 +12,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { api, call } from "@/lib/api"
 import { answersDefaults } from "@/lib/fields"
 import { formatPhoneInput } from "@/lib/phone"
+import { forgetOrderMoney } from "@/lib/order-money"
 import { customerKey, customersKey, ordersKey } from "@/lib/queries"
 import { type OrderForm, type OrderOutput, orderDefaults, orderSchema } from "@/lib/orders"
 import type { Customer, CustomerDropdown, CustomerType, Member, OrderStage, OrderType } from "@/lib/types"
-import { CustomerSection, FormSection, OrderFields, OrderRefusal } from "./order-form"
+import { CustomerSection, FormSection, MoneySection, OrderFields, OrderRefusal } from "./order-form"
 
 // AddOrderDialog enters an order into the company: the type on top, the
 // customer on the left (one that is there, taken from the suggestions, or
-// a new one entered with the order) and the order on the right. It is
+// a new one entered with the order), the order on the right and its money
+// (the price, the goods, the advance) under it. It is
 // mounted to open and unmounted to close, so every opening starts afresh:
 // on the type the list is narrowed to (or the first), in the stage it was
 // opened for (or the first), with the deadline empty and nobody assigned.
@@ -30,6 +32,8 @@ export function AddOrderDialog({
   stages,
   customerTypes,
   canCreateCustomer,
+  canPickProducts,
+  locationName,
   dropdowns,
   members,
   typeId: preferred,
@@ -47,6 +51,10 @@ export function AddOrderDialog({
   // the order (customers.create); without it only a customer that is there
   // will do.
   canCreateCustomer: boolean
+  // canPickProducts says whether the member may pick the goods
+  // (products.view); without it the order is entered without lines.
+  canPickProducts: boolean
+  locationName?: string
   dropdowns: CustomerDropdown[]
   members: Member[]
   // typeId is the type the list is narrowed to, if any; stageId the stage
@@ -84,10 +92,12 @@ export function AddOrderDialog({
   })
   const add = useMutation({
     mutationFn: (order: OrderOutput) => call(api.POST("/app/orders", { body: { type_id: type.id, location_id: locationId, ...order } })),
-    onSuccess: () => {
+    onSuccess: (entered) => {
       queryClient.invalidateQueries({ queryKey: ordersKey(companyId) })
-      // A new customer is among the customers now.
+      // A new customer is among the customers now; the money touches the
+      // customer's balance, the stock and the accounts.
       queryClient.invalidateQueries({ queryKey: customersKey(companyId) })
+      forgetOrderMoney(queryClient, companyId, entered.id, entered.customer.id)
       toast.success("Buyurtma qo'shildi")
       onClose()
     },
@@ -178,6 +188,9 @@ export function AddOrderDialog({
           </FormSection>
           <FormSection legend="Buyurtma">
             <OrderFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} locationId={locationId} />
+          </FormSection>
+          <FormSection legend="Narx">
+            <MoneySection form={form} companyId={companyId} withPayments canPickProducts={canPickProducts} locationName={locationName} />
           </FormSection>
           <DialogFooter>
             <MainButton type="submit" pending={add.isPending}>

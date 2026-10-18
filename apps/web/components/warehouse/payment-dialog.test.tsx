@@ -8,6 +8,7 @@ import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
 import { momentIn } from "@/test/moment"
+import { pricedOrder } from "@/test/order-money"
 import { PaymentDialog } from "./payment-dialog"
 
 // Opened is the sheet as a page opens it (the «To'lov» tile, a payment's
@@ -95,3 +96,20 @@ test("a customer's payment goes to the customer", async () => {
   // The toast of an earlier test in this file may still stand beside it.
   expect((await screen.findAllByText("To'lov qo'shildi")).length).toBeGreaterThan(0)
 })
+
+test("a payment for an order goes to the order: the customer's, linked to the order's document", async () => {
+  await signIn(ALI)
+  const { order, dilshod } = await pricedOrder()
+  const { user } = renderWithProviders(<Opened party="customer" companyId={1} partyId={dilshod.id} orderId={order.id} partyName="Montaj" />)
+
+  const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
+  await waitFor(() => expect(within(dialog).getByLabelText("Akkaunt")).toHaveTextContent("Naqd (so'm)"))
+  await press(user, dialog, "300")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(db.transactions.at(-1)).toMatchObject({ kind: "customer_payment", total: 300, customerId: dilshod.id }))
+  expect(db.transactions.at(-1)!.linkedId).toBe(db.transactions.find((t) => t.kind === "order" && t.orderId === order.id)!.id)
+  // An earlier test's toast may still stand.
+  expect((await screen.findAllByText("To'lov qo'shildi")).length).toBeGreaterThan(0)
+})
+

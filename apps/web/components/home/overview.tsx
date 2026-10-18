@@ -1,4 +1,4 @@
-import { CheckIcon, ReceiptIcon, ShoppingBagIcon, UserIcon } from "lucide-react"
+import { CheckIcon, CoinsIcon, ReceiptIcon, ShoppingBagIcon, UserIcon } from "lucide-react"
 import { SectionHeading } from "@/components/kit/group"
 import { Bars, Sparkline, StatCard } from "@/components/kit/stat-card"
 import { Badge } from "@/components/ui/badge"
@@ -8,12 +8,13 @@ import type { Dashboard, OrderStage } from "@/lib/types"
 
 // Overview is the home's «Umumiy holat», as the prototype's cards: the
 // orders not done (how many are late, the stages as bars), this month's
-// purchases (or, to whoever does not see them, the customers) and sales,
+// purchases (or, to whoever does not see them, the customers), sales and
+// priced orders (logic/orders.md, 4.3),
 // each a figure with a chart along the bottom and the way to its section.
 // The orders and the documents are the current location's: with none, they
 // are out. month is the month's name, for the cards' line ("oktabr").
 export function Overview({ dashboard, stages, hasLocation, month }: { dashboard: Dashboard; stages: OrderStage[]; hasLocation: boolean; month: string }) {
-  const { orders, purchases, sales, customers } = dashboard
+  const { orders, purchases, sales, customers, orders_money: ordersMoney } = dashboard
   const cards = []
   if (orders && hasLocation) {
     const bars = orders.by_stage.flatMap((count) => {
@@ -85,6 +86,25 @@ export function Overview({ dashboard, stages, hasLocation, month }: { dashboard:
           </>
         }
         chart={<Sparkline values={sales.by_day.map(Number)} />}
+      />,
+    )
+  }
+  if (ordersMoney && hasLocation) {
+    cards.push(
+      <StatCard
+        key="orders-money"
+        href="/orders"
+        icon={CoinsIcon}
+        title="Buyurtma summasi"
+        value={compactAmount(ordersMoney.month_total)}
+        unit="so'm"
+        meta={
+          <>
+            <Badge variant="accent">{ordersMoney.month_count} ta</Badge>
+            <span className="font-medium text-muted-foreground">{month}</span>
+          </>
+        }
+        chart={<Sparkline values={ordersMoney.by_day.map(Number)} />}
       />,
     )
   }

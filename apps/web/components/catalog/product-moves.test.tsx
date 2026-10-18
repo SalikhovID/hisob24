@@ -6,6 +6,7 @@ import { renderWithProviders } from "@/test/render"
 import { rowParts } from "@/test/rows"
 import { signIn } from "@/test/session"
 import { enterTransfer } from "@/test/stock"
+import { pricedOrder } from "@/test/order-money"
 import { ProductMoves } from "./product-moves"
 
 // parts are a row's title, line and end, the spaces as one plain space.
@@ -44,3 +45,16 @@ test("a product never moved says so", async () => {
   renderWithProviders(<ProductMoves companyId={1} productId={nok.id} unit="dona" />)
   expect(await screen.findByText("Bu mahsulot hali harakat qilmagan")).toBeInTheDocument()
 })
+
+test("an order that took the product is named by its title, with the customer, and leads to the order", async () => {
+  await signIn(ALI)
+  const { order, olma } = await pricedOrder()
+  renderWithProviders(<ProductMoves companyId={1} productId={olma.id} unit="kg" />)
+
+  const moves = await screen.findByRole("list", { name: "Harakatlar" })
+  const [taken] = within(moves).getAllByRole("link")
+  expect(parts(taken)).toMatchObject({ title: "Buyurtma · Montaj", end: "−2 kg" })
+  expect(parts(taken).sub).toContain("Dilshod Karimov")
+  expect(taken).toHaveAttribute("href", `/orders/${order.id}`)
+})
+

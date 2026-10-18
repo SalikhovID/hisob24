@@ -1,9 +1,10 @@
-import { render, screen, within } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
 import { addDays } from "@/mocks/data"
 import { todayISO } from "@/lib/orders"
 import type { Dashboard, Order, OrderStage } from "@/lib/types"
+import { renderWithProviders } from "@/test/render"
 import { UpcomingOrders } from "./upcoming-orders"
 
 type Orders = NonNullable<Dashboard["orders"]>
@@ -21,6 +22,11 @@ const order = (id: number, title: string, deadline: string, stageId = 1, extra: 
   customer: { id: 7, phone: "998911112233", name: "Dilshod Karimov" },
   assignee: { phone: "998902223344", full_name: "Vali Aliyev" },
   values: {},
+  amount: "0.00",
+  currency_id: 1,
+  rate: "1.0000",
+  amount_uzs: "0.00",
+  paid: "0.00",
   created_by_name: null,
   created_at: "2026-10-01T05:00:00Z",
   updated_at: "2026-10-01T05:00:00Z",
@@ -35,7 +41,7 @@ test("the orders due soonest, each a way to its page with its customer, assignee
     by_stage: [],
     upcoming: [order(1, "Hisob-faktura", addDays(today, -2)), order(2, "Shartnoma yuborish", today, 2, { assignee: null }), order(3, "Qo'ng'iroq qilish", addDays(today, 3))],
   }
-  render(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
+  renderWithProviders(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
 
   expect(screen.getByRole("heading", { level: 2, name: "Yaqin muddatlar" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Yaqin muddatlar" })).toHaveAttribute("href", "/orders?view=list")
@@ -52,7 +58,7 @@ test("the orders due soonest, each a way to its page with its customer, assignee
 
 test("with no order open it says so, and offers to add one to whoever may", async () => {
   const onAdd = vi.fn()
-  const { rerender } = render(<UpcomingOrders orders={{ active: 0, late: 0, by_stage: [], upcoming: [] }} stages={stages} hasLocation canAdd onAdd={onAdd} />)
+  const { rerender } = renderWithProviders(<UpcomingOrders orders={{ active: 0, late: 0, by_stage: [], upcoming: [] }} stages={stages} hasLocation canAdd onAdd={onAdd} />)
 
   expect(screen.getByText("Faol buyurtma yo'q")).toBeInTheDocument()
   await userEvent.click(screen.getByRole("button", { name: "Buyurtma qo'shish" }))
@@ -63,7 +69,7 @@ test("with no order open it says so, and offers to add one to whoever may", asyn
 })
 
 test("a member with no location is told so", () => {
-  render(<UpcomingOrders orders={{ active: 0, late: 0, by_stage: [], upcoming: [] }} stages={stages} hasLocation={false} canAdd onAdd={vi.fn()} />)
+  renderWithProviders(<UpcomingOrders orders={{ active: 0, late: 0, by_stage: [], upcoming: [] }} stages={stages} hasLocation={false} canAdd onAdd={vi.fn()} />)
 
   expect(screen.getByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
   expect(screen.queryByRole("list", { name: "Yaqin muddatlar" })).not.toBeInTheDocument()
@@ -71,7 +77,7 @@ test("a member with no location is told so", () => {
 
 test("the heading's way to every order is the prototype's: the heading's ink, 17px and bold, with a chevron after it", () => {
   const orders: Orders = { active: 1, late: 0, by_stage: [], upcoming: [order(1, "Hisob-faktura", todayISO())] }
-  render(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
+  renderWithProviders(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
   const link = screen.getByRole("link", { name: "Yaqin muddatlar" })
   expect(link).toHaveClass("text-[17px]", "font-semibold", "text-heading")
   expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true")

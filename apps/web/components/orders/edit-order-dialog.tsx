@@ -20,13 +20,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
+import { forgetOrderMoney } from "@/lib/order-money"
 import { orderHistoryKey, orderKey, ordersKey } from "@/lib/queries"
 import { type OrderForm, type OrderOutput, orderDefaults, orderSchema } from "@/lib/orders"
-import type { CustomerDropdown, Member, Order, OrderStage, OrderType } from "@/lib/types"
-import { FormSection, LinkedCustomerCard, OrderFields } from "./order-form"
+import type { CustomerDropdown, Member, OrderDetail, OrderStage, OrderType } from "@/lib/types"
+import { FormSection, LinkedCustomerCard, MoneySection, OrderFields } from "./order-form"
 
-// EditOrderDialog saves an order with another title, deadline, stage, assignee
-// and answers. Its type and its customer were chosen when it was entered
+// EditOrderDialog saves an order with another title, deadline, stage, assignee,
+// answers, price and goods (its payments are entered on their own). Its type and its customer were chosen when it was entered
 // and stay: the dialog says so, shows the customer and asks the fields of
 // that type. An answer left empty is taken away.
 export function EditOrderDialog({
@@ -36,15 +37,20 @@ export function EditOrderDialog({
   stages,
   members,
   dropdowns,
+  canPickProducts,
+  locationName,
   open: openGiven,
   onOpenChange,
 }: {
   companyId: number
-  order: Order
+  order: OrderDetail
   type: OrderType
   stages: OrderStage[]
   members: Member[]
   dropdowns: CustomerDropdown[]
+  // canPickProducts says whether the member may pick the goods (products.view).
+  canPickProducts: boolean
+  locationName?: string
   // open, with onOpenChange, opens the dialog from outside (the order's
   // «Tahrirlash» tile): it has no button then, and every mounting starts
   // from the order as it is now.
@@ -71,14 +77,20 @@ export function EditOrderDialog({
             stage_id: edited.stage_id,
             assignee_phone: edited.assignee_phone,
             values: edited.values,
+            amount: edited.amount,
+            currency_id: edited.currency_id,
+            rate: edited.rate,
+            items: edited.items,
           },
         }),
       ),
     onSuccess: (saved) => {
-      // The page shows the answer at once; the lists and the history ask again.
+      // The page shows the answer at once; the lists and the history ask
+      // again, and so does what the money touches.
       queryClient.setQueryData(orderKey(companyId, order.id), saved)
       queryClient.invalidateQueries({ queryKey: ordersKey(companyId) })
       queryClient.invalidateQueries({ queryKey: orderHistoryKey(companyId, order.id) })
+      forgetOrderMoney(queryClient, companyId, order.id, order.customer.id)
       toast.success("Buyurtma saqlandi")
       setOpen(false)
     },
@@ -121,6 +133,9 @@ export function EditOrderDialog({
               locationId={order.location_id}
               order={order}
             />
+          </FormSection>
+          <FormSection legend="Narx">
+            <MoneySection form={form} companyId={companyId} withPayments={false} canPickProducts={canPickProducts} locationName={locationName} />
           </FormSection>
           <DialogFooter>
             <MainButton type="submit" pending={save.isPending}>

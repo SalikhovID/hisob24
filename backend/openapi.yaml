@@ -8720,8 +8720,10 @@ components:
         kind:
           $ref: "#/components/schemas/ProductKind"
         unit:
-          type: [string, "null"]
           description: Mahsulotning birligi; xizmatda null
+          oneOf:
+            - $ref: "#/components/schemas/Unit"
+            - type: "null"
         quantity:
           type: string
           description: Uch kasr xonasi bilan ("2.000")

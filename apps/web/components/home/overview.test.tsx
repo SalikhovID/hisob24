@@ -3,7 +3,7 @@ import { expect, test } from "vitest"
 import type { Dashboard, OrderStage } from "@/lib/types"
 import { Overview } from "./overview"
 
-const none: Dashboard = { suppliers: null, customers: null, orders: null, purchases: null, sales: null }
+const none: Dashboard = { suppliers: null, customers: null, orders: null, purchases: null, sales: null, orders_money: null }
 const stages: OrderStage[] = [
   { id: 1, name: "Yangi", color: "blue", is_done: false },
   { id: 2, name: "Jarayonda", color: "amber", is_done: false },
@@ -15,6 +15,7 @@ const full: Dashboard = {
   orders: { active: 4, late: 2, by_stage: [{ stage_id: 1, count: 3 }, { stage_id: 2, count: 1 }], upcoming: [] },
   purchases: { month_total: "4600000.00", month_count: 6, by_day: ["0.00", "1200000.00", "4600000.00"] },
   sales: { month_total: "750000.00", month_count: 2, by_day: ["0.00", "0.00", "750000.00"] },
+  orders_money: { month_total: "5000000.00", month_count: 3, by_day: ["0.00", "2000000.00", "5000000.00"] },
 }
 
 test("the overview: the orders by stage, this month's purchases and sales, each card leading to its section", () => {
@@ -37,6 +38,11 @@ test("the overview: the orders by stage, this month's purchases and sales, each 
   expect(sales).toHaveTextContent("2 ta")
   // The purchases stand where the customers would.
   expect(screen.queryByRole("link", { name: /^Mijozlar/ })).not.toBeInTheDocument()
+  // The month's priced orders, apart from the orders' count.
+  const money = screen.getByRole("link", { name: /^Buyurtma summasi/ })
+  expect(money).toHaveAttribute("href", "/orders")
+  expect(money).toHaveTextContent("5 mln so'm")
+  expect(money).toHaveTextContent("3 ta")
 })
 
 test("orders all in time say so", () => {

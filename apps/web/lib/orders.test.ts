@@ -1,6 +1,7 @@
 import { expect, test } from "vitest"
-import type { Customer, CustomerType, Order, OrderType } from "./types"
-import { bucketLabels, deadlineBucket, deadlineOf, orderDefaults, orderSchema, todayISO } from "./orders"
+import { som } from "./currencies"
+import type { CompanyCurrency, Customer, CustomerType, Order, OrderDetail, OrderType } from "./types"
+import { bucketLabels, deadlineBucket, deadlineOf, moneyLine, orderDefaults, orderSchema, todayISO } from "./orders"
 
 test("todayISO is the day where the browser stands, as YYYY-MM-DD", () => {
   const now = new Date()
@@ -49,6 +50,11 @@ const filled = {
   assignee_phone: "998902223344",
   values: { f71: " Ertalab ", f72: "45000", f73: ["31", "32"] },
   customer: { type_id: "5", phone: "90 111 22 33", values: { f51: " Zarina Karimova ", f52: "" } },
+  amount: "",
+  currency_id: "1",
+  rate: "",
+  items: [],
+  payments: [],
 }
 
 // issuesOf is what the schema refuses, by path.
@@ -68,6 +74,11 @@ test("the schema turns a form with a new customer into what the API takes", () =
     assignee_phone: "998902223344",
     values: { 71: "Ertalab", 72: 45000, 73: [31, 32] },
     customer: { type_id: 5, phone: "998901112233", values: { 51: "Zarina Karimova" } },
+    amount: null,
+    currency_id: 1,
+    rate: null,
+    items: [],
+    payments: [],
   })
   // Nobody assigned is null, and an answer left empty is left out.
   expect(schema.parse({ ...filled, assignee_phone: "", values: { f71: "X", f72: "", f73: [] } })).toMatchObject({
@@ -95,6 +106,11 @@ test("what is wrong with the form is said in the API's words, all at once", () =
       assignee_phone: "",
       values: { f71: "", f72: "ko'p", f73: [] },
       customer: { type_id: "5", phone: "90 111", values: { f51: "", f52: "1.5" } },
+      amount: "",
+      currency_id: "1",
+      rate: "",
+      items: [],
+      payments: [],
     }),
   ).toEqual({
     title: "Buyurtma nomini kiriting",
@@ -123,6 +139,11 @@ test("the form opens empty for a new order, in the stage it was opened for, and 
     assignee_phone: "",
     values: { f71: "", f72: "", f73: [] },
     customer: { type_id: "5", phone: "", values: { f51: "", f52: "" } },
+    amount: "",
+    currency_id: "1",
+    rate: "",
+    items: [],
+    payments: [],
   })
   expect(orderDefaults(buyurtma, null, null).customer).toEqual({ type_id: "", phone: "", values: {} })
 
@@ -136,6 +157,11 @@ test("the form opens empty for a new order, in the stage it was opened for, and 
     customer: { id: 42, phone: "998901112233", name: "Zarina Karimova" },
     assignee: { phone: "998902223344", full_name: "Vali Aliyev" },
     values: { 71: "Ertalab", 73: [32] },
+    amount: "0.00",
+    currency_id: 1,
+    rate: "1.0000",
+    amount_uzs: "0.00",
+    paid: "0.00",
     created_by_name: null,
     created_at: "2026-10-02T06:01:00.000Z",
     updated_at: "2026-10-02T06:01:00.000Z",
@@ -147,6 +173,31 @@ test("the form opens empty for a new order, in the stage it was opened for, and 
     assignee_phone: "998902223344",
     values: { f71: "Ertalab", f72: "", f73: ["32"] },
     customer: { type_id: "5", phone: "", values: { f51: "", f52: "" } },
+    amount: "",
+    currency_id: "1",
+    rate: "",
+    items: [],
+    payments: [],
+  })
+  // An order with money and goods opens with them; its payments are not the form's.
+  const priced: OrderDetail = {
+    ...order,
+    amount: "5000.00",
+    currency_id: 2,
+    rate: "12800.0000",
+    amount_uzs: "64000000.00",
+    paid: "400.00",
+    items: [{ product_id: 3, name: "Olma", kind: "product", unit: "kg", quantity: "2.000", cost_uzs: null }],
+    payments: [{ id: 9, bank_account_id: 7, account_name: "Naqd", amount: "400.00", currency_id: 1, rate: "1.0000", amount_uzs: "400.00", at: "", note: null, created_by_name: null }],
+    cost_uzs: null,
+    profit_uzs: null,
+  }
+  expect(orderDefaults(buyurtma, jismoniy, 12, priced)).toMatchObject({
+    amount: "5000.00",
+    currency_id: "2",
+    rate: "12800",
+    items: [{ product_id: 3, product_name: "Olma", unit: "kg", quantity: "2.000", price: "" }],
+    payments: [],
   })
   const unassigned: Customer = { id: 42, type_id: 5, phone: "998901112233", values: {}, balance: null, balance_by_currency: null, created_by_name: null, created_at: "", updated_at: "" }
   expect(unassigned.id).toBe(42)
@@ -163,3 +214,39 @@ test("an order's group by its deadline: the late, today's, this week's, the late
   expect(deadlineBucket("2026-10-01", true, today)).toBe("done")
   expect(bucketLabels).toEqual({ late: "Kechikkan", today: "Bugun", week: "Shu hafta", later: "Keyinroq", done: "Bajarilgan" })
 })
+
+test("the schema takes the price, the currency and rate, the lines and the advance, in the API's words", () => {
+  const schema = orderSchema(buyurtma, null, 42)
+  const money = {
+    ...filled,
+    amount: "5 000",
+    currency_id: "2",
+    rate: "12 800,5",
+    items: [{ product_id: 3, product_name: "Olma", unit: "kg", quantity: "2", price: "" }],
+    payments: [{ bank_account_id: "7", amount: "400" }],
+  }
+  expect(schema.parse(money)).toMatchObject({ amount: "5000", currency_id: 2, rate: "12800.5", items: [{ product_id: 3, quantity: "2" }], payments: [{ bank_account_id: 7, amount: "400" }] })
+  // No price, in so'm.
+  expect(schema.parse({ ...money, amount: "", currency_id: "1", rate: "" })).toMatchObject({ amount: null, currency_id: 1, rate: null })
+  expect(issuesOf(schema, { ...money, amount: "abc" })).toMatchObject({ amount: "Narx noto'g'ri" })
+  expect(issuesOf(schema, { ...money, rate: "x" })).toMatchObject({ rate: "Kurs noto'g'ri" })
+  expect(issuesOf(schema, { ...money, items: [{ product_id: 0, product_name: "", unit: null, quantity: "", price: "" }] })).toMatchObject({ "items.0.product_id": "Mahsulotni tanlang", "items.0.quantity": "Miqdor noto'g'ri" })
+  expect(issuesOf(schema, { ...money, items: [money.items[0], { ...money.items[0] }] })).toMatchObject({ "items.1.product_id": "Bu mahsulot allaqachon kiritilgan" })
+  expect(issuesOf(schema, { ...money, payments: [{ bank_account_id: "", amount: "0" }] })).toMatchObject({ "payments.0.bank_account_id": "Akkauntni tanlang", "payments.0.amount": "Summa noto'g'ri" })
+})
+
+test("moneyLine says an order's price and what is left of it, nothing for an order without a price", () => {
+  const usd: CompanyCurrency = { id: 2, code: "USD", name: "AQSH dollari", symbol: "$", rate: "12800.0000" }
+  const currencies = [som, usd]
+  const priced = (amount: string, paid: string, currency_id = 2) => ({ amount, paid, currency_id }) as Order
+  // The thousands stand apart by a no-break space, as every amount on screen.
+  const plain = (line: string | null) => line?.replace(/\u00a0/g, " ") ?? null
+  expect(plain(moneyLine(priced("5000.00", "700.00"), currencies))).toBe("5 000 $ · qolgan 4 300 $")
+  expect(plain(moneyLine(priced("5000.00", "0.00"), currencies))).toBe("5 000 $ · qolgan 5 000 $")
+  expect(plain(moneyLine(priced("5000.00", "5000.00"), currencies))).toBe("5 000 $ · to'langan")
+  expect(plain(moneyLine(priced("5000.00", "5200.00"), currencies))).toBe("5 000 $ · avans 200 $")
+  expect(plain(moneyLine(priced("1200000.00", "500000.50", 1), currencies))).toBe("1 200 000 so'm · qolgan 699 999,50 so'm")
+  expect(moneyLine(priced("0.00", "0.00"), currencies)).toBeNull()
+  expect(moneyLine(priced("0.00", "300.00"), currencies)).toBeNull()
+})
+

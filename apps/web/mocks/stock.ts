@@ -6,7 +6,7 @@
 import { http, HttpResponse } from "msw"
 import type { Inventory, InventoryDetail, InventoryItem, Opening, OpeningStock, OpeningStockDetail, ProductMove, SaleDetail, StockRow, Transfer, TransferDetail, TransferItem } from "@/lib/types"
 import { nameOf } from "./customers"
-import { db, type DocumentKind, type ItemRow, nameIn, nextId, now, type ProductRow, type TransactionRow } from "./data"
+import { customerNameOf, db, type DocumentKind, type ItemRow, nameIn, nextId, now, type ProductRow, type TransactionRow } from "./data"
 import { api, fail, forbidden, permittedSession } from "./gate"
 import {
   asAmount,
@@ -90,7 +90,7 @@ export function enter(doc: TransactionRow, write: () => Response | null, shown: 
   return HttpResponse.json(shown(), { status: 201 })
 }
 
-export type LineRule = { allowZero?: boolean; withPrice?: boolean; allowService?: boolean }
+export type LineRule = { allowNone?: boolean; allowZero?: boolean; withPrice?: boolean; allowService?: boolean }
 export type CheckedLine = { productId: number; quantity: number; price: number | null }
 
 // checkLines reads the lines of a goods document as the Go API does: at
@@ -99,7 +99,7 @@ export type CheckedLine = { productId: number; quantity: number; price: number |
 // inventory, 0 allowed); its price where the kind has one.
 export function checkLines(companyId: number, raw: unknown, held: number[], rule: LineRule): CheckedLine[] | Response {
   const lines = Array.isArray(raw) ? (raw as Record<string, unknown>[]) : []
-  if (lines.length === 0) return invalid("Kamida bitta mahsulot qo'shing")
+  if (lines.length === 0 && !rule.allowNone) return invalid("Kamida bitta mahsulot qo'shing")
   const items: CheckedLine[] = []
   const seen = new Set<number>()
   for (const line of lines) {
@@ -584,7 +584,10 @@ export const stockHandlers = [
       .sort((a, b) => newestFirst(a.t, b.t) || b.m.id - a.m.id)
       .map(({ m, t }): ProductMove => {
         const supplier = t.supplierId === null ? undefined : db.suppliers.find((s) => s.id === t.supplierId)
-        const counterpart = supplier?.name ?? (t.kind === "transfer" ? locationNamed(m.locationId === t.locationId ? t.toLocationId : t.locationId) : null)
+        const customer = t.customerId === null ? undefined : db.customers.find((c) => c.id === t.customerId)
+        const counterpart =
+          supplier?.name ?? (customer ? (customerNameOf(customer) ?? customer.phone) : null) ?? (t.kind === "transfer" ? locationNamed(m.locationId === t.locationId ? t.toLocationId : t.locationId) : null)
+        const order = t.kind === "order" && t.orderId ? db.orders.find((o) => o.id === t.orderId) : undefined
         return {
           id: m.id,
           transaction_id: t.id,
@@ -595,6 +598,8 @@ export const stockHandlers = [
           location_name: locationNamed(m.locationId),
           quantity: asQuantity(m.quantity),
           counterpart,
+          order_id: order?.id ?? null,
+          order_title: order?.title ?? null,
         }
       })
     return HttpResponse.json(paged(rows, n))

@@ -242,6 +242,8 @@ function accountStatementOf(companyId: number, accountId: number): AccountStatem
         balance: asAmount(balance),
         linked_id: t.linkedId,
         linked_number: linked?.number ?? null,
+        order_id: linked?.kind === "order" ? (linked.orderId ?? null) : null,
+        order_title: linked?.kind === "order" ? (db.orders.find((o) => o.id === linked.orderId)?.title ?? null) : null,
         party_name: partyNameOf(t, accountId),
         note: t.note,
         created_by_name: nameOf(t.by, t.companyId, t.byName),

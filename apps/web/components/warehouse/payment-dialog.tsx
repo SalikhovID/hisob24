@@ -14,6 +14,7 @@ import { Refusal } from "@/components/refusal"
 import { api, call } from "@/lib/api"
 import { accountCurrency, accountOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { formatAmount } from "@/lib/format"
+import { forgetOrderMoney } from "@/lib/order-money"
 import { forgetParty, type Party } from "@/lib/party"
 import { nowLocal, type PaymentFields, type PaymentForm, type PaymentOutput, paymentDefaults, paymentSchema } from "@/lib/warehouse"
 
@@ -25,11 +26,14 @@ import { nowLocal, type PaymentFields, type PaymentForm, type PaymentOutput, pay
 // (now unless another is chosen), the rate (with another currency than the
 // so'm) and a note. A page opens it (the «To'lov» tile, a payment's
 // «Tahrirlash») and mounts it for each opening; partyName heads it, owed is
-// what the party owes in so'm when it is known.
+// what the party owes in so'm when it is known. With orderId the payment
+// is for that order of the customer (logic/orders.md, 4.3): entered and
+// saved through the order.
 export function PaymentDialog({
   party = "supplier",
   companyId,
   partyId,
+  orderId,
   partyName,
   owed,
   payment,
@@ -39,6 +43,7 @@ export function PaymentDialog({
   party?: Party
   companyId: number
   partyId: number
+  orderId?: number
   partyName?: string
   owed?: string | null
   payment?: PaymentFields
@@ -62,6 +67,12 @@ export function PaymentDialog({
     // Either party's answer is its own shape; the dialog needs none of it.
     mutationFn: async (fields: PaymentOutput): Promise<void> => {
       const path = { id: partyId }
+      if (orderId !== undefined) {
+        await (payment
+          ? call(api.PUT("/app/orders/{id}/payments/{paymentId}", { params: { path: { id: orderId, paymentId: payment.id } }, body: fields }))
+          : call(api.POST("/app/orders/{id}/payments", { params: { path: { id: orderId } }, body: fields })))
+        return
+      }
       if (party === "customer") {
         await (payment
           ? call(api.PUT("/app/customers/{id}/payments/{paymentId}", { params: { path: { ...path, paymentId: payment.id } }, body: fields }))
@@ -73,8 +84,9 @@ export function PaymentDialog({
         : call(api.POST("/app/suppliers/{id}/payments", { params: { path }, body: fields })))
     },
     onSuccess: () => {
-      // What is owed changes with every payment.
+      // What is owed changes with every payment; an order's page too.
       forgetParty(queryClient, party, companyId, partyId)
+      if (orderId !== undefined) forgetOrderMoney(queryClient, companyId, orderId, partyId)
       toast.success(payment ? "To'lov saqlandi" : "To'lov qo'shildi")
       onOpenChange(false)
     },

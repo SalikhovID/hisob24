@@ -1,7 +1,7 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { ClipboardListIcon, PencilIcon, PhoneIcon, UserIcon } from "lucide-react"
+import { BanknoteIcon, ClipboardListIcon, PencilIcon, PhoneIcon, UserIcon } from "lucide-react"
 import { type CSSProperties, useState } from "react"
 import { toast } from "sonner"
 import { Avatar } from "@/components/kit/avatar"
@@ -12,6 +12,7 @@ import { Failed, ListLoading, NotFound } from "@/components/states"
 import { ApiError } from "@/lib/api"
 import { customerName } from "@/lib/customers"
 import { answerText } from "@/lib/fields"
+import { UZS } from "@/lib/currencies"
 import { formatDate } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
@@ -36,6 +37,10 @@ import { EditOrderDialog } from "./edit-order-dialog"
 import { StageBadge } from "./stage-badge"
 import { StageTrack } from "./stage-track"
 import { OrderHistory } from "./order-history"
+import { OrderLines } from "./order-lines"
+import { OrderMoneyCard } from "./order-money-card"
+import { OrderPayments } from "./order-payments"
+import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 
 const back = { href: "/orders", label: "Buyurtmalar" }
 
@@ -43,9 +48,9 @@ const back = { href: "/orders", label: "Buyurtmalar" }
 // (changing, moving, deleting and the history each take their permission),
 // as the prototype's page: what it is (its stage's tile, its title, its type
 // and customer), its stage on a track of all of them (moved right here), its
-// deadline, the tiles (editing, the customer, a call to the customer), the
+// deadline, the tiles (editing, a payment, the customer, a call to the customer), its money, the
 // customer's row, its answer to every field of its type in the type's order
-// with who entered it and when, its history, and at the foot the way to
+// with who entered it and when, its goods and its payments (logic/orders.md, 4.3), its history, and at the foot the way to
 // delete it.
 export function OrderPage({ id }: { id: number }) {
   const gate = usePermission("orders.view")
@@ -65,6 +70,7 @@ export function OrderPage({ id }: { id: number }) {
   // With two or more locations to work in the page says the order's one.
   const { locations } = useLocation()
   const [editing, setEditing] = useState(false)
+  const [paying, setPaying] = useState(false)
 
   // An order that is gone, or is another company's, is not found: there is
   // nothing to try again.
@@ -136,9 +142,12 @@ export function OrderPage({ id }: { id: number }) {
       <DeadlineCard deadline={order.data.deadline} done={done} />
       <Tiles>
         {type && allowed("orders.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
+        {/* A payment for the order, on its own (logic/orders.md, 4.3). */}
+        {allowed("orders.edit") && <Tile icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
         {customerHref && <Tile icon={UserIcon} label="Mijoz" href={customerHref} />}
         <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${order.data.customer.phone}`} />
       </Tiles>
+      <OrderMoneyCard order={order.data} />
       <section aria-label="Mijoz">
         <SectionHeading>Mijoz</SectionHeading>
         <Group label="Mijoz" inset="icon">
@@ -165,6 +174,8 @@ export function OrderPage({ id }: { id: number }) {
           <KeyValue label="Qo'shilgan" value={formatDate(order.data.created_at)} />
         </Group>
       </section>
+      <OrderLines order={order.data} />
+      <OrderPayments companyId={companyId} order={order.data} canEdit={allowed("orders.edit")} />
       {/* Who did what to the order takes its permission. */}
       {allowed("orders.history") && <OrderHistory companyId={companyId} id={order.data.id} />}
       {allowed("orders.delete") && <DeleteOrderButton companyId={companyId} id={order.data.id} title={order.data.title} />}
@@ -176,8 +187,23 @@ export function OrderPage({ id }: { id: number }) {
           stages={stages.data}
           members={members.data ?? []}
           dropdowns={dropdowns.data}
+          canPickProducts={allowed("products.view")}
+          locationName={locations.find((l) => l.id === order.data.location_id)?.name}
           open
           onOpenChange={(open) => !open && setEditing(false)}
+        />
+      )}
+      {paying && (
+        <PaymentDialog
+          party="customer"
+          companyId={companyId}
+          partyId={order.data.customer.id}
+          orderId={order.data.id}
+          partyName={order.data.title}
+          // What is left of the price is offered whole, in so'm.
+          owed={order.data.currency_id === UZS && Number(order.data.amount) > 0 ? (Number(order.data.amount) - Number(order.data.paid)).toFixed(2) : null}
+          open
+          onOpenChange={(open) => !open && setPaying(false)}
         />
       )}
     </>

@@ -2,8 +2,29 @@
 // backend/internal/order).
 import { http, HttpResponse } from "msw"
 import { formatDate } from "@/lib/format"
-import type { Order } from "@/lib/types"
+import type { Order, OrderDetail, OrderLine, OrderPayment } from "@/lib/types"
 import { asText, checkValues, diffValues, enterCustomer, liveCustomers, nameOf } from "./customers"
+import {
+  asAmount,
+  asQuantity,
+  asRate,
+  convertAmount,
+  fifoCostOf,
+  itemsOf,
+  linesText,
+  linkedPaymentsOf,
+  money as moneyPattern,
+  orderDocumentOf,
+  paidOf,
+  priceIn,
+  priceText,
+  rateColumn,
+  rateOf,
+  takeMoves,
+  writeLinkedPayments,
+} from "./ledger"
+import { checkLines, newDocument, writeGoods } from "./stock"
+import { checkPayment, pricingOf } from "./warehouse"
 import {
   type Answer,
   customerNameOf,
@@ -17,11 +38,13 @@ import {
   type OrderRow,
   type OrderTypeRow,
   permissionsOf,
+  type TransactionRow,
 } from "./data"
 import { api, fail, forbidden, isMember, normalizePhone, permittedSession } from "./gate"
 
 const invalid = (message: string) => fail(400, "validation_error", message)
 const orderNotFound = () => fail(404, "not_found", "Buyurtma topilmadi")
+const paymentNotFound = () => fail(404, "not_found", "To'lov topilmadi")
 
 // liveOrders is a company's orders, without the deleted.
 export const liveOrders = (companyId: number) => db.orders.filter((t) => t.companyId === companyId && !t.deleted)
@@ -48,9 +71,24 @@ const liveFields = (type: OrderTypeRow) => type.fields.filter((f) => !f.deleted)
 
 const PAGE_SIZE = 20
 
+// moneyOf is an order's money as the API shows it on the order
+// (logic/orders.md, 4.3): from its live document, nothing in so'm without one.
+function moneyOf(t: OrderRow): Pick<Order, "amount" | "currency_id" | "rate" | "amount_uzs" | "paid"> {
+  const doc = orderDocumentOf(t.id)
+  if (!doc) return { amount: "0.00", currency_id: 1, rate: "1.0000", amount_uzs: "0.00", paid: "0.00" }
+  const rate = rateOf(doc.rateId)
+  return {
+    amount: asAmount(doc.total),
+    currency_id: doc.currencyId,
+    rate: asRate(rateColumn(rate, doc.currencyId)),
+    amount_uzs: asAmount(convertAmount(doc.total, doc.currencyId, 1, rate)),
+    paid: asAmount(paidOf(doc)),
+  }
+}
+
 // toOrder is an order as the API answers it: with its customer by its name and
-// phone, and its assignee by the name they go by now (the name of then,
-// once they have left the company).
+// phone, its assignee by the name they go by now (the name of then,
+// once they have left the company), and its money.
 export const toOrder = (t: OrderRow): Order => {
   const customer = db.customers.find((c) => c.id === t.customerId)!
   return {
@@ -63,10 +101,108 @@ export const toOrder = (t: OrderRow): Order => {
     customer: { id: customer.id, phone: customer.phone, name: customerNameOf(customer) },
     assignee: t.assignee === null ? null : { phone: t.assignee, full_name: nameOf(t.assignee, t.companyId, t.assigneeName) },
     values: { ...t.values },
+    ...moneyOf(t),
     created_by_name: nameOf(t.by, t.companyId, t.byName),
     created_at: t.createdAt,
     updated_at: t.updatedAt,
   }
+}
+
+// toOrderPayment is a payment entered for an order as the API shows it.
+function toOrderPayment(p: TransactionRow): OrderPayment {
+  const rate = rateOf(p.rateId)
+  return {
+    id: p.id,
+    bank_account_id: p.bankAccountId!,
+    account_name: (db.accounts[p.companyId] ?? []).find((a) => a.id === p.bankAccountId)?.name ?? "",
+    amount: asAmount(p.total),
+    currency_id: p.currencyId,
+    rate: asRate(rateColumn(rate, p.currencyId)),
+    amount_uzs: asAmount(convertAmount(p.total, p.currencyId, 1, rate)),
+    at: p.at,
+    note: p.note,
+    created_by_name: nameOf(p.by, p.companyId, p.byName),
+  }
+}
+
+// seesCost tells whether the member sees what the goods cost (purchases.view).
+const seesCost = (member: { phone: string; companyId: number }) => permissionsOf(member.phone, member.companyId).includes("purchases.view")
+
+// toOrderDetail is an order on its own page: with the lines of its
+// document, the payments entered for it (the newest first) and, when
+// asked for, the FIFO cost of its goods and the profit (logic/orders.md, 4.4).
+export function toOrderDetail(t: OrderRow, withCost: boolean): OrderDetail {
+  const order = toOrder(t)
+  const doc = orderDocumentOf(t.id)
+  const items = doc ? itemsOf(doc.id) : []
+  const products = items.filter((i) => db.products.find((p) => p.id === i.productId)?.kind === "product").map((i) => i.productId)
+  const costs = withCost && doc ? fifoCostOf(t.companyId, doc.id, products) : null
+  let total = 0
+  const lines = items.map((i): OrderLine => {
+    const product = db.products.find((p) => p.id === i.productId)!
+    const cost = costs === null ? null : product.kind === "product" ? (costs.get(i.productId) ?? 0) : 0
+    if (cost !== null) total += cost
+    return { product_id: product.id, name: product.name, kind: product.kind, unit: product.unit, quantity: asQuantity(i.quantity), cost_uzs: cost === null ? null : asAmount(cost) }
+  })
+  const payments = (doc ? linkedPaymentsOf(doc.id) : []).sort((a, b) => b.at.localeCompare(a.at) || b.id - a.id).map(toOrderPayment)
+  const amountUzs = Number(order.amount_uzs)
+  return { ...order, items: lines, payments, cost_uzs: withCost ? asAmount(total) : null, profit_uzs: withCost && amountUzs > 0 ? asAmount(amountUzs - total) : null }
+}
+
+// writeOrderDocument saves the order's money as the Go API does
+// (logic/orders.md, 4.3): the document is written when there is a price,
+// a line or an advance (withPayments: on entry alone), or it is there
+// already; its price and lines replaced, its moves written anew, the
+// advance entered, the stock checked last. A refusal leaves everything as
+// it was. What is wrong is told in this order: the price, the currency
+// and the rate, the lines, the advance, the stock.
+function writeOrderDocument(member: Member, order: OrderRow, body: Record<string, unknown>, withPayments: boolean): Response | null {
+  let amount = 0
+  if (typeof body.amount === "string" && body.amount.trim() !== "") {
+    if (!moneyPattern.test(body.amount.trim())) return invalid("Narx noto'g'ri")
+    amount = Number(body.amount)
+  } else if (body.amount !== undefined && body.amount !== null && body.amount !== "") {
+    return invalid("Narx noto'g'ri")
+  }
+  const existing = orderDocumentOf(order.id)
+  const items = Array.isArray(body.items) ? body.items : []
+  const payments = withPayments && Array.isArray(body.payments) ? body.payments : []
+  if (!existing && amount === 0 && items.length === 0 && payments.length === 0) return null
+  const at = existing ? existing.at : now()
+  const pricing = priceIn(member.companyId, body, at, member.phone, existing ? pricingOf(existing) : undefined)
+  if (pricing instanceof Response) return pricing
+  const held = existing ? itemsOf(existing.id).map((i) => i.productId) : []
+  const lines = checkLines(member.companyId, items, held, { allowNone: true, allowService: true })
+  if (lines instanceof Response) return lines
+  const doc = existing ?? newDocument("order", member.companyId, member.phone, { at, locationId: order.locationId, customerId: order.customerId, orderId: order.id })
+  const was = { total: doc.total, currencyId: doc.currencyId, rateId: doc.rateId }
+  if (!existing) db.transactions.push(doc)
+  Object.assign(doc, { total: amount, currencyId: pricing.currencyId, rateId: pricing.rateId, updatedAt: now() })
+  const undo = (refusal: Response) => {
+    if (existing) Object.assign(doc, was)
+    else {
+      takeMoves(doc.id)
+      db.items = db.items.filter((i) => i.transactionId !== doc.id)
+      db.transactions = db.transactions.filter((t) => t.id !== doc.id && t.linkedId !== doc.id)
+    }
+    return refusal
+  }
+  if (withPayments) {
+    const refusal = writeLinkedPayments(doc, payments, member.phone)
+    if (refusal) return undo(refusal)
+  }
+  const refusal = writeGoods(doc, lines, [order.locationId])
+  return refusal ? undo(refusal) : null
+}
+
+// hideOrderDocument hides the order's document with its payments and gives
+// its goods back to the stock.
+function hideOrderDocument(order: OrderRow) {
+  const doc = orderDocumentOf(order.id)
+  if (!doc) return
+  for (const p of linkedPaymentsOf(doc.id)) p.deleted = true
+  takeMoves(doc.id)
+  doc.deleted = true
 }
 
 // orderTitle is the API's rule for a title: trimmed, not empty, two hundred
@@ -225,6 +361,11 @@ export const ordersHandlers = [
       assignee_phone?: unknown
       values?: unknown
       customer?: unknown
+      amount?: unknown
+      currency_id?: unknown
+      rate?: unknown
+      items?: unknown
+      payments?: unknown
     }
     // A location the member may not work in is refused before anything
     // else, the way a missing permission is.
@@ -275,20 +416,28 @@ export const ordersHandlers = [
     }
     db.orders.push(order)
     record(order, "created", member.phone, at, [])
-    return HttpResponse.json(toOrder(order), { status: 201 })
+    // The money last: a refusal enters nothing, the new customer included.
+    const refusal = writeOrderDocument(member, order, body as Record<string, unknown>, true)
+    if (refusal) {
+      db.orders = db.orders.filter((o) => o !== order)
+      db.orderHistory = db.orderHistory.filter((h) => h.orderId !== order.id)
+      if (wanted && typeof wanted === "object" && wanted.id === undefined) db.customers = db.customers.filter((c) => c.id !== customerId)
+      return refusal
+    }
+    return HttpResponse.json(toOrderDetail(order, seesCost(member)), { status: 201 })
   }),
 
   http.get(api("/app/orders/:id"), ({ params, request }) => {
     const member = permittedSession(request, "orders.view")
     if (member instanceof Response) return member
     const order = visibleOrders(member).find((t) => t.id === Number(params.id))
-    return order ? HttpResponse.json(toOrder(order)) : orderNotFound()
+    return order ? HttpResponse.json(toOrderDetail(order, seesCost(member))) : orderNotFound()
   }),
 
   http.put(api("/app/orders/:id"), async ({ params, request }) => {
     const member = permittedSession(request, "orders.edit")
     if (member instanceof Response) return member
-    const body = (await request.json()) as { title?: unknown; deadline?: unknown; stage_id?: unknown; assignee_phone?: unknown; values?: unknown }
+    const body = (await request.json()) as { title?: unknown; deadline?: unknown; stage_id?: unknown; assignee_phone?: unknown; values?: unknown; amount?: unknown; currency_id?: unknown; rate?: unknown; items?: unknown }
     // An order that is not there is said first, whatever is sent.
     const order = visibleOrders(member).find((t) => t.id === Number(params.id))
     if (!order) return orderNotFound()
@@ -307,6 +456,14 @@ export const ordersHandlers = [
     const fields = liveFields(db.orderTypes.find((t) => t.id === order.typeId)!)
     const values = checkValues(fields, order.values, body.values)
     if (values instanceof Response) return values
+    // The money after the order's own fields: the document saved anew, its
+    // payments left alone; what changed goes into the history.
+    const wasDoc = orderDocumentOf(order.id)
+    const wasMoney = { price: wasDoc ? priceText(wasDoc.total, wasDoc.currencyId) : "", lines: wasDoc ? linesText(itemsOf(wasDoc.id)) : "" }
+    const refusal = writeOrderDocument(member, order, body as Record<string, unknown>, false)
+    if (refusal) return refusal
+    const nowDoc = orderDocumentOf(order.id)
+    const nowMoney = { price: nowDoc ? priceText(nowDoc.total, nowDoc.currencyId) : "", lines: nowDoc ? linesText(itemsOf(nowDoc.id)) : "" }
     const changes: OrderHistoryRow["changes"] = []
     if (order.title !== title) changes.push({ label: "Nomi", old: order.title, new: title })
     if (order.deadline !== deadline) changes.push({ label: "Muddat", old: formatDate(order.deadline), new: formatDate(deadline) })
@@ -314,6 +471,8 @@ export const ordersHandlers = [
     const wasAssignee = order.assignee === null ? "" : (nameOf(order.assignee, order.companyId, order.assigneeName) ?? "")
     if (wasAssignee !== (assignee.name ?? "")) changes.push({ label: "Mas'ul", old: wasAssignee, new: assignee.name ?? "" })
     changes.push(...diffValues(fields, order.values, values))
+    if (wasMoney.price !== nowMoney.price) changes.push({ label: "Narx", old: wasMoney.price, new: nowMoney.price })
+    if (wasMoney.lines !== nowMoney.lines) changes.push({ label: "Mahsulotlar", old: wasMoney.lines, new: nowMoney.lines })
     // A save that changes nothing writes nothing.
     if (changes.length > 0) {
       const at = now()
@@ -326,7 +485,7 @@ export const ordersHandlers = [
       order.updatedAt = at
       record(order, "updated", member.phone, at, changes)
     }
-    return HttpResponse.json(toOrder(order))
+    return HttpResponse.json(toOrderDetail(order, seesCost(member)))
   }),
 
   http.patch(api("/app/orders/:id/stage"), async ({ params, request }) => {
@@ -336,7 +495,7 @@ export const ordersHandlers = [
     const order = visibleOrders(member).find((t) => t.id === Number(params.id))
     if (!order) return orderNotFound()
     // The same stage changes nothing.
-    if (order.stageId === stageId) return HttpResponse.json(toOrder(order))
+    if (order.stageId === stageId) return HttpResponse.json(toOrderDetail(order, seesCost(member)))
     const stage = liveStage(member.companyId, stageId)
     if (!stage) return invalid("Bosqichni tanlang")
     const at = now()
@@ -344,7 +503,7 @@ export const ordersHandlers = [
     order.stageId = stage.id
     order.updatedAt = at
     record(order, "updated", member.phone, at, changes)
-    return HttpResponse.json(toOrder(order))
+    return HttpResponse.json(toOrderDetail(order, seesCost(member)))
   }),
 
   http.delete(api("/app/orders/:id"), ({ params, request }) => {
@@ -352,9 +511,62 @@ export const ordersHandlers = [
     if (member instanceof Response) return member
     const order = visibleOrders(member).find((t) => t.id === Number(params.id))
     if (!order) return orderNotFound()
-    // Hidden, not removed: its answers and its history stay.
+    // Hidden, not removed: its answers and its history stay; its document
+    // goes with it, the goods back to the stock, the payments hidden.
     order.deleted = true
+    hideOrderDocument(order)
     record(order, "deleted", member.phone, now(), [])
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // The payments for an order on their own (logic/orders.md, 4.3): the
+  // customer's, at their own moment, linked to the order's document (made
+  // for them when the order has none).
+  http.post(api("/app/orders/:id/payments"), async ({ params, request }) => {
+    const member = permittedSession(request, "orders.edit")
+    if (member instanceof Response) return member
+    const order = visibleOrders(member).find((t) => t.id === Number(params.id))
+    if (!order) return orderNotFound()
+    const c = checkPayment(member.companyId, (await request.json()) as Record<string, unknown>, member.phone, 0)
+    if (c instanceof Response) return c
+    let doc = orderDocumentOf(order.id)
+    if (!doc) {
+      const at = now()
+      const pricing = priceIn(member.companyId, {}, at, member.phone)
+      if (pricing instanceof Response) return pricing
+      doc = newDocument("order", member.companyId, member.phone, { at, locationId: order.locationId, customerId: order.customerId, orderId: order.id, currencyId: pricing.currencyId, rateId: pricing.rateId })
+      db.transactions.push(doc)
+    }
+    const p = newDocument("customer_payment", member.companyId, member.phone, {
+      at: c.at, customerId: order.customerId, bankAccountId: c.accountId, linkedId: doc.id, currencyId: c.pricing.currencyId, rateId: c.pricing.rateId, total: c.amount, note: c.note,
+    })
+    db.transactions.push(p)
+    return HttpResponse.json(toOrderPayment(p), { status: 201 })
+  }),
+
+  http.put(api("/app/orders/:id/payments/:paymentId"), async ({ params, request }) => {
+    const member = permittedSession(request, "orders.edit")
+    if (member instanceof Response) return member
+    const order = visibleOrders(member).find((t) => t.id === Number(params.id))
+    if (!order) return orderNotFound()
+    const doc = orderDocumentOf(order.id)
+    const p = doc ? linkedPaymentsOf(doc.id).find((x) => x.id === Number(params.paymentId)) : undefined
+    if (!p) return paymentNotFound()
+    const c = checkPayment(member.companyId, (await request.json()) as Record<string, unknown>, member.phone, p.bankAccountId!, pricingOf(p))
+    if (c instanceof Response) return c
+    Object.assign(p, { bankAccountId: c.accountId, total: c.amount, at: c.at, currencyId: c.pricing.currencyId, rateId: c.pricing.rateId, note: c.note, updatedAt: now() })
+    return HttpResponse.json(toOrderPayment(p))
+  }),
+
+  http.delete(api("/app/orders/:id/payments/:paymentId"), ({ params, request }) => {
+    const member = permittedSession(request, "orders.edit")
+    if (member instanceof Response) return member
+    const order = visibleOrders(member).find((t) => t.id === Number(params.id))
+    if (!order) return orderNotFound()
+    const doc = orderDocumentOf(order.id)
+    const p = doc ? linkedPaymentsOf(doc.id).find((x) => x.id === Number(params.paymentId)) : undefined
+    if (!p) return paymentNotFound()
+    p.deleted = true
     return new HttpResponse(null, { status: 204 })
   }),
 

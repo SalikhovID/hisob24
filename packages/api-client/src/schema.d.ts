@@ -3988,7 +3988,7 @@ export interface components {
             name: string;
             kind: components["schemas"]["ProductKind"];
             /** @description Mahsulotning birligi; xizmatda null */
-            unit: string | null;
+            unit: components["schemas"]["Unit"] | null;
             /** @description Uch kasr xonasi bilan ("2.000") */
             quantity: string;
             /** @description Qatorning FIFO tan narxi so'mda (logic/orders.md, 4.4); faqat purchases.view bo'lganga, xizmatda "0.00"; aks holda null */

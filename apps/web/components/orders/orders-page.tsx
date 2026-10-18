@@ -293,6 +293,8 @@ export function OrdersPage() {
           stages={stages.data}
           customerTypes={customerTypes.data ?? []}
           canCreateCustomer={allowed("customers.create")}
+          canPickProducts={allowed("products.view")}
+          locationName={location.current?.name}
           dropdowns={dropdowns.data}
           members={members.data ?? []}
           typeId={filter.typeId}

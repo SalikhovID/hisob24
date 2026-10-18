@@ -76,8 +76,9 @@ export const dashboardHandlers = [
 
     // money is a kind of goods documents this month up to today, by each day's end.
     const money = (kind: TransactionRow["kind"]) => {
+      // An order's document counts when it is priced.
       const docs = db.transactions.filter(
-        (t) => t.companyId === member.companyId && t.kind === kind && !t.deleted && t.locationId !== null && locations.includes(t.locationId),
+        (t) => t.companyId === member.companyId && t.kind === kind && !t.deleted && t.locationId !== null && locations.includes(t.locationId) && (kind !== "order" || t.total > 0),
       )
       const inSom = docs
         .map((t) => ({ day: dayOf(t.at), som: convertAmount(t.total, t.currencyId, 1, rateOf(t.rateId)) }))
@@ -92,6 +93,7 @@ export const dashboardHandlers = [
       orders,
       purchases: may.includes("purchases.view") ? money("purchase") : null,
       sales: may.includes("sales.view") ? money("sale") : null,
+      orders_money: may.includes("orders.view") ? money("order") : null,
     })
   }),
 ]

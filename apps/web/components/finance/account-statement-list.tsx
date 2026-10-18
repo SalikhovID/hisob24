@@ -42,6 +42,8 @@ function titleOf(row: AccountStatementRow): string {
   if (kind === "cash_opening") return "Boshlang'ich qoldiq"
   if (isPayment(kind)) {
     if (row.linked_id === null) return "To'lov"
+    // A payment entered for an order names the order by its title.
+    if (row.order_id !== null) return `To'lov · ${row.order_title ?? "Buyurtma"}`
     return `To'lov · ${kind === "supplier_payment" ? "Xarid" : "Sotuv"} № ${row.linked_number}`
   }
   return numbered(kind) ? `${financeKindTitle[kind]} № ${row.number}` : financeKindTitle[kind]
@@ -51,6 +53,7 @@ function titleOf(row: AccountStatementRow): string {
 // that document. A cash document is handled in its sheet.
 function hrefOf(row: AccountStatementRow): string | undefined {
   if (row.linked_id === null) return undefined
+  if (row.order_id !== null) return `/orders/${row.order_id}`
   if (row.kind === "supplier_payment") return `/purchases/${row.linked_id}`
   if (row.kind === "customer_payment") return `/sales/${row.linked_id}`
   return undefined

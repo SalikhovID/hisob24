@@ -189,6 +189,8 @@ describe("the opening balance dialog", () => {
       linked_number: null,
       bank_account_id: null,
       account_name: null,
+      order_id: null,
+      order_title: null,
       note: null,
       created_by_name: null,
     } satisfies StatementRow
@@ -201,8 +203,9 @@ describe("the opening balance dialog", () => {
 })
 
 test("a document's kind has a name and an address", () => {
-  expect(kindTitle).toEqual({ purchase: "Xarid", sale: "Sotuv", transfer: "Ko'chirish", inventory: "Inventarizatsiya", opening_stock: "Boshlang'ich qoldiq" })
+  expect(kindTitle).toEqual({ purchase: "Xarid", sale: "Sotuv", order: "Buyurtma", transfer: "Ko'chirish", inventory: "Inventarizatsiya", opening_stock: "Boshlang'ich qoldiq" })
   expect(documentHref("purchase", 3)).toBe("/purchases/3")
+  expect(documentHref("order", 3)).toBe("/orders/3")
   expect(documentHref("transfer", 3)).toBe("/transfers/3")
   expect(documentHref("inventory", 3)).toBe("/inventories/3")
   expect(documentHref("opening_stock", 3)).toBe("/opening-stock/3")

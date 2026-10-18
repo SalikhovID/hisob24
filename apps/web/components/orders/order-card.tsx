@@ -4,9 +4,10 @@ import { useDraggable } from "@dnd-kit/core"
 import Link from "next/link"
 import { Avatar } from "@/components/kit/avatar"
 import { Badge } from "@/components/ui/badge"
+import { useCurrencies } from "@/lib/currencies"
 import { shortName } from "@/lib/initials"
 import { formatPhone } from "@/lib/phone"
-import { deadlineOf } from "@/lib/orders"
+import { deadlineOf, moneyLine } from "@/lib/orders"
 import type { Order, OrderStage, OrderType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { StageMenu } from "./stage-menu"
@@ -32,12 +33,15 @@ export interface CardProps {
 export function CardContent({ order, stage, type }: Pick<CardProps, "order" | "stage" | "type">) {
   const deadline = deadlineOf(order.deadline, stage.is_done)
   const assignee = order.assignee
+  // A priced order says its price and what is left of it (logic/orders.md, section 6).
+  const money = moneyLine(order, useCurrencies())
   return (
     <>
       <span data-slot="card-title" className="block text-base leading-tight font-semibold [overflow-wrap:anywhere]">
         {order.title}
       </span>{" "}
       <span className="mt-0.5 block text-md text-muted-foreground [overflow-wrap:anywhere]">{order.customer.name ?? formatPhone(order.customer.phone)}</span>{" "}
+      {money && <span className="mt-0.5 block text-md font-medium tabular-nums [overflow-wrap:anywhere]">{money}</span>}{" "}
       <span className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs font-medium text-muted-foreground">
         <span className={cn(deadline.overdue && "text-destructive")}>
           {deadline.date.slice(0, 5)} · {stage.is_done ? "bajarildi" : deadline.relative}

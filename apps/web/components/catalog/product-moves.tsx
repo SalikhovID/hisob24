@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRightIcon, ClipboardCheckIcon, type LucideIcon, PackageOpenIcon, ReceiptIcon, ShoppingBagIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ClipboardCheckIcon, ClipboardListIcon, type LucideIcon, PackageOpenIcon, ReceiptIcon, ShoppingBagIcon } from "lucide-react"
 import { useState } from "react"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { SoftIcon } from "@/components/kit/tile-icon"
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 const kindIcon: Record<GoodsKind, LucideIcon> = {
   purchase: ReceiptIcon,
   sale: ShoppingBagIcon,
+  order: ClipboardListIcon,
   transfer: ArrowLeftRightIcon,
   inventory: ClipboardCheckIcon,
   opening_stock: PackageOpenIcon,
@@ -26,7 +27,7 @@ const kindIcon: Record<GoodsKind, LucideIcon> = {
 // the member's locations (logic/products.md, section 6), as the
 // prototype's rows: each by the document that moved it (the way into it),
 // the moment, its location (with two or more to work in) and the
-// counterpart (the supplier, or a transfer's other location) under it, how
+// counterpart (the supplier, the customer, or a transfer's other location) under it, how
 // much came in or went out at its end; the newest first, twenty at a time.
 export function ProductMoves({ companyId, productId, unit }: { companyId: number; productId: number; unit: string | null }) {
   const [page, setPage] = useState(1)
@@ -54,9 +55,10 @@ export function ProductMoves({ companyId, productId, unit }: { companyId: number
               return (
                 <Row
                   key={move.id}
-                  href={documentHref(move.kind, move.transaction_id)}
+                  href={move.kind === "order" ? documentHref("order", move.order_id ?? 0) : documentHref(move.kind, move.transaction_id)}
                   media={<SoftIcon icon={kindIcon[move.kind]} />}
-                  title={`${kindTitle[move.kind]} № ${move.number}`}
+                  // An order's document goes by the order's title (logic/orders.md, 4.3).
+                  title={move.kind === "order" ? `Buyurtma · ${move.order_title ?? ""}` : `${kindTitle[move.kind]} № ${move.number}`}
                   sub={sub.filter(Boolean).join(" · ")}
                   end={<span className={cn("tabular-nums", out ? "text-destructive" : "text-positive")}>{signedQuantity(move.quantity, unit, true)}</span>}
                   chevron={false}

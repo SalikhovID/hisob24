@@ -1,16 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import type { ReactNode } from "react"
-import type { Control } from "react-hook-form"
+import { type ReactNode, useEffect } from "react"
+import { type Control, type UseFormReturn, useWatch } from "react-hook-form"
 import { FieldAnswer } from "@/components/field-answer"
 import { Avatar } from "@/components/kit/avatar"
 import { ChoiceChips } from "@/components/kit/chips"
-import { TextRow } from "@/components/kit/form-row"
+import { AmountRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group } from "@/components/kit/group"
 import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
+import { LinesField } from "@/components/warehouse/lines-field"
+import { PaymentsField } from "@/components/warehouse/payments-field"
 import { ApiError } from "@/lib/api"
+import { currencyOf, currencyOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { customerName } from "@/lib/customers"
 import { fieldKey, type FormField } from "@/lib/fields"
 import { assigneeOptions } from "@/lib/members"
@@ -85,6 +88,59 @@ export function OrderFields({
         />
       ))}
     </Group>
+  )
+}
+
+// MoneySection is the order's money in the form (logic/orders.md, 4.3): the
+// price (with another currency than the so'm, the currency and its rate,
+// the standard one offered), the lines of goods (products and services,
+// without prices; for whoever may pick the products) and, on entry
+// (withPayments), the advance's payments. locationName says where the
+// goods come from.
+export function MoneySection({
+  form,
+  companyId,
+  withPayments,
+  canPickProducts,
+  locationName,
+}: {
+  form: UseFormReturn<OrderForm, unknown, OrderOutput>
+  companyId: number
+  withPayments: boolean
+  canPickProducts: boolean
+  locationName?: string
+}) {
+  const currencies = useCurrencies()
+  const accounts = useAccounts()
+  const currencyId = Number(useWatch({ control: form.control, name: "currency_id" })) || UZS
+  const amount = useWatch({ control: form.control, name: "amount" })
+  const currency = currencyOf(currencies, currencyId)
+
+  // Another currency: its standard rate is offered while none is typed.
+  useEffect(() => {
+    if (currencyId === UZS || form.getValues("rate") !== "") return
+    const rate = currencyOf(currencies, currencyId).rate
+    if (rate !== null) form.setValue("rate", trimRate(rate))
+  }, [currencyId, currencies, form])
+
+  return (
+    <>
+      <Group>
+        <AmountRow control={form.control} name="amount" label="Narx" suffix={currency.symbol} placeholder="narxsiz" />
+        {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
+        {isMulti(currencies) && currencyId !== UZS && (
+          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
+        )}
+      </Group>
+      <Foot className="-mt-4">
+        {withPayments ? "Narx mijoz qarziga yoziladi, avans uni kamaytiradi" : "Narx mijoz qarziga yoziladi; to'lovlar buyurtma sahifasida"}
+        {canPickProducts && locationName ? `; mahsulotlar «${locationName}» qoldig'idan chiqadi.` : "."}
+      </Foot>
+      {canPickProducts && <LinesField form={form} companyId={companyId} withPrice={false} currencyId={currencyId} pending={form.formState.isSubmitting} kinds={["product", "service"]} />}
+      {withPayments && (
+        <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={currencyId} total={Number(amount.replace(/\s/g, "").replace(",", ".")) || 0} pending={form.formState.isSubmitting} heading="Avans" />
+      )}
+    </>
   )
 }
 

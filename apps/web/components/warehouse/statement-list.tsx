@@ -1,6 +1,6 @@
 "use client"
 
-import { BanknoteIcon, type LucideIcon, ReceiptIcon, ScaleIcon, ShoppingBagIcon } from "lucide-react"
+import { BanknoteIcon, ClipboardListIcon, type LucideIcon, ReceiptIcon, ScaleIcon, ShoppingBagIcon } from "lucide-react"
 import { useState } from "react"
 import { ActionSheet } from "@/components/kit/action-sheet"
 import { DayGroups } from "@/components/kit/day-groups"
@@ -33,10 +33,14 @@ function titleOf(row: StatementRow): string {
       return `Xarid № ${row.number}`
     case "sale":
       return `Sotuv № ${row.number}`
+    case "order":
+      // An order's document goes by the order's title (logic/orders.md, 4.3).
+      return `Buyurtma · ${row.order_title ?? ""}`
     case "supplier_payment":
       return row.linked_id === null ? "To'lov" : `To'lov · Xarid № ${row.linked_number}`
     case "customer_payment":
-      return row.linked_id === null ? "To'lov" : `To'lov · Sotuv № ${row.linked_number}`
+      if (row.linked_id === null) return "To'lov"
+      return row.order_id !== null ? `To'lov · ${row.order_title ?? "Buyurtma"}` : `To'lov · Sotuv № ${row.linked_number}`
     case "supplier_debt":
     case "customer_debt":
       return "Boshlang'ich qarz"
@@ -47,10 +51,12 @@ function titleOf(row: StatementRow): string {
 }
 
 // hrefOf is where a document's row leads: a purchase or a sale to itself,
-// a payment entered with one to that one; the rest are handled in a sheet.
+// an order's document and a payment entered for an order to the order, a
+// payment entered with a document to that one; the rest are handled in a sheet.
 function hrefOf(row: StatementRow): string | undefined {
   if (row.kind === "purchase") return `/purchases/${row.id}`
   if (row.kind === "sale") return `/sales/${row.id}`
+  if (row.order_id !== null) return `/orders/${row.order_id}`
   if (isPayment(row) && row.linked_id !== null) return row.kind === "supplier_payment" ? `/purchases/${row.linked_id}` : `/sales/${row.linked_id}`
   return undefined
 }
@@ -60,6 +66,7 @@ function hrefOf(row: StatementRow): string | undefined {
 function iconOf(row: StatementRow): { icon: LucideIcon; color?: string } {
   if (row.kind === "purchase") return { icon: ReceiptIcon }
   if (row.kind === "sale") return { icon: ShoppingBagIcon }
+  if (row.kind === "order") return { icon: ClipboardListIcon }
   if (isPayment(row)) return { icon: BanknoteIcon, color: "var(--positive)" }
   return { icon: ScaleIcon, color: "var(--warning)" }
 }

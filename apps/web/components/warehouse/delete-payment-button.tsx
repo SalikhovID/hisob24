@@ -15,6 +15,7 @@ import {
 import { api, call } from "@/lib/api"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatDateTime, formatMoney } from "@/lib/format"
+import { forgetOrderMoney } from "@/lib/order-money"
 import { forgetParty, type Party } from "@/lib/party"
 import type { PaymentFields } from "@/lib/warehouse"
 
@@ -25,6 +26,7 @@ export function DeletePaymentDialog({
   party = "supplier",
   companyId,
   partyId,
+  orderId,
   payment,
   open,
   onOpenChange,
@@ -32,6 +34,9 @@ export function DeletePaymentDialog({
   party?: Party
   companyId: number
   partyId: number
+  // orderId is the order the payment was entered for (logic/orders.md,
+  // 4.3): it goes through the order.
+  orderId?: number
   payment: PaymentFields
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -40,11 +45,14 @@ export function DeletePaymentDialog({
   const currencies = useCurrencies()
   const remove = useMutation({
     mutationFn: () =>
-      party === "customer"
-        ? call(api.DELETE("/app/customers/{id}/payments/{paymentId}", { params: { path: { id: partyId, paymentId: payment.id } } }))
-        : call(api.DELETE("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: partyId, paymentId: payment.id } } })),
+      orderId !== undefined
+        ? call(api.DELETE("/app/orders/{id}/payments/{paymentId}", { params: { path: { id: orderId, paymentId: payment.id } } }))
+        : party === "customer"
+          ? call(api.DELETE("/app/customers/{id}/payments/{paymentId}", { params: { path: { id: partyId, paymentId: payment.id } } }))
+          : call(api.DELETE("/app/suppliers/{id}/payments/{paymentId}", { params: { path: { id: partyId, paymentId: payment.id } } })),
     onSuccess: () => {
       forgetParty(queryClient, party, companyId, partyId)
+      if (orderId !== undefined) forgetOrderMoney(queryClient, companyId, orderId, partyId)
       toast.success("To'lov o'chirildi")
       onOpenChange(false)
     },
