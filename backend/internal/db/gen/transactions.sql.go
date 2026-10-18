@@ -1823,7 +1823,7 @@ func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]ListSal
 }
 
 const listTransactionItems = `-- name: ListTransactionItems :many
-SELECT i.product_id, pr.name, pr.unit, i.quantity, i.expected, i.price, (i.quantity * COALESCE(i.price, 0))::numeric(14,2) AS amount, i.position
+SELECT i.product_id, pr.name, pr.kind, pr.unit, i.quantity, i.expected, i.price, (i.quantity * COALESCE(i.price, 0))::numeric(14,2) AS amount, i.position
 FROM transaction_items i
 JOIN products pr ON pr.id = i.product_id
 WHERE i.transaction_id = $1
@@ -1833,6 +1833,7 @@ ORDER BY i.position, i.product_id
 type ListTransactionItemsRow struct {
 	ProductID int64
 	Name      string
+	Kind      string
 	Unit      *string
 	Quantity  pgtype.Numeric
 	Expected  pgtype.Numeric
@@ -1842,7 +1843,7 @@ type ListTransactionItemsRow struct {
 }
 
 // The lines of the document in the order entered, each with its product's
-// name and unit and what it comes to (0 without a price).
+// name, kind and unit and what it comes to (0 without a price).
 func (q *Queries) ListTransactionItems(ctx context.Context, transactionID int64) ([]ListTransactionItemsRow, error) {
 	rows, err := q.db.Query(ctx, listTransactionItems, transactionID)
 	if err != nil {
@@ -1855,6 +1856,7 @@ func (q *Queries) ListTransactionItems(ctx context.Context, transactionID int64)
 		if err := rows.Scan(
 			&i.ProductID,
 			&i.Name,
+			&i.Kind,
 			&i.Unit,
 			&i.Quantity,
 			&i.Expected,

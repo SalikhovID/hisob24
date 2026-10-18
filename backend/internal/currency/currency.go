@@ -170,3 +170,13 @@ func (s *Service) SetOfCompany(ctx context.Context, companyID int64, ids []int64
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// symbols is what each currency of the catalog is written with on screen
+// (logic/currencies.md, section 6).
+var symbols = map[int64]string{UZS: "so'm", 2: "$", 3: "€", 4: "₽"}
+
+// SymbolOf is the symbol a currency of the catalog is written with; "" for
+// one the catalog does not have.
+func SymbolOf(id int64) string {
+	return symbols[id]
+}

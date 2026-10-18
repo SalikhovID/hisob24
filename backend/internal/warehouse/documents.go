@@ -44,10 +44,12 @@ func locationsOf(scope Scope, locationID int64) []int64 {
 	return []int64{}
 }
 
-// lineRule says what a kind's lines need: a quantity of nothing allowed (an
-// inventory counts none), a price, and whether a service may be a line (a
-// sale) or what it is refused with.
+// lineRule says what a kind's lines need: no line at all allowed (an
+// order may hold none), a quantity of nothing allowed (an inventory counts
+// none), a price, and whether a service may be a line (a sale, an order)
+// or what it is refused with.
 type lineRule struct {
+	AllowNone      bool
 	AllowZero      bool
 	WithPrice      bool
 	AllowService   bool
@@ -58,12 +60,13 @@ type lineRule struct {
 var countedPattern = regexp.MustCompile(`^\d{1,9}(\.\d{1,3})?$`)
 
 // checkLines reads the lines of a goods document against the company,
-// inside the write: at least one; each product one of the company's, a
-// product not a service, active unless the document already holds it
-// (held), once; its quantity (above zero, or not below it where the rule
-// allows); its price where the rule has one.
+// inside the write: at least one unless the rule allows none; each
+// product one of the company's, a product not a service, active unless
+// the document already holds it (held), once; its quantity (above zero,
+// or not below it where the rule allows); its price where the rule has
+// one.
 func checkLines(ctx context.Context, q *gen.Queries, companyID int64, lines []ItemInput, held map[int64]bool, rule lineRule) ([]checkedItem, error) {
-	if len(lines) == 0 {
+	if len(lines) == 0 && !rule.AllowNone {
 		return nil, invalid("Kamida bitta mahsulot qo'shing")
 	}
 	items := make([]checkedItem, 0, len(lines))

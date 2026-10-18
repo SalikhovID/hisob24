@@ -148,3 +148,11 @@ func TestSetOfCompany(t *testing.T) {
 	_, err = s.SetOfCompany(ctx, olma+1000, []int64{2}, adminID)
 	refused(t, err, apperr.NotFound, "not_found", "Kompaniya topilmadi")
 }
+
+func TestSymbolOf(t *testing.T) {
+	assert.Equal(t, "so'm", SymbolOf(UZS))
+	assert.Equal(t, "$", SymbolOf(2))
+	assert.Equal(t, "€", SymbolOf(3))
+	assert.Equal(t, "₽", SymbolOf(4))
+	assert.Equal(t, "", SymbolOf(9), "a currency the catalog does not have")
+}

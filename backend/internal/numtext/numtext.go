@@ -84,3 +84,26 @@ func absExp(e int32) int32 {
 	}
 	return e
 }
+
+// Grouped writes a stored number for people to read, the way the app's
+// screens do: the thousands apart by a space, the decimals after a comma
+// without the trailing zeros ("5 000", "12,5", "0").
+func Grouped(s string) string {
+	sign := ""
+	if strings.HasPrefix(s, "-") {
+		sign, s = "-", s[1:]
+	}
+	whole, decimals, _ := strings.Cut(s, ".")
+	var grouped strings.Builder
+	for i, r := range whole {
+		if i > 0 && (len(whole)-i)%3 == 0 {
+			grouped.WriteByte(' ')
+		}
+		grouped.WriteRune(r)
+	}
+	decimals = strings.TrimRight(decimals, "0")
+	if decimals == "" {
+		return sign + grouped.String()
+	}
+	return sign + grouped.String() + "," + decimals
+}

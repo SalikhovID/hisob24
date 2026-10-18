@@ -42,3 +42,18 @@ func TestRatioHasFourDecimals(t *testing.T) {
 	}
 	assert.Equal(t, "0.0000", Ratio(pgtype.Numeric{}, scanned(t, "1")), "none over something")
 }
+
+func TestGrouped(t *testing.T) {
+	for in, want := range map[string]string{
+		"5000.00":    "5 000",
+		"1200000.00": "1 200 000",
+		"12.50":      "12,5",
+		"0.00":       "0",
+		"999":        "999",
+		"2.000":      "2",
+		"1.500":      "1,5",
+		"-1234.5":    "-1 234,5",
+	} {
+		assert.Equal(t, want, Grouped(in), in)
+	}
+}

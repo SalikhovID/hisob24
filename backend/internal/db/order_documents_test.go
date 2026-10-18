@@ -340,3 +340,20 @@ func TestProductCostMovesCarryTheUnitCost(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, rows, 1, "the products asked about")
 }
+
+// A document's lines say what kind of product each is: an order's page
+// tells a service from a product by it.
+func TestTransactionItemsCarryTheProductsKind(t *testing.T) {
+	q, pool := setup(t)
+	b := newOrderBooks(t, q, pool)
+	yetkazish := createProduct(t, q, b.w.company, "service", "Yetkazish", nil).ID
+	document := b.document(t, pool, b.order.ID, 1, "2026-10-05 10:00+05", 1, 0, "5000", false)
+	mustExec(t, pool, "INSERT INTO transaction_items (transaction_id, product_id, quantity, position) VALUES ($1, $2, 2, 1), ($1, $3, 1, 2)", document, b.w.olma, yetkazish)
+
+	rows, err := q.ListTransactionItems(t.Context(), document)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	assert.Equal(t, "product", rows[0].Kind)
+	assert.Equal(t, "service", rows[1].Kind)
+	assert.Nil(t, rows[1].Unit)
+}

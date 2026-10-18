@@ -716,7 +716,7 @@ type Querier interface {
 	// NULL search leaves the filter out.
 	ListSuppliers(ctx context.Context, arg ListSuppliersParams) ([]ListSuppliersRow, error)
 	// The lines of the document in the order entered, each with its product's
-	// name and unit and what it comes to (0 without a price).
+	// name, kind and unit and what it comes to (0 without a price).
 	ListTransactionItems(ctx context.Context, transactionID int64) ([]ListTransactionItemsRow, error)
 	// The user's companies for /app/me and for choosing one at login, each with
 	// the role, the company role they hold (if any) and the name the user goes

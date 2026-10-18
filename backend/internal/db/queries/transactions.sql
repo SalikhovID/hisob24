@@ -64,8 +64,8 @@ VALUES (sqlc.arg('transaction_id'), sqlc.arg('product_id'), sqlc.arg('quantity')
 
 -- name: ListTransactionItems :many
 -- The lines of the document in the order entered, each with its product's
--- name and unit and what it comes to (0 without a price).
-SELECT i.product_id, pr.name, pr.unit, i.quantity, i.expected, i.price, (i.quantity * COALESCE(i.price, 0))::numeric(14,2) AS amount, i.position
+-- name, kind and unit and what it comes to (0 without a price).
+SELECT i.product_id, pr.name, pr.kind, pr.unit, i.quantity, i.expected, i.price, (i.quantity * COALESCE(i.price, 0))::numeric(14,2) AS amount, i.position
 FROM transaction_items i
 JOIN products pr ON pr.id = i.product_id
 WHERE i.transaction_id = $1
