@@ -9,9 +9,9 @@ Bu hujjat sotuv bo'limi qoidalarini belgilaydi: sotuv qanday kiritiladi va qoldi
 | Tushuncha | Ma'nosi | Bazada |
 |---|---|---|
 | **Sotuv** | Bitta lokatsiyadan (ombordan) mijozga (yoki mijozsiz, chakana) berilgan tovar va xizmatlar hujjati: raqami, vaqti, valyutasi, qatorlari, jami, to'lovlari. Statusi yo'q: saqlangan zahoti qoldiqdan chiqadi. | `transactions` (`sale`), `transaction_items`, `stock_moves` |
-| **Mijoz to'lovi** | Mijozdan akkauntga kelgan pul. Sotuv bilan kiritilgani sotuvga bog'langan. | `transactions` (`customer_payment`, `linked_id`) |
+| **Mijoz to'lovi** | Mijozdan akkauntga kelgan pul. Sotuv bilan kiritilgani sotuvga, buyurtmaniki buyurtma hujjatiga bog'langan ([orders.md](orders.md), 4.3). | `transactions` (`customer_payment`, `linked_id`) |
 | **Boshlang'ich qarz / avans** | Tizimni boshlaganda mijozning qarzi (bizga qarzdor) yoki avansi (oldindan to'lagan). | `transactions` (`customer_debt` / `customer_prepay`) |
-| **Mijoz balansi** | So'mda: sotuvlar + boshlang'ich qarz − to'lovlar − boshlang'ich avans. > 0 Qarz (mijoz bizga qarzdor), < 0 Avans, 0 «Qarz yo'q». Valyuta bo'yicha tafsilot bilan. | hisoblanadi |
+| **Mijoz balansi** | So'mda: sotuvlar + buyurtma narxlari ([orders.md](orders.md), 4.3) + boshlang'ich qarz − to'lovlar − boshlang'ich avans. > 0 Qarz (mijoz bizga qarzdor), < 0 Avans, 0 «Qarz yo'q». Valyuta bo'yicha tafsilot bilan. | hisoblanadi |
 | **Hisob harakati** | Mijozning hamma pul hujjati vaqt bo'yicha, qarz o'zgarishi va qoldiq balans bilan. | hisoblanadi |
 
 Sotuv va qoldiq lokatsiyaniki; mijoz, to'lov va balans kompaniya bo'yicha.
@@ -68,10 +68,10 @@ Sotuv lokatsiya qoldig'ini kamaytiradi: saqlashda, tahrirda farq bilan, o'chiris
 
 ## 5. Mijoz to'lovi, boshlang'ich qarz / avans, balans
 
-- **Balans** = jonli sotuvlar (mijozli) + boshlang'ich qarz − to'lovlar − boshlang'ich avans, hammasi so'mda har hujjat o'z kursi bilan ([currencies.md](currencies.md), 5-bo'lim). Yoniga valyuta bo'yicha tafsilot. Avans mumkin.
-- **To'lov qo'shish** `POST /app/customers/{id}/payments {bank_account_id, amount, at, rate?, note?}`: akkaunt faol, summa > 0 akkaunt valyutasida, vaqt, izoh 500. Tahrirlash / o'chirish `PUT/DELETE …/payments/{paymentId}`: faqat o'zi kiritilgan (sotuvga bog'lanmagan); bog'langani 409 `payment_linked` «Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang». Yo'q / o'chirilgan / boshqa mijozniki 404 «To'lov topilmadi».
+- **Balans** = jonli sotuvlar (mijozli) + jonli buyurtma hujjatlari narxi ([orders.md](orders.md), 4.3) + boshlang'ich qarz − to'lovlar − boshlang'ich avans, hammasi so'mda har hujjat o'z kursi bilan ([currencies.md](currencies.md), 5-bo'lim). Yoniga valyuta bo'yicha tafsilot. Avans mumkin.
+- **To'lov qo'shish** `POST /app/customers/{id}/payments {bank_account_id, amount, at, rate?, note?}`: akkaunt faol, summa > 0 akkaunt valyutasida, vaqt, izoh 500. Tahrirlash / o'chirish `PUT/DELETE …/payments/{paymentId}`: faqat o'zi kiritilgan (sotuvga yoki buyurtmaga bog'lanmagan); sotuvniki 409 `payment_linked` «Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang», buyurtmaniki 409 `payment_linked` «Bu to'lov buyurtma bilan kiritilgan: buyurtmani oching» (buyurtma sahifasida o'zgartiriladi, [orders.md](orders.md), 4.3). Yo'q / o'chirilgan / boshqa mijozniki 404 «To'lov topilmadi».
 - **Boshlang'ich qarz / avans** `POST /app/customers/{id}/openings {kind: debt|prepay, amount, currency_id?, rate?, at, note?}`, `PUT/DELETE …/openings/{openingId}`: summa > 0 hujjat valyutasida; bir mijozga bir nechta bo'lishi mumkin.
-- **Hisob harakati** `GET /app/customers/{id}/statement?page=`: mijozning sotuvlari, to'lovlari, boshlang'ich qarz / avanslari vaqt bo'yicha, yangi birinchi, 20 tadan; qatorda vaqt, hujjat (tur, №, havola), summa valyutasida, so'mda, qarz o'zgarishi (+ / −), shu hujjatdan keyingi balans; o'z to'lovi va boshlang'ich qatorlarida tahrirlash / o'chirish.
+- **Hisob harakati** `GET /app/customers/{id}/statement?page=`: mijozning sotuvlari, narxli buyurtmalari (qatorda «Buyurtma · nomi», buyurtma sahifasiga havola; narxi 0 hujjat ko'rinmaydi), to'lovlari (buyurtmaniki «To'lov · nomi»), boshlang'ich qarz / avanslari vaqt bo'yicha, yangi birinchi, 20 tadan; qatorda vaqt, hujjat (tur, №, havola), summa valyutasida, so'mda, qarz o'zgarishi (+ / −), shu hujjatdan keyingi balans; o'z to'lovi va boshlang'ich qatorlarida tahrirlash / o'chirish.
 - Mijoz sahifasida (`sales.view` bo'lganga): balans kartasi («Qarz: N so'm» / «Avans: N so'm» / «Qarz yo'q», valyuta bo'yicha tafsilot), «Hisob harakati», «To'lov qo'shish», «Boshlang'ich qarz / avans». Mijozlar ro'yxatida «Qarz» ustuni (`Customer.balance`, `sales.view` siz `null` va ustun chizilmaydi).
 - Chakana sotuvning to'lovlari mijozsiz: akkauntga tushadi, hech kimning balansiga tegmaydi, mijoz sahifalarida ko'rinmaydi.
 
@@ -100,6 +100,8 @@ Sotuv lokatsiya qoldig'ini kamaytiradi: saqlashda, tahrirda farq bilan, o'chiris
 | Mijoz tahrirda olib tashlandi, to'lovlar jamidan kam | 400: to'liq to'langan bo'lsin |
 | Nofaol mahsulot / xizmat sotuvda avvaldan bor | tahrirda qoladi; yangi qo'shilgani faol bo'lishi shart |
 | Sotuv bilan kiritilgan to'lov mijoz sahifasidan o'zgartirilmoqchi | 409 `payment_linked` |
+| Buyurtma bilan kiritilgan to'lov mijoz sahifasidan o'zgartirilmoqchi | 409 `payment_linked` (buyurtma matni) |
+| Buyurtma o'chirildi | hujjati va to'lovlari yo'qoladi, tovarlari qoldiqqa qaytadi, balans o'zgaradi |
 | Ikki kishi bir vaqtda sotuv kiritdi | navbat bilan, raqamlar ketma-ket, qoldiq to'g'ri |
 | Boshqa kompaniyaning sotuvi, to'lovi | 404 `not_found` |
 
@@ -112,6 +114,6 @@ Sotuv lokatsiya qoldig'ini kamaytiradi: saqlashda, tahrirda farq bilan, o'chiris
 | `company_required` | 403 | «Avval kompaniyani tanlang» |
 | `forbidden` | 403 | «Bu amal uchun ruxsatingiz yo'q» |
 | `not_found` | 404 | «Sotuv topilmadi», «To'lov topilmadi», «Mijoz topilmadi» |
-| `payment_linked` | 409 | «Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang» |
+| `payment_linked` | 409 | «Bu to'lov sotuv bilan kiritilgan: sotuvni tahrirlang», «Bu to'lov buyurtma bilan kiritilgan: buyurtmani oching» |
 | `stock_insufficient` | 409 | ««X» uchun omborda yetarli qoldiq yo'q» |
 | `customer_in_use` | 409 | «Bu mijozda N ta hujjat bor» |

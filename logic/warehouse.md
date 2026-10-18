@@ -8,7 +8,7 @@ Bu hujjat ombor bo'limi qoidalarini belgilaydi: hujjat va jurnal nima, ta'minotc
 
 | Tushuncha | Ma'nosi | Bazada |
 |---|---|---|
-| **Hujjat** | Jurnaldagi bitta yozuv: turi (xarid, sotuv, ko'chirish, inventarizatsiya, boshlang'ich qoldiq, to'lov, boshlang'ich qarz / avans, kassa hujjatlari), turi ichida raqami, vaqti, lokatsiyasi va / yoki kontragenti va / yoki akkaunti, valyutasi va kursi, jami, izohi, kim qo'shgani. Statusi yo'q: saqlangan zahoti amalda. tw-dobroe `transactions` namunasi. | `transactions` (`kind`, `number`, `doc_at`, `location_id`, `to_location_id`, `supplier_id`, `customer_id`, `bank_account_id`, `to_bank_account_id`, `category_id`, `linked_id`, `currency_id`, `currency_rate_id`, `total`, `to_total`) |
+| **Hujjat** | Jurnaldagi bitta yozuv: turi (xarid, sotuv, ko'chirish, inventarizatsiya, boshlang'ich qoldiq, buyurtma ([orders.md](orders.md), 4.3), to'lov, boshlang'ich qarz / avans, kassa hujjatlari), turi ichida raqami, vaqti, lokatsiyasi va / yoki kontragenti va / yoki akkaunti, valyutasi va kursi, jami, izohi, kim qo'shgani. Statusi yo'q: saqlangan zahoti amalda. tw-dobroe `transactions` namunasi. | `transactions` (`kind`, `number`, `doc_at`, `location_id`, `to_location_id`, `supplier_id`, `customer_id`, `bank_account_id`, `to_bank_account_id`, `category_id`, `linked_id`, `order_id`, `currency_id`, `currency_rate_id`, `total`, `to_total`) |
 | **Qator** | Hujjatning bitta mahsuloti: miqdori, narxi (xarid, sotuv, boshlang'ich qoldiqda), inventarizatsiyada sanalgan va tizim miqdori. | `transaction_items` |
 | **Harakat** | Ombor jurnali qatori: hujjat, lokatsiya, mahsulot, imzoli miqdor (kirim `+`, chiqim `−`). Servis hujjatdan hosil qiladi. | `stock_moves` |
 | **Qoldiq** | Mahsulotning lokatsiyadagi miqdori = shu lokatsiya va mahsulot harakatlarining yig'indisi. Alohida saqlanmaydi, so'rovda hisoblanadi. | hisoblanadi (`SUM(stock_moves.quantity)`) |
@@ -134,7 +134,7 @@ Qatorlar o'z tartibida tekshiriladi; «X» mahsulot nomi.
 
 ## 5. Qoldiq va ombor jurnali
 
-- **Qoldiq** = lokatsiya va mahsulot bo'yicha harakatlar yig'indisi (`stock_moves`), so'rovda hisoblanadi; alohida jadval yo'q. Harakatlarni hujjatlar yozadi: xarid va boshlang'ich qoldiq `+`; sotuv `−` ([sales.md](sales.md)); ko'chirish manbadan `−`, maqsadga `+`; inventarizatsiya farq (`sanalgan − tizim`, 0 bo'lsa yozilmaydi). Hujjat tahrirlanganda harakatlari qayta yoziladi, o'chirilganda o'chiriladi.
+- **Qoldiq** = lokatsiya va mahsulot bo'yicha harakatlar yig'indisi (`stock_moves`), so'rovda hisoblanadi; alohida jadval yo'q. Harakatlarni hujjatlar yozadi: xarid va boshlang'ich qoldiq `+`; sotuv `−` ([sales.md](sales.md)); buyurtma tovari `−` ([orders.md](orders.md), 4.3); ko'chirish manbadan `−`, maqsadga `+`; inventarizatsiya farq (`sanalgan − tizim`, 0 bo'lsa yozilmaydi). Hujjat tahrirlanganda harakatlari qayta yoziladi, o'chirilganda o'chiriladi.
 - **Manfiy bo'lmaydi.** Har yozuvdan keyin tegilgan mahsulotlarning lokatsiya qoldig'i tekshiriladi; manfiy bo'lsa 409 `stock_insufficient` ««X» uchun omborda yetarli qoldiq yo'q» va hech narsa yozilmaydi. Faqat joriy qoldiq tekshiriladi: orqa vaqt bilan kiritilgan hujjat oraliq tarixiy qoldiqni tekshirmaydi.
 - **Lahzadagi qoldiq**: `at` lahzasigacha bo'lgan hujjatlarning harakatlari yig'indisi (teng vaqtda avval yozilgani oldin); inventarizatsiya shundan foydalanadi. `GET /app/stock?location_id=&at=&exclude_id=` (`stock.view`): lokatsiyada `at` lahzasida qoldig'i 0 dan farqli mahsulotlar (sahifasiz); `exclude_id` berilsa shu hujjatning harakatlari hisobga olinmaydi (tahrirlanayotgan inventarizatsiyaning o'zi).
 - Mahsulotlar ro'yxatida «Qoldiq» ustuni joriy lokatsiyaniki, mahsulot sahifasida a'zoga ruxsatli har lokatsiya bo'yicha va **«Harakatlar»** (`GET /app/products/{id}/moves?location_id=&page=`, `stock.view`): mahsulotning harakatlari yangi birinchi, 20 tadan: vaqt, hujjat (tur, №, havola), lokatsiya, kontragent yoki boshqa lokatsiya, ± miqdor ([products.md](products.md), 5 va 6-bo'limlar).
@@ -213,3 +213,12 @@ Qatorlar o'z tartibida tekshiriladi; «X» mahsulot nomi.
 | `payment_linked` | 409 | «Bu to'lov xarid bilan kiritilgan: xaridni tahrirlang» |
 | `stock_insufficient` | 409 | ««X» uchun omborda yetarli qoldiq yo'q» |
 | `location_in_use` | 409 | «Bu lokatsiyada N ta hujjat bor» (admin panel) |
+
+## 10. Tan narxi (FIFO)
+
+Tovarning tan narxi jurnaldan hisoblanadi (`internal/costing`), saqlanmaydi; hozir buyurtma sahifasida ([orders.md](orders.md), 4.4), foyda / zarar hisoboti keyingi versiyada. Dizayn: `docs/superpowers/specs/2026-10-18-order-money-design.md`.
+
+- Har mahsulot bo'yicha kompaniyaning hamma lokatsiyasidagi harakatlar vaqt tartibida (`doc_at`, hujjat id, bir hujjatda chiqim avval, harakat id) qayta o'ynaladi; har lokatsiyada partiyalar navbati: miqdor va birlik tan narxi so'mda.
+- **Kirim partiyasi:** xarid va boshlang'ich qoldiq qatori — birlik narxi hujjat kursi bilan so'mga (`convert_amount`); bu «oxirgi ma'lum xarid narxi» ham (lokatsiyadan qat'i nazar). Ko'chirish kirimi — manbadan chiqqan partiyalarning tan narxi bilan (shu hujjatning chiqimi avval hisoblanadi). Inventarizatsiya ortiqchasi — oxirgi ma'lum xarid narxi bilan (hali bo'lmasa 0).
+- **Chiqim** (sotuv, buyurtma tovari, ko'chirish manbasi, inventarizatsiya kamligi): eng eski partiyalardan; partiyalar yetmasa qolgan miqdor oxirgi ma'lum xarid narxi bilan (bo'lmasa 0): tarixiy manfiy qoldiq shunday hisoblanadi.
+- Natija: hujjat va qator bo'yicha tan narx so'mda, 2 kasr (hisob aniq, oxirida yaxlitlanadi); xizmat qatori 0. Orqa sanali hujjat kiritilsa yoki hujjat o'zgarsa, tan narxlar keyingi hisobda o'zi o'zgaradi.
