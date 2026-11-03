@@ -3,7 +3,8 @@
 import { BanknoteIcon, ClipboardPlusIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useState } from "react"
 import { PageAction, PageActions } from "@/components/kit/page-actions"
-import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
+import { Group, KeyValue } from "@/components/kit/group"
+import { InPageTabs } from "@/components/kit/in-page-tabs"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { NewOrder } from "@/components/orders/new-order"
@@ -106,32 +107,54 @@ export function CustomerPage({ id }: { id: number }) {
           sales={allowed("sales.view")}
         />
       )}
-      <section aria-label="Ma'lumot">
-        <SectionHeading>Ma&apos;lumot</SectionHeading>
-        <Group as="dl">
-          <KeyValue label="Telefon" value={phone} />
-          {type?.fields.map((field) => (
-            <KeyValue key={field.id} label={field.label} value={answerText(field, customer.data.values[field.id], dropdowns.data)} />
-          ))}
-          <KeyValue label="Qo'shgan" value={customer.data.created_by_name} />
-          <KeyValue label="Qo'shilgan" value={formatDate(customer.data.created_at)} />
-        </Group>
-      </section>
-      {/* Every document that names the customer, and the dialogs that add one (logic/sales.md, section 5). */}
-      {companyId !== null && allowed("sales.view") && (
-        <StatementList
-          party="customer"
-          companyId={companyId}
-          partyId={customer.data.id}
-          canAdd={allowed("sales.create")}
-          canEdit={allowed("sales.edit")}
-          canDelete={allowed("sales.delete")}
-        />
-      )}
-      {/* The orders the customer has (for whoever may see the orders): a customer with one is not deleted. */}
-      {companyId !== null && allowed("orders.view") && <CustomerOrders companyId={companyId} customerId={customer.data.id} />}
-      {/* Who did what to the customer takes its permission. */}
-      {companyId !== null && allowed("customers.history") && <CustomerHistory companyId={companyId} id={customer.data.id} />}
+      <InPageTabs
+        label="Mijoz"
+        tabs={[
+          {
+            value: "info",
+            label: "Ma'lumot",
+            content: (
+              <section aria-label="Ma'lumot">
+                <Group as="dl">
+                  <KeyValue label="Telefon" value={phone} />
+                  {type?.fields.map((field) => (
+                    <KeyValue key={field.id} label={field.label} value={answerText(field, customer.data.values[field.id], dropdowns.data)} />
+                  ))}
+                  <KeyValue label="Qo'shgan" value={customer.data.created_by_name} />
+                  <KeyValue label="Qo'shilgan" value={formatDate(customer.data.created_at)} />
+                </Group>
+              </section>
+            ),
+          },
+          // The orders the customer has (for whoever may see the orders): a customer with one is not deleted.
+          ...(companyId !== null && allowed("orders.view")
+            ? [{ value: "orders", label: "Buyurtmalar", content: <CustomerOrders companyId={companyId} customerId={customer.data.id} /> }]
+            : []),
+          // Every document that names the customer, and the dialogs that add one (logic/sales.md, section 5).
+          ...(companyId !== null && allowed("sales.view")
+            ? [
+                {
+                  value: "statement",
+                  label: "Hisob harakati",
+                  content: (
+                    <StatementList
+                      party="customer"
+                      companyId={companyId}
+                      partyId={customer.data.id}
+                      canAdd={allowed("sales.create")}
+                      canEdit={allowed("sales.edit")}
+                      canDelete={allowed("sales.delete")}
+                    />
+                  ),
+                },
+              ]
+            : []),
+          // Who did what to the customer takes its permission.
+          ...(companyId !== null && allowed("customers.history")
+            ? [{ value: "history", label: "Tarix", content: <CustomerHistory companyId={companyId} id={customer.data.id} /> }]
+            : []),
+        ]}
+      />
       {companyId !== null && allowed("customers.delete") && <DeleteCustomerButton companyId={companyId} id={customer.data.id} name={name ?? phone} />}
       {paying && companyId !== null && (
         <PaymentDialog
