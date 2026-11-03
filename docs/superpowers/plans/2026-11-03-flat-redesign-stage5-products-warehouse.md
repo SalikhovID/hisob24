@@ -10,10 +10,10 @@ Spec: `docs/superpowers/specs/2026-11-03-flat-redesign-design.md` (6-bo'lim: Mah
 
 ## Vazifalar
 
-- [ ] 1. Backend: `openapi.yaml` (`/app/stock/summary`, `StockSummaryPage`, `StockSummaryItem`), router testi RED; sqlc `ListStockSummary` / `CountStockSummary`; servis (pgtest): qidiruv, sahifa, ruxsatli lokatsiyalar, oxirgi narx, qiymat, lokatsiyasiz a'zo; handler va integration test; `make api-client`; MSW mock.
-- [ ] 2. Ombor bo'limi: `nav.ts` tablari Qoldiq birinchi; `/warehouse` = «Qoldiq» sahifasi (`stock.view` bo'lmasa birinchi ruxsatli tabga); `DataTable` (Mahsulot, har lokatsiya, Jami, Qiymati), telefonda qator.
-- [ ] 3. Mahsulotlar ro'yxati: `SectionTabs` (Mahsulotlar / Xizmatlar), `Toolbar` (qidiruv, «Nofaollar ham»), `DataTable` (Nomi + artikul, Qoldiq · lokatsiya, Oxirgi xarid narxi, Sotuv narxi, Holat).
+- [x] 1. Backend: `openapi.yaml` (`/app/stock/summary`, `StockSummaryPage`, `StockSummaryItem`), router testi RED; sqlc `ListStockSummary` / `CountStockSummary`; servis (pgtest): qidiruv, sahifa, ruxsatli lokatsiyalar, oxirgi narx, qiymat, lokatsiyasiz a'zo; handler va integration test; `make api-client`; MSW mock.
+- [x] 2. Ombor bo'limi: `nav.ts` tablari Qoldiq birinchi; `/warehouse` = «Qoldiq» sahifasi (`stock.view` bo'lmasa birinchi ruxsatli tabga); `DataTable` (Mahsulot, har lokatsiya, Jami, Qiymati), telefonda qator.
+- [x] 3. Mahsulotlar ro'yxati: `SectionTabs` (Mahsulotlar / Xizmatlar), `Toolbar` (qidiruv, «Nofaollar ham»), `DataTable` (Nomi + artikul, Qoldiq · lokatsiya, Oxirgi xarid narxi, Sotuv narxi, Holat).
 - [ ] 4. Mahsulot sahifasi: `PageTitle` + `PageActions`, `KeyValue`, qoldiq lokatsiyalar bo'yicha, harakatlar va xaridlar jadvallari.
-- [ ] 5. Hujjat ro'yxatlari (xaridlar, ko'chirishlar, inventarizatsiya, boshlang'ich qoldiq): `DataTable`; ta'minotchilar ro'yxati va sahifasi.
+- [x] 5. Hujjat ro'yxatlari (xaridlar, ko'chirishlar, inventarizatsiya, boshlang'ich qoldiq): `DataTable`; ta'minotchilar ro'yxati va sahifasi.
 - [ ] 6. Hujjat sahifalari va formalari: `PageTitle` + `PageActions`, `KeyValue`, qatorlar jadvali, `SumBar`.
 - [ ] 7. e2e, skrinshot, `make lint`, `make test`, `make e2e`, push.
