@@ -236,9 +236,12 @@ export function barPages(permissions: readonly Permission[] | undefined, tabBar?
 // page itself; for a page of a hub (the warehouse's), the hub, unless the
 // page stands in the bar itself; -1 for none, when «Sozlamalar» is current.
 export function currentPin(pins: readonly NavPage[], pathname: string): number {
-  const own = pins.findIndex((pin) => pin.href === pathname)
+  // A record, a form or a page of its own lies under its list's page
+  // ("/customers/7" under "/customers"): the bar marks what it lies under.
+  const root = pathname === "/" ? "/" : (navPages.find((page) => page.href !== "/" && (pathname === page.href || pathname.startsWith(`${page.href}/`)))?.href ?? pathname)
+  const own = pins.findIndex((pin) => pin.href === root)
   if (own >= 0) return own
-  const page = navPages.find((candidate) => candidate.href === pathname)
+  const page = navPages.find((candidate) => candidate.href === root)
   const hub = page && navItems.find((item) => item.key === page.section && item.hub)
   return hub ? pins.findIndex((pin) => pin.key === hub.key) : -1
 }

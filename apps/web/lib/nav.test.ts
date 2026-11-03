@@ -187,6 +187,18 @@ test("the bar's current page is the page itself, or the warehouse on one of its 
   expect(currentPin([], "/")).toBe(-1)
 })
 
+test("on a record, a form or a page of its own under a page, the bar's current page is the one it lies under, as the prototype's: the customers on a customer, the warehouse on a purchase it does not hold itself", () => {
+  const pins = barPages(allPermissions, ["home", "customers", "warehouse", "sales"])
+  expect(currentPin(pins, "/customers/7")).toBe(1)
+  expect(currentPin(pins, "/purchases/3")).toBe(2)
+  expect(currentPin(pins, "/purchases/new")).toBe(2)
+  expect(currentPin(pins, "/sales/new")).toBe(3)
+  expect(currentPin(pins, "/sales/4/edit")).toBe(3)
+  expect(currentPin(pins, "/profile"), "the profile is past the bar").toBe(-1)
+  expect(currentPin(pins, "/settings/order-types/4")).toBe(-1)
+  expect(currentPin(pins, "/customersx"), "a mere prefix is no page under").toBe(-1)
+})
+
 test("the tab bar shows on every page of the menu: the sections' own, the tabs, the hubs and their pages; a record, a form or the profile are inside one", () => {
   for (const path of ["/", "/customers", "/orders", "/products", "/services", "/sales", "/warehouse", "/purchases", "/transfers", "/inventories", "/opening-stock", "/suppliers", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings", "/settings/customer-types", "/settings/roles"]) {
     expect(isMenuPath(path), path).toBe(true)
