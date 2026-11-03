@@ -1,34 +1,33 @@
 "use client"
 
-import { ChevronRightIcon, CoinsIcon, LayersIcon, ListIcon, ShieldIcon, SlidersHorizontalIcon, TagIcon, UserIcon, WalletIcon } from "lucide-react"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
-import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
+import { Avatar } from "@/components/kit/avatar"
+import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { PageTitle } from "@/components/kit/page-title"
-import { pageIcons } from "@/components/kit/tab-icons"
+import { tabIcons } from "@/components/kit/tab-icons"
 import { TileIcon } from "@/components/kit/tile-icon"
-import { Badge } from "@/components/ui/badge"
-import { moveTo } from "@/lib/moves"
-import { barPages, type NavPage, pageGroups, pagesFor } from "@/lib/nav"
+import { barPages, navFor } from "@/lib/nav"
 import { can } from "@/lib/permissions"
+import { formatPhone } from "@/lib/phone"
 import { useCustomerDropdowns, useCustomerTypes, useMe, useRoles, useOrderStages, useOrderTypes } from "@/lib/queries"
+import { roleLabels } from "@/lib/roles"
 import { useGate } from "@/lib/use-gate"
 import { oldTabHref, settingsHref } from "./use-settings-tab"
 
 // count is how many a part holds, at a row's end, once known.
 const count = (items: unknown[] | undefined) => items && <span className="text-muted-foreground">{items.length}</span>
 
-// SettingsPage is «Sozlamalar», the tab bar's last button, as the
-// prototype's: every page the member may open, in its block (the sections'
-// only pages, then the products, the warehouse and the finance), each a way
-// to it, those the tab bar holds marked on a phone; under them, on a phone,
-// the way to the choice of the bar's pages; then, for the owner or an
-// employee whose role holds settings.view, the settings: each part a tile
-// row with how many it holds (the customer and order types, the stages, the
-// dropdowns; the currency rates and the finance categories), the roles,
-// the owner's alone, apart with what they are. An address of the old tabs
-// (/settings?tab=x) leads to the part's page.
+// SettingsPage is the settings page as the prototype's: on a phone
+// «Sozlama», the tab bar's last button, with the company and who is signed
+// in (the way to the profile), the sections the bar does not hold (each a
+// way to it) and the settings; on a wide screen «Sozlamalar», the settings
+// alone (the sections are the sidebar's). The settings are each part with
+// how many it holds (the customer and order types, the stages, the
+// dropdowns; the currency rates and the finance categories; the roles, the
+// owner's alone) for the owner or an employee whose role holds
+// settings.view, and the choice of the tab bar's pages for everyone. An
+// address of the old tabs (/settings?tab=x) leads to the part's page.
 export function SettingsPage() {
   const gate = useGate(() => true)
   const me = useMe()
@@ -49,85 +48,71 @@ export function SettingsPage() {
 
   if (!gate) return null
   const pins = barPages(gate.permissions, me.data?.tab_bar)
-  const pinned = new Set(pins.map((page) => page.key))
+  const pinned = new Set<string>(pins.map((page) => page.href))
+  // The sections the bar does not hold: the home and the settings are
+  // there always.
+  const sections = navFor(gate.permissions).filter((item) => item.key !== "home" && item.key !== "settings" && !pinned.has(item.href))
+  const user = me.data?.user
+  const name = user ? (user.full_name ?? formatPhone(user.phone)) : null
+  const role = gate.company.role === "owner" ? roleLabels.owner : (gate.company.role_name ?? roleLabels.user)
+
   return (
     <>
-      <PageTitle title="Sozlamalar" description="Barcha bo'limlar va sozlamalar" />
-      {pageGroups(pagesFor(gate.permissions)).map((group) => (
-        <section key={group.label}>
-          <SectionHeading>{group.heading ?? group.label}</SectionHeading>
-          <Group label={group.label} inset="tile">
-            {group.pages.map((page) => (
-              <PageRow key={page.key} page={page} pinned={pinned.has(page.key)} />
-            ))}
+      <div data-slot="phone-only" className="md:hidden">
+        <PageTitle title="Sozlama" />
+        {name && (
+          <Group>
+            <Row
+              href="/profile"
+              media={<Avatar name={user?.full_name ?? gate.company.name} />}
+              title={gate.company.name}
+              sub={`${name} · ${role}`}
+            />
           </Group>
-        </section>
-      ))}
-      <BarCard pins={pins} />
-      {settings && (
-        <>
-          <SectionHeading>Mijozlar va buyurtmalar</SectionHeading>
-          <Group label="Mijozlar va buyurtmalar" inset="tile">
-            <Row href={settingsHref("customers")} media={<TileIcon icon={UserIcon} />} title="Mijoz turlari" end={count(customerTypes.data)} />
-            <Row href={settingsHref("orders")} media={<TileIcon icon={TagIcon} />} title="Buyurtma turlari" end={count(orderTypes.data)} />
-            <Row href={settingsHref("stages")} media={<TileIcon icon={LayersIcon} />} title="Bosqichlar" end={count(stages.data)} />
-            <Row href={settingsHref("dropdowns")} media={<TileIcon icon={ListIcon} />} title="Dropdownlar" end={count(dropdowns.data)} />
-          </Group>
-          <SectionHeading>Valyuta va moliya</SectionHeading>
-          <Group label="Valyuta va moliya" inset="tile">
-            <Row href={settingsHref("currencies")} media={<TileIcon icon={CoinsIcon} />} title="Valyuta kurslari" />
-            <Row href={settingsHref("finance")} media={<TileIcon icon={WalletIcon} />} title="Moliya kategoriyalari" />
-          </Group>
-          {isOwner && (
+        )}
+        {sections.length > 0 && (
+          <section>
+            <SectionHeading>Bo&apos;limlar</SectionHeading>
+            <Group label="Bo'limlar">
+              {sections.map((item) => {
+                const Icon = tabIcons[item.key]
+                return (
+                  <Row
+                    key={item.key}
+                    href={item.href}
+                    media={
+                      <TileIcon>
+                        <Icon />
+                      </TileIcon>
+                    }
+                    title={item.label}
+                  />
+                )
+              })}
+            </Group>
+          </section>
+        )}
+      </div>
+      <div data-slot="web-only" className="hidden md:block">
+        <PageTitle title="Sozlamalar" description="Faqat egasi va sozlash ruxsatli xodimlar uchun" />
+      </div>
+      <section>
+        <SectionHeading className="md:hidden">Sozlamalar</SectionHeading>
+        <Group label="Sozlamalar">
+          {settings && (
             <>
-              <Group label="Rollar" inset="tile">
-                <Row href={settingsHref("roles")} media={<TileIcon icon={ShieldIcon} />} title="Rollar" end={count(roles.data)} />
-              </Group>
-              <Foot className="-mt-4">Rol xodimga qaysi bo&apos;limlarda nima qilishi mumkinligini belgilaydi. Rollar faqat kompaniya egasiga ko&apos;rinadi.</Foot>
+              <Row href={settingsHref("customers")} title="Mijoz turlari" end={count(customerTypes.data)} />
+              <Row href={settingsHref("orders")} title="Buyurtma turlari" end={count(orderTypes.data)} />
+              <Row href={settingsHref("stages")} title="Bosqichlar" end={count(stages.data)} />
+              <Row href={settingsHref("dropdowns")} title="Dropdownlar" end={count(dropdowns.data)} />
+              <Row href={settingsHref("currencies")} title="Valyuta kurslari" />
+              <Row href={settingsHref("finance")} title="Moliya kategoriyalari" />
+              {isOwner && <Row href={settingsHref("roles")} title="Rollar" end={count(roles.data)} />}
             </>
           )}
-        </>
-      )}
+          <Row href="/settings/tab-bar" title="Pastki panel" />
+        </Group>
+      </section>
     </>
-  )
-}
-
-// PageRow is a page of the menu: its mark and name, the way to it; on a
-// phone, «Panelda» when the tab bar holds it.
-function PageRow({ page, pinned }: { page: NavPage; pinned: boolean }) {
-  const Icon = pageIcons[page.key]
-  return (
-    <Row
-      href={page.href}
-      media={
-        <TileIcon>
-          <Icon />
-        </TileIcon>
-      }
-      title={page.label}
-      end={pinned ? <Badge className="md:hidden">Panelda</Badge> : undefined}
-    />
-  )
-}
-
-// BarCard is the way to the choice of the tab bar's pages, on a phone (a
-// wide screen has no bar): the prototype's card of frosted glass with the
-// glossy sliders, its name and the bar's pages under it.
-function BarCard({ pins }: { pins: NavPage[] }) {
-  return (
-    <Link
-      href="/settings/tab-bar"
-      onClick={() => moveTo("forward")}
-      className="-mt-2.5 mb-6 flex items-center gap-3.5 rounded-[24px] surface px-4 py-3.5 text-left no-underline outline-none transition-transform duration-150 ease-out-expo active:scale-[.98] focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
-    >
-      <span aria-hidden="true" className="grid size-[42px] shrink-0 place-items-center rounded-[14px] bg-primary text-primary-foreground">
-        <SlidersHorizontalIcon strokeWidth={2} className="size-[22px]" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <b className="block text-base font-semibold">Pastki panelni sozlash</b>{" "}
-        <small className="mt-0.5 block truncate text-[13.5px] text-muted-foreground">{pins.map((page) => page.label).join(" · ")}</small>
-      </span>
-      <ChevronRightIcon aria-hidden="true" strokeWidth={2.6} className="size-[18px] shrink-0 text-muted-foreground opacity-60" />
-    </Link>
   )
 }

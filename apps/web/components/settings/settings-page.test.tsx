@@ -16,78 +16,47 @@ const partsOf = (container: HTMLElement) =>
     .getAllByRole("link")
     .map((link) => [rowParts(link).title, link.getAttribute("href"), rowParts(link).end])
 
-test("the owner's settings page lists every page in its block, each a way to it, then the settings: each part a tile row with how many it holds; the roles apart, with what they are", async () => {
+test("on a phone the page is «Sozlama»: the company with who is signed in, the way to the profile; the sections the tab bar does not hold; then the settings, each with how many it holds, the roles and the tab bar's choice", async () => {
   await signIn(ALI)
   renderWithProviders(<SettingsPage />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Sozlamalar" })).toBeInTheDocument()
-  expect(screen.getByText("Barcha bo'limlar va sozlamalar")).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Sozlama" })).toBeInTheDocument()
+  const me = await screen.findByRole("link", { name: "Olma Savdo Ali Valiyev · Egasi" })
+  expect(me).toHaveAttribute("href", "/profile")
+  expect(me.closest('[data-slot="phone-only"]')).toHaveClass("md:hidden")
   const pages = (name: string) => partsOf(screen.getByRole("list", { name })).map(([title, href]) => [title, href])
   await waitFor(() =>
     expect(pages("Bo'limlar")).toEqual([
-      ["Bosh sahifa", "/"],
-      ["Mijozlar", "/customers"],
-      ["Buyurtmalar", "/orders"],
       ["Sotuv", "/sales"],
+      ["Ombor", "/warehouse"],
+      ["Moliya", "/accounts"],
       ["Xodimlar", "/employees"],
     ]),
   )
-  expect(pages("Mahsulotlar")).toEqual([
-    ["Mahsulotlar", "/products"],
-    ["Xizmatlar", "/services"],
-  ])
-  expect(pages("Ombor")).toEqual([
-    ["Ombor", "/warehouse"],
-    ["Xaridlar", "/purchases"],
-    ["Ko'chirishlar", "/transfers"],
-    ["Inventarizatsiya", "/inventories"],
-    ["Boshlang'ich qoldiq", "/opening-stock"],
-    ["Ta'minotchilar", "/suppliers"],
-  ])
-  expect(pages("Moliya")).toEqual([
-    ["Kassa", "/accounts"],
-    ["Xarajatlar", "/expenses"],
-    ["O'tkazmalar", "/money-transfers"],
-  ])
-  for (const heading of ["Bo'limlar", "Mahsulotlar", "Ombor", "Moliya", "Mijozlar va buyurtmalar", "Valyuta va moliya"]) {
-    expect(screen.getByRole("heading", { level: 2, name: heading })).toBeInTheDocument()
-  }
-  const main = await screen.findByRole("list", { name: "Mijozlar va buyurtmalar" })
+  const settings = screen.getByRole("list", { name: "Sozlamalar" })
   await waitFor(() =>
-    expect(partsOf(main)).toEqual([
+    expect(partsOf(settings)).toEqual([
       ["Mijoz turlari", "/settings/customer-types", "2"],
       ["Buyurtma turlari", "/settings/order-types", "1"],
       ["Bosqichlar", "/settings/stages", "3"],
       ["Dropdownlar", "/settings/dropdowns", "1"],
+      ["Valyuta kurslari", "/settings/currencies", null],
+      ["Moliya kategoriyalari", "/settings/finance-categories", null],
+      ["Rollar", "/settings/roles", "0"],
+      ["Pastki panel", "/settings/tab-bar", null],
     ]),
   )
-  expect(partsOf(screen.getByRole("list", { name: "Valyuta va moliya" }))).toEqual([
-    ["Valyuta kurslari", "/settings/currencies", null],
-    ["Moliya kategoriyalari", "/settings/finance-categories", null],
-  ])
-  await waitFor(() => expect(partsOf(screen.getByRole("list", { name: "Rollar" }))).toEqual([["Rollar", "/settings/roles", "0"]]))
-  expect(screen.getByText("Rol xodimga qaysi bo'limlarda nima qilishi mumkinligini belgilaydi. Rollar faqat kompaniya egasiga ko'rinadi.")).toBeInTheDocument()
 })
 
-test("on a phone the pages the tab bar holds say so, and a card under the pages leads to the bar's choice, naming what it holds", async () => {
+test("on a wide screen the page is «Sozlamalar», for the owner and whoever may set things: the settings alone, the sections being the sidebar's", async () => {
   await signIn(ALI)
   renderWithProviders(<SettingsPage />)
 
-  const blocks = await screen.findByRole("list", { name: "Bo'limlar" })
-  await waitFor(() =>
-    expect(partsOf(blocks).map(([title, , end]) => [title, end])).toEqual([
-      ["Bosh sahifa", "Panelda"],
-      ["Mijozlar", "Panelda"],
-      ["Buyurtmalar", "Panelda"],
-      ["Sotuv", null],
-      ["Xodimlar", null],
-    ]),
-  )
-  expect(screen.getAllByText("Panelda")[0]).toHaveClass("md:hidden")
-  const card = screen.getByRole("link", { name: /^Pastki panelni sozlash/ })
-  expect(card).toHaveAttribute("href", "/settings/tab-bar")
-  expect(card).toHaveClass("md:hidden", "surface")
-  expect(card).toHaveTextContent("Bosh sahifa · Mijozlar · Buyurtmalar · Mahsulotlar")
+  const web = await screen.findByRole("heading", { level: 1, name: "Sozlamalar" })
+  expect(web.closest('[data-slot="web-only"]')).toHaveClass("hidden", "md:block")
+  expect(screen.getByText("Faqat egasi va sozlash ruxsatli xodimlar uchun")).toBeInTheDocument()
+  expect(screen.getByRole("heading", { level: 1, name: "Sozlama" }).closest('[data-slot="phone-only"]')).toHaveClass("md:hidden")
+  expect((await screen.findByRole("list", { name: "Bo'limlar" })).closest('[data-slot="phone-only"]')).toHaveClass("md:hidden")
 })
 
 test("whoever may open the settings sees every part but the roles: they are the owner's", async () => {
@@ -96,12 +65,12 @@ test("whoever may open the settings sees every part but the roles: they are the 
   await chooseCompany(1)
   renderWithProviders(<SettingsPage />)
 
-  expect(await screen.findByRole("list", { name: "Mijozlar va buyurtmalar" })).toBeInTheDocument()
-  expect(screen.queryByRole("list", { name: "Rollar" })).not.toBeInTheDocument()
-  expect(screen.queryByText(/Rollar faqat kompaniya egasiga ko'rinadi/)).not.toBeInTheDocument()
+  const settings = await screen.findByRole("list", { name: "Sozlamalar" })
+  await waitFor(() => expect(within(settings).getByRole("link", { name: /Mijoz turlari/ })).toBeInTheDocument())
+  expect(within(settings).queryByRole("link", { name: /Rollar/ })).not.toBeInTheDocument()
 })
 
-test("an employee without the settings finds the pages they may open and the way to the bar's choice, and nothing of the settings", async () => {
+test("an employee without the settings finds the sections they may open and the tab bar's choice, and nothing of the settings", async () => {
   await signIn(VALI)
   await chooseCompany(1)
   let asked = false
@@ -113,11 +82,10 @@ test("an employee without the settings finds the pages they may open and the way
   )
   renderWithProviders(<SettingsPage />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Sozlamalar" })).toBeInTheDocument()
+  expect(await screen.findByRole("heading", { level: 1, name: "Sozlama" })).toBeInTheDocument()
   expect(await screen.findByRole("list", { name: "Bo'limlar" })).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: /^Pastki panelni sozlash/ })).toBeInTheDocument()
-  expect(screen.queryByRole("list", { name: "Mijozlar va buyurtmalar" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("list", { name: "Rollar" })).not.toBeInTheDocument()
+  const settings = screen.getByRole("list", { name: "Sozlamalar" })
+  expect(partsOf(settings).map(([title]) => title)).toEqual(["Pastki panel"])
   expect(router.replace).not.toHaveBeenCalled()
   expect(asked).toBe(false)
 })
