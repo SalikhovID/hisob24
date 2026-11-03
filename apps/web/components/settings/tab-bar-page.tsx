@@ -22,7 +22,7 @@ const SettingsMark = tabIcons.settings
 
 // TabBarPage is «Pastki panel», the choice of the tab bar's pages
 // (logic/roles.md, section 8), as the prototype's: a picture of the bar,
-// «Sozlamalar» locked at its end; every page the member may open in the
+// «Sozlama» locked at its end; every page the member may open in the
 // bar's order, the first four on the bar and a line of words before the
 // rest. A page is dragged by its handle (or moved with the arrow keys), or
 // swapped across the line: ✓ takes it off the bar for the first page past
@@ -34,7 +34,7 @@ export function TabBarPage() {
   const me = useMe()
   return (
     <>
-      <PageTitle back={{ href: "/settings", label: "Sozlamalar" }} title="Pastki panel" description={me.data && `${Math.min(BAR_LIMIT, barOrder(me.data.permissions).length)} ta tugmani o'zingizga moslang. Sozlamalar doim oxirida.`} />
+      <PageTitle back={{ href: "/settings", label: "Sozlama" }} title="Pastki panel" description={me.data && `${Math.min(BAR_LIMIT, barOrder(me.data.permissions).length)} ta tugmani o'zingizga moslang. Sozlama doim oxirida.`} />
       {me.data?.company && <BarEditor me={me.data} />}
     </>
   )
@@ -80,7 +80,7 @@ function BarEditor({ me }: { me: Me }) {
         getId={(page) => page.key}
         getLabel={(page) => page.label}
         onReorder={(keys) => setOrder(keys as PageKey[])}
-        divider={{ before: n, label: "Panelda emas · Sozlamalar sahifasida" }}
+        divider={{ before: n, label: "Panelda emas · Sozlama sahifasida" }}
         className="mb-6 overflow-hidden rounded-group surface [--inset:56px]"
         renderItem={(page, handle) => <PageItem page={page} handle={handle} on={pages.indexOf(page) < n} onSwap={() => swap(page.key)} />}
       />
@@ -90,7 +90,7 @@ function BarEditor({ me }: { me: Me }) {
             <TileIcon>
               <SettingsMark />
             </TileIcon>
-            <span className="min-w-0 flex-1 truncate text-base">Sozlamalar</span>
+            <span className="min-w-0 flex-1 truncate text-base">Sozlama</span>
             <Badge>Doim oxirida</Badge>
             <LockIcon aria-hidden="true" strokeWidth={2} className="size-5 text-muted-foreground" />
           </div>
@@ -107,7 +107,7 @@ function BarEditor({ me }: { me: Me }) {
           title="Standart holat"
         />
       </Group>
-      <Foot>Tutqichdan sudrab tartibini o&apos;zgartiring yoki ✓ / + tugmasi bilan almashtiring. Panelga sig&apos;magan sahifalar Sozlamalar sahifasida turadi.</Foot>
+      <Foot>Tutqichdan sudrab tartibini o&apos;zgartiring yoki ✓ / + tugmasi bilan almashtiring. Panelga sig&apos;magan sahifalar Sozlama sahifasida turadi.</Foot>
       {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
       <MainBar>
         <MainButton
@@ -129,7 +129,7 @@ function BarEditor({ me }: { me: Me }) {
 }
 
 // Preview is the picture of the bar: its pages' marks and names, and
-// «Sozlamalar» last, locked, in the hint's grey.
+// «Sozlama» last, locked, in the hint's grey.
 function Preview({ pages }: { pages: NavPage[] }) {
   return (
     <ul aria-label="Ko'rinishi" className="mb-[22px] flex justify-around rounded-[30px] surface px-1.5 py-2">
@@ -137,7 +137,7 @@ function Preview({ pages }: { pages: NavPage[] }) {
         const Icon = pageIcons[page.key]
         return <PreviewItem key={page.key} icon={<Icon />} name={page.label} />
       })}
-      <PreviewItem icon={<SettingsMark />} name="Sozlamalar" locked />
+      <PreviewItem icon={<SettingsMark />} name="Sozlama" locked />
     </ul>
   )
 }
