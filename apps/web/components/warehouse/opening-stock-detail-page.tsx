@@ -3,9 +3,8 @@
 import { PencilIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
-import { Tile, Tiles } from "@/components/kit/detail-head"
 import { Foot, Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
-import { Hero } from "@/components/kit/hero"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { ApiError } from "@/lib/api"
@@ -24,8 +23,8 @@ const back = { href: "/opening-stock", label: "Boshlang'ich qoldiq" }
 // OpeningStockDetailPage is one opening stock of the member's locations
 // (logic/warehouse.md, 5.3), for whoever may see the stock documents
 // (changing and deleting each take their permission), as the prototype's
-// page: its number over what it came to, its location and moment; the
-// tiles (editing, deleting); its lines, each product with how much at what
+// page: its number over its moment and who entered it; the actions at the
+// title's right (editing, deleting); its lines, each product with how much at what
 // price and the sum; its facts: the location (with two or more to work
 // in), the currency and rate (with another than the so'm), the total (in
 // so'm too), the note, who entered it and when.
@@ -57,27 +56,19 @@ export function OpeningStockDetailPage({ id }: { id: number }) {
   }
   const o = opening.data
   const currency = currencyOf(currencies, o.currency_id)
-  const tiles = [
-    allowed("stock.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/opening-stock/${o.id}/edit`} />,
+  const actions = [
+    allowed("stock.edit") && <PageAction key="edit" icon={PencilIcon} label="Tahrirlash" href={`/opening-stock/${o.id}/edit`} />,
     allowed("stock.delete") && <DeleteOpeningStockButton key="delete" companyId={companyId} opening={o} afterDelete={() => moving("back", () => router.replace("/opening-stock"))} />,
   ].filter(Boolean)
 
   return (
     <>
-      <BackLink {...back} />
-      <Hero
-        heading
-        label={`Boshlang'ich qoldiq № ${o.number}`}
-        value={o.total}
-        unit={currency.symbol}
-        badges={
-          <span className="font-medium text-muted-foreground">
-            {o.location_name} · {formatDateTime(o.at)}
-          </span>
-        }
-        className="pt-2"
+      <PageTitle
+        back={back}
+        title={`Boshlang'ich qoldiq № ${o.number}`}
+        description={`${formatDateTime(o.at)} · ${o.created_by_name}`}
+        action={actions.length > 0 && <PageActions>{actions}</PageActions>}
       />
-      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       <section aria-labelledby="opening-lines">
         <SectionHeading hint={o.items.length}>
           <span id="opening-lines">Mahsulotlar</span>

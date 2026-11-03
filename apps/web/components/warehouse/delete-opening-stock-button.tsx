@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Tile } from "@/components/kit/detail-head"
+import { PageAction } from "@/components/kit/page-actions"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -19,7 +19,8 @@ import { api, call } from "@/lib/api"
 import type { OpeningStock } from "@/lib/types"
 import { forgetWarehouse } from "./new-purchase-page"
 
-// DeleteOpeningStockButton is the danger tile of an opening stock's page: it
+// DeleteOpeningStockButton is the danger action of an opening stock's page (on the web
+// its trash alone, as the prototype's): it
 // deletes the document after asking: its lines
 // go out of the stock; its number is never given again (logic/warehouse.md,
 // 5.3). A refusal (the stock would go below zero) is told and the document
@@ -43,7 +44,7 @@ export function DeleteOpeningStockButton({ companyId, opening, afterDelete }: { 
 
   return (
     <>
-    <Tile icon={Trash2Icon} label="O'chirish" danger onClick={() => setConfirming(true)} />
+    <PageAction icon={Trash2Icon} label="O'chirish" variant="danger" iconOnly onClick={() => setConfirming(true)} />
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogContent>
         <AlertDialogHeader>
