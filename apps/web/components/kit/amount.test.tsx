@@ -89,12 +89,10 @@ test("the figure is fitted again when its box grows or shrinks in width; a chang
   vi.unstubAllGlobals()
 })
 
-test("an amount's unit is the hint's grey, a little smaller and lighter than the figure, as the prototype's", () => {
-  const { container } = render(<Amount value="300000" unit="so'm" />)
-  const unit = container.querySelector('[data-slot="amount-unit"]') as HTMLElement
-  expect(unit).toHaveClass("text-muted-foreground", "font-medium")
-  expect(unit).not.toHaveClass("text-(--gold)")
-  expect(unit.style.fontSize).toBe("calc(26px * var(--k))")
+test("an amount is the prototype's figure: semibold, its unit faint, lighter and smaller", () => {
+  const { container } = render(<Amount value="12000" unit="so'm" />)
+  expect(container.querySelector('[data-slot="amount"]')).toHaveClass("font-semibold")
+  expect(container.querySelector('[data-slot="amount-unit"]')).toHaveClass("text-faint", "font-medium")
 })
 
 test("a figure takes its size from its box when the box gives one (a hero on a wide screen), 56px and 40px otherwise", () => {

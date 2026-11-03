@@ -81,7 +81,7 @@ export function Amount({
       ref={ref}
       data-slot="amount"
       style={{ "--k": String(scale) } as CSSProperties}
-      className={cn("inline-flex items-baseline justify-center leading-none font-bold tracking-[-0.035em] whitespace-nowrap", muted && "text-muted-foreground", className)}
+      className={cn("inline-flex items-baseline justify-center leading-[1.15] font-semibold tracking-[-0.02em] whitespace-nowrap tabular-nums", muted && "text-muted-foreground", className)}
     >
       <span data-slot="amount-whole" style={{ fontSize: `calc(${big} * var(--k))` }}>
         {whole}
@@ -92,7 +92,7 @@ export function Amount({
         </span>
       )}
       {caret && <span aria-hidden="true" className="mx-0.5 inline-block h-[46px] w-[2.5px] self-center rounded-sm bg-primary motion-safe:animate-[blink_1s_steps(1)_infinite]" />}
-      <span data-slot="amount-unit" className="ml-[calc(9px*var(--k))] font-medium tracking-[-0.01em] text-muted-foreground" style={{ fontSize: "calc(26px * var(--k))" }}>
+      <span data-slot="amount-unit" className="ml-[calc(6px*var(--k))] font-medium tracking-[-0.01em] text-faint" style={{ fontSize: "calc(var(--amount-unit, 26px) * var(--k))" }}>
         {" "}
         {unit}
       </span>

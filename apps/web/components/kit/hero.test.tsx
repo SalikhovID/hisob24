@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { Badge } from "@/components/ui/badge"
+import { WalletIcon } from "lucide-react"
 import { Hero } from "./hero"
 
 test("a hero is the page's one figure under its label, with badges under it; with a way in it is a link", () => {
@@ -22,28 +23,28 @@ test("a hero's label may be the page's heading: a document's page opens with it"
   expect(screen.getByRole("heading", { level: 1, name: "Xarid № 3" })).toBeInTheDocument()
 })
 
-test("a hero's badges are the prototype's larger pills: 26px tall, 11px aside, in 14px", () => {
-  render(<Hero label="Xarid № 3" value="10" unit="so'm" badges={<Badge variant="red">Qoldi 5</Badge>} />)
-  expect(screen.getByText("Qoldi 5").closest('[data-slot="hero-badges"]')).toHaveClass(
-    "[&_[data-slot=badge]]:h-[26px]",
-    "[&_[data-slot=badge]]:px-[11px]",
-    "[&_[data-slot=badge]]:text-sm",
+test("a hero is the prototype's card: its label grey with its icon, a link at its right, the figure, a line under it", () => {
+  render(
+    <Hero
+      label="Kassadagi pul"
+      icon={WalletIcon}
+      action={<a href="/accounts">Kassa →</a>}
+      value="37820000.00"
+      unit="so'm"
+      sub="+ $1,550 · 4 ta akkaunt"
+    />,
   )
+  const hero = screen.getByText("Kassadagi pul").closest('[data-slot="hero"]') as HTMLElement
+  expect(hero).toHaveClass("surface", "rounded-group", "md:rounded-lg", "text-left")
+  expect(hero.querySelector('[data-slot="hero-label"]')).toHaveClass("text-md", "md:text-[12.5px]", "text-muted-foreground")
+  expect(hero.querySelector('[data-slot="hero-label"] svg')).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Kassa →" }).parentElement).toHaveAttribute("data-slot", "hero-action")
+  expect(screen.getByText("+ $1,550 · 4 ta akkaunt")).toHaveAttribute("data-slot", "hero-sub")
 })
 
-test("a hero is the prototype's card of frosted glass: 30px round, its label, figure and badges at the left", () => {
-  render(<Hero href="/suppliers" label="Ta'minotchilarga qarz" value="1250000.00" unit="so'm" badges={<Badge variant="red">3 ta</Badge>} />)
-  const hero = screen.getByRole("link", { name: /Ta'minotchilarga qarz/ })
-  expect(hero).toHaveClass("surface", "rounded-[30px]", "text-left")
-  expect(hero).not.toHaveClass("text-center")
-  // Its label is the hint's: 16px, not bold.
-  expect(hero.querySelector('[data-slot="hero-label"]')).toHaveClass("text-[16px]", "font-medium", "text-muted-foreground")
-  expect(hero.querySelector('[data-slot="hero-badges"]')).toHaveClass("justify-start")
-})
-
-test("on a wide screen a hero's figure is larger, 72px and 48px for its decimals", () => {
+test("a hero's figure is the prototype's: 34px on a phone, 32px on the web, the unit 18px", () => {
   render(<Hero label="Mijozlar" value="10" unit="ta" />)
-  expect(screen.getByText("Mijozlar").closest('[data-slot="hero"]')).toHaveClass("md:[--amount-big:72px]", "md:[--amount-small:48px]")
+  expect(screen.getByText("Mijozlar").closest('[data-slot="hero"]')).toHaveClass("[--amount-big:34px]", "md:[--amount-big:32px]", "[--amount-unit:18px]")
 })
 
 test("a debt's label keeps its red, an advance's its green", () => {
@@ -65,5 +66,4 @@ test("a plain hero is the figure alone in the middle, no card (a product's price
   expect(hero).not.toHaveClass("surface")
   expect(hero).not.toHaveClass("rounded-[30px]")
   expect(hero?.querySelector('[data-slot="hero-badges"]')).toHaveClass("justify-center")
-  expect(screen.getByText("Sotuv narxi")).toHaveClass("text-[16px]", "font-medium", "text-muted-foreground")
 })
