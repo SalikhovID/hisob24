@@ -92,7 +92,7 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   expect(screen.getByLabelText("Valyuta")).toHaveTextContent("UZS — O'zbek so'mi")
   expect(screen.queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
-  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12800")
+  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12800.00")
   await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")

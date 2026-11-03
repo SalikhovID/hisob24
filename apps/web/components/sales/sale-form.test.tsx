@@ -8,6 +8,7 @@ import { router, setLocation } from "@/test/navigation"
 import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
+import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
 import { momentIn } from "@/test/moment"
@@ -93,6 +94,20 @@ test("a retail sale is paid in full with «To'liq»; the form tells the API's re
   await waitFor(() => expect(db.transactions.find((t) => t.kind === "sale")).toMatchObject({ customerId: null, total: 2000 }))
   // The toast of the earlier test in this file may still stand beside it.
   expect((await screen.findAllByText("Sotuv qo'shildi")).length).toBeGreaterThan(0)
+})
+
+test("a sale price in another currency is offered in the sale's, with two decimals as a stored price is", async () => {
+  const at = "2026-10-02T05:00:00Z"
+  db.products.push({ id: 802, companyId: 2, kind: "product", name: "Olma", unit: "kg", sku: null, price: "64000.00", currencyId: 1, note: null, active: true, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
+  await signIn(VALI)
+  await chooseCompany(2)
+  setLocation("/sales/new")
+  const { user } = renderWithProviders(<NewSalePage />)
+  await screen.findByRole("heading", { level: 1, name: "Yangi sotuv" })
+
+  await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
+  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("5.00")
 })
 
 test("without a way to the customers the sale is retail alone; without the products there is no form", async () => {

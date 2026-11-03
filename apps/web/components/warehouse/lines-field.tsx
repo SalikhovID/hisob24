@@ -106,12 +106,13 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
   const chosen = items.map((item) => Number(item?.product_id) || 0).filter((id) => id > 0)
 
   // offered is a product's last price in the document's currency: as is
-  // when the currencies match, turned by the rates in force otherwise.
+  // when the currencies match, turned by the rates in force otherwise;
+  // either way written as a stored price is, with two decimals ("12800.00").
   const offered = (price: LastPrice | null): string | null => {
     if (!price) return null
     if (price.currency_id === currencyId) return price.amount
     const turned = convert(Number(price.amount), price.currency_id, currencyId, currencies)
-    return turned === null ? null : String(turned)
+    return turned === null ? null : turned.toFixed(2)
   }
 
   return (
