@@ -3,6 +3,7 @@
 import { PencilIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
+import { DataTable } from "@/components/kit/data-table"
 import { Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
 import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
@@ -23,8 +24,8 @@ const back = { href: "/transfers", label: "Ko'chirishlar" }
 // (logic/warehouse.md, 5.1), for whoever may see the stock documents, as
 // the prototype's page: its number over its moment and who entered it; the
 // actions at the title's right (editing, deleting: their permission and the
-// source among the member's locations); its lines, each product with how
-// much moved; its facts (its two ends among them).
+// source among the member's locations); its lines (on the web a table),
+// each product with how much moved; its facts (its two ends among them).
 export function TransferPage({ id }: { id: number }) {
   const gate = usePermission("stock.view")
   const companyId = gate?.company.id ?? null
@@ -70,18 +71,30 @@ export function TransferPage({ id }: { id: number }) {
         <SectionHeading hint={t.items.length}>
           <span id="transfer-lines">Mahsulotlar</span>
         </SectionHeading>
-        <Group label="Mahsulotlar" inset="icon">
-          {t.items.map((item) => (
-            <Row
-              key={item.product_id}
-              href={`/products/${item.product_id}`}
-              media={<Avatar name={item.name} square letter />}
-              title={item.name}
-              end={formatQuantity(item.quantity, item.unit)}
-              chevron={false}
-            />
-          ))}
-        </Group>
+        <DataTable
+          label="Mahsulotlar"
+          rows={t.items}
+          rowKey={(item) => item.product_id}
+          href={(item) => `/products/${item.product_id}`}
+          columns={[
+            { key: "name", label: "Mahsulot", render: (item) => item.name },
+            { key: "quantity", label: "Miqdor", align: "end", render: (item) => formatQuantity(item.quantity, item.unit) },
+          ]}
+          phone={
+            <Group label="Mahsulotlar" inset="icon">
+              {t.items.map((item) => (
+                <Row
+                  key={item.product_id}
+                  href={`/products/${item.product_id}`}
+                  media={<Avatar name={item.name} square letter />}
+                  title={item.name}
+                  end={formatQuantity(item.quantity, item.unit)}
+                  chevron={false}
+                />
+              ))}
+            </Group>
+          }
+        />
       </section>
       <section aria-label="Ma'lumot">
         <SectionHeading>Ma&apos;lumot</SectionHeading>
