@@ -26,9 +26,8 @@ const parts = (row: HTMLElement) => {
   const { title, sub, end } = rowParts(row)
   return { title: plain(title), sub: plain(sub), end: plain(end) }
 }
-const read = (element: Element | null) => element?.textContent?.replace(/\s+/g, " ").trim()
 
-test("the purchase page: its figure, its lines summed, its payments, its facts, and the tiles for whoever may edit and delete", async () => {
+test("the purchase page: its lines summed, its payments, its facts, and the actions for whoever may edit and delete", async () => {
   const catalog = seedCatalog()
   const { bozor, purchase } = seedWarehouse(catalog)
   addLocation(1, "Chilonzor")
@@ -37,12 +36,10 @@ test("the purchase page: its figure, its lines summed, its payments, its facts, 
 
   expect(await screen.findByRole("heading", { level: 1, name: "Xarid № 1" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xaridlar" })).toHaveAttribute("href", "/purchases")
-  // The purchase opens with its total, what is left to pay, the supplier and the moment.
-  expect(read(document.querySelector("[data-slot=hero]"))).toBe("Xarid № 1 20 001,50 so'm Qoldi 15 001,50 Bozor · 01.10.2026 09:00")
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "Ta'minotchi", "O'chirish"])
-  expect(within(tiles).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/purchases/${purchase!.id}/edit`)
-  expect(within(tiles).getByRole("link", { name: "Ta'minotchi" })).toHaveAttribute("href", `/suppliers/${bozor.id}`)
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Ta'minotchi", "O'chirish"])
+  expect(within(actions).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/purchases/${purchase!.id}/edit`)
+  expect(within(actions).getByRole("link", { name: "Ta'minotchi" })).toHaveAttribute("href", `/suppliers/${bozor.id}`)
   expect(facts()).toEqual({
     "Ta'minotchi": "Bozor",
     Vaqt: "01.10.2026 09:00",
@@ -78,7 +75,7 @@ test("with one location the location is not said; whoever may see alone has no a
   expect(facts()).not.toHaveProperty("Lokatsiya")
   expect(screen.queryByRole("link", { name: "Tahrirlash" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "O'chirish" })).not.toBeInTheDocument()
-  // The supplier's tile takes the suppliers' permission.
+  // The supplier's action takes the suppliers' permission.
   expect(screen.queryByRole("link", { name: "Ta'minotchi" })).not.toBeInTheDocument()
 })
 
@@ -110,4 +107,21 @@ test("a purchase that is gone, or outside the member's locations, is not found",
 
   expect(await screen.findByRole("heading", { level: 1, name: "Xarid topilmadi" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Xaridlar" })).toHaveAttribute("href", "/purchases")
+})
+
+test("the purchase's page is headed as the prototype's: «Xarid № N» over the moment, who entered it and what is left to pay; its actions at the title's right, deleting a danger one", async () => {
+  const { purchase } = seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  renderWithProviders(<PurchasePage id={purchase!.id} />)
+
+  const title = (await screen.findByRole("heading", { level: 1, name: "Xarid № 1" })).closest<HTMLElement>('[data-slot="page-title"]')
+  expect(title).not.toBeNull()
+  if (!title) return
+  expect(within(title).getByText("01.10.2026 09:00 · Ali Valiyev")).toBeInTheDocument()
+  expect(within(title).getByText("Qoldi 15 001,50")).toBeInTheDocument()
+  const actions = within(title).getByRole("group", { name: "Amallar" })
+  expect(actions).toHaveAttribute("data-slot", "page-actions")
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Ta'minotchi", "O'chirish"])
+  expect(within(actions).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "page-action")
+  expect(document.querySelector("[data-slot=hero]")).toBeNull()
 })

@@ -4,9 +4,8 @@ import { BanknoteIcon, PencilIcon, TruckIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
-import { Tile, Tiles } from "@/components/kit/detail-head"
 import { Foot, Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
-import { Hero } from "@/components/kit/hero"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { SoftIcon } from "@/components/kit/tile-icon"
 import { Failed, ListLoading, NotFound } from "@/components/states"
@@ -26,10 +25,11 @@ const back = { href: "/purchases", label: "Xaridlar" }
 
 // PurchasePage is one purchase in the member's locations (logic/warehouse.md,
 // 4.5), for whoever may see the purchases (changing and deleting each take
-// their permission), as the prototype's page: its number over what it came
-// to, what is left to pay, its supplier and moment; the tiles (editing, the
-// supplier, deleting); its lines, each product with how much at what price
-// and the sum; the payments entered with it; and its facts: the location
+// their permission), as the prototype's page: its number over its moment,
+// who entered it and what is left to pay; the actions at the title's right
+// (editing, the supplier, deleting); its lines, each product with how much
+// at what price and the sum; the payments entered with it; and its facts:
+// the supplier, the moment, the location
 // (with two or more to work in), the currency and rate (with another than
 // the so'm), the total (in so'm too), what was paid, the note, who entered
 // it and when.
@@ -66,31 +66,27 @@ export function PurchasePage({ id }: { id: number }) {
   const p = purchase.data
   const currency = currencyOf(currencies, p.currency_id)
   const left = Number(p.total) - Number(p.paid)
-  const tiles = [
-    allowed("purchases.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/purchases/${p.id}/edit`} />,
-    allowed("suppliers.view") && <Tile key="supplier" icon={TruckIcon} label="Ta'minotchi" href={`/suppliers/${p.supplier.id}`} />,
+  const actions = [
+    allowed("purchases.edit") && <PageAction key="edit" icon={PencilIcon} label="Tahrirlash" href={`/purchases/${p.id}/edit`} />,
+    allowed("suppliers.view") && <PageAction key="supplier" icon={TruckIcon} label="Ta'minotchi" href={`/suppliers/${p.supplier.id}`} />,
     allowed("purchases.delete") && <DeletePurchaseButton key="delete" companyId={companyId} purchase={p} afterDelete={() => moving("back", () => router.replace("/purchases"))} />,
   ].filter(Boolean)
 
   return (
     <>
-      <BackLink {...back} />
-      <Hero
-        heading
-        label={`Xarid № ${p.number}`}
-        value={p.total}
-        unit={currency.symbol}
-        badges={
+      <PageTitle
+        back={back}
+        title={`Xarid № ${p.number}`}
+        description={
           <>
-            {left > 0 ? <Badge variant="red">Qoldi {formatAmount(left.toFixed(2))}</Badge> : <Badge variant="green">To&apos;langan</Badge>}{" "}
-            <span className="font-medium text-muted-foreground">
-              {p.supplier.name} · {formatDateTime(p.at)}
-            </span>
+            <span>
+              {formatDateTime(p.at)} · {p.created_by_name}
+            </span>{" "}
+            {left > 0 ? <Badge variant="red">Qoldi {formatAmount(left.toFixed(2))}</Badge> : <Badge variant="green">To&apos;langan</Badge>}
           </>
         }
-        className="pt-2"
+        action={actions.length > 0 && <PageActions>{actions}</PageActions>}
       />
-      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       <section aria-labelledby="purchase-lines">
         <SectionHeading hint={p.items.length}>
           <span id="purchase-lines">Mahsulotlar</span>

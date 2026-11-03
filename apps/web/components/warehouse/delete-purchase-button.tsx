@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Tile } from "@/components/kit/detail-head"
+import { PageAction } from "@/components/kit/page-actions"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -19,7 +19,8 @@ import { api, call } from "@/lib/api"
 import type { Purchase } from "@/lib/types"
 import { forgetWarehouse } from "./new-purchase-page"
 
-// DeletePurchaseButton is the danger tile of a purchase's page: it deletes
+// DeletePurchaseButton is the danger action of a purchase's page (on the web
+// its trash alone, as the prototype's): it deletes
 // the purchase after asking: its lines go out of
 // the stock and the payment entered with it goes too; its number is never
 // given again (logic/warehouse.md, 4.4). A refusal (the stock would go
@@ -44,7 +45,7 @@ export function DeletePurchaseButton({ companyId, purchase, afterDelete }: { com
 
   return (
     <>
-    <Tile icon={Trash2Icon} label="O'chirish" danger onClick={() => setConfirming(true)} />
+    <PageAction icon={Trash2Icon} label="O'chirish" variant="danger" iconOnly onClick={() => setConfirming(true)} />
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogContent>
         <AlertDialogHeader>
