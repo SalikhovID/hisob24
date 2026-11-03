@@ -139,15 +139,14 @@ test("a step into a record moves the page forward and its way back moves it back
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
   await expect.poll(into).toEqual([forward(page)])
   // The page is one sheet filling the main area. At rest it lets the
-  // column's ambient light show through; while it moves it is opaque in that
-  // light, so what it covers does not show through it, as the prototype's
-  // screens.
+  // column's background show through; while it moves it is opaque in the
+  // page's own color, so what it covers does not show through it.
   const sheet = page.locator("main > [data-slot=page]")
   await expect(sheet).toHaveCount(1)
   await expect(page.locator("html")).not.toHaveAttribute("data-move")
   const background = (element: Element) => [getComputedStyle(element).backgroundColor, getComputedStyle(element).backgroundImage]
   expect(await sheet.evaluate(background)).toEqual(["rgba(0, 0, 0, 0)", "none"])
-  expect((await page.getByRole("main").evaluate(background))[1]).toMatch(/gradient/)
+  expect((await page.getByRole("main").evaluate(background))[0]).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/)
   const [moving, light] = await sheet.evaluate((element) => {
     document.documentElement.dataset.move = "forward"
     const seen = [getComputedStyle(element).backgroundColor, getComputedStyle(element).backgroundImage]
@@ -155,7 +154,7 @@ test("a step into a record moves the page forward and its way back moves it back
     return seen
   })
   expect(moving).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/)
-  expect(light).toMatch(/gradient/)
+  expect(light).toBe("none")
   const [sheetHeight, mainHeight] = await sheet.evaluate((element) => [element.getBoundingClientRect().height, element.parentElement!.clientHeight])
   expect(sheetHeight).toBeGreaterThan(mainHeight * 0.6)
 

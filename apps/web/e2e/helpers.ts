@@ -149,10 +149,18 @@ export async function pick(page: Page, scope: Page | Locator, label: string, typ
   await expect(sheet).toBeHidden()
 }
 
-// settle waits for the toasts of the last step to go: on a phone they stand
-// over the page's header, and they wait while the pointer rests on them.
+// settle waits for the toasts of the last step to go: they stand at the
+// bottom of the screen, and they wait while the pointer rests on them or a
+// press on them is under way. The pointer leaves; the emulated phone keeps
+// sonner's list taken for pressed after a tap that ended elsewhere, so the
+// list is told the press is over and the pointer gone.
 export async function settle(page: Page) {
   await page.mouse.move(8, 300)
+  await page.evaluate(() => {
+    const list = document.querySelector("[data-sonner-toaster]")
+    list?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }))
+    list?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }))
+  })
   await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 15_000 })
 }
 

@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { db, LOGIN_CODE } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { expectSignedIn, openProfile, signOut } from "./helpers"
+import { expectSignedIn, onPhone, openProfile, signOut } from "./helpers"
 
 // signIn goes through the login page: the number without +998, then the code.
 async function signIn(page: Page, number: string) {
@@ -199,20 +199,23 @@ test("on a wide screen the brand's panel stands beside the form, on a phone abov
   expect(form.y).toBeLessThan(panel.y + panel.height)
 })
 
-test("on a page's own background the logo wears the light glass's ink, white in the dark", async ({ page }) => {
+test("on a page's own background the logo wears the ink, near white in the dark", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" })
   await signIn(page, "902223344")
   await expect(page).toHaveURL(/\/select-company$/)
   const logo = page.getByRole("img", { name: "Hisob24" })
 
-  await expect(logo).toHaveCSS("color", "rgb(14, 15, 18)")
+  await expect(logo).toHaveCSS("color", "rgb(23, 24, 27)")
   await page.emulateMedia({ colorScheme: "dark" })
-  await expect(logo).toHaveCSS("color", "rgb(255, 255, 255)")
+  await expect(logo).toHaveCSS("color", "rgb(236, 236, 238)")
 })
 
-test("everything the login asks a thumb to press is at least 44px tall", async ({ page }) => {
+// A thumb's target on a phone; the web's controls are the prototype's
+// (34px fields, 40px main buttons): the pointer is finer there.
+test("everything the login asks a thumb to press is at least 44px tall on a phone, the prototype's 32px and up on the web", async ({ page }) => {
+  const least = onPhone(page) ? 44 : 32
   const tall = async (control: Locator, what: string) =>
-    expect((await control.boundingBox())!.height, what).toBeGreaterThanOrEqual(44)
+    expect((await control.boundingBox())!.height, what).toBeGreaterThanOrEqual(least)
 
   await page.goto("/login")
   const phone = page.getByRole("textbox", { name: "Telefon raqami" })

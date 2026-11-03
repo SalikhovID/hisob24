@@ -91,20 +91,21 @@ test.describe("a linked user", () => {
     await expect(page).toHaveURL(/\/$/)
     await expect(page.locator("html")).toHaveAttribute("data-telegram", "")
     // The chat gives the scheme (dark), not its theme's colors: the page
-    // is the app's own dark glass (docs: 2026-10-16 glass v2).
-    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(21, 23, 27)")
-    // Telegram's own chrome round the app wears its dark glass too.
+    // is the app's own dark (docs: 2026-11-03 flat redesign), black on a
+    // phone, near black on a wide screen.
+    await expect(page.locator("body")).toHaveCSS("background-color", onPhone(page) ? "rgb(0, 0, 0)" : "rgb(26, 26, 29)")
+    // Telegram's own chrome round the app wears the phone's black too.
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __chrome?: Record<string, string> }).__chrome))
-      .toEqual({ header: "#1C1D21", background: "#0F1013", bottomBar: "#14161A" })
+      .toEqual({ header: "#000000", background: "#000000", bottomBar: "#000000" })
     await fits(page)
-    // On a phone the sections are a floating pill of the app's own frosted
-    // glass (the dark's): no fill of its own, the frost under its buttons.
+    // On a phone the sections are a floating frosted pill: no fill of its
+    // own, the card's dark at 80% under its buttons.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
       await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
       await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
-      expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toBe("rgba(24, 26, 30, 0.72)")
+      expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toMatch(/0\.8\)$/)
     }
     // Full screen on a phone's client: the page runs under the status bar
     // and Telegram's controls (47px + 46px) and starts its content below
@@ -220,7 +221,7 @@ test.describe("a phone that is no user's", () => {
     await page.goto("/")
 
     await expect(page.getByRole("heading", { name: "Kirish huquqi yo'q" })).toBeVisible()
-    await expect(page.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(255, 255, 255)")
+    await expect(page.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(236, 236, 238)")
   })
 })
 
@@ -249,10 +250,10 @@ test.describe("a Mini App whose sign-in fails", () => {
     await expect(page.getByRole("alert").filter({ hasText: "Telegram ma'lumoti yaroqsiz" })).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Telefon raqami" })).toBeVisible()
     const panel = page.getByRole("banner")
-    // The chat's scheme is dark: the brand's panel is the glossy white,
-    // the logo on it black (docs: 2026-10-16 glass v2, decision 6).
-    await expect(panel).toHaveCSS("background-color", "rgb(226, 227, 230)")
-    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(14, 15, 18)")
+    // The chat's scheme is dark: the brand's panel is near white, the logo
+    // on it the dark's near black (docs: 2026-11-03 flat redesign).
+    await expect(panel).toHaveCSS("background-color", "rgb(236, 236, 238)")
+    await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(26, 26, 29)")
     // Full screen: the panel's own padding (40px on a phone, 48px from lg)
     // grows by the insets (93px), so the logo stays clear of the controls.
     await expect(panel).toHaveCSS("padding-top", onPhone(page) ? "133px" : "141px")
