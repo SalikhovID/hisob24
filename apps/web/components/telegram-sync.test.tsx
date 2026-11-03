@@ -114,19 +114,17 @@ test("TelegramSync paints Telegram's header, background and bottom bar in the ap
 
   renderWithProviders(<TelegramSync />)
 
-  // The dark glass: its ambient light's top (the centre of the screen's top
-  // edge, as drawn) over the app, its base behind it, its foot under it.
-  await waitFor(() => expect(webApp.setHeaderColor).toHaveBeenCalledWith("#1C1D21"))
-  expect(webApp.setBackgroundColor).toHaveBeenCalledWith("#0F1013")
-  expect(webApp.setBottomBarColor).toHaveBeenCalledWith("#14161A")
+  // The dark: the phone's black page over the app, behind it and under it.
+  await waitFor(() => expect(webApp.setHeaderColor).toHaveBeenCalledWith("#000000"))
+  expect(webApp.setBackgroundColor).toHaveBeenCalledWith("#000000")
+  expect(webApp.setBottomBarColor).toHaveBeenCalledWith("#000000")
 
-  // The light glass: its ambient light's top over the app, its base behind
-  // it, its bottom under it.
+  // The light: the phone's iOS grey page.
   webApp.colorScheme = "light"
   act(() => webApp.fire("themeChanged"))
-  expect(webApp.setHeaderColor).toHaveBeenLastCalledWith("#F7F8F9")
-  expect(webApp.setBackgroundColor).toHaveBeenLastCalledWith("#F1F2F4")
-  expect(webApp.setBottomBarColor).toHaveBeenLastCalledWith("#E5E7EB")
+  expect(webApp.setHeaderColor).toHaveBeenLastCalledWith("#f2f2f7")
+  expect(webApp.setBackgroundColor).toHaveBeenLastCalledWith("#f2f2f7")
+  expect(webApp.setBottomBarColor).toHaveBeenLastCalledWith("#f2f2f7")
 })
 
 test.each([
