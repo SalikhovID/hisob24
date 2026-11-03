@@ -25,16 +25,10 @@ test("a label beside the switch names it, and a press on the label turns it", as
   expect(change).toHaveBeenCalledWith(false, expect.anything())
 })
 
-test("the switch is the prototype's: off, its own pale track; on, the glossy accent; the thumb lifted by a soft shadow", () => {
-  render(<Switch aria-label="Majburiy" />)
-  const track = screen.getByRole("switch", { name: "Majburiy" })
-  expect(track).toHaveClass("bg-(--switch-off)", "data-checked:bg-(image:--btn)")
-  expect(track).not.toHaveClass("bg-[#E3E3E8]")
-  expect(track.querySelector('[data-slot="switch-thumb"]')).toHaveClass("shadow-[0_3px_8px_rgba(60,40,120,.18),0_1px_1px_rgba(60,40,120,.08)]")
-})
-
-test("a switch that is on keeps its thumb in the accent's other end: white on the black of the light, black on the white of the dark", () => {
-  render(<Switch aria-label="Majburiy" checked onCheckedChange={() => {}} />)
-  const thumb = screen.getByRole("switch", { name: "Majburiy" }).querySelector('[data-slot="switch-thumb"]')
-  expect(thumb).toHaveClass("bg-white", "data-checked:bg-(--switch-knob-on)")
+test("the switch is the prototype's: the iOS 51 by 31 green one on a phone, a 32 by 18 one in the accent on the web; the thumb white", () => {
+  render(<Switch aria-label="Faol" defaultChecked />)
+  const track = screen.getByRole("switch", { name: "Faol" })
+  expect(track).toHaveClass("h-[31px]", "w-[51px]", "md:h-[18px]", "md:w-8", "bg-ink-5", "data-checked:bg-switch-on")
+  const thumb = track.querySelector('[data-slot="switch-thumb"]')
+  expect(thumb).toHaveClass("size-[27px]", "md:size-[14px]", "bg-white", "data-checked:translate-x-[22px]", "md:data-checked:translate-x-4")
 })
