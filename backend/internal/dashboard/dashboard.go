@@ -48,6 +48,7 @@ type Input struct {
 
 // Dashboard is the home's blocks; one the member may not see is nil.
 type Dashboard struct {
+	Cash      *Cash
 	Suppliers *Suppliers
 	Customers *Customers
 	Orders    *Orders
@@ -56,6 +57,21 @@ type Dashboard struct {
 	// OrdersMoney is the month's priced orders (their documents), for
 	// whoever sees the orders (logic/orders.md, 4.3).
 	OrdersMoney *Money
+}
+
+// Cash is what the company's live accounts hold (the turned off ones too),
+// summed by currency and not turned into another (logic/finance.md,
+// section 4): a currency that comes to 0 is left out; and how many live
+// accounts there are.
+type Cash struct {
+	Totals   []CurrencyAmount
+	Accounts int64
+}
+
+// CurrencyAmount is a sum in one currency, two decimals.
+type CurrencyAmount struct {
+	CurrencyID int64
+	Amount     string
 }
 
 // Suppliers is what the company's suppliers are owed, in so'm, each
@@ -107,6 +123,13 @@ type StageCount struct {
 // Get is the dashboard of the member within the scope.
 func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, error) {
 	var d Dashboard
+	if in.Permissions.Has(access.FinanceView) {
+		cash, err := s.cash(ctx, scope.CompanyID)
+		if err != nil {
+			return Dashboard{}, err
+		}
+		d.Cash = cash
+	}
 	if in.Permissions.Has(access.PurchasesView) {
 		row, err := s.q.DashboardSuppliers(ctx, scope.CompanyID)
 		if err != nil {
@@ -172,6 +195,24 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 		*block.into = m
 	}
 	return d, nil
+}
+
+// cash is what the company's accounts hold, by currency, and how many
+// there are.
+func (s *Service) cash(ctx context.Context, companyID int64) (*Cash, error) {
+	rows, err := s.q.DashboardCash(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
+	accounts, err := s.q.DashboardAccounts(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
+	c := &Cash{Totals: make([]CurrencyAmount, 0, len(rows)), Accounts: accounts}
+	for _, row := range rows {
+		c.Totals = append(c.Totals, CurrencyAmount{CurrencyID: row.CurrencyID, Amount: amount(row.Amount)})
+	}
+	return c, nil
 }
 
 // upcomingCount is how many of the orders due soonest the home shows.

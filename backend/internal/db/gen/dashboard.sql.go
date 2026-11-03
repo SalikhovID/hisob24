@@ -12,6 +12,67 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const dashboardAccounts = `-- name: DashboardAccounts :one
+SELECT count(*) FROM bank_accounts WHERE company_id = $1 AND deleted_at IS NULL
+`
+
+// How many live accounts the company has, the turned off ones too.
+func (q *Queries) DashboardAccounts(ctx context.Context, companyID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, dashboardAccounts, companyID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const dashboardCash = `-- name: DashboardCash :many
+WITH balances AS (
+    SELECT b.currency_id,
+           COALESCE(sum(CASE
+               WHEN t.kind IN ('cash_opening', 'income', 'customer_payment') THEN t.total
+               WHEN t.kind IN ('expense', 'supplier_payment') THEN -t.total
+               WHEN t.kind = 'money_transfer' THEN CASE WHEN t.bank_account_id = b.id THEN -t.total ELSE t.total END
+               WHEN t.kind = 'conversion' THEN CASE WHEN t.bank_account_id = b.id THEN -t.total ELSE t.to_total END
+               ELSE 0 END), 0)::numeric(14,2) AS balance
+    FROM bank_accounts b
+    LEFT JOIN transactions t ON (t.bank_account_id = b.id OR t.to_bank_account_id = b.id) AND t.deleted_at IS NULL
+    WHERE b.company_id = $1 AND b.deleted_at IS NULL
+    GROUP BY b.id
+)
+SELECT currency_id, sum(balance)::numeric(14,2) AS amount
+FROM balances
+GROUP BY currency_id
+HAVING sum(balance) <> 0
+ORDER BY currency_id
+`
+
+type DashboardCashRow struct {
+	CurrencyID int64
+	Amount     pgtype.Numeric
+}
+
+// What the company's live accounts (the turned off ones too) hold, summed
+// by currency, each account's by the rule of ListAccountBalances: nothing
+// is turned into another currency; a currency that comes to 0 is left out.
+func (q *Queries) DashboardCash(ctx context.Context, companyID int64) ([]DashboardCashRow, error) {
+	rows, err := q.db.Query(ctx, dashboardCash, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DashboardCashRow{}
+	for rows.Next() {
+		var i DashboardCashRow
+		if err := rows.Scan(&i.CurrencyID, &i.Amount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const dashboardCustomersByDay = `-- name: DashboardCustomersByDay :many
 SELECT d.day::date AS day, b.before::bigint AS before,
        (b.before + COALESCE(sum(x.added) OVER (ORDER BY d.day), 0))::bigint AS total

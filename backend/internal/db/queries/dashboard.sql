@@ -83,3 +83,30 @@ LEFT JOIN (
     GROUP BY 1
 ) x ON x.day = d.day::date
 ORDER BY d.day;
+
+-- name: DashboardCash :many
+-- What the company's live accounts (the turned off ones too) hold, summed
+-- by currency, each account's by the rule of ListAccountBalances: nothing
+-- is turned into another currency; a currency that comes to 0 is left out.
+WITH balances AS (
+    SELECT b.currency_id,
+           COALESCE(sum(CASE
+               WHEN t.kind IN ('cash_opening', 'income', 'customer_payment') THEN t.total
+               WHEN t.kind IN ('expense', 'supplier_payment') THEN -t.total
+               WHEN t.kind = 'money_transfer' THEN CASE WHEN t.bank_account_id = b.id THEN -t.total ELSE t.total END
+               WHEN t.kind = 'conversion' THEN CASE WHEN t.bank_account_id = b.id THEN -t.total ELSE t.to_total END
+               ELSE 0 END), 0)::numeric(14,2) AS balance
+    FROM bank_accounts b
+    LEFT JOIN transactions t ON (t.bank_account_id = b.id OR t.to_bank_account_id = b.id) AND t.deleted_at IS NULL
+    WHERE b.company_id = sqlc.arg('company_id') AND b.deleted_at IS NULL
+    GROUP BY b.id
+)
+SELECT currency_id, sum(balance)::numeric(14,2) AS amount
+FROM balances
+GROUP BY currency_id
+HAVING sum(balance) <> 0
+ORDER BY currency_id;
+
+-- name: DashboardAccounts :one
+-- How many live accounts the company has, the turned off ones too.
+SELECT count(*) FROM bank_accounts WHERE company_id = sqlc.arg('company_id') AND deleted_at IS NULL;

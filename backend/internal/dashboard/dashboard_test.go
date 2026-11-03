@@ -71,15 +71,17 @@ func addSupplier(t *testing.T, pool *pgxpool.Pool, companyID int64, name string,
 
 // doc is a document of the ledger as the tests enter it: its kind, when
 // (RFC 3339), where and whose (0: none), the account a money document
-// moves (0: none), its currency and rate row (0: the shop's standard one)
-// and its total; deleted hides it.
+// moves (0: none) and the one a transfer or a conversion moves it to with
+// what arrives there (to, toTotal), the category of an expense or of other
+// income, its currency and rate row (0: the shop's standard one) and its
+// total; deleted hides it.
 type doc struct {
 	kind                                  string
 	at                                    string
 	location, supplier, customer, account int64
-	order                                 int64
+	order, category, to                   int64
 	currency, rate                        int64
-	total                                 string
+	total, toTotal                        string
 	deleted                               bool
 }
 
@@ -99,12 +101,38 @@ func (s shop) add(t *testing.T, pool *pgxpool.Pool, d doc) int64 {
 		}
 		return &id
 	}
+	var toTotal *string
+	if d.toTotal != "" {
+		toTotal = &d.toTotal
+	}
 	var id int64
 	require.NoError(t, pool.QueryRow(t.Context(), `
-		INSERT INTO transactions (company_id, kind, number, doc_at, location_id, supplier_id, customer_id, bank_account_id, currency_id, currency_rate_id, total, created_by, deleted_at, order_id)
-		VALUES ($1, $2, (SELECT COALESCE(max(number), 0) + 1 FROM transactions WHERE company_id = $1 AND kind = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, CASE WHEN $12 THEN now() END, $13)
+		INSERT INTO transactions (company_id, kind, number, doc_at, location_id, supplier_id, customer_id, bank_account_id, currency_id, currency_rate_id, total, created_by, deleted_at, order_id, category_id, to_bank_account_id, to_total)
+		VALUES ($1, $2, (SELECT COALESCE(max(number), 0) + 1 FROM transactions WHERE company_id = $1 AND kind = $2), $3, $4, $5, $6, $7, $8, $9, $10, $11, CASE WHEN $12 THEN now() END, $13, $14, $15, $16)
 		RETURNING id`,
-		s.company, d.kind, d.at, none(d.location), none(d.supplier), none(d.customer), none(d.account), d.currency, d.rate, d.total, ali, d.deleted, none(d.order)).Scan(&id))
+		s.company, d.kind, d.at, none(d.location), none(d.supplier), none(d.customer), none(d.account), d.currency, d.rate, d.total, ali, d.deleted, none(d.order),
+		none(d.category), none(d.to), toTotal).Scan(&id))
+	return id
+}
+
+// addAccount enters an account of the company in the currency given;
+// inactive turns it off, deleted hides it.
+func addAccount(t *testing.T, pool *pgxpool.Pool, companyID int64, name string, currencyID int64, inactive, deleted bool) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO bank_accounts (company_id, name, currency_id, is_active, deleted_at) VALUES ($1, $2, $3, $4, CASE WHEN $5 THEN now() END) RETURNING id",
+		companyID, name, currencyID, !inactive, deleted).Scan(&id))
+	return id
+}
+
+// addCategory enters a finance category of the company: an expense or an
+// income one.
+func addCategory(t *testing.T, pool *pgxpool.Pool, companyID int64, kind string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO finance_categories (company_id, name, kind, position) VALUES ($1, $2, $2, 1) RETURNING id", companyID, kind).Scan(&id))
 	return id
 }
 
@@ -115,6 +143,58 @@ var today = time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC)
 // in every location of their scope, on today.
 func input(perms ...access.Permission) Input {
 	return Input{Permissions: access.NewSet(perms), Zone: "Asia/Tashkent", Today: today}
+}
+
+func TestCash(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, pool, "Olma")
+	at := "2026-10-07T09:00:00+05:00"
+	_, err := pool.Exec(ctx, "INSERT INTO company_currencies (company_id, currency_id) VALUES ($1, 3)", sh.company)
+	require.NoError(t, err)
+	xarajat := addCategory(t, pool, sh.company, "expense")
+	kirim := addCategory(t, pool, sh.company, "income")
+	bozor := addSupplier(t, pool, sh.company, "Bozor", true, false)
+	mijoz := addCustomer(t, pool, sh.company, "998901234567", at, false)
+	// Naqd (so'm): an opening of 1 000 000, other income of 250 000, an
+	// expense of 100 000 and 200 000 sent to Karta; a deleted expense does
+	// not count.
+	sh.add(t, pool, doc{kind: "cash_opening", at: at, account: sh.cash, total: "1000000"})
+	sh.add(t, pool, doc{kind: "income", at: at, account: sh.cash, category: kirim, total: "250000"})
+	sh.add(t, pool, doc{kind: "expense", at: at, account: sh.cash, category: xarajat, total: "100000"})
+	sh.add(t, pool, doc{kind: "expense", at: at, account: sh.cash, category: xarajat, total: "999999", deleted: true})
+	// Karta (so'm, turned off): the 200 000 from Naqd and a customer's
+	// payment of 50 000.
+	karta := addAccount(t, pool, sh.company, "Karta", 1, true, false)
+	sh.add(t, pool, doc{kind: "money_transfer", at: at, account: sh.cash, to: karta, total: "200000"})
+	sh.add(t, pool, doc{kind: "customer_payment", at: at, account: karta, customer: mijoz, total: "50000"})
+	// Dollar: an opening of 300 $, a supplier paid 120 $, 100 $ turned
+	// into 1 300 000 so'm in Karta.
+	dollar := addAccount(t, pool, sh.company, "Dollar", 2, false, false)
+	sh.add(t, pool, doc{kind: "cash_opening", at: at, account: dollar, currency: 2, total: "300"})
+	sh.add(t, pool, doc{kind: "supplier_payment", at: at, account: dollar, supplier: bozor, currency: 2, total: "120"})
+	sh.add(t, pool, doc{kind: "conversion", at: at, account: dollar, to: karta, currency: 2, total: "100", toTotal: "1300000"})
+	// Evro: what came went; it holds nothing.
+	evro := addAccount(t, pool, sh.company, "Evro", 3, false, false)
+	sh.add(t, pool, doc{kind: "cash_opening", at: at, account: evro, currency: 3, total: "40"})
+	sh.add(t, pool, doc{kind: "expense", at: at, account: evro, category: xarajat, currency: 3, total: "40"})
+	// A deleted account and another company's.
+	eski := addAccount(t, pool, sh.company, "Eski", 1, false, true)
+	sh.add(t, pool, doc{kind: "cash_opening", at: at, account: eski, total: "5000000"})
+	nok := newShop(t, pool, "Nok")
+	nok.add(t, pool, doc{kind: "cash_opening", at: at, account: nok.cash, total: "7000000"})
+
+	got, err := s.Get(ctx, sh.scope(), input(access.FinanceView))
+
+	require.NoError(t, err)
+	assert.Equal(t, &Cash{
+		Totals:   []CurrencyAmount{{CurrencyID: 1, Amount: "2500000.00"}, {CurrencyID: 2, Amount: "80.00"}},
+		Accounts: 4,
+	}, got.Cash, "Naqd's 950 000 and Karta's 1 550 000 in so'm, the 80 $; the euro that came to nothing is left out; the deleted account and another company's are out, the turned off one counts")
+
+	none, err := s.Get(ctx, sh.scope(), input(access.OrdersView))
+	require.NoError(t, err)
+	assert.Nil(t, none.Cash, "without finance.view")
 }
 
 func TestSuppliers(t *testing.T) {

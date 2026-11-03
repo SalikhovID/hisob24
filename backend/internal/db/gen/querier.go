@@ -215,6 +215,12 @@ type Querier interface {
 	// cannot be told not to repeat. A text is compared in any case; the deleted
 	// customers do not count.
 	CustomerFieldHasDuplicates(ctx context.Context, fieldID int64) (bool, error)
+	// How many live accounts the company has, the turned off ones too.
+	DashboardAccounts(ctx context.Context, companyID int64) (int64, error)
+	// What the company's live accounts (the turned off ones too) hold, summed
+	// by currency, each account's by the rule of ListAccountBalances: nothing
+	// is turned into another currency; a currency that comes to 0 is left out.
+	DashboardCash(ctx context.Context, companyID int64) ([]DashboardCashRow, error)
 	// The company's live customers on each day of the month up to today, the
 	// days counted in the zone: how many there were before the month, and how
 	// many by the day's end.
