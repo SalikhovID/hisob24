@@ -11,16 +11,18 @@ test("the toasts' region is named in Uzbek", () => {
   expect(screen.getByRole("region", { name: /^Bildirishnomalar/ })).toBeInTheDocument()
 })
 
-// In a Mini App opened full screen the toasts, at the top, would come down
-// under Telegram's controls: their offset grows by --safe-top (globals.css),
-// which is 0 anywhere else.
-test("the toasts keep clear of what Telegram lays over a full-screen Mini App", async () => {
-  render(<Toaster position="top-center" />)
+// The toasts are the prototype's: at the bottom of the screen, on a phone
+// over the floating tab bar (108px up, plus the phone's bottom edge), on the
+// web 24px from the bottom; the ink's pill with the page's color in it.
+test("the toasts stand at the bottom: over the tab bar on a phone, 24px up on the web", async () => {
+  render(<Toaster />)
   toast("Saqlandi")
   await screen.findByText("Saqlandi")
 
   // The list of toasts is drawn once there is one; its offsets are inline.
   const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")
-  expect(toaster?.style.getPropertyValue("--offset-top")).toBe("calc(20px + var(--safe-top))")
-  expect(toaster?.style.getPropertyValue("--mobile-offset-top")).toBe("calc(16px + var(--safe-top))")
+  expect(toaster).toHaveAttribute("data-y-position", "bottom")
+  expect(toaster?.style.getPropertyValue("--offset-bottom")).toBe("24px")
+  expect(toaster?.style.getPropertyValue("--mobile-offset-bottom")).toBe("calc(108px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)))")
+  expect(toaster?.style.getPropertyValue("--normal-bg")).toBe("var(--foreground)")
 })
