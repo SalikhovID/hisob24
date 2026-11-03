@@ -3,9 +3,10 @@ import { http, HttpResponse } from "msw"
 import { expect, test, vi } from "vitest"
 import { formatDate } from "@/lib/format"
 import { setMiniApp } from "@/lib/telegram"
-import { ALI, db, seedCatalog, seedOrders, seedWarehouse, VALI } from "@/mocks/data"
+import { ALI, db, nextId, seedOrders, seedWarehouse, VALI } from "@/mocks/data"
 import { addLocation } from "@/test/locations"
-import { press } from "@/test/keypad"
+import { enterCashOpening } from "@/test/finance"
+import { choose } from "@/test/select"
 import { renderWithProviders } from "@/test/render"
 import { server } from "@/test/server"
 import { giveRole } from "@/test/roles"
@@ -13,34 +14,39 @@ import { chooseCompany, signIn } from "@/test/session"
 import { fakeWebApp } from "@/test/telegram"
 import { Dashboard } from "./dashboard"
 
-// The home heads itself, as the prototype's: who is signed in and where is
-// the way to the profile; the greeting is the page's heading for a screen
-// reader.
+// The home heads itself, as the prototype's title: the greeting is the
+// page's heading; on a phone the company stands big, who is signed in, their
+// role and the location under it. The way to the profile is the sidebar's
+// and the settings page's.
 
-test("the home says who is signed in and where: the company, the short name and the role, the way to the profile", async () => {
+// phoneLine is the phone's line under the company.
+const phoneLine = (container: HTMLElement) => container.querySelector('[data-slot="home-head-phone"] p:last-child')
+
+test("the home says who is signed in and where: the greeting, the company, the name, the role and the location", async () => {
   await signIn(ALI)
-  renderWithProviders(<Dashboard />)
+  const { container } = renderWithProviders(<Dashboard />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Salom, Ali Valiyev" })).toHaveClass("sr-only")
-  expect(screen.getByRole("link", { name: "Olma Savdo Ali V. · Egasi" })).toHaveAttribute("href", "/profile")
+  expect(await screen.findByRole("heading", { level: 1, name: "Salom, Ali Valiyev" })).toBeInTheDocument()
+  await waitFor(() => expect(phoneLine(container)).toHaveTextContent("Ali Valiyev · Egasi · Asosiy"))
+  expect(container.querySelector('[data-slot="home-head"] a[href="/profile"]')).toBeNull()
 })
 
 test("without a name the greeting and the head use the phone number", async () => {
   db.users[ALI] = null
   await signIn(ALI)
-  renderWithProviders(<Dashboard />)
+  const { container } = renderWithProviders(<Dashboard />)
 
   expect(await screen.findByRole("heading", { name: "Salom, +998 90 123 45 67" })).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Olma Savdo +998 90 123 45 67 · Egasi" })).toBeInTheDocument()
+  expect(phoneLine(container)).toHaveTextContent("+998 90 123 45 67 · Egasi")
 })
 
 test("an employee with a role sees the role's name in the head", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
   await signIn(VALI)
   await chooseCompany(1)
-  renderWithProviders(<Dashboard />)
+  const { container } = renderWithProviders(<Dashboard />)
 
-  expect(await screen.findByRole("link", { name: "Olma Savdo Vali A. · Kuzatuvchi" })).toBeInTheDocument()
+  await waitFor(() => expect(phoneLine(container)).toHaveTextContent("Vali Aliyev · Kuzatuvchi"))
 })
 
 test("the home lists no sections: the pages the bar does not hold are the settings page's", async () => {
@@ -107,19 +113,22 @@ test("in a browser, or where the app is on the home screen already, there is no 
   expect(screen.queryByRole("button", { name: /bosh ekranga qo'shing/ })).not.toBeInTheDocument()
 })
 
-test("the home shows what the owner may see: what the suppliers are owed, the tiles, the overview, the nearest deadlines", async () => {
+test("the home shows what the owner may see: what the cash holds, the tiles, the cards, the nearest deadlines", async () => {
   seedOrders()
   seedWarehouse()
   await signIn(ALI)
-  renderWithProviders(<Dashboard />)
+  const { container } = renderWithProviders(<Dashboard />)
 
-  expect(await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })).toBeInTheDocument()
+  expect(await screen.findByText("Kassadagi pul")).toBeInTheDocument()
   expect(screen.getByRole("group", { name: "Tezkor amallar" })).toBeInTheDocument()
-  expect(screen.getByRole("heading", { level: 2, name: "Umumiy holat" })).toBeInTheDocument()
-  expect(await screen.findByRole("link", { name: /^Buyurtma № 2/ })).toHaveAttribute("href", expect.stringMatching(/^\/orders\/\d+$/))
+  expect(container.querySelector('[data-slot="stat-cards"]')).not.toBeNull()
+  expect(screen.getByRole("link", { name: /^Faol buyurtmalar/ })).toHaveAttribute("href", "/orders")
+  const deadlines = within(await screen.findByRole("list", { name: "Yaqin muddatlar" }))
+  expect(deadlines.getAllByRole("link")[0]).toHaveAttribute("href", expect.stringMatching(/^\/orders\/\d+$/))
+  expect(screen.queryByRole("heading", { name: "Umumiy holat" })).not.toBeInTheDocument()
 })
 
-test("an employee whose role sees the orders alone is headed by the orders of the current location, and switching it switches them", async () => {
+test("an employee whose role sees the orders alone sees the orders of the current location, and switching it switches them", async () => {
   seedOrders()
   addLocation(1, "Chilonzor")
   giveRole(VALI, 1, "Kuzatuvchi", ["orders.view"])
@@ -127,17 +136,15 @@ test("an employee whose role sees the orders alone is headed by the orders of th
   await chooseCompany(1)
   const { user } = renderWithProviders(<Dashboard />)
 
-  const hero = await screen.findByRole("link", { name: /^Faol buyurtmalar/ })
-  await waitFor(() => expect(hero).toHaveTextContent("3 ta"))
-  expect(hero).toHaveTextContent("Asosiy")
+  const card = await screen.findByRole("link", { name: /^Faol buyurtmalar/ })
+  await waitFor(() => expect(card.querySelector('[data-slot="stat-value"]')).toHaveTextContent("3"))
   expect(screen.queryByRole("group", { name: "Tezkor amallar" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("link", { name: /^Ta'minotchilarga qarz/ })).not.toBeInTheDocument()
+  expect(screen.queryByText("Kassadagi pul")).not.toBeInTheDocument()
 
   await user.click(screen.getByRole("button", { name: "Lokatsiya: Asosiy" }))
   await user.click(within(await screen.findByRole("dialog", { name: "Lokatsiya" })).getByRole("menuitemradio", { name: "Chilonzor" }))
 
-  await waitFor(() => expect(screen.getByRole("link", { name: /^Faol buyurtmalar/ })).toHaveTextContent("0 ta"))
-  expect(screen.getByRole("link", { name: /^Faol buyurtmalar/ })).toHaveTextContent("Chilonzor")
+  await waitFor(() => expect(screen.getByRole("link", { name: /^Faol buyurtmalar/ }).querySelector('[data-slot="stat-value"]')).toHaveTextContent("0"))
 })
 
 test("blocks that fail to load say why and can be asked for again; the head stays", async () => {
@@ -146,9 +153,9 @@ test("blocks that fail to load say why and can be asked for again; the head stay
   const { user } = renderWithProviders(<Dashboard />)
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Tarmoq xatosi")
-  expect(screen.getByRole("link", { name: "Olma Savdo Ali V. · Egasi" })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { level: 1, name: "Salom, Ali Valiyev" })).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "Qayta urinish" }))
-  expect(await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })).toBeInTheDocument()
+  expect(await screen.findByText("Kassadagi pul")).toBeInTheDocument()
 })
 
 test("with no order open the nearest deadlines offer to add one, right on the home", async () => {
@@ -161,33 +168,19 @@ test("with no order open the nearest deadlines offer to add one, right on the ho
   expect(await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })).toBeInTheDocument()
 })
 
-test("a payment entered from the home shows in what the suppliers are owed at once", async () => {
-  seedWarehouse(seedCatalog())
-  giveRole(VALI, 1, "Omborchi", ["purchases.view", "purchases.create", "suppliers.view"])
-  await signIn(VALI)
-  await chooseCompany(1)
-  const { user } = renderWithProviders(<Dashboard />)
-  const hero = await screen.findByRole("link", { name: /^Ta'minotchilarga qarz/ })
-  expect(hero).toHaveTextContent("15 001,50 so'm")
-
-  await user.click(screen.getByRole("button", { name: "To'lov" }))
-  await user.click(await within(await screen.findByRole("dialog", { name: "Ta'minotchi" })).findByRole("option", { name: /Bozor/ }))
-  const payment = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
-  await press(user, payment, "1001,5")
-  await user.click(within(payment).getByRole("button", { name: "Qo'shish" }))
-
-  await waitFor(() => expect(screen.getByRole("link", { name: /^Ta'minotchilarga qarz/ })).toHaveTextContent("14 000 so'm"))
-})
-
-test("on a wide screen the home's head is the location alone, at the right: the way to the profile is the sidebar's", async () => {
+test("an expense entered from the home shows in what the cash holds at once", async () => {
+  db.financeCategories.push({ id: nextId(), companyId: 1, name: "Ijara", kind: "expense", position: 1, active: true })
   await signIn(ALI)
-  const { container } = renderWithProviders(<Dashboard />)
+  await enterCashOpening({ bank_account_id: db.accounts[1][0].id, amount: "100000", at: "2026-10-01T09:00:00+05:00" })
+  const { user, container } = renderWithProviders(<Dashboard />)
+  const hero = () => container.querySelector('[data-slot="hero"]') as HTMLElement
+  await waitFor(() => expect(hero()).toHaveTextContent("100 000"))
 
-  const head = await waitFor(() => {
-    const found = container.querySelector('[data-slot="home-head"]')
-    expect(found).not.toBeNull()
-    return found as HTMLElement
-  })
-  expect(head).toHaveClass("md:justify-end")
-  expect(head.querySelector('a[href="/profile"]')).toHaveClass("md:hidden")
+  await user.click(screen.getByRole("button", { name: "Xarajat" }))
+  const dialog = await screen.findByRole("dialog", { name: "Xarajat qo'shish" })
+  await choose(user, within(dialog).getByLabelText("Kategoriya"), "Ijara")
+  await user.type(within(dialog).getByLabelText("Summa"), "1500")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(hero()).toHaveTextContent("98 500"))
 })

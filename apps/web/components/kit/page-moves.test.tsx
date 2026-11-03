@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { PencilIcon, ReceiptIcon } from "lucide-react"
+import { PencilIcon } from "lucide-react"
 import type { ComponentProps } from "react"
 import { expect, test, vi } from "vitest"
 import { moved } from "@/test/moves"
@@ -8,7 +8,7 @@ import { DetailHead, Tile, Tiles } from "./detail-head"
 import { Group, Row } from "./group"
 import { Hero } from "./hero"
 import { BackLink, PlusButton } from "./page-title"
-import { StatCard } from "./stat-card"
+import { StatCard } from "./stat-cards"
 
 // next/link as far as the moves go: a link that runs its click and stays.
 vi.mock("next/link", () => ({
@@ -43,8 +43,8 @@ test("the kit's ways into a record move the page forward, as the prototype's pus
         <Tile icon={PencilIcon} label="Tahrirlash" href="/sales/4/edit" />
       </Tiles>
       <Hero href="/customers" label="Mijozlar" value="3" unit="ta" />
-      <StatCard href="/purchases" icon={ReceiptIcon} title="Xaridlar" value="12" />
-      <StatCard href="/orders" icon={ReceiptIcon} title="Buyurtmalar" value="4" />
+      <StatCard href="/purchases" label="Xaridlar" value="12" />
+      <StatCard href="/orders" label="Buyurtmalar" value="4" />
     </>,
   )
 

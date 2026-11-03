@@ -11,7 +11,7 @@ import { addLocation, asosiyOf, restrictTo } from "@/test/locations"
 import { giveRole as holdRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { stockOf } from "./ledger"
-import { addDays, ALI, db, localToday, nameIn, nextId, type RateRow, SARDOR, seedCatalog, seedOrders, seedWarehouse, type SupplierRow, type TransactionRow, VALI, ZARINA } from "./data"
+import { addDays, ALI, db, localToday, nameIn, nextId, type RateRow, SARDOR, seedCatalog, seedOrders, seedWarehouse, type TransactionRow, VALI, ZARINA } from "./data"
 
 const list = () => call(api.GET("/app/employees"))
 const add = (phone: string, fullName: string) =>
