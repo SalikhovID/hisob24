@@ -84,6 +84,17 @@ export function useOfferedRate<T extends FieldValues & { rate: string }, TOut ex
   }, [open, currencyId, standard, form])
 }
 
+// turnTyped turns an amount as typed ("1 920 000", "0,94") from one
+// currency into another by the rates in force, written as a stored amount
+// is ("150.00"); null when it is no amount (two decimals at most) or a
+// rate is missing.
+export function turnTyped(text: string, from: number, to: number, currencies: readonly CompanyCurrency[]): string | null {
+  const amount = text.replace(/\s/g, "").replace(",", ".")
+  if (!/^\d{1,12}(\.\d{1,2})?$/.test(amount)) return null
+  const turned = convert(Number(amount), from, to, currencies)
+  return turned === null ? null : turned.toFixed(2)
+}
+
 // trimRate writes a stored rate for a field ("12800.0000" → "12800",
 // "12800.5000" → "12800.5").
 export function trimRate(rate: string): string {

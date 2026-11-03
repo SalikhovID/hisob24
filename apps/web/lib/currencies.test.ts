@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { useForm } from "react-hook-form"
 import { expect, test } from "vitest"
-import { currencyOf, currencyOptions, isMulti, rateLine, som, useOfferedRate } from "./currencies"
+import { currencyOf, currencyOptions, isMulti, rateLine, som, turnTyped, useOfferedRate } from "./currencies"
 import type { CompanyCurrency } from "./types"
 
 const usd: CompanyCurrency = { id: 2, code: "USD", name: "AQSH dollari", symbol: "$", rate: "12800.0000" }
@@ -74,4 +74,15 @@ test("useOfferedRate: a currency not known yet (an account the session has not t
   expect(rate()).toBe("13000")
   rerender({ id: 3 })
   expect(rate()).toBe("14000")
+})
+
+test("turnTyped turns an amount as typed (spaces, a comma) into another currency by the rates in force, written as a stored one; what is no amount, or has no rate, is not turned", () => {
+  expect(turnTyped("1 920 000", 1, 2, rated)).toBe("150.00")
+  expect(turnTyped("0,94", 2, 1, rated)).toBe("12032.00")
+  expect(turnTyped("150", 2, 3, rated)).toBe("137.14")
+  expect(turnTyped("150.5", 2, 2, rated)).toBe("150.50")
+  expect(turnTyped("", 1, 2, rated)).toBeNull()
+  expect(turnTyped("abc", 1, 2, rated)).toBeNull()
+  expect(turnTyped("1,234", 1, 2, rated)).toBeNull()
+  expect(turnTyped("150", 2, 4, rated)).toBeNull()
 })

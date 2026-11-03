@@ -2,15 +2,16 @@ import { screen, within } from "@testing-library/react"
 import { useForm } from "react-hook-form"
 import { expect, test } from "vitest"
 import { emptyLine, type LineForm } from "@/lib/warehouse"
-import { ALI, seedCatalog, seedWarehouse } from "@/mocks/data"
+import { ALI, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { LinesField } from "./lines-field"
 
-// Host is a form of lines alone, as the documents' forms hold them.
-function Host({ withPrice, currencyId = 1 }: { withPrice: boolean; currencyId?: number }) {
-  const form = useForm<{ items: LineForm[] }>({ defaultValues: { items: [emptyLine()] } })
+// Host is a form of lines alone, as the documents' forms hold them; items
+// are the lines it comes with (one empty unless told).
+function Host({ withPrice, currencyId = 1, items = [emptyLine()] }: { withPrice: boolean; currencyId?: number; items?: LineForm[] }) {
+  const form = useForm<{ items: LineForm[] }>({ defaultValues: { items } })
   return (
     <form>
       <LinesField form={form} companyId={1} withPrice={withPrice} currencyId={currencyId} pending={false} />
@@ -19,6 +20,7 @@ function Host({ withPrice, currencyId = 1 }: { withPrice: boolean; currencyId?: 
 }
 
 const line = (n: number) => screen.getByRole("group", { name: `${n}-qator` })
+const price = (n: number) => within(line(n)).getByLabelText("Narx")
 
 test("with prices: a product found by name, its unit at the quantity, the last price offered, the line and the total summed; lines added and taken away", async () => {
   seedWarehouse(seedCatalog())
@@ -90,4 +92,39 @@ test("a line is the prototype's card of frosted glass, 24px round; the total sta
   expect(line(1)).toHaveClass("surface", "rounded-[24px]")
   expect(line(1)).not.toHaveClass("bg-card")
   expect(screen.getByText("Jami").parentElement).toHaveClass("surface")
+})
+
+test("the prices follow the document's currency: each one, typed or offered, is turned by the rates in force when it changes; what is no price stays as typed", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user, rerender } = renderWithProviders(<Host withPrice currencyId={1} />)
+
+  await user.type(price(1), "1 920 000")
+  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.type(price(2), "6400")
+  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.type(price(3), "abc")
+  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+
+  rerender(<Host withPrice currencyId={2} />)
+  expect(price(1)).toHaveValue("150.00")
+  expect(price(2)).toHaveValue("0.50")
+  expect(price(3)).toHaveValue("abc")
+  expect(price(4)).toHaveValue("")
+
+  rerender(<Host withPrice currencyId={1} />)
+  expect(price(1)).toHaveValue("1920000.00")
+  expect(price(2)).toHaveValue("6400.00")
+})
+
+test("a document opened in its own currency keeps its prices; only a change of the currency turns them", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const items = [{ ...emptyLine(), price: "150.00" }]
+  const { rerender } = renderWithProviders(<Host withPrice currencyId={2} items={items} />)
+
+  expect(await within(line(1)).findByText("$")).toBeInTheDocument()
+  expect(price(1)).toHaveValue("150.00")
+  rerender(<Host withPrice currencyId={1} items={items} />)
+  expect(price(1)).toHaveValue("1920000.00")
 })

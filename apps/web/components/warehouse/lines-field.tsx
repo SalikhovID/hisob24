@@ -1,10 +1,10 @@
 "use client"
 
 import { PlusIcon, XIcon } from "lucide-react"
-import { useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues, useFieldArray, type UseFormReturn, useWatch } from "react-hook-form"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
-import { convert, currencyOf, useCurrencies } from "@/lib/currencies"
+import { convert, currencyOf, turnTyped, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatMoney, unitLabel } from "@/lib/format"
 import type { LastPrice, ProductKind } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -114,6 +114,23 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
     const turned = convert(Number(price.amount), price.currency_id, currencyId, currencies)
     return turned === null ? null : turned.toFixed(2)
   }
+
+  // A change of the document's currency turns every price into it by the
+  // rates in force (logic/currencies.md, section 5), typed or offered alike;
+  // what is no price stays as typed, as does every one while a rate is
+  // missing. A document opened in its own currency keeps its prices.
+  const shown = useRef(currencyId)
+  useEffect(() => {
+    const from = shown.current
+    if (from === currencyId) return
+    shown.current = currencyId
+    if (!withPrice) return
+    const lines = (form.getValues("items" as FieldPath<TForm>) ?? []) as LineForm[]
+    lines.forEach((item, index) => {
+      const turned = turnTyped(item?.price ?? "", from, currencyId, currencies)
+      if (turned !== null) form.setValue(`items.${index}.price` as FieldPath<TForm>, turned as never)
+    })
+  }, [currencyId, currencies, form, withPrice])
 
   return (
     <section aria-labelledby="document-lines">

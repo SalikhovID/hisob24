@@ -95,8 +95,10 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12800.00")
   await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  // The price follows the currency: 12 800 so'm is 1 $ again.
+  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1.00")
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
-  expect(screen.getByText("25 600 $")).toBeInTheDocument()
+  expect(screen.getByText("2 $")).toBeInTheDocument()
 })
 
 test("the rate follows the currency: the euro takes its own standard rate, not the one the dollar had", async () => {
