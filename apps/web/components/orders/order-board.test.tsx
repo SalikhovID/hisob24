@@ -107,6 +107,21 @@ test("a phone's card moves by its ⋯ menu, as there is no drag on a phone", asy
   expect(phone().querySelector('[data-slot="order-card"]')).not.toHaveAttribute("aria-roledescription")
 })
 
+test("a phone adds an order into the chosen stage, from the button under its cards, for whoever may add", async () => {
+  await signIn(ALI)
+  seedOrders()
+  setLocation("/orders")
+  const { user } = renderWithProviders(<OrdersPage />)
+  await board()
+  const chips = within(phone()).getByRole("radiogroup", { name: "Bosqichlar" })
+  await user.click(await within(chips).findByRole("radio", { name: /^Jarayonda/ }))
+
+  await user.click(await within(phone()).findByRole("button", { name: "Buyurtma qo'shish: Jarayonda" }))
+
+  const dialog = await screen.findByRole("dialog", { name: "Buyurtma qo'shish" })
+  expect(within(within(dialog).getByRole("group", { name: "Buyurtma" })).getByLabelText("Bosqich")).toHaveTextContent("Jarayonda")
+})
+
 test("the columns are the web's and the chips the phone's: each hides on the other's screen", async () => {
   await signIn(ALI)
   seedOrders()

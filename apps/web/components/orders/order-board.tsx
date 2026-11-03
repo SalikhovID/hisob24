@@ -125,7 +125,15 @@ export function OrderBoard({
 
   return (
     <>
-    <PhoneBoard companyId={companyId} stages={stages} types={types} everyType={everyType} filter={filter} onMove={canMove ? moveTo : undefined} />
+    <PhoneBoard
+      companyId={companyId}
+      stages={stages}
+      types={types}
+      everyType={everyType}
+      filter={filter}
+      onMove={canMove ? moveTo : undefined}
+      onAdd={canAdd ? onAdd : undefined}
+    />
     <DndContext
       sensors={sensors}
       onDragStart={onDragStart}
@@ -182,7 +190,8 @@ export function OrderBoard({
 // PhoneBoard is the board as a phone draws it, as the prototype's: the
 // stages as chips (each its color's dot, its name and how many orders stand
 // in it; the first stage chosen at first) over the chosen stage's cards, a
-// card's ⋯ the way to another stage. A phone has no drag.
+// card's ⋯ the way to another stage, and under them the way to add an order
+// into the stage (a column's + on the web). A phone has no drag.
 function PhoneBoard({
   companyId,
   stages,
@@ -190,6 +199,7 @@ function PhoneBoard({
   everyType,
   filter,
   onMove,
+  onAdd,
 }: {
   companyId: number
   stages: OrderStage[]
@@ -197,6 +207,7 @@ function PhoneBoard({
   everyType: boolean
   filter: StageFilter
   onMove?: (order: Order, stage: OrderStage) => void
+  onAdd?: (stageId: number) => void
 }) {
   const [chosen, setChosen] = useState<number | null>(null)
   const stage = stages.find((candidate) => candidate.id === chosen) ?? stages[0]
@@ -215,6 +226,12 @@ function PhoneBoard({
         ))}
       </RadioGroup>
       <PhoneStageCards key={stage.id} companyId={companyId} stage={stage} stages={stages} types={types} everyType={everyType} filter={filter} onMove={onMove} />
+      {onAdd && (
+        <Button variant="ghost" className="mt-2 w-full text-accent-text" aria-label={`Buyurtma qo'shish: ${stage.name}`} onClick={() => onAdd(stage.id)}>
+          <PlusIcon aria-hidden="true" />
+          Buyurtma qo&apos;shish
+        </Button>
+      )}
     </div>
   )
 }
