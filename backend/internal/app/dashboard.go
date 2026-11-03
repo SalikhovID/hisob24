@@ -11,24 +11,31 @@ import (
 
 // dashboardJSON is the home's blocks; one the member may not see is null.
 type dashboardJSON struct {
-	Suppliers   *dashboardSuppliersJSON `json:"suppliers"`
-	Customers   *dashboardCustomersJSON `json:"customers"`
-	Orders      *dashboardOrdersJSON    `json:"orders"`
-	Purchases   *dashboardMoneyJSON     `json:"purchases"`
-	Sales       *dashboardMoneyJSON     `json:"sales"`
-	OrdersMoney *dashboardMoneyJSON     `json:"orders_money"`
+	Cash     *dashboardCashJSON     `json:"cash"`
+	Debtors  *dashboardDebtorsJSON  `json:"debtors"`
+	Orders   *dashboardOrdersJSON   `json:"orders"`
+	Sales    *dashboardMoneyJSON    `json:"sales"`
+	LowStock *dashboardLowStockJSON `json:"low_stock"`
 }
 
-type dashboardSuppliersJSON struct {
-	Debt    string `json:"debt"`
-	Debtors int64  `json:"debtors"`
-	Advance string `json:"advance"`
+type dashboardCashJSON struct {
+	Totals   []currencyAmountJSON `json:"totals"`
+	Accounts int64                `json:"accounts"`
 }
 
-type dashboardCustomersJSON struct {
-	Total          int64   `json:"total"`
-	AddedThisMonth int64   `json:"added_this_month"`
-	ByDay          []int64 `json:"by_day"`
+type currencyAmountJSON struct {
+	CurrencyID int64  `json:"currency_id"`
+	Amount     string `json:"amount"`
+}
+
+type dashboardDebtorsJSON struct {
+	Debt  string `json:"debt"`
+	Count int64  `json:"count"`
+}
+
+type dashboardLowStockJSON struct {
+	Count int64    `json:"count"`
+	Names []string `json:"names"`
 }
 
 type dashboardOrdersJSON struct {
@@ -91,11 +98,18 @@ func (h *Handler) getDashboard(w http.ResponseWriter, r *http.Request) {
 
 func toDashboardJSON(d dashboard.Dashboard) dashboardJSON {
 	var out dashboardJSON
-	if s := d.Suppliers; s != nil {
-		out.Suppliers = &dashboardSuppliersJSON{Debt: s.Debt, Debtors: s.Debtors, Advance: s.Advance}
+	if c := d.Cash; c != nil {
+		cash := &dashboardCashJSON{Totals: make([]currencyAmountJSON, 0, len(c.Totals)), Accounts: c.Accounts}
+		for _, total := range c.Totals {
+			cash.Totals = append(cash.Totals, currencyAmountJSON{CurrencyID: total.CurrencyID, Amount: total.Amount})
+		}
+		out.Cash = cash
 	}
-	if c := d.Customers; c != nil {
-		out.Customers = &dashboardCustomersJSON{Total: c.Total, AddedThisMonth: c.AddedThisMonth, ByDay: c.ByDay}
+	if debtors := d.Debtors; debtors != nil {
+		out.Debtors = &dashboardDebtorsJSON{Debt: debtors.Debt, Count: debtors.Count}
+	}
+	if low := d.LowStock; low != nil {
+		out.LowStock = &dashboardLowStockJSON{Count: low.Count, Names: low.Names}
 	}
 	if t := d.Orders; t != nil {
 		orders := &dashboardOrdersJSON{Active: t.Active, Late: t.Late, ByStage: make([]dashboardStageJSON, 0, len(t.ByStage)), Upcoming: make([]orderJSON, 0, len(t.Upcoming))}
@@ -107,12 +121,8 @@ func toDashboardJSON(d dashboard.Dashboard) dashboardJSON {
 		}
 		out.Orders = orders
 	}
-	money := func(m *dashboard.Money) *dashboardMoneyJSON {
-		if m == nil {
-			return nil
-		}
-		return &dashboardMoneyJSON{MonthTotal: m.MonthTotal, MonthCount: m.MonthCount, ByDay: m.ByDay}
+	if m := d.Sales; m != nil {
+		out.Sales = &dashboardMoneyJSON{MonthTotal: m.MonthTotal, MonthCount: m.MonthCount, ByDay: m.ByDay}
 	}
-	out.Purchases, out.Sales, out.OrdersMoney = money(d.Purchases), money(d.Sales), money(d.OrdersMoney)
 	return out
 }

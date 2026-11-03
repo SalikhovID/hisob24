@@ -221,10 +221,6 @@ type Querier interface {
 	// by currency, each account's by the rule of ListAccountBalances: nothing
 	// is turned into another currency; a currency that comes to 0 is left out.
 	DashboardCash(ctx context.Context, companyID int64) ([]DashboardCashRow, error)
-	// The company's live customers on each day of the month up to today, the
-	// days counted in the zone: how many there were before the month, and how
-	// many by the day's end.
-	DashboardCustomersByDay(ctx context.Context, arg DashboardCustomersByDayParams) ([]DashboardCustomersByDayRow, error)
 	// What the company's live customers owe: the so'm balances above zero
 	// summed and counted. A balance is the customer list's (logic/sales.md,
 	// section 5): sales, orders' documents and opening debts add, payments and
@@ -240,21 +236,16 @@ type Querier interface {
 	// in so'm, each by its own rate row, and how many, both by the day's end.
 	// An order's document counts when it is priced (total above 0).
 	DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByDayParams) ([]DashboardMoneyByDayRow, error)
+	// The home's blocks at a glance
+	// (docs/superpowers/specs/2026-11-03-flat-redesign-design.md). The sales
+	// and the customers' debt are in so'm, each document turned by its own rate
+	// row (logic/currencies.md, section 4); the accounts in their own currency.
 	// The company's orders in the locations given not done yet, and how many of
 	// them are past their deadline (before today).
 	DashboardOrders(ctx context.Context, arg DashboardOrdersParams) (DashboardOrdersRow, error)
 	// How many of the company's orders in the locations given stand in each of
 	// its stages not done, in the stages' order, the empty ones too.
 	DashboardOrdersByStage(ctx context.Context, arg DashboardOrdersByStageParams) ([]DashboardOrdersByStageRow, error)
-	// The home's blocks at a glance
-	// (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md). Money is in
-	// so'm, each document turned by its own rate row (logic/currencies.md,
-	// section 4), as a supplier's balance is.
-	// What the company's live suppliers are owed: the so'm balances above zero
-	// summed and counted, and those below zero (the advances) summed as a
-	// positive amount. A balance is the supplier list's: purchases and opening
-	// debts add, payments and opening advances take away.
-	DashboardSuppliers(ctx context.Context, companyID int64) (DashboardSuppliersRow, error)
 	DeactivateAdmin(ctx context.Context, telegramID int64) (int64, error)
 	// Drops a code the bot could not deliver.
 	DeleteAdminLoginCode(ctx context.Context, id int64) error

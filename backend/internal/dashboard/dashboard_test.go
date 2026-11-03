@@ -335,47 +335,6 @@ func TestLowStock(t *testing.T) {
 	assert.Nil(t, none.LowStock, "without stock.view")
 }
 
-func TestSuppliers(t *testing.T) {
-	s, pool := newService(t)
-	ctx := t.Context()
-	sh := newShop(t, pool, "Olma")
-	at := "2026-10-07T09:00:00+05:00"
-	// Bozor: 1 000 000 so'm and 100 $ by the standard rate (1 280 000)
-	// bought, 500 000 paid; a deleted purchase does not count.
-	bozor := addSupplier(t, pool, sh.company, "Bozor", true, false)
-	sh.add(t, pool, doc{kind: "purchase", at: at, location: sh.asosiy, supplier: bozor, total: "1000000"})
-	sh.add(t, pool, doc{kind: "purchase", at: at, location: sh.chilonzor, supplier: bozor, currency: 2, total: "100"})
-	sh.add(t, pool, doc{kind: "supplier_payment", at: at, supplier: bozor, account: sh.cash, total: "500000"})
-	sh.add(t, pool, doc{kind: "purchase", at: at, location: sh.asosiy, supplier: bozor, total: "999999", deleted: true})
-	// Uzum: an opening debt of 50 $ by its own rate (650 000).
-	uzum := addSupplier(t, pool, sh.company, "Uzum", true, false)
-	sh.add(t, pool, doc{kind: "supplier_debt", at: at, supplier: uzum, currency: 2, rate: sh.ownRate, total: "50"})
-	// Ombor, turned off: paid 300 000 ahead.
-	ombor := addSupplier(t, pool, sh.company, "Ombor", false, false)
-	sh.add(t, pool, doc{kind: "supplier_prepay", at: at, supplier: ombor, total: "300000"})
-	// Dehqon: bought and paid in full.
-	dehqon := addSupplier(t, pool, sh.company, "Dehqon", true, false)
-	sh.add(t, pool, doc{kind: "purchase", at: at, location: sh.chilonzor, supplier: dehqon, total: "200000"})
-	sh.add(t, pool, doc{kind: "supplier_payment", at: at, supplier: dehqon, account: sh.cash, total: "200000"})
-	// A supplier with nothing, a deleted one and another company's.
-	addSupplier(t, pool, sh.company, "Yangi", true, false)
-	eski := addSupplier(t, pool, sh.company, "Eski", true, true)
-	sh.add(t, pool, doc{kind: "supplier_debt", at: at, supplier: eski, total: "777000"})
-	nok := newShop(t, pool, "Nok")
-	begona := addSupplier(t, pool, nok.company, "Begona", true, false)
-	nok.add(t, pool, doc{kind: "purchase", at: at, location: nok.asosiy, supplier: begona, total: "5000000"})
-
-	got, err := s.Get(ctx, sh.scope(), input(access.PurchasesView))
-
-	require.NoError(t, err)
-	assert.Equal(t, &Suppliers{Debt: "2430000.00", Debtors: 2, Advance: "300000.00"}, got.Suppliers,
-		"Bozor's 1 780 000 and Uzum's 650 000 owed, Ombor's 300 000 ahead; the settled, the empty, the deleted and another company's are out")
-
-	restricted, err := s.Get(ctx, sh.scope(sh.asosiy), input(access.PurchasesView))
-	require.NoError(t, err)
-	assert.Equal(t, got.Suppliers, restricted.Suppliers, "a member of one location sees every supplier's balance (logic/locations.md)")
-}
-
 // addCustomer enters a customer of the company on the moment given (RFC
 // 3339); deleted hides it.
 func addCustomer(t *testing.T, pool *pgxpool.Pool, companyID int64, phone, at string, deleted bool) int64 {
@@ -390,27 +349,6 @@ func addCustomer(t *testing.T, pool *pgxpool.Pool, companyID int64, phone, at st
 		"INSERT INTO customers (company_id, type_id, phone, created_by, created_at, deleted_at) VALUES ($1, $2, $3, $4, $5, CASE WHEN $6 THEN now() END) RETURNING id",
 		companyID, typeID, phone, ali, at, deleted).Scan(&id))
 	return id
-}
-
-func TestCustomers(t *testing.T) {
-	s, pool := newService(t)
-	ctx := t.Context()
-	sh := newShop(t, pool, "Olma")
-	addCustomer(t, pool, sh.company, "998900000001", "2026-09-20T12:00:00+05:00", false)
-	// 01:30 on the 1st in Tashkent is still September in UTC: the member's
-	// zone says which day it is.
-	addCustomer(t, pool, sh.company, "998900000002", "2026-09-30T20:30:00Z", false)
-	addCustomer(t, pool, sh.company, "998900000003", "2026-10-01T18:00:00+05:00", false)
-	addCustomer(t, pool, sh.company, "998900000004", "2026-10-05T12:00:00+05:00", false)
-	addCustomer(t, pool, sh.company, "998900000005", "2026-10-03T12:00:00+05:00", true)
-	nok := newShop(t, pool, "Nok")
-	addCustomer(t, pool, nok.company, "998900000006", "2026-10-02T12:00:00+05:00", false)
-
-	got, err := s.Get(ctx, sh.scope(), input(access.CustomersView))
-
-	require.NoError(t, err)
-	assert.Equal(t, &Customers{Total: 4, AddedThisMonth: 3, ByDay: []int64{3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4}}, got.Customers,
-		"by each day's end of the month up to today: the one of September, two on the 1st, one on the 5th; the deleted and another company's are out")
 }
 
 // stages is a company's stages of the orders: Yangi, Jarayonda and the
@@ -448,41 +386,6 @@ func addOrder(t *testing.T, pool *pgxpool.Pool, companyID int64, st stages, stag
 // The month's priced orders: their documents' prices in so'm, by each
 // day's end, for whoever sees the orders; one priced at nothing, a hidden
 // document and another company's are out.
-func TestOrdersMoney(t *testing.T) {
-	s, pool := newService(t)
-	ctx := t.Context()
-	sh := newShop(t, pool, "Olma")
-	st := addStages(t, pool, sh.company)
-	ali := addCustomer(t, pool, sh.company, "998901234567", "2026-10-01T10:00:00+05:00", false)
-	priced := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", false)
-	free := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", false)
-	gone := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", true)
-	elsewhere := addOrder(t, pool, sh.company, st, st.yangi, sh.chilonzor, ali, "2026-10-20", false)
-	dollars := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, ali, "2026-10-20", false)
-	sh.add(t, pool, doc{kind: "order", at: "2026-10-02T10:00:00+05:00", location: sh.asosiy, customer: ali, order: priced, total: "5000"})
-	sh.add(t, pool, doc{kind: "order", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, customer: ali, order: free, total: "0"})
-	sh.add(t, pool, doc{kind: "order", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, customer: ali, order: gone, total: "999", deleted: true})
-	sh.add(t, pool, doc{kind: "order", at: "2026-10-04T10:00:00+05:00", location: sh.chilonzor, customer: ali, order: elsewhere, total: "1000"})
-	// 10 $ by the standard rate: 128 000.
-	sh.add(t, pool, doc{kind: "order", at: "2026-10-05T10:00:00+05:00", location: sh.asosiy, customer: ali, order: dollars, currency: 2, total: "10"})
-
-	got, err := s.Get(ctx, sh.scope(), input(access.OrdersView))
-
-	require.NoError(t, err)
-	assert.Equal(t, &Money{
-		MonthTotal: "134000.00", MonthCount: 3,
-		ByDay: append([]string{"0.00", "5000.00", "5000.00", "6000.00"}, repeat("134000.00", 9)...),
-	}, got.OrdersMoney, "the priced orders, in so'm, by each day's end")
-	in := input(access.OrdersView)
-	in.LocationID = sh.asosiy
-	one, err := s.Get(ctx, sh.scope(), in)
-	require.NoError(t, err)
-	assert.Equal(t, "133000.00", one.OrdersMoney.MonthTotal, "one location's")
-	none, err := s.Get(ctx, sh.scope(), input(access.SalesView))
-	require.NoError(t, err)
-	assert.Nil(t, none.OrdersMoney, "without orders.view")
-}
-
 func TestOrders(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
@@ -541,45 +444,37 @@ func repeat(value string, n int) []string {
 	return out
 }
 
-func TestPurchasesAndSales(t *testing.T) {
+func TestSales(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()
 	sh := newShop(t, pool, "Olma")
-	bozor := addSupplier(t, pool, sh.company, "Bozor", true, false)
 	// 01:00 on the 1st in Tashkent is still September in UTC.
-	sh.add(t, pool, doc{kind: "purchase", at: "2026-09-30T20:00:00Z", location: sh.asosiy, supplier: bozor, total: "100000"})
-	sh.add(t, pool, doc{kind: "purchase", at: "2026-09-30T12:00:00+05:00", location: sh.asosiy, supplier: bozor, total: "555555"})
+	sh.add(t, pool, doc{kind: "sale", at: "2026-09-30T20:00:00Z", location: sh.asosiy, total: "100000"})
+	sh.add(t, pool, doc{kind: "sale", at: "2026-09-30T12:00:00+05:00", location: sh.asosiy, total: "555555"})
 	// 50 $ by the standard rate: 640 000.
-	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, supplier: bozor, currency: 2, total: "50"})
-	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-03T15:00:00+05:00", location: sh.chilonzor, supplier: bozor, total: "10000"})
-	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-05T10:00:00+05:00", location: sh.asosiy, supplier: bozor, total: "999999", deleted: true})
-	sh.add(t, pool, doc{kind: "purchase", at: "2026-10-14T10:00:00+05:00", location: sh.asosiy, supplier: bozor, total: "888888"})
-	sh.add(t, pool, doc{kind: "sale", at: "2026-10-02T10:00:00+05:00", location: sh.asosiy, total: "30000"})
+	sh.add(t, pool, doc{kind: "sale", at: "2026-10-03T10:00:00+05:00", location: sh.asosiy, currency: 2, total: "50"})
+	sh.add(t, pool, doc{kind: "sale", at: "2026-10-03T15:00:00+05:00", location: sh.chilonzor, total: "10000"})
+	sh.add(t, pool, doc{kind: "sale", at: "2026-10-05T10:00:00+05:00", location: sh.asosiy, total: "999999", deleted: true})
+	sh.add(t, pool, doc{kind: "sale", at: "2026-10-14T10:00:00+05:00", location: sh.asosiy, total: "888888"})
 	// 20 $ by its own rate: 260 000.
 	sh.add(t, pool, doc{kind: "sale", at: "2026-10-12T10:00:00+05:00", location: sh.asosiy, currency: 2, rate: sh.ownRate, total: "20"})
 	nok := newShop(t, pool, "Nok")
-	begona := addSupplier(t, pool, nok.company, "Begona", true, false)
-	nok.add(t, pool, doc{kind: "purchase", at: "2026-10-03T10:00:00+05:00", location: nok.asosiy, supplier: begona, total: "7000000"})
+	nok.add(t, pool, doc{kind: "sale", at: "2026-10-03T10:00:00+05:00", location: nok.asosiy, total: "7000000"})
 
-	got, err := s.Get(ctx, sh.scope(), input(access.PurchasesView, access.SalesView))
+	got, err := s.Get(ctx, sh.scope(), input(access.SalesView))
 
 	require.NoError(t, err)
 	assert.Equal(t, &Money{
-		MonthTotal: "750000.00", MonthCount: 3,
-		ByDay: append([]string{"100000.00", "100000.00"}, repeat("750000.00", 11)...),
-	}, got.Purchases, "this month's up to today, in so'm by each one's rate, by each day's end in the member's zone; September's, tomorrow's, the deleted and another company's are out")
-	assert.Equal(t, &Money{
-		MonthTotal: "290000.00", MonthCount: 2,
-		ByDay: append(append([]string{"0.00"}, repeat("30000.00", 10)...), "290000.00", "290000.00"),
-	}, got.Sales, "the sales the same way")
+		MonthTotal: "1010000.00", MonthCount: 4,
+		ByDay: append(append([]string{"100000.00", "100000.00"}, repeat("750000.00", 9)...), "1010000.00", "1010000.00"),
+	}, got.Sales, "this month's up to today, in so'm by each one's rate, by each day's end in the member's zone; September's, tomorrow's, the deleted and another company's are out")
 
-	in := input(access.PurchasesView)
+	in := input(access.SalesView)
 	in.LocationID = sh.asosiy
 	one, err := s.Get(ctx, sh.scope(), in)
 	require.NoError(t, err)
-	assert.Equal(t, &Money{MonthTotal: "740000.00", MonthCount: 2, ByDay: append([]string{"100000.00", "100000.00"}, repeat("740000.00", 11)...)}, one.Purchases,
+	assert.Equal(t, &Money{MonthTotal: "1000000.00", MonthCount: 3, ByDay: append(append([]string{"100000.00", "100000.00"}, repeat("740000.00", 9)...), "1000000.00", "1000000.00")}, one.Sales,
 		"one location's")
-	assert.Nil(t, one.Sales, "without sales.view")
 }
 
 func TestEachBlockIsItsPermissions(t *testing.T) {
@@ -588,24 +483,23 @@ func TestEachBlockIsItsPermissions(t *testing.T) {
 	addStages(t, pool, sh.company)
 
 	for about, tc := range map[string]struct {
-		perms                                          []access.Permission
-		suppliers, customers, orders, purchases, sales bool
+		perms                                  []access.Permission
+		cash, debtors, orders, sales, lowStock bool
 	}{
-		"nothing to see":     {nil, false, false, false, false, false},
-		"the purchases":      {[]access.Permission{access.PurchasesView}, true, false, false, true, false},
-		"the customers":      {[]access.Permission{access.CustomersView}, false, true, false, false, false},
-		"the orders":         {[]access.Permission{access.OrdersView}, false, false, true, false, false},
-		"the sales":          {[]access.Permission{access.SalesView}, false, false, false, false, true},
-		"the suppliers only": {[]access.Permission{access.SuppliersView}, false, false, false, false, false},
-		"everything":         {access.All, true, true, true, true, true},
+		"nothing to see":                  {nil, false, false, false, false, false},
+		"the finance":                     {[]access.Permission{access.FinanceView}, true, false, false, false, false},
+		"the customers and the sales":     {[]access.Permission{access.CustomersView, access.SalesView}, false, true, false, true, false},
+		"the orders":                      {[]access.Permission{access.OrdersView}, false, false, true, false, false},
+		"the stock":                       {[]access.Permission{access.StockView}, false, false, false, false, true},
+		"the purchases and the suppliers": {[]access.Permission{access.PurchasesView, access.SuppliersView}, false, false, false, false, false},
+		"everything":                      {access.All, true, true, true, true, true},
 	} {
 		got, err := s.Get(t.Context(), sh.scope(), input(tc.perms...))
 		require.NoError(t, err, about)
-		assert.Equal(t, tc.suppliers, got.Suppliers != nil, about+": suppliers")
-		assert.Equal(t, tc.customers, got.Customers != nil, about+": customers")
+		assert.Equal(t, tc.cash, got.Cash != nil, about+": cash")
+		assert.Equal(t, tc.debtors, got.Debtors != nil, about+": debtors")
 		assert.Equal(t, tc.orders, got.Orders != nil, about+": orders")
-		assert.Equal(t, tc.purchases, got.Purchases != nil, about+": purchases")
 		assert.Equal(t, tc.sales, got.Sales != nil, about+": sales")
-		assert.Equal(t, tc.orders, got.OrdersMoney != nil, about+": the orders' money goes with the orders")
+		assert.Equal(t, tc.lowStock, got.LowStock != nil, about+": low stock")
 	}
 }

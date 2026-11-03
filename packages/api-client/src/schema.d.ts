@@ -631,7 +631,7 @@ export interface paths {
         };
         /**
          * Bosh sahifa bloklari
-         * @description Bosh sahifaning bir qarashdagi ma'lumoti (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): har blok o'z ruxsati bilan, ruxsatsizi null. Pul so'mda, har hujjat o'z kurs qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt zonasida (standart Asia/Tashkent). Buyurtmalar, xaridlar va sotuvlar location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga ruxsatli hamma lokatsiyaniki; ta'minotchilar va mijozlar kompaniyaniki.
+         * @description Bosh sahifaning bir qarashdagi ma'lumoti (docs/superpowers/specs/2026-11-03-flat-redesign-design.md; logic/roles.md, 8-bo'lim): har blok o'z ruxsati bilan, ruxsatsizi null. Akkauntlar o'z valyutasida; mijozlar qarzi va sotuvlar so'mda, har hujjat o'z kurs qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt zonasida (standart Asia/Tashkent). Buyurtmalar, sotuvlar va kam qolgan tovarlar location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga ruxsatli hamma lokatsiyaniki; kassa va mijozlar qarzi kompaniyaniki.
          */
         get: operations["getDashboard"];
         put?: never;
@@ -3869,41 +3869,49 @@ export interface components {
             full_name: string | null;
         };
         Dashboard: {
-            /** @description purchases.view bo'lganga, aks holda null */
-            suppliers: components["schemas"]["DashboardSuppliers"] | null;
-            /** @description customers.view bo'lganga, aks holda null */
-            customers: components["schemas"]["DashboardCustomers"] | null;
+            /** @description Kassadagi pul; finance.view bo'lganga, aks holda null */
+            cash: components["schemas"]["DashboardCash"] | null;
+            /** @description Mijozlar qarzi; customers.view va sales.view bo'lganga, aks holda null */
+            debtors: components["schemas"]["DashboardDebtors"] | null;
             /** @description orders.view bo'lganga, aks holda null */
             orders: components["schemas"]["DashboardOrders"] | null;
-            /** @description Xaridlar; purchases.view bo'lganga, aks holda null */
-            purchases: components["schemas"]["DashboardMoney"] | null;
-            /** @description Sotuvlar; sales.view bo'lganga, aks holda null */
+            /** @description Oyning sotuvlari; sales.view bo'lganga, aks holda null */
             sales: components["schemas"]["DashboardMoney"] | null;
-            /** @description Shu oyda yaratilgan narxli buyurtmalar (hujjatlari, narxi > 0; logic/orders.md, 4.3); orders.view bo'lganga, aks holda null */
-            orders_money: components["schemas"]["DashboardMoney"] | null;
+            /** @description Kam qolgan tovarlar; stock.view bo'lganga, aks holda null */
+            low_stock: components["schemas"]["DashboardLowStock"] | null;
         };
-        /** @description Kompaniyaning jonli ta'minotchilari so'mdagi balanslari (ro'yxatdagi balance): musbatlari yig'indisi va soni, manfiylari yig'indisi musbat son sifatida */
-        DashboardSuppliers: {
+        /** @description Jonli akkauntlar (nofaollari ham) qoldiqlari valyuta bo'yicha yig'indisi, aylantirilmaydi (logic/finance.md, 4-bo'lim) */
+        DashboardCash: {
+            /** @description Valyuta ID tartibida; yig'indisi 0 valyuta yo'q */
+            totals: components["schemas"]["CurrencyAmount"][];
+            /**
+             * Format: int64
+             * @description Jonli akkauntlar soni
+             */
+            accounts: number;
+        };
+        CurrencyAmount: {
+            /** Format: int64 */
+            currency_id: number;
+            /** @description Shu valyutada, ikki kasr xonasi bilan */
+            amount: string;
+        };
+        /** @description Kompaniyaning jonli mijozlari so'mdagi balanslari (ro'yxatdagi balance, logic/sales.md, 5-bo'lim): musbatlari yig'indisi va soni */
+        DashboardDebtors: {
             /** @description Qarz, so'mda, ikki kasr xonasi bilan */
             debt: string;
             /**
              * Format: int64
-             * @description Qarzdor (balansi musbat) ta'minotchilar soni
+             * @description Qarzdor (balansi musbat) mijozlar soni
              */
-            debtors: number;
-            /** @description Avans, so'mda, ikki kasr xonasi bilan */
-            advance: string;
+            count: number;
         };
-        DashboardCustomers: {
-            /**
-             * Format: int64
-             * @description Bugun oxirigacha jonli mijozlar soni
-             */
-            total: number;
+        /** @description Lokatsiyada (yoki ruxsatli hammasida, yig'indi) harakati bor jonli faol mahsulotlar (xizmat emas), qoldig'i 3 dan oshmaganlari (logic/warehouse.md, 5-bo'lim) */
+        DashboardLowStock: {
             /** Format: int64 */
-            added_this_month: number;
-            /** @description Oyning har kuni oxirigacha jonli mijozlar soni, 1-kundan bugungacha */
-            by_day: number[];
+            count: number;
+            /** @description Nom bo'yicha birinchi 5 tasining nomi */
+            names: string[];
         };
         DashboardOrders: {
             /**
@@ -3927,7 +3935,7 @@ export interface components {
             /** Format: int64 */
             count: number;
         };
-        /** @description Shu oyning bugungacha jonli hujjatlari (xarid, sotuv yoki narxli buyurtma) */
+        /** @description Shu oyning bugungacha jonli sotuvlari */
         DashboardMoney: {
             /** @description Jami, so'mda, ikki kasr xonasi bilan */
             month_total: string;

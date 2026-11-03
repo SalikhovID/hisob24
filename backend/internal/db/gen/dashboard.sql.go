@@ -73,66 +73,6 @@ func (q *Queries) DashboardCash(ctx context.Context, companyID int64) ([]Dashboa
 	return items, nil
 }
 
-const dashboardCustomersByDay = `-- name: DashboardCustomersByDay :many
-SELECT d.day::date AS day, b.before::bigint AS before,
-       (b.before + COALESCE(sum(x.added) OVER (ORDER BY d.day), 0))::bigint AS total
-FROM generate_series($1::date, $2::date, interval '1 day') AS d(day)
-CROSS JOIN (
-    SELECT count(*) AS before FROM customers c
-    WHERE c.company_id = $3 AND c.deleted_at IS NULL
-      AND (c.created_at AT TIME ZONE $4::text)::date < $1::date
-) b
-LEFT JOIN (
-    SELECT (c.created_at AT TIME ZONE $4::text)::date AS day, count(*) AS added
-    FROM customers c
-    WHERE c.company_id = $3 AND c.deleted_at IS NULL
-      AND (c.created_at AT TIME ZONE $4::text)::date BETWEEN $1::date AND $2::date
-    GROUP BY 1
-) x ON x.day = d.day::date
-ORDER BY d.day
-`
-
-type DashboardCustomersByDayParams struct {
-	MonthStart time.Time
-	Today      time.Time
-	CompanyID  int64
-	Zone       string
-}
-
-type DashboardCustomersByDayRow struct {
-	Day    time.Time
-	Before int64
-	Total  int64
-}
-
-// The company's live customers on each day of the month up to today, the
-// days counted in the zone: how many there were before the month, and how
-// many by the day's end.
-func (q *Queries) DashboardCustomersByDay(ctx context.Context, arg DashboardCustomersByDayParams) ([]DashboardCustomersByDayRow, error) {
-	rows, err := q.db.Query(ctx, dashboardCustomersByDay,
-		arg.MonthStart,
-		arg.Today,
-		arg.CompanyID,
-		arg.Zone,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []DashboardCustomersByDayRow{}
-	for rows.Next() {
-		var i DashboardCustomersByDayRow
-		if err := rows.Scan(&i.Day, &i.Before, &i.Total); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const dashboardDebtors = `-- name: DashboardDebtors :one
 WITH balances AS (
     SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt', 'order') THEN convert_amount(d.total, d.currency_id, 1, cr)
@@ -286,6 +226,7 @@ func (q *Queries) DashboardMoneyByDay(ctx context.Context, arg DashboardMoneyByD
 }
 
 const dashboardOrders = `-- name: DashboardOrders :one
+
 SELECT count(*) AS active, count(*) FILTER (WHERE t.deadline < $1::date) AS late
 FROM orders t
 JOIN order_stages s ON s.id = t.stage_id
@@ -304,6 +245,10 @@ type DashboardOrdersRow struct {
 	Late   int64
 }
 
+// The home's blocks at a glance
+// (docs/superpowers/specs/2026-11-03-flat-redesign-design.md). The sales
+// and the customers' debt are in so'm, each document turned by its own rate
+// row (logic/currencies.md, section 4); the accounts in their own currency.
 // The company's orders in the locations given not done yet, and how many of
 // them are past their deadline (before today).
 func (q *Queries) DashboardOrders(ctx context.Context, arg DashboardOrdersParams) (DashboardOrdersRow, error) {
@@ -352,42 +297,4 @@ func (q *Queries) DashboardOrdersByStage(ctx context.Context, arg DashboardOrder
 		return nil, err
 	}
 	return items, nil
-}
-
-const dashboardSuppliers = `-- name: DashboardSuppliers :one
-
-WITH balances AS (
-    SELECT COALESCE(sum(CASE WHEN d.kind IN ('purchase', 'supplier_debt') THEN convert_amount(d.total, d.currency_id, 1, cr)
-                             ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0) AS balance
-    FROM suppliers s
-    LEFT JOIN transactions d ON d.supplier_id = s.id AND d.deleted_at IS NULL
-    LEFT JOIN currency_rates cr ON cr.id = d.currency_rate_id
-    WHERE s.company_id = $1 AND s.deleted_at IS NULL
-    GROUP BY s.id
-)
-SELECT COALESCE(sum(b.balance) FILTER (WHERE b.balance > 0), 0)::numeric(14,2) AS debt,
-       count(*) FILTER (WHERE b.balance > 0) AS debtors,
-       COALESCE(-sum(b.balance) FILTER (WHERE b.balance < 0), 0)::numeric(14,2) AS advance
-FROM balances b
-`
-
-type DashboardSuppliersRow struct {
-	Debt    pgtype.Numeric
-	Debtors int64
-	Advance pgtype.Numeric
-}
-
-// The home's blocks at a glance
-// (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md). Money is in
-// so'm, each document turned by its own rate row (logic/currencies.md,
-// section 4), as a supplier's balance is.
-// What the company's live suppliers are owed: the so'm balances above zero
-// summed and counted, and those below zero (the advances) summed as a
-// positive amount. A balance is the supplier list's: purchases and opening
-// debts add, payments and opening advances take away.
-func (q *Queries) DashboardSuppliers(ctx context.Context, companyID int64) (DashboardSuppliersRow, error) {
-	row := q.db.QueryRow(ctx, dashboardSuppliers, companyID)
-	var i DashboardSuppliersRow
-	err := row.Scan(&i.Debt, &i.Debtors, &i.Advance)
-	return i, err
 }

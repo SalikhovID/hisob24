@@ -1,7 +1,7 @@
 // Package dashboard is what the home shows at a glance
-// (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): what is owed
-// to the suppliers, the customers, the orders, the month's purchases and
-// sales, each block to whoever may see it.
+// (docs/superpowers/specs/2026-11-03-flat-redesign-design.md): what the
+// accounts hold, what the customers owe, the orders not done, the month's
+// sales and the products running low, each block to whoever may see it.
 package dashboard
 
 import (
@@ -48,17 +48,11 @@ type Input struct {
 
 // Dashboard is the home's blocks; one the member may not see is nil.
 type Dashboard struct {
-	Cash      *Cash
-	Debtors   *Debtors
-	LowStock  *LowStock
-	Suppliers *Suppliers
-	Customers *Customers
-	Orders    *Orders
-	Purchases *Money
-	Sales     *Money
-	// OrdersMoney is the month's priced orders (their documents), for
-	// whoever sees the orders (logic/orders.md, 4.3).
-	OrdersMoney *Money
+	Cash     *Cash
+	Debtors  *Debtors
+	Orders   *Orders
+	Sales    *Money
+	LowStock *LowStock
 }
 
 // Cash is what the company's live accounts hold (the turned off ones too),
@@ -91,25 +85,6 @@ type LowStock struct {
 	Names []string
 }
 
-// Suppliers is what the company's suppliers are owed, in so'm, each
-// document by its own rate row (logic/currencies.md): the balances above
-// zero summed, how many they are, and those below zero (the advances)
-// summed as a positive amount.
-type Suppliers struct {
-	Debt    string
-	Debtors int64
-	Advance string
-}
-
-// Customers is the company's live customers: how many there are by the
-// end of today, how many of them came this month, and how many there were
-// by the end of each day of the month up to today (the member's days).
-type Customers struct {
-	Total          int64
-	AddedThisMonth int64
-	ByDay          []int64
-}
-
 // Orders is the orders of the location (or of every one of the scope) not
 // done yet: how many, how many of them are past their deadline, how many
 // stand in each stage not done (in the stages' order, the empty ones too)
@@ -121,10 +96,10 @@ type Orders struct {
 	Upcoming []order.Order
 }
 
-// Money is a kind of documents (the purchases, the sales, the priced orders) of the
-// location (or of every one of the scope) this month up to today: their
-// total in so'm, each by its own rate row, how many, and the total by the
-// end of each day of the month (the member's days).
+// Money is the sales of the location (or of every one of the scope) this
+// month up to today: their total in so'm, each by its own rate row, how
+// many, and the total by the end of each day of the month (the member's
+// days).
 type Money struct {
 	MonthTotal string
 	MonthCount int64
@@ -168,28 +143,6 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 		}
 		d.LowStock = low
 	}
-	if in.Permissions.Has(access.PurchasesView) {
-		row, err := s.q.DashboardSuppliers(ctx, scope.CompanyID)
-		if err != nil {
-			return Dashboard{}, err
-		}
-		d.Suppliers = &Suppliers{Debt: amount(row.Debt), Debtors: row.Debtors, Advance: amount(row.Advance)}
-	}
-	if in.Permissions.Has(access.CustomersView) {
-		rows, err := s.q.DashboardCustomersByDay(ctx, gen.DashboardCustomersByDayParams{
-			CompanyID: scope.CompanyID, Zone: in.Zone, MonthStart: monthStart(in.Today), Today: in.Today,
-		})
-		if err != nil {
-			return Dashboard{}, err
-		}
-		c := &Customers{ByDay: make([]int64, 0, len(rows))}
-		for _, row := range rows {
-			c.ByDay = append(c.ByDay, row.Total)
-			c.Total = row.Total
-			c.AddedThisMonth = row.Total - row.Before
-		}
-		d.Customers = c
-	}
 	if in.Permissions.Has(access.OrdersView) {
 		locations := scope.locations(in.LocationID)
 		counts, err := s.q.DashboardOrders(ctx, gen.DashboardOrdersParams{CompanyID: scope.CompanyID, LocationIds: locations, Today: in.Today})
@@ -210,16 +163,9 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 		}
 		d.Orders = orders
 	}
-	for _, block := range []struct {
-		permission access.Permission
-		kind       string
-		into       **Money
-	}{{access.PurchasesView, "purchase", &d.Purchases}, {access.SalesView, "sale", &d.Sales}, {access.OrdersView, "order", &d.OrdersMoney}} {
-		if !in.Permissions.Has(block.permission) {
-			continue
-		}
+	if in.Permissions.Has(access.SalesView) {
 		rows, err := s.q.DashboardMoneyByDay(ctx, gen.DashboardMoneyByDayParams{
-			CompanyID: scope.CompanyID, Kind: block.kind, LocationIds: scope.locations(in.LocationID), Zone: in.Zone, MonthStart: monthStart(in.Today), Today: in.Today,
+			CompanyID: scope.CompanyID, Kind: "sale", LocationIds: scope.locations(in.LocationID), Zone: in.Zone, MonthStart: monthStart(in.Today), Today: in.Today,
 		})
 		if err != nil {
 			return Dashboard{}, err
@@ -230,7 +176,7 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 			m.MonthTotal = amount(row.Total)
 			m.MonthCount = row.Count
 		}
-		*block.into = m
+		d.Sales = m
 	}
 	return d, nil
 }

@@ -1066,14 +1066,15 @@ paths:
       summary: Bosh sahifa bloklari
       description: >
         Bosh sahifaning bir qarashdagi ma'lumoti
-        (docs/superpowers/specs/2026-10-13-mini-app-ui-design.md): har blok
-        o'z ruxsati bilan, ruxsatsizi null. Pul so'mda, har hujjat o'z kurs
-        qatori bilan (logic/currencies.md, 4-bo'lim). Kunlar a'zoning vaqt
-        zonasida (standart Asia/Tashkent). Buyurtmalar, xaridlar va sotuvlar
-        location_id dagi lokatsiyaniki (a'zo ishlay olmaydigan lokatsiya: 403
-        forbidden; son emas: 400 "Lokatsiya noto'g'ri"), berilmasa a'zoga
-        ruxsatli hamma lokatsiyaniki; ta'minotchilar va mijozlar
-        kompaniyaniki.
+        (docs/superpowers/specs/2026-11-03-flat-redesign-design.md;
+        logic/roles.md, 8-bo'lim): har blok o'z ruxsati bilan, ruxsatsizi
+        null. Akkauntlar o'z valyutasida; mijozlar qarzi va sotuvlar so'mda,
+        har hujjat o'z kurs qatori bilan (logic/currencies.md, 4-bo'lim).
+        Kunlar a'zoning vaqt zonasida (standart Asia/Tashkent). Buyurtmalar,
+        sotuvlar va kam qolgan tovarlar location_id dagi lokatsiyaniki (a'zo
+        ishlay olmaydigan lokatsiya: 403 forbidden; son emas: 400 "Lokatsiya
+        noto'g'ri"), berilmasa a'zoga ruxsatli hamma lokatsiyaniki; kassa va
+        mijozlar qarzi kompaniyaniki.
       security:
         - appBearer: []
       parameters:
@@ -8537,75 +8538,89 @@ components:
             bo'lsa, biriktirilgan paytdagi ismi
     Dashboard:
       type: object
-      required: [suppliers, customers, orders, purchases, sales, orders_money]
+      required: [cash, debtors, orders, sales, low_stock]
       properties:
-        suppliers:
-          description: purchases.view bo'lganga, aks holda null
+        cash:
+          description: Kassadagi pul; finance.view bo'lganga, aks holda null
           oneOf:
-            - $ref: "#/components/schemas/DashboardSuppliers"
+            - $ref: "#/components/schemas/DashboardCash"
             - type: "null"
-        customers:
-          description: customers.view bo'lganga, aks holda null
+        debtors:
+          description: Mijozlar qarzi; customers.view va sales.view bo'lganga, aks holda null
           oneOf:
-            - $ref: "#/components/schemas/DashboardCustomers"
+            - $ref: "#/components/schemas/DashboardDebtors"
             - type: "null"
         orders:
           description: orders.view bo'lganga, aks holda null
           oneOf:
             - $ref: "#/components/schemas/DashboardOrders"
             - type: "null"
-        purchases:
-          description: Xaridlar; purchases.view bo'lganga, aks holda null
-          oneOf:
-            - $ref: "#/components/schemas/DashboardMoney"
-            - type: "null"
         sales:
-          description: Sotuvlar; sales.view bo'lganga, aks holda null
+          description: Oyning sotuvlari; sales.view bo'lganga, aks holda null
           oneOf:
             - $ref: "#/components/schemas/DashboardMoney"
             - type: "null"
-        orders_money:
-          description: >
-            Shu oyda yaratilgan narxli buyurtmalar (hujjatlari, narxi > 0;
-            logic/orders.md, 4.3); orders.view bo'lganga, aks holda null
+        low_stock:
+          description: Kam qolgan tovarlar; stock.view bo'lganga, aks holda null
           oneOf:
-            - $ref: "#/components/schemas/DashboardMoney"
+            - $ref: "#/components/schemas/DashboardLowStock"
             - type: "null"
-    DashboardSuppliers:
+    DashboardCash:
       type: object
       description: >
-        Kompaniyaning jonli ta'minotchilari so'mdagi balanslari (ro'yxatdagi
-        balance): musbatlari yig'indisi va soni, manfiylari yig'indisi
-        musbat son sifatida
-      required: [debt, debtors, advance]
+        Jonli akkauntlar (nofaollari ham) qoldiqlari valyuta bo'yicha
+        yig'indisi, aylantirilmaydi (logic/finance.md, 4-bo'lim)
+      required: [totals, accounts]
+      properties:
+        totals:
+          type: array
+          description: Valyuta ID tartibida; yig'indisi 0 valyuta yo'q
+          items:
+            $ref: "#/components/schemas/CurrencyAmount"
+        accounts:
+          type: integer
+          format: int64
+          description: Jonli akkauntlar soni
+    CurrencyAmount:
+      type: object
+      required: [currency_id, amount]
+      properties:
+        currency_id:
+          type: integer
+          format: int64
+        amount:
+          type: string
+          description: Shu valyutada, ikki kasr xonasi bilan
+    DashboardDebtors:
+      type: object
+      description: >
+        Kompaniyaning jonli mijozlari so'mdagi balanslari (ro'yxatdagi
+        balance, logic/sales.md, 5-bo'lim): musbatlari yig'indisi va soni
+      required: [debt, count]
       properties:
         debt:
           type: string
           description: Qarz, so'mda, ikki kasr xonasi bilan
-        debtors:
+        count:
           type: integer
           format: int64
-          description: Qarzdor (balansi musbat) ta'minotchilar soni
-        advance:
-          type: string
-          description: Avans, so'mda, ikki kasr xonasi bilan
-    DashboardCustomers:
+          description: Qarzdor (balansi musbat) mijozlar soni
+    DashboardLowStock:
       type: object
-      required: [total, added_this_month, by_day]
+      description: >
+        Lokatsiyada (yoki ruxsatli hammasida, yig'indi) harakati bor jonli
+        faol mahsulotlar (xizmat emas), qoldig'i 3 dan oshmaganlari
+        (logic/warehouse.md, 5-bo'lim)
+      required: [count, names]
       properties:
-        total:
+        count:
           type: integer
           format: int64
-          description: Bugun oxirigacha jonli mijozlar soni
-        added_this_month:
-          type: integer
-          format: int64
-        by_day:
+        names:
           type: array
-          description: Oyning har kuni oxirigacha jonli mijozlar soni, 1-kundan bugungacha
+          description: Nom bo'yicha birinchi 5 tasining nomi
           items:
-            type: integer
-            format: int64
+            type: string
     DashboardOrders:
       type: object
       required: [active, late, by_stage, upcoming]
@@ -8640,7 +8655,7 @@ components:
           format: int64
     DashboardMoney:
       type: object
-      description: Shu oyning bugungacha jonli hujjatlari (xarid, sotuv yoki narxli buyurtma)
+      description: Shu oyning bugungacha jonli sotuvlari
       required: [month_total, month_count, by_day]
       properties:
         month_total:
