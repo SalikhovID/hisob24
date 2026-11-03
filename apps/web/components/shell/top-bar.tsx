@@ -1,83 +1,105 @@
 "use client"
 
-import { ChevronLeftIcon, LogOutIcon, MoonIcon, SunIcon } from "lucide-react"
+import { Menu } from "@base-ui/react/menu"
+import { ArrowLeftIcon, BellIcon, CheckIcon, ChevronDownIcon, MapPinIcon } from "lucide-react"
 import Link from "next/link"
-import { useTheme } from "next-themes"
-import { useState } from "react"
 import { useBackTarget } from "@/components/kit/back-target"
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import { moveTo } from "@/lib/moves"
-import { useLogout } from "@/lib/queries"
-import { useMiniApp } from "@/lib/telegram"
-import { useHydrated } from "@/lib/use-hydrated"
-import { cn } from "@/lib/utils"
+import { useLocation } from "@/lib/use-location"
 
-// A tool of the bar: a 40px pill, its icon (and words) in the heading's ink.
-const tool =
-  "inline-flex h-10 items-center gap-2 rounded-[20px] px-3 text-md text-heading outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-5"
+// A menu of the bar: a floating white card of 30px rows, at the right under
+// what opened it.
+const popup = "z-50 min-w-[200px] rounded-lg bg-popover p-1 text-[13px] text-foreground shadow-float outline-none"
 
-// TopBar stands over the page's column on a wide screen, as the prototype's
-// web view: a fade of the page's own color that what scrolls up passes
-// under; at its left «Orqaga», a small glass, where the page's own way back
-// leads (a phone's link, hidden here); at its right, in a browser, the
-// theme (the moon to the dark, the sun to the light) and the way out, which
-// asks first. Inside Telegram the chat sets the theme and closing the Mini
-// App is the way out. The app speaks Uzbek alone: no language to choose.
+// TopBar stands over the page on a wide screen, as the prototype's web
+// view: a 52px bar with a faint hairline under it. At its left «← Orqaga»,
+// in grey, where the page's own way back leads (a phone's link, hidden
+// here); at its right the location menu (two locations or more) and the
+// bell, which says there are no notifications yet. The theme is the
+// profile's to choose and the way out the sidebar's.
 export function TopBar() {
   const back = useBackTarget()
-  const miniApp = useMiniApp()
-  const { resolvedTheme, setTheme } = useTheme()
-  const logout = useLogout()
-  const [leaving, setLeaving] = useState(false)
-  // The server knows no theme of the browser's: until the page is hydrated
-  // the button is the server's (the moon), then the theme's own.
-  const dark = useHydrated() && resolvedTheme === "dark"
-
   return (
-    <div
-      data-slot="top-bar"
-      className="pointer-events-none absolute inset-x-0 top-0 z-[15] hidden h-[76px] items-center gap-1 bg-[linear-gradient(var(--fade)_55%,transparent)] px-[max(32px,calc((100%-1120px)/2))] md:flex [&>*]:pointer-events-auto"
-    >
+    <div data-slot="top-bar" className="hidden h-[52px] shrink-0 items-center gap-2 border-b border-line-faint px-6 md:flex md:h-[calc(52px+var(--safe-top))] md:pt-safe">
       {back && (
-        <Link href={back.href} onClick={() => moveTo("back")} className={cn(tool, "bg-muted font-semibold text-foreground")}>
-          <ChevronLeftIcon aria-hidden="true" strokeWidth={1.8} />
+        <Link
+          href={back.href}
+          onClick={() => moveTo("back")}
+          className="inline-flex h-[30px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground no-underline outline-none hover:bg-ink-1 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <ArrowLeftIcon aria-hidden="true" strokeWidth={2} className="size-4" />
           Orqaga
         </Link>
       )}
       <span className="flex-1" />
-      {!miniApp && (
-        <>
-          <button type="button" aria-label="Mavzuni almashtirish" onClick={() => setTheme(dark ? "light" : "dark")} className={cn(tool, "hover:bg-muted")}>
-            {dark ? <SunIcon aria-hidden="true" strokeWidth={1.8} /> : <MoonIcon aria-hidden="true" strokeWidth={1.8} />}
-          </button>
-          <button type="button" aria-label="Chiqish" onClick={() => setLeaving(true)} className={cn(tool, "hover:bg-muted")}>
-            <LogOutIcon aria-hidden="true" strokeWidth={1.8} />
-          </button>
-          <AlertDialog open={leaving} onOpenChange={setLeaving}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Tizimdan chiqasizmi?</AlertDialogTitle>
-                <AlertDialogDescription>Qayta kirish uchun raqamingizga kod keladi.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel size="lg">Bekor qilish</AlertDialogCancel>
-                <Button variant="destructive" size="lg" disabled={logout.isPending} onClick={() => logout.mutate()}>
-                  Chiqish
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      )}
+      <LocationMenu />
+      <Bell />
     </div>
+  )
+}
+
+// LocationMenu is the way from one location to another (logic/locations.md,
+// section 4) on a wide screen, as the prototype's: a ringed pill that says
+// the current one and opens a menu of the ones the member may work in, the
+// current one in the accent. It shows only when there are two or more.
+function LocationMenu() {
+  const { locations, current, choose } = useLocation()
+  if (locations.length < 2 || !current) return null
+  return (
+    <Menu.Root>
+      <Menu.Trigger
+        aria-label={`Lokatsiya: ${current.name}`}
+        data-slot="location-pill"
+        className="inline-flex h-[30px] max-w-[260px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium shadow-[0_0_0_1px_var(--border)] outline-none hover:bg-ink-1 focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <MapPinIcon aria-hidden="true" strokeWidth={1.8} className="size-[15px] shrink-0 text-icon" />
+        <span className="min-w-0 truncate">{current.name}</span>
+        <ChevronDownIcon aria-hidden="true" strokeWidth={1.8} className="size-3.5 shrink-0 text-icon" />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="bottom" align="end" sideOffset={6}>
+          <Menu.Popup className={popup}>
+            <Menu.RadioGroup value={current.id} onValueChange={(id) => choose(Number(id))}>
+              {locations.map((location) => (
+                <Menu.RadioItem
+                  key={location.id}
+                  value={location.id}
+                  className="flex h-[30px] cursor-default items-center gap-2 rounded-md px-2.5 outline-none data-highlighted:bg-ink-1 data-checked:font-medium data-checked:text-accent-text"
+                >
+                  <span className="min-w-0 flex-1 truncate">{location.name}</span>
+                  <Menu.RadioItemIndicator>
+                    <CheckIcon aria-hidden="true" strokeWidth={2} className="size-3.5" />
+                  </Menu.RadioItemIndicator>
+                </Menu.RadioItem>
+              ))}
+            </Menu.RadioGroup>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  )
+}
+
+// Bell is the prototype's bell: there are no notifications in the app yet,
+// and its menu says so.
+function Bell() {
+  return (
+    <Menu.Root>
+      <Menu.Trigger
+        aria-label="Bildirishnomalar"
+        className="grid size-[30px] place-items-center rounded-lg text-icon outline-none hover:bg-ink-1 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <BellIcon aria-hidden="true" strokeWidth={1.75} className="size-4" />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="bottom" align="end" sideOffset={6}>
+          <Menu.Popup className={popup}>
+            <Menu.Item disabled className="px-2.5 py-2 text-muted-foreground">
+              Bildirishnomalar hozircha yo&apos;q
+            </Menu.Item>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
   )
 }

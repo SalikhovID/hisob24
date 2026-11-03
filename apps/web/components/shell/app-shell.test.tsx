@@ -46,23 +46,21 @@ test("the top bar leads back where the page's own way back does", async () => {
   expect(await screen.findByRole("link", { name: "Orqaga" })).toHaveAttribute("href", "/customers")
 })
 
-test("on a wide screen the page's column is the prototype's: 1120px at most, in the middle, 32px at least either side, under the top bar", async () => {
+test("on a wide screen the page's column is the prototype's: 1080px at most, in the middle, 24px at least either side, under the top bar", async () => {
   await signIn(ALI)
   renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
 
-  expect(screen.getByRole("main")).toHaveClass("md:px-[max(32px,calc((100%-1120px)/2))]", "md:pt-safe-20", "md:pb-20")
+  expect(screen.getByRole("main")).toHaveClass("md:px-[max(24px,calc((100%-1080px)/2))]", "md:pt-5", "md:pb-10")
 })
 
-test("the shell says how wide its sidebar stands, folded or not, for the page that moves", async () => {
+test("the shell lays no width of the sidebar out for the page: nothing measures by it any more", async () => {
   await signIn(ALI)
-  const { container, user } = renderWithProviders(<AppShell>{page}</AppShell>)
+  const { container } = renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
 
   const shell = container.querySelector('[data-slot="app-shell"]') as HTMLElement
-  expect(shell.style.getPropertyValue("--side")).toBe("296px")
-  await user.click(screen.getByRole("button", { name: "Menyuni yig'ish" }))
-  await waitFor(() => expect(shell.style.getPropertyValue("--side")).toBe("96px"))
+  expect(shell.style.getPropertyValue("--side")).toBe("")
 })
 
 test("a session for an expired company is sent to /expired, its page not shown", async () => {
@@ -145,14 +143,14 @@ test("the sidebar folds, and a page opened later finds it folded", async () => {
   expect(await screen.findByRole("button", { name: "Menyuni yoyish" })).toBeInTheDocument()
 })
 
-test("the page runs under what lies over the top of the screen (Telegram's controls in full screen): the shell keeps no room for it, the page's column starts its content below it", async () => {
+test("the page runs under what lies over the top of the screen (Telegram's controls in full screen): on a phone the column starts its content below it, on a wide screen the top bar does", async () => {
   await signIn(ALI)
   const { container } = renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
 
   expect(container.querySelector('[data-slot="app-shell"]')).not.toHaveClass("pt-safe")
-  expect(screen.getByRole("main")).toHaveClass("pt-safe-2", "md:pt-safe-20")
-  expect(screen.getByRole("main")).not.toHaveClass("pt-2")
+  expect(screen.getByRole("main")).toHaveClass("pt-safe-2", "md:pt-5")
+  expect(container.querySelector('[data-slot="top-bar"]')).toHaveClass("md:pt-safe", "md:h-[calc(52px+var(--safe-top))]")
 })
 
 test("once the page is scrolled past a few pixels a soft fade stands at the top, under what lies over the screen; back at the top it goes", async () => {

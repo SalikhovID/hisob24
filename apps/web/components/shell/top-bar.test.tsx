@@ -1,19 +1,14 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { act, screen, waitFor, within } from "@testing-library/react"
-import { ThemeProvider } from "next-themes"
+import { screen, within } from "@testing-library/react"
 import type { ComponentProps, ReactNode } from "react"
-import { hydrateRoot } from "react-dom/client"
-import { renderToString } from "react-dom/server"
 import { afterEach, expect, test, vi } from "vitest"
 import { BackTargetProvider } from "@/components/kit/back-target"
 import { BackLink } from "@/components/kit/page-title"
 import { setMiniApp } from "@/lib/telegram"
 import { ALI } from "@/mocks/data"
+import { addLocation } from "@/test/locations"
 import { moved } from "@/test/moves"
-import { leave } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { signIn } from "@/test/session"
-import { fakeWebApp } from "@/test/telegram"
 import { TopBar } from "./top-bar"
 
 // next/link as far as a click goes: a link that runs its click and stays.
@@ -38,12 +33,12 @@ const shell = (page?: ReactNode) => (
   </BackTargetProvider>
 )
 
-test("on a page under another the top bar leads back where the page's way back does: «Orqaga», a plain fill, a move back", async () => {
+test("on a page under another the top bar leads back where the page's way back does: «← Orqaga» in grey, a move back", async () => {
   const { user } = renderWithProviders(shell(<BackLink href="/customers" label="Mijozlar" />))
   const bar = document.querySelector('[data-slot="top-bar"]') as HTMLElement
   const back = await within(bar).findByRole("link", { name: "Orqaga" })
   expect(back).toHaveAttribute("href", "/customers")
-  expect(back).toHaveClass("bg-muted")
+  expect(back).toHaveClass("text-muted-foreground", "hover:bg-ink-1")
   await user.click(back)
   expect(moved()).toBe("back")
 })
@@ -53,70 +48,32 @@ test("on a section's own page there is no way back", () => {
   expect(screen.queryByRole("link", { name: "Orqaga" })).not.toBeInTheDocument()
 })
 
-test("the top bar is a wide screen's, over the page's column: a fade of the page's own color, hidden on a phone", () => {
+test("the top bar is the prototype's 52px bar over the page, a faint hairline under it, hidden on a phone", () => {
   renderWithProviders(shell())
   const bar = document.querySelector('[data-slot="top-bar"]')
-  expect(bar).toHaveClass("hidden", "md:flex", "h-[76px]", "bg-[linear-gradient(var(--fade)_55%,transparent)]", "px-[max(32px,calc((100%-1120px)/2))]")
+  expect(bar).toHaveClass("hidden", "md:flex", "h-[52px]", "border-b", "border-line-faint", "px-6")
 })
 
-test("the theme button turns the light into the dark, and back", async () => {
-  const { user } = renderWithProviders(shell())
-  await user.click(screen.getByRole("button", { name: "Mavzuni almashtirish" }))
-  await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
-  await user.click(screen.getByRole("button", { name: "Mavzuni almashtirish" }))
-  await waitFor(() => expect(document.documentElement).not.toHaveClass("dark"))
-})
-
-test("the way out asks first; agreed, the session ends and leaves for /login", async () => {
-  await signIn(ALI)
-  const { user } = renderWithProviders(shell())
-  await user.click(screen.getByRole("button", { name: "Chiqish" }))
-  const alert = await screen.findByRole("alertdialog", { name: "Tizimdan chiqasizmi?" })
-  expect(within(alert).getByText("Qayta kirish uchun raqamingizga kod keladi.")).toBeInTheDocument()
-  await user.click(within(alert).getByRole("button", { name: "Chiqish" }))
-  await waitFor(() => expect(leave).toHaveBeenCalledWith("/login"))
-})
-
-test("asked, the way out may be put off: «Bekor qilish» keeps the session", async () => {
-  await signIn(ALI)
-  const { user } = renderWithProviders(shell())
-  await user.click(screen.getByRole("button", { name: "Chiqish" }))
-  const alert = await screen.findByRole("alertdialog", { name: "Tizimdan chiqasizmi?" })
-  await user.click(within(alert).getByRole("button", { name: "Bekor qilish" }))
-  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
-  expect(leave).not.toHaveBeenCalled()
-})
-
-test("inside Telegram there is no theme or way out: the chat sets the theme, and closing is the way out", () => {
-  setMiniApp(fakeWebApp())
-  renderWithProviders(shell(<BackLink href="/customers" label="Mijozlar" />))
+test("the top bar holds no theme and no way out: the profile chooses the theme, the sidebar leads out", () => {
+  renderWithProviders(shell())
   expect(screen.queryByRole("button", { name: "Mavzuni almashtirish" })).not.toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
 })
 
-test("the theme button is the same on the server and in the browser until the page is hydrated: a dark browser's page hydrates without a mismatch", async () => {
-  const queryClient = new QueryClient()
-  const app = (
-    <ThemeProvider attribute="class" defaultTheme="light">
-      <QueryClientProvider client={queryClient}>
-        <BackTargetProvider>
-          <TopBar />
-        </BackTargetProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
-  )
-  const container = document.createElement("div")
-  document.body.append(container)
-  // The server knows no theme of the browser's.
-  container.innerHTML = renderToString(app)
-  localStorage.setItem("theme", "dark")
-  const recovered: unknown[] = []
-  await act(async () => {
-    hydrateRoot(container, app, { onRecoverableError: (error) => recovered.push(error) })
-  })
-  expect(recovered).toEqual([])
-  // Hydrated, it shows the theme's own: the sun in the dark.
-  await waitFor(() => expect(container.querySelector(".lucide-sun")).not.toBeNull())
-  localStorage.removeItem("theme")
-  container.remove()
+test("with two locations the top bar's menu says the current one and makes another current", async () => {
+  addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  const { user } = renderWithProviders(shell())
+  const pill = await screen.findByRole("button", { name: "Lokatsiya: Asosiy" })
+  await user.click(pill)
+  const menu = await screen.findByRole("menu", { name: "Lokatsiya: Asosiy" })
+  expect(within(menu).getByRole("menuitemradio", { name: "Asosiy" })).toHaveAttribute("aria-checked", "true")
+  await user.click(within(menu).getByRole("menuitemradio", { name: "Chilonzor" }))
+  expect(await screen.findByRole("button", { name: "Lokatsiya: Chilonzor" })).toBeInTheDocument()
+})
+
+test("the bell opens a menu that says there are no notifications yet", async () => {
+  const { user } = renderWithProviders(shell())
+  await user.click(screen.getByRole("button", { name: "Bildirishnomalar" }))
+  expect(await screen.findByText("Bildirishnomalar hozircha yo'q")).toBeInTheDocument()
 })
