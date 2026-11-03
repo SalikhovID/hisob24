@@ -71,7 +71,7 @@ Rol va ism **har kompaniyada alohida**:
 Qanday ishlaydi:
 
 - **Login.** Bitta kompaniyasi bor user to'g'ridan-to'g'ri o'sha kompaniyaga kiradi. Ikki va undan ko'p bo'lsa, `/select-company` sahifasida tanlaydi.
-- **Sessiya.** Bitta sessiya bir vaqtda bitta kompaniyada ishlaydi (access token'da `company_id`). Almashtirish: profil menyusi → "Kompaniyani almashtirish" (`POST /app/auth/switch-company`).
+- **Sessiya.** Bitta sessiya bir vaqtda bitta kompaniyada ishlaydi (access token'da `company_id`). Almashtirish: profil sahifasi → "Kompaniyani almashtirish" (`POST /app/auth/switch-company`).
 - **Sessiya ochiq paytda qo'shilsa.** Yangi kompaniya keyingi `/app/me` javobida ro'yxatda paydo bo'ladi, qayta kirish shart emas. Hozir ishlayotgan kompaniyasi o'zgarmaydi.
 - **Izolyatsiya.** Kompaniya faqat o'z a'zolarini va ularning o'zidagi ismini ko'radi. User qaysi boshqa kompaniyalarda ishlashi faqat uning o'ziga ko'rinadi.
 - **Mustaqillik.** Bir kompaniyadan chiqarish, ismni o'zgartirish yoki obunaning tugashi boshqa kompaniyadagi a'zolikka ta'sir qilmaydi.

@@ -41,7 +41,7 @@ Lokatsiya buyurtmalarga va omborga tegadi: buyurtma, xarid, sotuv, inventarizats
 
 - A'zoning ruxsatli lokatsiyalari `/app/me` javobida (`locations`, ID tartibida; kompaniya tanlanmagan bo'lsa bo'sh).
 - Joriy lokatsiya brauzerda eslanadi (kompaniya va user bo'yicha). Eslangani ruxsatli bo'lmasa (o'chirilgan, cheklov bilan yopilgan) ruxsatli birinchisi. Ruxsatli lokatsiya bo'lmasa joriy lokatsiya yo'q.
-- **Tanlovchi** topbar'da (har sahifada), faqat ruxsatli lokatsiya 2+ bo'lsa. 1 ta bo'lsa (kompaniyada 1 ta yoki xodim 1 tasi bilan cheklangan) hech narsa ko'rinmaydi. Almashtirish bir zumda: token o'zgarmaydi; buyurtmalar ro'yxati 1-sahifadan, tur / bosqich / qidiruv / mas'ul filtrlari qoladi; xaridlar ro'yxati ham 1-sahifadan, mahsulotlar ro'yxatidagi "Qoldiq" ustuni yangi lokatsiyaniki.
+- **Tanlovchi** keng ekranda tepa paneldagi menyu (har sahifada), telefonda bosh sahifa boshidagi varaq va profil sahifasidagi «Lokatsiya» ro'yxati; faqat ruxsatli lokatsiya 2+ bo'lsa. 1 ta bo'lsa (kompaniyada 1 ta yoki xodim 1 tasi bilan cheklangan) hech narsa ko'rinmaydi. Almashtirish bir zumda: token o'zgarmaydi; buyurtmalar ro'yxati 1-sahifadan, tur / bosqich / qidiruv / mas'ul filtrlari qoladi; xaridlar ro'yxati ham 1-sahifadan, mahsulotlar ro'yxatidagi "Qoldiq" ustuni yangi lokatsiyaniki.
 - Server joriy lokatsiyani so'rovning `location_id` idan oladi va a'zoning ruxsatli to'plamida tekshiradi; token'da lokatsiya yo'q.
 
 ## 5. Xodim cheklovi
