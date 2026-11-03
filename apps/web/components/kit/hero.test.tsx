@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { Badge } from "@/components/ui/badge"
 import { WalletIcon } from "lucide-react"
+import Link from "next/link"
 import { Hero } from "./hero"
 
 test("a hero is the page's one figure under its label, with badges under it; with a way in it is a link", () => {
@@ -28,7 +28,7 @@ test("a hero is the prototype's card: its label grey with its icon, a link at it
     <Hero
       label="Kassadagi pul"
       icon={WalletIcon}
-      action={<a href="/accounts">Kassa →</a>}
+      action={<Link href="/accounts">Kassa →</Link>}
       value="37820000.00"
       unit="so'm"
       sub="+ $1,550 · 4 ta akkaunt"
