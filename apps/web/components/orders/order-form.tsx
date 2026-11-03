@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import type { ReactNode } from "react"
+import { type ReactNode, useEffect, useRef } from "react"
 import { type Control, type UseFormReturn, useWatch } from "react-hook-form"
 import { FieldAnswer } from "@/components/field-answer"
 import { Avatar } from "@/components/kit/avatar"
@@ -13,7 +13,7 @@ import { Refusal } from "@/components/refusal"
 import { LinesField } from "@/components/warehouse/lines-field"
 import { PaymentsField } from "@/components/warehouse/payments-field"
 import { ApiError } from "@/lib/api"
-import { currencyOf, currencyOptions, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { currencyOf, currencyOptions, isMulti, turnTyped, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { customerName } from "@/lib/customers"
 import { fieldKey, type FormField } from "@/lib/fields"
 import { assigneeOptions } from "@/lib/members"
@@ -117,6 +117,18 @@ export function MoneySection({
 
   // Another currency: its standard rate is offered, again when it changes.
   useOfferedRate(form, currencyId, currencies)
+
+  // A change of the currency turns the price into it by the rates in force
+  // (logic/currencies.md, section 5); what is no price stays as typed. An
+  // order opened in its own currency keeps its price.
+  const shown = useRef(currencyId)
+  useEffect(() => {
+    const from = shown.current
+    if (from === currencyId) return
+    shown.current = currencyId
+    const turned = turnTyped(form.getValues("amount"), from, currencyId, currencies)
+    if (turned !== null) form.setValue("amount", turned)
+  }, [currencyId, currencies, form])
 
   return (
     <>
