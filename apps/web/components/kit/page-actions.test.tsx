@@ -17,30 +17,36 @@ test("a record's actions are buttons named in full, a press does the action", as
   expect(screen.getByRole("button", { name: "O'chirish" })).toBeInTheDocument()
 })
 
-test("on the web an action says its name beside its icon (unless it is an icon alone); on a phone it is a 36px round icon", () => {
-  render(
+test("on the web an action is the prototype's button, its icon beside its name (or the icon alone); on a phone every action is the prototype's tile under the title: its icon in an accent circle over its name, a danger one's red", () => {
+  const { container } = render(
     <PageActions>
       <PageAction icon={PencilIcon} label="Tahrirlash" onClick={() => {}} />
-      <PageAction icon={Trash2Icon} label="O'chirish" variant="ghost" iconOnly onClick={() => {}} />
+      <PageAction icon={Trash2Icon} label="O'chirish" variant="danger" iconOnly onClick={() => {}} />
     </PageActions>,
   )
+  const row = container.querySelector('[data-slot="page-actions"]') as HTMLElement
+  expect(row).toHaveClass("max-md:grid", "max-md:w-full")
+  expect(row.style.getPropertyValue("--n")).toBe("2")
   const edit = screen.getByRole("button", { name: "Tahrirlash" })
-  expect(edit).toHaveClass("max-md:size-9", "max-md:rounded-full", "max-md:p-0")
-  expect(screen.getByText("Tahrirlash")).toHaveClass("max-md:sr-only")
-  expect(screen.getByText("O'chirish")).toHaveClass("sr-only")
+  expect(edit).toHaveClass("max-md:flex-col", "max-md:rounded-group", "max-md:text-[12px]")
+  expect(edit.querySelector('[data-slot="action-icon"]')).toHaveClass("max-md:size-9", "max-md:rounded-full", "max-md:bg-primary")
+  expect(screen.getByText("Tahrirlash")).not.toHaveClass("max-md:sr-only")
+  // An icon alone on the web says its name on a phone's tile.
+  expect(screen.getByText("O'chirish")).toHaveClass("md:sr-only")
+  expect(screen.getByRole("button", { name: "O'chirish" }).querySelector('[data-slot="action-icon"]')).toHaveClass("max-md:bg-destructive")
 })
 
-test("a primary action is the accent and keeps its words on a phone; an action may be a link", () => {
+test("a primary action is the accent on the web; an action may lead somewhere, a call by a plain link", () => {
   render(
     <PageActions>
       <PageAction label="To'lov berish" variant="primary" onClick={() => {}} />
       <PageAction icon={PencilIcon} label="Tahrirlash" href="/customers/1/edit" />
+      <PageAction icon={PencilIcon} label="Qo'ng'iroq" href="tel:+998911112233" />
     </PageActions>,
   )
-  const pay = screen.getByRole("button", { name: "To'lov berish" })
-  expect(pay).toHaveClass("bg-primary")
-  expect(pay).not.toHaveClass("max-md:size-9")
+  expect(screen.getByRole("button", { name: "To'lov berish" })).toHaveClass("bg-primary")
   expect(screen.getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", "/customers/1/edit")
+  expect(screen.getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998911112233")
 })
 
 test("the actions are a group named «Amallar», as the record pages' tiles were", () => {

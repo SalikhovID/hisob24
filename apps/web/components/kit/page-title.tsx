@@ -83,7 +83,7 @@ export function PageTitle({
   return (
     <header data-slot="page-title" className={className}>
       {back && <BackLink {...back} />}
-      <div className="flex items-end justify-between gap-3 pt-0.5 pb-4 md:items-center md:pt-0 md:pb-5">
+      <div className="flex items-end justify-between gap-3 pt-0.5 pb-4 max-md:flex-wrap md:items-center md:pt-0 md:pb-5">
         <div className="min-w-0">
           <h1 className="text-[32px] leading-[1.15] font-bold tracking-[-0.01em] [overflow-wrap:anywhere] md:text-[20px] md:leading-[1.3] md:font-semibold">{title}</h1>
           {description && <p className="mt-1 text-md text-muted-foreground md:mt-0.5 md:text-[13px]">{description}</p>}

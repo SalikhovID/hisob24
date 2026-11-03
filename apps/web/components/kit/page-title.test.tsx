@@ -51,3 +51,9 @@ test("the way back is the accent's words, hidden inside Telegram where its own B
   render(<BackLink href="/" label="Bosh sahifa" />)
   expect(screen.getByRole("link", { name: "Bosh sahifa" })).toHaveClass("text-accent-text", "[html[data-telegram]_&]:hidden")
 })
+
+test("on a phone a record's actions, as wide as the page, go under the title; a plus stays at its right", () => {
+  render(<PageTitle title="Dilshod Karimov" action={<span data-testid="actions" />} />)
+
+  expect(screen.getByTestId("actions").parentElement!.parentElement).toHaveClass("max-md:flex-wrap")
+})
