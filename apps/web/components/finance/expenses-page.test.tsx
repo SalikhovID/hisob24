@@ -72,6 +72,18 @@ test("the expenses of the kind chosen as the prototype's list: by their day, the
   await waitFor(() => expect(currentUrl()).toBe("/expenses"))
 })
 
+test("on a wide screen the expenses are the prototype's table: №, Vaqt, Kategoriya, Akkaunt, Kim, Summa; a phone keeps their days", async () => {
+  await spent()
+  setLocation("/expenses")
+  renderWithProviders(<ExpensesPage />)
+
+  const table = await screen.findByRole("table", { name: "Xarajatlar" })
+  expect(within(table).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["№", "Vaqt", "Kategoriya", "Akkaunt", "Kim", "Summa"])
+  const cells = within(within(table).getAllByRole("row")[1]).getAllByRole("cell")
+  expect(cells.map((cell) => cell.textContent?.replace(/\s+/g, " "))).toEqual(["№ 1", "3-oktabr, 09:00", "Ijara", "Naqd", "Ali V.", "150 000 so'm"])
+  expect((await screen.findByRole("region", { name: "Xarajatlar" })).closest('[data-slot="data-list"]')).toHaveClass("md:hidden")
+})
+
 test("the days: each bound picked in the calendar sheet, let go there too; a span turned around is refused", async () => {
   await spent()
   setLocation("/expenses?from=2026-10-03")

@@ -5,6 +5,7 @@ import { useState } from "react"
 import { ActionSheet } from "@/components/kit/action-sheet"
 import { Chip, Chips } from "@/components/kit/chips"
 import { DateSheet } from "@/components/kit/date-sheet"
+import { type Column, DataTable } from "@/components/kit/data-table"
 import { DayGroups } from "@/components/kit/day-groups"
 import { Foot, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
@@ -15,7 +16,7 @@ import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { accountOptions, currencyOf, useAccounts, useCurrencies } from "@/lib/currencies"
-import { formatDate, formatMoney, formatTime } from "@/lib/format"
+import { formatDate, formatDayMonthTime, formatMoney, formatTime } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { useExpenses, useFinanceCategories } from "@/lib/queries"
@@ -74,6 +75,17 @@ export function ExpensesPage() {
 
   if (!gate) return null
   const page = expenses.data
+  // The web's table: the number, the moment, the category, the account, who
+  // entered it and the amount; a row opens its actions.
+  const columns: Column<Expense>[] = [
+    { key: "number", label: "№", render: (e) => `№ ${e.number}` },
+    { key: "at", label: "Vaqt", render: (e) => formatDayMonthTime(e.at) },
+    { key: "category", label: "Kategoriya", render: (e) => e.category_name },
+    { key: "account", label: "Akkaunt", render: (e) => e.account_name },
+    { key: "by", label: "Kim", render: (e) => (e.created_by_name ? shortName(e.created_by_name) : "—") },
+    { key: "amount", label: "Summa", align: "end", render: (e) => amountOf(e) },
+  ]
+
   return (
     <>
       <PageTitle
@@ -134,19 +146,30 @@ export function ExpensesPage() {
       )}
       {!loading && !expenses.isError && page && page.total > 0 && (
         <>
-          <DayGroups label={w.list} items={page.items} at={(e) => e.at} className={cn(expenses.isPlaceholderData && "opacity-60")}>
-            {(e) => (
-              <Row
-                key={e.id}
-                onClick={acts ? () => setActing(e) : undefined}
-                media={e.kind === "income" ? <SoftIcon icon={ArrowDownLeftIcon} color="var(--positive)" /> : <SoftIcon icon={ArrowUpRightIcon} color="var(--destructive)" />}
-                title={`№ ${e.number} · ${e.category_name}`}
-                sub={[formatTime(e.at), e.account_name, e.created_by_name && shortName(e.created_by_name)].filter(Boolean).join(" · ")}
-                end={amountOf(e)}
-                chevron={false}
-              />
-            )}
-          </DayGroups>
+          <div className={cn(expenses.isPlaceholderData && "opacity-60")}>
+            <DataTable
+              label={w.list}
+              rows={page.items}
+              rowKey={(e) => e.id}
+              onRow={acts ? (e) => setActing(e) : undefined}
+              columns={columns}
+              phone={
+                <DayGroups label={w.list} items={page.items} at={(e) => e.at}>
+                  {(e) => (
+                    <Row
+                      key={e.id}
+                      onClick={acts ? () => setActing(e) : undefined}
+                      media={e.kind === "income" ? <SoftIcon icon={ArrowDownLeftIcon} color="var(--positive)" /> : <SoftIcon icon={ArrowUpRightIcon} color="var(--destructive)" />}
+                      title={`№ ${e.number} · ${e.category_name}`}
+                      sub={[formatTime(e.at), e.account_name, e.created_by_name && shortName(e.created_by_name)].filter(Boolean).join(" · ")}
+                      end={amountOf(e)}
+                      chevron={false}
+                    />
+                  )}
+                </DayGroups>
+              }
+            />
+          </div>
           {page.total > page.page_size ? (
             <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
           ) : (
