@@ -106,3 +106,42 @@ JOIN currency_rates cr ON cr.id = t.currency_rate_id
 LEFT JOIN transaction_items i ON i.transaction_id = sm.transaction_id AND i.product_id = sm.product_id AND t.kind IN ('purchase', 'opening_stock')
 WHERE sm.company_id = sqlc.arg('company_id') AND sm.product_id = ANY(sqlc.arg('product_ids')::bigint[]) AND t.deleted_at IS NULL
 ORDER BY sm.product_id, t.doc_at, t.id, (sm.quantity < 0) DESC, sm.id;
+
+-- name: ListStockSummary :many
+-- A page of the company's live products (no service; the turned off ones
+-- too) for the warehouse's «Qoldiq» table (logic/warehouse.md, section 5),
+-- by name whatever the case: each with its stock summed over the locations
+-- given, its last purchase price with its currency (as GetProduct's) and
+-- the stock's value at it. search, escaped for ILIKE, is looked for in the
+-- name and in the SKU; NULL leaves it out.
+SELECT p.id, p.name, p.sku, p.unit, p.is_active,
+       COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
+                 WHERE sm.product_id = p.id AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[])), 0)::numeric(14,3) AS total,
+       lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
+FROM products p
+LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
+                   WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
+                   ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
+WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL AND p.kind = 'product'
+  AND (sqlc.narg('search')::text IS NULL
+       OR p.name ILIKE '%' || sqlc.narg('search')::text || '%'
+       OR p.sku ILIKE '%' || sqlc.narg('search')::text || '%')
+ORDER BY lower(p.name), p.id
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: CountStockSummary :one
+-- How many rows ListStockSummary finds, on all of its pages.
+SELECT count(*) FROM products p
+WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL AND p.kind = 'product'
+  AND (sqlc.narg('search')::text IS NULL
+       OR p.name ILIKE '%' || sqlc.narg('search')::text || '%'
+       OR p.sku ILIKE '%' || sqlc.narg('search')::text || '%');
+
+-- name: ListStockByLocation :many
+-- The stock of the products given in each of the locations given that
+-- moved them: the moves summed by product and location.
+SELECT sm.product_id, sm.location_id, sum(sm.quantity)::numeric(14,3) AS quantity
+FROM stock_moves sm
+WHERE sm.company_id = sqlc.arg('company_id') AND sm.product_id = ANY(sqlc.arg('product_ids')::bigint[])
+  AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[])
+GROUP BY sm.product_id, sm.location_id;

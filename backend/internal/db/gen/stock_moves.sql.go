@@ -56,6 +56,27 @@ func (q *Queries) CountProductMoves(ctx context.Context, arg CountProductMovesPa
 	return count, err
 }
 
+const countStockSummary = `-- name: CountStockSummary :one
+SELECT count(*) FROM products p
+WHERE p.company_id = $1 AND p.deleted_at IS NULL AND p.kind = 'product'
+  AND ($2::text IS NULL
+       OR p.name ILIKE '%' || $2::text || '%'
+       OR p.sku ILIKE '%' || $2::text || '%')
+`
+
+type CountStockSummaryParams struct {
+	CompanyID int64
+	Search    *string
+}
+
+// How many rows ListStockSummary finds, on all of its pages.
+func (q *Queries) CountStockSummary(ctx context.Context, arg CountStockSummaryParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countStockSummary, arg.CompanyID, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteStockMoves = `-- name: DeleteStockMoves :exec
 DELETE FROM stock_moves WHERE transaction_id = $1
 `
@@ -343,6 +364,125 @@ func (q *Queries) ListStockAt(ctx context.Context, arg ListStockAtParams) ([]Lis
 	for rows.Next() {
 		var i ListStockAtRow
 		if err := rows.Scan(&i.ProductID, &i.Quantity); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStockByLocation = `-- name: ListStockByLocation :many
+SELECT sm.product_id, sm.location_id, sum(sm.quantity)::numeric(14,3) AS quantity
+FROM stock_moves sm
+WHERE sm.company_id = $1 AND sm.product_id = ANY($2::bigint[])
+  AND sm.location_id = ANY($3::bigint[])
+GROUP BY sm.product_id, sm.location_id
+`
+
+type ListStockByLocationParams struct {
+	CompanyID   int64
+	ProductIds  []int64
+	LocationIds []int64
+}
+
+type ListStockByLocationRow struct {
+	ProductID  int64
+	LocationID int64
+	Quantity   pgtype.Numeric
+}
+
+// The stock of the products given in each of the locations given that
+// moved them: the moves summed by product and location.
+func (q *Queries) ListStockByLocation(ctx context.Context, arg ListStockByLocationParams) ([]ListStockByLocationRow, error) {
+	rows, err := q.db.Query(ctx, listStockByLocation, arg.CompanyID, arg.ProductIds, arg.LocationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListStockByLocationRow{}
+	for rows.Next() {
+		var i ListStockByLocationRow
+		if err := rows.Scan(&i.ProductID, &i.LocationID, &i.Quantity); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStockSummary = `-- name: ListStockSummary :many
+SELECT p.id, p.name, p.sku, p.unit, p.is_active,
+       COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
+                 WHERE sm.product_id = p.id AND sm.location_id = ANY($1::bigint[])), 0)::numeric(14,3) AS total,
+       lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
+FROM products p
+LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
+                   WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
+                   ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
+WHERE p.company_id = $2 AND p.deleted_at IS NULL AND p.kind = 'product'
+  AND ($3::text IS NULL
+       OR p.name ILIKE '%' || $3::text || '%'
+       OR p.sku ILIKE '%' || $3::text || '%')
+ORDER BY lower(p.name), p.id
+LIMIT $5 OFFSET $4
+`
+
+type ListStockSummaryParams struct {
+	LocationIds []int64
+	CompanyID   int64
+	Search      *string
+	Offset      int32
+	Limit       int32
+}
+
+type ListStockSummaryRow struct {
+	ID                  int64
+	Name                string
+	Sku                 *string
+	Unit                *string
+	IsActive            bool
+	Total               pgtype.Numeric
+	LastPrice           pgtype.Numeric
+	LastPriceCurrencyID int64
+}
+
+// A page of the company's live products (no service; the turned off ones
+// too) for the warehouse's «Qoldiq» table (logic/warehouse.md, section 5),
+// by name whatever the case: each with its stock summed over the locations
+// given, its last purchase price with its currency (as GetProduct's) and
+// the stock's value at it. search, escaped for ILIKE, is looked for in the
+// name and in the SKU; NULL leaves it out.
+func (q *Queries) ListStockSummary(ctx context.Context, arg ListStockSummaryParams) ([]ListStockSummaryRow, error) {
+	rows, err := q.db.Query(ctx, listStockSummary,
+		arg.LocationIds,
+		arg.CompanyID,
+		arg.Search,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListStockSummaryRow{}
+	for rows.Next() {
+		var i ListStockSummaryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Sku,
+			&i.Unit,
+			&i.IsActive,
+			&i.Total,
+			&i.LastPrice,
+			&i.LastPriceCurrencyID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

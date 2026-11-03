@@ -143,6 +143,8 @@ type Querier interface {
 	// How many orders stand in the stage: one in use is not deleted. Deleted
 	// orders do not count.
 	CountStageOrders(ctx context.Context, stageID int64) (int64, error)
+	// How many rows ListStockSummary finds, on all of its pages.
+	CountStockSummary(ctx context.Context, arg CountStockSummaryParams) (int64, error)
 	// How many live documents name the supplier: one with any is not deleted.
 	CountSupplierDocuments(ctx context.Context, supplierID int64) (int64, error)
 	// How many rows ListSuppliers finds under the same filter, on all of its pages.
@@ -718,6 +720,16 @@ type Querier interface {
 	// inventory's own, when it is written anew; 0 for none). A product nothing
 	// moved is not listed.
 	ListStockAt(ctx context.Context, arg ListStockAtParams) ([]ListStockAtRow, error)
+	// The stock of the products given in each of the locations given that
+	// moved them: the moves summed by product and location.
+	ListStockByLocation(ctx context.Context, arg ListStockByLocationParams) ([]ListStockByLocationRow, error)
+	// A page of the company's live products (no service; the turned off ones
+	// too) for the warehouse's «Qoldiq» table (logic/warehouse.md, section 5),
+	// by name whatever the case: each with its stock summed over the locations
+	// given, its last purchase price with its currency (as GetProduct's) and
+	// the stock's value at it. search, escaped for ILIKE, is looked for in the
+	// name and in the SKU; NULL leaves it out.
+	ListStockSummary(ctx context.Context, arg ListStockSummaryParams) ([]ListStockSummaryRow, error)
 	// A page of the company's suppliers, the active or the inactive ones, by
 	// name whatever the case, without the deleted, each with its balance.
 	// search, escaped for ILIKE, is looked for in the name; digits, the digits
