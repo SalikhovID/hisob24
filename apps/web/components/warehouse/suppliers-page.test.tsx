@@ -45,6 +45,22 @@ test("the owner's suppliers: a row each, the phone under the name, what is owed 
   expect(screen.queryByText("Bozor")).not.toBeInTheDocument()
 })
 
+test("on a wide screen the suppliers are the prototype's table: Nomi, Telefon, Balans (to whoever sees the purchases); the search and the chips in a toolbar", async () => {
+  const { bozor } = seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  setLocation("/suppliers")
+  const { container } = renderWithProviders(<SuppliersPage />)
+
+  const table = await screen.findByRole("table", { name: "Ta'minotchilar" })
+  expect(within(table).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["Nomi", "Telefon", "Balans"])
+  const row = within(table).getAllByRole("row").find((r) => within(r).queryByRole("link", { name: /^Bozor/ }))!
+  const cells = within(row).getAllByRole("cell")
+  expect(within(cells[0]).getByRole("link")).toHaveAttribute("href", `/suppliers/${bozor.id}`)
+  expect(cells[2].textContent?.replace(/\s+/g, " ")).toBe("Qarz: 15 001,50 so'm")
+  const toolbar = container.querySelector('[data-slot="toolbar"]') as HTMLElement
+  expect(within(toolbar).getByRole("searchbox")).toBeInTheDocument()
+})
+
 test("a search looks in the names", async () => {
   seedWarehouse()
   await signIn(ALI)

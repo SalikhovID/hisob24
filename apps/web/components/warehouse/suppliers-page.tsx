@@ -8,12 +8,14 @@ import { ChoiceChips } from "@/components/kit/chips"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { SearchBox } from "@/components/kit/search-box"
+import { Toolbar } from "@/components/kit/toolbar"
+import { DataTable } from "@/components/kit/data-table"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import { useSuppliers } from "@/lib/queries"
-import type { Permission } from "@/lib/types"
+import type { Permission, Supplier } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { cn } from "@/lib/utils"
 import { balanceText } from "@/lib/warehouse"
@@ -70,16 +72,18 @@ export function SuppliersPage() {
         description={activeCount !== undefined ? `Kompaniyangiz ta'minotchilari · ${count(activeCount)}` : "Kompaniyangiz ta'minotchilari"}
         action={companyId !== null && allowed("suppliers.create") && <PlusButton label="Ta'minotchi qo'shish" onClick={() => setAdding(true)} />}
       />
-      <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder="Nom yoki telefon" />
-      <ChoiceChips
-        label="Holat"
-        value={filter.status}
-        onChange={(status) => update({ status: status === "inactive" ? "inactive" : "active" })}
-        options={[
-          { value: "active", label: "Faol", count: activeCount },
-          { value: "inactive", label: "Nofaol", count: inactiveCount },
-        ]}
-      />
+      <Toolbar>
+        <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder="Nom yoki telefon" />
+        <ChoiceChips
+          label="Holat"
+          value={filter.status}
+          onChange={(status) => update({ status: status === "inactive" ? "inactive" : "active" })}
+          options={[
+            { value: "active", label: "Faol", count: activeCount },
+            { value: "inactive", label: "Nofaol", count: inactiveCount },
+          ]}
+        />
+      </Toolbar>
       {loading && <ListLoading rows={6} />}
       {suppliers.isError && <Failed error={suppliers.error} onRetry={() => suppliers.refetch()} />}
       {!loading && !suppliers.isError && page?.total === 0 && (
@@ -97,19 +101,43 @@ export function SuppliersPage() {
       )}
       {!loading && !suppliers.isError && page && page.total > 0 && (
         <>
-          <Group label="Ta'minotchilar" inset="icon" className={cn(suppliers.isPlaceholderData && "opacity-60")}>
-            {page.items.map((supplier) => (
-              <Row
-                key={supplier.id}
-                href={`/suppliers/${supplier.id}`}
-                media={<Avatar name={supplier.name} square />}
-                title={supplier.name}
-                sub={supplier.phone ? formatPhone(supplier.phone) : "Telefon yo'q"}
-                end={owed ? <Balance balance={supplier.balance} /> : undefined}
-                chevron={false}
-              />
-            ))}
-          </Group>
+          <div className={cn(suppliers.isPlaceholderData && "opacity-60")}>
+            <DataTable
+              label="Ta'minotchilar"
+              rows={page.items}
+              rowKey={(supplier) => supplier.id}
+              href={(supplier) => `/suppliers/${supplier.id}`}
+              columns={[
+                {
+                  key: "name",
+                  label: "Nomi",
+                  render: (supplier) => (
+                    <span className="flex items-center gap-2.5">
+                      <Avatar name={supplier.name} square />
+                      <span className="font-medium">{supplier.name}</span>
+                    </span>
+                  ),
+                },
+                { key: "phone", label: "Telefon", render: (supplier) => (supplier.phone ? formatPhone(supplier.phone) : "—") },
+                ...(owed ? [{ key: "balance", label: "Balans", align: "end" as const, render: (supplier: Supplier) => <Balance balance={supplier.balance} /> }] : []),
+              ]}
+              phone={
+                <Group label="Ta'minotchilar" inset="icon">
+                  {page.items.map((supplier) => (
+                    <Row
+                      key={supplier.id}
+                      href={`/suppliers/${supplier.id}`}
+                      media={<Avatar name={supplier.name} square />}
+                      title={supplier.name}
+                      sub={supplier.phone ? formatPhone(supplier.phone) : "Telefon yo'q"}
+                      end={owed ? <Balance balance={supplier.balance} /> : undefined}
+                      chevron={false}
+                    />
+                  ))}
+                </Group>
+              }
+            />
+          </div>
           {page.total > page.page_size ? (
             <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
           ) : (
