@@ -21,4 +21,4 @@ Spec: `docs/superpowers/specs/2026-11-03-flat-redesign-design.md` (6- va 7-bo'li
 - [x] 9. `HomeCards`: Faol buyurtmalar (`StageBar`), Mijozlar qarzi, «<Oy> sotuvlari», Kam qolgan tovarlar.
 - [x] 10. `UpcomingOrders`: «Yaqin muddatlar» va «Hammasi»; qator: avatar, mijoz, «№ N · muddat · qoldiq», bosqich belgisi; bo'sh va lokatsiyasiz holatlar avvalgidek.
 - [x] 11. Ishlatilmay qolgan kod (`Overview`, `kit/stat-card.tsx`, eski hero) olib tashlanadi; e2e (`home.spec`, yordamchilar: telefonda profilga yo'l «Sozlama» orqali, `expectSignedIn`).
-- [ ] 12. Skrinshot, `make lint`, `make test`, `make e2e`, push.
+- [x] 12. Skrinshot, `make lint`, `make test`, `make e2e`, push.
