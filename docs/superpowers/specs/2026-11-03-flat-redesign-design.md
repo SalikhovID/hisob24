@@ -259,3 +259,14 @@ Hamma ro'yxat sahifasi: `PageTitle` (nom, «N ta …», qo'shish) → (`PageTabs
 - **Holat ekranlari** (`ShellLess`: kompaniya tanlash, obuna tugagan, Mini App kirishi): telefonda to'liq ekran ustun, webda kirishdagidek kulrang sahifa o'rtasida karta; boshida `BrandLockup` (H24 kvadrati + «Hisob24»), kompaniya tanlashda chapda, «‹ Profil» ostida.
 - **Kirish:** `LoginFrame` karta (`data-slot="login-card"`), brend paneli `--brand-panel` (yorug'da siyoh, qorong'ida oq), unda H24 kvadrati + «Hisob24» va prototip matni; panel orqasidagi «24» bezagi olib tashlandi. Telefon qadamida maydon guruh kartasisiz. To'liq ekranda sahifaning tepa chekkasi Telegram tugmalari ostidan.
 - **Web Mini App** (Telegram desktop / keng oyna): xavfsiz zona tepa panelga qo'shiladi (`md:pt-safe`), kontent undan 20px pastda.
+
+### 3-bosqich (bosh sahifa)
+
+- **`GET /app/dashboard`:** `cash` (`totals: CurrencyAmount[]`, `accounts`), `debtors` (`debt`, `count`), `orders`, `sales`, `low_stock` (`count`, `names`). `suppliers`, `customers`, `purchases`, `orders_money` olib tashlandi.
+- **«Mijozlar qarzi» so'mda, bitta son** (spec'dagi valyuta qatorlari o'rniga): mijoz balansi `logic/sales.md` 5-bo'limda so'mda (har hujjat o'z kursi bilan) belgilangan, ro'yxatdagi «Qarz» ham shunday. Ruxsati `customers.view` va `sales.view` (ro'yxatdagi «Qarz» ustuni kabi).
+- **«Kassadagi pul»** valyuta bo'yicha, aylantirilmaydi: so'm katta, boshqalari izohda («+ 80 $ · 4 ta akkaunt»), nofaol akkauntlar ham sanaladi.
+- **«<Oy> sotuvlari»** so'mda (avvalgi `sales` bloki), boshqa valyutalar alohida emas.
+- **Kam qolgan tovar:** lokatsiyada harakati bor jonli faol mahsulot, qoldig'i ≤ 3 (0 va manfiy ham), nom bo'yicha birinchi 5 nomi; chegara backend konstantasi (`lowStockAtMost`).
+- **Tezkor tugmalar** prototipnikidek: Buyurtma, Sotuv, Xarid, Xarajat (bosh sahifada `ExpenseDialog`), Mijoz. Ta'minotchiga «To'lov» tugmasi bosh sahifadan ketdi (ta'minotchi sahifasida qoladi).
+- **Sarlavha:** «Salom, Ism» — to'liq ism (prototipdagi birinchi ism emas; `full_name` bo'lmasa telefon). Telefonda h1 faqat ekran o'quvchisiga, ko'rinadigani kompaniya nomi; «Ism · Rol · Lokatsiya ▾», lokatsiya 2+ bo'lsa varaq tugmasi. Bosh sahifadan profilga havola yo'q: telefonda «Sozlama» sahifasining kompaniya qatori, webda sidebar.
+- «Yaqin muddatlar» qatori: avatar, mijoz, «№ N · muddat (o'tgan bo'lsa qizil «Muddati o'tgan · …») · qoldiq», bosqich belgisi; «Hammasi» → `/orders`.
