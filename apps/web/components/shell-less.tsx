@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 // its mark is Hisob24's.
 export function ShellLess({ logo = true, start = false, head, children }: { logo?: boolean; start?: boolean; head?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex min-h-svh md:items-center md:justify-center md:bg-sidebar md:p-6">
+    <div className="flex min-h-svh md:items-center md:justify-center md:bg-sidebar md:px-6 md:pt-safe-6 md:pb-6">
       <main className="mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pt-safe-6 pb-safe-6 md:mx-0 md:min-h-0 md:rounded-xl md:bg-card md:p-8 md:shadow-[0_0_0_1px_rgba(50,50,93,.06),0_24px_48px_-24px_rgba(50,50,93,.18)]">
         {head}
         {logo && <BrandLockup className={cn("shrink-0", start ? "self-start" : "mx-auto")} />}

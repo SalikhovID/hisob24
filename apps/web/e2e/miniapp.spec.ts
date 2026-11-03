@@ -212,8 +212,10 @@ test.describe("a phone that is no user's", () => {
     await expect(page.getByRole("heading", { name: "Kirish huquqi yo'q" })).toBeVisible()
     await expect(page.getByText("Raqamingiz: +998 90 555 66 77")).toBeVisible()
     await expect(page.getByRole("button", { name: "Yopish" })).toBeVisible()
-    // Full screen too: the screen's padding keeps its top clear (24px + 93px).
-    await expect(page.getByRole("main")).toHaveCSS("padding-top", "117px")
+    // Full screen too: the screen's padding keeps its top clear (24px + 93px):
+    // a phone's column's own, a wide screen's page around its card.
+    const screenPad = onPhone(page) ? page.getByRole("main") : page.getByRole("main").locator("xpath=..")
+    await expect(screenPad).toHaveCSS("padding-top", "117px")
     await fits(page)
   })
 
@@ -256,7 +258,7 @@ test.describe("a Mini App whose sign-in fails", () => {
     await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(26, 26, 29)")
     // Full screen: the page's own padding grows by the insets (93px), so
     // the card stays clear of the controls.
-    await expect(panel.locator("xpath=../..")).toHaveCSS("padding-top", onPhone(page) ? "109px" : "24px")
+    await expect(panel.locator("xpath=../..")).toHaveCSS("padding-top", onPhone(page) ? "109px" : "117px")
     await fits(page)
   })
 })

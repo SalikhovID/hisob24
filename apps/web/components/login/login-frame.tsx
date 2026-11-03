@@ -12,7 +12,7 @@ import type { ReactNode } from "react"
 // so the card stays clear of the status bar and the controls.
 export function LoginFrame({ brand, tagline, children }: { brand: ReactNode; tagline: string; children: ReactNode }) {
   return (
-    <div className="flex min-h-svh items-center justify-center bg-sidebar px-4 pt-safe-4 pb-4 md:p-6">
+    <div className="flex min-h-svh items-center justify-center bg-sidebar px-4 pt-safe-4 pb-4 md:px-6 md:pt-safe-6 md:pb-6">
       <div
         data-slot="login-card"
         className="grid w-full max-w-[820px] overflow-hidden rounded-xl bg-card shadow-[0_0_0_1px_rgba(50,50,93,.06),0_24px_48px_-24px_rgba(50,50,93,.18)] md:min-h-[440px] md:grid-cols-2"

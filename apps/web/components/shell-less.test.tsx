@@ -29,3 +29,8 @@ test("on a wide screen the screen is a card in the middle of the pale grey page,
   expect(main).toHaveClass("min-h-svh", "max-w-md", "md:min-h-0", "md:rounded-xl", "md:bg-card", "md:p-8")
   expect(main.parentElement).toHaveClass("md:bg-sidebar", "md:items-center", "md:justify-center")
 })
+
+test("on a wide screen the page keeps the card clear of what lies over the screen's top (Telegram's controls in full screen)", () => {
+  render(<ShellLess>Matn</ShellLess>)
+  expect(screen.getByRole("main").parentElement).toHaveClass("md:pt-safe-6")
+})

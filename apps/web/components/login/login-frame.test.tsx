@@ -46,3 +46,9 @@ test("the login is the prototype's card in the middle of the pale grey page: 820
   expect(screen.getByRole("banner").className).not.toContain("--brand-fill")
   expect(screen.getByRole("main")).toHaveClass("content-center")
 })
+
+test("the page keeps the card clear of what lies over the screen's top (Telegram's controls in full screen), on a wide screen too", () => {
+  render(frame)
+  const page = screen.getByRole("banner").parentElement!.parentElement!
+  expect(page).toHaveClass("pt-safe-4", "md:pt-safe-6")
+})
