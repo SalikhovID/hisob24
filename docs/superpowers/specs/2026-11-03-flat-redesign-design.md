@@ -240,4 +240,11 @@ Hamma ro'yxat sahifasi: `PageTitle` (nom, «N ta …», qo'shish) → (`PageTabs
 
 ## Amalga oshirishda belgilangan qarorlar
 
-(Bosqichlar davomida to'ldiriladi.)
+### 1-bosqich (poydevor)
+
+- **Brend tokeni ikkiga bo'lindi:** `--brand` — logotip so'zi sahifada (yorug'da siyoh `#17181b`, qorong'ida `#ececee`), `--brand-mark` — H24 kvadrati, ikkala mavzuda teal `#174449` (splash belgisi, banner rasmi). Prototipda so'z oddiy matn rangida, kvadrat teal.
+- **Bo'lim tablari = mavjud `SectionTabs`** (`<nav aria-label="… bo'limi">`, havolalar, `aria-current="page"`), yangi `PageTabs` emas. Sahifa ichidagi tablar (`InPageTabs`) 4-bosqichda `Segmented` asosida.
+- **Toast'lar pastda** (prototipdagidek). e2e `settle` yordamchisi sonner ro'yxatiga `pointerup` + `mouseout` yuboradi: emulyatsiya qilingan telefonda tap'dan keyin ro'yxat «bosilgan» bo'lib qolardi va toast ketmasdi.
+- **Prototipdan kichik chetlanishlar:** telefonning qorong'i `--muted` iOS'niki `rgba(118,118,128,.24)` (prototipniki `.12`, qorada ko'rinmaydi); telefondagi qator ajratgichi 0.5px (iOS hairline; prototipda 1px); tasdiq varag'ining tugmalari telefonda 44px (prototipda 32px, barmoq uchun kichik); webdagi ikkilamchi matn bitta 12px (prototipda 12 / 12.5 aralash).
+- `FormRow` oilasi yorliq ustida, maydon qutida; forma maydonlari orasida chiziq yo'q (prototipdagi `.fld`). Guruh ichidagi maydon telefonda oq-oq (prototipdagidek chegarasiz), webda halqali.
+- Eski shisha tokenlari (`--rim`, `--seg-*`, `--search*`, `--fade`, `--tb-shadow`, `--lifted`, `--col`…) hali qolgan komponentlar ko'chguncha tekis qiymatlarda turadi; 8-bosqichda ishlatilmaganlari olib tashlanadi. Ishlatilmayotgan `components/avatar.tsx` ham 8-bosqichda.
