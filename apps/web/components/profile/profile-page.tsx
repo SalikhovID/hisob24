@@ -8,7 +8,7 @@ import { Foot, Group, KeyValue, Row, SectionHeading } from "@/components/kit/gro
 import { Segmented } from "@/components/kit/segmented"
 import { TileIcon } from "@/components/kit/tile-icon"
 import { unavailable } from "@/lib/companies"
-import { formatDayMonth } from "@/lib/format"
+import { formatUntil } from "@/lib/format"
 import { useHomeScreenOffer } from "@/lib/home-screen"
 import { formatPhone } from "@/lib/phone"
 import { useLogout, useMe } from "@/lib/queries"
@@ -80,7 +80,7 @@ export function ProfilePage() {
                   </span>
                 }
               />
-              <KeyValue label="Obuna" value={`${formatDayMonth(company.end_date)} gacha faol`} />
+              <KeyValue label="Obuna" value={`${formatUntil(company.end_date)} gacha faol`} />
             </Group>
             {canSwitch && (
               <Group className="-mt-4">

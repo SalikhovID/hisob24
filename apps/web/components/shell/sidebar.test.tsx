@@ -235,3 +235,11 @@ test("at its foot the sidebar says till when the subscription runs and offers th
   await user.click(within(sidebar()).getByRole("button", { name: "Chiqish" }))
   expect(await screen.findByRole("alertdialog", { name: "Tizimdan chiqasizmi?" })).toBeInTheDocument()
 })
+
+test("a subscription that runs into another year says the year, or it would read as this one's", async () => {
+  db.companies.find((company) => company.id === 1)!.end_date = `${new Date().getFullYear() + 1}-12-31`
+  await signIn(ALI)
+  renderWithProviders(<Sidebar {...props()} />)
+
+  expect(await within(sidebar()).findByText(`Obuna ${new Date().getFullYear() + 1}-yil 31-dekabr gacha faol`)).toBeInTheDocument()
+})

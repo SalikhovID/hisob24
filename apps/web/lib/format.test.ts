@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { compactAmount, count, dayOf, dayTitle, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, formatTime, unitLabel, formatDayMonth, formatDayMonthTime } from "./format"
+import { compactAmount, count, dayOf, dayTitle, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, formatTime, unitLabel, formatDayMonth, formatDayMonthTime, formatUntil } from "./format"
 
 test("count holds the number and «ta» together with a no-break space, so «ta» never stands alone on a line", () => {
   expect(count(3)).toBe("3\u00a0ta")
@@ -93,4 +93,12 @@ test.each([
 
 test("a moment is said as its day and month and its time, as the prototype's documents", () => {
   expect(formatDayMonthTime("2026-11-03T11:20:00+05:00")).toBe("3-noyabr, 11:20")
+})
+
+test.each([
+  ["2026-12-31", "31-dekabr"],
+  ["2027-12-31", "2027-yil 31-dekabr"],
+  ["2025-01-05", "2025-yil 5-yanvar"],
+])("till when a thing runs is its day and month, the year before them when it is not this one: %s", (value, said) => {
+  expect(formatUntil(value, new Date(2026, 10, 4))).toBe(said)
 })

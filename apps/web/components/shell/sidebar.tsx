@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatDayMonth } from "@/lib/format"
+import { formatUntil } from "@/lib/format"
 import { isCurrent, isCurrentItem, type NavItem, navFor } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
@@ -202,7 +202,7 @@ function SidebarFoot({ endDate, collapsed, browser }: { endDate: string | undefi
   const [leaving, setLeaving] = useState(false)
   return (
     <div className="mt-auto grid gap-1 pt-3.5">
-      {endDate && !collapsed && <span className="px-2.5 text-[12px] text-muted-foreground">{`Obuna ${formatDayMonth(endDate)} gacha faol`}</span>}
+      {endDate && !collapsed && <span className="px-2.5 text-[12px] text-muted-foreground">{`Obuna ${formatUntil(endDate)} gacha faol`}</span>}
       {browser && (
         <>
           <button

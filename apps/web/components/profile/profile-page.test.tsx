@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 import { accessToken } from "@/lib/session"
 import { setMiniApp } from "@/lib/telegram"
-import { ALI, VALI } from "@/mocks/data"
+import { ALI, db, VALI } from "@/mocks/data"
 import { addLocation } from "@/test/locations"
 import { leave } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
@@ -106,4 +106,12 @@ test("inside a Telegram that can, the profile offers the home screen too; put aw
   expect(webApp.addToHomeScreen).toHaveBeenCalledTimes(1)
   await user.click(within(card).getByRole("button", { name: "Yashirish" }))
   expect(screen.queryByRole("list", { name: "Bosh ekran" })).not.toBeInTheDocument()
+})
+
+test("a subscription that runs into another year says the year on the profile too", async () => {
+  db.companies.find((company) => company.id === 1)!.end_date = `${new Date().getFullYear() + 1}-12-31`
+  await signIn(ALI)
+  renderWithProviders(<ProfilePage />)
+
+  expect(await screen.findByText(`${new Date().getFullYear() + 1}-yil 31-dekabr gacha faol`)).toBeInTheDocument()
 })

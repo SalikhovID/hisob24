@@ -121,6 +121,14 @@ export function formatDayMonth(value: string): string {
   return `${date.getDate()}-${MONTHS[date.getMonth()]}`
 }
 
+// formatUntil says till when something runs (a subscription): its day and
+// month, and the year before them when it is not this one ("2027-yil
+// 31-dekabr"), or a later year would read as this one's.
+export function formatUntil(value: string, today: Date = new Date()): string {
+  const year = /^\d{4}-\d{2}-\d{2}$/.test(value) ? Number(value.slice(0, 4)) : new Date(value).getFullYear()
+  return year === today.getFullYear() ? formatDayMonth(value) : `${year}-yil ${formatDayMonth(value)}`
+}
+
 // formatDayMonthTime says a moment as the prototype's documents do: its day
 // and month, then its time ("3-noyabr, 11:20").
 export function formatDayMonthTime(value: string): string {
