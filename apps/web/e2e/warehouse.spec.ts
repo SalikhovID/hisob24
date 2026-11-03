@@ -3,10 +3,13 @@ import { seedCatalog, seedWarehouse } from "../mocks/data"
 import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { back, choose, chooseLocation, days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
+import { back, choose, chooseLocation, days, list, onPhone, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
 
-// hub is the warehouse's own page: a row for each of its parts.
-const hub = (page: Page) => page.getByRole("list", { name: "Ombor bo'limlari" })
+// hub is the warehouse's parts: a row each on its own page on a phone; on
+// a wide screen the sidebar's items under the section (the page itself is
+// the «Qoldiq» table there).
+const hub = (page: Page) =>
+  onPhone(page) ? page.getByRole("list", { name: "Ombor bo'limlari" }) : page.getByRole("complementary", { name: "Menyu" }).locator("div:has(> [data-slot=side-subitem])")
 
 // openWarehouse goes to a part of the warehouse through its hub: from a
 // part's list by its «‹ Ombor», from elsewhere through the sections.
@@ -254,7 +257,7 @@ test("a document's day and time stand whole on a phone, each in its row: neither
 
   // A sheet is narrower than a page: the payment's day stands whole too.
   await page.goto("/suppliers")
-  await page.getByRole("list", { name: "Ta'minotchilar" }).getByRole("link", { name: /^Bozor/ }).click()
+  await list(page, "Ta'minotchilar").getByRole("link", { name: /^Bozor/ }).click()
   await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "To'lov" }).click()
   const sheet = page.getByRole("dialog", { name: "To'lov qo'shish" })
   const sheetDay = sheet.getByRole("button", { name: /^Sana/ }).locator("[data-slot=pick-value]")

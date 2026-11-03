@@ -1,11 +1,15 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { seedCatalog } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { back, choose, openSection, sections, sideScroll, signIn } from "./helpers"
+import { back, choose, list, onPhone, openSection, sections, sideScroll, signIn } from "./helpers"
 
-// The lists are rows on any screen.
-const list = (page: Page, name: string) => page.getByRole("list", { name })
+// rowOf is a record's row as the screen draws it: a phone's row (a link,
+// or a button that opens a service's actions), the web table's row (its
+// name the link, its price a cell of its own; a press opens it too).
+const rowOf = (page: Page, scope: Locator, name: string, role: "link" | "button") =>
+  onPhone(page) ? scope.getByRole(role, { name: new RegExp(`^${name}`) }) : scope.getByRole("row").filter({ hasText: name })
+
 // status is the chip of the active or the inactive records.
 const status = (page: Page, name: RegExp) => page.getByRole("radiogroup", { name: "Holat" }).getByRole("radio", { name })
 
@@ -37,7 +41,7 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await dialog.getByLabel("Sotuv narxi").fill("8 000")
   await dialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(dialog).toBeHidden()
-  await expect(products().getByRole("link", { name: /^Anor/ })).toContainText(/8\s000/)
+  await expect(rowOf(page, products(), "Anor", "link")).toContainText(/8\s000/)
   await page.getByRole("button", { name: "Mahsulot qo'shish" }).click()
   await dialog.getByLabel("Nomi").fill("olma")
   await choose(dialog.getByLabel("Birlik"), "dona")
@@ -87,7 +91,7 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await expect(page.getByRole("heading", { level: 1, name: "Xizmatlar" })).toBeVisible()
   const services = () => list(page, "Xizmatlar")
   await expect(services().getByText("Yetkazish")).toBeVisible()
-  await expect(services().getByRole("button", { name: /^Yetkazish/ })).toContainText(/50\s000/)
+  await expect(rowOf(page, services(), "Yetkazish", "button")).toContainText(/50\s000/)
   // On a phone the toasts of the last steps stand over the page's header
   // until they go, and they wait while the pointer rests on them (where the
   // last dialog's button was): the pointer moves off, the toasts go, and the
@@ -101,14 +105,14 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await service.getByRole("button", { name: "Qo'shish" }).click()
   await expect(service).toBeHidden()
   await expect(services().getByText("Ta'mirlash")).toBeVisible()
-  await services().getByRole("button", { name: /^Yetkazish/ }).click()
+  await rowOf(page, services(), "Yetkazish", "button").click()
   await page.getByRole("menuitem", { name: "Tahrirlash" }).click()
   const editService = page.getByRole("dialog", { name: "Xizmatni tahrirlash" })
   await editService.getByLabel("Narx").fill("55000")
   await editService.getByRole("button", { name: "Saqlash" }).click()
   await expect(editService).toBeHidden()
-  await expect(services().getByRole("button", { name: /^Yetkazish/ })).toContainText(/55\s000/)
-  await services().getByRole("button", { name: /^Ta'mirlash/ }).click()
+  await expect(rowOf(page, services(), "Yetkazish", "button")).toContainText(/55\s000/)
+  await rowOf(page, services(), "Ta'mirlash", "button").click()
   await page.getByRole("menuitem", { name: "O'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Xizmatni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(services().getByText("Ta'mirlash")).toHaveCount(0)

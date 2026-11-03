@@ -140,11 +140,11 @@ export async function choose(box: Locator, name: string) {
   await box.page().getByRole("option", { name, exact: true }).click()
 }
 
-// list is a named list as the screen shows it: the prototype's rows on any
-// screen; the few left as a table on a wide screen (cards on a phone) are
-// named here.
-const tables = new Set(["Xodimlar", "Kurslar tarixi", "Mijozlar"])
-export const list = (page: Page, name: string) => (!onPhone(page) && tables.has(name) ? page.getByRole("table", { name }) : page.getByRole("list", { name }))
+// list is the records named so as the screen draws them: a table on a
+// wide screen where the page has one, a list of rows otherwise (a phone;
+// a record's own lists). A role query sees only what is shown, so the one
+// on screen is the one found.
+export const list = (page: Page, name: string) => page.getByRole("table", { name }).or(page.getByRole("list", { name }))
 
 // boardOf is the orders' board as the screen draws it: the web's columns,
 // a phone's stage chips over the chosen stage's cards.

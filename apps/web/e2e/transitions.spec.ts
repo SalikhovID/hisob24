@@ -177,7 +177,9 @@ test("a document opened from its list moves forward; deleted, it leads back to t
   await page.goto("/purchases")
   await expect(page.getByRole("heading", { level: 1, name: "Xaridlar" })).toBeVisible()
 
-  const into = await movedBy(page, () => page.getByRole("region", { name: "Xaridlar" }).getByRole("link").first().click())
+  // The purchases: a phone's days, the web's table.
+  const purchases = onPhone(page) ? page.getByRole("region", { name: "Xaridlar" }) : page.getByRole("table", { name: "Xaridlar" })
+  const into = await movedBy(page, () => purchases.getByRole("link").first().click())
   await expect(page.getByRole("heading", { level: 1, name: /^Xarid № / })).toBeVisible()
   await expect.poll(into).toEqual([forward(page)])
   // After a deletion a production build shows the list at once: the confirm
