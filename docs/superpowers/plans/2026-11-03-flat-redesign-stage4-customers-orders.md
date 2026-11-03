@@ -16,4 +16,4 @@ Spec: `docs/superpowers/specs/2026-11-03-flat-redesign-design.md` (6-bo'lim: Mij
 - [x] 4. Buyurtmalar ro'yxati (web): «Ro'yxat» ko'rinishi `DataTable`: №, Mijoz, Turi, Bosqich (belgi), Muddat (kechikkani qizil), Mas'ul, Narx, Qoldiq; kanban avvalgidek (sudrash).
 - [x] 5. Buyurtmalar (telefon): bosqich chiplari («nuqta Nom son», tanlangani to'q), tanlangan bosqich kartalari ro'yxati, kartada «⋯» (bosqichni o'zgartirish); sudrash yo'q.
 - [x] 6. Buyurtma sahifasi: `PageTitle` «Buyurtma № N» (izoh: bosqich · tur · muddat), `PageActions`, bosqich tanlovi (rangli segmentlar), `StatCards` (Narx / To'langan / Qoldiq), qoldiq bo'lsa «N qabul qilish» tugmasi, `InPageTabs`: Ma'lumot, Tovarlar, To'lovlar, Tarix.
-- [ ] 7. e2e (customers, orders, locations, miniapp), skrinshot, `make lint`, `make test`, `make e2e`, push.
+- [x] 7. e2e (customers, orders, locations, miniapp), skrinshot, `make lint`, `make test`, `make e2e`, push.
