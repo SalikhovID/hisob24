@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
 import { api, call } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 import { ALI, db, nextId, seedCatalog, seedCustomers, seedWarehouse, typesOf, VALI } from "@/mocks/data"
 import { asosiyOf } from "@/test/locations"
 import { currentUrl, router, setLocation, slowNavigation } from "@/test/navigation"
@@ -412,4 +413,59 @@ test("the way to the settings is the empty state's accent capsule", async () => 
 
   const link = await screen.findByRole("link", { name: "Sozlamalarni ochish" })
   expect(link).toHaveClass("bg-primary", "text-primary-foreground", "rounded-full", "h-[46px]", "px-[22px]")
+})
+
+// table is the web's table of the customers.
+const table = () => screen.findByRole("table", { name: "Mijozlar" })
+
+test("on a wide screen the customers are the prototype's table: Mijoz (avatar, name, phone), Turi, Qarz, Qo'shgan, Qo'shilgan; the customer leads to its page", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const { dilshod, malika } = seedCustomers()
+  await signIn(ALI)
+  const cash = db.accounts[1][0].id
+  // Dilshod bought 12 000 worth and paid 5 000; Malika paid 50 000 ahead.
+  await enterSale({ location_id: asosiyOf(1).id, customer_id: dilshod.id, at: "2026-10-05T09:00:00+05:00", items: [{ product_id: catalog.olma.id, quantity: "4", price: "3000" }], payments: [{ bank_account_id: cash, amount: "5000" }] })
+  await call(api.POST("/app/customers/{id}/openings", { params: { path: { id: malika.id } }, body: { kind: "prepay", amount: "50000", at: "2026-10-01T09:00:00+05:00" } }))
+  setLocation("/customers")
+  renderWithProviders(<CustomersPage />)
+
+  const grid = await table()
+  expect(within(grid).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["Mijoz", "Turi", "Qarz", "Qo'shgan", "Qo'shilgan"])
+  const [, malikaRow, anorRow, dilshodRow] = within(grid).getAllByRole("row")
+  const cells = (row: HTMLElement) => within(row).getAllByRole("cell")
+  expect(within(cells(dilshodRow)[0]).getByRole("link")).toHaveAttribute("href", `/customers/${dilshod.id}`)
+  expect(cells(dilshodRow)[0]).toHaveTextContent("Dilshod Karimov")
+  expect(cells(dilshodRow)[0]).toHaveTextContent("+998 91 111 22 33")
+  expect(cells(dilshodRow)[0].querySelector('[data-slot="avatar"]')).not.toBeNull()
+  expect(cells(dilshodRow)[1]).toHaveTextContent("Jismoniy")
+  expect(within(cells(dilshodRow)[2]).getByText("7 000 so'm")).toHaveClass("text-destructive")
+  expect(within(cells(malikaRow)[2]).getByText("Avans 50 000 so'm")).toHaveClass("text-positive")
+  expect(cells(anorRow)[2]).toHaveTextContent("—")
+  expect(cells(dilshodRow)[3]).toHaveTextContent("Vali Aliyev")
+  expect(cells(dilshodRow)[4]).toHaveTextContent(formatDate(db.customers.find((c) => c.id === dilshod.id)!.createdAt))
+})
+
+test("the table has no «Qarz» for whoever does not see the sales", async () => {
+  seedCustomers()
+  giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  setLocation("/customers")
+  renderWithProviders(<CustomersPage />)
+
+  const grid = await table()
+  expect(within(grid).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["Mijoz", "Turi", "Qo'shgan", "Qo'shilgan"])
+})
+
+test("the search and the type chips stand in the page's toolbar", async () => {
+  seedCustomers()
+  await signIn(ALI)
+  setLocation("/customers")
+  const { container } = renderWithProviders(<CustomersPage />)
+
+  await table()
+  const toolbar = container.querySelector('[data-slot="toolbar"]') as HTMLElement
+  expect(within(toolbar).getByRole("searchbox")).toBeInTheDocument()
+  expect(within(toolbar).getByRole("radiogroup", { name: "Mijoz turi" })).toBeInTheDocument()
 })

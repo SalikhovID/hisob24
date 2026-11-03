@@ -5,10 +5,12 @@ import Link from "next/link"
 import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
 import { ChoiceChips } from "@/components/kit/chips"
-import { Foot, Group, Row } from "@/components/kit/group"
+import { type Column, DataTable } from "@/components/kit/data-table"
+import { Foot } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { SearchBox } from "@/components/kit/search-box"
+import { Toolbar } from "@/components/kit/toolbar"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { customerName } from "@/lib/customers"
@@ -21,7 +23,7 @@ import { cn } from "@/lib/utils"
 import { balanceText } from "@/lib/warehouse"
 import { AddCustomerDialog } from "./add-customer-dialog"
 import { useCustomerFilter } from "./use-customer-filter"
-import { count } from "@/lib/format"
+import { count, formatAmount, formatDate } from "@/lib/format"
 
 // CustomersPage is the company's customers, for whoever may see them
 // (customers.view; adding takes customers.create), as the prototype's list:
@@ -65,6 +67,33 @@ export function CustomersPage() {
   const loading = !failed && (queries.some((query) => query.isPending) || settling)
   const canAdd = companyId !== null && allowed("customers.create") && !!types.data?.length && !!dropdowns.data
 
+  // The web's table: who (the avatar, the name, the phone), the type, what
+  // they owe (to whoever sees the sales: red owed, green ahead, a dash even),
+  // who added them and when.
+  const columns: Column<Customer>[] = [
+    {
+      key: "customer",
+      label: "Mijoz",
+      render: (customer) => {
+        const name = customerName(customer, typeOf(customer))
+        const phone = formatPhone(customer.phone)
+        return (
+          <span className="flex items-center gap-2.5">
+            <Avatar name={name} />
+            <span className="grid min-w-0 leading-[1.3]">
+              <span className="truncate font-medium">{name ?? phone}</span>
+              {name && <span className="truncate text-[12px] text-muted-foreground">{phone}</span>}
+            </span>
+          </span>
+        )
+      },
+    },
+    { key: "type", label: "Turi", render: (customer) => typeOf(customer)?.name ?? "" },
+    ...(allowed("sales.view") ? [{ key: "debt", label: "Qarz", align: "end" as const, render: (customer: Customer) => debtCell(customer.balance) }] : []),
+    { key: "by", label: "Qo'shgan", render: (customer) => customer.created_by_name ?? "" },
+    { key: "at", label: "Qo'shilgan", render: (customer) => formatDate(customer.created_at) },
+  ]
+
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
   if (!gate) return null
@@ -93,15 +122,17 @@ export function CustomersPage() {
         />
       ) : (
         <>
-          <SearchBox value={filter.search} onSearch={(search) => update({ search })} />
-          {types.data && types.data.length > 0 && (
-            <ChoiceChips
-              label="Mijoz turi"
-              value={filter.typeId === null ? "all" : String(filter.typeId)}
-              onChange={(value) => update({ typeId: value === "all" ? null : Number(value) })}
-              options={[{ value: "all", label: "Barchasi" }, ...types.data.map((type) => ({ value: String(type.id), label: type.name }))]}
-            />
-          )}
+          <Toolbar>
+            <SearchBox value={filter.search} onSearch={(search) => update({ search })} />
+            {types.data && types.data.length > 0 && (
+              <ChoiceChips
+                label="Mijoz turi"
+                value={filter.typeId === null ? "all" : String(filter.typeId)}
+                onChange={(value) => update({ typeId: value === "all" ? null : Number(value) })}
+                options={[{ value: "all", label: "Barchasi" }, ...types.data.map((type) => ({ value: String(type.id), label: type.name }))]}
+              />
+            )}
+          </Toolbar>
           {loading && <ListLoading rows={6} />}
           {failed?.error && <Failed error={failed.error} onRetry={() => queries.forEach((query) => query.refetch())} />}
           {!loading && !failed && page?.total === 0 && (
@@ -114,31 +145,32 @@ export function CustomersPage() {
           )}
           {!loading && !failed && page && page.total > 0 && (
             <>
-              <Group label="Mijozlar" inset="icon" className={cn(customers.isPlaceholderData && "opacity-60")}>
-                {page.items.map((customer) => {
-                  const type = typeOf(customer)
-                  const name = customerName(customer, type)
-                  const phone = formatPhone(customer.phone)
-                  // A customer with no name goes by the phone, which then is not said twice.
-                  const sub = [name ? phone : null, everyType ? type?.name : null].filter(Boolean).join(" · ")
-                  const balance = customer.balance === null ? null : balanceText(customer.balance)
-                  return (
-                    <Row
-                      key={customer.id}
-                      href={`/customers/${customer.id}`}
-                      media={<Avatar name={name} />}
-                      title={name ?? phone}
-                      sub={sub || undefined}
-                      end={
+              <div className={cn(customers.isPlaceholderData && "opacity-60")}>
+                <DataTable
+                  label="Mijozlar"
+                  rows={page.items}
+                  rowKey={(customer) => customer.id}
+                  href={(customer) => `/customers/${customer.id}`}
+                  columns={columns}
+                  mobileRow={(customer) => {
+                    const type = typeOf(customer)
+                    const name = customerName(customer, type)
+                    const phone = formatPhone(customer.phone)
+                    // A customer with no name goes by the phone, which then is not said twice.
+                    const sub = [name ? phone : null, everyType ? type?.name : null].filter(Boolean).join(" · ")
+                    const balance = customer.balance === null ? null : balanceText(customer.balance)
+                    return {
+                      lead: <Avatar name={name} />,
+                      title: name ?? phone,
+                      sub: sub || undefined,
+                      end:
                         balance && balance.kind !== "none" ? (
                           <span className={cn("text-md", balance.kind === "debt" ? "text-destructive" : "text-positive")}>{balance.text}</span>
-                        ) : undefined
-                      }
-                      chevron={false}
-                    />
-                  )
-                })}
-              </Group>
+                        ) : undefined,
+                    }
+                  }}
+                />
+              </div>
               {page.total > page.page_size ? (
                 <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
               ) : (
@@ -160,4 +192,13 @@ export function CustomersPage() {
       )}
     </>
   )
+}
+
+// debtCell is what a customer owes as the table says it: the debt in red,
+// an advance in green («Avans N so'm»), a dash when even.
+function debtCell(balance: string | null) {
+  const value = Number(balance ?? 0)
+  if (value > 0) return <span className="text-destructive">{`${formatAmount(balance!)} so'm`}</span>
+  if (value < 0) return <span className="text-positive">{`Avans ${formatAmount(balance!.replace("-", ""))} so'm`}</span>
+  return <span className="text-faint">—</span>
 }
