@@ -5,7 +5,7 @@ import { useEffect } from "react"
 import { Avatar } from "@/components/kit/avatar"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { BackLink } from "@/components/kit/page-title"
-import { Logo } from "@/components/logo"
+import { ShellLess } from "@/components/shell-less"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { subscriptionExpired } from "@/lib/api"
@@ -37,11 +37,9 @@ export function SelectCompany() {
   const companies = me.data?.companies ?? []
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col px-4 pt-safe-7 pb-safe-6">
-      {current !== null && <BackLink href="/profile" label="Profil" />}
-      <Logo className="h-7 self-start" />
-      <h1 className="mt-[18px] text-[26px] leading-[1.2] font-bold tracking-[-0.02em]">Kompaniyani tanlang</h1>
-      <p className="mt-2 mb-[22px] text-[16px] leading-[1.45] text-muted-foreground">Qaysi kompaniyada ishlaysiz?</p>
+    <ShellLess start head={current !== null && <BackLink href="/profile" label="Profil" />}>
+      <h1 className="mt-5 text-[20px] leading-[1.3] font-semibold">Kompaniyani tanlang</h1>
+      <p className="mt-1 mb-5 text-[13px] text-muted-foreground">Qaysi kompaniyada ishlaysiz?</p>
       {me.isPending ? (
         <ListLoading rows={2} mark="square" />
       ) : me.isError ? (
@@ -93,6 +91,6 @@ export function SelectCompany() {
           <Row variant="danger" onClick={() => logout.mutate()} disabled={logout.isPending} title="Chiqish" />
         </Group>
       )}
-    </main>
+    </ShellLess>
   )
 }

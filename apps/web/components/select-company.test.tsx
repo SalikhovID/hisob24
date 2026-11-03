@@ -134,6 +134,15 @@ test("the company list stands under Hisob24's logo", async () => {
   await screen.findByRole("button", { name: /Nok Market/ })
 })
 
+test("the company list is a screen without a shell: the brand's lockup at its left, on a wide screen a card as the login's", async () => {
+  await signIn(VALI)
+  const { container } = renderWithProviders(<SelectCompany />)
+
+  await screen.findByRole("button", { name: /Nok Market/ })
+  expect(container.querySelector('[data-slot="brand-lockup"]')).toHaveClass("self-start")
+  expect(screen.getByRole("main")).toHaveClass("md:rounded-xl", "md:bg-card")
+})
+
 test("from the app, the company the session works in is marked «Joriy» and the page leads back to the profile", async () => {
   await signIn(VALI)
   await chooseCompany(1)
