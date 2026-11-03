@@ -5,7 +5,6 @@ import { useMutation } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { PhoneRow } from "@/components/kit/form-row"
-import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
 import { api, call } from "@/lib/api"
@@ -39,9 +38,9 @@ export function PhoneStep({
 
   return (
     <form noValidate onSubmit={submit}>
-      <Group className="mb-4">
+      <div className="mb-4 [&_[data-slot=form-row]]:p-0">
         <PhoneRow control={form.control} name="phone" label="Telefon raqami" readOnly={!hydrated} autoComplete="tel" />
-      </Group>
+      </div>
       {send.isError && <Refusal className="mb-4">{send.error.message}</Refusal>}
       <MainButton type="submit" disabled={!hydrated} pending={send.isPending}>
         Kodni olish

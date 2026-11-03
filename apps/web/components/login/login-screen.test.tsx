@@ -55,19 +55,20 @@ test("the login is headed by Hisob24's logo", () => {
   expect(within(heading).getByRole("img", { name: "Hisob24" })).toBeInTheDocument()
 })
 
-test("the login stands in the frame: the brand's panel says what Hisob24 is", () => {
+test("the login stands in the frame: the brand's panel says what Hisob24 is, in the prototype's words, the H24 square beside the name", () => {
   renderWithProviders(<LoginScreen />)
 
   const panel = screen.getByRole("banner")
   expect(within(panel).getByRole("heading", { level: 1, name: "Hisob24" })).toBeInTheDocument()
-  expect(within(panel).getByText("Biznesingiz uchun hisob tizimi")).toBeInTheDocument()
+  expect(panel.querySelector('[data-slot="brand-mark"]')).not.toBeNull()
+  expect(within(panel).getByText("Kichik biznes uchun hisob: mijozlar, buyurtmalar, ombor va kassa — bitta joyda.")).toBeInTheDocument()
   expect(within(screen.getByRole("main")).getByRole("textbox", { name: "Telefon raqami" })).toBeInTheDocument()
 })
 
 test("the phone step is titled and says what comes next", () => {
   renderWithProviders(<LoginScreen />)
 
-  expect(screen.getByRole("heading", { level: 2, name: "Kirish" })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { level: 2, name: "Kirish" })).toHaveClass("text-[20px]", "font-semibold")
   expect(screen.getByText("Telefon raqamingizni kiriting, kod SMS yoki Telegram botga keladi")).toBeInTheDocument()
 })
 

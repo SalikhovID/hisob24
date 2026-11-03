@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { BrandMark } from "@/components/kit/brand-mark"
 import { Logo } from "@/components/logo"
 import { Refusal } from "@/components/refusal"
 import { formatPhone } from "@/lib/phone"
@@ -51,21 +52,29 @@ export function LoginScreen() {
   const moved = step.kind === "code" || step.phone !== undefined
 
   return (
-    <LoginFrame brand={<Logo className="h-7 lg:h-8" />} tagline="Biznesingiz uchun hisob tizimi">
+    <LoginFrame
+      brand={
+        <span className="flex items-center gap-2.5">
+          <BrandMark className="size-7 rounded-[6px]" />
+          <Logo className="h-[22px]" />
+        </span>
+      }
+      tagline="Kichik biznes uchun hisob: mijozlar, buyurtmalar, ombor va kassa — bitta joyda."
+    >
       {notice && <Refusal className="mb-6">{notice}</Refusal>}
       <div
         key={step.kind}
         className={cn(
-          "space-y-8",
+          "space-y-5",
           moved && "animate-in duration-200 fade-in-0",
           moved && (step.kind === "code" ? "slide-in-from-right-4" : "slide-in-from-left-4"),
         )}
       >
         <div className="space-y-1.5">
-          <h2 className="text-[26px] leading-[1.2] font-bold tracking-[-0.02em]">
+          <h2 className="text-[20px] leading-[1.3] font-semibold">
             {step.kind === "phone" ? "Kirish" : "Kodni kiriting"}
           </h2>
-          <p className="text-md text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             {step.kind === "phone"
               ? "Telefon raqamingizni kiriting, kod SMS yoki Telegram botga keladi"
               : `Kod ${formatPhone(step.phone)} raqamiga yuborildi. SMS yoki Telegram botni tekshiring`}

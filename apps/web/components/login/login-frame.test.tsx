@@ -28,17 +28,21 @@ test("what is asked for stands in the page's main part", () => {
   expect(within(screen.getByRole("main")).getByRole("button", { name: "Kodni olish" })).toBeInTheDocument()
 })
 
-test("the panel's backdrop is the mark's number, a decoration: the brand is the page's only picture", () => {
+test("the panel has no backdrop: the brand is the page's only picture", () => {
   render(frame)
 
-  expect(screen.getByRole("banner").querySelector('[data-slot="logo-24"]')).not.toBeNull()
+  expect(screen.getByRole("banner").querySelector('[data-slot="logo-24"]')).toBeNull()
   expect(screen.getAllByRole("img")).toHaveLength(1)
 })
 
-test("the panel is the brand's flat ink (white in the night), no fill over it; the form stands on the page's background", () => {
+test("the login is the prototype's card in the middle of the pale grey page: 820px, 12px round, the brand's ink panel at its left and the form at its right; one over the other on a phone", () => {
   render(frame)
 
-  expect(screen.getByRole("banner")).toHaveClass("bg-brand-panel")
+  const card = screen.getByRole("banner").parentElement!
+  expect(card).toHaveAttribute("data-slot", "login-card")
+  expect(card).toHaveClass("max-w-[820px]", "rounded-xl", "bg-card", "md:grid-cols-2")
+  expect(card.parentElement).toHaveClass("bg-sidebar", "items-center", "justify-center")
+  expect(screen.getByRole("banner")).toHaveClass("bg-brand-panel", "text-brand-panel-foreground", "content-end")
   expect(screen.getByRole("banner").className).not.toContain("--brand-fill")
-  expect(screen.getByRole("main")).toHaveClass("bg-background")
+  expect(screen.getByRole("main")).toHaveClass("content-center")
 })
