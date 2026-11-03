@@ -40,14 +40,14 @@ test("with no delay the box reports every keystroke (a picker's list)", async ()
   expect(search).toHaveBeenLastCalledWith("ol")
 })
 
-test("the box is the prototype's search glass: its own tint and rim over a blur", () => {
+test("the box is the prototype's search field: a 38px grey field on a phone, a 32px white one ringed on the web, nothing blurred", () => {
   render(<SearchBox value="" onSearch={() => {}} />)
   const box = screen.getByRole("searchbox").closest('[data-slot="search-box"]')
-  expect(box).toHaveClass("bg-(--search)", "shadow-(--search-rim)", "backdrop-blur-[16px]", "backdrop-saturate-[1.5]")
-  expect(box).not.toHaveClass("bg-muted")
+  expect(box).toHaveClass("h-[38px]", "rounded-[10px]", "bg-(--search)", "shadow-(--search-rim)", "md:h-8", "md:rounded-md")
+  expect(box?.className).not.toContain("backdrop-blur")
 })
 
-test("on a wide screen the box keeps to 460px, as the prototype's web view", () => {
+test("on a wide screen the box is the prototype's 260px", () => {
   const { container } = render(<SearchBox value="" onSearch={() => {}} />)
-  expect(container.querySelector('[data-slot="search-box"]')).toHaveClass("md:max-w-[460px]")
+  expect(container.querySelector('[data-slot="search-box"]')).toHaveClass("md:w-[260px]")
 })

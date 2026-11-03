@@ -4,7 +4,9 @@ import { SearchIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 
-// SearchBox is the prototype's search pill, of its own glass. It reports what was typed once
+// SearchBox is the prototype's search field: a 38px grey field on a phone,
+// a 32px white one ringed by a hairline on the web (260px wide, the accent's
+// ring round it while typing). It reports what was typed once
 // typing pauses for delay ms (300 by default; 0 reports every keystroke, for
 // a list that filters in place). The search it is given may also change from
 // outside (a link to the bare list drops it from the address): the box then
@@ -49,11 +51,11 @@ export function SearchBox({
     <div
       data-slot="search-box"
       className={cn(
-        "mb-3 flex h-11 items-center gap-2 rounded-full bg-(--search) px-3.5 text-muted-foreground shadow-(--search-rim) backdrop-blur-[16px] backdrop-saturate-[1.5] md:max-w-[460px]",
+        "mb-3 flex h-[38px] items-center gap-2 rounded-[10px] bg-(--search) px-2.5 text-icon shadow-(--search-rim) transition-shadow md:h-8 md:w-[260px] md:rounded-md md:focus-within:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--primary-soft)]",
         className,
       )}
     >
-      <SearchIcon aria-hidden="true" strokeWidth={2.4} className="size-[19px] shrink-0" />
+      <SearchIcon aria-hidden="true" strokeWidth={2} className="size-4 shrink-0" />
       <input
         type="search"
         aria-label={label}
@@ -72,11 +74,9 @@ export function SearchBox({
             setText("")
             onSearch("")
           }}
-          className="-mr-2 grid size-8 shrink-0 place-items-center"
+          className="-mr-1 grid size-7 shrink-0 place-items-center text-icon"
         >
-          <span className="grid size-[18px] place-items-center rounded-full bg-muted-foreground/70 text-card">
-            <XIcon strokeWidth={3.4} className="size-[11px]" />
-          </span>
+          <XIcon strokeWidth={2} className="size-3.5" />
         </button>
       )}
     </div>
