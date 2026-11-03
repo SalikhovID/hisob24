@@ -1,14 +1,12 @@
-import type { Locator, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 import { db } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { expectSignedIn, onPhone, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
+import { expectSignedIn, memberRow, onPhone, openSection, sections, sideScroll, signIn, signOut } from "./helpers"
 
 // The whole way of a role (logic/roles.md): the owner makes one in the
 // settings, gives it to an employee in the employees, the employee works by
 // it alone, and the owner takes it away again.
 
-// memberRow is an employee's row of the members: it opens their sheet.
-const memberRow = (page: Page, name: string): Locator => page.getByRole("list", { name: "Xodimlar" }).getByRole("button", { name: new RegExp(`^${name}`) })
 
 // pickRole gives the employee a role in their sheet's picker, and closes the sheet.
 async function pickRole(page: Page, name: string, role: RegExp, shown: string) {

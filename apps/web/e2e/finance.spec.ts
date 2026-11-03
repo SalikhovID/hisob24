@@ -1,7 +1,7 @@
 import { db, nextId, seedCatalog } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { back, choose, days, list, openSection, sections, settle, sideScroll, signIn } from "./helpers"
+import { back, choose, days, docRow, list, openSection, sections, settle, sideScroll, signIn } from "./helpers"
 
 const sectionTabs = (page: import("@playwright/test").Page) => page.getByRole("navigation", { name: "Moliya bo'limi" })
 
@@ -84,15 +84,15 @@ test("the owner keeps the cash: an opening balance, an expense under its categor
   // The expenses: the rent edited from its row's sheet.
   await sectionTabs(page).getByRole("link", { name: "Xarajatlar" }).click()
   await expect(page).toHaveURL(/\/expenses$/)
-  const expenses = days(page, "Xarajatlar")
-  await expect(expenses.getByText("№ 1 · Ijara")).toBeVisible()
-  await expenses.getByRole("button", { name: /№ 1 · Ijara/ }).click()
+  const rent = docRow(page, "Xarajatlar", 1, "button")
+  await expect(rent).toContainText("Ijara")
+  await rent.click()
   await page.getByRole("menuitem", { name: "Tahrirlash" }).click()
   dialog = page.getByRole("dialog", { name: "Xarajatni tahrirlash" })
   await dialog.getByLabel("Summa").fill("160000")
   await dialog.getByRole("button", { name: "Saqlash" }).click()
   await expect(dialog).toBeHidden()
-  await expect(expenses.getByText("160 000 so'm")).toBeVisible()
+  await expect(rent).toContainText("160 000 so'm")
   await settle(page)
   await page.getByRole("tab", { name: "Kirim" }).click()
   await expect(page).toHaveURL(/\/expenses\?kind=income$/)

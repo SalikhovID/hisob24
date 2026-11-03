@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import { addDays, ALI, db, join, LOGIN_CODE, TODAY, VALI } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { expectSignedIn, openSection, signOut } from "./helpers"
+import { expectSignedIn, list, memberRow, openSection, signOut } from "./helpers"
 
 // signIn goes through the login page: the number without +998, then the code.
 async function signIn(page: Page, number: string) {
@@ -17,10 +17,10 @@ async function sections(page: Page): Promise<Locator> {
   return page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
 }
 
-// The members are the prototype's rows on any screen; a row opens the member's sheet.
-const members = (page: Page) => page.getByRole("list", { name: "Xodimlar" })
+// The members: the web's table, a phone's rows; a row opens the member's sheet.
+const members = (page: Page) => list(page, "Xodimlar")
 async function openMember(page: Page, name: RegExp) {
-  await members(page).getByRole("button", { name }).click()
+  await memberRow(page, name).click()
   const sheet = page.getByRole("dialog", { name: "Xodim" })
   await expect(sheet).toBeVisible()
   return sheet

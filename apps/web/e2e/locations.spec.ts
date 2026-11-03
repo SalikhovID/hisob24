@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { addDays, db, DILNOZA, join, localToday } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { boardOf, choose, chooseLocation, goHome, locationSwitch, onPhone, openSection, sideScroll, signIn, signOut, tab } from "./helpers"
+import { boardOf, choose, chooseLocation, goHome, list, locationSwitch, memberRow, onPhone, openSection, sideScroll, signIn, signOut, tab } from "./helpers"
 
 const today = localToday()
 
@@ -14,11 +14,11 @@ async function openNok(page: Page) {
 }
 
 // The members are the prototype's rows on any screen.
-const members = (page: Page) => page.getByRole("list", { name: "Xodimlar" })
+const members = (page: Page) => list(page, "Xodimlar")
 
 // placesOf opens a member's locations sheet: their row opens their sheet, its row the locations'.
 async function placesOf(page: Page, name: RegExp) {
-  await members(page).getByRole("button", { name }).click()
+  await memberRow(page, name).click()
   await page.getByRole("dialog", { name: "Xodim" }).getByRole("button", { name: /^Lokatsiyalar/ }).click()
   return page.getByRole("dialog", { name: "Lokatsiyalarni o'zgartirish" })
 }

@@ -1,7 +1,7 @@
 import { seedCatalog, seedCustomers, seedWarehouse } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { back, days, list, onPhone, openSection, pick, sections, settle, sideScroll, signIn, tab } from "./helpers"
+import { back, days, docRow, list, onPhone, openSection, pick, sections, settle, sideScroll, signIn, tab } from "./helpers"
 
 test("the owner sells: to a customer with a service and a part payment, the customer's debt and its settling, a retail sale paid in full, an edit, the product's moves and a deletion", async ({ page }) => {
   test.setTimeout(180_000)
@@ -78,7 +78,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   // A retail sale names nobody and is paid in full: «To'liq» puts the whole
   // total into the payment. Nok has no sale price: it is typed.
   await openSection(page, "Sotuv")
-  await expect(days(page, "Sotuvlar").getByRole("link", { name: /№ 1 · Dilshod Karimov/ })).toBeVisible()
+  await expect(docRow(page, "Sotuvlar", 1)).toContainText("Dilshod Karimov")
   await page.getByRole("link", { name: "Sotuv qo'shish" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Yangi sotuv" })).toBeVisible()
   const line = page.getByRole("group", { name: "1-qator" })
@@ -100,7 +100,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   // An edit: one kilo of Olma on the first sale; the total follows.
   await back(page, "Sotuvlar")
   await expect(page).toHaveURL(/\/sales$/)
-  await days(page, "Sotuvlar").getByRole("link", { name: /№ 1 · Dilshod Karimov/ }).click()
+  await docRow(page, "Sotuvlar", 1).click()
   await expect(page.getByRole("heading", { level: 1, name: "Sotuv № 1" })).toBeVisible()
   await page.getByRole("link", { name: "Tahrirlash" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Sotuvni tahrirlash" })).toBeVisible({ timeout: 15_000 })
@@ -126,8 +126,8 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await page.getByRole("button", { name: "O'chirish" }).click()
   await page.getByRole("alertdialog", { name: "Sotuvni o'chirasizmi?" }).getByRole("button", { name: "O'chirish" }).click()
   await expect(page).toHaveURL(/\/sales$/)
-  await expect(days(page, "Sotuvlar").getByRole("link", { name: /№ 2 · Chakana/ })).toBeVisible()
-  await expect(days(page, "Sotuvlar").getByRole("link", { name: /№ 1 · / })).toHaveCount(0)
+  await expect(docRow(page, "Sotuvlar", 2)).toContainText("Chakana")
+  await expect(docRow(page, "Sotuvlar", 1)).toHaveCount(0)
   await settle(page)
   await openSection(page, "Mahsulotlar")
   await expect(list(page, "Mahsulotlar").getByText("12,5 kg")).toBeVisible()

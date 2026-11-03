@@ -150,11 +150,30 @@ export const list = (page: Page, name: string) => page.getByRole("table", { name
 // a phone's stage chips over the chosen stage's cards.
 export const boardOf = (page: Page) => (onPhone(page) ? page.locator('[data-slot="phone-board"]') : page.getByRole("region", { name: "Kanban" }))
 
+// memberRow is a member's row of «Xodimlar», which opens their sheet: a
+// phone's row (a button named by the member), the web table's row (its
+// text starts with the avatar's letter, so the name is not anchored there).
+export const memberRow = (page: Page, name: RegExp | string) => {
+  const pattern = typeof name === "string" ? new RegExp(`^${name}`) : name
+  return onPhone(page)
+    ? page.getByRole("list", { name: "Xodimlar" }).getByRole("button", { name: pattern })
+    : page.getByRole("table", { name: "Xodimlar" }).getByRole("row").filter({ hasText: new RegExp(pattern.source.replace(/^\^/, ""), pattern.flags) })
+}
+
 // tab opens a part of a record's page (components/kit/in-page-tabs.tsx).
 export const tab = (page: Page, name: string) => page.getByRole("tab", { name, exact: true }).click()
 
 // days is a list of documents grouped by their day (components/kit/day-groups.tsx).
 export const days = (page: Page, name: string) => page.getByRole("region", { name })
+
+// docRow is a document's row of a list the web draws as a table (the
+// sales, the purchases, the expenses): on a phone its row in its day (named
+// «№ N · …»: a link, or for an expense a button), on the web the table's
+// row whose first cell is «№ N». Either is pressed to open the document.
+export const docRow = (page: Page, list: string, number: number, role: "link" | "button" = "link") =>
+  onPhone(page)
+    ? page.getByRole("region", { name: list }).getByRole(role, { name: new RegExp(`^№ ${number} · `) })
+    : page.getByRole("table", { name: list }).getByRole("row").filter({ has: page.getByText(`№ ${number}`, { exact: true }) })
 
 // pick finds an item in a picker by what is typed and takes the option.
 export async function pick(page: Page, scope: Page | Locator, label: string, typed: string, option: RegExp) {
