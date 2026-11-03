@@ -33,7 +33,8 @@ test("a refusal may offer what to do about it, as buttons beside the reason", as
   expect(open).toHaveBeenCalledTimes(1)
 })
 
-test("a refusal is the prototype's soft red card, its corners 20px", () => {
-  const { container } = render(<Refusal>Raqam band</Refusal>)
-  expect(container.querySelector('[data-slot="refusal"]')).toHaveClass("rounded-[20px]")
+test("a refusal is a flat soft red card, 12px round on a phone and 10px on the web, its way out in the accent's words", () => {
+  const { container } = render(<Refusal actions={<button type="button">Mijozni ochish</button>}>Raqam band</Refusal>)
+  expect(container.querySelector('[data-slot="refusal"]')).toHaveClass("rounded-group", "md:rounded-lg", "bg-destructive-soft")
+  expect(screen.getByRole("button", { name: "Mijozni ochish" }).parentElement).toHaveClass("[&_button]:text-accent-text")
 })
