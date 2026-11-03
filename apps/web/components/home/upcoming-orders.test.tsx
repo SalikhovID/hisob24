@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
 import { addDays } from "@/mocks/data"
+import { formatDayMonth } from "@/lib/format"
 import { todayISO } from "@/lib/orders"
 import type { Dashboard, Order, OrderStage } from "@/lib/types"
 import { renderWithProviders } from "@/test/render"
@@ -33,27 +34,33 @@ const order = (id: number, number: number, deadline: string, stageId = 1, extra:
   ...extra,
 })
 
-test("the orders due soonest, each a way to its page with its customer, assignee and deadline; then the way to them all", () => {
+test("the orders due soonest, as the prototype's rows: the customer's avatar and name, «№ N · deadline · qoldiq», the stage's badge; «Hammasi» leads to them all", () => {
   const today = todayISO()
   const orders: Orders = {
     active: 7,
     late: 1,
     by_stage: [],
-    upcoming: [order(1, 2, addDays(today, -2)), order(2, 3, today, 2, { assignee: null }), order(3, 4, addDays(today, 3))],
+    upcoming: [
+      order(1, 2, addDays(today, -2)),
+      order(2, 3, today, 2, { amount: "1000000.00", paid: "400000.00" }),
+      order(3, 4, addDays(today, 3), 1, { amount: "50000.00", paid: "50000.00" }),
+    ],
   }
   renderWithProviders(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
 
   expect(screen.getByRole("heading", { level: 2, name: "Yaqin muddatlar" })).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Yaqin muddatlar" })).toHaveAttribute("href", "/orders?view=list")
-  expect(screen.getByText("Jami: 7")).toBeInTheDocument()
-  const list = screen.getByRole("list", { name: "Yaqin muddatlar" })
-  const rows = within(list).getAllByRole("link")
-  expect(rows.map((row) => row.getAttribute("href"))).toEqual(["/orders/1", "/orders/2", "/orders/3", "/orders?view=list"])
-  expect(rows[0]).toHaveAccessibleName(`Buyurtma № 2 Dilshod Karimov · Vali A. ${addDays(today, -2).slice(8, 10)}.${addDays(today, -2).slice(5, 7)} 2 kun kechikdi`)
-  expect(rows[1]).toHaveTextContent("Bugun")
-  expect(rows[1]).not.toHaveTextContent("·")
-  expect(rows[2]).toHaveTextContent("3 kun qoldi")
-  expect(rows[3]).toHaveAccessibleName("Barcha buyurtmalar")
+  expect(screen.getByRole("link", { name: "Hammasi" })).toHaveAttribute("href", "/orders")
+  const rows = within(screen.getByRole("list", { name: "Yaqin muddatlar" })).getAllByRole("link")
+  expect(rows.map((row) => row.getAttribute("href"))).toEqual(["/orders/1", "/orders/2", "/orders/3"])
+  expect(rows[0]).toHaveTextContent("Dilshod Karimov")
+  expect(rows[0].querySelector('[data-slot="avatar"]')).not.toBeNull()
+  expect(rows[0]).toHaveTextContent(`№ 2 · Muddati o'tgan · ${formatDayMonth(addDays(today, -2))}`)
+  expect(within(rows[0]).getByText(`Muddati o'tgan · ${formatDayMonth(addDays(today, -2))}`)).toHaveClass("text-destructive")
+  expect(within(rows[0]).getByText("Yangi")).toBeInTheDocument()
+  expect(rows[1]).toHaveTextContent(`№ 3 · ${formatDayMonth(today)} · qoldiq 600 000 so'm`)
+  expect(within(rows[1]).getByText("Jarayonda")).toBeInTheDocument()
+  expect(rows[2]).toHaveTextContent(`№ 4 · ${formatDayMonth(addDays(today, 3))}`)
+  expect(rows[2]).not.toHaveTextContent("qoldiq")
 })
 
 test("with no order open it says so, and offers to add one to whoever may", async () => {
@@ -73,12 +80,4 @@ test("a member with no location is told so", () => {
 
   expect(screen.getByText("Sizga lokatsiya biriktirilmagan")).toBeInTheDocument()
   expect(screen.queryByRole("list", { name: "Yaqin muddatlar" })).not.toBeInTheDocument()
-})
-
-test("the heading's way to every order is the prototype's: the heading's ink, 17px and bold, with a chevron after it", () => {
-  const orders: Orders = { active: 1, late: 0, by_stage: [], upcoming: [order(1, 2, todayISO())] }
-  renderWithProviders(<UpcomingOrders orders={orders} stages={stages} hasLocation canAdd onAdd={vi.fn()} />)
-  const link = screen.getByRole("link", { name: "Yaqin muddatlar" })
-  expect(link).toHaveClass("text-[17px]", "font-semibold", "text-heading")
-  expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
 })
