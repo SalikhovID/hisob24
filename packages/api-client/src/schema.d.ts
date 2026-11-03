@@ -2983,7 +2983,7 @@ export interface components {
              * @description Hujjat vaqti, offset bilan ("Vaqtni kiriting" / "Vaqt noto'g'ri")
              */
             at: string;
-            /** @description Akkaunt valyutasining kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            /** @description Akkaunt valyutasining kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri"). Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa vaqtidagi standart kursga qaytadi */
             rate?: string | null;
             note?: string | null;
         };
@@ -3141,7 +3141,7 @@ export interface components {
              * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
              */
             currency_id?: number | null;
-            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri"). Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa vaqtidagi standart kursga qaytadi */
             rate?: string | null;
             note?: string | null;
             items: components["schemas"]["PurchaseItemInput"][];
@@ -3202,7 +3202,7 @@ export interface components {
              * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
              */
             currency_id?: number | null;
-            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri"). Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa vaqtidagi standart kursga qaytadi */
             rate?: string | null;
             /**
              * Format: date-time
@@ -3467,7 +3467,7 @@ export interface components {
              * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
              */
             currency_id?: number | null;
-            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri"). Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa vaqtidagi standart kursga qaytadi */
             rate?: string | null;
             note?: string | null;
             items: components["schemas"]["PurchaseItemInput"][];
@@ -3544,7 +3544,7 @@ export interface components {
              * @description Hujjat valyutasi; berilmasa so'm; kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
              */
             currency_id?: number | null;
-            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            /** @description Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri"). Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa vaqtidagi standart kursga qaytadi */
             rate?: string | null;
             note?: string | null;
             items: components["schemas"]["PurchaseItemInput"][];
@@ -4073,7 +4073,7 @@ export interface components {
              * @description Narx valyutasi; berilmasa UZS; kompaniyada yoqilgan bo'lishi shart (currency_not_allowed)
              */
             currency_id?: number | null;
-            /** @description Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            /** @description Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri"). Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa vaqtidagi standart kursga qaytadi */
             rate?: string | null;
             /** @description Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin */
             items?: components["schemas"]["OrderLineInput"][];
@@ -4098,7 +4098,7 @@ export interface components {
              * @description Narx valyutasi; berilmasa UZS; kompaniyada yoqilgan bo'lishi shart (currency_not_allowed)
              */
             currency_id?: number | null;
-            /** @description Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri") */
+            /** @description Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri"). Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa vaqtidagi standart kursga qaytadi */
             rate?: string | null;
             /** @description Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin */
             items?: components["schemas"]["OrderLineInput"][];

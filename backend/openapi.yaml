@@ -7074,7 +7074,9 @@ components:
           description: >
             Akkaunt valyutasining kursi; berilmasa hujjat vaqtidagi standart
             kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
-            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri").
+            Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa
+            vaqtidagi standart kursga qaytadi
         note:
           type: [string, "null"]
           maxLength: 500
@@ -7320,7 +7322,9 @@ components:
           description: >
             Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart
             kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
-            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri").
+            Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa
+            vaqtidagi standart kursga qaytadi
         note:
           type: [string, "null"]
           maxLength: 500
@@ -7423,7 +7427,9 @@ components:
           description: >
             Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart
             kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
-            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri").
+            Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa
+            vaqtidagi standart kursga qaytadi
         at:
           type: string
           format: date-time
@@ -7831,7 +7837,9 @@ components:
           description: >
             Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart
             kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
-            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri").
+            Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa
+            vaqtidagi standart kursga qaytadi
         note:
           type: [string, "null"]
           maxLength: 500
@@ -7954,7 +7962,9 @@ components:
           description: >
             Valyutaning so'mdagi kursi; berilmasa hujjat vaqtidagi standart
             kurs (yo'q bo'lsa 400 "Kursni kiriting"); standartdan farqli
-            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+            bo'lsa hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri").
+            Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa
+            vaqtidagi standart kursga qaytadi
         note:
           type: [string, "null"]
           maxLength: 500
@@ -8860,7 +8870,9 @@ components:
           description: >
             Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q
             bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa
-            hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+            hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri").
+            Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa
+            vaqtidagi standart kursga qaytadi
         items:
           type: array
           description: Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin
@@ -8903,7 +8915,9 @@ components:
           description: >
             Hujjat kursi; berilmasa hujjat vaqtidagi standart kurs (yo'q
             bo'lsa 400 "Kursni kiriting"); standartdan farqli bo'lsa
-            hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri")
+            hujjatning o'z kursi; so'mda faqat 1 ("Kurs noto'g'ri").
+            Tahrirda ham shunday: o'z kursli hujjat rate'siz yuborilsa
+            vaqtidagi standart kursga qaytadi
         items:
           type: array
           description: Biriktirilgan mahsulot va xizmat qatorlari; mahsulot buyurtma lokatsiyasi qoldig'idan chiqadi (yetmasa 409 stock_insufficient); bo'sh bo'lishi mumkin

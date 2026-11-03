@@ -27,7 +27,7 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 ## 3. Kompaniya valyutalari (admin panel)
 
 - Har kompaniya UZS bilan boshlaydi: mavjud kompaniyalarga migratsiya 00014 yozadi, yangisiga kompaniya yaratilganda.
-- Admin kompaniya sahifasida **Valyutalar** bo'limida USD, EUR, RUB ni yoqadi yoki o'chiradi (`PUT /admin/companies/{id}/currencies {currency_ids}`). UZS doim ro'yxatda, olib tashlanmaydi (400 «UZS olib tashlanmaydi»).
+- Admin kompaniya sahifasida **Valyutalar** bo'limida USD, EUR, RUB ni yoqadi yoki o'chiradi (`PUT /admin/companies/{id}/currencies {currency_ids}`). UZS doim ro'yxatda, olib tashlanmaydi: usiz ro'yxat (bo'sh ro'yxat ham) 400 «UZS olib tashlanmaydi».
 - **O'chirish** (ro'yxatdan chiqarish): shu valyutada jonli hujjat, mahsulot narxi yoki akkaunt bo'lsa 409 `currency_in_use` «Bu valyutada N ta hujjat bor» (mahsulot va akkaunt ham sanaladi: «N ta mahsulot», «N ta akkaunt»). Bo'lmasa chiqariladi; kurs tarixi qoladi.
 - Kompaniyada faqat UZS bo'lsa, user app'da valyuta va kurs maydonlari umuman ko'rinmaydi; 2+ valyutada hujjat formalarida valyuta tanlovi (standart UZS) va kurs maydoni chiqadi.
 
@@ -44,9 +44,10 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 
 - Har hujjatda `currency_id` (berilmasa UZS) va kurs. Qatorlar (narx, summa) va `total` hujjat valyutasida. So'mdagi qiymat (`total_uzs`) hujjat kurs qatori bilan hisoblanadi: `convert_amount(total, currency, UZS, kurs qatori)`, 2 kasrgacha.
 - Kompaniyada yoqilmagan valyuta: 400 `currency_not_allowed` «Bu valyuta kompaniyada yoqilmagan». Valyuta keyin o'chirilsa, bor hujjatlar o'zgarmaydi (o'chirish to'siladi, 3-bo'lim).
-- **To'lov** (ta'minotchiga, mijozdan, xarajat, kirim) valyutasi tanlanmaydi: akkauntniki ([finance.md](finance.md)). Kursi akkaunt valyutasi bo'yicha hujjat sanasidagi standart (formada o'zgartirish mumkin).
-- **Mahsulot narxi** (`products.price`) o'z valyutasida (`products.currency_id`, standart UZS). Sotuv formasida mahsulot tanlanganda: narx valyutasi hujjat valyutasiga mos bo'lsa to'ldiriladi, aks holda hujjat kursi bilan aylantirib taklif qilinadi (2 kasr); foydalanuvchi o'zgartiradi. Oxirgi xarid narxi ham shunday ([products.md](products.md)).
-- **Balans** (ta'minotchi, mijoz) so'mda: har hujjat o'z kursi bilan aylantiriladi; kurs farqi balansda qoladi (100 USD xarid 12 800 dan va 100 USD to'lov 13 000 dan: valyuta bo'yicha 0 USD, so'mda −20 000 avans). Yoniga valyuta bo'yicha tafsilot («shu jumladan 100 USD, 500 000 so'm»). **Akkaunt qoldig'i** faqat o'z valyutasida, aylantirilmaydi.
+- **To'lov** (ta'minotchiga, mijozdan, xarajat, kirim) valyutasi tanlanmaydi: akkauntniki ([finance.md](finance.md)). Kursi akkaunt valyutasi bo'yicha hujjat sanasidagi standart (formada o'zgartirish mumkin). Hujjat formasidagi «To'liq» qolgan summani akkaunt valyutasiga eng yaqin sentgacha aylantiradi, shuning uchun to'lov jamidan bir oz oshishi mumkin (50 000 so'm Dollar akkauntidan: 3,91 $ = 50 048 so'm); to'lovlar jamidan oshsa forma «Qolgan» o'rniga «Ortiqcha: 48 so'm» deydi, oshgani balansda avans bo'lib qoladi.
+- **Mahsulot narxi** (`products.price`) o'z valyutasida (`products.currency_id`, standart UZS). Sotuv formasida mahsulot tanlanganda: narx valyutasi hujjat valyutasiga mos bo'lsa to'ldiriladi, aks holda hujjat kursi bilan aylantirib taklif qilinadi (2 kasr, saqlangan narx kabi: «12800.00»); foydalanuvchi o'zgartiradi. Oxirgi xarid narxi ham shunday ([products.md](products.md)).
+- **Formada valyuta almashtirilsa** (sotuv, xarid, boshlang'ich qoldiq, buyurtma): qatorlardagi narxlar va buyurtma narxi, taklif qilingani ham, qo'lda yozilgani ham, joriy kurs bilan yangi valyutaga aylantiriladi (2 kasr: 1 920 000 so'm → «150.00» $); narx bo'lmagan matn va kursi yo'q valyuta aylantirilmaydi. Kurs maydoni yangi valyutaning standart kursini oladi: oldingi valyutaga yozilgan kurs o'tmaydi, kursi kiritilmagan valyutada maydon bo'sh qoladi va so'raladi (to'lov formasida akkaunt almashsa ham shunday). O'z valyutasida ochilgan hujjatning narxlari va kursi valyuta almashtirilmaguncha o'zgarmaydi.
+- **Balans** (ta'minotchi, mijoz) so'mda: har hujjat o'z kursi bilan aylantiriladi; kurs farqi balansda qoladi (100 USD xarid 12 800 dan va 100 USD to'lov 13 000 dan: valyuta bo'yicha 0 USD, so'mda −20 000 avans). Yoniga valyuta bo'yicha tafsilot ishorasiz, so'z bilan: avval qarz, keyin avans («shu jumladan qarz 500 000 so'm, avans 100 $»); qoldig'i 0 bo'lgan valyuta aytilmaydi, faqat so'm qolsa tafsilot yo'q. **Akkaunt qoldig'i** faqat o'z valyutasida, aylantirilmaydi.
 
 ## 6. Ko'rinish
 
@@ -65,6 +66,8 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 | Hujjat sanasi tahrirda o'zgartirildi | kurs qatori qayta tanlanadi (o'z kursli hujjatda qoladi); so'mdagi qiymat o'zgarishi mumkin |
 | Admin ishlatilgan valyutani o'chirmoqchi | 409 `currency_in_use` |
 | Mahsulot narxi USD, sotuv so'mda | narx joriy hujjat kursi bilan so'mga aylantirib taklif qilinadi |
+| Formada hujjat valyutasi almashtirildi (so'm → USD, USD → EUR) | narxlar joriy kurs bilan aylantiriladi; kurs maydoni yangi valyutaning standart kursi |
+| 50 000 so'mlik xarid Dollar akkauntidan «To'liq» bilan | 3,91 $ (= 50 048 so'm); forma «Ortiqcha: 48 so'm» deydi, 48 so'm ta'minotchida avans |
 | Kompaniyada faqat UZS, mahsulotda USD narx qolgan (valyuta o'chirilgan bo'lolmaydi) | bo'lmaydi: narxi bor mahsulot valyutani to'sadi |
 
 ## 8. Xato kodlari
