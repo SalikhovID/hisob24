@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import type { ComponentProps, ReactNode } from "react"
 import { afterEach, expect, test, vi } from "vitest"
 import { BackTargetProvider } from "@/components/kit/back-target"
@@ -70,6 +70,18 @@ test("with two locations the top bar's menu says the current one and makes anoth
   expect(within(menu).getByRole("menuitemradio", { name: "Asosiy" })).toHaveAttribute("aria-checked", "true")
   await user.click(within(menu).getByRole("menuitemradio", { name: "Chilonzor" }))
   expect(await screen.findByRole("button", { name: "Lokatsiya: Chilonzor" })).toBeInTheDocument()
+})
+
+test("a location chosen closes the menu: the page under it takes clicks again", async () => {
+  addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  const { user } = renderWithProviders(shell())
+  await user.click(await screen.findByRole("button", { name: "Lokatsiya: Asosiy" }))
+  const menu = await screen.findByRole("menu", { name: "Lokatsiya: Asosiy" })
+  await user.click(within(menu).getByRole("menuitemradio", { name: "Chilonzor" }))
+
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument())
+  expect(document.querySelector("[data-base-ui-inert]")).toBeNull()
 })
 
 test("the bell opens a menu that says there are no notifications yet", async () => {

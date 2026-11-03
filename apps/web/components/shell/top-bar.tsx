@@ -64,6 +64,9 @@ function LocationMenu() {
                 <Menu.RadioItem
                   key={location.id}
                   value={location.id}
+                  // A location chosen is the menu's end (Base UI keeps a
+                  // radio menu open by default).
+                  closeOnClick
                   className="flex h-[30px] cursor-default items-center gap-2 rounded-md px-2.5 outline-none data-highlighted:bg-ink-1 data-checked:font-medium data-checked:text-accent-text"
                 >
                   <span className="min-w-0 flex-1 truncate">{location.name}</span>
