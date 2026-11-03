@@ -38,6 +38,27 @@ test("the cash: every account with what it holds in its own currency, the active
   ])
 })
 
+test("the cash's total in so'm heads it, each account turned by the rate in force (said under it); a currency with no rate stands apart", async () => {
+  db.currencies[1] = [1, 2, 3]
+  db.rates.push({ id: nextId(), companyId: 1, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, setAt: "2026-09-01T05:00:00Z" })
+  const dollar = { id: nextId(), name: "Dollar", currency_id: 2, is_active: true }
+  const evro = { id: nextId(), name: "Evro", currency_id: 3, is_active: true }
+  db.accounts[1].push(dollar, evro)
+  await signIn(ALI)
+  const at = "2026-10-01T09:00:00+05:00"
+  await enterCashOpening({ bank_account_id: db.accounts[1][0].id, amount: "1000000", at })
+  await enterCashOpening({ bank_account_id: dollar.id, amount: "100", at })
+  await enterCashOpening({ bank_account_id: evro.id, amount: "50", at })
+  setLocation("/accounts")
+  const { container } = renderWithProviders(<AccountsPage />)
+
+  await screen.findByText("Jami, so'mda")
+  const hero = container.querySelector('[data-slot="hero"]') as HTMLElement
+  await waitFor(() => expect(hero).toHaveTextContent("2 280 000"))
+  expect(hero).toHaveTextContent("1 $ = 12 800 so'm")
+  expect(hero).toHaveTextContent("+ 50 €")
+})
+
 test("whoever may not see the finance is sent home", async () => {
   giveRole(VALI, 1, "Kuzatuvchi", ["customers.view"])
   await signIn(VALI)
