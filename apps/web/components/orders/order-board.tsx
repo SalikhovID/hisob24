@@ -11,8 +11,12 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
+import { Radio } from "@base-ui/react/radio"
+import { RadioGroup } from "@base-ui/react/radio-group"
 import { PlusIcon, XIcon } from "lucide-react"
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { chip } from "@/components/kit/chips"
 import { Foot } from "@/components/kit/group"
 import { Failed, Loading } from "@/components/states"
 import { Button } from "@/components/ui/button"
@@ -22,7 +26,8 @@ import { colorValues } from "@/lib/stage-colors"
 import type { Order, OrderStage, OrderType } from "@/lib/types"
 import { useKept } from "@/lib/use-kept"
 import { cn } from "@/lib/utils"
-import { CardContent, ghostClass, OrderCard } from "./order-card"
+import { CardContent, cardClass, ghostClass, OrderCard } from "./order-card"
+import { StageMenu } from "./stage-menu"
 
 // ids reads the stages a user opened, as kept. What the browser hands back
 // is not trusted: anything but a list of ids is no choice at all.
@@ -119,6 +124,8 @@ export function OrderBoard({
   }
 
   return (
+    <>
+    <PhoneBoard companyId={companyId} stages={stages} types={types} everyType={everyType} filter={filter} onMove={canMove ? moveTo : undefined} />
     <DndContext
       sensors={sensors}
       onDragStart={onDragStart}
@@ -131,7 +138,7 @@ export function OrderBoard({
       }}
     >
       {/* The columns scroll sideways, out to the page's edges. */}
-      <section aria-label="Kanban" className="-mx-4 snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 pt-0.5 pb-2 scrollbar-hide md:mx-0 md:scroll-px-0 md:px-0">
+      <section aria-label="Kanban" className="-mx-4 hidden snap-x snap-mandatory scroll-px-4 overflow-x-auto px-4 pt-0.5 pb-2 scrollbar-hide md:mx-0 md:block md:scroll-px-0 md:px-0">
         <div className="flex items-start gap-2.5">
           {stages.map((stage) => (
             <StageColumn
@@ -151,7 +158,7 @@ export function OrderBoard({
           ))}
         </div>
       </section>
-      {canMove && <Foot className="mt-1.5">{howToMove}</Foot>}
+      {canMove && <Foot className="mt-1.5 hidden md:block">{howToMove}</Foot>}
       <DragOverlay dropAnimation={null}>
         {dragging && (
           <div className={cn(ghostClass, "w-72 rotate-2 cursor-grabbing px-3.5 py-3")}>
@@ -168,6 +175,120 @@ export function OrderBoard({
         {announcement}
       </div>
     </DndContext>
+    </>
+  )
+}
+
+// PhoneBoard is the board as a phone draws it, as the prototype's: the
+// stages as chips (each its color's dot, its name and how many orders stand
+// in it; the first stage chosen at first) over the chosen stage's cards, a
+// card's ⋯ the way to another stage. A phone has no drag.
+function PhoneBoard({
+  companyId,
+  stages,
+  types,
+  everyType,
+  filter,
+  onMove,
+}: {
+  companyId: number
+  stages: OrderStage[]
+  types: OrderType[]
+  everyType: boolean
+  filter: StageFilter
+  onMove?: (order: Order, stage: OrderStage) => void
+}) {
+  const [chosen, setChosen] = useState<number | null>(null)
+  const stage = stages.find((candidate) => candidate.id === chosen) ?? stages[0]
+  if (!stage) return null
+  return (
+    <div data-slot="phone-board" className="md:hidden">
+      <RadioGroup
+        aria-label="Bosqichlar"
+        value={String(stage.id)}
+        onValueChange={(value) => setChosen(Number(value))}
+        data-slot="chips"
+        className="-mx-4 mb-3.5 flex gap-1.5 overflow-x-auto px-4 py-0.5 scrollbar-hide"
+      >
+        {stages.map((candidate) => (
+          <StageChip key={candidate.id} companyId={companyId} stage={candidate} filter={filter} />
+        ))}
+      </RadioGroup>
+      <PhoneStageCards key={stage.id} companyId={companyId} stage={stage} stages={stages} types={types} everyType={everyType} filter={filter} onMove={onMove} />
+    </div>
+  )
+}
+
+// StageChip is one stage among the phone's chips: its dot, its name and how
+// many orders stand in it; the chosen one is the ink.
+function StageChip({ companyId, stage, filter }: { companyId: number; stage: OrderStage; filter: StageFilter }) {
+  const total = useStageOrders(companyId, stage.id, filter).data?.pages[0]?.total
+  return (
+    <Radio.Root
+      value={String(stage.id)}
+      data-slot="chip"
+      className={cn(chip, "not-data-checked:bg-card data-checked:bg-foreground data-checked:text-background")}
+    >
+      <i aria-hidden="true" data-slot="chip-dot" style={{ background: colorValues[stage.color] }} className="size-2 shrink-0 rounded-full" />
+      {stage.name}{" "}
+      <span data-slot="chip-count" className="font-medium opacity-60">
+        {total ?? "…"}
+      </span>
+    </Radio.Root>
+  )
+}
+
+// PhoneStageCards are the chosen stage's orders on a phone, due soonest
+// first, twenty at a time; each card the way into its order and, for
+// whoever may move them, its ⋯.
+function PhoneStageCards({
+  companyId,
+  stage,
+  stages,
+  types,
+  everyType,
+  filter,
+  onMove,
+}: {
+  companyId: number
+  stage: OrderStage
+  stages: OrderStage[]
+  types: OrderType[]
+  everyType: boolean
+  filter: StageFilter
+  onMove?: (order: Order, stage: OrderStage) => void
+}) {
+  const orders = useStageOrders(companyId, stage.id, filter)
+  const items = orders.data?.pages.flatMap((page) => page.items) ?? []
+  if (orders.isPending) return <Loading rows={3} />
+  if (orders.isError) return <Failed error={orders.error} onRetry={() => orders.refetch()} />
+  return (
+    <section aria-label="Bosqich buyurtmalari">
+      {items.length === 0 ? (
+        <p className="py-8 text-center text-md text-muted-foreground">Bo&apos;sh</p>
+      ) : (
+        <ul aria-label={stage.name} className="grid gap-2">
+          {items.map((order) => (
+            <li key={order.id} data-slot="order-card" className={cardClass}>
+              <Link
+                href={`/orders/${order.id}`}
+                className={cn("block rounded-[20px] py-3 pl-3.5 outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50", onMove ? "pr-11" : "pr-3.5")}
+              >
+                <CardContent order={order} stage={stage} type={everyType ? types.find((type) => type.id === order.type_id) : undefined} />
+              </Link>
+              {onMove && <StageMenu order={order} stages={stages} onMove={onMove} />}
+            </li>
+          ))}
+        </ul>
+      )}
+      {orders.hasNextPage && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="outline" size="sm" onClick={() => orders.fetchNextPage()} disabled={orders.isFetchingNextPage}>
+            Yana
+          </Button>
+        </div>
+      )}
+    </section>
   )
 }
 

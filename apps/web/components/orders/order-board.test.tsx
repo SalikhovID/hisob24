@@ -66,6 +66,57 @@ test("the board shows a column per stage, in order, with the orders due soonest 
   expect(bajarildi.done).toBe(true)
 })
 
+// phone is the board as a phone draws it: the stages' chips over the
+// chosen stage's cards.
+const phone = () => document.querySelector('[data-slot="phone-board"]') as HTMLElement
+const phoneCards = (stage: string) =>
+  within(within(phone()).getByRole("list", { name: stage }))
+    .queryAllByRole("listitem")
+    .map((card) => card.querySelector('[data-slot="card-title"]')?.textContent)
+
+test("on a phone the board is the stages' chips, each its dot, name and count, over the chosen stage's cards; the first stage is chosen at first, a chip shows its own", async () => {
+  await signIn(ALI)
+  seedOrders()
+  setLocation("/orders")
+  const { user } = renderWithProviders(<OrdersPage />)
+  await board()
+
+  const chips = within(phone()).getByRole("radiogroup", { name: "Bosqichlar" })
+  await waitFor(() => expect(within(chips).getAllByRole("radio").map((chip) => chip.textContent)).toEqual(["Yangi 2", "Jarayonda 1", "Bajarildi 1"]))
+  expect(within(chips).getByRole("radio", { name: /^Yangi/ })).toHaveAttribute("aria-checked", "true")
+  expect(within(chips).getByRole("radio", { name: /^Yangi/ }).querySelector('[data-slot="chip-dot"]')).not.toBeNull()
+  await waitFor(() => expect(phoneCards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
+
+  await user.click(within(chips).getByRole("radio", { name: /^Jarayonda/ }))
+  await waitFor(() => expect(phoneCards("Jarayonda")).toEqual(["Buyurtma № 3"]))
+})
+
+test("a phone's card moves by its ⋯ menu, as there is no drag on a phone", async () => {
+  await signIn(ALI)
+  const { invoice, jarayonda } = seedOrders()
+  setLocation("/orders")
+  const { user } = renderWithProviders(<OrdersPage />)
+  await board()
+  await waitFor(() => expect(phoneCards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
+
+  await user.click(within(phone()).getByRole("button", { name: "Bosqich: Buyurtma № 2" }))
+  await user.click(within(await screen.findByRole("menu")).getByRole("menuitemradio", { name: "Jarayonda" }))
+
+  await waitFor(() => expect(phoneCards("Yangi")).toEqual(["Buyurtma № 4"]))
+  expect(db.orders.find((order) => order.id === invoice.id)?.stageId).toBe(jarayonda.id)
+  expect(phone().querySelector('[data-slot="order-card"]')).not.toHaveAttribute("aria-roledescription")
+})
+
+test("the columns are the web's and the chips the phone's: each hides on the other's screen", async () => {
+  await signIn(ALI)
+  seedOrders()
+  setLocation("/orders")
+  renderWithProviders(<OrdersPage />)
+
+  expect(await board()).toHaveClass("hidden", "md:block")
+  expect(phone()).toHaveClass("md:hidden")
+})
+
 test("the done column opens and folds, and stays as it was left", async () => {
   await signIn(ALI)
   const { bajarildi } = seedOrders()
@@ -101,7 +152,7 @@ test("a card's stage menu moves the order to another column, where it takes its 
   await board()
   await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
 
-  await user.click(screen.getByRole("button", { name: "Bosqich: Buyurtma № 2" }))
+  await user.click(within(await board()).getByRole("button", { name: "Bosqich: Buyurtma № 2" }))
   // The stages, in a sheet named by the order.
   expect(await screen.findByRole("dialog", { name: "«Buyurtma № 2» bosqichi" })).toBeInTheDocument()
   const menu = await screen.findByRole("menu")
@@ -141,7 +192,7 @@ test("a move the API refuses puts the card back and says why; the stages are ask
   await waitFor(() => expect(cards("Yangi")).toEqual(["Buyurtma № 2", "Buyurtma № 4"]))
   const askedBefore = stagesAsked
 
-  await user.click(screen.getByRole("button", { name: "Bosqich: Buyurtma № 2" }))
+  await user.click(within(await board()).getByRole("button", { name: "Bosqich: Buyurtma № 2" }))
   await user.click(within(await screen.findByRole("menu")).getByRole("menuitemradio", { name: "Bajarildi" }))
 
   expect(await screen.findByText("Bosqichni tanlang")).toBeInTheDocument()
