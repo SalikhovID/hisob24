@@ -29,8 +29,10 @@ const pairsOf = (region: HTMLElement) =>
 
 const info = () => screen.findByRole("region", { name: "Ma'lumot" })
 
-// figure is the balance as it reads: its label, then the amount.
-const figure = (balance: HTMLElement) => balance.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()
+// card is the figure card with the label; figure is a card as it reads: its
+// label, the figure, the line under it.
+const card = async (label: string) => (await screen.findByText(label, { selector: "span" })).closest('[data-slot="stat-card"]') as HTMLElement
+const figure = (stat: HTMLElement) => stat.textContent?.replace(/\s+/g, " ").trim()
 
 test("a customer's page shows who it is, every field of its type in order, and who entered it", async () => {
   await signIn(ALI)
@@ -431,7 +433,7 @@ test("an employee whose role holds customers.view alone sees the customer withou
   expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Buyurtmalar" })).not.toBeInTheDocument()
   // What the customer owes is the sales' business (logic/sales.md, section 5).
-  expect(screen.queryByRole("region", { name: "Balans" })).not.toBeInTheDocument()
+  expect(screen.queryByText("Balans")).not.toBeInTheDocument()
   expect(screen.queryByRole("heading", { name: "Hisob harakati" })).not.toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
 })
@@ -451,8 +453,7 @@ test("the owner sees what the customer owes and their statement, with the sale a
   open(dilshod.id)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
-  const balance = await screen.findByRole("region", { name: "Balans" })
-  expect(figure(balance)).toBe("Qarz 7 000 so'm")
+  expect(figure(await card("Balans"))).toBe("Balans 7 000 so'm Qarz")
   const statement = await screen.findByRole("region", { name: "Hisob harakati" })
   // The sale, and the payment entered with it, each lead to the sale.
   const links = within(statement).getAllByRole("link", { name: /Sotuv № 1/ })
@@ -477,10 +478,25 @@ test("whoever may see the sales alone sees the balance and the statement, with n
   open(dilshod.id)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
-  expect(figure(await screen.findByRole("region", { name: "Balans" }))).toBe("Qarz 7 000 so'm")
+  expect(figure(await card("Balans"))).toBe("Balans 7 000 so'm Qarz")
   expect(await screen.findByRole("region", { name: "Hisob harakati" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Boshlang'ich" })).not.toBeInTheDocument()
   expect(within(screen.getByRole("group", { name: "Amallar" })).queryByRole("button", { name: "To'lov" })).not.toBeInTheDocument()
+})
+
+test("the customer's cards: what they owe (a debt red), how many orders and how many sales they have", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const { dilshod } = seedOrders()
+  await signIn(ALI)
+  await sold(dilshod, catalog)
+  open(dilshod.id)
+
+  const balance = await card("Balans")
+  expect(balance.querySelector('[data-slot="stat-value"]')).toHaveClass("text-destructive")
+  await waitFor(async () => expect(figure(await card("Buyurtmalar"))).toBe("Buyurtmalar 2"))
+  await waitFor(async () => expect(figure(await card("Sotuvlar"))).toBe("Sotuvlar 1"))
+  expect(balance.parentElement).toHaveAttribute("data-slot", "stat-cards")
 })
 
 test("a payment from the customer is entered from its «To'lov» tile: the sheet is the customer's, what they owe under the amount", async () => {

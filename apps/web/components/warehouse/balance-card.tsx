@@ -2,8 +2,9 @@
 
 import type { ReactNode } from "react"
 import { Hero } from "@/components/kit/hero"
+import { StatCard } from "@/components/kit/stat-cards"
 import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
-import { formatMoney } from "@/lib/format"
+import { formatAmount, formatMoney } from "@/lib/format"
 import type { BalanceLine, CompanyCurrency } from "@/lib/types"
 import { balanceText } from "@/lib/warehouse"
 
@@ -31,6 +32,25 @@ export function BalanceCard({ balance, byCurrency, children }: { balance: string
       />
       {children && <div className="flex flex-wrap justify-center gap-2">{children}</div>}
     </section>
+  )
+}
+
+// BalanceStat is a party's balance as a figure card of its page, the
+// prototype's «Balans»: the amount in so'm, red when they owe us, green
+// when we owe them; under it «Qarz», «Avans» or «Qarz yo'q» and what of it
+// is in each currency when any is not in so'm.
+export function BalanceStat({ balance, byCurrency }: { balance: string; byCurrency: BalanceLine[] | null }) {
+  const currencies = useCurrencies()
+  const { kind } = balanceText(balance)
+  const lines = breakdown(byCurrency ?? [], currencies)
+  const said = kind === "debt" ? "Qarz" : kind === "advance" ? "Avans" : "Qarz yo'q"
+  return (
+    <StatCard
+      label="Balans"
+      value={`${formatAmount(balance.replace("-", ""))} so'm`}
+      tone={kind === "debt" ? "red" : kind === "advance" ? "green" : undefined}
+      sub={lines ? `${said} · ${lines}` : said}
+    />
   )
 }
 

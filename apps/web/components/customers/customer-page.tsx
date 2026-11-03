@@ -13,11 +13,12 @@ import { answerText } from "@/lib/fields"
 import { formatDate } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
 import { can } from "@/lib/permissions"
-import { useCustomer, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
-import type { Permission } from "@/lib/types"
+import { useCustomer, useCustomerDropdowns, useCustomerTypes, useOrders, useSales } from "@/lib/queries"
+import type { BalanceLine, Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
-import { BalanceCard } from "@/components/warehouse/balance-card"
+import { BalanceStat } from "@/components/warehouse/balance-card"
+import { StatCard, StatCards } from "@/components/kit/stat-cards"
 import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { StatementList } from "@/components/warehouse/statement-list"
 import { CustomerHistory } from "./customer-history"
@@ -95,8 +96,15 @@ export function CustomerPage({ id }: { id: number }) {
           </PageActions>
         }
       />
-      {allowed("sales.view") && customer.data.balance !== null && (
-        <BalanceCard balance={customer.data.balance} byCurrency={customer.data.balance_by_currency ?? null} />
+      {companyId !== null && (
+        <CustomerStats
+          companyId={companyId}
+          customerId={customer.data.id}
+          balance={allowed("sales.view") ? customer.data.balance : null}
+          byCurrency={customer.data.balance_by_currency ?? null}
+          orders={allowed("orders.view")}
+          sales={allowed("sales.view")}
+        />
       )}
       <section aria-label="Ma'lumot">
         <SectionHeading>Ma&apos;lumot</SectionHeading>
@@ -156,5 +164,35 @@ export function CustomerPage({ id }: { id: number }) {
         />
       )}
     </>
+  )
+}
+
+// CustomerStats are the customer's figure cards, as the prototype's: what
+// they owe, how many orders they have and how many sales, each to whoever
+// may see it.
+function CustomerStats({
+  companyId,
+  customerId,
+  balance,
+  byCurrency,
+  orders,
+  sales,
+}: {
+  companyId: number
+  customerId: number
+  balance: string | null
+  byCurrency: BalanceLine[] | null
+  orders: boolean
+  sales: boolean
+}) {
+  const orderList = useOrders(orders ? companyId : null, { locationId: null, search: "", typeId: null, stageId: null, assignee: "", customerId, page: 1 })
+  const saleList = useSales(sales ? companyId : null, { locationId: null, customerId, page: 1 })
+  if (balance === null && !orders && !sales) return null
+  return (
+    <StatCards three>
+      {balance !== null && <BalanceStat balance={balance} byCurrency={byCurrency} />}
+      {orders && <StatCard label="Buyurtmalar" value={orderList.data?.total ?? "…"} />}
+      {sales && <StatCard label="Sotuvlar" value={saleList.data?.total ?? "…"} />}
+    </StatCards>
   )
 }
