@@ -39,7 +39,7 @@ test("the tiles are the record's actions: buttons, a link to call, a red one to 
   expect(within(group).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-danger", "true")
 })
 
-test("a tile is frosted glass with a glossy round icon, flat on it with no glow; a red tile's icon is the red gradient", () => {
+test("a tile is the prototype's: a card with a 36px accent circle over its name on a phone, a 44px row with the accent's icon beside it on the web; a red tile's icon red", () => {
   render(
     <Tiles>
       <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => {}} />
@@ -47,17 +47,14 @@ test("a tile is frosted glass with a glossy round icon, flat on it with no glow;
     </Tiles>,
   )
   const edit = screen.getByRole("button", { name: "Tahrirlash" })
-  expect(edit).toHaveClass("surface", "rounded-tile")
-  expect(edit).not.toHaveClass("bg-card")
+  expect(edit).toHaveClass("surface", "rounded-group", "flex-col", "text-[12px]", "md:h-11", "md:flex-row", "md:justify-start", "md:rounded-lg", "md:text-[13px]")
   const icon = edit.querySelector("[aria-hidden=true]")
-  expect(icon).toHaveClass("bg-primary", "bg-(image:--btn)", "text-primary-foreground")
-  expect(icon).not.toHaveClass("glossy")
+  expect(icon).toHaveClass("size-9", "rounded-full", "bg-primary", "text-primary-foreground", "md:size-auto", "md:bg-transparent", "md:text-primary")
   const red = screen.getByRole("button", { name: "O'chirish" }).querySelector("[aria-hidden=true]")
-  expect(red).toHaveClass("bg-[linear-gradient(180deg,#F2847A,#CF3F37)]", "text-white")
-  expect(red).not.toHaveClass("glossy-red")
+  expect(red).toHaveClass("bg-destructive", "md:text-destructive")
 })
 
-test("the tiles share the row alike; on a wide screen they keep to 680px, as the prototype's web view", () => {
+test("the tiles share the row alike, the whole width", () => {
   render(
     <Tiles>
       <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => {}} />
@@ -65,6 +62,6 @@ test("the tiles share the row alike; on a wide screen they keep to 680px, as the
     </Tiles>,
   )
   const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(tiles).toHaveClass("grid-cols-[repeat(var(--n),minmax(0,1fr))]", "md:max-w-[680px]")
-  expect(tiles).not.toHaveClass("md:grid-cols-[repeat(var(--n),minmax(0,10rem))]")
+  expect(tiles).toHaveClass("grid-cols-[repeat(var(--n),minmax(0,1fr))]")
+  expect(tiles).not.toHaveClass("md:max-w-[680px]")
 })

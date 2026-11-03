@@ -36,9 +36,8 @@ export function DetailHead({
   )
 }
 
-// Tiles are a record's quick actions in a row of equal squares under its
-// head, sharing the row alike; on a wide screen they keep to 680px, as the
-// prototype's web view.
+// Tiles are quick actions in a row of equal tiles (the home's: Buyurtma,
+// Sotuv, Xarid, Xarajat, Mijoz), sharing the row alike, the whole width.
 export function Tiles({ children, label = "Amallar", className }: { children: ReactNode; label?: string; className?: string }) {
   const count = Children.toArray(children).length
   return (
@@ -47,17 +46,17 @@ export function Tiles({ children, label = "Amallar", className }: { children: Re
       aria-label={label}
       data-slot="tiles"
       style={{ "--n": String(count) } as CSSProperties}
-      className={cn("mb-3 grid grid-cols-[repeat(var(--n),minmax(0,1fr))] gap-2 md:max-w-[680px]", className)}
+      className={cn("mb-4 grid grid-cols-[repeat(var(--n),minmax(0,1fr))] gap-2", className)}
     >
       {children}
     </div>
   )
 }
 
-// Tile is one action, a frosted glass square: a round icon in the glossy
-// accent, flat on the glass with no glow (as the prototype's), over its
-// name; a button, or a link (an address of the app, or tel: to call). A
-// danger tile is red.
+// Tile is one action, the prototype's tile: on a phone a card with a 36px
+// accent circle over its name, on the web a 44px row with the accent's
+// icon beside its name; a button, or a link (an address of the app, or
+// tel: to call). A danger tile's icon is red.
 export function Tile({
   icon: Icon,
   label,
@@ -74,19 +73,18 @@ export function Tile({
   disabled?: boolean
 }) {
   const classes = cn(
-    "flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-tile surface px-0.5 py-2 text-xs font-semibold no-underline transition-transform duration-150 ease-out-expo outline-none active:scale-95 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
-    danger ? "text-destructive" : "text-primary",
+    "flex flex-col items-center justify-center gap-1.5 rounded-group surface px-0.5 pt-3 pb-2.5 text-[12px] font-medium text-foreground no-underline transition-[transform,background-color] duration-150 ease-out-expo outline-none active:scale-[.97] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40 md:h-11 md:flex-row md:justify-start md:gap-2.5 md:rounded-lg md:px-3 md:py-0 md:text-[13px] md:hover:bg-ink-1",
   )
   const content = (
     <>
       <span
         aria-hidden="true"
         className={cn(
-          "grid size-7 place-items-center rounded-full",
-          danger ? "bg-destructive bg-[linear-gradient(180deg,#F2847A,#CF3F37)] text-white" : "bg-primary bg-(image:--btn) text-primary-foreground",
+          "grid size-9 shrink-0 place-items-center rounded-full md:size-auto md:bg-transparent",
+          danger ? "bg-destructive text-white md:text-destructive" : "bg-primary text-primary-foreground md:text-primary",
         )}
       >
-        <Icon strokeWidth={2.6} className="size-[17px]" />
+        <Icon strokeWidth={1.9} className="size-4" />
       </span>
       <span className="max-w-full truncate">{label}</span>
     </>
