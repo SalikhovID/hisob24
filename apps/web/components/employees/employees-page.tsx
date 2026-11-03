@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
+import { DataTable } from "@/components/kit/data-table"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { RoleBadge } from "@/components/role-badge"
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
 import { useEmployees } from "@/lib/queries"
+import type { Member } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
@@ -53,25 +55,55 @@ export function EmployeesPage() {
       {employees.isError && <Failed error={employees.error} onRetry={() => employees.refetch()} />}
       {members && (
         <>
-          <Group label="Xodimlar" inset="icon">
-            {members.map((m) => {
-              const where = locationsText(m)
-              return (
-                <Row
-                  key={m.phone}
-                  onClick={() => setOpened(m.phone)}
-                  media={<Avatar name={m.full_name} />}
-                  // A member with no name goes by the phone, which then is not said twice.
-                  title={m.full_name ?? formatPhone(m.phone)}
-                  badge={m.phone === ownPhone && <Badge>Siz</Badge>}
-                  sub={m.full_name ? formatPhone(m.phone) : undefined}
-                  end={<RoleBadge role={m.role} name={m.role_name} />}
-                  endSub={severalLocations && <span className={cn(where === "—" && "text-destructive")}>{where}</span>}
-                  chevron={false}
-                />
-              )
-            })}
-          </Group>
+          <DataTable
+            label="Xodimlar"
+            rows={members}
+            rowKey={(m) => m.phone}
+            onRow={(m) => setOpened(m.phone)}
+            columns={[
+              {
+                key: "member",
+                label: "Xodim",
+                render: (m) => (
+                  <span className="flex items-center gap-2.5">
+                    <Avatar name={m.full_name} />
+                    <span className="grid leading-[1.3]">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        {m.full_name ?? formatPhone(m.phone)}
+                        {m.phone === ownPhone && <Badge>Siz</Badge>}
+                      </span>
+                      {m.full_name && <span className="text-[12px] text-muted-foreground">{formatPhone(m.phone)}</span>}
+                    </span>
+                  </span>
+                ),
+              },
+              { key: "role", label: "Rol", render: (m) => <RoleBadge role={m.role} name={m.role_name} /> },
+              ...(severalLocations
+                ? [{ key: "locations", label: "Lokatsiyalar", render: (m: Member) => <span className={cn(locationsText(m) === "—" && "text-destructive")}>{locationsText(m)}</span> }]
+                : []),
+            ]}
+            phone={
+              <Group label="Xodimlar" inset="icon">
+                {members.map((m) => {
+                  const where = locationsText(m)
+                  return (
+                    <Row
+                      key={m.phone}
+                      onClick={() => setOpened(m.phone)}
+                      media={<Avatar name={m.full_name} />}
+                      // A member with no name goes by the phone, which then is not said twice.
+                      title={m.full_name ?? formatPhone(m.phone)}
+                      badge={m.phone === ownPhone && <Badge>Siz</Badge>}
+                      sub={m.full_name ? formatPhone(m.phone) : undefined}
+                      end={<RoleBadge role={m.role} name={m.role_name} />}
+                      endSub={severalLocations && <span className={cn(where === "—" && "text-destructive")}>{where}</span>}
+                      chevron={false}
+                    />
+                  )
+                })}
+              </Group>
+            }
+          />
           <Foot className="-mt-4">Jami: {members.length}. Xodim o&apos;z raqami bilan SMS kod yoki Telegram bot orqali kiradi.</Foot>
           {members.every((m) => m.role === "owner") && (
             <Foot>Hali xodim yo&apos;q. Xodim qo&apos;shsangiz, u o&apos;z telefon raqami bilan tizimga kiradi.</Foot>

@@ -47,6 +47,23 @@ test("the owner sees the company's members as the prototype's rows: themselves f
   expect(screen.getByRole("button", { name: "Xodim qo'shish" })).toBeInTheDocument()
 })
 
+test("on a wide screen the members are the prototype's table: Xodim (avatar, name, phone), Rol, Lokatsiyalar (with two or more); a row opens the member's sheet", async () => {
+  addLocation(1, "Chilonzor")
+  await signIn(ALI)
+  const { user } = renderWithProviders(<EmployeesPage />)
+
+  const table = await screen.findByRole("table", { name: "Xodimlar" })
+  expect(within(table).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["Xodim", "Rol", "Lokatsiyalar"])
+  const [, owner] = within(table).getAllByRole("row")
+  const cells = within(owner).getAllByRole("cell")
+  expect(cells[0]).toHaveTextContent("Ali Valiyev")
+  expect(cells[0]).toHaveTextContent("Siz")
+  expect(cells[1]).toHaveTextContent("Egasi")
+
+  await user.click(cells[1])
+  expect(await screen.findByRole("dialog", { name: "Xodim" })).toBeInTheDocument()
+})
+
 test("a member without a name goes by their phone, said once", async () => {
   await signIn(ALI)
   db.users[VALI] = null
