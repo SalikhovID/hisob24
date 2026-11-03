@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, VALI } from "@/mocks/data"
+import { ALI, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { router } from "@/test/navigation"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
@@ -43,4 +43,24 @@ test("someone with no page of the warehouse is sent home", async () => {
 
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"))
   expect(screen.queryByRole("list", { name: "Ombor bo'limlari" })).not.toBeInTheDocument()
+})
+
+test("whoever sees the stock finds the «Qoldiq» table on the warehouse's page; its parts stay a list on a phone, the sidebar's on the web", async () => {
+  seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  renderWithProviders(<WarehouseHub />)
+
+  expect(await screen.findByRole("table", { name: "Qoldiq" })).toBeInTheDocument()
+  expect(screen.getByRole("list", { name: "Ombor bo'limlari" }).closest('[data-slot="warehouse-parts"]')).toHaveClass("md:hidden")
+})
+
+test("without the stock the warehouse's page is its parts alone", async () => {
+  giveRole(VALI, 1, "Ta'minot", ["suppliers.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  renderWithProviders(<WarehouseHub />)
+
+  await pages()
+  expect(screen.queryByRole("table", { name: "Qoldiq" })).not.toBeInTheDocument()
+  expect(screen.getByRole("list", { name: "Ombor bo'limlari" }).closest('[data-slot="warehouse-parts"]')).not.toHaveClass("md:hidden")
 })
