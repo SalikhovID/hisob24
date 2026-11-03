@@ -70,10 +70,14 @@ test("the order's page: the price, what was paid and what is left, the goods wit
   setLocation(`/orders/${order.id}`, { id: String(order.id) })
   const { user } = renderWithProviders(<OrderPage id={order.id} />)
 
+  // The money is the prototype's figure cards, what is left red.
   const money = await screen.findByRole("region", { name: "Pul" })
-  expect(plain(money.textContent)).toContain("Narx5 000 so'm")
-  expect(plain(money.textContent)).toContain("To'langan400 so'm")
-  expect(plain(money.textContent)).toContain("Qolgan4 600 so'm")
+  expect(money.querySelector('[data-slot="stat-cards"]')).not.toBeNull()
+  expect(plain(money.textContent)).toContain("Narx 5 000 so'm")
+  expect(plain(money.textContent)).toContain("To'langan 400 so'm")
+  expect(plain(money.textContent)).toContain("Qoldiq 4 600 so'm")
+  // What is left is taken by the button under them.
+  expect(screen.getByRole("button", { name: /^4\s600 so'm qabul qilish$/ })).toBeInTheDocument()
   const goods = screen.getByRole("region", { name: "Mahsulotlar" })
   const [olma] = within(goods).getAllByRole("listitem")
   expect(plain(rowParts(olma.firstElementChild as HTMLElement).title)).toBe("Olma")
@@ -92,7 +96,7 @@ test("the order's page: the price, what was paid and what is left, the goods wit
   await press(user, dialog, "300")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-  await waitFor(() => expect(plain(screen.getByRole("region", { name: "Pul" }).textContent)).toContain("Qolgan4 300 so'm"))
+  await waitFor(() => expect(plain(screen.getByRole("region", { name: "Pul" }).textContent)).toContain("Qoldiq 4 300 so'm"))
   const document = db.transactions.find((t) => t.kind === "order" && t.orderId === order.id)!
   expect(db.transactions.filter((t) => t.linkedId === document.id && !t.deleted).map((t) => t.total)).toEqual([400, 300])
   expect(db.transactions.at(-1)).toMatchObject({ kind: "customer_payment", total: 300, bankAccountId: cash, linkedId: document.id })
@@ -103,7 +107,7 @@ test("the order's page: the price, what was paid and what is left, the goods wit
   await user.click(within(rows[0]).getByRole("button"))
   await user.click(await screen.findByRole("menuitem", { name: "O'chirish" }))
   await user.click(await screen.findByRole("button", { name: "O'chirish" }))
-  await waitFor(() => expect(plain(screen.getByRole("region", { name: "Pul" }).textContent)).toContain("Qolgan4 600 so'm"))
+  await waitFor(() => expect(plain(screen.getByRole("region", { name: "Pul" }).textContent)).toContain("Qoldiq 4 600 so'm"))
   expect(db.transactions.filter((t) => t.linkedId === document.id && !t.deleted).map((t) => t.total)).toEqual([400])
 })
 
@@ -122,7 +126,7 @@ test("without purchases.view the goods are listed without their cost; an order w
   const goods = await screen.findByRole("region", { name: "Mahsulotlar" })
   expect(plain(goods.textContent)).not.toContain("Tan narxi")
   expect(plain(goods.textContent)).not.toContain("Foyda")
-  expect(plain(screen.getByRole("region", { name: "Pul" }).textContent)).toContain("Narx5 000 so'm")
+  expect(plain(screen.getByRole("region", { name: "Pul" }).textContent)).toContain("Narx 5 000 so'm")
 })
 
 test("an order entered without money shows none of it", async () => {

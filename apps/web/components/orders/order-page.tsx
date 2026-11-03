@@ -1,11 +1,11 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { BanknoteIcon, ClipboardListIcon, PencilIcon, PhoneIcon, UserIcon } from "lucide-react"
-import { type CSSProperties, useState } from "react"
+import { BanknoteIcon, PencilIcon, PhoneIcon, UserIcon } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 import { Avatar } from "@/components/kit/avatar"
-import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
@@ -28,7 +28,6 @@ import {
   useOrderStages,
   useOrderTypes,
 } from "@/lib/queries"
-import { colorValues } from "@/lib/stage-colors"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
@@ -109,19 +108,19 @@ export function OrderPage({ id }: { id: number }) {
 
   return (
     <>
-      <BackLink {...back} />
-      <DetailHead
-        media={
-          <span
-            aria-hidden="true"
-            style={{ "--c": stage ? colorValues[stage.color] : "var(--muted-foreground)" } as CSSProperties}
-            className="grid size-[76px] place-items-center rounded-[24px] bg-[color-mix(in_srgb,var(--c)_16%,transparent)] text-[color-mix(in_srgb,var(--c)_62%,var(--foreground))]"
-          >
-            <ClipboardListIcon strokeWidth={1.9} className="size-9" />
-          </span>
-        }
+      <PageTitle
+        back={back}
         title={orderName(order.data.number)}
         description={[type?.name, name ?? phone].filter(Boolean).join(" · ")}
+        action={
+          <PageActions>
+            {type && allowed("orders.edit") && <PageAction icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
+            {/* A payment for the order, on its own (logic/orders.md, 4.3). */}
+            {allowed("orders.edit") && <PageAction icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
+            {customerHref && <PageAction icon={UserIcon} label="Mijoz" href={customerHref} />}
+            <PageAction icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${order.data.customer.phone}`} />
+          </PageActions>
+        }
       />
       <StageTrack
         stages={stages.data}
@@ -141,14 +140,7 @@ export function OrderPage({ id }: { id: number }) {
         }
       />
       <DeadlineCard deadline={order.data.deadline} done={done} />
-      <Tiles>
-        {type && allowed("orders.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
-        {/* A payment for the order, on its own (logic/orders.md, 4.3). */}
-        {allowed("orders.edit") && <Tile icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
-        {customerHref && <Tile icon={UserIcon} label="Mijoz" href={customerHref} />}
-        <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${order.data.customer.phone}`} />
-      </Tiles>
-      <OrderMoneyCard order={order.data} />
+      <OrderMoneyCard order={order.data} onPay={allowed("orders.edit") ? () => setPaying(true) : undefined} />
       <section aria-label="Mijoz">
         <SectionHeading>Mijoz</SectionHeading>
         <Group label="Mijoz" inset="icon">

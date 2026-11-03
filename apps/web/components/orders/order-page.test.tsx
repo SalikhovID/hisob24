@@ -46,6 +46,9 @@ test("an order's page shows what it is, its stage among the stages, its deadline
   expect(due).toHaveTextContent(formatDate(addDays(today, 3)))
   expect(due).toHaveTextContent("3 kun qoldi")
   const tiles = within(screen.getByRole("group", { name: "Amallar" }))
+  // The actions stand at the title's right (a phone's tiles under it).
+  expect(screen.getByRole("group", { name: "Amallar" }).closest('[data-slot="page-title"]')).not.toBeNull()
+  expect(document.querySelector('[data-slot="detail-head"]')).toBeNull()
   expect(tiles.getByRole("link", { name: "Mijoz" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
   expect(tiles.getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998911112233")
   const customer = screen.getByRole("region", { name: "Mijoz" })
