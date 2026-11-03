@@ -2,7 +2,7 @@
 
 Dizayner uchun. Holat: 2026-10-08, commit `488eaee`.
 
-> **2026-11-03 dan:** user app tekis qayta dizaynga o'tmoqda (`docs/superpowers/specs/2026-11-03-flat-redesign-design.md`, prototip `228b1108`): 768px dan tor ekranda mini app ko'rinishi, kengida web ko'rinishi (jadvallar, sidebar ichki bandlar bilan), teal ranglar, shisha yo'q. Pastdagi «Hozirgi ko'rinish (2026-10-16)» va `screens-v2/` shu ishdan oldingi holat; yangi skrinshotlar ish oxirida `screens-v3/` da.
+> **2026-11-03 dan:** user app tekis qayta dizaynda (`docs/superpowers/specs/2026-11-03-flat-redesign-design.md`, prototip `228b1108`). Hozirgi ko'rinish — pastdagi [«Tekis dizayn (2026-11-03)»](#tekis-dizayn-2026-11-03) bo'limi va [`screens-v3/`](screens-v3/). «Hozirgi ko'rinish (2026-10-16)» va `screens-v2/` shu ishdan oldingi holat (tarix uchun).
 
 > **Eskirgan (2026-10-14).** User app shu holat asosida chizilgan prototip bo'yicha Telegram Wallet (iOS guruhli ro'yxat) uslubiga o'tkazildi (`docs/superpowers/specs/2026-10-13-mini-app-ui-design.md`): suzuvchi tab-bar va profil sahifasi, guruhli ro'yxatlar hamma enda, varaq-dialoglar, dashboard, sahifa o'tishlari; 2026-10-16 dan ranglari va yuzalari «liquid glass» (`docs/superpowers/specs/2026-10-16-liquid-glass-design.md`), keyin «Qorong'i shisha», konturli belgilar, «Sozlamalar» sahifasi va web ko'rinishi (`docs/superpowers/specs/2026-10-16-glass-v2-design.md`). Hozirgi ko'rinish — pastdagi [«Hozirgi ko'rinish»](#hozirgi-korinish-2026-10-16) bo'limi va [`screens-v2/`](screens-v2/). Bu hujjatdagi 3, 4, 6 va 7-bo'limlar va [`screens/`](screens/) dagi skrinshotlar 2026-10-13 gacha bo'lgan ko'rinishni tasvirlaydi (tarix uchun qoldirildi); 1, 2, 5, 8 va 9-bo'limlardagi qoidalar (bo'limlar, ruxsatlar, oqimlar, maydonlar, Telegram) amalda, ekran tafsilotlari esa yangi ko'rinishda.
 
@@ -18,8 +18,19 @@ Bu hujjat Hisob24 user app'i va Telegram botlari qanday ishlashini tasvirlaydi. 
 
 Interfeys matnlari koddagidek, aynan keltirilgan.
 
+## Tekis dizayn (2026-11-03)
+
+Prototip `228b1108` («to'liq prototip: web + Telegram mini app»). Qarorlar va prototipdan chetlanishlar spec'ning «Amalga oshirishda belgilangan qarorlar» bo'limida.
+
+- **Ikki ko'rinish en bo'yicha.** 768px dan tor ekran (telefon, Telegram Mini App) — mini app: 17px matn, iOS guruhli ro'yxatlar, pastdan chiqadigan varaqlar, doim ko'rinadigan suzuvchi tab-bar (4 sahifa + «Sozlama»). Kengi — web: 13px, chapda 224px sidebar (H24 va «Hisob24», kompaniya → profil, bo'limlar va joriy bo'limning ichki bandlari, pastda obuna va «Chiqish»), 52px tepa panel («Orqaga», lokatsiya menyusi, bildirishnomalar), 1080px ustun, jadvallar, o'rtadagi dialoglar.
+- **Ranglar:** teal urg'u (`#17595f`, tunda `#5cc4bc`), siyoh `#17181b`, oq kartalar, shisha va gradient yo'q; tokenlar `apps/web/app/globals.css` da.
+- **Kit bo'laklari:** `DataTable` (webda jadval, telefonda qatorlar yoki kun guruhlari), `StatCards` / `StageBar`, `Hero`, `PageActions` (webda sarlavha o'ngida tugmalar, telefonda sarlavha ostida plitkalar), `InPageTabs` (yozuv sahifasi tablari, `?tab=`), `Toolbar`, `SectionTabs`, `BrandLockup`.
+- **Sahifalar:** bosh sahifa («Kassadagi pul», 5 tezkor tugma, faol buyurtmalar / mijozlar qarzi / oy sotuvlari / kam qolgan tovarlar kartalari, «Yaqin muddatlar»); mijozlar (jadval; mijoz sahifasi — amallar, Balans / Buyurtmalar / Sotuvlar kartalari, Ma'lumot / Buyurtmalar / Hisob harakati / Tarix tablari); buyurtmalar (webda kanban va jadval, telefonda bosqich chiplari va kartalar; buyurtma sahifasi — bosqich tanlovi, pul kartalari, «N qabul qilish», tablar); ombor («Qoldiq» jadvali lokatsiyalar bo'yicha qiymati bilan); mahsulotlar, ta'minotchilar, xaridlar, sotuvlar, xarajatlar, xodimlar (webda jadval); kassa (so'mdagi jami); «Sozlama» / «Sozlamalar», profil, kirish (karta).
+- **Skrinshotlar:** [`screens-v3/`](screens-v3/) — telefon 375×812 va web 1280×800, yorug' va qorong'i, mock ma'lumotlar bilan (fayl nomi: `<mobile|desktop>-<light|dark>-<sahifa>.png`).
+
 ## Mundarija
 
+- [Tekis dizayn (2026-11-03)](#tekis-dizayn-2026-11-03)
 0. [Hozirgi ko'rinish (2026-10-16)](#hozirgi-korinish-2026-10-16)
 1. [Mahsulot haqida](#1-mahsulot-haqida)
 2. [Kim foydalanadi: rollar va ruxsatlar](#2-kim-foydalanadi-rollar-va-ruxsatlar)
