@@ -1,55 +1,43 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, db, VALI } from "@/mocks/data"
+import { db, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { chooseCompany, signIn } from "@/test/session"
-import { BalanceCard, BalanceChip } from "./balance-card"
+import { BalanceStat } from "./balance-card"
 
-// hero is the balance's figure as it reads: its label, then the amount.
-const hero = () => within(screen.getByRole("region", { name: "Balans" })).getByText((_, element) => element?.getAttribute("data-slot") === "hero")
+// card is the balance's card as it reads: its label, the amount and the
+// line under it; value is its amount.
+const card = () => document.querySelector<HTMLElement>("[data-slot=stat-card]")!
+const value = () => card().querySelector("[data-slot=stat-value]")
 const read = (element: HTMLElement) => element.textContent?.replace(/\s+/g, " ").trim()
 
-test("a debt is the prototype's figure: «Qarz» in red over the amount", () => {
-  renderWithProviders(<BalanceCard balance="7000.00" byCurrency={null} />)
+test("a debt is the prototype's «Balans» card: the amount red, «Qarz» under it", () => {
+  renderWithProviders(<BalanceStat balance="7000.00" byCurrency={null} />)
 
-  expect(read(hero())).toBe("Qarz 7 000 so'm")
-  expect(hero().querySelector("[data-slot=hero-label]")).toHaveClass("text-destructive")
+  expect(read(card())).toBe("Balans 7 000 so'm Qarz")
+  expect(value()).toHaveClass("text-destructive")
 })
 
 test("an advance is green, the amount without its minus; nothing owed says so", () => {
-  const { rerender } = renderWithProviders(<BalanceCard balance="-5000.50" byCurrency={null} />)
-  expect(read(hero())).toBe("Avans 5 000,50 so'm")
-  expect(hero().querySelector("[data-slot=hero-label]")).toHaveClass("text-positive")
+  const { rerender } = renderWithProviders(<BalanceStat balance="-5000.50" byCurrency={null} />)
+  expect(read(card())).toBe("Balans 5 000,50 so'm Avans")
+  expect(value()).toHaveClass("text-positive")
 
-  rerender(<BalanceCard balance="0.00" byCurrency={null} />)
-  expect(read(hero())).toBe("Qarz yo'q 0 so'm")
+  rerender(<BalanceStat balance="0.00" byCurrency={null} />)
+  expect(read(card())).toBe("Balans 0 so'm Qarz yo'q")
 })
 
-test("what of it is in another currency is said under it; the totals stand beside it as chips", async () => {
-  await signIn(ALI)
-  renderWithProviders(
-    <BalanceCard balance="13801.00" byCurrency={[{ currency_id: 1, amount: "13801.00" }]}>
-      <BalanceChip label="Jami xaridlar" value="20 001,50 so'm" />
-    </BalanceCard>,
-  )
-
-  const chip = within(screen.getByRole("region", { name: "Balans" })).getByText("Jami xaridlar").closest("[data-slot=balance-chip]") as HTMLElement
-  expect(read(chip)).toBe("Jami xaridlar 20 001,50 so'm")
-})
-
-test("what of it is in each currency is said in words, without signs: what is owed, then what is paid ahead; a currency even is left out", async () => {
+test("what of it is in each currency is said in words under it, without signs: what is owed, then what is paid ahead; a currency even is left out", async () => {
   db.currencies[2] = [1, 2, 3, 4]
   await signIn(VALI)
   await chooseCompany(2)
   // The symbols come with the session: what is said is read once they are known.
-  const breakdown = () => screen.getByText(/^shu jumladan/).textContent?.replace(/\s+/g, " ")
-
-  const customer = renderWithProviders(<BalanceCard balance="-104000.00" byCurrency={[{ currency_id: 1, amount: "88000.00" }, { currency_id: 2, amount: "-15.00" }]} />)
-  await waitFor(() => expect(breakdown()).toBe("shu jumladan qarz 88 000 so'm, avans 15 $"))
+  const customer = renderWithProviders(<BalanceStat balance="-104000.00" byCurrency={[{ currency_id: 1, amount: "88000.00" }, { currency_id: 2, amount: "-15.00" }]} />)
+  await waitFor(() => expect(read(card())).toBe("Balans 104 000 so'm Avans · qarz 88 000 so'm, avans 15 $"))
   customer.unmount()
 
   renderWithProviders(
-    <BalanceCard
+    <BalanceStat
       balance="4119952.00"
       byCurrency={[
         { currency_id: 1, amount: "1090000.00" },
@@ -59,22 +47,15 @@ test("what of it is in each currency is said in words, without signs: what is ow
       ]}
     />,
   )
-  await waitFor(() => expect(breakdown()).toBe("shu jumladan qarz 1 090 000 so'm, 346,09 $, avans 100 €"))
+  await waitFor(() => expect(read(card())).toBe("Balans 4 119 952 so'm Qarz · qarz 1 090 000 so'm, 346,09 $, avans 100 €"))
 })
 
-test("a currency other than the so'm left even says nothing under the balance", async () => {
+test("a currency other than the so'm left even says nothing more under the balance", async () => {
   db.currencies[2] = [1, 2]
   await signIn(VALI)
   await chooseCompany(2)
-  renderWithProviders(<BalanceCard balance="-20000.00" byCurrency={[{ currency_id: 2, amount: "0.00" }]} />)
+  renderWithProviders(<BalanceStat balance="-20000.00" byCurrency={[{ currency_id: 2, amount: "0.00" }]} />)
 
   expect(await screen.findByText("Avans")).toBeInTheDocument()
-  expect(screen.queryByText(/shu jumladan/)).not.toBeInTheDocument()
-})
-
-test("a total's chip is a small card of frosted glass", () => {
-  renderWithProviders(<BalanceChip label="Jami xaridlar" value="12 000 so'm" />)
-  const chip = screen.getByText("Jami xaridlar")
-  expect(chip).toHaveClass("surface", "rounded-[14px]")
-  expect(chip).not.toHaveClass("bg-card")
+  expect(read(card())).toBe("Balans 20 000 so'm Avans")
 })

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
 import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
+import { StatCard, StatCards } from "@/components/kit/stat-cards"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { ApiError } from "@/lib/api"
@@ -16,7 +17,7 @@ import { useSupplier } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
-import { BalanceCard, BalanceChip } from "./balance-card"
+import { BalanceStat } from "./balance-card"
 import { DeleteSupplierButton } from "./delete-supplier-button"
 import { PaymentDialog } from "./payment-dialog"
 import { StatementList } from "./statement-list"
@@ -31,7 +32,8 @@ const back = { href: "/suppliers", label: "Ta'minotchilar" }
 // take their permission), as the prototype's page: its name over its phone
 // (and «Nofaol» when off), the actions at the title's right (a payment, a
 // purchase from it, a call, an edit); for whoever may see the purchases
-// what it is owed (in so'm, in each currency apart, the totals beside it);
+// what it is owed, the prototype's cards (the balance in so'm, in each
+// currency apart; the purchases' and the payments' totals beside it);
 // its statement; its facts; and at the foot the rows that turn it off and
 // delete it.
 export function SupplierPage({ id }: { id: number }) {
@@ -94,10 +96,13 @@ export function SupplierPage({ id }: { id: number }) {
       {seesBalance && (
         // What is owed: the live purchases less the live payments, the
         // whole company's (logic/warehouse.md, section 6).
-        <BalanceCard balance={s.balance!} byCurrency={s.balance_by_currency ?? null}>
-          <BalanceChip label="Jami xaridlar" value={`${formatAmount(s.purchases_total ?? "0")} so'm`} />
-          <BalanceChip label="Jami to'lovlar" value={`${formatAmount(s.payments_total ?? "0")} so'm`} />
-        </BalanceCard>
+        <section aria-label="Balans">
+          <StatCards three>
+            <BalanceStat balance={s.balance!} byCurrency={s.balance_by_currency ?? null} />
+            <StatCard label="Jami xaridlar" value={`${formatAmount(s.purchases_total ?? "0")} so'm`} />
+            <StatCard label="Jami to'lovlar" value={`${formatAmount(s.payments_total ?? "0")} so'm`} />
+          </StatCards>
+        </section>
       )}
       {allowed("purchases.view") && (
         <StatementList

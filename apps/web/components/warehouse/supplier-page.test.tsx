@@ -34,8 +34,8 @@ test("the supplier page: its facts, what is owed, its statement, and the actions
   // What is owed: the purchases less the payments (the one entered with
   // the purchase and the one on its own).
   const balance = screen.getByRole("region", { name: "Balans" })
-  expect(balance.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Qarz 13 801 so'm")
-  expect(Array.from(balance.querySelectorAll("[data-slot=balance-chip]"), (chip) => chip.textContent?.replace(/\s+/g, " "))).toEqual([
+  expect(Array.from(balance.querySelectorAll("[data-slot=stat-card]"), (card) => card.textContent?.replace(/\s+/g, " ").trim())).toEqual([
+    "Balans 13 801 so'm Qarz",
     "Jami xaridlar 20 001,50 so'm",
     "Jami to'lovlar 6 200,50 so'm",
   ])
@@ -138,4 +138,16 @@ test("the supplier's page is headed by its name over its phone, its actions at t
   expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["To'lov", "Xarid", "Qo'ng'iroq", "Tahrirlash"])
   expect(screen.getByRole("button", { name: "Ta'minotchini o'chirish" }).closest('[data-slot="page-actions"]')).toBeNull()
   expect(document.querySelector('[data-slot="detail-head"]')).toBeNull()
+})
+
+test("what is owed is the prototype's cards under the head: Balans (Qarz, Avans or none), Jami xaridlar, Jami to'lovlar", async () => {
+  const { bozor } = seedWarehouse(seedCatalog())
+  seedPayment(bozor.id, 1200.5, "2026-10-03T04:00:00Z", "Naqd")
+  await signIn(ALI)
+  renderWithProviders(<SupplierPage id={bozor.id} />)
+
+  const balance = await screen.findByRole("region", { name: "Balans" })
+  const cards = Array.from(balance.querySelectorAll("[data-slot=stat-card]"), (card) => card.textContent?.replace(/\s+/g, " ").trim())
+  expect(cards).toEqual(["Balans 13 801 so'm Qarz", "Jami xaridlar 20 001,50 so'm", "Jami to'lovlar 6 200,50 so'm"])
+  expect(balance.querySelector("[data-slot=hero]")).toBeNull()
 })
