@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { expect, test } from "vitest"
-import { formatDate } from "@/lib/format"
+import { formatDate, formatDayMonth } from "@/lib/format"
 import { keep } from "@/lib/use-kept"
 import { addDays, ALI, db, localToday, nextId, seedOrders, VALI } from "@/mocks/data"
 import { addLocation, restrictTo } from "@/test/locations"
@@ -56,6 +56,27 @@ test("the orders list groups the orders by their deadline: the late, today's, th
   expect(rows[3].querySelector('[data-slot="row-end"] .text-destructive')).toBeNull()
   expect(await screen.findByText("4 ta")).toBeInTheDocument()
   expect(screen.getByText("Jami: 4")).toBeInTheDocument()
+})
+
+test("on a wide screen the list is the prototype's table: №, Mijoz, Turi, Bosqich, Muddat, Mas'ul, Narx, Qoldiq; a late deadline is red, a priced order says what is left", async () => {
+  await signIn(ALI)
+  const seeded = seedOrders()
+  db.orders.find((o) => o.id === seeded.call.id)!.assignee = null
+  setLocation("/orders?view=list")
+  renderWithProviders(<OrdersPage />)
+
+  const table = await screen.findByRole("table", { name: "Buyurtmalar" })
+  expect(within(table).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["№", "Mijoz", "Turi", "Bosqich", "Muddat", "Mas'ul", "Narx", "Qoldiq"])
+  const rowOf = (number: number) => within(table).getAllByRole("row").find((row) => within(row).queryByRole("link", { name: `№ ${number}` }))!
+  const cells = (number: number) => within(rowOf(number)).getAllByRole("cell")
+  expect(within(cells(2)[0]).getByRole("link")).toHaveAttribute("href", expect.stringMatching(/^\/orders\/\d+$/))
+  expect(cells(2)[1]).toHaveTextContent("Malika Yusupova")
+  expect(cells(2)[3]).toHaveTextContent("Yangi")
+  expect(within(cells(2)[4]).getByText(formatDayMonth(addDays(today, -2)))).toHaveClass("text-destructive")
+  expect(cells(2)[6]).toHaveTextContent("—")
+  expect(cells(4)[1]).toHaveTextContent("Dilshod Karimov")
+  expect(cells(4)[5]).toHaveTextContent("—")
+  expect(within(cells(1)[4]).getByText(formatDayMonth(addDays(today, -5)))).not.toHaveClass("text-destructive")
 })
 
 test("a customer with no name goes by its phone", async () => {

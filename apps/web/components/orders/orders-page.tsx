@@ -4,6 +4,7 @@ import { CircleCheckIcon, MapPinIcon, SearchIcon, SlidersHorizontalIcon } from "
 import Link from "next/link"
 import { Fragment, useCallback, useEffect, useRef, useState } from "react"
 import { Chip, ChoiceChips, Chips } from "@/components/kit/chips"
+import { type Column, DataTable } from "@/components/kit/data-table"
 import { Foot, Group, SectionHeading } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
@@ -25,7 +26,7 @@ import {
   useOrderStages,
   useOrderTypes,
 } from "@/lib/queries"
-import { bucketLabels, type DeadlineBucket, deadlineBucket } from "@/lib/orders"
+import { bucketLabels, type DeadlineBucket, deadlineBucket, deadlineOf } from "@/lib/orders"
 import type { Permission, Order } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useKept } from "@/lib/use-kept"
@@ -35,7 +36,9 @@ import { OrderBoard } from "./order-board"
 import { AddOrderDialog } from "./order-dialog"
 import { OrderRow } from "./order-row"
 import { type OrderView, useOrderFilter } from "./use-order-filter"
-import { count } from "@/lib/format"
+import { count, formatDayMonth, formatMoney } from "@/lib/format"
+import { currencyOf, useCurrencies } from "@/lib/currencies"
+import { StageBadge } from "./stage-badge"
 
 const buckets: DeadlineBucket[] = ["late", "today", "week", "later", "done"]
 
@@ -60,6 +63,7 @@ export function OrdersPage() {
   const dropdowns = useCustomerDropdowns(companyId)
   const customerTypes = useCustomerTypes(companyId)
   const members = useMembers(companyId)
+  const currencies = useCurrencies()
   const [filter, update] = useOrderFilter()
   // The form for a new order, open for a stage (a column's +) or for the
   // first one (the page's +); null while closed.
@@ -148,6 +152,50 @@ export function OrdersPage() {
     .map((member) => ({ value: member.phone, label: member.phone === phone ? "Men" : (member.full_name ?? formatPhone(member.phone)) }))
   const assigneeLabel = filter.assignee === "" ? "Barcha mas'ullar" : filter.assignee === phone ? "Men" : shortName(memberName(filter.assignee))
   const stageLabel = filter.stageId === null ? "Barcha bosqichlar" : (stages.data?.find((stage) => stage.id === filter.stageId)?.name ?? "Bosqich")
+
+  // The web's table of the list: the number (the way in), the customer, the
+  // type, the stage, the deadline (red once past), the assignee, the price
+  // and what is left of it.
+  const columns: Column<Order>[] = [
+    { key: "number", label: "№", render: (order) => `№ ${order.number}` },
+    { key: "customer", label: "Mijoz", render: (order) => order.customer.name ?? formatPhone(order.customer.phone) },
+    { key: "type", label: "Turi", render: (order) => types.data?.find((type) => type.id === order.type_id)?.name ?? "" },
+    {
+      key: "stage",
+      label: "Bosqich",
+      render: (order) => {
+        const stage = stageOf(order)
+        return stage ? <StageBadge stage={stage} /> : null
+      },
+    },
+    {
+      key: "deadline",
+      label: "Muddat",
+      render: (order) => (
+        <span className={cn(deadlineOf(order.deadline, stageOf(order)?.is_done ?? false).overdue && "text-destructive")}>{formatDayMonth(order.deadline)}</span>
+      ),
+    },
+    {
+      key: "assignee",
+      label: "Mas'ul",
+      render: (order) => (order.assignee ? (order.assignee.full_name ? shortName(order.assignee.full_name) : formatPhone(order.assignee.phone)) : "—"),
+    },
+    {
+      key: "amount",
+      label: "Narx",
+      align: "end",
+      render: (order) => (Number(order.amount) > 0 ? formatMoney(order.amount, currencyOf(currencies, order.currency_id)) : "—"),
+    },
+    {
+      key: "left",
+      label: "Qoldiq",
+      align: "end",
+      render: (order) => {
+        const left = Math.round((Number(order.amount) - Number(order.paid)) * 100) / 100
+        return left > 0 ? formatMoney(left.toFixed(2), currencyOf(currencies, order.currency_id)) : "—"
+      },
+    },
+  ]
 
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
@@ -262,7 +310,15 @@ export function OrdersPage() {
             />
           )}
           {view === "list" && !loading && !failed && page && page.total > 0 && (
-            <section aria-label="Buyurtmalar" className={cn(orders.isPlaceholderData && "opacity-60")}>
+            <div className={cn(orders.isPlaceholderData && "opacity-60")}>
+              <DataTable
+                label="Buyurtmalar"
+                rows={page.items}
+                rowKey={(order) => order.id}
+                href={(order) => `/orders/${order.id}`}
+                columns={columns}
+                phone={
+            <section aria-label="Buyurtmalar">
               {buckets.map((bucket) => {
                 const items = page.items.filter((order) => deadlineBucket(order.deadline, stageOf(order)?.is_done ?? false) === bucket)
                 if (items.length === 0) return null
@@ -277,12 +333,15 @@ export function OrdersPage() {
                   </Fragment>
                 )
               })}
+            </section>
+                }
+              />
               {page.total > page.page_size ? (
                 <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
               ) : (
                 <Foot>Jami: {page.total}</Foot>
               )}
-            </section>
+            </div>
           )}
         </>
       )}
