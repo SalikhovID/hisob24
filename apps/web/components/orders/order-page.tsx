@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Avatar } from "@/components/kit/avatar"
 import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
+import { InPageTabs } from "@/components/kit/in-page-tabs"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { ApiError } from "@/lib/api"
@@ -141,36 +142,52 @@ export function OrderPage({ id }: { id: number }) {
       />
       <DeadlineCard deadline={order.data.deadline} done={done} />
       <OrderMoneyCard order={order.data} onPay={allowed("orders.edit") ? () => setPaying(true) : undefined} />
-      <section aria-label="Mijoz">
-        <SectionHeading>Mijoz</SectionHeading>
-        <Group label="Mijoz" inset="icon">
-          {/* A customer with no name goes by the phone, which is then not said twice. */}
-          <Row
-            href={customerHref}
-            media={<Avatar name={name} />}
-            title={name ?? phone}
-            sub={[customerType?.name, name ? phone : null].filter(Boolean).join(" · ") || undefined}
-          />
-        </Group>
-      </section>
-      <section aria-label="Ma'lumot">
-        <SectionHeading>Ma&apos;lumot</SectionHeading>
-        <Group as="dl">
-          <KeyValue label="Turi" value={type?.name} />
-          <KeyValue label="Bosqich" value={stage && <StageBadge stage={stage} />} />
-          {locations.length >= 2 && <KeyValue label="Lokatsiya" value={locations.find((l) => l.id === order.data.location_id)?.name} />}
-          <KeyValue label="Mas'ul" value={order.data.assignee && (order.data.assignee.full_name ?? formatPhone(order.data.assignee.phone))} />
-          {type?.fields.map((field) => (
-            <KeyValue key={field.id} label={field.label} value={answerText(field, order.data.values[field.id], dropdowns.data)} />
-          ))}
-          <KeyValue label="Qo'shgan" value={order.data.created_by_name} />
-          <KeyValue label="Qo'shilgan" value={formatDate(order.data.created_at)} />
-        </Group>
-      </section>
-      <OrderLines order={order.data} />
-      <OrderPayments companyId={companyId} order={order.data} canEdit={allowed("orders.edit")} />
-      {/* Who did what to the order takes its permission. */}
-      {allowed("orders.history") && <OrderHistory companyId={companyId} id={order.data.id} />}
+      <InPageTabs
+        label="Buyurtma"
+        tabs={[
+          {
+            value: "info",
+            label: "Ma'lumot",
+            content: (
+              <>
+                <section aria-label="Mijoz">
+                  <SectionHeading>Mijoz</SectionHeading>
+                  <Group label="Mijoz" inset="icon">
+                    {/* A customer with no name goes by the phone, which is then not said twice. */}
+                    <Row
+                      href={customerHref}
+                      media={<Avatar name={name} />}
+                      title={name ?? phone}
+                      sub={[customerType?.name, name ? phone : null].filter(Boolean).join(" · ") || undefined}
+                    />
+                  </Group>
+                </section>
+                <section aria-label="Ma'lumot">
+                  <SectionHeading>Ma&apos;lumot</SectionHeading>
+                  <Group as="dl">
+                    <KeyValue label="Turi" value={type?.name} />
+                    <KeyValue label="Bosqich" value={stage && <StageBadge stage={stage} />} />
+                    {locations.length >= 2 && <KeyValue label="Lokatsiya" value={locations.find((l) => l.id === order.data.location_id)?.name} />}
+                    <KeyValue label="Mas'ul" value={order.data.assignee && (order.data.assignee.full_name ?? formatPhone(order.data.assignee.phone))} />
+                    {type?.fields.map((field) => (
+                      <KeyValue key={field.id} label={field.label} value={answerText(field, order.data.values[field.id], dropdowns.data)} />
+                    ))}
+                    <KeyValue label="Qo'shgan" value={order.data.created_by_name} />
+                    <KeyValue label="Qo'shilgan" value={formatDate(order.data.created_at)} />
+                  </Group>
+                </section>
+              </>
+            ),
+          },
+          // The goods and the payments of the order (logic/orders.md, 4.3), when it has them.
+          ...(order.data.items.length > 0 ? [{ value: "goods", label: "Tovarlar", content: <OrderLines order={order.data} /> }] : []),
+          ...(order.data.payments.length > 0
+            ? [{ value: "payments", label: "To'lovlar", content: <OrderPayments companyId={companyId} order={order.data} canEdit={allowed("orders.edit")} /> }]
+            : []),
+          // Who did what to the order takes its permission.
+          ...(allowed("orders.history") ? [{ value: "history", label: "Tarix", content: <OrderHistory companyId={companyId} id={order.data.id} /> }] : []),
+        ]}
+      />
       {allowed("orders.delete") && <DeleteOrderButton companyId={companyId} id={order.data.id} title={orderName(order.data.number)} />}
       {editing && type && (
         <EditOrderDialog

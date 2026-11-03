@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { expect, test } from "vitest"
 import { ALI, db, localToday, seedCatalog, seedOrders, seedWarehouse, VALI } from "@/mocks/data"
 import { stockOf } from "@/mocks/ledger"
@@ -78,14 +79,18 @@ test("the order's page: the price, what was paid and what is left, the goods wit
   expect(plain(money.textContent)).toContain("Qoldiq 4 600 so'm")
   // What is left is taken by the button under them.
   expect(screen.getByRole("button", { name: /^4\s600 so'm qabul qilish$/ })).toBeInTheDocument()
-  const goods = screen.getByRole("region", { name: "Mahsulotlar" })
+  // The goods and the payments are tabs of their own beside «Ma'lumot».
+  expect(within(screen.getByRole("tablist", { name: "Buyurtma" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Ma'lumot", "Tovarlar", "To'lovlar", "Tarix"])
+  await user.click(screen.getByRole("tab", { name: "Tovarlar" }))
+  const goods = await screen.findByRole("region", { name: "Mahsulotlar" })
   const [olma] = within(goods).getAllByRole("listitem")
   expect(plain(rowParts(olma.firstElementChild as HTMLElement).title)).toBe("Olma")
   expect(plain(rowParts(olma.firstElementChild as HTMLElement).sub)).toBe("2 kg")
   expect(plain(rowParts(olma.firstElementChild as HTMLElement).end)).toBe("2 000 so'm")
   expect(plain(goods.textContent)).toContain("Tan narxi2 000 so'm")
   expect(plain(goods.textContent)).toContain("Foyda3 000 so'm")
-  const payments = screen.getByRole("region", { name: "To'lovlar" })
+  await user.click(screen.getByRole("tab", { name: "To'lovlar" }))
+  const payments = await screen.findByRole("region", { name: "To'lovlar" })
   expect(within(payments).getAllByRole("listitem")).toHaveLength(1)
   expect(plain(rowParts(within(payments).getAllByRole("listitem")[0].firstElementChild as HTMLElement).end)).toBe("400 so'm")
 
@@ -123,6 +128,7 @@ test("without purchases.view the goods are listed without their cost; an order w
   setLocation(`/orders/${order.id}`, { id: String(order.id) })
   renderWithProviders(<OrderPage id={order.id} />)
 
+  await userEvent.click(await screen.findByRole("tab", { name: "Tovarlar" }))
   const goods = await screen.findByRole("region", { name: "Mahsulotlar" })
   expect(plain(goods.textContent)).not.toContain("Tan narxi")
   expect(plain(goods.textContent)).not.toContain("Foyda")

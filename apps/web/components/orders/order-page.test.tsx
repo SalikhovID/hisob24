@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
+import userEvent from "@testing-library/user-event"
 import { expect, test } from "vitest"
 import { formatDate } from "@/lib/format"
 import { addDays, ALI, db, localToday, seedOrders, VALI } from "@/mocks/data"
@@ -23,6 +24,8 @@ const pairsOf = (region: HTMLElement) =>
   Array.from(region.querySelectorAll("dt")).map((term) => [term.textContent, term.nextElementSibling?.textContent ?? null])
 
 const info = () => screen.findByRole("region", { name: "Ma'lumot" })
+// tab opens a part of the page: its tab, then its panel.
+const tab = async (name: string) => userEvent.click(await screen.findByRole("tab", { name }))
 const deadline = () => screen.findByRole("region", { name: "Muddat" })
 const stageTrack = () => screen.getByRole("radiogroup", { name: "Bosqich" })
 const today = localToday()
@@ -64,6 +67,7 @@ test("an order's page shows what it is, its stage among the stages, its deadline
     ["Qo'shgan", "Ali Valiyev"],
     ["Qo'shilgan", "02.10.2026"],
   ])
+  await tab("Tarix")
   const history = await screen.findByRole("list", { name: "Tarix" })
   expect(within(history).getAllByRole("listitem")).toHaveLength(1)
   expect(within(history).getByText("Qo'shildi")).toBeInTheDocument()
@@ -104,7 +108,20 @@ test("the stage is changed on the page's track at once", async () => {
   // In the done stage the deadline says it is done.
   expect(within(await deadline()).getByText("Bajarilgan")).toHaveAttribute("data-variant", "green")
   expect(pairsOf(await info())[1]).toEqual(["Bosqich", "Bajarildi"])
+  await tab("Tarix")
   expect(within(await screen.findByRole("list", { name: "Tarix" })).getAllByRole("listitem")).toHaveLength(2)
+})
+
+test("the order's parts are the prototype's tabs: Ma'lumot first, then Tarix for whoever may see it", async () => {
+  await signIn(ALI)
+  const { call } = seedOrders()
+  open(call.id)
+
+  const tabs = await screen.findByRole("tablist", { name: "Buyurtma" })
+  expect(within(tabs).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Ma'lumot", "Tarix"])
+  expect(within(tabs).getByRole("tab", { name: "Ma'lumot" })).toHaveAttribute("aria-selected", "true")
+  expect(screen.getByRole("region", { name: "Mijoz" })).toBeInTheDocument()
+  expect(screen.queryByRole("list", { name: "Tarix" })).not.toBeInTheDocument()
 })
 
 test("an employee sees the order, but not its history", async () => {
@@ -116,7 +133,7 @@ test("an employee sees the order, but not its history", async () => {
 
   expect(await screen.findByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeInTheDocument()
   await info()
-  expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("tab", { name: "Tarix" })).not.toBeInTheDocument()
 })
 
 test("an order that is gone is not found", async () => {
@@ -190,7 +207,7 @@ test("an employee whose role holds orders.view alone sees the order without a wa
   expect(screen.queryByRole("button", { name: "Buyurtmani o'chirish" })).not.toBeInTheDocument()
   // The stages are shown, not changed.
   expect(within(stageTrack()).getAllByRole("radio").every((radio) => (radio as HTMLButtonElement).disabled)).toBe(true)
-  expect(screen.queryByRole("heading", { name: "Tarix" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("tab", { name: "Tarix" })).not.toBeInTheDocument()
   expect(router.replace).not.toHaveBeenCalled()
 })
 
@@ -206,7 +223,7 @@ test("the order's actions follow the role: editing and moving here, with the his
   expect(screen.getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
   expect(within(stageTrack()).getByRole("radio", { name: "Jarayonda" })).toBeEnabled()
   expect(screen.queryByRole("button", { name: "Buyurtmani o'chirish" })).not.toBeInTheDocument()
-  expect(await screen.findByRole("heading", { name: "Tarix" })).toBeInTheDocument()
+  expect(await screen.findByRole("tab", { name: "Tarix" })).toBeInTheDocument()
 })
 
 test("with two or more locations the page says the order's; with one there is nothing to say", async () => {
