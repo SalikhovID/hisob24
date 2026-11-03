@@ -48,7 +48,7 @@ Hamma narsa kompaniyaga tegishli; kompaniya so'rovdan emas, access token'dan oli
 | Ko'chirish, inventarizatsiya, boshlang'ich qoldiq qo'shish | ✓ | ✓ | `stock.create`; takliflar uchun `products.view` |
 | Ularni tahrirlash / o'chirish | ✓ | ✓ | `stock.edit` / `stock.delete` |
 
-**Ombor** bo'limi (Xaridlar, Ko'chirishlar, Inventarizatsiya, Boshlang'ich qoldiq, Ta'minotchilar tablari) `purchases.view`, `stock.view` yoki `suppliers.view` bo'lganga ko'rinadi va a'zo ko'ra oladigan birinchi tabiga ochiladi. Ruxsati yo'q xodim amalni yuborsa: 403 `forbidden`. Kompaniya tanlanmagan sessiya: 403 `company_required`.
+**Ombor** bo'limi (Qoldiq, Xaridlar, Ko'chirishlar, Inventarizatsiya, Boshlang'ich qoldiq, Ta'minotchilar tablari) `purchases.view`, `stock.view` yoki `suppliers.view` bo'lganga ko'rinadi va a'zo ko'ra oladigan birinchi tabiga ochiladi. Ruxsati yo'q xodim amalni yuborsa: 403 `forbidden`. Kompaniya tanlanmagan sessiya: 403 `company_required`.
 
 ## 3. Ta'minotchi
 
@@ -140,6 +140,7 @@ Qatorlar o'z tartibida tekshiriladi; «X» mahsulot nomi.
 - **Kelgusi vaqtli hujjat** (vaqti hozirdan keyin; kiritish mumkin, 1-bo'lim): qoldiq (mahsulotlar ro'yxati, mahsulot sahifasi va yozishdagi tekshiruv) uni darrov hisobga oladi, lahzadagi qoldiq (`GET /app/stock`, inventarizatsiya formasi; `at` berilmasa hozir) esa faqat shu lahzagacha bo'lganlarini. Sana xato terilsa (masalan, kelasi yil) ro'yxatdagi qoldiq bilan inventarizatsiyaning «tizim qoldig'i» farq qiladi: bu kutilgan holat, kod o'zgartirilmaydi (QA 2026-10-18, 3.3).
 - Mahsulotlar ro'yxatida «Qoldiq» ustuni joriy lokatsiyaniki, mahsulot sahifasida a'zoga ruxsatli har lokatsiya bo'yicha va **«Harakatlar»** (`GET /app/products/{id}/moves?location_id=&page=`, `stock.view`): mahsulotning harakatlari yangi birinchi, 20 tadan: vaqt, hujjat (tur, №, havola), lokatsiya, kontragent yoki boshqa lokatsiya, ± miqdor ([products.md](products.md), 5 va 6-bo'limlar).
 - **Kam qolgan tovarlar** (bosh sahifa kartasi, `GET /app/dashboard` da `low_stock`, `stock.view`): joriy lokatsiyada (berilmasa a'zoga ruxsatli hamma lokatsiyada, qoldiqlar yig'indisi) kamida bitta harakati bor jonli faol mahsulotlar (xizmat emas), qoldig'i 3 dan oshmaganlari (0 va manfiy ham); soni va nom bo'yicha birinchi 5 tasining nomi. Chegara (3) hozircha o'zgarmas.
+- **«Qoldiq» jadvali** (Ombor bo'limining birinchi tabi, `/warehouse`; `GET /app/stock/summary?q=&page=`, `stock.view`): jonli mahsulotlar (xizmat emas; nofaollari ham, belgi bilan), nom bo'yicha (katta-kichik harf farqsiz), nom yoki artikul bo'yicha qidiruv, 20 tadan. Har qatorda mahsulot (nom, artikul, birlik, faolligi), a'zoga ruxsatli har lokatsiyadagi qoldiq (lokatsiyalar tartibida, 0 ham), jami, oxirgi xarid narxi ([products.md](products.md), 1-bo'lim; valyutasi bilan, yo'q bo'lsa `null`) va qiymati tan narxda (jami × oxirgi xarid narxi, o'sha valyutada; narx yo'q bo'lsa `null`). Ruxsatli lokatsiyasi yo'q a'zoga bo'sh sahifa. Webda jadval (har lokatsiya ustuni, joriysi qalin; «Jami»; «Qiymati»), telefonda qator (nom, izohda lokatsiyalar bo'yicha qoldiq, o'ngda joriy lokatsiya qoldig'i).
 
 ### 5.1 Ko'chirish
 
