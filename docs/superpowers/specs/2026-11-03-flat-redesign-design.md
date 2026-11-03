@@ -288,3 +288,11 @@ Hamma ro'yxat sahifasi: `PageTitle` (nom, «N ta …», qo'shish) → (`PageTabs
 - **Kun guruhlarida qolganlar:** ko'chirishlar, inventarizatsiyalar, boshlang'ich qoldiqlar, hisob harakatlari — ikkinchi darajali ro'yxatlar, jadvalga o'tkazilmadi.
 - Yozuv sahifalari (mahsulot, xarid, ta'minotchi, hujjatlar) kit darajasidagi tekis ko'rinishda (`DetailHead`, `Tiles` 1-bosqichda qayta uslublangan) qoldi; ularni `PageTitle` + `PageActions` ga ko'chirish 8-bosqichda ko'rib chiqiladi.
 - e2e: `list()` yordamchisi ko'rinib turgan jadval yoki ro'yxatni oladi (`table.or(list)`); ombor qismlari webda sidebar bandlari.
+
+### 6–7-bosqichlar (sotuv, moliya, xodimlar, sozlamalar)
+
+- **Webda jadval:** Sotuvlar (№, Vaqt, Mijoz yoki «Chakana», Kim, Jami, To'lov), Xarajatlar / Kirimlar (№, Vaqt, Kategoriya, Akkaunt, Kim, Summa; qator bosilsa amallar varag'i), Xodimlar (Xodim — avatar, ism, «Siz», telefon; Rol; Lokatsiyalar — ikki va undan ko'p bo'lsa; qator bosilsa xodim varag'i). Telefonda kun guruhlari va qatorlar avvalgidek.
+- **Kassa:** «Jami, so'mda» kartasi — akkauntlar qoldig'i `/app/me` dagi joriy kurslar bilan so'mga; izohda ishlatilgan kurslar («1 $ = 12 800 so'm»), kursi yo'q valyuta alohida («+ 50 €»). Backend o'zgarmadi.
+- **Sozlamalar** ro'yxat + alohida sahifalar ko'rinishida qoldi (kit darajasidagi tekis ko'rinish bilan); prototipdagi `Split` master-detail (turlar ro'yxati va maydonlar yonma-yon, bosqichlar ichida tahrirlash, rollar matritsasi bir sahifada) amalga oshirilmadi — mavjud funksiyalar va testlar saqlanishi uchun, keyingi ish sifatida.
+- **6 va 7-bosqichlar bitta gate bilan tekshirilib, birga push qilindi** (har biri yuklama ostida ~15 daqiqa).
+- e2e: `docRow` (hujjat qatori: telefonda kun guruhida, webda jadvalda), `memberRow` (xodim qatori).
