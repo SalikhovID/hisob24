@@ -9,27 +9,31 @@ import { moveTo, stepInto } from "@/lib/moves"
 const W = 160
 const H = 78
 const PAD = 8
+// END is where the last day stands: short of the card's edge, the line
+// going on level to it, so a rise on the last day does not run off the card.
+const END = W - 12
 
 // Sparkline is a smooth line over a short series (the month's purchases
-// day by day), filled under, drawn across the bottom of a card. It is
-// decoration: the card says the figure.
+// day by day), filled under, drawn across the bottom of a card. The curve
+// is monotone: it never goes past a day's value, so a level stretch stays
+// level and nothing dips under the foot. It is decoration: the card says
+// the figure.
 export function Sparkline({ values, color = "var(--primary)", className }: { values: number[]; color?: string; className?: string }) {
   const points = values.length < 2 ? [values[0] ?? 0, values[0] ?? 0] : values
   const max = Math.max(...points)
   const min = Math.min(...points)
   const range = max - min || 1
-  const pts = points.map((value, i) => [i * (W / (points.length - 1)), H - PAD - ((value - min) / range) * (H - PAD * 2.6)])
+  const pts = points.map((value, i) => [i * (END / (points.length - 1)), H - PAD - ((value - min) / range) * (H - PAD * 2.6)])
+  const slopes = monotoneSlopes(pts)
   const at = (p: number[]) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`
   let d = `M${at(pts[0])}`
   for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] ?? pts[i]
-    const p1 = pts[i]
-    const p2 = pts[i + 1]
-    const p3 = pts[i + 2] ?? p2
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
-    d += ` C${at(c1)} ${at(c2)} ${at(p2)}`
+    const third = (pts[i + 1][0] - pts[i][0]) / 3
+    const c1 = [pts[i][0] + third, pts[i][1] + third * slopes[i]]
+    const c2 = [pts[i + 1][0] - third, pts[i + 1][1] - third * slopes[i + 1]]
+    d += ` C${at(c1)} ${at(c2)} ${at(pts[i + 1])}`
   }
+  d += ` L${W},${pts[pts.length - 1][1].toFixed(1)}`
   return (
     <svg
       data-slot="sparkline"
@@ -42,6 +46,26 @@ export function Sparkline({ values, color = "var(--primary)", className }: { val
       <path d={d} fill="none" stroke={color} strokeWidth="2.2" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
     </svg>
   )
+}
+
+// monotoneSlopes is the slope of the line at each point, by Steffen's
+// method (as d3's curveMonotoneX): between two points the curve stays
+// between their values. Two points at least.
+function monotoneSlopes(pts: number[][]): number[] {
+  const n = pts.length
+  const slope = (i: number) => (pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0])
+  const slopes = new Array<number>(n).fill(0)
+  for (let i = 1; i < n - 1; i++) {
+    const before = pts[i][0] - pts[i - 1][0]
+    const after = pts[i + 1][0] - pts[i][0]
+    const s0 = slope(i - 1)
+    const s1 = slope(i)
+    const p = (s0 * after + s1 * before) / (before + after)
+    slopes[i] = (Math.sign(s0) + Math.sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(p)) || 0
+  }
+  slopes[0] = (3 * slope(0) - slopes[1]) / 2
+  slopes[n - 1] = (3 * slope(n - 2) - slopes[n - 2]) / 2
+  return slopes
 }
 
 // Bars are a few figures side by side (the active orders per stage), each

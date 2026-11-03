@@ -45,6 +45,25 @@ test("a sparkline is one path over its values", () => {
   expect(paths[1].getAttribute("d")).toMatch(/^M0\.0,/)
 })
 
+// pairs reads a path's coordinates, its curves' handles too, as [x, y].
+const pairs = (d: string) => [...d.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])])
+
+test("a month with nothing but today neither dips under the sparkline's foot nor runs off the card: it rises short of the edge and goes on level to it", () => {
+  const { container } = render(<Sparkline values={[...Array(17).fill(0), 50000]} />)
+  const points = pairs(container.querySelectorAll("path")[1].getAttribute("d")!)
+
+  // The foot is 70 of the 78 high, the top 12.8.
+  for (const [, y] of points) {
+    expect(y).toBeLessThanOrEqual(70)
+    expect(y).toBeGreaterThanOrEqual(12.8)
+  }
+  const [edgeX, edgeY] = points.at(-1)!
+  const [todayX, todayY] = points.at(-2)!
+  expect(edgeX).toBe(160)
+  expect(todayX).toBeLessThan(150)
+  expect(edgeY).toBe(todayY)
+})
+
 test("a stat card is frosted glass, its section's mark the icon on the plain fill, in the text's ink", () => {
   render(<StatCard href="/orders" icon={CheckIcon} title="Buyurtmalar" value="12" />)
   const card = screen.getByRole("link", { name: /Buyurtmalar/ })
