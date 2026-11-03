@@ -248,3 +248,13 @@ Hamma ro'yxat sahifasi: `PageTitle` (nom, «N ta …», qo'shish) → (`PageTabs
 - **Prototipdan kichik chetlanishlar:** telefonning qorong'i `--muted` iOS'niki `rgba(118,118,128,.24)` (prototipniki `.12`, qorada ko'rinmaydi); telefondagi qator ajratgichi 0.5px (iOS hairline; prototipda 1px); tasdiq varag'ining tugmalari telefonda 44px (prototipda 32px, barmoq uchun kichik); webdagi ikkilamchi matn bitta 12px (prototipda 12 / 12.5 aralash).
 - `FormRow` oilasi yorliq ustida, maydon qutida; forma maydonlari orasida chiziq yo'q (prototipdagi `.fld`). Guruh ichidagi maydon telefonda oq-oq (prototipdagidek chegarasiz), webda halqali.
 - Eski shisha tokenlari (`--rim`, `--seg-*`, `--search*`, `--fade`, `--tb-shadow`, `--lifted`, `--col`…) hali qolgan komponentlar ko'chguncha tekis qiymatlarda turadi; 8-bosqichda ishlatilmaganlari olib tashlanadi. Ishlatilmayotgan `components/avatar.tsx` ham 8-bosqichda.
+
+### 2-bosqich (qobiq, «Sozlama», profil, kirish)
+
+- **Belgilar lucide** (`kit/tab-icons.tsx`: `tabIcons`, `pageIcons`), 1.75 chiziq; joriy tab belgisi qalinroq (2 / 1.6).
+- **Tab-bar hamma sahifada** (yozuv, forma, profil, «Pastki panel» ham); kapsula yozuvda u tegishli sahifa ostida, panelda yo'q sahifada «Sozlama» ostida. Nomlar 10px, tor panelda birga kichrayadi (8.5px gacha), chetidan 4px bo'sh joy qoidasi avvalgidek. **360px dan tor telefonda panel chetdan 6px** (16px da 320px telefonning tugmasi 56px, «Buyurtmalar» 8.5px da ham chetga 2px qolmaydi) — prototipdan chetlanish.
+- **«Sozlama» / «Sozlamalar»:** tab-bar tugmasi, telefondagi sahifa sarlavhasi va «Pastki panel» muharriri «Sozlama»; webdagi sahifa va sidebar bandi «Sozlamalar». Telefondagi «Bo'limlar» ro'yxatida faqat panelda yo'q bo'limlar (ichki sahifalar bo'lim tablarida); «Pastki panel» webda ham ko'rinadi.
+- **Lokatsiya menyusi** (tepa panel) Base UI `Menu` radio bandlari: tanlansa menyu yopiladi (`closeOnClick`; standartda ochiq qolib, inert foni sahifani bosib bo'lmas qilardi). Telefonda lokatsiya bosh sahifa boshidagi varaqda (3-bosqich).
+- **Chiqish:** sidebar pastida, so'raydi («Tizimdan chiqasizmi?»); profilda qizil qator, so'ramaydi (prototipdagidek). Telegram'da ikkalasi yo'q.
+- **Kirish:** `LoginFrame` karta (`data-slot="login-card"`), brend paneli `--brand-panel` (yorug'da siyoh, qorong'ida oq), unda H24 kvadrati + «Hisob24» va prototip matni; panel orqasidagi «24» bezagi olib tashlandi. Telefon qadamida maydon guruh kartasisiz. To'liq ekranda sahifaning tepa chekkasi Telegram tugmalari ostidan.
+- **Web Mini App** (Telegram desktop / keng oyna): xavfsiz zona tepa panelga qo'shiladi (`md:pt-safe`), kontent undan 20px pastda.

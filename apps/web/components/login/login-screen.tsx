@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { BrandMark } from "@/components/kit/brand-mark"
-import { Logo } from "@/components/logo"
+import { BrandLockup } from "@/components/kit/brand-mark"
 import { Refusal } from "@/components/refusal"
 import { formatPhone } from "@/lib/phone"
 import { waitForWebApp } from "@/lib/telegram"
@@ -53,12 +52,7 @@ export function LoginScreen() {
 
   return (
     <LoginFrame
-      brand={
-        <span className="flex items-center gap-2.5">
-          <BrandMark className="size-7 rounded-[6px]" />
-          <Logo className="h-[22px]" />
-        </span>
-      }
+      brand={<BrandLockup />}
       tagline="Kichik biznes uchun hisob: mijozlar, buyurtmalar, ombor va kassa — bitta joyda."
     >
       {notice && <Refusal className="mb-6">{notice}</Refusal>}
