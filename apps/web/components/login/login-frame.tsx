@@ -32,7 +32,7 @@ export function LoginFrame({ brand, tagline, children }: { brand: ReactNode; tag
           {tagline}
         </p>
       </header>
-      <main className="relative -mt-6 flex flex-1 flex-col rounded-t-3xl bg-ambient px-6 pt-8 pb-10 lg:mt-0 lg:justify-center lg:rounded-none lg:px-12">
+      <main className="relative -mt-6 flex flex-1 flex-col rounded-t-3xl bg-background px-6 pt-8 pb-10 lg:mt-0 lg:justify-center lg:rounded-none lg:px-12">
         <div className="mx-auto w-full max-w-sm">{children}</div>
       </main>
     </div>

@@ -85,7 +85,7 @@ export function CustomersPage() {
           description={settingsAllowed ? "Avval mijoz turlarini sozlang." : "Kompaniya egasi mijoz turlarini sozlashi kerak."}
           action={
             settingsAllowed && (
-              <Link href="/settings" className="inline-flex h-[46px] items-center rounded-full glossy px-[22px] text-[16px] font-semibold">
+              <Link href="/settings" className="inline-flex h-[46px] items-center rounded-full bg-primary text-primary-foreground px-[22px] text-[16px] font-semibold">
                 Sozlamalarni ochish
               </Link>
             )

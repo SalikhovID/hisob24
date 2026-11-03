@@ -120,7 +120,7 @@ function BarCard({ pins }: { pins: NavPage[] }) {
       onClick={() => moveTo("forward")}
       className="-mt-2.5 mb-6 flex items-center gap-3.5 rounded-[24px] surface px-4 py-3.5 text-left no-underline outline-none transition-transform duration-150 ease-out-expo active:scale-[.98] focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
     >
-      <span aria-hidden="true" className="grid size-[42px] shrink-0 place-items-center rounded-[14px] glossy">
+      <span aria-hidden="true" className="grid size-[42px] shrink-0 place-items-center rounded-[14px] bg-primary text-primary-foreground">
         <SlidersHorizontalIcon strokeWidth={2} className="size-[22px]" />
       </span>
       <span className="min-w-0 flex-1">

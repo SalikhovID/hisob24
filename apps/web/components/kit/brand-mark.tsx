@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 // it, or the button it is in has one.
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span aria-hidden="true" data-slot="brand-mark" className={cn("grid size-10 shrink-0 place-items-center rounded-[12px] glossy", className)}>
+    <span aria-hidden="true" data-slot="brand-mark" className={cn("grid size-10 shrink-0 place-items-center rounded-[12px] bg-primary text-primary-foreground", className)}>
       <LogoMark className="h-auto w-[27px] text-primary-foreground" />
     </span>
   )

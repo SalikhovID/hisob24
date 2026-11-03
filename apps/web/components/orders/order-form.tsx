@@ -181,7 +181,7 @@ export function LinkedCustomerCard({
         </Link>
       </span>
       {onUnlink && (
-        <button type="button" onClick={onUnlink} className="h-[34px] shrink-0 rounded-full glass-chip px-3.5 text-md font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <button type="button" onClick={onUnlink} className="h-[34px] shrink-0 rounded-full bg-muted px-3.5 text-md font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           Boshqa mijoz
         </button>
       )}

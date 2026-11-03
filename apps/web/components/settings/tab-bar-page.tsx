@@ -172,7 +172,7 @@ function PageItem({ page, handle, on, onSwap }: { page: NavPage; handle: ReactNo
         onClick={onSwap}
         className={cn(
           "grid size-[34px] shrink-0 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-[17px]",
-          on ? "glossy" : "glass-chip text-muted-foreground",
+          on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
         )}
       >
         {on ? <CheckIcon aria-hidden="true" strokeWidth={2.6} /> : <PlusIcon aria-hidden="true" strokeWidth={2.6} />}

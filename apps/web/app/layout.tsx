@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next"
-import { Geist } from "next/font/google"
+import { Inter } from "next/font/google"
 import Script from "next/script"
 import { Providers } from "@/components/providers"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
+const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
   title: "Hisob24",
@@ -21,7 +21,7 @@ export const viewport: Viewport = { viewportFit: "cover" }
 // before React hydrates.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="uz" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+    <html lang="uz" className={cn("font-sans", inter.variable)} suppressHydrationWarning>
       <body>
         <Providers>{children}</Providers>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />

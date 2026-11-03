@@ -38,12 +38,12 @@ const shell = (page?: ReactNode) => (
   </BackTargetProvider>
 )
 
-test("on a page under another the top bar leads back where the page's way back does: «Orqaga», a small glass, a move back", async () => {
+test("on a page under another the top bar leads back where the page's way back does: «Orqaga», a plain fill, a move back", async () => {
   const { user } = renderWithProviders(shell(<BackLink href="/customers" label="Mijozlar" />))
   const bar = document.querySelector('[data-slot="top-bar"]') as HTMLElement
   const back = await within(bar).findByRole("link", { name: "Orqaga" })
   expect(back).toHaveAttribute("href", "/customers")
-  expect(back).toHaveClass("glass-chip")
+  expect(back).toHaveClass("bg-muted")
   await user.click(back)
   expect(moved()).toBe("back")
 })

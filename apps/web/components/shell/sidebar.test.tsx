@@ -199,17 +199,17 @@ test("the sidebar is headed by the brand mark before Hisob24's logo", async () =
   expect(mark!.compareDocumentPosition(logo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
-test("the current section is the glossy accent, the others the heading's ink; a section is 48px tall, 16px round", async () => {
+test("the current section is the accent, the others the heading's ink; a section is 48px tall, 16px round", async () => {
   await signIn(ALI)
   setLocation("/employees")
   renderWithProviders(<Sidebar {...props()} />)
 
   const current = await within(sidebar()).findByRole("link", { name: "Xodimlar" })
   const other = within(sidebar()).getByRole("link", { name: "Buyurtmalar" })
-  expect(current).toHaveClass("glossy", "min-h-12", "rounded-2xl")
+  expect(current).toHaveClass("bg-primary", "text-primary-foreground", "min-h-12", "rounded-2xl")
   expect(current).not.toHaveClass("text-heading")
   expect(other).toHaveClass("text-heading", "hover:bg-muted")
-  expect(other).not.toHaveClass("glossy")
+  expect(other).not.toHaveClass("bg-primary")
 })
 
 test("who is signed in is a card at the sidebar's foot: the plain fill, 20px round", async () => {

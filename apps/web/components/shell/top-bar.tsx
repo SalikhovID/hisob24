@@ -48,7 +48,7 @@ export function TopBar() {
       className="pointer-events-none absolute inset-x-0 top-0 z-[15] hidden h-[76px] items-center gap-1 bg-[linear-gradient(var(--fade)_55%,transparent)] px-[max(32px,calc((100%-1120px)/2))] md:flex [&>*]:pointer-events-auto"
     >
       {back && (
-        <Link href={back.href} onClick={() => moveTo("back")} className={cn(tool, "glass-chip font-semibold text-foreground")}>
+        <Link href={back.href} onClick={() => moveTo("back")} className={cn(tool, "bg-muted font-semibold text-foreground")}>
           <ChevronLeftIcon aria-hidden="true" strokeWidth={1.8} />
           Orqaga
         </Link>

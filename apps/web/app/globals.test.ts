@@ -2,7 +2,9 @@
 import { readFileSync } from "node:fs"
 import { expect, test } from "vitest"
 
-// The tokens are the prototype's: the pages take their colors from them.
+// The tokens are the flat prototype's (228b1108): the pages take their
+// colors and sizes from them. A phone's values come first; from 48rem the
+// web's (spec 2026-11-03, sections 2 and 3).
 const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8")
 
 const block = (selector: string) => {
@@ -11,286 +13,176 @@ const block = (selector: string) => {
   return css.slice(start, css.indexOf("}", start))
 }
 
-test("the light theme is the prototype's light glass: grey-white, white cards, a black accent", () => {
+// The wide screen's blocks: :root and .dark inside the 48rem media query.
+const wide = (selector: ":root" | ".dark") => block(`@media (min-width: 48rem) {\n  ${selector} {`)
+
+test("on a phone the light theme is the prototype's grouped list: an iOS grey page, white groups, the teal accent", () => {
   const root = block(":root {")
-  expect(root).toContain("--background: #F1F2F4")
-  expect(root).toContain("--foreground: #0E0F12")
-  expect(root).toContain("--card: rgba(255, 255, 255, 0.86)")
-  expect(root).toContain("--primary: #111214")
-  expect(root).toContain("--primary-soft: rgba(17, 18, 20, 0.07)")
-  expect(root).toContain("--muted-foreground: #6B6E76")
-  expect(root).toContain("--heading: #2A2C31")
-  expect(root).toContain("--press: rgba(0, 0, 0, 0.05)")
-  expect(root).toContain("--sheet: #EFF0F2")
-  expect(root).toContain("--positive: #23804E")
-  expect(root).toContain("--destructive: #CF3F37")
+  expect(root).toContain("--background: #f2f2f7")
+  expect(root).toContain("--foreground: #17181b")
+  expect(root).toContain("--card: #ffffff")
+  expect(root).toContain("--field: #ffffff")
+  expect(root).toContain("--sheet: #f2f2f7")
+  expect(root).toContain("--primary: #17595f")
+  expect(root).toContain("--primary-foreground: #ffffff")
+  expect(root).toContain("--primary-soft: rgba(23, 89, 95, 0.1)")
+  expect(root).toContain("--accent-text: color-mix(in srgb, #17595f 82%, #000)")
+  expect(root).toContain("--muted: rgba(118, 118, 128, 0.12)")
+  expect(root).toContain("--muted-foreground: #6b6e76")
+  expect(root).toContain("--faint: #9a9da4")
+  expect(root).toContain("--border: rgba(0, 0, 0, 0.06)")
+  expect(root).toContain("--line-faint: rgba(0, 0, 0, 0.04)")
+  expect(root).toContain("--separator: rgba(60, 60, 67, 0.18)")
+  expect(root).toContain("--group-ring: none")
+  expect(root).toContain("--positive: #1d6e43")
+  expect(root).toContain("--destructive: #b42a22")
+  expect(root).toContain("--warning: #b45309")
+  expect(root).toContain("--switch-on: #34c759")
+  expect(root).toContain("--scrim: rgba(10, 12, 16, 0.24)")
+  expect(root).toContain("--brand: #174449")
 })
 
-test("the dark theme is the prototype's dark glass: near black, faint glass cards, a white accent", () => {
+test("on a wide screen the light theme is the prototype's web: a white page, ringed cards, the plain fills", () => {
+  const root = wide(":root")
+  expect(root).toContain("--background: #ffffff")
+  expect(root).toContain("--sheet: #ffffff")
+  expect(root).toContain("--muted: rgba(0, 0, 0, 0.06)")
+  expect(root).toContain("--group-ring: 0 0 0 1px var(--border)")
+  expect(root).toContain("--switch-on: #17595f")
+})
+
+test("on a phone the dark theme is black with the iOS dark groups and the light teal", () => {
   const dark = block(".dark {")
-  expect(dark).toContain("--background: #0F1013")
-  expect(dark).toContain("--foreground: #F2F3F5")
-  expect(dark).toContain("--card: rgba(255, 255, 255, 0.045)")
-  expect(dark).toContain("--primary: #F2F3F5")
-  expect(dark).toContain("--primary-foreground: #0E0F12")
-  expect(dark).toContain("--primary-soft: rgba(255, 255, 255, 0.1)")
-  expect(dark).toContain("--muted: rgba(255, 255, 255, 0.07)")
-  expect(dark).toContain("--muted-foreground: #8E9198")
-  expect(dark).toContain("--heading: #D5D7DC")
+  expect(dark).toContain("--background: #000000")
+  expect(dark).toContain("--foreground: #ececee")
+  expect(dark).toContain("--card: #1c1c1e")
+  expect(dark).toContain("--field: #2c2c2e")
+  expect(dark).toContain("--sheet: #000000")
+  expect(dark).toContain("--primary: #5cc4bc")
+  expect(dark).toContain("--primary-foreground: #062a2c")
+  expect(dark).toContain("--primary-soft: rgba(92, 196, 188, 0.16)")
+  expect(dark).toContain("--accent-text: color-mix(in srgb, #5cc4bc 70%, #fff)")
+  expect(dark).toContain("--muted-foreground: #9d9da1")
+  expect(dark).toContain("--faint: #6c6c70")
   expect(dark).toContain("--border: rgba(255, 255, 255, 0.08)")
-  expect(dark).toContain("--press: rgba(255, 255, 255, 0.06)")
-  expect(dark).toContain("--menu: rgba(30, 32, 36, 0.9)")
-  // The prototype's see-through rgba(22, 23, 27, .92) as it reads over the
-  // scrim: the sheet's head and bar wear it too (2026-10-16, decision 1).
-  expect(dark).toContain("--sheet: #15161A")
-  expect(dark).toContain("--sheet-cell: rgba(255, 255, 255, 0.05)")
-  expect(dark).toContain("--scrim: rgba(0, 0, 0, 0.55)")
-  expect(dark).toContain("--shadow: 0 18px 44px rgba(0, 0, 0, 0.55)")
-  expect(dark).toContain("--sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 50%)")
-  expect(dark).toContain("--lift: 0 14px 34px rgba(0, 0, 0, 0.35)")
-  expect(dark).toContain("--destructive: #FF7A70")
+  expect(dark).toContain("--separator: rgba(84, 84, 88, 0.6)")
+  expect(dark).toContain("--positive: #4cc583")
+  expect(dark).toContain("--destructive: #f87171")
+  expect(dark).toContain("--switch-on: #30d158")
+})
+
+test("on a wide screen the dark theme is the prototype's: near black page and cards, raised menus and fields", () => {
+  const dark = wide(".dark")
+  expect(dark).toContain("--background: #1a1a1d")
+  expect(dark).toContain("--card: #1a1a1d")
+  expect(dark).toContain("--sheet: #1a1a1d")
+  expect(dark).toContain("--popover: #26262a")
+  expect(dark).toContain("--field: #26262a")
+  expect(dark).toContain("--muted: rgba(255, 255, 255, 0.07)")
+  expect(dark).toContain("--sidebar: #111113")
+  expect(dark).toContain("--switch-on: #5cc4bc")
+})
+
+test("the wide screen's light comes before the dark, so the dark wins on a wide screen too", () => {
+  expect(css.indexOf("@media (min-width: 48rem) {\n  :root {")).toBeLessThan(css.indexOf(".dark {"))
+  expect(css.indexOf(".dark {")).toBeLessThan(css.indexOf("@media (min-width: 48rem) {\n  .dark {"))
+})
+
+test("the sidebar is the prototype's pale grey pane, its current section's sub-item in the accent's soft tint", () => {
+  const root = block(":root {")
+  expect(root).toContain("--sidebar: #f4f5f8")
+  expect(root).toContain("--sidebar-accent: rgba(23, 89, 95, 0.1)")
 })
 
 test("inside Telegram the app keeps its own colors: the chat gives the scheme, not its theme's colors", () => {
   expect(css).not.toMatch(/var\(--tg-theme-/)
 })
 
-test("the radii, the text sizes and the font stack are the prototype's", () => {
+test("the text sizes follow the screen: 17px rows on a phone, 13px on the web", () => {
   const theme = block("@theme inline {")
-  expect(theme).toContain("--radius-group: 26px")
-  expect(theme).toContain("--radius-tile: 22px")
-  expect(theme).toContain("--radius-sheet: 40px")
-  expect(theme).toContain("--radius-badge: 999px")
-  expect(theme).toContain("--radius-main: 14px")
-  expect(theme).toContain("--text-base: 17px")
-  expect(theme).toContain("--text-md: 15px")
-  expect(theme).toMatch(/--font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var\(--font-geist\)/)
-  expect(css).toContain("@utility pb-bar")
+  expect(theme).toContain("--text-base: var(--fs-base)")
+  expect(theme).toContain("--text-md: var(--fs-md)")
+  expect(theme).toContain("--text-sm: var(--fs-sm)")
+  expect(theme).toContain("--text-xs: var(--fs-xs)")
+  const root = block(":root {")
+  expect(root).toContain("--fs-base: 17px")
+  expect(root).toContain("--fs-md: 15px")
+  expect(root).toContain("--fs-sm: 14px")
+  expect(root).toContain("--fs-xs: 13px")
+  const web = wide(":root")
+  expect(web).toContain("--fs-base: 13px")
+  expect(web).toContain("--fs-md: 12px")
+  expect(web).toContain("--fs-sm: 12px")
+  expect(web).toContain("--fs-xs: 11.5px")
 })
 
-test("a surface is the prototype's frosted glass: the cell, a sheen over its top, a white rim and a soft lift", () => {
+test("the font is the prototype's: the system's SF on Apple devices, Inter elsewhere", () => {
+  expect(block("@theme inline {")).toContain(
+    '--font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), "Inter", system-ui, "Segoe UI", sans-serif',
+  )
+})
+
+test("the radii are the prototype's: 12px groups, 38px sheets, 12px main buttons, 10px fields", () => {
+  const theme = block("@theme inline {")
+  expect(theme).toContain("--radius-sm: 6px")
+  expect(theme).toContain("--radius-md: 8px")
+  expect(theme).toContain("--radius-lg: 10px")
+  expect(theme).toContain("--radius-xl: 12px")
+  expect(theme).toContain("--radius-group: 12px")
+  expect(theme).toContain("--radius-sheet: 38px")
+  expect(theme).toContain("--radius-main: 12px")
+  expect(theme).toContain("--radius-field: 10px")
+  expect(theme).toContain("--radius-badge: 999px")
+})
+
+test("a surface is a flat card: the card's color, ringed only on a wide screen, nothing blurred", () => {
   const surface = block("@utility surface {")
   expect(surface).toContain("background-color: var(--card)")
-  expect(surface).toContain("background-image: var(--sheen)")
-  expect(surface).toContain("box-shadow: var(--rim), var(--lift)")
-  expect(surface).toContain("backdrop-filter: blur(18px) saturate(1.6)")
-  expect(block(":root {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 0 #ffffff")
-  expect(block(".dark {")).toContain("--rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.1)")
+  expect(surface).toContain("box-shadow: var(--group-ring)")
+  expect(surface).not.toContain("backdrop-filter")
 })
 
-test("the scrim behind a modal is the rest of the screen frosted: the scrim's tint over a 12px blur of the page", () => {
-  const scrim = block("@utility scrim {")
-  expect(scrim).toContain("background-color: var(--scrim)")
-  expect(scrim).toContain("-webkit-backdrop-filter: blur(12px) saturate(1.6)")
-  expect(scrim).toContain("backdrop-filter: blur(12px) saturate(1.6)")
-  // The tint is the prototype's, as before the blur.
-  expect(block(":root {")).toContain("--scrim: rgba(10, 12, 16, 0.2)")
-  expect(block(".dark {")).toContain("--scrim: rgba(0, 0, 0, 0.55)")
+test("the glass utilities are gone: a fill is a plain color now", () => {
+  for (const name of ["glossy", "glossy-red", "glass-chip", "gloss", "bg-ambient", "scrim"]) expect(css, name).not.toContain(`@utility ${name} {`)
+  expect(block("@theme inline {")).toContain("--color-scrim: var(--scrim)")
 })
 
-test("glossy is the prototype's capsule fill of an accent control: the accent as a gradient with a glow", () => {
-  const glossy = block("@utility glossy {")
-  expect(glossy).toContain("background-image: var(--btn)")
-  expect(glossy).toContain("box-shadow: var(--btn-glow)")
-  expect(glossy).toContain("color: var(--primary-foreground)")
-  expect(block(":root {")).toContain("--btn: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%)")
-  expect(block(".dark {")).toContain("--btn: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%)")
-  expect(block(".dark {")).toContain("--btn-glow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.08)")
-})
-
-test("glossy-red is the prototype's red capsule of an act that cannot be undone, in either theme", () => {
-  const red = block("@utility glossy-red {")
-  expect(red).toContain("background-image: linear-gradient(180deg, #F2847A, #CF3F37)")
-  expect(red).toContain("box-shadow: 0 8px 22px rgba(207, 63, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4)")
-  expect(red).toContain("color: #ffffff")
-})
-
-test("glass-chip is the prototype's small glass of a chip or a round button: the chip's tint and the white rim", () => {
-  const chip = block("@utility glass-chip {")
-  expect(chip).toContain("background-color: var(--chip)")
-  expect(chip).toContain("box-shadow: var(--rim)")
-  expect(block(":root {")).toContain("--chip: rgba(255, 255, 255, 0.6)")
-  expect(block(".dark {")).toContain("--chip: rgba(255, 255, 255, 0.06)")
-})
-
-test("the ambient light is the prototype's: soft gradients over the theme's base, a screen tall from the top", () => {
-  const ambient = block("@utility bg-ambient {")
-  expect(ambient).toContain("background-color: var(--ambient-base)")
-  expect(ambient).toContain("background-image: var(--ambient)")
-  expect(ambient).toContain("background-repeat: no-repeat")
-  expect(ambient).toContain("background-size: 100% 100vh")
-  expect(block(":root {")).toContain(
-    "--ambient: radial-gradient(90% 38% at 50% -4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #F7F8F9 0%, #EFF0F3 50%, #E5E7EB 100%)",
-  )
-  expect(block(":root {")).toContain("--ambient-base: #E5E7EB")
-  expect(block(".dark {")).toContain(
-    "--ambient: radial-gradient(75% 45% at 0% 0%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(160deg, #1D1F23 0%, #0E0F12 46%, #15171B 100%)",
-  )
-  expect(block(".dark {")).toContain("--ambient-base: #15171B")
-})
-
-test("the page's body is lit by the ambient light, under the screens without the shell too", () => {
+test("the page's body is the plain background", () => {
   const body = block("  body {")
-  expect(body).toContain("@apply bg-ambient")
-  expect(body).not.toContain("bg-background")
+  expect(body).toContain("@apply bg-background")
+  expect(body).not.toContain("bg-ambient")
 })
 
-test("a page that moves is opaque in the ambient light, laid where the column's own lies", () => {
+test("a page that moves is opaque in the page's own color", () => {
   const moving = block(':root[data-move] [data-slot="page"] {')
-  expect(moving).toContain("background-color: var(--ambient-base)")
-  expect(moving).toContain("background-image: var(--ambient)")
-  expect(moving).toContain("background-repeat: no-repeat")
-  // The sheet stands inside main's padding (16px aside, 8px on top under
-  // what lies over the screen's top; 24px from md): its light is main's, a
-  // screen tall, moved back by the padding.
-  expect(moving).toContain("background-size: calc(100% + 2rem) 100vh")
-  expect(moving).toContain("background-position: -1rem calc(-1 * (var(--safe-top) + 0.5rem))")
-  // From md the column is 1120px at most in the middle of what the sidebar
-  // leaves (the shell says its width, --side), under 80px for the top bar.
-  expect(css).toContain(
-    "@media (min-width: 48rem) {\n  :root[data-move] [data-slot=\"page\"] {\n    --pad: max(32px, calc((100vw - var(--side, 296px) - 1120px) / 2));\n    background-size: calc(100vw - var(--side, 296px)) 100vh;\n    background-position: calc(-1 * var(--pad)) calc(-1 * (var(--safe-top) + 80px));",
-  )
+  expect(moving).toContain("background-color: var(--background)")
+  expect(moving).not.toContain("var(--ambient)")
 })
 
-test("the avatars are the prototype's plain grey circles with dark initials: no tint per person", () => {
-  expect(css).not.toContain('[data-slot="avatar"][data-tone')
-  expect(block(":root {")).toContain("--av-bg: #E8E9EC")
-  expect(block(":root {")).toContain("--av-ink: #1A1B1F")
-  expect(block(".dark {")).toContain("--av-bg: rgba(255, 255, 255, 0.1)")
-  expect(block(".dark {")).toContain("--av-ink: #F2F3F5")
-})
-
-test("gloss is the shine of a small colored icon: a thin light rim, a soft shadow and a light falling from its top", () => {
-  const gloss = block("@utility gloss {")
-  expect(gloss).toContain("box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.4), 0 3px 8px rgba(60, 40, 120, 0.12)")
-  expect(css).toMatch(/@utility gloss \{[^@]*&::after \{[^}]*background: linear-gradient\(180deg, rgba\(255, 255, 255, 0\.42\) 0%, rgba\(255, 255, 255, 0\) 55%\)/)
-})
-
-test("the fade under a bar is the page's own color, nearly opaque", () => {
-  expect(block(":root {")).toContain("--fade: rgba(243, 244, 246, 0.94)")
-  expect(block(".dark {")).toContain("--fade: rgba(14, 15, 18, 0.94)")
-})
-
-test("the search glass is a pale field with a hairline in the light, a fainter one in the dark", () => {
-  expect(block(":root {")).toContain("--search: rgba(240, 241, 243, 0.7)")
-  expect(block(":root {")).toContain("--search-rim: inset 0 0 0 1px rgba(0, 0, 0, 0.08)")
-  expect(block(".dark {")).toContain("--search: rgba(255, 255, 255, 0.05)")
-  expect(block(".dark {")).toContain("--search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09);")
-})
-
-test("the segmented thumb is black with white ink in the light, white with black ink in the dark", () => {
-  expect(block(":root {")).toContain("--seg-thumb: #111214")
-  expect(block(":root {")).toContain("--seg-on: #ffffff")
-  expect(block(":root {")).toContain("--seg-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)")
-  expect(block(".dark {")).toContain("--seg-thumb: #F2F3F5")
-  expect(block(".dark {")).toContain("--seg-on: #0E0F12")
-  expect(block(".dark {")).toContain("--seg-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);")
-})
-
-test("a switch that is off is a faint violet track in the light, the plain fill in the dark", () => {
-  expect(block(":root {")).toContain("--switch-off: rgba(120, 108, 176, 0.18)")
-  expect(block(".dark {")).toContain("--switch-off: rgba(255, 255, 255, 0.07)")
-})
-
-test("a switch that is on has a white thumb in the light, a black one on the dark's white track", () => {
-  expect(block(":root {")).toContain("--switch-knob-on: #ffffff")
-  expect(block(".dark {")).toContain("--switch-knob-on: #0E0F12")
-})
-
-test("an amount's unit wears the hint's grey: there is no gold of its own any more", () => {
-  expect(css).not.toContain("--gold")
-})
-
-test("the banner is a white card in the light, a dark grey one in the dark", () => {
-  expect(block(":root {")).toContain("--ban: linear-gradient(135deg, #FFFFFF 0%, #EDEFF2 100%)")
-  expect(block(":root {")).toContain("--ban-ink: #0E0F12")
-  expect(block(":root {")).toContain("--ban-sub: #4A4D55")
-  expect(block(".dark {")).toContain("--ban: linear-gradient(135deg, #26282D 0%, #16181B 100%)")
-  expect(block(".dark {")).toContain("--ban-ink: #F2F3F5")
-  expect(block(".dark {")).toContain("--ban-sub: #A9ACB3")
-})
-
-test("the banner's art is the accent's tile with the other end's 24 on it and grey sparks: black in the light, white in the dark", () => {
-  const root = block(":root {")
-  expect(root).toContain("--art1: #3A3B40")
-  expect(root).toContain("--art2: #0E0F11")
-  expect(root).toContain("--art-ink: #ffffff")
-  expect(root).toContain("--art-spark: #9A9DA4")
-  const dark = block(".dark {")
-  expect(dark).toContain("--art1: #FFFFFF")
-  expect(dark).toContain("--art2: #C9CBD0")
-  expect(dark).toContain("--art-ink: #0E0F12")
-  expect(dark).toContain("--art-spark: #8E9198")
-})
-
-test("the brand's fill is the glossy black in the light, the glossy white in the dark (the accent's own); its mark's shadow follows", () => {
-  expect(block(":root {")).toContain("--brand-fill: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%)")
-  expect(block(":root {")).toContain("--mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)")
-  expect(block(".dark {")).toContain("--brand-fill: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%)")
-  expect(block(".dark {")).toContain("--mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);")
-})
-
-test("on a page's own background the logo is the light glass's ink, near black; white in the night", () => {
-  expect(block(":root {")).toContain("--brand: #0E0F12")
-  expect(block(".dark {")).toContain("--brand: #ffffff")
-})
-
-test("under the brand's fill the panel's own color is its deepest, and what stands on it is the other end: white on black in the light, black on white in the dark", () => {
-  expect(block(":root {")).toContain("--brand-panel: #0E0F11")
-  expect(block(":root {")).toContain("--brand-panel-foreground: #ffffff")
-  expect(block(".dark {")).toContain("--brand-panel: #E2E3E6")
-  expect(block(".dark {")).toContain("--brand-panel-foreground: #0E0F12")
-})
-
-test("a board's column is a faint glass: a whisper of white in the light, less in the dark", () => {
-  expect(block(":root {")).toContain("--col: rgba(255, 255, 255, 0.45)")
-  expect(block(".dark {")).toContain("--col: rgba(255, 255, 255, 0.025)")
-})
-
-test("a lifted row is a white card in the light (not the segmented thumb's black, as the prototype's), a pale glass in the night", () => {
-  expect(block(":root {")).toContain("--lifted: #ffffff")
-  expect(block(".dark {")).toContain("--lifted: rgba(255, 255, 255, 0.18)")
-})
-
-test("the sidebar is a card of the frosted glass (surface): no pane of its own any more", () => {
-  expect(css).not.toContain("--head:")
-})
-
-test("the tab bar is the prototype's frosted pill (v2): a frost under its buttons, no refracting edge or halo; the lens a white glass capsule", () => {
+test("the tab bar is the prototype's frosted pill: the card at 80% over a blur, the current button in a grey capsule", () => {
   const frost = block('[data-slot="tab-bar"]::before {')
-  expect(frost).toContain("background: var(--tb-frost)")
-  expect(frost).toContain("backdrop-filter: blur(18px) saturate(1.8) brightness(1.04)")
-  expect(frost).not.toContain("box-shadow")
-  expect(css).not.toContain('[data-slot="tab-bar"]::after')
-  expect(css).not.toMatch(/text-shadow: 0 0 8px|drop-shadow\(0 0 5px/)
+  expect(frost).toContain("background: color-mix(in srgb, var(--card) 80%, transparent)")
+  expect(frost).toContain("backdrop-filter: blur(24px) saturate(1.8)")
   const lens = block('[data-slot="tab-lens"] {')
-  expect(lens).toContain("background: var(--lens-fill)")
-  expect(lens).toContain("backdrop-filter: blur(8px) saturate(1.8)")
-  expect(lens).toContain("box-shadow: var(--lens-shadow)")
-  const root = block(":root {")
-  expect(root).toContain("--tb-frost: rgba(247, 248, 250, 0.74)")
-  expect(root).toContain("--tb-shadow: 0 12px 32px rgba(20, 22, 30, 0.14), 0 2px 6px rgba(20, 22, 30, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.08)")
-  expect(root).toContain("--lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(233, 235, 239, 0.78) 100%)")
-  expect(root).toContain(
-    "--lens-shadow: 0 4px 12px rgba(20, 22, 30, 0.13), 0 1px 2px rgba(20, 22, 30, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.07), inset 0 1.5px 1px #ffffff, inset 0 -3px 6px rgba(20, 22, 30, 0.05)",
-  )
-  const dark = block(".dark {")
-  expect(dark).toContain("--tb-frost: rgba(24, 26, 30, 0.72)")
-  expect(dark).toContain("--tb-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(0, 0, 0, 0.7)")
-  expect(dark).toContain("--lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.06) 100%)")
-  expect(dark).toContain(
-    "--lens-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -3px 6px rgba(0, 0, 0, 0.2)",
-  )
-  // The clear glass's tokens of before are gone.
-  for (const token of ["--tb-bg", "--tb-rim", "--tb-spec", "--tb-glow", "--tb-line", "--tb-halo", "--lens-bg"]) expect(css, token).not.toContain(`${token}:`)
+  expect(lens).toContain("background: rgba(120, 120, 128, 0.12)")
+  expect(lens).not.toContain("backdrop-filter")
+  expect(block(":root {")).toContain("--tab-bar-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.08)")
 })
 
-test("the top fade is as tall as what lies over the screen and a little more (none where nothing does), the page's fade falling to nothing under a blur", () => {
+test("a page keeps room under it for the floating tab bar, as the prototype's 116px", () => {
+  expect(block("@utility pb-bar {")).toContain("padding-bottom: calc(116px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)))")
+})
+
+test("on a phone the hairline between rows starts 16px in; on a wide screen it is the row's whole width, fainter", () => {
+  expect(css).toContain("left: var(--inset, 16px);")
+  expect(css).toContain("background: var(--separator);")
+  expect(css).toMatch(/@media \(min-width: 48rem\) \{\n {2}\[data-slot="row"\] \+ \[data-slot="row"\]::before,[^}]*left: 0;[^}]*background: var\(--line-faint\);/)
+})
+
+test("the top fade is as tall as what lies over the screen and a little more, the page's color falling to nothing", () => {
   const fade = block('[data-slot="top-fade"] {')
   expect(fade).toContain("height: calc(var(--safe-top) + min(var(--safe-top), 18px))")
-  expect(fade).toContain("background: linear-gradient(to bottom, var(--fade) 40%, transparent)")
-  expect(fade).toContain("backdrop-filter: blur(12px) saturate(1.6)")
-  expect(fade).toContain("mask: linear-gradient(#000 55%, transparent)")
+  expect(fade).toContain("background: linear-gradient(to bottom, var(--background) 40%, transparent)")
   expect(fade).toContain("opacity: 0")
   expect(block('[data-slot="top-fade"][data-on] {')).toContain("opacity: 1")
 })

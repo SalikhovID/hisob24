@@ -41,9 +41,9 @@ export function MainButton({
       }}
       className={cn(
         "flex h-[54px] w-full items-center justify-center gap-2 rounded-full text-base font-semibold outline-none transition-[transform,opacity] duration-150 ease-out-expo active:scale-[.98] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 aria-disabled:pointer-events-none",
-        variant === "accent" && "glossy",
+        variant === "accent" && "bg-primary text-primary-foreground",
         variant === "ghost" && "h-11 bg-transparent text-primary",
-        variant === "red" && "glossy-red",
+        variant === "red" && "bg-destructive text-white",
         className,
       )}
       {...props}

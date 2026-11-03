@@ -12,7 +12,7 @@ const chip =
   "relative inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-md font-medium whitespace-nowrap text-heading outline-none transition-colors after:absolute after:-inset-x-0.5 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50"
 // A chip is the prototype's small glass; on, it is the accent's tint with a
 // faint ring of the accent.
-const off = "glass-chip"
+const off = "bg-muted"
 const on = "bg-primary-soft font-semibold text-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]"
 
 // Chips is the strip of filters under a search: it scrolls sideways, out to
@@ -93,7 +93,7 @@ export function ChoiceChips({
           data-slot="chip"
           className={cn(
             chip,
-            "not-data-checked:glass-chip data-checked:bg-primary-soft data-checked:font-semibold data-checked:text-primary data-checked:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]",
+            "not-data-checked:bg-muted data-checked:bg-primary-soft data-checked:font-semibold data-checked:text-primary data-checked:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]",
           )}
         >
           {option.label}

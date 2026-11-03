@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { Button } from "./button"
 
-test("a button wears the prototype's glass: the accent glossy, a quiet one a small glass, a deletion the red capsule", () => {
+test("a button is flat: the accent filled, a quiet one the plain fill, a deletion red", () => {
   render(
     <>
       <Button>Saqlash</Button>
@@ -11,10 +11,10 @@ test("a button wears the prototype's glass: the accent glossy, a quiet one a sma
       <Button variant="destructive">O&apos;chirish</Button>
     </>,
   )
-  expect(screen.getByRole("button", { name: "Saqlash" })).toHaveClass("glossy")
-  expect(screen.getByRole("button", { name: "Bekor qilish" })).toHaveClass("glass-chip")
-  expect(screen.getByRole("button", { name: "Yana yuklash" })).toHaveClass("glass-chip", "text-primary")
-  expect(screen.getByRole("button", { name: "O'chirish" })).toHaveClass("glossy-red")
+  expect(screen.getByRole("button", { name: "Saqlash" })).toHaveClass("bg-primary")
+  expect(screen.getByRole("button", { name: "Bekor qilish" })).toHaveClass("bg-muted")
+  expect(screen.getByRole("button", { name: "Yana yuklash" })).toHaveClass("bg-muted", "text-primary")
+  expect(screen.getByRole("button", { name: "O'chirish" })).toHaveClass("bg-destructive")
 })
 
 test("a mini button is a small capsule in the accent's ink, wearing its variant's fill", () => {
@@ -24,6 +24,5 @@ test("a mini button is a small capsule in the accent's ink, wearing its variant'
     </Button>,
   )
   const mini = screen.getByRole("button", { name: "Qo'shish" })
-  expect(mini).toHaveClass("glass-chip", "rounded-full", "h-[34px]", "text-primary")
-  expect(mini).not.toHaveClass("bg-muted")
+  expect(mini).toHaveClass("bg-muted", "rounded-full", "h-[34px]", "text-primary")
 })

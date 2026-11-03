@@ -229,7 +229,7 @@ export function SwitchRow<T extends FieldValues, TOut extends FieldValues = T>({
 // glossy capsule.
 const optClass = "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-md font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
 const optOff = "bg-muted"
-const optOn = "glossy"
+const optOn = "bg-primary text-primary-foreground"
 
 // OptionChips are the options of a choice field drawn as chips: one of
 // them (radios; the chosen one pressed again is unchosen) or several

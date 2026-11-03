@@ -11,11 +11,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "glossy active:opacity-90",
-        outline: "glass-chip text-primary active:bg-press",
-        secondary: "glass-chip text-foreground active:bg-press",
+        default: "bg-primary text-primary-foreground active:opacity-90",
+        outline: "bg-muted text-primary active:bg-press",
+        secondary: "bg-muted text-foreground active:bg-press",
         ghost: "text-primary active:bg-muted",
-        destructive: "glossy-red active:opacity-90",
+        destructive: "bg-destructive text-white active:opacity-90",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

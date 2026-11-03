@@ -42,7 +42,7 @@ test("a dialog comes up as a sheet named by its title; the close button at its h
   expect(change).toHaveBeenCalledWith(false, expect.anything())
 })
 
-test("a sheet is the prototype's: its own color, 40px round, a white edge; its close button a small glass", async () => {
+test("a sheet is the prototype's: its own color, 40px round, a white edge; its close button the plain fill", async () => {
   render(
     <Dialog open>
       <DialogContent>
@@ -55,11 +55,10 @@ test("a sheet is the prototype's: its own color, 40px round, a white edge; its c
   const sheet = await screen.findByRole("dialog", { name: "Mijoz" })
   expect(sheet).toHaveClass("rounded-sheet", "bg-sheet", "shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)]")
   const close = screen.getByRole("button", { name: "Yopish" }).firstElementChild
-  expect(close).toHaveClass("glass-chip")
-  expect(close).not.toHaveClass("bg-muted")
+  expect(close).toHaveClass("bg-muted")
 })
 
-test("behind a sheet the rest of the screen is frosted: the scrim's tint over a blur of the page", async () => {
+test("behind a sheet the rest of the screen is dimmed by the scrim, nothing blurred", async () => {
   render(
     <Dialog open>
       <DialogContent>
@@ -70,7 +69,7 @@ test("behind a sheet the rest of the screen is frosted: the scrim's tint over a 
     </Dialog>,
   )
   await screen.findByRole("dialog", { name: "Mijoz" })
-  expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass("scrim")
+  expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass("bg-scrim")
 })
 
 test("a sheet over a sheet draws a scrim of its own over the sheet under; pressing that scrim closes the top sheet only", async () => {

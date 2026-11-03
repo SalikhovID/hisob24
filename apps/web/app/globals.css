@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    /* The prototype's stack: the system's SF on Apple devices, Geist (next/font) elsewhere. */
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-geist), system-ui, "Segoe UI", sans-serif;
+    /* The prototype's stack: the system's SF on Apple devices, Inter (next/font) elsewhere. */
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), "Inter", system-ui, "Segoe UI", sans-serif;
     --font-heading: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -45,6 +45,21 @@
     --color-brand-panel: var(--brand-panel);
     --color-brand-panel-foreground: var(--brand-panel-foreground);
     /* The prototype's own tokens. */
+    --color-faint: var(--faint);
+    --color-field: var(--field);
+    --color-raised: var(--raised);
+    --color-accent-text: var(--accent-text);
+    --color-line-faint: var(--line-faint);
+    --color-separator: var(--separator);
+    --color-icon: var(--icon);
+    --color-icon-faint: var(--icon-faint);
+    --color-ink-1: var(--ink-1);
+    --color-ink-2: var(--ink-2);
+    --color-ink-3: var(--ink-3);
+    --color-ink-4: var(--ink-4);
+    --color-ink-5: var(--ink-5);
+    --color-scrim: var(--scrim);
+    --color-switch-on: var(--switch-on);
     --color-press: var(--press);
     --color-heading: var(--heading);
     --color-positive: var(--positive);
@@ -56,240 +71,275 @@
     --color-sheet: var(--sheet);
     --color-sheet-cell: var(--sheet-cell);
     --color-skeleton: var(--skel);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    /* The prototype's radii: 6 / 8 / 10 / 12px on the web; on a phone 12px
+       groups and buttons, 10px fields, 38px sheets. */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-3xl: 24px;
+    --radius-4xl: 30px;
     --radius-badge: 999px;
-    --radius-main: 14px;
-    --radius-tile: 22px;
-    --radius-group: 26px;
-    --radius-sheet: 40px;
-    /* The prototype's type scale: 17px rows, 15px secondary, 14px small, 13px notes. */
-    --text-xs: 13px;
+    --radius-main: 12px;
+    --radius-field: 10px;
+    --radius-tile: 12px;
+    --radius-group: 12px;
+    --radius-sheet: 38px;
+    /* The text sizes follow the screen (--fs-* below): a phone's 17px rows,
+       15px secondary, 14px small, 13px notes; the web's 13px, 12px, 12px,
+       11.5px. */
+    --text-xs: var(--fs-xs);
     --text-xs--line-height: 1.3;
-    --text-sm: 14px;
+    --text-sm: var(--fs-sm);
     --text-sm--line-height: 1.35;
-    --text-md: 15px;
+    --text-md: var(--fs-md);
     --text-md--line-height: 1.35;
-    --text-base: 17px;
-    --text-base--line-height: 1.3;
+    --text-base: var(--fs-base);
+    --text-base--line-height: var(--lh-base);
     --shadow-float: var(--shadow);
+    --shadow-card: var(--card-shadow);
+    --shadow-lift: var(--lift-shadow);
     --ease-out-expo: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
     --ease-spring: cubic-bezier(0.34, 1.4, 0.52, 1);
 }
 
+/* A phone's light (the prototype's mini app): an iOS grey page, white
+   groups without a ring, the teal accent. */
 :root {
-    --background: #F1F2F4;
-    --foreground: #0E0F12;
-    --card: rgba(255, 255, 255, 0.86);
-    --card-foreground: #0E0F12;
+    --fs-base: 17px;
+    --fs-md: 15px;
+    --fs-sm: 14px;
+    --fs-xs: 13px;
+    --lh-base: 1.3;
+    --background: #f2f2f7;
+    --foreground: #17181b;
+    --card: #ffffff;
+    --card-foreground: #17181b;
     --popover: #ffffff;
-    --popover-foreground: #0E0F12;
-    --primary: #111214;
+    --popover-foreground: #17181b;
+    --raised: #ffffff;
+    --field: #ffffff;
+    --sheet: #f2f2f7;
+    --primary: #17595f;
     --primary-foreground: #ffffff;
-    --primary-soft: rgba(17, 18, 20, 0.07);
-    --secondary: rgba(0, 0, 0, 0.05);
-    --secondary-foreground: #0E0F12;
-    --muted: rgba(0, 0, 0, 0.05);
-    --muted-foreground: #6B6E76;
-    --accent: rgba(0, 0, 0, 0.05);
-    --accent-foreground: #0E0F12;
-    --destructive: #CF3F37;
-    --destructive-soft: rgba(207, 63, 55, 0.11);
-    --positive: #23804E;
+    --primary-soft: rgba(23, 89, 95, 0.1);
+    --accent-text: color-mix(in srgb, #17595f 82%, #000);
+    --secondary: rgba(0, 0, 0, 0.06);
+    --secondary-foreground: #17181b;
+    --muted: rgba(118, 118, 128, 0.12);
+    --muted-foreground: #6b6e76;
+    --faint: #9a9da4;
+    --icon: #6b6e76;
+    --icon-faint: #c4c4c7;
+    --accent: rgba(0, 0, 0, 0.04);
+    --accent-foreground: #17181b;
+    --destructive: #b42a22;
+    --destructive-soft: rgba(239, 68, 68, 0.1);
+    --positive: #1d6e43;
     --positive-soft: rgba(35, 128, 78, 0.12);
-    --warning: #A0620A;
-    --warning-soft: rgba(232, 160, 40, 0.16);
-    --border: rgba(0, 0, 0, 0.08);
-    --input: rgba(0, 0, 0, 0.08);
-    --ring: #111214;
-    --press: rgba(0, 0, 0, 0.05);
-    --heading: #2A2C31;
-    --glass-edge: rgba(255, 255, 255, 0.95);
-    --menu: rgba(250, 250, 251, 0.86);
-    /* A sheet's color is opaque (the prototype's see-through rgba(244, 245,
-       247, .88) as it reads over the scrim): its head and its main button's
-       bar wear it too, and a see-through one would show twice there. */
-    --sheet: #EFF0F2;
-    --sheet-cell: rgba(255, 255, 255, 0.92);
-    --scrim: rgba(10, 12, 16, 0.2);
-    --shadow: 0 18px 44px rgba(20, 22, 30, 0.16);
+    --warning: #b45309;
+    --warning-soft: rgba(245, 158, 11, 0.14);
+    --border: rgba(0, 0, 0, 0.06);
+    --line-faint: rgba(0, 0, 0, 0.04);
+    --separator: rgba(60, 60, 67, 0.18);
+    --input: rgba(0, 0, 0, 0.1);
+    --ring: #17595f;
+    --press: rgba(0, 0, 0, 0.04);
+    --ink-1: rgba(0, 0, 0, 0.04);
+    --ink-2: rgba(0, 0, 0, 0.06);
+    --ink-3: rgba(0, 0, 0, 0.08);
+    --ink-4: rgba(0, 0, 0, 0.1);
+    --ink-5: rgba(0, 0, 0, 0.15);
+    /* A card is ringed on the web only (surface). */
+    --group-ring: none;
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    /* What floats over the page: a menu, a dialog, the sum bar. */
+    --shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 0, 0, 0.08);
+    /* A board's card under the pointer. */
+    --lift-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 12px 28px -6px rgba(50, 50, 93, 0.28), 0 6px 12px -6px rgba(0, 0, 0, 0.16);
+    --tab-bar-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+    --switch-on: #34c759;
+    --scrim: rgba(10, 12, 16, 0.24);
     --skel: rgba(0, 0, 0, 0.06);
-    /* The glass of a surface: a sheen over its top, a white rim and a soft
-       lift under it. */
-    --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 60%);
-    --rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 1px 0 #ffffff;
-    --lift: 0 1px 2px rgba(20, 22, 30, 0.04), 0 12px 30px rgba(20, 22, 30, 0.08);
-    /* The accent as a glossy gradient with a glow (glossy). */
-    --btn: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%);
-    --btn-glow: 0 8px 20px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    /* A chip's or a small round button's glass (glass-chip). */
-    --chip: rgba(255, 255, 255, 0.6);
-    /* A board's column: a faint glass. */
-    --col: rgba(255, 255, 255, 0.45);
-    /* A row lifted to be put in order. */
-    --lifted: #ffffff;
-    /* The tab bar's frosted pill: its frost and the shadow round it; the
-       lens under the current button, a white glass capsule, and its light. */
-    --tb-frost: rgba(247, 248, 250, 0.74);
-    --tb-shadow: 0 12px 32px rgba(20, 22, 30, 0.14), 0 2px 6px rgba(20, 22, 30, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
-    --lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(233, 235, 239, 0.78) 100%);
-    --lens-shadow: 0 4px 12px rgba(20, 22, 30, 0.13), 0 1px 2px rgba(20, 22, 30, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.07), inset 0 1.5px 1px #ffffff, inset 0 -3px 6px rgba(20, 22, 30, 0.05);
-    /* The ambient light behind the glass (bg-ambient): a white glow at the
-       top over a grey falling to the base. */
-    --ambient: radial-gradient(90% 38% at 50% -4%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #F7F8F9 0%, #EFF0F3 50%, #E5E7EB 100%);
-    --ambient-base: #E5E7EB;
-    /* What a page fades into under the main button's bar. */
-    --fade: rgba(243, 244, 246, 0.94);
-    /* The search box's glass. */
-    --search: rgba(240, 241, 243, 0.7);
-    --search-rim: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-    /* The segmented control's thumb and the ink of the word on it. */
-    --seg-thumb: #111214;
-    --seg-on: #ffffff;
-    --seg-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    /* A switch's track while it is off, and its thumb while it is on (the
-       accent's other end: white on the black track, black on the white). */
-    --switch-off: rgba(120, 108, 176, 0.18);
-    --switch-knob-on: #ffffff;
-    /* The home screen banner: its card, its ink, the line under, the close
-       button's glass. */
-    --ban: linear-gradient(135deg, #FFFFFF 0%, #EDEFF2 100%);
-    --ban-ink: #0E0F12;
-    --ban-sub: #4A4D55;
-    --ban-x: rgba(255, 255, 255, 0.55);
-    /* The banner's art: the accent's own tile with the other end's "24" on
-       it and grey sparks around (the prototype's --art*). */
-    --art1: #3A3B40;
-    --art2: #0E0F11;
-    --art-ink: #ffffff;
-    --art-spark: #9A9DA4;
-    /* The brand's own fill (the splash's mark, the login's panel) and its
-       mark's shadow: the glossy black. */
-    --brand-fill: linear-gradient(180deg, #2E2F34 0%, #0E0F11 100%);
-    --mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    /* An avatar: a plain grey circle with dark initials. */
-    --av-bg: #E8E9EC;
-    --av-ink: #1A1B1F;
+    --heading: #6b6e76;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --radius: 14px;
-    /* The logo's color: the light glass's ink on a light page, white on a
-       dark one, inside Telegram too (the app keeps its colors there). */
-    --brand: #0E0F12;
-    /* The brand's own surface (the login's panel: the brand's fill over its
-       deepest color) and what stands on it (the panel's words, the splash's
-       mark): white on the black of the light, black on the white of the
-       dark. */
-    --brand-panel: #0E0F11;
+    --radius: 10px;
+    /* The logo's teal square, and the login's panel: the ink, with the
+       page's white on it. */
+    --brand: #174449;
+    --brand-panel: #17181b;
     --brand-panel-foreground: #ffffff;
-    --sidebar: #F1F2F4;
-    --sidebar-foreground: #0E0F12;
-    --sidebar-primary: #111214;
+    --sidebar: #f4f5f8;
+    --sidebar-foreground: #17181b;
+    --sidebar-primary: #17595f;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: rgba(17, 18, 20, 0.07);
-    --sidebar-accent-foreground: #111214;
-    --sidebar-border: rgba(0, 0, 0, 0.08);
-    --sidebar-ring: #111214;
+    --sidebar-accent: rgba(23, 89, 95, 0.1);
+    --sidebar-accent-foreground: color-mix(in srgb, #17595f 82%, #000);
+    --sidebar-border: rgba(0, 0, 0, 0.06);
+    --sidebar-ring: #17595f;
+    /* Legacy names, flat now, until their components move (stage 1). */
+    --sheet-cell: #ffffff;
+    --glass-edge: transparent;
+    --menu: #ffffff;
+    --lifted: #ffffff;
+    --col: rgba(0, 0, 0, 0.04);
+    --chip: rgba(118, 118, 128, 0.12);
+    --switch-off: rgba(0, 0, 0, 0.15);
+    --switch-knob-on: #ffffff;
+    --ban: #ffffff;
+    --ban-ink: #17181b;
+    --ban-sub: #6b6e76;
+    --ban-x: rgba(0, 0, 0, 0.06);
+    --art1: #17595f;
+    --art2: #174449;
+    --art-ink: #ffffff;
+    --art-spark: #9a9da4;
+    --brand-fill: #174449;
+    --mark-shadow: 0 0 #0000;
+    --av-bg: #8c9ab0;
+    --av-ink: #ffffff;
+    --tb-shadow: var(--tab-bar-shadow);
+    --fade: rgba(242, 242, 247, 0.94);
+    --search: rgba(118, 118, 128, 0.12);
+    --search-rim: 0 0 #0000;
+    --seg-thumb: #ffffff;
+    --seg-on: #17181b;
+    --seg-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    --rim: 0 0 #0000;
+    --lift: 0 0 #0000;
+    --sheen: none;
+    --btn: none;
+    --btn-glow: 0 0 #0000;
     color-scheme: light;
 }
 
+/* The web's light (the prototype's #web): a white page, ringed cards, the
+   plain fills and the 13px text. Before the dark, so the dark wins. */
+@media (min-width: 48rem) {
+  :root {
+    --fs-base: 13px;
+    --fs-md: 12px;
+    --fs-sm: 12px;
+    --fs-xs: 11.5px;
+    --lh-base: 1.4;
+    --background: #ffffff;
+    --sheet: #ffffff;
+    --muted: rgba(0, 0, 0, 0.06);
+    --group-ring: 0 0 0 1px var(--border);
+    --switch-on: #17595f;
+    --fade: rgba(255, 255, 255, 0.94);
+    --search: #ffffff;
+    --search-rim: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* A phone's dark: black, the iOS dark groups, the light teal. */
 .dark {
-    --background: #0F1013;
-    --foreground: #F2F3F5;
-    --card: rgba(255, 255, 255, 0.045);
-    --card-foreground: #F2F3F5;
-    --popover: #1C1E22;
-    --popover-foreground: #F2F3F5;
-    --primary: #F2F3F5;
-    --primary-foreground: #0E0F12;
-    --primary-soft: rgba(255, 255, 255, 0.1);
+    --background: #000000;
+    --foreground: #ececee;
+    --card: #1c1c1e;
+    --card-foreground: #ececee;
+    --popover: #1c1c1e;
+    --popover-foreground: #ececee;
+    --raised: #1c1c1e;
+    --field: #2c2c2e;
+    --sheet: #000000;
+    --primary: #5cc4bc;
+    --primary-foreground: #062a2c;
+    --primary-soft: rgba(92, 196, 188, 0.16);
+    --accent-text: color-mix(in srgb, #5cc4bc 70%, #fff);
     --secondary: rgba(255, 255, 255, 0.07);
-    --secondary-foreground: #F2F3F5;
-    --muted: rgba(255, 255, 255, 0.07);
-    --muted-foreground: #8E9198;
-    --accent: rgba(255, 255, 255, 0.07);
-    --accent-foreground: #F2F3F5;
-    --destructive: #FF7A70;
-    --destructive-soft: rgba(255, 122, 112, 0.16);
-    --positive: #5CD68C;
-    --positive-soft: rgba(92, 214, 140, 0.15);
-    --warning: #FFC061;
-    --warning-soft: rgba(255, 192, 97, 0.16);
+    --secondary-foreground: #ececee;
+    --muted: rgba(118, 118, 128, 0.24);
+    --muted-foreground: #9d9da1;
+    --faint: #6c6c70;
+    --icon: #9a9aa0;
+    --icon-faint: #4a4a50;
+    --accent: rgba(255, 255, 255, 0.05);
+    --accent-foreground: #ececee;
+    --destructive: #f87171;
+    --destructive-soft: rgba(239, 68, 68, 0.16);
+    --positive: #4cc583;
+    --positive-soft: rgba(34, 197, 94, 0.16);
+    --warning: #fbbf24;
+    --warning-soft: rgba(245, 158, 11, 0.18);
     --border: rgba(255, 255, 255, 0.08);
-    --input: rgba(255, 255, 255, 0.08);
-    --ring: #F2F3F5;
+    --line-faint: rgba(255, 255, 255, 0.05);
+    --separator: rgba(84, 84, 88, 0.6);
+    --input: rgba(255, 255, 255, 0.13);
+    --ring: #5cc4bc;
     --press: rgba(255, 255, 255, 0.06);
-    --heading: #D5D7DC;
-    --glass-edge: rgba(255, 255, 255, 0.16);
-    --menu: rgba(30, 32, 36, 0.9);
-    --sheet: #15161A;
-    --sheet-cell: rgba(255, 255, 255, 0.05);
-    --scrim: rgba(0, 0, 0, 0.55);
-    --shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+    --ink-1: rgba(255, 255, 255, 0.05);
+    --ink-2: rgba(255, 255, 255, 0.07);
+    --ink-3: rgba(255, 255, 255, 0.1);
+    --ink-4: rgba(255, 255, 255, 0.13);
+    --ink-5: rgba(255, 255, 255, 0.2);
+    --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.3);
+    --lift-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 12px 28px -6px rgba(0, 0, 0, 0.6);
+    --tab-bar-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    --switch-on: #30d158;
+    --scrim: rgba(0, 0, 0, 0.5);
     --skel: rgba(255, 255, 255, 0.07);
-    --sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 50%);
-    --rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    --lift: 0 14px 34px rgba(0, 0, 0, 0.35);
-    --btn: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%);
-    --btn-glow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.08);
-    --chip: rgba(255, 255, 255, 0.06);
-    --col: rgba(255, 255, 255, 0.025);
-    --lifted: rgba(255, 255, 255, 0.18);
-    --tb-frost: rgba(24, 26, 30, 0.72);
-    --tb-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(0, 0, 0, 0.7);
-    --lens-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.06) 100%);
-    --lens-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 0 0 0.5px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -3px 6px rgba(0, 0, 0, 0.2);
-    /* Near black: a faint white light in the top left corner over a dark
-       grey falling to black and back to a grey at the foot. */
-    --ambient: radial-gradient(75% 45% at 0% 0%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(160deg, #1D1F23 0%, #0E0F12 46%, #15171B 100%);
-    --ambient-base: #15171B;
-    --fade: rgba(14, 15, 18, 0.94);
-    --search: rgba(255, 255, 255, 0.05);
-    --search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
-    --seg-thumb: #F2F3F5;
-    --seg-on: #0E0F12;
-    --seg-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-    --switch-off: rgba(255, 255, 255, 0.07);
-    --switch-knob-on: #0E0F12;
-    --ban: linear-gradient(135deg, #26282D 0%, #16181B 100%);
-    --ban-ink: #F2F3F5;
-    --ban-sub: #A9ACB3;
-    --ban-x: rgba(255, 255, 255, 0.14);
-    --art1: #FFFFFF;
-    --art2: #C9CBD0;
-    --art-ink: #0E0F12;
-    --art-spark: #8E9198;
-    /* The glossy white, the dark's accent (the prototype's splash mark). */
-    --brand-fill: linear-gradient(180deg, #FFFFFF 0%, #E2E3E6 100%);
-    --mark-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
-    --av-bg: rgba(255, 255, 255, 0.1);
-    --av-ink: #F2F3F5;
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --brand: #ffffff;
-    --brand-panel: #E2E3E6;
-    --brand-panel-foreground: #0E0F12;
-    --sidebar: #0F1013;
-    --sidebar-foreground: #F2F3F5;
-    --sidebar-primary: #F2F3F5;
-    --sidebar-primary-foreground: #0E0F12;
-    --sidebar-accent: rgba(255, 255, 255, 0.1);
-    --sidebar-accent-foreground: #F2F3F5;
+    --heading: #9d9da1;
+    --brand: #174449;
+    --brand-panel: #ececee;
+    --brand-panel-foreground: #1a1a1d;
+    --sidebar: #111113;
+    --sidebar-foreground: #ececee;
+    --sidebar-primary: #5cc4bc;
+    --sidebar-primary-foreground: #062a2c;
+    --sidebar-accent: rgba(92, 196, 188, 0.16);
+    --sidebar-accent-foreground: color-mix(in srgb, #5cc4bc 70%, #fff);
     --sidebar-border: rgba(255, 255, 255, 0.08);
-    --sidebar-ring: #F2F3F5;
+    --sidebar-ring: #5cc4bc;
+    --sheet-cell: #1c1c1e;
+    --menu: #1c1c1e;
+    --lifted: #2c2c2e;
+    --col: rgba(255, 255, 255, 0.05);
+    --chip: rgba(118, 118, 128, 0.24);
+    --switch-off: rgba(255, 255, 255, 0.2);
+    --switch-knob-on: #ffffff;
+    --ban: #1c1c1e;
+    --ban-ink: #ececee;
+    --ban-sub: #9d9da1;
+    --ban-x: rgba(255, 255, 255, 0.07);
+    --art-spark: #6c6c70;
+    --av-ink: #ffffff;
+    --fade: rgba(0, 0, 0, 0.94);
+    --search: rgba(118, 118, 128, 0.24);
+    --seg-thumb: #3a3a3c;
+    --seg-on: #ececee;
+    --seg-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
+}
+
+/* The web's dark: the near black page and cards, raised menus and fields. */
+@media (min-width: 48rem) {
+  .dark {
+    --background: #1a1a1d;
+    --card: #1a1a1d;
+    --sheet: #1a1a1d;
+    --sheet-cell: #1a1a1d;
+    --popover: #26262a;
+    --raised: #26262a;
+    --field: #26262a;
+    --menu: #26262a;
+    --muted: rgba(255, 255, 255, 0.07);
+    --sidebar: #111113;
+    --switch-on: #5cc4bc;
+    --fade: rgba(26, 26, 29, 0.94);
+    --search: #1a1a1d;
+    --search-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.13);
+    --seg-thumb: #1a1a1d;
+    --seg-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
 }
 
 /* A list that scrolls without showing its scrollbar: the sidebar's sections,
@@ -315,10 +365,10 @@
   padding-bottom: calc(--spacing(--value(integer)) + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
 }
 
-/* pb-bar: room under a page for the floating tab bar (64px, 22px off the
-   bottom) and the bottom edge. */
+/* pb-bar: room under a page for the floating tab bar (about 60px, 28px
+   off the bottom) and the bottom edge: the prototype's 116px. */
 @utility pb-bar {
-  padding-bottom: calc(128px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
+  padding-bottom: calc(116px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
 }
 
 /* --safe-top is what lies over the top of the page: in a Telegram Mini App
@@ -342,78 +392,11 @@
   padding-top: calc(--spacing(--value(integer)) + var(--safe-top));
 }
 
-/* surface is the prototype's frosted glass for the cards of a page (a
-   group, a tile, a card): the cell's tint with a sheen over its top, a white
-   rim and a soft lift, over a blur of what lies behind. Inside a sheet the
-   cell is the sheet's (ui/dialog.tsx redefines --card). */
+/* surface is a flat card of a page (a group, a tile, a card): the card's
+   color, ringed by a hairline on the web only (--group-ring). */
 @utility surface {
   background-color: var(--card);
-  background-image: var(--sheen);
-  box-shadow: var(--rim), var(--lift);
-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
-  backdrop-filter: blur(18px) saturate(1.6);
-}
-
-/* scrim is what a modal (a sheet, an alert, an action sheet) leaves of the
-   screen: the page dimmed by the scrim's tint under a blur, frosted glass
-   round the modal. */
-@utility scrim {
-  background-color: var(--scrim);
-  -webkit-backdrop-filter: blur(12px) saturate(1.6);
-  backdrop-filter: blur(12px) saturate(1.6);
-}
-
-/* glossy is the prototype's capsule fill of an accent control (the main
-   button, the plus, a tile's icon, a chosen option, a picked day): the
-   accent as a gradient with a glow under it, the accent's ink on it. */
-@utility glossy {
-  background-color: var(--primary);
-  background-image: var(--btn);
-  box-shadow: var(--btn-glow);
-  color: var(--primary-foreground);
-}
-
-/* glossy-red is the same capsule in red, for an act that cannot be undone
-   (deleting): one red in either theme, as the prototype's. */
-@utility glossy-red {
-  background-color: var(--destructive);
-  background-image: linear-gradient(180deg, #F2847A, #CF3F37);
-  box-shadow: 0 8px 22px rgba(207, 63, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  color: #ffffff;
-}
-
-/* glass-chip is the prototype's small glass of a chip, a mini button, a
-   sheet's close button or an alert's quiet button: the chip's tint and the
-   white rim. */
-@utility glass-chip {
-  background-color: var(--chip);
-  box-shadow: var(--rim);
-}
-
-/* gloss is the shine of a small colored icon (a tile icon, a card's mark):
-   a thin light rim, a soft shadow and a light falling from its top. */
-@utility gloss {
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.4), 0 3px 8px rgba(60, 40, 120, 0.12);
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 55%);
-    pointer-events: none;
-  }
-}
-
-/* bg-ambient is the prototype's ambient light behind the glass: soft
-   gradients over the theme's base, a screen tall from the top of the box
-   (below it, on a long page, the base goes on). */
-@utility bg-ambient {
-  background-color: var(--ambient-base);
-  background-image: var(--ambient);
-  background-repeat: no-repeat;
-  background-size: 100% 100vh;
+  box-shadow: var(--group-ring);
 }
 
 /* Inside Telegram (TelegramSync sets data-telegram) the app keeps its own
@@ -433,18 +416,14 @@ html[data-telegram] body {
 /* The top fade (AppShell) stands over the top of a scrolled page, under what
    lies over the screen (Telegram's controls and the status bar in full
    screen): as tall as that and a little more, none where nothing does; the
-   page's own fade falling to nothing under a blur, as the prototype's head. */
+   page's own color falling to nothing. */
 [data-slot="top-fade"] {
   position: fixed;
   inset: 0 0 auto;
   z-index: 10;
   height: calc(var(--safe-top) + min(var(--safe-top), 18px));
   pointer-events: none;
-  background: linear-gradient(to bottom, var(--fade) 40%, transparent);
-  -webkit-backdrop-filter: blur(12px) saturate(1.6);
-  backdrop-filter: blur(12px) saturate(1.6);
-  -webkit-mask: linear-gradient(#000 55%, transparent);
-  mask: linear-gradient(#000 55%, transparent);
+  background: linear-gradient(to bottom, var(--background) 40%, transparent);
   opacity: 0;
   transition: opacity 250ms;
 }
@@ -452,9 +431,9 @@ html[data-telegram] body {
   opacity: 1;
 }
 
-/* The tab bar is the prototype's frosted pill (v2, shell/tab-bar.tsx): a
-   frost under its buttons, the shadow round it the bar's own; the lens
-   under the current button is a white glass capsule. */
+/* The tab bar is the prototype's frosted pill (shell/tab-bar.tsx): the card
+   at 80% over a blur of the page; the current button sits in a grey
+   capsule. */
 [data-slot="tab-bar"]::before {
   content: "";
   position: absolute;
@@ -462,20 +441,17 @@ html[data-telegram] body {
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: var(--tb-frost);
-  -webkit-backdrop-filter: blur(18px) saturate(1.8) brightness(1.04);
-  backdrop-filter: blur(18px) saturate(1.8) brightness(1.04);
+  background: color-mix(in srgb, var(--card) 80%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  backdrop-filter: blur(24px) saturate(1.8);
 }
 [data-slot="tab-lens"] {
-  background: var(--lens-fill);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8);
-  backdrop-filter: blur(8px) saturate(1.8);
-  box-shadow: var(--lens-shadow);
+  background: rgba(120, 120, 128, 0.12);
 }
 
-/* The hairline between the rows of a group starts where the group's inset
-   says (--inset: after the avatar, the tile icon, or at the text); a form
-   row's starts at the text. */
+/* The hairline between the rows of a group: on a phone it starts 16px in
+   (or where the group's --inset says), the iOS separator; on the web it is
+   the row's whole width, fainter. A form row's is the same. */
 [data-slot="row"],
 [data-slot="form-row"] {
   position: relative;
@@ -492,7 +468,19 @@ html[data-telegram] body {
   right: 0;
   left: var(--inset, 16px);
   height: 0.5px;
-  background: var(--border);
+  background: var(--separator);
+}
+@media (min-width: 48rem) {
+  [data-slot="row"] + [data-slot="row"]::before,
+  [data-slot="row-item"] + [data-slot="row-item"] > [data-slot="row"]::before,
+  [data-slot="sortable-item"] + [data-slot="sortable-item"] > [data-slot="row"]::before,
+  [data-slot="form-row"] + [data-slot="form-row"]::before,
+  [data-slot="row"] + [data-slot="form-row"]::before,
+  [data-slot="form-row"] + [data-slot="row"]::before {
+    left: 0;
+    height: 1px;
+    background: var(--line-faint);
+  }
 }
 
 /* The caret of an amount being typed, the pulsing mark of the splash and
@@ -545,25 +533,10 @@ html[data-telegram] body {
 ::view-transition-new(tab-bar) {
   animation: none;
 }
-/* The page that moves is opaque in the ambient light, so the page it
-   covers does not show through it; at rest it lets the column's light show
-   (AppShell). Its light is the column's: a screen tall, moved back by the
-   column's padding, so it lies where the column's own does (from md the
-   column is what the sidebar leaves, --side, and 1120px at most in its
-   middle under the top bar's 80px). */
+/* The page that moves is opaque in the page's own color, so the page it
+   covers does not show through it. */
 :root[data-move] [data-slot="page"] {
-  background-color: var(--ambient-base);
-  background-image: var(--ambient);
-  background-repeat: no-repeat;
-  background-size: calc(100% + 2rem) 100vh;
-  background-position: -1rem calc(-1 * (var(--safe-top) + 0.5rem));
-}
-@media (min-width: 48rem) {
-  :root[data-move] [data-slot="page"] {
-    --pad: max(32px, calc((100vw - var(--side, 296px) - 1120px) / 2));
-    background-size: calc(100vw - var(--side, 296px)) 100vh;
-    background-position: calc(-1 * var(--pad)) calc(-1 * (var(--safe-top) + 80px));
-  }
+  background-color: var(--background);
 }
 ::view-transition-old(root) {
   display: none;
@@ -659,7 +632,7 @@ html[data-telegram] body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-ambient text-base text-foreground antialiased;
+    @apply bg-background text-base text-foreground antialiased;
     font-variant-numeric: tabular-nums;
     -webkit-tap-highlight-color: transparent;
   }

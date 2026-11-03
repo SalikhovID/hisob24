@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main
             onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 4)}
             className={cn(
-              "flex min-w-0 flex-1 flex-col overflow-y-auto bg-ambient px-4 pt-safe-2 md:px-[max(32px,calc((100%-1120px)/2))] md:pt-safe-20 md:pb-20 [&>*]:shrink-0",
+              "flex min-w-0 flex-1 flex-col overflow-y-auto bg-background px-4 pt-safe-2 md:px-[max(32px,calc((100%-1120px)/2))] md:pt-safe-20 md:pb-20 [&>*]:shrink-0",
               isMenuPath(pathname) ? "pb-bar" : "pb-safe-6",
             )}
           >

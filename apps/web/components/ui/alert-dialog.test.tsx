@@ -48,7 +48,7 @@ test("an alert is the prototype's glass card: 34px corners, a white edge over it
   expect(dialog).not.toHaveClass("rounded-[32px]")
 })
 
-test("behind an alert the rest of the screen is frosted: the scrim's tint over a blur of the page", async () => {
+test("behind an alert the rest of the screen is dimmed by the scrim, nothing blurred", async () => {
   render(
     <AlertDialog open>
       <AlertDialogContent>
@@ -59,7 +59,7 @@ test("behind an alert the rest of the screen is frosted: the scrim's tint over a
     </AlertDialog>,
   )
   await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
-  expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toHaveClass("scrim")
+  expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toHaveClass("bg-scrim")
 })
 
 test("an alert over a sheet draws a scrim of its own over the sheet", async () => {

@@ -43,7 +43,7 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
       data-slot="dialog-overlay"
       forceRender
       className={cn(
-        "fixed inset-0 isolate z-50 scrim transition-opacity duration-300 data-starting-style:opacity-0 data-ending-style:opacity-0",
+        "fixed inset-0 isolate z-50 bg-scrim transition-opacity duration-300 data-starting-style:opacity-0 data-ending-style:opacity-0",
         className
       )}
       {...props}
@@ -84,7 +84,7 @@ function DialogContent({
             aria-label="Yopish"
             className="absolute top-3 left-3 z-10 grid size-11 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <span className="grid size-9 place-items-center rounded-full glass-chip text-foreground">
+            <span className="grid size-9 place-items-center rounded-full bg-muted text-foreground">
               <XIcon strokeWidth={2.6} className="size-4" />
             </span>
           </DialogPrimitive.Close>

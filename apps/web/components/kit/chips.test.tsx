@@ -47,7 +47,7 @@ test("a chip is a toggle button, pressed when on, and may open something with a 
 
 const onRing = "shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]"
 
-test("a chip is the prototype's small glass; on, it is the accent's tint with a faint ring of it", () => {
+test("a chip is a plain fill; on, it is the accent's tint with a faint ring of it", () => {
   render(
     <Chips>
       <Chip pressed onClick={() => {}}>
@@ -58,13 +58,13 @@ test("a chip is the prototype's small glass; on, it is the accent's tint with a 
       </Chip>
     </Chips>,
   )
-  expect(screen.getByRole("button", { name: "Nofaol" })).toHaveClass("glass-chip")
+  expect(screen.getByRole("button", { name: "Nofaol" })).toHaveClass("bg-muted")
   const on = screen.getByRole("button", { name: "Faol" })
   expect(on).toHaveClass("bg-primary-soft", onRing)
-  expect(on).not.toHaveClass("glass-chip")
+  expect(on).not.toHaveClass("bg-muted")
 })
 
-test("a choice chip is the same glass, the chosen one the accent's tint with its ring", () => {
+test("a choice chip is the same fill, the chosen one the accent's tint with its ring", () => {
   render(
     <ChoiceChips
       label="Holat"
@@ -76,7 +76,7 @@ test("a choice chip is the same glass, the chosen one the accent's tint with its
       ]}
     />,
   )
-  expect(screen.getByRole("radio", { name: "Nofaol" })).toHaveClass("not-data-checked:glass-chip", "data-checked:bg-primary-soft", `data-checked:${onRing}`)
+  expect(screen.getByRole("radio", { name: "Nofaol" })).toHaveClass("not-data-checked:bg-muted", "data-checked:bg-primary-soft", `data-checked:${onRing}`)
 })
 
 test("on a phone the strip scrolls out to the page's edges; on a wide screen it stays in the page's column", () => {

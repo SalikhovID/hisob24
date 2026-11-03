@@ -136,7 +136,7 @@ function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boo
       aria-label={collapsed ? item.label : undefined}
       className={cn(
         "flex min-h-12 items-center gap-3.5 rounded-2xl px-4 text-[16px] font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
-        current ? "glossy" : "text-heading hover:bg-muted [&_svg]:text-muted-foreground",
+        current ? "bg-primary text-primary-foreground" : "text-heading hover:bg-muted [&_svg]:text-muted-foreground",
         collapsed && "justify-center px-0",
       )}
     >

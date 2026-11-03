@@ -169,7 +169,7 @@ function Calendar({
                 className={cn(
                   "size-[42px] justify-self-center rounded-full text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                   day === now && "font-bold text-primary",
-                  day === picked && "glossy font-semibold",
+                  day === picked && "bg-primary text-primary-foreground font-semibold",
                 )}
               >
                 {Number(day.slice(8))}
