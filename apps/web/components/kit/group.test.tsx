@@ -81,31 +81,55 @@ test("a row's parts read as words apart: the title, the line under it, the value
   expect(screen.getByRole("link", { name: "Ali Valiyev +998 90 123 45 67 12 000 so'm" })).toBeInTheDocument()
 })
 
-test("a group is the prototype's frosted glass: a surface, not a flat card", () => {
+test("a group is the prototype's flat card: 12px round on a phone, 10px with its rows 4px in on the web", () => {
   render(
     <Group label="Mijozlar">
       <Row title="Ali Valiyev" />
     </Group>,
   )
   const group = screen.getByRole("list", { name: "Mijozlar" })
-  expect(group).toHaveClass("surface", "rounded-group")
-  expect(group).not.toHaveClass("bg-card")
+  expect(group).toHaveClass("surface", "rounded-group", "md:rounded-lg", "md:p-1")
 })
 
-test("in a group of rows with tile icons the hairline starts after the plain mark, at 56px, as the prototype's", () => {
+test("the hairline between rows starts 16px in whatever leads them, as the prototype's: a group sets no inset of its own", () => {
   render(
     <Group label="Sozlamalar" inset="tile">
       <Row title="Mijoz turlari" />
     </Group>,
   )
-  expect(screen.getByRole("list", { name: "Sozlamalar" }).style.getPropertyValue("--inset")).toBe("56px")
+  expect(screen.getByRole("list", { name: "Sozlamalar" }).style.getPropertyValue("--inset")).toBe("")
 })
 
-test("a section heading is the prototype's quiet heading: 16px, not bold, the hint's grey", () => {
+test("a row is the prototype's: 52px with a 17px plain title on a phone, a 48px round row with a medium 13px one on the web", () => {
+  render(
+    <Group label="Mijozlar">
+      <Row href="/customers/1" title="Ali Valiyev" sub="+998 90 123 45 67" />
+    </Group>,
+  )
+  const row = screen.getByRole("link", { name: /Ali Valiyev/ })
+  expect(row).toHaveClass("min-h-[52px]", "px-4", "md:min-h-12", "md:rounded-md", "md:px-3", "md:hover:bg-ink-1")
+  expect(row.querySelector('[data-slot="row-title"]')).toHaveClass("font-normal", "md:font-medium")
+  expect(row.querySelector('[data-slot="row-sub"]')).toHaveClass("text-md", "text-muted-foreground")
+})
+
+test("a key-value row names in the ink and answers in grey on a phone, the other way round on the web", () => {
+  render(
+    <Group as="dl">
+      <KeyValue label="Telefon" value="+998 90 123 45 67" />
+    </Group>,
+  )
+  expect(screen.getByRole("term")).toHaveClass("text-foreground", "md:text-muted-foreground")
+  expect(screen.getByRole("definition")).toHaveClass("text-muted-foreground", "md:text-foreground")
+})
+
+test("a section heading is the prototype's group title: 13px grey on a phone, 12px medium on the web", () => {
   render(<SectionHeading>Umumiy holat</SectionHeading>)
   const heading = screen.getByRole("heading", { level: 2, name: "Umumiy holat" })
-  expect(heading).toHaveClass("text-[16px]", "font-medium")
-  expect(heading).not.toHaveClass("font-semibold")
-  expect(heading.closest('[data-slot="section-heading"]')).toHaveClass("text-muted-foreground")
-  expect(heading.closest('[data-slot="section-heading"]')).not.toHaveClass("text-heading")
+  expect(heading).toHaveClass("text-[13px]", "font-normal", "md:text-[12px]", "md:font-medium")
+  expect(heading.closest('[data-slot="section-heading"]')).toHaveClass("text-muted-foreground", "px-4", "md:px-0")
+})
+
+test("a foot is the prototype's faint 12px note", () => {
+  render(<Foot>Nofaol variant yangi tanlovlarda chiqmaydi.</Foot>)
+  expect(screen.getByText("Nofaol variant yangi tanlovlarda chiqmaydi.")).toHaveClass("text-[12px]", "text-faint")
 })
