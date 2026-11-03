@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { barOrder, barPages, currentPin, isCurrent, isCurrentItem, isMenuPath, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
+import { barOrder, barPages, currentPin, isCurrent, isCurrentItem, isRootPath, navFor, navItems, navPages, pagesFor, sectionRootOf } from "./nav"
 import { allPermissions, defaultPermissions } from "./permissions"
 import type { Permission } from "./types"
 
@@ -199,11 +199,3 @@ test("on a record, a form or a page of its own under a page, the bar's current p
   expect(currentPin(pins, "/customersx"), "a mere prefix is no page under").toBe(-1)
 })
 
-test("the tab bar shows on every page of the menu: the sections' own, the tabs, the hubs and their pages; a record, a form or the profile are inside one", () => {
-  for (const path of ["/", "/customers", "/orders", "/products", "/services", "/sales", "/warehouse", "/purchases", "/transfers", "/inventories", "/opening-stock", "/suppliers", "/accounts", "/expenses", "/money-transfers", "/employees", "/settings", "/settings/customer-types", "/settings/roles"]) {
-    expect(isMenuPath(path), path).toBe(true)
-  }
-  for (const path of ["/customers/7", "/purchases/new", "/purchases/3", "/suppliers/2", "/sales/new", "/profile", "/settings/roles/new", "/settings/order-types/4", "/settings/tab-bar", "/accounts/4", "/select-company"]) {
-    expect(isMenuPath(path), path).toBe(false)
-  }
-})

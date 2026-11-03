@@ -225,25 +225,3 @@ export function currentPin(pins: readonly NavPage[], pathname: string): number {
   const hub = page && navItems.find((item) => item.key === page.section && item.hub)
   return hub ? pins.findIndex((pin) => pin.key === hub.key) : -1
 }
-
-// settingsPages are the settings' pages in the order of their hub: pages
-// of the menu (the tab bar stands on them), never in the bar itself.
-export const settingsPages: { label: string; href: string }[] = [
-  { label: "Mijoz turlari", href: "/settings/customer-types" },
-  { label: "Buyurtma turlari", href: "/settings/order-types" },
-  { label: "Bosqichlar", href: "/settings/stages" },
-  { label: "Dropdownlar", href: "/settings/dropdowns" },
-  { label: "Valyuta kurslari", href: "/settings/currencies" },
-  { label: "Moliya kategoriyalari", href: "/settings/finance-categories" },
-  { label: "Rollar", href: "/settings/roles" },
-]
-
-// menuPaths are the menu's pages: every section's own, its tabs, the hubs
-// and their pages (the warehouse's, the settings').
-const menuPaths = new Set([...rootPaths, ...navPages.map((page) => page.href), ...settingsPages.map((page) => page.href)])
-
-// isMenuPath says whether the page at pathname is one of the menu's: there
-// the tab bar shows; a record, a form or the profile hide it.
-export function isMenuPath(pathname: string): boolean {
-  return menuPaths.has(pathname)
-}
