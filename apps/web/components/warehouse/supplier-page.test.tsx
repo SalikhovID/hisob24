@@ -21,11 +21,11 @@ test("the supplier page: its facts, what is owed, its statement, and the actions
 
   expect(await screen.findByRole("heading", { level: 1, name: "Bozor" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Ta'minotchilar" })).toHaveAttribute("href", "/suppliers")
-  // What may be done with it are the tiles: a payment, a purchase from it, a call, an edit.
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["To'lov", "Xarid", "Qo'ng'iroq", "Tahrirlash"])
-  expect(within(tiles).getByRole("link", { name: "Xarid" })).toHaveAttribute("href", `/purchases/new?supplier=${bozor.id}`)
-  expect(within(tiles).getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998901234567")
+  // What may be done with it are the page's actions: a payment, a purchase from it, a call, an edit.
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["To'lov", "Xarid", "Qo'ng'iroq", "Tahrirlash"])
+  expect(within(actions).getByRole("link", { name: "Xarid" })).toHaveAttribute("href", `/purchases/new?supplier=${bozor.id}`)
+  expect(within(actions).getByRole("link", { name: "Qo'ng'iroq" })).toHaveAttribute("href", "tel:+998901234567")
   expect(screen.getByRole("button", { name: "Nofaol qilish" })).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Ta'minotchini o'chirish" })).toBeInTheDocument()
   expect(screen.queryByText("Nofaol")).not.toBeInTheDocument()
@@ -81,8 +81,8 @@ test("an inactive supplier says so and offers to turn it on; what it lacks is a 
   expect(screen.getByText("Nofaol")).toBeInTheDocument()
   expect(screen.getByText("Telefon yo'q")).toBeInTheDocument()
   // Nothing is bought from an inactive supplier, and there is no phone to call.
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["To'lov", "Tahrirlash"])
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["To'lov", "Tahrirlash"])
   expect(screen.getByRole("button", { name: "Faollashtirish" })).toBeInTheDocument()
   expect(facts()).toMatchObject({ Telefon: "—", Izoh: "—" })
   expect(within(screen.getByRole("region", { name: "Balans" })).getByText("Qarz yo'q")).toBeInTheDocument()
@@ -122,4 +122,20 @@ test("the opening balances stand in the statement with their own sheet of action
   expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
   await user.keyboard("{Escape}")
   expect(screen.getByRole("button", { name: "Boshlang'ich" })).toBeInTheDocument()
+})
+
+test("the supplier's page is headed by its name over its phone, its actions at the title's right: To'lov, Xarid, Qo'ng'iroq, Tahrirlash; turning it off and deleting stay at the foot", async () => {
+  const { bozor } = seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  renderWithProviders(<SupplierPage id={bozor.id} />)
+
+  const title = (await screen.findByRole("heading", { level: 1, name: "Bozor" })).closest<HTMLElement>('[data-slot="page-title"]')
+  expect(title).not.toBeNull()
+  if (!title) return
+  expect(within(title).getByText("+998 90 123 45 67")).toBeInTheDocument()
+  const actions = within(title).getByRole("group", { name: "Amallar" })
+  expect(actions).toHaveAttribute("data-slot", "page-actions")
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["To'lov", "Xarid", "Qo'ng'iroq", "Tahrirlash"])
+  expect(screen.getByRole("button", { name: "Ta'minotchini o'chirish" }).closest('[data-slot="page-actions"]')).toBeNull()
+  expect(document.querySelector('[data-slot="detail-head"]')).toBeNull()
 })

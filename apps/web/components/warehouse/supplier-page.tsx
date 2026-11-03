@@ -3,9 +3,8 @@
 import { BanknoteIcon, PackagePlusIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Avatar } from "@/components/kit/avatar"
-import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
 import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
@@ -29,11 +28,12 @@ const back = { href: "/suppliers", label: "Ta'minotchilar" }
 
 // SupplierPage is one supplier of the company (logic/warehouse.md, 3.3), for
 // whoever may see the suppliers (changing, turning off and deleting each
-// take their permission), as the prototype's page: its square avatar, name
-// and phone; for whoever may see the purchases what it is owed (in so'm,
-// in each currency apart, the totals beside it); the tiles (a payment, a
-// purchase from it, a call, an edit); its statement; its facts; and at the
-// foot the rows that turn it off and delete it.
+// take their permission), as the prototype's page: its name over its phone
+// (and «Nofaol» when off), the actions at the title's right (a payment, a
+// purchase from it, a call, an edit); for whoever may see the purchases
+// what it is owed (in so'm, in each currency apart, the totals beside it);
+// its statement; its facts; and at the foot the rows that turn it off and
+// delete it.
 export function SupplierPage({ id }: { id: number }) {
   const gate = usePermission("suppliers.view")
   const companyId = gate?.company.id ?? null
@@ -71,21 +71,25 @@ export function SupplierPage({ id }: { id: number }) {
   // A purchase from the supplier is entered into the current location, by
   // whoever may add purchases and find the products; not from an inactive one.
   const canBuy = s.is_active && allowed("purchases.create") && allowed("products.view") && location.current !== null
-  const tiles = [
-    allowed("purchases.create") && <Tile key="pay" icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />,
-    canBuy && <Tile key="buy" icon={PackagePlusIcon} label="Xarid" href={`/purchases/new?supplier=${s.id}`} />,
-    s.phone && <Tile key="call" icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${s.phone}`} />,
-    allowed("suppliers.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />,
+  const actions = [
+    allowed("purchases.create") && <PageAction key="pay" icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />,
+    canBuy && <PageAction key="buy" icon={PackagePlusIcon} label="Xarid" href={`/purchases/new?supplier=${s.id}`} />,
+    s.phone && <PageAction key="call" icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${s.phone}`} />,
+    allowed("suppliers.edit") && <PageAction key="edit" icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />,
   ].filter(Boolean)
 
   return (
     <>
-      <BackLink {...back} />
-      <DetailHead
-        media={<Avatar name={s.name} square size="lg" />}
+      <PageTitle
+        back={back}
         title={s.name}
-        description={phone ?? "Telefon yo'q"}
-        badges={!s.is_active && <Badge>Nofaol</Badge>}
+        description={
+          <>
+            <span>{phone ?? "Telefon yo'q"}</span>
+            {!s.is_active && <Badge className="ml-2 align-middle">Nofaol</Badge>}
+          </>
+        }
+        action={actions.length > 0 && <PageActions>{actions}</PageActions>}
       />
       {seesBalance && (
         // What is owed: the live purchases less the live payments, the
@@ -95,7 +99,6 @@ export function SupplierPage({ id }: { id: number }) {
           <BalanceChip label="Jami to'lovlar" value={`${formatAmount(s.payments_total ?? "0")} so'm`} />
         </BalanceCard>
       )}
-      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       {allowed("purchases.view") && (
         <StatementList
           party="supplier"
