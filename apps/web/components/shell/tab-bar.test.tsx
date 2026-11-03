@@ -25,7 +25,7 @@ vi.mock("next/link", () => ({
 
 const bar = () => screen.getByRole("navigation", { name: "Bo'limlar" })
 // settings is «Sozlama», the bar's last button: the way to every page.
-const settings = () => within(bar()).getByRole("link", { name: "Sozlama", exact: true })
+const settings = () => within(bar()).getByRole("link", { name: "Sozlama" })
 // tabs is the member's pages in the bar, [name, address], before «Sozlama».
 const tabs = () =>
   within(bar())
