@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { addDays, db, DILNOZA, join, localToday } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, chooseLocation, goHome, locationSwitch, openSection, sideScroll, signIn, signOut } from "./helpers"
+import { boardOf, choose, chooseLocation, goHome, locationSwitch, onPhone, openSection, sideScroll, signIn, signOut, tab } from "./helpers"
 
 const today = localToday()
 
@@ -33,7 +33,7 @@ test("the owner switches between the locations: the orders are the current one's
   // An order entered in Chilonzor.
   await chooseLocation(page, "Chilonzor")
   await openSection(page, "Buyurtmalar")
-  await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
+  await expect(boardOf(page)).toBeVisible()
   await page.getByRole("button", { name: "Buyurtma qo'shish", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
   const customer = dialog.getByRole("group", { name: "Mijoz" })
@@ -43,7 +43,8 @@ test("the owner switches between the locations: the orders are the current one's
   await order.getByLabel("Muddat").fill(addDays(today, 2))
   await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
-  const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
+  // Yangi's orders: its column on the web; a phone's board, Yangi chosen at first.
+  const yangi = onPhone(page) ? boardOf(page) : page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
   await expect(yangi.getByRole("listitem").filter({ hasText: "Buyurtma № 1" })).toBeVisible()
   const chilonzor = db.locations.find((l) => l.companyId === 2 && l.name === "Chilonzor")!
   expect(db.orders.at(-1)?.locationId).toBe(chilonzor.id)
@@ -58,6 +59,7 @@ test("the owner switches between the locations: the orders are the current one's
   await openSection(page, "Mijozlar")
   await page.getByRole("link", { name: "Chilonzor Mijozi" }).click()
   await expect(page.getByRole("heading", { name: "Chilonzor Mijozi" })).toBeVisible()
+  await tab(page, "Buyurtmalar")
   const orders = page.getByRole("region", { name: "Buyurtmalar" })
   await expect(orders.getByRole("link", { name: /^Buyurtma № 1/ }).locator("[data-slot=row-sub]")).toHaveText("Yangi · Chilonzor")
 
@@ -103,7 +105,7 @@ test("the owner restricts an employee to one location: they see its orders alone
 
   // An order in Asosiy, assigned to Dilnoza.
   await openSection(page, "Buyurtmalar")
-  await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
+  await expect(boardOf(page)).toBeVisible()
   await enterOrder(page, "Asosiyda", "901112244", "Dilnoza Rahimova")
 
   // Restricted to Chilonzor: the sheet warns of the order left in Asosiy.
@@ -135,7 +137,7 @@ test("the owner restricts an employee to one location: they see its orders alone
   await expect(page.getByRole("heading", { name: "Salom, Dilnoza Rahimova" })).toBeVisible()
   await expect(locationSwitch(page)).toHaveCount(0)
   await openSection(page, "Buyurtmalar")
-  const yangi = page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
+  const yangi = onPhone(page) ? boardOf(page) : page.getByRole("region", { name: "Kanban" }).getByRole("region", { name: "Yangi" })
   await expect(yangi.getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   await expect(yangi.getByText("Buyurtma № 1")).toHaveCount(0)
   await enterOrder(page, "Chilonzorda", "901112255", null)

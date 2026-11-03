@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { seedCustomers, seedSixKinds } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, openSection, sideScroll, signIn } from "./helpers"
+import { choose, list as named, onPhone, openSection, sideScroll, signIn, tab } from "./helpers"
 
 // openCustomers signs the owner of Olma Savdo in and opens the customers.
 async function openCustomers(page: Page) {
@@ -12,18 +12,19 @@ async function openCustomers(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
 }
 
-// The list is a group of rows on a phone and a wide screen alike.
-const list = (page: Page) => page.getByRole("list", { name: "Mijozlar" })
+// The list is a table on a wide screen and a group of rows on a phone.
+const list = (page: Page) => named(page, "Mijozlar")
 // addButton is the round + that heads the page.
 const addButton = (page: Page) => page.getByRole("button", { name: "Mijoz qo'shish" }).first()
 
-test("the list is a row each, its name over its phone and type, on any screen; the page fits its width", async ({ page }) => {
+test("the list is a row each (a table's on a wide screen), its name with its phone and type; the page fits its width", async ({ page }) => {
   const { dilshod } = seedCustomers()
   await openCustomers(page)
   const row = list(page).getByRole("link", { name: /^Dilshod Karimov/ })
 
   await expect(row).toHaveAttribute("href", `/customers/${dilshod.id}`)
-  await expect(row).toContainText("+998 91 111 22 33 · Jismoniy")
+  if (onPhone(page)) await expect(row).toContainText("+998 91 111 22 33 · Jismoniy")
+  else await expect(list(page).getByRole("row").filter({ has: page.getByRole("link", { name: /^Dilshod Karimov/ }) })).toContainText(/\+998 91 111 22 33.*Jismoniy/)
   await expect(page.getByText("Jami: 3")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 })
@@ -45,7 +46,9 @@ test("an employee enters a customer, edits it and deletes it; the history is not
 
   const customers = list(page)
   await expect(customers.getByText("Yangi Mijoz")).toBeVisible()
-  await expect(customers.getByText("+998 90 111 22 33 · Jismoniy")).toBeVisible()
+  // A phone's row says the phone and the type in one line; a table, in their columns.
+  if (onPhone(page)) await expect(customers.getByText("+998 90 111 22 33 · Jismoniy")).toBeVisible()
+  else await expect(customers.getByRole("row").filter({ hasText: "Yangi Mijoz" })).toContainText(/\+998 90 111 22 33.*Jismoniy/)
   await expect(page.getByText("Kompaniyangiz mijozlari · 1 ta")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
@@ -53,10 +56,10 @@ test("an employee enters a customer, edits it and deletes it; the history is not
   await customers.getByRole("link", { name: /^Yangi Mijoz/ }).click()
   await expect(page).toHaveURL(/\/customers\/\d+$/)
   await expect(page.getByRole("heading", { level: 1, name: "Yangi Mijoz" })).toBeVisible()
-  await expect(page.getByText("Jismoniy · +998 90 111 22 33")).toBeVisible()
+  await expect(page.getByText("+998 90 111 22 33 · Jismoniy")).toBeVisible()
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("Vali Aliyev")).toBeVisible()
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("LinkedIn")).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Tarix" })).toHaveCount(0)
+  await expect(page.getByRole("tab", { name: "Tarix" })).toHaveCount(0)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   await page.getByRole("button", { name: "Tahrirlash" }).click()
@@ -106,6 +109,7 @@ test("the owner searches, keeps one type and reads a customer's history", async 
   await choose(dialog.getByLabel("Manba"), "LinkedIn")
   await dialog.getByRole("button", { name: "Saqlash" }).click()
   await expect(dialog).toBeHidden()
+  await tab(page, "Tarix")
   const history = page.getByRole("list", { name: "Tarix" })
   const [edited, entered] = [history.getByRole("listitem").nth(0), history.getByRole("listitem").nth(1)]
   await expect(edited).toContainText("Tahrirlandi")

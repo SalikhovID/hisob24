@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { addDays, db, localToday, seedCatalog, seedOrders, seedWarehouse } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { choose, days, onPhone, openSection, pick, press, settle, sideScroll, signIn } from "./helpers"
+import { boardOf, choose, days, onPhone, openSection, pick, press, settle, sideScroll, signIn, tab } from "./helpers"
 
 const today = localToday()
 
@@ -12,17 +12,28 @@ async function openOrders(page: Page) {
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
   await openSection(page, "Buyurtmalar")
   await expect(page).toHaveURL(/\/orders$/)
-  await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
+  await expect(boardOf(page)).toBeVisible()
 }
 
-// column is a stage's column of the board; cards are the titles in it.
-const column = (page: Page, name: string) => page.getByRole("region", { name: "Kanban" }).getByRole("region", { name })
-const cards = (page: Page, name: string) => column(page, name).getByRole("listitem").locator("[data-slot=card-title]")
+// column is a stage's orders as the screen shows them: its column on the
+// web; on a phone the board, the stage's chip chosen first. cards are the
+// titles in it.
+async function column(page: Page, name: string) {
+  if (!onPhone(page)) return page.getByRole("region", { name: "Kanban" }).getByRole("region", { name })
+  const board = page.locator('[data-slot="phone-board"]')
+  await board.getByRole("radio", { name: new RegExp(`^${name}`) }).click()
+  return board
+}
+const cards = async (page: Page, name: string) => (await column(page, name)).getByRole("listitem").locator("[data-slot=card-title]")
 
-// The list is the orders' rows, grouped by how far their deadlines are, on
-// any screen; a row is named by its title first.
-const list = (page: Page) => page.getByRole("region", { name: "Buyurtmalar" })
-const row = (page: Page, title: string) => list(page).getByRole("link", { name: new RegExp(`^${title}`) })
+// The list is a table on the web (a row named by its number) and on a
+// phone the rows grouped by how far their deadlines are (named by the
+// title first).
+const list = (page: Page) => (onPhone(page) ? page.getByRole("region", { name: "Buyurtmalar" }) : page.getByRole("table", { name: "Buyurtmalar" }))
+const row = (page: Page, title: string) =>
+  onPhone(page)
+    ? list(page).getByRole("link", { name: new RegExp(`^${title}`) })
+    : list(page).getByRole("row").filter({ has: page.getByRole("link", { name: title.replace("Buyurtma ", ""), exact: true }) })
 // view picks Kanban or Ro'yxat.
 const view = (page: Page, name: "Kanban" | "Ro'yxat") => page.getByRole("tablist", { name: "Ko'rinish" }).getByRole("tab", { name }).click()
 
@@ -31,8 +42,8 @@ test("an employee enters an order with a new customer; the board opens first, an
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
   await openSection(page, "Buyurtmalar")
-  await expect(page.getByRole("region", { name: "Kanban" })).toBeVisible()
-  await expect(column(page, "Yangi").getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
+  await expect(boardOf(page)).toBeVisible()
+  await expect((await column(page, "Yangi")).getByText(/^(Kartani shu yerga suring|Bo'sh)$/)).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
   await page.getByRole("button", { name: "Buyurtma qo'shish", exact: true }).click()
@@ -48,7 +59,7 @@ test("an employee enters an order with a new customer; the board opens first, an
   await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  const card = column(page, "Yangi").getByRole("listitem").filter({ hasText: "Buyurtma № 1" })
+  const card = (await column(page, "Yangi")).getByRole("listitem").filter({ hasText: "Buyurtma № 1" })
   await expect(card).toBeVisible()
   await expect(card).toContainText("Yangi Mijoz")
   await expect(card).toContainText("2 kun qoldi")
@@ -67,15 +78,15 @@ test("an employee enters an order with a new customer; the board opens first, an
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
   await page.goto("/orders")
   await expect(row(page, "Buyurtma № 1")).toBeVisible()
-  await expect(page.getByRole("region", { name: "Kanban" })).toHaveCount(0)
+  await expect(boardOf(page)).toHaveCount(0)
 })
 
 test("a customer that is there is picked from the suggestions; the + of a column opens the form for that stage", async ({ page }) => {
   const { jarayonda, anor } = seedOrders()
   await openOrders(page)
-  await expect(cards(page, "Yangi")).toHaveText(["Buyurtma № 2", "Buyurtma № 4"])
+  await expect(await cards(page, "Yangi")).toHaveText(["Buyurtma № 2", "Buyurtma № 4"])
 
-  await column(page, "Jarayonda").getByRole("button", { name: "Buyurtma qo'shish: Jarayonda" }).click()
+  await (await column(page, "Jarayonda")).getByRole("button", { name: "Buyurtma qo'shish: Jarayonda" }).click()
   const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
   const order = dialog.getByRole("group", { name: "Buyurtma" })
   await expect(order.getByLabel("Bosqich")).toContainText("Jarayonda")
@@ -96,7 +107,7 @@ test("a customer that is there is picked from the suggestions; the + of a column
   await dialog.getByRole("button", { name: "Qo'shish", exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  const card = column(page, "Jarayonda").getByRole("listitem").filter({ hasText: "Buyurtma № 5" })
+  const card = (await column(page, "Jarayonda")).getByRole("listitem").filter({ hasText: "Buyurtma № 5" })
   await expect(card).toBeVisible()
   await expect(card).toContainText("Anor Tekstil MChJ")
   await expect(card).toContainText("Bugun")
@@ -106,9 +117,9 @@ test("a customer that is there is picked from the suggestions; the + of a column
 test("on the board a card is moved to another column, from its menu or by dragging; the done column opens; a late order is marked", async ({ page }) => {
   const { invoice, jarayonda } = seedOrders()
   await openOrders(page)
-  await expect(cards(page, "Yangi")).toHaveText(["Buyurtma № 2", "Buyurtma № 4"])
-  await expect(cards(page, "Jarayonda")).toHaveText(["Buyurtma № 3"])
-  const late = column(page, "Yangi").getByRole("listitem").filter({ hasText: "Buyurtma № 2" })
+  await expect(await cards(page, "Yangi")).toHaveText(["Buyurtma № 2", "Buyurtma № 4"])
+  await expect(await cards(page, "Jarayonda")).toHaveText(["Buyurtma № 3"])
+  const late = (await column(page, "Yangi")).getByRole("listitem").filter({ hasText: "Buyurtma № 2" })
   await expect(late.getByText("2 kun kechikdi")).toBeVisible()
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
@@ -117,7 +128,7 @@ test("on the board a card is moved to another column, from its menu or by draggi
     await page.getByRole("menuitemradio", { name: "Jarayonda" }).click()
   } else {
     const from = await late.boundingBox()
-    const to = await column(page, "Jarayonda").boundingBox()
+    const to = await (await column(page, "Jarayonda")).boundingBox()
     if (!from || !to) throw new Error("the card or the column is not on screen")
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
     await page.mouse.down()
@@ -125,20 +136,29 @@ test("on the board a card is moved to another column, from its menu or by draggi
     await page.mouse.up()
   }
 
-  await expect(cards(page, "Jarayonda")).toHaveText(["Buyurtma № 2", "Buyurtma № 3"])
-  await expect(cards(page, "Yangi")).toHaveText(["Buyurtma № 4"])
+  await expect(await cards(page, "Jarayonda")).toHaveText(["Buyurtma № 2", "Buyurtma № 3"])
+  await expect(await cards(page, "Yangi")).toHaveText(["Buyurtma № 4"])
   await expect.poll(() => db.orders.find((t) => t.id === invoice.id)?.stageId).toBe(jarayonda.id)
-  await expect(column(page, "Yangi").getByText("Jami: 1")).toBeVisible()
+  if (onPhone(page)) {
+    // A phone counts each stage on its chip; the done stage is a chip too.
+    await expect(boardOf(page).getByRole("radio", { name: /^Yangi/ })).toHaveText("Yangi 1")
+    await expect(page.getByText("4 ta", { exact: true })).toBeVisible()
+    await expect(await cards(page, "Bajarildi")).toHaveText(["Buyurtma № 1"])
+    await expect(boardOf(page).getByText(/kechikdi/)).toHaveCount(0)
+    expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+    return
+  }
+  await expect((await column(page, "Yangi")).getByText("Jami: 1")).toBeVisible()
   await expect(page.getByText("4 ta", { exact: true })).toBeVisible()
 
   // The done column stands folded; opened, it shows its order by the day alone.
-  await expect(cards(page, "Bajarildi")).toHaveCount(0)
-  await column(page, "Bajarildi").getByRole("button", { name: "Bajarildi (1)" }).click()
-  await expect(cards(page, "Bajarildi")).toHaveText(["Buyurtma № 1"])
-  await expect(column(page, "Bajarildi").getByText(/kechikdi/)).toHaveCount(0)
+  await expect(await cards(page, "Bajarildi")).toHaveCount(0)
+  await (await column(page, "Bajarildi")).getByRole("button", { name: "Bajarildi (1)" }).click()
+  await expect(await cards(page, "Bajarildi")).toHaveText(["Buyurtma № 1"])
+  await expect((await column(page, "Bajarildi")).getByText(/kechikdi/)).toHaveCount(0)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
-  await column(page, "Bajarildi").getByRole("button", { name: "Bajarildi (1)" }).click()
-  await expect(cards(page, "Bajarildi")).toHaveCount(0)
+  await (await column(page, "Bajarildi")).getByRole("button", { name: "Bajarildi (1)" }).click()
+  await expect(await cards(page, "Bajarildi")).toHaveCount(0)
 })
 
 test("the owner edits an order, reads its history, finds it on the customer's page, cannot delete the customer or the stage, and deletes the order", async ({ page }) => {
@@ -163,6 +183,7 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await expect(dialog).toBeHidden()
   await expect(page.getByRole("heading", { level: 1, name: "Buyurtma № 4" })).toBeVisible()
 
+  await tab(page, "Tarix")
   const history = page.getByRole("list", { name: "Tarix" })
   const [edited, moved, entered] = [0, 1, 2].map((n) => history.getByRole("listitem").nth(n))
   await expect(edited).toContainText("Tahrirlandi")
@@ -172,8 +193,10 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await expect(entered).toContainText("Qo'shildi")
 
   // The customer's page shows the order; the customer is not deleted while it has one.
+  await tab(page, "Ma'lumot")
   await page.getByRole("region", { name: "Mijoz" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
+  await tab(page, "Buyurtmalar")
   const orders = page.getByRole("region", { name: "Buyurtmalar" })
   await expect(orders.getByRole("link", { name: /^Buyurtma № 4/ })).toBeVisible()
   await expect(orders.getByRole("link")).toHaveCount(2)
@@ -233,21 +256,23 @@ test("the owner enters an order with a price, a product and an advance; the page
   await expect(dialog).toBeHidden()
 
   // The card says the price and what is left; the page says it all.
-  const card = column(page, "Yangi").getByRole("listitem").filter({ hasText: "Buyurtma № 5" })
+  const card = (await column(page, "Yangi")).getByRole("listitem").filter({ hasText: "Buyurtma № 5" })
   await expect(card).toContainText("5 000 so'm · qolgan 4 600 so'm")
   await settle(page)
   await card.getByRole("link").click()
   await expect(page).toHaveURL(/\/orders\/\d+$/, { timeout: 15_000 })
   await expect(page.getByRole("heading", { level: 1, name: "Buyurtma № 5" })).toBeVisible()
   const pul = page.getByRole("region", { name: "Pul" })
-  await expect(pul).toContainText("Narx5 000 so'm")
-  await expect(pul).toContainText("To'langan400 so'm")
-  await expect(pul).toContainText("Qolgan4 600 so'm")
+  await expect(pul).toContainText("Narx 5 000 so'm")
+  await expect(pul).toContainText("To'langan 400 so'm")
+  await expect(pul).toContainText("Qoldiq 4 600 so'm")
+  await tab(page, "Tovarlar")
   const goods = page.getByRole("region", { name: "Mahsulotlar" })
   await expect(goods).toContainText("Olma")
   await expect(goods).toContainText("2 kg")
   await expect(goods).toContainText("Tan narxi2 000 so'm")
   await expect(goods).toContainText("Foyda3 000 so'm")
+  await tab(page, "To'lovlar")
   await expect(page.getByRole("region", { name: "To'lovlar" }).getByRole("listitem")).toHaveCount(1)
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 
@@ -257,14 +282,16 @@ test("the owner enters an order with a price, a product and an advance; the page
   await press(paymentDialog, "300")
   await paymentDialog.getByRole("button", { name: "Qo'shish" }).click()
   await expect(paymentDialog).toBeHidden()
-  await expect(pul).toContainText("Qolgan4 300 so'm")
+  await expect(pul).toContainText("Qoldiq 4 300 so'm")
   await expect(page.getByRole("region", { name: "To'lovlar" }).getByRole("listitem")).toHaveCount(2)
   await settle(page)
 
   // The customer owes the rest; the statement names the order and its payments.
+  await tab(page, "Ma'lumot")
   await page.getByRole("region", { name: "Mijoz" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
-  await expect(page.getByRole("region", { name: "Balans" }).locator("[data-slot=hero]")).toContainText(/Qarz\s*4\s300\s*so'm/)
+  await expect(page.locator('[data-slot="stat-card"]').filter({ hasText: "Balans" })).toContainText(/4\s300\s*so'm\s*Qarz/)
+  await tab(page, "Hisob harakati")
   const statement = days(page, "Hisob harakati")
   await expect(statement.getByRole("link", { name: /^Buyurtma № 5/ })).toBeVisible()
   await expect(statement.getByRole("link", { name: /^To'lov · № 5/ })).toHaveCount(2)

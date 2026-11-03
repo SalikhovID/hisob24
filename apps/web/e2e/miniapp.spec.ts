@@ -181,8 +181,13 @@ test.describe("a linked user", () => {
     await page.getByRole("tablist", { name: "Ko'rinish" }).getByRole("tab", { name: "Ro'yxat" }).click()
     await expect(page).toHaveURL(/view=list/)
   }
-  const orders = (page: Page) => page.getByRole("region", { name: "Buyurtmalar" })
-  const rowOf = (page: Page, title: string) => orders(page).getByRole("link", { name: new RegExp(`^${title}`) })
+  // The list: a phone's rows grouped by their deadlines, the web's table
+  // (a row there is named by its number's link).
+  const orders = (page: Page) => (onPhone(page) ? page.getByRole("region", { name: "Buyurtmalar" }) : page.getByRole("table", { name: "Buyurtmalar" }))
+  const rowOf = (page: Page, title: string) =>
+    onPhone(page)
+      ? orders(page).getByRole("link", { name: new RegExp(`^${title}`) })
+      : orders(page).getByRole("row").filter({ has: page.getByRole("link", { name: title.replace("Buyurtma ", ""), exact: true }) })
 
   test("opens an order from anywhere on its row in the list", async ({ page }) => {
     const { call } = seedOrders()

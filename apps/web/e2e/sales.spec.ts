@@ -1,7 +1,7 @@
 import { seedCatalog, seedCustomers, seedWarehouse } from "../mocks/data"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
-import { back, days, list, openSection, pick, sections, settle, sideScroll, signIn } from "./helpers"
+import { back, days, list, onPhone, openSection, pick, sections, settle, sideScroll, signIn, tab } from "./helpers"
 
 test("the owner sells: to a customer with a service and a part payment, the customer's debt and its settling, a retail sale paid in full, an edit, the product's moves and a deletion", async ({ page }) => {
   test.setTimeout(180_000)
@@ -56,11 +56,13 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   // where the statement tells the sale and its payment. A payment settles it.
   await openSection(page, "Mijozlar")
   // A string matcher folds the amount's no-break space; a regex would not.
-  await expect(list(page, "Mijozlar").getByText("Qarz: 24 000 so'm")).toBeVisible()
-  await list(page, "Mijozlar").getByRole("link", { name: "Dilshod Karimov" }).click()
+  // A phone's row says «Qarz: …»; the table's «Qarz» column the amount alone.
+  await expect(list(page, "Mijozlar").getByText(onPhone(page) ? "Qarz: 24 000 so'm" : "24 000 so'm")).toBeVisible()
+  await list(page, "Mijozlar").getByRole("link", { name: /^Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
-  const balance = page.getByRole("region", { name: "Balans" })
-  await expect(balance.locator("[data-slot=hero]")).toContainText(/Qarz\s*24\s000\s*so'm/)
+  const balance = page.locator('[data-slot="stat-card"]').filter({ hasText: "Balans" })
+  await expect(balance).toContainText(/24\s000\s*so'm\s*Qarz/)
+  await tab(page, "Hisob harakati")
   const statement = days(page, "Hisob harakati")
   await expect(statement.getByRole("link", { name: "Sotuv № 1" })).toHaveCount(2)
   await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "To'lov" }).click()

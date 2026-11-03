@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 import { seedCatalog, seedCustomers, seedOrders, seedWarehouse } from "../mocks/data"
 import { expect, test } from "./fixtures"
-import { back, onPhone, openSection, sections, signIn } from "./helpers"
+import { back, list, onPhone, openSection, sections, signIn } from "./helpers"
 
 // recordMoves keeps, for every view transition the page starts (React
 // starts one when a page changes), the animations it runs on the
@@ -135,7 +135,7 @@ test("a step into a record moves the page forward and its way back moves it back
   await page.waitForTimeout(500)
   expect((await menu()).flat()).toEqual([])
 
-  const into = await movedBy(page, () => page.getByRole("list", { name: "Mijozlar" }).getByRole("link", { name: /^Dilshod Karimov/ }).click())
+  const into = await movedBy(page, () => list(page, "Mijozlar").getByRole("link", { name: /^Dilshod Karimov/ }).click())
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
   await expect.poll(into).toEqual([forward(page)])
   // The page is one sheet filling the main area. At rest it lets the
@@ -223,7 +223,7 @@ test("while a page moves the tab bar stands over both pages, stepping down as a 
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
   const before = (await layers(page)).length
 
-  await page.getByRole("list", { name: "Mijozlar" }).getByRole("link", { name: /^Dilshod Karimov/ }).click()
+  await list(page, "Mijozlar").getByRole("link", { name: /^Dilshod Karimov/ }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeVisible()
   await expect.poll(() => readyLayers(page, before)).toBe(1)
   await back(page, "Mijozlar")
