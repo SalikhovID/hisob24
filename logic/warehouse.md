@@ -71,7 +71,7 @@ Hamma narsa kompaniyaga tegishli; kompaniya so'rovdan emas, access token'dan oli
 
 - `GET /app/suppliers?status=&search=&page=`: nom bo'yicha tartib (harf farqsiz), «Faol» (standart) va «Nofaol» tablari, qidiruv nomda (harfma-harf) va telefonda (qidiruv faqat raqam va telefon belgilaridan iborat bo'lsa), sahifada 20 ta.
 - **Ustunlar:** «Ta'minotchi» (nom, ostida telefon; sahifaga havola), «Qarz» (balans so'mda: qarz qizil, avans «Avans N», 0 «—»), «Qo'shgan», «Qo'shilgan». `balance` faqat `purchases.view` bo'lganga, aks holda `null` va ustun chizilmaydi.
-- **Sahifa** (`/suppliers/[id]`, `GET /app/suppliers/{id}`): nom (nofaol bo'lsa belgisi), telefon, izoh, qo'shgan, qo'shilgan. `purchases.view` bo'lsa: balans kartasi («Qarz: N so'm» / «Avans: N so'm» / «Qarz yo'q»; valyuta bo'yicha tafsilot: «shu jumladan 100 $, 500 000 so'm»), «Jami xaridlar», «Jami to'lovlar» (so'mda); **«Hisob harakati»** (6-bo'lim); «To'lov qo'shish», «Boshlang'ich qarz / avans». Amallar: «Tahrirlash», «Nofaol qilish» / «Faollashtirish», «O'chirish».
+- **Sahifa** (`/suppliers/[id]`, `GET /app/suppliers/{id}`): nom (nofaol bo'lsa belgisi), telefon, izoh, qo'shgan, qo'shilgan. `purchases.view` bo'lsa kartalar: «Balans» (summa so'mda; ostida «Qarz» / «Avans» / «Qarz yo'q» va valyuta bo'yicha tafsilot: «qarz 100 $, avans 15 €»), «Jami xaridlar», «Jami to'lovlar» (so'mda); **«Hisob harakati»** (6-bo'lim); «To'lov qo'shish», «Boshlang'ich qarz / avans». Amallar sarlavha yonida: «To'lov», «Xarid», «Qo'ng'iroq», «Tahrirlash»; sahifa oxirida «Nofaol qilish» / «Faollashtirish», «O'chirish».
 
 ## 4. Xarid
 
