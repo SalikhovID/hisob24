@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { compactAmount, count, dayOf, dayTitle, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, formatTime, unitLabel } from "./format"
+import { compactAmount, count, dayOf, dayTitle, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, formatTime, unitLabel, formatDayMonth, formatDayMonthTime } from "./format"
 
 test("count holds the number and «ta» together with a no-break space, so «ta» never stands alone on a line", () => {
   expect(count(3)).toBe("3\u00a0ta")
@@ -81,4 +81,16 @@ test("a day is headed as people say it: today, yesterday, or the day and month w
 test("a moment's day is the day it is in the browser's time zone", () => {
   const moment = new Date(2026, 9, 5, 23, 30)
   expect(dayOf(moment.toISOString())).toBe("2026-10-05")
+})
+
+test.each([
+  ["2026-12-31", "31-dekabr"],
+  ["2026-11-03", "3-noyabr"],
+  ["2026-11-02T10:00:00+05:00", "2-noyabr"],
+])("a day is said as the prototype says it, its day and month: %s", (value, said) => {
+  expect(formatDayMonth(value)).toBe(said)
+})
+
+test("a moment is said as its day and month and its time, as the prototype's documents", () => {
+  expect(formatDayMonthTime("2026-11-03T11:20:00+05:00")).toBe("3-noyabr, 11:20")
 })

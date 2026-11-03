@@ -108,3 +108,21 @@ export function dayOf(value: string): string {
   const date = new Date(value)
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
+
+// formatDayMonth says a date ("2026-12-31") or a moment's day, in the
+// browser's time zone, as the prototype does: the day and the month's name
+// ("31-dekabr").
+export function formatDayMonth(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [, month, day] = value.split("-").map(Number)
+    return `${day}-${MONTHS[month - 1]}`
+  }
+  const date = new Date(value)
+  return `${date.getDate()}-${MONTHS[date.getMonth()]}`
+}
+
+// formatDayMonthTime says a moment as the prototype's documents do: its day
+// and month, then its time ("3-noyabr, 11:20").
+export function formatDayMonthTime(value: string): string {
+  return `${formatDayMonth(value)}, ${formatTime(value)}`
+}
