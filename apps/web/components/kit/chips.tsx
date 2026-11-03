@@ -11,10 +11,10 @@ const strip = "-mx-4 mb-3.5 flex gap-1.5 overflow-x-auto px-4 py-0.5 scrollbar-h
 // A chip is the prototype's: on a phone a white 32px pill of 15px words, on
 // the web a 28px one of 12.5px ringed by a hairline; on, it is the accent on
 // a phone and the ink on the web.
-const chip =
+export const chip =
   "relative inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3.5 text-[15px] font-medium whitespace-nowrap text-foreground outline-none transition-colors after:absolute after:-inset-x-0.5 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50 md:h-7 md:px-3 md:text-[12.5px]"
-const off = "bg-card md:shadow-[0_0_0_1px_var(--ink-4)] md:hover:bg-ink-1"
-const on = "bg-primary text-primary-foreground md:bg-foreground md:text-background"
+export const chipOff = "bg-card md:shadow-[0_0_0_1px_var(--ink-4)] md:hover:bg-ink-1"
+export const chipOn = "bg-primary text-primary-foreground md:bg-foreground md:text-background"
 
 // Chips is the strip of filters under a search: it scrolls sideways, out to
 // the page's edges on a phone (inside the page's column on a wide screen),
@@ -45,7 +45,7 @@ export function Chip({
   className?: string
 }) {
   return (
-    <button type="button" aria-pressed={pressed} data-slot="chip" onClick={onClick} className={cn(chip, pressed ? on : off, className)}>
+    <button type="button" aria-pressed={pressed} data-slot="chip" onClick={onClick} className={cn(chip, pressed ? chipOn : chipOff, className)}>
       {children}
       {count !== undefined && (
         <>

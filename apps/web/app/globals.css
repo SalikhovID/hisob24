@@ -451,17 +451,14 @@ html[data-telegram] body {
 
 /* The hairline between the rows of a group: on a phone it starts 16px in
    (or where the group's --inset says), the iOS separator; on the web it is
-   the row's whole width, fainter. A form row's is the same. */
+   the row's whole width, fainter. A form's fields stand apart instead. */
 [data-slot="row"],
 [data-slot="form-row"] {
   position: relative;
 }
 [data-slot="row"] + [data-slot="row"]::before,
 [data-slot="row-item"] + [data-slot="row-item"] > [data-slot="row"]::before,
-[data-slot="sortable-item"] + [data-slot="sortable-item"] > [data-slot="row"]::before,
-[data-slot="form-row"] + [data-slot="form-row"]::before,
-[data-slot="row"] + [data-slot="form-row"]::before,
-[data-slot="form-row"] + [data-slot="row"]::before {
+[data-slot="sortable-item"] + [data-slot="sortable-item"] > [data-slot="row"]::before {
   content: "";
   position: absolute;
   top: 0;
@@ -473,10 +470,7 @@ html[data-telegram] body {
 @media (min-width: 48rem) {
   [data-slot="row"] + [data-slot="row"]::before,
   [data-slot="row-item"] + [data-slot="row-item"] > [data-slot="row"]::before,
-  [data-slot="sortable-item"] + [data-slot="sortable-item"] > [data-slot="row"]::before,
-  [data-slot="form-row"] + [data-slot="form-row"]::before,
-  [data-slot="row"] + [data-slot="form-row"]::before,
-  [data-slot="form-row"] + [data-slot="row"]::before {
+  [data-slot="sortable-item"] + [data-slot="sortable-item"] > [data-slot="row"]::before {
     left: 0;
     height: 1px;
     background: var(--line-faint);

@@ -1,20 +1,26 @@
 "use client"
 
-import { CheckIcon, ChevronRightIcon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { type ComponentProps, type ReactNode, useId } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
+import { chip, chipOff, chipOn } from "@/components/kit/chips"
 import { Switch } from "@/components/ui/switch"
 import { formatPhoneInput } from "@/lib/phone"
 import { cn } from "@/lib/utils"
 
-// The rows of a form, as the prototype draws them inside a Group: the label
-// at the left (112px), the control beside it, the error under them in red.
-// Each is bound to a react-hook-form field through Controller. TOut is what
-// the form's schema turns the values into. An input is 44px tall, a thumb's
-// target, in a row as tall as the prototype's (52px).
+// The fields of a form, as the prototype draws them: the label over the
+// control, the control in its box (a 44px field of 17px words on a phone,
+// borderless; a 34px one of 13px ringed by a hairline on the web, the
+// accent's ring round it while typing), the error under them in red. Each
+// is bound to a react-hook-form field through Controller. TOut is what the
+// form's schema turns the values into.
 
-const labelClass = "shrink-0 basis-[112px] text-[16px] leading-tight text-foreground group-data-invalid:text-destructive"
-export const inputClass = "h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
+const labelClass =
+  "pl-1 text-[13px] leading-tight text-muted-foreground group-data-invalid:text-destructive md:pl-0 md:text-[12.5px] md:font-medium md:text-foreground"
+export const boxClass =
+  "flex h-11 items-center gap-1.5 rounded-field bg-field px-3.5 text-base text-foreground transition-shadow focus-within:shadow-[inset_0_0_0_1.5px_var(--primary)] group-data-invalid:shadow-[inset_0_0_0_1px_var(--destructive),0_0_0_3px_var(--destructive-soft)] md:h-[34px] md:rounded-md md:px-2.5 md:shadow-[inset_0_0_0_1px_var(--ink-4)] md:focus-within:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--primary-soft)] md:group-data-invalid:shadow-[inset_0_0_0_1px_var(--destructive),0_0_0_3px_var(--destructive-soft)]"
+export const inputClass = "h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-faint disabled:opacity-60"
+const errorClass = "text-[12px] text-destructive"
 
 interface Bound<T extends FieldValues, TOut extends FieldValues> {
   control: Control<T, unknown, TOut>
@@ -23,8 +29,8 @@ interface Bound<T extends FieldValues, TOut extends FieldValues> {
 }
 
 // FormRow is the frame: a label (for the control with htmlFor, or plain
-// text beside a group), the control, the error. stack puts the control
-// under the label (a group of chips).
+// text over a group), the control in its box, the error. stack leaves the
+// box out (a group of chips stands bare under its label).
 export function FormRow({
   label,
   htmlFor,
@@ -43,19 +49,23 @@ export function FormRow({
   className?: string
 }) {
   return (
-    <div data-slot="form-row" data-invalid={error ? true : undefined} className={cn("group px-4", className)}>
-      <div className={cn("flex min-h-[52px] gap-3 py-1", stack ? "flex-col items-stretch gap-2 py-3" : "items-center")}>
-        {htmlFor ? (
-          <label htmlFor={htmlFor} className={cn(labelClass, stack && "basis-auto")}>
-            {label}
-          </label>
-        ) : (
-          <span className={cn(labelClass, stack && "basis-auto")}>{label}</span>
-        )}
-        {children}
-      </div>
+    <div data-slot="form-row" data-invalid={error ? true : undefined} className={cn("group grid gap-1.5 px-4 py-2 md:px-3", className)}>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className={labelClass}>
+          {label}
+        </label>
+      ) : (
+        <span className={labelClass}>{label}</span>
+      )}
+      {stack ? (
+        children
+      ) : (
+        <div data-slot="field-box" className={boxClass}>
+          {children}
+        </div>
+      )}
       {error && (
-        <p id={errorId} role="alert" data-slot="form-error" className="-mt-1.5 pb-2.5 text-xs text-destructive">
+        <p id={errorId} role="alert" data-slot="form-error" className={errorClass}>
           {error}
         </p>
       )}
@@ -80,7 +90,7 @@ export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
       name={name}
       render={({ field, fieldState }) => (
         <FormRow label={label} htmlFor={id} error={fieldState.error?.message} errorId={`${id}-error`}>
-          {prefix && <span className="text-base text-muted-foreground">{prefix}</span>}
+          {prefix && <span className="text-base text-faint">{prefix}</span>}
           <input
             id={id}
             aria-invalid={fieldState.invalid || undefined}
@@ -90,7 +100,7 @@ export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
             {...field}
             value={field.value ?? ""}
           />
-          {suffix && <span className="text-md text-muted-foreground">{suffix}</span>}
+          {suffix && <span className="text-base text-faint">{suffix}</span>}
         </FormRow>
       )}
     />
@@ -113,7 +123,7 @@ export function PhoneRow<T extends FieldValues, TOut extends FieldValues = T>({
       name={name}
       render={({ field, fieldState }) => (
         <FormRow label={label} htmlFor={id} error={fieldState.error?.message} errorId={`${id}-error`}>
-          <span className="text-base text-muted-foreground">+998</span>
+          <span className="text-base text-faint">+998</span>
           <input
             id={id}
             type="tel"
@@ -144,9 +154,10 @@ export function AmountRow<T extends FieldValues, TOut extends FieldValues = T>({
   return <TextRow inputMode="decimal" autoComplete="off" placeholder={placeholder} suffix={suffix} {...props} />
 }
 
-// PickRow is a choice made elsewhere (a picker sheet, a calendar): the row
-// is a button that says the label and the value (or a prompt), with a
-// chevron; a press opens the sheet.
+// PickRow is a choice made elsewhere (a picker sheet, a calendar), drawn as
+// the prototype's select: the label over a boxed button that says the value
+// (or a prompt) with a chevron down; it is named by the label and the
+// value; a press opens the sheet.
 export function PickRow({
   label,
   value,
@@ -169,10 +180,14 @@ export function PickRow({
   const own = useId()
   const described = errorId ?? `${own}-error`
   return (
-    <div data-slot="form-row" data-invalid={error ? true : undefined} className="group">
+    <div data-slot="form-row" data-invalid={error ? true : undefined} className="group grid gap-1.5 px-4 py-2 md:px-3">
+      <span id={`${own}-label`} className={labelClass}>
+        {label}
+      </span>
       <button
         type="button"
         id={id}
+        data-slot="field-box"
         // Named by its label and its value: the label finds it, and the
         // value is heard with it.
         aria-labelledby={`${own}-label ${own}-value`}
@@ -180,18 +195,15 @@ export function PickRow({
         aria-describedby={error ? described : undefined}
         disabled={disabled}
         onClick={onClick}
-        className="flex min-h-[52px] w-full items-center gap-3 px-4 py-1.5 text-left outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset disabled:opacity-60"
+        className={cn(boxClass, "w-full text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60")}
       >
-        <span id={`${own}-label`} className={labelClass}>
-          {label}
-        </span>{" "}
-        <span id={`${own}-value`} data-slot="pick-value" className={cn("min-w-0 flex-1 truncate text-right text-base", value ? "text-foreground" : "text-muted-foreground")}>
+        <span id={`${own}-value`} data-slot="pick-value" className={cn("min-w-0 flex-1 truncate", value ? "text-foreground" : "text-faint")}>
           {value ?? placeholder}
         </span>
-        <ChevronRightIcon aria-hidden="true" strokeWidth={2.6} className="-mr-1 size-[18px] shrink-0 text-muted-foreground opacity-60" />
+        <ChevronDownIcon aria-hidden="true" strokeWidth={2} className="size-4 shrink-0 text-icon" />
       </button>
       {error && (
-        <p id={described} role="alert" data-slot="form-error" className="-mt-1.5 px-4 pb-2.5 text-xs text-destructive">
+        <p id={described} role="alert" data-slot="form-error" className={errorClass}>
           {error}
         </p>
       )}
@@ -213,10 +225,10 @@ export function SwitchRow<T extends FieldValues, TOut extends FieldValues = T>({
       control={control}
       name={name}
       render={({ field }) => (
-        <div data-slot="form-row" className="flex min-h-12 items-center gap-3 px-4 py-1.5">
+        <div data-slot="form-row" className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 md:min-h-8 md:px-3">
           <label htmlFor={id} className="min-w-0 flex-1 text-base">
             {label}
-            {description && <span className="block text-sm text-muted-foreground">{description}</span>}
+            {description && <span className="block text-md text-muted-foreground">{description}</span>}
           </label>
           <Switch id={id} checked={!!field.value} onCheckedChange={(checked) => field.onChange(checked)} onBlur={field.onBlur} disabled={field.disabled} />
         </div>
@@ -225,11 +237,8 @@ export function SwitchRow<T extends FieldValues, TOut extends FieldValues = T>({
   )
 }
 
-// An option is a chip in the plain fill; the chosen one is the prototype's
-// glossy capsule.
-const optClass = "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-md font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-const optOff = "bg-muted"
-const optOn = "bg-primary text-primary-foreground"
+// An option is the prototype's chip: white (ringed on the web); the chosen
+// one the accent on a phone, the ink on the web.
 
 // OptionChips are the options of a choice field drawn as chips: one of
 // them (radios; the chosen one pressed again is unchosen) or several
@@ -261,7 +270,7 @@ export function OptionChips<T extends FieldValues, TOut extends FieldValues = T>
             label={
               <>
                 {label}
-                {optional && <span className="text-sm text-muted-foreground"> · ixtiyoriy</span>}
+                {optional && <span className="font-normal text-faint"> · ixtiyoriy</span>}
               </>
             }
             error={fieldState.error?.message}
@@ -273,7 +282,7 @@ export function OptionChips<T extends FieldValues, TOut extends FieldValues = T>
               aria-describedby={fieldState.error ? `${id}-error` : undefined}
               className="flex flex-wrap gap-1.5"
             >
-              {options.length === 0 && <span className="text-md text-muted-foreground">{empty}</span>}
+              {options.length === 0 && <span className="text-md text-faint">{empty}</span>}
               {options.map((option) => {
                 const on = chosen.includes(option.value)
                 return (
@@ -285,7 +294,7 @@ export function OptionChips<T extends FieldValues, TOut extends FieldValues = T>
                     data-slot="option-chip"
                     onClick={() => toggle(option.value)}
                     disabled={disabled}
-                    className={cn(optClass, on ? optOn : optOff, "disabled:opacity-60")}
+                    className={cn(chip, on ? chipOn : chipOff, "disabled:opacity-60")}
                   >
                     {multiple && on && <CheckIcon aria-hidden="true" strokeWidth={3} className="size-[15px]" />}
                     {option.label}

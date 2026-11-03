@@ -82,12 +82,49 @@ test("a pick row is a button that says its label and its value, or a prompt whil
   expect(screen.getByRole("alert")).toHaveTextContent("Bosqichni tanlang")
 })
 
-test("a chosen option is the accent's fill; the others are the plain fill", async () => {
+test("a chosen option is the prototype's chosen chip (the accent on a phone, the ink on the web); the others white, ringed on the web", async () => {
   render(<Form onSubmit={() => {}} defaults={{ source: "1" }} />)
   const chosen = screen.getByRole("radio", { name: "Instagram" })
-  expect(chosen).toHaveClass("bg-primary")
-  expect(chosen).not.toHaveClass("bg-muted")
+  expect(chosen).toHaveClass("bg-primary", "md:bg-foreground")
   const other = screen.getByRole("radio", { name: "YouTube" })
-  expect(other).toHaveClass("bg-muted")
+  expect(other).toHaveClass("bg-card", "md:shadow-[0_0_0_1px_var(--ink-4)]")
   expect(other).not.toHaveClass("bg-primary")
+})
+
+test("a field is the prototype's: its label over a boxed control, a 44px field on a phone and a 34px ringed one on the web", () => {
+  render(<Form onSubmit={() => {}} />)
+  const input = screen.getByRole("textbox", { name: "Nomi" })
+  const box = input.closest('[data-slot="field-box"]')
+  expect(box).toHaveClass("h-11", "rounded-field", "bg-field", "md:h-[34px]", "md:rounded-md", "md:shadow-[inset_0_0_0_1px_var(--ink-4)]")
+  const label = screen.getByText("Nomi")
+  expect(label).toHaveClass("text-[13px]", "text-muted-foreground", "md:text-[12.5px]", "md:font-medium", "md:text-foreground")
+  // The label stands over the box.
+  expect(label.nextElementSibling).toBe(box)
+})
+
+test("a field in error is ringed red, its error under it", async () => {
+  function Wrong() {
+    const form = useForm<{ name: string }>({ defaultValues: { name: "" } })
+    return (
+      <form onSubmit={form.handleSubmit(() => {})}>
+        <TextRow control={form.control} name="name" label="Nomi" />
+        <button type="button" onClick={() => form.setError("name", { message: "Nomini kiriting" })}>
+          Xato
+        </button>
+      </form>
+    )
+  }
+  render(<Wrong />)
+  await userEvent.click(screen.getByRole("button", { name: "Xato" }))
+  const box = screen.getByRole("textbox", { name: "Nomi" }).closest('[data-slot="field-box"]')
+  expect(box).toHaveClass("group-data-invalid:shadow-[inset_0_0_0_1px_var(--destructive),0_0_0_3px_var(--destructive-soft)]")
+  expect(screen.getByRole("alert")).toHaveClass("text-[12px]", "text-destructive")
+})
+
+test("a pick row is the prototype's select: its label over a boxed button with a chevron down", () => {
+  render(<PickRow label="Bosqich" value="Yangi" onClick={() => {}} />)
+  const row = screen.getByRole("button", { name: "Bosqich Yangi" })
+  expect(row).toHaveAttribute("data-slot", "field-box")
+  expect(row).toHaveClass("h-11", "rounded-field", "bg-field", "md:h-[34px]")
+  expect(row.querySelector("svg")).toHaveClass("lucide-chevron-down")
 })
