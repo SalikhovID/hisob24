@@ -2035,6 +2035,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/app/stock/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ombor qoldig'i jadvali (stock.view ruxsati)
+         * @description Ombor bo'limining «Qoldiq» tabi (logic/warehouse.md, 5-bo'lim): kompaniyaning jonli mahsulotlari (xizmat emas; nofaollari ham), nom bo'yicha (katta-kichik harf farqsiz), sahifada 20 ta; search nomda va artikulda qidiradi. Har mahsulotda a'zoga ruxsatli har lokatsiyadagi qoldiq (lokatsiyalar tartibida, 0 ham), jami, oxirgi xarid narxi va qiymati (jami × narx, o'sha valyutada). Ruxsatli lokatsiyasi yo'q a'zoga bo'sh sahifa.
+         */
+        get: operations["getStockSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/app/stock": {
         parameters: {
             query?: never;
@@ -4204,6 +4224,34 @@ export interface components {
         };
         ActiveInput: {
             is_active: boolean;
+        };
+        StockSummaryPage: {
+            items: components["schemas"]["StockSummaryItem"][];
+            /** Format: int64 */
+            total: number;
+            page: number;
+            page_size: number;
+        };
+        StockSummaryItem: {
+            /** Format: int64 */
+            product_id: number;
+            name: string;
+            sku: string | null;
+            unit: string;
+            is_active: boolean;
+            /** @description A'zoga ruxsatli har lokatsiyadagi qoldiq, lokatsiyalar tartibida */
+            locations: components["schemas"]["LocationQuantity"][];
+            /** @description Ruxsatli lokatsiyalardagi qoldiq yig'indisi, uch kasr xonasi bilan */
+            total: string;
+            last_price: components["schemas"]["LastPrice"] | null;
+            /** @description total × last_price, oxirgi narx valyutasida, ikki kasr xonasi bilan; narx yo'q bo'lsa null */
+            value: string | null;
+        };
+        LocationQuantity: {
+            /** Format: int64 */
+            location_id: number;
+            /** @description Uch kasr xonasi bilan ("12.500") */
+            quantity: string;
         };
         ProductPage: {
             items: components["schemas"]["Product"][];
@@ -8806,6 +8854,33 @@ export interface operations {
             402: components["responses"]["SubscriptionExpired"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["DocumentNotFound"];
+        };
+    };
+    getStockSummary: {
+        parameters: {
+            query?: {
+                search?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sahifa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSummaryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
         };
     };
     getStock: {
