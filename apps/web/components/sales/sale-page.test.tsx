@@ -123,3 +123,16 @@ test("the sale's page is headed as the prototype's: «Sotuv № N» over the mom
   expect(within(actions).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "page-action")
   expect(document.querySelector("[data-slot=hero]")).toBeNull()
 })
+
+test("on the web the sale's lines are the prototype's table: Nomi, Miqdor, Narx, Summa; a line leads to its product or service", async () => {
+  const { catalog, sale } = await sold()
+  renderWithProviders(<SalePage id={sale.id} />)
+
+  const table = await screen.findByRole("table", { name: "Mahsulotlar" })
+  expect(within(table).getAllByRole("columnheader").map((th) => th.textContent)).toEqual(["Nomi", "Miqdor", "Narx", "Summa"])
+  const cells = (row: HTMLElement) => within(row).getAllByRole("cell").map((td) => td.textContent?.replace(/\s+/g, " "))
+  const [olma, yetkazish] = within(table).getAllByRole("row").slice(1)
+  expect(cells(olma)).toEqual(["Olma", "4 kg", "3 000 so'm", "12 000 so'm"])
+  expect(cells(yetkazish)).toEqual(["Yetkazish", "1", "10 000 so'm", "10 000 so'm"])
+  expect(within(olma).getByRole("link", { name: "Olma" })).toHaveAttribute("href", `/products/${catalog.olma.id}`)
+})
