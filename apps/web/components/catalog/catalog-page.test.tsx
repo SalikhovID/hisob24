@@ -45,6 +45,28 @@ test("the owner's products: a row each by name, the unit, SKU and the current lo
   expect(screen.getByText("Jami: 2")).toBeInTheDocument()
 })
 
+test("on a wide screen the products are the prototype's table: Nomi (its SKU under it), Qoldiq, Oxirgi xarid narxi, Sotuv narxi, Holat; the search and the chips in a toolbar", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  await signIn(ALI)
+  setLocation("/products")
+  const { container } = renderWithProviders(<CatalogPage kind="product" />)
+
+  const table = await screen.findByRole("table", { name: "Mahsulotlar" })
+  expect(within(table).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["Nomi", "Qoldiq", "Oxirgi xarid narxi", "Sotuv narxi", "Holat"])
+  const olma = within(table).getAllByRole("row").find((row) => within(row).queryByText("Olma"))!
+  const cells = within(olma).getAllByRole("cell")
+  expect(within(cells[0]).getByRole("link")).toHaveAttribute("href", `/products/${catalog.olma.id}`)
+  expect(cells[0]).toHaveTextContent("OL-1")
+  expect(cells[1]).toHaveTextContent("12,5 kg")
+  expect(cells[2]).toHaveTextContent("1 000 so'm")
+  expect(cells[3]).toHaveTextContent("12 000 so'm")
+  expect(cells[4]).toHaveTextContent("Faol")
+  const toolbar = container.querySelector('[data-slot="toolbar"]') as HTMLElement
+  expect(within(toolbar).getByRole("searchbox")).toBeInTheDocument()
+  expect(within(toolbar).getByRole("radiogroup", { name: "Holat" })).toBeInTheDocument()
+})
+
 test("the chips say how many are active and how many are not; the inactive ones are under their own", async () => {
   seedCatalog()
   await signIn(ALI)

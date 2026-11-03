@@ -8,6 +8,9 @@ import { ChoiceChips } from "@/components/kit/chips"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { SearchBox } from "@/components/kit/search-box"
+import { Toolbar } from "@/components/kit/toolbar"
+import { type Column, DataTable } from "@/components/kit/data-table"
+import { Badge } from "@/components/ui/badge"
 import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
@@ -86,6 +89,35 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   // stranger is on their way home.
   if (!gate) return null
   const page = products.data
+  // The web's table: the name (the SKU under it), for a product its stock in
+  // the current location and its last purchase price, the price, whether it
+  // is active.
+  const priceOf = (p: Product) => (p.price ? formatMoney(p.price, currencyOf(currencies, p.currency_id)) : "—")
+  const status = (p: Product) => (p.is_active ? <Badge variant="green">Faol</Badge> : <Badge>Nofaol</Badge>)
+  const nameCell = (p: Product) => (
+    <span className="grid leading-[1.3]">
+      <span className="font-medium">{p.name}</span>
+      {p.sku && <span className="text-[12px] text-muted-foreground">{p.sku}</span>}
+    </span>
+  )
+  const productColumns: Column<Product>[] = [
+    { key: "name", label: "Nomi", render: nameCell },
+    { key: "stock", label: "Qoldiq", align: "end", render: (p) => (p.quantity !== null ? formatQuantity(p.quantity, p.unit) : "—") },
+    {
+      key: "last",
+      label: "Oxirgi xarid narxi",
+      align: "end",
+      render: (p) => (p.last_price ? formatMoney(p.last_price.amount, currencyOf(currencies, p.last_price.currency_id)) : "—"),
+    },
+    { key: "price", label: "Sotuv narxi", align: "end", render: priceOf },
+    { key: "status", label: "Holat", render: status },
+  ]
+  const serviceColumns: Column<Product>[] = [
+    { key: "name", label: "Nomi", render: (p) => <span className="font-medium">{p.name}</span> },
+    { key: "price", label: "Sotuv narxi", align: "end", render: priceOf },
+    { key: "status", label: "Holat", render: status },
+  ]
+
   return (
     <>
       <PageTitle
@@ -94,16 +126,18 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
         action={canAdd && <PlusButton label={`${noun} qo'shish`} onClick={() => setAdding(true)} />}
       />
       <SectionTabs item={productsSection} permissions={gate.permissions} />
-      <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder={isProduct ? "Nom yoki artikul" : "Nom"} />
-      <ChoiceChips
-        label="Holat"
-        value={filter.status}
-        onChange={(status) => update({ status: status === "inactive" ? "inactive" : "active" })}
-        options={[
-          { value: "active", label: "Faol", count: activeCount },
-          { value: "inactive", label: "Nofaol", count: inactiveCount },
-        ]}
-      />
+      <Toolbar>
+        <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder={isProduct ? "Nom yoki artikul" : "Nom"} />
+        <ChoiceChips
+          label="Holat"
+          value={filter.status}
+          onChange={(status) => update({ status: status === "inactive" ? "inactive" : "active" })}
+          options={[
+            { value: "active", label: "Faol", count: activeCount },
+            { value: "inactive", label: "Nofaol", count: inactiveCount },
+          ]}
+        />
+      </Toolbar>
       {loading && <ListLoading rows={6} />}
       {products.isError && <Failed error={products.error} onRetry={() => products.refetch()} />}
       {!loading && !products.isError && page?.total === 0 && (
@@ -121,42 +155,54 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
       )}
       {!loading && !products.isError && page && page.total > 0 && (
         <>
-          <Group label={plural} inset="icon" className={cn(products.isPlaceholderData && "opacity-60")}>
-            {page.items.map((p) => {
-              const currency = currencyOf(currencies, p.currency_id)
-              const price = p.price ? formatAmount(p.price) : null
-              const media = <Avatar name={p.name} square letter />
-              const none = <span className="text-muted-foreground">—</span>
-              if (isProduct) {
-                const unit = p.unit ? unitLabel(p.unit) : null
-                const sub = [unit, p.sku, p.quantity !== null ? `qoldiq ${formatQuantity(p.quantity, p.unit)}` : null].filter(Boolean).join(" · ")
-                return (
-                  <Row
-                    key={p.id}
-                    href={`/products/${p.id}`}
-                    media={media}
-                    title={p.name}
-                    sub={sub || undefined}
-                    end={price ?? none}
-                    endSub={price ? (unit ? `${currency.symbol} / ${unit}` : currency.symbol) : undefined}
-                    chevron={false}
-                  />
-                )
+          <div className={cn(products.isPlaceholderData && "opacity-60")}>
+            <DataTable
+              label={plural}
+              rows={page.items}
+              rowKey={(p) => p.id}
+              href={isProduct ? (p) => `/products/${p.id}` : undefined}
+              onRow={!isProduct && canAct ? (p) => setActing(p) : undefined}
+              columns={isProduct ? productColumns : serviceColumns}
+              phone={
+                <Group label={plural} inset="icon">
+                  {page.items.map((p) => {
+                    const currency = currencyOf(currencies, p.currency_id)
+                    const price = p.price ? formatAmount(p.price) : null
+                    const media = <Avatar name={p.name} square letter />
+                    const none = <span className="text-muted-foreground">—</span>
+                    if (isProduct) {
+                      const unit = p.unit ? unitLabel(p.unit) : null
+                      const sub = [unit, p.sku, p.quantity !== null ? `qoldiq ${formatQuantity(p.quantity, p.unit)}` : null].filter(Boolean).join(" · ")
+                      return (
+                        <Row
+                          key={p.id}
+                          href={`/products/${p.id}`}
+                          media={media}
+                          title={p.name}
+                          sub={sub || undefined}
+                          end={price ?? none}
+                          endSub={price ? (unit ? `${currency.symbol} / ${unit}` : currency.symbol) : undefined}
+                          chevron={false}
+                        />
+                      )
+                    }
+                    return (
+                      <Row
+                        key={p.id}
+                        onClick={canAct ? () => setActing(p) : undefined}
+                        media={media}
+                        title={p.name}
+                        sub={p.note ?? `Qo'shilgan ${formatDate(p.created_at)}`}
+                        end={price ?? none}
+                        endSub={price ? currency.symbol : undefined}
+                        chevron={false}
+                      />
+                    )
+                  })}
+                </Group>
               }
-              return (
-                <Row
-                  key={p.id}
-                  onClick={canAct ? () => setActing(p) : undefined}
-                  media={media}
-                  title={p.name}
-                  sub={p.note ?? `Qo'shilgan ${formatDate(p.created_at)}`}
-                  end={price ?? none}
-                  endSub={price ? currency.symbol : undefined}
-                  chevron={false}
-                />
-              )
-            })}
-          </Group>
+            />
+          </div>
           {page.total > page.page_size ? (
             <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
           ) : (
