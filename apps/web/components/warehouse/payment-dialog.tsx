@@ -12,7 +12,7 @@ import { Group } from "@/components/kit/group"
 import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
 import { api, call } from "@/lib/api"
-import { accountCurrency, accountOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
+import { accountCurrency, accountOptions, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { formatAmount } from "@/lib/format"
 import { forgetOrderMoney } from "@/lib/order-money"
 import { forgetParty, type Party } from "@/lib/party"
@@ -99,12 +99,10 @@ export function PaymentDialog({
     form.setValue("bank_account_id", String(firstAccount))
   }, [open, payment, firstAccount, form])
 
-  // An account in another currency: its standard rate is offered while
-  // none is typed.
-  useEffect(() => {
-    if (!open || currency.id === UZS || form.getValues("rate") !== "") return
-    if (currency.rate !== null) form.setValue("rate", trimRate(currency.rate))
-  }, [open, currency, form])
+  // An account in another currency: its standard rate is offered, again
+  // when another account changes the currency; one the session has not
+  // told yet is no change.
+  useOfferedRate(form, accounts.find((a) => a.id === accountId)?.currency_id ?? null, currencies, open)
 
   // What is owed in so'm, said under the amount; a payment being edited is
   // owed again. It is offered whole when it is a debt and the account is in so'm.

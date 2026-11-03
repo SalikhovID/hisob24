@@ -1,7 +1,6 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
@@ -9,7 +8,7 @@ import { Foot, Group } from "@/components/kit/group"
 import { MainBar, MainButton } from "@/components/kit/main-button"
 import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
-import { currencyOf, currencyOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
+import { currencyOf, currencyOptions, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { type PurchaseForm as PurchaseFormValues, type PurchaseOutput, purchaseSchema, purchaseTotal } from "@/lib/warehouse"
 import { LinesField } from "./lines-field"
 import { PaymentsField } from "./payments-field"
@@ -46,12 +45,8 @@ export function PurchaseForm({
   const total = purchaseTotal(items)
   const currency = currencyOf(currencies, currencyId)
 
-  // Another currency: its standard rate is offered while none is typed.
-  useEffect(() => {
-    if (currencyId === UZS || form.getValues("rate") !== "") return
-    const rate = currencyOf(currencies, currencyId).rate
-    if (rate !== null) form.setValue("rate", trimRate(rate))
-  }, [currencyId, currencies, form])
+  // Another currency: its standard rate is offered, again when it changes.
+  useOfferedRate(form, currencyId, currencies)
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-1 flex-col [&>*]:shrink-0">

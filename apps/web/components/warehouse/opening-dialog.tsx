@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { DateTimeRow } from "@/components/kit/date-sheet"
@@ -14,7 +13,7 @@ import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
-import { currencyOf, currencyOptions, isMulti, trimRate, useCurrencies, UZS } from "@/lib/currencies"
+import { currencyOf, currencyOptions, isMulti, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { forgetParty, type Party } from "@/lib/party"
 import { type OpeningFields, type OpeningForm, type OpeningOutput, openingDefaults, openingSchema } from "@/lib/stock"
 import { nowLocal } from "@/lib/warehouse"
@@ -77,11 +76,8 @@ export function OpeningDialog({
     },
   })
 
-  // Another currency: its standard rate is offered while none is typed.
-  useEffect(() => {
-    if (!open || currencyId === UZS || form.getValues("rate") !== "") return
-    if (currency.rate !== null) form.setValue("rate", trimRate(currency.rate))
-  }, [open, currencyId, currency.rate, form])
+  // Another currency: its standard rate is offered, again when it changes.
+  useOfferedRate(form, currencyId, currencies, open)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

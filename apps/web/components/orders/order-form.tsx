@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { type ReactNode, useEffect } from "react"
+import type { ReactNode } from "react"
 import { type Control, type UseFormReturn, useWatch } from "react-hook-form"
 import { FieldAnswer } from "@/components/field-answer"
 import { Avatar } from "@/components/kit/avatar"
@@ -13,7 +13,7 @@ import { Refusal } from "@/components/refusal"
 import { LinesField } from "@/components/warehouse/lines-field"
 import { PaymentsField } from "@/components/warehouse/payments-field"
 import { ApiError } from "@/lib/api"
-import { currencyOf, currencyOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
+import { currencyOf, currencyOptions, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { customerName } from "@/lib/customers"
 import { fieldKey, type FormField } from "@/lib/fields"
 import { assigneeOptions } from "@/lib/members"
@@ -115,12 +115,8 @@ export function MoneySection({
   const amount = useWatch({ control: form.control, name: "amount" })
   const currency = currencyOf(currencies, currencyId)
 
-  // Another currency: its standard rate is offered while none is typed.
-  useEffect(() => {
-    if (currencyId === UZS || form.getValues("rate") !== "") return
-    const rate = currencyOf(currencies, currencyId).rate
-    if (rate !== null) form.setValue("rate", trimRate(rate))
-  }, [currencyId, currencies, form])
+  // Another currency: its standard rate is offered, again when it changes.
+  useOfferedRate(form, currencyId, currencies)
 
   return (
     <>

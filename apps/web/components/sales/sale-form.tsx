@@ -1,7 +1,6 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { DateTimeRow } from "@/components/kit/date-sheet"
 import { AmountRow, TextRow } from "@/components/kit/form-row"
@@ -11,7 +10,7 @@ import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
 import { LinesField } from "@/components/warehouse/lines-field"
 import { PaymentsField } from "@/components/warehouse/payments-field"
-import { currencyOf, currencyOptions, isMulti, trimRate, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
+import { currencyOf, currencyOptions, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { type SaleForm as SaleFormValues, type SaleOutput, saleSchema } from "@/lib/sales"
 import { purchaseTotal } from "@/lib/warehouse"
 import { CustomerPicker } from "./customer-picker"
@@ -51,12 +50,8 @@ export function SaleForm({
   const currencyId = Number(useWatch({ control: form.control, name: "currency_id" })) || UZS
   const total = purchaseTotal(items)
 
-  // Another currency: its standard rate is offered while none is typed.
-  useEffect(() => {
-    if (currencyId === UZS || form.getValues("rate") !== "") return
-    const rate = currencyOf(currencies, currencyId).rate
-    if (rate !== null) form.setValue("rate", trimRate(rate))
-  }, [currencyId, currencies, form])
+  // Another currency: its standard rate is offered, again when it changes.
+  useOfferedRate(form, currencyId, currencies)
 
   const currency = currencyOf(currencies, currencyId)
   return (

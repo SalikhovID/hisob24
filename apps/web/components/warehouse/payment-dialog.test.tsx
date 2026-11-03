@@ -2,11 +2,12 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { type ComponentProps, useState } from "react"
 import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
-import { ALI, db, seedCustomers, seedPayment, seedWarehouse } from "@/mocks/data"
+import { ALI, db, seedCustomers, seedPayment, seedWarehouse, VALI } from "@/mocks/data"
 import { toPayment } from "@/mocks/warehouse"
 import { press } from "@/test/keypad"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { choose } from "@/test/select"
+import { chooseCompany, signIn } from "@/test/session"
 import { momentIn } from "@/test/moment"
 import { pricedOrder } from "@/test/order-money"
 import { PaymentDialog } from "./payment-dialog"
@@ -81,6 +82,24 @@ test("a payment entered on its own is edited: its amount comes typed, a key chan
 
   await waitFor(() => expect(db.transactions.find((t) => t.id === row.id)).toMatchObject({ total: 1500, note: "Naqd" }))
   expect(await screen.findByText("To'lov saqlandi")).toBeInTheDocument()
+})
+
+test("the rate follows the account's currency: an account in euros takes the euro's standard rate, not the dollar's", async () => {
+  db.currencies[2] = [1, 2, 3]
+  db.rates.find((r) => r.companyId === 2)!.eur = "14000.0000"
+  db.accounts[2].push({ id: 9113, name: "Evro", currency_id: 3, is_active: true })
+  const at = "2026-10-02T05:00:00Z"
+  db.suppliers.push({ id: 801, companyId: 2, name: "Bozor", phone: null, note: null, active: true, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<Opened companyId={2} partyId={801} partyName="Bozor" />)
+
+  const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
+  await waitFor(() => expect(within(dialog).getByLabelText("Akkaunt")).toHaveTextContent("Naqd (so'm)"))
+  await choose(user, within(dialog).getByLabelText("Akkaunt"), "Karta ($)")
+  expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  await choose(user, within(dialog).getByLabelText("Akkaunt"), "Evro (€)")
+  expect(await within(dialog).findByLabelText("1 EUR = ? so'm")).toHaveValue("14000")
 })
 
 test("a customer's payment goes to the customer", async () => {

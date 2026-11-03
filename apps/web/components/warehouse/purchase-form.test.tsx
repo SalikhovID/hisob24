@@ -99,6 +99,21 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   expect(screen.getByText("25 600 $")).toBeInTheDocument()
 })
 
+test("the rate follows the currency: the euro takes its own standard rate, not the one the dollar had", async () => {
+  db.currencies[2] = [1, 2, 3]
+  db.rates.find((r) => r.companyId === 2)!.eur = "14000.0000"
+  await signIn(VALI)
+  await chooseCompany(2)
+  setLocation("/purchases/new")
+  const { user } = renderWithProviders(<NewPurchasePage />)
+  await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
+
+  await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
+  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  await choose(user, screen.getByLabelText("Valyuta"), "EUR — Yevro")
+  expect(await screen.findByLabelText("1 EUR = ? so'm")).toHaveValue("14000")
+})
+
 test("the form refuses in the API's words before asking: a supplier, a product and its numbers, a payment's account and amount; a product is not taken twice, a lone line not taken away", async () => {
   const catalog = seedCatalog()
   seedWarehouse(catalog)

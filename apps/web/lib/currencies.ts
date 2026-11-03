@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react"
+import type { FieldPath, FieldValues, PathValue, UseFormReturn } from "react-hook-form"
 import { formatRate } from "./format"
 import { useMe } from "./queries"
 import type { AppAccount, CompanyCurrency } from "./types"
@@ -53,6 +55,33 @@ export function convert(amount: number, from: number, to: number, currencies: re
   const b = rateOf(currencies, to)
   if (a === null || b === null || b === 0) return null
   return Math.round(((amount * a) / b) * 100) / 100
+}
+
+// useOfferedRate keeps the rate field of a document's form (so'm per unit
+// of its currency, logic/currencies.md, sections 4 and 5) offered: another
+// currency than the so'm is given its standard rate while none is typed,
+// and again whenever the currency changes, a rate typed for one currency
+// being no rate of another (one with no rate set empties the field, to be
+// asked for). The rate the form comes with (an edited document's own)
+// stays until the currency is changed; a currency not known yet (null: an
+// account the session has not told) is no change. A closed dialog offers
+// nothing.
+export function useOfferedRate<T extends FieldValues & { rate: string }, TOut extends FieldValues>(
+  form: UseFormReturn<T, unknown, TOut>,
+  currencyId: number | null,
+  currencies: readonly CompanyCurrency[],
+  open = true,
+): void {
+  const last = useRef<number | null>(null)
+  const standard = currencyId === null ? null : (currencies.find((c) => c.id === currencyId)?.rate ?? null)
+  useEffect(() => {
+    if (!open || currencyId === null) return
+    const changed = last.current !== null && last.current !== currencyId
+    last.current = currencyId
+    const field = "rate" as FieldPath<T>
+    if (currencyId === UZS || (!changed && form.getValues(field) !== "")) return
+    form.setValue(field, (standard === null ? "" : trimRate(standard)) as PathValue<T, FieldPath<T>>)
+  }, [open, currencyId, standard, form])
 }
 
 // trimRate writes a stored rate for a field ("12800.0000" → "12800",
