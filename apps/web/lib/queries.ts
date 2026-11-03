@@ -397,6 +397,19 @@ export interface ProductFilter {
   locationId?: number | null
 }
 
+// useStockSummary is a page of the warehouse's «Qoldiq» table
+// (logic/warehouse.md, section 5): the products by name, each with its
+// stock in the member's locations. It lives with the products, so a document
+// that moves the stock refreshes it. With companyId null nothing is asked.
+export function useStockSummary(companyId: number | null, filter: { search: string; page: number }) {
+  return useQuery({
+    queryKey: [...productsKey(companyId), "stock-summary", filter],
+    queryFn: () => call(api.GET("/app/stock/summary", { params: { query: { search: filter.search || undefined, page: filter.page } } })),
+    enabled: companyId !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
 // useProducts is a page of the products or the services of the company the
 // session works in, by name (logic/products.md, section 5). With companyId
 // null (not known yet) nothing is asked.
