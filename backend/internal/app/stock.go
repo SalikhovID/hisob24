@@ -610,3 +610,57 @@ func (h *Handler) deleteOpening(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+type stockSummaryPageJSON struct {
+	Items    []stockSummaryItemJSON `json:"items"`
+	Total    int64                  `json:"total"`
+	Page     int                    `json:"page"`
+	PageSize int                    `json:"page_size"`
+}
+
+type stockSummaryItemJSON struct {
+	ProductID int64                  `json:"product_id"`
+	Name      string                 `json:"name"`
+	SKU       *string                `json:"sku"`
+	Unit      string                 `json:"unit"`
+	IsActive  bool                   `json:"is_active"`
+	Locations []locationQuantityJSON `json:"locations"`
+	Total     string                 `json:"total"`
+	LastPrice *lastPriceJSON         `json:"last_price"`
+	Value     *string                `json:"value"`
+}
+
+type locationQuantityJSON struct {
+	LocationID int64  `json:"location_id"`
+	Quantity   string `json:"quantity"`
+}
+
+// getStockSummary is a page of the warehouse's «Qoldiq» table
+// (logic/warehouse.md, section 5): the products by name (?search= in the
+// name and the SKU), each with its stock in every location of the member's.
+func (h *Handler) getStockSummary(w http.ResponseWriter, r *http.Request) {
+	page, ok := pageParam(w, r)
+	if !ok {
+		return
+	}
+	got, err := h.warehouse.StockSummary(r.Context(), warehouseScope(r), r.URL.Query().Get("search"), page)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	out := stockSummaryPageJSON{Items: make([]stockSummaryItemJSON, 0, len(got.Items)), Total: got.Total, Page: got.Page, PageSize: got.PageSize}
+	for _, row := range got.Items {
+		item := stockSummaryItemJSON{
+			ProductID: row.ProductID, Name: row.Name, SKU: row.SKU, Unit: row.Unit, IsActive: row.Active,
+			Locations: make([]locationQuantityJSON, 0, len(row.Locations)), Total: row.Total, Value: row.Value,
+		}
+		for _, l := range row.Locations {
+			item.Locations = append(item.Locations, locationQuantityJSON{LocationID: l.LocationID, Quantity: l.Quantity})
+		}
+		if row.LastPrice != nil {
+			item.LastPrice = &lastPriceJSON{Amount: row.LastPrice.Amount, CurrencyID: row.LastPrice.CurrencyID}
+		}
+		out.Items = append(out.Items, item)
+	}
+	httpx.JSON(w, http.StatusOK, out)
+}

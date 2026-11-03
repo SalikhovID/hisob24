@@ -228,6 +228,7 @@ func (h *Handler) Routes(r chi.Router) {
 				// section 5): the stock at a moment, a product's moves, the
 				// transfers, the inventories and the opening stock.
 				allowed(access.StockView).Get("/stock", h.getStock)
+				allowed(access.StockView).Get("/stock/summary", h.getStockSummary)
 				allowed(access.StockView).Get("/products/{id}/moves", h.listProductMoves)
 				allowed(access.StockView).Get("/transfers", h.listTransfers)
 				allowed(access.StockCreate).Post("/transfers", h.createTransfer)

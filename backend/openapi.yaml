@@ -4515,6 +4515,45 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/DocumentNotFound"
+  /app/stock/summary:
+    get:
+      operationId: getStockSummary
+      summary: Ombor qoldig'i jadvali (stock.view ruxsati)
+      description: >
+        Ombor bo'limining «Qoldiq» tabi (logic/warehouse.md, 5-bo'lim):
+        kompaniyaning jonli mahsulotlari (xizmat emas; nofaollari ham), nom
+        bo'yicha (katta-kichik harf farqsiz), sahifada 20 ta; search nomda va
+        artikulda qidiradi. Har mahsulotda a'zoga ruxsatli har lokatsiyadagi
+        qoldiq (lokatsiyalar tartibida, 0 ham), jami, oxirgi xarid narxi va
+        qiymati (jami × narx, o'sha valyutada). Ruxsatli lokatsiyasi yo'q
+        a'zoga bo'sh sahifa.
+      security:
+        - appBearer: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Sahifa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockSummaryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /app/stock:
     get:
       operationId: getStock
@@ -9104,6 +9143,61 @@ components:
       properties:
         is_active:
           type: boolean
+    StockSummaryPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/StockSummaryItem"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        page_size:
+          type: integer
+    StockSummaryItem:
+      type: object
+      required: [product_id, name, sku, unit, is_active, locations, total, last_price, value]
+      properties:
+        product_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        sku:
+          type: [string, "null"]
+        unit:
+          type: string
+        is_active:
+          type: boolean
+        locations:
+          type: array
+          description: A'zoga ruxsatli har lokatsiyadagi qoldiq, lokatsiyalar tartibida
+          items:
+            $ref: "#/components/schemas/LocationQuantity"
+        total:
+          type: string
+          description: Ruxsatli lokatsiyalardagi qoldiq yig'indisi, uch kasr xonasi bilan
+        last_price:
+          oneOf:
+            - $ref: "#/components/schemas/LastPrice"
+            - type: "null"
+        value:
+          type: [string, "null"]
+          description: total × last_price, oxirgi narx valyutasida, ikki kasr xonasi bilan; narx yo'q bo'lsa null
+    LocationQuantity:
+      type: object
+      required: [location_id, quantity]
+      properties:
+        location_id:
+          type: integer
+          format: int64
+        quantity:
+          type: string
+          description: Uch kasr xonasi bilan ("12.500")
     ProductPage:
       type: object
       required: [items, total, page, page_size]

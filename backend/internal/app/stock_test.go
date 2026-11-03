@@ -267,3 +267,49 @@ func TestSupplierOpeningsAPI(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 	assert.JSONEq(t, `{"error":"not_found","message":"Hujjat topilmadi"}`, rec.Body.String())
 }
+
+// The warehouse's «Qoldiq» table (logic/warehouse.md, section 5).
+func TestStockSummaryAPI(t *testing.T) {
+	api := newTestAPI(t)
+	s := api.newStore(t)
+	// 12.5 kg of Olma at 1 000 into Asosiy, 2 kg of it on to Chilonzor.
+	rec := api.do(t, http.MethodPost, "/app/opening-stock", fmt.Sprintf(`{"location_id":%d,"at":"%s","items":[%s]}`, s.asosiy, at, s.item("12.5", "1000")), bearer(s.owner))
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	api.enterTransfer(t, s.owner, fmt.Sprintf(`{"location_id":%d,"to_location_id":%d,"at":"2026-10-08T09:00:00+05:00","items":[{"product_id":%v,"quantity":"2"}]}`, s.asosiy, s.chilonzor, s.product["id"]))
+
+	rec = api.do(t, http.MethodGet, "/app/stock/summary", "", bearer(s.owner))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, map[string]any{
+		"items": []any{map[string]any{
+			"product_id": s.product["id"], "name": "Olma", "sku": nil, "unit": "kg", "is_active": true,
+			"locations": []any{
+				map[string]any{"location_id": float64(s.asosiy), "quantity": "10.500"},
+				map[string]any{"location_id": float64(s.chilonzor), "quantity": "2.000"},
+			},
+			"total": "12.500", "last_price": map[string]any{"amount": "1000.00", "currency_id": 1.0}, "value": "12500.00",
+		}},
+		"total": 1.0, "page": 1.0, "page_size": 20.0,
+	}, decode(t, rec))
+
+	rec = api.do(t, http.MethodGet, "/app/stock/summary?search=nok", "", bearer(s.owner))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, map[string]any{"items": []any{}, "total": 0.0, "page": 1.0, "page_size": 20.0}, decode(t, rec), "nothing found")
+	rec = api.do(t, http.MethodGet, "/app/stock/summary?page=0", "", bearer(s.owner))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	// The employee works in Chilonzor alone: its stock alone.
+	omborchi := api.addRole(t, s.company, "Omborchi", "stock.view")
+	api.giveRole(t, valisPhone, s.company, &omborchi)
+	rec = api.do(t, http.MethodGet, "/app/stock/summary", "", bearer(s.employee))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	item := decode(t, rec)["items"].([]any)[0].(map[string]any)
+	assert.Equal(t, []any{map[string]any{"location_id": float64(s.chilonzor), "quantity": "2.000"}}, item["locations"])
+	assert.Equal(t, "2.000", item["total"])
+	assert.Equal(t, "2000.00", item["value"])
+
+	kuzatuvchi := api.addRole(t, s.company, "Kuzatuvchi", "orders.view")
+	api.giveRole(t, valisPhone, s.company, &kuzatuvchi)
+	rec = api.do(t, http.MethodGet, "/app/stock/summary", "", bearer(s.employee))
+	assert.Equal(t, http.StatusForbidden, rec.Code, "without stock.view")
+}
