@@ -114,3 +114,14 @@ test("the opening stock's page is headed as the prototype's: «Boshlang'ich qold
   expect(within(actions).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "page-action")
   expect(document.querySelector("[data-slot=hero]")).toBeNull()
 })
+
+test("on the web the opening stock's lines are the prototype's table: Mahsulot, Miqdor, Narx, Summa; a line leads to its product", async () => {
+  const { catalog, opening } = await opened()
+  renderWithProviders(<OpeningStockDetailPage id={opening.id} />)
+
+  const table = await screen.findByRole("table", { name: "Mahsulotlar" })
+  expect(within(table).getAllByRole("columnheader").map((th) => th.textContent)).toEqual(["Mahsulot", "Miqdor", "Narx", "Summa"])
+  const [olma] = within(table).getAllByRole("row").slice(1)
+  expect(within(olma).getAllByRole("cell").map((td) => td.textContent?.replace(/\s+/g, " "))).toEqual(["Olma", "2 kg", "1 000 so'm", "2 000 so'm"])
+  expect(within(olma).getByRole("link", { name: "Olma" })).toHaveAttribute("href", `/products/${catalog.olma.id}`)
+})

@@ -3,6 +3,7 @@
 import { PencilIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
+import { DataTable } from "@/components/kit/data-table"
 import { Foot, Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
 import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
@@ -24,10 +25,10 @@ const back = { href: "/opening-stock", label: "Boshlang'ich qoldiq" }
 // (logic/warehouse.md, 5.3), for whoever may see the stock documents
 // (changing and deleting each take their permission), as the prototype's
 // page: its number over its moment and who entered it; the actions at the
-// title's right (editing, deleting); its lines, each product with how much at what
-// price and the sum; its facts: the location (with two or more to work
-// in), the currency and rate (with another than the so'm), the total (in
-// so'm too), the note, who entered it and when.
+// title's right (editing, deleting); its lines (on the web a table), each
+// product with how much at what price and the sum; its facts: the location
+// (with two or more to work in), the currency and rate (with another than
+// the so'm), the total (in so'm too), the note, who entered it and when.
 export function OpeningStockDetailPage({ id }: { id: number }) {
   const gate = usePermission("stock.view")
   const companyId = gate?.company.id ?? null
@@ -73,19 +74,33 @@ export function OpeningStockDetailPage({ id }: { id: number }) {
         <SectionHeading hint={o.items.length}>
           <span id="opening-lines">Mahsulotlar</span>
         </SectionHeading>
-        <Group label="Mahsulotlar" inset="icon">
-          {o.items.map((item) => (
-            <Row
-              key={item.product_id}
-              href={`/products/${item.product_id}`}
-              media={<Avatar name={item.name} square letter />}
-              title={item.name}
-              sub={`${formatQuantity(item.quantity, item.unit)} × ${formatAmount(item.price)}`}
-              end={formatAmount(item.amount)}
-              chevron={false}
-            />
-          ))}
-        </Group>
+        <DataTable
+          label="Mahsulotlar"
+          rows={o.items}
+          rowKey={(item) => item.product_id}
+          href={(item) => `/products/${item.product_id}`}
+          columns={[
+            { key: "name", label: "Mahsulot", render: (item) => item.name },
+            { key: "quantity", label: "Miqdor", align: "end", render: (item) => formatQuantity(item.quantity, item.unit) },
+            { key: "price", label: "Narx", align: "end", render: (item) => formatMoney(item.price, currency) },
+            { key: "amount", label: "Summa", align: "end", render: (item) => <b className="font-semibold">{formatMoney(item.amount, currency)}</b> },
+          ]}
+          phone={
+            <Group label="Mahsulotlar" inset="icon">
+              {o.items.map((item) => (
+                <Row
+                  key={item.product_id}
+                  href={`/products/${item.product_id}`}
+                  media={<Avatar name={item.name} square letter />}
+                  title={item.name}
+                  sub={`${formatQuantity(item.quantity, item.unit)} × ${formatAmount(item.price)}`}
+                  end={formatAmount(item.amount)}
+                  chevron={false}
+                />
+              ))}
+            </Group>
+          }
+        />
         <Foot className="-mt-4 mb-6">Jami: {formatMoney(o.total, currency)}</Foot>
       </section>
       <section aria-label="Ma'lumot">
