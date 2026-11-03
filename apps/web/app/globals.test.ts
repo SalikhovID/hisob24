@@ -154,6 +154,11 @@ test("the glass utilities are gone: a fill is a plain color now", () => {
   expect(block("@theme inline {")).toContain("--color-scrim: var(--scrim)")
 })
 
+test("the glass era's tokens that nothing reads any more are gone", () => {
+  const gone = ["--chip", "--switch-off", "--switch-knob-on", "--ban-ink", "--ban-sub", "--ban-x", "--art1", "--art2", "--art-ink", "--art-spark", "--mark-shadow", "--av-bg", "--av-ink", "--tb-shadow", "--seg-on", "--sheen", "--btn-glow", "--glass-edge", "--menu", "--color-glass-edge", "--color-menu"]
+  for (const token of gone) expect(css, token).not.toMatch(new RegExp(`\\s${token}:`))
+})
+
 test("the page's body is the plain background", () => {
   const body = block("  body {")
   expect(body).toContain("@apply bg-background")

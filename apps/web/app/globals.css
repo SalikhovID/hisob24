@@ -67,8 +67,6 @@
     --color-positive-soft: var(--positive-soft);
     --color-warning: var(--warning);
     --color-warning-soft: var(--warning-soft);
-    --color-glass-edge: var(--glass-edge);
-    --color-menu: var(--menu);
     --color-sheet: var(--sheet);
     --color-sheet-cell: var(--sheet-cell);
     --color-skeleton: var(--skel);
@@ -185,39 +183,21 @@
     --sidebar-accent-foreground: color-mix(in srgb, #17595f 82%, #000);
     --sidebar-border: rgba(0, 0, 0, 0.06);
     --sidebar-ring: #17595f;
-    /* Legacy names, flat now, until their components move (stage 1). */
+    /* Older names the components still read, flat values now (the ones
+       nothing reads went in stage 8). */
     --sheet-cell: #ffffff;
-    --glass-edge: transparent;
-    --menu: #ffffff;
     --lifted: #ffffff;
     --col: rgba(0, 0, 0, 0.04);
-    --chip: rgba(118, 118, 128, 0.12);
-    --switch-off: rgba(0, 0, 0, 0.15);
-    --switch-knob-on: #ffffff;
     --ban: #ffffff;
-    --ban-ink: #17181b;
-    --ban-sub: #6b6e76;
-    --ban-x: rgba(0, 0, 0, 0.06);
-    --art1: #17595f;
-    --art2: #174449;
-    --art-ink: #ffffff;
-    --art-spark: #9a9da4;
     --brand-fill: #174449;
-    --mark-shadow: 0 0 #0000;
-    --av-bg: #8c9ab0;
-    --av-ink: #ffffff;
-    --tb-shadow: var(--tab-bar-shadow);
     --fade: rgba(242, 242, 247, 0.94);
     --search: rgba(118, 118, 128, 0.12);
     --search-rim: 0 0 #0000;
     --seg-thumb: #ffffff;
-    --seg-on: #17181b;
     --seg-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06);
     --rim: 0 0 #0000;
     --lift: 0 0 #0000;
-    --sheen: none;
     --btn: none;
-    --btn-glow: 0 0 #0000;
     color-scheme: light;
 }
 
@@ -303,22 +283,12 @@
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-ring: #5cc4bc;
     --sheet-cell: #1c1c1e;
-    --menu: #1c1c1e;
     --lifted: #2c2c2e;
     --col: rgba(255, 255, 255, 0.05);
-    --chip: rgba(118, 118, 128, 0.24);
-    --switch-off: rgba(255, 255, 255, 0.2);
-    --switch-knob-on: #ffffff;
     --ban: #1c1c1e;
-    --ban-ink: #ececee;
-    --ban-sub: #9d9da1;
-    --ban-x: rgba(255, 255, 255, 0.07);
-    --art-spark: #6c6c70;
-    --av-ink: #ffffff;
     --fade: rgba(0, 0, 0, 0.94);
     --search: rgba(118, 118, 128, 0.24);
     --seg-thumb: #3a3a3c;
-    --seg-on: #ececee;
     --seg-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
 }
@@ -333,7 +303,6 @@
     --popover: #26262a;
     --raised: #26262a;
     --field: #26262a;
-    --menu: #26262a;
     --muted: rgba(255, 255, 255, 0.07);
     --sidebar: #111113;
     --switch-on: #5cc4bc;
