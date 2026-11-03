@@ -3,9 +3,10 @@ import { useForm } from "react-hook-form"
 import { expect, test } from "vitest"
 import { useAccounts, useCurrencies } from "@/lib/currencies"
 import type { PaymentLineForm } from "@/lib/warehouse"
-import { ALI } from "@/mocks/data"
+import { ALI, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { choose } from "@/test/select"
+import { chooseCompany, signIn } from "@/test/session"
 import { PaymentsField } from "./payments-field"
 
 // Host is a form of payments alone, as a purchase's or a sale's form holds them.
@@ -40,6 +41,24 @@ test("the payments are the prototype's cards: the account picked in a sheet, the
 
   await user.click(within(first).getByRole("button", { name: "1-to'lovni olib tashlash" }))
   expect(screen.queryByRole("group", { name: "1-to'lov" })).not.toBeInTheDocument()
+})
+
+test("paid past the total, the form says how much more was paid: «To'liq» from an account in dollars comes to the nearest cent", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<Host total={50000} />)
+
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await choose(user, within(payment(1)).getByRole("button", { name: /^Akkaunt/ }), "Karta ($)")
+  await user.click(within(payment(1)).getByRole("button", { name: "To'liq" }))
+  // 50 000 so'm is 3,90625 $: 3,91 $ is 50 048 so'm, 48 so'm more.
+  expect(within(payment(1)).getByLabelText("Summa")).toHaveValue("3.91")
+  expect(screen.getByText(/^Ortiqcha:/)).toHaveTextContent("Ortiqcha: 48 so'm")
+  expect(screen.queryByText(/^Qolgan:/)).not.toBeInTheDocument()
+
+  await user.clear(within(payment(1)).getByLabelText("Summa"))
+  await user.type(within(payment(1)).getByLabelText("Summa"), "3.9")
+  expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 80 so'm")
 })
 
 test("a payment is the prototype's card of frosted glass, 24px round", async () => {

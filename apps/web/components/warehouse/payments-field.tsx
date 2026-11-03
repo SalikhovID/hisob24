@@ -18,7 +18,8 @@ type WithPayments = { payments: PaymentLineForm[] }
 // account picked in a sheet and an amount in the account's currency, with
 // «To'liq» to fill it with what is left of the total (in the line's
 // currency by the rates in force); a row adds one; what is left is said
-// under them.
+// under them, or how much more was paid (an account in another currency
+// pays to the nearest cent: «To'liq» may come to a little more).
 export function PaymentsField<TForm extends WithPayments & FieldValues, TOut extends FieldValues>({
   form,
   accounts,
@@ -44,7 +45,7 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
   const inDocument = (line: { bank_account_id: string; amount: string }) =>
     convert(amountOf(line.amount), accountCurrency(accounts, currencies, Number(line.bank_account_id)).id, documentCurrency, currencies) ?? 0
   const paid = lines.reduce((sum, line) => sum + inDocument(line), 0)
-  const remaining = Math.max(0, Math.round((total - paid) * 100) / 100)
+  const left = Math.round((total - paid) * 100) / 100
   const first = accounts.find((a) => a.is_active)
   // fill puts what is left (counting the other lines) into the line, in
   // its account's currency.
@@ -115,7 +116,9 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
           }
         />
       </Group>
-      {fields.length > 0 && <Foot className="-mt-2">Qolgan: {formatMoney(String(remaining), currency)}</Foot>}
+      {fields.length > 0 && (
+        <Foot className="-mt-2">{left < 0 ? `Ortiqcha: ${formatMoney(String(-left), currency)}` : `Qolgan: ${formatMoney(String(left), currency)}`}</Foot>
+      )}
     </section>
   )
 }
