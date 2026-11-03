@@ -33,19 +33,25 @@ test("an alert dialog asks its question in the middle of the screen, its two but
   expect(screen.getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "alert-dialog-action")
 })
 
-test("an alert is the prototype's glass card: 34px corners, a white edge over its shadow", async () => {
+test("an alert is the prototype's confirm: a sheet from the bottom on a phone, a 420px dialog in the middle on the web; its words at the left, its buttons at the right on the web", async () => {
   render(
     <AlertDialog open>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Rolni o&apos;chirasizmi?</AlertDialogTitle>
         </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>,
   )
   const dialog = await screen.findByRole("alertdialog", { name: "Rolni o'chirasizmi?" })
-  expect(dialog).toHaveClass("rounded-[34px]", "shadow-[var(--shadow),inset_0_0_0_1px_var(--glass-edge)]")
-  expect(dialog).not.toHaveClass("rounded-[32px]")
+  expect(dialog).toHaveClass("inset-x-0", "bottom-0", "rounded-t-sheet", "bg-sheet", "text-left", "md:top-1/2", "md:w-[420px]", "md:rounded-xl", "md:shadow-float")
+  expect(screen.getByText("Rolni o'chirasizmi?")).toHaveClass("text-[17px]", "font-semibold", "md:text-[15px]")
+  expect(screen.getByRole("button", { name: "Bekor qilish" }).parentElement).toHaveClass("md:justify-end")
+  // The quiet way out is a ghost, as the prototype's.
+  expect(screen.getByRole("button", { name: "Bekor qilish" })).toHaveClass("text-muted-foreground")
 })
 
 test("behind an alert the rest of the screen is dimmed by the scrim, nothing blurred", async () => {

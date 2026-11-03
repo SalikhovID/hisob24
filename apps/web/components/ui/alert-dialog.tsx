@@ -31,7 +31,7 @@ function AlertDialogOverlay({
       data-slot="alert-dialog-overlay"
       forceRender
       className={cn(
-        "fixed inset-0 isolate z-50 bg-scrim transition-opacity duration-200 data-starting-style:opacity-0 data-ending-style:opacity-0",
+        "fixed inset-0 isolate z-50 bg-scrim transition-opacity duration-250 data-starting-style:opacity-0 data-ending-style:opacity-0",
         className
       )}
       {...props}
@@ -53,7 +53,7 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         data-size={size}
         className={cn(
-          "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 w-[calc(100%-3rem)] max-w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-[34px] bg-menu px-[18px] pt-[22px] pb-4 text-center text-foreground shadow-[var(--shadow),inset_0_0_0_1px_var(--glass-edge)] backdrop-blur-[30px] backdrop-saturate-[1.8] transition-[opacity,transform] duration-200 ease-out-expo outline-none data-starting-style:scale-[1.12] data-starting-style:opacity-0 data-ending-style:opacity-0",
+          "group/alert-dialog-content fixed inset-x-0 bottom-0 z-50 w-full rounded-t-sheet bg-sheet px-5 pt-6 pb-safe-4 text-left text-foreground outline-none transition-[translate,scale,opacity] duration-[420ms] ease-drawer data-starting-style:translate-y-full data-ending-style:translate-y-full md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[420px] md:max-w-[calc(100%-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:bg-popover md:p-5 md:shadow-float md:duration-300 md:ease-out-expo md:data-starting-style:-translate-y-[48%] md:data-starting-style:scale-[.98] md:data-starting-style:opacity-0 md:data-ending-style:-translate-y-[48%] md:data-ending-style:opacity-0",
           className
         )}
         {...props}
@@ -70,7 +70,7 @@ function AlertDialogHeader({
     <div
       data-slot="alert-dialog-header"
       className={cn(
-        "grid place-items-center gap-1.5 text-center",
+        "grid gap-1.5 text-left",
         className
       )}
       {...props}
@@ -86,7 +86,7 @@ function AlertDialogFooter({
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        "mt-[18px] flex gap-2 [&>*]:h-12 [&>*]:flex-1 [&>*]:rounded-full [&>*]:text-base",
+        "mt-5 flex gap-2 [&>*]:h-11 [&>*]:flex-1 [&>*]:rounded-xl [&>*]:text-[15px] md:mt-4 md:justify-end md:[&>*]:h-8 md:[&>*]:flex-none md:[&>*]:rounded-md md:[&>*]:text-[13px]",
         className
       )}
       {...props}
@@ -118,7 +118,7 @@ function AlertDialogTitle({
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
       className={cn(
-        "text-base leading-tight font-semibold",
+        "text-[17px] leading-tight font-semibold md:text-[15px]",
         className
       )}
       {...props}
@@ -134,7 +134,7 @@ function AlertDialogDescription({
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
       className={cn(
-        "text-sm leading-snug text-muted-foreground *:[a]:underline *:[a]:underline-offset-3",
+        "text-md leading-snug text-muted-foreground md:text-[13px] *:[a]:underline *:[a]:underline-offset-3",
         className
       )}
       {...props}
@@ -157,7 +157,7 @@ function AlertDialogAction({
 
 function AlertDialogCancel({
   className,
-  variant = "secondary",
+  variant = "ghost",
   size = "default",
   ...props
 }: AlertDialogPrimitive.Close.Props &
