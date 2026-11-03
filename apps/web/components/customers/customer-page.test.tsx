@@ -40,7 +40,7 @@ test("a customer's page shows who it is, every field of its type in order, and w
   open(dilshod.id)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Dilshod Karimov" })).toBeInTheDocument()
-  expect(screen.getByText("Jismoniy · +998 91 111 22 33")).toBeInTheDocument()
+  expect(screen.getByText("+998 91 111 22 33 · Jismoniy")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Mijozlar" })).toHaveAttribute("href", "/customers")
   expect(pairsOf(await info())).toEqual([
     ["Telefon", "+998 91 111 22 33"],
@@ -534,6 +534,20 @@ test("a customer's orders are of every location the member works in; with two or
     ["Buyurtma № 1", "Bajarildi · Asosiy · Ali V."],
     ["Buyurtma № 4", "Yangi · Chilonzor · Vali A."],
   ])
+})
+
+test("the customer's page is headed by its name, its actions at the title's right: Tahrirlash, To'lov, Buyurtma, Qo'ng'iroq, each for whoever may; the way to delete stays at the foot", async () => {
+  await signIn(ALI)
+  const { dilshod } = seedOrders()
+  open(dilshod.id)
+
+  const actions = await screen.findByRole("group", { name: "Amallar" })
+  expect(actions).toHaveAttribute("data-slot", "page-actions")
+  expect(actions.closest('[data-slot="page-title"]')).not.toBeNull()
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "To'lov", "Buyurtma", "Qo'ng'iroq"])
+  expect(within(actions).queryByRole("button", { name: "Mijozni o'chirish" })).not.toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Mijozni o'chirish" })).toBeInTheDocument()
+  expect(document.querySelector('[data-slot="detail-head"]')).toBeNull()
 })
 
 test("the customer's tiles: editing for whoever may, and the call to its phone", async () => {

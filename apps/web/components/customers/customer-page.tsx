@@ -2,8 +2,7 @@
 
 import { BanknoteIcon, ClipboardPlusIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useState } from "react"
-import { Avatar } from "@/components/kit/avatar"
-import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
@@ -82,19 +81,20 @@ export function CustomerPage({ id }: { id: number }) {
 
   return (
     <>
-      <BackLink {...back} />
-      <DetailHead
-        media={<Avatar name={name} size="lg" />}
+      <PageTitle
+        back={back}
         title={name ?? phone}
         // A customer with no name goes by the phone, which is then not said twice.
-        description={[type?.name, name ? phone : null].filter(Boolean).join(" · ")}
+        description={[name ? phone : null, type?.name].filter(Boolean).join(" · ")}
+        action={
+          <PageActions>
+            {type && allowed("customers.edit") && <PageAction icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
+            {allowed("sales.create") && <PageAction icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
+            {allowed("orders.create") && locationId !== null && <PageAction icon={ClipboardPlusIcon} label="Buyurtma" onClick={() => setOrdering(true)} />}
+            <PageAction icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${customer.data.phone}`} />
+          </PageActions>
+        }
       />
-      <Tiles>
-        {type && allowed("customers.edit") && <Tile icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />}
-        {allowed("orders.create") && locationId !== null && <Tile icon={ClipboardPlusIcon} label="Buyurtma" onClick={() => setOrdering(true)} />}
-        {allowed("sales.create") && <Tile icon={BanknoteIcon} label="To'lov" onClick={() => setPaying(true)} />}
-        <Tile icon={PhoneIcon} label="Qo'ng'iroq" href={`tel:+${customer.data.phone}`} />
-      </Tiles>
       {allowed("sales.view") && customer.data.balance !== null && (
         <BalanceCard balance={customer.data.balance} byCurrency={customer.data.balance_by_currency ?? null} />
       )}
