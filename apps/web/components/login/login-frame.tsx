@@ -21,7 +21,7 @@ export function LoginFrame({ brand, tagline, children }: { brand: ReactNode; tag
     <div className="flex min-h-svh flex-col lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <header
         className={cn(
-          "relative isolate overflow-hidden bg-brand-panel bg-(image:--brand-fill) px-6 pt-safe-10 pb-16 text-brand-panel-foreground",
+          "relative isolate overflow-hidden bg-brand-panel px-6 pt-safe-10 pb-16 text-brand-panel-foreground",
           "[--brand:var(--brand-panel-foreground)] [--muted-foreground:color-mix(in_oklab,var(--brand-panel-foreground)_72%,transparent)]",
           "lg:flex lg:flex-col lg:justify-between lg:p-12 lg:pt-safe-12",
         )}

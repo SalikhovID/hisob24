@@ -35,9 +35,10 @@ test("the panel's backdrop is the mark's number, a decoration: the brand is the 
   expect(screen.getAllByRole("img")).toHaveLength(1)
 })
 
-test("the panel is the brand's fill (black in the light, lavender in the night); the form stands on the page's background", () => {
+test("the panel is the brand's flat ink (white in the night), no fill over it; the form stands on the page's background", () => {
   render(frame)
 
-  expect(screen.getByRole("banner")).toHaveClass("bg-brand-panel", "bg-(image:--brand-fill)")
+  expect(screen.getByRole("banner")).toHaveClass("bg-brand-panel")
+  expect(screen.getByRole("banner").className).not.toContain("--brand-fill")
   expect(screen.getByRole("main")).toHaveClass("bg-background")
 })
