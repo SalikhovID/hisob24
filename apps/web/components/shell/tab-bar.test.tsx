@@ -190,6 +190,14 @@ const NAMES = { "Bosh sahifa": 56, Mijozlar: 37, Buyurtmalar: 41, Mahsulotlar: 5
 const names = () => [...bar().querySelectorAll<HTMLElement>('[data-slot="tab-name"]')]
 const nameScale = () => Number(bar().style.getPropertyValue("--name-k"))
 
+test("on a phone narrower than 360px the bar comes to 6px off the screen's sides: at 16px a 320px phone's buttons hold «Buyurtmalar» clear of their edges at no size the names may take", async () => {
+  await signIn(ALI)
+  renderWithProviders(<TabBar />)
+
+  await within(bar()).findByRole("link", { name: "Mahsulotlar" })
+  expect(bar()).toHaveClass("inset-x-4", "max-[359px]:inset-x-1.5")
+})
+
 test("the names keep 4px clear of their buttons' edges: on a bar too narrow for them they are all set a little smaller, together; a roomy bar keeps them at 10px", async () => {
   await signIn(ALI)
   setLocation("/customers")

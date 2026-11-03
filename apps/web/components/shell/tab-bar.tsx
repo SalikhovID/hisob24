@@ -29,8 +29,9 @@ const SettingsMark = tabIcons.settings
 // TabBar is the prototype's floating frosted pill (its frost and capsule
 // are globals.css's) along the bottom of a narrow screen (a phone, the
 // Telegram Mini App), where the sidebar is hidden: 16px off the screen's
-// sides, 28px off its foot (and the phone's home indicator, and Telegram's
-// own bottom edge). Four pages of the member's own choice (logic/roles.md,
+// sides (6px on a phone narrower than 360px, where 16px would leave the
+// names too little room), 28px off its foot (and the phone's home
+// indicator, and Telegram's own bottom edge). Four pages of the member's own choice (logic/roles.md,
 // section 8; the default bar without one), each an icon over its name, and
 // «Sozlama» last, always: the settings page, which lists the other pages
 // and the settings. A grey capsule stands under the page's button (on a
@@ -92,7 +93,7 @@ export function TabBar() {
         aria-label="Bo'limlar"
         data-slot="tab-bar"
         style={{ "--i": String(current), "--n": String(pins.length + 1), "--name-k": String(nameScale) } as CSSProperties}
-        className="fixed inset-x-4 bottom-[calc(28px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] z-20 flex rounded-4xl p-1 shadow-(--tab-bar-shadow) select-none md:hidden"
+        className="fixed inset-x-4 max-[359px]:inset-x-1.5 bottom-[calc(28px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] z-20 flex rounded-4xl p-1 shadow-(--tab-bar-shadow) select-none md:hidden"
       >
         <span
           aria-hidden="true"
