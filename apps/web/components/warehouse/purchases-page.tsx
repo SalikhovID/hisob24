@@ -2,6 +2,7 @@
 
 import { MapPinIcon, ReceiptIcon } from "lucide-react"
 import { useEffect, useRef } from "react"
+import { type Column, DataTable } from "@/components/kit/data-table"
 import { DayGroups } from "@/components/kit/day-groups"
 import { Foot, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
@@ -9,11 +10,11 @@ import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { count, formatAmount, formatMoney } from "@/lib/format"
+import { count, formatAmount, formatDayMonthTime, formatMoney } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { usePurchases } from "@/lib/queries"
-import type { Permission } from "@/lib/types"
+import type { Permission, Purchase } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
@@ -57,6 +58,18 @@ export function PurchasesPage() {
   const loading = !noLocation && (purchases.isPending || settling)
   const total = purchases.isPlaceholderData ? undefined : purchases.data?.total
 
+  // The web's table: the number (the way in), the moment, the supplier, how
+  // many products, who entered it, the total and what of it is paid.
+  const columns: Column<Purchase>[] = [
+    { key: "number", label: "№", render: (purchase) => `№ ${purchase.number}` },
+    { key: "at", label: "Vaqt", render: (purchase) => formatDayMonthTime(purchase.at) },
+    { key: "supplier", label: "Ta'minotchi", render: (purchase) => purchase.supplier.name },
+    { key: "items", label: "Mahsulotlar", render: (purchase) => count(purchase.items_count) },
+    { key: "by", label: "Kim", render: (purchase) => (purchase.created_by_name ? shortName(purchase.created_by_name) : "—") },
+    { key: "total", label: "Jami", align: "end", render: (purchase) => formatMoney(purchase.total, currencyOf(currencies, purchase.currency_id)) },
+    { key: "paid", label: "To'lov", align: "end", render: (purchase) => <PaidStatus total={purchase.total} paid={purchase.paid} /> },
+  ]
+
   // Until the session is known to be let in there is nothing to show; a
   // stranger is on their way home.
   if (!gate) return null
@@ -77,26 +90,36 @@ export function PurchasesPage() {
       )}
       {!loading && !purchases.isError && page && page.total > 0 && (
         <>
-          <DayGroups
-            label="Xaridlar"
-            items={page.items}
-            at={(purchase) => purchase.at}
-            hint={(day) => formatAmount(day.reduce((sum, purchase) => sum + Number(purchase.total_uzs), 0).toFixed(2))}
-            className={cn(purchases.isPlaceholderData && "opacity-60")}
-          >
-            {(purchase) => (
-              <Row
-                key={purchase.id}
-                href={`/purchases/${purchase.id}`}
-                media={<SoftIcon icon={ReceiptIcon} />}
-                title={`№ ${purchase.number} · ${purchase.supplier.name}`}
-                sub={[`${purchase.items_count} ta mahsulot`, purchase.created_by_name && shortName(purchase.created_by_name)].filter(Boolean).join(" · ")}
-                end={formatMoney(purchase.total, currencyOf(currencies, purchase.currency_id))}
-                endSub={<PaidStatus total={purchase.total} paid={purchase.paid} />}
-                chevron={false}
-              />
-            )}
-          </DayGroups>
+          <div className={cn(purchases.isPlaceholderData && "opacity-60")}>
+            <DataTable
+              label="Xaridlar"
+              rows={page.items}
+              rowKey={(purchase) => purchase.id}
+              href={(purchase) => `/purchases/${purchase.id}`}
+              columns={columns}
+              phone={
+                <DayGroups
+                  label="Xaridlar"
+                  items={page.items}
+                  at={(purchase) => purchase.at}
+                  hint={(day) => formatAmount(day.reduce((sum, purchase) => sum + Number(purchase.total_uzs), 0).toFixed(2))}
+                >
+                  {(purchase) => (
+                    <Row
+                      key={purchase.id}
+                      href={`/purchases/${purchase.id}`}
+                      media={<SoftIcon icon={ReceiptIcon} />}
+                      title={`№ ${purchase.number} · ${purchase.supplier.name}`}
+                      sub={[`${purchase.items_count} ta mahsulot`, purchase.created_by_name && shortName(purchase.created_by_name)].filter(Boolean).join(" · ")}
+                      end={formatMoney(purchase.total, currencyOf(currencies, purchase.currency_id))}
+                      endSub={<PaidStatus total={purchase.total} paid={purchase.paid} />}
+                      chevron={false}
+                    />
+                  )}
+                </DayGroups>
+              }
+            />
+          </div>
           {page.total > page.page_size ? (
             <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
           ) : (

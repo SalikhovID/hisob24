@@ -40,6 +40,25 @@ test("the owner's purchases of the current location, the newest first, each by i
   expect(screen.getByRole("link", { name: "Xarid qo'shish" })).toHaveAttribute("href", "/purchases/new")
 })
 
+test("on a wide screen the purchases are the prototype's table: №, Vaqt, Ta'minotchi, Mahsulotlar, Kim, Jami, To'lov; a phone keeps their days", async () => {
+  const { purchase } = seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  setLocation("/purchases")
+  renderWithProviders(<PurchasesPage />)
+
+  const table = await screen.findByRole("table", { name: "Xaridlar" })
+  expect(within(table).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["№", "Vaqt", "Ta'minotchi", "Mahsulotlar", "Kim", "Jami", "To'lov"])
+  const cells = within(within(table).getAllByRole("row")[1]).getAllByRole("cell")
+  expect(within(cells[0]).getByRole("link", { name: "№ 1" })).toHaveAttribute("href", `/purchases/${purchase!.id}`)
+  expect(cells[1]).toHaveTextContent("1-oktabr")
+  expect(cells[2]).toHaveTextContent("Bozor")
+  expect(cells[3]).toHaveTextContent("2 ta")
+  expect(cells[4]).toHaveTextContent("Ali V.")
+  expect(cells[5].textContent?.replace(/\s+/g, " ")).toBe("20 001,50 so'm")
+  expect(cells[6].textContent?.replace(/\s+/g, " ")).toBe("5 000 to'langan")
+  expect((await purchases()).closest('[data-slot="data-list"]')).toHaveClass("md:hidden")
+})
+
 test("another location is another list: the purchases of Asosiy are not Chilonzor's", async () => {
   seedWarehouse(seedCatalog())
   const chilonzor = addLocation(1, "Chilonzor")
