@@ -73,6 +73,7 @@ Sotuv lokatsiya qoldig'ini kamaytiradi: saqlashda, tahrirda farq bilan, o'chiris
 - **Boshlang'ich qarz / avans** `POST /app/customers/{id}/openings {kind: debt|prepay, amount, currency_id?, rate?, at, note?}`, `PUT/DELETE …/openings/{openingId}`: summa > 0 hujjat valyutasida; bir mijozga bir nechta bo'lishi mumkin.
 - **Hisob harakati** `GET /app/customers/{id}/statement?page=`: mijozning sotuvlari, narxli buyurtmalari (qatorda «Buyurtma · nomi», buyurtma sahifasiga havola; narxi 0 hujjat ko'rinmaydi), to'lovlari (buyurtmaniki «To'lov · nomi»), boshlang'ich qarz / avanslari vaqt bo'yicha, yangi birinchi, 20 tadan; qatorda vaqt, hujjat (tur, №, havola), summa valyutasida, so'mda, qarz o'zgarishi (+ / −), shu hujjatdan keyingi balans; o'z to'lovi va boshlang'ich qatorlarida tahrirlash / o'chirish.
 - Mijoz sahifasida (`sales.view` bo'lganga): balans kartasi («Qarz: N so'm» / «Avans: N so'm» / «Qarz yo'q», valyuta bo'yicha tafsilot), «Hisob harakati», «To'lov qo'shish», «Boshlang'ich qarz / avans». Mijozlar ro'yxatida «Qarz» ustuni (`Customer.balance`, `sales.view` siz `null` va ustun chizilmaydi).
+- **Bosh sahifadagi «Mijozlar qarzi»** (`GET /app/dashboard` da `debtors`; `customers.view` va `sales.view`): balansi (so'mda, yuqoridagi qoida) musbat jonli mijozlar balanslari yig'indisi va ularning soni; kompaniya bo'yicha, lokatsiyaga bog'liq emas.
 - Chakana sotuvning to'lovlari mijozsiz: akkauntga tushadi, hech kimning balansiga tegmaydi, mijoz sahifalarida ko'rinmaydi.
 
 ## 6. Lokatsiya bilan bog'liqlik
