@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test, vi } from "vitest"
 import { BackLink, PageTitle, PlusButton } from "./page-title"
@@ -29,23 +29,25 @@ test("a back link's chevron is decoration", () => {
   expect(screen.getByRole("link", { name: "Bosh sahifa" }).querySelector("svg")).toHaveAttribute("aria-hidden", "true")
 })
 
-test("the plus is the accent capsule: 56 by 42, its ends round", () => {
+test("the plus is the prototype's: a 36px accent circle on a phone, on the web the accent button with its name", () => {
   render(<PlusButton label="Mijoz qo'shish" onClick={() => {}} />)
   const plus = screen.getByRole("button", { name: "Mijoz qo'shish" })
-  expect(plus).toHaveClass("bg-primary", "text-primary-foreground", "h-[42px]", "w-14", "rounded-[21px]")
-  expect(plus).not.toHaveClass("size-11")
+  expect(plus).toHaveClass("size-9", "rounded-full", "bg-primary", "text-primary-foreground", "md:h-8", "md:w-auto", "md:rounded-md", "md:px-3")
+  expect(within(plus).getByText("Mijoz qo'shish")).toHaveClass("hidden", "md:inline")
 })
 
-test("a page's name is the prototype's large title: 28px, drawn a little tighter; 30px on a wide screen", () => {
-  render(<PageTitle title="Mijozlar" />)
-  expect(screen.getByRole("heading", { level: 1, name: "Mijozlar" })).toHaveClass("text-[28px]", "tracking-[-0.025em]", "md:text-[30px]")
+test("a page's name is the prototype's: a 32px bold title on a phone, 20px semibold on the web", () => {
+  render(<PageTitle title="Mijozlar" description="Kompaniyangiz mijozlari" />)
+  expect(screen.getByRole("heading", { level: 1, name: "Mijozlar" })).toHaveClass("text-[32px]", "font-bold", "md:text-[20px]", "md:font-semibold")
+  expect(screen.getByText("Kompaniyangiz mijozlari")).toHaveClass("text-md", "md:text-[13px]", "text-muted-foreground")
 })
 
-test("a page's title opens with the brand mark beside the name on a phone; on a wide screen the sidebar holds it", () => {
-  const { container } = render(<PageTitle title="Mijozlar" description="Kompaniyangiz mijozlari" />)
-  const mark = container.querySelector('[data-slot="page-title"] [data-slot="brand-mark"]')
-  expect(mark).toBeInTheDocument()
-  expect(mark).toHaveClass("md:hidden")
-  // The mark stands before the name and its line, at their left.
-  expect(mark?.nextElementSibling).toContainElement(screen.getByRole("heading", { level: 1, name: "Mijozlar" }))
+test("a page's title is the name alone, as the prototype's: no brand mark beside it", () => {
+  const { container } = render(<PageTitle title="Mijozlar" />)
+  expect(container.querySelector('[data-slot="brand-mark"]')).not.toBeInTheDocument()
+})
+
+test("the way back is the accent's words, hidden inside Telegram where its own Back button stands", () => {
+  render(<BackLink href="/" label="Bosh sahifa" />)
+  expect(screen.getByRole("link", { name: "Bosh sahifa" })).toHaveClass("text-accent-text", "[html[data-telegram]_&]:hidden")
 })
