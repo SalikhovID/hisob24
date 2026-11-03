@@ -3,6 +3,7 @@
 import { PencilIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
+import { DataTable } from "@/components/kit/data-table"
 import { Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
 import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
@@ -25,10 +26,9 @@ const back = { href: "/inventories", label: "Inventarizatsiya" }
 // 5.2), for whoever may see the stock documents (changing and deleting
 // each take their permission), as the prototype's page: its number over
 // its moment and who entered it; the actions at the title's right (editing,
-// deleting); its lines, each
-// product with what the journal expected and what was counted under its
-// name and the difference at its end (a surplus green, a shortage red);
-// its facts.
+// deleting); its lines (on the web a table), each product with what the
+// journal expected and what was counted and the difference (a surplus
+// green, a shortage red); its facts.
 export function InventoryPage({ id }: { id: number }) {
   const gate = usePermission("stock.view")
   const companyId = gate?.company.id ?? null
@@ -72,23 +72,33 @@ export function InventoryPage({ id }: { id: number }) {
         <SectionHeading hint={i.items.length}>
           <span id="inventory-lines">Mahsulotlar</span>
         </SectionHeading>
-        <Group label="Mahsulotlar" inset="icon">
-          {i.items.map((item) => (
-            <Row
-              key={item.product_id}
-              href={`/products/${item.product_id}`}
-              media={<Avatar name={item.name} square letter />}
-              title={item.name}
-              sub={`tizim ${formatQuantity(item.expected, item.unit)} · sanalgan ${formatQuantity(item.counted, item.unit)}`}
-              end={
-                <span className={cn("tabular-nums", item.difference.startsWith("-") && "text-destructive", Number(item.difference) > 0 && "text-positive")}>
-                  {signedQuantity(item.difference, item.unit)}
-                </span>
-              }
-              chevron={false}
-            />
-          ))}
-        </Group>
+        <DataTable
+          label="Mahsulotlar"
+          rows={i.items}
+          rowKey={(item) => item.product_id}
+          href={(item) => `/products/${item.product_id}`}
+          columns={[
+            { key: "name", label: "Mahsulot", render: (item) => item.name },
+            { key: "expected", label: "Tizimda", align: "end", render: (item) => formatQuantity(item.expected, item.unit) },
+            { key: "counted", label: "Sanalgan", align: "end", render: (item) => formatQuantity(item.counted, item.unit) },
+            { key: "difference", label: "Farq", align: "end", render: (item) => <Difference difference={item.difference} unit={item.unit} /> },
+          ]}
+          phone={
+            <Group label="Mahsulotlar" inset="icon">
+              {i.items.map((item) => (
+                <Row
+                  key={item.product_id}
+                  href={`/products/${item.product_id}`}
+                  media={<Avatar name={item.name} square letter />}
+                  title={item.name}
+                  sub={`tizim ${formatQuantity(item.expected, item.unit)} · sanalgan ${formatQuantity(item.counted, item.unit)}`}
+                  end={<Difference difference={item.difference} unit={item.unit} />}
+                  chevron={false}
+                />
+              ))}
+            </Group>
+          }
+        />
       </section>
       <section aria-label="Ma'lumot">
         <SectionHeading>Ma&apos;lumot</SectionHeading>
@@ -101,5 +111,15 @@ export function InventoryPage({ id }: { id: number }) {
         </Group>
       </section>
     </>
+  )
+}
+
+// Difference is what the count found against the journal, signed: a
+// surplus green, a shortage red, none plain.
+function Difference({ difference, unit }: { difference: string; unit: string | null }) {
+  return (
+    <span className={cn("tabular-nums", difference.startsWith("-") && "text-destructive", Number(difference) > 0 && "text-positive")}>
+      {signedQuantity(difference, unit)}
+    </span>
   )
 }
