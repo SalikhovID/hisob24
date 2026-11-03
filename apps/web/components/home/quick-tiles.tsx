@@ -1,54 +1,40 @@
 "use client"
 
-import { BanknoteIcon, ClipboardPlusIcon, PackagePlusIcon, ShoppingBagIcon, UserPlusIcon } from "lucide-react"
+import { ArrowDownLeftIcon, ClipboardPlusIcon, PackagePlusIcon, ShoppingCartIcon, UserPlusIcon } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog"
+import { ExpenseDialog } from "@/components/finance/expense-dialog"
 import { Tile, Tiles } from "@/components/kit/detail-head"
-import { SearchPickerSheet } from "@/components/kit/picker-sheet"
 import { NewOrder } from "@/components/orders/new-order"
-import { PaymentDialog } from "@/components/warehouse/payment-dialog"
-import { formatPhone } from "@/lib/phone"
-import {
-  dashboardKey,
-  useCustomerDropdowns,
-  useCustomerTypes,
-  useSupplierSuggestions,
-  useSuppliers,
-} from "@/lib/queries"
+import { dashboardKey, useCustomerDropdowns, useCustomerTypes } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
 
-type Open = null | "order" | "customer" | "payment"
+type Open = null | "order" | "customer" | "expense"
 
-// QuickTiles are the home's quick actions, as the prototype's tiles: the
-// first four of Buyurtma, Mijoz, Sotuv, Xarid and To'lov the member may use
-// (what goes into a location wants one). An order, a customer and a payment
-// are entered right on the home; a sale and a purchase are a page each.
-// To'lov picks the supplier among the active ones first. Whatever is
-// entered shows on the home at once: the dashboard is asked again as a
-// dialog closes.
+// QuickTiles are the home's quick actions, as the prototype's row of
+// tiles: Buyurtma, Sotuv, Xarid, Xarajat and Mijoz, those the member may
+// use (logic/roles.md, section 8; what goes into a location wants one). An
+// order, an expense and a customer are entered right on the home; a sale
+// and a purchase are a page each. Whatever is entered shows on the home at
+// once: the dashboard is asked again as a dialog closes.
 export function QuickTiles({ companyId, locationId, permissions }: { companyId: number; locationId: number | null; permissions: Permission[] }) {
   const can = (permission: Permission) => permissions.includes(permission)
   const queryClient = useQueryClient()
   const [open, setOpen] = useState<Open>(null)
-  const [supplierId, setSupplierId] = useState<number | null>(null)
   const located = locationId !== null
-  const payable = can("purchases.create") && can("suppliers.view")
   const tiles = [
     can("orders.create") && can("customers.view") && located && <Tile key="order" icon={ClipboardPlusIcon} label="Buyurtma" onClick={() => setOpen("order")} />,
+    can("sales.create") && located && <Tile key="sale" icon={ShoppingCartIcon} label="Sotuv" href="/sales/new" />,
+    can("purchases.create") && can("suppliers.view") && located && <Tile key="purchase" icon={PackagePlusIcon} label="Xarid" href="/purchases/new" />,
+    can("finance.create") && <Tile key="expense" icon={ArrowDownLeftIcon} label="Xarajat" onClick={() => setOpen("expense")} />,
     can("customers.create") && <Tile key="customer" icon={UserPlusIcon} label="Mijoz" onClick={() => setOpen("customer")} />,
-    can("sales.create") && located && <Tile key="sale" icon={ShoppingBagIcon} label="Sotuv" href="/sales/new" />,
-    payable && located && <Tile key="purchase" icon={PackagePlusIcon} label="Xarid" href="/purchases/new" />,
-    payable && <Tile key="payment" icon={BanknoteIcon} label="To'lov" onClick={() => setOpen("payment")} />,
-  ]
-    .filter(Boolean)
-    .slice(0, 4)
+  ].filter(Boolean)
   if (tiles.length === 0) return null
-  const refresh = () => queryClient.invalidateQueries({ queryKey: dashboardKey(companyId) })
   const close = () => {
     setOpen(null)
-    refresh()
+    queryClient.invalidateQueries({ queryKey: dashboardKey(companyId) })
   }
 
   return (
@@ -60,27 +46,8 @@ export function QuickTiles({ companyId, locationId, permissions }: { companyId: 
         <NewOrder companyId={companyId} locationId={locationId} canCreateCustomer={can("customers.create")} onClose={close} />
       )}
       {open === "customer" && <HomeAddCustomer companyId={companyId} onClose={close} />}
-      {open === "payment" && (
-        <SupplierPicker
-          companyId={companyId}
-          onClose={close}
-          onPick={(id) => {
-            setOpen(null)
-            setSupplierId(id)
-          }}
-        />
-      )}
-      {supplierId !== null && (
-        <PaymentDialog
-          companyId={companyId}
-          partyId={supplierId}
-          open
-          onOpenChange={(next) => {
-            if (next) return
-            setSupplierId(null)
-            refresh()
-          }}
-        />
+      {open === "expense" && (
+        <ExpenseDialog companyId={companyId} kind="expense" settingsAllowed={can("settings.view")} open onOpenChange={(next) => !next && close()} />
       )}
     </>
   )
@@ -98,29 +65,4 @@ function HomeAddCustomer({ companyId, onClose }: { companyId: number; onClose: (
   }, [unset, router])
   if (!types.data || !dropdowns.data || unset) return null
   return <AddCustomerDialog companyId={companyId} types={types.data} dropdowns={dropdowns.data} typeId={null} open onOpenChange={(next) => !next && onClose()} />
-}
-
-// SupplierPicker is the sheet the payment's supplier is picked in: the
-// active suppliers, or those a search finds.
-function SupplierPicker({ companyId, onPick, onClose }: { companyId: number; onPick: (id: number) => void; onClose: () => void }) {
-  const [query, setQuery] = useState("")
-  const active = useSuppliers(companyId, { status: "active", search: "", page: 1 })
-  const found = useSupplierSuggestions(query.trim() ? companyId : null, query)
-  const list = query.trim() ? found : active
-  const options = (list.data?.items ?? []).map((s) => ({ value: String(s.id), label: s.name, sub: s.phone ? formatPhone(s.phone) : undefined }))
-  return (
-    <SearchPickerSheet
-      open
-      onOpenChange={(next) => !next && onClose()}
-      title="Ta'minotchi"
-      placeholder="Ta'minotchini qidirish"
-      query={query}
-      onQuery={setQuery}
-      options={options}
-      value=""
-      onChange={(value) => onPick(Number(value))}
-      loading={list.isPending}
-      emptyText="Ta'minotchi topilmadi"
-    />
-  )
 }
