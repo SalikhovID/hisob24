@@ -25,5 +25,5 @@ test("the banner is a flat card: its words in the ink, the way in in the accent'
   expect(screen.getByRole("button", { name: "Yopish" })).toHaveClass("text-icon")
   const art = banner.querySelector("svg[data-slot='banner-art']")!
   expect(art.querySelectorAll("linearGradient")).toHaveLength(0)
-  expect(art.querySelector("rect")).toHaveClass("fill-brand")
+  expect(art.querySelector("rect")).toHaveClass("fill-brand-mark")
 })

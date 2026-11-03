@@ -42,6 +42,7 @@
     --color-foreground: var(--foreground);
     --color-background: var(--background);
     --color-brand: var(--brand);
+    --color-brand-mark: var(--brand-mark);
     --color-brand-panel: var(--brand-panel);
     --color-brand-panel-foreground: var(--brand-panel-foreground);
     /* The prototype's own tokens. */
@@ -170,9 +171,10 @@
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: 10px;
-    /* The logo's teal square, and the login's panel: the ink, with the
-       page's white on it. */
-    --brand: #174449;
+    /* The logo's words on a page: the ink; its H24 square: the teal of the
+       prototype. The login's panel: the ink, with the page's white on it. */
+    --brand: #17181b;
+    --brand-mark: #174449;
     --brand-panel: #17181b;
     --brand-panel-foreground: #ffffff;
     --sidebar: #f4f5f8;
@@ -288,7 +290,8 @@
     --scrim: rgba(0, 0, 0, 0.5);
     --skel: rgba(255, 255, 255, 0.07);
     --heading: #9d9da1;
-    --brand: #174449;
+    --brand: #ececee;
+    --brand-mark: #174449;
     --brand-panel: #ececee;
     --brand-panel-foreground: #1a1a1d;
     --sidebar: #111113;

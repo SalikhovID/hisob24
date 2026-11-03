@@ -8,7 +8,7 @@ function BannerArt() {
   return (
     <svg data-slot="banner-art" viewBox="0 0 140 112" aria-hidden="true" className="pointer-events-none absolute right-1.5 -bottom-1.5 h-[104px] w-[130px]">
       <g transform="rotate(-12 80 64)">
-        <rect x="40" y="26" width="80" height="80" rx="20" className="fill-brand" />
+        <rect x="40" y="26" width="80" height="80" rx="20" className="fill-brand-mark" />
         <text x="79" y="80" textAnchor="middle" fontFamily="-apple-system, Inter, system-ui, sans-serif" fontSize="38" fontWeight="800" fontStyle="italic" letterSpacing="-2" fill="#fff">
           24
         </text>

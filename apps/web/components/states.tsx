@@ -142,7 +142,7 @@ export function Splash({ children }: { children: ReactNode }) {
       <span
         role="img"
         aria-label="Hisob24"
-        className="grid size-[72px] place-items-center rounded-[20px] bg-brand text-[26px] font-extrabold tracking-[-0.05em] text-white italic motion-safe:animate-[pulse-mark_1.4s_ease-in-out_infinite]"
+        className="grid size-[72px] place-items-center rounded-[20px] bg-brand-mark text-[26px] font-extrabold tracking-[-0.05em] text-white italic motion-safe:animate-[pulse-mark_1.4s_ease-in-out_infinite]"
       >
         H24
       </span>

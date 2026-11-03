@@ -39,7 +39,14 @@ test("on a phone the light theme is the prototype's grouped list: an iOS grey pa
   expect(root).toContain("--warning: #b45309")
   expect(root).toContain("--switch-on: #34c759")
   expect(root).toContain("--scrim: rgba(10, 12, 16, 0.24)")
-  expect(root).toContain("--brand: #174449")
+  expect(root).toContain("--brand-mark: #174449")
+})
+
+test("the logo's words are in the ink, white in the dark; its H24 square is the teal of the prototype in either theme", () => {
+  expect(block(":root {")).toContain("--brand: #17181b")
+  expect(block(".dark {")).toContain("--brand: #ececee")
+  expect(block(".dark {")).toContain("--brand-mark: #174449")
+  expect(block("@theme inline {")).toContain("--color-brand-mark: var(--brand-mark)")
 })
 
 test("on a wide screen the light theme is the prototype's web: a white page, ringed cards, the plain fills", () => {

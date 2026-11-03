@@ -110,7 +110,7 @@ test("the splash's mark is Hisob24's, for a screen reader too", () => {
 test("the splash's mark is the brand's flat teal square with the white H24", () => {
   render(<Splash>Telegram orqali kirilmoqda</Splash>)
   const mark = screen.getByRole("img", { name: "Hisob24" })
-  expect(mark).toHaveClass("bg-brand", "text-white")
+  expect(mark).toHaveClass("bg-brand-mark", "text-white")
   expect(mark.className).not.toContain("--brand-fill")
 })
 
