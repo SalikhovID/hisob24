@@ -14,26 +14,26 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
 
-test("a product is turned off from its page's tile, and the tile says which", async () => {
+test("a product is turned off from its page's action, and the action says which", async () => {
   const { olma } = seedCatalog()
   await signIn(ALI)
   const { user } = renderWithProviders(<ActiveButton companyId={1} product={toProduct(olma)} />)
 
-  const tile = screen.getByRole("button", { name: "Nofaol qilish" })
-  expect(tile).toHaveAttribute("data-slot", "tile")
-  await user.click(tile)
+  const action = screen.getByRole("button", { name: "Nofaol qilish" })
+  expect(action).toHaveAttribute("data-slot", "page-action")
+  await user.click(action)
 
   await waitFor(() => expect(db.products.find((p) => p.id === olma.id)?.active).toBe(false))
   expect(await screen.findByText("Mahsulot nofaol qilindi")).toBeInTheDocument()
 })
 
-test("an inactive product's tile turns it on", async () => {
+test("an inactive product's action turns it on", async () => {
   const { olma } = seedCatalog()
   olma.active = false
   await signIn(ALI)
   renderWithProviders(<ActiveButton companyId={1} product={toProduct(olma)} />)
 
-  expect(screen.getByRole("button", { name: "Faollashtirish" })).toHaveAttribute("data-slot", "tile")
+  expect(screen.getByRole("button", { name: "Faollashtirish" })).toHaveAttribute("data-slot", "page-action")
 })
 
 test("the list's sheet turns an inactive service on with the same hook", async () => {

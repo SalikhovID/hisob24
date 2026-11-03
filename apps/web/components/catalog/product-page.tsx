@@ -3,10 +3,8 @@
 import { PackagePlusIcon, PencilIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Avatar } from "@/components/kit/avatar"
-import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
 import { Group, KeyValue, SectionHeading } from "@/components/kit/group"
-import { Hero } from "@/components/kit/hero"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
@@ -34,11 +32,11 @@ const backTo = (kind: ProductKind) =>
 
 // ProductPage is one product of the company (logic/products.md, section 6),
 // for whoever may see the products (changing, turning off and deleting each
-// take their permission), as the prototype's page: its letter, name, unit
-// and SKU, its sale price large, the tiles (editing, a purchase of it,
-// turning it off), its stock in each location of the member, its facts,
-// the purchases it is in and its moves (each with its permission), and at
-// the foot the way to delete it.
+// take their permission), as the prototype's page: its name over its unit
+// and SKU (and «Nofaol» when off), the actions at the title's right
+// (editing, a purchase of it, turning it off), its stock in each location
+// of the member, its facts, the purchases it is in and its moves (each with
+// its permission), and at the foot the way to delete it.
 export function ProductPage({ id }: { id: number }) {
   const gate = usePermission("products.view")
   const companyId = gate?.company.id ?? null
@@ -77,23 +75,28 @@ export function ProductPage({ id }: { id: number }) {
   // A purchase of the product is entered into the current location, by
   // whoever may add purchases and find the suppliers; not of an inactive one.
   const canBuy = isProduct && p.is_active && allowed("purchases.create") && allowed("suppliers.view") && location.current !== null
-  const tiles = [
-    allowed("products.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />,
-    canBuy && <Tile key="buy" icon={PackagePlusIcon} label="Xarid" href={`/purchases/new?product=${p.id}`} />,
+  const actions = [
+    allowed("products.edit") && <PageAction key="edit" icon={PencilIcon} label="Tahrirlash" onClick={() => setEditing(true)} />,
+    canBuy && <PageAction key="buy" icon={PackagePlusIcon} label="Xarid" href={`/purchases/new?product=${p.id}`} />,
     allowed("products.edit") && <ActiveButton key="active" companyId={companyId} product={p} />,
   ].filter(Boolean)
+  const line = isProduct ? [p.unit && unitLabel(p.unit), p.sku].filter(Boolean).join(" · ") : "Xizmat"
 
   return (
     <>
-      <BackLink {...back} />
-      <DetailHead
-        media={<Avatar name={p.name} square letter size="lg" />}
+      <PageTitle
+        back={back}
         title={p.name}
-        description={isProduct ? [p.unit && unitLabel(p.unit), p.sku].filter(Boolean).join(" · ") || undefined : "Xizmat"}
-        badges={!p.is_active && <Badge>Nofaol</Badge>}
+        description={
+          (line || !p.is_active) && (
+            <>
+              {line && <span>{line}</span>}
+              {!p.is_active && <Badge className="ml-2 align-middle">Nofaol</Badge>}
+            </>
+          )
+        }
+        action={actions.length > 0 && <PageActions>{actions}</PageActions>}
       />
-      {p.price && <Hero plain label="Sotuv narxi" value={p.price} unit={currency.symbol} className="-mt-3 pt-0 pb-5" />}
-      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       {/* The stock in every location of the member, the current one marked. */}
       {isProduct && <ProductStock stock={p.stock} unit={p.unit} currentId={location.current?.id ?? null} />}
       <section aria-label="Ma'lumot">

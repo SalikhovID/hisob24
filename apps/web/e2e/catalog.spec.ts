@@ -55,9 +55,9 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   await expect(page).toHaveURL(new RegExp(`/products/${olma.id}$`))
   await expect(page.getByRole("heading", { level: 1, name: "Olma" })).toBeVisible()
   await expect(page.getByText("kg · OL-1")).toBeVisible()
-  // The sale price stands large under the head, and among the facts.
-  await expect(page.locator("[data-slot=hero]")).toContainText(/Sotuv narxi\s*12\s000\s*so'm/)
+  // The sale price is among the facts; the actions stand by the title.
   await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText(/^12\s000 so'm$/)).toBeVisible()
+  await expect(page.getByRole("group", { name: "Amallar" })).toContainText("Nofaol qilish")
   // Nothing bought yet: the stock of the location is 0, the last price none.
   await expect(page.getByRole("region", { name: "Qoldiq" }).getByText("0 kg")).toBeVisible()
   await expect(page.getByText("Bu mahsulot hali xarid qilinmagan")).toBeVisible()

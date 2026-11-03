@@ -44,13 +44,10 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(await screen.findByRole("heading", { level: 1, name: "Olma" })).toBeInTheDocument()
   expect(screen.getByText("kg · OL-1")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("href", "/products")
-  // The sale price stands large under the head.
-  const price = document.querySelector("[data-slot=hero]")!
-  expect(price.textContent?.replace(/\s+/g, " ")).toBe("Sotuv narxi 12 000 so'm")
-  // What may be done with it are the tiles; a purchase of it is entered from here.
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "Xarid", "Nofaol qilish"])
-  expect(within(tiles).getByRole("link", { name: "Xarid" })).toHaveAttribute("href", `/purchases/new?product=${olma.id}`)
+  // What may be done with it are the page's actions; a purchase of it is entered from here.
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Xarid", "Nofaol qilish"])
+  expect(within(actions).getByRole("link", { name: "Xarid" })).toHaveAttribute("href", `/purchases/new?product=${olma.id}`)
   expect(facts()).toEqual({
     Birlik: "kg",
     Narx: "12 000 so'm",
@@ -106,10 +103,9 @@ test("an inactive product says so and offers to turn it on; what it lacks is a d
 
   expect(await screen.findByRole("heading", { level: 1, name: "Eski mahsulot" })).toBeInTheDocument()
   expect(screen.getByText("Nofaol")).toBeInTheDocument()
-  // Nothing is bought of an inactive product; with no price there is no figure.
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "Faollashtirish"])
-  expect(screen.queryByText("Sotuv narxi")).not.toBeInTheDocument()
+  // Nothing is bought of an inactive product.
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Faollashtirish"])
   expect(facts()).toMatchObject({ Narx: "—", "Oxirgi xarid narxi": "—", Artikul: "—", Izoh: "—" })
   expect(stock()).toEqual({ "Asosiy Joriy": "0 dona" })
   expect(await screen.findByText("Bu mahsulot hali xarid qilinmagan")).toBeInTheDocument()
@@ -183,4 +179,17 @@ test("an edit or a switch on the page keeps the stock on screen (the answer carr
   await user.click(screen.getByRole("button", { name: "Nofaol qilish" }))
   expect(await screen.findByRole("button", { name: "Faollashtirish" })).toBeInTheDocument()
   expect(stock()).toEqual({ "Asosiy Joriy": "12,5 kg" })
+})
+
+test("the product's page is headed by its name, its actions at the title's right: Tahrirlash, Xarid, Nofaol qilish; the way to delete stays at the foot", async () => {
+  const { olma } = seedCatalog()
+  await signIn(ALI)
+  renderWithProviders(<ProductPage id={olma.id} />)
+
+  const actions = await screen.findByRole("group", { name: "Amallar" })
+  expect(actions).toHaveAttribute("data-slot", "page-actions")
+  expect(actions.closest('[data-slot="page-title"]')).not.toBeNull()
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Xarid", "Nofaol qilish"])
+  expect(screen.getByRole("button", { name: "Mahsulotni o'chirish" }).closest('[data-slot="page-actions"]')).toBeNull()
+  expect(document.querySelector('[data-slot="detail-head"]')).toBeNull()
 })

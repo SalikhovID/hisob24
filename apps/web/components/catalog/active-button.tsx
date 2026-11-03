@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { EyeIcon, EyeOffIcon } from "lucide-react"
 import { toast } from "sonner"
-import { Tile } from "@/components/kit/detail-head"
+import { PageAction } from "@/components/kit/page-actions"
 import { api, call } from "@/lib/api"
 import { nounOf } from "@/lib/catalog"
 import { productKey, productsKey } from "@/lib/queries"
@@ -29,12 +29,12 @@ export function useProductActive(companyId: number) {
   })
 }
 
-// ActiveButton is the tile on a product's page that turns it off, or on
+// ActiveButton is the action on a product's page that turns it off, or on
 // again.
 export function ActiveButton({ companyId, product }: { companyId: number; product: Product }) {
   const toggle = useProductActive(companyId)
   return (
-    <Tile
+    <PageAction
       icon={product.is_active ? EyeOffIcon : EyeIcon}
       label={product.is_active ? "Nofaol qilish" : "Faollashtirish"}
       disabled={toggle.isPending}
