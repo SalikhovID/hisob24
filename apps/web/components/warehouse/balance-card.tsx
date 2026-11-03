@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import { Hero } from "@/components/kit/hero"
 import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
 import { formatMoney } from "@/lib/format"
-import type { BalanceLine } from "@/lib/types"
+import type { BalanceLine, CompanyCurrency } from "@/lib/types"
 import { balanceText } from "@/lib/warehouse"
 
 // BalanceCard is what a party owes or is owed, on their page, as the
@@ -12,11 +12,12 @@ import { balanceText } from "@/lib/warehouse"
 // customer's (logic/sales.md, section 5) balance in so'm, «Qarz» in red
 // when they owe us, «Avans» in green when we owe them, «Qarz yo'q» when
 // even; what of it is in each currency is said under it when any is not in
-// so'm; children (the supplier's totals as BalanceChips) stand under it.
+// so'm (breakdown); children (the supplier's totals as BalanceChips) stand
+// under it.
 export function BalanceCard({ balance, byCurrency, children }: { balance: string; byCurrency: BalanceLine[] | null; children?: ReactNode }) {
   const currencies = useCurrencies()
   const { kind } = balanceText(balance)
-  const lines = (byCurrency ?? []).some((l) => l.currency_id !== UZS) ? (byCurrency ?? []).map((l) => formatMoney(l.amount, currencyOf(currencies, l.currency_id))).join(", ") : null
+  const lines = breakdown(byCurrency ?? [], currencies)
   return (
     <section aria-label="Balans" className="mb-4">
       <Hero
@@ -31,6 +32,19 @@ export function BalanceCard({ balance, byCurrency, children }: { balance: string
       {children && <div className="flex flex-wrap justify-center gap-2">{children}</div>}
     </section>
   )
+}
+
+// breakdown says what of a balance is in each currency in words, without
+// signs: what is owed, then what is paid ahead («qarz 88 000 so'm, avans
+// 15 $»); a currency even is left out; null when nothing but the so'm is
+// left.
+function breakdown(lines: BalanceLine[], currencies: readonly CompanyCurrency[]): string | null {
+  const left = lines.filter((l) => Number(l.amount) !== 0)
+  if (!left.some((l) => l.currency_id !== UZS)) return null
+  const said = (some: BalanceLine[]) => some.map((l) => formatMoney(l.amount.replace("-", ""), currencyOf(currencies, l.currency_id))).join(", ")
+  const owed = left.filter((l) => Number(l.amount) > 0)
+  const ahead = left.filter((l) => Number(l.amount) < 0)
+  return [owed.length > 0 ? `qarz ${said(owed)}` : null, ahead.length > 0 ? `avans ${said(ahead)}` : null].filter(Boolean).join(", ")
 }
 
 // BalanceChip is one of the totals under a balance (the supplier's

@@ -1,8 +1,8 @@
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI } from "@/mocks/data"
+import { ALI, db, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { BalanceCard, BalanceChip } from "./balance-card"
 
 // hero is the balance's figure as it reads: its label, then the amount.
@@ -35,6 +35,41 @@ test("what of it is in another currency is said under it; the totals stand besid
 
   const chip = within(screen.getByRole("region", { name: "Balans" })).getByText("Jami xaridlar").closest("[data-slot=balance-chip]") as HTMLElement
   expect(read(chip)).toBe("Jami xaridlar 20 001,50 so'm")
+})
+
+test("what of it is in each currency is said in words, without signs: what is owed, then what is paid ahead; a currency even is left out", async () => {
+  db.currencies[2] = [1, 2, 3, 4]
+  await signIn(VALI)
+  await chooseCompany(2)
+  // The symbols come with the session: what is said is read once they are known.
+  const breakdown = () => screen.getByText(/^shu jumladan/).textContent?.replace(/\s+/g, " ")
+
+  const customer = renderWithProviders(<BalanceCard balance="-104000.00" byCurrency={[{ currency_id: 1, amount: "88000.00" }, { currency_id: 2, amount: "-15.00" }]} />)
+  await waitFor(() => expect(breakdown()).toBe("shu jumladan qarz 88 000 so'm, avans 15 $"))
+  customer.unmount()
+
+  renderWithProviders(
+    <BalanceCard
+      balance="4119952.00"
+      byCurrency={[
+        { currency_id: 1, amount: "1090000.00" },
+        { currency_id: 2, amount: "346.09" },
+        { currency_id: 3, amount: "-100.00" },
+        { currency_id: 4, amount: "0.00" },
+      ]}
+    />,
+  )
+  await waitFor(() => expect(breakdown()).toBe("shu jumladan qarz 1 090 000 so'm, 346,09 $, avans 100 €"))
+})
+
+test("a currency other than the so'm left even says nothing under the balance", async () => {
+  db.currencies[2] = [1, 2]
+  await signIn(VALI)
+  await chooseCompany(2)
+  renderWithProviders(<BalanceCard balance="-20000.00" byCurrency={[{ currency_id: 2, amount: "0.00" }]} />)
+
+  expect(await screen.findByText("Avans")).toBeInTheDocument()
+  expect(screen.queryByText(/shu jumladan/)).not.toBeInTheDocument()
 })
 
 test("a total's chip is a small card of frosted glass", () => {
