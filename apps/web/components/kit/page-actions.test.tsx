@@ -58,3 +58,14 @@ test("the actions are a group named «Amallar», as the record pages' tiles were
 
   expect(within(screen.getByRole("group", { name: "Amallar" })).getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
 })
+
+test("on a phone an action that is its icon alone on the web is a whole tile like the others, its name under its icon", () => {
+  render(
+    <PageActions>
+      <PageAction label="Tahrirlash" icon={PencilIcon} />
+      <PageAction label="O'chirish" icon={Trash2Icon} variant="danger" iconOnly />
+    </PageActions>,
+  )
+
+  expect(screen.getByRole("button", { name: "O'chirish" })).toHaveClass("max-md:w-auto")
+})

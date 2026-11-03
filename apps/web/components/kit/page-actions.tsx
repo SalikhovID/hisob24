@@ -30,7 +30,7 @@ const variants = { primary: "default", secondary: "secondary", ghost: "ghost", d
 
 // The phone's tile: a card with the icon in an accent circle over the name.
 const tile =
-  "max-md:h-auto max-md:min-h-[68px] max-md:flex-col max-md:gap-1.5 max-md:rounded-group max-md:bg-card max-md:px-0.5 max-md:pt-3 max-md:pb-2.5 max-md:text-[12px] max-md:font-medium max-md:text-foreground max-md:shadow-(--group-ring) max-md:hover:bg-card"
+  "max-md:h-auto max-md:w-auto max-md:min-h-[68px] max-md:flex-col max-md:gap-1.5 max-md:rounded-group max-md:bg-card max-md:px-0.5 max-md:pt-3 max-md:pb-2.5 max-md:text-[12px] max-md:font-medium max-md:text-foreground max-md:shadow-(--group-ring) max-md:hover:bg-card"
 
 // PageAction is one of them, named in full. On the web it is the
 // prototype's button, its icon and its name (or the icon alone: a trash);
