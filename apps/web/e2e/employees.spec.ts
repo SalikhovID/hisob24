@@ -121,7 +121,12 @@ test("an employee taken out while signed in is out at the next page", async ({ p
 
   // The owner takes them out of their only company.
   db.members["998907778899"] = []
-  await page.reload()
+  // The next page: a reload, unless a request of the home's in flight was
+  // refused first and the app is already on its way out (the reload is then
+  // cut short by that navigation). Either way they end up at the login.
+  await page.reload().catch((error: Error) => {
+    if (!/ERR_ABORTED|frame was detached/.test(error.message)) throw error
+  })
 
   await expect(page).toHaveURL(/\/login$/)
 })
