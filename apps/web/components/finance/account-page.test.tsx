@@ -44,15 +44,15 @@ const statementDays = () =>
     .map((list) => list.getAttribute("aria-label"))
 const said = (row: HTMLElement) => [rowParts(row).title, rowParts(row).sub?.replace(/\s+/g, " ") ?? null, rowParts(row).end?.replace(/\s+/g, " ") ?? null]
 
-test("the account page, as the prototype's: what it holds large under its name, the tiles that enter a document into it, its statement in rows, the way to the cash", async () => {
+test("the account page, as the prototype's: what it holds under its name, the actions that enter a document into it, its statement in rows, the way to the cash", async () => {
   const { cash } = await books()
   renderWithProviders(<AccountPage id={cash} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Naqd" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Kassa" })).toHaveAttribute("href", "/accounts")
-  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Naqd 617 000 so'm UZS")
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Xarajat", "Kirim", "O'tkazma", "Yana"])
+  expect(screen.getByText("Qoldiq: 617 000 so'm")).toBeInTheDocument()
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Xarajat", "Kirim", "O'tkazma", "Yana"])
 
   // The statement: every document that named the account, the newest first,
   // by its day; its time and other side under its name, how it changed what
@@ -98,7 +98,7 @@ test("a cash document's sheet: the opening balance is edited and deleted there, 
   expect(await screen.findByRole("alertdialog", { name: "Hujjatni o'chirasizmi?" })).toBeInTheDocument()
 })
 
-test("the tiles open the sheets that enter a document into the account; «Yana» has the conversion and the opening balance", async () => {
+test("the actions open the sheets that enter a document into the account; «Yana» has the conversion and the opening balance", async () => {
   const { cash } = await books()
   const { user } = renderWithProviders(<AccountPage id={cash} />)
   const tiles = await screen.findByRole("group", { name: "Amallar" })
@@ -140,7 +140,8 @@ test("an inactive account says so; nothing is entered into it (the forms do not 
   renderWithProviders(<AccountPage id={kassa2.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Kassa 2" })).toBeInTheDocument()
-  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Kassa 2 100 000 so'm UZS Nofaol")
+  expect(screen.getByText("Qoldiq: 100 000 so'm")).toBeInTheDocument()
+  expect(screen.getByText("Nofaol")).toBeInTheDocument()
   expect(screen.queryByRole("group", { name: "Amallar" })).not.toBeInTheDocument()
   expect((await statementRows()).map(said)).toEqual([["O'tkazma № 1", "09:00 · Naqd", "+100 000 qoldiq 100 000"]])
 })
@@ -150,7 +151,7 @@ test("the card: in dollars, what arrived by the conversion, from the cash", asyn
   renderWithProviders(<AccountPage id={card.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Karta" })).toBeInTheDocument()
-  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Karta 10 $ USD")
+  expect(screen.getByText("Qoldiq: 10 $")).toBeInTheDocument()
   expect((await statementRows()).map(said)).toEqual([["Konvertatsiya № 1", "09:00 · Naqd", "+10 qoldiq 10"]])
 })
 
@@ -185,4 +186,18 @@ test("a payment for an order reads «To'lov · № N» and leads to the order", 
   const [advance] = await within(statement).findAllByRole("link")
   expect(rowParts(advance).title).toBe("To'lov · № 5")
   expect(advance).toHaveAttribute("href", `/orders/${order.id}`)
+})
+
+test("the account's page is headed as the prototype's: its name over «Qoldiq: N»; the actions that enter a document into it at the title's right", async () => {
+  const { cash } = await books()
+  renderWithProviders(<AccountPage id={cash} />)
+
+  const title = (await screen.findByRole("heading", { level: 1, name: "Naqd" })).closest<HTMLElement>('[data-slot="page-title"]')
+  expect(title).not.toBeNull()
+  if (!title) return
+  expect(within(title).getByText("Qoldiq: 617 000 so'm")).toBeInTheDocument()
+  const actions = within(title).getByRole("group", { name: "Amallar" })
+  expect(actions).toHaveAttribute("data-slot", "page-actions")
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Xarajat", "Kirim", "O'tkazma", "Yana"])
+  expect(document.querySelector("[data-slot=hero]")).toBeNull()
 })

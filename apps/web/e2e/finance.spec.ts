@@ -28,7 +28,8 @@ test("the owner keeps the cash: an opening balance, an expense under its categor
   // The cash's page: what it held when the books began (under «Yana»).
   await accounts.getByRole("link", { name: "Naqd" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Naqd" })).toBeVisible()
-  const balance = page.locator("[data-slot=hero]")
+  // What it holds is told under its name; its actions stand by the name.
+  const balance = page.getByText(/^Qoldiq: /)
   const tiles = page.getByRole("group", { name: "Amallar" })
   await tiles.getByRole("button", { name: "Yana" }).click()
   await page.getByRole("menuitem", { name: "Boshlang'ich qoldiq" }).click()

@@ -3,12 +3,12 @@
 import { ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, EllipsisIcon } from "lucide-react"
 import { useState } from "react"
 import { ActionSheet } from "@/components/kit/action-sheet"
-import { Tile, Tiles } from "@/components/kit/detail-head"
-import { Hero } from "@/components/kit/hero"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { Badge } from "@/components/ui/badge"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
+import { formatMoney } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { useAccountBalances } from "@/lib/queries"
 import type { Permission } from "@/lib/types"
@@ -26,11 +26,11 @@ type Entering = "expense" | "income" | "transfer" | "conversion" | "opening"
 
 // AccountPage is one account of the company (logic/finance.md, section 4),
 // for whoever may see the finance, as the prototype's page: its name over
-// what it holds (in its currency, its code under it, and whether it is
-// turned off); the tiles that enter a cash document into it (an expense, an
-// income, a transfer, and under «Yana» a conversion and an opening balance)
-// for whoever may add them, while it is active (the forms do not offer an
-// inactive one); its statement.
+// what it holds («Qoldiq: N», in its currency, and whether it is turned
+// off); the actions at the title's right that enter a cash document into it
+// (an expense, an income, a transfer, and under «Yana» a conversion and an
+// opening balance) for whoever may add them, while it is active (the forms
+// do not offer an inactive one); its statement.
 export function AccountPage({ id }: { id: number }) {
   const gate = usePermission("finance.view")
   const companyId = gate?.company.id ?? null
@@ -65,33 +65,26 @@ export function AccountPage({ id }: { id: number }) {
 
   return (
     <>
-      <BackLink {...back} />
-      <Hero
-        heading
-        label={account.name}
-        value={account.balance}
-        unit={currency.symbol}
-        badges={
+      <PageTitle
+        back={back}
+        title={account.name}
+        description={
           <>
-            <span className="font-medium text-muted-foreground">{currency.code}</span>
-            {!account.is_active && (
-              <>
-                {" "}
-                <Badge>Nofaol</Badge>
-              </>
-            )}
+            <span>Qoldiq: {formatMoney(account.balance, currency)}</span>
+            {!account.is_active && <Badge className="ml-2 align-middle">Nofaol</Badge>}
           </>
         }
-        className="pt-2"
+        action={
+          adding && (
+            <PageActions>
+              <PageAction icon={ArrowUpRightIcon} label="Xarajat" onClick={() => setEntering("expense")} />
+              <PageAction icon={ArrowDownLeftIcon} label="Kirim" onClick={() => setEntering("income")} />
+              <PageAction icon={ArrowLeftRightIcon} label="O'tkazma" onClick={() => setEntering("transfer")} />
+              <PageAction icon={EllipsisIcon} label="Yana" onClick={() => setMore(true)} />
+            </PageActions>
+          )
+        }
       />
-      {adding && (
-        <Tiles>
-          <Tile icon={ArrowUpRightIcon} label="Xarajat" onClick={() => setEntering("expense")} />
-          <Tile icon={ArrowDownLeftIcon} label="Kirim" onClick={() => setEntering("income")} />
-          <Tile icon={ArrowLeftRightIcon} label="O'tkazma" onClick={() => setEntering("transfer")} />
-          <Tile icon={EllipsisIcon} label="Yana" onClick={() => setMore(true)} />
-        </Tiles>
-      )}
       <AccountStatementList companyId={companyId} account={account} currency={currency} canEdit={allowed("finance.edit")} canDelete={allowed("finance.delete")} />
       <ActionSheet
         open={more}
