@@ -4,51 +4,45 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { type CSSProperties, useLayoutEffect, useRef, useState } from "react"
 import { pageIcons, tabIcons } from "@/components/kit/tab-icons"
-import { barPages, currentPin, isMenuPath } from "@/lib/nav"
+import { barPages, currentPin } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { moveTo } from "@/lib/moves"
 
-// A tab is 72px wide, narrower on a phone too narrow for five (a 360px or
-// a 320px screen keeps 12px either side).
-const TAB = "min(72px, calc((100vw - 24px) / 5))"
-
-// A button is the page's mark over its name: grey, the current one in the
-// text's ink, its mark drawn bolder.
+// A button is the page's icon (24px) over its name (10px), sharing the bar
+// alike: the ink, the current one the accent's words, its icon drawn bolder.
 const tab =
-  "relative z-[2] flex h-14 w-(--tab) flex-col items-center justify-center gap-1 rounded-[28px] text-[11px] tracking-[-0.01em] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-[25px] aria-[current=page]:[&_svg]:stroke-[2.2]"
+  "relative z-[2] flex min-w-0 flex-1 flex-col items-center justify-center gap-px rounded-[26px] pt-[7px] pb-1.5 text-[10px] font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-6 [&_svg]:stroke-[1.6] aria-[current=page]:[&_svg]:stroke-2"
 
-// A button's name is 11px times the names' scale and keeps 4px clear of
-// the button's edges either side. On a bar too narrow for the names at 11px
-// (a 360px or a 320px phone, a larger text size) they are all set smaller
-// together, down to 8.5px; there a name may take its button's whole width,
-// and one longer still ends in an ellipsis.
+// A button's name is 10px times the names' scale and keeps 4px clear of
+// the button's edges either side. On a bar too narrow for the names at 10px
+// (a 320px phone, a larger text size) they are all set smaller together,
+// down to 8.5px; there a name may take its button's whole width, and one
+// longer still ends in an ellipsis.
 const tabName = "max-w-full truncate"
-const tabNameSize = { fontSize: "calc(11px * var(--name-k))" }
+const tabNameSize = { fontSize: "calc(10px * var(--name-k))" }
 const NAME_CLEAR = 8
-const NAME_LEAST = 8.5 / 11
+const NAME_LEAST = 8.5 / 10
 
 const SettingsMark = tabIcons.settings
 
-// TabBar is the prototype's floating frosted pill (its frost and lens are
-// globals.css's) along the bottom of a narrow screen (a phone, the Telegram
-// Mini App), where the sidebar is hidden: four pages of the member's own
-// choice (logic/roles.md, section 8; the default bar without one), each an
-// outline icon over its name, and «Sozlamalar» last, always: the settings
-// page, which lists every page and leads to the choice of the bar's pages.
-// A lens of glass stands under the page's button and slides to the next;
-// on a page the bar does not hold it stands under «Sozlamalar».
-// The bar shows on the menu's pages (a hub's pages too: they may stand in
-// it); inside one (a record, a form, the profile) it steps down out of the
-// way, and the page leads back. It keeps clear of the phone's home
-// indicator and of Telegram's own bottom edge.
+// TabBar is the prototype's floating frosted pill (its frost and capsule
+// are globals.css's) along the bottom of a narrow screen (a phone, the
+// Telegram Mini App), where the sidebar is hidden: 16px off the screen's
+// sides, 28px off its foot (and the phone's home indicator, and Telegram's
+// own bottom edge). Four pages of the member's own choice (logic/roles.md,
+// section 8; the default bar without one), each an icon over its name, and
+// «Sozlama» last, always: the settings page, which lists the other pages
+// and the settings. A grey capsule stands under the page's button (on a
+// record or a form, under the page it lies under) and slides to the next;
+// on a page the bar does not hold it stands under «Sozlama». The bar is on
+// every page, as the prototype's.
 export function TabBar() {
   const me = useMe()
   const pathname = usePathname()
   const pins = barPages(me.data?.permissions, me.data?.tab_bar)
   const pinned = currentPin(pins, pathname)
   const current = pinned < 0 ? pins.length : pinned
-  const hidden = !isMenuPath(pathname)
   const names = pins.map((page) => page.label).join("|")
   const ref = useRef<HTMLElement>(null)
   const [nameScale, setNameScale] = useState(1)
@@ -96,21 +90,15 @@ export function TabBar() {
     <nav
         ref={ref}
         aria-label="Bo'limlar"
-        aria-hidden={hidden || undefined}
-        inert={hidden}
         data-slot="tab-bar"
-        data-hidden={hidden || undefined}
-        style={{ "--i": String(current), "--tab": TAB, "--name-k": String(nameScale) } as CSSProperties}
-        className={cn(
-          "fixed bottom-[calc(22px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] left-1/2 z-20 flex h-16 -translate-x-1/2 rounded-[32px] p-1 shadow-(--tb-shadow) transition-[translate,opacity] duration-[380ms] ease-drawer select-none md:hidden",
-          hidden && "pointer-events-none translate-y-[140%] opacity-0",
-        )}
+        style={{ "--i": String(current), "--n": String(pins.length + 1), "--name-k": String(nameScale) } as CSSProperties}
+        className="fixed inset-x-4 bottom-[calc(28px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))] z-20 flex rounded-4xl p-1 shadow-(--tab-bar-shadow) select-none md:hidden"
       >
         <span
           aria-hidden="true"
           data-slot="tab-lens"
-          className="absolute top-1 left-1 z-[1] h-14 rounded-[28px] transition-[translate,opacity] duration-[450ms] ease-spring"
-          style={{ width: "var(--tab)", translate: "calc(var(--i) * var(--tab)) 0" }}
+          className="absolute top-1 bottom-1 left-1 z-[1] rounded-[26px] transition-[translate] duration-[400ms] ease-out-expo"
+          style={{ width: "calc((100% - 8px) / var(--n))", translate: "calc(var(--i) * 100%) 0" }}
         />
         {pins.map((page, index) => {
           const on = index === pinned
@@ -122,7 +110,7 @@ export function TabBar() {
               // A page from the bar is switched to at once (lib/moves.ts).
               onClick={() => moveTo(undefined)}
               aria-current={on ? "page" : undefined}
-              className={cn(tab, on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}
+              className={cn(tab, on ? "text-accent-text" : "text-foreground")}
             >
               <Icon />
               <span data-slot="tab-name" className={tabName} style={tabNameSize}>
@@ -136,11 +124,11 @@ export function TabBar() {
           // The settings are switched to at once, as a page from the bar.
           onClick={() => moveTo(undefined)}
           aria-current={pinned < 0 ? "page" : undefined}
-          className={cn(tab, pinned < 0 ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}
+          className={cn(tab, pinned < 0 ? "text-accent-text" : "text-foreground")}
         >
           <SettingsMark />
           <span data-slot="tab-name" className={tabName} style={tabNameSize}>
-            Sozlamalar
+            Sozlama
           </span>
         </Link>
     </nav>

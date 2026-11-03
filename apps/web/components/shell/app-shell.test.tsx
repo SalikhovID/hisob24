@@ -92,7 +92,7 @@ test("a session that fails to load says why and can be asked for again", async (
   expect(await screen.findByText("Sahifa mazmuni")).toBeInTheDocument()
 })
 
-test("the tab bar names the member's pages under the page and «Sozlamalar», for a phone; there is no menu button", async () => {
+test("the tab bar names the member's pages under the page and «Sozlama», for a phone; there is no menu button", async () => {
   await signIn(ALI)
   renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
@@ -101,13 +101,13 @@ test("the tab bar names the member's pages under the page and «Sozlamalar», fo
   const bars = screen.getAllByRole("navigation", { name: "Bo'limlar" })
   expect(bars).toHaveLength(2)
   const tabBar = bars[1]
-  // The member's four pages, then «Sozlamalar», the way to the rest.
-  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
+  // The member's four pages, then «Sozlama», the way to the rest.
+  expect(within(tabBar).getAllByRole("link").map((link) => link.textContent)).toEqual(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlama"])
   expect(screen.getByRole("main").compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Menyu" })).not.toBeInTheDocument()
 })
 
-test("the page keeps room for the tab bar on the menu's pages, a hub's pages too; a record keeps the safe area alone", async () => {
+test("the page keeps room for the tab bar on every page, a record's too: the bar is always there", async () => {
   await signIn(ALI)
   setLocation("/purchases")
   const first = renderWithProviders(<AppShell>{page}</AppShell>)
@@ -118,8 +118,8 @@ test("the page keeps room for the tab bar on the menu's pages, a hub's pages too
   setLocation("/purchases/3")
   renderWithProviders(<AppShell>{page}</AppShell>)
   await screen.findByText("Sahifa mazmuni")
-  expect(screen.getByRole("main")).toHaveClass("pb-safe-6")
-  expect(screen.getByRole("main")).not.toHaveClass("pb-bar")
+  expect(screen.getByRole("main")).toHaveClass("pb-bar")
+  expect(screen.getByRole("main")).not.toHaveClass("pb-safe-6")
 })
 
 test("the page column is the page's plain background", async () => {

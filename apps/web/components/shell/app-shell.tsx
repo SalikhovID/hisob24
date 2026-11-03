@@ -1,11 +1,10 @@
 "use client"
 
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { type ReactNode, useEffect, useState } from "react"
 import { BackTargetProvider } from "@/components/kit/back-target"
 import { Failed, Loading } from "@/components/states"
 import { subscriptionExpired } from "@/lib/api"
-import { isMenuPath } from "@/lib/nav"
 import { useMe } from "@/lib/queries"
 import { useSidebar } from "@/lib/use-sidebar"
 import { cn } from "@/lib/utils"
@@ -30,7 +29,6 @@ import { TopBar } from "./top-bar"
 // height in the scrolling column.
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
-  const pathname = usePathname()
   const me = useMe()
   const sidebar = useSidebar()
   const away = subscriptionExpired(me.error) ? "/expired" : me.data?.company === null ? "/select-company" : null
@@ -51,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 4)}
             className={cn(
               "flex min-w-0 flex-1 flex-col overflow-y-auto bg-background px-4 pt-safe-2 md:px-[max(24px,calc((100%-1080px)/2))] md:pt-5 md:pb-10 [&>*]:shrink-0",
-              isMenuPath(pathname) ? "pb-bar" : "pb-safe-6",
+              "pb-bar",
             )}
           >
             {me.isPending ? (

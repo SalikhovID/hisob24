@@ -24,9 +24,9 @@ vi.mock("next/link", () => ({
 }))
 
 const bar = () => screen.getByRole("navigation", { name: "Bo'limlar" })
-// settings is «Sozlamalar», the bar's last button: the way to every page.
-const settings = () => within(bar()).getByRole("link", { name: "Sozlamalar" })
-// tabs is the member's pages in the bar, [name, address], before «Sozlamalar».
+// settings is «Sozlama», the bar's last button: the way to every page.
+const settings = () => within(bar()).getByRole("link", { name: "Sozlama", exact: true })
+// tabs is the member's pages in the bar, [name, address], before «Sozlama».
 const tabs = () =>
   within(bar())
     .getAllByRole("link")
@@ -35,7 +35,7 @@ const tabs = () =>
 // lens is the place of the glass under the current button, in buttons.
 const lens = () => bar().style.getPropertyValue("--i")
 
-test("the owner's bar is the default four pages, the page marked, and «Sozlamalar» last, the way to the settings page", async () => {
+test("the owner's bar is the default four pages, the page marked, and «Sozlama» last, the way to the settings page", async () => {
   await signIn(ALI)
   setLocation("/customers")
   renderWithProviders(<TabBar />)
@@ -55,7 +55,7 @@ test("the owner's bar is the default four pages, the page marked, and «Sozlamal
   expect(within(bar()).getAllByRole("link").at(-1)).toBe(settings())
 })
 
-test("on a page the bar does not hold «Sozlamalar» is marked, and the bar stays", async () => {
+test("on a page the bar does not hold «Sozlama» is marked, and the bar stays", async () => {
   await signIn(ALI)
   setLocation("/services")
   renderWithProviders(<TabBar />)
@@ -67,7 +67,7 @@ test("on a page the bar does not hold «Sozlamalar» is marked, and the bar stay
   expect(lens()).toBe("4")
 })
 
-test("on a page of a hub the bar shows: the warehouse marked when the bar holds it, «Sozlamalar» on the settings' pages", async () => {
+test("on a page of a hub the bar shows: the warehouse marked when the bar holds it, «Sozlama» on the settings' pages", async () => {
   db.members[ALI][0].tabBar = ["home", "warehouse"]
   await signIn(ALI)
   setLocation("/transfers")
@@ -81,14 +81,14 @@ test("on a page of a hub the bar shows: the warehouse marked when the bar holds 
   expect(settings()).toHaveAttribute("aria-current", "page")
 })
 
-test("inside a section (a record, a form, the profile) the bar steps away", async () => {
+test("the bar stays on a record, a form and the profile too, as the prototype's: on a record the page it lies under is marked", async () => {
   await signIn(ALI)
   setLocation("/customers/7")
-  const { container, queryClient } = renderWithProviders(<TabBar />)
+  const { container } = renderWithProviders(<TabBar />)
 
-  await waitFor(() => expect(queryClient.isFetching()).toBe(0))
-  expect(screen.queryByRole("navigation", { name: "Bo'limlar" })).not.toBeInTheDocument()
-  expect(container.querySelector('[data-slot="tab-bar"]')).toHaveAttribute("data-hidden", "true")
+  expect(await within(bar()).findByRole("link", { name: "Mijozlar" })).toHaveAttribute("aria-current", "page")
+  expect(container.querySelector('[data-slot="tab-bar"]')).not.toHaveAttribute("data-hidden")
+  expect(bar()).not.toHaveAttribute("inert")
 })
 
 test("an employee with a role sees the sections the role lets them view", async () => {
@@ -137,7 +137,7 @@ test("a section from the bar is switched to at once: a move taken before it, whi
   expect(moved()).toBeUndefined()
 })
 
-test("«Sozlamalar» is switched to at once, as a page from the bar", async () => {
+test("«Sozlama» is switched to at once, as a page from the bar", async () => {
   await signIn(ALI)
   setLocation("/customers")
   const { user } = renderWithProviders(<TabBar />)
@@ -149,22 +149,23 @@ test("«Sozlamalar» is switched to at once, as a page from the bar", async () =
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
 })
 
-test("the bar is the prototype's frosted pill: its own shadow (its frost is the styles'), the names grey and the current one in the text's ink", async () => {
+test("the bar is the prototype's frosted pill: 16px off the screen's sides, 28px off its foot, its own shadow; the names the ink, the current one the accent's words in a grey capsule", async () => {
   await signIn(ALI)
   setLocation("/customers")
   renderWithProviders(<TabBar />)
 
   await within(bar()).findByRole("link", { name: "Mahsulotlar" })
   expect(bar()).toHaveAttribute("data-slot", "tab-bar")
-  expect(bar()).toHaveClass("shadow-(--tb-shadow)")
+  expect(bar()).toHaveClass("inset-x-4", "bottom-[calc(28px+max(env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px)))]", "rounded-4xl", "shadow-(--tab-bar-shadow)")
   expect(bar().className).not.toMatch(/backdrop-/)
   const current = within(bar()).getByRole("link", { name: "Mijozlar" })
   const other = within(bar()).getByRole("link", { name: "Buyurtmalar" })
-  expect(current).toHaveClass("text-foreground", "font-semibold")
-  expect(other).toHaveClass("text-muted-foreground", "font-medium")
-  expect(other).not.toHaveClass("text-foreground")
-  // The marks are 25px, the current one drawn bolder; the names 11px.
-  expect(other).toHaveClass("text-[11px]", "[&_svg]:size-[25px]", "aria-[current=page]:[&_svg]:stroke-[2.2]")
+  expect(current).toHaveClass("text-accent-text")
+  expect(other).toHaveClass("text-foreground", "font-medium")
+  expect(other).not.toHaveClass("text-accent-text")
+  // The icons are 24px, the current one drawn bolder (2 against 1.6).
+  expect(other).toHaveClass("flex-1", "[&_svg]:size-6", "[&_svg]:stroke-[1.6]", "aria-[current=page]:[&_svg]:stroke-2")
+  expect(settings().querySelector("svg")).toHaveClass("lucide-settings")
 })
 
 // layout stands in for the browser's layout, which jsdom lacks: each button
@@ -184,22 +185,22 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-// The default bar's names as wide as Geist sets them at 11px, the current one bolder.
-const NAMES = { "Bosh sahifa": 62, Mijozlar: 41, Buyurtmalar: 45, Mahsulotlar: 62, Sozlamalar: 58 }
+// The default bar's names as wide as the font sets them at 10px.
+const NAMES = { "Bosh sahifa": 56, Mijozlar: 37, Buyurtmalar: 41, Mahsulotlar: 56, Sozlama: 41 }
 const names = () => [...bar().querySelectorAll<HTMLElement>('[data-slot="tab-name"]')]
 const nameScale = () => Number(bar().style.getPropertyValue("--name-k"))
 
-test("the names keep 4px clear of their buttons' edges: on a bar too narrow for them they are all set a little smaller, together; a roomy bar keeps them at 11px", async () => {
+test("the names keep 4px clear of their buttons' edges: on a bar too narrow for them they are all set a little smaller, together; a roomy bar keeps them at 10px", async () => {
   await signIn(ALI)
   setLocation("/customers")
-  // A 320px phone's buttons are 59px: 51px for a name, and the widest is 62px.
-  const size = layout({ button: 59, names: NAMES })
+  // A 320px phone's buttons are 57px: 49px for a name, and the widest is 56px.
+  const size = layout({ button: 57, names: NAMES })
   const first = renderWithProviders(<TabBar />)
   await within(bar()).findByRole("link", { name: "Mahsulotlar" })
 
-  await waitFor(() => expect(nameScale()).toBeCloseTo(51 / 62, 3))
+  await waitFor(() => expect(nameScale()).toBeCloseTo(49 / 56, 3))
   expect(names()).toHaveLength(5)
-  for (const name of names()) expect(name.style.fontSize).toBe("calc(11px * var(--name-k))")
+  for (const name of names()) expect(name.style.fontSize).toBe("calc(10px * var(--name-k))")
   first.unmount()
 
   size.button = 72
@@ -216,7 +217,7 @@ test("the names are set no smaller than 8.5px: there a name may take its button'
   renderWithProviders(<TabBar />)
   const long = await within(bar()).findByRole("link", { name: "Inventarizatsiya" })
 
-  await waitFor(() => expect(nameScale()).toBeCloseTo(8.5 / 11, 3))
+  await waitFor(() => expect(nameScale()).toBeCloseTo(8.5 / 10, 3))
   expect(long.querySelector('[data-slot="tab-name"]')).toHaveClass("max-w-full", "truncate")
 })
 
@@ -244,8 +245,8 @@ test("the names are fitted again when the bar's width changes: a phone turned, a
   await within(bar()).findByRole("link", { name: "Mahsulotlar" })
   await waitFor(() => expect(nameScale()).toBe(1))
 
-  size.button = 59
+  size.button = 57
   Observed.last.resized()
-  expect(nameScale()).toBeCloseTo(51 / 62, 3)
+  expect(nameScale()).toBeCloseTo(49 / 56, 3)
 })
 
