@@ -72,3 +72,18 @@ test("with no records the empty state stands instead of both", () => {
   expect(screen.queryByRole("list")).not.toBeInTheDocument()
   expect(screen.getByText("Hozircha bo'sh")).toBeInTheDocument()
 })
+
+test("a page may draw the phone's records its own way (in groups): the table stays the web's", () => {
+  render(
+    <DataTable
+      label="Buyurtmalar"
+      rows={customers}
+      rowKey={(row) => row.id}
+      columns={[{ key: "name", label: "Mijoz", render: (row) => row.name }]}
+      phone={<p>Guruhlangan qatorlar</p>}
+    />,
+  )
+  expect(screen.getByRole("table", { name: "Buyurtmalar" })).toBeInTheDocument()
+  expect(screen.queryByRole("list")).not.toBeInTheDocument()
+  expect(screen.getByText("Guruhlangan qatorlar").closest('[data-slot="data-list"]')).toHaveClass("md:hidden")
+})

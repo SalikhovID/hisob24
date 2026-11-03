@@ -34,13 +34,15 @@ export interface MobileRow {
 // the grouped rows of the mini app. Both are drawn, one hidden by the
 // screen's width, and both are named for the records. A record with a way
 // in (href) leads there: from the table's first cell, a link, and from a
-// press anywhere on its row; from the phone's row, which is a link.
+// press anywhere on its row; from the phone's row, which is a link. A page
+// may draw the phone's records its own way (phone: in groups, say).
 export function DataTable<T>({
   label,
   rows,
   rowKey,
   columns,
   mobileRow,
+  phone,
   href,
   onRow,
   empty,
@@ -49,7 +51,8 @@ export function DataTable<T>({
   rows: T[]
   rowKey: (row: T) => string | number
   columns: Column<T>[]
-  mobileRow: (row: T) => MobileRow
+  mobileRow?: (row: T) => MobileRow
+  phone?: ReactNode
   href?: (row: T) => string
   onRow?: (row: T) => void
   empty?: ReactNode
@@ -131,24 +134,26 @@ export function DataTable<T>({
         </table>
       </div>
       <div data-slot="data-list" className="md:hidden">
-        <Group label={label}>
-          {rows.map((row) => {
-            const item = mobileRow(row)
-            return (
-              <Row
-                key={rowKey(row)}
-                href={href?.(row)}
-                onClick={!href && onRow ? () => onRow(row) : undefined}
-                media={item.lead}
-                title={item.title}
-                badge={item.badge}
-                sub={item.sub}
-                end={item.end}
-                endSub={item.endSub}
-              />
-            )
-          })}
-        </Group>
+        {phone ?? (
+          <Group label={label}>
+            {rows.map((row) => {
+              const item = mobileRow?.(row) ?? { title: "" }
+              return (
+                <Row
+                  key={rowKey(row)}
+                  href={href?.(row)}
+                  onClick={!href && onRow ? () => onRow(row) : undefined}
+                  media={item.lead}
+                  title={item.title}
+                  badge={item.badge}
+                  sub={item.sub}
+                  end={item.end}
+                  endSub={item.endSub}
+                />
+              )
+            })}
+          </Group>
+        )}
       </div>
     </>
   )
