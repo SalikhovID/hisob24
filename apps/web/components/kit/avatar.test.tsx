@@ -4,13 +4,19 @@ import { Avatar } from "./avatar"
 
 const avatar = (container: HTMLElement) => container.querySelector('[data-slot="avatar"]') as HTMLElement
 
-test("an avatar shows the initials dark on a plain grey, the same for everyone (the prototype's), and is decoration", () => {
-  const { container } = render(<Avatar name="Ali Valiyev" />)
+test("an avatar is the prototype's: the name's first letter, white on the name's own color, 32px (30px on the web), and is decoration", () => {
+  const { container } = render(<Avatar name="Nodira Karimova" />)
   const mark = avatar(container)
-  expect(mark).toHaveTextContent("AV")
+  expect(mark).toHaveTextContent(/^N$/)
   expect(mark).toHaveAttribute("aria-hidden", "true")
-  expect(mark).not.toHaveAttribute("data-tone")
-  expect(mark).toHaveClass("bg-(--av-bg)", "text-(--av-ink)", "font-bold")
+  expect(mark.style.background).toBe("rgb(196, 122, 158)")
+  expect(mark).toHaveClass("size-8", "md:size-[30px]", "text-white", "font-semibold")
+})
+
+test("a muted avatar (someone no longer active) is grey, its letter in the hint's ink", () => {
+  const { container } = render(<Avatar name="Nodira Karimova" muted />)
+  expect(avatar(container)).toHaveClass("bg-muted", "text-muted-foreground")
+  expect(avatar(container).style.background).toBe("")
 })
 
 test("a record with a letter mark shows its first letter alone; one with no name shows an icon, muted", () => {
