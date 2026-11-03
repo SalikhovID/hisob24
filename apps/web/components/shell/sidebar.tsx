@@ -1,19 +1,33 @@
 "use client"
 
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, LogOutIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
 import { BrandMark } from "@/components/kit/brand-mark"
 import { tabIcons } from "@/components/kit/tab-icons"
 import { Logo } from "@/components/logo"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { isCurrentItem, type NavItem, navFor } from "@/lib/nav"
+import { formatDayMonth } from "@/lib/format"
+import { isCurrent, isCurrentItem, type NavItem, navFor } from "@/lib/nav"
+import { can } from "@/lib/permissions"
 import { formatPhone } from "@/lib/phone"
-import { useMe } from "@/lib/queries"
+import { useLogout, useMe } from "@/lib/queries"
 import { roleLabels } from "@/lib/roles"
+import { useMiniApp } from "@/lib/telegram"
+import type { Permission } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { LocationSwitcher } from "./location-switcher"
 import { moveTo } from "@/lib/moves"
 
 export interface SidebarProps {
@@ -23,16 +37,19 @@ export interface SidebarProps {
 }
 
 // Sidebar is the app's sections on a wide screen, as the prototype's web
-// view: a floating card of frosted glass 16px off the screen's edges,
-// headed by the brand mark, Hisob24's logo and the company's name under it;
-// the sections each an outline icon and its name (the page's one the glossy
-// accent); at the foot the location switch and who is signed in, a card of
-// the plain fill, the way to the profile. Each member sees the sections
-// their permissions open (the owner all of them), in the default order. It
-// folds to icons, headed by the mark alone. On a narrow screen it is hidden
-// and the sections are the tab bar's.
+// view: a pane at the screen's left edge in the pale grey, a hairline at its
+// right. At its head the brand (the H24 square and Hisob24's logo) and the
+// fold button; under it the company with who is signed in and their role,
+// the way to the profile; then the sections, each a 32px row of its icon
+// and name (the page's one white and ringed, its icon in the accent), the
+// current section's own pages under it; at its foot till when the
+// subscription runs and the way out, which asks first (in a browser; inside
+// Telegram closing the Mini App is the way out). Each member sees the
+// sections their permissions open, in the default order. It folds to icons.
+// On a narrow screen it is hidden and the sections are the tab bar's.
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const me = useMe()
+  const miniApp = useMiniApp()
   const company = me.data?.company
   // The sections the member may open (logic/roles.md, section 8).
   const items = navFor(me.data?.permissions)
@@ -41,90 +58,112 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const role = company ? (company.role === "owner" ? roleLabels.owner : (company.role_name ?? roleLabels.user)) : null
 
   return (
-    <div className="hidden shrink-0 p-4 pt-safe-4 md:flex">
+    <div className="hidden shrink-0 md:flex">
       <aside
         aria-label="Menyu"
         className={cn(
-          "flex flex-col rounded-[30px] surface pt-[22px] pb-3.5 text-foreground transition-[width] duration-300 ease-out-expo",
-          collapsed ? "w-16 px-2" : "w-[264px] px-3.5",
+          "flex flex-col overflow-y-auto border-r border-border bg-sidebar pt-safe-3.5 pb-3.5 text-foreground transition-[width] duration-300 ease-out-expo scrollbar-hide",
+          collapsed ? "w-16 px-2" : "w-[224px] px-2.5",
         )}
       >
-        <div className={cn("flex shrink-0 items-center justify-between gap-2 pb-7", !collapsed && "pl-2.5")}>
+        <div className={cn("flex shrink-0 items-center justify-between gap-2 pb-3.5", !collapsed && "pl-2")}>
           {collapsed ? (
             <button
               type="button"
               aria-label="Menyuni yoyish"
               onClick={onToggleCollapsed}
-              className="group relative mx-auto grid place-items-center rounded-[12px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="group relative mx-auto grid size-8 place-items-center rounded-md outline-none hover:bg-ink-1 focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <BrandMark className="transition-opacity group-hover:opacity-0" />
-              <ChevronRightIcon strokeWidth={2.5} className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100" />
+              <ChevronRightIcon strokeWidth={2} className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100" />
             </button>
           ) : (
             <>
-              <div className="flex min-w-0 items-center gap-3">
+              <div className="flex min-w-0 items-center gap-2">
                 <BrandMark />
-                <div className="min-w-0">
-                  <Logo className="h-[17px]" />
-                  <p className="h-5 truncate text-[0.8125rem] leading-5 font-medium text-muted-foreground">{company?.name}</p>
-                </div>
+                <Logo className="h-[15px]" />
               </div>
               <button
                 type="button"
                 aria-label="Menyuni yig'ish"
                 onClick={onToggleCollapsed}
-                className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="grid size-7 shrink-0 place-items-center rounded-md text-icon outline-none hover:bg-ink-1 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <ChevronLeftIcon strokeWidth={2.5} className="size-4" />
+                <ChevronLeftIcon strokeWidth={2} className="size-4" />
               </button>
             </>
           )}
         </div>
-        <SidebarNav items={items} collapsed={collapsed} />
         {company && name && user && (
-          <div className="flex shrink-0 flex-col gap-2 pt-2">
-            {!collapsed && <LocationSwitcher className="self-start" />}
-            <Link
-              href="/profile"
-              aria-label={collapsed ? `Profil: ${name}` : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded-[20px] bg-muted px-3.5 py-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                collapsed && "justify-center px-0 py-2",
-              )}
-            >
-              <Avatar name={user.full_name} />
-              {!collapsed && (
-                <span className="min-w-0">
-                  <b className="block truncate text-md leading-tight font-semibold">{name}</b>{" "}
-                  <small className="block truncate text-xs text-muted-foreground">{role}</small>
-                </span>
-              )}
-            </Link>
-          </div>
+          <Link
+            href="/profile"
+            aria-label={collapsed ? `Profil: ${name}` : undefined}
+            className={cn(
+              "mb-3 flex items-center gap-2.5 rounded-lg p-2 text-left no-underline outline-none hover:bg-ink-1 focus-visible:ring-3 focus-visible:ring-ring/50",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <Avatar name={user.full_name ?? company.name} className="size-7 text-[12px] md:size-7 md:text-[12px]" />
+            {!collapsed && (
+              <span className="grid min-w-0 gap-px leading-[1.3]">
+                <b className="truncate text-[13px] font-semibold">{company.name}</b>{" "}
+                <small className="truncate text-[12px] text-muted-foreground">{`${name} · ${role}`}</small>
+              </span>
+            )}
+          </Link>
         )}
+        <SidebarNav items={items} permissions={me.data?.permissions} collapsed={collapsed} />
+        <SidebarFoot endDate={company?.end_date} collapsed={collapsed} browser={!miniApp} />
       </aside>
     </div>
   )
 }
 
-// SidebarNav lists the sections.
-function SidebarNav({ items, collapsed }: { items: NavItem[]; collapsed: boolean }) {
+// SidebarNav lists the sections; the current one's own pages stand under it.
+function SidebarNav({ items, permissions, collapsed }: { items: NavItem[]; permissions: readonly Permission[] | undefined; collapsed: boolean }) {
   const pathname = usePathname()
   return (
     <TooltipProvider>
-      <nav aria-label="Bo'limlar" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto scrollbar-hide">
-        {items.map((item) => (
-          <SidebarLink key={item.key} item={item} current={isCurrentItem(item, pathname)} collapsed={collapsed} />
-        ))}
+      <nav aria-label="Bo'limlar" className="grid content-start gap-px">
+        {items.map((item) => {
+          const current = isCurrentItem(item, pathname)
+          const tabs = (item.tabs ?? []).filter((tab) => can(permissions, tab.permission))
+          return (
+            <div key={item.key}>
+              <SidebarLink item={item} current={current} collapsed={collapsed} />
+              {current && !collapsed && tabs.length > 1 && (
+                <div className="mt-0.5 mb-1.5 ml-9 grid gap-px">
+                  {tabs.map((tab) => {
+                    const here = isCurrent(tab.href, pathname)
+                    return (
+                      <Link
+                        key={tab.href}
+                        href={tab.href}
+                        onClick={() => moveTo(undefined)}
+                        data-slot="side-subitem"
+                        aria-current={here ? "page" : undefined}
+                        className={cn(
+                          "flex h-7 items-center rounded-md px-2.5 text-[12.5px] no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                          here ? "bg-primary-soft font-medium text-accent-text" : "text-muted-foreground hover:bg-ink-1 hover:text-foreground",
+                        )}
+                      >
+                        {tab.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </nav>
     </TooltipProvider>
   )
 }
 
-// SidebarLink is one section, its outline icon and name in the heading's
-// ink; the one the page belongs to is the glossy accent. Folded, it is the
-// icon alone: the name stays for screen readers and shows beside it on
-// hover.
+// SidebarLink is one section, its icon and name; the one the page belongs
+// to stands white and ringed, its icon in the accent. Folded, it is the icon
+// alone: the name stays for screen readers and shows beside it on hover.
 function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boolean; collapsed: boolean }) {
   const Icon = tabIcons[item.key]
   const link = (
@@ -132,15 +171,16 @@ function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boo
       href={item.href}
       // A section is switched to at once (lib/moves.ts).
       onClick={() => moveTo(undefined)}
+      data-slot="side-item"
       aria-current={current ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={cn(
-        "flex min-h-12 items-center gap-3.5 rounded-2xl px-4 text-[16px] font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
-        current ? "bg-primary text-primary-foreground" : "text-heading hover:bg-muted [&_svg]:text-muted-foreground",
+        "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-foreground no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        current ? "bg-card font-medium shadow-[var(--card-shadow),0_0_0_1px_var(--border)] [&_svg]:text-primary" : "hover:bg-ink-1 [&_svg]:text-icon",
         collapsed && "justify-center px-0",
       )}
     >
-      <Icon className="size-[22px] shrink-0" />
+      <Icon className="size-4 shrink-0" />
       {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
     </Link>
   )
@@ -152,5 +192,47 @@ function SidebarLink({ item, current, collapsed }: { item: NavItem; current: boo
         {item.label}
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+// SidebarFoot says till when the subscription runs and holds the way out
+// (in a browser), which asks first.
+function SidebarFoot({ endDate, collapsed, browser }: { endDate: string | undefined; collapsed: boolean; browser: boolean }) {
+  const logout = useLogout()
+  const [leaving, setLeaving] = useState(false)
+  return (
+    <div className="mt-auto grid gap-1 pt-3.5">
+      {endDate && !collapsed && <span className="px-2.5 text-[12px] text-muted-foreground">{`Obuna ${formatDayMonth(endDate)} gacha faol`}</span>}
+      {browser && (
+        <>
+          <button
+            type="button"
+            aria-label={collapsed ? "Chiqish" : undefined}
+            onClick={() => setLeaving(true)}
+            className={cn(
+              "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-foreground outline-none hover:bg-ink-1 focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:text-icon",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <LogOutIcon aria-hidden="true" strokeWidth={1.75} className="size-4 shrink-0" />
+            {!collapsed && <span>Chiqish</span>}
+          </button>
+          <AlertDialog open={leaving} onOpenChange={setLeaving}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tizimdan chiqasizmi?</AlertDialogTitle>
+                <AlertDialogDescription>Qayta kirish uchun raqamingizga kod keladi.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+                <Button variant="destructive" disabled={logout.isPending} onClick={() => logout.mutate()}>
+                  Chiqish
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
+    </div>
   )
 }

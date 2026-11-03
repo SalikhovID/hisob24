@@ -21,7 +21,7 @@ test("a session with a company gets its page, framed by the sections; the way to
   expect(screen.getByRole("main")).toContainElement(screen.getByText("Sahifa mazmuni"))
   const sidebar = screen.getByRole("complementary", { name: "Menyu" })
   expect(within(sidebar).getByRole("link", { name: "Xodimlar" })).toBeInTheDocument()
-  expect(within(sidebar).getByRole("link", { name: "Ali Valiyev Egasi" })).toHaveAttribute("href", "/profile")
+  expect(within(sidebar).getByRole("link", { name: "Olma Savdo Ali Valiyev · Egasi" })).toHaveAttribute("href", "/profile")
 })
 
 test("on a wide screen a top bar stands over the page's column, beside the sidebar; on a phone the page heads the screen itself", async () => {

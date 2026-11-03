@@ -34,6 +34,7 @@ const sidebar = () => screen.getByRole("complementary", { name: "Menyu" })
 const sections = (within_: HTMLElement = sidebar()) =>
   within(within(within_).getByRole("navigation", { name: "Bo'limlar" }))
     .getAllByRole("link")
+    .filter((link) => link.dataset.slot === "side-item")
     .map((link) => link.textContent)
 
 test("the owner sees every section, under the company's name", async () => {
@@ -137,19 +138,20 @@ test("folded, the sidebar is headed by the logo's mark, inside the button that u
 })
 
 
-test("the sidebar ends with who is signed in: a way to the profile", async () => {
+test("under the brand the company stands with who is signed in and their role: a way to the profile", async () => {
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
 
-  expect(await within(sidebar()).findByRole("link", { name: "Ali Valiyev Egasi" })).toHaveAttribute("href", "/profile")
+  expect(await within(sidebar()).findByRole("link", { name: "Olma Savdo Ali Valiyev · Egasi" })).toHaveAttribute("href", "/profile")
 })
 
-test("with two locations the sidebar holds the switch between them", async () => {
+test("the location switch is the top bar's: the sidebar holds none", async () => {
   addLocation(1, "Chilonzor")
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
 
-  expect(await within(sidebar()).findByRole("button", { name: "Lokatsiya: Asosiy" })).toBeInTheDocument()
+  await within(sidebar()).findByRole("link", { name: "Xodimlar" })
+  expect(within(sidebar()).queryByRole("button", { name: /^Lokatsiya/ })).not.toBeInTheDocument()
 })
 
 test("folded, the way to the profile is the avatar, named for screen readers", async () => {
@@ -169,24 +171,23 @@ test("a section from the sidebar is switched to at once: a move taken before it,
   expect(moved()).toBeUndefined()
 })
 
-test("the sidebar is the prototype's floating card of frosted glass: 30px round, 264px wide (64 folded), 16px off the screen's edges", async () => {
+test("the sidebar is the prototype's pane at the screen's left edge: 224px (64 folded), the pale grey, a hairline at its right", async () => {
   await signIn(ALI)
   const first = renderWithProviders(<Sidebar {...props()} />)
 
-  expect(sidebar()).toHaveClass("surface", "rounded-[30px]", "w-[264px]")
-  expect(sidebar()).not.toHaveClass("border-r-[0.5px]")
-  expect(sidebar().parentElement).toHaveClass("hidden", "md:flex", "p-4")
+  expect(sidebar()).toHaveClass("w-[224px]", "bg-sidebar", "border-r", "border-border")
+  expect(sidebar().parentElement).toHaveClass("hidden", "md:flex")
   first.unmount()
 
   renderWithProviders(<Sidebar {...props({ collapsed: true })} />)
   expect(sidebar()).toHaveClass("w-16")
 })
 
-test("the sidebar keeps clear of what lies over the top of the screen itself, as the shell no longer does", async () => {
+test("the sidebar keeps clear of what lies over the top of the screen itself", async () => {
   await signIn(ALI)
   renderWithProviders(<Sidebar {...props()} />)
 
-  expect(sidebar().parentElement).toHaveClass("pt-safe-4")
+  expect(sidebar()).toHaveClass("pt-safe-3.5")
 })
 
 test("the sidebar is headed by the brand mark before Hisob24's logo", async () => {
@@ -199,22 +200,38 @@ test("the sidebar is headed by the brand mark before Hisob24's logo", async () =
   expect(mark!.compareDocumentPosition(logo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
-test("the current section is the accent, the others the heading's ink; a section is 48px tall, 16px round", async () => {
+test("a section is the prototype's 32px row; the current one stands white and ringed, its icon in the accent", async () => {
   await signIn(ALI)
   setLocation("/employees")
   renderWithProviders(<Sidebar {...props()} />)
 
   const current = await within(sidebar()).findByRole("link", { name: "Xodimlar" })
   const other = within(sidebar()).getByRole("link", { name: "Buyurtmalar" })
-  expect(current).toHaveClass("bg-primary", "text-primary-foreground", "min-h-12", "rounded-2xl")
-  expect(current).not.toHaveClass("text-heading")
-  expect(other).toHaveClass("text-heading", "hover:bg-muted")
-  expect(other).not.toHaveClass("bg-primary")
+  expect(current).toHaveClass("h-8", "rounded-lg", "bg-card", "shadow-[var(--card-shadow),0_0_0_1px_var(--border)]", "[&_svg]:text-primary")
+  expect(other).toHaveClass("h-8", "hover:bg-ink-1", "[&_svg]:text-icon")
+  expect(other).not.toHaveClass("bg-card")
 })
 
-test("who is signed in is a card at the sidebar's foot: the plain fill, 20px round", async () => {
+test("the current section with pages of its own lists them under it, the page's one in the accent's tint", async () => {
   await signIn(ALI)
+  setLocation("/services")
   renderWithProviders(<Sidebar {...props()} />)
 
-  expect(await within(sidebar()).findByRole("link", { name: "Ali Valiyev Egasi" })).toHaveClass("bg-muted", "rounded-[20px]")
+  const nav = within(await within(sidebar()).findByRole("navigation", { name: "Bo'limlar" }))
+  const services = await nav.findByRole("link", { name: "Xizmatlar" })
+  expect(services).toHaveAttribute("href", "/services")
+  expect(services).toHaveAttribute("aria-current", "page")
+  expect(services).toHaveClass("bg-primary-soft", "text-accent-text")
+  expect(nav.getByRole("link", { name: "Mahsulotlar", current: false })).toHaveAttribute("data-slot", "side-subitem")
+  // Another section's pages stay folded.
+  expect(nav.queryByRole("link", { name: "Kassa" })).not.toBeInTheDocument()
+})
+
+test("at its foot the sidebar says till when the subscription runs and offers the way out, which asks first", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Sidebar {...props()} />)
+
+  expect(await within(sidebar()).findByText(/^Obuna .+ gacha faol$/)).toBeInTheDocument()
+  await user.click(within(sidebar()).getByRole("button", { name: "Chiqish" }))
+  expect(await screen.findByRole("alertdialog", { name: "Tizimdan chiqasizmi?" })).toBeInTheDocument()
 })
