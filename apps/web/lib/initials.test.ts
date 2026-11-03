@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { initials, shortName, TONES, tone } from "./initials"
+import { initials, shortName, TONES, tone, avatarColor, firstLetter } from "./initials"
 
 test("initials are the first letters of a name's first two words", () => {
   expect(initials("Ali Valiyev")).toBe("AV")
@@ -45,4 +45,22 @@ test("a short name is the first word and the next one's first letter", () => {
   expect(shortName("Dilshod Karimov Akbarovich")).toBe("Dilshod K.")
   expect(shortName("Ali")).toBe("Ali")
   expect(shortName("  Ali   Valiyev ")).toBe("Ali V.")
+})
+
+test.each([
+  ["Nodira Karimova", "#c47a9e"],
+  ["Jasur Toshmatov", "#6f9b7d"],
+  ["Malika Ergasheva", "#8c9ab0"],
+  ["Sharq Qurilish MChJ", "#7b86c7"],
+  ['"Sharq Qurilish" MChJ', "#7b86c7"],
+  ["Aziza Rahimova", "#c2a35a"],
+])("a name gets the prototype's avatar color, the same every time: %s", (name, color) => {
+  expect(avatarColor(name)).toBe(color)
+})
+
+test("a name's letter is its first letter or digit; none without one", () => {
+  expect(firstLetter("nodira Karimova")).toBe("N")
+  expect(firstLetter('"Sharq Qurilish" MChJ')).toBe("S")
+  expect(firstLetter("  ")).toBeNull()
+  expect(firstLetter(null)).toBeNull()
 })

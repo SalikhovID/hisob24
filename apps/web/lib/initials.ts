@@ -28,3 +28,20 @@ export function shortName(name: string): string {
   const [first = "", second] = name.trim().split(/\s+/)
   return second ? `${first} ${second.charAt(0)}.` : first
 }
+
+// AVATAR_COLORS are the prototype's avatar colors, white initials on each.
+export const AVATAR_COLORS = ["#c98f6e", "#6f9b7d", "#7b86c7", "#c47a9e", "#8c9ab0", "#c2a35a"] as const
+
+// avatarColor is the color a name's avatar wears, as the prototype hashes it
+// (its quotes dropped): the same name always gets the same one.
+export function avatarColor(name: string): string {
+  let hash = 0
+  for (const char of name.replace(/["']/g, "")) hash = (hash * 31 + char.charCodeAt(0)) % 9973
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+// firstLetter is the letter the prototype's avatar shows: the name's first
+// letter (or digit), upper case; none for a name without one.
+export function firstLetter(name: string | null | undefined): string | null {
+  return (name ?? "").match(/[\p{L}\p{N}]/u)?.[0]?.toUpperCase() ?? null
+}
