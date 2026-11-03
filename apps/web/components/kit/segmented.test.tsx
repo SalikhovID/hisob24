@@ -24,7 +24,7 @@ test("a segmented control is a tab list; the chosen segment is selected and a pr
   expect(change).toHaveBeenCalledWith("list")
 })
 
-test("the segmented control is the prototype's: a recessed track and its thumb, the chosen word in the thumb's ink", () => {
+test("the segmented control is the prototype's: a faint track 2px round its segments, the chosen one white and ringed, its word in the ink", () => {
   render(
     <Segmented
       label="Ko'rinish"
@@ -37,11 +37,11 @@ test("the segmented control is the prototype's: a recessed track and its thumb, 
     />,
   )
   const list = screen.getByRole("tablist", { name: "Ko'rinish" })
-  expect(list).toHaveClass("bg-muted", "shadow-[inset_0_1px_2px_rgba(60,40,120,.06)]")
+  expect(list).toHaveClass("bg-muted", "p-0.5", "rounded-[9px]", "md:rounded-lg")
   const thumb = list.querySelector('[data-slot="segmented-thumb"]')
-  expect(thumb).toHaveClass("bg-(--seg-thumb)", "shadow-(--seg-shadow)")
-  expect(thumb).not.toHaveClass("bg-card")
-  expect(screen.getByRole("tab", { name: "Kanban" })).toHaveClass("data-active:text-(--seg-on)")
+  expect(thumb).toHaveClass("bg-(--seg-thumb)", "shadow-(--seg-shadow)", "rounded-[7px]", "md:rounded-md")
+  const tab = screen.getByRole("tab", { name: "Kanban" })
+  expect(tab).toHaveClass("min-h-8", "text-[13px]", "md:min-h-7", "md:text-[12.5px]", "text-muted-foreground", "data-active:text-foreground")
 })
 
 test("on a wide screen the segmented control keeps to 420px, as the prototype's web view", () => {

@@ -6,11 +6,12 @@ import type { CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 
 // Segmented is the prototype's segmented control: two or three views of one
-// thing (Kanban / Ro'yxat, Mahsulotlar / Xizmatlar) on a recessed pill,
-// a thumb sliding under the chosen one (black in the light, its word white;
-// a pale glass in the night). It is a tab list (Base UI Tabs) with
-// no panels of its own: the page shows the view. On a wide screen it keeps
-// a control's width rather than stretching across the page.
+// thing (Kanban / Ro'yxat, UZS / USD) on a faint track, 2px round its
+// segments, a thumb sliding under the chosen one (white and ringed, its word
+// in the ink; the others grey). 32px segments of 13px on a phone, 28px of
+// 12.5px on the web. It is a tab list (Base UI Tabs) with no panels of its
+// own: the page shows the view. On a wide screen it keeps a control's width
+// rather than stretching across the page.
 export function Segmented({
   label,
   value,
@@ -30,19 +31,19 @@ export function Segmented({
         aria-label={label}
         data-slot="segmented"
         style={{ "--n": String(options.length) } as CSSProperties}
-        className="relative flex h-10 rounded-full bg-muted p-[3px] shadow-[inset_0_1px_2px_rgba(60,40,120,.06)]"
+        className="relative flex gap-0.5 rounded-[9px] bg-muted p-0.5 md:rounded-lg"
       >
         <Tabs.Indicator
           aria-hidden="true"
           data-slot="segmented-thumb"
-          className="absolute top-[3px] left-0 h-[34px] w-(--active-tab-width) translate-x-(--active-tab-left) rounded-full bg-(--seg-thumb) shadow-(--seg-shadow) transition-transform duration-300 ease-spring"
+          className="absolute top-0.5 left-0 h-8 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-[7px] bg-(--seg-thumb) shadow-(--seg-shadow) transition-transform duration-300 ease-out-expo md:h-7 md:rounded-md"
         />
         {options.map((option) => (
           <Tabs.Tab
             key={option.value}
             value={option.value}
             data-slot="segmented-tab"
-            className="relative z-[1] flex min-h-[34px] flex-1 items-center justify-center gap-1.5 rounded-full text-md font-medium text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-active:font-semibold data-active:text-(--seg-on) [&_svg]:size-4"
+            className="relative z-[1] flex min-h-8 flex-1 items-center justify-center gap-1.5 rounded-[7px] px-2.5 text-[13px] font-medium whitespace-nowrap text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-active:text-foreground md:min-h-7 md:rounded-md md:text-[12.5px] [&_svg]:size-[15px] [&_svg]:text-icon"
           >
             {option.icon && <option.icon aria-hidden="true" />}
             {option.label}
