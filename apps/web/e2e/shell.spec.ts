@@ -89,12 +89,12 @@ test("an employee sees no section of the owner's", async ({ page }) => {
   await expect(bar.getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
 })
 
-test("the way to the profile (the home's head on a phone, the sidebar's company on a wide screen) says who is signed in and leads to their other company and back", async ({ page }) => {
+test("the way to the profile (the «Sozlama» page's company on a phone, the sidebar's company on a wide screen) says who is signed in and leads to their other company and back", async ({ page }) => {
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 
-  await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Xodim" })
+  await expectSignedIn(page, { company: "Olma Savdo", name: "Vali Aliyev", role: "Xodim" })
   await openProfile(page)
   await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible()
   await expect(page.getByRole("heading", { level: 2, name: "Vali Aliyev" })).toBeVisible()
@@ -143,7 +143,7 @@ test("the shell is headed by Hisob24's logo on a wide screen, the company's name
   if (onPhone(page)) {
     // No top bar: the home's head says the company, and the tab bar has the sections alone.
     await expect(page.getByRole("banner")).toHaveCount(0)
-    await expect(page.getByRole("main").getByText("Olma Savdo")).toBeVisible()
+    await expect(page.getByRole("main").getByText("Olma Savdo", { exact: true })).toBeVisible()
     await expect(tabBar(page).getByRole("img", logo)).toHaveCount(0)
     return
   }

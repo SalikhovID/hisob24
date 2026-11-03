@@ -146,7 +146,7 @@ test.describe("a linked user", () => {
     await expect(page.getByRole("button", { name: /^Mavzu/ })).toHaveCount(0)
   })
 
-  test("shows Telegram's back button inside a section and goes back with it; the home hides it", async ({ page }) => {
+  test("shows Telegram's back button on a page under another and goes back with it; a page of the bar hides it", async ({ page }) => {
     await page.goto("/")
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
     const backShown = () => page.evaluate(() => window.Telegram?.WebApp?.BackButton?.isVisible ?? false)
@@ -157,7 +157,9 @@ test.describe("a linked user", () => {
     await expect.poll(backShown).toBe(true)
     await page.evaluate(() => (window as unknown as { __back: () => void }).__back())
 
-    await expect(page).toHaveURL(/\/$/)
+    // Back where it came from: the «Sozlama» page on a phone, the home on
+    // a wide screen (the sidebar's company leads to the profile there).
+    await expect(page).toHaveURL(onPhone(page) ? /\/settings$/ : /\/$/)
     await expect.poll(backShown).toBe(false)
   })
 

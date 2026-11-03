@@ -194,15 +194,16 @@ test("a page from the menu changes under the shell: while it changes, the screen
   seedOrders()
   await signIn(page, "901234567")
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expect(page.getByText("ta faol")).toBeVisible()
+  await expect(page.getByRole("link", { name: /^Faol buyurtmalar/ })).toBeVisible()
   await openSection(page, "Buyurtmalar")
   await expect(page.getByRole("heading", { level: 1, name: "Buyurtmalar" })).toBeVisible()
   await holdTransitions(page)
 
   await (await sections(page)).getByRole("link", { name: "Bosh sahifa", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  // The home runs on below the screen's edge: on a phone its cards go under the bar.
-  expect(await page.getByRole("main").evaluate((main) => main.scrollHeight - main.clientHeight)).toBeGreaterThan(40)
+  // On a phone the home runs on below the screen's edge: its rows go under the
+  // bar. (A wide screen's home fits its window: there is no bar to go under.)
+  if (onPhone(page)) expect(await page.getByRole("main").evaluate((main) => main.scrollHeight - main.clientHeight)).toBeGreaterThan(40)
   // The bar's lens has slid under the home's button (450ms).
   await page.waitForTimeout(800)
   const shot = () => (onPhone(page) ? page.locator('[data-slot="tab-bar"]').screenshot() : page.screenshot())

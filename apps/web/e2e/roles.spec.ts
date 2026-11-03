@@ -66,7 +66,7 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
-  await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Sotuvchi" })
+  await expectSignedIn(page, { company: "Olma Savdo", name: "Vali Aliyev", role: "Sotuvchi" })
   const shown = await sections(page)
   // A phone's bar ends with «Sozlama», every member's way to the rest.
   await expect(shown.locator('a:not([data-slot="side-subitem"])')).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", ...(onPhone(page) ? ["Sozlama"] : [])])

@@ -33,7 +33,7 @@ test("someone in one company signs in with an SMS code and lands on the dashboar
 
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expectSignedIn(page, { company: "Olma Savdo", short: "Ali V.", role: "Egasi" })
+  await expectSignedIn(page, { company: "Olma Savdo", name: "Ali Valiyev", role: "Egasi" })
 
   // The profile has no other company to switch to; the way out is there.
   await openProfile(page)
@@ -49,7 +49,7 @@ test("someone in two companies chooses one and can switch to the other", async (
   await expect(page).toHaveURL(/\/select-company$/)
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Xodim" })
+  await expectSignedIn(page, { company: "Olma Savdo", name: "Vali Aliyev", role: "Xodim" })
 
   // The other company is the profile's way.
   await openProfile(page)
@@ -57,13 +57,13 @@ test("someone in two companies chooses one and can switch to the other", async (
   await expect(page).toHaveURL(/\/select-company$/)
   await page.getByRole("button", { name: /Nok Market/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expectSignedIn(page, { company: "Nok Market", short: "Vali A.", role: "Egasi" })
+  await expectSignedIn(page, { company: "Nok Market", name: "Vali Aliyev", role: "Egasi" })
 })
 
 test("a company that expires while in use leads to /expired and on to another", async ({ page }) => {
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Nok Market/ }).click()
-  await expectSignedIn(page, { company: "Nok Market", short: "Vali A.", role: "Egasi" })
+  await expectSignedIn(page, { company: "Nok Market", name: "Vali Aliyev", role: "Egasi" })
 
   db.companies.find((company) => company.name === "Nok Market")!.end_date = "2026-10-01"
   await page.reload()
@@ -76,7 +76,7 @@ test("a company that expires while in use leads to /expired and on to another", 
   await expect(page.getByRole("button", { name: /Nok Market/ })).toContainText("Muddati o'tgan")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page).toHaveURL(/\/$/)
-  await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Xodim" })
+  await expectSignedIn(page, { company: "Olma Savdo", name: "Vali Aliyev", role: "Xodim" })
 })
 
 test("with only an expired company there is nothing to choose but signing out", async ({ page }) => {

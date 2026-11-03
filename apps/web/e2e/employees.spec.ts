@@ -61,7 +61,7 @@ test("the owner adds an employee, who signs in and finds no way to the employees
   await signOut(page)
   await signIn(page, "907778899")
   await expect(page.getByRole("heading", { name: "Salom, Yangi Xodim" })).toBeVisible()
-  await expectSignedIn(page, { company: "Olma Savdo", short: "Yangi X.", role: "Xodim" })
+  await expectSignedIn(page, { company: "Olma Savdo", name: "Yangi Xodim", role: "Xodim" })
   const nav = await sections(page)
   await expect(nav.getByRole("link", { name: "Bosh sahifa" })).toBeVisible()
   await expect(nav.getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
@@ -154,7 +154,7 @@ test("an owner replaced while signed in loses the employees at the next request"
 
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
-  await expectSignedIn(page, { company: "Olma Savdo", short: "Ali V.", role: "Xodim" })
+  await expectSignedIn(page, { company: "Olma Savdo", name: "Ali Valiyev", role: "Xodim" })
   await expect((await sections(page)).getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
   expect(db.members["998907778899"]).toBeUndefined()
 })

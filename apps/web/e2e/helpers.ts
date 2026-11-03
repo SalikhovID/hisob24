@@ -72,29 +72,32 @@ export async function back(page: Page, name: string) {
   else await page.locator('[data-slot="top-bar"]').getByRole("link", { name: "Orqaga" }).click()
 }
 
-// homeHead is the home's head: the company, the short name and the role,
-// the way to the profile.
-export const homeHead = (page: Page) => page.getByRole("main").locator('a[href="/profile"]')
+// homeHead is the home's head: the greeting; on a phone the company big,
+// who is signed in, their role and the location under it.
+export const homeHead = (page: Page) => page.locator('[data-slot="home-head"]')
 
 // expectSignedIn checks who is in and where: on a phone the home's head
-// names them ("Olma Savdo Ali V. · Egasi"); on a wide screen the sidebar
-// does, the company's name under the logo and the role on the profile card.
-export async function expectSignedIn(page: Page, who: { company: string; short: string; role: string }) {
+// names them ("Olma Savdo", "Ali Valiyev · Egasi · …"); on a wide screen the
+// sidebar's company block does, the name and the role under the company.
+export async function expectSignedIn(page: Page, who: { company: string; name: string; role: string }) {
   if (onPhone(page)) {
-    await expect(homeHead(page)).toHaveAccessibleName(`${who.company} ${who.short} · ${who.role}`)
+    const phone = homeHead(page).locator('[data-slot="home-head-phone"]')
+    await expect(phone).toContainText(who.company)
+    await expect(phone).toContainText(`${who.name} · ${who.role}`)
     return
   }
   const sidebar = page.getByRole("complementary", { name: "Menyu" })
   await expect(sidebar.getByText(who.company, { exact: true })).toBeVisible()
-  await expect(sidebar.locator('a[href="/profile"]')).toContainText(who.role)
+  await expect(sidebar.locator('a[href="/profile"]')).toContainText(`${who.name} · ${who.role}`)
 }
 
-// openProfile goes to the profile page: the sidebar's foot on a wide screen,
-// the home's head on a phone.
+// openProfile goes to the profile page: the sidebar's company block on a
+// wide screen, the «Sozlama» page's company row on a phone.
 export async function openProfile(page: Page) {
   if (onPhone(page)) {
-    await goHome(page)
-    await homeHead(page).click()
+    await (await sections(page)).getByRole("link", { name: "Sozlama", exact: true }).click()
+    await expect(page).toHaveURL(/\/settings$/)
+    await page.getByRole("main").locator('a[href="/profile"]').click()
   } else {
     await page.getByRole("complementary", { name: "Menyu" }).locator('a[href="/profile"]').click()
   }
