@@ -94,7 +94,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await expect(payment.getByLabel("Summa")).toHaveValue("2000")
   await page.getByRole("button", { name: "Saqlash" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Sotuv № 2" })).toBeVisible()
-  await expect(page.getByText(/^Chakana · /)).toBeVisible()
+  await expect(page.getByRole("region", { name: "Ma'lumot" }).getByText("Chakana", { exact: true })).toBeVisible()
   await settle(page)
 
   // An edit: one kilo of Olma on the first sale; the total follows.

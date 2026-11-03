@@ -4,9 +4,8 @@ import { BanknoteIcon, PencilIcon, UserIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
-import { Tile, Tiles } from "@/components/kit/detail-head"
 import { Foot, Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
-import { Hero } from "@/components/kit/hero"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
 import { SoftIcon } from "@/components/kit/tile-icon"
 import { Failed, ListLoading, NotFound } from "@/components/states"
@@ -26,8 +25,8 @@ const back = { href: "/sales", label: "Sotuvlar" }
 
 // SalePage is one sale in the member's locations (logic/sales.md, 3.4), for
 // whoever may see the sales (changing and deleting each take their
-// permission), as the prototype's page: its number over what it came to,
-// what is left to pay, its customer (or retail) and moment; the tiles
+// permission), as the prototype's page: its number over its moment, who
+// entered it and what is left to pay; the actions at the title's right
 // (editing, the customer, deleting); its lines, each product or service
 // with how much at what price and the sum; the payments entered with it;
 // its facts: the location (with two or more to work in), the currency and
@@ -63,31 +62,27 @@ export function SalePage({ id }: { id: number }) {
   const currency = currencyOf(currencies, s.currency_id)
   const customer = s.customer?.name ?? "Chakana"
   const left = Number(s.total) - Number(s.paid)
-  const tiles = [
-    allowed("sales.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/sales/${s.id}/edit`} />,
-    s.customer && allowed("customers.view") && <Tile key="customer" icon={UserIcon} label="Mijoz" href={`/customers/${s.customer.id}`} />,
+  const actions = [
+    allowed("sales.edit") && <PageAction key="edit" icon={PencilIcon} label="Tahrirlash" href={`/sales/${s.id}/edit`} />,
+    s.customer && allowed("customers.view") && <PageAction key="customer" icon={UserIcon} label="Mijoz" href={`/customers/${s.customer.id}`} />,
     allowed("sales.delete") && <DeleteSaleButton key="delete" companyId={companyId} sale={s} afterDelete={() => moving("back", () => router.replace("/sales"))} />,
   ].filter(Boolean)
 
   return (
     <>
-      <BackLink {...back} />
-      <Hero
-        heading
-        label={`Sotuv № ${s.number}`}
-        value={s.total}
-        unit={currency.symbol}
-        badges={
+      <PageTitle
+        back={back}
+        title={`Sotuv № ${s.number}`}
+        description={
           <>
-            {left > 0 ? <Badge variant="red">Qoldi {formatAmount(left.toFixed(2))}</Badge> : <Badge variant="green">To&apos;langan</Badge>}{" "}
-            <span className="font-medium text-muted-foreground">
-              {customer} · {formatDateTime(s.at)}
-            </span>
+            <span>
+              {formatDateTime(s.at)} · {s.created_by_name}
+            </span>{" "}
+            {left > 0 ? <Badge variant="red">Qoldi {formatAmount(left.toFixed(2))}</Badge> : <Badge variant="green">To&apos;langan</Badge>}
           </>
         }
-        className="pt-2"
+        action={actions.length > 0 && <PageActions>{actions}</PageActions>}
       />
-      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       <section aria-labelledby="sale-lines">
         <SectionHeading hint={s.items.length}>
           <span id="sale-lines">Mahsulotlar</span>

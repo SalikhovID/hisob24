@@ -36,14 +36,13 @@ test("the sale page: its facts, its lines summed, its payments, and the actions 
   renderWithProviders(<SalePage id={sale.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Sotuv № 1" })).toBeInTheDocument()
-  expect(screen.getByText("Dilshod Karimov · 05.10.2026 09:00")).toBeInTheDocument()
+  expect(screen.getByText("05.10.2026 09:00 · Ali Valiyev")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sotuvlar" })).toHaveAttribute("href", "/sales")
-  // The sale opens with its total and what is left to pay; the tiles are what may be done.
-  expect(document.querySelector("[data-slot=hero]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("Sotuv № 1 22 000 so'm Qoldi 17 000 Dilshod Karimov · 05.10.2026 09:00")
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "Mijoz", "O'chirish"])
-  expect(within(tiles).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/sales/${sale.id}/edit`)
-  expect(within(tiles).getByRole("link", { name: "Mijoz" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
+  // The actions are what may be done.
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Mijoz", "O'chirish"])
+  expect(within(actions).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/sales/${sale.id}/edit`)
+  expect(within(actions).getByRole("link", { name: "Mijoz" })).toHaveAttribute("href", `/customers/${dilshod.id}`)
   expect(facts()).toEqual({
     Mijoz: "Dilshod Karimov",
     Vaqt: "05.10.2026 09:00",
@@ -75,8 +74,9 @@ test("a retail sale names nobody", async () => {
   renderWithProviders(<SalePage id={sale.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Sotuv № 1" })).toBeInTheDocument()
-  expect(screen.getByText("Chakana · 06.10.2026 09:00")).toBeInTheDocument()
+  expect(screen.getByText("06.10.2026 09:00 · Ali Valiyev")).toBeInTheDocument()
   expect(facts()).toMatchObject({ Mijoz: "Chakana" })
+  expect(screen.queryByRole("link", { name: "Mijoz" })).not.toBeInTheDocument()
   expect(facts()).not.toHaveProperty("Lokatsiya")
 })
 
@@ -106,4 +106,20 @@ test("a sale that is gone, or of a location the member does not work in, is not 
 
   expect(await screen.findByRole("heading", { level: 1, name: "Sotuv topilmadi" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Sotuvlar" })).toHaveAttribute("href", "/sales")
+})
+
+test("the sale's page is headed as the prototype's: «Sotuv № N» over the moment, who entered it and what is left to pay; its actions at the title's right, deleting a danger one", async () => {
+  const { sale } = await sold()
+  renderWithProviders(<SalePage id={sale.id} />)
+
+  const title = (await screen.findByRole("heading", { level: 1, name: "Sotuv № 1" })).closest<HTMLElement>('[data-slot="page-title"]')
+  expect(title).not.toBeNull()
+  if (!title) return
+  expect(within(title).getByText("05.10.2026 09:00 · Ali Valiyev")).toBeInTheDocument()
+  expect(within(title).getByText("Qoldi 17 000")).toBeInTheDocument()
+  const actions = within(title).getByRole("group", { name: "Amallar" })
+  expect(actions).toHaveAttribute("data-slot", "page-actions")
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Mijoz", "O'chirish"])
+  expect(within(actions).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "page-action")
+  expect(document.querySelector("[data-slot=hero]")).toBeNull()
 })
