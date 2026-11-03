@@ -42,7 +42,7 @@ test("a dialog comes up as a sheet named by its title; the close button at its h
   expect(change).toHaveBeenCalledWith(false, expect.anything())
 })
 
-test("a sheet is the prototype's: its own color, 40px round, a white edge; its close button the plain fill", async () => {
+test("a sheet is the prototype's: the page's own grey, the whole width, 38px round on top; its title at the left, the close button a plain icon at the right", async () => {
   render(
     <Dialog open>
       <DialogContent>
@@ -53,9 +53,11 @@ test("a sheet is the prototype's: its own color, 40px round, a white edge; its c
     </Dialog>,
   )
   const sheet = await screen.findByRole("dialog", { name: "Mijoz" })
-  expect(sheet).toHaveClass("rounded-sheet", "bg-sheet", "shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)]")
-  const close = screen.getByRole("button", { name: "Yopish" }).firstElementChild
-  expect(close).toHaveClass("bg-muted")
+  expect(sheet).toHaveClass("inset-x-0", "bottom-0", "rounded-t-sheet", "bg-sheet")
+  expect(screen.getByText("Mijoz")).toHaveClass("text-[17px]", "font-semibold", "md:text-[15px]")
+  expect(document.querySelector('[data-slot="dialog-header"]')).toHaveClass("text-left")
+  const close = screen.getByRole("button", { name: "Yopish" })
+  expect(close).toHaveClass("right-3", "size-[30px]", "rounded-md", "text-icon")
 })
 
 test("behind a sheet the rest of the screen is dimmed by the scrim, nothing blurred", async () => {
@@ -99,7 +101,7 @@ test("a sheet over a sheet draws a scrim of its own over the sheet under; pressi
   expect(under).not.toHaveBeenCalled()
 })
 
-test("a sheet's head and its main button's bar wear the sheet's own color, so what scrolls under them is hidden; the color is opaque, so it does not show twice", async () => {
+test("a sheet's head and its main button's bar wear the sheet's own color, flat; on the web the bar is ruled off by a hairline", async () => {
   render(
     <Dialog open>
       <DialogContent>
@@ -116,7 +118,8 @@ test("a sheet's head and its main button's bar wear the sheet's own color, so wh
   const head = document.querySelector('[data-slot="dialog-header"]')
   const foot = document.querySelector('[data-slot="dialog-footer"]')
   expect(head).toHaveClass("bg-sheet")
-  expect(foot).toHaveClass("from-sheet")
+  expect(foot).toHaveClass("bg-sheet", "md:border-t", "md:border-line-faint")
+  expect(foot?.className).not.toContain("bg-gradient")
 })
 
 test("a sheet stops short of what lies over the screen's top (Telegram's controls in full screen), a tall one too", async () => {
@@ -134,7 +137,7 @@ test("a sheet stops short of what lies over the screen's top (Telegram's control
   expect(sheet).not.toHaveClass("max-h-[calc(100dvh-18px)]")
 })
 
-test("on a wide screen a sheet is the prototype's dialog: in the middle, 40px from the top, 540px wide, 32px round, with no handle", async () => {
+test("on a wide screen a sheet is the prototype's dialog: in the middle of the screen, 480px wide, 12px round, floating, with no handle", async () => {
   render(
     <Dialog open>
       <DialogContent tall>
@@ -146,14 +149,16 @@ test("on a wide screen a sheet is the prototype's dialog: in the middle, 40px fr
   )
   const sheet = await screen.findByRole("dialog", { name: "Mijoz" })
   expect(sheet).toHaveClass(
-    "md:top-10",
+    "md:top-1/2",
     "md:bottom-auto",
     "md:left-1/2",
-    "md:w-[540px]",
+    "md:w-[480px]",
     "md:-translate-x-1/2",
-    "md:rounded-[32px]",
-    "md:max-h-[calc(100dvh-80px)]",
-    "md:data-tall:h-[calc(100dvh-80px)]",
+    "md:-translate-y-1/2",
+    "md:rounded-xl",
+    "md:shadow-float",
+    "md:max-h-[calc(100dvh-64px)]",
+    "md:data-tall:h-[calc(100dvh-64px)]",
   )
   expect(document.querySelector('[data-slot="dialog-grab"]')).toHaveClass("md:hidden")
 })

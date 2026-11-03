@@ -5,21 +5,18 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "cn"
 import { XIcon } from "lucide-react"
 
-// The dialogs are the prototype's sheets (the sheet's own color, a white
-// edge), stopping short of what lies over the screen's top (Telegram's
-// controls in full screen): on a phone they come up from the bottom of the
-// screen with a grab handle on top; on a wide screen they are the
-// prototype's dialog, 540px wide in the middle, 40px from the top, 32px
-// round. The close button stands at the top left, the title centered, the
-// body scrolling under a sticky head, the main button in a sticky footer.
-// The rest of the screen is frosted behind it (the scrim utility), a sheet
-// under it too: each sheet draws its own scrim, as the prototype's do
-// (Base UI leaves a nested dialog's backdrop out unless forced).
-// Inside a sheet the page's surfaces are the sheet's own (as the
-// prototype's .sheet redefines --cell and --bg): a group is a sheet cell.
-// The API is the one from before (Dialog, DialogContent, DialogHeader,
-// DialogTitle, DialogDescription, DialogFooter), so every dialog of the app
-// is a sheet from here on.
+// The dialogs are the prototype's sheets: on a phone they come up from the
+// bottom of the screen, the whole width, 38px round on top, a grab handle
+// over them, in the page's own grey (the groups inside stay white); on a
+// wide screen they are the prototype's dialog, 480px wide in the middle of
+// the screen, 12px round, floating. The title stands at the left of the
+// head, the close button (a plain icon) at its right; the body scrolls
+// under the head, the main button stands in the flat foot (ruled off by a
+// hairline on the web). Behind it the rest of the screen is dimmed by the
+// scrim; a sheet over a sheet draws its own (Base UI leaves a nested
+// dialog's backdrop out unless forced). The API is the one from before
+// (Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+// DialogFooter).
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -43,7 +40,7 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
       data-slot="dialog-overlay"
       forceRender
       className={cn(
-        "fixed inset-0 isolate z-50 bg-scrim transition-opacity duration-300 data-starting-style:opacity-0 data-ending-style:opacity-0",
+        "fixed inset-0 isolate z-50 bg-scrim transition-opacity duration-250 data-starting-style:opacity-0 data-ending-style:opacity-0",
         className
       )}
       {...props}
@@ -72,29 +69,27 @@ function DialogContent({
         data-slot="dialog-content"
         data-tall={tall || undefined}
         className={cn(
-          "group/sheet fixed inset-x-2 bottom-2 z-50 mx-auto flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px-var(--safe-top))] w-auto max-w-[480px] flex-col overflow-hidden rounded-sheet bg-sheet text-foreground shadow-[0_-12px_50px_rgba(60,40,120,.18),inset_0_0_0_1px_var(--glass-edge),inset_0_1.5px_0_var(--glass-edge)] outline-none transition-transform duration-[440ms] ease-drawer data-starting-style:translate-y-[105%] data-ending-style:translate-y-[105%] data-tall:h-[calc(100dvh-18px-var(--safe-top))] md:inset-x-auto md:top-10 md:bottom-auto md:left-1/2 md:w-[540px] md:max-w-none md:-translate-x-1/2 md:max-h-[calc(100dvh-80px)] md:rounded-[32px] md:data-tall:h-[calc(100dvh-80px)]",
+          "group/sheet fixed inset-x-0 bottom-0 z-50 flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px-var(--safe-top))] w-full flex-col overflow-hidden rounded-t-sheet bg-sheet pb-safe text-foreground outline-none transition-[translate,scale,opacity] duration-[420ms] ease-drawer data-starting-style:translate-y-full data-ending-style:translate-y-full data-tall:h-[calc(100dvh-18px-var(--safe-top))] md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[480px] md:max-w-[calc(100%-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:pb-0 md:shadow-float md:duration-300 md:ease-out-expo md:max-h-[calc(100dvh-64px)] md:data-tall:h-[calc(100dvh-64px)] md:data-starting-style:-translate-y-[48%] md:data-starting-style:scale-[.98] md:data-starting-style:opacity-0 md:data-ending-style:-translate-y-[48%] md:data-ending-style:scale-[.98] md:data-ending-style:opacity-0",
           className
         )}
         {...props}
       >
-        <span aria-hidden="true" data-slot="dialog-grab" className="absolute top-1.5 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full bg-muted-foreground/35 md:hidden" />
+        <span aria-hidden="true" data-slot="dialog-grab" className="absolute top-1.5 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full bg-[rgba(60,60,67,.3)] md:hidden" />
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
             aria-label="Yopish"
-            className="absolute top-3 left-3 z-10 grid size-11 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="absolute top-3.5 right-3 z-10 grid size-[30px] place-items-center rounded-md text-icon outline-none hover:bg-ink-1 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 md:top-3"
           >
-            <span className="grid size-9 place-items-center rounded-full bg-muted text-foreground">
-              <XIcon strokeWidth={2.6} className="size-4" />
-            </span>
+            <XIcon strokeWidth={2} className="size-[18px]" />
           </DialogPrimitive.Close>
         )}
         {right && (
-          <span data-slot="dialog-right" className="absolute top-3 right-3 z-10 flex h-11 items-center">
+          <span data-slot="dialog-right" className="absolute top-3.5 right-12 z-10 flex h-[30px] items-center md:top-3">
             {right}
           </span>
         )}
-        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 scrollbar-hide has-[>[data-slot=dialog-footer]]:pb-0 has-[>[data-slot=sheet-form]>[data-slot=dialog-footer]]:pb-0 [&>*]:shrink-0">
+        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pb-5 scrollbar-hide has-[>[data-slot=dialog-footer]]:pb-0 has-[>[data-slot=sheet-form]>[data-slot=dialog-footer]]:pb-0 [&>*]:shrink-0">
           {children}
         </div>
       </DialogPrimitive.Popup>
@@ -103,22 +98,22 @@ function DialogContent({
 }
 
 // DialogHeader is the sheet's head: it stays at the top while the body
-// scrolls, the title centered between the close button and the right slot.
+// scrolls, the title at its left, clear of the close button at its right.
 // It wears the sheet's own color, so what scrolls under it is hidden.
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("sticky top-0 z-[1] -mx-4 mb-2 flex flex-col gap-1 bg-sheet px-14 pt-5 pb-2 text-center", className)}
+      className={cn("sticky top-0 z-[1] -mx-5 mb-2 flex flex-col gap-1 bg-sheet pt-5 pr-14 pb-1.5 pl-5 text-left md:pt-4", className)}
       {...props}
     />
   )
 }
 
-// DialogFooter is the main button's bar at the bottom of the sheet. It
-// sticks to the body's bottom edge; the body then has no padding under it
-// (a sticky box keeps clear of its scroller's padding). What scrolls under
-// it fades into the sheet's color.
+// DialogFooter is the main button's bar at the bottom of the sheet, its flat
+// foot (ruled off by a hairline on the web). It sticks to the body's bottom
+// edge; the body then has no padding under it (a sticky box keeps clear of
+// its scroller's padding).
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -131,14 +126,14 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "sticky bottom-0 z-[1] -mx-4 mt-auto flex flex-col gap-1 bg-gradient-to-t from-sheet from-70% to-transparent px-4 pt-3 pb-4 [&>*]:w-full",
+        "sticky bottom-0 z-[1] -mx-5 mt-auto flex flex-col gap-1 bg-sheet px-4 pt-1 pb-4 md:border-t md:border-line-faint md:px-5 md:pt-3 [&>*]:w-full",
         className
       )}
       {...props}
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close className="h-11 rounded-main text-base font-semibold text-primary">
+        <DialogPrimitive.Close className="h-11 rounded-main text-base font-medium text-muted-foreground md:h-8">
           Yopish
         </DialogPrimitive.Close>
       )}
@@ -150,7 +145,7 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-base leading-tight font-semibold", className)}
+      className={cn("text-[17px] leading-tight font-semibold md:text-[15px]", className)}
       {...props}
     />
   )
@@ -160,7 +155,7 @@ function DialogDescription({ className, ...props }: DialogPrimitive.Description.
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-sm leading-snug text-muted-foreground *:[a]:underline *:[a]:underline-offset-3", className)}
+      className={cn("text-[13px] leading-snug text-muted-foreground *:[a]:underline *:[a]:underline-offset-3", className)}
       {...props}
     />
   )
