@@ -10,26 +10,26 @@ import { chooseCompany, signIn } from "@/test/session"
 import { fakeWebApp } from "@/test/telegram"
 import { ProfilePage } from "./profile-page"
 
-test("the profile says who is signed in and the company they work in, with their role", async () => {
+test("the profile is the prototype's: «Profil», who is signed in (their name, phone and role), the company and till when its subscription runs", async () => {
   await signIn(ALI)
   renderWithProviders(<ProfilePage />)
 
-  expect(await screen.findByRole("heading", { level: 1, name: "Ali Valiyev" })).toBeInTheDocument()
-  expect(screen.getByText("+998 90 123 45 67")).toBeInTheDocument()
-  const company = screen.getByRole("list", { name: "Kompaniya" })
+  expect(await screen.findByRole("heading", { level: 1, name: "Profil" })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { level: 2, name: "Ali Valiyev" })).toBeInTheDocument()
+  expect(screen.getByText("+998 90 123 45 67 · Egasi")).toBeInTheDocument()
+  const company = screen.getByRole("group", { name: "Kompaniya" })
   expect(within(company).getByText("Olma Savdo")).toBeInTheDocument()
-  expect(within(company).getByText("Egasi")).toBeInTheDocument()
-  expect(screen.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("href", "/")
+  expect(within(company).getByText(/^.+ gacha faol$/)).toBeInTheDocument()
+  expect(screen.getByRole("link", { name: "Sozlama" })).toHaveAttribute("href", "/settings")
 })
 
 test("the profile holds no sections and no way to the bar's pages: they are the settings page's", async () => {
   await signIn(ALI)
   renderWithProviders(<ProfilePage />)
 
-  await screen.findByRole("heading", { level: 1, name: "Ali Valiyev" })
+  await screen.findByRole("heading", { level: 1, name: "Profil" })
   expect(screen.queryByRole("list", { name: "Bo'limlar" })).not.toBeInTheDocument()
   expect(screen.queryByRole("link", { name: /Pastki menyu/ })).not.toBeInTheDocument()
-  expect(screen.getByRole("list", { name: "Ilova" })).toBeInTheDocument()
 })
 
 test("someone with another company to work in can switch to it; with one there is nothing to switch to", async () => {
@@ -41,28 +41,30 @@ test("someone with another company to work in can switch to it; with one there i
 
   await signIn(ALI)
   renderWithProviders(<ProfilePage />)
-  await screen.findByRole("heading", { level: 1, name: "Ali Valiyev" })
+  await screen.findByRole("heading", { level: 1, name: "Profil" })
   expect(screen.queryByRole("link", { name: "Kompaniyani almashtirish" })).not.toBeInTheDocument()
 })
 
-test("with two locations the current one is chosen here too", async () => {
+test("with two locations the current one is chosen from the list of them, as the prototype's radios", async () => {
   const chilonzor = addLocation(1, "Chilonzor")
   await signIn(ALI)
   const { user } = renderWithProviders(<ProfilePage />)
 
-  await user.click(await screen.findByRole("button", { name: "Lokatsiya Asosiy" }))
-  await user.click(within(await screen.findByRole("dialog", { name: "Lokatsiya" })).getByRole("menuitemradio", { name: "Chilonzor" }))
+  const list = await screen.findByRole("radiogroup", { name: "Lokatsiya" })
+  expect(within(list).getByRole("radio", { name: "Asosiy" })).toHaveAttribute("aria-checked", "true")
+  await user.click(within(list).getByRole("radio", { name: "Chilonzor" }))
 
-  expect(await screen.findByRole("button", { name: "Lokatsiya Chilonzor" })).toBeInTheDocument()
+  await waitFor(() => expect(within(list).getByRole("radio", { name: "Chilonzor" })).toHaveAttribute("aria-checked", "true"))
   expect(localStorage.getItem(`location:1:${ALI}`)).toBe(String(chilonzor.id))
 })
 
-test("the theme is chosen from a sheet", async () => {
+test("the theme is one of the three, side by side: Tizim, Yorug', Qorong'i", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<ProfilePage />)
 
-  await user.click(await screen.findByRole("button", { name: /^Mavzu/ }))
-  await user.click(within(await screen.findByRole("dialog", { name: "Mavzu" })).getByRole("menuitemradio", { name: "Qorong'i" }))
+  const themes = await screen.findByRole("tablist", { name: "Mavzu" })
+  expect(within(themes).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Tizim", "Yorug'", "Qorong'i"])
+  await user.click(within(themes).getByRole("tab", { name: "Qorong'i" }))
 
   await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
 })
@@ -77,16 +79,15 @@ test("signing out ends the session and leaves for /login", async () => {
   expect(accessToken()).toBeNull()
 })
 
-test("inside Telegram there is no sign-out or theme: closing the Mini App is the way out", async () => {
+test("inside Telegram there is no sign-out or theme: the Mini App signs in by the Telegram account itself", async () => {
   setMiniApp(fakeWebApp())
   await signIn(ALI)
   renderWithProviders(<ProfilePage />)
 
-  await screen.findByRole("heading", { level: 1, name: "Ali Valiyev" })
+  await screen.findByRole("heading", { level: 1, name: "Profil" })
   expect(screen.queryByRole("button", { name: "Chiqish" })).not.toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: /^Mavzu/ })).not.toBeInTheDocument()
-  expect(screen.queryByRole("list", { name: "Ilova" }), "nothing is left in it").not.toBeInTheDocument()
-  expect(screen.getByText(/Telegram ichida chiqish uchun ilovani yoping/)).toBeInTheDocument()
+  expect(screen.queryByRole("tablist", { name: "Mavzu" })).not.toBeInTheDocument()
+  expect(screen.getByText("Mini App'da chiqish yo'q: Telegram akkauntingiz bilan avtomatik kirasiz.")).toBeInTheDocument()
 })
 
 test("inside a Telegram that can, the profile offers the home screen too; put away, it goes", async () => {
