@@ -3,9 +3,9 @@
 import type { ComponentProps, MouseEvent, ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-// MainButton is the prototype's main button: a full-width glossy capsule,
-// 54px tall, in the accent (or a ghost in the accent color, or the red
-// capsule for an irreversible act). While
+// MainButton is the prototype's full button: as wide as its place, 50px,
+// 12px round and 17px semibold on a phone, 40px and 13px on the web; the
+// accent (or a grey ghost, or the soft red of an irreversible act). While
 // its request is on its way it is busy: it says so, keeps the focus (a
 // button the browser disables cannot hold it, and whoever pressed Enter on
 // it would be dropped to the top of the page), shows a spinner and takes no
@@ -40,10 +40,10 @@ export function MainButton({
         onClick?.(event)
       }}
       className={cn(
-        "flex h-[54px] w-full items-center justify-center gap-2 rounded-full text-base font-semibold outline-none transition-[transform,opacity] duration-150 ease-out-expo active:scale-[.98] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 aria-disabled:pointer-events-none",
-        variant === "accent" && "bg-primary text-primary-foreground",
-        variant === "ghost" && "h-11 bg-transparent text-primary",
-        variant === "red" && "bg-destructive text-white",
+        "flex h-[50px] w-full items-center justify-center gap-2 rounded-xl text-[17px] font-semibold outline-none transition-[transform,opacity,background-color] duration-150 ease-out-expo active:scale-[.98] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40 aria-disabled:pointer-events-none md:h-10 md:rounded-md md:text-[13px] md:font-medium",
+        variant === "accent" && "bg-primary text-primary-foreground md:hover:bg-[color-mix(in_srgb,var(--primary)_88%,#000)]",
+        variant === "ghost" && "bg-transparent text-muted-foreground md:hover:bg-ink-1 md:hover:text-foreground",
+        variant === "red" && "bg-destructive-soft text-destructive",
         className,
       )}
       {...props}
@@ -60,11 +60,11 @@ export function MainButton({
 }
 
 // MainBar is the bar the main button stands in at the bottom of a page or
-// a sheet: it sticks to the bottom, fades the content under it and keeps
-// clear of the phone's bottom edge. On a wide screen a page's bar is the
-// prototype's web view's: its button 380px wide at the column's right, no
-// fade; a sheet's keeps a button's width at its left. tone "sheet" fades
-// into a sheet's own background.
+// a sheet: it sticks to the bottom and keeps clear of the phone's bottom
+// edge. A page's fades the content under it into the page's color (on a
+// wide screen its button 380px wide at the column's right, no fade); a
+// sheet's is the prototype's flat foot of the sheet, ruled off by a hairline
+// on the web.
 export function MainBar({ children, tone = "page", className }: { children: ReactNode; tone?: "page" | "sheet"; className?: string }) {
   return (
     <div
@@ -73,7 +73,7 @@ export function MainBar({ children, tone = "page", className }: { children: Reac
         "sticky bottom-0 z-[5] -mx-4 mt-auto flex flex-col gap-1 px-4 pt-3 pb-safe-7",
         tone === "page"
           ? "bg-gradient-to-t from-(--fade) from-55% to-transparent md:mx-0 md:items-end md:bg-none md:px-0 md:pb-7 md:[&>*]:max-w-[380px]"
-          : "bg-gradient-to-t from-sheet from-70% to-transparent md:items-start md:[&>*]:max-w-sm",
+          : "bg-sheet pt-1 md:-mx-5 md:border-t md:border-line-faint md:px-5 md:pt-3 md:pb-4",
         className,
       )}
     >

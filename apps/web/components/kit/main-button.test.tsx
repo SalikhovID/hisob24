@@ -37,7 +37,7 @@ test("a main button says its variant; a bar holds the buttons under a page", () 
   expect(screen.getByRole("button", { name: "O'chirish" }).closest('[data-slot="main-bar"]')).toBeInTheDocument()
 })
 
-test("a main button is the accent capsule, 54px tall; a red one red; a ghost has no fill", () => {
+test("a main button is the prototype's full button: 50px, 12px round and 17px semibold on a phone, 40px and 13px on the web; a red one soft red; a ghost grey", () => {
   render(
     <>
       <MainButton>Saqlash</MainButton>
@@ -46,14 +46,14 @@ test("a main button is the accent capsule, 54px tall; a red one red; a ghost has
     </>,
   )
   const save = screen.getByRole("button", { name: "Saqlash" })
-  expect(save).toHaveClass("bg-primary", "rounded-full", "h-[54px]")
-  expect(screen.getByRole("button", { name: "O'chirish" })).toHaveClass("bg-destructive", "rounded-full", "h-[54px]")
+  expect(save).toHaveClass("bg-primary", "h-[50px]", "rounded-xl", "text-[17px]", "font-semibold", "md:h-10", "md:rounded-md", "md:text-[13px]", "md:font-medium")
+  expect(screen.getByRole("button", { name: "O'chirish" })).toHaveClass("bg-destructive-soft", "text-destructive")
   const ghost = screen.getByRole("button", { name: "Bekor qilish" })
-  expect(ghost).toHaveClass("h-11", "bg-transparent")
+  expect(ghost).toHaveClass("bg-transparent", "text-muted-foreground")
   expect(ghost).not.toHaveClass("bg-primary")
 })
 
-test("a bar under a page fades the page into the prototype's fade, half its height; in a sheet, into the sheet", () => {
+test("a bar under a page fades the page into its own color; a sheet's is the sheet's flat foot, ruled off on the web", () => {
   const { rerender } = render(
     <MainBar>
       <MainButton>Saqlash</MainButton>
@@ -61,14 +61,14 @@ test("a bar under a page fades the page into the prototype's fade, half its heig
   )
   const bar = () => screen.getByRole("button", { name: "Saqlash" }).closest('[data-slot="main-bar"]')
   expect(bar()).toHaveClass("from-(--fade)", "from-55%")
-  expect(bar()).not.toHaveClass("from-background")
 
   rerender(
     <MainBar tone="sheet">
       <MainButton>Saqlash</MainButton>
     </MainBar>,
   )
-  expect(bar()).toHaveClass("from-sheet")
+  expect(bar()).toHaveClass("bg-sheet", "md:border-t", "md:border-line-faint")
+  expect(bar()?.className).not.toContain("bg-gradient")
 })
 
 test("on a wide screen a page's bar is the prototype's: its button 380px wide at the column's right, with no fade; a sheet's stays its own", () => {
