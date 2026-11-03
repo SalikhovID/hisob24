@@ -4,6 +4,7 @@ import { BanknoteIcon, PencilIcon, TruckIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
+import { DataTable } from "@/components/kit/data-table"
 import { Foot, Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
 import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
@@ -27,8 +28,9 @@ const back = { href: "/purchases", label: "Xaridlar" }
 // 4.5), for whoever may see the purchases (changing and deleting each take
 // their permission), as the prototype's page: its number over its moment,
 // who entered it and what is left to pay; the actions at the title's right
-// (editing, the supplier, deleting); its lines, each product with how much
-// at what price and the sum; the payments entered with it; and its facts:
+// (editing, the supplier, deleting); its lines (on the web a table), each
+// product with how much at what price and the sum; the payments entered
+// with it; and its facts:
 // the supplier, the moment, the location
 // (with two or more to work in), the currency and rate (with another than
 // the so'm), the total (in so'm too), what was paid, the note, who entered
@@ -91,19 +93,33 @@ export function PurchasePage({ id }: { id: number }) {
         <SectionHeading hint={p.items.length}>
           <span id="purchase-lines">Mahsulotlar</span>
         </SectionHeading>
-        <Group label="Mahsulotlar" inset="icon">
-          {p.items.map((item) => (
-            <Row
-              key={item.product_id}
-              href={allowed("products.view") ? `/products/${item.product_id}` : undefined}
-              media={<Avatar name={item.name} square letter />}
-              title={item.name}
-              sub={`${formatQuantity(item.quantity, item.unit)} × ${formatAmount(item.price)}`}
-              end={formatAmount(item.amount)}
-              chevron={false}
-            />
-          ))}
-        </Group>
+        <DataTable
+          label="Mahsulotlar"
+          rows={p.items}
+          rowKey={(item) => item.product_id}
+          href={allowed("products.view") ? (item) => `/products/${item.product_id}` : undefined}
+          columns={[
+            { key: "name", label: "Mahsulot", render: (item) => item.name },
+            { key: "quantity", label: "Miqdor", align: "end", render: (item) => formatQuantity(item.quantity, item.unit) },
+            { key: "price", label: "Narx", align: "end", render: (item) => formatMoney(item.price, currency) },
+            { key: "amount", label: "Summa", align: "end", render: (item) => <b className="font-semibold">{formatMoney(item.amount, currency)}</b> },
+          ]}
+          phone={
+            <Group label="Mahsulotlar" inset="icon">
+              {p.items.map((item) => (
+                <Row
+                  key={item.product_id}
+                  href={allowed("products.view") ? `/products/${item.product_id}` : undefined}
+                  media={<Avatar name={item.name} square letter />}
+                  title={item.name}
+                  sub={`${formatQuantity(item.quantity, item.unit)} × ${formatAmount(item.price)}`}
+                  end={formatAmount(item.amount)}
+                  chevron={false}
+                />
+              ))}
+            </Group>
+          }
+        />
         <Foot className="-mt-4 mb-6">Jami: {formatMoney(p.total, currency)}</Foot>
       </section>
       {p.payments.length > 0 && (

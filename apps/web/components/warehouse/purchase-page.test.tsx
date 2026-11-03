@@ -125,3 +125,18 @@ test("the purchase's page is headed as the prototype's: «Xarid № N» over the
   expect(within(actions).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "page-action")
   expect(document.querySelector("[data-slot=hero]")).toBeNull()
 })
+
+test("on the web the purchase's lines are the prototype's table: Mahsulot, Miqdor, Narx, Summa; a line leads to its product", async () => {
+  const catalog = seedCatalog()
+  const { purchase } = seedWarehouse(catalog)
+  await signIn(ALI)
+  renderWithProviders(<PurchasePage id={purchase!.id} />)
+
+  const table = await screen.findByRole("table", { name: "Mahsulotlar" })
+  expect(within(table).getAllByRole("columnheader").map((th) => th.textContent)).toEqual(["Mahsulot", "Miqdor", "Narx", "Summa"])
+  const cells = (row: HTMLElement) => within(row).getAllByRole("cell").map((td) => td.textContent?.replace(/\s+/g, " "))
+  const [olma, nok] = within(table).getAllByRole("row").slice(1)
+  expect(cells(olma)).toEqual(["Olma", "12,5 kg", "1 000 so'm", "12 500 so'm"])
+  expect(cells(nok)).toEqual(["Nok", "3 dona", "2 500,50 so'm", "7 501,50 so'm"])
+  expect(within(olma).getByRole("link", { name: "Olma" })).toHaveAttribute("href", `/products/${catalog.olma.id}`)
+})
