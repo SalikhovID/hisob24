@@ -2717,3 +2717,35 @@ test("/app/dashboard answers the home's blocks as the Go API does: each by its p
   expect(vali).toMatchObject({ cash: null, debtors: null, sales: null, low_stock: null })
   expect(vali.orders?.active).toBe(3)
 })
+
+test("/app/stock/summary is the warehouse's «Qoldiq» table as the Go API answers it: the products by name, each with its stock in the member's locations, its last price and value", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const chilonzor = addLocation(1, "Chilonzor")
+  const asosiy = asosiyOf(1).id
+  await signIn(ALI)
+
+  const page = await call(api.GET("/app/stock/summary"))
+
+  expect(page).toMatchObject({ total: 3, page: 1, page_size: 20 })
+  expect(page.items.map((item) => item.name)).toEqual(["Eski mahsulot", "Nok", "Olma"])
+  expect(page.items[2]).toEqual({
+    product_id: catalog.olma.id,
+    name: "Olma",
+    sku: "OL-1",
+    unit: "kg",
+    is_active: true,
+    locations: [
+      { location_id: asosiy, quantity: "12.500" },
+      { location_id: chilonzor.id, quantity: "0.000" },
+    ],
+    total: "12.500",
+    last_price: { amount: "1000.00", currency_id: 1 },
+    value: "12500.00",
+  })
+  expect(page.items[1]).toMatchObject({ total: "3.000", last_price: { amount: "2500.50", currency_id: 1 }, value: "7501.50" })
+  expect(page.items[0]).toMatchObject({ is_active: false, total: "0.000", last_price: null, value: null })
+  const found = await call(api.GET("/app/stock/summary", { params: { query: { search: "ol-1" } } }))
+  expect(found.items.map((item) => item.name)).toEqual(["Olma"])
+})
+

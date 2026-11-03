@@ -16,6 +16,7 @@ import {
   checkStock,
   convertAmount,
   itemsOf,
+  lastPriceOf,
   type Line,
   liveDocuments,
   money,
@@ -27,11 +28,13 @@ import {
   rateColumn,
   rateOf,
   round,
+  stockOf,
   takeMoves,
 } from "./ledger"
 import { liveSupplier, locationParam, memberLocationIds, page, paged, pricingOf, toItem, trimmed } from "./warehouse"
 
 const invalid = (message: string) => fail(400, "validation_error", message)
+const PAGE_SIZE = 20
 const transferNotFound = () => fail(404, "not_found", "Ko'chirish topilmadi")
 const inventoryNotFound = () => fail(404, "not_found", "Inventarizatsiya topilmadi")
 const documentNotFound = () => fail(404, "not_found", "Hujjat topilmadi")
@@ -539,6 +542,40 @@ export const stockHandlers = [
   // The products in stock in a location at a moment (now unless given), the
   // moves of the document ?exclude_id= left out, by name: what an
   // inventory starts from, or shows while it is edited.
+  // The warehouse's «Qoldiq» table (logic/warehouse.md, section 5): the
+  // live products (no service; the turned off ones too) by name, each with
+  // its stock in every location of the member's, the sum, the last price
+  // and the value at it.
+  http.get(api("/app/stock/summary"), ({ request }) => {
+    const member = scoped(request, "stock.view")
+    if (member instanceof Response) return member
+    const query = new URL(request.url).searchParams
+    const page = query.has("page") ? Number(query.get("page")) : 1
+    if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
+    if (member.allowed.length === 0) return HttpResponse.json({ items: [], total: 0, page, page_size: PAGE_SIZE })
+    const search = (query.get("search") ?? "").trim().toLowerCase()
+    const all = db.products
+      .filter((p) => p.companyId === member.companyId && !p.deleted && p.kind === "product")
+      .filter((p) => !search || p.name.toLowerCase().includes(search) || (p.sku !== null && p.sku.toLowerCase().includes(search)))
+      .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id)
+    const items = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p) => {
+      const total = stockOf(p.id, member.allowed)
+      const last = lastPriceOf(p.id)
+      return {
+        product_id: p.id,
+        name: p.name,
+        sku: p.sku,
+        unit: p.unit ?? "",
+        is_active: p.active,
+        locations: member.allowed.map((id) => ({ location_id: id, quantity: asQuantity(stockOf(p.id, [id])) })),
+        total: asQuantity(total),
+        last_price: last,
+        value: last ? asAmount(round(total * Number(last.amount), 2)) : null,
+      }
+    })
+    return HttpResponse.json({ items, total: all.length, page, page_size: PAGE_SIZE })
+  }),
+
   http.get(api("/app/stock"), ({ request }) => {
     const member = scoped(request, "stock.view")
     if (member instanceof Response) return member
