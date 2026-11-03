@@ -88,7 +88,7 @@ export function PageTitle({
           <h1 className="text-[32px] leading-[1.15] font-bold tracking-[-0.01em] [overflow-wrap:anywhere] md:text-[20px] md:leading-[1.3] md:font-semibold">{title}</h1>
           {description && <p className="mt-1 text-md text-muted-foreground md:mt-0.5 md:text-[13px]">{description}</p>}
         </div>
-        {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+        {action && <div className="flex shrink-0 items-center gap-2 max-md:has-[[data-slot=page-actions]]:w-full">{action}</div>}
       </div>
     </header>
   )

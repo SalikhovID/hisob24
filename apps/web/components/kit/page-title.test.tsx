@@ -57,3 +57,9 @@ test("on a phone a record's actions, as wide as the page, go under the title; a 
 
   expect(screen.getByTestId("actions").parentElement!.parentElement).toHaveClass("max-md:flex-wrap")
 })
+
+test("on a phone the record's actions under the title take the page's whole width, the tiles sharing it", () => {
+  render(<PageTitle title="Dilshod Karimov" action={<div data-slot="page-actions" data-testid="actions" />} />)
+
+  expect(screen.getByTestId("actions").parentElement).toHaveClass("max-md:has-[[data-slot=page-actions]]:w-full")
+})
