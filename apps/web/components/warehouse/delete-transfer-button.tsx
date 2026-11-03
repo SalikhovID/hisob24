@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Tile } from "@/components/kit/detail-head"
+import { PageAction } from "@/components/kit/page-actions"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -19,7 +19,8 @@ import { api, call } from "@/lib/api"
 import type { Transfer } from "@/lib/types"
 import { forgetWarehouse } from "./new-purchase-page"
 
-// DeleteTransferButton is the danger tile of a transfer's page: it deletes
+// DeleteTransferButton is the danger action of a transfer's page (on the web
+// its trash alone, as the prototype's): it deletes
 // the transfer after asking: its products come
 // back to the source; its number is never given again (logic/warehouse.md,
 // 5.1). A refusal (the destination has sold them on) is told and the
@@ -43,7 +44,7 @@ export function DeleteTransferButton({ companyId, transfer, afterDelete }: { com
 
   return (
     <>
-    <Tile icon={Trash2Icon} label="O'chirish" danger onClick={() => setConfirming(true)} />
+    <PageAction icon={Trash2Icon} label="O'chirish" variant="danger" iconOnly onClick={() => setConfirming(true)} />
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogContent>
         <AlertDialogHeader>

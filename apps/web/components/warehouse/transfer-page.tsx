@@ -1,12 +1,11 @@
 "use client"
 
-import { ArrowLeftRightIcon, PencilIcon } from "lucide-react"
+import { PencilIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
-import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
 import { Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
-import { SoftIcon } from "@/components/kit/tile-icon"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { ApiError } from "@/lib/api"
 import { formatDate, formatDateTime, formatQuantity } from "@/lib/format"
@@ -22,9 +21,10 @@ const back = { href: "/transfers", label: "Ko'chirishlar" }
 
 // TransferPage is one transfer out of or into the member's locations
 // (logic/warehouse.md, 5.1), for whoever may see the stock documents, as
-// the prototype's page: its number, its two ends and moment; the tiles
-// (editing, deleting: their permission and the source among the member's
-// locations); its lines, each product with how much moved; its facts.
+// the prototype's page: its number over its moment and who entered it; the
+// actions at the title's right (editing, deleting: their permission and the
+// source among the member's locations); its lines, each product with how
+// much moved; its facts (its two ends among them).
 export function TransferPage({ id }: { id: number }) {
   const gate = usePermission("stock.view")
   const companyId = gate?.company.id ?? null
@@ -53,20 +53,19 @@ export function TransferPage({ id }: { id: number }) {
   const t = transfer.data
   // A transfer seen from its destination alone is not the member's to change.
   const mine = locations.some((l) => l.id === t.location_id)
-  const tiles = [
-    mine && allowed("stock.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/transfers/${t.id}/edit`} />,
+  const actions = [
+    mine && allowed("stock.edit") && <PageAction key="edit" icon={PencilIcon} label="Tahrirlash" href={`/transfers/${t.id}/edit`} />,
     mine && allowed("stock.delete") && <DeleteTransferButton key="delete" companyId={companyId} transfer={t} afterDelete={() => moving("back", () => router.replace("/transfers"))} />,
   ].filter(Boolean)
 
   return (
     <>
-      <BackLink {...back} />
-      <DetailHead
-        media={<SoftIcon icon={ArrowLeftRightIcon} className="size-[76px] rounded-[24px] bg-[color-mix(in_srgb,currentColor_14%,transparent)] [&_svg]:size-9" />}
+      <PageTitle
+        back={back}
         title={`Ko'chirish № ${t.number}`}
-        description={`${t.location_name} → ${t.to_location_name} · ${formatDateTime(t.at)}`}
+        description={`${formatDateTime(t.at)} · ${t.created_by_name}`}
+        action={actions.length > 0 && <PageActions>{actions}</PageActions>}
       />
-      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       <section aria-labelledby="transfer-lines">
         <SectionHeading hint={t.items.length}>
           <span id="transfer-lines">Mahsulotlar</span>
