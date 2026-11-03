@@ -43,6 +43,32 @@ test("the owner's sales of the current location, the newest first, each by its n
   expect(screen.getByRole("link", { name: "Sotuv qo'shish" })).toHaveAttribute("href", "/sales/new")
 })
 
+test("on a wide screen the sales are the prototype's table: №, Vaqt, Mijoz (or «Chakana»), Kim, Jami, To'lov; a phone keeps their days", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  const { dilshod } = seedCustomers()
+  const asosiy = asosiyOf(1).id
+  await signIn(ALI)
+  const cash = db.accounts[1][0].id
+  const sale = await enterSale({ location_id: asosiy, customer_id: dilshod.id, at: "2026-10-05T09:00:00+05:00", items: [{ product_id: catalog.olma.id, quantity: "4", price: "3000" }], payments: [{ bank_account_id: cash, amount: "5000" }] })
+  await enterSale({ location_id: asosiy, customer_id: null, at: "2026-10-06T09:00:00+05:00", items: [{ product_id: catalog.nok.id, quantity: "1", price: "2000" }], payments: [{ bank_account_id: cash, amount: "2000" }] })
+  setLocation("/sales")
+  renderWithProviders(<SalesPage />)
+
+  const table = await screen.findByRole("table", { name: "Sotuvlar" })
+  expect(within(table).getAllByRole("columnheader").map((head) => head.textContent)).toEqual(["№", "Vaqt", "Mijoz", "Kim", "Jami", "To'lov"])
+  const [, retail, first] = within(table).getAllByRole("row")
+  expect(within(retail).getAllByRole("cell")[2]).toHaveTextContent("Chakana")
+  const cells = within(first).getAllByRole("cell")
+  expect(within(cells[0]).getByRole("link", { name: "№ 1" })).toHaveAttribute("href", `/sales/${sale.id}`)
+  expect(cells[1]).toHaveTextContent("5-oktabr")
+  expect(cells[2]).toHaveTextContent("Dilshod Karimov")
+  expect(cells[3]).toHaveTextContent("Ali V.")
+  expect(cells[4].textContent?.replace(/\s+/g, " ")).toBe("12 000 so'm")
+  expect(cells[5].textContent?.replace(/\s+/g, " ")).toBe("5 000 to'langan")
+  expect((await screen.findByRole("region", { name: "Sotuvlar" })).closest('[data-slot="data-list"]')).toHaveClass("md:hidden")
+})
+
 test("none yet; a member with no location is told so; one without the permission is sent home", async () => {
   db.cooldown = false
   seedWarehouse(seedCatalog())

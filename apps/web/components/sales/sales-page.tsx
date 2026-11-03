@@ -2,6 +2,7 @@
 
 import { ShoppingBagIcon } from "lucide-react"
 import { useEffect, useRef } from "react"
+import { type Column, DataTable } from "@/components/kit/data-table"
 import { DayGroups } from "@/components/kit/day-groups"
 import { Foot, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
@@ -12,11 +13,11 @@ import { NoLocation } from "@/components/warehouse/no-location"
 import { PaidStatus } from "@/components/warehouse/paid-status"
 import { usePageFilter } from "@/components/warehouse/use-page-filter"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { count, formatAmount, formatMoney } from "@/lib/format"
+import { count, formatAmount, formatDayMonthTime, formatMoney } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { useSales } from "@/lib/queries"
-import type { Permission } from "@/lib/types"
+import type { Permission, Sale } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
@@ -50,6 +51,17 @@ export function SalesPage() {
   const loading = !noLocation && (sales.isPending || settling)
   const total = sales.isPlaceholderData ? undefined : sales.data?.total
 
+  // The web's table: the number (the way in), the moment, the customer (or
+  // «Chakana»), who entered it, the total and what of it is paid.
+  const columns: Column<Sale>[] = [
+    { key: "number", label: "№", render: (sale) => `№ ${sale.number}` },
+    { key: "at", label: "Vaqt", render: (sale) => formatDayMonthTime(sale.at) },
+    { key: "customer", label: "Mijoz", render: (sale) => sale.customer?.name ?? "Chakana" },
+    { key: "by", label: "Kim", render: (sale) => (sale.created_by_name ? shortName(sale.created_by_name) : "—") },
+    { key: "total", label: "Jami", align: "end", render: (sale) => formatMoney(sale.total, currencyOf(currencies, sale.currency_id)) },
+    { key: "paid", label: "To'lov", align: "end", render: (sale) => <PaidStatus total={sale.total} paid={sale.paid} /> },
+  ]
+
   if (!gate) return null
   const page = sales.data
   return (
@@ -67,26 +79,36 @@ export function SalesPage() {
       )}
       {!loading && !sales.isError && page && page.total > 0 && (
         <>
-          <DayGroups
-            label="Sotuvlar"
-            items={page.items}
-            at={(sale) => sale.at}
-            hint={(day) => formatAmount(day.reduce((sum, sale) => sum + Number(sale.total_uzs), 0).toFixed(2))}
-            className={cn(sales.isPlaceholderData && "opacity-60")}
-          >
-            {(sale) => (
-              <Row
-                key={sale.id}
-                href={`/sales/${sale.id}`}
-                media={<SoftIcon icon={ShoppingBagIcon} />}
-                title={`№ ${sale.number} · ${sale.customer?.name ?? "Chakana"}`}
-                sub={[`${sale.items_count} ta mahsulot`, sale.created_by_name && shortName(sale.created_by_name)].filter(Boolean).join(" · ")}
-                end={formatMoney(sale.total, currencyOf(currencies, sale.currency_id))}
-                endSub={<PaidStatus total={sale.total} paid={sale.paid} />}
-                chevron={false}
-              />
-            )}
-          </DayGroups>
+          <div className={cn(sales.isPlaceholderData && "opacity-60")}>
+            <DataTable
+              label="Sotuvlar"
+              rows={page.items}
+              rowKey={(sale) => sale.id}
+              href={(sale) => `/sales/${sale.id}`}
+              columns={columns}
+              phone={
+                <DayGroups
+                  label="Sotuvlar"
+                  items={page.items}
+                  at={(sale) => sale.at}
+                  hint={(day) => formatAmount(day.reduce((sum, sale) => sum + Number(sale.total_uzs), 0).toFixed(2))}
+                >
+                  {(sale) => (
+                    <Row
+                      key={sale.id}
+                      href={`/sales/${sale.id}`}
+                      media={<SoftIcon icon={ShoppingBagIcon} />}
+                      title={`№ ${sale.number} · ${sale.customer?.name ?? "Chakana"}`}
+                      sub={[`${sale.items_count} ta mahsulot`, sale.created_by_name && shortName(sale.created_by_name)].filter(Boolean).join(" · ")}
+                      end={formatMoney(sale.total, currencyOf(currencies, sale.currency_id))}
+                      endSub={<PaidStatus total={sale.total} paid={sale.paid} />}
+                      chevron={false}
+                    />
+                  )}
+                </DayGroups>
+              }
+            />
+          </div>
           {page.total > page.page_size ? (
             <Pager page={page.page} pageSize={page.page_size} total={page.total} onPage={(next) => update({ page: next })} />
           ) : (
