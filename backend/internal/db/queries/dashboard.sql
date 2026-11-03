@@ -128,3 +128,21 @@ WITH balances AS (
 SELECT COALESCE(sum(b.balance) FILTER (WHERE b.balance > 0), 0)::numeric(14,2) AS debt,
        count(*) FILTER (WHERE b.balance > 0) AS debtors
 FROM balances b;
+
+-- name: DashboardLowStock :many
+-- The company's live active products (no service) moved in the locations
+-- given whose stock there, summed, is at_most or less (logic/warehouse.md,
+-- section 5), by name whatever the case: the first `limit` of them, each
+-- row carrying how many there are in all.
+SELECT p.name, count(*) OVER () AS total
+FROM products p
+JOIN (
+    SELECT sm.product_id, sum(sm.quantity) AS quantity
+    FROM stock_moves sm
+    WHERE sm.company_id = sqlc.arg('company_id') AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[])
+    GROUP BY sm.product_id
+) s ON s.product_id = p.id
+WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL AND p.is_active AND p.kind = 'product'
+  AND s.quantity <= sqlc.arg('at_most')::int
+ORDER BY lower(p.name), p.id
+LIMIT sqlc.arg('limit');

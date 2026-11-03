@@ -230,6 +230,11 @@ type Querier interface {
 	// section 5): sales, orders' documents and opening debts add, payments and
 	// opening advances take away, each by its own rate row.
 	DashboardDebtors(ctx context.Context, companyID int64) (DashboardDebtorsRow, error)
+	// The company's live active products (no service) moved in the locations
+	// given whose stock there, summed, is at_most or less (logic/warehouse.md,
+	// section 5), by name whatever the case: the first `limit` of them, each
+	// row carrying how many there are in all.
+	DashboardLowStock(ctx context.Context, arg DashboardLowStockParams) ([]DashboardLowStockRow, error)
 	// The company's live documents of the kind in the locations given on each
 	// day of the month up to today, the days counted in the zone: their total
 	// in so'm, each by its own rate row, and how many, both by the day's end.

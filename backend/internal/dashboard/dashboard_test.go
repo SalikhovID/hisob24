@@ -247,6 +247,94 @@ func TestDebtors(t *testing.T) {
 	}
 }
 
+// addProduct enters a product (or, with service, a service) of the
+// company; inactive turns it off, deleted hides it.
+func addProduct(t *testing.T, pool *pgxpool.Pool, companyID int64, name string, service, inactive, deleted bool) int64 {
+	t.Helper()
+	kind := "product"
+	if service {
+		kind = "service"
+	}
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(),
+		"INSERT INTO products (company_id, kind, name, unit, is_active, created_by, deleted_at) VALUES ($1, $2, $3, CASE WHEN $2 = 'product' THEN 'dona' END, $4, $5, CASE WHEN $6 THEN now() END) RETURNING id",
+		companyID, kind, name, !inactive, ali, deleted).Scan(&id))
+	return id
+}
+
+// move enters a stock move of the document: the product's quantity in the
+// location changes by qty.
+func move(t *testing.T, pool *pgxpool.Pool, companyID, docID, locationID, productID int64, qty string) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(), "INSERT INTO stock_moves (transaction_id, company_id, location_id, product_id, quantity) VALUES ($1, $2, $3, $4, $5)",
+		docID, companyID, locationID, productID, qty)
+	require.NoError(t, err)
+}
+
+func TestLowStock(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, pool, "Olma")
+	at := "2026-10-07T09:00:00+05:00"
+	bozor := addSupplier(t, pool, sh.company, "Bozor", true, false)
+	inAsosiy := sh.add(t, pool, doc{kind: "purchase", at: at, location: sh.asosiy, supplier: bozor, total: "1"})
+	inChilonzor := sh.add(t, pool, doc{kind: "purchase", at: at, location: sh.chilonzor, supplier: bozor, total: "1"})
+	stock := func(name string, asosiy, chilonzor string) {
+		id := addProduct(t, pool, sh.company, name, false, false, false)
+		if asosiy != "" {
+			move(t, pool, sh.company, inAsosiy, sh.asosiy, id, asosiy)
+		}
+		if chilonzor != "" {
+			move(t, pool, sh.company, inChilonzor, sh.chilonzor, id, chilonzor)
+		}
+	}
+	// In Asosiy: 2, 3 (the edge), 4, 0 (all gone) and 1 of «arqon» (a small
+	// letter: the names go by name whatever the case); Ip and Lenta 1 and 2.
+	stock("Bolt", "2", "")
+	stock("Gayka", "3", "")
+	stock("Shayba", "4", "")
+	vint := addProduct(t, pool, sh.company, "Vint", false, false, false)
+	move(t, pool, sh.company, inAsosiy, sh.asosiy, vint, "5")
+	move(t, pool, sh.company, inAsosiy, sh.asosiy, vint, "-5")
+	stock("arqon", "1", "")
+	stock("Ip", "1", "")
+	stock("Lenta", "2", "")
+	// Mix is Chilonzor's alone; Kabel has 1 in Asosiy and 10 in Chilonzor.
+	stock("Mix", "", "1")
+	stock("Kabel", "1", "10")
+	// Out of it: a deleted product, a turned off one, one never moved, a
+	// service and another company's.
+	for _, p := range []struct {
+		name                       string
+		service, inactive, deleted bool
+	}{{"Eski", false, false, true}, {"Nofaol", false, true, false}, {"Montaj", true, false, false}} {
+		id := addProduct(t, pool, sh.company, p.name, p.service, p.inactive, p.deleted)
+		move(t, pool, sh.company, inAsosiy, sh.asosiy, id, "1")
+	}
+	addProduct(t, pool, sh.company, "Yangi", false, false, false)
+	nok := newShop(t, pool, "Nok")
+	begona := addProduct(t, pool, nok.company, "Begona", false, false, false)
+	nokSupplier := addSupplier(t, pool, nok.company, "Nok bozor", true, false)
+	move(t, pool, nok.company, nok.add(t, pool, doc{kind: "purchase", at: at, location: nok.asosiy, supplier: nokSupplier, total: "1"}), nok.asosiy, begona, "1")
+
+	got, err := s.Get(ctx, sh.scope(), input(access.StockView))
+
+	require.NoError(t, err)
+	assert.Equal(t, &LowStock{Count: 7, Names: []string{"arqon", "Bolt", "Gayka", "Ip", "Lenta"}}, got.LowStock,
+		"every location of the scope, summed: Kabel's 11 is enough, Mix's 1 is low; the first five names by name")
+
+	in := input(access.StockView)
+	in.LocationID = sh.asosiy
+	one, err := s.Get(ctx, sh.scope(), in)
+	require.NoError(t, err)
+	assert.Equal(t, &LowStock{Count: 7, Names: []string{"arqon", "Bolt", "Gayka", "Ip", "Kabel"}}, one.LowStock,
+		"Asosiy's alone: Kabel's 1 is low there, Mix never moved there")
+
+	none, err := s.Get(ctx, sh.scope(), input(access.ProductsView))
+	require.NoError(t, err)
+	assert.Nil(t, none.LowStock, "without stock.view")
+}
+
 func TestSuppliers(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()

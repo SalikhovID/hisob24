@@ -50,6 +50,7 @@ type Input struct {
 type Dashboard struct {
 	Cash      *Cash
 	Debtors   *Debtors
+	LowStock  *LowStock
 	Suppliers *Suppliers
 	Customers *Customers
 	Orders    *Orders
@@ -80,6 +81,14 @@ type CurrencyAmount struct {
 type Debtors struct {
 	Debt  string
 	Count int64
+}
+
+// LowStock is the products running low in the location, or in every one
+// of the scope summed (logic/warehouse.md, section 5): how many they are,
+// and the names of the first of them by name.
+type LowStock struct {
+	Count int64
+	Names []string
 }
 
 // Suppliers is what the company's suppliers are owed, in so'm, each
@@ -144,6 +153,20 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 			return Dashboard{}, err
 		}
 		d.Debtors = &Debtors{Debt: amount(row.Debt), Count: row.Debtors}
+	}
+	if in.Permissions.Has(access.StockView) {
+		rows, err := s.q.DashboardLowStock(ctx, gen.DashboardLowStockParams{
+			CompanyID: scope.CompanyID, LocationIds: scope.locations(in.LocationID), AtMost: lowStockAtMost, Limit: lowStockNames,
+		})
+		if err != nil {
+			return Dashboard{}, err
+		}
+		low := &LowStock{Names: make([]string, 0, len(rows))}
+		for _, row := range rows {
+			low.Names = append(low.Names, row.Name)
+			low.Count = row.Total
+		}
+		d.LowStock = low
 	}
 	if in.Permissions.Has(access.PurchasesView) {
 		row, err := s.q.DashboardSuppliers(ctx, scope.CompanyID)
@@ -229,6 +252,13 @@ func (s *Service) cash(ctx context.Context, companyID int64) (*Cash, error) {
 	}
 	return c, nil
 }
+
+// lowStockAtMost is the stock a product runs low at, and lowStockNames how
+// many of their names the home shows (logic/warehouse.md, section 5).
+const (
+	lowStockAtMost = 3
+	lowStockNames  = 5
+)
 
 // upcomingCount is how many of the orders due soonest the home shows.
 const upcomingCount = 5

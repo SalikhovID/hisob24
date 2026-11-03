@@ -164,6 +164,62 @@ func (q *Queries) DashboardDebtors(ctx context.Context, companyID int64) (Dashbo
 	return i, err
 }
 
+const dashboardLowStock = `-- name: DashboardLowStock :many
+SELECT p.name, count(*) OVER () AS total
+FROM products p
+JOIN (
+    SELECT sm.product_id, sum(sm.quantity) AS quantity
+    FROM stock_moves sm
+    WHERE sm.company_id = $1 AND sm.location_id = ANY($2::bigint[])
+    GROUP BY sm.product_id
+) s ON s.product_id = p.id
+WHERE p.company_id = $1 AND p.deleted_at IS NULL AND p.is_active AND p.kind = 'product'
+  AND s.quantity <= $3::int
+ORDER BY lower(p.name), p.id
+LIMIT $4
+`
+
+type DashboardLowStockParams struct {
+	CompanyID   int64
+	LocationIds []int64
+	AtMost      int32
+	Limit       int32
+}
+
+type DashboardLowStockRow struct {
+	Name  string
+	Total int64
+}
+
+// The company's live active products (no service) moved in the locations
+// given whose stock there, summed, is at_most or less (logic/warehouse.md,
+// section 5), by name whatever the case: the first `limit` of them, each
+// row carrying how many there are in all.
+func (q *Queries) DashboardLowStock(ctx context.Context, arg DashboardLowStockParams) ([]DashboardLowStockRow, error) {
+	rows, err := q.db.Query(ctx, dashboardLowStock,
+		arg.CompanyID,
+		arg.LocationIds,
+		arg.AtMost,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DashboardLowStockRow{}
+	for rows.Next() {
+		var i DashboardLowStockRow
+		if err := rows.Scan(&i.Name, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const dashboardMoneyByDay = `-- name: DashboardMoneyByDay :many
 SELECT d.day::date AS day,
        COALESCE(sum(x.total) OVER (ORDER BY d.day), 0)::numeric(14,2) AS total,
