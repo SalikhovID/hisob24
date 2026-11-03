@@ -107,24 +107,20 @@ test("the splash's mark is Hisob24's, for a screen reader too", () => {
   expect(screen.getByRole("img", { name: "Hisob24" })).toHaveTextContent("H24")
 })
 
-test("the splash's mark is the brand's fill: black glass in the light, lavender with a gold rim in the night", () => {
+test("the splash's mark is the brand's flat teal square with the white H24", () => {
   render(<Splash>Telegram orqali kirilmoqda</Splash>)
   const mark = screen.getByRole("img", { name: "Hisob24" })
-  expect(mark).toHaveClass("bg-(image:--brand-fill)", "shadow-(--mark-shadow)")
-  expect(mark).not.toHaveClass("bg-brand-panel")
+  expect(mark).toHaveClass("bg-brand", "text-white")
+  expect(mark.className).not.toContain("--brand-fill")
 })
 
-test("an empty state is frosted glass, its icon ringed in white, its button the prototype's smaller capsule", () => {
+test("an empty state is the prototype's flat card: its icon on a grey square, its title medium, its button the accent's smaller one", () => {
   const { container } = render(<EmptyState icon={UserIcon} title="Mijoz yo'q" action={<MainButton>Mijoz qo&apos;shish</MainButton>} />)
   const empty = container.querySelector('[data-slot="empty-state"]')!
-  expect(empty).toHaveClass("surface", "rounded-group")
-  expect(empty).not.toHaveClass("bg-card")
-  expect(empty.querySelector("[aria-hidden=true]")).toHaveClass("shadow-[inset_0_0_0_1px_rgba(255,255,255,.6)]")
-  expect(screen.getByRole("button", { name: "Mijoz qo'shish" }).parentElement).toHaveClass(
-    "[&_[data-slot=main-button]]:h-[46px]",
-    "[&_[data-slot=main-button]]:w-auto",
-    "[&_[data-slot=main-button]]:px-[22px]",
-  )
+  expect(empty).toHaveClass("surface", "rounded-group", "md:rounded-lg", "py-9")
+  expect(empty.querySelector("[aria-hidden=true]")).toHaveClass("size-10", "rounded-lg", "bg-ink-2", "text-icon")
+  expect(screen.getByText("Mijoz yo'q")).toHaveClass("font-medium")
+  expect(screen.getByRole("button", { name: "Mijoz qo'shish" }).parentElement).toHaveClass("[&_[data-slot=main-button]]:h-10", "[&_[data-slot=main-button]]:w-auto", "md:[&_[data-slot=main-button]]:h-8")
 })
 
 test("a record not found, a failure and a list loading stand on the same frosted glass as a group", () => {

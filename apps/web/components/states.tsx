@@ -99,19 +99,16 @@ export function EmptyState({
   className?: string
 }) {
   return (
-    <div data-slot="empty-state" className={cn("mb-6 rounded-group surface px-6 py-7 text-center", className)}>
+    <div data-slot="empty-state" className={cn("mb-6 rounded-group surface px-4 py-9 text-center md:rounded-lg", className)}>
       {Icon && (
-        <span
-          aria-hidden="true"
-          className="mx-auto mb-3.5 grid size-16 place-items-center rounded-[20px] bg-primary-soft text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,.6)]"
-        >
-          <Icon aria-hidden="true" strokeWidth={1.9} className="size-[30px]" />
+        <span aria-hidden="true" className="mx-auto mb-3 grid size-10 place-items-center rounded-lg bg-ink-2 text-icon">
+          <Icon aria-hidden="true" strokeWidth={1.8} className="size-5" />
         </span>
       )}
-      <p className="text-[18px] font-semibold">{title}</p>
-      {description && <p className="mt-1.5 text-md text-pretty text-muted-foreground">{description}</p>}
+      <p className="text-[15px] font-medium md:text-[13px]">{title}</p>
+      {description && <p className="mt-1 text-md text-pretty text-muted-foreground md:text-[13px]">{description}</p>}
       {action && (
-        <div className="mt-[18px] inline-flex [&_[data-slot=main-button]]:h-[46px] [&_[data-slot=main-button]]:w-auto [&_[data-slot=main-button]]:px-[22px] [&_[data-slot=main-button]]:text-[16px]">
+        <div className="mt-4 inline-flex [&_[data-slot=main-button]]:h-10 [&_[data-slot=main-button]]:w-auto [&_[data-slot=main-button]]:px-4 [&_[data-slot=main-button]]:text-[15px] md:[&_[data-slot=main-button]]:h-8 md:[&_[data-slot=main-button]]:px-3 md:[&_[data-slot=main-button]]:text-[13px]">
           {action}
         </div>
       )}
@@ -123,29 +120,29 @@ export function EmptyState({
 // heading says so, a line under it says why.
 export function NotFound({ title, description, icon: Icon }: { title: string; description: string; icon?: LucideIcon }) {
   return (
-    <div data-slot="not-found" className="mt-10 rounded-group surface px-6 py-7 text-center">
+    <div data-slot="not-found" className="mt-10 rounded-group surface px-4 py-9 text-center md:rounded-lg">
       {Icon && (
-        <span aria-hidden="true" className="mx-auto mb-3.5 grid size-16 place-items-center rounded-[20px] bg-muted text-muted-foreground">
-          <Icon aria-hidden="true" strokeWidth={1.9} className="size-[30px]" />
+        <span aria-hidden="true" className="mx-auto mb-3 grid size-10 place-items-center rounded-lg bg-ink-2 text-icon">
+          <Icon aria-hidden="true" strokeWidth={1.8} className="size-5" />
         </span>
       )}
-      <h1 className="text-[18px] font-semibold">{title}</h1>
-      <p className="mt-1.5 text-md text-pretty text-muted-foreground">{description}</p>
+      <h1 className="text-[15px] font-medium md:text-[13px]">{title}</h1>
+      <p className="mt-1 text-md text-pretty text-muted-foreground md:text-[13px]">{description}</p>
     </div>
   )
 }
 
 // Splash is the app's opening screen while Telegram signs the user in: the
-// pulsing mark in the brand's fill (Hisob24's, named so for a screen
-// reader), a loading line
-// and a word on what is going on.
+// pulsing mark, the brand's teal square with the white H24 (Hisob24's,
+// named so for a screen reader), a loading line and a word on what is
+// going on.
 export function Splash({ children }: { children: ReactNode }) {
   return (
     <div role="status" data-slot="splash" className="flex flex-1 flex-col items-center justify-center px-7 pt-6 pb-[140px] text-center">
       <span
         role="img"
         aria-label="Hisob24"
-        className="grid size-[84px] place-items-center rounded-[26px] bg-(image:--brand-fill) text-[30px] font-extrabold tracking-[-0.05em] text-brand-panel-foreground italic shadow-(--mark-shadow) motion-safe:animate-[pulse-mark_1.4s_ease-in-out_infinite]"
+        className="grid size-[72px] place-items-center rounded-[20px] bg-brand text-[26px] font-extrabold tracking-[-0.05em] text-white italic motion-safe:animate-[pulse-mark_1.4s_ease-in-out_infinite]"
       >
         H24
       </span>
