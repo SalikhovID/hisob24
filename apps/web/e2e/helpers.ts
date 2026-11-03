@@ -14,9 +14,8 @@ export async function signIn(page: Page, number: string) {
 export const onPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 768
 
 // sections is the list of sections as the screen shows it: the sidebar's on
-// a wide screen, the tab bar's on a phone. The tab bar stands on a
-// section's own pages only: on a record, a form or the profile it is hidden
-// (and out of the accessibility tree).
+// a wide screen (the current section's own pages under it), the tab bar's
+// on a phone, on every page.
 export async function sections(page: Page): Promise<Locator> {
   return page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
 }
@@ -32,31 +31,38 @@ export async function goHome(page: Page) {
 
 // openSection goes to a section's own page through the sidebar or the tab
 // bar. On a phone the bar holds the member's pages (by default the home,
-// the customers, the orders and the products) and «Sozlamalar» last; the
-// rest are rows of the settings page (logic/roles.md, section 8): the
-// finance opens at its cash.
+// the customers, the orders and the products) and «Sozlama» last, the
+// settings page; the sections the bar does not hold are rows of that page
+// (logic/roles.md, section 8): the finance opens at its cash.
 export async function openSection(page: Page, name: string) {
   let bar = await sections(page)
   if (!onPhone(page)) {
-    await bar.getByRole("link", { name, exact: true }).click()
+    // The section's own row comes before its pages (a page may share its name).
+    await bar.getByRole("link", { name, exact: true }).first().click()
     return
   }
   if ((await bar.count()) === 0) {
     await goHome(page)
     bar = await sections(page)
   }
+  const settings = bar.getByRole("link", { name: "Sozlama", exact: true })
+  if (name === "Sozlamalar") {
+    await settings.click()
+    await expect(page).toHaveURL(/\/settings$/)
+    return
+  }
   const inBar = bar.getByRole("link", { name, exact: true })
   // The pages come with the session: until then the bar holds the home and
-  // «Sozlamalar» alone. A full bar (four pages and «Sozlamalar») means the
-  // page is past it.
+  // «Sozlama» alone. A full bar (four pages and «Sozlama») means the page
+  // is past it.
   await inBar.or(bar.getByRole("link").nth(4)).first().waitFor()
   if ((await inBar.count()) > 0) {
     await inBar.click()
     return
   }
-  await bar.getByRole("link", { name: "Sozlamalar", exact: true }).click()
+  await settings.click()
   await expect(page).toHaveURL(/\/settings$/)
-  await page.getByRole("main").getByRole("link", { name: name === "Moliya" ? "Kassa" : name, exact: true }).click()
+  await page.getByRole("main").getByRole("link", { name, exact: true }).click()
 }
 
 // back takes the page's way back: its own «‹ name» link on a phone, the
@@ -104,9 +110,10 @@ export async function signOut(page: Page) {
 }
 
 // locationSwitch is the pill that says the current location and switches
-// it: the sidebar's on a wide screen, the home's head on a phone.
+// it: the top bar's on a wide screen (a menu), the home's head on a phone
+// (a sheet).
 export const locationSwitch = (page: Page) =>
-  (onPhone(page) ? page.getByRole("main") : page.getByRole("complementary", { name: "Menyu" })).getByRole("button", { name: /^Lokatsiya: / })
+  (onPhone(page) ? page.getByRole("main") : page.locator('[data-slot="top-bar"]')).getByRole("button", { name: /^Lokatsiya: / })
 
 // chooseLocation makes the location current (logic/locations.md, section
 // 4). On a phone the switch is the home's: the way goes home and back.
@@ -114,7 +121,7 @@ export async function chooseLocation(page: Page, name: string) {
   const away = onPhone(page) && new URL(page.url()).pathname !== "/"
   if (away) await goHome(page)
   await locationSwitch(page).click()
-  await page.getByRole("dialog", { name: "Lokatsiya" }).getByRole("menuitemradio", { name, exact: true }).click()
+  await page.getByRole("menuitemradio", { name, exact: true }).click()
   await expect(locationSwitch(page)).toHaveAccessibleName(`Lokatsiya: ${name}`)
   if (away) await page.goBack()
 }

@@ -103,7 +103,7 @@ test.describe("a linked user", () => {
     // own, the card's dark at 80% under its buttons.
     if (onPhone(page)) {
       const bar = page.getByRole("navigation", { name: "Bo'limlar" }).filter({ visible: true })
-      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
+      await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlama"])
       await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
       expect(await bar.evaluate((element) => getComputedStyle(element, "::before").backgroundColor)).toMatch(/0\.8\)$/)
     }
@@ -112,8 +112,8 @@ test.describe("a linked user", () => {
     // them (8px more, 24px from md), the shell no taller than the screen.
     expect(await wentFullscreen(page)).toBe(true)
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
-    // (From md the column starts under the top bar's 80px.)
-    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "101px" : "173px")
+    // (From md the top bar keeps clear of them, the column 20px under it.)
+    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "101px" : "20px")
     expect((await homeHeadBox(page))?.y).toBeGreaterThanOrEqual(93)
     // What scrolls up passes under the controls into a fade as tall as they
     // are and 18px more, there once the page is scrolled.
@@ -140,8 +140,8 @@ test.describe("a linked user", () => {
     // and the chat sets the theme.
     await openProfile(page)
     await expect(page).toHaveURL(/\/profile$/)
-    await expect(page.getByText("+998 90 123 45 67")).toBeVisible()
-    await expect(page.getByText(/Telegram ichida chiqish uchun ilovani yoping/)).toBeVisible()
+    await expect(page.getByText(/^\+998 90 123 45 67/)).toBeVisible()
+    await expect(page.getByText("Mini App'da chiqish yo'q: Telegram akkauntingiz bilan avtomatik kirasiz.")).toBeVisible()
     await expect(page.getByRole("button", { name: "Chiqish" })).toHaveCount(0)
     await expect(page.getByRole("button", { name: /^Mavzu/ })).toHaveCount(0)
   })
@@ -254,9 +254,9 @@ test.describe("a Mini App whose sign-in fails", () => {
     // on it the dark's near black (docs: 2026-11-03 flat redesign).
     await expect(panel).toHaveCSS("background-color", "rgb(236, 236, 238)")
     await expect(panel.getByRole("img", { name: "Hisob24" })).toHaveCSS("color", "rgb(26, 26, 29)")
-    // Full screen: the panel's own padding (40px on a phone, 48px from lg)
-    // grows by the insets (93px), so the logo stays clear of the controls.
-    await expect(panel).toHaveCSS("padding-top", onPhone(page) ? "133px" : "141px")
+    // Full screen: the page's own padding grows by the insets (93px), so
+    // the card stays clear of the controls.
+    await expect(panel.locator("xpath=../..")).toHaveCSS("padding-top", onPhone(page) ? "109px" : "24px")
     await fits(page)
   })
 })
@@ -270,7 +270,7 @@ test.describe("a desktop Telegram", () => {
     await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
     expect(await wentFullscreen(page)).toBe(false)
     await expect(page.locator('[data-slot="app-shell"]')).toHaveCSS("padding-top", "0px")
-    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "8px" : "80px")
+    await expect(page.getByRole("main")).toHaveCSS("padding-top", onPhone(page) ? "8px" : "20px")
     expect((await homeHeadBox(page))?.y).toBeLessThan(93)
     // Nothing lies over the page's top: no fade.
     await expect(page.locator('[data-slot="top-fade"]')).toHaveCSS("height", "0px")

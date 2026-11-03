@@ -68,19 +68,18 @@ test("the owner makes a role and gives it to an employee, who then sees and does
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
   await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Sotuvchi" })
   const shown = await sections(page)
-  // A phone's bar ends with «Sozlamalar», every member's way to their pages.
-  await expect(shown.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", ...(onPhone(page) ? ["Sozlamalar"] : [])])
+  // A phone's bar ends with «Sozlama», every member's way to the rest.
+  await expect(shown.locator('a:not([data-slot="side-subitem"])')).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", ...(onPhone(page) ? ["Sozlama"] : [])])
   await shown.getByRole("link", { name: "Mijozlar" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Mijozlar" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Mijoz qo'shish" }).first()).toBeVisible()
   await openSection(page, "Buyurtmalar")
   await expect(page.getByRole("heading", { level: 1, name: "Buyurtmalar" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Buyurtma qo'shish" })).toHaveCount(0)
-  // The settings are not theirs: «Sozlamalar» lists their pages alone, and a
-  // settings page's address leads home.
+  // The settings are not theirs: the settings page holds the tab bar's
+  // choice alone, and a settings page's address leads home.
   await page.goto("/settings")
-  await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toBeVisible()
-  await expect(page.getByRole("main").getByRole("list", { name: "Mijozlar va buyurtmalar" })).toHaveCount(0)
+  await expect(page.getByRole("main").getByRole("list", { name: "Sozlamalar" }).getByRole("link")).toHaveText(["Pastki panel"])
   await page.goto("/settings/customer-types")
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()

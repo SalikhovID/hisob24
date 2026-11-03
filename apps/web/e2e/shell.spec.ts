@@ -18,8 +18,8 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
     await expect(sidebar).toBeHidden()
     await expect(page.getByRole("banner")).toHaveCount(0)
     const bar = tabBar(page)
-    // The default bar: four pages, «Sozlamalar» last, the way to the rest.
-    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
+    // The default bar: four pages, «Sozlama» last, the way to the rest.
+    await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlama"])
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
     // The bar floats over the page, clear of the bottom edge, and the page fits its width.
     const box = (await bar.boundingBox())!
@@ -38,19 +38,20 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
     await page.setViewportSize(viewport)
     // The home lists no sections: the rest are rows of the settings page.
     await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toHaveCount(0)
-    await bar.getByRole("link", { name: "Sozlamalar" }).click()
+    await bar.getByRole("link", { name: "Sozlama", exact: true }).click()
     await expect(page).toHaveURL(/\/settings$/)
-    await expect(bar.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("aria-current", "page")
+    await expect(bar.getByRole("link", { name: "Sozlama", exact: true })).toHaveAttribute("aria-current", "page")
     const main = page.getByRole("main")
-    await expect(main.getByRole("list", { name: "Ombor" }).getByRole("link")).toHaveText(["Ombor", "Xaridlar", "Ko'chirishlar", "Inventarizatsiya", "Boshlang'ich qoldiq", "Ta'minotchilar"])
+    // The sections the bar does not hold are the settings page's rows.
+    await expect(main.getByRole("list", { name: "Bo'limlar" }).getByRole("link")).toHaveText(["Sotuv", "Ombor", "Moliya", "Xodimlar"])
     await main.getByRole("link", { name: "Xodimlar", exact: true }).click()
     await expect(page).toHaveURL(/\/employees$/)
-    // A page past the bar is a page of the menu too: the bar stays, «Sozlamalar» marked.
+    // A page past the bar is a page of the menu too: the bar stays, «Sozlama» marked.
     await expect(bar.getByRole("link", { name: "Bosh sahifa" })).not.toHaveAttribute("aria-current", "page")
-    await expect(bar.getByRole("link", { name: "Sozlamalar" })).toHaveAttribute("aria-current", "page")
-    // On a record or the profile the bar steps aside.
+    await expect(bar.getByRole("link", { name: "Sozlama", exact: true })).toHaveAttribute("aria-current", "page")
+    // On a record or the profile the bar stays too, as the prototype's.
     await openProfile(page)
-    await expect(page.getByRole("navigation", { name: "Bo'limlar" })).toHaveCount(0)
+    await expect(tabBar(page)).toBeVisible()
     return
   }
 
@@ -58,7 +59,7 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
   await expect(sidebar.getByRole("link", { name: "Bosh sahifa" })).toHaveAttribute("aria-current", "page")
   await expect(sidebar.getByRole("link", { name: "Xodimlar" })).toBeVisible()
   await expect(sidebar.getByText("Olma Savdo")).toBeVisible()
-  await expect.poll(width(page)).toBe(264)
+  await expect.poll(width(page)).toBe(224)
   // A wide screen has every section in the sidebar: the home lists none of them.
   await expect(page.getByRole("main").getByRole("list", { name: "Bo'limlar" })).toBeHidden()
 
@@ -74,7 +75,7 @@ test("the sections are a folding sidebar on a wide screen and a floating tab bar
   await expect.poll(width(page)).toBe(64)
   await expect(sidebar.getByRole("link", { name: "Profil: Ali Valiyev" })).toBeVisible()
   await sidebar.getByRole("button", { name: "Menyuni yoyish" }).click()
-  await expect.poll(width(page)).toBe(264)
+  await expect.poll(width(page)).toBe(224)
   await expect(sidebar.getByText("Olma Savdo")).toBeVisible()
 })
 
@@ -88,15 +89,16 @@ test("an employee sees no section of the owner's", async ({ page }) => {
   await expect(bar.getByRole("link", { name: "Xodimlar" })).toHaveCount(0)
 })
 
-test("the way to the profile (the home's head on a phone, the sidebar's foot on a wide screen) says who is signed in and leads to their other company and back", async ({ page }) => {
+test("the way to the profile (the home's head on a phone, the sidebar's company on a wide screen) says who is signed in and leads to their other company and back", async ({ page }) => {
   await signIn(page, "902223344")
   await page.getByRole("button", { name: /Olma Savdo/ }).click()
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
 
   await expectSignedIn(page, { company: "Olma Savdo", short: "Vali A.", role: "Xodim" })
   await openProfile(page)
-  await expect(page.getByRole("heading", { level: 1, name: "Vali Aliyev" })).toBeVisible()
-  await expect(page.getByText("+998 90 222 33 44")).toBeVisible()
+  await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible()
+  await expect(page.getByRole("heading", { level: 2, name: "Vali Aliyev" })).toBeVisible()
+  await expect(page.getByText("+998 90 222 33 44 · Xodim")).toBeVisible()
   await page.getByRole("link", { name: "Kompaniyani almashtirish" }).click()
 
   await expect(page).toHaveURL(/\/select-company$/)
@@ -175,37 +177,35 @@ test("on a phone the member chooses the bar's pages on «Pastki panel», under t
       "Xodimlar",
       "Sozlamalar",
     ])
-    // A wide screen has no bar to choose: the settings page leads to none.
+    // A wide screen's settings page leads to the phone's bar too.
     await (await sections(page)).getByRole("link", { name: "Sozlamalar" }).click()
     await expect(page.getByRole("heading", { level: 1, name: "Sozlamalar" })).toBeVisible()
-    await expect(page.getByRole("link", { name: /^Pastki panelni sozlash/ })).toBeHidden()
+    await expect(page.getByRole("main").getByRole("link", { name: "Pastki panel" })).toBeVisible()
     return
   }
 
   const bar = tabBar(page)
   const choose = async () => {
-    await bar.getByRole("link", { name: "Sozlamalar" }).click()
-    await page.getByRole("link", { name: /^Pastki panelni sozlash/ }).click()
+    await bar.getByRole("link", { name: "Sozlama", exact: true }).click()
+    await page.getByRole("main").getByRole("link", { name: "Pastki panel" }).click()
     // The editor's first visit may wait for the dev server to build it.
     await expect(page).toHaveURL(/\/settings\/tab-bar$/, { timeout: 15_000 })
     return page.getByRole("main")
   }
   let editor = await choose()
-  // The bar steps aside on its own editor, which pictures it.
-  await expect(page.getByRole("navigation", { name: "Bo'limlar" })).toHaveCount(0)
   await expect(editor.getByText("4 / 4")).toBeVisible()
   await editor.getByRole("button", { name: "Paneldan olib tashlash: Buyurtmalar" }).click()
   await editor.getByRole("button", { name: "Panelga qo'shish: Xaridlar" }).click()
   await editor.getByRole("button", { name: "Xaridlar: tartibini o'zgartirish" }).focus()
   await page.keyboard.press("Home")
-  await expect(editor.getByRole("list", { name: "Ko'rinishi" }).getByRole("listitem")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlamalar"])
+  await expect(editor.getByRole("list", { name: "Ko'rinishi" }).getByRole("listitem")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlama"])
   await editor.getByRole("button", { name: "Saqlash" }).click()
   await expect(page.getByText("Pastki panel saqlandi")).toBeVisible()
   await expect(page).toHaveURL(/\/settings$/)
-  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlamalar"])
+  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlama"])
 
   await page.reload()
-  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlamalar"])
+  await expect(bar.getByRole("link")).toHaveText(["Xaridlar", "Bosh sahifa", "Mijozlar", "Sotuv", "Sozlama"])
   // A page of the warehouse in the bar opens with the bar standing, its button marked.
   await bar.getByRole("link", { name: "Xaridlar" }).click()
   await expect(page).toHaveURL(/\/purchases$/)
@@ -216,7 +216,7 @@ test("on a phone the member chooses the bar's pages on «Pastki panel», under t
   await editor.getByRole("button", { name: "Standart holat" }).click()
   await editor.getByRole("button", { name: "Saqlash" }).click()
   await expect(page).toHaveURL(/\/settings$/)
-  await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlamalar"])
+  await expect(bar.getByRole("link")).toHaveText(["Bosh sahifa", "Mijozlar", "Buyurtmalar", "Mahsulotlar", "Sozlama"])
 })
 
 // namesOf reads the bar's names as the screen sets them: whether each shows
@@ -253,12 +253,10 @@ test("the bar's names show whole on a phone of any width, clear of their buttons
     expect(new Set(names.map((name) => name.size)).size).toBe(1)
     sizes.push(names[0].size)
   }
-  // The prototype's 11px on a roomy phone, or a hair under it: the bar stops
-  // growing at its widest, and «Buyurtmalar» keeps its 4px clear there at about
-  // 10.9px. Less on a 320px phone, never under 8.5px.
-  expect(parseFloat(sizes[0])).toBeGreaterThanOrEqual(10.8)
-  expect(parseFloat(sizes[0])).toBeLessThanOrEqual(11)
-  expect(parseFloat(sizes[3])).toBeLessThan(parseFloat(sizes[0]))
+  // The prototype's 10px on a roomy phone; less on a 320px one if need be,
+  // never under 8.5px.
+  expect(parseFloat(sizes[0])).toBe(10)
+  expect(parseFloat(sizes[3])).toBeLessThanOrEqual(parseFloat(sizes[0]))
   expect(parseFloat(sizes[3])).toBeGreaterThanOrEqual(8.5)
 })
 

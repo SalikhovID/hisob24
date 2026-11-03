@@ -174,29 +174,26 @@ test("a number typed before the page comes alive is kept, and sent the right way
   await expect(page).toHaveURL(/\/login$/)
 })
 
-test("on a wide screen the brand's panel stands beside the form, on a phone above it", async ({ page }) => {
+test("the login is a card in the middle of the page: on a wide screen the brand's panel stands beside the form, on a phone above it", async ({ page }) => {
   await page.goto("/login")
   await expect(page.getByRole("textbox", { name: "Telefon raqami" })).toBeVisible()
   const panel = (await page.getByRole("banner").boundingBox())!
   const form = (await page.getByRole("main").boundingBox())!
   const { width, height } = page.viewportSize()!
 
-  if (width >= 1024) {
-    // Side by side, each as tall as the screen.
-    expect(panel.x).toBe(0)
+  if (width >= 768) {
+    // Side by side, as tall as each other, the card in the middle of the screen.
     expect(Math.round(panel.x + panel.width)).toBe(Math.round(form.x))
-    expect(Math.round(form.x + form.width)).toBe(width)
-    expect(panel.y).toBe(0)
-    expect(form.y).toBe(0)
-    expect(Math.round(panel.height)).toBe(height)
+    expect(Math.round(panel.y)).toBe(Math.round(form.y))
+    expect(Math.round(panel.height)).toBe(Math.round(form.height))
+    expect(Math.abs(panel.x - (width - (form.x + form.width)))).toBeLessThanOrEqual(1)
+    expect(panel.y).toBeGreaterThan(0)
+    expect(panel.y + panel.height).toBeLessThan(height)
     return
   }
-  // A band across the top; the form is a sheet drawn over its lower edge.
-  expect(panel.y).toBe(0)
-  expect(Math.round(panel.width)).toBe(width)
-  expect(Math.round(form.width)).toBe(width)
-  expect(form.y).toBeGreaterThan(panel.y)
-  expect(form.y).toBeLessThan(panel.y + panel.height)
+  // The panel over the form, both the card's width.
+  expect(Math.round(panel.width)).toBe(Math.round(form.width))
+  expect(Math.round(form.y)).toBe(Math.round(panel.y + panel.height))
 })
 
 test("on a page's own background the logo wears the ink, near white in the dark", async ({ page }) => {
