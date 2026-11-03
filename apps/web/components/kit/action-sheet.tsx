@@ -16,15 +16,13 @@ export interface ActionItem {
   disabled?: boolean
 }
 
-// The prototype's glass menu: 26px corners, a white edge all round and a
-// light along its top, over a blur.
-const glass =
-  "rounded-[26px] bg-menu p-1.5 shadow-[var(--shadow),inset_0_0_0_1px_var(--glass-edge),inset_0_1px_0_var(--glass-edge)] backdrop-blur-[30px] backdrop-saturate-[1.8]"
+// A list of the sheet: a flat white card, 14px round (floating on the web).
+const card = "overflow-hidden rounded-[14px] bg-popover md:shadow-float"
 
-// ActionSheet is the prototype's action sheet: what can be done with a
-// record (edit, deactivate, delete) or which state to put it in, in a glass
-// list at the bottom of the screen, «Bekor qilish» under it. A choice does
-// its thing and closes the sheet.
+// ActionSheet is the iOS action sheet: what can be done with a record (edit,
+// deactivate, delete) or which state to put it in, in a flat white list at
+// the bottom of the screen, its rows apart by hairlines, «Bekor qilish»
+// under it. A choice does its thing and closes the sheet.
 export function ActionSheet({
   open,
   onOpenChange,
@@ -52,11 +50,10 @@ export function ActionSheet({
           aria-label={title === undefined ? "Amallar" : undefined}
           className="fixed inset-x-2 bottom-3 z-50 mx-auto flex w-auto max-w-[480px] flex-col gap-2 outline-none transition-transform duration-[380ms] ease-drawer data-starting-style:translate-y-[110%] data-ending-style:translate-y-[110%]"
         >
-          <div role="menu" className={glass}>
+          <div role="menu" className={card}>
             {title !== undefined && (
               <>
-                <DialogPrimitive.Title className="px-4 pt-2.5 pb-2 text-center text-xs leading-snug font-normal text-muted-foreground">{title}</DialogPrimitive.Title>
-                <hr className="mx-2.5 mb-1 h-px border-0 bg-border" />
+                <DialogPrimitive.Title className="px-4 pt-3.5 pb-3 text-center text-[13px] leading-snug font-normal text-muted-foreground md:text-[12px]">{title}</DialogPrimitive.Title>
               </>
             )}
             {items.map((item) => (
@@ -72,18 +69,18 @@ export function ActionSheet({
                   item.onSelect()
                 }}
                 className={cn(
-                  "relative flex min-h-[52px] w-full items-center justify-center gap-3 rounded-[16px] px-3.5 text-base text-foreground outline-none active:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-45",
+                  "relative flex min-h-14 w-full items-center justify-center gap-3 border-t border-separator px-3.5 text-[17px] text-accent-text outline-none first:border-t-0 active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset disabled:opacity-40 md:min-h-11 md:border-line-faint md:text-[13px] md:hover:bg-ink-1",
                   item.danger && "text-destructive",
                 )}
               >
                 {item.dot && <span aria-hidden="true" style={{ background: item.dot }} className="size-2.5 shrink-0 rounded-full" />}
                 <span>{item.label}</span>
-                {item.checked && <CheckIcon aria-hidden="true" strokeWidth={2.6} className="absolute right-4 size-5 text-primary" />}
+                {item.checked && <CheckIcon aria-hidden="true" strokeWidth={2.4} className="absolute right-4 size-5 text-accent-text" />}
               </button>
             ))}
           </div>
-          <div className={glass}>
-            <DialogPrimitive.Close className="flex min-h-[52px] w-full items-center justify-center rounded-[16px] text-base font-semibold text-foreground outline-none active:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
+          <div className={card}>
+            <DialogPrimitive.Close className="flex min-h-14 w-full items-center justify-center text-[17px] font-semibold text-accent-text outline-none active:bg-press focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset md:min-h-11 md:text-[13px] md:hover:bg-ink-1">
               {cancelLabel}
             </DialogPrimitive.Close>
           </div>
