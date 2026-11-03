@@ -1,14 +1,15 @@
 // The home's blocks of the mock API, under the Go API's rules
-// (backend/internal/dashboard; docs/superpowers/specs/2026-10-13-mini-app-ui-design.md):
-// each by its permission, money in so'm by each document's own rate, the
-// orders, purchases and sales of the location asked for or of every one of
-// the member's. The days are counted where the mock runs, as localToday
-// counts them.
+// (backend/internal/dashboard; docs/superpowers/specs/2026-11-03-flat-redesign-design.md):
+// each by its permission; the cash by currency as the accounts hold it, the
+// customers' debt and the sales in so'm by each document's own rate; the
+// orders, the sales and the low stock of the location asked for or of every
+// one of the member's. The days are counted where the mock runs, as
+// localToday counts them.
 import { http, HttpResponse } from "msw"
 import { liveCustomers } from "./customers"
-import { db, localToday, locationsOf, permissionsOf, type TransactionRow } from "./data"
+import { db, localToday, locationsOf, permissionsOf } from "./data"
 import { api, fail, forbidden, memberSession } from "./gate"
-import { asAmount, balanceOf, convertAmount, rateOf, round } from "./ledger"
+import { accountBalanceOf, asAmount, convertAmount, customerBalanceOf, rateOf, round, stockOf } from "./ledger"
 import { liveOrders, toOrder } from "./orders"
 
 const pad = (n: number) => String(n).padStart(2, "0")
@@ -40,22 +41,36 @@ export const dashboardHandlers = [
     const days = monthDays(today)
     const monthStart = days[0]
 
-    let suppliers = null
-    if (may.includes("purchases.view")) {
-      const balances = db.suppliers.filter((s) => s.companyId === member.companyId && !s.deleted).map((s) => balanceOf(s.id).balance)
-      suppliers = {
-        debt: asAmount(balances.filter((b) => b > 0).reduce((sum, b) => sum + b, 0)),
-        debtors: balances.filter((b) => b > 0).length,
-        advance: asAmount(-balances.filter((b) => b < 0).reduce((sum, b) => sum + b, 0)),
-      }
+    let cash = null
+    if (may.includes("finance.view")) {
+      const accounts = db.accounts[member.companyId] ?? []
+      const totals = [1, 2, 3, 4]
+        .map((currencyId) => ({
+          currency_id: currencyId,
+          amount: round(accounts.filter((a) => a.currency_id === currencyId).reduce((sum, a) => sum + accountBalanceOf(a.id), 0), 2),
+        }))
+        .filter((t) => t.amount !== 0)
+        .map((t) => ({ currency_id: t.currency_id, amount: asAmount(t.amount) }))
+      cash = { totals, accounts: accounts.length }
     }
 
-    let customers = null
-    if (may.includes("customers.view")) {
-      const came = liveCustomers(member.companyId).map((c) => dayOf(c.createdAt))
-      const byDay = days.map((d) => came.filter((c) => c <= d).length)
-      const total = byDay.at(-1) ?? 0
-      customers = { total, added_this_month: total - came.filter((c) => c < monthStart).length, by_day: byDay }
+    let debtors = null
+    if (may.includes("customers.view") && may.includes("sales.view")) {
+      const owed = liveCustomers(member.companyId)
+        .map((c) => customerBalanceOf(c.id).balance)
+        .filter((b) => b > 0)
+      debtors = { debt: asAmount(owed.reduce((sum, b) => sum + b, 0)), count: owed.length }
+    }
+
+    let lowStock = null
+    if (may.includes("stock.view")) {
+      // The live active products moved in the locations, at 3 or less there.
+      const low = db.products
+        .filter((p) => p.companyId === member.companyId && !p.deleted && p.active && p.kind === "product")
+        .filter((p) => db.moves.some((m) => m.productId === p.id && locations.includes(m.locationId)))
+        .filter((p) => stockOf(p.id, locations) <= 3)
+        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id)
+      lowStock = { count: low.length, names: low.slice(0, 5).map((p) => p.name) }
     }
 
     let orders = null
@@ -74,12 +89,9 @@ export const dashboardHandlers = [
       }
     }
 
-    // money is a kind of goods documents this month up to today, by each day's end.
-    const money = (kind: TransactionRow["kind"]) => {
-      // An order's document counts when it is priced.
-      const docs = db.transactions.filter(
-        (t) => t.companyId === member.companyId && t.kind === kind && !t.deleted && t.locationId !== null && locations.includes(t.locationId) && (kind !== "order" || t.total > 0),
-      )
+    // sales is this month's sales up to today, by each day's end.
+    const sales = () => {
+      const docs = db.transactions.filter((t) => t.companyId === member.companyId && t.kind === "sale" && !t.deleted && t.locationId !== null && locations.includes(t.locationId))
       const inSom = docs
         .map((t) => ({ day: dayOf(t.at), som: convertAmount(t.total, t.currencyId, 1, rateOf(t.rateId)) }))
         .filter((d) => d.day >= monthStart && d.day <= today)
@@ -87,13 +99,6 @@ export const dashboardHandlers = [
       return { month_total: asAmount(byDay.at(-1) ?? 0), month_count: inSom.length, by_day: byDay.map(asAmount) }
     }
 
-    return HttpResponse.json({
-      suppliers,
-      customers,
-      orders,
-      purchases: may.includes("purchases.view") ? money("purchase") : null,
-      sales: may.includes("sales.view") ? money("sale") : null,
-      orders_money: may.includes("orders.view") ? money("order") : null,
-    })
+    return HttpResponse.json({ cash, debtors, orders, sales: may.includes("sales.view") ? sales() : null, low_stock: lowStock })
   }),
 ]

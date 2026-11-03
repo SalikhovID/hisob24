@@ -2656,52 +2656,57 @@ test("the cash documents go in and out of the accounts as the Go API keeps them:
   expect((await addCashOpening({ bank_account_id: cash, amount: "1", at: AT })).number, "the number of the deleted one is never given again").toBe(3)
 })
 
-test("/app/dashboard answers the home's blocks as the Go API does: each by its permission, in so'm by each document's rate, of the location asked for or of every one of the member's", async () => {
+test("/app/dashboard answers the home's blocks as the Go API does: each by its permission, the cash by currency, the debt and the sales in so'm by each document's rate, of the location asked for or of every one of the member's", async () => {
   const today = localToday()
   const day = Number(today.slice(8, 10))
   const { yangi, jarayonda } = seedOrders()
   const chilonzor = addLocation(1, "Chilonzor")
   const asosiy = asosiyOf(1)
-  // The customers came last month, but one: today.
-  for (const c of db.customers.filter((c) => c.companyId === 1)) c.createdAt = `${addDays(today, -40)}T05:00:00Z`
-  db.customers.filter((c) => c.companyId === 1)[0].createdAt = `${today}T05:00:00Z`
-  // Bozor is owed 100 000 and 10 $ at 12 800 (128 000), paid 50 000; Dehqon got 30 000 ahead.
   const rate: RateRow = { id: nextId(), companyId: 1, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, setAt: `${addDays(today, -60)}T05:00:00Z` }
   db.rates.push(rate)
-  const supplier = (name: string): SupplierRow => {
-    const row: SupplierRow = { id: nextId(), companyId: 1, name, phone: null, note: null, active: true, by: ALI, byName: null, createdAt: `${today}T05:00:00Z`, updatedAt: `${today}T05:00:00Z` }
-    db.suppliers.push(row)
-    return row
-  }
-  const bozor = supplier("Bozor")
-  const dehqon = supplier("Dehqon")
   const enter = (fields: Partial<TransactionRow> & Pick<TransactionRow, "kind" | "total" | "at">) => {
+    const id = nextId()
     db.transactions.push({
-      id: nextId(), companyId: 1, number: nextId(), locationId: null, toLocationId: null, supplierId: null, customerId: null, bankAccountId: null, toBankAccountId: null,
+      id, companyId: 1, number: nextId(), locationId: null, toLocationId: null, supplierId: null, customerId: null, bankAccountId: null, toBankAccountId: null,
       categoryId: null, linkedId: null, currencyId: 1, rateId: rate.id, toTotal: null, note: null, by: ALI, byName: null, createdAt: fields.at, updatedAt: fields.at, ...fields,
     })
+    return id
   }
-  enter({ kind: "purchase", at: `${today}T05:00:00Z`, locationId: asosiy.id, supplierId: bozor.id, total: 100000 })
-  enter({ kind: "purchase", at: `${today}T05:00:00Z`, locationId: chilonzor.id, supplierId: bozor.id, currencyId: 2, total: 10 })
-  enter({ kind: "purchase", at: `${addDays(today, -40)}T05:00:00Z`, locationId: asosiy.id, supplierId: bozor.id, total: 0.01, deleted: true })
-  enter({ kind: "supplier_payment", at: `${today}T05:00:00Z`, supplierId: bozor.id, bankAccountId: db.accounts[1][0].id, total: 50000 })
-  enter({ kind: "supplier_prepay", at: `${today}T05:00:00Z`, supplierId: dehqon.id, total: 30000 })
-  enter({ kind: "sale", at: `${today}T05:00:00Z`, locationId: asosiy.id, total: 7000 })
+  const naqd = db.accounts[1][0]
+  // The cash holds 500 000; a deleted expense does not count.
+  enter({ kind: "cash_opening", at: `${today}T05:00:00Z`, bankAccountId: naqd.id, total: 500000 })
+  enter({ kind: "expense", at: `${today}T05:00:00Z`, bankAccountId: naqd.id, total: 1, deleted: true })
+  // One customer bought for 7 000 today in Asosiy, unpaid; another paid
+  // 10 $ ahead.
+  const [dilshod, malika] = db.customers.filter((c) => c.companyId === 1 && !c.deleted)
+  const sale = enter({ kind: "sale", at: `${today}T05:00:00Z`, locationId: asosiy.id, customerId: dilshod.id, total: 7000 })
+  enter({ kind: "customer_prepay", at: `${today}T05:00:00Z`, customerId: malika.id, currencyId: 2, total: 10 })
+  // Bolt has 2 left in Asosiy, Gayka 10.
+  const product = (name: string, quantity: number) => {
+    const id = nextId()
+    db.products.push({ id, companyId: 1, kind: "product", name, unit: "dona", sku: null, price: null, currencyId: 1, note: null, active: true, by: ALI, byName: null, createdAt: `${today}T05:00:00Z`, updatedAt: `${today}T05:00:00Z` })
+    db.moves.push({ id: nextId(), transactionId: sale, companyId: 1, locationId: asosiy.id, productId: id, quantity })
+  }
+  product("Bolt", 2)
+  product("Gayka", 10)
   await signIn(ALI)
 
   const all = await call(api.GET("/app/dashboard"))
 
   const before = (value: string) => Array.from({ length: day - 1 }, () => value)
-  expect(all.suppliers).toEqual({ debt: "178000.00", debtors: 1, advance: "30000.00" })
-  expect(all.customers).toEqual({ total: 3, added_this_month: 1, by_day: [...Array.from({ length: day - 1 }, () => 2), 3] })
+  expect(Object.keys(all).sort()).toEqual(["cash", "debtors", "low_stock", "orders", "sales"])
+  expect(all.cash).toEqual({ totals: [{ currency_id: 1, amount: "500000.00" }], accounts: db.accounts[1].length })
+  expect(all.debtors).toEqual({ debt: "7000.00", count: 1 })
   expect(all.orders).toMatchObject({ active: 3, late: 1, by_stage: [{ stage_id: yangi.id, count: 2 }, { stage_id: jarayonda.id, count: 1 }] })
   expect(all.orders?.upcoming.map((t) => t.number)).toEqual([2, 3, 4])
-  expect(all.purchases).toEqual({ month_total: "228000.00", month_count: 2, by_day: [...before("0.00"), "228000.00"] })
   expect(all.sales).toEqual({ month_total: "7000.00", month_count: 1, by_day: [...before("0.00"), "7000.00"] })
+  expect(all.low_stock).toEqual({ count: 1, names: ["Bolt"] })
 
   const one = await call(api.GET("/app/dashboard", { params: { query: { location_id: chilonzor.id } } }))
-  expect(one.purchases?.month_total).toBe("128000.00")
   expect(one.orders?.active).toBe(0)
+  expect(one.sales?.month_count).toBe(0)
+  expect(one.low_stock).toEqual({ count: 0, names: [] })
+  expect(one.debtors?.debt).toBe("7000.00")
   expect(await failure(call(api.GET("/app/dashboard", { params: { query: { location_id: 999999 } } })))).toMatchObject({ status: 403, code: "forbidden" })
 
   // A role that sees the orders alone.
@@ -2709,6 +2714,6 @@ test("/app/dashboard answers the home's blocks as the Go API does: each by its p
   await signIn(VALI)
   await chooseCompany(1)
   const vali = await call(api.GET("/app/dashboard"))
-  expect(vali).toMatchObject({ suppliers: null, customers: null, purchases: null, sales: null })
+  expect(vali).toMatchObject({ cash: null, debtors: null, sales: null, low_stock: null })
   expect(vali.orders?.active).toBe(3)
 })
