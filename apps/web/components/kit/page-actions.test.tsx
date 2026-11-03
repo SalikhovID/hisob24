@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { PencilIcon, Trash2Icon } from "lucide-react"
 import { expect, test, vi } from "vitest"
@@ -41,4 +41,14 @@ test("a primary action is the accent and keeps its words on a phone; an action m
   expect(pay).toHaveClass("bg-primary")
   expect(pay).not.toHaveClass("max-md:size-9")
   expect(screen.getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", "/customers/1/edit")
+})
+
+test("the actions are a group named «Amallar», as the record pages' tiles were", () => {
+  render(
+    <PageActions>
+      <PageAction label="Tahrirlash" icon={PencilIcon} onClick={() => {}} />
+    </PageActions>,
+  )
+
+  expect(within(screen.getByRole("group", { name: "Amallar" })).getByRole("button", { name: "Tahrirlash" })).toBeInTheDocument()
 })

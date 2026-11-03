@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils"
 import { moveTo, stepInto } from "@/lib/moves"
 
 // PageActions holds what can be done with a record, at the right of its
-// title (PageTitle's action), as the prototype's: a row of buttons.
+// title (PageTitle's action), as the prototype's: a row of buttons, a group
+// named «Amallar».
 export function PageActions({ children }: { children: ReactNode }) {
   return (
-    <div data-slot="page-actions" className="flex items-center gap-2">
+    <div role="group" aria-label="Amallar" data-slot="page-actions" className="flex items-center gap-2">
       {children}
     </div>
   )
