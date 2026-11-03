@@ -116,19 +116,25 @@ func TestSetOfCompany(t *testing.T) {
 	ctx := t.Context()
 	olma := addCompany(t, pool, "Olma")
 
-	got, err := s.SetOfCompany(ctx, olma, []int64{3, 2, 2}, adminID)
+	got, err := s.SetOfCompany(ctx, olma, []int64{3, 1, 2, 2}, adminID)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"UZS", "USD", "EUR"}, codesOf(got), "the so'm stays, the rest in the catalog's order, a duplicate counts once")
-
-	got, err = s.SetOfCompany(ctx, olma, []int64{2}, adminID)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"UZS", "USD"}, codesOf(got), "the euro is off again")
+	assert.Equal(t, []string{"UZS", "USD", "EUR"}, codesOf(got), "the catalog's order, a duplicate counts once")
 
 	got, err = s.SetOfCompany(ctx, olma, []int64{1, 2}, adminID)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"UZS", "USD"}, codesOf(got), "naming the so'm changes nothing")
+	assert.Equal(t, []string{"UZS", "USD"}, codesOf(got), "the euro is off again")
 
-	_, err = s.SetOfCompany(ctx, olma, []int64{2, 9}, adminID)
+	// The so'm is never taken out (logic/currencies.md, section 3): a list
+	// without it is refused, an empty one too, and nothing changes.
+	_, err = s.SetOfCompany(ctx, olma, []int64{2}, adminID)
+	refused(t, err, apperr.Invalid, "validation_error", "UZS olib tashlanmaydi")
+	_, err = s.SetOfCompany(ctx, olma, nil, adminID)
+	refused(t, err, apperr.Invalid, "validation_error", "UZS olib tashlanmaydi", "nothing named takes the so'm out too")
+	got, err = s.OfCompany(ctx, olma)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"UZS", "USD"}, codesOf(got), "nothing changed")
+
+	_, err = s.SetOfCompany(ctx, olma, []int64{1, 2, 9}, adminID)
 	refused(t, err, apperr.Invalid, "validation_error", "Valyuta noto'g'ri")
 	got, err = s.OfCompany(ctx, olma)
 	require.NoError(t, err)
@@ -136,16 +142,16 @@ func TestSetOfCompany(t *testing.T) {
 
 	addProduct(t, pool, olma, "Olma", 2)
 	addProduct(t, pool, olma, "Nok", 2)
-	_, err = s.SetOfCompany(ctx, olma, nil, adminID)
+	_, err = s.SetOfCompany(ctx, olma, []int64{1}, adminID)
 	refused(t, err, apperr.Conflict, "currency_in_use", "Bu valyutada 2 ta mahsulot bor")
 	_, err = pool.Exec(ctx, "UPDATE products SET deleted_at = now()")
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, "INSERT INTO bank_accounts (company_id, name, currency_id) VALUES ($1, 'Karta', 2)", olma)
 	require.NoError(t, err)
-	_, err = s.SetOfCompany(ctx, olma, nil, adminID)
+	_, err = s.SetOfCompany(ctx, olma, []int64{1}, adminID)
 	refused(t, err, apperr.Conflict, "currency_in_use", "Bu valyutada 1 ta akkaunt bor", "an account in the currency keeps it on too")
 
-	_, err = s.SetOfCompany(ctx, olma+1000, []int64{2}, adminID)
+	_, err = s.SetOfCompany(ctx, olma+1000, []int64{1, 2}, adminID)
 	refused(t, err, apperr.NotFound, "not_found", "Kompaniya topilmadi")
 }
 

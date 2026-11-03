@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -48,6 +49,7 @@ func NewService(pool *pgxpool.Pool) *Service {
 var (
 	errCompanyNotFound = apperr.New(apperr.NotFound, "not_found", "Kompaniya topilmadi")
 	errUnknownCurrency = invalid("Valyuta noto'g'ri")
+	errSomTakenOut     = invalid("UZS olib tashlanmaydi")
 	// ErrNotAllowed: the currency is not turned on in the company.
 	ErrNotAllowed = apperr.New(apperr.Invalid, "currency_not_allowed", "Bu valyuta kompaniyada yoqilmagan")
 )
@@ -103,11 +105,14 @@ func ofCompany(ctx context.Context, q *gen.Queries, companyID int64) ([]CompanyC
 }
 
 // SetOfCompany turns on the currencies with the ids given and off the rest,
-// as the admin: the so'm stays on whether named or not. One of the ids not
-// in the catalog is refused (400); a currency a live product is priced in
-// cannot be turned off (409 currency_in_use). The company's currencies as
-// they are after.
+// as the admin. The so'm is never taken out: a list without it is refused
+// (400), as is one of the ids not in the catalog; a currency a live product
+// or account is in cannot be turned off (409 currency_in_use). The
+// company's currencies as they are after.
 func (s *Service) SetOfCompany(ctx context.Context, companyID int64, ids []int64, adminID int64) ([]CompanyCurrency, error) {
+	if !slices.Contains(ids, UZS) {
+		return nil, errSomTakenOut
+	}
 	var list []CompanyCurrency
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
@@ -117,7 +122,7 @@ func (s *Service) SetOfCompany(ctx context.Context, companyID int64, ids []int64
 			}
 			return err
 		}
-		wanted := map[int64]bool{UZS: true}
+		wanted := map[int64]bool{}
 		for _, id := range ids {
 			if _, err := q.GetCurrency(ctx, id); err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {

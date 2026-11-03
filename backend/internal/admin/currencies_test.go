@@ -46,28 +46,34 @@ func TestSetCompanyCurrencies(t *testing.T) {
 
 	assert.JSONEq(t, "["+uzsJSON+"]", api.currenciesOf(t, cookie, id), "a new company has the so'm")
 
-	rec := api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[3,2]}`, cookie)
+	rec := api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[3,1,2]}`, cookie)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	assert.JSONEq(t, "["+uzsJSON+","+usdJSON+","+eurJSON+"]", rec.Body.String(), "the so'm stays, the rest in the catalog's order")
+	assert.JSONEq(t, "["+uzsJSON+","+usdJSON+","+eurJSON+"]", rec.Body.String(), "the catalog's order")
 	assert.JSONEq(t, "["+uzsJSON+","+usdJSON+","+eurJSON+"]", api.currenciesOf(t, cookie, id))
 
-	rec = api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[2,9]}`, cookie)
+	// The so'm is never taken out (logic/currencies.md, section 3).
+	rec = api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[2]}`, cookie)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, `{"error":"validation_error","message":"UZS olib tashlanmaydi"}`, rec.Body.String())
+	assert.JSONEq(t, "["+uzsJSON+","+usdJSON+","+eurJSON+"]", api.currenciesOf(t, cookie, id), "nothing changed")
+
+	rec = api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[1,2,9]}`, cookie)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, `{"error":"validation_error","message":"Valyuta noto'g'ri"}`, rec.Body.String())
-	rec = api.do(t, http.MethodPut, "/admin/companies/999999/currencies", `{"currency_ids":[2]}`, cookie)
+	rec = api.do(t, http.MethodPut, "/admin/companies/999999/currencies", `{"currency_ids":[1,2]}`, cookie)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 	assert.JSONEq(t, `{"error":"not_found","message":"Kompaniya topilmadi"}`, rec.Body.String())
 
 	_, err := api.pool.Exec(t.Context(), "INSERT INTO products (company_id, kind, name, unit, price, currency_id, created_by) VALUES ($1, 'product', 'Olma', 'kg', 10, 3, '998901234567')", id)
 	require.NoError(t, err)
-	rec = api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[2]}`, cookie)
+	rec = api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[1,2]}`, cookie)
 	assert.Equal(t, http.StatusConflict, rec.Code)
 	assert.JSONEq(t, `{"error":"currency_in_use","message":"Bu valyutada 1 ta mahsulot bor"}`, rec.Body.String())
 	assert.JSONEq(t, "["+uzsJSON+","+usdJSON+","+eurJSON+"]", api.currenciesOf(t, cookie, id), "nothing changed")
 
 	_, err = api.pool.Exec(t.Context(), "UPDATE products SET deleted_at = now()")
 	require.NoError(t, err)
-	rec = api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[]}`, cookie)
+	rec = api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[1]}`, cookie)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.JSONEq(t, "["+uzsJSON+"]", rec.Body.String(), "a deleted product holds nothing")
 

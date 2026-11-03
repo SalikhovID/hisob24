@@ -17,7 +17,8 @@ func (h *Handler) listCurrencies(w http.ResponseWriter, r *http.Request) {
 }
 
 // setCompanyCurrencies turns on the currencies named and off the rest; the
-// so'm is always on (logic/currencies.md, section 3).
+// so'm is always on, and a list without it is refused (logic/currencies.md,
+// section 3).
 func (h *Handler) setCompanyCurrencies(w http.ResponseWriter, r *http.Request) {
 	id, ok := companyID(w, r)
 	if !ok {

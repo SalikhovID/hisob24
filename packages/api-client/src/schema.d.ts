@@ -271,7 +271,7 @@ export interface paths {
         get?: never;
         /**
          * Kompaniya valyutalarini belgilash
-         * @description Ro'yxatdagi valyutalar yoqiladi, qolganlari o'chiriladi; so'm doim yoqilgan, nomlanmasa ham (logic/currencies.md, 3-bo'lim). Jonli mahsulot narxi (keyin hujjat yoki akkaunt) shu valyutada bo'lsa o'chirilmaydi: 409 currency_in_use.
+         * @description Ro'yxatdagi valyutalar yoqiladi, qolganlari o'chiriladi. So'm doim yoqilgan va ro'yxatda bo'lishi shart: usiz (bo'sh ro'yxat ham) 400 validation_error «UZS olib tashlanmaydi» (logic/currencies.md, 3-bo'lim). Jonli mahsulot narxi (keyin hujjat yoki akkaunt) shu valyutada bo'lsa o'chirilmaydi: 409 currency_in_use.
          */
         put: operations["setCompanyCurrencies"];
         post?: never;
