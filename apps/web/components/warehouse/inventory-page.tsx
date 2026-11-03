@@ -1,12 +1,11 @@
 "use client"
 
-import { ClipboardCheckIcon, PencilIcon } from "lucide-react"
+import { PencilIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar } from "@/components/kit/avatar"
-import { DetailHead, Tile, Tiles } from "@/components/kit/detail-head"
 import { Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
+import { PageAction, PageActions } from "@/components/kit/page-actions"
 import { BackLink, PageTitle } from "@/components/kit/page-title"
-import { SoftIcon } from "@/components/kit/tile-icon"
 import { Failed, ListLoading, NotFound } from "@/components/states"
 import { ApiError } from "@/lib/api"
 import { formatDate, formatDateTime, formatQuantity } from "@/lib/format"
@@ -24,8 +23,9 @@ const back = { href: "/inventories", label: "Inventarizatsiya" }
 
 // InventoryPage is one count of the member's locations (logic/warehouse.md,
 // 5.2), for whoever may see the stock documents (changing and deleting
-// each take their permission), as the prototype's page: its number,
-// location and moment; the tiles (editing, deleting); its lines, each
+// each take their permission), as the prototype's page: its number over
+// its moment and who entered it; the actions at the title's right (editing,
+// deleting); its lines, each
 // product with what the journal expected and what was counted under its
 // name and the difference at its end (a surplus green, a shortage red);
 // its facts.
@@ -55,20 +55,19 @@ export function InventoryPage({ id }: { id: number }) {
     )
   }
   const i = inventory.data
-  const tiles = [
-    allowed("stock.edit") && <Tile key="edit" icon={PencilIcon} label="Tahrirlash" href={`/inventories/${i.id}/edit`} />,
+  const actions = [
+    allowed("stock.edit") && <PageAction key="edit" icon={PencilIcon} label="Tahrirlash" href={`/inventories/${i.id}/edit`} />,
     allowed("stock.delete") && <DeleteInventoryButton key="delete" companyId={companyId} inventory={i} afterDelete={() => moving("back", () => router.replace("/inventories"))} />,
   ].filter(Boolean)
 
   return (
     <>
-      <BackLink {...back} />
-      <DetailHead
-        media={<SoftIcon icon={ClipboardCheckIcon} className="size-[76px] rounded-[24px] bg-[color-mix(in_srgb,currentColor_14%,transparent)] [&_svg]:size-9" />}
+      <PageTitle
+        back={back}
         title={`Inventarizatsiya № ${i.number}`}
-        description={`${i.location_name} · ${formatDateTime(i.at)}`}
+        description={`${formatDateTime(i.at)} · ${i.created_by_name}`}
+        action={actions.length > 0 && <PageActions>{actions}</PageActions>}
       />
-      {tiles.length > 0 && <Tiles>{tiles}</Tiles>}
       <section aria-labelledby="inventory-lines">
         <SectionHeading hint={i.items.length}>
           <span id="inventory-lines">Mahsulotlar</span>

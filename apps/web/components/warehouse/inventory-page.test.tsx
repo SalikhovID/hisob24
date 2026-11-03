@@ -34,12 +34,12 @@ test("the inventory page: its facts and its lines with what was expected, counte
   renderWithProviders(<InventoryPage id={inventory.id} />)
 
   expect(await screen.findByRole("heading", { level: 1, name: "Inventarizatsiya № 1" })).toBeInTheDocument()
-  expect(screen.getByText("Asosiy · 05.10.2026 09:00")).toBeInTheDocument()
+  expect(screen.getByText("05.10.2026 09:00 · Ali Valiyev")).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Inventarizatsiya" })).toHaveAttribute("href", "/inventories")
-  // What may be done with it are the tiles.
-  const tiles = screen.getByRole("group", { name: "Amallar" })
-  expect(Array.from(tiles.querySelectorAll("[data-slot=tile]"), (tile) => tile.textContent)).toEqual(["Tahrirlash", "O'chirish"])
-  expect(within(tiles).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/inventories/${inventory.id}/edit`)
+  // What may be done with it are the page's actions.
+  const actions = screen.getByRole("group", { name: "Amallar" })
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "O'chirish"])
+  expect(within(actions).getByRole("link", { name: "Tahrirlash" })).toHaveAttribute("href", `/inventories/${inventory.id}/edit`)
   expect(facts()).toEqual({
     Lokatsiya: "Asosiy",
     Vaqt: "05.10.2026 09:00",
@@ -82,4 +82,19 @@ test("an inventory that is gone, or of a location the member does not work in, i
 
   expect(await screen.findByRole("heading", { level: 1, name: "Inventarizatsiya topilmadi" })).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Inventarizatsiya" })).toHaveAttribute("href", "/inventories")
+})
+
+test("the count's page is headed as the prototype's: «Inventarizatsiya № N» over the moment and who entered it; its actions at the title's right, deleting a danger one", async () => {
+  const { inventory } = await counted()
+  renderWithProviders(<InventoryPage id={inventory.id} />)
+
+  const title = (await screen.findByRole("heading", { level: 1, name: "Inventarizatsiya № 1" })).closest<HTMLElement>('[data-slot="page-title"]')
+  expect(title).not.toBeNull()
+  if (!title) return
+  expect(within(title).getByText("05.10.2026 09:00 · Ali Valiyev")).toBeInTheDocument()
+  const actions = within(title).getByRole("group", { name: "Amallar" })
+  expect(actions).toHaveAttribute("data-slot", "page-actions")
+  expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "O'chirish"])
+  expect(within(actions).getByRole("button", { name: "O'chirish" })).toHaveAttribute("data-slot", "page-action")
+  expect(document.querySelector('[data-slot="detail-head"]')).toBeNull()
 })

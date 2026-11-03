@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Tile } from "@/components/kit/detail-head"
+import { PageAction } from "@/components/kit/page-actions"
 import { PendingButton } from "@/components/pending-button"
 import {
   AlertDialog,
@@ -19,7 +19,8 @@ import { api, call } from "@/lib/api"
 import type { Inventory } from "@/lib/types"
 import { forgetWarehouse } from "./new-purchase-page"
 
-// DeleteInventoryButton is the danger tile of a count's page: it deletes
+// DeleteInventoryButton is the danger action of a count's page (on the web
+// its trash alone, as the prototype's): it deletes
 // the count after asking: its differences go out of the stock; its number
 // is never given again (logic/warehouse.md, 5.2). A refusal (the stock
 // would go below zero) is told and the count stays. afterDelete is what
@@ -43,7 +44,7 @@ export function DeleteInventoryButton({ companyId, inventory, afterDelete }: { c
 
   return (
     <>
-    <Tile icon={Trash2Icon} label="O'chirish" danger onClick={() => setConfirming(true)} />
+    <PageAction icon={Trash2Icon} label="O'chirish" variant="danger" iconOnly onClick={() => setConfirming(true)} />
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogContent>
         <AlertDialogHeader>
