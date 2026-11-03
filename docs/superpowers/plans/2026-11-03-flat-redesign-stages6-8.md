@@ -27,4 +27,4 @@ Spec: `docs/superpowers/specs/2026-11-03-flat-redesign-design.md` (6-bo'lim: Sot
 - [x] 1a. Yozuv sahifalari (5-bosqichdan): `PageTitle` + `PageActions` (mahsulot, ta'minotchi, akkaunt, xarid, sotuv, ko'chirish, inventarizatsiya, boshlang'ich qoldiq), hujjat qatorlari webda jadval, ta'minotchi balansi kartalari.
 - [x] 2. `docs/design/README.md`: tekis dizayn bo'limi, `screens-v3/` skrinshotlari (telefon va web, yorug' va qorong'i).
 - [x] 2a. Haqiqiy stack smoke (vaqtinchalik baza, API + `next dev`, ikkala ko'rinish).
-- [ ] 3. `make lint`, `make test`, `make e2e`, push; yakuniy hisobot.
+- [x] 3. `make lint`, `make test`, `make e2e`, push (6–8 birga); yakuniy hisobot.
