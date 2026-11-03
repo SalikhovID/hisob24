@@ -45,9 +45,8 @@ test("a chip is a toggle button, pressed when on, and may open something with a 
   expect(open).toHaveBeenCalledTimes(1)
 })
 
-const onRing = "shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]"
 
-test("a chip is a plain fill; on, it is the accent's tint with a faint ring of it", () => {
+test("a chip is the prototype's: white on a phone, ringed on the web; on, the accent on a phone and the ink on the web", () => {
   render(
     <Chips>
       <Chip pressed onClick={() => {}}>
@@ -58,13 +57,14 @@ test("a chip is a plain fill; on, it is the accent's tint with a faint ring of i
       </Chip>
     </Chips>,
   )
-  expect(screen.getByRole("button", { name: "Nofaol" })).toHaveClass("bg-muted")
+  const off = screen.getByRole("button", { name: "Nofaol" })
+  expect(off).toHaveClass("h-8", "px-3.5", "text-[15px]", "md:h-7", "md:px-3", "md:text-[12.5px]", "bg-card", "md:shadow-[0_0_0_1px_var(--ink-4)]")
   const on = screen.getByRole("button", { name: "Faol" })
-  expect(on).toHaveClass("bg-primary-soft", onRing)
-  expect(on).not.toHaveClass("bg-muted")
+  expect(on).toHaveClass("bg-primary", "text-primary-foreground", "md:bg-foreground", "md:text-background")
+  expect(on).not.toHaveClass("bg-card")
 })
 
-test("a choice chip is the same fill, the chosen one the accent's tint with its ring", () => {
+test("a choice chip is the same: the chosen one the accent on a phone and the ink on the web", () => {
   render(
     <ChoiceChips
       label="Holat"
@@ -76,7 +76,7 @@ test("a choice chip is the same fill, the chosen one the accent's tint with its 
       ]}
     />,
   )
-  expect(screen.getByRole("radio", { name: "Nofaol" })).toHaveClass("not-data-checked:bg-muted", "data-checked:bg-primary-soft", `data-checked:${onRing}`)
+  expect(screen.getByRole("radio", { name: "Nofaol" })).toHaveClass("not-data-checked:bg-card", "data-checked:bg-primary", "md:data-checked:bg-foreground")
 })
 
 test("on a phone the strip scrolls out to the page's edges; on a wide screen it stays in the page's column", () => {

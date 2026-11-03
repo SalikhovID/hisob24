@@ -8,12 +8,13 @@ import { cn } from "@/lib/utils"
 
 const strip = "-mx-4 mb-3.5 flex gap-1.5 overflow-x-auto px-4 py-0.5 scrollbar-hide md:mx-0 md:px-0"
 
+// A chip is the prototype's: on a phone a white 32px pill of 15px words, on
+// the web a 28px one of 12.5px ringed by a hairline; on, it is the accent on
+// a phone and the ink on the web.
 const chip =
-  "relative inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-md font-medium whitespace-nowrap text-heading outline-none transition-colors after:absolute after:-inset-x-0.5 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50"
-// A chip is the prototype's small glass; on, it is the accent's tint with a
-// faint ring of the accent.
-const off = "bg-muted"
-const on = "bg-primary-soft font-semibold text-primary shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]"
+  "relative inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3.5 text-[15px] font-medium whitespace-nowrap text-foreground outline-none transition-colors after:absolute after:-inset-x-0.5 after:-inset-y-1 focus-visible:ring-3 focus-visible:ring-ring/50 md:h-7 md:px-3 md:text-[12.5px]"
+const off = "bg-card md:shadow-[0_0_0_1px_var(--ink-4)] md:hover:bg-ink-1"
+const on = "bg-primary text-primary-foreground md:bg-foreground md:text-background"
 
 // Chips is the strip of filters under a search: it scrolls sideways, out to
 // the page's edges on a phone (inside the page's column on a wide screen),
@@ -49,7 +50,7 @@ export function Chip({
       {count !== undefined && (
         <>
           {" "}
-          <span data-slot="chip-count" className="font-medium text-muted-foreground">
+          <span data-slot="chip-count" className="font-medium opacity-60">
             {count}
           </span>
         </>
@@ -93,14 +94,14 @@ export function ChoiceChips({
           data-slot="chip"
           className={cn(
             chip,
-            "not-data-checked:bg-muted data-checked:bg-primary-soft data-checked:font-semibold data-checked:text-primary data-checked:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary)_22%,transparent)]",
+            "not-data-checked:bg-card md:not-data-checked:shadow-[0_0_0_1px_var(--ink-4)] md:not-data-checked:hover:bg-ink-1 data-checked:bg-primary data-checked:text-primary-foreground md:data-checked:bg-foreground md:data-checked:text-background",
           )}
         >
           {option.label}
           {option.count !== undefined && (
             <>
               {" "}
-              <span data-slot="chip-count" className="font-medium text-muted-foreground">
+              <span data-slot="chip-count" className="font-medium opacity-60">
                 {option.count}
               </span>
             </>
