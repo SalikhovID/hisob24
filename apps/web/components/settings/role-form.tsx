@@ -17,6 +17,7 @@ import { rolesKey } from "@/lib/queries"
 import { roleSchema } from "@/lib/schemas"
 import type { CompanyRole, Permission } from "@/lib/types"
 import { moving } from "@/lib/moves"
+import { count } from "@/lib/format"
 
 type RoleInput = { name: string; permissions: Permission[] }
 
@@ -73,7 +74,7 @@ function PermissionMatrix({ value, onChange }: { value: Permission[]; onChange: 
         const held = actionsOf(section).filter((action) => value.includes(permissionOf(section, action))).length
         return (
           <div key={section}>
-            <SectionHeading hint={held > 0 ? `${held} ta` : undefined}>{sectionLabels[section]}</SectionHeading>
+            <SectionHeading hint={held > 0 ? count(held) : undefined}>{sectionLabels[section]}</SectionHeading>
             <div role="group" aria-label={sectionLabels[section]}>
               <Group>
                 {actionsOf(section).map((action) => {

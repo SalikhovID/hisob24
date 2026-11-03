@@ -24,6 +24,13 @@ export function formatTime(value: string): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+// count says how many there are as a title or a hint says it ("3 ta"):
+// the number and «ta» held together by a no-break space, so a narrow
+// screen never leaves «ta» alone on a line.
+export function count(n: number): string {
+  return `${n}\u00a0ta`
+}
+
 // formatAmount writes a stored amount ("150000.50") for people to read:
 // thousands apart by a no-break space, the decimals after a comma as the
 // database writes them, and left out when they are all zero ("12000.00").

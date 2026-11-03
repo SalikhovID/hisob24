@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { balanceText } from "@/lib/warehouse"
 import { AddCustomerDialog } from "./add-customer-dialog"
 import { useCustomerFilter } from "./use-customer-filter"
+import { count } from "@/lib/format"
 
 // CustomersPage is the company's customers, for whoever may see them
 // (customers.view; adding takes customers.create), as the prototype's list:
@@ -72,7 +73,7 @@ export function CustomersPage() {
     <>
       <PageTitle
         title="Mijozlar"
-        description={unfiltered && total !== undefined ? `Kompaniyangiz mijozlari · ${total} ta` : "Kompaniyangiz mijozlari"}
+        description={unfiltered && total !== undefined ? `Kompaniyangiz mijozlari · ${count(total)}` : "Kompaniyangiz mijozlari"}
         action={canAdd && <PlusButton label="Mijoz qo'shish" onClick={() => setAdding(true)} />}
       />
       {noTypes ? (

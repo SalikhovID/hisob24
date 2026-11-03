@@ -17,6 +17,7 @@ import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
 import { NoLocation } from "./no-location"
 import { usePageFilter } from "./use-page-filter"
+import { count } from "@/lib/format"
 
 // TransfersPage is the transfers out of or into the current location
 // (logic/warehouse.md, 5.1), for whoever may see the stock documents
@@ -58,7 +59,7 @@ export function TransfersPage() {
       <PageTitle
         back={{ href: "/warehouse", label: "Ombor" }}
         title="Ko'chirishlar"
-        description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya ko'chirishlari"}
+        description={location.current ? (total !== undefined ? `${location.current.name} · ${count(total)}` : location.current.name) : "Joriy lokatsiya ko'chirishlari"}
         action={canAdd && <PlusButton label="Ko'chirish qo'shish" href="/transfers/new" />}
       />
       {noLocation && <NoLocation />}

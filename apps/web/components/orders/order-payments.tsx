@@ -8,7 +8,7 @@ import { SoftIcon } from "@/components/kit/tile-icon"
 import { DeletePaymentDialog } from "@/components/warehouse/delete-payment-button"
 import { PaymentDialog } from "@/components/warehouse/payment-dialog"
 import { currencyOf, useCurrencies, UZS } from "@/lib/currencies"
-import { formatDateTime, formatMoney } from "@/lib/format"
+import { count, formatDateTime, formatMoney } from "@/lib/format"
 import { orderName } from "@/lib/orders"
 import type { OrderDetail, OrderPayment } from "@/lib/types"
 import type { PaymentFields } from "@/lib/warehouse"
@@ -30,7 +30,7 @@ export function OrderPayments({ companyId, order, canEdit }: { companyId: number
   const dialog = { party: "customer" as const, companyId, partyId: order.customer.id, orderId: order.id }
   return (
     <section aria-label="To'lovlar">
-      <SectionHeading hint={`${order.payments.length} ta`}>To&apos;lovlar</SectionHeading>
+      <SectionHeading hint={count(order.payments.length)}>To&apos;lovlar</SectionHeading>
       <Group label="To'lovlar" inset="icon">
         {order.payments.map((p) => {
           const currency = currencyOf(currencies, p.currency_id)

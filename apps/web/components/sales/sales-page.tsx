@@ -12,7 +12,7 @@ import { NoLocation } from "@/components/warehouse/no-location"
 import { PaidStatus } from "@/components/warehouse/paid-status"
 import { usePageFilter } from "@/components/warehouse/use-page-filter"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { formatAmount, formatMoney } from "@/lib/format"
+import { count, formatAmount, formatMoney } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { useSales } from "@/lib/queries"
@@ -56,7 +56,7 @@ export function SalesPage() {
     <>
       <PageTitle
         title="Sotuvlar"
-        description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya sotuvlari"}
+        description={location.current ? (total !== undefined ? `${location.current.name} · ${count(total)}` : location.current.name) : "Joriy lokatsiya sotuvlari"}
         action={canAdd && <PlusButton label="Sotuv qo'shish" href="/sales/new" />}
       />
       {noLocation && <NoLocation />}

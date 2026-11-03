@@ -17,6 +17,7 @@ import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
 import { NoLocation } from "./no-location"
 import { usePageFilter } from "./use-page-filter"
+import { count } from "@/lib/format"
 
 // InventoriesPage is the counts of the current location (logic/warehouse.md,
 // 5.2), for whoever may see the stock documents (adding takes stock.create
@@ -52,7 +53,7 @@ export function InventoriesPage() {
       <PageTitle
         back={{ href: "/warehouse", label: "Ombor" }}
         title="Inventarizatsiya"
-        description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya inventarizatsiyalari"}
+        description={location.current ? (total !== undefined ? `${location.current.name} · ${count(total)}` : location.current.name) : "Joriy lokatsiya inventarizatsiyalari"}
         action={canAdd && <PlusButton label="Inventarizatsiya qo'shish" href="/inventories/new" />}
       />
       {noLocation && <NoLocation />}

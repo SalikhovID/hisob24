@@ -12,7 +12,7 @@ import { Pager } from "@/components/pager"
 import { SectionTabs } from "@/components/section-tabs"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { formatAmount, formatDate, formatMoney, formatQuantity, unitLabel } from "@/lib/format"
+import { count, formatAmount, formatDate, formatMoney, formatQuantity, unitLabel } from "@/lib/format"
 import { navItems } from "@/lib/nav"
 import { can } from "@/lib/permissions"
 import { useProducts } from "@/lib/queries"
@@ -90,7 +90,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
     <>
       <PageTitle
         title={plural}
-        description={activeCount !== undefined ? `${whose} · ${activeCount} ta` : whose}
+        description={activeCount !== undefined ? `${whose} · ${count(activeCount)}` : whose}
         action={canAdd && <PlusButton label={`${noun} qo'shish`} onClick={() => setAdding(true)} />}
       />
       <SectionTabs item={productsSection} permissions={gate.permissions} />

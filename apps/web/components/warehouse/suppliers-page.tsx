@@ -18,6 +18,7 @@ import { usePermission } from "@/lib/use-gate"
 import { cn } from "@/lib/utils"
 import { balanceText } from "@/lib/warehouse"
 import { SupplierDialog } from "./supplier-dialog"
+import { count } from "@/lib/format"
 
 // Balance is what a supplier is owed, at the end of its row: red when
 // something is owed, green when paid in advance, nothing when even. Shown
@@ -66,7 +67,7 @@ export function SuppliersPage() {
       <PageTitle
         back={{ href: "/warehouse", label: "Ombor" }}
         title="Ta'minotchilar"
-        description={activeCount !== undefined ? `Kompaniyangiz ta'minotchilari · ${activeCount} ta` : "Kompaniyangiz ta'minotchilari"}
+        description={activeCount !== undefined ? `Kompaniyangiz ta'minotchilari · ${count(activeCount)}` : "Kompaniyangiz ta'minotchilari"}
         action={companyId !== null && allowed("suppliers.create") && <PlusButton label="Ta'minotchi qo'shish" onClick={() => setAdding(true)} />}
       />
       <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder="Nom yoki telefon" />

@@ -30,7 +30,8 @@ test("the owner's products: a row each by name, the unit, SKU and the current lo
 
   const products = await list("Mahsulotlar")
   expect(screen.getByRole("heading", { level: 1, name: "Mahsulotlar" })).toBeInTheDocument()
-  expect(screen.getByText("Kompaniyangiz mahsulotlari · 2 ta")).toBeInTheDocument()
+  // On a phone «ta» does not stand alone on the second line: the number holds it.
+  expect(screen.getByText("Kompaniyangiz mahsulotlari · 2 ta").textContent).toBe("Kompaniyangiz mahsulotlari · 2\u00a0ta")
   const tabs = screen.getByRole("navigation", { name: "Mahsulotlar bo'limi" })
   expect(within(tabs).getByRole("link", { name: "Mahsulotlar" })).toHaveAttribute("aria-current", "page")
   expect(within(tabs).getByRole("link", { name: "Xizmatlar" })).toHaveAttribute("href", "/services")

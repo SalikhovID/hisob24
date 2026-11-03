@@ -9,7 +9,7 @@ import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { formatAmount, formatMoney } from "@/lib/format"
+import { count, formatAmount, formatMoney } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { usePurchases } from "@/lib/queries"
@@ -66,7 +66,7 @@ export function PurchasesPage() {
       <PageTitle
         back={{ href: "/warehouse", label: "Ombor" }}
         title="Xaridlar"
-        description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya xaridlari"}
+        description={location.current ? (total !== undefined ? `${location.current.name} · ${count(total)}` : location.current.name) : "Joriy lokatsiya xaridlari"}
         action={canAdd && <PlusButton label="Xarid qo'shish" href="/purchases/new" />}
       />
       {noLocation && <EmptyState icon={MapPinIcon} title="Sizga lokatsiya biriktirilmagan" description="Kompaniya egasi lokatsiya biriktirishi kerak." />}

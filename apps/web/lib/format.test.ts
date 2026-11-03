@@ -1,5 +1,10 @@
 import { expect, test } from "vitest"
-import { compactAmount, dayOf, dayTitle, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, formatTime, unitLabel } from "./format"
+import { compactAmount, count, dayOf, dayTitle, formatAmount, formatDate, formatDateTime, formatMoney, formatQuantity, formatRate, formatTime, unitLabel } from "./format"
+
+test("count holds the number and «ta» together with a no-break space, so «ta» never stands alone on a line", () => {
+  expect(count(3)).toBe("3\u00a0ta")
+  expect(count(0)).toBe("0\u00a0ta")
+})
 
 test("formatDate writes a date as dd.mm.yyyy", () => {
   expect(formatDate("2026-10-07")).toBe("07.10.2026")

@@ -35,6 +35,7 @@ import { OrderBoard } from "./order-board"
 import { AddOrderDialog } from "./order-dialog"
 import { OrderRow } from "./order-row"
 import { type OrderView, useOrderFilter } from "./use-order-filter"
+import { count } from "@/lib/format"
 
 const buckets: DeadlineBucket[] = ["late", "today", "week", "later", "done"]
 
@@ -132,8 +133,8 @@ export function OrdersPage() {
   const noLocation = location.ready && locationId === null
   // With two locations or more the page says which one it is.
   const where = location.locations.length >= 2 ? (location.current?.name ?? null) : null
-  const count = unfiltered && total !== undefined ? `${total} ta` : null
-  const description = [where, count].filter(Boolean).join(" · ") || undefined
+  const howMany = unfiltered && total !== undefined ? count(total) : null
+  const description = [where, howMany].filter(Boolean).join(" · ") || undefined
 
   // The assignees are the company's members now, the signed-in one first,
   // as «Men».

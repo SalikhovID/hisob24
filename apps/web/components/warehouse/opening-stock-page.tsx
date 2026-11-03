@@ -9,7 +9,7 @@ import { SoftIcon } from "@/components/kit/tile-icon"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
-import { formatMoney } from "@/lib/format"
+import { count, formatMoney } from "@/lib/format"
 import { shortName } from "@/lib/initials"
 import { can } from "@/lib/permissions"
 import { useOpeningStockList } from "@/lib/queries"
@@ -55,7 +55,7 @@ export function OpeningStockPage() {
       <PageTitle
         back={{ href: "/warehouse", label: "Ombor" }}
         title="Boshlang'ich qoldiq"
-        description={location.current ? (total !== undefined ? `${location.current.name} · ${total} ta` : location.current.name) : "Joriy lokatsiya boshlang'ich qoldiqlari"}
+        description={location.current ? (total !== undefined ? `${location.current.name} · ${count(total)}` : location.current.name) : "Joriy lokatsiya boshlang'ich qoldiqlari"}
         action={canAdd && <PlusButton label="Boshlang'ich qoldiq qo'shish" href="/opening-stock/new" />}
       />
       {noLocation && <NoLocation />}
