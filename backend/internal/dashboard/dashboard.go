@@ -49,6 +49,7 @@ type Input struct {
 // Dashboard is the home's blocks; one the member may not see is nil.
 type Dashboard struct {
 	Cash      *Cash
+	Debtors   *Debtors
 	Suppliers *Suppliers
 	Customers *Customers
 	Orders    *Orders
@@ -72,6 +73,13 @@ type Cash struct {
 type CurrencyAmount struct {
 	CurrencyID int64
 	Amount     string
+}
+
+// Debtors is what the company's customers owe (logic/sales.md, section 5):
+// their so'm balances above zero summed, and how many they are.
+type Debtors struct {
+	Debt  string
+	Count int64
 }
 
 // Suppliers is what the company's suppliers are owed, in so'm, each
@@ -129,6 +137,13 @@ func (s *Service) Get(ctx context.Context, scope Scope, in Input) (Dashboard, er
 			return Dashboard{}, err
 		}
 		d.Cash = cash
+	}
+	if in.Permissions.Has(access.CustomersView) && in.Permissions.Has(access.SalesView) {
+		row, err := s.q.DashboardDebtors(ctx, scope.CompanyID)
+		if err != nil {
+			return Dashboard{}, err
+		}
+		d.Debtors = &Debtors{Debt: amount(row.Debt), Count: row.Debtors}
 	}
 	if in.Permissions.Has(access.PurchasesView) {
 		row, err := s.q.DashboardSuppliers(ctx, scope.CompanyID)

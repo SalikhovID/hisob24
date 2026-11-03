@@ -197,6 +197,56 @@ func TestCash(t *testing.T) {
 	assert.Nil(t, none.Cash, "without finance.view")
 }
 
+func TestDebtors(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	sh := newShop(t, pool, "Olma")
+	st := addStages(t, pool, sh.company)
+	at := "2026-10-07T09:00:00+05:00"
+	// Dilshod: a sale of 1 000 000 in Asosiy, 400 000 paid; a deleted sale
+	// does not count.
+	dilshod := addCustomer(t, pool, sh.company, "998901000001", at, false)
+	sh.add(t, pool, doc{kind: "sale", at: at, location: sh.asosiy, customer: dilshod, total: "1000000"})
+	sh.add(t, pool, doc{kind: "customer_payment", at: at, account: sh.cash, customer: dilshod, total: "400000"})
+	sh.add(t, pool, doc{kind: "sale", at: at, location: sh.asosiy, customer: dilshod, total: "999999", deleted: true})
+	// Malika: a sale of 50 $ in Chilonzor by the standard rate (640 000)
+	// and an opening debt of 100 000.
+	malika := addCustomer(t, pool, sh.company, "998901000002", at, false)
+	sh.add(t, pool, doc{kind: "sale", at: at, location: sh.chilonzor, customer: malika, currency: 2, total: "50"})
+	sh.add(t, pool, doc{kind: "customer_debt", at: at, customer: malika, total: "100000"})
+	// Anor paid 300 000 ahead; Sardor's order of 10 $ by its own rate
+	// (130 000) is paid in full.
+	anor := addCustomer(t, pool, sh.company, "998901000003", at, false)
+	sh.add(t, pool, doc{kind: "customer_prepay", at: at, customer: anor, total: "300000"})
+	sardor := addCustomer(t, pool, sh.company, "998901000004", at, false)
+	order := addOrder(t, pool, sh.company, st, st.yangi, sh.asosiy, sardor, "2026-10-20", false)
+	sh.add(t, pool, doc{kind: "order", at: at, location: sh.asosiy, customer: sardor, order: order, currency: 2, rate: sh.ownRate, total: "10"})
+	sh.add(t, pool, doc{kind: "customer_payment", at: at, account: sh.cash, customer: sardor, total: "130000"})
+	// A deleted customer who owed, a customer with nothing and another
+	// company's.
+	eski := addCustomer(t, pool, sh.company, "998901000005", at, true)
+	sh.add(t, pool, doc{kind: "customer_debt", at: at, customer: eski, total: "777000"})
+	addCustomer(t, pool, sh.company, "998901000006", at, false)
+	nok := newShop(t, pool, "Nok")
+	begona := addCustomer(t, pool, nok.company, "998901000007", at, false)
+	nok.add(t, pool, doc{kind: "customer_debt", at: at, customer: begona, total: "5000000"})
+
+	got, err := s.Get(ctx, sh.scope(), input(access.CustomersView, access.SalesView))
+
+	require.NoError(t, err)
+	assert.Equal(t, &Debtors{Debt: "1340000.00", Count: 2},
+		got.Debtors, "Dilshod's 600 000 and Malika's 740 000; the advance, the settled, the empty, the deleted and another company's are out")
+
+	restricted, err := s.Get(ctx, sh.scope(sh.chilonzor), input(access.CustomersView, access.SalesView))
+	require.NoError(t, err)
+	assert.Equal(t, got.Debtors, restricted.Debtors, "a member of one location sees every customer's balance (logic/sales.md, section 6)")
+	for about, perms := range map[string][]access.Permission{"the customers alone": {access.CustomersView}, "the sales alone": {access.SalesView}} {
+		alone, err := s.Get(ctx, sh.scope(), input(perms...))
+		require.NoError(t, err)
+		assert.Nil(t, alone.Debtors, about+": the balances are the customer list's «Qarz», which wants both")
+	}
+}
+
 func TestSuppliers(t *testing.T) {
 	s, pool := newService(t)
 	ctx := t.Context()

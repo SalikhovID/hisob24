@@ -133,6 +133,37 @@ func (q *Queries) DashboardCustomersByDay(ctx context.Context, arg DashboardCust
 	return items, nil
 }
 
+const dashboardDebtors = `-- name: DashboardDebtors :one
+WITH balances AS (
+    SELECT COALESCE(sum(CASE WHEN d.kind IN ('sale', 'customer_debt', 'order') THEN convert_amount(d.total, d.currency_id, 1, cr)
+                             ELSE -convert_amount(d.total, d.currency_id, 1, cr) END), 0) AS balance
+    FROM customers c
+    LEFT JOIN transactions d ON d.customer_id = c.id AND d.deleted_at IS NULL
+    LEFT JOIN currency_rates cr ON cr.id = d.currency_rate_id
+    WHERE c.company_id = $1 AND c.deleted_at IS NULL
+    GROUP BY c.id
+)
+SELECT COALESCE(sum(b.balance) FILTER (WHERE b.balance > 0), 0)::numeric(14,2) AS debt,
+       count(*) FILTER (WHERE b.balance > 0) AS debtors
+FROM balances b
+`
+
+type DashboardDebtorsRow struct {
+	Debt    pgtype.Numeric
+	Debtors int64
+}
+
+// What the company's live customers owe: the so'm balances above zero
+// summed and counted. A balance is the customer list's (logic/sales.md,
+// section 5): sales, orders' documents and opening debts add, payments and
+// opening advances take away, each by its own rate row.
+func (q *Queries) DashboardDebtors(ctx context.Context, companyID int64) (DashboardDebtorsRow, error) {
+	row := q.db.QueryRow(ctx, dashboardDebtors, companyID)
+	var i DashboardDebtorsRow
+	err := row.Scan(&i.Debt, &i.Debtors)
+	return i, err
+}
+
 const dashboardMoneyByDay = `-- name: DashboardMoneyByDay :many
 SELECT d.day::date AS day,
        COALESCE(sum(x.total) OVER (ORDER BY d.day), 0)::numeric(14,2) AS total,

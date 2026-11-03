@@ -225,6 +225,11 @@ type Querier interface {
 	// days counted in the zone: how many there were before the month, and how
 	// many by the day's end.
 	DashboardCustomersByDay(ctx context.Context, arg DashboardCustomersByDayParams) ([]DashboardCustomersByDayRow, error)
+	// What the company's live customers owe: the so'm balances above zero
+	// summed and counted. A balance is the customer list's (logic/sales.md,
+	// section 5): sales, orders' documents and opening debts add, payments and
+	// opening advances take away, each by its own rate row.
+	DashboardDebtors(ctx context.Context, companyID int64) (DashboardDebtorsRow, error)
 	// The company's live documents of the kind in the locations given on each
 	// day of the month up to today, the days counted in the zone: their total
 	// in so'm, each by its own rate row, and how many, both by the day's end.
