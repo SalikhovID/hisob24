@@ -30,6 +30,17 @@ test("digits typed are shown with their thousands apart, and what is handed over
   expect(change).toHaveBeenLastCalledWith("1 000 000")
 })
 
+test("a digit typed in the middle leaves the caret after it, however the groups shift", async () => {
+  render(<Host initial="234 567" />)
+  await userEvent.type(field(), "9", { initialSelectionStart: 1, initialSelectionEnd: 1 })
+  expect(field()).toHaveValue("2 934 567")
+  expect(field()).toHaveProperty("selectionStart", 3)
+  // The next digit goes in after it.
+  await userEvent.keyboard("8")
+  expect(field()).toHaveValue("29 834 567")
+  expect(field()).toHaveProperty("selectionStart", 4)
+})
+
 test("a value that is set, not typed (a price saved, a price offered), is shown masked as well, and is left as it is", () => {
   const change = vi.fn()
   render(<Host initial="12000.00" onChange={change} />)
