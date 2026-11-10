@@ -30,7 +30,7 @@ test("with prices: a product found by name, its unit at the quantity, the last p
   expect(screen.getByRole("heading", { level: 2, name: "Mahsulotlar" })).toBeInTheDocument()
   const first = line(1)
   await pick(user, first, "Mahsulot", "ol", /Olma/)
-  expect(within(first).getByLabelText("Narx")).toHaveValue("1000.00")
+  expect(within(first).getByLabelText("Narx")).toHaveValue("1 000,00")
   expect(within(first).getByText("kg")).toBeInTheDocument()
   await user.type(within(first).getByLabelText("Miqdor"), "2")
   expect(within(first).getByText("2 000")).toBeInTheDocument()
@@ -103,18 +103,20 @@ test("the prices follow the document's currency: each one, typed or offered, is 
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
   await user.type(price(2), "6400")
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
-  await user.type(price(3), "abc")
+  // Letters cannot be typed in a price (the mask drops them); three decimals
+  // are no price either.
+  await user.type(price(3), "1,234")
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
 
   rerender(<Host withPrice currencyId={2} />)
-  expect(price(1)).toHaveValue("150.00")
-  expect(price(2)).toHaveValue("0.50")
-  expect(price(3)).toHaveValue("abc")
+  expect(price(1)).toHaveValue("150,00")
+  expect(price(2)).toHaveValue("0,50")
+  expect(price(3)).toHaveValue("1,234")
   expect(price(4)).toHaveValue("")
 
   rerender(<Host withPrice currencyId={1} />)
-  expect(price(1)).toHaveValue("1920000.00")
-  expect(price(2)).toHaveValue("6400.00")
+  expect(price(1)).toHaveValue("1 920 000,00")
+  expect(price(2)).toHaveValue("6 400,00")
 })
 
 test("a document opened in its own currency keeps its prices; only a change of the currency turns them", async () => {
@@ -124,7 +126,18 @@ test("a document opened in its own currency keeps its prices; only a change of t
   const { rerender } = renderWithProviders(<Host withPrice currencyId={2} items={items} />)
 
   expect(await within(line(1)).findByText("$")).toBeInTheDocument()
-  expect(price(1)).toHaveValue("150.00")
+  expect(price(1)).toHaveValue("150,00")
   rerender(<Host withPrice currencyId={1} items={items} />)
-  expect(price(1)).toHaveValue("1920000.00")
+  expect(price(1)).toHaveValue("1 920 000,00")
+})
+
+test("a price typed in a line is masked as an amount; the quantity beside it is left as typed", async () => {
+  seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Host withPrice />)
+
+  await user.type(price(1), "1250000.5")
+  expect(price(1)).toHaveValue("1 250 000,5")
+  await user.type(within(line(1)).getByLabelText("Miqdor"), "1500")
+  expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("1500")
 })

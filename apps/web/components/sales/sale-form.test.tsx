@@ -42,12 +42,12 @@ test("a sale to a customer out of the current location: the customer found by na
 
   const first = line(1)
   await pick(user, first, "Mahsulot", "ol", /Olma/)
-  expect(within(first).getByLabelText("Narx")).toHaveValue("12000.00")
+  expect(within(first).getByLabelText("Narx")).toHaveValue("12 000,00")
   await user.type(within(first).getByLabelText("Miqdor"), "2")
   await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
   const second = line(2)
   await pick(user, second, "Mahsulot", "yet", /Yetkazish/)
-  expect(within(second).getByLabelText("Narx")).toHaveValue("50000.00")
+  expect(within(second).getByLabelText("Narx")).toHaveValue("50 000,00")
   await user.type(within(second).getByLabelText("Miqdor"), "1")
   expect(screen.getByText("74 000 so'm")).toBeInTheDocument()
   await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
@@ -89,7 +89,7 @@ test("a retail sale is paid in full with «To'liq»; the form tells the API's re
 
   await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
   await user.click(within(paymentLine(1)).getByRole("button", { name: "To'liq" }))
-  expect(within(paymentLine(1)).getByLabelText("Summa")).toHaveValue("2000")
+  expect(within(paymentLine(1)).getByLabelText("Summa")).toHaveValue("2 000")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))
   await waitFor(() => expect(db.transactions.find((t) => t.kind === "sale")).toMatchObject({ customerId: null, total: 2000 }))
   // The toast of the earlier test in this file may still stand beside it.
@@ -107,7 +107,7 @@ test("a sale price in another currency is offered in the sale's, with two decima
 
   await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
-  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("5.00")
+  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("5,00")
 })
 
 test("without a way to the customers the sale is retail alone; without the products there is no form", async () => {
@@ -147,7 +147,7 @@ test("editing: the sale comes filled in with its customer and payment, and is sa
   expect(screen.getByRole("link", { name: "Sotuv № 1" })).toHaveAttribute("href", `/sales/${sale.id}`)
   expect(screen.getByRole("button", { name: /^Mijoz/ })).toHaveTextContent("Dilshod Karimov")
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("4.000")
-  expect(within(paymentLine(1)).getByLabelText("Summa")).toHaveValue("5000.00")
+  expect(within(paymentLine(1)).getByLabelText("Summa")).toHaveValue("5 000,00")
   await user.clear(within(line(1)).getByLabelText("Miqdor"))
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))

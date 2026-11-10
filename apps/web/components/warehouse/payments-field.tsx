@@ -90,7 +90,7 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
             </div>
             <div className="flex items-center border-t-[0.5px] border-border pr-3">
               <div className="min-w-0 flex-1">
-                <LineInput control={form.control} name={path(`payments.${index}.amount`)} label="Summa" suffix={own.symbol} disabled={pending} />
+                <LineInput control={form.control} name={path(`payments.${index}.amount`)} label="Summa" suffix={own.symbol} disabled={pending} money />
               </div>
               <button
                 type="button"

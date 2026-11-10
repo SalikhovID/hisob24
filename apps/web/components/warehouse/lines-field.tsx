@@ -3,6 +3,7 @@
 import { PlusIcon, XIcon } from "lucide-react"
 import { useEffect, useId, useRef } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues, useFieldArray, type UseFormReturn, useWatch } from "react-hook-form"
+import { AmountInput } from "@/components/kit/amount-input"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { convert, currencyOf, turnTyped, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatMoney, unitLabel } from "@/lib/format"
@@ -15,52 +16,57 @@ import { type Offer, ProductPicker } from "./pickers"
 type WithLines = { items: LineForm[] }
 
 // LineInput is a number in a line's card (its quantity, its price): the
-// name small over the input, the unit beside it, the error under it.
+// name small over the input, the unit beside it, the error under it. A sum of
+// money (money) is masked as an amount is read ("1 250 000"), a quantity is
+// left as typed.
 export function LineInput<T extends FieldValues, TOut extends FieldValues>({
   control,
   name,
   label,
   suffix,
   disabled,
+  money = false,
 }: {
   control: Control<T, unknown, TOut>
   name: FieldPath<T>
   label: string
   suffix?: string
   disabled?: boolean
+  money?: boolean
 }) {
   const id = useId()
   return (
     <Controller
       control={control}
       name={name}
-      render={({ field, fieldState }) => (
-        <div data-invalid={fieldState.invalid || undefined} className="group min-w-0 px-4 py-2 [&+&]:border-l-[0.5px] [&+&]:border-border">
-          <label htmlFor={id} className="block text-sm text-muted-foreground group-data-invalid:text-destructive">
-            {label}
-          </label>
-          <span className="flex items-center gap-2">
-            <input
-              id={id}
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0"
-              disabled={disabled}
-              aria-invalid={fieldState.invalid || undefined}
-              aria-describedby={fieldState.error ? `${id}-error` : undefined}
-              className="h-8 min-w-0 flex-1 bg-transparent text-base text-foreground tabular-nums outline-none placeholder:text-muted-foreground/80"
-              {...field}
-              value={field.value ?? ""}
-            />
-            {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
-          </span>
-          {fieldState.error && (
-            <p id={`${id}-error`} role="alert" className="pt-1 text-xs text-destructive">
-              {fieldState.error.message}
-            </p>
-          )}
-        </div>
-      )}
+      render={({ field, fieldState }) => {
+        const shared = {
+          id,
+          inputMode: "decimal" as const,
+          autoComplete: "off",
+          placeholder: "0",
+          disabled,
+          "aria-invalid": fieldState.invalid || undefined,
+          "aria-describedby": fieldState.error ? `${id}-error` : undefined,
+          className: "h-8 min-w-0 flex-1 bg-transparent text-base text-foreground tabular-nums outline-none placeholder:text-muted-foreground/80",
+        }
+        return (
+          <div data-invalid={fieldState.invalid || undefined} className="group min-w-0 px-4 py-2 [&+&]:border-l-[0.5px] [&+&]:border-border">
+            <label htmlFor={id} className="block text-sm text-muted-foreground group-data-invalid:text-destructive">
+              {label}
+            </label>
+            <span className="flex items-center gap-2">
+              {money ? <AmountInput {...shared} {...field} value={field.value ?? ""} /> : <input {...shared} {...field} value={field.value ?? ""} />}
+              {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
+            </span>
+            {fieldState.error && (
+              <p id={`${id}-error`} role="alert" className="pt-1 text-xs text-destructive">
+                {fieldState.error.message}
+              </p>
+            )}
+          </div>
+        )
+      }}
     />
   )
 }
@@ -184,7 +190,7 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
             </div>
             <div className={cn("grid border-t-[0.5px] border-border", withPrice ? "grid-cols-2" : "grid-cols-1")}>
               <LineInput control={form.control} name={path(`items.${index}.quantity`)} label="Miqdor" suffix={unit} disabled={pending} />
-              {withPrice && <LineInput control={form.control} name={path(`items.${index}.price`)} label="Narx" suffix={currency.symbol} disabled={pending} />}
+              {withPrice && <LineInput control={form.control} name={path(`items.${index}.price`)} label="Narx" suffix={currency.symbol} disabled={pending} money />}
             </div>
             {withPrice && (
               <p className="flex justify-between border-t-[0.5px] border-border px-4 py-2.5 text-md text-muted-foreground">

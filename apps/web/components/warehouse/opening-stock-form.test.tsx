@@ -34,7 +34,7 @@ test("an opening stock is entered into the current location like a purchase with
 
   const first = line(1)
   await pick(user, first, "Mahsulot", "n", /Nok/)
-  expect(within(first).getByLabelText("Narx")).toHaveValue("2500.50")
+  expect(within(first).getByLabelText("Narx")).toHaveValue("2 500,50")
   await user.clear(within(first).getByLabelText("Narx"))
   await user.type(within(first).getByLabelText("Narx"), "2000")
   await user.type(within(first).getByLabelText("Miqdor"), "4")
@@ -95,7 +95,7 @@ test("editing: the document comes filled in, and is saved with another price", a
   expect(momentIn(document.body)).toBe("2026-09-30T09:00")
   expect(within(line(1)).getByText("Olma")).toBeInTheDocument()
   expect(within(line(1)).getByLabelText("Miqdor")).toHaveValue("2.000")
-  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1000.00")
+  expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1 000,00")
   await user.clear(within(line(1)).getByLabelText("Narx"))
   await user.type(within(line(1)).getByLabelText("Narx"), "1100")
   await user.click(screen.getByRole("button", { name: "Saqlash" }))

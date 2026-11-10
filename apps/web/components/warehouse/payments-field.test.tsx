@@ -36,7 +36,7 @@ test("the payments are the prototype's cards: the account picked in a sheet, the
   expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 10 000 so'm")
 
   await user.click(within(first).getByRole("button", { name: "To'liq" }))
-  expect(within(first).getByLabelText("Summa")).toHaveValue("10000")
+  expect(within(first).getByLabelText("Summa")).toHaveValue("10 000")
   expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 0 so'm")
 
   await user.click(within(first).getByRole("button", { name: "1-to'lovni olib tashlash" }))
@@ -52,7 +52,7 @@ test("paid past the total, the form says how much more was paid: «To'liq» from
   await choose(user, within(payment(1)).getByRole("button", { name: /^Akkaunt/ }), "Karta ($)")
   await user.click(within(payment(1)).getByRole("button", { name: "To'liq" }))
   // 50 000 so'm is 3,90625 $: 3,91 $ is 50 048 so'm, 48 so'm more.
-  expect(within(payment(1)).getByLabelText("Summa")).toHaveValue("3.91")
+  expect(within(payment(1)).getByLabelText("Summa")).toHaveValue("3,91")
   expect(screen.getByText(/^Ortiqcha:/)).toHaveTextContent("Ortiqcha: 48 so'm")
   expect(screen.queryByText(/^Qolgan:/)).not.toBeInTheDocument()
 
@@ -68,4 +68,14 @@ test("a payment is the prototype's card of frosted glass, 24px round", async () 
   await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
   expect(payment(1)).toHaveClass("surface", "rounded-[24px]")
   expect(payment(1)).not.toHaveClass("bg-card")
+})
+
+test("an amount typed in a payment is masked as an amount, and what is left follows it", async () => {
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Host total={2000000} />)
+
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await user.type(within(payment(1)).getByLabelText("Summa"), "1500000")
+  expect(within(payment(1)).getByLabelText("Summa")).toHaveValue("1 500 000")
+  expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 500 000 so'm")
 })

@@ -66,7 +66,7 @@ test("the owner keeps the warehouse: a supplier, a purchase into the stock, the 
   await page.getByRole("button", { name: "To'lov qo'shish" }).click()
   const payment = page.getByRole("group", { name: "1-to'lov" })
   await payment.getByRole("button", { name: "To'liq" }).click()
-  await expect(payment.getByLabel("Summa")).toHaveValue("17501.5")
+  await expect(payment.getByLabel("Summa")).toHaveValue("17 501,5")
   await payment.getByLabel("Summa").fill("5000")
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
   await page.getByRole("button", { name: "Saqlash" }).click()
