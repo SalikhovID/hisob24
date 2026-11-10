@@ -41,6 +41,30 @@ test("a digit typed in the middle leaves the caret after it, however the groups 
   expect(field()).toHaveProperty("selectionStart", 4)
 })
 
+// The space between the thousands is no part of the number: taking only it
+// away would change nothing (it comes back), so a key that meets it takes
+// the digit beside it away.
+test("Backspace right after the space between thousands takes away the digit before it, not the space alone", async () => {
+  render(<Host initial="1 234" />)
+  await userEvent.type(field(), "{Backspace}", { initialSelectionStart: 2, initialSelectionEnd: 2 })
+  expect(field()).toHaveValue("234")
+  expect(field()).toHaveProperty("selectionStart", 0)
+})
+
+test("Delete right before the space between thousands takes away the digit after it, not the space alone", async () => {
+  render(<Host initial="1 234" />)
+  await userEvent.type(field(), "{Delete}", { initialSelectionStart: 1, initialSelectionEnd: 1 })
+  expect(field()).toHaveValue("134")
+  expect(field()).toHaveProperty("selectionStart", 1)
+})
+
+test("Backspace on a digit takes away that digit alone", async () => {
+  render(<Host initial="1 234" />)
+  await userEvent.type(field(), "{Backspace}", { initialSelectionStart: 5, initialSelectionEnd: 5 })
+  expect(field()).toHaveValue("123")
+  expect(field()).toHaveProperty("selectionStart", 3)
+})
+
 test("a value that is set, not typed (a price saved, a price offered), is shown masked as well, and is left as it is", () => {
   const change = vi.fn()
   render(<Host initial="12000.00" onChange={change} />)
