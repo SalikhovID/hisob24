@@ -162,3 +162,26 @@ test("on a wide screen a sheet is the prototype's dialog: in the middle of the s
   )
   expect(document.querySelector('[data-slot="dialog-grab"]')).toHaveClass("md:hidden")
 })
+
+// A scroller that scrolls up and down scrolls sideways too unless it is told
+// not to (overflow-y: auto makes overflow-x: visible into auto), and a thumb
+// then pulls the form a little to the side, on iOS with the elastic bounce.
+test("a sheet's body is moved up and down only: nothing sideways, the page behind not dragged at its ends", async () => {
+  render(
+    <Dialog open>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mijoz</DialogTitle>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>,
+  )
+  await screen.findByRole("dialog", { name: "Mijoz" })
+  expect(document.querySelector('[data-slot="dialog-body"]')).toHaveClass(
+    "overflow-y-auto",
+    "overflow-x-hidden",
+    "overscroll-y-contain",
+    "overscroll-x-none",
+    "touch-pan-y",
+  )
+})

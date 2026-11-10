@@ -11,8 +11,9 @@ import { XIcon } from "lucide-react"
 // wide screen they are the prototype's dialog, 480px wide in the middle of
 // the screen, 12px round, floating. The title stands at the left of the
 // head, the close button (a plain icon) at its right; the body scrolls
-// under the head, the main button stands in the flat foot (ruled off by a
-// hairline on the web). Behind it the rest of the screen is dimmed by the
+// under the head, up and down only (a thumb cannot pull it to the side), the
+// main button stands in the flat foot (ruled off by a hairline on the web).
+// Behind it the rest of the screen is dimmed by the
 // scrim; a sheet over a sheet draws its own (Base UI leaves a nested
 // dialog's backdrop out unless forced). The API is the one from before
 // (Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -89,7 +90,7 @@ function DialogContent({
             {right}
           </span>
         )}
-        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pb-5 scrollbar-hide has-[>[data-slot=dialog-footer]]:pb-0 has-[>[data-slot=sheet-form]>[data-slot=dialog-footer]]:pb-0 [&>*]:shrink-0">
+        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-x-none overscroll-y-contain touch-pan-y px-5 pb-5 scrollbar-hide has-[>[data-slot=dialog-footer]]:pb-0 has-[>[data-slot=sheet-form]>[data-slot=dialog-footer]]:pb-0 [&>*]:shrink-0">
           {children}
         </div>
       </DialogPrimitive.Popup>
