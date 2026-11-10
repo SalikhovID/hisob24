@@ -42,3 +42,31 @@ test("a thumb moves the order's form up and down only, however wide something in
   expect(afterUp.top).toBeGreaterThan(0)
   expect(afterUp.left).toBe(0)
 })
+
+test("on a phone the order is entered on a screen of its own: all of the phone, square, no handle, nothing of the page above it", async ({ page }) => {
+  test.skip(!onPhone(page), "a sheet from the bottom is a phone's")
+  const dialog = await openAddOrder(page)
+  const phone = page.viewportSize()!
+
+  await expect.poll(() => dialog.boundingBox()).toEqual({ x: 0, y: 0, width: phone.width, height: phone.height })
+  await expect(dialog).toHaveCSS("border-top-left-radius", "0px")
+  await expect(dialog).toHaveCSS("border-top-right-radius", "0px")
+  await expect(dialog.locator('[data-slot="dialog-grab"]')).toHaveCount(0)
+  // Its title heads the screen, and the close button is at the title's level.
+  const title = await dialog.getByText("Buyurtma qo'shish", { exact: true }).boundingBox()
+  const close = await dialog.getByRole("button", { name: "Yopish" }).boundingBox()
+  expect(title!.y).toBeLessThan(40)
+  expect(close!.y).toBeLessThan(40)
+})
+
+test("on a wide screen the order is still the dialog in the middle of the screen", async ({ page }) => {
+  test.skip(onPhone(page), "a dialog in the middle is a wide screen's")
+  const dialog = await openAddOrder(page)
+  const screen = page.viewportSize()!
+
+  await expect.poll(async () => (await dialog.boundingBox())?.width).toBe(480)
+  const box = (await dialog.boundingBox())!
+  expect(box.x).toBeCloseTo((screen.width - 480) / 2, 0)
+  expect(box.y).toBeGreaterThan(0)
+  await expect(dialog).toHaveCSS("border-top-left-radius", "12px")
+})

@@ -123,17 +123,21 @@ test.describe("a linked user", () => {
     await page.getByRole("main").evaluate((main) => main.scrollTo({ top: 60 }))
     await expect(fade).toHaveAttribute("data-on", "true")
     await page.getByRole("main").evaluate((main) => main.scrollTo({ top: 0 }))
-    // A sheet, the tallest too, starts below the controls.
+    // The order is entered on a screen of its own: all of the phone, so the
+    // controls lie over its top, and its title and close button start below
+    // them.
     if (onPhone(page)) {
-      // Measured where it stops, not on its way up.
+      // Measured where it stops, not on its way in.
       await page.emulateMedia({ reducedMotion: "reduce" })
       await page.getByRole("main").getByRole("button", { name: "Buyurtma", exact: true }).click()
-      const sheet = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
-      await expect(sheet).toBeVisible()
+      const screen = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
+      await expect(screen).toBeVisible()
       await page.waitForTimeout(100)
-      expect((await sheet.boundingBox())?.y).toBeGreaterThanOrEqual(93)
+      expect((await screen.boundingBox())?.y).toBe(0)
+      expect((await screen.getByText("Buyurtma qo'shish", { exact: true }).boundingBox())?.y).toBeGreaterThanOrEqual(93)
+      expect((await screen.getByRole("button", { name: "Yopish" }).boundingBox())?.y).toBeGreaterThanOrEqual(93)
       await page.keyboard.press("Escape")
-      await expect(sheet).toBeHidden()
+      await expect(screen).toBeHidden()
     }
     await fits(page)
     // Closing the Mini App is the way out: the profile offers no sign-out,

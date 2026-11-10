@@ -298,3 +298,16 @@ test("an order is entered into the current location, and assigned among the memb
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
   expect(db.orders.at(-1)).toMatchObject({ number: 5, locationId: chilonzor.id })
 })
+
+// A form this long (the customer, the order, its money) is entered on a screen
+// of its own on a phone, not on a sheet that rises from the bottom and leaves
+// the page's top showing above it.
+test("the order is entered on a screen of its own: the dialog is a full one", async () => {
+  await signIn(VALI)
+  await chooseCompany(1)
+  seedOrders()
+  const { dialog } = await openDialog()
+
+  expect(dialog).toHaveAttribute("data-full", "true")
+  expect(dialog).toHaveAttribute("data-tall", "true")
+})

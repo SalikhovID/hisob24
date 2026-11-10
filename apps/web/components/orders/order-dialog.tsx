@@ -21,7 +21,9 @@ import { CustomerSection, FormSection, MoneySection, OrderFields, OrderRefusal }
 // AddOrderDialog enters an order into the company: the type on top, the
 // customer on the left (one that is there, taken from the suggestions, or
 // a new one entered with the order), the order on the right and its money
-// (the price, the goods, the advance) under it. It is
+// (the price, the goods, the advance) under it. On a phone it is a screen of
+// its own, not a sheet from the bottom (a form this long is entered, not
+// picked from); on a wide screen the dialog in the middle. It is
 // mounted to open and unmounted to close, so every opening starts afresh:
 // on the type the list is narrowed to (or the first), in the stage it was
 // opened for (or the first), with the deadline empty and nobody assigned.
@@ -156,7 +158,7 @@ export function AddOrderDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent tall>
+      <DialogContent tall full>
         <DialogHeader>
           <DialogTitle>Buyurtma qo&apos;shish</DialogTitle>
           <DialogDescription>Turni tanlang, mijozni biriktiring va buyurtmani to&apos;ldiring.</DialogDescription>
