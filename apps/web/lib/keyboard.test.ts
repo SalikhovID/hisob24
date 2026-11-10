@@ -1,5 +1,5 @@
-import { expect, test } from "vitest"
-import { isEditable, keyboardInset, revealDelta } from "./keyboard"
+import { afterEach, expect, test } from "vitest"
+import { isEditable, keyboardInset, revealDelta, scrollerOf } from "./keyboard"
 
 // What the browser tells of the visual viewport: its height, how far its top
 // stands below the layout viewport's, and its zoom.
@@ -69,4 +69,46 @@ test.each([
   ["nothing", null, false],
 ])("isEditable: %s", (_name, element, editable) => {
   expect(isEditable(element)).toBe(editable)
+})
+
+// A box that scrolls up and down, or does not: jsdom lays nothing out, so the
+// heights are told.
+const box = (overflowY: string, scrollHeight: number, clientHeight: number) => {
+  const element = document.createElement("div")
+  element.style.overflowY = overflowY
+  Object.defineProperty(element, "scrollHeight", { value: scrollHeight })
+  Object.defineProperty(element, "clientHeight", { value: clientHeight })
+  return element
+}
+
+// A field in nested boxes, put in the page.
+const fieldIn = (...boxes: HTMLElement[]) => {
+  const field = document.createElement("input")
+  const frame = boxes.reduceRight<HTMLElement>((inside, outside) => (outside.append(inside), outside), field)
+  document.body.append(frame)
+  return field
+}
+
+afterEach(() => document.body.replaceChildren())
+
+test("a field scrolls with the nearest ancestor that scrolls up and down and holds more than it shows", () => {
+  const outer = box("auto", 900, 600)
+  const inner = box("auto", 500, 300)
+  expect(scrollerOf(fieldIn(outer, inner))).toBe(inner)
+})
+
+test("an ancestor with nothing more to show is passed over", () => {
+  const outer = box("scroll", 900, 600)
+  const inner = box("auto", 300, 300)
+  expect(scrollerOf(fieldIn(outer, inner))).toBe(outer)
+})
+
+test("an ancestor that does not scroll, however much it holds, is passed over", () => {
+  const outer = box("auto", 900, 600)
+  const inner = box("hidden", 500, 300)
+  expect(scrollerOf(fieldIn(outer, inner))).toBe(outer)
+})
+
+test("with no such ancestor a field scrolls with the page", () => {
+  expect(scrollerOf(fieldIn(box("visible", 500, 300)))).toBe(document.scrollingElement ?? document.documentElement)
 })

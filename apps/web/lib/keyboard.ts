@@ -52,3 +52,14 @@ export function isEditable(element: Element | null): element is HTMLInputElement
   if (element instanceof HTMLInputElement) return !NOT_TYPED.has(element.type) && !element.readOnly && !element.disabled
   return false
 }
+
+// scrollerOf is the element a field scrolls with: its nearest ancestor that
+// scrolls up and down and holds more than it shows (the main of a page, the
+// body of a sheet), the page itself when there is none.
+export function scrollerOf(field: HTMLElement): HTMLElement {
+  for (let node = field.parentElement; node; node = node.parentElement) {
+    const { overflowY } = getComputedStyle(node)
+    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight) return node
+  }
+  return (document.scrollingElement as HTMLElement | null) ?? document.documentElement
+}
