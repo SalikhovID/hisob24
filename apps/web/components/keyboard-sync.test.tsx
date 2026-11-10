@@ -71,3 +71,39 @@ test("when the field loses focus the page takes the keyboard's room back, even i
   })
   expect(inset()).toBe("")
 })
+
+// scene is a field in a scroller, as a page or a sheet holds it, with the
+// KeyboardSync beside it. jsdom lays nothing out, so where the field stands
+// on the screen and what the scroller holds are told; scrollBy is watched.
+function scene(top: number, bottom: number) {
+  const scrollBy = vi.fn()
+  render(
+    <>
+      <KeyboardSync />
+      <div data-testid="scroller" style={{ overflowY: "auto" }}>
+        <input aria-label="Narx" />
+      </div>
+    </>,
+  )
+  const scroller = screen.getByTestId("scroller")
+  Object.defineProperty(scroller, "scrollHeight", { value: 2000 })
+  Object.defineProperty(scroller, "clientHeight", { value: 800 })
+  Object.assign(scroller, { scrollBy })
+  const field = screen.getByLabelText("Narx")
+  Object.assign(field, { getBoundingClientRect: () => ({ top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON() {} }) })
+  return { field, scrollBy }
+}
+
+test("a field the keyboard comes up over is scrolled clear of it once the keyboard has settled", () => {
+  const viewport = installViewport(812)
+  const { field, scrollBy } = scene(690, 710)
+  act(() => field.focus())
+  // Nothing lies over it yet, and it stands clear of the bottom band.
+  expect(scrollBy).not.toHaveBeenCalled()
+
+  resizeTo(viewport, 512)
+  act(() => {
+    vi.advanceTimersByTime(200)
+  })
+  expect(scrollBy).toHaveBeenCalledWith({ top: 484, behavior: "smooth" })
+})
