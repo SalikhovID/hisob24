@@ -325,11 +325,15 @@
   }
 }
 
-/* The bottom tab bar keeps clear of the phone's home indicator and, inside
+/* A bottom sheet keeps clear of the phone's home indicator and, inside
    Telegram (Bot API 8.0+ publishes --tg-safe-area-inset-*), of the client's
-   own bottom edge. */
+   own bottom edge; and of the soft keyboard that lies over the bottom of the
+   screen (KeyboardSync publishes its height as --keyboard-inset while a
+   field is typed in; the keyboard is over the bottom edge, so the larger of
+   the two, not their sum). The sheet's sticky foot then stands above the
+   keyboard, and a short sheet grows upward to make room. */
 @utility pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px));
+  padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px));
 }
 
 /* pb-safe-<n>: padding of its own plus the bottom edge (the main button's bar). */
@@ -338,9 +342,11 @@
 }
 
 /* pb-bar: room under a page for the floating tab bar (about 60px, 28px
-   off the bottom) and the bottom edge: the prototype's 116px. */
+   off the bottom) and the bottom edge: the prototype's 116px; with the soft
+   keyboard over the bottom of the screen, its height in place of the bottom
+   edge, so the last field of a page can be scrolled up out from under it. */
 @utility pb-bar {
-  padding-bottom: calc(116px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
+  padding-bottom: calc(116px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)));
 }
 
 /* --safe-top is what lies over the top of the page: in a Telegram Mini App

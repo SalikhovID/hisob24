@@ -181,8 +181,16 @@ test("the tab bar is the prototype's frosted pill: the card at 80% over a blur, 
   expect(block(":root {")).toContain("--tab-bar-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.08)")
 })
 
-test("a page keeps room under it for the floating tab bar, as the prototype's 116px", () => {
-  expect(block("@utility pb-bar {")).toContain("padding-bottom: calc(116px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)))")
+test("a page keeps room under it for the floating tab bar, as the prototype's 116px, the keyboard's height taking the place of the bottom edge when it is more", () => {
+  expect(block("@utility pb-bar {")).toContain(
+    "padding-bottom: calc(116px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)))",
+  )
+})
+
+test("a sheet keeps clear of the keyboard that lies over the bottom of the screen: the keyboard's height is its bottom edge when that is more", () => {
+  expect(block("@utility pb-safe {")).toContain(
+    "padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px))",
+  )
 })
 
 test("on a phone the hairline between rows starts 16px in; on a wide screen it is the row's whole width, fainter", () => {
