@@ -51,8 +51,9 @@ export interface TelegramWebApp {
 export type HomeScreenStatus = "unsupported" | "unknown" | "added" | "missed"
 
 // The events the app listens to: the chat's theme changed, the Mini App was
-// put on the home screen.
-export type TelegramEvent = "themeChanged" | "homeScreenAdded"
+// put on the home screen, the part of it that is on screen changed (the
+// keyboard came up or went).
+export type TelegramEvent = "themeChanged" | "homeScreenAdded" | "viewportChanged"
 
 export interface TelegramBackButton {
   isVisible: boolean

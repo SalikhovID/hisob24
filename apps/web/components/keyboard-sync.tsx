@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { isEditable, keyboardInset, revealDelta, scrollerOf } from "@/lib/keyboard"
+import { useMiniApp } from "@/lib/telegram"
 
 // How long the page waits, after the last word of the screen's size or of the
 // focus, before it settles: the keyboard slides over many frames, and focus
@@ -12,8 +13,11 @@ const QUIET = 100
 // field is typed in, it tells the page how much of its bottom the keyboard
 // lies over (--keyboard-inset on <html>, which the room under a page and under
 // a sheet reads, globals.css), takes that back when the keyboard goes, and,
-// once the keyboard has settled, scrolls the field out from under it.
+// once the keyboard has settled, scrolls the field out from under it. The
+// browser's word that the screen resized, and Telegram's that the Mini App's
+// viewport changed, both start it.
 export function KeyboardSync() {
+  const miniApp = useMiniApp()
   useEffect(() => {
     const viewport = window.visualViewport
     if (!viewport) return
@@ -42,15 +46,17 @@ export function KeyboardSync() {
       settle()
     }
     viewport.addEventListener("resize", resized)
+    miniApp?.onEvent("viewportChanged", resized)
     document.addEventListener("focusin", settle)
     document.addEventListener("focusout", settle)
     return () => {
       window.clearTimeout(timer)
       viewport.removeEventListener("resize", resized)
+      miniApp?.offEvent("viewportChanged", resized)
       document.removeEventListener("focusin", settle)
       document.removeEventListener("focusout", settle)
       root.style.removeProperty("--keyboard-inset")
     }
-  }, [])
+  }, [miniApp])
   return null
 }

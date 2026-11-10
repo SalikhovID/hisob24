@@ -1,5 +1,7 @@
 import { act, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+import { setMiniApp } from "@/lib/telegram"
+import type { TelegramWebApp } from "@/types/telegram"
 import { KeyboardSync } from "./keyboard-sync"
 
 // FakeViewport stands for window.visualViewport: it tells its height, and is
@@ -30,6 +32,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  setMiniApp(null)
   Reflect.deleteProperty(window, "visualViewport")
   document.documentElement.removeAttribute("style")
 })
@@ -140,4 +143,48 @@ test("a control that is not typed in brings no keyboard's room", () => {
   act(() => screen.getByRole("button", { name: "Saqlash" }).focus())
   resizeTo(viewport, 512)
   expect(inset()).toBe("")
+})
+
+// fakeWebApp is Telegram's WebApp as far as KeyboardSync knows it: it keeps
+// the handlers it is given.
+function fakeWebApp() {
+  const handlers = new Map<string, () => void>()
+  const webApp = {
+    onEvent: vi.fn((event: string, handler: () => void) => {
+      handlers.set(event, handler)
+    }),
+    offEvent: vi.fn((event: string, handler: () => void) => {
+      if (handlers.get(event) === handler) handlers.delete(event)
+    }),
+  } as unknown as TelegramWebApp
+  return { webApp, handlers }
+}
+
+test("Telegram's word that the Mini App's viewport changed settles the page as the browser's own resize does", () => {
+  installViewport(512)
+  const { webApp, handlers } = fakeWebApp()
+  act(() => setMiniApp(webApp))
+  const { field, scrollBy } = scene(690, 710)
+  act(() => field.focus())
+  act(() => {
+    vi.advanceTimersByTime(200)
+  })
+  scrollBy.mockClear()
+
+  expect(handlers.has("viewportChanged")).toBe(true)
+  act(() => handlers.get("viewportChanged")?.())
+  act(() => {
+    vi.advanceTimersByTime(200)
+  })
+  expect(scrollBy).toHaveBeenCalledWith({ top: 484, behavior: "smooth" })
+})
+
+test("it lets go of Telegram's word when it goes", () => {
+  installViewport(812)
+  const { webApp, handlers } = fakeWebApp()
+  act(() => setMiniApp(webApp))
+  const { unmount } = render(<KeyboardSync />)
+  expect(handlers.has("viewportChanged")).toBe(true)
+  unmount()
+  expect(handlers.has("viewportChanged")).toBe(false)
 })
