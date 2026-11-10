@@ -51,3 +51,23 @@ test("while a field is typed in and the keyboard lies over the page's bottom, th
   resizeTo(viewport, 812)
   expect(inset()).toBe("")
 })
+
+test("when the field loses focus the page takes the keyboard's room back, even if the viewport never says the keyboard went", () => {
+  const viewport = installViewport(812)
+  render(
+    <>
+      <KeyboardSync />
+      <input aria-label="Narx" />
+    </>,
+  )
+  const field = screen.getByLabelText("Narx")
+  act(() => field.focus())
+  resizeTo(viewport, 512)
+  expect(inset()).toBe("300px")
+
+  act(() => field.blur())
+  act(() => {
+    vi.advanceTimersByTime(200)
+  })
+  expect(inset()).toBe("")
+})
