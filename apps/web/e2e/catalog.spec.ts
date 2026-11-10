@@ -120,6 +120,33 @@ test("the owner keeps the catalog: the lists, a new product, a duplicate refused
   expect(await sideScroll(page)).toBeLessThanOrEqual(0)
 })
 
+// A price is masked as it is typed, and the caret holds in a real browser,
+// where the text is set and the caret put back after the page's own handler.
+test("a price is masked as it is typed: its thousands apart, the caret after the digit typed, a Backspace past a space taking the digit", async ({ page }) => {
+  seedCatalog()
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await openSection(page, "Mahsulotlar")
+  await page.getByRole("button", { name: "Mahsulot qo'shish" }).click()
+  const price = page.getByRole("dialog", { name: "Mahsulot qo'shish" }).getByLabel("Sotuv narxi")
+  const caret = () => price.evaluate((input: HTMLInputElement) => input.selectionStart)
+  // The caret is put by script: the Home key does not move it in a field on a Mac.
+  const place = (at: number) => price.evaluate((input: HTMLInputElement, to) => input.setSelectionRange(to, to), at)
+
+  await price.pressSequentially("234567")
+  await expect(price).toHaveValue("234 567")
+  // A 9 after the first digit shifts the groups; the caret stays after it.
+  await place(1)
+  await price.pressSequentially("9")
+  await expect(price).toHaveValue("2 934 567")
+  expect(await caret()).toBe(3)
+  // Right after the space, Backspace takes the 2 before it, not the space alone.
+  await price.press("ArrowLeft")
+  await price.press("Backspace")
+  await expect(price).toHaveValue("934 567")
+  expect(await caret()).toBe(0)
+})
+
 test("an employee whose role lacks the products has no way to them, and their address leads home", async ({ page }) => {
   seedCatalog()
   giveRole("998902223344", 1, "Kuzatuvchi", ["customers.view"])
