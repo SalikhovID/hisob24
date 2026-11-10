@@ -118,3 +118,26 @@ test("a field focused while the keyboard is up already is scrolled clear of it: 
   expect(scrollBy).toHaveBeenCalledWith({ top: 484, behavior: "smooth" })
   expect(inset()).toBe("300px")
 })
+
+test("a field that already stands clear of the keyboard is left where it is", () => {
+  installViewport(512)
+  const { field, scrollBy } = scene(200, 240)
+  act(() => field.focus())
+  act(() => {
+    vi.advanceTimersByTime(200)
+  })
+  expect(scrollBy).not.toHaveBeenCalled()
+})
+
+test("a control that is not typed in brings no keyboard's room", () => {
+  const viewport = installViewport(812)
+  render(
+    <>
+      <KeyboardSync />
+      <button type="button">Saqlash</button>
+    </>,
+  )
+  act(() => screen.getByRole("button", { name: "Saqlash" }).focus())
+  resizeTo(viewport, 512)
+  expect(inset()).toBe("")
+})
