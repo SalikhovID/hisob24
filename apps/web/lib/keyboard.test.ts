@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { keyboardInset, revealDelta } from "./keyboard"
+import { isEditable, keyboardInset, revealDelta } from "./keyboard"
 
 // What the browser tells of the visual viewport: its height, how far its top
 // stands below the layout viewport's, and its zoom.
@@ -45,4 +45,28 @@ test.each([
   ["a fraction of a pixel is rounded", span(0, 512), span(-40.4, -0.4), -236],
 ])("revealDelta: %s", (_name, clear, field, delta) => {
   expect(revealDelta(field, clear)).toBe(delta)
+})
+
+const input = (type?: string, props: Partial<HTMLInputElement> = {}) => Object.assign(document.createElement("input"), type ? { type } : {}, props)
+
+// Only a field that is typed in brings up the keyboard: a text, a phone, a
+// number, a search field, a textarea; not a box to check, a button, a picker,
+// nor a field that is only read or is off.
+test.each([
+  ["a text input", input("text"), true],
+  ["an input with no type", input(), true],
+  ["a phone input", input("tel"), true],
+  ["a number input", input("number"), true],
+  ["a search input", input("search"), true],
+  ["a textarea", document.createElement("textarea"), true],
+  ["a checkbox", input("checkbox"), false],
+  ["a radio", input("radio"), false],
+  ["an input that submits", input("submit"), false],
+  ["a button", document.createElement("button"), false],
+  ["a select", document.createElement("select"), false],
+  ["a read-only input", input("text", { readOnly: true }), false],
+  ["a disabled input", input("text", { disabled: true }), false],
+  ["nothing", null, false],
+])("isEditable: %s", (_name, element, editable) => {
+  expect(isEditable(element)).toBe(editable)
 })

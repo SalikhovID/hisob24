@@ -39,3 +39,16 @@ export function revealDelta(field: Span, clear: Span): number {
   if (field.bottom - field.top > bottom - top) return Math.round(field.top - top)
   return Math.round((field.top + field.bottom) / 2 - (top + bottom) / 2)
 }
+
+// The inputs that are not typed in: a box to check, a button, a file or a
+// color to pick.
+const NOT_TYPED = new Set(["checkbox", "radio", "button", "submit", "reset", "file", "range", "color", "image", "hidden"])
+
+// isEditable tells whether the element is a field that is typed in, the
+// kind that brings the soft keyboard up: a textarea or an input of a typed
+// kind, neither only read nor off.
+export function isEditable(element: Element | null): element is HTMLInputElement | HTMLTextAreaElement {
+  if (element instanceof HTMLTextAreaElement) return !element.readOnly && !element.disabled
+  if (element instanceof HTMLInputElement) return !NOT_TYPED.has(element.type) && !element.readOnly && !element.disabled
+  return false
+}
