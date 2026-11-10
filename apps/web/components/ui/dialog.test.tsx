@@ -185,3 +185,59 @@ test("a sheet's body is moved up and down only: nothing sideways, the page behin
     "touch-pan-y",
   )
 })
+
+test("a full sheet is a screen of its own on a phone: edge to edge, square, no handle, coming in from the right and starting under what lies over the top; on a wide screen it is the dialog in the middle all the same", async () => {
+  render(
+    <Dialog open>
+      <DialogContent tall full>
+        <DialogHeader>
+          <DialogTitle>Buyurtma</DialogTitle>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>,
+  )
+  const full = await screen.findByRole("dialog", { name: "Buyurtma" })
+  expect(full).toHaveAttribute("data-full", "true")
+  // The whole screen, no gap above it, no round corners; Telegram's controls
+  // (--safe-top) are not under its head.
+  expect(full).toHaveClass("inset-0", "max-h-none", "rounded-none", "pt-safe")
+  expect(full).not.toHaveClass("bottom-0", "rounded-t-sheet", "data-starting-style:translate-y-full", "data-ending-style:translate-y-full")
+  // It does not rise from the bottom: it comes in from the right and goes back
+  // there, as a page of the app does.
+  expect(full).toHaveClass("max-md:data-starting-style:translate-x-full", "max-md:data-ending-style:translate-x-full")
+  // No handle: there is nothing to pull down.
+  expect(document.querySelector('[data-slot="dialog-grab"]')).toBeNull()
+  // The close button stands under the controls too.
+  expect(screen.getByRole("button", { name: "Yopish" })).toHaveClass("top-[calc(var(--safe-top)_+_14px)]", "md:top-3")
+  // From md up nothing of this is left: the dialog in the middle, as any.
+  expect(full).toHaveClass(
+    "md:pt-0",
+    "md:top-1/2",
+    "md:bottom-auto",
+    "md:left-1/2",
+    "md:w-[480px]",
+    "md:-translate-x-1/2",
+    "md:-translate-y-1/2",
+    "md:rounded-xl",
+    "md:max-h-[calc(100dvh-64px)]",
+    "md:data-tall:h-[calc(100dvh-64px)]",
+  )
+})
+
+test("a sheet that is not asked to be full stays the sheet from the bottom", async () => {
+  render(
+    <Dialog open>
+      <DialogContent tall>
+        <DialogHeader>
+          <DialogTitle>Mijoz</DialogTitle>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>,
+  )
+  const sheet = await screen.findByRole("dialog", { name: "Mijoz" })
+  expect(sheet).not.toHaveAttribute("data-full")
+  expect(sheet).toHaveClass("inset-x-0", "bottom-0", "rounded-t-sheet", "data-starting-style:translate-y-full", "data-ending-style:translate-y-full")
+  expect(sheet).not.toHaveClass("inset-0", "rounded-none", "pt-safe")
+  expect(document.querySelector('[data-slot="dialog-grab"]')).not.toBeNull()
+  expect(screen.getByRole("button", { name: "Yopish" })).toHaveClass("top-3.5")
+})

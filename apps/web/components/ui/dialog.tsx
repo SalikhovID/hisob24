@@ -54,39 +54,58 @@ function DialogContent({
   children,
   showCloseButton = true,
   tall = false,
+  full = false,
   right,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
   // tall: the sheet takes the whole height (a long form, a list to search).
   tall?: boolean
+  // full: on a phone the sheet is a screen of its own (a long form that is
+  // entered, not picked from): edge to edge, square, in from the right as a
+  // page is, its head under what lies over the screen's top. On a wide
+  // screen it is the dialog in the middle, as any.
+  full?: boolean
   // right: a control at the head's right (a second action).
   right?: React.ReactNode
 }) {
+  // The close button and the control beside it stand level with the title:
+  // under what lies over the top of a full screen.
+  const top = full ? "top-[calc(var(--safe-top)_+_14px)] md:top-3" : "top-3.5 md:top-3"
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         data-tall={tall || undefined}
+        data-full={full || undefined}
         className={cn(
-          "group/sheet fixed inset-x-0 bottom-0 z-50 flex [--background:var(--sheet)] [--card:var(--sheet-cell)] max-h-[calc(100dvh-18px-var(--safe-top))] w-full flex-col overflow-hidden rounded-t-sheet bg-sheet pb-safe text-foreground outline-none transition-[translate,scale,opacity] duration-[420ms] ease-drawer data-starting-style:translate-y-full data-ending-style:translate-y-full data-tall:h-[calc(100dvh-18px-var(--safe-top))] md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[480px] md:max-w-[calc(100%-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:pb-0 md:shadow-float md:duration-300 md:ease-out-expo md:max-h-[calc(100dvh-64px)] md:data-tall:h-[calc(100dvh-64px)] md:data-starting-style:-translate-y-[48%] md:data-starting-style:scale-[.98] md:data-starting-style:opacity-0 md:data-ending-style:-translate-y-[48%] md:data-ending-style:scale-[.98] md:data-ending-style:opacity-0",
+          "group/sheet fixed z-50 flex [--background:var(--sheet)] [--card:var(--sheet-cell)] w-full flex-col overflow-hidden bg-sheet pb-safe text-foreground outline-none transition-[translate,scale,opacity] duration-[420ms] ease-drawer",
+          full
+            ? "inset-0 max-h-none rounded-none pt-safe max-md:data-starting-style:translate-x-full max-md:data-ending-style:translate-x-full md:pt-0"
+            : "inset-x-0 bottom-0 max-h-[calc(100dvh-18px-var(--safe-top))] rounded-t-sheet data-starting-style:translate-y-full data-ending-style:translate-y-full data-tall:h-[calc(100dvh-18px-var(--safe-top))]",
+          "md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[480px] md:max-w-[calc(100%-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:pb-0 md:shadow-float md:duration-300 md:ease-out-expo md:max-h-[calc(100dvh-64px)] md:data-tall:h-[calc(100dvh-64px)] md:data-starting-style:-translate-y-[48%] md:data-starting-style:scale-[.98] md:data-starting-style:opacity-0 md:data-ending-style:-translate-y-[48%] md:data-ending-style:scale-[.98] md:data-ending-style:opacity-0",
           className
         )}
         {...props}
       >
-        <span aria-hidden="true" data-slot="dialog-grab" className="absolute top-1.5 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full bg-[rgba(60,60,67,.3)] md:hidden" />
+        {!full && (
+          <span aria-hidden="true" data-slot="dialog-grab" className="absolute top-1.5 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full bg-[rgba(60,60,67,.3)] md:hidden" />
+        )}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
             aria-label="Yopish"
-            className="absolute top-3.5 right-3 z-10 grid size-[30px] place-items-center rounded-md text-icon outline-none hover:bg-ink-1 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 md:top-3"
+            className={cn(
+              "absolute right-3 z-10 grid size-[30px] place-items-center rounded-md text-icon outline-none hover:bg-ink-1 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+              top
+            )}
           >
             <XIcon strokeWidth={2} className="size-[18px]" />
           </DialogPrimitive.Close>
         )}
         {right && (
-          <span data-slot="dialog-right" className="absolute top-3.5 right-12 z-10 flex h-[30px] items-center md:top-3">
+          <span data-slot="dialog-right" className={cn("absolute right-12 z-10 flex h-[30px] items-center", top)}>
             {right}
           </span>
         )}
