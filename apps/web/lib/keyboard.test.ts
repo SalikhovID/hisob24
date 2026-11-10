@@ -47,12 +47,18 @@ test.each([
   expect(revealDelta(field, clear)).toBe(delta)
 })
 
-const input = (type?: string, props: Partial<HTMLInputElement> = {}) => Object.assign(document.createElement("input"), type ? { type } : {}, props)
+const input = (type?: string, state: { readOnly?: boolean; disabled?: boolean } = {}): HTMLInputElement => {
+  const element = document.createElement("input")
+  if (type) element.type = type
+  element.readOnly = state.readOnly ?? false
+  element.disabled = state.disabled ?? false
+  return element
+}
 
 // Only a field that is typed in brings up the keyboard: a text, a phone, a
 // number, a search field, a textarea; not a box to check, a button, a picker,
 // nor a field that is only read or is off.
-test.each([
+test.each<[string, Element | null, boolean]>([
   ["a text input", input("text"), true],
   ["an input with no type", input(), true],
   ["a phone input", input("tel"), true],
