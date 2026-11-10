@@ -188,3 +188,14 @@ test("it lets go of Telegram's word when it goes", () => {
   unmount()
   expect(handlers.has("viewportChanged")).toBe(false)
 })
+
+test("with no keyboard over the page a field that is focused is left to the browser, however low it stands", () => {
+  installViewport(812)
+  const { field, scrollBy } = scene(750, 790)
+  act(() => field.focus())
+  act(() => {
+    vi.advanceTimersByTime(200)
+  })
+  expect(scrollBy).not.toHaveBeenCalled()
+  expect(inset()).toBe("")
+})

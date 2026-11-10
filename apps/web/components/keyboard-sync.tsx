@@ -15,7 +15,9 @@ const QUIET = 100
 // a sheet reads, globals.css), takes that back when the keyboard goes, and,
 // once the keyboard has settled, scrolls the field out from under it. The
 // browser's word that the screen resized, and Telegram's that the Mini App's
-// viewport changed, both start it.
+// viewport changed, both start it. A field that is only focused, with no
+// keyboard over the page and the screen not resized, is the browser's own to
+// bring into view.
 export function KeyboardSync() {
   const miniApp = useMiniApp()
   useEffect(() => {
@@ -23,10 +25,15 @@ export function KeyboardSync() {
     if (!viewport) return
     const root = document.documentElement
     let timer: number | undefined
+    // changed: the screen resized since the page last settled.
+    let changed = false
+    // publish says how much of the page's bottom the keyboard lies over and
+    // returns it.
     const publish = () => {
       const hidden = isEditable(document.activeElement) ? keyboardInset(viewport, window.innerHeight) : 0
       if (hidden > 0) root.style.setProperty("--keyboard-inset", `${hidden}px`)
       else root.style.removeProperty("--keyboard-inset")
+      return hidden
     }
     const reveal = () => {
       const field = document.activeElement
@@ -37,11 +44,12 @@ export function KeyboardSync() {
     const settle = () => {
       window.clearTimeout(timer)
       timer = window.setTimeout(() => {
-        publish()
-        reveal()
+        if (publish() > 0 || changed) reveal()
+        changed = false
       }, QUIET)
     }
     const resized = () => {
+      changed = true
       publish()
       settle()
     }
