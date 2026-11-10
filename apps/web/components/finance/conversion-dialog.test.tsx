@@ -51,8 +51,8 @@ test("a conversion is edited from its fields, with both amounts", async () => {
   const { user } = renderWithProviders(<Opened companyId={1} conversion={converted} />)
 
   const dialog = await screen.findByRole("dialog", { name: "Konvertatsiyani tahrirlash" })
-  expect(within(dialog).getByLabelText("Chiqdi")).toHaveValue("128000.00")
-  expect(within(dialog).getByLabelText("Kirdi")).toHaveValue("10.00")
+  expect(within(dialog).getByLabelText("Chiqdi")).toHaveValue("128 000,00")
+  expect(within(dialog).getByLabelText("Kirdi")).toHaveValue("10,00")
   await user.clear(within(dialog).getByLabelText("Chiqdi"))
   await user.type(within(dialog).getByLabelText("Chiqdi"), "130000")
   expect(within(dialog).getByText("1 $ = 13 000 so'm")).toBeInTheDocument()

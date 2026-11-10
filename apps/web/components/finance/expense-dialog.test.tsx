@@ -75,7 +75,7 @@ test("an expense is edited from its fields: its category offered among the activ
 
   const dialog = await screen.findByRole("dialog", { name: "Xarajatni tahrirlash" })
   await waitFor(() => expect(within(dialog).getByLabelText("Kategoriya")).toHaveTextContent("Ijara"))
-  expect(within(dialog).getByLabelText("Summa")).toHaveValue("150000.00")
+  expect(within(dialog).getByLabelText("Summa")).toHaveValue("150 000,00")
   expect(momentIn(dialog)).toBe("2026-10-03T09:00")
   expect(within(dialog).getByLabelText("Izoh")).toHaveValue("Oktabr")
   expect(await optionsOf(user, within(dialog).getByLabelText("Kategoriya"))).toEqual(["Ijara"])

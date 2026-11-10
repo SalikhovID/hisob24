@@ -66,13 +66,13 @@ test("a row opens the sheet of its actions: a conversion (its rate said there) o
   expect(sheet).toHaveTextContent("Konvertatsiya № 1 · 128 000 so'm → 10 $ · 1 $ = 12 800 so'm")
   expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
   await user.click(within(sheet).getByRole("menuitem", { name: "Tahrirlash" }))
-  expect(within(await screen.findByRole("dialog", { name: "Konvertatsiyani tahrirlash" })).getByLabelText("Chiqdi")).toHaveValue("128000.00")
+  expect(within(await screen.findByRole("dialog", { name: "Konvertatsiyani tahrirlash" })).getByLabelText("Chiqdi")).toHaveValue("128 000,00")
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
   await user.click(transfer)
   await user.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: "Tahrirlash" }))
-  expect(within(await screen.findByRole("dialog", { name: "O'tkazmani tahrirlash" })).getByLabelText("Summa")).toHaveValue("100000.00")
+  expect(within(await screen.findByRole("dialog", { name: "O'tkazmani tahrirlash" })).getByLabelText("Summa")).toHaveValue("100 000,00")
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 

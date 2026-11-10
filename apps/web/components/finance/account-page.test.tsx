@@ -87,7 +87,7 @@ test("a cash document's sheet: the opening balance is edited and deleted there, 
   expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
   await user.click(within(sheet).getByRole("menuitem", { name: "Tahrirlash" }))
   const edit = await screen.findByRole("dialog", { name: "Boshlang'ich qoldiqni tahrirlash" })
-  expect(within(edit).getByLabelText("Summa")).toHaveValue("1000000.00")
+  expect(within(edit).getByLabelText("Summa")).toHaveValue("1 000 000,00")
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 

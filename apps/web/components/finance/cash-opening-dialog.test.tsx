@@ -44,7 +44,7 @@ test("an opening balance is edited from its fields", async () => {
 
   // A role's name keeps the amount's no-break spaces.
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qoldiqni tahrirlash" })
-  expect(within(dialog).getByLabelText("Summa")).toHaveValue("1000000.00")
+  expect(within(dialog).getByLabelText("Summa")).toHaveValue("1 000 000,00")
   expect(momentIn(dialog)).toBe("2026-10-01T09:00")
   await user.clear(within(dialog).getByLabelText("Summa"))
   await user.type(within(dialog).getByLabelText("Summa"), "900000")

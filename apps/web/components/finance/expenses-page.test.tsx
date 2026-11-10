@@ -121,7 +121,7 @@ test("a row opens the sheet of its actions: editing in the expense's sheet, dele
   expect(within(sheet).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Tahrirlash", "O'chirish"])
   await user.click(within(sheet).getByRole("menuitem", { name: "Tahrirlash" }))
   const edit = await screen.findByRole("dialog", { name: "Xarajatni tahrirlash" })
-  expect(within(edit).getByLabelText("Summa")).toHaveValue("150000.00")
+  expect(within(edit).getByLabelText("Summa")).toHaveValue("150 000,00")
   await user.keyboard("{Escape}")
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 

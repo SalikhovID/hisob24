@@ -42,12 +42,14 @@ test("the rates in force and their history as the prototype's rows; a new rate f
   await user.click(screen.getByRole("button", { name: "Kurslarni yangilash" }))
   const sheet = await screen.findByRole("dialog", { name: "Kurslarni yangilash" })
   const field = within(sheet).getByLabelText("1 USD")
-  expect(field).toHaveValue("12800")
+  expect(field).toHaveValue("12 800")
   expect(within(sheet).getByText("so'm")).toBeInTheDocument()
   await user.clear(field)
   await user.click(within(sheet).getByRole("button", { name: "Saqlash" }))
   expect(await within(sheet).findByText("Kursni kiriting")).toBeInTheDocument()
-  await user.type(field, "abc")
+  // Letters cannot be typed in an amount (the mask drops them); what it lets
+  // through and the schema refuses is a rate of nothing.
+  await user.type(field, "0")
   await user.click(within(sheet).getByRole("button", { name: "Saqlash" }))
   expect(await within(sheet).findByText("Kurs noto'g'ri")).toBeInTheDocument()
   await user.clear(field)

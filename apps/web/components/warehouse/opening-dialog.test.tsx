@@ -62,7 +62,7 @@ test("with more than the so'm an advance is entered in dollars at the rate in fo
   expect(within(dialog).getByLabelText("Valyuta")).toHaveTextContent("UZS — O'zbek so'mi")
   expect(within(dialog).queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
   await choose(user, within(dialog).getByLabelText("Valyuta"), "USD — AQSH dollari")
-  expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   await user.type(within(dialog).getByLabelText("Summa"), "10")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
@@ -79,7 +79,7 @@ test("an opening balance is edited from its fields; its kind stays", async () =>
   expect(kind(dialog, "Qarz")).toHaveAttribute("aria-checked", "true")
   expect(kind(dialog, "Qarz")).toBeDisabled()
   expect(kind(dialog, "Avans")).toBeDisabled()
-  expect(within(dialog).getByLabelText("Summa")).toHaveValue("1000000.00")
+  expect(within(dialog).getByLabelText("Summa")).toHaveValue("1 000 000,00")
   expect(momentIn(dialog)).toBe("2026-10-03T09:00")
   expect(within(dialog).getByLabelText("Izoh")).toHaveValue("Eski qarz")
   await user.clear(within(dialog).getByLabelText("Summa"))

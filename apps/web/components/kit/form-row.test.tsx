@@ -56,9 +56,20 @@ test("the rows are labeled fields bound to the form; the phone is masked and the
   await userEvent.click(screen.getByRole("checkbox", { name: "O'zbek" }))
   await userEvent.click(screen.getByRole("button", { name: "Saqlash" }))
   expect(submit).toHaveBeenCalledWith(
-    { name: "Olma", phone: "90 123 45 67", price: "12000", required: true, source: "1", langs: ["ru"] },
+    { name: "Olma", phone: "90 123 45 67", price: "12 000", required: true, source: "1", langs: ["ru"] },
     expect.anything(),
   )
+})
+
+test("an amount is masked as it is typed, on the decimal keyboard with its unit beside it; the form holds the masked text", async () => {
+  const submit = vi.fn()
+  render(<Form onSubmit={submit} />)
+  const price = screen.getByRole("textbox", { name: "Sotuv narxi" })
+  expect(price).toHaveAttribute("inputmode", "decimal")
+  await userEvent.type(price, "1250000.5")
+  expect(price).toHaveValue("1 250 000,5")
+  await userEvent.click(screen.getByRole("button", { name: "Saqlash" }))
+  expect(submit).toHaveBeenCalledWith(expect.objectContaining({ price: "1 250 000,5" }), expect.anything())
 })
 
 test("a chosen radio chip pressed again is unchosen", async () => {

@@ -97,9 +97,9 @@ test("the rate follows the account's currency: an account in euros takes the eur
   const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
   await waitFor(() => expect(within(dialog).getByLabelText("Akkaunt")).toHaveTextContent("Naqd (so'm)"))
   await choose(user, within(dialog).getByLabelText("Akkaunt"), "Karta ($)")
-  expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   await choose(user, within(dialog).getByLabelText("Akkaunt"), "Evro (€)")
-  expect(await within(dialog).findByLabelText("1 EUR = ? so'm")).toHaveValue("14000")
+  expect(await within(dialog).findByLabelText("1 EUR = ? so'm")).toHaveValue("14 000")
 })
 
 test("a customer's payment goes to the customer", async () => {

@@ -3,6 +3,7 @@
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { type ComponentProps, type ReactNode, useId } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
+import { AmountInput } from "@/components/kit/amount-input"
 import { chip, chipOff, chipOn } from "@/components/kit/chips"
 import { Switch } from "@/components/ui/switch"
 import { formatPhoneInput } from "@/lib/phone"
@@ -144,14 +145,39 @@ export function PhoneRow<T extends FieldValues, TOut extends FieldValues = T>({
   )
 }
 
-// AmountRow is an amount of money (or a quantity): a decimal keyboard, the
-// unit beside it. The field holds the digits as typed; the schema parses.
+// AmountRow is an amount of money (or a rate): a decimal keyboard, the unit
+// beside it. What is typed is masked as an amount is read (AmountInput:
+// "1 250 000,5"); the field holds the masked text, which the schema parses.
 export function AmountRow<T extends FieldValues, TOut extends FieldValues = T>({
+  control,
+  name,
+  label,
   suffix = "so'm",
   placeholder = "0",
-  ...props
 }: Bound<T, TOut> & { suffix?: ReactNode; placeholder?: string }) {
-  return <TextRow inputMode="decimal" autoComplete="off" placeholder={placeholder} suffix={suffix} {...props} />
+  const id = useId()
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <FormRow label={label} htmlFor={id} error={fieldState.error?.message} errorId={`${id}-error`}>
+          <AmountInput
+            id={id}
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder={placeholder}
+            aria-invalid={fieldState.invalid || undefined}
+            aria-describedby={fieldState.error ? `${id}-error` : undefined}
+            className={inputClass}
+            {...field}
+            value={field.value ?? ""}
+          />
+          {suffix && <span className="text-base text-faint">{suffix}</span>}
+        </FormRow>
+      )}
+    />
+  )
 }
 
 // PickRow is a choice made elsewhere (a picker sheet, a calendar), drawn as

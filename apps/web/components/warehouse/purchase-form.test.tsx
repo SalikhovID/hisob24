@@ -94,7 +94,7 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12800.00")
   await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
-  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   // The price follows the currency: 12 800 so'm is 1 $ again.
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1.00")
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
@@ -111,9 +111,9 @@ test("the rate follows the currency: the euro takes its own standard rate, not t
   await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
 
   await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
-  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12800")
+  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   await choose(user, screen.getByLabelText("Valyuta"), "EUR — Yevro")
-  expect(await screen.findByLabelText("1 EUR = ? so'm")).toHaveValue("14000")
+  expect(await screen.findByLabelText("1 EUR = ? so'm")).toHaveValue("14 000")
 })
 
 test("the form refuses in the API's words before asking: a supplier, a product and its numbers, a payment's account and amount; a product is not taken twice, a lone line not taken away", async () => {

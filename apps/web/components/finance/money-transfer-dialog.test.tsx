@@ -53,7 +53,7 @@ test("a transfer is edited from its fields: the accounts it names stay offered",
 
   const dialog = await screen.findByRole("dialog", { name: "O'tkazmani tahrirlash" })
   await waitFor(() => expect(within(dialog).getByLabelText("Qayerga")).toHaveTextContent("Kassa 2 (so'm)"))
-  expect(within(dialog).getByLabelText("Summa")).toHaveValue("100000.00")
+  expect(within(dialog).getByLabelText("Summa")).toHaveValue("100 000,00")
   await user.clear(within(dialog).getByLabelText("Summa"))
   await user.type(within(dialog).getByLabelText("Summa"), "60000")
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
