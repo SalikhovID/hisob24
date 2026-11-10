@@ -20,3 +20,15 @@ export function maskAmount(text: string): string {
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
   return decimals === null ? grouped : `${grouped},${decimals}`
 }
+
+// maskedCaret says where the caret goes when what was typed, the caret
+// standing at the given place in it, is masked: after as many of the
+// number's own characters (digits and the comma) as stood before it,
+// however the spaces between the thousands shift and whatever was dropped.
+export function maskedCaret(typed: string, caret: number): number {
+  const own = maskAmount(typed.slice(0, caret)).replace(/ /g, "").length
+  const shown = maskAmount(typed)
+  let at = 0
+  for (let seen = 0; seen < own && at < shown.length; at++) if (shown[at] !== " ") seen++
+  return at
+}

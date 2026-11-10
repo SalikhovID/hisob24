@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { maskAmount } from "./amount-input"
+import { maskAmount, maskedCaret } from "./amount-input"
 
 // What is typed, pasted or set in a money field is shown with its thousands
 // apart by a space and its decimals after a comma; what is no part of a
@@ -35,4 +35,29 @@ test.each([
   ["0,05", "0,05"],
 ])("maskAmount(%j) = %j", (typed, shown) => {
   expect(maskAmount(typed)).toBe(shown)
+})
+
+// The caret stays after the same digits (and the comma) it stood after, as
+// the spaces between the thousands come and go, and what is dropped is not
+// counted.
+test.each([
+  ["", 0, 0],
+  ["1", 1, 1],
+  // Typed at the end: after the last digit, a new group or not.
+  ["1 2345", 6, 6],
+  ["1234", 4, 5],
+  // Typed in the middle: the groups shift, the caret stays after the digit.
+  ["2934 567", 2, 3],
+  ["1 24", 3, 2],
+  // Dropped: no part of the number, so no place for the caret behind it.
+  ["12a", 3, 2],
+  ["a12", 1, 0],
+  ["12 3a45", 5, 4],
+  // The comma, and the zero a leading one is given.
+  ["1000,", 5, 6],
+  ["12,5", 3, 3],
+  [",5", 1, 2],
+  ["007", 3, 1],
+])("maskedCaret(%j, %j) = %j", (typed, caret, placed) => {
+  expect(maskedCaret(typed, caret)).toBe(placed)
 })
