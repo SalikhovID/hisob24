@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { keyboardInset } from "./keyboard"
+import { keyboardInset, revealDelta } from "./keyboard"
 
 // What the browser tells of the visual viewport: its height, how far its top
 // stands below the layout viewport's, and its zoom.
@@ -25,4 +25,24 @@ test.each([
   ["a zoom of a hair is none", view(512, 0, 1.001), 812, 300],
 ])("keyboardInset: %s", (_name, viewport, layoutHeight, hidden) => {
   expect(keyboardInset(viewport, layoutHeight)).toBe(hidden)
+})
+
+// A stretch of the screen, its top and its bottom edge.
+const span = (top: number, bottom: number) => ({ top, bottom })
+
+// How far the field's scroller must scroll (the content moving up is
+// positive) for the field to stand in the middle of the clear part of the
+// screen: 16px under its top, and 96px over its bottom, where a sticky bar of
+// the page's main button lies. A field that already stands there stays.
+test.each([
+  ["a field in the middle of the clear part stays", span(0, 512), span(200, 240), 0],
+  ["with no keyboard a field low on the screen stays, clear of the bottom band", span(0, 812), span(300, 340), 0],
+  ["a field behind the keyboard comes up", span(0, 512), span(690, 710), 484],
+  ["a field above the screen's top comes down", span(0, 512), span(-50, -10), -246],
+  ["a field in the bottom band is moved", span(0, 512), span(400, 420), 194],
+  ["a field taller than the clear part gets its top edge in", span(0, 512), span(100, 600), 84],
+  ["a panned view: the clear part starts lower", span(100, 612), span(640, 660), 334],
+  ["a fraction of a pixel is rounded", span(0, 512), span(-40.4, -0.4), -236],
+])("revealDelta: %s", (_name, clear, field, delta) => {
+  expect(revealDelta(field, clear)).toBe(delta)
 })
