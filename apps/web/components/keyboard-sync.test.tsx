@@ -107,3 +107,14 @@ test("a field the keyboard comes up over is scrolled clear of it once the keyboa
   })
   expect(scrollBy).toHaveBeenCalledWith({ top: 484, behavior: "smooth" })
 })
+
+test("a field focused while the keyboard is up already is scrolled clear of it: the viewport has no word to say then", () => {
+  installViewport(512)
+  const { field, scrollBy } = scene(690, 710)
+  act(() => field.focus())
+  act(() => {
+    vi.advanceTimersByTime(200)
+  })
+  expect(scrollBy).toHaveBeenCalledWith({ top: 484, behavior: "smooth" })
+  expect(inset()).toBe("300px")
+})

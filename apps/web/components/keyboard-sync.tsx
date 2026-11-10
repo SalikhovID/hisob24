@@ -42,10 +42,12 @@ export function KeyboardSync() {
       settle()
     }
     viewport.addEventListener("resize", resized)
+    document.addEventListener("focusin", settle)
     document.addEventListener("focusout", settle)
     return () => {
       window.clearTimeout(timer)
       viewport.removeEventListener("resize", resized)
+      document.removeEventListener("focusin", settle)
       document.removeEventListener("focusout", settle)
       root.style.removeProperty("--keyboard-inset")
     }
