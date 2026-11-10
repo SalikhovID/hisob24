@@ -29,3 +29,10 @@ test("digits typed are shown with their thousands apart, and what is handed over
   expect(field()).toHaveValue("1 000 000")
   expect(change).toHaveBeenLastCalledWith("1 000 000")
 })
+
+test("a value that is set, not typed (a price saved, a price offered), is shown masked as well, and is left as it is", () => {
+  const change = vi.fn()
+  render(<Host initial="12000.00" onChange={change} />)
+  expect(field()).toHaveValue("12 000,00")
+  expect(change).not.toHaveBeenCalled()
+})
