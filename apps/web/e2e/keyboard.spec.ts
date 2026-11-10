@@ -75,3 +75,28 @@ test("a field at the foot of a page is scrolled clear of the keyboard that lies 
   await expect.poll(() => bottomOf(note)).toBeLessThanOrEqual(clear)
   await expect(note).toBeFocused()
 })
+
+test("a field low in the order's screen is lifted above the keyboard that lies over its bottom", async ({ page }) => {
+  test.skip(!onPhone(page), "a soft keyboard is a phone's")
+  await page.addInitScript(overlayKeyboard)
+  seedCatalog()
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await openSection(page, "Buyurtmalar")
+  await expect(page).toHaveURL(/\/orders$/)
+  await page.getByRole("button", { name: "Buyurtma qo'shish", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
+  const price = dialog.getByLabel("Narx", { exact: true })
+  const clear = (page.viewportSize()?.height ?? 0) - KEYBOARD
+
+  // The form scrolled to its foot: the price stands low on the screen, where
+  // the keyboard will be.
+  await price.focus()
+  await dialog.locator('[data-slot="dialog-body"]').evaluate((body) => body.scrollTo({ top: 99999 }))
+  await expect.poll(() => bottomOf(price)).toBeGreaterThan(clear)
+
+  // The keyboard comes up over the bottom: the form scrolls the price out from under it.
+  await raise(page, KEYBOARD)
+  await expect.poll(() => bottomOf(price)).toBeLessThanOrEqual(clear)
+  await expect(price).toBeFocused()
+})
