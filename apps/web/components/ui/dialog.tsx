@@ -63,8 +63,10 @@ function DialogContent({
   tall?: boolean
   // full: on a phone the sheet is a screen of its own (a long form that is
   // entered, not picked from): edge to edge, square, in from the right as a
-  // page is, its head under what lies over the screen's top. On a wide
-  // screen it is the dialog in the middle, as any.
+  // page is (keyframes: a dialog that is mounted open, as these are, has no
+  // starting style for a transition to run from), its head under what lies
+  // over the screen's top. On a wide screen it is the dialog in the middle,
+  // as any.
   full?: boolean
   // right: a control at the head's right (a second action).
   right?: React.ReactNode
@@ -82,7 +84,7 @@ function DialogContent({
         className={cn(
           "group/sheet fixed z-50 flex [--background:var(--sheet)] [--card:var(--sheet-cell)] w-full flex-col overflow-hidden bg-sheet pb-safe text-foreground outline-none transition-[translate,scale,opacity] duration-[420ms] ease-drawer",
           full
-            ? "inset-0 max-h-none rounded-none pt-safe max-md:data-starting-style:translate-x-full max-md:data-ending-style:translate-x-full md:pt-0"
+            ? "inset-0 max-h-none rounded-none pt-safe max-md:animate-[page-from-right_420ms_var(--ease-drawer)_both] max-md:data-ending-style:translate-x-full md:pt-0"
             : "inset-x-0 bottom-0 max-h-[calc(100dvh-18px-var(--safe-top))] rounded-t-sheet data-starting-style:translate-y-full data-ending-style:translate-y-full data-tall:h-[calc(100dvh-18px-var(--safe-top))]",
           "md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[480px] md:max-w-[calc(100%-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl md:pb-0 md:shadow-float md:duration-300 md:ease-out-expo md:max-h-[calc(100dvh-64px)] md:data-tall:h-[calc(100dvh-64px)] md:data-starting-style:-translate-y-[48%] md:data-starting-style:scale-[.98] md:data-starting-style:opacity-0 md:data-ending-style:-translate-y-[48%] md:data-ending-style:scale-[.98] md:data-ending-style:opacity-0",
           className

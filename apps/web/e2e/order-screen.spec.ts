@@ -69,4 +69,35 @@ test("on a wide screen the order is still the dialog in the middle of the screen
   expect(box.x).toBeCloseTo((screen.width - 480) / 2, 0)
   expect(box.y).toBeGreaterThan(0)
   await expect(dialog).toHaveCSS("border-top-left-radius", "12px")
+  // The slide in from the right is a phone's alone.
+  await expect(dialog).toHaveCSS("animation-name", "none")
+})
+
+test("on a phone the order's screen comes in from the right, not up from the bottom", async ({ page }) => {
+  test.skip(!onPhone(page), "a sheet from the bottom is a phone's")
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await openSection(page, "Buyurtmalar")
+  await expect(page).toHaveURL(/\/orders$/)
+  await expect(boardOf(page)).toBeVisible()
+  // Where it stands in the first frame it is drawn in, before it has moved.
+  const firstFrame = page.evaluate(
+    () =>
+      new Promise<{ x: number; y: number }>((resolve) => {
+        const look = () => {
+          const popup = document.querySelector('[data-slot="dialog-content"]')
+          if (!popup) return requestAnimationFrame(look)
+          const { x, y } = popup.getBoundingClientRect()
+          resolve({ x, y })
+        }
+        look()
+      }),
+  )
+  await page.getByRole("button", { name: "Buyurtma qo'shish", exact: true }).click()
+  const { x, y } = await firstFrame
+  expect(x).toBeGreaterThan(page.viewportSize()!.width / 2)
+  expect(y).toBe(0)
+  // It ends where the phone is.
+  const dialog = page.getByRole("dialog", { name: "Buyurtma qo'shish" })
+  await expect.poll(async () => (await dialog.boundingBox())?.x).toBe(0)
 })

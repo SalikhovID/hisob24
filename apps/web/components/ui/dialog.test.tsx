@@ -202,9 +202,12 @@ test("a full sheet is a screen of its own on a phone: edge to edge, square, no h
   // (--safe-top) are not under its head.
   expect(full).toHaveClass("inset-0", "max-h-none", "rounded-none", "pt-safe")
   expect(full).not.toHaveClass("bottom-0", "rounded-t-sheet", "data-starting-style:translate-y-full", "data-ending-style:translate-y-full")
-  // It does not rise from the bottom: it comes in from the right and goes back
-  // there, as a page of the app does.
-  expect(full).toHaveClass("max-md:data-starting-style:translate-x-full", "max-md:data-ending-style:translate-x-full")
+  // It does not rise from the bottom: it comes in from the right, as a page of
+  // the app does (the page's own keyframes: a dialog mounted open has no
+  // starting style to move from, so a transition would not run), and goes back
+  // there when it is closed while it is still mounted.
+  expect(full).toHaveClass("max-md:animate-[page-from-right_420ms_var(--ease-drawer)_both]", "max-md:data-ending-style:translate-x-full")
+  expect(full).not.toHaveClass("max-md:data-starting-style:translate-x-full")
   // No handle: there is nothing to pull down.
   expect(document.querySelector('[data-slot="dialog-grab"]')).toBeNull()
   // The close button stands under the controls too.
