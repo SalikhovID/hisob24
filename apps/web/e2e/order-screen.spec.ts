@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { expect, test } from "./fixtures"
 import { boardOf, onPhone, openSection, signIn } from "./helpers"
 
@@ -72,6 +72,21 @@ test("on a phone every field of the order's form has an edge of its own, none is
   const boxes = dialog.locator('[data-slot="field-box"]')
   expect(await boxes.count()).toBeGreaterThanOrEqual(10)
   for (const box of await boxes.all()) await expect(box).toHaveCSS("box-shadow", /0px 0px 0px 1px inset$/)
+})
+
+test("the customer's phone has its label over its box, in the column of the other fields' boxes, not beside them", async ({ page }) => {
+  const dialog = await openAddOrder(page)
+  const customer = dialog.getByRole("group", { name: "Mijoz" })
+  const boxOf = (field: Locator) => field.locator('xpath=ancestor::*[@data-slot="field-box"]').boundingBox()
+  const label = (await customer.locator("label", { hasText: "Telefon raqami" }).boundingBox())!
+  const phone = (await boxOf(customer.getByRole("combobox", { name: "Telefon raqami" })))!
+  const name = (await boxOf(customer.getByLabel("F.I.Sh.")))!
+
+  // Over the box, not at its left.
+  expect(label.y + label.height).toBeLessThanOrEqual(phone.y)
+  // The box is the width of a name's: the same two edges.
+  expect(phone.x).toBeCloseTo(name.x, 0)
+  expect(phone.width).toBeCloseTo(name.width, 0)
 })
 
 test("on a wide screen the order is still the dialog in the middle of the screen", async ({ page }) => {

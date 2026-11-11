@@ -134,7 +134,7 @@ test("a click takes a suggestion; the suggestions are not in the way of a form s
   expect(onSubmit).toHaveBeenCalled()
 })
 
-test("the phone is typed in a box with an edge, its +998 inside it, beside its label: a bare row is no field", async () => {
+test("the phone is typed in a box with an edge, its +998 inside it: a bare row is no field", async () => {
   await signIn(ALI)
   renderWithProviders(<Host onSelect={vi.fn()} onSubmit={vi.fn()} />)
   const input = screen.getByRole("combobox", { name: "Telefon raqami" })
@@ -142,4 +142,15 @@ test("the phone is typed in a box with an edge, its +998 inside it, beside its l
   expect(box).toBeInTheDocument()
   expect(box).toHaveClass("shadow-[inset_0_0_0_1px_var(--ink-5)]", "md:shadow-[inset_0_0_0_1px_var(--ink-4)]")
   expect(within(box!).getByText("+998")).toBeInTheDocument()
+})
+
+test("the label stands over the phone's box, as every field's does: the picker's row is the form's own row (FormRow), not a line of its own with the label at the left", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Host onSelect={vi.fn()} onSubmit={vi.fn()} />)
+  const box = screen.getByRole("combobox", { name: "Telefon raqami" }).closest<HTMLElement>('[data-slot="field-box"]')!
+  const row = box.closest<HTMLElement>('[data-slot="form-row"]')!
+  const label = screen.getByText("Telefon raqami")
+  expect(row).toHaveClass("grid")
+  expect(label.parentElement).toBe(row)
+  expect(label.nextElementSibling).toBe(box)
 })
