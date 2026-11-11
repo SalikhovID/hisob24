@@ -4,6 +4,7 @@ import { PlusIcon, XIcon } from "lucide-react"
 import { useEffect, useId, useRef } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues, useFieldArray, type UseFormReturn, useWatch } from "react-hook-form"
 import { AmountInput } from "@/components/kit/amount-input"
+import { FormRow, inputClass } from "@/components/kit/form-row"
 import { Group, Row, SectionHeading } from "@/components/kit/group"
 import { convert, currencyOf, turnTyped, useCurrencies } from "@/lib/currencies"
 import { formatAmount, formatMoney, unitLabel } from "@/lib/format"
@@ -16,9 +17,11 @@ import { type Offer, ProductPicker } from "./pickers"
 type WithLines = { items: LineForm[] }
 
 // LineInput is a number in a line's card (its quantity, its price): the
-// name small over the input, the unit beside it, the error under it. A sum of
-// money (money) is masked as an amount is read ("1 250 000"), a quantity is
-// left as typed.
+// name small over the input in its box (the form's field, ringed), the unit
+// inside the box beside it, the error under it. A sum of money (money) is
+// masked as an amount is read ("1 250 000"), a quantity is left as typed. Two
+// of them side by side in a card (LinesField) keep no padding between them
+// but the first's.
 export function LineInput<T extends FieldValues, TOut extends FieldValues>({
   control,
   name,
@@ -48,23 +51,13 @@ export function LineInput<T extends FieldValues, TOut extends FieldValues>({
           disabled,
           "aria-invalid": fieldState.invalid || undefined,
           "aria-describedby": fieldState.error ? `${id}-error` : undefined,
-          className: "h-8 min-w-0 flex-1 bg-transparent text-base text-foreground tabular-nums outline-none placeholder:text-muted-foreground/80",
+          className: cn(inputClass, "tabular-nums"),
         }
         return (
-          <div data-invalid={fieldState.invalid || undefined} className="group min-w-0 px-4 py-2 [&+&]:border-l-[0.5px] [&+&]:border-border">
-            <label htmlFor={id} className="block text-sm text-muted-foreground group-data-invalid:text-destructive">
-              {label}
-            </label>
-            <span className="flex items-center gap-2">
-              {money ? <AmountInput {...shared} {...field} value={field.value ?? ""} /> : <input {...shared} {...field} value={field.value ?? ""} />}
-              {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
-            </span>
-            {fieldState.error && (
-              <p id={`${id}-error`} role="alert" className="pt-1 text-xs text-destructive">
-                {fieldState.error.message}
-              </p>
-            )}
-          </div>
+          <FormRow label={label} htmlFor={id} error={fieldState.error?.message} errorId={`${id}-error`} className="min-w-0 [&+&]:pl-0">
+            {money ? <AmountInput {...shared} {...field} value={field.value ?? ""} /> : <input {...shared} {...field} value={field.value ?? ""} />}
+            {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
+          </FormRow>
         )
       }}
     />
@@ -188,7 +181,7 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
                 </button>
               )}
             </div>
-            <div className={cn("grid border-t-[0.5px] border-border", withPrice ? "grid-cols-2" : "grid-cols-1")}>
+            <div className={cn("grid border-t-[0.5px] border-border", withPrice ? "grid-cols-[1fr_1.3fr] md:grid-cols-2" : "grid-cols-1")}>
               <LineInput control={form.control} name={path(`items.${index}.quantity`)} label="Miqdor" suffix={unit} disabled={pending} />
               {withPrice && <LineInput control={form.control} name={path(`items.${index}.price`)} label="Narx" suffix={currency.symbol} disabled={pending} money />}
             </div>

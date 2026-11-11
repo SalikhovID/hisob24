@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils"
 const labelClass =
   "pl-1 text-[13px] leading-tight text-muted-foreground group-data-invalid:text-destructive md:pl-0 md:text-[12.5px] md:font-medium md:text-foreground"
 export const boxClass =
-  "flex h-11 items-center gap-1.5 rounded-field bg-field px-3.5 text-base text-foreground shadow-[inset_0_0_0_1px_var(--ink-5)] transition-shadow focus-within:shadow-[inset_0_0_0_1.5px_var(--primary)] group-data-invalid:shadow-[inset_0_0_0_1px_var(--destructive),0_0_0_3px_var(--destructive-soft)] md:h-[34px] md:rounded-md md:px-2.5 md:shadow-[inset_0_0_0_1px_var(--ink-4)] md:focus-within:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--primary-soft)] md:group-data-invalid:shadow-[inset_0_0_0_1px_var(--destructive),0_0_0_3px_var(--destructive-soft)]"
+  "flex h-11 min-w-0 items-center gap-1.5 rounded-field bg-field px-3.5 text-base text-foreground shadow-[inset_0_0_0_1px_var(--ink-5)] transition-shadow focus-within:shadow-[inset_0_0_0_1.5px_var(--primary)] group-data-invalid:shadow-[inset_0_0_0_1px_var(--destructive),0_0_0_3px_var(--destructive-soft)] md:h-[34px] md:rounded-md md:px-2.5 md:shadow-[inset_0_0_0_1px_var(--ink-4)] md:focus-within:shadow-[inset_0_0_0_1px_var(--primary),0_0_0_3px_var(--primary-soft)] md:group-data-invalid:shadow-[inset_0_0_0_1px_var(--destructive),0_0_0_3px_var(--destructive-soft)]"
 export const inputClass = "h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-faint disabled:opacity-60"
 const errorClass = "text-[12px] text-destructive"
 

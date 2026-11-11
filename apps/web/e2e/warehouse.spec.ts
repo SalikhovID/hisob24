@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { seedCatalog, seedWarehouse } from "../mocks/data"
 import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
@@ -263,6 +263,48 @@ test("a document's day and time stand whole on a phone, each in its row: neither
   const sheetDay = sheet.getByRole("button", { name: /^Sana/ }).locator("[data-slot=pick-value]")
   await expect(sheetDay).toHaveText(/^\d\d\.\d\d\.\d{4}/)
   expect(await sheetDay.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+})
+
+// boxOf is the box a field stands in (its edge), where it is on the screen.
+const boxOf = (field: Locator) => field.locator("xpath=ancestor::*[@data-slot='field-box'][1]").boundingBox()
+
+test("a line's quantity and price are boxes side by side inside its card on a phone, each with what is typed in it whole", async ({ page }) => {
+  test.skip(!onPhone(page), "the squeeze is a phone's")
+  seedWarehouse(seedCatalog())
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await page.goto("/purchases/new")
+  await expect(page.getByRole("heading", { level: 1, name: "Yangi xarid" })).toBeVisible()
+
+  const line = page.getByRole("group", { name: "1-qator" })
+  const quantity = line.getByLabel("Miqdor")
+  const price = line.getByLabel("Narx")
+  await quantity.fill("1250,5")
+  await price.fill("125000000")
+  await expect(price).toHaveValue("125 000 000")
+
+  const card = (await line.boundingBox())!
+  const quantityBox = (await boxOf(quantity))!
+  const priceBox = (await boxOf(price))!
+  expect(quantityBox.x).toBeGreaterThanOrEqual(card.x)
+  expect(quantityBox.x + quantityBox.width).toBeLessThanOrEqual(priceBox.x)
+  expect(priceBox.x + priceBox.width).toBeLessThanOrEqual(card.x + card.width)
+  for (const input of [quantity, price]) expect(await input.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+})
+
+test("a payment's amount box stands clear of «To'liq», which is level with it", async ({ page }) => {
+  seedWarehouse(seedCatalog())
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await page.goto("/purchases/new")
+  await expect(page.getByRole("heading", { level: 1, name: "Yangi xarid" })).toBeVisible()
+  await page.getByRole("button", { name: "To'lov qo'shish" }).click()
+
+  const payment = page.getByRole("group", { name: "1-to'lov" })
+  const amountBox = (await boxOf(payment.getByLabel("Summa")))!
+  const fill = (await payment.getByRole("button", { name: "To'liq" }).boundingBox())!
+  expect(amountBox.x + amountBox.width).toBeLessThanOrEqual(fill.x)
+  expect(Math.abs(fill.y + fill.height / 2 - (amountBox.y + amountBox.height / 2))).toBeLessThanOrEqual(1)
 })
 
 test("an employee whose role lacks the warehouse has no way to it, and the addresses lead home", async ({ page }) => {

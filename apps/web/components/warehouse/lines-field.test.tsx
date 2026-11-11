@@ -94,6 +94,23 @@ test("a line is the prototype's card of frosted glass, 24px round; the total sta
   expect(screen.getByText("Jami").parentElement).toHaveClass("surface")
 })
 
+test("the quantity and the price of a line are typed in boxes with an edge, the unit inside the box: a bare number is no field", async () => {
+  seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Host withPrice />)
+  await pick(user, line(1), "Mahsulot", "ol", /Olma/)
+
+  for (const [name, unit] of [
+    ["Miqdor", "kg"],
+    ["Narx", "so'm"],
+  ] as const) {
+    const box = within(line(1)).getByLabelText(name).closest<HTMLElement>('[data-slot="field-box"]')
+    expect(box, name).toBeInTheDocument()
+    expect(box, name).toHaveClass("shadow-[inset_0_0_0_1px_var(--ink-5)]", "md:shadow-[inset_0_0_0_1px_var(--ink-4)]")
+    expect(within(box!).getByText(unit), name).toBeInTheDocument()
+  }
+})
+
 test("the prices follow the document's currency: each one, typed or offered, is turned by the rates in force when it changes; what is no price stays as typed", async () => {
   await signIn(VALI)
   await chooseCompany(2)

@@ -88,7 +88,10 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
                 <XIcon aria-hidden="true" strokeWidth={2.4} className="size-[18px]" />
               </button>
             </div>
-            <div className="flex items-center border-t-[0.5px] border-border pr-3">
+            {/* «To'liq» is level with the amount's box, not with the cell (the name
+                stands over the box): the box is 44px (34px on the web) over the
+                cell's 8px of padding. */}
+            <div className="flex items-end border-t-[0.5px] border-border pr-3">
               <div className="min-w-0 flex-1">
                 <LineInput control={form.control} name={path(`payments.${index}.amount`)} label="Summa" suffix={own.symbol} disabled={pending} money />
               </div>
@@ -96,7 +99,7 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
                 type="button"
                 disabled={pending}
                 onClick={() => fill(index)}
-                className="h-[34px] shrink-0 rounded-full bg-primary-soft px-3.5 text-md font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="mb-[13px] h-[34px] shrink-0 rounded-full bg-primary-soft px-3.5 text-md font-semibold text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:mb-2"
               >
                 To&apos;liq
               </button>
