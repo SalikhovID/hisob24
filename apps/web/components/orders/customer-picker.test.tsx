@@ -133,3 +133,13 @@ test("a click takes a suggestion; the suggestions are not in the way of a form s
   await user.type(box, "901112233{Enter}")
   expect(onSubmit).toHaveBeenCalled()
 })
+
+test("the phone is typed in a box with an edge, its +998 inside it, beside its label: a bare row is no field", async () => {
+  await signIn(ALI)
+  renderWithProviders(<Host onSelect={vi.fn()} onSubmit={vi.fn()} />)
+  const input = screen.getByRole("combobox", { name: "Telefon raqami" })
+  const box = input.closest<HTMLElement>('[data-slot="field-box"]')
+  expect(box).toBeInTheDocument()
+  expect(box).toHaveClass("shadow-[inset_0_0_0_1px_var(--ink-5)]", "md:shadow-[inset_0_0_0_1px_var(--ink-4)]")
+  expect(within(box!).getByText("+998")).toBeInTheDocument()
+})

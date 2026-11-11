@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
 import { Avatar } from "@/components/kit/avatar"
+import { boxClass } from "@/components/kit/form-row"
 import { Badge } from "@/components/ui/badge"
 import { customerName } from "@/lib/customers"
 import { formatPhone, formatPhoneInput } from "@/lib/phone"
@@ -69,65 +70,69 @@ export function CustomerPicker<T extends FieldValues, TOut extends FieldValues =
               <label htmlFor={id} className="shrink-0 basis-[112px] text-[16px] leading-tight text-foreground group-data-invalid:text-destructive">
                 Telefon raqami
               </label>
-              <span className="text-base text-muted-foreground">+998</span>
-              <input
-                id={id}
-                type="tel"
-                inputMode="tel"
-                autoComplete="off"
-                placeholder="__ ___ __ __"
-                role="combobox"
-                aria-expanded={shown}
-                aria-controls={listId}
-                aria-autocomplete="list"
-                aria-activedescendant={shown && active >= 0 ? `${listId}-${active}` : undefined}
-                aria-invalid={fieldState.invalid || undefined}
-                aria-describedby={fieldState.error ? `${id}-error` : undefined}
-                disabled={disabled}
-                className="h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
-                {...field}
-                value={field.value ?? ""}
-                onChange={(event) => {
-                  const value = formatPhoneInput(event.target.value)
-                  field.onChange(value)
-                  setTyped(value.replace(/\D/g, ""))
-                  setOpen(true)
-                  setActive(-1)
-                }}
-                onBlur={() => {
-                  field.onBlur()
-                  setOpen(false)
-                  setActive(-1)
-                }}
-                onKeyDown={(event) => {
-                  if (disabled) return
-                  switch (event.key) {
-                    case "ArrowDown":
-                      if (items.length === 0) return
-                      event.preventDefault()
-                      setOpen(true)
-                      setActive((current) => Math.min(current + 1, items.length - 1))
-                      return
-                    case "ArrowUp":
-                      if (!shown) return
-                      event.preventDefault()
-                      setActive((current) => Math.max(current - 1, 0))
-                      return
-                    case "Enter":
-                      if (!shown || active < 0) return
-                      event.preventDefault()
-                      choose(items[active])
-                      return
-                    case "Escape":
-                      if (!shown) return
-                      event.preventDefault()
-                      event.stopPropagation()
-                      setOpen(false)
-                      setActive(-1)
-                      return
-                  }
-                }}
-              />
+              {/* The label stays at the left; the number is typed in a box with
+                  an edge of its own, as every field of a form is. */}
+              <div data-slot="field-box" className={cn(boxClass, "min-w-0 flex-1 px-3")}>
+                <span className="text-base text-muted-foreground">+998</span>
+                <input
+                  id={id}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="off"
+                  placeholder="__ ___ __ __"
+                  role="combobox"
+                  aria-expanded={shown}
+                  aria-controls={listId}
+                  aria-autocomplete="list"
+                  aria-activedescendant={shown && active >= 0 ? `${listId}-${active}` : undefined}
+                  aria-invalid={fieldState.invalid || undefined}
+                  aria-describedby={fieldState.error ? `${id}-error` : undefined}
+                  disabled={disabled}
+                  className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80 disabled:opacity-60"
+                  {...field}
+                  value={field.value ?? ""}
+                  onChange={(event) => {
+                    const value = formatPhoneInput(event.target.value)
+                    field.onChange(value)
+                    setTyped(value.replace(/\D/g, ""))
+                    setOpen(true)
+                    setActive(-1)
+                  }}
+                  onBlur={() => {
+                    field.onBlur()
+                    setOpen(false)
+                    setActive(-1)
+                  }}
+                  onKeyDown={(event) => {
+                    if (disabled) return
+                    switch (event.key) {
+                      case "ArrowDown":
+                        if (items.length === 0) return
+                        event.preventDefault()
+                        setOpen(true)
+                        setActive((current) => Math.min(current + 1, items.length - 1))
+                        return
+                      case "ArrowUp":
+                        if (!shown) return
+                        event.preventDefault()
+                        setActive((current) => Math.max(current - 1, 0))
+                        return
+                      case "Enter":
+                        if (!shown || active < 0) return
+                        event.preventDefault()
+                        choose(items[active])
+                        return
+                      case "Escape":
+                        if (!shown) return
+                        event.preventDefault()
+                        event.stopPropagation()
+                        setOpen(false)
+                        setActive(-1)
+                        return
+                    }
+                  }}
+                />
+              </div>
             </div>
             {fieldState.error && (
               <p id={`${id}-error`} role="alert" data-slot="form-error" className="-mt-1.5 px-4 pb-2.5 text-xs text-destructive">
