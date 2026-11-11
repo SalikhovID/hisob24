@@ -107,6 +107,15 @@ test("options are added one after another from the line under the list; the line
   expect(dropdownsOf(1)[0].options).toHaveLength(5)
 })
 
+test("the new option's line is a box with an edge beside its button: a bare line is no field", async () => {
+  await signIn(ALI)
+  renderWithProviders(<DropdownPage id={manbaId()} />)
+  await optionList()
+  const box = screen.getByRole("textbox", { name: "Yangi variant" }).closest<HTMLElement>('[data-slot="field-box"]')
+  expect(box).toBeInTheDocument()
+  expect(box).toHaveClass("shadow-[inset_0_0_0_1px_var(--ink-5)]", "md:shadow-[inset_0_0_0_1px_var(--ink-4)]")
+})
+
 test("an option's row opens its sheet of actions: renamed there", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<DropdownPage id={manbaId()} />)
