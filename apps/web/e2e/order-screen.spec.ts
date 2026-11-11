@@ -1,6 +1,9 @@
 import type { Locator, Page } from "@playwright/test"
+import { addDays, localToday } from "../mocks/data"
 import { expect, test } from "./fixtures"
 import { boardOf, onPhone, openSection, signIn } from "./helpers"
+
+const today = localToday()
 
 // openAddOrder signs the owner of Olma Savdo in, opens the orders and presses
 // «Buyurtma qo'shish»: the order's entry, measured where it stops, not on its
@@ -87,6 +90,41 @@ test("the customer's phone has its label over its box, in the column of the othe
   // The box is the width of a name's: the same two edges.
   expect(phone.x).toBeCloseTo(name.x, 0)
   expect(phone.width).toBeCloseTo(name.width, 0)
+})
+
+// hintOf is the «Sanani tanlang» drawn over the deadline's native date input,
+// which is blank on some phones while no day is chosen.
+const hintOf = (dialog: Locator) =>
+  dialog.getByLabel("Muddat").locator('xpath=ancestor::*[@data-slot="field-box"]').locator('[data-slot="date-hint"]')
+
+test("on a phone an empty deadline says «Sanani tanlang» over the blank date input, a press goes through to the input, a chosen day takes it away", async ({ page }) => {
+  test.skip(!onPhone(page), "the hint is a phone's: the web draws its own date segments")
+  const dialog = await openAddOrder(page)
+  const hint = hintOf(dialog)
+  await expect(hint).toBeVisible()
+  await expect(hint).toHaveText("Sanani tanlang")
+
+  // The hint stands inside the box's edge: its own ground does not paint over
+  // the ring along the top and the bottom (1px, 1.5px while focused).
+  await hint.scrollIntoViewIfNeeded()
+  const at = (await hint.boundingBox())!
+  const box = (await dialog.getByLabel("Muddat").locator('xpath=ancestor::*[@data-slot="field-box"]').boundingBox())!
+  expect(at.y).toBeGreaterThanOrEqual(box.y + 1.5)
+  expect(at.y + at.height).toBeLessThanOrEqual(box.y + box.height - 1.5)
+
+  // A press in the middle of the hint reaches the input under it.
+  const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName, [at.x + at.width / 2, at.y + at.height / 2])
+  expect(hit).toBe("INPUT")
+
+  await dialog.getByLabel("Muddat").fill(addDays(today, 2))
+  await expect(hint).toHaveCount(0)
+})
+
+test("on a wide screen the empty deadline shows the browser's own date segments, no hint over them", async ({ page }) => {
+  test.skip(onPhone(page), "the web draws its own date segments")
+  const dialog = await openAddOrder(page)
+  await expect(hintOf(dialog)).toHaveCount(1)
+  await expect(hintOf(dialog)).toBeHidden()
 })
 
 test("on a wide screen the order is still the dialog in the middle of the screen", async ({ page }) => {

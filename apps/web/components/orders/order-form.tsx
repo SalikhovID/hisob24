@@ -67,8 +67,9 @@ export function OrderFields({
 }) {
   return (
     <Group>
-      {/* The phone's own calendar picks the day. */}
-      <TextRow control={control} name="deadline" label="Muddat" type="date" />
+      {/* The phone's own calendar picks the day; until it does, the field says
+          what to do (an empty native date is blank on an iPhone). */}
+      <TextRow control={control} name="deadline" label="Muddat" type="date" placeholder="Sanani tanlang" />
       <SelectRow
         control={control}
         name="stage_id"

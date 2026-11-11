@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useForm } from "react-hook-form"
 import { expect, test, vi } from "vitest"
@@ -156,4 +156,39 @@ test("a pick row is the prototype's select: its label over a boxed button with a
   expect(row).toHaveAttribute("data-slot", "field-box")
   expect(row).toHaveClass("h-11", "rounded-field", "bg-field", "md:h-[34px]")
   expect(row.querySelector("svg")).toHaveClass("lucide-chevron-down")
+})
+
+// An empty native date draws nothing on some phones (iOS leaves the field
+// blank): the placeholder of a date row stands over it until a day is chosen.
+function Dated({ day = "" }: { day?: string }) {
+  const form = useForm<{ day: string }>({ defaultValues: { day } })
+  return <TextRow control={form.control} name="day" label="Muddat" type="date" placeholder="Sanani tanlang" />
+}
+
+test("an empty date says its placeholder over the native input, on a phone, until a day is chosen; the input stays the same one", () => {
+  render(<Dated />)
+  const input = screen.getByLabelText("Muddat")
+  const box = input.closest<HTMLElement>('[data-slot="field-box"]')!
+  const hint = within(box).getByText("Sanani tanlang")
+  expect(hint).toHaveAttribute("data-slot", "date-hint")
+  // It is drawn, not read (the label names the input), a press goes through
+  // it to the input, and the web draws the segments of its own: no hint there.
+  expect(hint).toHaveAttribute("aria-hidden", "true")
+  expect(hint).toHaveClass("pointer-events-none", "md:hidden")
+
+  fireEvent.change(input, { target: { value: "2026-11-20" } })
+  expect(within(box).queryByText("Sanani tanlang")).not.toBeInTheDocument()
+  // The input is not drawn anew (a field typed in on the web keeps its focus).
+  expect(screen.getByLabelText("Muddat")).toBe(input)
+})
+
+test("a day already chosen has no hint, and a text field's placeholder is the browser's own", () => {
+  const { unmount } = render(<Dated day="2026-11-20" />)
+  expect(screen.getByLabelText("Muddat")).toHaveValue("2026-11-20")
+  expect(screen.queryByText("Sanani tanlang")).not.toBeInTheDocument()
+  unmount()
+
+  render(<Form onSubmit={() => {}} />)
+  expect(screen.getByRole("textbox", { name: "Nomi" })).toHaveAttribute("placeholder", "Masalan, Olma")
+  expect(screen.queryByText("Masalan, Olma")).not.toBeInTheDocument()
 })

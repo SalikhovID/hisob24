@@ -75,7 +75,11 @@ export function FormRow({
   )
 }
 
-// TextRow is a text input in a row; prefix and suffix stand beside it.
+// TextRow is a text input in a row; prefix and suffix stand beside it. A date
+// row with a placeholder says it over the native input until a day is chosen:
+// an empty native date draws nothing on some phones (iOS leaves it blank), and
+// a placeholder attribute is no use on it. The hint is a phone's, drawn over
+// the input without taking its presses; the web draws the segments of its own.
 export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   name,
@@ -90,9 +94,8 @@ export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
     <Controller
       control={control}
       name={name}
-      render={({ field, fieldState }) => (
-        <FormRow label={label} htmlFor={id} error={fieldState.error?.message} errorId={`${id}-error`}>
-          {prefix && <span className="text-base text-faint">{prefix}</span>}
+      render={({ field, fieldState }) => {
+        const entry = (
           <input
             id={id}
             aria-invalid={fieldState.invalid || undefined}
@@ -102,9 +105,35 @@ export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
             {...field}
             value={field.value ?? ""}
           />
-          {suffix && <span className="text-base text-faint">{suffix}</span>}
-        </FormRow>
-      )}
+        )
+        return (
+          <FormRow label={label} htmlFor={id} error={fieldState.error?.message} errorId={`${id}-error`}>
+            {prefix && <span className="text-base text-faint">{prefix}</span>}
+            {input.type === "date" && input.placeholder ? (
+              // Always wrapped, with or without the hint, so that the input is
+              // not drawn anew (and does not lose its focus) as a day is chosen.
+              <span className="relative flex h-full min-w-0 flex-1">
+                {entry}
+                {!field.value && (
+                  // Its ground (it hides the segments some phones do draw) stops
+                  // 2px short of the box's top and bottom: the box's ring, 1px
+                  // (1.5px focused), is painted under its children.
+                  <span
+                    aria-hidden="true"
+                    data-slot="date-hint"
+                    className="pointer-events-none absolute inset-x-0 inset-y-0.5 flex items-center bg-field text-base text-faint md:hidden"
+                  >
+                    {input.placeholder}
+                  </span>
+                )}
+              </span>
+            ) : (
+              entry
+            )}
+            {suffix && <span className="text-base text-faint">{suffix}</span>}
+          </FormRow>
+        )
+      }}
     />
   )
 }
