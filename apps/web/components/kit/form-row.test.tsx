@@ -113,6 +113,24 @@ test("a field is the prototype's: its label over a boxed control, a 44px field o
   expect(label.nextElementSibling).toBe(box)
 })
 
+// A phone's field stands white on a white card: with no edge of its own it
+// does not look like a field to type in. The hairline is the web's, a touch
+// darker (--ink-5), and the web keeps its own (--ink-4).
+const phoneRing = "shadow-[inset_0_0_0_1px_var(--ink-5)]"
+
+test("a field has an edge on a phone too, not only on the web: white on a white card is no field", () => {
+  render(<Form onSubmit={() => {}} />)
+  for (const name of ["Nomi", "Telefon", "Sotuv narxi"]) {
+    const box = screen.getByRole("textbox", { name }).closest('[data-slot="field-box"]')
+    expect(box, name).toHaveClass(phoneRing, "md:shadow-[inset_0_0_0_1px_var(--ink-4)]")
+  }
+})
+
+test("a pick row has an edge on a phone too", () => {
+  render(<PickRow label="Bosqich" value="Yangi" onClick={() => {}} />)
+  expect(screen.getByRole("button", { name: "Bosqich Yangi" })).toHaveClass(phoneRing, "md:shadow-[inset_0_0_0_1px_var(--ink-4)]")
+})
+
 test("a field in error is ringed red, its error under it", async () => {
   function Wrong() {
     const form = useForm<{ name: string }>({ defaultValues: { name: "" } })
