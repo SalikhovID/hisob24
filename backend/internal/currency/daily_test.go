@@ -148,3 +148,18 @@ func TestDailyCarriesYesterdaysRatesForAManualCompany(t *testing.T) {
 	assert.Empty(t, banks.calls, "no bank asked")
 	assert.Equal(t, Report{Carried: 1}, report)
 }
+
+// With no row yet there is no yesterday to carry: nothing is written.
+func TestDailyWritesNothingWithoutYesterdaysRates(t *testing.T) {
+	s, pool := newService(t)
+	byHand := addCompany(t, pool, "Olma")
+	takeRatesFrom(t, pool, byHand, "manual", 100)
+	unanswered := addCompany(t, pool, "Nok")
+	takeRatesFrom(t, pool, unanswered, bankrate.Hamkor, 100)
+
+	report := s.Daily(t.Context(), &fakeBanks{}, time.Now())
+
+	assert.Empty(t, standardRows(t, pool, byHand))
+	assert.Empty(t, standardRows(t, pool, unanswered))
+	assert.Equal(t, Report{Skipped: 2}, report)
+}

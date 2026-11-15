@@ -33,7 +33,9 @@ type Report struct {
 // Daily writes the day's standard rate row of every company
 // (logic/currencies.md, section 4): the rates of the bank it takes them
 // from, the dollar and the euro rounded to its step, the ruble as the bank
-// gives it.
+// gives it; yesterday's rates again for a company that enters its rates by
+// hand, or when no bank answers. A company with no rates yet has no
+// yesterday: it gets nothing.
 func (s *Service) Daily(ctx context.Context, f Fetcher, at time.Time) Report {
 	var report Report
 	companies, err := s.q.ListRateSources(ctx)
@@ -43,46 +45,70 @@ func (s *Service) Daily(ctx context.Context, f Fetcher, at time.Time) Report {
 		return report
 	}
 	for _, c := range companies {
-		if c.RateSource == manual {
-			if err := s.carry(ctx, c.ID, at, "carried"); err != nil {
-				slog.Warn("daily rates: a company's row", "company_id", c.ID, "err", err)
-				report.Errors++
-				continue
-			}
-			report.Carried++
-			continue
-		}
-		rates, _, fetchErr := f.Fetch(ctx, c.RateSource)
-		var err error
-		if fetchErr == nil {
-			err = s.writeFetched(ctx, c, rates)
-		} else {
-			slog.Warn("daily rates: no bank answered", "company_id", c.ID, "source", c.RateSource, "err", fetchErr)
-			err = s.carry(ctx, c.ID, at, "failed")
-		}
+		o, err := s.dailyRow(ctx, f, c, at)
 		if err != nil {
 			slog.Warn("daily rates: a company's row", "company_id", c.ID, "err", err)
 			report.Errors++
 			continue
 		}
-		if fetchErr == nil {
-			report.Fetched++
-		} else {
-			report.Failed++
-		}
+		report.count(o)
 	}
 	return report
 }
 
-// carry enters the company's row in force at the moment again, as the
-// source says: yesterday's rates, as they were.
-func (s *Service) carry(ctx context.Context, companyID int64, at time.Time, source string) error {
+// outcome is what the night's run did for a company.
+type outcome int
+
+const (
+	fetched outcome = iota
+	carried
+	failed
+	skipped
+)
+
+func (r *Report) count(o outcome) {
+	switch o {
+	case fetched:
+		r.Fetched++
+	case carried:
+		r.Carried++
+	case failed:
+		r.Failed++
+	case skipped:
+		r.Skipped++
+	}
+}
+
+// dailyRow writes the company's row for the day.
+func (s *Service) dailyRow(ctx context.Context, f Fetcher, c gen.ListRateSourcesRow, at time.Time) (outcome, error) {
+	if c.RateSource == manual {
+		return s.carry(ctx, c.ID, at, carried)
+	}
+	rates, _, err := f.Fetch(ctx, c.RateSource)
+	if err != nil {
+		slog.Warn("daily rates: no bank answered", "company_id", c.ID, "source", c.RateSource, "err", err)
+		return s.carry(ctx, c.ID, at, failed)
+	}
+	return fetched, s.writeFetched(ctx, c, rates)
+}
+
+// carry enters the company's row in force at the moment again, as it was:
+// for a manual company ("carried") or for want of a bank's rates
+// ("failed"). Without a row there is nothing to carry.
+func (s *Service) carry(ctx context.Context, companyID int64, at time.Time, o outcome) (outcome, error) {
 	prev, err := RateAt(ctx, s.q, companyID, at)
-	if err != nil || prev == nil {
-		return err
+	if err != nil {
+		return o, err
+	}
+	if prev == nil {
+		return skipped, nil
+	}
+	source := "carried"
+	if o == failed {
+		source = "failed"
 	}
 	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: companyID, Usd: prev.Usd, Eur: prev.Eur, Rub: prev.Rub, Source: source})
-	return err
+	return o, err
 }
 
 // writeFetched enters the company's row of the bank's rates.
