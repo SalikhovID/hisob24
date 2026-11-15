@@ -132,7 +132,7 @@ func (s *Service) dailyRow(ctx context.Context, c gen.ListRateSourcesRow, got ba
 	case !got.ok:
 		return s.carry(ctx, c.ID, at, failed)
 	}
-	return fetched, s.writeFetched(ctx, c, got.rates)
+	return fetched, s.writeFetched(ctx, c, got)
 }
 
 // carry enters the company's row in force at the moment again, as it was:
@@ -154,8 +154,10 @@ func (s *Service) carry(ctx context.Context, companyID int64, at time.Time, o ou
 	return o, err
 }
 
-// writeFetched enters the company's row of the bank's rates.
-func (s *Service) writeFetched(ctx context.Context, c gen.ListRateSourcesRow, r bankrate.Rates) error {
+// writeFetched enters the company's row of the bank's rates, the bank they
+// are from as its source: the central bank when it stood in.
+func (s *Service) writeFetched(ctx context.Context, c gen.ListRateSourcesRow, got bankRates) error {
+	r := got.rates
 	usd, err := numeric(roundRate(r.USD, c.RateRounding))
 	if err != nil {
 		return err
@@ -168,7 +170,7 @@ func (s *Service) writeFetched(ctx context.Context, c gen.ListRateSourcesRow, r 
 	if err != nil {
 		return err
 	}
-	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: c.ID, Usd: usd, Eur: eur, Rub: rub, Source: c.RateSource})
+	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: c.ID, Usd: usd, Eur: eur, Rub: rub, Source: got.used})
 	return err
 }
 

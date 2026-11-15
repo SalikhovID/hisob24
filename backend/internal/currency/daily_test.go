@@ -233,3 +233,17 @@ func TestDailyAsksEachBankOnce(t *testing.T) {
 	}
 	assert.Equal(t, Report{Fetched: 5}, report)
 }
+
+// When the central bank stands in for a company's bank, the row says so.
+func TestDailySaysTheCentralBankStoodIn(t *testing.T) {
+	s, pool := newService(t)
+	olma := addCompany(t, pool, "Olma")
+	takeRatesFrom(t, pool, olma, bankrate.Kapital, 100)
+	banks := &fakeBanks{rates: map[string]bankrate.Rates{bankrate.Kapital: centralBank}, used: map[string]string{bankrate.Kapital: bankrate.CBU}}
+
+	s.Daily(t.Context(), banks, time.Now())
+
+	rows := standardRows(t, pool, olma)
+	require.Len(t, rows, 1)
+	assert.Equal(t, standardRow{USD: "12000.0000", EUR: "13300.0000", RUB: "146.1900", Source: ptr(bankrate.CBU)}, rows[0])
+}
