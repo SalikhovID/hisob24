@@ -75,7 +75,8 @@ test("a purchase is entered into the current location: the supplier and the prod
   expect(moved()).toBe("forward")
 })
 
-test("with more than the so'm the currency and the rate are asked, and a last price in another currency is turned", async () => {
+// No rate is asked (2026-11-15): the one a purchase is written at is said.
+test("with more than the so'm the currency is asked and its rate said, and a last price in another currency is turned", async () => {
   await signIn(VALI)
   await chooseCompany(2)
   const asosiy = db.locations.find((l) => l.companyId === 2 && l.name === "Asosiy")!
@@ -90,18 +91,19 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
 
   expect(within(await currencyGroup()).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "true")
-  expect(screen.queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
+  expect(screen.queryByText("1 USD = 12 800 so'm")).not.toBeInTheDocument()
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12 800,00")
   await chooseCurrency(user, "USD")
-  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
+  expect(await screen.findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
+  expect(screen.queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
   // The price follows the currency: 12 800 so'm is 1 $ again.
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1,00")
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
   expect(screen.getByText("2 $")).toBeInTheDocument()
 })
 
-test("the rate follows the currency: the euro takes its own standard rate, not the one the dollar had", async () => {
+test("the rate said follows the currency: the euro's own standard rate, not the one the dollar had", async () => {
   db.currencies[2] = [1, 2, 3]
   db.rates.find((r) => r.companyId === 2)!.eur = "14000.0000"
   await signIn(VALI)
@@ -111,9 +113,11 @@ test("the rate follows the currency: the euro takes its own standard rate, not t
   await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
 
   await chooseCurrency(user, "USD")
-  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
+  expect(await screen.findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
   await chooseCurrency(user, "EUR")
-  expect(await screen.findByLabelText("1 EUR = ? so'm")).toHaveValue("14 000")
+  expect(await screen.findByText("1 EUR = 14 000 so'm")).toBeInTheDocument()
+  expect(screen.queryByText("1 USD = 12 800 so'm")).not.toBeInTheDocument()
+  expect(screen.queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
 })
 
 test("the form refuses in the API's words before asking: a supplier, a product and its numbers, a payment's account and amount; a product is not taken twice, a lone line not taken away", async () => {

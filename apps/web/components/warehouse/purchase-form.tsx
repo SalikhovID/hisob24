@@ -3,20 +3,22 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { DateTimeRow } from "@/components/kit/date-sheet"
-import { AmountRow, SegmentedRow, TextRow } from "@/components/kit/form-row"
+import { SegmentedRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group } from "@/components/kit/group"
 import { MainBar, MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
-import { currencyCodes, currencyOf, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { currencyCodes, currencyOf, isMulti, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { type PurchaseForm as PurchaseFormValues, type PurchaseOutput, purchaseSchema, purchaseTotal } from "@/lib/warehouse"
 import { LinesField } from "./lines-field"
 import { PaymentsField } from "./payments-field"
 import { SupplierPicker } from "./pickers"
+import { RateRow, useRateFollowsCurrency } from "./rate-row"
 
 // PurchaseForm is a purchase as it is entered or edited (logic/warehouse.md,
 // 4.1–4.3), as the prototype's document form: the supplier picked in a
-// sheet, the moment, the currency and rate (with more than the so'm) as
-// rows; the lines with their prices as cards (LinesField); the payments out
+// sheet, the moment, the currency (with more than the so'm) and the rate it
+// is written at, said, not asked (RateRow), as rows; the lines with their
+// prices as cards (LinesField); the payments out
 // of the accounts; a note; what saving does, said under it; the main button
 // in the bar at the bottom. The location is the page's (locationName says it).
 export function PurchaseForm({
@@ -44,8 +46,11 @@ export function PurchaseForm({
   const total = purchaseTotal(items)
   const currency = currencyOf(currencies, currencyId)
 
-  // Another currency: its standard rate is offered, again when it changes.
-  useOfferedRate(form, currencyId, currencies)
+  // Another currency: no rate is asked; the one the purchase is written at
+  // is said (an edited purchase's own until its currency changes).
+  const rate = useWatch({ control: form.control, name: "rate" })
+  const at = useWatch({ control: form.control, name: "at" })
+  useRateFollowsCurrency(form, currencyId)
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-1 flex-col [&>*]:shrink-0">
@@ -69,9 +74,7 @@ export function PurchaseForm({
         />
         <DateTimeRow control={form.control} name="at" label="Vaqt" />
         {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
-        {isMulti(currencies) && currencyId !== UZS && (
-          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
-        )}
+        {isMulti(currencies) && currencyId !== UZS && <RateRow currency={currency} rate={rate} at={at} />}
       </Group>
 
       <LinesField form={form} companyId={companyId} withPrice currencyId={currencyId} pending={pending} />
