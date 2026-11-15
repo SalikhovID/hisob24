@@ -107,7 +107,7 @@ export function priceIn(companyId: number, body: { currency_id?: unknown; rate?:
   if (standard && rateColumn(standard, currencyId) === given) return { currencyId, rateId: standard.id, rate: given }
   const columns = { 2: standard?.usd ?? "0.0000", 3: standard?.eur ?? "0.0000", 4: standard?.rub ?? "0.0000" } as Record<number, string>
   columns[currencyId] = asRate(given)
-  const row: RateRow = { id: nextId(), companyId, usd: columns[2], eur: columns[3], rub: columns[4], status: 2, setBy: by, setAt: now() }
+  const row: RateRow = { id: nextId(), companyId, usd: columns[2], eur: columns[3], rub: columns[4], status: 2, setBy: by, source: null, setAt: now() }
   db.rates.push(row)
   return { currencyId, rateId: row.id, rate: given }
 }

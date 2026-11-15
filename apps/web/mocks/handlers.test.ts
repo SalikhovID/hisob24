@@ -2035,6 +2035,22 @@ test("/app/me tells the company's currencies with the rates in force", async () 
   expect((await call(api.GET("/app/me"))).currencies).toEqual([])
 })
 
+test("the history says where each row came from and where the company takes its rates, as the Go API does", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  expect(await call(api.GET("/app/currency-rates", { params: { query: { page: 1 } } }))).toMatchObject({ rate_source: "cbu", rate_rounding: 100 })
+  db.rates.push({ id: nextId(), companyId: 2, usd: "12000.0000", eur: "13300.0000", rub: "146.1900", status: 1, setBy: null, source: "cbu", setAt: "2026-10-01T19:00:01Z" })
+  db.rateSources[2] = { source: "kapitalbank", rounding: 1000 }
+
+  const history = await call(api.GET("/app/currency-rates", { params: { query: { page: 1 } } }))
+
+  expect(history).toMatchObject({ rate_source: "kapitalbank", rate_rounding: 1000 })
+  expect(history.items.map((r) => [r.source, r.set_by_name])).toEqual([
+    ["cbu", null],
+    [null, "Vali Aliyev"],
+  ])
+})
+
 test("the rates are read with the settings and set with settings.edit, as the Go API does", async () => {
   await signIn(VALI)
   await chooseCompany(2)
@@ -2662,7 +2678,7 @@ test("/app/dashboard answers the home's blocks as the Go API does: each by its p
   const { yangi, jarayonda } = seedOrders()
   const chilonzor = addLocation(1, "Chilonzor")
   const asosiy = asosiyOf(1)
-  const rate: RateRow = { id: nextId(), companyId: 1, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, setAt: `${addDays(today, -60)}T05:00:00Z` }
+  const rate: RateRow = { id: nextId(), companyId: 1, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, source: null, setAt: `${addDays(today, -60)}T05:00:00Z` }
   db.rates.push(rate)
   const enter = (fields: Partial<TransactionRow> & Pick<TransactionRow, "kind" | "total" | "at">) => {
     const id = nextId()

@@ -14,6 +14,9 @@ import type {
   Member,
   Permission,
   ProductKind,
+  RateRounding,
+  Rates,
+  RateSourceCode,
   Role,
   StageColor,
   OrderStage,
@@ -357,7 +360,10 @@ export interface RateRow {
   eur: string
   rub: string
   status: 1 | 2
-  setBy: string
+  // setBy is the member who set the row; a row of the night's run has none
+  // and says where it came from instead (logic/currencies.md, section 4).
+  setBy: string | null
+  source: Rates["source"]
   setAt: string
 }
 
@@ -408,6 +414,10 @@ interface Db {
   // so'm always); rates: the companies' standard rate rows.
   currencies: Record<number, number[]>
   rates: RateRow[]
+  // rateSources: where each company takes its rates every night and the
+  // step, as the admin set them; a company left out has the central bank
+  // and 100.
+  rateSources: Record<number, { source: RateSourceCode; rounding: RateRounding }>
   // accounts: each company's live accounts (logic/finance.md), in the
   // order the admin added them; every company starts with cash in so'm.
   // financeCategories: the expense and income categories; a row is never
@@ -506,7 +516,8 @@ function seed(): Db {
     // Every company has the so'm; Nok Market works in dollars too, at a
     // rate Vali set: where the currency fields are tested.
     currencies: { 1: [1], 2: [1, 2], 3: [1], 4: [1] },
-    rates: [{ id: 9001, companyId: 2, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: VALI, setAt: "2026-10-01T05:00:00Z" }],
+    rates: [{ id: 9001, companyId: 2, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: VALI, source: null, setAt: "2026-10-01T05:00:00Z" }],
+    rateSources: {},
     // Nok Market has a dollar card besides its cash.
     accounts: {
       1: [cashOf(9101)],
@@ -939,7 +950,7 @@ export function seedCatalog() {
 export function zeroRateOf(companyId: number, by: string): RateRow {
   let row = db.rates.find((r) => r.companyId === companyId && r.status === 2 && /^0(\.0+)?$/.test(r.usd) && /^0(\.0+)?$/.test(r.eur) && /^0(\.0+)?$/.test(r.rub))
   if (!row) {
-    row = { id: nextId(), companyId, usd: "0.0000", eur: "0.0000", rub: "0.0000", status: 2, setBy: by, setAt: now() }
+    row = { id: nextId(), companyId, usd: "0.0000", eur: "0.0000", rub: "0.0000", status: 2, setBy: by, source: null, setAt: now() }
     db.rates.push(row)
   }
   return row

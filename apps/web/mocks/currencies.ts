@@ -24,7 +24,8 @@ const toRates = (r: RateRow): Rates => ({
   usd: r.usd,
   eur: r.eur,
   rub: r.rub,
-  set_by_name: nameIn(r.setBy, r.companyId),
+  set_by_name: r.setBy === null ? null : nameIn(r.setBy, r.companyId),
+  source: r.source,
   set_at: r.setAt,
 })
 
@@ -39,7 +40,17 @@ export const currenciesHandlers = [
     const all = db.rates
       .filter((r) => r.companyId === member.companyId && r.status === 1)
       .sort((a, b) => b.setAt.localeCompare(a.setAt) || b.id - a.id)
-    return HttpResponse.json({ items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(toRates), total: all.length, page, page_size: PAGE_SIZE })
+    // Where the company takes its rates every night: the central bank and
+    // 100 unless the admin set otherwise.
+    const rates = db.rateSources[member.companyId] ?? { source: "cbu", rounding: 100 }
+    return HttpResponse.json({
+      items: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(toRates),
+      total: all.length,
+      page,
+      page_size: PAGE_SIZE,
+      rate_source: rates.source,
+      rate_rounding: rates.rounding,
+    })
   }),
 
   // A new standard row: each currency the company has on takes the rate
@@ -65,7 +76,7 @@ export const currenciesHandlers = [
         rates[id] = "0.0000"
       }
     }
-    const row: RateRow = { id: nextId(), companyId: member.companyId, usd: rates[2], eur: rates[3], rub: rates[4], status: 1, setBy: member.phone, setAt: now() }
+    const row: RateRow = { id: nextId(), companyId: member.companyId, usd: rates[2], eur: rates[3], rub: rates[4], status: 1, setBy: member.phone, source: null, setAt: now() }
     db.rates.push(row)
     return HttpResponse.json(toRates(row), { status: 201 })
   }),
