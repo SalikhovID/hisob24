@@ -515,6 +515,9 @@ type Querier interface {
 	// Whether the phone is a member of at least one company: only such a user
 	// may sign in.
 	HasCompany(ctx context.Context, userPhone string) (bool, error)
+	// Whether the company has a standard row set at or after the moment, a
+	// member's or the night's run's: a day's row is written once.
+	HasStandardRateSince(ctx context.Context, arg HasStandardRateSinceParams) (bool, error)
 	// Hides the live payments entered with the document: the document was
 	// deleted, or is saved with other payments.
 	HideLinkedPayments(ctx context.Context, linkedID int64) error

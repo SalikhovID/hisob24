@@ -310,6 +310,27 @@ func (q *Queries) GetRateAt(ctx context.Context, arg GetRateAtParams) (CurrencyR
 	return i, err
 }
 
+const hasStandardRateSince = `-- name: HasStandardRateSince :one
+SELECT EXISTS (
+    SELECT 1 FROM currency_rates
+    WHERE company_id = $1 AND status = 1 AND set_at >= $2
+)
+`
+
+type HasStandardRateSinceParams struct {
+	CompanyID int64
+	Since     time.Time
+}
+
+// Whether the company has a standard row set at or after the moment, a
+// member's or the night's run's: a day's row is written once.
+func (q *Queries) HasStandardRateSince(ctx context.Context, arg HasStandardRateSinceParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hasStandardRateSince, arg.CompanyID, arg.Since)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listCompanyCurrencies = `-- name: ListCompanyCurrencies :many
 SELECT c.id, c.code, c.name, c.symbol, c.position FROM currencies c
 JOIN company_currencies cc ON cc.currency_id = c.id

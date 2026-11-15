@@ -91,3 +91,11 @@ SELECT count(*) FROM bank_accounts WHERE company_id = $1 AND currency_id = $2 AN
 INSERT INTO currency_rates (company_id, usd, eur, rub, status, source)
 VALUES (sqlc.arg('company_id'), sqlc.arg('usd'), sqlc.arg('eur'), sqlc.arg('rub'), 1, sqlc.arg('source')::text)
 RETURNING *;
+
+-- name: HasStandardRateSince :one
+-- Whether the company has a standard row set at or after the moment, a
+-- member's or the night's run's: a day's row is written once.
+SELECT EXISTS (
+    SELECT 1 FROM currency_rates
+    WHERE company_id = sqlc.arg('company_id') AND status = 1 AND set_at >= sqlc.arg('since')
+);

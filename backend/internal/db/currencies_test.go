@@ -175,3 +175,38 @@ func TestListRatesSaysWhereARowCameFrom(t *testing.T) {
 	assert.Nil(t, rows[1].Source, "a member's")
 	assert.Equal(t, ptr("Ali"), rows[1].SetByName)
 }
+
+// Whether the company has a standard row set since a moment: what keeps the
+// night's run from writing a day's row twice, a member's row counted, a
+// document's own not.
+func TestHasStandardRateSince(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
+	zero := rateOf(t, "0")
+	since := time.Now().Add(-time.Hour)
+	has := func(company int64) bool {
+		t.Helper()
+		yes, err := q.HasStandardRateSince(ctx, gen.HasStandardRateSinceParams{CompanyID: company, Since: since})
+		require.NoError(t, err)
+		return yes
+	}
+
+	assert.False(t, has(olma.ID), "no row at all")
+	old, err := q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: olma.ID, Usd: zero, Eur: zero, Rub: zero, Source: "cbu"})
+	require.NoError(t, err)
+	mustExec(t, pool, "UPDATE currency_rates SET set_at = $2 WHERE id = $1", old.ID, since.Add(-time.Second))
+	assert.False(t, has(olma.ID), "a row set before")
+	_, err = q.CreateRate(ctx, gen.CreateRateParams{CompanyID: olma.ID, Usd: zero, Eur: zero, Rub: zero, Status: 2, SetBy: "998901234567"})
+	require.NoError(t, err)
+	assert.False(t, has(olma.ID), "a document's own row")
+	_, err = q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: nok.ID, Usd: zero, Eur: zero, Rub: zero, Source: "cbu"})
+	require.NoError(t, err)
+	assert.False(t, has(olma.ID), "another company's row")
+	_, err = q.CreateRate(ctx, gen.CreateRateParams{CompanyID: olma.ID, Usd: rateOf(t, "12800"), Eur: zero, Rub: zero, Status: 1, SetBy: "998901234567"})
+	require.NoError(t, err)
+	assert.True(t, has(olma.ID), "a member's standard row since")
+	assert.True(t, has(nok.ID), "the night's row since")
+}
