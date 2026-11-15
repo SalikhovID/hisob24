@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
-import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { AmountRow, SegmentedRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
 import { SelectRow } from "@/components/kit/picker-sheet"
@@ -13,7 +13,7 @@ import { Refusal } from "@/components/refusal"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
 import { type ProductForm, type ProductOutput, productDefaults, productSchema, units } from "@/lib/catalog"
-import { currencyOf, currencyOptions, isMulti, useCurrencies } from "@/lib/currencies"
+import { currencyCodes, currencyOf, isMulti, useCurrencies } from "@/lib/currencies"
 import { productKey, productsKey } from "@/lib/queries"
 import type { Product } from "@/lib/types"
 
@@ -76,7 +76,7 @@ export function ProductDialog({
               placeholder="ixtiyoriy"
               suffix={currencyOf(currencies, currencyId).symbol}
             />
-            {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
+            {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
             <TextRow control={form.control} name="sku" label="Artikul" placeholder="ixtiyoriy" autoComplete="off" />
             <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
           </Group>

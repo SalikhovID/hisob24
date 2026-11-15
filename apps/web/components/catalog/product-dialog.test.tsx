@@ -2,10 +2,11 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { type ComponentProps, useState } from "react"
 import { expect, test } from "vitest"
 import { toProduct } from "@/mocks/catalog"
-import { ALI, db, seedCatalog } from "@/mocks/data"
+import { ALI, db, seedCatalog, VALI } from "@/mocks/data"
+import { chooseCurrency } from "@/test/currency"
 import { renderWithProviders } from "@/test/render"
 import { choose } from "@/test/select"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { ProductDialog } from "./product-dialog"
 
 // Opened is the sheet as a page opens it (its round + or its «Tahrirlash»
@@ -94,4 +95,22 @@ test("the sheet closes after a save; the page that opened it is told", async () 
   await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+})
+
+// With more than the so'm the price's currency is chosen by the buttons of
+// the codes, and the price is saved in it.
+test("with more than the so'm the price's currency is chosen by its code's button", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<Opened companyId={2} />)
+
+  const dialog = await screen.findByRole("dialog", { name: "Mahsulot qo'shish" })
+  await user.type(within(dialog).getByLabelText("Nomi"), "Kofe")
+  await choose(user, within(dialog).getByLabelText("Birlik"), "dona")
+  await user.type(within(dialog).getByLabelText("Sotuv narxi"), "5")
+  await chooseCurrency(user, "USD")
+  expect(within(dialog).getByText("$")).toBeInTheDocument()
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(db.products.find((p) => p.name === "Kofe")).toMatchObject({ price: "5.00", currencyId: 2 }))
 })
