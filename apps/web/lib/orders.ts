@@ -4,7 +4,7 @@ import { answersDefaults, type Entries, readAnswers } from "./fields"
 import { formatDate, formatMoney } from "./format"
 import { phoneDigits } from "./phone"
 import { moveLineSchema, onceEach } from "./stock"
-import type { CompanyCurrency, CustomerAnswers, CustomerType, Order, OrderDetail, OrderType } from "./types"
+import type { CompanyCurrency, CustomerAnswers, CustomerType, Order, OrderDetail, OrderLineInput, OrderType, OrderUpdate } from "./types"
 import { digits, idSchema, type LineForm, moneyPattern, type PaymentLineForm, paymentLineSchema, rateSchema } from "./warehouse"
 
 const pad = (n: number) => String(n).padStart(2, "0")
@@ -203,4 +203,24 @@ export function deadlineBucket(deadline: string, done: boolean, today = todayISO
 // in the company, «Buyurtma № 12», the way a sale is «Sotuv № 1».
 export function orderName(number: number): string {
   return `Buyurtma № ${number}`
+}
+
+// goodsUpdate is the order as it stands with the goods given, for its page to
+// save them (2026-11-15). PUT /app/orders/{id} empties what it is not sent, so
+// the rest goes as it is: the answers of the type's fields (as the edit sends
+// them), the price or none, the currency and, in another than the so'm, the
+// order's own rate (sent without it, it would take the standard one).
+export function goodsUpdate(order: OrderDetail, type: Pick<OrderType, "fields">, items: OrderLineInput[]): OrderUpdate {
+  const fields = new Set(type.fields.map((field) => String(field.id)))
+  const values = Object.fromEntries(Object.entries(order.values).filter(([key]) => fields.has(key)))
+  return {
+    deadline: order.deadline,
+    stage_id: order.stage_id,
+    assignee_phone: order.assignee?.phone ?? null,
+    values,
+    amount: Number(order.amount) > 0 ? order.amount : null,
+    currency_id: order.currency_id,
+    rate: order.currency_id === UZS ? null : order.rate,
+    items: items.map(({ product_id, quantity }) => ({ product_id, quantity })),
+  }
 }

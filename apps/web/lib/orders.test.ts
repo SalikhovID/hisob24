@@ -1,7 +1,7 @@
 import { expect, test } from "vitest"
 import { som } from "./currencies"
 import type { CompanyCurrency, Customer, CustomerType, Order, OrderDetail, OrderType } from "./types"
-import { bucketLabels, deadlineBucket, deadlineOf, moneyLine, orderDefaults, orderName, orderSchema, todayISO } from "./orders"
+import { bucketLabels, deadlineBucket, deadlineOf, goodsUpdate, moneyLine, orderDefaults, orderName, orderSchema, todayISO } from "./orders"
 
 test("todayISO is the day where the browser stands, as YYYY-MM-DD", () => {
   const now = new Date()
@@ -247,4 +247,64 @@ test("moneyLine says an order's price and what is left of it, nothing for an ord
 test("an order's name is its number", () => {
   expect(orderName(12)).toBe("Buyurtma № 12")
   expect(orderName(1)).toBe("Buyurtma № 1")
+})
+
+// goodsUpdate is the order as it is with the goods given, for the order's page
+// to save them (2026-11-15): PUT /app/orders/{id} empties what it is not sent,
+// so the rest goes as it stands; an own rate stays the order's own.
+test("goodsUpdate sends the order as it stands with the goods given", () => {
+  const base = {
+    id: 1,
+    type_id: 7,
+    stage_id: 13,
+    location_id: 1,
+    number: 12,
+    deadline: "2026-10-10",
+    customer: { id: 42, phone: "998901112233", name: "Zarina Karimova" },
+    created_by_name: null,
+    created_at: "2026-10-02T06:01:00.000Z",
+    updated_at: "2026-10-02T06:01:00.000Z",
+    items: [],
+    payments: [],
+    cost_uzs: null,
+    profit_uzs: null,
+  }
+  const cases: { name: string; order: OrderDetail; want: Partial<ReturnType<typeof goodsUpdate>> }[] = [
+    {
+      name: "in so'm without a price, assigned, an answer of a field the type no longer has",
+      order: {
+        ...base,
+        assignee: { phone: "998902223344", full_name: "Vali Aliyev" },
+        values: { 71: "Ertalab", 73: [32], 99: "eski" },
+        amount: "0.00",
+        currency_id: 1,
+        rate: "1.0000",
+        amount_uzs: "0.00",
+        paid: "0.00",
+      } as unknown as OrderDetail,
+      want: { assignee_phone: "998902223344", values: { 71: "Ertalab", 73: [32] }, amount: null, currency_id: 1, rate: null },
+    },
+    {
+      name: "in dollars at its own rate, with a price, nobody assigned",
+      order: {
+        ...base,
+        assignee: null,
+        values: {},
+        amount: "150.00",
+        currency_id: 2,
+        rate: "12500.0000",
+        amount_uzs: "1875000.00",
+        paid: "0.00",
+      } as unknown as OrderDetail,
+      want: { assignee_phone: null, values: {}, amount: "150.00", currency_id: 2, rate: "12500.0000" },
+    },
+  ]
+  for (const { name, order, want } of cases) {
+    expect(goodsUpdate(order, buyurtma, [{ product_id: 5, quantity: "2" }]), name).toEqual({
+      deadline: "2026-10-10",
+      stage_id: 13,
+      ...want,
+      items: [{ product_id: 5, quantity: "2" }],
+    })
+  }
 })
