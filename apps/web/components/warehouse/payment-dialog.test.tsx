@@ -84,7 +84,8 @@ test("a payment entered on its own is edited: its amount comes typed, a key chan
   expect(await screen.findByText("To'lov saqlandi")).toBeInTheDocument()
 })
 
-test("the rate follows the account's currency: an account in euros takes the euro's standard rate, not the dollar's", async () => {
+// No rate is asked (2026-11-15): the one the payment is written at is said.
+test("the rate said follows the account's currency: an account in euros takes the euro's standard rate, not the dollar's", async () => {
   db.currencies[2] = [1, 2, 3]
   db.rates.find((r) => r.companyId === 2)!.eur = "14000.0000"
   db.accounts[2].push({ id: 9113, name: "Evro", currency_id: 3, is_active: true })
@@ -97,9 +98,11 @@ test("the rate follows the account's currency: an account in euros takes the eur
   const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
   await waitFor(() => expect(within(dialog).getByLabelText("Akkaunt")).toHaveTextContent("Naqd (so'm)"))
   await choose(user, within(dialog).getByLabelText("Akkaunt"), "Karta ($)")
-  expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
+  expect(await within(dialog).findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
+  expect(within(dialog).queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
   await choose(user, within(dialog).getByLabelText("Akkaunt"), "Evro (€)")
-  expect(await within(dialog).findByLabelText("1 EUR = ? so'm")).toHaveValue("14 000")
+  expect(await within(dialog).findByText("1 EUR = 14 000 so'm")).toBeInTheDocument()
+  expect(within(dialog).queryByText("1 USD = 12 800 so'm")).not.toBeInTheDocument()
 })
 
 test("a customer's payment goes to the customer", async () => {

@@ -7,24 +7,25 @@ import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { AmountSheet, decimalToTyped } from "@/components/kit/amount-sheet"
 import { DateTimeRow } from "@/components/kit/date-sheet"
-import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
 import { api, call } from "@/lib/api"
-import { accountCurrency, accountOptions, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { accountCurrency, accountOptions, isMulti, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { formatAmount } from "@/lib/format"
 import { forgetOrderMoney } from "@/lib/order-money"
 import { forgetParty, type Party } from "@/lib/party"
 import { nowLocal, type PaymentFields, type PaymentForm, type PaymentOutput, paymentDefaults, paymentSchema } from "@/lib/warehouse"
+import { RateRow, useRateFollowsCurrency } from "./rate-row"
 
 // PaymentDialog enters a payment to the supplier (logic/warehouse.md,
 // section 6) or from the customer (logic/sales.md, section 5), or saves the
 // one given, entered on its own, as the prototype's amount sheet: the amount
 // typed on the keypad in its account's currency (what is owed in so'm said
 // under it, with «To'liq» to type it whole), then the account, the moment
-// (now unless another is chosen), the rate (with another currency than the
-// so'm) and a note. A page opens it (the «To'lov» tile, a payment's
+// (now unless another is chosen), the rate it is written at (with another
+// currency than the so'm; said, not asked: RateRow) and a note. A page opens it (the «To'lov» tile, a payment's
 // «Tahrirlash») and mounts it for each opening; partyName heads it, owed is
 // what the party owes in so'm when it is known. With orderId the payment
 // is for that order of the customer (logic/orders.md, 4.3): entered and
@@ -99,10 +100,12 @@ export function PaymentDialog({
     form.setValue("bank_account_id", String(firstAccount))
   }, [open, payment, firstAccount, form])
 
-  // An account in another currency: its standard rate is offered, again
-  // when another account changes the currency; one the session has not
-  // told yet is no change.
-  useOfferedRate(form, accounts.find((a) => a.id === accountId)?.currency_id ?? null, currencies, open)
+  // An account in another currency: no rate is asked; the one the payment
+  // is written at is said (an edited payment's own until another account
+  // changes the currency; one the session has not told yet is no change).
+  const rate = useWatch({ control: form.control, name: "rate" })
+  const at = useWatch({ control: form.control, name: "at" })
+  useRateFollowsCurrency(form, accounts.find((a) => a.id === accountId)?.currency_id ?? null)
 
   // What is owed in so'm, said under the amount; a payment being edited is
   // owed again. It is offered whole when it is a debt and the account is in so'm.
@@ -134,9 +137,7 @@ export function PaymentDialog({
             the form keeps the moment it opened at (or the one being edited) and
             the note as it was. */}
         {orderId === undefined && <DateTimeRow control={form.control} name="at" label="Vaqt" />}
-        {isMulti(currencies) && currency.id !== UZS && (
-          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
-        )}
+        {isMulti(currencies) && currency.id !== UZS && <RateRow currency={currency} rate={rate} at={at} />}
         {orderId === undefined && <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />}
       </Group>
     </AmountSheet>
