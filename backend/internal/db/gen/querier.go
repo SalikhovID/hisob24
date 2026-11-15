@@ -192,9 +192,10 @@ type Querier interface {
 	// when they leave. The name is one row's among the company's rows of the
 	// kind, the SKU one product's in the company (23505, whatever the case).
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
-	// Enters a rate row: a standard one (status 1) from the settings, or a
-	// document's own (2). set_by_name is the name the member goes by in the
-	// company now: it stays when they leave.
+	// Enters a rate row a member set: a standard one (status 1) from the
+	// settings, or a document's own (2). set_by_name is the name the member
+	// goes by in the company now: it stays when they leave. The night's run
+	// writes its rows with CreateAutoRate.
 	CreateRate(ctx context.Context, arg CreateRateParams) (CurrencyRate, error)
 	// company_id is the company the access tokens it refreshes are for; source
 	// is where the session began ('sms' or 'telegram').

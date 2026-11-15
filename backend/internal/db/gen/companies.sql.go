@@ -34,7 +34,7 @@ func (q *Queries) CountCompanies(ctx context.Context, arg CountCompaniesParams) 
 const createCompany = `-- name: CreateCompany :one
 INSERT INTO companies (name, end_date, created_by)
 VALUES ($1, $2, $3)
-RETURNING id, name, end_date, is_active, created_by, created_at
+RETURNING id, name, end_date, is_active, created_by, created_at, rate_source, rate_rounding
 `
 
 type CreateCompanyParams struct {
@@ -53,12 +53,14 @@ func (q *Queries) CreateCompany(ctx context.Context, arg CreateCompanyParams) (C
 		&i.IsActive,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.RateSource,
+		&i.RateRounding,
 	)
 	return i, err
 }
 
 const getCompany = `-- name: GetCompany :one
-SELECT id, name, end_date, is_active, created_by, created_at FROM companies WHERE id = $1
+SELECT id, name, end_date, is_active, created_by, created_at, rate_source, rate_rounding FROM companies WHERE id = $1
 `
 
 func (q *Queries) GetCompany(ctx context.Context, id int64) (Company, error) {
@@ -71,12 +73,14 @@ func (q *Queries) GetCompany(ctx context.Context, id int64) (Company, error) {
 		&i.IsActive,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.RateSource,
+		&i.RateRounding,
 	)
 	return i, err
 }
 
 const listCompanies = `-- name: ListCompanies :many
-SELECT id, name, end_date, is_active, created_by, created_at FROM companies
+SELECT id, name, end_date, is_active, created_by, created_at, rate_source, rate_rounding FROM companies
 WHERE ($1::text IS NULL OR name ILIKE '%' || $1::text || '%')
   AND ($2::text IS NULL
        OR ($2::text = 'active' AND end_date >= CURRENT_DATE AND is_active)
@@ -115,6 +119,8 @@ func (q *Queries) ListCompanies(ctx context.Context, arg ListCompaniesParams) ([
 			&i.IsActive,
 			&i.CreatedBy,
 			&i.CreatedAt,
+			&i.RateSource,
+			&i.RateRounding,
 		); err != nil {
 			return nil, err
 		}
@@ -179,7 +185,7 @@ UPDATE companies
 SET name = COALESCE($1, name),
     is_active = COALESCE($2, is_active)
 WHERE id = $3
-RETURNING id, name, end_date, is_active, created_by, created_at
+RETURNING id, name, end_date, is_active, created_by, created_at, rate_source, rate_rounding
 `
 
 type UpdateCompanyParams struct {
@@ -199,6 +205,8 @@ func (q *Queries) UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (C
 		&i.IsActive,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.RateSource,
+		&i.RateRounding,
 	)
 	return i, err
 }

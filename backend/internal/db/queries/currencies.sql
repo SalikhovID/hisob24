@@ -56,11 +56,12 @@ SELECT * FROM currency_rates WHERE id = $1;
 SELECT * FROM currency_rates WHERE company_id = $1 AND status = 2 AND usd = 0 AND eur = 0 AND rub = 0 ORDER BY id LIMIT 1;
 
 -- name: CreateRate :one
--- Enters a rate row: a standard one (status 1) from the settings, or a
--- document's own (2). set_by_name is the name the member goes by in the
--- company now: it stays when they leave.
+-- Enters a rate row a member set: a standard one (status 1) from the
+-- settings, or a document's own (2). set_by_name is the name the member
+-- goes by in the company now: it stays when they leave. The night's run
+-- writes its rows with CreateAutoRate.
 INSERT INTO currency_rates (company_id, usd, eur, rub, status, set_by, set_by_name)
-VALUES (sqlc.arg('company_id'), sqlc.arg('usd'), sqlc.arg('eur'), sqlc.arg('rub'), sqlc.arg('status'), sqlc.arg('set_by'), sqlc.narg('set_by_name'))
+VALUES (sqlc.arg('company_id'), sqlc.arg('usd'), sqlc.arg('eur'), sqlc.arg('rub'), sqlc.arg('status'), sqlc.arg('set_by')::text, sqlc.narg('set_by_name'))
 RETURNING *;
 
 -- name: ListRates :many

@@ -59,12 +59,14 @@ type Billing struct {
 }
 
 type Company struct {
-	ID        int64
-	Name      string
-	EndDate   time.Time
-	IsActive  bool
-	CreatedBy *int64
-	CreatedAt time.Time
+	ID           int64
+	Name         string
+	EndDate      time.Time
+	IsActive     bool
+	CreatedBy    *int64
+	CreatedAt    time.Time
+	RateSource   string
+	RateRounding int32
 }
 
 type CompanyCurrency struct {
@@ -90,9 +92,10 @@ type CurrencyRate struct {
 	Eur       pgtype.Numeric
 	Rub       pgtype.Numeric
 	Status    int16
-	SetBy     string
+	SetBy     *string
 	SetByName *string
 	SetAt     time.Time
+	Source    *string
 }
 
 type Customer struct {

@@ -97,8 +97,8 @@ func (q *Queries) CountRates(ctx context.Context, companyID int64) (int64, error
 
 const createRate = `-- name: CreateRate :one
 INSERT INTO currency_rates (company_id, usd, eur, rub, status, set_by, set_by_name)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at
+VALUES ($1, $2, $3, $4, $5, $6::text, $7)
+RETURNING id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at, source
 `
 
 type CreateRateParams struct {
@@ -111,9 +111,10 @@ type CreateRateParams struct {
 	SetByName *string
 }
 
-// Enters a rate row: a standard one (status 1) from the settings, or a
-// document's own (2). set_by_name is the name the member goes by in the
-// company now: it stays when they leave.
+// Enters a rate row a member set: a standard one (status 1) from the
+// settings, or a document's own (2). set_by_name is the name the member
+// goes by in the company now: it stays when they leave. The night's run
+// writes its rows with CreateAutoRate.
 func (q *Queries) CreateRate(ctx context.Context, arg CreateRateParams) (CurrencyRate, error) {
 	row := q.db.QueryRow(ctx, createRate,
 		arg.CompanyID,
@@ -136,6 +137,7 @@ func (q *Queries) CreateRate(ctx context.Context, arg CreateRateParams) (Currenc
 		&i.SetBy,
 		&i.SetByName,
 		&i.SetAt,
+		&i.Source,
 	)
 	return i, err
 }
@@ -159,7 +161,7 @@ func (q *Queries) GetCurrency(ctx context.Context, id int64) (Currency, error) {
 }
 
 const getFallbackRate = `-- name: GetFallbackRate :one
-SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates WHERE company_id = $1 AND status = 2 AND usd = 0 AND eur = 0 AND rub = 0 ORDER BY id LIMIT 1
+SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at, source FROM currency_rates WHERE company_id = $1 AND status = 2 AND usd = 0 AND eur = 0 AND rub = 0 ORDER BY id LIMIT 1
 `
 
 // The company's zero row: a document's own rate row (status 2, out of the
@@ -179,12 +181,13 @@ func (q *Queries) GetFallbackRate(ctx context.Context, companyID int64) (Currenc
 		&i.SetBy,
 		&i.SetByName,
 		&i.SetAt,
+		&i.Source,
 	)
 	return i, err
 }
 
 const getFirstRate = `-- name: GetFirstRate :one
-SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates WHERE company_id = $1 AND status = 1 ORDER BY set_at, id LIMIT 1
+SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at, source FROM currency_rates WHERE company_id = $1 AND status = 1 ORDER BY set_at, id LIMIT 1
 `
 
 // The company's earliest standard rate row: what a moment before any rate
@@ -203,12 +206,13 @@ func (q *Queries) GetFirstRate(ctx context.Context, companyID int64) (CurrencyRa
 		&i.SetBy,
 		&i.SetByName,
 		&i.SetAt,
+		&i.Source,
 	)
 	return i, err
 }
 
 const getRate = `-- name: GetRate :one
-SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates WHERE id = $1
+SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at, source FROM currency_rates WHERE id = $1
 `
 
 // A rate row by id: what a document refers to.
@@ -226,12 +230,13 @@ func (q *Queries) GetRate(ctx context.Context, id int64) (CurrencyRate, error) {
 		&i.SetBy,
 		&i.SetByName,
 		&i.SetAt,
+		&i.Source,
 	)
 	return i, err
 }
 
 const getRateAt = `-- name: GetRateAt :one
-SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at FROM currency_rates
+SELECT id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at, source FROM currency_rates
 WHERE company_id = $1 AND status = 1 AND set_at <= $2
 ORDER BY set_at DESC, id DESC
 LIMIT 1
@@ -258,6 +263,7 @@ func (q *Queries) GetRateAt(ctx context.Context, arg GetRateAtParams) (CurrencyR
 		&i.SetBy,
 		&i.SetByName,
 		&i.SetAt,
+		&i.Source,
 	)
 	return i, err
 }
