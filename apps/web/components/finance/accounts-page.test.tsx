@@ -40,7 +40,7 @@ test("the cash: every account with what it holds in its own currency, the active
 
 test("the cash's total in so'm heads it, each account turned by the rate in force (said under it); a currency with no rate stands apart", async () => {
   db.currencies[1] = [1, 2, 3]
-  db.rates.push({ id: nextId(), companyId: 1, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, setAt: "2026-09-01T05:00:00Z" })
+  db.rates.push({ id: nextId(), companyId: 1, usd: "12800.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, source: null, setAt: "2026-09-01T05:00:00Z" })
   const dollar = { id: nextId(), name: "Dollar", currency_id: 2, is_active: true }
   const evro = { id: nextId(), name: "Evro", currency_id: 3, is_active: true }
   db.accounts[1].push(dollar, evro)

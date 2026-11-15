@@ -11,7 +11,7 @@ import { choose, expectSignedIn, onPhone, sideScroll, signIn } from "./helpers"
 function cashOpening(amount: number) {
   const at = `${addDays(localToday(), -1)}T05:00:00Z`
   const rateId = nextId()
-  db.rates.push({ id: rateId, companyId: 1, usd: "0.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, setAt: at })
+  db.rates.push({ id: rateId, companyId: 1, usd: "0.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: ALI, source: null, setAt: at })
   db.transactions.push({
     id: nextId(), companyId: 1, kind: "cash_opening", number: 1, at, locationId: null, toLocationId: null, supplierId: null, customerId: null,
     bankAccountId: db.accounts[1][0].id, toBankAccountId: null, categoryId: null, linkedId: null, currencyId: 1, rateId, total: amount, toTotal: null,
