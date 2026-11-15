@@ -195,6 +195,7 @@ func TestAdminRoutesNeedASession(t *testing.T) {
 		{http.MethodPut, "/admin/companies/1/owner"},
 		{http.MethodGet, "/admin/companies/1/billings"},
 		{http.MethodPost, "/admin/companies/1/billings"},
+		{http.MethodPut, "/admin/companies/1/rate-source"},
 		{http.MethodGet, "/admin/admins"},
 		{http.MethodPost, "/admin/admins"},
 		{http.MethodDelete, "/admin/admins/42"},

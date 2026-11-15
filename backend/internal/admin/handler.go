@@ -73,6 +73,9 @@ func (h *Handler) Routes(r chi.Router) {
 			// on (logic/currencies.md, section 3).
 			r.Get("/currencies", h.listCurrencies)
 			r.Put("/companies/{id}/currencies", h.setCompanyCurrencies)
+			// Where the night's run takes the company's rates, and the step
+			// (logic/currencies.md, section 4).
+			r.Put("/companies/{id}/rate-source", h.setRateSource)
 			// The company's accounts, where its money sits (logic/finance.md,
 			// section 3).
 			r.Post("/companies/{id}/accounts", h.addAccount)

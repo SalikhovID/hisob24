@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 
+	"github.com/SalikhovID/hisob24/backend/internal/currency"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
 )
 
@@ -36,4 +37,30 @@ func (h *Handler) setCompanyCurrencies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, toCompanyCurrenciesJSON(list))
+}
+
+// rateSourceJSON is where the company takes its rates and the step the
+// dollar and the euro are rounded to.
+type rateSourceJSON struct {
+	Source   string `json:"source"`
+	Rounding int    `json:"rounding"`
+}
+
+// setRateSource sets where the night's run takes the company's rates and
+// the step, from the next midnight (logic/currencies.md, section 4).
+func (h *Handler) setRateSource(w http.ResponseWriter, r *http.Request) {
+	id, ok := companyID(w, r)
+	if !ok {
+		return
+	}
+	var body rateSourceJSON
+	if !httpx.DecodeJSON(w, r, &body) {
+		return
+	}
+	set, err := h.currencies.SetSourceOf(r.Context(), id, currency.RateSource{Source: body.Source, Rounding: body.Rounding})
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, rateSourceJSON{Source: set.Source, Rounding: set.Rounding})
 }

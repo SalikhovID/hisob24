@@ -469,6 +469,38 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/CurrencyConflict"
+  /admin/companies/{id}/rate-source:
+    parameters:
+      - $ref: "#/components/parameters/CompanyID"
+    put:
+      operationId: setCompanyRateSource
+      summary: Kompaniyaning kurs manbai va yaxlitlash qadami
+      description: >
+        Har kecha 00:00 da (UTC+5) kurs qayerdan olinadi va bankdan olingan
+        USD, EUR qanday yaxlitlanadi (logic/currencies.md, 4-bo'lim); keyingi
+        00:00 dan amal qiladi. Ro'yxatda yo'q manba 400 «Manba noto'g'ri»,
+        qadam 400 «Yaxlitlash noto'g'ri».
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RateSource"
+      responses:
+        "200":
+          description: Kompaniyaning manbai va qadami endi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RateSource"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/companies/{id}/accounts:
     parameters:
       - $ref: "#/components/parameters/CompanyID"
@@ -6245,6 +6277,15 @@ components:
               description: Kompaniyaning jonli akkauntlari, qo'shilish tartibida (logic/finance.md, 3-bo'lim)
               items:
                 $ref: "#/components/schemas/BankAccount"
+    RateSource:
+      type: object
+      description: Kompaniya kursni qayerdan oladi va bankdan olingan USD, EUR qaysi qadamga yaxlitlanadi
+      required: [source, rounding]
+      properties:
+        source:
+          $ref: "#/components/schemas/RateSourceCode"
+        rounding:
+          $ref: "#/components/schemas/RateRounding"
     RateSourceCode:
       type: string
       enum: [manual, cbu, kapitalbank, ipakyuli, asaka, hamkor, uzum, ofb]

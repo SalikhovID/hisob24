@@ -94,3 +94,34 @@ func TestGetCompanyTellsItsRateSource(t *testing.T) {
 	assert.Equal(t, "cbu", body["rate_source"])
 	assert.EqualValues(t, 100, body["rate_rounding"])
 }
+
+// The admin sets where the company takes its rates and the step: a bank or
+// manual, 1, 10, 100 or 1000 (logic/currencies.md, section 4).
+func TestSetCompanyRateSource(t *testing.T) {
+	api := newTestAPI(t, true)
+	cookie := api.login(t)
+	id := api.createCompany(t, cookie, "Olma", dbToday(t, api.pool))
+	path := "/admin/companies/" + id + "/rate-source"
+
+	rec := api.do(t, http.MethodPut, path, `{"source":"kapitalbank","rounding":1000}`, cookie)
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.JSONEq(t, `{"source":"kapitalbank","rounding":1000}`, rec.Body.String())
+	body := decode(t, api.do(t, http.MethodGet, "/admin/companies/"+id, "", cookie))
+	assert.Equal(t, "kapitalbank", body["rate_source"])
+	assert.EqualValues(t, 1000, body["rate_rounding"])
+
+	for name, tc := range map[string]struct{ body, want string }{
+		"not a source": {`{"source":"nbu","rounding":100}`, `{"error":"validation_error","message":"Manba noto'g'ri"}`},
+		"no source":    {`{"rounding":100}`, `{"error":"validation_error","message":"Manba noto'g'ri"}`},
+		"not a step":   {`{"source":"cbu","rounding":50}`, `{"error":"validation_error","message":"Yaxlitlash noto'g'ri"}`},
+	} {
+		rec := api.do(t, http.MethodPut, path, tc.body, cookie)
+		assert.Equal(t, http.StatusBadRequest, rec.Code, name)
+		assert.JSONEq(t, tc.want, rec.Body.String(), name)
+	}
+	rec = api.do(t, http.MethodPut, "/admin/companies/999999/rate-source", `{"source":"cbu","rounding":100}`, cookie)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.JSONEq(t, `{"error":"not_found","message":"Kompaniya topilmadi"}`, rec.Body.String())
+	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPut, path, `{"source":"cbu","rounding":100}`).Code, "needs a session")
+}
