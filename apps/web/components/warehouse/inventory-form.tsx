@@ -157,7 +157,7 @@ export function InventoryForm({
             title={
               <span className="flex items-center gap-2">
                 <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
-                Qator qo&apos;shish
+                Mahsulot qo&apos;shish
               </span>
             }
           />

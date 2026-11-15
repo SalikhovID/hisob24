@@ -126,3 +126,14 @@ test("a counted line is the prototype's card of frosted glass, 24px round", asyn
   expect(line(1)).toHaveClass("surface", "rounded-[24px]")
   expect(line(1)).not.toHaveClass("bg-card")
 })
+
+test("the row under the lines that adds one says «Mahsulot qo'shish», as in the other documents", async () => {
+  seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  setLocation("/inventories/new")
+  const { user } = renderWithProviders(<NewInventoryPage />)
+
+  await user.click(await screen.findByRole("button", { name: "Mahsulot qo'shish" }))
+  expect(line(2)).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Qator qo'shish" })).not.toBeInTheDocument()
+})
