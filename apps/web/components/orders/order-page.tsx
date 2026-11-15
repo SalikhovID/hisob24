@@ -179,11 +179,12 @@ export function OrderPage({ id }: { id: number }) {
               </>
             ),
           },
-          // The payments and the goods of the order (logic/orders.md, 4.3), when it has them.
+          // The payments of the order (logic/orders.md, 4.3), when it has them; its
+          // goods always (2026-11-15): their tab is where they are added.
           ...(order.data.payments.length > 0
             ? [{ value: "payments", label: "To'lovlar", content: <OrderPayments companyId={companyId} order={order.data} canEdit={allowed("orders.edit")} /> }]
             : []),
-          ...(order.data.items.length > 0 ? [{ value: "goods", label: "Tovarlar", content: <OrderLines order={order.data} /> }] : []),
+          { value: "goods", label: "Tovarlar", content: <OrderLines order={order.data} /> },
           // Who did what to the order takes its permission.
           ...(allowed("orders.history") ? [{ value: "history", label: "Tarix", content: <OrderHistory companyId={companyId} id={order.data.id} /> }] : []),
         ]}

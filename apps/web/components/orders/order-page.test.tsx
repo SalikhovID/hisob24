@@ -112,13 +112,13 @@ test("the stage is changed on the page's track at once", async () => {
   expect(within(await screen.findByRole("list", { name: "Tarix" })).getAllByRole("listitem")).toHaveLength(2)
 })
 
-test("the order's parts are the prototype's tabs: Ma'lumot first, then Tarix for whoever may see it", async () => {
+test("the order's parts are the prototype's tabs: Ma'lumot first, the goods (with none too), then Tarix for whoever may see it", async () => {
   await signIn(ALI)
   const { call } = seedOrders()
   open(call.id)
 
   const tabs = await screen.findByRole("tablist", { name: "Buyurtma" })
-  expect(within(tabs).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Ma'lumot", "Tarix"])
+  expect(within(tabs).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Ma'lumot", "Tovarlar", "Tarix"])
   expect(within(tabs).getByRole("tab", { name: "Ma'lumot" })).toHaveAttribute("aria-selected", "true")
   expect(screen.getByRole("region", { name: "Mijoz" })).toBeInTheDocument()
   expect(screen.queryByRole("list", { name: "Tarix" })).not.toBeInTheDocument()
@@ -238,4 +238,16 @@ test("with two or more locations the page says the order's; with one there is no
   open(call.id)
 
   await waitFor(() => expect(pairsOf(screen.getByRole("region", { name: "Ma'lumot" }))).toContainEqual(["Lokatsiya", "Chilonzor"]))
+})
+
+// The goods' tab stands with no goods too (2026-11-15): it is where they are
+// added; until then it says there are none.
+test("the goods' tab of an order without goods says there are none", async () => {
+  await signIn(ALI)
+  const { call } = seedOrders()
+  open(call.id)
+
+  await tab("Tovarlar")
+  const goods = await screen.findByRole("region", { name: "Mahsulotlar" })
+  expect(within(goods).getByText("Tovar yo'q")).toBeInTheDocument()
 })
