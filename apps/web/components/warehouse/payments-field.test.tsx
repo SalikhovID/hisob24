@@ -79,3 +79,19 @@ test("an amount typed in a payment is masked as an amount, and what is left foll
   expect(within(payment(1)).getByLabelText("Summa")).toHaveValue("1 500 000")
   expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 500 000 so'm")
 })
+
+// An account is taken once in a document (2026-11-15): the one another
+// payment has stands in the picker turned off, as a product of another line.
+test("an account another payment has stands turned off in a payment's picker", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<Host total={50000} />)
+
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await choose(user, within(payment(2)).getByRole("button", { name: /^Akkaunt/ }), "Karta ($)")
+  await user.click(within(payment(1)).getByRole("button", { name: /^Akkaunt/ }))
+  const sheet = await screen.findByRole("dialog", { name: "Akkaunt" })
+  expect(within(sheet).getByRole("option", { name: /Karta/ })).toHaveAttribute("aria-disabled", "true")
+  expect(within(sheet).getByRole("option", { name: /Naqd/ })).not.toHaveAttribute("aria-disabled")
+})

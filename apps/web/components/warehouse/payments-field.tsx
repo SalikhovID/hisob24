@@ -66,6 +66,10 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
       {fields.map((line, index) => {
         const current = lines[index]
         const own = accountCurrency(accounts, currencies, Number(current?.bank_account_id))
+        // The accounts the other payments have stand turned off: an account is
+        // taken once in a document.
+        const taken = new Set(lines.filter((_, other) => other !== index).map((other) => other?.bank_account_id))
+        const options = accountOptions(accounts, currencies, Number(current?.bank_account_id)).map((option) => ({ ...option, disabled: taken.has(option.value) }))
         return (
           <fieldset key={line.id} aria-label={`${index + 1}-to'lov`} data-slot="payment-card" className="mb-2.5 min-w-0 overflow-hidden rounded-[24px] surface">
             <div className="flex items-center">
@@ -74,7 +78,7 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
                   control={form.control}
                   name={path(`payments.${index}.bank_account_id`)}
                   label="Akkaunt"
-                  options={accountOptions(accounts, currencies, Number(current?.bank_account_id))}
+                  options={options}
                   disabled={pending}
                 />
               </div>
