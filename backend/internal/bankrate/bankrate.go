@@ -27,7 +27,7 @@ type Rates struct {
 // URLs are where the rates are read; a test points them at a server of its
 // own.
 type URLs struct {
-	CBU string
+	CBU, Aggregator string
 }
 
 // Client reads the banks' rates.
