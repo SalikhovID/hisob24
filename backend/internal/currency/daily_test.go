@@ -212,3 +212,24 @@ func TestDailyCountsTheDayInTashkent(t *testing.T) {
 	assert.Equal(t, ptr("carried"), rows[0].Source)
 	assert.Equal(t, Report{Carried: 1, Skipped: 1}, report)
 }
+
+// A night asks each bank once, however many companies take their rates
+// from it.
+func TestDailyAsksEachBankOnce(t *testing.T) {
+	s, pool := newService(t)
+	var companies []int64
+	for _, source := range []string{bankrate.Kapital, bankrate.Kapital, bankrate.Kapital, bankrate.CBU, bankrate.CBU} {
+		id := addCompany(t, pool, "Olma")
+		takeRatesFrom(t, pool, id, source, 100)
+		companies = append(companies, id)
+	}
+	banks := &fakeBanks{rates: map[string]bankrate.Rates{bankrate.Kapital: {USD: 12045, EUR: 13380, RUB: 142}, bankrate.CBU: centralBank}}
+
+	report := s.Daily(t.Context(), banks, time.Now())
+
+	assert.Equal(t, map[string]int{bankrate.Kapital: 1, bankrate.CBU: 1}, banks.calls)
+	for _, id := range companies {
+		assert.Len(t, standardRows(t, pool, id), 1)
+	}
+	assert.Equal(t, Report{Fetched: 5}, report)
+}

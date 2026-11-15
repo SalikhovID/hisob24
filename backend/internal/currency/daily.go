@@ -44,8 +44,25 @@ func (s *Service) Daily(ctx context.Context, f Fetcher, at time.Time) Report {
 		report.Errors++
 		return report
 	}
+	// The companies with no standard row since the day began: the owner's
+	// own of the morning, or this run's, stands.
+	var due []gen.ListRateSourcesRow
 	for _, c := range companies {
-		o, err := s.dailyRow(ctx, f, c, at)
+		has, err := s.q.HasStandardRateSince(ctx, gen.HasStandardRateSinceParams{CompanyID: c.ID, Since: dayStart(at)})
+		if err != nil {
+			slog.Warn("daily rates: a company's row", "company_id", c.ID, "err", err)
+			report.Errors++
+			continue
+		}
+		if has {
+			report.Skipped++
+			continue
+		}
+		due = append(due, c)
+	}
+	taken := takeRates(ctx, f, due)
+	for _, c := range due {
+		o, err := s.dailyRow(ctx, c, taken[c.RateSource], at)
 		if err != nil {
 			slog.Warn("daily rates: a company's row", "company_id", c.ID, "err", err)
 			report.Errors++
@@ -54,6 +71,33 @@ func (s *Service) Daily(ctx context.Context, f Fetcher, at time.Time) Report {
 		report.count(o)
 	}
 	return report
+}
+
+// bankRates is what a bank gave the night's run: its rates and the bank
+// they are from, or none (ok false).
+type bankRates struct {
+	rates bankrate.Rates
+	used  string
+	ok    bool
+}
+
+// takeRates asks each bank the companies take their rates from, once,
+// whatever the number of them.
+func takeRates(ctx context.Context, f Fetcher, companies []gen.ListRateSourcesRow) map[string]bankRates {
+	taken := map[string]bankRates{}
+	for _, c := range companies {
+		if _, asked := taken[c.RateSource]; asked || c.RateSource == manual {
+			continue
+		}
+		rates, used, err := f.Fetch(ctx, c.RateSource)
+		if err != nil {
+			slog.Warn("daily rates: no bank answered", "source", c.RateSource, "err", err)
+			taken[c.RateSource] = bankRates{}
+			continue
+		}
+		taken[c.RateSource] = bankRates{rates: rates, used: used, ok: true}
+	}
+	return taken
 }
 
 // outcome is what the night's run did for a company.
@@ -79,25 +123,16 @@ func (r *Report) count(o outcome) {
 	}
 }
 
-// dailyRow writes the company's row for the day, unless it has a
-// standard row since the day began: the owner's own, or this run's.
-func (s *Service) dailyRow(ctx context.Context, f Fetcher, c gen.ListRateSourcesRow, at time.Time) (outcome, error) {
-	has, err := s.q.HasStandardRateSince(ctx, gen.HasStandardRateSinceParams{CompanyID: c.ID, Since: dayStart(at)})
-	if err != nil {
-		return skipped, err
-	}
-	if has {
-		return skipped, nil
-	}
-	if c.RateSource == manual {
+// dailyRow writes the company's row for the day: the bank's rates, or
+// yesterday's again.
+func (s *Service) dailyRow(ctx context.Context, c gen.ListRateSourcesRow, got bankRates, at time.Time) (outcome, error) {
+	switch {
+	case c.RateSource == manual:
 		return s.carry(ctx, c.ID, at, carried)
-	}
-	rates, _, err := f.Fetch(ctx, c.RateSource)
-	if err != nil {
-		slog.Warn("daily rates: no bank answered", "company_id", c.ID, "source", c.RateSource, "err", err)
+	case !got.ok:
 		return s.carry(ctx, c.ID, at, failed)
 	}
-	return fetched, s.writeFetched(ctx, c, rates)
+	return fetched, s.writeFetched(ctx, c, got.rates)
 }
 
 // carry enters the company's row in force at the moment again, as it was:
