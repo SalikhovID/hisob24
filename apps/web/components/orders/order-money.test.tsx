@@ -241,3 +241,37 @@ test("without products.view or without orders.edit the goods tab offers no goods
     unmount()
   }
 })
+
+// A product is in an order once: the one it has stands turned off.
+test("in the goods' dialog a product the order has stands turned off", async () => {
+  await signIn(ALI)
+  const { order } = await pricedOrder()
+  setLocation(`/orders/${order.id}`, { id: String(order.id) })
+  const { user } = renderWithProviders(<OrderPage id={order.id} />)
+
+  await user.click(await screen.findByRole("tab", { name: "Tovarlar" }))
+  await user.click(await screen.findByRole("button", { name: "Tovar qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Tovar qo'shish" })
+  await user.click(within(dialog).getByRole("button", { name: /^Mahsulot/ }))
+  const sheet = await screen.findByRole("dialog", { name: "Mahsulot" })
+  expect(await within(sheet).findByRole("option", { name: /Olma/ })).toHaveAttribute("aria-disabled", "true")
+  expect(within(sheet).getByRole("option", { name: /Nok/ })).not.toHaveAttribute("aria-disabled")
+})
+
+// The stock is checked by the API: too little is said in the dialog.
+test("goods the stock cannot give are refused in the API's words, in the dialog", async () => {
+  await signIn(ALI)
+  const { order } = await pricedOrder({ items: [] })
+  setLocation(`/orders/${order.id}`, { id: String(order.id) })
+  const { user } = renderWithProviders(<OrderPage id={order.id} />)
+
+  await user.click(await screen.findByRole("tab", { name: "Tovarlar" }))
+  await user.click(await screen.findByRole("button", { name: "Tovar qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Tovar qo'shish" })
+  await pick(user, dialog, "Mahsulot", "ol", /Olma/)
+  await user.type(within(dialog).getByLabelText("Miqdor"), "100")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  expect(await within(dialog).findByText(/yetarli qoldiq yo'q/)).toBeInTheDocument()
+  expect(screen.getByRole("dialog", { name: "Tovar qo'shish" })).toBeInTheDocument()
+})
