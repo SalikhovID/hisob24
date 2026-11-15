@@ -105,3 +105,16 @@ SELECT EXISTS (
 -- takes its rates from and the step it rounds them to: what the night's
 -- run goes through.
 SELECT id, rate_source, rate_rounding FROM companies ORDER BY id;
+
+-- name: GetRateSource :one
+-- Where the company takes its rates and the step it rounds them to.
+-- pgx.ErrNoRows when there is no such company.
+SELECT rate_source, rate_rounding FROM companies WHERE id = $1;
+
+-- name: SetRateSource :one
+-- Sets where the company takes its rates and the step, as the admin; the
+-- night's run goes by them from the next midnight. pgx.ErrNoRows when there
+-- is no such company.
+UPDATE companies SET rate_source = sqlc.arg('rate_source'), rate_rounding = sqlc.arg('rate_rounding')
+WHERE id = sqlc.arg('id')
+RETURNING rate_source, rate_rounding;

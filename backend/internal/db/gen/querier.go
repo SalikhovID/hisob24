@@ -480,6 +480,9 @@ type Querier interface {
 	// The standard rate row in force at the moment: the newest set at or before
 	// it. pgx.ErrNoRows before the company's first rate.
 	GetRateAt(ctx context.Context, arg GetRateAtParams) (CurrencyRate, error)
+	// Where the company takes its rates and the step it rounds them to.
+	// pgx.ErrNoRows when there is no such company.
+	GetRateSource(ctx context.Context, id int64) (GetRateSourceRow, error)
 	// The company's role with how many members hold it; pgx.ErrNoRows when the
 	// company has none such.
 	GetRole(ctx context.Context, arg GetRoleParams) (GetRoleRow, error)
@@ -870,6 +873,10 @@ type Querier interface {
 	// Turns a product or a service off (no longer offered) or on again.
 	// pgx.ErrNoRows when the company has no such row, or deleted it.
 	SetProductActive(ctx context.Context, arg SetProductActiveParams) (Product, error)
+	// Sets where the company takes its rates and the step, as the admin; the
+	// night's run goes by them from the next midnight. pgx.ErrNoRows when there
+	// is no such company.
+	SetRateSource(ctx context.Context, arg SetRateSourceParams) (SetRateSourceRow, error)
 	// Turns a supplier off (offered to no new purchase) or on again.
 	// pgx.ErrNoRows when the company has no such supplier, or deleted it.
 	SetSupplierActive(ctx context.Context, arg SetSupplierActiveParams) (Supplier, error)

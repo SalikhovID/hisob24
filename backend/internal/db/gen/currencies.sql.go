@@ -310,6 +310,24 @@ func (q *Queries) GetRateAt(ctx context.Context, arg GetRateAtParams) (CurrencyR
 	return i, err
 }
 
+const getRateSource = `-- name: GetRateSource :one
+SELECT rate_source, rate_rounding FROM companies WHERE id = $1
+`
+
+type GetRateSourceRow struct {
+	RateSource   string
+	RateRounding int32
+}
+
+// Where the company takes its rates and the step it rounds them to.
+// pgx.ErrNoRows when there is no such company.
+func (q *Queries) GetRateSource(ctx context.Context, id int64) (GetRateSourceRow, error) {
+	row := q.db.QueryRow(ctx, getRateSource, id)
+	var i GetRateSourceRow
+	err := row.Scan(&i.RateSource, &i.RateRounding)
+	return i, err
+}
+
 const hasStandardRateSince = `-- name: HasStandardRateSince :one
 SELECT EXISTS (
     SELECT 1 FROM currency_rates
@@ -498,4 +516,31 @@ type RemoveCompanyCurrencyParams struct {
 func (q *Queries) RemoveCompanyCurrency(ctx context.Context, arg RemoveCompanyCurrencyParams) error {
 	_, err := q.db.Exec(ctx, removeCompanyCurrency, arg.CompanyID, arg.CurrencyID)
 	return err
+}
+
+const setRateSource = `-- name: SetRateSource :one
+UPDATE companies SET rate_source = $1, rate_rounding = $2
+WHERE id = $3
+RETURNING rate_source, rate_rounding
+`
+
+type SetRateSourceParams struct {
+	RateSource   string
+	RateRounding int32
+	ID           int64
+}
+
+type SetRateSourceRow struct {
+	RateSource   string
+	RateRounding int32
+}
+
+// Sets where the company takes its rates and the step, as the admin; the
+// night's run goes by them from the next midnight. pgx.ErrNoRows when there
+// is no such company.
+func (q *Queries) SetRateSource(ctx context.Context, arg SetRateSourceParams) (SetRateSourceRow, error) {
+	row := q.db.QueryRow(ctx, setRateSource, arg.RateSource, arg.RateRounding, arg.ID)
+	var i SetRateSourceRow
+	err := row.Scan(&i.RateSource, &i.RateRounding)
+	return i, err
 }

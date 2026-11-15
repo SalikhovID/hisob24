@@ -228,3 +228,26 @@ func TestListRateSources(t *testing.T) {
 		{ID: nok.ID, RateSource: "manual", RateRounding: 1000},
 	}, rows, "every company, the inactive too, in the order made")
 }
+
+// A company's rate source and step, read and set as the admin does.
+func TestRateSource(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+
+	got, err := q.GetRateSource(ctx, olma.ID)
+	require.NoError(t, err)
+	assert.Equal(t, gen.GetRateSourceRow{RateSource: "cbu", RateRounding: 100}, got, "the central bank, to 100")
+
+	set, err := q.SetRateSource(ctx, gen.SetRateSourceParams{ID: olma.ID, RateSource: "kapitalbank", RateRounding: 1000})
+	require.NoError(t, err)
+	assert.Equal(t, gen.SetRateSourceRow{RateSource: "kapitalbank", RateRounding: 1000}, set)
+	got, err = q.GetRateSource(ctx, olma.ID)
+	require.NoError(t, err)
+	assert.Equal(t, gen.GetRateSourceRow{RateSource: "kapitalbank", RateRounding: 1000}, got)
+
+	_, err = q.GetRateSource(ctx, olma.ID+1000)
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "no such company")
+	_, err = q.SetRateSource(ctx, gen.SetRateSourceParams{ID: olma.ID + 1000, RateSource: "cbu", RateRounding: 100})
+	assert.ErrorIs(t, err, pgx.ErrNoRows, "no such company")
+}
