@@ -27,8 +27,21 @@ type Rates struct {
 // URLs are where the rates are read; a test points them at a server of its
 // own.
 type URLs struct {
-	CBU, Aggregator string
+	CBU, Aggregator                             string
+	Kapital, IpakYuli, Asaka, Hamkor, Uzum, OFB string
 }
+
+// The sources a company may take its rates from (companies.rate_source,
+// apart from "manual").
+const (
+	CBU      = "cbu"
+	Kapital  = "kapitalbank"
+	IpakYuli = "ipakyuli"
+	Asaka    = "asaka"
+	Hamkor   = "hamkor"
+	Uzum     = "uzum"
+	OFB      = "ofb"
+)
 
 // Client reads the banks' rates.
 type Client struct {
