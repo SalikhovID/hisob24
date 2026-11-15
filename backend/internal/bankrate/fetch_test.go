@@ -115,3 +115,23 @@ func TestFetchStopsWaitingWhenTheContextEnds(t *testing.T) {
 	assert.Error(t, err)
 	assert.Less(t, time.Since(start), 5*time.Second, "not an hour")
 }
+
+// The API reads the banks themselves, where tw-dobroe reads them: a bank
+// gets 15 seconds, and the chain three tries a minute apart.
+func TestNewReadsTheBanksThemselves(t *testing.T) {
+	c := New()
+
+	assert.Equal(t, 15*time.Second, c.HTTP.Timeout)
+	assert.Equal(t, 3, c.Attempts)
+	assert.Equal(t, time.Minute, c.Pause)
+	assert.Equal(t, URLs{
+		CBU:        "https://cbu.uz/ru/arkhiv-kursov-valyut/json/",
+		Aggregator: "https://valyutalarkursi.uz/ru/exchange-rates/",
+		Kapital:    "https://kapitalbank.uz/uz/welcome/show_curs/",
+		IpakYuli:   "https://ipakyulibank.uz/uz/physical/exchange-rates",
+		Asaka:      "https://asakabank.uz/uz/personal/foreign-currency-exchange/",
+		Hamkor:     "https://hamkorbank.uz/uz/exchange-rate/",
+		Uzum:       "https://uzumbank.uz/uz/currency",
+		OFB:        "https://ofb.uz/kursy-valyut",
+	}, c.URLs)
+}

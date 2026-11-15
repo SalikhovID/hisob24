@@ -103,3 +103,23 @@ func (c *Client) get(ctx context.Context, url, accept string) ([]byte, error) {
 	}
 	return io.ReadAll(io.LimitReader(res.Body, maxBody))
 }
+
+// New is the client the API runs with: the banks' own addresses (tw-dobroe's),
+// 15 seconds a request, the chain three times a minute apart.
+func New() *Client {
+	return &Client{
+		HTTP: &http.Client{Timeout: 15 * time.Second},
+		URLs: URLs{
+			CBU:        "https://cbu.uz/ru/arkhiv-kursov-valyut/json/",
+			Aggregator: "https://valyutalarkursi.uz/ru/exchange-rates/",
+			Kapital:    "https://kapitalbank.uz/uz/welcome/show_curs/",
+			IpakYuli:   "https://ipakyulibank.uz/uz/physical/exchange-rates",
+			Asaka:      "https://asakabank.uz/uz/personal/foreign-currency-exchange/",
+			Hamkor:     "https://hamkorbank.uz/uz/exchange-rate/",
+			Uzum:       "https://uzumbank.uz/uz/currency",
+			OFB:        "https://ofb.uz/kursy-valyut",
+		},
+		Attempts: 3,
+		Pause:    time.Minute,
+	}
+}
