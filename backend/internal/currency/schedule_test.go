@@ -13,7 +13,9 @@ import (
 
 func TestNextMidnight(t *testing.T) {
 	t.Parallel()
-	at := func(y int, m time.Month, d, h, min, s int) time.Time { return time.Date(y, m, d, h, min, s, 0, tashkent) }
+	at := func(y int, m time.Month, d, h, min, s int) time.Time {
+		return time.Date(y, m, d, h, min, s, 0, tashkent)
+	}
 	cases := []struct {
 		name      string
 		now, want time.Time
