@@ -6,9 +6,11 @@ package bankrate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // userAgent is what every request says it is: a page answers it as it
@@ -47,6 +49,38 @@ const (
 type Client struct {
 	HTTP *http.Client
 	URLs URLs
+	// Attempts is how many times Fetch goes through the source and the
+	// central bank before it gives up; Pause is the wait between.
+	Attempts int
+	Pause    time.Duration
+}
+
+// Fetch is the source's rates, or the central bank's when the source has
+// none, and the bank they are from. The two are gone through Attempts
+// times, Pause apart, before it gives up; the context ends a pause.
+func (c *Client) Fetch(ctx context.Context, source string) (Rates, string, error) {
+	chain := []string{source}
+	if source != CBU {
+		chain = append(chain, CBU)
+	}
+	for attempt := 1; ; attempt++ {
+		var errs []error
+		for _, s := range chain {
+			r, err := c.one(ctx, s)
+			if err == nil {
+				return r, s, nil
+			}
+			errs = append(errs, fmt.Errorf("%s: %w", s, err))
+		}
+		if attempt >= c.Attempts {
+			return Rates{}, "", fmt.Errorf("bankrate: no bank answered: %w", errors.Join(errs...))
+		}
+		select {
+		case <-ctx.Done():
+			return Rates{}, "", ctx.Err()
+		case <-time.After(c.Pause):
+		}
+	}
 }
 
 // get is the body of the answer to a GET of the URL; anything but 200 is an
