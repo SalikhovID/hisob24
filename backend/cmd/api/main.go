@@ -19,6 +19,7 @@ import (
 	"github.com/SalikhovID/hisob24/backend/internal/admin"
 	"github.com/SalikhovID/hisob24/backend/internal/app"
 	"github.com/SalikhovID/hisob24/backend/internal/auth"
+	"github.com/SalikhovID/hisob24/backend/internal/bankrate"
 	"github.com/SalikhovID/hisob24/backend/internal/billing"
 	"github.com/SalikhovID/hisob24/backend/internal/bot/adminbot"
 	"github.com/SalikhovID/hisob24/backend/internal/bot/userbot"
@@ -133,6 +134,10 @@ func run() error {
 		Handler:           guard(httpx.NewRouter(mounts...)),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
+
+	// The night's rates (logic/currencies.md, section 4): the day filled
+	// now, then every midnight in Tashkent, from each company's bank.
+	go currencies.RunDaily(ctx, bankrate.New())
 
 	serveErr := make(chan error, 1)
 	go func() {
