@@ -311,3 +311,16 @@ test("the order is entered on a screen of its own: the dialog is a full one", as
   expect(dialog).toHaveAttribute("data-full", "true")
   expect(dialog).toHaveAttribute("data-tall", "true")
 })
+
+// An order may have no goods (logic/orders.md, 4.3): a line added and then
+// not wanted is taken away, the lone one too.
+test("the order's goods may be none: a lone line is taken away", async () => {
+  await signIn(ALI)
+  seedOrders()
+  const { user, dialog } = await openDialog()
+
+  await user.click(within(dialog).getByRole("button", { name: "Mahsulot qo'shish" }))
+  const line = within(dialog).getByRole("group", { name: "1-qator" })
+  await user.click(within(line).getByRole("button", { name: "1-qatorni olib tashlash" }))
+  expect(within(dialog).queryByRole("group", { name: "1-qator" })).not.toBeInTheDocument()
+})

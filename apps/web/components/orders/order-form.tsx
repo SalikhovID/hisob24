@@ -144,7 +144,7 @@ export function MoneySection({
         {withPayments ? "Narx mijoz qarziga yoziladi, avans uni kamaytiradi" : "Narx mijoz qarziga yoziladi; to'lovlar buyurtma sahifasida"}
         {canPickProducts && locationName ? `; mahsulotlar «${locationName}» qoldig'idan chiqadi.` : "."}
       </Foot>
-      {canPickProducts && <LinesField form={form} companyId={companyId} withPrice={false} currencyId={currencyId} pending={form.formState.isSubmitting} kinds={["product", "service"]} />}
+      {canPickProducts && <LinesField form={form} companyId={companyId} withPrice={false} currencyId={currencyId} pending={form.formState.isSubmitting} kinds={["product", "service"]} optional />}
       {withPayments && (
         <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={currencyId} total={Number(amount.replace(/\s/g, "").replace(",", ".")) || 0} pending={form.formState.isSubmitting} heading="Avans" />
       )}
