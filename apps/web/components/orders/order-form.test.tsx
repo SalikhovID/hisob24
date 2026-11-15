@@ -4,8 +4,8 @@ import { expect, test } from "vitest"
 import { type OrderForm, type OrderOutput, orderDefaults } from "@/lib/orders"
 import type { OrderType } from "@/lib/types"
 import { VALI } from "@/mocks/data"
+import { chooseCurrency } from "@/test/currency"
 import { renderWithProviders } from "@/test/render"
-import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { LinkedCustomerCard, MoneySection } from "./order-form"
 
@@ -37,15 +37,15 @@ test("the price follows the order's currency: it is turned by the rates in force
   const { user, unmount } = renderWithProviders(<MoneyHost />)
 
   await user.type(screen.getByLabelText("Narx"), "1 920 000")
-  await choose(user, await screen.findByLabelText("Valyuta"), "USD — AQSH dollari")
+  await chooseCurrency(user, "USD")
   expect(screen.getByLabelText("Narx")).toHaveValue("150,00")
-  await choose(user, screen.getByLabelText("Valyuta"), "UZS — O'zbek so'mi")
+  await chooseCurrency(user, "UZS")
   expect(screen.getByLabelText("Narx")).toHaveValue("1 920 000,00")
   unmount()
 
   const opened = renderWithProviders(<MoneyHost amount="150.00" currencyId="2" />)
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   expect(screen.getByLabelText("Narx")).toHaveValue("150,00")
-  await choose(opened.user, screen.getByLabelText("Valyuta"), "UZS — O'zbek so'mi")
+  await chooseCurrency(opened.user, "UZS")
   expect(screen.getByLabelText("Narx")).toHaveValue("1 920 000,00")
 })

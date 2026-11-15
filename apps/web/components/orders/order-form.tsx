@@ -6,14 +6,14 @@ import { type Control, type UseFormReturn, useWatch } from "react-hook-form"
 import { FieldAnswer } from "@/components/field-answer"
 import { Avatar } from "@/components/kit/avatar"
 import { ChoiceChips } from "@/components/kit/chips"
-import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { AmountRow, SegmentedRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group } from "@/components/kit/group"
 import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
 import { LinesField } from "@/components/warehouse/lines-field"
 import { PaymentsField } from "@/components/warehouse/payments-field"
 import { ApiError } from "@/lib/api"
-import { currencyOf, currencyOptions, isMulti, turnTyped, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { currencyCodes, currencyOf, isMulti, turnTyped, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { customerName } from "@/lib/customers"
 import { fieldKey, type FormField } from "@/lib/fields"
 import { assigneeOptions } from "@/lib/members"
@@ -135,7 +135,7 @@ export function MoneySection({
     <>
       <Group>
         <AmountRow control={form.control} name="amount" label="Narx" suffix={currency.symbol} placeholder="narxsiz" />
-        {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
+        {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
         {isMulti(currencies) && currencyId !== UZS && (
           <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
         )}
