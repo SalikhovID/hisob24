@@ -99,3 +99,9 @@ SELECT EXISTS (
     SELECT 1 FROM currency_rates
     WHERE company_id = sqlc.arg('company_id') AND status = 1 AND set_at >= sqlc.arg('since')
 );
+
+-- name: ListRateSources :many
+-- Every company, the inactive and the expired too, with the source it
+-- takes its rates from and the step it rounds them to: what the night's
+-- run goes through.
+SELECT id, rate_source, rate_rounding FROM companies ORDER BY id;

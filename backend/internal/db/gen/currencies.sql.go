@@ -396,6 +396,39 @@ func (q *Queries) ListCurrencies(ctx context.Context) ([]Currency, error) {
 	return items, nil
 }
 
+const listRateSources = `-- name: ListRateSources :many
+SELECT id, rate_source, rate_rounding FROM companies ORDER BY id
+`
+
+type ListRateSourcesRow struct {
+	ID           int64
+	RateSource   string
+	RateRounding int32
+}
+
+// Every company, the inactive and the expired too, with the source it
+// takes its rates from and the step it rounds them to: what the night's
+// run goes through.
+func (q *Queries) ListRateSources(ctx context.Context) ([]ListRateSourcesRow, error) {
+	rows, err := q.db.Query(ctx, listRateSources)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRateSourcesRow{}
+	for rows.Next() {
+		var i ListRateSourcesRow
+		if err := rows.Scan(&i.ID, &i.RateSource, &i.RateRounding); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRates = `-- name: ListRates :many
 SELECT r.id, r.usd, r.eur, r.rub, r.set_at, COALESCE(m.full_name, r.set_by_name) AS set_by_name, r.source
 FROM currency_rates r

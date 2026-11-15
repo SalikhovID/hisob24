@@ -712,6 +712,10 @@ type Querier interface {
 	// first (then the later entered), without the deleted; supplier_id keeps
 	// one supplier's, NULL leaves the filter out. The columns are GetPurchase's.
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
+	// Every company, the inactive and the expired too, with the source it
+	// takes its rates from and the step it rounds them to: what the night's
+	// run goes through.
+	ListRateSources(ctx context.Context) ([]ListRateSourcesRow, error)
 	// A page of the company's standard rate rows, the newest first, each with
 	// the name the member who set it goes by now (the name of then once they
 	// have left), or, for a row of the night's run, where it came from.

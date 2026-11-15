@@ -210,3 +210,21 @@ func TestHasStandardRateSince(t *testing.T) {
 	assert.True(t, has(olma.ID), "a member's standard row since")
 	assert.True(t, has(nok.ID), "the night's row since")
 }
+
+// The night's run goes through every company with the source and the step
+// it takes its rates by.
+func TestListRateSources(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	nok := createCompany(t, q, "Nok", today(t, pool))
+	mustExec(t, pool, "UPDATE companies SET rate_source = 'manual', rate_rounding = 1000, is_active = false WHERE id = $1", nok.ID)
+
+	rows, err := q.ListRateSources(ctx)
+
+	require.NoError(t, err)
+	assert.Equal(t, []gen.ListRateSourcesRow{
+		{ID: olma.ID, RateSource: "cbu", RateRounding: 100},
+		{ID: nok.ID, RateSource: "manual", RateRounding: 1000},
+	}, rows, "every company, the inactive too, in the order made")
+}
