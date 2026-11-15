@@ -118,3 +118,29 @@ func rateAfter(text string, labels []string, lowest, highest float64) (float64, 
 	}
 	return 0, fmt.Errorf("no rate after %v", labels)
 }
+
+// nodesByTag is every element of the tag under the node, in the page's order.
+func nodesByTag(root *html.Node, tag string) []*html.Node {
+	var out []*html.Node
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == tag {
+			out = append(out, n)
+		}
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(root)
+	return out
+}
+
+// attr is the value of the node's attribute, "" without it.
+func attr(n *html.Node, key string) string {
+	for _, a := range n.Attr {
+		if a.Key == key {
+			return a.Val
+		}
+	}
+	return ""
+}
