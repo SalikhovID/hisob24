@@ -131,3 +131,21 @@ func TestRates(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, total)
 }
+
+// The night's run writes a standard row with no member, saying where its
+// rates came from (logic/currencies.md, section 4).
+func TestCreateAutoRate(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+
+	row, err := q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: olma.ID, Usd: rateOf(t, "12000"), Eur: rateOf(t, "13300"), Rub: rateOf(t, "146.19"), Source: "cbu"})
+
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, row.Status, "a standard row")
+	assert.Nil(t, row.SetBy, "no member")
+	assert.Equal(t, ptr("cbu"), row.Source)
+	assert.Equal(t, "12000.0000", numericText(t, row.Usd))
+	assert.Equal(t, "13300.0000", numericText(t, row.Eur))
+	assert.Equal(t, "146.1900", numericText(t, row.Rub))
+}

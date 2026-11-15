@@ -83,3 +83,11 @@ SELECT count(*) FROM currency_rates WHERE company_id = $1 AND status = 1;
 -- How many live accounts of the company are in the currency: what keeps
 -- it from being turned off too.
 SELECT count(*) FROM bank_accounts WHERE company_id = $1 AND currency_id = $2 AND deleted_at IS NULL;
+
+-- name: CreateAutoRate :one
+-- Writes the night's standard row for the company: no member, the source
+-- its rates came from instead (a bank, or yesterday's row: 'carried',
+-- 'failed').
+INSERT INTO currency_rates (company_id, usd, eur, rub, status, source)
+VALUES (sqlc.arg('company_id'), sqlc.arg('usd'), sqlc.arg('eur'), sqlc.arg('rub'), 1, sqlc.arg('source')::text)
+RETURNING *;

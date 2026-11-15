@@ -158,6 +158,10 @@ type Querier interface {
 	// caller draws a new code.
 	CreateAdminLoginCode(ctx context.Context, arg CreateAdminLoginCodeParams) (int64, error)
 	CreateAdminSession(ctx context.Context, arg CreateAdminSessionParams) (AdminSession, error)
+	// Writes the night's standard row for the company: no member, the source
+	// its rates came from instead (a bank, or yesterday's row: 'carried',
+	// 'failed').
+	CreateAutoRate(ctx context.Context, arg CreateAutoRateParams) (CurrencyRate, error)
 	// Adds an account of the company in the currency; 23505 when the name is
 	// another live account's (whatever the case).
 	CreateBankAccount(ctx context.Context, arg CreateBankAccountParams) (BankAccount, error)

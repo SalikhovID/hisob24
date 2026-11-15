@@ -95,6 +95,48 @@ func (q *Queries) CountRates(ctx context.Context, companyID int64) (int64, error
 	return count, err
 }
 
+const createAutoRate = `-- name: CreateAutoRate :one
+INSERT INTO currency_rates (company_id, usd, eur, rub, status, source)
+VALUES ($1, $2, $3, $4, 1, $5::text)
+RETURNING id, company_id, uzs, usd, eur, rub, status, set_by, set_by_name, set_at, source
+`
+
+type CreateAutoRateParams struct {
+	CompanyID int64
+	Usd       pgtype.Numeric
+	Eur       pgtype.Numeric
+	Rub       pgtype.Numeric
+	Source    string
+}
+
+// Writes the night's standard row for the company: no member, the source
+// its rates came from instead (a bank, or yesterday's row: 'carried',
+// 'failed').
+func (q *Queries) CreateAutoRate(ctx context.Context, arg CreateAutoRateParams) (CurrencyRate, error) {
+	row := q.db.QueryRow(ctx, createAutoRate,
+		arg.CompanyID,
+		arg.Usd,
+		arg.Eur,
+		arg.Rub,
+		arg.Source,
+	)
+	var i CurrencyRate
+	err := row.Scan(
+		&i.ID,
+		&i.CompanyID,
+		&i.Uzs,
+		&i.Usd,
+		&i.Eur,
+		&i.Rub,
+		&i.Status,
+		&i.SetBy,
+		&i.SetByName,
+		&i.SetAt,
+		&i.Source,
+	)
+	return i, err
+}
+
 const createRate = `-- name: CreateRate :one
 INSERT INTO currency_rates (company_id, usd, eur, rub, status, set_by, set_by_name)
 VALUES ($1, $2, $3, $4, $5, $6::text, $7)
