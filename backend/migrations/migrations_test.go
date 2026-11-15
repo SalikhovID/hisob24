@@ -1984,3 +1984,90 @@ func TestTheOrderNumbersMigrationNumbersTheOrders(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'number')").Scan(&has))
 	assert.False(t, has, "and takes the numbers away")
 }
+
+// A company takes its rates from a source the admin picks, the central bank
+// unless told otherwise, and rounds the dollar and the euro to a step, 100
+// unless told otherwise (logic/currencies.md, section 4): the companies
+// there are get the same.
+func TestCompaniesTakeTheirRatesFromTheCentralBankByDefault(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 22)
+	require.NoError(t, err)
+	before := addCompany(t, pool, "Olma")
+	_, err = provider.Up(ctx)
+	require.NoError(t, err)
+	after := addCompany(t, pool, "Nok")
+
+	for _, c := range []int64{before, after} {
+		var source string
+		var rounding int
+		require.NoError(t, pool.QueryRow(ctx, "SELECT rate_source, rate_rounding FROM companies WHERE id = $1", c).Scan(&source, &rounding))
+		assert.Equal(t, "cbu", source, "the central bank")
+		assert.Equal(t, 100, rounding, "to 100 so'm")
+	}
+	for _, source := range []string{"manual", "cbu", "kapitalbank", "ipakyuli", "asaka", "hamkor", "uzum", "ofb"} {
+		_, err = pool.Exec(ctx, "UPDATE companies SET rate_source = $1 WHERE id = $2", source, after)
+		assert.NoError(t, err, source)
+	}
+	_, err = pool.Exec(ctx, "UPDATE companies SET rate_source = 'carried' WHERE id = $1", after)
+	assert.Equal(t, "23514", sqlState(err), "a source is a bank or manual")
+	for _, step := range []int{1, 10, 100, 1000} {
+		_, err = pool.Exec(ctx, "UPDATE companies SET rate_rounding = $1 WHERE id = $2", step, after)
+		assert.NoError(t, err, step)
+	}
+	_, err = pool.Exec(ctx, "UPDATE companies SET rate_rounding = 50 WHERE id = $1", after)
+	assert.Equal(t, "23514", sqlState(err), "a step is 1, 10, 100 or 1000")
+}
+
+// A rate row is entered by a member or written by the night's run: the
+// run's rows have no member and say where they came from, a bank or
+// yesterday's row (logic/currencies.md, section 4).
+func TestARateRowIsAMembersOrTheNightsRun(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111')")
+	require.NoError(t, err)
+
+	for _, source := range []string{"cbu", "kapitalbank", "ipakyuli", "asaka", "hamkor", "uzum", "ofb", "carried", "failed"} {
+		_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd, source) VALUES ($1, 12000, $2)", c, source)
+		assert.NoError(t, err, source)
+	}
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd, set_by) VALUES ($1, 12800, '998901111111')", c)
+	assert.NoError(t, err, "a member's row has no source")
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd, source) VALUES ($1, 12000, 'manual')", c)
+	assert.Equal(t, "23514", sqlState(err), "manual is not where a row comes from")
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd) VALUES ($1, 12000)", c)
+	assert.Equal(t, "23514", sqlState(err), "a row is someone's")
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd, set_by, source) VALUES ($1, 12000, '998901111111', 'cbu')", c)
+	assert.Equal(t, "23514", sqlState(err), "a member's or the run's, not both")
+}
+
+// Down gives the run's rows the company's owner, as a document may point
+// at them, and takes the sources away.
+func TestTheRateSourcesMigrationDownGivesTheRunsRowsTheOwner(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	c := addCompany(t, pool, "Olma")
+	_, err := pool.Exec(ctx, "INSERT INTO users (phone) VALUES ('998901111111'), ('998902222222')")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "INSERT INTO user_companies (user_phone, company_id, role) VALUES ('998902222222', $1, 'user'), ('998901111111', $1, 'owner')", c)
+	require.NoError(t, err)
+	var id int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO currency_rates (company_id, usd, source) VALUES ($1, 12000, 'cbu') RETURNING id", c).Scan(&id))
+
+	_, err = newProvider(t, pool).DownTo(ctx, 22)
+	require.NoError(t, err)
+
+	var by string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT set_by FROM currency_rates WHERE id = $1", id).Scan(&by))
+	assert.Equal(t, "998901111111", by, "the owner's")
+	_, err = pool.Exec(ctx, "INSERT INTO currency_rates (company_id, usd) VALUES ($1, 12000)", c)
+	assert.Equal(t, "23502", sqlState(err), "a row is a member's again")
+	_, err = pool.Exec(ctx, "SELECT source FROM currency_rates")
+	assert.Equal(t, "42703", sqlState(err), "the rows' source is gone")
+	_, err = pool.Exec(ctx, "SELECT rate_source, rate_rounding FROM companies")
+	assert.Equal(t, "42703", sqlState(err), "and the companies'")
+}
