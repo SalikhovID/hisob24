@@ -324,3 +324,15 @@ test("the order's goods may be none: a lone line is taken away", async () => {
   await user.click(within(line).getByRole("button", { name: "1-qatorni olib tashlash" }))
   expect(within(dialog).queryByRole("group", { name: "1-qator" })).not.toBeInTheDocument()
 })
+
+// The advance goes with the price, so it stands right under it; the goods
+// come after.
+test("the money's sections: the advance under the price, the goods after it", async () => {
+  await signIn(ALI)
+  seedOrders()
+  const { dialog } = await openDialog()
+
+  const advance = within(dialog).getByRole("region", { name: "Avans" })
+  const goods = within(dialog).getByRole("region", { name: "Mahsulotlar" })
+  expect(advance.compareDocumentPosition(goods)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+})

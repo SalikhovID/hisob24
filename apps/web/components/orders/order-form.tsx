@@ -93,10 +93,10 @@ export function OrderFields({
 
 // MoneySection is the order's money in the form (logic/orders.md, 4.3): the
 // price (with another currency than the so'm, the currency and its rate,
-// the standard one offered), the lines of goods (products and services,
-// without prices; for whoever may pick the products) and, on entry
-// (withPayments), the advance's payments. locationName says where the
-// goods come from.
+// the standard one offered), on entry (withPayments) the advance's payments
+// right under it, then the lines of goods (products and services, without
+// prices, none at all if so; for whoever may pick the products).
+// locationName says where the goods come from.
 export function MoneySection({
   form,
   companyId,
@@ -144,10 +144,10 @@ export function MoneySection({
         {withPayments ? "Narx mijoz qarziga yoziladi, avans uni kamaytiradi" : "Narx mijoz qarziga yoziladi; to'lovlar buyurtma sahifasida"}
         {canPickProducts && locationName ? `; mahsulotlar «${locationName}» qoldig'idan chiqadi.` : "."}
       </Foot>
-      {canPickProducts && <LinesField form={form} companyId={companyId} withPrice={false} currencyId={currencyId} pending={form.formState.isSubmitting} kinds={["product", "service"]} optional />}
       {withPayments && (
         <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={currencyId} total={Number(amount.replace(/\s/g, "").replace(",", ".")) || 0} pending={form.formState.isSubmitting} heading="Avans" />
       )}
+      {canPickProducts && <LinesField form={form} companyId={companyId} withPrice={false} currencyId={currencyId} pending={form.formState.isSubmitting} kinds={["product", "service"]} optional />}
     </>
   )
 }
