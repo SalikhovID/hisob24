@@ -199,6 +199,31 @@ test("a press on a date field asks the browser for its calendar", async () => {
   }
 })
 
+// showPicker throws where the browser will not show the calendar: a frame of
+// another origin (a mini app in Telegram's web client), no picker at all.
+test("a browser that will not show its calendar leaves the press quiet, the field focused", async () => {
+  const refuse = () => {
+    throw new DOMException("showPicker() called from cross-origin iframe.", "SecurityError")
+  }
+  Object.defineProperty(HTMLInputElement.prototype, "showPicker", { value: refuse, configurable: true })
+  const errors: unknown[] = []
+  const onError = (event: ErrorEvent) => {
+    errors.push(event.error)
+    event.preventDefault()
+  }
+  window.addEventListener("error", onError)
+  try {
+    const user = userEvent.setup()
+    render(<Dated />)
+    await user.click(screen.getByLabelText("Muddat"))
+    expect(errors).toEqual([])
+    expect(screen.getByLabelText("Muddat")).toHaveFocus()
+  } finally {
+    window.removeEventListener("error", onError)
+    delete (HTMLInputElement.prototype as { showPicker?: unknown }).showPicker
+  }
+})
+
 test("a day already chosen has no hint, and a text field's placeholder is the browser's own", () => {
   const { unmount } = render(<Dated day="2026-11-20" />)
   expect(screen.getByLabelText("Muddat")).toHaveValue("2026-11-20")

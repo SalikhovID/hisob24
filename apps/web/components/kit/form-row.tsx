@@ -78,6 +78,17 @@ export function FormRow({
   )
 }
 
+// openCalendar asks the browser to show a date input's calendar. One that
+// will not (a frame of another origin, as a mini app in Telegram's web
+// client; no picker at all) throws: the press then only focuses the field.
+function openCalendar(element: HTMLInputElement) {
+  try {
+    element.showPicker?.()
+  } catch {
+    // Nothing to show: the field keeps the focus the press gave it.
+  }
+}
+
 // TextRow is a text input in a row; prefix and suffix stand beside it. A date
 // row with a placeholder says it over the native input until a day is chosen:
 // an empty native date draws nothing on some phones (iOS leaves it blank), and
@@ -110,7 +121,7 @@ export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
             {...input}
             onClick={(event) => {
               input.onClick?.(event)
-              if (input.type === "date") event.currentTarget.showPicker?.()
+              if (input.type === "date") openCalendar(event.currentTarget)
             }}
             {...field}
             value={field.value ?? ""}
