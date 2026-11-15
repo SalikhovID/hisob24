@@ -12,6 +12,7 @@ import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
 import { LinesField } from "@/components/warehouse/lines-field"
 import { PaymentsField } from "@/components/warehouse/payments-field"
+import { RateRow } from "@/components/warehouse/rate-row"
 import { ApiError } from "@/lib/api"
 import { currencyCodes, currencyOf, isMulti, turnTyped, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { customerName } from "@/lib/customers"
@@ -93,7 +94,9 @@ export function OrderFields({
 
 // MoneySection is the order's money in the form (logic/orders.md, 4.3): the
 // price (with another currency than the so'm, the currency and its rate,
-// the standard one offered), on entry (withPayments) the advance's payments
+// said, not asked: an order has no date of its own to take a rate for, so
+// it is today's standard one, or an edited order's own until the currency
+// changes, sent as said), on entry (withPayments) the advance's payments
 // right under it, then the lines of goods (products and services, without
 // prices, none at all if so; for whoever may pick the products). No note
 // under the price (2026-11-15).
@@ -112,9 +115,10 @@ export function MoneySection({
   const accounts = useAccounts()
   const currencyId = Number(useWatch({ control: form.control, name: "currency_id" })) || UZS
   const amount = useWatch({ control: form.control, name: "amount" })
+  const rate = useWatch({ control: form.control, name: "rate" })
   const currency = currencyOf(currencies, currencyId)
 
-  // Another currency: its standard rate is offered, again when it changes.
+  // Another currency: its standard rate is taken, again when it changes.
   useOfferedRate(form, currencyId, currencies)
 
   // A change of the currency turns the price into it by the rates in force
@@ -135,9 +139,7 @@ export function MoneySection({
         {/* The currency is chosen first, the price is typed in it. */}
         {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
         <AmountRow control={form.control} name="amount" label="Narx" suffix={currency.symbol} placeholder="narxsiz" />
-        {isMulti(currencies) && currencyId !== UZS && (
-          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
-        )}
+        {isMulti(currencies) && currencyId !== UZS && <RateRow currency={currency} rate={rate} />}
       </Group>
       {withPayments && (
         <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={currencyId} total={Number(amount.replace(/\s/g, "").replace(",", ".")) || 0} pending={form.formState.isSubmitting} heading="Avans" />

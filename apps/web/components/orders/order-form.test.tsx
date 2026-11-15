@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react"
-import { useForm } from "react-hook-form"
+import { useEffect } from "react"
+import { useForm, type UseFormReturn } from "react-hook-form"
 import { expect, test } from "vitest"
 import { type OrderForm, type OrderOutput, orderDefaults } from "@/lib/orders"
 import type { OrderType } from "@/lib/types"
@@ -18,12 +19,19 @@ test("the customer an order is for stands on a card of frosted glass, the way to
   expect(screen.getByRole("button", { name: "Boshqa mijoz" })).not.toHaveClass("bg-primary-soft")
 })
 
+// hosted is the form MoneyHost rendered last: what it would send.
+let hosted: UseFormReturn<OrderForm, unknown, OrderOutput>
+
 // MoneyHost is an order's money in a form of its own, opened with the
-// price and the currency given; withPayments is the entry's (the advance).
-function MoneyHost({ amount = "", currencyId = "1", withPayments = false }: { amount?: string; currencyId?: string; withPayments?: boolean }) {
+// price, the currency and the rate given; withPayments is the entry's (the
+// advance).
+function MoneyHost({ amount = "", currencyId = "1", rate = "", withPayments = false }: { amount?: string; currencyId?: string; rate?: string; withPayments?: boolean }) {
   const form = useForm<OrderForm, unknown, OrderOutput>({
-    defaultValues: { ...orderDefaults({ fields: [] } as unknown as OrderType, null, null), amount, currency_id: currencyId },
+    defaultValues: { ...orderDefaults({ fields: [] } as unknown as OrderType, null, null), amount, currency_id: currencyId, rate },
   })
+  useEffect(() => {
+    hosted = form
+  }, [form])
   return (
     <form>
       <MoneySection form={form} companyId={2} withPayments={withPayments} canPickProducts={false} />
@@ -60,10 +68,33 @@ test("the price follows the order's currency: it is turned by the rates in force
   unmount()
 
   const opened = renderWithProviders(<MoneyHost amount="150.00" currencyId="2" />)
-  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
+  expect(await screen.findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
   expect(screen.getByLabelText("Narx")).toHaveValue("150,00")
   await chooseCurrency(opened.user, "UZS")
   expect(screen.getByLabelText("Narx")).toHaveValue("1 920 000,00")
+})
+
+// No rate is asked (2026-11-15). An order has no date of its own to take a
+// rate for: its rate is today's standard one, or an edited order's own until
+// its currency changes, and what is said is what is sent.
+test("an order's rate is said, not asked: today's standard one, or an edited order's own until its currency changes", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const entry = renderWithProviders(<MoneyHost />)
+  await chooseCurrency(entry.user, "USD")
+  expect(await screen.findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
+  expect(screen.queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
+  expect(hosted.getValues("rate")).toBe("12800")
+  entry.unmount()
+
+  const edited = renderWithProviders(<MoneyHost amount="150.00" currencyId="2" rate="13000" />)
+  expect(await screen.findByText("1 USD = 13 000 so'm")).toBeInTheDocument()
+  expect(hosted.getValues("rate")).toBe("13000")
+  await chooseCurrency(edited.user, "UZS")
+  expect(screen.queryByText(/^1 USD/)).not.toBeInTheDocument()
+  await chooseCurrency(edited.user, "USD")
+  expect(await screen.findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
+  expect(hosted.getValues("rate")).toBe("12800")
 })
 
 // The currency is chosen before the price is typed in it (2026-11-15):
