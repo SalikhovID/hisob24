@@ -33,16 +33,16 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 - Har kompaniya UZS bilan boshlaydi: mavjud kompaniyalarga migratsiya 00014 yozadi, yangisiga kompaniya yaratilganda.
 - Admin kompaniya sahifasida **Valyutalar** bo'limida USD, EUR, RUB ni yoqadi yoki o'chiradi (`PUT /admin/companies/{id}/currencies {currency_ids}`). UZS doim ro'yxatda, olib tashlanmaydi: usiz ro'yxat (bo'sh ro'yxat ham) 400 «UZS olib tashlanmaydi».
 - **O'chirish** (ro'yxatdan chiqarish): shu valyutada jonli hujjat, mahsulot narxi yoki akkaunt bo'lsa 409 `currency_in_use` «Bu valyutada N ta hujjat bor» (mahsulot va akkaunt ham sanaladi: «N ta mahsulot», «N ta akkaunt»). Bo'lmasa chiqariladi; kurs tarixi qoladi.
-- Kompaniyada faqat UZS bo'lsa, user app'da valyuta va kurs maydonlari umuman ko'rinmaydi; 2+ valyutada hujjat formalarida valyuta tanlovi (standart UZS) va kurs maydoni chiqadi.
+- Kompaniyada faqat UZS bo'lsa, user app'da valyuta va kurs umuman ko'rinmaydi; 2+ valyutada hujjat formalarida valyuta tanlovi (standart UZS), boshqa valyutada uning ostida hujjat yoziladigan kurs chiqadi (kiritilmaydi, 6-bo'lim).
 
 ## 4. Kurslar
 
 - Egasi (yoki `settings.edit`) **Sozlamalar → Valyuta kurslari** da yoqilgan har valyutaning kursini bitta formada kiritadi (`POST /app/currency-rates {usd?, eur?, rub?}`): bitta standart qator yoziladi (`set_at` = hozir, kim kiritgani). Kurs > 0, 10 xonagacha butun va 4 kasr; yoqilmagan valyuta kursi yuborilsa 400 `currency_not_allowed`; yoqilgan valyuta kursi yuborilmasa oldingi standart qatordan olinadi (bo'lmasa 0). UZS kursi doim 1.
 - **Joriy kurs** = eng oxirgi standart qator. `/app/me` da har yoqilgan valyutaning joriy kursi (`rate`; 0 bo'lsa `null`).
 - **Tarix** (`GET /app/currency-rates?page=`): standart qatorlar yangi birinchi, 20 tadan: kurslar, kim (avtomatik qatorda manba: bank nomi, «Kechagi kurs» yoki «Bank javob bermadi · kechagi kurs»), qachon; sahifada kompaniyaning manbai va qadami (`rate_source`, `rate_rounding`). Qator o'zgartirilmaydi va o'chirilmaydi: yangisi kiritiladi.
-- **Hujjat sanasidagi kurs.** Hujjat yozilganda uning `at` lahzasida amalda bo'lgan standart qator olinadi (`set_at <= at` bo'lgan eng oxirgisi; bo'lmasa eng birinchi standart qator). Orqa sana bilan kiritilgan hujjat o'sha kundagi kursni oladi. Hujjat tahrirlanganda vaqt o'zgarsa kurs qatori qayta tanlanadi (formada kursi o'zgartirilgan hujjatda emas: o'z qatori qoladi).
-- **Hujjatning o'z kursi.** Formada taklif qilingan kurs o'zgartirilsa, hujjat uchun alohida qator (`status = 2`) yoziladi: o'zgartirilgan valyuta ustuni kiritilgan qiymat, qolganlari o'sha lahzadagi standartdan. Tarixda ko'rinmaydi. Hujjat o'chirilsa qator qoladi.
-- Yoqilgan valyutaning joriy kursi 0 bo'lsa (hali kiritilmagan), shu valyutadagi hujjat formasi kursni talab qiladi: 400 «Kursni kiriting»; kiritilgani hujjatning o'z kursi bo'ladi.
+- **Hujjat sanasidagi kurs.** Hujjat yozilganda uning `at` lahzasida amalda bo'lgan standart qator olinadi (`set_at <= at` bo'lgan eng oxirgisi; bo'lmasa eng birinchi standart qator). Orqa sana bilan kiritilgan hujjat o'sha kundagi kursni oladi. API qatorni kurs berilmaganda shunday tanlaydi; tahrirda hujjatning hozirgi kursi qaytarib berilsa, uning qatori qoladi. User app tahrirda hujjat kursini qaytarib yuboradi, shuning uchun vaqt o'zgarsa ham kurs o'zgarmaydi (2026-11-15 qarori: «o'z kursi saqlansin»). Qator faqat valyuta almashtirilganda qayta tanlanadi.
+- **Hujjatning o'z kursi.** API'ga lahzadagi standartdan boshqa kurs berilsa, hujjat uchun alohida qator (`status = 2`) yoziladi: o'zgartirilgan valyuta ustuni berilgan qiymat, qolganlari o'sha lahzadagi standartdan. Tarixda ko'rinmaydi. Hujjat o'chirilsa qator qoladi. 2026-11-15 dan user app kurs so'ramaydi. Shundan beri o'z qatori faqat valyutasi tahrirda almashtirilgan buyurtmada paydo bo'ladi: bugungi kurs buyurtma hujjati lahzasidagidan farq qilsa. Undan oldingi qatorlar formada kursi o'zgartirilgan hujjatlarda qolgan.
+- Hujjat lahzasidagi standart qatorda valyuta kursi 0 bo'lsa (hali kiritilmagan), kurssiz hujjat 400 «Kursni kiriting» oladi. User app formasi bunda «Kurs kiritilmagan» deydi. Kurs **Sozlamalar → Valyuta kurslari** da kiritiladi yoki 00:00 dagi avtomatik qator bilan keladi. 2026-11-15 gacha u formada kiritilardi va hujjatning o'z kursi bo'lardi.
 
 ### Avtomatik kurs (har kuni 00:00)
 
@@ -60,9 +60,9 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 
 - Har hujjatda `currency_id` (berilmasa UZS) va kurs. Qatorlar (narx, summa) va `total` hujjat valyutasida. So'mdagi qiymat (`total_uzs`) hujjat kurs qatori bilan hisoblanadi: `convert_amount(total, currency, UZS, kurs qatori)`, 2 kasrgacha.
 - Kompaniyada yoqilmagan valyuta: 400 `currency_not_allowed` «Bu valyuta kompaniyada yoqilmagan». Valyuta keyin o'chirilsa, bor hujjatlar o'zgarmaydi (o'chirish to'siladi, 3-bo'lim).
-- **To'lov** (ta'minotchiga, mijozdan, xarajat, kirim) valyutasi tanlanmaydi: akkauntniki ([finance.md](finance.md)). Kursi akkaunt valyutasi bo'yicha hujjat sanasidagi standart (formada o'zgartirish mumkin). Hujjat formasidagi «To'liq» qolgan summani akkaunt valyutasiga eng yaqin sentgacha aylantiradi, shuning uchun to'lov jamidan bir oz oshishi mumkin (50 000 so'm Dollar akkauntidan: 3,91 $ = 50 048 so'm); to'lovlar jamidan oshsa forma «Qolgan» o'rniga «Ortiqcha: 48 so'm» deydi, oshgani balansda avans bo'lib qoladi.
+- **To'lov** (ta'minotchiga, mijozdan, xarajat, kirim) valyutasi tanlanmaydi: akkauntniki ([finance.md](finance.md)). Kursi akkaunt valyutasi bo'yicha hujjat sanasidagi standart: formada aytiladi, 2026-11-15 dan o'zgartirilmaydi. Hujjat formasidagi «To'liq» qolgan summani akkaunt valyutasiga eng yaqin sentgacha aylantiradi, shuning uchun to'lov jamidan bir oz oshishi mumkin (50 000 so'm Dollar akkauntidan: 3,91 $ = 50 048 so'm); to'lovlar jamidan oshsa forma «Qolgan» o'rniga «Ortiqcha: 48 so'm» deydi, oshgani balansda avans bo'lib qoladi.
 - **Mahsulot narxi** (`products.price`) o'z valyutasida (`products.currency_id`, standart UZS). Sotuv formasida mahsulot tanlanganda: narx valyutasi hujjat valyutasiga mos bo'lsa to'ldiriladi, aks holda hujjat kursi bilan aylantirib taklif qilinadi (2 kasr, saqlangan narx kabi: «12800.00»); foydalanuvchi o'zgartiradi. Oxirgi xarid narxi ham shunday ([products.md](products.md)).
-- **Formada valyuta almashtirilsa** (sotuv, xarid, boshlang'ich qoldiq, buyurtma): qatorlardagi narxlar va buyurtma narxi, taklif qilingani ham, qo'lda yozilgani ham, joriy kurs bilan yangi valyutaga aylantiriladi (2 kasr: 1 920 000 so'm → «150.00» $); narx bo'lmagan matn va kursi yo'q valyuta aylantirilmaydi. Kurs maydoni yangi valyutaning standart kursini oladi: oldingi valyutaga yozilgan kurs o'tmaydi, kursi kiritilmagan valyutada maydon bo'sh qoladi va so'raladi (to'lov formasida akkaunt almashsa ham shunday). O'z valyutasida ochilgan hujjatning narxlari va kursi valyuta almashtirilmaguncha o'zgarmaydi.
+- **Formada valyuta almashtirilsa** (sotuv, xarid, boshlang'ich qoldiq, buyurtma): qatorlardagi narxlar va buyurtma narxi, taklif qilingani ham, qo'lda yozilgani ham, joriy kurs bilan yangi valyutaga aylantiriladi (2 kasr: 1 920 000 so'm → «150.00» $); narx bo'lmagan matn va kursi yo'q valyuta aylantirilmaydi. Hujjat yangi valyutaning o'z sanasidagi standart kursini oladi (buyurtmada sana yo'q, shuning uchun bugungisini), oldingi valyutadagi kursi o'tmaydi. To'lov formasida akkaunt almashsa ham shunday. O'z valyutasida ochilgan hujjatning narxlari va kursi valyuta almashtirilmaguncha o'zgarmaydi.
 - **Balans** (ta'minotchi, mijoz) so'mda: har hujjat o'z kursi bilan aylantiriladi; kurs farqi balansda qoladi (100 USD xarid 12 800 dan va 100 USD to'lov 13 000 dan: valyuta bo'yicha 0 USD, so'mda −20 000 avans). Yoniga valyuta bo'yicha tafsilot ishorasiz, so'z bilan: avval qarz, keyin avans («shu jumladan qarz 500 000 so'm, avans 100 $»); qoldig'i 0 bo'lgan valyuta aytilmaydi, faqat so'm qolsa tafsilot yo'q. **Akkaunt qoldig'i** faqat o'z valyutasida, aylantirilmaydi.
 
 ## 6. Ko'rinish
@@ -70,19 +70,25 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 - So'm: «1 200 000 so'm»; boshqalari belgisi bilan: «150 $», «90 €», «1 000 ₽». Minglar bo'shliq bilan, kasr vergul bilan, 2 kasr, `.00` tashlanadi (`formatMoney(amount, currency)`).
 - Jadval ustuni sarlavhasida valyuta aytilmaydi (hujjatlar aralash bo'lishi mumkin): har summa o'z belgisi bilan. So'mdagi jami («Jami, so'm») balans kartalarida.
 - Kurs: «1 USD = 12 800 so'm» (kasrsiz bo'lsa kasr ko'rsatilmaydi, bo'lsa 4 tagacha).
-- Valyuta tanlovi: user app formalarida (buyurtma, sotuv, xarid, boshlang'ich qoldiq — forma va dialog, mahsulot va xizmat) tablarga o'xshash radio tugmalar (`SegmentedRow`), har birida kod («UZS», «USD»); 2026-11-15 gacha ro'yxat (select) edi: kod va nom («USD — AQSH dollari»). Kurs maydoni yonida (`inputMode="decimal"`, vergul qabul qilinadi).
+- Valyuta tanlovi: user app formalarida (buyurtma, sotuv, xarid, boshlang'ich qoldiq — forma va dialog, mahsulot va xizmat) tablarga o'xshash radio tugmalar (`SegmentedRow`), har birida kod («UZS», «USD»); 2026-11-15 gacha ro'yxat (select) edi: kod va nom («USD — AQSH dollari»).
+- **Kurs formada kiritilmaydi** (2026-11-15). Foydalanuvchi so'zlari: «usd tanlansa kurs inputi kerak emas, shu kungi joriy kursdan olib ketishi kerak». Joylar: sotuv, xarid, boshlang'ich qoldiq (forma va qarz/avans dialogi), buyurtma, to'lov (akkaunt valyutasida). Boshqa valyutada valyuta ostidagi «Kurs» qatori (`RateRow`) hujjat yoziladigan kursni aytadi:
+  - tahrirdagi hujjatning o'z kursi (valyuta almashtirilmaguncha);
+  - bugungi yoki keyingi sanada joriy standart kurs («1 USD = 12 800 so'm»);
+  - orqa sanada «14.11.2026 dagi kurs»: o'sha kunning kursini API oladi, sahifa uning raqamini bilmaydi;
+  - kurs yo'q bo'lsa «Kurs kiritilmagan».
+- Forma yangi hujjatda kursni bo'sh yuboradi va API hujjat lahzasidagi standart kursni oladi (4-bo'lim). Buyurtmada esa sana yo'q: valyuta tanlanganda bugungi standart kurs olinadi va aynan u yuboriladi, shunda ko'rsatilgan kurs saqlanadigan kurs bilan bir xil bo'ladi.
 
 ## 7. Chekka holatlar
 
 | Holat | Natija |
 |---|---|
-| Admin USD'ni yoqdi, egasi kurs kiritmadi, xodim USD'da xarid kiritmoqda | forma kursni talab qiladi; kiritilgani hujjatning o'z kursi |
+| Admin USD'ni yoqdi, egasi kurs kiritmadi, xodim USD'da xarid kiritmoqda | forma «Kurs kiritilmagan» deydi, saqlashda 400 «Kursni kiriting»; kurs sozlamalarda kiritiladi yoki 00:00 da avtomatik keladi (2026-11-15 gacha formada kiritilardi) |
 | Kurs yangilandi | avvalgi hujjatlar o'z qatorida qoladi; balans o'zgarmaydi; yangi hujjat yangi kursni oladi |
-| Orqa sana bilan hujjat | o'sha sanadagi standart kurs; o'sha sanada hali kurs bo'lmasa eng birinchi standart qator |
-| Hujjat sanasi tahrirda o'zgartirildi | kurs qatori qayta tanlanadi (o'z kursli hujjatda qoladi); so'mdagi qiymat o'zgarishi mumkin |
+| Orqa sana bilan hujjat | o'sha sanadagi standart kurs; o'sha sanada hali kurs bo'lmasa eng birinchi standart qator; formadagi «Kurs» qatori «14.11.2026 dagi kurs» deydi |
+| Hujjat sanasi tahrirda o'zgartirildi | user app'da kurs o'zgarmaydi: forma hujjat kursini qaytarib yuboradi (2026-11-15); kurssiz so'rovda API qatorni qayta tanlaydi |
 | Admin ishlatilgan valyutani o'chirmoqchi | 409 `currency_in_use` |
 | Mahsulot narxi USD, sotuv so'mda | narx joriy hujjat kursi bilan so'mga aylantirib taklif qilinadi |
-| Formada hujjat valyutasi almashtirildi (so'm → USD, USD → EUR) | narxlar joriy kurs bilan aylantiriladi; kurs maydoni yangi valyutaning standart kursi |
+| Formada hujjat valyutasi almashtirildi (so'm → USD, USD → EUR) | narxlar joriy kurs bilan aylantiriladi; hujjat yangi valyutaning o'z sanasidagi standart kursini oladi (buyurtmada bugungi) |
 | 50 000 so'mlik xarid Dollar akkauntidan «To'liq» bilan | 3,91 $ (= 50 048 so'm); forma «Ortiqcha: 48 so'm» deydi, 48 so'm ta'minotchida avans |
 | Kompaniyada faqat UZS, mahsulotda USD narx qolgan (valyuta o'chirilgan bo'lolmaydi) | bo'lmaydi: narxi bor mahsulot valyutani to'sadi |
 | 00:00 da tanlangan bank (masalan Kapitalbank) javob bermadi | Markaziy bank kursi yoziladi; u ham javob bermasa kechagi kurs nusxasi («Bank javob bermadi · kechagi kurs») |
