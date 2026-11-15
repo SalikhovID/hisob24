@@ -252,6 +252,7 @@ Qoidalar: [`logic/finance.md`](logic/finance.md), valyutalar va kurslar: [`logic
 | `make dev` | `./start.sh`: Postgres, migratsiya, API + admin + web |
 | `make test` | Go testlari (haqiqiy Postgres bilan) va Vitest |
 | `make e2e` | Playwright: admin (3101-port) va user app (3102-port), 375px telefon va desktop, API MSW bilan mock qilinadi. Birinchi marta: `pnpm --filter @hisob24/admin exec playwright install chromium` |
+| `pnpm --filter @hisob24/web e2e:server` | e2e uchun dev server (3102-port, `.next-e2e`, API MSW bilan). Fonda ishga tushirilsa, `make e2e` va `playwright test` shu serverni ishlatadi. Admin uchun: `@hisob24/admin` (3101-port) |
 | `make lint` | `go vet`, golangci-lint, eslint, typecheck |
 | `make migrate`, `migrate-down`, `migrate-status`, `migrate-create name=…` | goose migratsiyalari (`backend/migrations`) |
 | `make sqlc` | `backend/internal/db/gen` ni generatsiya qiladi (qo'lda tahrirlanmaydi) |

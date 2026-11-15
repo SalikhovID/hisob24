@@ -7,7 +7,7 @@ Har bir yangi funksiya, endpoint, servis yoki bug fix uchun quyidagi tartibga qa
 1. **RED.** Avval kutilgan xatti-harakatni tavsiflovchi test yoz. Kod hali yozilmaydi.
 2. **Testni ishga tushir va yiqilishini ko'r.** Buyruqni (`go test ./...`, `pnpm test`) va yiqilish natijasini menga ko'rsat. Test to'g'ri sabab bilan yiqilishi kerak. Masalan, funksiya kutilgan qiymatni qaytarmagani uchun. Kompilyatsiya xatosi yoki noto'g'ri import sabab bo'lsa, bu hisoblanmaydi. Kerak bo'lsa, avval bo'sh stub yoz (`return nil, errors.New("not implemented")`), shunda test kompilyatsiya bo'ladi va mantiq bo'yicha yiqiladi.
 3. **GREEN.** Faqat shu testni o'tkazish uchun yetarli bo'lgan minimal kodni yoz.
-4. **Testni qayta ishga tushir va o'tganini ko'rsat.** Shuningdek, oldingi testlarning hammasi ham o'tishini tekshir.
+4. **Testni qayta ishga tushir va o'tganini ko'rsat.** Shuningdek, o'zgargan modullarning o'z test fayllari ham o'tishini tekshir. To'liq suite har siklda emas, push oldidan yuradi (pastdagi «Testlar qachon yuradi»).
 5. **REFACTOR.** Kerak bo'lsa, kodni tozala va testlarni yana ishga tushir.
 
 Taqiqlar:
@@ -24,17 +24,34 @@ Qaysi turdagi test yoziladi:
 
 Faqat 1-bosqichdagi skelet sozlamalari (konfiguratsiya fayllari, Docker, Makefile) testlarsiz yozilishi mumkin.
 
+## Testlar qachon yuradi
+
+| Qachon | Nima yuradi |
+|---|---|
+| RED va GREEN | Faqat yozilayotgan test: bitta vitest fayl, `go test ./internal/<paket> -run <Test>` yoki bitta e2e test (`-g "<nom>" --project=<mobile\|desktop>`, `e2e:server` ustida) |
+| Har commit | Shu siklning testi va o'zgargan modullarning o'z test fayllari (fayl bo'lmasa, faqat siklning testi). Go'da o'zgargan paketlar. To'liq suite yurmaydi |
+| Push oldidan (ish oxirida bir marta) | Faqat o'zgargan tomon. `apps/*`, `packages/*`: `make lint-web`, `make test-web` va o'sha bo'limning e2e spec'lari (ikkala project). `backend/`: `make lint-go`, `make test-go` (keshli, `-count=1` siz). `openapi.yaml`: `make api-client` va ikkala tomon. Faqat hujjatlar: hech narsa |
+| Faqat foydalanuvchi so'raganda | To'liq gate: `make lint && make test && make e2e` (~10–12 daq). Deploydan oldin ham majburiy emas |
+
+- **E2e test** faqat jsdom tekshira olmaydigan narsaga yoziladi: o'lcham va joylashuv, haqiqiy CSS, klaviatura va viewport, sahifalar orasidagi oqim. Qolgani Vitest + RTL bilan.
+- **Push gate'dagi e2e spec'lar** shu ishda o'zgargan sahifa va komponentlarni qamrab olgan `apps/<app>/e2e/*.spec.ts` fayllaridir. Faqat backend o'zgargan bo'lsa e2e yurmaydi, chunki e2e'da API MSW bilan mock qilingan.
+- **Flaky e2e.** Yiqilgan e2e bir marta `--last-failed` bilan qayta yurgiziladi. Yana yiqilsa, haqiqiy xato deb tekshiriladi. Qayta yurgizishda o'tgan test hisobotda flaky deb yoziladi.
+- **Deploy.** Push gate shu HEAD'da o'tgan bo'lsa, deploy oldidan qayta yurgizilmaydi. Deployning o'z tekshiruvlari o'zgarmaydi: pre-flight, dump, toza build va probe.
+- **Hisobot.** Push gate'da nima yurgani yoziladi. Umumiy kodga tegilgan bo'lsa, bitta qator qo'shiladi: «to'liq e2e yurmagan; o'zgargan umumiy kod: …». Umumiy kod: `components/kit`, `components/ui`, `components/shell`, `lib/`, `app/globals.css`, `app/layout.tsx`, `packages/api-client`, `backend/internal/db`, `backend/migrations`. To'liq gate kerakmi, buni foydalanuvchi hal qiladi.
+- **E2e server.** Sessiyada birinchi e2e kerak bo'lganda `pnpm --filter @hisob24/web e2e:server` (admin uchun `@hisob24/admin`) fonda ishga tushiriladi. Playwright uni `reuseExistingServer` orqali o'zi topadi. Sessiya oxirida server to'xtatiladi va 3102 / 3101 portlar bo'shaydi.
+- Dizayn va o'lchovlar: `docs/superpowers/specs/2026-11-15-test-tiers-design.md`.
+
 ## Git
 
-- Faqat `main` branch'da ishlanadi. Alohida branch, worktree va PR ochilmaydi.
-- Remote: `git@github.com:SalikhovID/hisob24.git`. Push: `git push origin main`.
+- Ish `dev` branch'da qilinadi (2026-10-11 dan, foydalanuvchi so'rovi bilan). `dev` test serverga, `main` prod'ga chiqadi. Boshqa branch, worktree va PR ochilmaydi.
+- Remote: `git@github.com:SalikhovID/hisob24.git`. Push: `git push origin dev`. Prod'ga o'tkazishda `main` da `git merge --ff-only dev`, keyin `git push origin main` bajariladi.
 - Har bir GREEN sikldan keyin commit qilinadi. Commit xabari Conventional Commits uslubida, inglizcha.
-- Push bosqich oxirida qilinadi: `make lint`, `make test` va `make e2e` o'tgandan keyin, hisobotdan oldin.
+- Push ish yoki bosqich oxirida, push gate o'tgandan keyin (yuqoridagi «Testlar qachon yuradi») va hisobotdan oldin qilinadi.
 
 ## Ish tartibi
 
 - Ish `docs/SPEC.md` dagi 10-bo'lim bosqichlari bo'yicha bajariladi.
-- Har bosqich oxirida build va testlar tekshiriladi va hisobot beriladi. Hisobotda har funksiya uchun RED → GREEN ko'rsatiladi.
+- Har bosqich oxirida push gate yuradi va hisobot beriladi. Hisobotda har funksiya uchun RED → GREEN ko'rsatiladi.
 - Keyingi bosqichga faqat foydalanuvchi tasdig'idan keyin o'tiladi.
 - Spec'dan chetga chiqish kerak bo'lsa yoki biror narsa noaniq bo'lsa, taxmin qilinmaydi, foydalanuvchidan so'raladi.
 
@@ -62,6 +79,8 @@ Faqat 1-bosqichdagi skelet sozlamalari (konfiguratsiya fayllari, Docker, Makefil
 make dev          # = ./start.sh: Postgres va DB tekshiruvi, migratsiya, API (air) + admin + web
 make test         # go test ./... + pnpm -r test
 make e2e          # Playwright: admin (3101) va user app (3102), 375px telefon + desktop, API MSW bilan
+make test-go / test-web, make lint-go / lint-web   # bitta tomon: push gate shularni ishlatadi
+pnpm --filter @hisob24/web e2e:server   # e2e dev server (3102) fonda; Playwright uni qayta ishlatadi. Admin: @hisob24/admin (3101)
 make migrate      # goose up (backend/migrations)
 make sqlc         # sqlc generate → backend/internal/db/gen
 make lint         # go vet + golangci-lint + pnpm lint + pnpm typecheck
