@@ -53,7 +53,8 @@ test("an opening stock is entered into the current location like a purchase with
   expect(moved()).toBe("forward")
 })
 
-test("with more than the so'm the currency and the rate are asked, and the total is in it; the form refuses in the API's words", async () => {
+// No rate is asked (2026-11-15): the one the document is written at is said.
+test("with more than the so'm the currency is asked and its rate said, and the total is in it; the form refuses in the API's words", async () => {
   await signIn(VALI)
   await chooseCompany(2)
   const at = "2026-10-02T05:00:00Z"
@@ -69,7 +70,8 @@ test("with more than the so'm the currency and the rate are asked, and the total
 
   expect(within(await currencyGroup()).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "true")
   await chooseCurrency(user, "USD")
-  expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
+  expect(await screen.findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
+  expect(screen.queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")
   await user.type(within(line(1)).getByLabelText("Narx"), "25")
