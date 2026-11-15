@@ -3,11 +3,11 @@ import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
 import { stockOf } from "@/mocks/ledger"
+import { chooseCurrency, currencyGroup } from "@/test/currency"
 import { asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
-import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpeningStock } from "@/test/stock"
 import { momentIn } from "@/test/moment"
@@ -67,8 +67,8 @@ test("with more than the so'm the currency and the rate are asked, and the total
   expect(within(line(1)).getByText("Miqdor noto'g'ri")).toBeInTheDocument()
   expect(within(line(1)).getByText("Narx noto'g'ri")).toBeInTheDocument()
 
-  expect(screen.getByLabelText("Valyuta")).toHaveTextContent("UZS — O'zbek so'mi")
-  await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
+  expect(within(await currencyGroup()).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "true")
+  await chooseCurrency(user, "USD")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   await user.type(within(line(1)).getByLabelText("Miqdor"), "2")

@@ -3,12 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useWatch } from "react-hook-form"
 import { DateTimeRow } from "@/components/kit/date-sheet"
-import { AmountRow, TextRow } from "@/components/kit/form-row"
+import { AmountRow, SegmentedRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainBar, MainButton } from "@/components/kit/main-button"
-import { SelectRow } from "@/components/kit/picker-sheet"
 import { Refusal } from "@/components/refusal"
-import { currencyOf, currencyOptions, isMulti, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { currencyCodes, currencyOf, isMulti, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { type OpeningStockForm as OpeningStockFormValues, type OpeningStockOutput, openingStockSchema } from "@/lib/stock"
 import { LinesField } from "./lines-field"
 
@@ -46,7 +45,7 @@ export function OpeningStockForm({
       {refusal && <Refusal className="mb-4">{refusal}</Refusal>}
       <Group>
         <DateTimeRow control={form.control} name="at" label="Vaqt" />
-        {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
+        {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
         {isMulti(currencies) && currencyId !== UZS && (
           <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
         )}
