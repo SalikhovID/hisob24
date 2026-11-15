@@ -1,13 +1,11 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test } from "vitest"
-import { ALI, db, localToday, seedCatalog, seedOrders, seedWarehouse, VALI } from "@/mocks/data"
-import { stockOf } from "@/mocks/ledger"
+import { ALI, db, localToday, seedOrders, VALI } from "@/mocks/data"
 import { press } from "@/test/keypad"
 import { asosiyOf } from "@/test/locations"
 import { setLocation } from "@/test/navigation"
 import { pricedOrder } from "@/test/order-money"
-import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { rowParts } from "@/test/rows"
@@ -20,14 +18,12 @@ import { OrdersPage } from "./orders-page"
 const plain = (text: string | null | undefined) => text?.replace(/\s+/g, " ") ?? null
 const setDate = (input: HTMLElement, value: string) => fireEvent.change(input, { target: { value } })
 
-// An order is entered with its price, a product from the stock and an
-// advance (logic/orders.md, 4.3); the list's row says the price and what
+// An order is entered with its price and an advance (logic/orders.md, 4.3;
+// its goods go on through its edit); the list's row says the price and what
 // is left of it.
-test("the order dialog takes a price, the goods and an advance; the row says what is left", async () => {
+test("the order dialog takes a price and an advance; the row says what is left", async () => {
   await signIn(ALI)
   seedOrders()
-  const catalog = seedCatalog()
-  seedWarehouse(catalog)
   setLocation("/orders?view=list")
   const { user } = renderWithProviders(<OrdersPage />)
   await user.click((await screen.findAllByRole("button", { name: "Buyurtma qo'shish" }))[0])
@@ -38,16 +34,11 @@ test("the order dialog takes a price, the goods and an advance; the row says wha
   await user.click(await screen.findByRole("option", { name: /91 111 22 33/ }))
   const order = within(dialog).getByRole("group", { name: "Buyurtma" })
   setDate(within(order).getByLabelText("Muddat"), localToday())
-  // The money: the price in so'm (the company has no other currency), the
-  // lines of goods and the advance's payments.
+  // The money: the price in so'm (the company has no other currency) and the
+  // advance's payments.
   const money = within(dialog).getByRole("group", { name: "Narx" })
   expect(within(money).queryByLabelText("Valyuta")).not.toBeInTheDocument()
   await user.type(within(money).getByLabelText("Narx"), "5000")
-  await user.click(within(dialog).getByRole("button", { name: "Mahsulot qo'shish" }))
-  const line = within(dialog).getByRole("group", { name: "1-qator" })
-  await pick(user, line, "Mahsulot", "ol", /Olma/)
-  await user.type(within(line).getByLabelText("Miqdor"), "2")
-  expect(within(line).queryByLabelText("Narx")).not.toBeInTheDocument()
   await user.click(within(dialog).getByRole("button", { name: "To'lov qo'shish" }))
   await user.type(within(within(dialog).getByRole("group", { name: "1-to'lov" })).getByLabelText("Summa"), "400")
   expect(plain(within(dialog).getByText(/^Qolgan:/).textContent)).toBe("Qolgan: 4 600 so'm")
@@ -58,7 +49,6 @@ test("the order dialog takes a price, the goods and an advance; the row says wha
   const document = db.transactions.find((t) => t.kind === "order" && t.orderId === entered.id)!
   expect(document).toMatchObject({ total: 5000, customerId: entered.customerId, locationId: asosiyOf(1).id })
   expect(db.transactions.find((t) => t.kind === "customer_payment" && t.linkedId === document.id)).toMatchObject({ total: 400 })
-  expect(stockOf(catalog.olma.id, [asosiyOf(1).id])).toBe(10.5)
   const row = await within(screen.getByRole("region", { name: "Buyurtmalar" })).findByRole("link", { name: /^Buyurtma № 5/ })
   expect(plain(rowParts(row).sub)).toContain("5 000 so'm · qolgan 4 600 so'm")
 })

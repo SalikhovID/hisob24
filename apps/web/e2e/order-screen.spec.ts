@@ -65,15 +65,15 @@ test("on a phone the order is entered on a screen of its own: all of the phone, 
 test("on a phone every field of the order's form has an edge of its own, none is white on a white card", async ({ page }) => {
   test.skip(!onPhone(page), "a phone's field stands on a card of its own colour")
   const dialog = await openAddOrder(page)
-  await dialog.getByRole("button", { name: /Mahsulot qo'shish/ }).click()
   await dialog.getByRole("button", { name: /To'lov qo'shish/ }).click()
   // The amount just added holds the focus, whose ring is another one.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
 
   // The customer's phone, the name, the source, the deadline, the stage,
-  // the assignee, the price, the product, the quantity, the account, the amount.
+  // the assignee, the price, the account, the amount (the goods are no part
+  // of taking the order).
   const boxes = dialog.locator('[data-slot="field-box"]')
-  expect(await boxes.count()).toBeGreaterThanOrEqual(10)
+  expect(await boxes.count()).toBeGreaterThanOrEqual(8)
   for (const box of await boxes.all()) await expect(box).toHaveCSS("box-shadow", /0px 0px 0px 1px inset$/)
 })
 

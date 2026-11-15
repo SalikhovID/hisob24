@@ -2,10 +2,8 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { can } from "@/lib/permissions"
-import { useCustomerDropdowns, useCustomerTypes, useMembers, useMe, useOrderStages, useOrderTypes } from "@/lib/queries"
+import { useCustomerDropdowns, useCustomerTypes, useMembers, useOrderStages, useOrderTypes } from "@/lib/queries"
 import type { Customer } from "@/lib/types"
-import { useLocation } from "@/lib/use-location"
 import { AddOrderDialog } from "./order-dialog"
 
 // NewOrder opens the order dialog away from the orders page (the home's tile,
@@ -26,8 +24,6 @@ export function NewOrder({
   onClose: () => void
 }) {
   const router = useRouter()
-  const me = useMe()
-  const { current } = useLocation()
   const types = useOrderTypes(companyId)
   const stages = useOrderStages(companyId)
   const customerTypes = useCustomerTypes(companyId)
@@ -47,8 +43,6 @@ export function NewOrder({
       stages={stages.data!}
       customerTypes={customerTypes.data!}
       canCreateCustomer={canCreateCustomer}
-      canPickProducts={can(me.data?.permissions, "products.view")}
-      locationName={current?.name}
       dropdowns={dropdowns.data!}
       members={members.data!}
       typeId={null}

@@ -223,10 +223,10 @@ test("the owner edits an order, reads its history, finds it on the customer's pa
   await expect(row(page, "Buyurtma № 4")).toHaveCount(0)
 })
 
-// An order's money (logic/orders.md, 4.3–4.4): the price, a product from
-// the stock and an advance entered with it; the card, the page, a payment
-// on its own and the customer's debt.
-test("the owner enters an order with a price, a product and an advance; the page says the money and the cost; a payment settles part; the customer's debt follows", async ({ page }) => {
+// An order's money (logic/orders.md, 4.3–4.4): the price and an advance
+// entered with it, a product from the stock added on its edit; the card, the
+// page, a payment on its own and the customer's debt.
+test("the owner enters an order with a price and an advance, adds a product on its edit; the page says the money and the cost; a payment settles part; the customer's debt follows", async ({ page }) => {
   test.setTimeout(120_000)
   seedOrders()
   // Asosiy holds 12,5 kg Olma bought at 1 000.
@@ -240,14 +240,11 @@ test("the owner enters an order with a price, a product and an advance; the page
   await page.getByRole("option", { name: /Dilshod Karimov/ }).click()
   const order = dialog.getByRole("group", { name: "Buyurtma" })
   await order.getByLabel("Muddat").fill(addDays(today, 3))
-  // The money: the price in so'm, a product without a price, the advance.
+  // The money: the price in so'm and the advance; the goods are no part of
+  // taking the order.
   const money = dialog.getByRole("group", { name: "Narx" })
   await money.getByLabel("Narx").fill("5000")
-  await dialog.getByRole("button", { name: "Mahsulot qo'shish" }).click()
-  const line = dialog.getByRole("group", { name: "1-qator" })
-  await pick(page, line, "Mahsulot", "ol", /Olma/)
-  await line.getByLabel("Miqdor").fill("2")
-  await expect(line.getByLabel("Narx")).toHaveCount(0)
+  await expect(dialog.getByRole("button", { name: "Mahsulot qo'shish" })).toHaveCount(0)
   await dialog.getByRole("button", { name: "To'lov qo'shish" }).click()
   await dialog.getByRole("group", { name: "1-to'lov" }).getByLabel("Summa").fill("400")
   await expect(dialog.getByText("Qolgan: 4 600 so'm")).toBeVisible()
@@ -266,6 +263,17 @@ test("the owner enters an order with a price, a product and an advance; the page
   await expect(pul).toContainText("Narx 5 000 so'm")
   await expect(pul).toContainText("To'langan 400 so'm")
   await expect(pul).toContainText("Qoldiq 4 600 so'm")
+  // The goods go on through the order's edit: a product without a price.
+  await page.getByRole("group", { name: "Amallar" }).getByRole("button", { name: "Tahrirlash" }).click()
+  const edit = page.getByRole("dialog", { name: "Buyurtmani tahrirlash" })
+  await edit.getByRole("button", { name: "Mahsulot qo'shish" }).click()
+  const line = edit.getByRole("group", { name: "1-qator" })
+  await pick(page, line, "Mahsulot", "ol", /Olma/)
+  await line.getByLabel("Miqdor").fill("2")
+  await expect(line.getByLabel("Narx")).toHaveCount(0)
+  await edit.getByRole("button", { name: "Saqlash" }).click()
+  await expect(edit).toBeHidden()
+  await settle(page)
   await tab(page, "Tovarlar")
   const goods = page.getByRole("region", { name: "Mahsulotlar" })
   await expect(goods).toContainText("Olma")

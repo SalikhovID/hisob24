@@ -312,27 +312,14 @@ test("the order is entered on a screen of its own: the dialog is a full one", as
   expect(dialog).toHaveAttribute("data-tall", "true")
 })
 
-// An order may have no goods (logic/orders.md, 4.3): a line added and then
-// not wanted is taken away, the lone one too.
-test("the order's goods may be none: a lone line is taken away", async () => {
-  await signIn(ALI)
-  seedOrders()
-  const { user, dialog } = await openDialog()
-
-  await user.click(within(dialog).getByRole("button", { name: "Mahsulot qo'shish" }))
-  const line = within(dialog).getByRole("group", { name: "1-qator" })
-  await user.click(within(line).getByRole("button", { name: "1-qatorni olib tashlash" }))
-  expect(within(dialog).queryByRole("group", { name: "1-qator" })).not.toBeInTheDocument()
-})
-
-// The advance goes with the price, so it stands right under it; the goods
-// come after.
-test("the money's sections: the advance under the price, the goods after it", async () => {
+// The goods are no part of taking an order (2026-11-15): its money is the
+// price and the advance; the goods go on through the order's edit.
+test("the order is taken without its goods: the price and the advance alone", async () => {
   await signIn(ALI)
   seedOrders()
   const { dialog } = await openDialog()
 
-  const advance = within(dialog).getByRole("region", { name: "Avans" })
-  const goods = within(dialog).getByRole("region", { name: "Mahsulotlar" })
-  expect(advance.compareDocumentPosition(goods)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  expect(within(dialog).getByRole("region", { name: "Avans" })).toBeInTheDocument()
+  expect(within(dialog).queryByRole("region", { name: "Mahsulotlar" })).not.toBeInTheDocument()
+  expect(within(dialog).queryByRole("button", { name: "Mahsulot qo'shish" })).not.toBeInTheDocument()
 })

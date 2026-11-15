@@ -34,8 +34,6 @@ export function AddOrderDialog({
   stages,
   customerTypes,
   canCreateCustomer,
-  canPickProducts,
-  locationName,
   dropdowns,
   members,
   typeId: preferred,
@@ -53,10 +51,6 @@ export function AddOrderDialog({
   // the order (customers.create); without it only a customer that is there
   // will do.
   canCreateCustomer: boolean
-  // canPickProducts says whether the member may pick the goods
-  // (products.view); without it the order is entered without lines.
-  canPickProducts: boolean
-  locationName?: string
   dropdowns: CustomerDropdown[]
   members: Member[]
   // typeId is the type the list is narrowed to, if any; stageId the stage
@@ -192,7 +186,8 @@ export function AddOrderDialog({
             <OrderFields control={form.control} type={type} stages={stages} members={members} dropdowns={dropdowns} locationId={locationId} />
           </FormSection>
           <FormSection legend="Narx">
-            <MoneySection form={form} companyId={companyId} withPayments canPickProducts={canPickProducts} locationName={locationName} />
+            {/* The goods are no part of taking an order: they go on through its edit. */}
+            <MoneySection form={form} companyId={companyId} withPayments canPickProducts={false} />
           </FormSection>
           <DialogFooter>
             <MainButton type="submit" pending={add.isPending}>
