@@ -5,15 +5,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { DateTimeRow } from "@/components/kit/date-sheet"
-import { AmountRow, OptionChips, TextRow } from "@/components/kit/form-row"
+import { AmountRow, OptionChips, SegmentedRow, TextRow } from "@/components/kit/form-row"
 import { Group } from "@/components/kit/group"
 import { MainButton } from "@/components/kit/main-button"
-import { SelectRow } from "@/components/kit/picker-sheet"
 import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
-import { currencyOf, currencyOptions, isMulti, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { currencyCodes, currencyOf, isMulti, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
 import { forgetParty, type Party } from "@/lib/party"
 import { type OpeningFields, type OpeningForm, type OpeningOutput, openingDefaults, openingSchema } from "@/lib/stock"
 import { nowLocal } from "@/lib/warehouse"
@@ -92,7 +91,7 @@ export function OpeningDialog({
           {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
           <Group>
             <OptionChips control={form.control} name="kind" label="Tur" options={kindOptions} disabled={opening !== undefined} />
-            {isMulti(currencies) && <SelectRow control={form.control} name="currency_id" label="Valyuta" options={currencyOptions(currencies)} />}
+            {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
             <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
             <DateTimeRow control={form.control} name="at" label="Vaqt" />
             {isMulti(currencies) && currencyId !== UZS && (

@@ -3,8 +3,8 @@ import { type ComponentProps, useState } from "react"
 import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCustomers, seedWarehouse, VALI } from "@/mocks/data"
+import { chooseCurrency, currencyGroup } from "@/test/currency"
 import { renderWithProviders } from "@/test/render"
-import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterOpening } from "@/test/stock"
 import { momentIn } from "@/test/moment"
@@ -59,9 +59,9 @@ test("with more than the so'm an advance is entered in dollars at the rate in fo
 
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
   await user.click(kind(dialog, "Avans"))
-  expect(within(dialog).getByLabelText("Valyuta")).toHaveTextContent("UZS — O'zbek so'mi")
+  expect(within(await currencyGroup()).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "true")
   expect(within(dialog).queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
-  await choose(user, within(dialog).getByLabelText("Valyuta"), "USD — AQSH dollari")
+  await chooseCurrency(user, "USD")
   expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   await user.type(within(dialog).getByLabelText("Summa"), "10")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
