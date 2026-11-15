@@ -364,6 +364,7 @@ BotFather menyusidagi nomlar Telegram yangilanishlari bilan biroz o'zgarishi mum
 - **SMS:** `SMS_DRIVER=eskiz` va `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_FROM`. SMS matni Eskiz akkauntida tasdiqlangan shablonga aynan mos bo'lishi kerak: `Hisob24 dasturiga kirish uchun tasdiqlash kodi: %d Uni hech kimga bermang.` (`backend/internal/sms/sms.go`).
 - **Secret'lar** (`OTP_HMAC_SECRET`, `JWT_SECRET`, `TELEGRAM_WEBHOOK_SECRET`): `openssl rand -hex 32`.
 - **Migratsiya:** `make migrate` yoki `goose -dir backend/migrations postgres "$DATABASE_URL" up`.
+- **Valyuta kurslari:** API har kuni 00:00 (UTC+5) da kompaniyalarning kursini bankdan oladi, shuning uchun serverdan `cbu.uz`, `valyutalarkursi.uz` va bank saytlariga (`ipakyulibank.uz`, `ofb.uz`, `uzumbank.uz`, `kapitalbank.uz`, `asakabank.uz`, `hamkorbank.uz`) HTTPS chiqish kerak. Yetib bo'lmasa, kechagi kurs takrorlanadi ([`logic/currencies.md`](logic/currencies.md), 4-bo'lim).
 - **Build va ishga tushirish:**
 
   ```bash
