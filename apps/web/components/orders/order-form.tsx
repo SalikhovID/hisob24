@@ -95,20 +95,18 @@ export function OrderFields({
 // price (with another currency than the so'm, the currency and its rate,
 // the standard one offered), on entry (withPayments) the advance's payments
 // right under it, then the lines of goods (products and services, without
-// prices, none at all if so; for whoever may pick the products).
-// locationName says where the goods come from.
+// prices, none at all if so; for whoever may pick the products). No note
+// under the price (2026-11-15).
 export function MoneySection({
   form,
   companyId,
   withPayments,
   canPickProducts,
-  locationName,
 }: {
   form: UseFormReturn<OrderForm, unknown, OrderOutput>
   companyId: number
   withPayments: boolean
   canPickProducts: boolean
-  locationName?: string
 }) {
   const currencies = useCurrencies()
   const accounts = useAccounts()
@@ -140,10 +138,6 @@ export function MoneySection({
           <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
         )}
       </Group>
-      <Foot className="-mt-4">
-        {withPayments ? "Narx mijoz qarziga yoziladi, avans uni kamaytiradi" : "Narx mijoz qarziga yoziladi; to'lovlar buyurtma sahifasida"}
-        {canPickProducts && locationName ? `; mahsulotlar «${locationName}» qoldig'idan chiqadi.` : "."}
-      </Foot>
       {withPayments && (
         <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={currencyId} total={Number(amount.replace(/\s/g, "").replace(",", ".")) || 0} pending={form.formState.isSubmitting} heading="Avans" />
       )}

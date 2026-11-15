@@ -38,7 +38,6 @@ export function EditOrderDialog({
   members,
   dropdowns,
   canPickProducts,
-  locationName,
   open: openGiven,
   onOpenChange,
 }: {
@@ -50,7 +49,6 @@ export function EditOrderDialog({
   dropdowns: CustomerDropdown[]
   // canPickProducts says whether the member may pick the goods (products.view).
   canPickProducts: boolean
-  locationName?: string
   // open, with onOpenChange, opens the dialog from outside (the order's
   // «Tahrirlash» tile): it has no button then, and every mounting starts
   // from the order as it is now.
@@ -134,7 +132,7 @@ export function EditOrderDialog({
             />
           </FormSection>
           <FormSection legend="Narx">
-            <MoneySection form={form} companyId={companyId} withPayments={false} canPickProducts={canPickProducts} locationName={locationName} />
+            <MoneySection form={form} companyId={companyId} withPayments={false} canPickProducts={canPickProducts} />
           </FormSection>
           <DialogFooter>
             <MainButton type="submit" pending={save.isPending}>

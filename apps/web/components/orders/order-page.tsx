@@ -198,7 +198,6 @@ export function OrderPage({ id }: { id: number }) {
           members={members.data ?? []}
           dropdowns={dropdowns.data}
           canPickProducts={allowed("products.view")}
-          locationName={locations.find((l) => l.id === order.data.location_id)?.name}
           open
           onOpenChange={(open) => !open && setEditing(false)}
         />
