@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/SalikhovID/hisob24/backend/internal/bankrate"
@@ -124,22 +125,38 @@ func (r *Report) count(o outcome) {
 }
 
 // dailyRow writes the company's row for the day: the bank's rates, or
-// yesterday's again.
+// yesterday's again. It holds the company the way the settings' rates do,
+// and looks again for the day's row there: another run, or the owner, may
+// have written it since.
 func (s *Service) dailyRow(ctx context.Context, c gen.ListRateSourcesRow, got bankRates, at time.Time) (outcome, error) {
-	switch {
-	case c.RateSource == manual:
-		return s.carry(ctx, c.ID, at, carried)
-	case !got.ok:
-		return s.carry(ctx, c.ID, at, failed)
-	}
-	return fetched, s.writeFetched(ctx, c, got, at)
+	o := skipped
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		q := s.q.WithTx(tx)
+		if _, err := q.LockCompanyCustomers(ctx, c.ID); err != nil {
+			return err
+		}
+		has, err := q.HasStandardRateSince(ctx, gen.HasStandardRateSinceParams{CompanyID: c.ID, Since: dayStart(at)})
+		if err != nil || has {
+			return err
+		}
+		switch {
+		case c.RateSource == manual:
+			o, err = carry(ctx, q, c.ID, at, carried)
+		case !got.ok:
+			o, err = carry(ctx, q, c.ID, at, failed)
+		default:
+			o, err = fetched, writeFetched(ctx, q, c, got, at)
+		}
+		return err
+	})
+	return o, err
 }
 
 // carry enters the company's row in force at the moment again, as it was:
 // for a manual company ("carried") or for want of a bank's rates
 // ("failed"). Without a row there is nothing to carry.
-func (s *Service) carry(ctx context.Context, companyID int64, at time.Time, o outcome) (outcome, error) {
-	prev, err := RateAt(ctx, s.q, companyID, at)
+func carry(ctx context.Context, q *gen.Queries, companyID int64, at time.Time, o outcome) (outcome, error) {
+	prev, err := RateAt(ctx, q, companyID, at)
 	if err != nil {
 		return o, err
 	}
@@ -150,15 +167,15 @@ func (s *Service) carry(ctx context.Context, companyID int64, at time.Time, o ou
 	if o == failed {
 		source = "failed"
 	}
-	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: companyID, Usd: prev.Usd, Eur: prev.Eur, Rub: prev.Rub, Source: source})
+	_, err = q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: companyID, Usd: prev.Usd, Eur: prev.Eur, Rub: prev.Rub, Source: source})
 	return o, err
 }
 
 // writeFetched enters the company's row of the bank's rates, the bank they
 // are from as its source: the central bank when it stood in. A currency
 // the bank gave no rate of keeps yesterday's (0 with no yesterday).
-func (s *Service) writeFetched(ctx context.Context, c gen.ListRateSourcesRow, got bankRates, at time.Time) error {
-	prev, err := RateAt(ctx, s.q, c.ID, at)
+func writeFetched(ctx context.Context, q *gen.Queries, c gen.ListRateSourcesRow, got bankRates, at time.Time) error {
+	prev, err := RateAt(ctx, q, c.ID, at)
 	if err != nil {
 		return err
 	}
@@ -182,7 +199,7 @@ func (s *Service) writeFetched(ctx context.Context, c gen.ListRateSourcesRow, go
 			rates[id] = zeroRate()
 		}
 	}
-	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: c.ID, Usd: rates[2], Eur: rates[3], Rub: rates[4], Source: got.used})
+	_, err = q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: c.ID, Usd: rates[2], Eur: rates[3], Rub: rates[4], Source: got.used})
 	return err
 }
 

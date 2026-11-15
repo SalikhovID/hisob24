@@ -266,3 +266,52 @@ func TestDailyKeepsYesterdaysRateOfACurrencyTheBankLacks(t *testing.T) {
 	assert.Equal(t, standardRow{USD: "12100.0000", EUR: "13700.0000", RUB: "147.0000", Source: ptr(bankrate.OFB)}, standardRows(t, pool, withYesterday)[0], "the ruble of yesterday")
 	assert.Equal(t, standardRow{USD: "12100.0000", EUR: "13700.0000", RUB: "0.0000", Source: ptr(bankrate.OFB)}, standardRows(t, pool, withoutYesterday)[0], "no ruble at all")
 }
+
+// meetingBanks answers only once n runs have asked it: by then each of
+// them has found the company due its row.
+type meetingBanks struct {
+	n   int
+	mu  sync.Mutex
+	in  int
+	all chan struct{}
+}
+
+func (b *meetingBanks) Fetch(ctx context.Context, source string) (bankrate.Rates, string, error) {
+	b.mu.Lock()
+	b.in++
+	if b.in == b.n {
+		close(b.all)
+	}
+	b.mu.Unlock()
+	select {
+	case <-b.all:
+		return centralBank, source, nil
+	case <-ctx.Done():
+		return bankrate.Rates{}, "", ctx.Err()
+	}
+}
+
+// Two runs at once, a deploy's old process and its new one, write the
+// day's row once: the second finds the first's under the company's lock.
+func TestDailyTwoRunsAtOnceWriteOneRow(t *testing.T) {
+	s, pool := newService(t)
+	olma := addCompany(t, pool, "Olma")
+	banks := &meetingBanks{n: 2, all: make(chan struct{})}
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	reports := make([]Report, 2)
+	var wg sync.WaitGroup
+	for i := range reports {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			reports[i] = s.Daily(ctx, banks, time.Now())
+		}()
+	}
+	wg.Wait()
+
+	assert.Len(t, standardRows(t, pool, olma), 1)
+	assert.Equal(t, 1, reports[0].Fetched+reports[1].Fetched, "one wrote it")
+	assert.Equal(t, 1, reports[0].Skipped+reports[1].Skipped, "the other found it")
+}
