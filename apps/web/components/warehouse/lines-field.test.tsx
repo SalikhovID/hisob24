@@ -9,12 +9,23 @@ import { chooseCompany, signIn } from "@/test/session"
 import { LinesField } from "./lines-field"
 
 // Host is a form of lines alone, as the documents' forms hold them; items
-// are the lines it comes with (one empty unless told).
-function Host({ withPrice, currencyId = 1, items = [emptyLine()] }: { withPrice: boolean; currencyId?: number; items?: LineForm[] }) {
+// are the lines it comes with (one empty unless told), optional says they
+// may be none (an order's goods).
+function Host({
+  withPrice,
+  currencyId = 1,
+  items = [emptyLine()],
+  optional,
+}: {
+  withPrice: boolean
+  currencyId?: number
+  items?: LineForm[]
+  optional?: boolean
+}) {
   const form = useForm<{ items: LineForm[] }>({ defaultValues: { items } })
   return (
     <form>
-      <LinesField form={form} companyId={1} withPrice={withPrice} currencyId={currencyId} pending={false} />
+      <LinesField form={form} companyId={1} withPrice={withPrice} currencyId={currencyId} pending={false} optional={optional} />
     </form>
   )
 }
@@ -81,6 +92,19 @@ test("the lines are the prototype's cards: the heading counts them, a lone line 
   const sheet = await screen.findByRole("dialog", { name: "Mahsulot" })
   const olma = await within(sheet).findByRole("option", { name: /Olma/ })
   expect(olma).toHaveAttribute("aria-disabled", "true")
+})
+
+test("lines that may be none (an order's goods): a lone line is taken away too", async () => {
+  seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Host withPrice={false} items={[]} optional />)
+  const heading = () => screen.getByRole("heading", { level: 2, name: "Mahsulotlar" }).parentElement
+
+  expect(heading()).toHaveTextContent("0 qator")
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
+  await user.click(within(line(1)).getByRole("button", { name: "1-qatorni olib tashlash" }))
+  expect(screen.queryByRole("group", { name: "1-qator" })).not.toBeInTheDocument()
+  expect(heading()).toHaveTextContent("0 qator")
 })
 
 test("the row under the lines that adds one says «Mahsulot qo'shish»", async () => {

@@ -69,8 +69,9 @@ export function LineInput<T extends FieldValues, TOut extends FieldValues>({
 // of another line is not taken twice), its quantity in its unit and, with
 // prices, its price (offered as the last one paid, turned into the
 // document's currency) and what the line comes to; a row adds a line, a
-// lone line is not taken away; under them, with prices, what the lines
-// come to. The form's items are LineForm rows, whatever else it holds.
+// lone line is not taken away unless the lines may be none (optional: an
+// order's goods); under them, with prices, what the lines come to. The
+// form's items are LineForm rows, whatever else it holds.
 export function LinesField<TForm extends WithLines & FieldValues, TOut extends FieldValues>({
   form,
   companyId,
@@ -80,6 +81,7 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
   heading = "Mahsulotlar",
   kinds,
   offer = "last_price",
+  optional = false,
 }: {
   form: UseFormReturn<TForm, unknown, TOut>
   companyId: number
@@ -91,6 +93,8 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
   // offer is the price it offers for a line: the last bought or the sale price.
   kinds?: readonly ProductKind[]
   offer?: Offer
+  // optional lines may be none: every line, a lone one too, is taken away.
+  optional?: boolean
 }) {
   // The names of the lines' fields: the form holds them as items.
   const path = (name: string) => name as FieldPath<TForm>
@@ -169,7 +173,7 @@ export function LinesField<TForm extends WithLines & FieldValues, TOut extends F
                   )}
                 />
               </div>
-              {fields.length > 1 && (
+              {(optional || fields.length > 1) && (
                 <button
                   type="button"
                   aria-label={`${index + 1}-qatorni olib tashlash`}
