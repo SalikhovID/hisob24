@@ -1,7 +1,6 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { PencilIcon } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -19,12 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { api, call } from "@/lib/api"
-import { forgetOrderMoney } from "@/lib/order-money"
-import { orderHistoryKey, orderKey, ordersKey } from "@/lib/queries"
 import { type OrderForm, type OrderOutput, orderDefaults, orderSchema } from "@/lib/orders"
 import type { CustomerDropdown, Member, OrderDetail, OrderStage, OrderType } from "@/lib/types"
 import { FormSection, LinkedCustomerCard, MoneySection, OrderFields } from "./order-form"
+import { useUpdateOrder } from "./use-update-order"
 
 // EditOrderDialog saves an order with another deadline, stage, assignee,
 // answers, price and goods (its payments are entered on their own). Its type and its customer were chosen when it was entered
@@ -59,39 +56,30 @@ export function EditOrderDialog({
   const controlled = openGiven !== undefined
   const open = controlled ? openGiven : openOwn
   const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenOwn(next))
-  const queryClient = useQueryClient()
   const form = useForm<OrderForm, unknown, OrderOutput>({
     resolver: zodResolver(orderSchema(type, null, order.customer.id)),
     defaultValues: orderDefaults(type, null, null, order),
   })
-  const save = useMutation({
-    mutationFn: (edited: OrderOutput) =>
-      call(
-        api.PUT("/app/orders/{id}", {
-          params: { path: { id: order.id } },
-          body: {
-            deadline: edited.deadline,
-            stage_id: edited.stage_id,
-            assignee_phone: edited.assignee_phone,
-            values: edited.values,
-            amount: edited.amount,
-            currency_id: edited.currency_id,
-            rate: edited.rate,
-            items: edited.items,
-          },
-        }),
-      ),
-    onSuccess: (saved) => {
-      // The page shows the answer at once; the lists and the history ask
-      // again, and so does what the money touches.
-      queryClient.setQueryData(orderKey(companyId, order.id), saved)
-      queryClient.invalidateQueries({ queryKey: ordersKey(companyId) })
-      queryClient.invalidateQueries({ queryKey: orderHistoryKey(companyId, order.id) })
-      forgetOrderMoney(queryClient, companyId, order.id, order.customer.id)
-      toast.success("Buyurtma saqlandi")
-      setOpen(false)
-    },
-  })
+  const save = useUpdateOrder(companyId, order)
+  const submit = (edited: OrderOutput) =>
+    save.mutate(
+      {
+        deadline: edited.deadline,
+        stage_id: edited.stage_id,
+        assignee_phone: edited.assignee_phone,
+        values: edited.values,
+        amount: edited.amount,
+        currency_id: edited.currency_id,
+        rate: edited.rate,
+        items: edited.items,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Buyurtma saqlandi")
+          setOpen(false)
+        },
+      },
+    )
 
   // Every opening starts from the order as it is now.
   const changeOpen = (next: boolean) => {
@@ -115,7 +103,7 @@ export function EditOrderDialog({
           <DialogTitle>Buyurtmani tahrirlash</DialogTitle>
           <DialogDescription>{type.name} · mijoz va tur o&apos;zgarmaydi</DialogDescription>
         </DialogHeader>
-        <SheetForm onSubmit={form.handleSubmit((edited) => save.mutate(edited))}>
+        <SheetForm onSubmit={form.handleSubmit(submit)}>
           {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
           <FormSection legend="Mijoz">
             <LinkedCustomerCard name={order.customer.name} phone={order.customer.phone} href={`/customers/${order.customer.id}`} />
