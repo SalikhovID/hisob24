@@ -100,11 +100,16 @@ func (h *Handler) getCompany(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, r, err)
 		return
 	}
+	rates, err := h.currencies.SourceOf(r.Context(), id)
+	if err != nil {
+		httpx.InternalError(w, r, err)
+		return
+	}
 	accountsJSON := make([]bankAccountJSON, 0, len(accounts))
 	for _, a := range accounts {
 		accountsJSON = append(accountsJSON, toBankAccountJSON(a))
 	}
-	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users, Locations: locations, Currencies: toCompanyCurrenciesJSON(currencies), Accounts: accountsJSON})
+	httpx.JSON(w, http.StatusOK, detailJSON{companyJSON: toCompanyJSON(d.Company), Users: users, Locations: locations, Currencies: toCompanyCurrenciesJSON(currencies), Accounts: accountsJSON, RateSource: rates.Source, RateRounding: rates.Rounding})
 }
 
 // locationID reads {locationId}; anything but a positive number is a

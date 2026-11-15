@@ -6220,8 +6220,12 @@ components:
       allOf:
         - $ref: "#/components/schemas/Company"
         - type: object
-          required: [users, locations, currencies, accounts]
+          required: [users, locations, currencies, accounts, rate_source, rate_rounding]
           properties:
+            rate_source:
+              $ref: "#/components/schemas/RateSourceCode"
+            rate_rounding:
+              $ref: "#/components/schemas/RateRounding"
             users:
               type: array
               items:
@@ -6241,6 +6245,19 @@ components:
               description: Kompaniyaning jonli akkauntlari, qo'shilish tartibida (logic/finance.md, 3-bo'lim)
               items:
                 $ref: "#/components/schemas/BankAccount"
+    RateSourceCode:
+      type: string
+      enum: [manual, cbu, kapitalbank, ipakyuli, asaka, hamkor, uzum, ofb]
+      description: >
+        Kompaniya kursni qayerdan oladi (logic/currencies.md, 4-bo'lim):
+        manual — qo'lda (har kecha kechagi kurs takrorlanadi), cbu —
+        Markaziy bank (standart), qolganlari — o'sha bankning sotish kursi
+    RateRounding:
+      type: integer
+      enum: [1, 10, 100, 1000]
+      description: >
+        Bankdan olingan USD va EUR kursi shu qadamga yaxlitlanadi (standart
+        100; 1 — yaxlitlanmaydi). RUB yaxlitlanmaydi
     BankAccount:
       type: object
       description: Kompaniyaning puli turadigan akkaunt (kassa, hisob raqam, karta), bitta valyutada

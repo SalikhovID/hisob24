@@ -79,3 +79,18 @@ func TestSetCompanyCurrencies(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, api.do(t, http.MethodPut, "/admin/companies/"+id+"/currencies", `{"currency_ids":[2]}`).Code)
 }
+
+// The company's detail says where it takes its rates and the step: the
+// central bank and 100 for a new one (logic/currencies.md, section 4).
+func TestGetCompanyTellsItsRateSource(t *testing.T) {
+	api := newTestAPI(t, true)
+	cookie := api.login(t)
+	id := api.createCompany(t, cookie, "Olma", dbToday(t, api.pool))
+
+	rec := api.do(t, http.MethodGet, "/admin/companies/"+id, "", cookie)
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	body := decode(t, rec)
+	assert.Equal(t, "cbu", body["rate_source"])
+	assert.EqualValues(t, 100, body["rate_rounding"])
+}

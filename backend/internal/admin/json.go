@@ -88,6 +88,10 @@ type detailJSON struct {
 	Locations  []adminLocationJSON `json:"locations"`
 	Currencies []currencyJSON      `json:"currencies"`
 	Accounts   []bankAccountJSON   `json:"accounts"`
+	// Where the night's run takes the company's rates and the step it
+	// rounds the dollar and the euro to (logic/currencies.md, section 4).
+	RateSource   string `json:"rate_source"`
+	RateRounding int    `json:"rate_rounding"`
 }
 
 // bankAccountJSON is an account of the company as the admin panel lists it.
