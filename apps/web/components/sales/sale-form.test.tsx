@@ -3,12 +3,12 @@ import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCatalog, seedCustomers, seedWarehouse, VALI } from "@/mocks/data"
 import { stockOf } from "@/mocks/ledger"
+import { chooseCurrency } from "@/test/currency"
 import { asosiyOf } from "@/test/locations"
 import { router, setLocation } from "@/test/navigation"
 import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
-import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
 import { momentIn } from "@/test/moment"
@@ -105,7 +105,7 @@ test("a sale price in another currency is offered in the sale's, with two decima
   const { user } = renderWithProviders(<NewSalePage />)
   await screen.findByRole("heading", { level: 1, name: "Yangi sotuv" })
 
-  await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
+  await chooseCurrency(user, "USD")
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("5,00")
 })
