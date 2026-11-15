@@ -12,10 +12,11 @@ import { SheetForm } from "@/components/kit/sheet-form"
 import { Refusal } from "@/components/refusal"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api, call } from "@/lib/api"
-import { currencyCodes, currencyOf, isMulti, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { currencyCodes, currencyOf, isMulti, useCurrencies, UZS } from "@/lib/currencies"
 import { forgetParty, type Party } from "@/lib/party"
 import { type OpeningFields, type OpeningForm, type OpeningOutput, openingDefaults, openingSchema } from "@/lib/stock"
 import { nowLocal } from "@/lib/warehouse"
+import { RateRow, useRateFollowsCurrency } from "./rate-row"
 
 // kindOptions are the two kinds of an opening balance: a debt or an
 // advance when the company started keeping its books here: the supplier's
@@ -29,10 +30,11 @@ const kindOptions = [
 // OpeningDialog enters an opening debt or advance of the party, as the
 // prototype's sheet: the kind as chips, an amount in a currency of the
 // company's (the so'm unless another is chosen), a moment (now unless
-// another is chosen), the rate (with another currency than the so'm) and a
-// note; or saves the one given with other fields, its kind staying. The
-// statement opens it (its «Boshlang'ich» action, a balance's «Tahrirlash»)
-// and mounts it for each opening.
+// another is chosen), the rate it is written at (with another currency than
+// the so'm; said, not asked: RateRow) and a note; or saves the one given
+// with other fields, its kind staying. The statement opens it (its
+// «Boshlang'ich» action, a balance's «Tahrirlash») and mounts it for each
+// opening.
 export function OpeningDialog({
   party = "supplier",
   companyId,
@@ -75,8 +77,11 @@ export function OpeningDialog({
     },
   })
 
-  // Another currency: its standard rate is offered, again when it changes.
-  useOfferedRate(form, currencyId, currencies, open)
+  // Another currency: no rate is asked; the one the document is written at
+  // is said (an edited one's own until its currency changes).
+  const rate = useWatch({ control: form.control, name: "rate" })
+  const at = useWatch({ control: form.control, name: "at" })
+  useRateFollowsCurrency(form, currencyId)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,9 +99,7 @@ export function OpeningDialog({
             {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
             <AmountRow control={form.control} name="amount" label="Summa" suffix={currency.symbol} />
             <DateTimeRow control={form.control} name="at" label="Vaqt" />
-            {isMulti(currencies) && currencyId !== UZS && (
-              <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
-            )}
+            {isMulti(currencies) && currencyId !== UZS && <RateRow currency={currency} rate={rate} at={at} />}
             <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
           </Group>
           <DialogFooter>

@@ -50,7 +50,8 @@ test("the dialog refuses in the API's words before asking", async () => {
   expect(db.transactions.filter((t) => t.kind === "supplier_debt" || t.kind === "supplier_prepay")).toHaveLength(0)
 })
 
-test("with more than the so'm an advance is entered in dollars at the rate in force", async () => {
+// No rate is asked (2026-11-15): the one the advance is written at is said.
+test("with more than the so'm an advance is entered in dollars at the rate in force, said, not asked", async () => {
   await signIn(VALI)
   await chooseCompany(2)
   const at = "2026-10-02T05:00:00Z"
@@ -60,9 +61,10 @@ test("with more than the so'm an advance is entered in dollars at the rate in fo
   const dialog = await screen.findByRole("dialog", { name: "Boshlang'ich qarz yoki avans" })
   await user.click(kind(dialog, "Avans"))
   expect(within(await currencyGroup()).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "true")
-  expect(within(dialog).queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
+  expect(within(dialog).queryByText("1 USD = 12 800 so'm")).not.toBeInTheDocument()
   await chooseCurrency(user, "USD")
-  expect(await within(dialog).findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
+  expect(await within(dialog).findByText("1 USD = 12 800 so'm")).toBeInTheDocument()
+  expect(within(dialog).queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
   await user.type(within(dialog).getByLabelText("Summa"), "10")
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
