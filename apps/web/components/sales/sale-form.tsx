@@ -3,21 +3,23 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { DateTimeRow } from "@/components/kit/date-sheet"
-import { AmountRow, SegmentedRow, TextRow } from "@/components/kit/form-row"
+import { SegmentedRow, TextRow } from "@/components/kit/form-row"
 import { Foot, Group } from "@/components/kit/group"
 import { MainBar, MainButton } from "@/components/kit/main-button"
 import { Refusal } from "@/components/refusal"
 import { LinesField } from "@/components/warehouse/lines-field"
 import { PaymentsField } from "@/components/warehouse/payments-field"
-import { currencyCodes, currencyOf, isMulti, useAccounts, useCurrencies, useOfferedRate, UZS } from "@/lib/currencies"
+import { RateRow, useRateFollowsCurrency } from "@/components/warehouse/rate-row"
+import { currencyCodes, currencyOf, isMulti, useAccounts, useCurrencies, UZS } from "@/lib/currencies"
 import { type SaleForm as SaleFormValues, type SaleOutput, saleSchema } from "@/lib/sales"
 import { purchaseTotal } from "@/lib/warehouse"
 import { CustomerPicker } from "./customer-picker"
 
 // SaleForm is a sale as it is entered or edited (logic/sales.md, 3.1–3.3),
 // as the prototype's document form: the customer picked in a sheet (none:
-// a retail sale, paid in full with it), the moment, the currency and rate
-// (with more than the so'm) as rows; the lines of products and services
+// a retail sale, paid in full with it), the moment, the currency (with
+// more than the so'm) and the rate it is written at, said, not asked, as
+// rows (RateRow); the lines of products and services
 // with their sale prices as cards; the payments into the accounts; a note;
 // what saving does, said under it; the main button in the bar at the
 // bottom. The location is the page's (locationName says it). Without a way
@@ -49,8 +51,11 @@ export function SaleForm({
   const currencyId = Number(useWatch({ control: form.control, name: "currency_id" })) || UZS
   const total = purchaseTotal(items)
 
-  // Another currency: its standard rate is offered, again when it changes.
-  useOfferedRate(form, currencyId, currencies)
+  // Another currency: no rate is asked; the one the sale is written at is
+  // said (an edited sale's own until its currency changes).
+  const rate = useWatch({ control: form.control, name: "rate" })
+  const at = useWatch({ control: form.control, name: "at" })
+  useRateFollowsCurrency(form, currencyId)
 
   const currency = currencyOf(currencies, currencyId)
   return (
@@ -77,9 +82,7 @@ export function SaleForm({
         )}
         <DateTimeRow control={form.control} name="at" label="Vaqt" />
         {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
-        {isMulti(currencies) && currencyId !== UZS && (
-          <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
-        )}
+        {isMulti(currencies) && currencyId !== UZS && <RateRow currency={currency} rate={rate} at={at} />}
       </Group>
       {!customerId && <Foot className="-mt-4">Chakana sotuv: to&apos;liq to&apos;langan bo&apos;lishi shart</Foot>}
 

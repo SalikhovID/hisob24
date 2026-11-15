@@ -11,7 +11,7 @@ import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { chooseCompany, signIn } from "@/test/session"
 import { enterSale } from "@/test/stock"
-import { momentIn } from "@/test/moment"
+import { momentIn, pickDay } from "@/test/moment"
 import { EditSalePage } from "./edit-sale-page"
 import { NewSalePage } from "./new-sale-page"
 import { moved } from "@/test/moves"
@@ -108,6 +108,39 @@ test("a sale price in another currency is offered in the sale's, with two decima
   await chooseCurrency(user, "USD")
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("5,00")
+})
+
+// No rate is asked (2026-11-15): a sale in another currency is written at the
+// standard rate in force at its moment, which the API takes when none is sent
+// (logic/currencies.md, section 4). The form says it: today's, or the day it
+// is taken from when the sale is dated back.
+test("a sale in dollars asks for no rate: today's is said, and one dated back is written at its day's rate", async () => {
+  const at = "2026-10-02T05:00:00Z"
+  db.products.push({ id: 803, companyId: 2, kind: "service", name: "Sozlash", unit: null, sku: null, price: "10.00", currencyId: 2, note: null, active: true, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
+  const [jismoniy] = db.types.filter((t) => t.companyId === 2)
+  db.customers.push({ id: 804, companyId: 2, typeId: jismoniy.id, phone: "998977778899", values: { [jismoniy.fields[0].id]: "Bobur Nazarov" }, by: VALI, byName: "Vali Aliyev", createdAt: at, updatedAt: at })
+  // The dollar went up on November 1: 12 900 now, 12 800 in October.
+  db.rates.push({ id: 9002, companyId: 2, usd: "12900.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: VALI, source: null, setAt: "2026-11-01T05:00:00Z" })
+  await signIn(VALI)
+  await chooseCompany(2)
+  setLocation("/sales/new")
+  const { user } = renderWithProviders(<NewSalePage />)
+  await screen.findByRole("heading", { level: 1, name: "Yangi sotuv" })
+
+  await chooseCurrency(user, "USD")
+  expect(screen.queryByLabelText(/= \? so'm/)).not.toBeInTheDocument()
+  expect(screen.getByText("1 USD = 12 900 so'm")).toBeInTheDocument()
+  await pickDay(user, document.body, "2026-10-05")
+  expect(screen.getByText("05.10.2026 dagi kurs")).toBeInTheDocument()
+
+  await pick(user, document.body, "Mijoz", "bob", /Bobur/)
+  await pick(user, line(1), "Mahsulot", "soz", /Sozlash/)
+  await user.type(within(line(1)).getByLabelText("Miqdor"), "1")
+  await user.click(screen.getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(db.transactions.find((t) => t.kind === "sale" && t.companyId === 2)).toBeTruthy())
+  expect(db.transactions.find((t) => t.kind === "sale" && t.companyId === 2)).toMatchObject({ currencyId: 2, rateId: 9001, total: 10 })
+  expect(db.rates.filter((r) => r.companyId === 2)).toHaveLength(2)
 })
 
 test("without a way to the customers the sale is retail alone; without the products there is no form", async () => {
