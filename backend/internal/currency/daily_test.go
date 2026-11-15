@@ -247,3 +247,22 @@ func TestDailySaysTheCentralBankStoodIn(t *testing.T) {
 	require.Len(t, rows, 1)
 	assert.Equal(t, standardRow{USD: "12000.0000", EUR: "13300.0000", RUB: "146.1900", Source: ptr(bankrate.CBU)}, rows[0])
 }
+
+// A bank that gives no rate of a currency leaves it at yesterday's, 0 with
+// no yesterday.
+func TestDailyKeepsYesterdaysRateOfACurrencyTheBankLacks(t *testing.T) {
+	s, pool := newService(t)
+	withYesterday := addCompany(t, pool, "Olma")
+	withoutYesterday := addCompany(t, pool, "Nok")
+	for _, id := range []int64{withYesterday, withoutYesterday} {
+		takeRatesFrom(t, pool, id, bankrate.OFB, 100)
+	}
+	_, err := pool.Exec(t.Context(), "INSERT INTO currency_rates (company_id, usd, rub, set_by, set_at) VALUES ($1, 12800, 147, $2, now() - interval '1 day')", withYesterday, ali)
+	require.NoError(t, err)
+	banks := &fakeBanks{rates: map[string]bankrate.Rates{bankrate.OFB: {USD: 12060, EUR: 13700}}}
+
+	s.Daily(t.Context(), banks, time.Now())
+
+	assert.Equal(t, standardRow{USD: "12100.0000", EUR: "13700.0000", RUB: "147.0000", Source: ptr(bankrate.OFB)}, standardRows(t, pool, withYesterday)[0], "the ruble of yesterday")
+	assert.Equal(t, standardRow{USD: "12100.0000", EUR: "13700.0000", RUB: "0.0000", Source: ptr(bankrate.OFB)}, standardRows(t, pool, withoutYesterday)[0], "no ruble at all")
+}

@@ -132,7 +132,7 @@ func (s *Service) dailyRow(ctx context.Context, c gen.ListRateSourcesRow, got ba
 	case !got.ok:
 		return s.carry(ctx, c.ID, at, failed)
 	}
-	return fetched, s.writeFetched(ctx, c, got)
+	return fetched, s.writeFetched(ctx, c, got, at)
 }
 
 // carry enters the company's row in force at the moment again, as it was:
@@ -155,22 +155,34 @@ func (s *Service) carry(ctx context.Context, companyID int64, at time.Time, o ou
 }
 
 // writeFetched enters the company's row of the bank's rates, the bank they
-// are from as its source: the central bank when it stood in.
-func (s *Service) writeFetched(ctx context.Context, c gen.ListRateSourcesRow, got bankRates) error {
-	r := got.rates
-	usd, err := numeric(roundRate(r.USD, c.RateRounding))
+// are from as its source: the central bank when it stood in. A currency
+// the bank gave no rate of keeps yesterday's (0 with no yesterday).
+func (s *Service) writeFetched(ctx context.Context, c gen.ListRateSourcesRow, got bankRates, at time.Time) error {
+	prev, err := RateAt(ctx, s.q, c.ID, at)
 	if err != nil {
 		return err
 	}
-	eur, err := numeric(roundRate(r.EUR, c.RateRounding))
-	if err != nil {
-		return err
+	given := map[int64]float64{
+		2: roundRate(got.rates.USD, c.RateRounding),
+		3: roundRate(got.rates.EUR, c.RateRounding),
+		4: got.rates.RUB,
 	}
-	rub, err := numeric(r.RUB)
-	if err != nil {
-		return err
+	rates := map[int64]pgtype.Numeric{}
+	for id, v := range given {
+		switch {
+		case v > 0:
+			n, err := numeric(v)
+			if err != nil {
+				return err
+			}
+			rates[id] = n
+		case prev != nil:
+			rates[id] = ColumnOf(*prev, id)
+		default:
+			rates[id] = zeroRate()
+		}
 	}
-	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: c.ID, Usd: usd, Eur: eur, Rub: rub, Source: got.used})
+	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: c.ID, Usd: rates[2], Eur: rates[3], Rub: rates[4], Source: got.used})
 	return err
 }
 
