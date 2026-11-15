@@ -137,3 +137,54 @@ test("an order entered without money shows none of it", async () => {
   expect(screen.queryByRole("region", { name: "To'lovlar" })).not.toBeInTheDocument()
   expect(within(screen.getByRole("group", { name: "Amallar" })).getByRole("button", { name: "To'lov" })).toBeInTheDocument()
 })
+
+// An order's payment is taken now (2026-11-15): its dialog asks for no date,
+// time or note, only the account and the amount.
+test("an order's payment asks for no date, time or note: it is entered now", async () => {
+  await signIn(ALI)
+  const { order } = await pricedOrder()
+  setLocation(`/orders/${order.id}`, { id: String(order.id) })
+  const { user } = renderWithProviders(<OrderPage id={order.id} />)
+
+  await user.click(await within(await screen.findByRole("group", { name: "Amallar" })).findByRole("button", { name: "To'lov" }))
+  const dialog = await screen.findByRole("dialog", { name: "To'lov qo'shish" })
+  await waitFor(() => expect(within(dialog).getByLabelText("Akkaunt")).toHaveTextContent("Naqd"))
+  expect(within(dialog).queryByLabelText("Sana")).not.toBeInTheDocument()
+  expect(within(dialog).queryByLabelText("Vaqt")).not.toBeInTheDocument()
+  expect(within(dialog).queryByLabelText("Izoh")).not.toBeInTheDocument()
+
+  await press(user, dialog, "300")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  const paid = db.transactions.at(-1)!
+  expect(paid).toMatchObject({ kind: "customer_payment", total: 300 })
+  expect(paid.note ?? "").toBe("")
+  expect(Math.abs(Date.parse(paid.at) - Date.now())).toBeLessThan(2 * 60 * 1000)
+})
+
+// Editing an order's payment asks for no moment or note either: the payment
+// keeps the ones it has.
+test("an order's payment edited keeps its moment and its note", async () => {
+  await signIn(ALI)
+  const { order } = await pricedOrder()
+  const document = db.transactions.find((t) => t.kind === "order" && t.orderId === order.id)!
+  const advance = db.transactions.find((t) => t.kind === "customer_payment" && t.linkedId === document.id)!
+  advance.note = "Oldindan"
+  const { at } = advance
+  setLocation(`/orders/${order.id}`, { id: String(order.id) })
+  const { user } = renderWithProviders(<OrderPage id={order.id} />)
+
+  await user.click(await screen.findByRole("tab", { name: "To'lovlar" }))
+  const [row] = within(await screen.findByRole("region", { name: "To'lovlar" })).getAllByRole("listitem")
+  await user.click(within(row).getByRole("button"))
+  await user.click(await screen.findByRole("menuitem", { name: "Tahrirlash" }))
+  const dialog = await screen.findByRole("dialog", { name: "To'lovni tahrirlash" })
+  expect(within(dialog).queryByLabelText("Vaqt")).not.toBeInTheDocument()
+  expect(within(dialog).queryByLabelText("Izoh")).not.toBeInTheDocument()
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  const saved = db.transactions.find((t) => t.id === advance.id)!
+  expect(saved.note).toBe("Oldindan")
+  expect(Date.parse(saved.at)).toBe(Date.parse(at))
+})

@@ -28,7 +28,7 @@ import { nowLocal, type PaymentFields, type PaymentForm, type PaymentOutput, pay
 // «Tahrirlash») and mounts it for each opening; partyName heads it, owed is
 // what the party owes in so'm when it is known. With orderId the payment
 // is for that order of the customer (logic/orders.md, 4.3): entered and
-// saved through the order.
+// saved through the order, now, with no moment or note to ask for.
 export function PaymentDialog({
   party = "supplier",
   companyId,
@@ -130,11 +130,14 @@ export function PaymentDialog({
       {save.isError && <Refusal className="mb-3">{save.error.message}</Refusal>}
       <Group className="mb-2">
         <SelectRow control={form.control} name="bank_account_id" label="Akkaunt" options={accountOptions(accounts, currencies, payment?.bank_account_id)} />
-        <DateTimeRow control={form.control} name="at" label="Vaqt" />
+        {/* An order's payment is taken now and says nothing more (2026-11-15):
+            the form keeps the moment it opened at (or the one being edited) and
+            the note as it was. */}
+        {orderId === undefined && <DateTimeRow control={form.control} name="at" label="Vaqt" />}
         {isMulti(currencies) && currency.id !== UZS && (
           <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
         )}
-        <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />
+        {orderId === undefined && <TextRow control={form.control} name="note" label="Izoh" placeholder="ixtiyoriy" autoComplete="off" />}
       </Group>
     </AmountSheet>
   )
