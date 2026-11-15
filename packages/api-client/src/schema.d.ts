@@ -281,6 +281,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/companies/{id}/rate-source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Kompaniyaning kurs manbai va yaxlitlash qadami
+         * @description Har kecha 00:00 da (UTC+5) kurs qayerdan olinadi va bankdan olingan USD, EUR qanday yaxlitlanadi (logic/currencies.md, 4-bo'lim); keyingi 00:00 dan amal qiladi. Ro'yxatda yo'q manba 400 «Manba noto'g'ri», qadam 400 «Yaxlitlash noto'g'ri».
+         */
+        put: operations["setCompanyRateSource"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/companies/{id}/accounts": {
         parameters: {
             query?: never;
@@ -2557,6 +2579,8 @@ export interface components {
             created_at: string;
         };
         CompanyDetail: components["schemas"]["Company"] & {
+            rate_source: components["schemas"]["RateSourceCode"];
+            rate_rounding: components["schemas"]["RateRounding"];
             users: components["schemas"]["Member"][];
             /** @description Kompaniyaning jonli lokatsiyalari, qo'shilish tartibida (logic/locations.md) */
             locations: components["schemas"]["AdminLocation"][];
@@ -2565,6 +2589,21 @@ export interface components {
             /** @description Kompaniyaning jonli akkauntlari, qo'shilish tartibida (logic/finance.md, 3-bo'lim) */
             accounts: components["schemas"]["BankAccount"][];
         };
+        /** @description Kompaniya kursni qayerdan oladi va bankdan olingan USD, EUR qaysi qadamga yaxlitlanadi */
+        RateSource: {
+            source: components["schemas"]["RateSourceCode"];
+            rounding: components["schemas"]["RateRounding"];
+        };
+        /**
+         * @description Kompaniya kursni qayerdan oladi (logic/currencies.md, 4-bo'lim): manual — qo'lda (har kecha kechagi kurs takrorlanadi), cbu — Markaziy bank (standart), qolganlari — o'sha bankning sotish kursi
+         * @enum {string}
+         */
+        RateSourceCode: "manual" | "cbu" | "kapitalbank" | "ipakyuli" | "asaka" | "hamkor" | "uzum" | "ofb";
+        /**
+         * @description Bankdan olingan USD va EUR kursi shu qadamga yaxlitlanadi (standart 100; 1 — yaxlitlanmaydi). RUB yaxlitlanmaydi
+         * @enum {integer}
+         */
+        RateRounding: 1 | 10 | 100 | 1000;
         /** @description Kompaniyaning puli turadigan akkaunt (kassa, hisob raqam, karta), bitta valyutada */
         BankAccount: {
             /** Format: int64 */
@@ -2746,8 +2785,13 @@ export interface components {
             usd: string;
             eur: string;
             rub: string;
-            /** @description Kiritgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi */
+            /** @description Kiritgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi; avtomatik qatorda null */
             set_by_name: string | null;
+            /**
+             * @description Avtomatik qator qayerdan (logic/currencies.md, 4-bo'lim): bank kodi — o'sha bankdan olingan (Markaziy bank yordamga kelsa cbu), carried — «Qo'lda» kompaniyada kechagi kurs nusxasi, failed — bank javob bermagani uchun kechagi kurs nusxasi; a'zo kiritgan qatorda null
+             * @enum {string|null}
+             */
+            source: "cbu" | "kapitalbank" | "ipakyuli" | "asaka" | "hamkor" | "uzum" | "ofb" | "carried" | "failed" | null;
             /** Format: date-time */
             set_at: string;
         };
@@ -2758,6 +2802,8 @@ export interface components {
             rub?: string;
         };
         RatesPage: {
+            rate_source: components["schemas"]["RateSourceCode"];
+            rate_rounding: components["schemas"]["RateRounding"];
             items: components["schemas"]["Rates"][];
             /** Format: int64 */
             total: number;
@@ -5368,6 +5414,35 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["CurrencyConflict"];
+        };
+    };
+    setCompanyRateSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CompanyID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RateSource"];
+            };
+        };
+        responses: {
+            /** @description Kompaniyaning manbai va qadami endi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateSource"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     addBankAccount: {
