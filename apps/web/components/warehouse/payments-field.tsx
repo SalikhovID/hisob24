@@ -46,9 +46,13 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
     convert(amountOf(line.amount), accountCurrency(accounts, currencies, Number(line.bank_account_id)).id, documentCurrency, currencies) ?? 0
   const paid = lines.reduce((sum, line) => sum + inDocument(line), 0)
   const left = Math.round((total - paid) * 100) / 100
-  // A new payment takes the first live account no payment has yet.
+  // A new payment takes the first live account no payment has yet; with every
+  // live account taken there is none to add (while the accounts are not known
+  // yet, or there are none, the row stays: the payment asks for its account).
   const used = new Set(lines.map((line) => line?.bank_account_id))
-  const first = accounts.find((a) => a.is_active && !used.has(String(a.id)))
+  const live = accounts.filter((a) => a.is_active)
+  const first = live.find((a) => !used.has(String(a.id)))
+  const allTaken = live.length > 0 && !first
   // fill puts what is left (counting the other lines) into the line, in
   // its account's currency.
   const fill = (index: number) => {
@@ -113,18 +117,20 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
           </fieldset>
         )
       })}
-      <Group className="mb-3.5">
-        <Row
-          variant="link"
-          onClick={pending ? undefined : () => append({ bank_account_id: first ? String(first.id) : "", amount: "" } as never)}
-          title={
-            <span className="flex items-center gap-2">
-              <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
-              To&apos;lov qo&apos;shish
-            </span>
-          }
-        />
-      </Group>
+      {!allTaken && (
+        <Group className="mb-3.5">
+          <Row
+            variant="link"
+            onClick={pending ? undefined : () => append({ bank_account_id: first ? String(first.id) : "", amount: "" } as never)}
+            title={
+              <span className="flex items-center gap-2">
+                <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
+                To&apos;lov qo&apos;shish
+              </span>
+            }
+          />
+        </Group>
+      )}
       {fields.length > 0 && (
         <Foot className="-mt-2">{left < 0 ? `Ortiqcha: ${formatMoney(String(-left), currency)}` : `Qolgan: ${formatMoney(String(left), currency)}`}</Foot>
       )}

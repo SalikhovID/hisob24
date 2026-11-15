@@ -106,3 +106,15 @@ test("a new payment takes the first account no other payment has", async () => {
   expect(within(payment(1)).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Naqd (so'm)")
   expect(within(payment(2)).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Karta ($)")
 })
+
+test("with every account taken there is no payment to add, until one is taken away", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<Host total={50000} />)
+
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
+  await user.click(within(payment(2)).getByRole("button", { name: "2-to'lovni olib tashlash" }))
+  expect(screen.getByRole("button", { name: "To'lov qo'shish" })).toBeInTheDocument()
+})
