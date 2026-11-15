@@ -79,8 +79,8 @@ test("the order's page: the price, what was paid and what is left, the goods wit
   expect(plain(money.textContent)).toContain("Qoldiq 4 600 so'm")
   // What is left is taken by the button under them.
   expect(screen.getByRole("button", { name: /^4\s600 so'm qabul qilish$/ })).toBeInTheDocument()
-  // The goods and the payments are tabs of their own beside «Ma'lumot».
-  expect(within(screen.getByRole("tablist", { name: "Buyurtma" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Ma'lumot", "Tovarlar", "To'lovlar", "Tarix"])
+  // The payments and the goods are tabs of their own beside «Ma'lumot», the payments first.
+  expect(within(screen.getByRole("tablist", { name: "Buyurtma" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Ma'lumot", "To'lovlar", "Tovarlar", "Tarix"])
   await user.click(screen.getByRole("tab", { name: "Tovarlar" }))
   const goods = await screen.findByRole("region", { name: "Mahsulotlar" })
   const [olma] = within(goods).getAllByRole("listitem")
