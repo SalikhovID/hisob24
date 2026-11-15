@@ -4,7 +4,7 @@ import { expect, test } from "vitest"
 import { type OrderForm, type OrderOutput, orderDefaults } from "@/lib/orders"
 import type { OrderType } from "@/lib/types"
 import { VALI } from "@/mocks/data"
-import { chooseCurrency } from "@/test/currency"
+import { chooseCurrency, currencyGroup } from "@/test/currency"
 import { renderWithProviders } from "@/test/render"
 import { chooseCompany, signIn } from "@/test/session"
 import { LinkedCustomerCard, MoneySection } from "./order-form"
@@ -64,4 +64,15 @@ test("the price follows the order's currency: it is turned by the rates in force
   expect(screen.getByLabelText("Narx")).toHaveValue("150,00")
   await chooseCurrency(opened.user, "UZS")
   expect(screen.getByLabelText("Narx")).toHaveValue("1 920 000,00")
+})
+
+// The currency is chosen before the price is typed in it (2026-11-15):
+// «Valyuta» stands over «Narx»; the rate stays under them.
+test("the currency stands over the price", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  renderWithProviders(<MoneyHost />)
+
+  const currency = await currencyGroup()
+  expect(currency.compareDocumentPosition(screen.getByLabelText("Narx"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
 })

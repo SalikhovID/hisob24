@@ -132,8 +132,9 @@ export function MoneySection({
   return (
     <>
       <Group>
-        <AmountRow control={form.control} name="amount" label="Narx" suffix={currency.symbol} placeholder="narxsiz" />
+        {/* The currency is chosen first, the price is typed in it. */}
         {isMulti(currencies) && <SegmentedRow control={form.control} name="currency_id" label="Valyuta" options={currencyCodes(currencies)} />}
+        <AmountRow control={form.control} name="amount" label="Narx" suffix={currency.symbol} placeholder="narxsiz" />
         {isMulti(currencies) && currencyId !== UZS && (
           <AmountRow control={form.control} name="rate" label={`1 ${currency.code} = ? so'm`} placeholder="kurs" suffix={null} />
         )}
