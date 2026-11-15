@@ -1,13 +1,14 @@
 // MSW handlers for the admin API, answering like the Go API: same paths,
 // status codes, error codes and Uzbek messages.
 import { http, HttpResponse } from "msw"
-import type { BankAccount } from "@/lib/types"
+import type { BankAccount, RateSource } from "@/lib/types"
 import {
   addDays,
   type AdminLocation,
   type Billing,
   cash,
   CATALOG,
+  centralBank,
   company,
   daysBetween,
   db,
@@ -20,6 +21,10 @@ import {
 } from "./data"
 
 const PAGE_SIZE = 20
+
+// The sources and the steps the Go API takes (backend/internal/currency).
+const RATE_SOURCES: RateSource["source"][] = ["manual", "cbu", "kapitalbank", "ipakyuli", "asaka", "hamkor", "uzum", "ofb"]
+const ROUNDINGS: RateSource["rounding"][] = [1, 10, 100, 1000]
 
 // api matches the path on any origin: jsdom's and the Playwright server's.
 const api = (path: string) => `*/api${path}`
@@ -149,6 +154,7 @@ export const handlers = [
     db.locations[created.id] = [{ id: db.nextId++, name: "Asosiy", orders_count: 0, created_at: new Date().toISOString() }]
     db.billings[created.id] = []
     db.currencies[created.id] = [1]
+    db.rateSources[created.id] = centralBank()
     db.accounts[created.id] = [cash(db.nextId++)]
     return HttpResponse.json(created, { status: 201 })
   }),
@@ -156,7 +162,16 @@ export const handlers = [
   http.get(api("/admin/companies/:id"), ({ params }) => {
     const c = findCompany(params.id)
     if (!c) return notFound()
-    return HttpResponse.json({ ...c, users: ownerFirst(db.members[c.id] ?? []), locations: db.locations[c.id] ?? [], currencies: currenciesOf(c.id), accounts: db.accounts[c.id] ?? [] })
+    const rates = db.rateSources[c.id] ?? centralBank()
+    return HttpResponse.json({
+      ...c,
+      users: ownerFirst(db.members[c.id] ?? []),
+      locations: db.locations[c.id] ?? [],
+      currencies: currenciesOf(c.id),
+      accounts: db.accounts[c.id] ?? [],
+      rate_source: rates.source,
+      rate_rounding: rates.rounding,
+    })
   }),
 
   // The company's accounts (logic/finance.md, section 3): added, changed
@@ -233,6 +248,23 @@ export const handlers = [
     }
     db.currencies[c.id] = CATALOG.filter((cur) => wanted.has(cur.id)).map((cur) => cur.id)
     return HttpResponse.json(currenciesOf(c.id))
+  }),
+
+  // Where the night's run takes the company's rates and the step
+  // (logic/currencies.md, section 4), under the Go API's rules
+  // (backend/internal/currency/source.go): a source and a step of the lists.
+  http.put(api("/admin/companies/:id/rate-source"), async ({ params, request }) => {
+    const body = (await request.json()) as { source?: unknown; rounding?: unknown }
+    if (typeof body.source !== "string" || !RATE_SOURCES.includes(body.source as RateSource["source"])) {
+      return fail(400, "validation_error", "Manba noto'g'ri")
+    }
+    if (typeof body.rounding !== "number" || !ROUNDINGS.includes(body.rounding as RateSource["rounding"])) {
+      return fail(400, "validation_error", "Yaxlitlash noto'g'ri")
+    }
+    const c = findCompany(params.id)
+    if (!c) return notFound()
+    db.rateSources[c.id] = { source: body.source as RateSource["source"], rounding: body.rounding as RateSource["rounding"] }
+    return HttpResponse.json(db.rateSources[c.id])
   }),
 
   // The company's locations (logic/locations.md, section 3): added, renamed

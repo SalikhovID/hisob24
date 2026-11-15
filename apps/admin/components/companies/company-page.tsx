@@ -14,6 +14,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { ApiError } from "@/lib/api"
 import { formatDate, formatPhone } from "@/lib/format"
 import { useCompany } from "@/lib/queries"
+import { rateSourceName, roundingOf } from "@/lib/rates"
 import type { AdminLocation, BankAccount, CompanyDetail, Member } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { AddAccountDialog, DeleteAccountButton, EditAccountDialog, ToggleAccountButton } from "./account-dialogs"
@@ -22,6 +23,7 @@ import { BillingHistory } from "./billing-history"
 import { CompanyActions } from "./company-actions"
 import { CurrenciesDialog } from "./currencies-dialog"
 import { AddLocationDialog, DeleteLocationButton, RenameLocationDialog } from "./location-dialogs"
+import { RateSourceDialog } from "./rate-source-dialog"
 import { RenameDialog } from "./rename-dialog"
 import { ReplaceOwnerDialog } from "./replace-owner-dialog"
 import { CompanyStatusBadge } from "./status-badge"
@@ -100,6 +102,7 @@ export function CompanyPage({ id }: { id: number }) {
   const infoId = useId()
   const locationsId = useId()
   const currenciesId = useId()
+  const ratesId = useId()
   const accountsId = useId()
   const usersId = useId()
   const billingId = useId()
@@ -172,6 +175,19 @@ export function CompanyPage({ id }: { id: number }) {
             </li>
           ))}
         </ul>
+      </section>
+      <section aria-labelledby={ratesId}>
+        <SectionHeading id={ratesId} action={<RateSourceDialog company={c} />}>
+          Valyuta kurslari
+        </SectionHeading>
+        {/* Where the night's run takes the company's rates and the step it rounds them to (logic/currencies.md, section 4). */}
+        <dl className="mt-3 grid divide-y rounded-xl border bg-card tabular-nums sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <Detail label="Manba">{rateSourceName(c.rate_source)}</Detail>
+          <Detail label="Yaxlitlash">{roundingOf(c.rate_source, c.rate_rounding)}</Detail>
+          <Detail label="Vaqt" className="font-normal">
+            Har kuni 00:00 (UTC+5)
+          </Detail>
+        </dl>
       </section>
       <section aria-labelledby={accountsId}>
         <SectionHeading id={accountsId} action={<AddAccountDialog company={c} />}>
