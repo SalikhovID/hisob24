@@ -83,6 +83,9 @@ export function FormRow({
 // an empty native date draws nothing on some phones (iOS leaves it blank), and
 // a placeholder attribute is no use on it. The hint is a phone's, drawn over
 // the input without taking its presses; the web draws the segments of its own.
+// A press anywhere on a date row opens the browser's calendar: Chromium on a
+// computer (and its phone emulation) opens it from its calendar button alone,
+// which the hint covers on a phone's width; a phone's browser on any press.
 export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   name,
@@ -105,6 +108,10 @@ export function TextRow<T extends FieldValues, TOut extends FieldValues = T>({
             aria-describedby={fieldState.error ? `${id}-error` : undefined}
             className={cn(inputClass, className)}
             {...input}
+            onClick={(event) => {
+              input.onClick?.(event)
+              if (input.type === "date") event.currentTarget.showPicker?.()
+            }}
             {...field}
             value={field.value ?? ""}
           />

@@ -120,6 +120,19 @@ test("on a phone an empty deadline says «Sanani tanlang» over the blank date i
   await expect(hint).toHaveCount(0)
 })
 
+// Chromium on a computer, and its phone emulation, opens a date field's
+// calendar from its calendar button alone (a press elsewhere only focuses a
+// segment, which the hint covers on a phone's width); a phone's own browser
+// opens it on any press. A press in the middle opens it everywhere.
+test("a press in the middle of the deadline opens the browser's calendar", async ({ page }) => {
+  const dialog = await openAddOrder(page)
+  const input = dialog.getByLabel("Muddat")
+  await input.scrollIntoViewIfNeeded()
+  const box = (await input.locator('xpath=ancestor::*[@data-slot="field-box"]').boundingBox())!
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await expect.poll(() => input.evaluate((el) => el.matches(":open"))).toBe(true)
+})
+
 test("on a wide screen the empty deadline shows the browser's own date segments, no hint over them", async ({ page }) => {
   test.skip(onPhone(page), "the web draws its own date segments")
   const dialog = await openAddOrder(page)

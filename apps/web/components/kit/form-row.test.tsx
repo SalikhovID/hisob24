@@ -182,6 +182,23 @@ test("an empty date says its placeholder over the native input, on a phone, unti
   expect(screen.getByLabelText("Muddat")).toBe(input)
 })
 
+// A browser on a computer (and its phone emulation) opens a date field's
+// calendar from its calendar button alone, which the hint covers on a phone's
+// width: a press anywhere on the field asks the browser for it.
+test("a press on a date field asks the browser for its calendar", async () => {
+  const showPicker = vi.fn()
+  // jsdom has no picker of its own to show.
+  Object.defineProperty(HTMLInputElement.prototype, "showPicker", { value: showPicker, configurable: true })
+  try {
+    const user = userEvent.setup()
+    render(<Dated />)
+    await user.click(screen.getByLabelText("Muddat"))
+    expect(showPicker).toHaveBeenCalledTimes(1)
+  } finally {
+    delete (HTMLInputElement.prototype as { showPicker?: unknown }).showPicker
+  }
+})
+
 test("a day already chosen has no hint, and a text field's placeholder is the browser's own", () => {
   const { unmount } = render(<Dated day="2026-11-20" />)
   expect(screen.getByLabelText("Muddat")).toHaveValue("2026-11-20")
