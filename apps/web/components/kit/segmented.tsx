@@ -5,6 +5,13 @@ import type { LucideIcon } from "lucide-react"
 import type { CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 
+// segmentTrack is the faint track the segments stand on; segmentTab is one
+// segment, its word grey until it is the chosen one. SegmentedRow (a form's
+// choice) draws them too.
+export const segmentTrack = "relative flex gap-0.5 rounded-[9px] bg-muted p-0.5 md:rounded-lg"
+export const segmentTab =
+  "relative z-[1] flex min-h-8 flex-1 items-center justify-center gap-1.5 rounded-[7px] px-2.5 text-[13px] font-medium whitespace-nowrap text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:min-h-7 md:rounded-md md:text-[12.5px]"
+
 // Segmented is the prototype's segmented control: two or three views of one
 // thing (Kanban / Ro'yxat, UZS / USD) on a faint track, 2px round its
 // segments, a thumb sliding under the chosen one (white and ringed, its word
@@ -31,7 +38,7 @@ export function Segmented({
         aria-label={label}
         data-slot="segmented"
         style={{ "--n": String(options.length) } as CSSProperties}
-        className="relative flex gap-0.5 rounded-[9px] bg-muted p-0.5 md:rounded-lg"
+        className={segmentTrack}
       >
         <Tabs.Indicator
           aria-hidden="true"
@@ -43,7 +50,7 @@ export function Segmented({
             key={option.value}
             value={option.value}
             data-slot="segmented-tab"
-            className="relative z-[1] flex min-h-8 flex-1 items-center justify-center gap-1.5 rounded-[7px] px-2.5 text-[13px] font-medium whitespace-nowrap text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-active:text-foreground md:min-h-7 md:rounded-md md:text-[12.5px] [&_svg]:size-[15px] [&_svg]:text-icon"
+            className={cn(segmentTab, "data-active:text-foreground [&_svg]:size-[15px] [&_svg]:text-icon")}
           >
             {option.icon && <option.icon aria-hidden="true" />}
             {option.label}

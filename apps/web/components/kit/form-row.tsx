@@ -1,10 +1,13 @@
 "use client"
 
+import { Radio } from "@base-ui/react/radio"
+import { RadioGroup } from "@base-ui/react/radio-group"
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { type ComponentProps, type ReactNode, useId } from "react"
 import { type Control, Controller, type FieldPath, type FieldValues } from "react-hook-form"
 import { AmountInput } from "@/components/kit/amount-input"
 import { chip, chipOff, chipOn } from "@/components/kit/chips"
+import { segmentTab, segmentTrack } from "@/components/kit/segmented"
 import { Switch } from "@/components/ui/switch"
 import { formatPhoneInput } from "@/lib/phone"
 import { cn } from "@/lib/utils"
@@ -288,6 +291,50 @@ export function SwitchRow<T extends FieldValues, TOut extends FieldValues = T>({
           </label>
           <Switch id={id} checked={!!field.value} onCheckedChange={(checked) => field.onChange(checked)} onBlur={field.onBlur} disabled={field.disabled} />
         </div>
+      )}
+    />
+  )
+}
+
+// SegmentedRow is a choice of a few (the currency: UZS / USD) as the
+// prototype's segmented control under its label: radios on a faint track,
+// the chosen one on the white, ringed thumb with its word in the ink, the
+// others grey. Segmented's look; a tab list there, radios here, since the
+// form holds the value.
+export function SegmentedRow<T extends FieldValues, TOut extends FieldValues = T>({
+  control,
+  name,
+  label,
+  options,
+}: Bound<T, TOut> & { options: { value: string; label: string }[] }) {
+  const id = useId()
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <FormRow stack label={label} error={fieldState.error?.message} errorId={`${id}-error`}>
+          <RadioGroup
+            aria-label={label}
+            aria-describedby={fieldState.error ? `${id}-error` : undefined}
+            value={String(field.value ?? "")}
+            onValueChange={(next) => field.onChange(String(next))}
+            disabled={field.disabled}
+            data-slot="segmented"
+            className={segmentTrack}
+          >
+            {options.map((option) => (
+              <Radio.Root
+                key={option.value}
+                value={option.value}
+                data-slot="segmented-tab"
+                className={cn(segmentTab, "transition-colors data-checked:bg-(--seg-thumb) data-checked:text-foreground data-checked:shadow-(--seg-shadow)")}
+              >
+                {option.label}
+              </Radio.Root>
+            ))}
+          </RadioGroup>
+        </FormRow>
       )}
     />
   )

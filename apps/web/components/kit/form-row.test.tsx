@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useForm } from "react-hook-form"
 import { expect, test, vi } from "vitest"
-import { AmountRow, OptionChips, PhoneRow, PickRow, SwitchRow, TextRow } from "./form-row"
+import { AmountRow, OptionChips, PhoneRow, PickRow, SegmentedRow, SwitchRow, TextRow } from "./form-row"
 
 type Values = { name: string; phone: string; price: string; required: boolean; source: string; langs: string[] }
 
@@ -191,4 +191,39 @@ test("a day already chosen has no hint, and a text field's placeholder is the br
   render(<Form onSubmit={() => {}} />)
   expect(screen.getByRole("textbox", { name: "Nomi" })).toHaveAttribute("placeholder", "Masalan, Olma")
   expect(screen.queryByText("Masalan, Olma")).not.toBeInTheDocument()
+})
+
+// CurrencyForm is a form whose currency is one of a few, chosen by its code.
+function CurrencyForm({ onSubmit }: { onSubmit: (values: { currency_id: string }) => void }) {
+  const form = useForm<{ currency_id: string }>({ defaultValues: { currency_id: "1" } })
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <SegmentedRow
+        control={form.control}
+        name="currency_id"
+        label="Valyuta"
+        options={[
+          { value: "1", label: "UZS" },
+          { value: "2", label: "USD" },
+        ]}
+      />
+      <button type="submit">Saqlash</button>
+    </form>
+  )
+}
+
+test("a choice of a few is the prototype's segmented control: radios on one track, the chosen one marked, a press chooses another", async () => {
+  const onSubmit = vi.fn()
+  const user = userEvent.setup()
+  render(<CurrencyForm onSubmit={onSubmit} />)
+
+  const group = screen.getByRole("radiogroup", { name: "Valyuta" })
+  expect(group).toHaveAttribute("data-slot", "segmented")
+  expect(within(group).getAllByRole("radio").map((radio) => radio.textContent)).toEqual(["UZS", "USD"])
+  expect(within(group).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "true")
+  await user.click(within(group).getByRole("radio", { name: "USD" }))
+  expect(within(group).getByRole("radio", { name: "USD" })).toHaveAttribute("aria-checked", "true")
+  expect(within(group).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "false")
+  await user.click(screen.getByRole("button", { name: "Saqlash" }))
+  expect(onSubmit).toHaveBeenCalledWith({ currency_id: "2" }, expect.anything())
 })
