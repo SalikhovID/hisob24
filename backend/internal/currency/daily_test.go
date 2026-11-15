@@ -186,3 +186,29 @@ func TestDailyWritesADaysRowOnce(t *testing.T) {
 	assert.Equal(t, Report{Fetched: 1, Skipped: 1}, first)
 	assert.Equal(t, Report{Skipped: 2}, second)
 }
+
+// The day is Tashkent's (UTC+5), whatever zone the server's clock is in:
+// at 09:00 there a row of 01:00 is the day's, one of 23:59 the day before
+// is yesterday's.
+func TestDailyCountsTheDayInTashkent(t *testing.T) {
+	s, pool := newService(t)
+	at := time.Date(2026, 3, 10, 4, 0, 0, 0, time.UTC) // 09:00 in Tashkent
+	todays := addCompany(t, pool, "Olma")
+	yesterdays := addCompany(t, pool, "Nok")
+	for id, setAt := range map[int64]time.Time{
+		todays:     time.Date(2026, 3, 9, 20, 0, 0, 0, time.UTC),  // 01:00 on the 10th in Tashkent
+		yesterdays: time.Date(2026, 3, 9, 18, 59, 0, 0, time.UTC), // 23:59 on the 9th
+	} {
+		takeRatesFrom(t, pool, id, "manual", 100)
+		_, err := pool.Exec(t.Context(), "INSERT INTO currency_rates (company_id, usd, set_by, set_at) VALUES ($1, 12800, $2, $3)", id, ali, setAt)
+		require.NoError(t, err)
+	}
+
+	report := s.Daily(t.Context(), &fakeBanks{}, at)
+
+	assert.Len(t, standardRows(t, pool, todays), 1, "the day's row is there")
+	rows := standardRows(t, pool, yesterdays)
+	require.Len(t, rows, 2)
+	assert.Equal(t, ptr("carried"), rows[0].Source)
+	assert.Equal(t, Report{Carried: 1, Skipped: 1}, report)
+}

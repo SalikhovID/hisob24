@@ -144,8 +144,11 @@ func numeric(v float64) (pgtype.Numeric, error) {
 	return n, err
 }
 
-// dayStart is the start of the moment's day.
+// tashkent is the zone the night's run keeps: UTC+5, with no summer time.
+var tashkent = time.FixedZone("UTC+5", 5*60*60)
+
+// dayStart is the start of the moment's day in Tashkent.
 func dayStart(at time.Time) time.Time {
-	y, m, d := at.Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, at.Location())
+	y, m, d := at.In(tashkent).Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, tashkent)
 }
