@@ -74,7 +74,7 @@ Kompaniya sahifasida «Valyutalar» dan keyin «Valyuta kurslari» bo'limi: «Ma
 
 ## User app
 
-**Valyuta kurslari** tarixida avtomatik qatorning ostida manba: bank nomi, «Kechagi kurs», «Kechagi kurs · bank javob bermadi». Foot manbaga qarab: bankda «Har kuni 00:00 da Markaziy bank kursi olinadi, USD va EUR 100 so'mgacha yaxlitlanadi», «Qo'lda» da «Har kuni 00:00 da kechagi kurs takrorlanadi».
+**Valyuta kurslari** tarixida avtomatik qatorning ostida manba: bank nomi, «Kechagi kurs», «Bank javob bermadi · kechagi kurs». Foot manbaga qarab: bankda «Har kuni 00:00 da Markaziy bank kursi olinadi, USD va EUR 100 so'mgacha yaxlitlanadi», «Qo'lda» da «Har kuni 00:00 da kechagi kurs takrorlanadi».
 
 ## Bosqichlar
 

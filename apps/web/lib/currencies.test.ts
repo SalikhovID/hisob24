@@ -88,6 +88,7 @@ test("turnTyped turns an amount as typed (spaces, a comma) into another currency
   expect(turnTyped("150", 2, 4, rated)).toBeNull()
 })
 
+// What a failed night was comes first: a phone cuts the rest of the line.
 test("where a row of the history came from: a bank by name or yesterday's rates again; a member's has none", () => {
   expect(rowSourceName("cbu")).toBe("Markaziy bank")
   expect(rowSourceName("kapitalbank")).toBe("Kapitalbank")
@@ -97,7 +98,7 @@ test("where a row of the history came from: a bank by name or yesterday's rates 
   expect(rowSourceName("uzum")).toBe("Uzum Bank")
   expect(rowSourceName("ofb")).toBe("Orient Finans Bank")
   expect(rowSourceName("carried")).toBe("Kechagi kurs")
-  expect(rowSourceName("failed")).toBe("Kechagi kurs · bank javob bermadi")
+  expect(rowSourceName("failed")).toBe("Bank javob bermadi · kechagi kurs")
   expect(rowSourceName(null)).toBeNull()
 })
 

@@ -144,7 +144,8 @@ export function rowSourceName(source: Rates["source"]): string | null {
     case "carried":
       return "Kechagi kurs"
     case "failed":
-      return "Kechagi kurs · bank javob bermadi"
+      // What happened first: a phone cuts the rest of the line.
+      return "Bank javob bermadi · kechagi kurs"
     default:
       return BANKS[source]
   }

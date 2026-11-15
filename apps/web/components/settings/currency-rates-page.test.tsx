@@ -84,7 +84,7 @@ test("a row of the night's run tells where it came from, and the page how the ra
   renderWithProviders(<CurrencyRatesPage />)
 
   const history = await screen.findByRole("list", { name: "Kurslar tarixi" })
-  expect(rowsOf(history).map(([, sub]) => sub)).toEqual(["Kechagi kurs · bank javob bermadi", "Markaziy bank", "Vali Aliyev"])
+  expect(rowsOf(history).map(([, sub]) => sub)).toEqual(["Bank javob bermadi · kechagi kurs", "Markaziy bank", "Vali Aliyev"])
   expect(screen.getByText("Har kuni 00:00 da Markaziy bank kursi olinadi, USD va EUR 100 so'mgacha yaxlitlanadi. Yangisi birinchi; har hujjat o'z sanasidagi kursni oladi.")).toBeInTheDocument()
 })
 

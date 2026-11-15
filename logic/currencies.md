@@ -39,7 +39,7 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 
 - Egasi (yoki `settings.edit`) **Sozlamalar → Valyuta kurslari** da yoqilgan har valyutaning kursini bitta formada kiritadi (`POST /app/currency-rates {usd?, eur?, rub?}`): bitta standart qator yoziladi (`set_at` = hozir, kim kiritgani). Kurs > 0, 10 xonagacha butun va 4 kasr; yoqilmagan valyuta kursi yuborilsa 400 `currency_not_allowed`; yoqilgan valyuta kursi yuborilmasa oldingi standart qatordan olinadi (bo'lmasa 0). UZS kursi doim 1.
 - **Joriy kurs** = eng oxirgi standart qator. `/app/me` da har yoqilgan valyutaning joriy kursi (`rate`; 0 bo'lsa `null`).
-- **Tarix** (`GET /app/currency-rates?page=`): standart qatorlar yangi birinchi, 20 tadan: kurslar, kim (avtomatik qatorda manba: bank nomi, «Kechagi kurs» yoki «Kechagi kurs · bank javob bermadi»), qachon; sahifada kompaniyaning manbai va qadami (`rate_source`, `rate_rounding`). Qator o'zgartirilmaydi va o'chirilmaydi: yangisi kiritiladi.
+- **Tarix** (`GET /app/currency-rates?page=`): standart qatorlar yangi birinchi, 20 tadan: kurslar, kim (avtomatik qatorda manba: bank nomi, «Kechagi kurs» yoki «Bank javob bermadi · kechagi kurs»), qachon; sahifada kompaniyaning manbai va qadami (`rate_source`, `rate_rounding`). Qator o'zgartirilmaydi va o'chirilmaydi: yangisi kiritiladi.
 - **Hujjat sanasidagi kurs.** Hujjat yozilganda uning `at` lahzasida amalda bo'lgan standart qator olinadi (`set_at <= at` bo'lgan eng oxirgisi; bo'lmasa eng birinchi standart qator). Orqa sana bilan kiritilgan hujjat o'sha kundagi kursni oladi. Hujjat tahrirlanganda vaqt o'zgarsa kurs qatori qayta tanlanadi (formada kursi o'zgartirilgan hujjatda emas: o'z qatori qoladi).
 - **Hujjatning o'z kursi.** Formada taklif qilingan kurs o'zgartirilsa, hujjat uchun alohida qator (`status = 2`) yoziladi: o'zgartirilgan valyuta ustuni kiritilgan qiymat, qolganlari o'sha lahzadagi standartdan. Tarixda ko'rinmaydi. Hujjat o'chirilsa qator qoladi.
 - Yoqilgan valyutaning joriy kursi 0 bo'lsa (hali kiritilmagan), shu valyutadagi hujjat formasi kursni talab qiladi: 400 «Kursni kiriting»; kiritilgani hujjatning o'z kursi bo'ladi.
@@ -47,7 +47,7 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 ### Avtomatik kurs (har kuni 00:00)
 
 - **Har kuni 00:00 da** (Toshkent vaqti, UTC+5) har kompaniyaga bitta standart qator yoziladi (hamma kompaniyaga: nofaol va muddati o'tganiga ham):
-  - **manba bank bo'lsa** — shu bankning kursi (bankda sotish kursi, Markaziy bankda rasmiy kurs). Bank javob bermasa — Markaziy bank kursi; u ham javob bermasa — **kechagi kurs nusxasi** (`source = failed`, tarixda «Kechagi kurs · bank javob bermadi»). Banklar 3 marta, 1 daqiqa oralig'ida so'raladi; bitta bank shu kechada kompaniyalar soniga qaramay bir marta so'raladi;
+  - **manba bank bo'lsa** — shu bankning kursi (bankda sotish kursi, Markaziy bankda rasmiy kurs). Bank javob bermasa — Markaziy bank kursi; u ham javob bermasa — **kechagi kurs nusxasi** (`source = failed`, tarixda «Bank javob bermadi · kechagi kurs»). Banklar 3 marta, 1 daqiqa oralig'ida so'raladi; bitta bank shu kechada kompaniyalar soniga qaramay bir marta so'raladi;
   - **«Qo'lda» bo'lsa** — bankka murojaat yo'q, **kechagi kurs nusxasi** (`source = carried`, «Kechagi kurs»).
 - **Kechagi kurs** = shu lahzada amaldagi standart qator (oxirgi kiritilgani, bankdan olingani yoki nusxa). Kompaniyada hali hech qator bo'lmasa, hech narsa yozilmaydi.
 - Bankdan olingan qatorda uchala valyuta kursi yoziladi, yoqilmagani ham: valyuta keyin yoqilsa, kursi darhol bor. Bank biror valyuta kursini bermasa, o'sha valyuta kechagi qatordan olinadi (u yerda ham yo'q bo'lsa 0).
@@ -85,7 +85,7 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 | Formada hujjat valyutasi almashtirildi (so'm → USD, USD → EUR) | narxlar joriy kurs bilan aylantiriladi; kurs maydoni yangi valyutaning standart kursi |
 | 50 000 so'mlik xarid Dollar akkauntidan «To'liq» bilan | 3,91 $ (= 50 048 so'm); forma «Ortiqcha: 48 so'm» deydi, 48 so'm ta'minotchida avans |
 | Kompaniyada faqat UZS, mahsulotda USD narx qolgan (valyuta o'chirilgan bo'lolmaydi) | bo'lmaydi: narxi bor mahsulot valyutani to'sadi |
-| 00:00 da tanlangan bank (masalan Kapitalbank) javob bermadi | Markaziy bank kursi yoziladi; u ham javob bermasa kechagi kurs nusxasi («Kechagi kurs · bank javob bermadi») |
+| 00:00 da tanlangan bank (masalan Kapitalbank) javob bermadi | Markaziy bank kursi yoziladi; u ham javob bermasa kechagi kurs nusxasi («Bank javob bermadi · kechagi kurs») |
 | Manba «Qo'lda» | 00:00 da kechagi kurs nusxasi («Kechagi kurs»), bankka murojaat yo'q |
 | Egasi bugun ertalab kursni qo'lda kiritdi, keyin API qayta ishga tushdi | bugungi qator bor: avtomatik qator yozilmaydi; ertaga 00:00 da yangisi |
 | Kompaniyada hali kurs yo'q, manba «Qo'lda» yoki bank javob bermadi | hech narsa yozilmaydi (kechagi kurs yo'q) |
