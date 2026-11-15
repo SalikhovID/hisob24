@@ -2,9 +2,10 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { type ComponentProps, useState } from "react"
 import { expect, test } from "vitest"
 import { toProduct } from "@/mocks/catalog"
-import { ALI, db, seedCatalog } from "@/mocks/data"
+import { ALI, db, seedCatalog, VALI } from "@/mocks/data"
+import { chooseCurrency } from "@/test/currency"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { chooseCompany, signIn } from "@/test/session"
 import { ServiceDialog } from "./service-dialog"
 
 // Opened is the sheet as the list opens it (its round + or a service's
@@ -47,4 +48,21 @@ test("a service is edited from its fields as they are", async () => {
 
   await waitFor(() => expect(db.products.find((p) => p.id === yetkazish.id)?.price).toBe("55000.00"))
   expect(await screen.findByText("Xizmat saqlandi")).toBeInTheDocument()
+})
+
+// With more than the so'm the price's currency is chosen by the buttons of
+// the codes, and the price is saved in it.
+test("with more than the so'm the price's currency is chosen by its code's button", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<Opened companyId={2} />)
+
+  const dialog = await screen.findByRole("dialog", { name: "Xizmat qo'shish" })
+  await user.type(within(dialog).getByLabelText("Nomi"), "Konsultatsiya")
+  await user.type(within(dialog).getByLabelText("Narx"), "20")
+  await chooseCurrency(user, "USD")
+  expect(within(dialog).getByText("$")).toBeInTheDocument()
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(db.products.find((p) => p.name === "Konsultatsiya")).toMatchObject({ kind: "service", price: "20.00", currencyId: 2 }))
 })
