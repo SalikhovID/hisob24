@@ -29,15 +29,10 @@ export function currencyOf(currencies: readonly CompanyCurrency[], id: number): 
   return currencies.find((c) => c.id === id) ?? som
 }
 
-// currencyOptions is the currencies as a select offers them.
 // currencyCodes are the currencies by their codes (UZS, USD): the buttons
 // that choose a document's currency say no more.
 export function currencyCodes(currencies: readonly CompanyCurrency[]): { value: string; label: string }[] {
   return currencies.map((c) => ({ value: String(c.id), label: c.code }))
-}
-
-export function currencyOptions(currencies: readonly CompanyCurrency[]): { value: string; label: string }[] {
-  return currencies.map((c) => ({ value: String(c.id), label: `${c.code} — ${c.name}` }))
 }
 
 // rateLine says what a currency is worth now ("1 USD = 12 800 so'm"), or
