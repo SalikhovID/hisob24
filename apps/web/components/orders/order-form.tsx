@@ -265,13 +265,11 @@ export function CustomerSection({
         ))}
       </Group>
       )}
-      {!linked && (
+      {/* A word only where no new customer can be entered (2026-11-15: no hint
+          about the suggestions). */}
+      {!linked && (!canCreate || customerTypes.length === 0) && (
         <Foot className="-mt-4">
-          {!canCreate
-            ? "Yangi mijoz qo'shish ruxsatingiz yo'q: mavjud mijozni biriktiring."
-            : customerTypes.length === 0
-              ? "Mijoz turlari yo'q: faqat mavjud mijozni biriktirish mumkin."
-              : "3 ta raqam yozsangiz, mavjud mijozlar taklif qilinadi. Topilmasa, yangi mijoz qo'shiladi."}
+          {!canCreate ? "Yangi mijoz qo'shish ruxsatingiz yo'q: mavjud mijozni biriktiring." : "Mijoz turlari yo'q: faqat mavjud mijozni biriktirish mumkin."}
         </Foot>
       )}
     </>

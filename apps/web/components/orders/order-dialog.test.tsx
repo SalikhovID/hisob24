@@ -323,3 +323,15 @@ test("the order is taken without its goods: the price and the advance alone", as
   expect(within(dialog).queryByRole("region", { name: "Mahsulotlar" })).not.toBeInTheDocument()
   expect(within(dialog).queryByRole("button", { name: "Mahsulot qo'shish" })).not.toBeInTheDocument()
 })
+
+// The customer's part says nothing under its fields (2026-11-15): the
+// suggestions speak for themselves. A word stays where no new customer can be
+// entered.
+test("the customer's part has no hint about the suggestions under it", async () => {
+  await signIn(ALI)
+  seedOrders()
+  const { dialog } = await openDialog()
+
+  expect(within(dialog).getByRole("combobox", { name: "Telefon raqami" })).toBeInTheDocument()
+  expect(within(dialog).queryByText(/3 ta raqam yozsangiz/)).not.toBeInTheDocument()
+})
