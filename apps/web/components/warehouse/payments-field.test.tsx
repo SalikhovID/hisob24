@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react"
+import type { UserEvent } from "@testing-library/user-event"
 import { useForm } from "react-hook-form"
 import { expect, test } from "vitest"
 import { useAccounts, useCurrencies } from "@/lib/currencies"
@@ -14,6 +15,10 @@ function Host({ total }: { total: number }) {
   const form = useForm<{ payments: PaymentLineForm[] }>({ defaultValues: { payments: [] } })
   const accounts = useAccounts()
   const currencies = useCurrencies()
+  // The payments are drawn once the company's accounts are known: a payment
+  // added before them would have no account (the rule of one account per
+  // document counts the accounts).
+  if (accounts.length === 0) return null
   return (
     <form>
       <PaymentsField form={form} accounts={accounts} currencies={currencies} documentCurrency={1} total={total} pending={false} />
@@ -23,12 +28,15 @@ function Host({ total }: { total: number }) {
 
 const payment = (n: number) => screen.getByRole("group", { name: `${n}-to'lov` })
 
+// addPayment presses «To'lov qo'shish», once Host draws the payments.
+const addPayment = async (user: UserEvent) => user.click(await screen.findByRole("button", { name: "To'lov qo'shish" }))
+
 test("the payments are the prototype's cards: the account picked in a sheet, the amount in its currency, «To'liq» for what is left; a row adds one, what is left is said under them", async () => {
   await signIn(ALI)
   const { user } = renderWithProviders(<Host total={10000} />)
 
-  expect(screen.getByRole("heading", { level: 2, name: "To'lovlar" })).toBeInTheDocument()
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  expect(await screen.findByRole("heading", { level: 2, name: "To'lovlar" })).toBeInTheDocument()
+  await addPayment(user)
   const first = payment(1)
   expect(first).toHaveAttribute("data-slot", "payment-card")
   expect(within(first).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Naqd (so'm)")
@@ -48,7 +56,7 @@ test("paid past the total, the form says how much more was paid: «To'liq» from
   await chooseCompany(2)
   const { user } = renderWithProviders(<Host total={50000} />)
 
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await addPayment(user)
   await choose(user, within(payment(1)).getByRole("button", { name: /^Akkaunt/ }), "Karta ($)")
   await user.click(within(payment(1)).getByRole("button", { name: "To'liq" }))
   // 50 000 so'm is 3,90625 $: 3,91 $ is 50 048 so'm, 48 so'm more.
@@ -65,7 +73,7 @@ test("a payment is the prototype's card of frosted glass, 24px round", async () 
   await signIn(ALI)
   const { user } = renderWithProviders(<Host total={10000} />)
 
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await addPayment(user)
   expect(payment(1)).toHaveClass("surface", "rounded-[24px]")
   expect(payment(1)).not.toHaveClass("bg-card")
 })
@@ -74,7 +82,7 @@ test("an amount typed in a payment is masked as an amount, and what is left foll
   await signIn(ALI)
   const { user } = renderWithProviders(<Host total={2000000} />)
 
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await addPayment(user)
   await user.type(within(payment(1)).getByLabelText("Summa"), "1500000")
   expect(within(payment(1)).getByLabelText("Summa")).toHaveValue("1 500 000")
   expect(screen.getByText(/^Qolgan:/)).toHaveTextContent("Qolgan: 500 000 so'm")
@@ -87,8 +95,8 @@ test("an account another payment has stands turned off in a payment's picker", a
   await chooseCompany(2)
   const { user } = renderWithProviders(<Host total={50000} />)
 
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await addPayment(user)
+  await addPayment(user)
   await choose(user, within(payment(2)).getByRole("button", { name: /^Akkaunt/ }), "Karta ($)")
   await user.click(within(payment(1)).getByRole("button", { name: /^Akkaunt/ }))
   const sheet = await screen.findByRole("dialog", { name: "Akkaunt" })
@@ -101,8 +109,8 @@ test("a new payment takes the first account no other payment has", async () => {
   await chooseCompany(2)
   const { user } = renderWithProviders(<Host total={50000} />)
 
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await addPayment(user)
+  await addPayment(user)
   expect(within(payment(1)).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Naqd (so'm)")
   expect(within(payment(2)).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Karta ($)")
 })
@@ -112,8 +120,8 @@ test("with every account taken there is no payment to add, until one is taken aw
   await chooseCompany(2)
   const { user } = renderWithProviders(<Host total={50000} />)
 
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
-  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await addPayment(user)
+  await addPayment(user)
   expect(screen.queryByRole("button", { name: "To'lov qo'shish" })).not.toBeInTheDocument()
   await user.click(within(payment(2)).getByRole("button", { name: "2-to'lovni olib tashlash" }))
   expect(screen.getByRole("button", { name: "To'lov qo'shish" })).toBeInTheDocument()
