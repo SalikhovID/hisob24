@@ -1,6 +1,6 @@
 # Avtomatik valyuta kurslari: har kuni 00:00 (UTC+5) da bankdan — dizayn
 
-Sana: 2026-11-15. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), amalga oshirilmoqda (`dev` branch).
+Sana: 2026-11-15. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), ikkala bosqich amalga oshirilgan (`dev` branch, 2026-11-15).
 
 ## Kontekst
 
@@ -89,3 +89,15 @@ Kun ichida qayta urinish; «Hozir olish» tugmasi; bildirishnoma (admin botga); 
 
 - **Deploy kuni:** API ishga tushishi bilan shu kun qo'lda kurs kiritilmagan har kompaniya Markaziy bank kursini oladi (100 ga yaxlitlangan). O'z kursida qolishi kerak bo'lgan kompaniyaga admin «Qo'lda» ni tanlaydi va egasi shu kunning kursini qo'lda kiritadi.
 - Bank sahifalari o'zgaradi (tw-dobroe fixture'lari 2026-05-12 niki); ishlamay qolgan bankda Markaziy bank zaxirasi bor. Live test qaysi bank javob berayotganini ko'rsatadi.
+
+## Bajarish paytidagi qarorlar (2026-11-15)
+
+- **Uzum Bank** sahifasi brauzerda JS bilan to'ladigan qobiq (HTML'da kurs yo'q, tw-dobroe'da ham shunday): unga o'tgan kompaniya Markaziy bank kursini oladi (qator manbai `cbu`). Ro'yxatda qoldirildi; live test (`go test -tags=integration -run TestAllBanksLive ./internal/bankrate`) 2026-11-15 da qolgan 6 bankning javobini ko'rsatdi.
+- tw-dobroe `parseRateNumber` NBSP'ni `"\xa0"` (UTF-8 dagi ikkinchi bayt) sifatida olib tashlardi: rune sifatida tuzatildi. Namunaning regex'i «643 147.00» ni bitta son o'qiydi (kod va kurs yonma-yon bo'lsa): sahifa scrape'i shunday qoldi, u oxirgi zaxira.
+- Fixture'lar: `cbu.json` 2026-11-14 niki (`curl`), aggregator, Ipak Yo'li va OFB tw-dobroe'niki (Ipak Yo'li — faqat `__NUXT_DATA__`, OFB — faqat `currency-table`; 750 KB → 54 KB).
+- `CreateRate` da `set_by` `::text` cast bilan: ustun nullable bo'lgach a'zo qatori baribir telefon bilan yoziladi; avtomatik qator alohida `CreateAutoRate`.
+- Haqiqiy API (`TEMPLATE hisob24` nusxasi, botsiz): start'da 6 kompaniyaga `cbu` qatori (12 000 / 13 300 / 146,19), qayta start'da Kapitalbank (12 000 / 13 400 / 142), «Qo'lda» → `carried`, qolgani `skipped`.
+- `GetRateSource` / `SetRateSource` so'rovlari 2-bosqichga, admin servisi bilan birga o'tdi.
+- `TestCurrencyRates` dagi bo'sh sahifa JSON'iga `rate_source`, `rate_rounding` qo'shildi: kontrakt o'zgardi.
+- Admin: kompaniya sahifasida ikkita «O'zgartirish» tugmasi bo'ldi; yangisining nomi `aria-label` bilan «Kurs manbaini o'zgartirish» (ko'rinadigan matn o'sha). `SelectField` ga `disabled` qo'shildi: tanlovni to'xtatadi, qiymatni formada qoldiradi (RHF'ning o'z `disabled` i qiymatni yubormaydi). Variant nomida NBSP qoladi («1 000 so'm»).
+- User app: tarixda bank javob bermagan qator «Bank javob bermadi · kechagi kurs» (avval rejada «Kechagi kurs · bank javob bermadi» edi; 375px da muhim qismi kesilardi). Ostidagi izoh: «… Yangisi birinchi; har hujjat o'z sanasidagi kursni oladi.»
