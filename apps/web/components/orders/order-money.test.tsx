@@ -43,7 +43,7 @@ test("the order dialog takes a price, the goods and an advance; the row says wha
   const money = within(dialog).getByRole("group", { name: "Narx" })
   expect(within(money).queryByLabelText("Valyuta")).not.toBeInTheDocument()
   await user.type(within(money).getByLabelText("Narx"), "5000")
-  await user.click(within(dialog).getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(within(dialog).getByRole("button", { name: "Mahsulot qo'shish" }))
   const line = within(dialog).getByRole("group", { name: "1-qator" })
   await pick(user, line, "Mahsulot", "ol", /Olma/)
   await user.type(within(line).getByLabelText("Miqdor"), "2")

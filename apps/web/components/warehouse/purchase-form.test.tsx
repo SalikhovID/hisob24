@@ -41,7 +41,7 @@ test("a purchase is entered into the current location: the supplier and the prod
   expect(within(first).getByText("2 000")).toBeInTheDocument()
   expect(within(first).getByText("kg")).toBeInTheDocument()
 
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
   const second = line(2)
   await pick(user, second, "Mahsulot", "n", /Nok/)
   expect(within(second).getByLabelText("Narx")).toHaveValue("2 500,50")
@@ -137,7 +137,7 @@ test("the form refuses in the API's words before asking: a supplier, a product a
 
   // A product of another line is not taken twice: its option is marked.
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
   await user.click(within(line(2)).getByRole("button", { name: /^Mahsulot/ }))
   const sheet = await screen.findByRole("dialog", { name: "Mahsulot" })
   expect(await within(sheet).findByRole("option", { name: /Olma/ })).toHaveAttribute("aria-disabled", "true")

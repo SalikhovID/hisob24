@@ -243,7 +243,7 @@ test("the owner enters an order with a price, a product and an advance; the page
   // The money: the price in so'm, a product without a price, the advance.
   const money = dialog.getByRole("group", { name: "Narx" })
   await money.getByLabel("Narx").fill("5000")
-  await dialog.getByRole("button", { name: "Qator qo'shish" }).click()
+  await dialog.getByRole("button", { name: "Mahsulot qo'shish" }).click()
   const line = dialog.getByRole("group", { name: "1-qator" })
   await pick(page, line, "Mahsulot", "ol", /Olma/)
   await line.getByLabel("Miqdor").fill("2")

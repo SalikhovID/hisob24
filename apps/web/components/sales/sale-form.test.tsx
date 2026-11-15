@@ -44,7 +44,7 @@ test("a sale to a customer out of the current location: the customer found by na
   await pick(user, first, "Mahsulot", "ol", /Olma/)
   expect(within(first).getByLabelText("Narx")).toHaveValue("12 000,00")
   await user.type(within(first).getByLabelText("Miqdor"), "2")
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
   const second = line(2)
   await pick(user, second, "Mahsulot", "yet", /Yetkazish/)
   expect(within(second).getByLabelText("Narx")).toHaveValue("50 000,00")

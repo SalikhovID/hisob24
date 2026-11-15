@@ -65,7 +65,7 @@ test("on a phone the order is entered on a screen of its own: all of the phone, 
 test("on a phone every field of the order's form has an edge of its own, none is white on a white card", async ({ page }) => {
   test.skip(!onPhone(page), "a phone's field stands on a card of its own colour")
   const dialog = await openAddOrder(page)
-  await dialog.getByRole("button", { name: /Qator qo'shish/ }).click()
+  await dialog.getByRole("button", { name: /Mahsulot qo'shish/ }).click()
   await dialog.getByRole("button", { name: /To'lov qo'shish/ }).click()
   // The amount just added holds the focus, whose ring is another one.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())

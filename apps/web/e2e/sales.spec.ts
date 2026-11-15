@@ -31,7 +31,7 @@ test("the owner sells: to a customer with a service and a part payment, the cust
   await pick(page, first, "Mahsulot", "ol", /Olma/)
   await expect(first.getByLabel("Narx")).toHaveValue("12 000,00")
   await first.getByLabel("Miqdor").fill("2")
-  await page.getByRole("button", { name: "Qator qo'shish" }).click()
+  await page.getByRole("button", { name: "Mahsulot qo'shish" }).click()
   const second = page.getByRole("group", { name: "2-qator" })
   await pick(page, second, "Mahsulot", "yet", /Yetkazish/)
   await expect(second.getByLabel("Narx")).toHaveValue("50 000,00")

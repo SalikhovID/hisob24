@@ -57,7 +57,7 @@ test("the owner keeps the warehouse: a supplier, a purchase into the stock, the 
   await pick(page, first, "Mahsulot", "ol", /Olma/)
   await first.getByLabel("Miqdor").fill("10")
   await first.getByLabel("Narx").fill("1000")
-  await page.getByRole("button", { name: "Qator qo'shish" }).click()
+  await page.getByRole("button", { name: "Mahsulot qo'shish" }).click()
   const second = page.getByRole("group", { name: "2-qator" })
   await pick(page, second, "Mahsulot", "n", /Nok/)
   await second.getByLabel("Miqdor").fill("3")

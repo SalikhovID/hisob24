@@ -36,7 +36,7 @@ test("with prices: a product found by name, its unit at the quantity, the last p
   expect(within(first).getByText("2 000")).toBeInTheDocument()
   expect(screen.getByText("2 000 so'm")).toBeInTheDocument()
 
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
   const second = line(2)
   await pick(user, second, "Mahsulot", "n", /Nok/)
   await user.type(within(second).getByLabelText("Miqdor"), "3")
@@ -74,13 +74,23 @@ test("the lines are the prototype's cards: the heading counts them, a lone line 
   expect(screen.queryByRole("button", { name: "1-qatorni olib tashlash" })).not.toBeInTheDocument()
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
 
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
   expect(screen.getByRole("heading", { level: 2, name: "Mahsulotlar" }).parentElement).toHaveTextContent("2 qator")
   expect(screen.getByRole("button", { name: "1-qatorni olib tashlash" })).toBeInTheDocument()
   await user.click(within(line(2)).getByRole("button", { name: /^Mahsulot/ }))
   const sheet = await screen.findByRole("dialog", { name: "Mahsulot" })
   const olma = await within(sheet).findByRole("option", { name: /Olma/ })
   expect(olma).toHaveAttribute("aria-disabled", "true")
+})
+
+test("the row under the lines that adds one says «Mahsulot qo'shish»", async () => {
+  seedWarehouse(seedCatalog())
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Host withPrice={false} />)
+
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
+  expect(line(2)).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Qator qo'shish" })).not.toBeInTheDocument()
 })
 
 test("a line is the prototype's card of frosted glass, 24px round; the total stands on the same glass", async () => {
@@ -117,13 +127,13 @@ test("the prices follow the document's currency: each one, typed or offered, is 
   const { user, rerender } = renderWithProviders(<Host withPrice currencyId={1} />)
 
   await user.type(price(1), "1 920 000")
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
   await user.type(price(2), "6400")
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
   // Letters cannot be typed in a price (the mask drops them); three decimals
   // are no price either.
   await user.type(price(3), "1,234")
-  await user.click(screen.getByRole("button", { name: "Qator qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "Mahsulot qo'shish" }))
 
   rerender(<Host withPrice currencyId={2} />)
   expect(price(1)).toHaveValue("150,00")
