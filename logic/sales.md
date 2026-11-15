@@ -39,7 +39,7 @@ Sotuv va qoldiq lokatsiyaniki; mijoz, to'lov va balans kompaniya bo'yicha.
 | **Vaqt** | ha | `at`, formada hozir; har qanday vaqt |
 | **Valyuta, kurs** | yo'q | [currencies.md](currencies.md), 5-bo'lim; standart UZS |
 | **Qatorlar** | kamida bitta | mahsulot **yoki xizmat** (jonli; yangi qo'shilgani faol), miqdor (> 0, 3 kasr), narx (≥ 0, 2 kasr, hujjat valyutasida); bir mahsulot bir sotuvda bir marta |
-| **To'lovlar** | yo'q | qatorlar: akkaunt (faol) va summa (> 0, akkaunt valyutasida); har qator sotuvga bog'langan mijoz to'lovi bo'lib yoziladi, vaqti sotuvniki; mijozsiz sotuvda yig'indisi (hujjat valyutasiga aylantirilgan) jamiga teng bo'lishi shart |
+| **To'lovlar** | yo'q | qatorlar: akkaunt (faol) va summa (> 0, akkaunt valyutasida); har qator sotuvga bog'langan mijoz to'lovi bo'lib yoziladi, vaqti sotuvniki; mijozsiz sotuvda yig'indisi (hujjat valyutasiga aylantirilgan) jamiga teng bo'lishi shart. Formada (sotuv, xarid, buyurtma avansi; 2026-11-15 dan) bir akkaunt bir hujjatda bir marta: boshqa qatordagi akkaunt tanlovda o'chiq, yangi qator birinchi bo'sh akkauntni oladi, hamma faol akkaunt band bo'lsa «To'lov qo'shish» yo'q |
 | **Izoh** | yo'q | 500 belgigacha |
 
 Jami (`total`) qatorlarning miqdor × narx yig'indisi, bazada hisoblanadi. `paid` = bog'langan to'lovlarning hujjat valyutasiga aylantirilgan yig'indisi. Formada mahsulot tanlanganda narx taklifi: mahsulotning sotuv narxi (`products.price`), valyutasi mos bo'lsa o'zi, aks holda hujjat kursi bilan aylantirilgan; xizmatda xizmat narxi.
