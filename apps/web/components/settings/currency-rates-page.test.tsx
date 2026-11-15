@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, db, VALI } from "@/mocks/data"
+import { ALI, db, nextId, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { rowParts } from "@/test/rows"
@@ -72,4 +72,27 @@ test("settings.view alone reads the rates without the way to change them", async
 
   expect(await screen.findByRole("list", { name: "Joriy kurslar" })).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Kurslarni yangilash" })).not.toBeInTheDocument()
+})
+
+test("a row of the night's run tells where it came from, and the page how the rates come every night", async () => {
+  db.rates.push(
+    { id: nextId(), companyId: 2, usd: "12000.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: null, source: "cbu", setAt: "2026-10-01T19:00:01Z" },
+    { id: nextId(), companyId: 2, usd: "12000.0000", eur: "0.0000", rub: "0.0000", status: 1, setBy: null, source: "failed", setAt: "2026-10-02T19:00:01Z" },
+  )
+  await signIn(VALI)
+  await chooseCompany(2)
+  renderWithProviders(<CurrencyRatesPage />)
+
+  const history = await screen.findByRole("list", { name: "Kurslar tarixi" })
+  expect(rowsOf(history).map(([, sub]) => sub)).toEqual(["Kechagi kurs · bank javob bermadi", "Markaziy bank", "Vali Aliyev"])
+  expect(screen.getByText("Har kuni 00:00 da Markaziy bank kursi olinadi, USD va EUR 100 so'mgacha yaxlitlanadi. Yangisi birinchi; har hujjat o'z sanasidagi kursni oladi.")).toBeInTheDocument()
+})
+
+test("a company that enters its rates by hand is told yesterday's come again every night", async () => {
+  db.rateSources[2] = { source: "manual", rounding: 100 }
+  await signIn(VALI)
+  await chooseCompany(2)
+  renderWithProviders(<CurrencyRatesPage />)
+
+  expect(await screen.findByText("Har kuni 00:00 da kechagi kurs takrorlanadi. Yangisi birinchi; har hujjat o'z sanasidagi kursni oladi.")).toBeInTheDocument()
 })

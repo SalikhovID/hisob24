@@ -6,7 +6,7 @@ import { Foot, Group, Row, SectionHeading } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { Pager } from "@/components/pager"
 import { EmptyState, Failed, ListLoading } from "@/components/states"
-import { isMulti, rateLine, useCurrencies, UZS } from "@/lib/currencies"
+import { isMulti, rateLine, ratesNote, rowSourceName, useCurrencies, UZS } from "@/lib/currencies"
 import { formatDateTime, formatRate } from "@/lib/format"
 import { can } from "@/lib/permissions"
 import { useRates } from "@/lib/queries"
@@ -22,8 +22,10 @@ function rateOf(row: Rates, currency: CompanyCurrency): string {
 // CurrencyRatesPage is the rates (logic/currencies.md, section 4), for
 // whoever may see the settings, as the prototype's page: what each currency
 // the company has on is worth now, the plus entering new rates
-// (settings.edit), and the history of the rows entered, the newest first. A
-// company in the so'm alone is told its admin turns the rest on.
+// (settings.edit), and the history of the rows, the newest first, each by
+// the member who entered it or where the night's run took it; under it,
+// where the rates come from every night. A company in the so'm alone is
+// told its admin turns the rest on.
 export function CurrencyRatesPage() {
   const gate = usePermission("settings.view")
   const companyId = gate?.company.id ?? null
@@ -66,7 +68,7 @@ export function CurrencyRatesPage() {
                   <Row
                     key={row.id}
                     title={formatDateTime(row.set_at)}
-                    sub={row.set_by_name}
+                    sub={row.set_by_name ?? rowSourceName(row.source)}
                     end={<span className="tabular-nums">{others.map((c) => `${c.code} ${formatRate(rateOf(row, c))}`).join(" · ")}</span>}
                   />
                 ))}
@@ -76,7 +78,9 @@ export function CurrencyRatesPage() {
               )}
             </>
           )}
-          <Foot className="-mt-4">Kiritilgan kurslar, yangisi birinchi. Har hujjat o&apos;z sanasidagi kursni oladi.</Foot>
+          {history.data && (
+            <Foot className="-mt-4">{`${ratesNote(history.data.rate_source, history.data.rate_rounding)} Yangisi birinchi; har hujjat o'z sanasidagi kursni oladi.`}</Foot>
+          )}
         </>
       ) : (
         <EmptyState icon={BanknoteIcon} title="Kompaniyada boshqa valyuta yo'q" description="Valyutani admin yoqadi. Yoqilgach, kurslari shu yerda kiritiladi." />
