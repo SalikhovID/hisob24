@@ -2,11 +2,11 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { nowLocal } from "@/lib/warehouse"
 import { ALI, db, seedCatalog, seedWarehouse, VALI } from "@/mocks/data"
+import { chooseCurrency, currencyGroup } from "@/test/currency"
 import { router, setLocation } from "@/test/navigation"
 import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
-import { choose } from "@/test/select"
 import { chooseCompany, signIn } from "@/test/session"
 import { momentIn } from "@/test/moment"
 import { NewPurchasePage } from "./new-purchase-page"
@@ -89,11 +89,11 @@ test("with more than the so'm the currency and the rate are asked, and a last pr
   const { user } = renderWithProviders(<NewPurchasePage />)
   await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
 
-  expect(screen.getByLabelText("Valyuta")).toHaveTextContent("UZS — O'zbek so'mi")
+  expect(within(await currencyGroup()).getByRole("radio", { name: "UZS" })).toHaveAttribute("aria-checked", "true")
   expect(screen.queryByLabelText("1 USD = ? so'm")).not.toBeInTheDocument()
   await pick(user, line(1), "Mahsulot", "ol", /Olma/)
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("12 800,00")
-  await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
+  await chooseCurrency(user, "USD")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
   // The price follows the currency: 12 800 so'm is 1 $ again.
   expect(within(line(1)).getByLabelText("Narx")).toHaveValue("1,00")
@@ -110,9 +110,9 @@ test("the rate follows the currency: the euro takes its own standard rate, not t
   const { user } = renderWithProviders(<NewPurchasePage />)
   await screen.findByRole("heading", { level: 1, name: "Yangi xarid" })
 
-  await choose(user, screen.getByLabelText("Valyuta"), "USD — AQSH dollari")
+  await chooseCurrency(user, "USD")
   expect(await screen.findByLabelText("1 USD = ? so'm")).toHaveValue("12 800")
-  await choose(user, screen.getByLabelText("Valyuta"), "EUR — Yevro")
+  await chooseCurrency(user, "EUR")
   expect(await screen.findByLabelText("1 EUR = ? so'm")).toHaveValue("14 000")
 })
 
