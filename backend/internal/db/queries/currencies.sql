@@ -67,8 +67,8 @@ RETURNING *;
 -- name: ListRates :many
 -- A page of the company's standard rate rows, the newest first, each with
 -- the name the member who set it goes by now (the name of then once they
--- have left).
-SELECT r.id, r.usd, r.eur, r.rub, r.set_at, COALESCE(m.full_name, r.set_by_name) AS set_by_name
+-- have left), or, for a row of the night's run, where it came from.
+SELECT r.id, r.usd, r.eur, r.rub, r.set_at, COALESCE(m.full_name, r.set_by_name) AS set_by_name, r.source
 FROM currency_rates r
 LEFT JOIN user_companies m ON m.user_phone = r.set_by AND m.company_id = r.company_id
 WHERE r.company_id = $1 AND r.status = 1

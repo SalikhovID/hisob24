@@ -149,3 +149,29 @@ func TestCreateAutoRate(t *testing.T) {
 	assert.Equal(t, "13300.0000", numericText(t, row.Eur))
 	assert.Equal(t, "146.1900", numericText(t, row.Rub))
 }
+
+// The history says where each row came from: a member's has no source,
+// the night's run's has no member.
+func TestListRatesSaysWhereARowCameFrom(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	addMember(t, q, olma.ID, "998901234567", "Ali", "owner")
+	zero := rateOf(t, "0")
+	member, err := q.CreateRate(ctx, gen.CreateRateParams{CompanyID: olma.ID, Usd: rateOf(t, "12800"), Eur: zero, Rub: zero, Status: 1, SetBy: "998901234567"})
+	require.NoError(t, err)
+	mustExec(t, pool, "UPDATE currency_rates SET set_at = now() - interval '1 day' WHERE id = $1", member.ID)
+	auto, err := q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: olma.ID, Usd: rateOf(t, "12000"), Eur: zero, Rub: zero, Source: "cbu"})
+	require.NoError(t, err)
+
+	rows, err := q.ListRates(ctx, gen.ListRatesParams{CompanyID: olma.ID, Limit: 20, Offset: 0})
+
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	assert.Equal(t, auto.ID, rows[0].ID)
+	assert.Equal(t, ptr("cbu"), rows[0].Source, "the night's, from the central bank")
+	assert.Nil(t, rows[0].SetByName, "no member")
+	assert.Equal(t, member.ID, rows[1].ID)
+	assert.Nil(t, rows[1].Source, "a member's")
+	assert.Equal(t, ptr("Ali"), rows[1].SetByName)
+}

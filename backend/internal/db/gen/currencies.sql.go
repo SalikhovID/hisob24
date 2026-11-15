@@ -376,7 +376,7 @@ func (q *Queries) ListCurrencies(ctx context.Context) ([]Currency, error) {
 }
 
 const listRates = `-- name: ListRates :many
-SELECT r.id, r.usd, r.eur, r.rub, r.set_at, COALESCE(m.full_name, r.set_by_name) AS set_by_name
+SELECT r.id, r.usd, r.eur, r.rub, r.set_at, COALESCE(m.full_name, r.set_by_name) AS set_by_name, r.source
 FROM currency_rates r
 LEFT JOIN user_companies m ON m.user_phone = r.set_by AND m.company_id = r.company_id
 WHERE r.company_id = $1 AND r.status = 1
@@ -397,11 +397,12 @@ type ListRatesRow struct {
 	Rub       pgtype.Numeric
 	SetAt     time.Time
 	SetByName *string
+	Source    *string
 }
 
 // A page of the company's standard rate rows, the newest first, each with
 // the name the member who set it goes by now (the name of then once they
-// have left).
+// have left), or, for a row of the night's run, where it came from.
 func (q *Queries) ListRates(ctx context.Context, arg ListRatesParams) ([]ListRatesRow, error) {
 	rows, err := q.db.Query(ctx, listRates, arg.CompanyID, arg.Limit, arg.Offset)
 	if err != nil {
@@ -418,6 +419,7 @@ func (q *Queries) ListRates(ctx context.Context, arg ListRatesParams) ([]ListRat
 			&i.Rub,
 			&i.SetAt,
 			&i.SetByName,
+			&i.Source,
 		); err != nil {
 			return nil, err
 		}

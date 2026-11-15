@@ -711,7 +711,7 @@ type Querier interface {
 	ListPurchases(ctx context.Context, arg ListPurchasesParams) ([]ListPurchasesRow, error)
 	// A page of the company's standard rate rows, the newest first, each with
 	// the name the member who set it goes by now (the name of then once they
-	// have left).
+	// have left), or, for a row of the night's run, where it came from.
 	ListRates(ctx context.Context, arg ListRatesParams) ([]ListRatesRow, error)
 	// The company's roles by name (whatever the case), each with how many
 	// members hold it.
