@@ -1,6 +1,6 @@
 "use client"
 
-import { PackageIcon, WrenchIcon } from "lucide-react"
+import { PackageIcon, PlusIcon, WrenchIcon } from "lucide-react"
 import { Group, KeyValue, Row, SectionHeading } from "@/components/kit/group"
 import { SoftIcon } from "@/components/kit/tile-icon"
 import { EmptyState } from "@/components/states"
@@ -12,8 +12,9 @@ import type { OrderDetail } from "@/lib/types"
 // each product or service with its quantity and, for whoever sees the
 // purchases, its FIFO cost in so'm; under them the cost in all and the
 // profit or the loss against the price (4.4). An order with no goods says
-// there are none (its tab stands always, 2026-11-15).
-export function OrderLines({ order }: { order: OrderDetail }) {
+// there are none (its tab stands always, 2026-11-15); with onAdd, a row under
+// them adds a product or a service.
+export function OrderLines({ order, onAdd }: { order: OrderDetail; onAdd?: () => void }) {
   const costed = order.items.length > 0 && order.cost_uzs !== null
   const profit = order.profit_uzs === null ? null : Number(order.profit_uzs)
   return (
@@ -33,6 +34,20 @@ export function OrderLines({ order }: { order: OrderDetail }) {
               chevron={false}
             />
           ))}
+        </Group>
+      )}
+      {onAdd && (
+        <Group className="mb-3.5">
+          <Row
+            variant="link"
+            onClick={onAdd}
+            title={
+              <span className="flex items-center gap-2">
+                <PlusIcon aria-hidden="true" strokeWidth={2.6} className="size-5" />
+                Tovar qo&apos;shish
+              </span>
+            }
+          />
         </Group>
       )}
       {costed && (

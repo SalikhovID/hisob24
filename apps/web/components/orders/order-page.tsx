@@ -32,6 +32,7 @@ import {
 import type { Permission } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
+import { AddGoodsDialog } from "./add-goods-dialog"
 import { DeadlineCard } from "./deadline-card"
 import { DeleteOrderButton } from "./delete-order-button"
 import { EditOrderDialog } from "./edit-order-dialog"
@@ -72,6 +73,7 @@ export function OrderPage({ id }: { id: number }) {
   const { locations } = useLocation()
   const [editing, setEditing] = useState(false)
   const [paying, setPaying] = useState(false)
+  const [addingGoods, setAddingGoods] = useState(false)
 
   // An order that is gone, or is another company's, is not found: there is
   // nothing to try again.
@@ -184,7 +186,15 @@ export function OrderPage({ id }: { id: number }) {
           ...(order.data.payments.length > 0
             ? [{ value: "payments", label: "To'lovlar", content: <OrderPayments companyId={companyId} order={order.data} canEdit={allowed("orders.edit")} /> }]
             : []),
-          { value: "goods", label: "Tovarlar", content: <OrderLines order={order.data} /> },
+          {
+            value: "goods",
+            label: "Tovarlar",
+            // A product or a service is added here by whoever may change the
+            // order and pick the products.
+            content: (
+              <OrderLines order={order.data} onAdd={type && allowed("orders.edit") && allowed("products.view") ? () => setAddingGoods(true) : undefined} />
+            ),
+          },
           // Who did what to the order takes its permission.
           ...(allowed("orders.history") ? [{ value: "history", label: "Tarix", content: <OrderHistory companyId={companyId} id={order.data.id} /> }] : []),
         ]}
@@ -202,6 +212,9 @@ export function OrderPage({ id }: { id: number }) {
           open
           onOpenChange={(open) => !open && setEditing(false)}
         />
+      )}
+      {addingGoods && type && (
+        <AddGoodsDialog companyId={companyId} order={order.data} type={type} open onOpenChange={(open) => !open && setAddingGoods(false)} />
       )}
       {paying && (
         <PaymentDialog

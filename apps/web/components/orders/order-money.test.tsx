@@ -2,10 +2,12 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, test } from "vitest"
 import { ALI, db, localToday, seedOrders, VALI } from "@/mocks/data"
+import { stockOf } from "@/mocks/ledger"
 import { press } from "@/test/keypad"
 import { asosiyOf } from "@/test/locations"
 import { setLocation } from "@/test/navigation"
 import { pricedOrder } from "@/test/order-money"
+import { pick } from "@/test/pick"
 import { renderWithProviders } from "@/test/render"
 import { giveRole } from "@/test/roles"
 import { rowParts } from "@/test/rows"
@@ -187,4 +189,32 @@ test("an order's payment edited keeps its moment and its note", async () => {
   const saved = db.transactions.find((t) => t.id === advance.id)!
   expect(saved.note).toBe("Oldindan")
   expect(Date.parse(saved.at)).toBe(Date.parse(at))
+})
+
+// Goods are added on the order's page (2026-11-15): in its «Tovarlar» tab, a
+// product or a service and its quantity, saved at once; the rest of the order
+// stays as it is.
+test("goods are added in the order's goods tab: a product and its quantity, saved at once, the rest of the order as it was", async () => {
+  await signIn(ALI)
+  const { order, olma } = await pricedOrder({ items: [] })
+  setLocation(`/orders/${order.id}`, { id: String(order.id) })
+  const { user } = renderWithProviders(<OrderPage id={order.id} />)
+
+  await user.click(await screen.findByRole("tab", { name: "Tovarlar" }))
+  await user.click(await screen.findByRole("button", { name: "Tovar qo'shish" }))
+  const dialog = await screen.findByRole("dialog", { name: "Tovar qo'shish" })
+  expect(within(dialog).getByText("Buyurtma № 5")).toBeInTheDocument()
+  await pick(user, dialog, "Mahsulot", "ol", /Olma/)
+  await user.type(within(dialog).getByLabelText("Miqdor"), "2")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  expect(await screen.findByText("Tovar qo'shildi")).toBeInTheDocument()
+  const goods = await screen.findByRole("region", { name: "Mahsulotlar" })
+  expect(await within(goods).findByText("Olma")).toBeInTheDocument()
+  expect(stockOf(olma.id, [asosiyOf(1).id])).toBe(10.5)
+  // The price and the advance are the order's still.
+  const document = db.transactions.find((t) => t.kind === "order" && t.orderId === order.id)!
+  expect(document.total).toBe(5000)
+  expect(db.transactions.filter((t) => t.kind === "customer_payment" && t.linkedId === document.id && !t.deleted).map((t) => t.total)).toEqual([400])
 })
