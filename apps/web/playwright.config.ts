@@ -23,14 +23,12 @@ export default defineConfig({
     { name: "desktop", use: { browserName: "chromium", viewport: { width: 1280, height: 800 } } },
   ],
   webServer: {
-    command: `pnpm exec next dev -p ${port}`,
+    // The command, its port and its env live in package.json's e2e:server, so
+    // a server started by hand for a session (pnpm --filter @hisob24/web
+    // e2e:server) is the one Playwright would start, and it is reused.
+    command: "pnpm run e2e:server",
     url: `http://localhost:${port}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
-    env: {
-      NEXT_DIST_DIR: ".next-e2e",
-      HIDE_DEV_INDICATOR: "1",
-      API_URL: "http://127.0.0.1:9",
-    },
   },
 })
