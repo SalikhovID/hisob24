@@ -6662,7 +6662,7 @@ components:
     Rates:
       type: object
       description: Kurslar qatori (logic/currencies.md, 4-bo'lim), so'mda, to'rt kasr bilan
-      required: [id, usd, eur, rub, set_by_name, set_at]
+      required: [id, usd, eur, rub, set_by_name, source, set_at]
       properties:
         id:
           type: integer
@@ -6676,7 +6676,15 @@ components:
           type: string
         set_by_name:
           type: [string, "null"]
-          description: Kiritgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi
+          description: Kiritgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi; avtomatik qatorda null
+        source:
+          type: [string, "null"]
+          enum: [cbu, kapitalbank, ipakyuli, asaka, hamkor, uzum, ofb, carried, failed, null]
+          description: >
+            Avtomatik qator qayerdan (logic/currencies.md, 4-bo'lim): bank
+            kodi — o'sha bankdan olingan (Markaziy bank yordamga kelsa cbu),
+            carried — «Qo'lda» kompaniyada kechagi kurs nusxasi, failed — bank
+            javob bermagani uchun kechagi kurs nusxasi; a'zo kiritgan qatorda null
         set_at:
           type: string
           format: date-time
@@ -6698,8 +6706,12 @@ components:
           pattern: "^[0-9]{1,10}([.][0-9]{1,4})?$"
     RatesPage:
       type: object
-      required: [items, total, page, page_size]
+      required: [items, total, page, page_size, rate_source, rate_rounding]
       properties:
+        rate_source:
+          $ref: "#/components/schemas/RateSourceCode"
+        rate_rounding:
+          $ref: "#/components/schemas/RateRounding"
         items:
           type: array
           items:

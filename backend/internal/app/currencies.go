@@ -28,25 +28,31 @@ func toCompanyCurrenciesJSON(list []currency.CompanyCurrency) []companyCurrencyJ
 }
 
 // ratesJSON is a standard rate row: so'm per unit of each currency, four
-// decimals, who set it and when.
+// decimals, who set it, or where the night's run took it (a bank,
+// "carried", "failed"), and when.
 type ratesJSON struct {
 	ID        int64     `json:"id"`
 	USD       string    `json:"usd"`
 	EUR       string    `json:"eur"`
 	RUB       string    `json:"rub"`
 	SetByName *string   `json:"set_by_name"`
+	Source    *string   `json:"source"`
 	SetAt     time.Time `json:"set_at"`
 }
 
 func toRatesJSON(r currency.Rates) ratesJSON {
-	return ratesJSON{ID: r.ID, USD: r.USD, EUR: r.EUR, RUB: r.RUB, SetByName: r.SetByName, SetAt: r.SetAt}
+	return ratesJSON{ID: r.ID, USD: r.USD, EUR: r.EUR, RUB: r.RUB, SetByName: r.SetByName, Source: r.Source, SetAt: r.SetAt}
 }
 
+// ratesPageJSON is a page of the history, with where the company takes its
+// rates now and the step.
 type ratesPageJSON struct {
-	Items    []ratesJSON `json:"items"`
-	Total    int64       `json:"total"`
-	Page     int         `json:"page"`
-	PageSize int         `json:"page_size"`
+	Items        []ratesJSON `json:"items"`
+	Total        int64       `json:"total"`
+	Page         int         `json:"page"`
+	PageSize     int         `json:"page_size"`
+	RateSource   string      `json:"rate_source"`
+	RateRounding int         `json:"rate_rounding"`
 }
 
 // listRates is the history of the company's rates, the newest first
@@ -65,7 +71,7 @@ func (h *Handler) listRates(w http.ResponseWriter, r *http.Request) {
 	for _, it := range res.Items {
 		items = append(items, toRatesJSON(it))
 	}
-	httpx.JSON(w, http.StatusOK, ratesPageJSON{Items: items, Total: res.Total, Page: res.Page, PageSize: res.PageSize})
+	httpx.JSON(w, http.StatusOK, ratesPageJSON{Items: items, Total: res.Total, Page: res.Page, PageSize: res.PageSize, RateSource: res.Source.Source, RateRounding: res.Source.Rounding})
 }
 
 // setRates enters the rates of the currencies the company has on, as the

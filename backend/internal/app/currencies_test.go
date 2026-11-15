@@ -55,7 +55,7 @@ func TestCurrencyRates(t *testing.T) {
 
 	rec := api.do(t, http.MethodGet, "/app/currency-rates", "", bearer(owner))
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	assert.JSONEq(t, `{"items":[],"total":0,"page":1,"page_size":20}`, rec.Body.String(), "no rate yet")
+	assert.JSONEq(t, `{"items":[],"total":0,"page":1,"page_size":20,"rate_source":"cbu","rate_rounding":100}`, rec.Body.String(), "no rate yet; the central bank, to 100")
 	rec = api.do(t, http.MethodGet, "/app/currency-rates", "", bearer(employee))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "the settings are not an employee's by default")
 	assert.JSONEq(t, noPermission, rec.Body.String())
@@ -100,4 +100,27 @@ func TestCurrencyRates(t *testing.T) {
 	rec = api.do(t, http.MethodPost, "/app/currency-rates", `{"usd":"12900"}`, bearer(viewer))
 	assert.Equal(t, http.StatusForbidden, rec.Code, "settings.view alone does not set the rates")
 	assert.JSONEq(t, noPermission, rec.Body.String())
+}
+
+// The history says where each row came from and where the company takes
+// its rates now (logic/currencies.md, section 4).
+func TestCurrencyRatesSayWhereTheyComeFrom(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	api.exec(t, "INSERT INTO currency_rates (company_id, usd, source) VALUES ($1, 12000, 'cbu')", olma)
+	api.exec(t, "UPDATE companies SET rate_source = 'kapitalbank', rate_rounding = 1000 WHERE id = $1", olma)
+
+	rec := api.do(t, http.MethodGet, "/app/currency-rates", "", bearer(owner))
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	page := decode(t, rec)
+	assert.Equal(t, "kapitalbank", page["rate_source"])
+	assert.EqualValues(t, 1000, page["rate_rounding"])
+	items, _ := page["items"].([]any)
+	require.Len(t, items, 1)
+	row, _ := items[0].(map[string]any)
+	assert.Equal(t, "cbu", row["source"], "the night's, from the central bank")
+	assert.Contains(t, row, "set_by_name")
+	assert.Nil(t, row["set_by_name"], "no member")
 }
