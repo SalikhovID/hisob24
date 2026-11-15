@@ -95,3 +95,14 @@ test("an account another payment has stands turned off in a payment's picker", a
   expect(within(sheet).getByRole("option", { name: /Karta/ })).toHaveAttribute("aria-disabled", "true")
   expect(within(sheet).getByRole("option", { name: /Naqd/ })).not.toHaveAttribute("aria-disabled")
 })
+
+test("a new payment takes the first account no other payment has", async () => {
+  await signIn(VALI)
+  await chooseCompany(2)
+  const { user } = renderWithProviders(<Host total={50000} />)
+
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  await user.click(screen.getByRole("button", { name: "To'lov qo'shish" }))
+  expect(within(payment(1)).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Naqd (so'm)")
+  expect(within(payment(2)).getByRole("button", { name: /^Akkaunt/ })).toHaveTextContent("Karta ($)")
+})

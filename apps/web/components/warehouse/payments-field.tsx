@@ -46,7 +46,9 @@ export function PaymentsField<TForm extends WithPayments & FieldValues, TOut ext
     convert(amountOf(line.amount), accountCurrency(accounts, currencies, Number(line.bank_account_id)).id, documentCurrency, currencies) ?? 0
   const paid = lines.reduce((sum, line) => sum + inDocument(line), 0)
   const left = Math.round((total - paid) * 100) / 100
-  const first = accounts.find((a) => a.is_active)
+  // A new payment takes the first live account no payment has yet.
+  const used = new Set(lines.map((line) => line?.bank_account_id))
+  const first = accounts.find((a) => a.is_active && !used.has(String(a.id)))
   // fill puts what is left (counting the other lines) into the line, in
   // its account's currency.
   const fill = (index: number) => {
