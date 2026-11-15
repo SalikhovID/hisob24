@@ -132,3 +132,28 @@ test("MultiSelectBox says the chosen options, marks them in the open list, and t
   rerender(<MultiSelectBox aria-label="Kanallar" value={[]} options={options} onChange={onChange} />)
   expect(box).toHaveTextContent("Tanlanmagan")
 })
+
+// A select the form does not let change (the rounding of a company that
+// enters its rates by hand) still sends its value.
+function DisabledForm({ onSubmit }: { onSubmit: (values: { kind: string }) => void }) {
+  const form = useForm<{ kind: string }>({ defaultValues: { kind: "2" } })
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <SelectField control={form.control} name="kind" label="Turi" options={options} disabled />
+      <button type="submit">Saqlash</button>
+    </form>
+  )
+}
+
+test("SelectField can be disabled and still sends its value", async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  render(<DisabledForm onSubmit={onSubmit} />)
+
+  const box = screen.getByLabelText("Turi")
+  expect(box).toBeDisabled()
+  expect(box).toHaveTextContent("LinkedIn")
+  await user.click(screen.getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ kind: "2" }, expect.anything()))
+})

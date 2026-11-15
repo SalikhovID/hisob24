@@ -115,7 +115,8 @@ export function MultiSelectBox({
 }
 
 // SelectField is a labeled SelectBox bound to a react-hook-form field, with
-// its error under it.
+// its error under it. disabled stops the choice, not the value: the form
+// still sends it (react-hook-form's own disabled would leave it out).
 export function SelectField<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   name,
@@ -123,6 +124,7 @@ export function SelectField<T extends FieldValues, TOut extends FieldValues = T>
   options,
   empty,
   placeholder,
+  disabled,
 }: {
   control: Control<T, unknown, TOut>
   name: FieldPath<T>
@@ -130,6 +132,7 @@ export function SelectField<T extends FieldValues, TOut extends FieldValues = T>
   options: SelectOption[]
   empty?: string
   placeholder?: string
+  disabled?: boolean
 }) {
   const id = useId()
   return (
@@ -147,7 +150,7 @@ export function SelectField<T extends FieldValues, TOut extends FieldValues = T>
             options={options}
             empty={empty}
             placeholder={placeholder}
-            disabled={field.disabled}
+            disabled={disabled || field.disabled}
             aria-invalid={fieldState.invalid}
           />
           <FieldError errors={[fieldState.error]} />
