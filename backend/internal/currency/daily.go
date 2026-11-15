@@ -39,18 +39,37 @@ func (s *Service) Daily(ctx context.Context, f Fetcher, at time.Time) Report {
 		return report
 	}
 	for _, c := range companies {
-		rates, _, err := f.Fetch(ctx, c.RateSource)
-		if err == nil {
+		rates, _, fetchErr := f.Fetch(ctx, c.RateSource)
+		var err error
+		if fetchErr == nil {
 			err = s.writeFetched(ctx, c, rates)
+		} else {
+			slog.Warn("daily rates: no bank answered", "company_id", c.ID, "source", c.RateSource, "err", fetchErr)
+			err = s.carry(ctx, c.ID, at, "failed")
 		}
 		if err != nil {
 			slog.Warn("daily rates: a company's row", "company_id", c.ID, "err", err)
 			report.Errors++
 			continue
 		}
-		report.Fetched++
+		if fetchErr == nil {
+			report.Fetched++
+		} else {
+			report.Failed++
+		}
 	}
 	return report
+}
+
+// carry enters the company's row in force at the moment again, as the
+// source says: yesterday's rates, as they were.
+func (s *Service) carry(ctx context.Context, companyID int64, at time.Time, source string) error {
+	prev, err := RateAt(ctx, s.q, companyID, at)
+	if err != nil || prev == nil {
+		return err
+	}
+	_, err = s.q.CreateAutoRate(ctx, gen.CreateAutoRateParams{CompanyID: companyID, Usd: prev.Usd, Eur: prev.Eur, Rub: prev.Rub, Source: source})
+	return err
 }
 
 // writeFetched enters the company's row of the bank's rates.

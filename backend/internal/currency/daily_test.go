@@ -102,3 +102,31 @@ func TestDailyTakesTheBanksRatesRoundedToTheStep(t *testing.T) {
 	}
 	assert.Equal(t, Report{Fetched: len(cases)}, report)
 }
+
+// enteredYesterday is a row the owner entered a day ago: the dollar and
+// the euro on.
+func enteredYesterday(t *testing.T, s *Service, pool *pgxpool.Pool, companyID int64) {
+	t.Helper()
+	turnOn(t, pool, companyID, 2)
+	turnOn(t, pool, companyID, 3)
+	row, err := s.SetRates(t.Context(), companyID, ali, RatesInput{USD: ptr("12800"), EUR: ptr("13900.5")})
+	require.NoError(t, err)
+	_, err = pool.Exec(t.Context(), "UPDATE currency_rates SET set_at = now() - interval '1 day' WHERE id = $1", row.ID)
+	require.NoError(t, err)
+}
+
+// When no bank answers, the company gets yesterday's rates again, as the
+// rates the bank failed to give.
+func TestDailyCarriesYesterdaysRatesWhenNoBankAnswers(t *testing.T) {
+	s, pool := newService(t)
+	olma := addCompany(t, pool, "Olma")
+	takeRatesFrom(t, pool, olma, bankrate.Kapital, 100)
+	enteredYesterday(t, s, pool, olma)
+
+	report := s.Daily(t.Context(), &fakeBanks{}, time.Now())
+
+	rows := standardRows(t, pool, olma)
+	require.Len(t, rows, 2)
+	assert.Equal(t, standardRow{USD: "12800.0000", EUR: "13900.5000", RUB: "0.0000", Source: ptr("failed")}, rows[0], "yesterday's, not rounded")
+	assert.Equal(t, Report{Failed: 1}, report)
+}
