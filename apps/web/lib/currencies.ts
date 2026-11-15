@@ -30,6 +30,12 @@ export function currencyOf(currencies: readonly CompanyCurrency[], id: number): 
 }
 
 // currencyOptions is the currencies as a select offers them.
+// currencyCodes are the currencies by their codes (UZS, USD): the buttons
+// that choose a document's currency say no more.
+export function currencyCodes(currencies: readonly CompanyCurrency[]): { value: string; label: string }[] {
+  return currencies.map((c) => ({ value: String(c.id), label: c.code }))
+}
+
 export function currencyOptions(currencies: readonly CompanyCurrency[]): { value: string; label: string }[] {
   return currencies.map((c) => ({ value: String(c.id), label: `${c.code} — ${c.name}` }))
 }

@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { useForm } from "react-hook-form"
 import { expect, test } from "vitest"
-import { currencyOf, currencyOptions, isMulti, rateLine, som, turnTyped, useOfferedRate } from "./currencies"
+import { currencyCodes, currencyOf, currencyOptions, isMulti, rateLine, som, turnTyped, useOfferedRate } from "./currencies"
 import type { CompanyCurrency } from "./types"
 
 const usd: CompanyCurrency = { id: 2, code: "USD", name: "AQSH dollari", symbol: "$", rate: "12800.0000" }
@@ -21,6 +21,14 @@ test("currencyOptions offers the currencies by code and name", () => {
   expect(currencyOptions([som, usd])).toEqual([
     { value: "1", label: "UZS — O'zbek so'mi" },
     { value: "2", label: "USD — AQSH dollari" },
+  ])
+})
+
+test("currencyCodes offers the currencies by their codes, for the buttons that choose one", () => {
+  expect(currencyCodes([som, usd, eur])).toEqual([
+    { value: "1", label: "UZS" },
+    { value: "2", label: "USD" },
+    { value: "3", label: "EUR" },
   ])
 })
 
