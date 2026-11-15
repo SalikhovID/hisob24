@@ -1,6 +1,6 @@
 import { act, render, renderHook, screen } from "@testing-library/react"
 import { useForm } from "react-hook-form"
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 import type { CompanyCurrency } from "@/lib/types"
 import { RateRow, useRateFollowsCurrency } from "./rate-row"
 
@@ -22,6 +22,25 @@ test("the rate row says the rate a document is written at, never asking for one"
 
   render(<RateRow currency={eur} rate="" />)
   expect(screen.getByText("Kurs kiritilmagan")).toBeInTheDocument()
+})
+
+// The API takes the standard rate in force at the document's moment
+// (logic/currencies.md, section 4): today's for a document dated today or
+// later, that day's for one dated back, which the page does not know.
+test("a document dated back is written at that day's rate: the row names the day, not today's rate", () => {
+  vi.setSystemTime(new Date("2026-11-15T12:00:00+05:00"))
+  const day = (at: string, rate = "") => {
+    const { unmount } = render(<RateRow currency={usd} rate={rate} at={at} />)
+    const text = screen.getByText((_, node) => node?.getAttribute("data-slot") === "rate-line").textContent?.replace(/\s/g, " ")
+    unmount()
+    return text
+  }
+
+  expect(day("2026-11-14T18:30")).toBe("14.11.2026 dagi kurs")
+  expect(day("2026-11-15T00:00")).toBe("1 USD = 12 800 so'm")
+  expect(day("2026-11-20T09:00")).toBe("1 USD = 12 800 so'm")
+  expect(day("2026-11-14T18:30", "13000")).toBe("1 USD = 13 000 so'm")
+  vi.useRealTimers()
 })
 
 // useRated is a form's rate under useRateFollowsCurrency, for the currency given.
