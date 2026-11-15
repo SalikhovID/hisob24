@@ -315,3 +315,19 @@ func TestDailyTwoRunsAtOnceWriteOneRow(t *testing.T) {
 	assert.Equal(t, 1, reports[0].Fetched+reports[1].Fetched, "one wrote it")
 	assert.Equal(t, 1, reports[0].Skipped+reports[1].Skipped, "the other found it")
 }
+
+// A company the run fails on (a bank's rate the rows cannot hold) leaves
+// the others theirs.
+func TestDailyGoesOnPastACompanyItFailsOn(t *testing.T) {
+	s, pool := newService(t)
+	broken := addCompany(t, pool, "Olma")
+	takeRatesFrom(t, pool, broken, bankrate.Kapital, 1)
+	fine := addCompany(t, pool, "Nok")
+	banks := &fakeBanks{rates: map[string]bankrate.Rates{bankrate.Kapital: {USD: 1e12, EUR: 13380}, bankrate.CBU: centralBank}}
+
+	report := s.Daily(t.Context(), banks, time.Now())
+
+	assert.Empty(t, standardRows(t, pool, broken))
+	assert.Len(t, standardRows(t, pool, fine), 1)
+	assert.Equal(t, Report{Fetched: 1, Errors: 1}, report)
+}
