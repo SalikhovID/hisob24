@@ -54,7 +54,7 @@ Bu hujjat valyutalar qoidalarini belgilaydi: kompaniyada qaysi valyutalar bor, k
 - So'm: «1 200 000 so'm»; boshqalari belgisi bilan: «150 $», «90 €», «1 000 ₽». Minglar bo'shliq bilan, kasr vergul bilan, 2 kasr, `.00` tashlanadi (`formatMoney(amount, currency)`).
 - Jadval ustuni sarlavhasida valyuta aytilmaydi (hujjatlar aralash bo'lishi mumkin): har summa o'z belgisi bilan. So'mdagi jami («Jami, so'm») balans kartalarida.
 - Kurs: «1 USD = 12 800 so'm» (kasrsiz bo'lsa kasr ko'rsatilmaydi, bo'lsa 4 tagacha).
-- Valyuta tanlovi `SelectField`: kod va nom («USD — AQSH dollari»); kurs maydoni yonida (`inputMode="decimal"`, vergul qabul qilinadi).
+- Valyuta tanlovi: user app formalarida (buyurtma, sotuv, xarid, boshlang'ich qoldiq — forma va dialog, mahsulot va xizmat) tablarga o'xshash radio tugmalar (`SegmentedRow`), har birida kod («UZS», «USD»); 2026-11-15 gacha ro'yxat (select) edi: kod va nom («USD — AQSH dollari»). Kurs maydoni yonida (`inputMode="decimal"`, vergul qabul qilinadi).
 
 ## 7. Chekka holatlar
 
