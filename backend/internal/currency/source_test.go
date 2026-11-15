@@ -2,11 +2,13 @@ package currency
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
+	"github.com/SalikhovID/hisob24/backend/internal/bankrate"
 )
 
 // The admin picks where a company takes its rates and the step: a bank or
@@ -43,4 +45,26 @@ func TestSetSourceOf(t *testing.T) {
 	refused(t, err, apperr.NotFound, "not_found", "Kompaniya topilmadi")
 	_, err = s.SourceOf(ctx, olma+1000)
 	refused(t, err, apperr.NotFound, "not_found", "Kompaniya topilmadi")
+}
+
+// The history says where each row came from, a member or the night's run,
+// and where the company takes its rates now.
+func TestHistorySaysWhereTheRatesComeFrom(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	enteredYesterday(t, s, pool, olma)
+	s.Daily(ctx, &fakeBanks{rates: map[string]bankrate.Rates{bankrate.CBU: centralBank}}, time.Now())
+	_, err := s.SetSourceOf(ctx, olma, RateSource{Source: "manual", Rounding: 10})
+	require.NoError(t, err)
+
+	page, err := s.History(ctx, olma, 1)
+
+	require.NoError(t, err)
+	require.Len(t, page.Items, 2)
+	assert.Equal(t, ptr(bankrate.CBU), page.Items[0].Source, "the night's, from the central bank")
+	assert.Nil(t, page.Items[0].SetByName, "no member")
+	assert.Nil(t, page.Items[1].Source, "the owner's")
+	assert.Equal(t, ptr("Ali aka"), page.Items[1].SetByName)
+	assert.Equal(t, RateSource{Source: "manual", Rounding: 10}, page.Source)
 }

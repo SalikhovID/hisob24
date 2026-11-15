@@ -65,13 +65,16 @@ func zeroRate() pgtype.Numeric {
 var now = time.Now
 
 // Rates is a standard rate row as the API shows it: the rates in so'm per
-// unit, who set it (the name they go by in the company) and when.
+// unit, who set it (the name they go by in the company) or, for a row of
+// the night's run, where it came from (a bank, "carried", "failed"), and
+// when.
 type Rates struct {
 	ID        int64
 	USD       string
 	EUR       string
 	RUB       string
 	SetByName *string
+	Source    *string
 	SetAt     time.Time
 }
 
@@ -83,15 +86,18 @@ type RatesInput struct {
 	RUB *string
 }
 
-// RatesPage is one page of the history.
+// RatesPage is one page of the history, with where the company takes its
+// rates now.
 type RatesPage struct {
 	Items    []Rates
 	Total    int64
 	Page     int
 	PageSize int
+	Source   RateSource
 }
 
-// History is a page of the company's standard rate rows, the newest first.
+// History is a page of the company's standard rate rows, the newest first,
+// with where the company takes its rates now.
 func (s *Service) History(ctx context.Context, companyID int64, page int) (RatesPage, error) {
 	if page < 1 || page > maxPage {
 		return RatesPage{}, invalid("Sahifa raqami noto'g'ri")
@@ -106,9 +112,13 @@ func (s *Service) History(ctx context.Context, companyID int64, page int) (Rates
 	}
 	items := make([]Rates, 0, len(rows))
 	for _, r := range rows {
-		items = append(items, Rates{ID: r.ID, USD: RateText(r.Usd), EUR: RateText(r.Eur), RUB: RateText(r.Rub), SetByName: r.SetByName, SetAt: r.SetAt})
+		items = append(items, Rates{ID: r.ID, USD: RateText(r.Usd), EUR: RateText(r.Eur), RUB: RateText(r.Rub), SetByName: r.SetByName, Source: r.Source, SetAt: r.SetAt})
 	}
-	return RatesPage{Items: items, Total: total, Page: page, PageSize: PageSize}, nil
+	source, err := s.SourceOf(ctx, companyID)
+	if err != nil {
+		return RatesPage{}, err
+	}
+	return RatesPage{Items: items, Total: total, Page: page, PageSize: PageSize, Source: source}, nil
 }
 
 // SetRates enters a standard rate row as the member with phone by: each
