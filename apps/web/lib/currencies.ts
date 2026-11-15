@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react"
 import type { FieldPath, FieldValues, PathValue, UseFormReturn } from "react-hook-form"
-import { formatRate } from "./format"
+import { formatAmount, formatRate } from "./format"
 import { useMe } from "./queries"
-import type { AppAccount, CompanyCurrency } from "./types"
+import type { AppAccount, CompanyCurrency, RateRounding, Rates, RateSourceCode } from "./types"
 
 // UZS is the so'm: every company's base currency, always on
 // (logic/currencies.md).
@@ -120,4 +120,42 @@ export function accountOptions(accounts: readonly AppAccount[], currencies: read
 // when there is none such.
 export function accountCurrency(accounts: readonly AppAccount[], currencies: readonly CompanyCurrency[], id: number): CompanyCurrency {
   return currencyOf(currencies, accounts.find((a) => a.id === id)?.currency_id ?? UZS)
+}
+
+// BANKS are the banks a company may take its rates from, by name.
+const BANKS: Record<Exclude<RateSourceCode, "manual">, string> = {
+  cbu: "Markaziy bank",
+  kapitalbank: "Kapitalbank",
+  ipakyuli: "Ipak Yo'li banki",
+  asaka: "Asakabank",
+  hamkor: "Hamkorbank",
+  uzum: "Uzum Bank",
+  ofb: "Orient Finans Bank",
+}
+
+// rowSourceName is where a row of the rates' history came from, as the
+// history tells it (logic/currencies.md, section 4): the bank the night's
+// run took it from, or yesterday's rates again (by hand, or when no bank
+// answered); null for a member's row, which tells the member's name.
+export function rowSourceName(source: Rates["source"]): string | null {
+  switch (source) {
+    case null:
+      return null
+    case "carried":
+      return "Kechagi kurs"
+    case "failed":
+      return "Kechagi kurs · bank javob bermadi"
+    default:
+      return BANKS[source]
+  }
+}
+
+// ratesNote is what the rates' page tells of where the company's rates come
+// from every night: the bank and the step the dollar and the euro are
+// rounded to, or yesterday's rates again for a company that enters them by
+// hand.
+export function ratesNote(source: RateSourceCode, rounding: RateRounding): string {
+  if (source === "manual") return "Har kuni 00:00 da kechagi kurs takrorlanadi."
+  const taken = `Har kuni 00:00 da ${BANKS[source]} kursi olinadi`
+  return rounding === 1 ? `${taken}.` : `${taken}, USD va EUR ${formatAmount(String(rounding))} so'mgacha yaxlitlanadi.`
 }

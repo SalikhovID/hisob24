@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { useForm } from "react-hook-form"
 import { expect, test } from "vitest"
-import { currencyCodes, currencyOf, isMulti, rateLine, som, turnTyped, useOfferedRate } from "./currencies"
+import { currencyCodes, currencyOf, isMulti, rateLine, ratesNote, rowSourceName, som, turnTyped, useOfferedRate } from "./currencies"
 import type { CompanyCurrency } from "./types"
 
 const usd: CompanyCurrency = { id: 2, code: "USD", name: "AQSH dollari", symbol: "$", rate: "12800.0000" }
@@ -86,4 +86,24 @@ test("turnTyped turns an amount as typed (spaces, a comma) into another currency
   expect(turnTyped("abc", 1, 2, rated)).toBeNull()
   expect(turnTyped("1,234", 1, 2, rated)).toBeNull()
   expect(turnTyped("150", 2, 4, rated)).toBeNull()
+})
+
+test("where a row of the history came from: a bank by name or yesterday's rates again; a member's has none", () => {
+  expect(rowSourceName("cbu")).toBe("Markaziy bank")
+  expect(rowSourceName("kapitalbank")).toBe("Kapitalbank")
+  expect(rowSourceName("ipakyuli")).toBe("Ipak Yo'li banki")
+  expect(rowSourceName("asaka")).toBe("Asakabank")
+  expect(rowSourceName("hamkor")).toBe("Hamkorbank")
+  expect(rowSourceName("uzum")).toBe("Uzum Bank")
+  expect(rowSourceName("ofb")).toBe("Orient Finans Bank")
+  expect(rowSourceName("carried")).toBe("Kechagi kurs")
+  expect(rowSourceName("failed")).toBe("Kechagi kurs · bank javob bermadi")
+  expect(rowSourceName(null)).toBeNull()
+})
+
+test("what the page tells of the night's rates: the bank and the step, or yesterday's again by hand", () => {
+  expect(ratesNote("cbu", 100)).toBe("Har kuni 00:00 da Markaziy bank kursi olinadi, USD va EUR 100 so'mgacha yaxlitlanadi.")
+  expect(ratesNote("kapitalbank", 1000)).toBe("Har kuni 00:00 da Kapitalbank kursi olinadi, USD va EUR 1\u00a0000 so'mgacha yaxlitlanadi.")
+  expect(ratesNote("ofb", 1)).toBe("Har kuni 00:00 da Orient Finans Bank kursi olinadi.")
+  expect(ratesNote("manual", 100)).toBe("Har kuni 00:00 da kechagi kurs takrorlanadi.")
 })
