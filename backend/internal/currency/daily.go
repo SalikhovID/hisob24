@@ -79,8 +79,16 @@ func (r *Report) count(o outcome) {
 	}
 }
 
-// dailyRow writes the company's row for the day.
+// dailyRow writes the company's row for the day, unless it has a
+// standard row since the day began: the owner's own, or this run's.
 func (s *Service) dailyRow(ctx context.Context, f Fetcher, c gen.ListRateSourcesRow, at time.Time) (outcome, error) {
+	has, err := s.q.HasStandardRateSince(ctx, gen.HasStandardRateSinceParams{CompanyID: c.ID, Since: dayStart(at)})
+	if err != nil {
+		return skipped, err
+	}
+	if has {
+		return skipped, nil
+	}
 	if c.RateSource == manual {
 		return s.carry(ctx, c.ID, at, carried)
 	}
@@ -134,4 +142,10 @@ func numeric(v float64) (pgtype.Numeric, error) {
 	var n pgtype.Numeric
 	err := n.Scan(strconv.FormatFloat(v, 'f', 4, 64))
 	return n, err
+}
+
+// dayStart is the start of the moment's day.
+func dayStart(at time.Time) time.Time {
+	y, m, d := at.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, at.Location())
 }

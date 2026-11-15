@@ -163,3 +163,26 @@ func TestDailyWritesNothingWithoutYesterdaysRates(t *testing.T) {
 	assert.Empty(t, standardRows(t, pool, unanswered))
 	assert.Equal(t, Report{Skipped: 2}, report)
 }
+
+// A day's row is written once: a company that has a standard row since the
+// day began, the owner's own too, is left as it is, and a second run that
+// day writes nothing.
+func TestDailyWritesADaysRowOnce(t *testing.T) {
+	s, pool := newService(t)
+	entered := addCompany(t, pool, "Olma")
+	turnOn(t, pool, entered, 2)
+	_, err := s.SetRates(t.Context(), entered, ali, RatesInput{USD: ptr("12900")})
+	require.NoError(t, err)
+	twice := addCompany(t, pool, "Nok")
+	banks := &fakeBanks{rates: map[string]bankrate.Rates{bankrate.CBU: centralBank}}
+
+	first := s.Daily(t.Context(), banks, time.Now())
+	second := s.Daily(t.Context(), banks, time.Now())
+
+	rows := standardRows(t, pool, entered)
+	require.Len(t, rows, 1, "the owner's rate of the morning stands")
+	assert.Nil(t, rows[0].Source)
+	assert.Len(t, standardRows(t, pool, twice), 1, "one row a day")
+	assert.Equal(t, Report{Fetched: 1, Skipped: 1}, first)
+	assert.Equal(t, Report{Skipped: 2}, second)
+}
