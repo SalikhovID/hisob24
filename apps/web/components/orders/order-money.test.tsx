@@ -218,3 +218,26 @@ test("goods are added in the order's goods tab: a product and its quantity, save
   expect(document.total).toBe(5000)
   expect(db.transactions.filter((t) => t.kind === "customer_payment" && t.linkedId === document.id && !t.deleted).map((t) => t.total)).toEqual([400])
 })
+
+// Goods are added by whoever may change the order and pick the products.
+test("without products.view or without orders.edit the goods tab offers no goods to add", async () => {
+  db.cooldown = false
+  await signIn(VALI)
+  await chooseCompany(1)
+  await signIn(ALI)
+  const { order } = await pricedOrder({ items: [] })
+  for (const permissions of [
+    ["orders.view", "orders.edit"],
+    ["orders.view", "products.view"],
+  ] as const) {
+    giveRole(VALI, 1, "Sotuvchi", [...permissions])
+    await signIn(VALI)
+    await chooseCompany(1)
+    setLocation(`/orders/${order.id}`, { id: String(order.id) })
+    const { unmount } = renderWithProviders(<OrderPage id={order.id} />)
+    await userEvent.click(await screen.findByRole("tab", { name: "Tovarlar" }))
+    expect(await screen.findByText("Tovar yo'q")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Tovar qo'shish" }), permissions.join(" ")).not.toBeInTheDocument()
+    unmount()
+  }
+})
