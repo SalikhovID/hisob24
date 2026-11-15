@@ -18,6 +18,10 @@ type Fetcher interface {
 	Fetch(ctx context.Context, source string) (bankrate.Rates, string, error)
 }
 
+// manual is the source of a company that enters its rates by hand: the
+// night's run asks no bank for it and carries yesterday's rates.
+const manual = "manual"
+
 // Report is what a night's run did: the rows it took from a bank, the
 // rows it carried from yesterday for a company that enters its rates by
 // hand or for want of a bank's, the companies it left as they were, and
@@ -39,6 +43,15 @@ func (s *Service) Daily(ctx context.Context, f Fetcher, at time.Time) Report {
 		return report
 	}
 	for _, c := range companies {
+		if c.RateSource == manual {
+			if err := s.carry(ctx, c.ID, at, "carried"); err != nil {
+				slog.Warn("daily rates: a company's row", "company_id", c.ID, "err", err)
+				report.Errors++
+				continue
+			}
+			report.Carried++
+			continue
+		}
 		rates, _, fetchErr := f.Fetch(ctx, c.RateSource)
 		var err error
 		if fetchErr == nil {

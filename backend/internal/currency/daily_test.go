@@ -130,3 +130,21 @@ func TestDailyCarriesYesterdaysRatesWhenNoBankAnswers(t *testing.T) {
 	assert.Equal(t, standardRow{USD: "12800.0000", EUR: "13900.5000", RUB: "0.0000", Source: ptr("failed")}, rows[0], "yesterday's, not rounded")
 	assert.Equal(t, Report{Failed: 1}, report)
 }
+
+// A company that enters its rates by hand asks no bank: it gets
+// yesterday's rates again.
+func TestDailyCarriesYesterdaysRatesForAManualCompany(t *testing.T) {
+	s, pool := newService(t)
+	olma := addCompany(t, pool, "Olma")
+	takeRatesFrom(t, pool, olma, "manual", 100)
+	enteredYesterday(t, s, pool, olma)
+	banks := &fakeBanks{rates: map[string]bankrate.Rates{bankrate.CBU: centralBank}}
+
+	report := s.Daily(t.Context(), banks, time.Now())
+
+	rows := standardRows(t, pool, olma)
+	require.Len(t, rows, 2)
+	assert.Equal(t, standardRow{USD: "12800.0000", EUR: "13900.5000", RUB: "0.0000", Source: ptr("carried")}, rows[0])
+	assert.Empty(t, banks.calls, "no bank asked")
+	assert.Equal(t, Report{Carried: 1}, report)
+}
