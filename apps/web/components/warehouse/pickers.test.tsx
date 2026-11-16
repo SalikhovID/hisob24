@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { ALI, db, seedCatalog } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
+import { server } from "@/test/server"
 import { signIn } from "@/test/session"
 import { ProductPicker } from "./pickers"
 
@@ -58,4 +59,26 @@ test("every opening of the product sheet starts from «Hammasi»", async () => {
   sheet = await open(user)
   expect(await within(sheet).findByRole("radio", { name: "Hammasi" })).toHaveAttribute("aria-checked", "true")
   await waitFor(() => expect(offered(sheet)).toEqual(["Nok", "Olma"]))
+})
+
+test("in a sale's sheet the services follow the products; a chip keeps its category's products, the services not even asked", async () => {
+  const { olma } = seedCatalog()
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Mevalar", position: 1 })
+  olma.categoryId = 7001
+  await signIn(ALI)
+  const asked: string[] = []
+  const listen = ({ request }: { request: Request }) => {
+    const url = new URL(request.url)
+    if (url.pathname.endsWith("/app/products")) asked.push(url.search)
+  }
+  server.events.on("request:start", listen)
+  const { user } = renderWithProviders(<ProductPicker companyId={1} kinds={["product", "service"]} offer="price" value={null} onChange={() => {}} />)
+
+  const sheet = await open(user)
+  await waitFor(() => expect(offered(sheet)).toEqual(["Nok", "Olma", "Yetkazish"]))
+  asked.length = 0
+  await user.click(await within(sheet).findByRole("radio", { name: "Mevalar" }))
+  await waitFor(() => expect(offered(sheet)).toEqual(["Olma"]))
+  expect(asked.filter((query) => query.includes("kind=service"))).toEqual([])
+  server.events.removeListener("request:start", listen)
 })
