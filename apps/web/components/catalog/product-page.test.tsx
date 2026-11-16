@@ -49,6 +49,7 @@ test("the product page: its name, unit and SKU, its facts, its stock in every lo
   expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Xarid", "Nofaol qilish"])
   expect(within(actions).getByRole("link", { name: "Xarid" })).toHaveAttribute("href", `/purchases/new?product=${olma.id}`)
   expect(facts()).toEqual({
+    Kategoriya: "—",
     Birlik: "kg",
     Narx: "12 000 so'm",
     "Oxirgi xarid narxi": "1 000 so'm",
@@ -192,4 +193,22 @@ test("the product's page is headed by its name, its actions at the title's right
   expect(Array.from(actions.querySelectorAll("a, button"), (action) => action.textContent)).toEqual(["Tahrirlash", "Xarid", "Nofaol qilish"])
   expect(screen.getByRole("button", { name: "Mahsulotni o'chirish" }).closest('[data-slot="page-actions"]')).toBeNull()
   expect(document.querySelector('[data-slot="detail-head"]')).toBeNull()
+})
+
+test("the product's category stands first among its facts; «—» with none", async () => {
+  const { olma, nok } = seedCatalog()
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Mevalar", position: 1 })
+  olma.categoryId = 7001
+  await signIn(ALI)
+  const { unmount } = renderWithProviders(<ProductPage id={olma.id} />)
+
+  await screen.findByRole("heading", { level: 1, name: "Olma" })
+  const terms = within(screen.getByRole("region", { name: "Ma'lumot" })).getAllByRole("term")
+  expect(terms[0]).toHaveTextContent("Kategoriya")
+  expect(facts().Kategoriya).toBe("Mevalar")
+  unmount()
+
+  renderWithProviders(<ProductPage id={nok.id} />)
+  await screen.findByRole("heading", { level: 1, name: "Nok" })
+  expect(facts().Kategoriya).toBe("—")
 })

@@ -35,8 +35,9 @@ const backTo = (kind: ProductKind) =>
 // take their permission), as the prototype's page: its name over its unit
 // and SKU (and «Nofaol» when off), the actions at the title's right
 // (editing, a purchase of it, turning it off), its stock in each location
-// of the member, its facts, the purchases it is in and its moves (each with
-// its permission), and at the foot the way to delete it.
+// of the member, its facts (its category first), the purchases it is in
+// and its moves (each with its permission), and at the foot the way to
+// delete it.
 export function ProductPage({ id }: { id: number }) {
   const gate = usePermission("products.view")
   const companyId = gate?.company.id ?? null
@@ -102,6 +103,7 @@ export function ProductPage({ id }: { id: number }) {
       <section aria-label="Ma'lumot">
         <SectionHeading>Ma&apos;lumot</SectionHeading>
         <Group as="dl">
+          {isProduct && <KeyValue label="Kategoriya" value={p.category_name} />}
           {isProduct && <KeyValue label="Birlik" value={p.unit && unitLabel(p.unit)} />}
           <KeyValue label="Narx" value={p.price && formatMoney(p.price, currency)} />
           {isProduct && (
