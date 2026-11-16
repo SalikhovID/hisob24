@@ -639,13 +639,18 @@ type locationQuantityJSON struct {
 
 // getStockSummary is a page of the warehouse's «Qoldiq» table
 // (logic/warehouse.md, section 5): the products by name (?search= in the
-// name and the SKU), each with its stock in every location of the member's.
+// name and the SKU; ?category_id= a category's, or none for the ones with none),
+// each with its stock in every location of the member's.
 func (h *Handler) getStockSummary(w http.ResponseWriter, r *http.Request) {
 	page, ok := pageParam(w, r)
 	if !ok {
 		return
 	}
-	got, err := h.warehouse.StockSummary(r.Context(), warehouseScope(r), warehouse.StockSummaryInput{Search: r.URL.Query().Get("search"), Page: page})
+	category, ok := categoryParam(w, r)
+	if !ok {
+		return
+	}
+	got, err := h.warehouse.StockSummary(r.Context(), warehouseScope(r), warehouse.StockSummaryInput{Search: r.URL.Query().Get("search"), Category: category, Page: page})
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return

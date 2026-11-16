@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/httpx"
@@ -88,4 +89,23 @@ func (h *Handler) orderProductCategories(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// categoryParam reads ?category_id=: a category's id, or none (the
+// products with no category); with nothing every product is kept. Any other
+// value is refused (400), and false is returned.
+func categoryParam(w http.ResponseWriter, r *http.Request) (catalog.CategoryFilter, bool) {
+	raw := r.URL.Query().Get("category_id")
+	switch raw {
+	case "":
+		return catalog.CategoryFilter{}, true
+	case "none":
+		return catalog.CategoryFilter{None: true}, true
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		httpx.Error(w, http.StatusBadRequest, "validation_error", "Kategoriya noto'g'ri")
+		return catalog.CategoryFilter{}, false
+	}
+	return catalog.CategoryFilter{ID: id}, true
 }

@@ -110,13 +110,18 @@ func (in productInputJSON) input() catalog.Input {
 // active ones unless ?status=inactive, by name: ?search= looks in the
 // names and the SKUs, ?page= starts at 1. The stock shown is the member's
 // locations', or that of ?location_id= (one they may not work in: 403).
+// ?category_id= keeps a category's products (none: the ones with none).
 func (h *Handler) listProducts(w http.ResponseWriter, r *http.Request) {
 	locationID, ok := locationParam(w, r)
 	if !ok {
 		return
 	}
+	category, ok := categoryParam(w, r)
+	if !ok {
+		return
+	}
 	query := r.URL.Query()
-	in := catalog.ListInput{Kind: query.Get("kind"), Status: query.Get("status"), Search: query.Get("search"), Page: 1, LocationID: locationID}
+	in := catalog.ListInput{Kind: query.Get("kind"), Status: query.Get("status"), Search: query.Get("search"), Page: 1, LocationID: locationID, Category: category}
 	if p := query.Get("page"); p != "" {
 		n, err := strconv.Atoi(p)
 		if err != nil {

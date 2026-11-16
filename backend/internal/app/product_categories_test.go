@@ -122,3 +122,36 @@ func TestProductsCarryTheirCategory(t *testing.T) {
 		assert.JSONEq(t, fmt.Sprintf(`{"error":"validation_error","message":"%s"}`, tc.message), rec.Body.String(), name)
 	}
 }
+
+// The products and the warehouse's «Qoldiq» narrow to a category
+// (?category_id=), or to the products with none (?category_id=none); any
+// other value is refused (logic/products.md, section 5; logic/warehouse.md,
+// section 5).
+func TestListsNarrowToACategory(t *testing.T) {
+	api := newTestAPI(t)
+	s := api.newStore(t)
+	rec := api.do(t, http.MethodPost, "/app/product-categories", `{"name":"Ichimliklar"}`, bearer(s.owner))
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	drinks := decode(t, rec)["id"]
+	api.enterProduct(t, s.owner, fmt.Sprintf(`{"kind":"product","name":"Kola","unit":"dona","category_id":%v}`, drinks))
+	names := func(path string) []any {
+		rec := api.do(t, http.MethodGet, path, "", bearer(s.owner))
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		out := []any{}
+		for _, item := range decode(t, rec)["items"].([]any) {
+			out = append(out, item.(map[string]any)["name"])
+		}
+		return out
+	}
+
+	for _, list := range []string{"/app/products", "/app/stock/summary"} {
+		assert.Equal(t, []any{"Kola", "Olma"}, names(list), list+": every product")
+		assert.Equal(t, []any{"Kola"}, names(fmt.Sprintf("%s?category_id=%v", list, drinks)), list+": a category's own")
+		assert.Equal(t, []any{"Olma"}, names(list+"?category_id=none"), list+": the ones with none")
+		for _, bad := range []string{"abc", "0", "-1", "1.5"} {
+			rec := api.do(t, http.MethodGet, list+"?category_id="+bad, "", bearer(s.owner))
+			assert.Equal(t, http.StatusBadRequest, rec.Code, list+" "+bad)
+			assert.JSONEq(t, `{"error":"validation_error","message":"Kategoriya noto'g'ri"}`, rec.Body.String(), list+" "+bad)
+		}
+	}
+}
