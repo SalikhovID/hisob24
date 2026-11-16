@@ -28,6 +28,10 @@ type productJSON struct {
 	// service. LastPrice is the price of its newest live purchase or
 	// opening stock line, whatever the location, with that document's
 	// currency; null when it was never bought.
+	// CategoryID is the product's category and CategoryName its name
+	// (logic/products.md, 3.4); null with none, and for a service.
+	CategoryID    *int64         `json:"category_id"`
+	CategoryName  *string        `json:"category_name"`
 	Quantity      *string        `json:"quantity"`
 	LastPrice     *lastPriceJSON `json:"last_price"`
 	CreatedByName *string        `json:"created_by_name"`
@@ -43,7 +47,7 @@ type lastPriceJSON struct {
 func toProductJSON(p catalog.Product) productJSON {
 	out := productJSON{
 		ID: p.ID, Kind: p.Kind, Name: p.Name, Unit: p.Unit, SKU: p.SKU, Price: p.Price, CurrencyID: p.CurrencyID, Note: p.Note, IsActive: p.Active,
-		Quantity: p.Quantity, CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
+		Quantity: p.Quantity, CategoryID: p.CategoryID, CategoryName: p.CategoryName, CreatedByName: p.CreatedByName, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
 	if p.LastPrice != nil {
 		out.LastPrice = &lastPriceJSON{Amount: p.LastPrice.Amount, CurrencyID: p.LastPrice.CurrencyID}
@@ -93,11 +97,12 @@ type productInputJSON struct {
 	SKU        *string `json:"sku"`
 	Price      *string `json:"price"`
 	CurrencyID *int64  `json:"currency_id"`
+	CategoryID *int64  `json:"category_id"`
 	Note       *string `json:"note"`
 }
 
 func (in productInputJSON) input() catalog.Input {
-	return catalog.Input{Kind: in.Kind, Name: in.Name, Unit: in.Unit, SKU: in.SKU, Price: in.Price, CurrencyID: in.CurrencyID, Note: in.Note}
+	return catalog.Input{Kind: in.Kind, Name: in.Name, Unit: in.Unit, SKU: in.SKU, Price: in.Price, CurrencyID: in.CurrencyID, CategoryID: in.CategoryID, Note: in.Note}
 }
 
 // listProducts is a page of the products (?kind=product, the default) or

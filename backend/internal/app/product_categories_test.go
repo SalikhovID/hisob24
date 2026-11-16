@@ -84,3 +84,41 @@ func TestProductCategories(t *testing.T) {
 		assert.JSONEq(t, noPermission, rec.Body.String(), name)
 	}
 }
+
+// A product is entered and edited with its category, and every answer
+// carries the category's id and name (null with none); a service takes
+// none, nor does a category of none of the company's (logic/products.md,
+// 3.4).
+func TestProductsCarryTheirCategory(t *testing.T) {
+	api := newTestAPI(t)
+	olma := api.addCompany(t, "Olma", 30)
+	owner, _ := api.signIn(t, alisPhone, map[int64]string{olma: "owner"})
+	rec := api.do(t, http.MethodPost, "/app/product-categories", `{"name":"Ichimliklar"}`, bearer(owner))
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	drinks := decode(t, rec)["id"]
+
+	cola := api.enterProduct(t, owner, fmt.Sprintf(`{"kind":"product","name":"Kola","unit":"dona","category_id":%v}`, drinks))
+	assert.Equal(t, drinks, cola["category_id"])
+	assert.Equal(t, "Ichimliklar", cola["category_name"])
+	bread := api.enterProduct(t, owner, `{"kind":"product","name":"Non","unit":"dona"}`)
+	assert.Contains(t, bread, "category_id")
+	assert.Nil(t, bread["category_id"], "none with none")
+	assert.Contains(t, bread, "category_name")
+	assert.Nil(t, bread["category_name"])
+
+	rec = api.do(t, http.MethodGet, fmt.Sprintf("/app/products/%v", cola["id"]), "", bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "Ichimliklar", decode(t, rec)["category_name"], "its page carries it")
+	rec = api.do(t, http.MethodPut, fmt.Sprintf("/app/products/%v", bread["id"]), fmt.Sprintf(`{"name":"Non","unit":"dona","category_id":%v}`, drinks), bearer(owner))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "Ichimliklar", decode(t, rec)["category_name"], "an edit files it")
+
+	for name, tc := range map[string]struct{ body, message string }{
+		"a service with a category":           {fmt.Sprintf(`{"kind":"service","name":"Yetkazish","category_id":%v}`, drinks), "Xizmatga kategoriya berilmaydi"},
+		"a category of none of the company's": {`{"kind":"product","name":"Fanta","unit":"dona","category_id":999999}`, "Kategoriya noto'g'ri"},
+	} {
+		rec := api.do(t, http.MethodPost, "/app/products", tc.body, bearer(owner))
+		assert.Equal(t, http.StatusBadRequest, rec.Code, name)
+		assert.JSONEq(t, fmt.Sprintf(`{"error":"validation_error","message":"%s"}`, tc.message), rec.Body.String(), name)
+	}
+}
